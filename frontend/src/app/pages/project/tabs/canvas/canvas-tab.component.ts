@@ -43,16 +43,14 @@ import {
   type PlacementHandlers,
 } from '@services/canvas/canvas-placement.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
+import { CanvasSelectionService } from '@services/canvas/canvas-selection.service';
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
-import { LoggerService } from '@services/core/logger.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { RelationshipService } from '@services/relationship/relationship.service';
-import Konva from 'konva';
+import type Konva from 'konva';
 
-import { removePinRelationship } from './canvas-pin-helpers';
 import { downloadSvg } from './canvas-svg-export';
-import { getObjectIcon, getObjectLabel, rectsIntersect } from './canvas-utils';
+import { getObjectIcon, getObjectLabel } from './canvas-utils';
 
 /** Delay (ms) after sidebar toggle before telling Konva to resize */
 const SIDEBAR_RESIZE_DELAY_MS = 250;
@@ -81,6 +79,7 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
     CanvasKeyboardService,
     CanvasDrawingService,
     CanvasPlacementService,
+    CanvasSelectionService,
   ],
 })
 export class CanvasTabComponent implements OnInit, OnDestroy {
@@ -95,9 +94,8 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly canvasKeyboard = inject(CanvasKeyboardService);
   private readonly canvasDrawing = inject(CanvasDrawingService);
   private readonly canvasPlacement = inject(CanvasPlacementService);
+  private readonly canvasSelection = inject(CanvasSelectionService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly logger = inject(LoggerService);
-  private readonly relationshipService = inject(RelationshipService);
   private readonly presence = inject(PresenceService);
 
   /** Stable awareness location for this canvas tab. */
@@ -429,8 +427,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   private clearCanvasSelection(): void {
     this.selectedObjectId.set(null);
-    this.transformer?.nodes([]);
-    this.selectionLayer?.batchDraw();
+    this.canvasSelection.clearSelection();
   }
 
   private get drawingHandlers(): DrawingHandlers {
@@ -529,11 +526,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────
 
   private selectKonvaNode(node: Konva.Node): void {
-    if (!this.transformer) return;
-
-    // If node is a Group (like image or pin), attach transformer to it
-    this.transformer.nodes([node]);
-    this.selectionLayer?.batchDraw();
+    this.canvasSelection.selectNode(node);
   }
 
   /** Select all Konva nodes whose bounding box intersects the given rect. */
@@ -543,32 +536,10 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     width: number;
     height: number;
   }): void {
-    if (!this.transformer) return;
-
-    const selected: Konva.Node[] = [];
-
-    // Iterate every Konva layer (skipping the selection layer)
-    for (const [, kLayer] of this.konvaLayers) {
-      kLayer.getChildren().forEach(child => {
-        const box = child.getClientRect({ relativeTo: kLayer });
-        if (rectsIntersect(rect, box)) {
-          selected.push(child);
-        }
-      });
-    }
-
-    this.transformer.nodes(selected);
-
-    if (selected.length === 1) {
-      // Single selection → also track in selectedObjectId
-      const id = selected[0].id();
-      if (id) {
-        this.selectedObjectId.set(id);
-      }
-    } else {
-      // Multi-select → clear single object selection
-      this.selectedObjectId.set(null);
-    }
+    this.canvasSelection.selectNodesInRect(rect, {
+      onSingleSelected: id => this.selectedObjectId.set(id),
+      onCleared: () => this.selectedObjectId.set(null),
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -587,8 +558,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       onDelete: () => this.deleteSelectedObject(),
       onEscape: () => {
         this.selectedObjectId.set(null);
-        this.transformer?.nodes([]);
-        this.selectionLayer?.batchDraw();
+        this.canvasSelection.clearSelection();
         this.activeTool.set('select');
       },
       onToolChange: tool => this.onToolChange(tool),
@@ -724,34 +694,19 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   protected onDeleteObject(objectId: string, event: Event): void {
     event.stopPropagation();
-    // Clean up relationship if this is a linked pin
-    const obj = this.canvasService
-      .activeConfig()
-      ?.objects.find(o => o.id === objectId);
-    if (obj?.type === 'pin')
-      removePinRelationship(this.relationshipService, obj);
-    this.canvasService.removeObject(objectId);
+    this.canvasSelection.deleteObject(objectId);
     if (this.selectedObjectId() === objectId) {
       this.selectedObjectId.set(null);
-      this.transformer?.nodes([]);
-      this.selectionLayer?.batchDraw();
+      this.canvasSelection.clearSelection();
     }
   }
 
   private deleteSelectedObject(): void {
     const id = this.selectedObjectId();
-    if (id) {
-      // Clean up relationship if this is a linked pin
-      const obj = this.canvasService
-        .activeConfig()
-        ?.objects.find(o => o.id === id);
-      if (obj?.type === 'pin')
-        removePinRelationship(this.relationshipService, obj);
-      this.canvasService.removeObject(id);
-      this.selectedObjectId.set(null);
-      this.transformer?.nodes([]);
-      this.selectionLayer?.batchDraw();
-    }
+    if (!id) return;
+    this.canvasSelection.deleteObject(id);
+    this.selectedObjectId.set(null);
+    this.canvasSelection.clearSelection();
   }
 
   /** Get icon for an object type */
@@ -775,36 +730,14 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     // Record canvas-space position for paste
     this.contextMenuCanvasPos = this.getCanvasPointerPosition();
 
-    this.selectObjectAtPointer();
+    this.canvasSelection.selectObjectAtPointer({
+      onSelect: id => this.onSelectObject(id),
+    });
 
     // Open the menu on the next tick so Angular picks up position changes
     setTimeout(() => {
       this.contextMenuTrigger()?.openMenu();
     });
-  }
-
-  private selectObjectAtPointer(): void {
-    if (!this.stage) return;
-
-    const pos = this.stage.getPointerPosition();
-    if (!pos) return;
-
-    const shape = this.stage.getIntersection(pos);
-    if (!shape) return;
-
-    const target = this.getTopLayerNode(shape);
-    const objId = target.id();
-    if (objId && this.konvaNodes.has(objId)) {
-      this.onSelectObject(objId);
-    }
-  }
-
-  private getTopLayerNode(shape: Konva.Node): Konva.Node {
-    let target: Konva.Node = shape;
-    while (target.parent && !(target.parent instanceof Konva.Layer)) {
-      target = target.parent;
-    }
-    return target;
   }
 
   /** Copy the selected object to the clipboard */
@@ -819,8 +752,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     if (!id) return;
     if (this.canvasClipboard.cutObject(id)) {
       this.selectedObjectId.set(null);
-      this.transformer?.nodes([]);
-      this.selectionLayer?.batchDraw();
+      this.canvasSelection.clearSelection();
     }
   }
 

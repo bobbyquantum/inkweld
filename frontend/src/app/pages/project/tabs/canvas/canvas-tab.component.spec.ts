@@ -20,6 +20,7 @@ import { CanvasKeyboardService } from '@services/canvas/canvas-keyboard.service'
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
 import { CanvasPlacementService } from '@services/canvas/canvas-placement.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
+import { CanvasSelectionService } from '@services/canvas/canvas-selection.service';
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
@@ -278,6 +279,7 @@ describe('CanvasTabComponent', () => {
             CanvasKeyboardService,
             CanvasDrawingService,
             CanvasPlacementService,
+            CanvasSelectionService,
           ],
         },
       })
