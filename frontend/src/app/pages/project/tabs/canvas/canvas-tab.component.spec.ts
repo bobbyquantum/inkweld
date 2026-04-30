@@ -14,6 +14,7 @@ import {
 } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
+import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
@@ -266,6 +267,7 @@ describe('CanvasTabComponent', () => {
             { provide: CanvasService, useValue: mockCanvasService },
             { provide: CanvasRendererService, useValue: mockCanvasRenderer },
             CanvasLayerService,
+            CanvasZoomService,
           ],
         },
       })
@@ -984,7 +986,8 @@ describe('CanvasTabComponent', () => {
   describe('zoom actions', () => {
     it('should zoom in around the stage center', () => {
       mockCanvasRenderer.stage = createStageStub() as never;
-      const zoomToPointSpy = vi.spyOn(component as never, 'zoomToPoint');
+      const zoomService = component['canvasZoom'];
+      const zoomToPointSpy = vi.spyOn(zoomService, 'zoomToPoint');
 
       component['onZoomIn']();
 
@@ -993,7 +996,8 @@ describe('CanvasTabComponent', () => {
 
     it('should zoom out around the stage center', () => {
       mockCanvasRenderer.stage = createStageStub() as never;
-      const zoomToPointSpy = vi.spyOn(component as never, 'zoomToPoint');
+      const zoomService = component['canvasZoom'];
+      const zoomToPointSpy = vi.spyOn(zoomService, 'zoomToPoint');
 
       component['onZoomOut']();
 

@@ -52,6 +52,7 @@ import {
 import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
+import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
@@ -71,13 +72,6 @@ import { getObjectIcon, getObjectLabel, rectsIntersect } from './canvas-utils';
 /** Delay (ms) after sidebar toggle before telling Konva to resize */
 const SIDEBAR_RESIZE_DELAY_MS = 250;
 
-/** Min/max zoom levels */
-const MIN_ZOOM = 0.05;
-const MAX_ZOOM = 20;
-
-/** Zoom step multiplier for wheel events */
-const ZOOM_STEP = 1.1;
-
 @Component({
   selector: 'app-canvas-tab',
   templateUrl: './canvas-tab.component.html',
@@ -92,7 +86,12 @@ const ZOOM_STEP = 1.1;
     TabPresenceIndicatorComponent,
     DocumentBreadcrumbsComponent,
   ],
-  providers: [CanvasService, CanvasRendererService, CanvasLayerService],
+  providers: [
+    CanvasService,
+    CanvasRendererService,
+    CanvasLayerService,
+    CanvasZoomService,
+  ],
 })
 export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
@@ -100,6 +99,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly canvasService = inject(CanvasService);
   private readonly canvasRenderer = inject(CanvasRendererService);
   private readonly canvasLayer = inject(CanvasLayerService);
+  private readonly canvasZoom = inject(CanvasZoomService);
   private readonly dialog = inject(MatDialog);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly localStorageService = inject(LocalStorageService);
@@ -391,30 +391,14 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     // Wheel zoom
     this.stage!.on('wheel', e => {
       e.evt.preventDefault();
-      const oldScale = this.stage!.scaleX();
       const pointer = this.stage!.getPointerPosition();
       if (!pointer) return;
-
-      const direction = e.evt.deltaY > 0 ? -1 : 1;
-      const newScale = Math.min(
-        Math.max(
-          direction > 0 ? oldScale * ZOOM_STEP : oldScale / ZOOM_STEP,
-          MIN_ZOOM
-        ),
-        MAX_ZOOM
-      );
-
-      const mousePointTo = {
-        x: (pointer.x - this.stage!.x()) / oldScale,
-        y: (pointer.y - this.stage!.y()) / oldScale,
-      };
-
-      this.stage!.scale({ x: newScale, y: newScale });
-      this.stage!.position({
-        x: pointer.x - mousePointTo.x * newScale,
-        y: pointer.y - mousePointTo.y * newScale,
-      });
-      this.zoomLevel.set(newScale);
+      const factor =
+        e.evt.deltaY > 0
+          ? 1 / CanvasZoomService.ZOOM_STEP
+          : CanvasZoomService.ZOOM_STEP;
+      const newScale = this.canvasZoom.zoomToPoint(pointer, factor);
+      if (newScale !== null) this.zoomLevel.set(newScale);
     });
 
     // Click on empty space → deselect
@@ -1506,93 +1490,23 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   }
 
   protected onZoomIn(): void {
-    if (!this.stage) return;
-    const center = {
-      x: this.stage.width() / 2,
-      y: this.stage.height() / 2,
-    };
-    this.zoomToPoint(center, ZOOM_STEP);
+    const z = this.canvasZoom.zoomIn();
+    if (z !== null) this.zoomLevel.set(z);
   }
 
   protected onZoomOut(): void {
-    if (!this.stage) return;
-    const center = {
-      x: this.stage.width() / 2,
-      y: this.stage.height() / 2,
-    };
-    this.zoomToPoint(center, 1 / ZOOM_STEP);
+    const z = this.canvasZoom.zoomOut();
+    if (z !== null) this.zoomLevel.set(z);
   }
 
   protected onFitAll(): void {
-    if (!this.stage) return;
-
-    // Find bounding box of all content
-    const config = this.canvasService.activeConfig();
-    if (!config || config.objects.length === 0) {
-      this.stage.position({ x: 0, y: 0 });
-      this.stage.scale({ x: 1, y: 1 });
-      this.zoomLevel.set(1);
-      return;
-    }
-
-    // Get bounds of all visible layers' nodes
-    let minX = Infinity,
-      minY = Infinity,
-      maxX = -Infinity,
-      maxY = -Infinity;
-
-    for (const kLayer of this.konvaLayers.values()) {
-      if (!kLayer.visible()) continue;
-      const rect = kLayer.getClientRect({ skipTransform: true });
-      if (rect.width === 0 && rect.height === 0) continue;
-      minX = Math.min(minX, rect.x);
-      minY = Math.min(minY, rect.y);
-      maxX = Math.max(maxX, rect.x + rect.width);
-      maxY = Math.max(maxY, rect.y + rect.height);
-    }
-
-    if (!Number.isFinite(minX)) return;
-
-    const contentWidth = maxX - minX;
-    const contentHeight = maxY - minY;
-    const padding = 40;
-
-    const scaleX =
-      (this.stage.width() - padding * 2) / Math.max(contentWidth, 1);
-    const scaleY =
-      (this.stage.height() - padding * 2) / Math.max(contentHeight, 1);
-    const scale = Math.min(scaleX, scaleY, MAX_ZOOM);
-
-    this.stage.scale({ x: scale, y: scale });
-    this.stage.position({
-      x:
-        -minX * scale +
-        padding +
-        (this.stage.width() - padding * 2 - contentWidth * scale) / 2,
-      y:
-        -minY * scale +
-        padding +
-        (this.stage.height() - padding * 2 - contentHeight * scale) / 2,
-    });
-    this.zoomLevel.set(scale);
+    const z = this.canvasZoom.fitAll();
+    if (z !== null) this.zoomLevel.set(z);
   }
 
   private zoomToPoint(point: { x: number; y: number }, factor: number): void {
-    if (!this.stage) return;
-    const oldScale = this.stage.scaleX();
-    const newScale = Math.min(Math.max(oldScale * factor, MIN_ZOOM), MAX_ZOOM);
-
-    const mousePointTo = {
-      x: (point.x - this.stage.x()) / oldScale,
-      y: (point.y - this.stage.y()) / oldScale,
-    };
-
-    this.stage.scale({ x: newScale, y: newScale });
-    this.stage.position({
-      x: point.x - mousePointTo.x * newScale,
-      y: point.y - mousePointTo.y * newScale,
-    });
-    this.zoomLevel.set(newScale);
+    const z = this.canvasZoom.zoomToPoint(point, factor);
+    if (z !== null) this.zoomLevel.set(z);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
