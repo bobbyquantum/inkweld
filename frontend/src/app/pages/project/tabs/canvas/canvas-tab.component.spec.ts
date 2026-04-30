@@ -16,6 +16,7 @@ import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { CanvasColorService } from '@services/canvas/canvas-color.service';
+import { CanvasClipboardService } from '@services/canvas/canvas-clipboard.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
@@ -270,6 +271,7 @@ describe('CanvasTabComponent', () => {
             CanvasLayerService,
             CanvasZoomService,
             CanvasColorService,
+            CanvasClipboardService,
           ],
         },
       })

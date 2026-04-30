@@ -46,6 +46,7 @@ import {
   createDefaultToolSettings,
 } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
+import { CanvasClipboardService } from '@services/canvas/canvas-clipboard.service';
 import { CanvasColorService } from '@services/canvas/canvas-color.service';
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
@@ -89,6 +90,7 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
     CanvasLayerService,
     CanvasZoomService,
     CanvasColorService,
+    CanvasClipboardService,
   ],
 })
 export class CanvasTabComponent implements OnInit, OnDestroy {
@@ -99,6 +101,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly canvasLayer = inject(CanvasLayerService);
   private readonly canvasZoom = inject(CanvasZoomService);
   private readonly canvasColor = inject(CanvasColorService);
+  private readonly canvasClipboard = inject(CanvasClipboardService);
   private readonly dialog = inject(MatDialog);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly localStorageService = inject(LocalStorageService);
@@ -155,11 +158,8 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   /** Current zoom level (updated by Konva stage events) */
   protected readonly zoomLevel = signal<number>(1);
 
-  /** Clipboard for cut/copy/paste operations */
-  protected readonly clipboard = signal<CanvasObject | null>(null);
-
-  /** Whether the last clipboard operation was a cut (removes original on paste) */
-  private clipboardIsCut = false;
+  /** Clipboard for cut/copy/paste operations (proxied to CanvasClipboardService) */
+  protected readonly clipboard = this.canvasClipboard.clipboard;
 
   /** Position (in page pixels) where the context menu should appear */
   protected contextMenuPosition = { x: 0, y: 0 };
@@ -1535,37 +1535,15 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   /** Copy the selected object to the clipboard */
   protected onCopy(): void {
-    const config = this.canvasService.activeConfig();
     const id = this.selectedObjectId();
-    if (!config || !id) return;
-
-    const obj = config.objects.find(o => o.id === id);
-    if (obj) {
-      // Strip relationship ownership so copies don't share IDs
-      const copy =
-        obj.type === 'pin' ? { ...obj, relationshipId: undefined } : { ...obj };
-      this.clipboard.set(copy);
-      this.clipboardIsCut = false;
-    }
+    if (id) this.canvasClipboard.copy(id);
   }
 
   /** Cut the selected object (copy + remove) */
   protected onCut(): void {
-    const config = this.canvasService.activeConfig();
     const id = this.selectedObjectId();
-    if (!config || !id) return;
-
-    const obj = config.objects.find(o => o.id === id);
-    if (obj) {
-      // Clean up relationship if cutting a linked pin
-      if (obj.type === 'pin')
-        removePinRelationship(this.relationshipService, obj);
-      // Strip stale relationship ID from clipboard
-      const copy =
-        obj.type === 'pin' ? { ...obj, relationshipId: undefined } : { ...obj };
-      this.clipboard.set(copy);
-      this.clipboardIsCut = true;
-      this.canvasService.removeObject(id);
+    if (!id) return;
+    if (this.canvasClipboard.cutObject(id)) {
       this.selectedObjectId.set(null);
       this.transformer?.nodes([]);
       this.selectionLayer?.batchDraw();
@@ -1574,65 +1552,21 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   /** Paste from clipboard at the context menu position (or viewport center) */
   protected onPaste(): void {
-    const source = this.clipboard();
-    if (!source) return;
-
+    if (!this.clipboard()) return;
     const layerId = this.ensureActiveLayer();
     if (!layerId) return;
-
-    // Determine paste position
-    const pastePos = this.contextMenuCanvasPos ?? this.getViewportCenter();
-
-    const PASTE_OFFSET = 20;
-    const newObj: CanvasObject = {
-      ...source,
-      id: nanoid(),
-      layerId,
-      x: pastePos.x + PASTE_OFFSET,
-      y: pastePos.y + PASTE_OFFSET,
-    };
-
-    // Create a fresh relationship for pasted linked pins
-    if (newObj.type === 'pin' && newObj.linkedElementId) {
-      newObj.relationshipId = createPinRelationship(
-        this.relationshipService,
-        this.elementId(),
-        newObj.linkedElementId
-      );
-    }
-
-    this.canvasService.addObject(newObj);
-
-    // If it was a cut, clear the clipboard so it can only be pasted once
-    if (this.clipboardIsCut) {
-      this.clipboard.set(null);
-      this.clipboardIsCut = false;
-    }
-
-    // Select the newly pasted object
-    this.selectedObjectId.set(newObj.id);
+    const pos = this.contextMenuCanvasPos ?? this.getViewportCenter();
+    const newId = this.canvasClipboard.paste(layerId, pos, this.elementId());
+    if (newId) this.selectedObjectId.set(newId);
     this.contextMenuCanvasPos = null;
   }
 
   /** Duplicate the selected object with a small offset */
   protected onDuplicateObject(): void {
-    const config = this.canvasService.activeConfig();
     const id = this.selectedObjectId();
-    if (!config || !id) return;
-
-    const obj = config.objects.find(o => o.id === id);
-    if (!obj) return;
-
-    const OFFSET = 20;
-    const duplicate: CanvasObject = {
-      ...obj,
-      id: nanoid(),
-      x: obj.x + OFFSET,
-      y: obj.y + OFFSET,
-    };
-
-    this.canvasService.addObject(duplicate);
-    this.selectedObjectId.set(duplicate.id);
+    if (!id) return;
+    const newId = this.canvasClipboard.duplicate(id);
+    if (newId) this.selectedObjectId.set(newId);
   }
 
   /** Delete from context menu (no event arg needed) */
