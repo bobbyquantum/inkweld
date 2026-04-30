@@ -61,7 +61,7 @@
         </div>
       } @else {
         <div class="units-list" data-testid="time-system-edit-units-list">
-          @for (unit of units(); track $index; let i = $index) {
+          @for (unit of units(); track unit._id; let i = $index) {
             <div
               class="unit-row"
               [attr.data-testid]="'time-system-edit-unit-row-' + i">

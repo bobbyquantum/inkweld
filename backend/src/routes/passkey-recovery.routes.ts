@@ -27,7 +27,7 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { configService } from '../services/config.service';
 import { passkeyRecoveryService } from '../services/passkey-recovery.service';
-import { rpFromContext } from './passkey.routes';
+import { rpFromContext } from '../utils/webauthn-utils';
 import {
   PasskeyRecoveryRequestSchema,
   PasskeyRecoveryStartRequestSchema,

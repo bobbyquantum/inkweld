@@ -2,10 +2,10 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { RelationshipCategory } from '@models/element-ref.model';
+import { type ElementTypeSchema } from '@models/schema-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { RelationshipCategory } from '../../components/element-ref/element-ref.model';
-import { type ElementTypeSchema } from '../../models/schema-types';
 import {
   CATEGORY_OPTIONS,
   EditRelationshipTypeDialogComponent,

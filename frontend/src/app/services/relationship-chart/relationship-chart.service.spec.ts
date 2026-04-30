@@ -1,13 +1,13 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import {
   type ElementRelationship,
   RelationshipCategory,
   type RelationshipTypeDefinition,
-} from '../../components/element-ref/element-ref.model';
+} from '@models/element-ref.model';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { RelationshipService } from '../relationship/relationship.service';

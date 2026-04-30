@@ -5,8 +5,8 @@ import {
   MatDialog,
   MatDialogRef,
 } from '@angular/material/dialog';
-import { type TagDefinition } from '@components/tags/tag.model';
 import { type Element, ElementType } from '@inkweld/index';
+import { type TagDefinition } from '@models/tag.model';
 import { MediaTagService } from '@services/media-tag/media-tag.service';
 import { MediaProjectTagService } from '@services/project/media-project-tag.service';
 import { ProjectStateService } from '@services/project/project-state.service';

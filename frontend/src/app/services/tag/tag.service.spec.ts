@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import { BehaviorSubject, of } from 'rxjs';
 import {
   beforeEach,
@@ -9,10 +10,6 @@ import {
   vi,
 } from 'vitest';
 
-import {
-  type ElementTag,
-  type TagDefinition,
-} from '../../components/tags/tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';

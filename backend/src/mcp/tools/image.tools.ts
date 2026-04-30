@@ -9,7 +9,7 @@
 import { registerTool } from '../mcp.handler';
 import type { McpContext, McpToolResult, ActiveProjectContext } from '../mcp.types';
 import { getProjectByKey, hasProjectPermission } from '../mcp.types';
-import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
+import { MCP_PERMISSIONS } from '../../services/mcp-key.service';
 import { lookup } from 'mime-types';
 import { imageGenerationService } from '../../services/image-generation.service';
 import { imageProfileService } from '../../services/image-profile.service';

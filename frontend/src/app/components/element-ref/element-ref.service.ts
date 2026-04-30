@@ -6,16 +6,16 @@
 
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
+import {
+  type ElementRefClickEvent,
+  type ElementRefNodeAttrs,
+  type ElementSearchResult,
+} from '@models/element-ref.model';
 import type { EditorView } from 'prosemirror-view';
 
 import { LoggerService } from '../../services/core/logger.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
-import {
-  type ElementRefClickEvent,
-  type ElementRefNodeAttrs,
-  type ElementSearchResult,
-} from './element-ref.model';
 import { type ElementRefTooltipData } from './element-ref-tooltip/element-ref-tooltip.component';
 
 /**

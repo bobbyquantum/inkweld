@@ -5,7 +5,7 @@
  * https://modelcontextprotocol.io/specification/2025-06-18
  */
 
-import type { McpAccessKey, McpPermission } from '../db/schema/mcp-access-keys';
+import type { McpAccessKey, McpPermission } from '../services/mcp-key.service';
 import type { DurableObjectNamespace } from '../types/cloudflare';
 
 // ============================================

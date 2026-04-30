@@ -32,14 +32,9 @@ import {
   CommentPopoverComponent,
 } from '@components/comment-mark';
 import { type InsertLinkDialogResult } from '@dialogs/insert-link-dialog/insert-link-dialog.component';
-import {
-  SnapshotsDialogComponent,
-  type SnapshotsDialogData,
-} from '@dialogs/snapshots-dialog/snapshots-dialog.component';
-import {
-  TagEditorDialogComponent,
-  type TagEditorDialogData,
-} from '@dialogs/tag-editor-dialog/tag-editor-dialog.component';
+import { type SnapshotsDialogData } from '@dialogs/snapshots-dialog/snapshots-dialog.component';
+import { type TagEditorDialogData } from '@dialogs/tag-editor-dialog/tag-editor-dialog.component';
+import { type ResolvedTag } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { FindInDocumentService } from '@services/core/find-in-document.service';
 import { InsertImageService } from '@services/core/insert-image.service';
@@ -77,7 +72,6 @@ import { FindInDocumentComponent } from '../find-in-document';
 import { createMediaUrl } from '../image-paste';
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
 import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
-import { type ResolvedTag } from '../tags/tag.model';
 
 @Component({
   selector: 'app-document-element-editor',
@@ -838,11 +832,7 @@ export class DocumentElementEditorComponent
       elementName: this.elementName(),
     };
 
-    this.dialog.open(TagEditorDialogComponent, {
-      data,
-      width: '450px',
-      autoFocus: false,
-    });
+    this.dialogGateway.openTagEditorDialog(data);
   }
 
   /**
@@ -854,11 +844,7 @@ export class DocumentElementEditorComponent
       currentWordCount: this.wordCount(),
     };
 
-    this.dialog.open(SnapshotsDialogComponent, {
-      data,
-      width: '550px',
-      autoFocus: false,
-    });
+    this.dialogGateway.openSnapshotsDialog(data);
   }
 
   /**

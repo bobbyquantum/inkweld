@@ -16,13 +16,13 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { type TagDefinition } from '@components/tags/tag.model';
 import {
   TagPickerDialogComponent,
   type TagPickerDialogData,
   type TagPickerDialogResult,
 } from '@dialogs/tag-picker-dialog/tag-picker-dialog.component';
 import { type Element } from '@inkweld/index';
+import { type TagDefinition } from '@models/tag.model';
 import { MediaTagService } from '@services/media-tag/media-tag.service';
 import { MediaProjectTagService } from '@services/project/media-project-tag.service';
 import { ProjectStateService } from '@services/project/project-state.service';

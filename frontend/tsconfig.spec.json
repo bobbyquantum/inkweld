@@ -12,6 +12,7 @@
       "@dialogs/*": ["./src/app/dialogs/*"],
       "@models/*": ["./src/app/models/*"],
       "@services/*": ["./src/app/services/*"],
+      "@editor": ["./src/app/editor/index.ts"],
       "@themes/*": ["./src/themes/*"],
       "@package": ["./package.json"]
     }

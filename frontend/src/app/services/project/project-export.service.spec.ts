@@ -1,15 +1,15 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType, ImagesService } from '@inkweld/index';
-import JSZip from '@progress/jszip-esm';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
-
 import {
   type ElementRelationship,
   RelationshipCategory,
   type RelationshipTypeDefinition,
-} from '../../components/element-ref/element-ref.model';
+} from '@models/element-ref.model';
+import JSZip from '@progress/jszip-esm';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
+
 import {
   ARCHIVE_VERSION,
   type ArchiveManifest,

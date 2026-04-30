@@ -8,7 +8,7 @@ import * as decoding from 'lib0/decoding';
 import { type WebSocket } from 'ws';
 import { fileStorageService } from './file-storage.service';
 import * as path from 'node:path';
-import { type Element, type ElementType } from '../schemas/element.schemas';
+import { type Element, type ElementType } from '../types/element.types';
 import { logger } from './logger.service';
 
 const yjsLog = logger.child('Yjs');

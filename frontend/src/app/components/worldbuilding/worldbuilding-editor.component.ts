@@ -22,7 +22,6 @@ import {
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatDialog } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -30,20 +29,15 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { type ResolvedTag } from '@models/tag.model';
 import { debounceTime } from 'rxjs';
 
 import {
   type Element as ApiElement,
   type ElementType,
 } from '../../../api-client';
-import {
-  SnapshotsDialogComponent,
-  type SnapshotsDialogData,
-} from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
-import {
-  TagEditorDialogComponent,
-  type TagEditorDialogData,
-} from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
+import { type SnapshotsDialogData } from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
+import { type TagEditorDialogData } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
 import {
   type ElementTypeSchema,
   type FieldSchema,
@@ -55,7 +49,6 @@ import { ElementSyncProviderFactory } from '../../services/sync/element-sync-pro
 import { TagService } from '../../services/tag/tag.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
-import { type ResolvedTag } from '../tags/tag.model';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
 import { MediaPanelComponent } from './media-panel/media-panel.component';
 
@@ -95,7 +88,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   private readonly worldbuildingService = inject(WorldbuildingService);
   protected readonly projectState = inject(ProjectStateService);
   private readonly dialogGateway = inject(DialogGatewayService);
-  private readonly dialog = inject(MatDialog);
   private readonly tagService = inject(TagService);
   private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
 
@@ -127,11 +119,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       elementId: this.elementId(),
       elementName: this.elementName(),
     };
-    this.dialog.open(TagEditorDialogComponent, {
-      data,
-      width: '450px',
-      autoFocus: false,
-    });
+    this.dialogGateway.openTagEditorDialog(data);
   }
 
   /** Reference to the identity panel for accessing its resolved image URL */
@@ -627,10 +615,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       documentId: this.elementId(),
     };
 
-    this.dialog.open(SnapshotsDialogComponent, {
-      data,
-      width: '550px',
-      autoFocus: false,
-    });
+    this.dialogGateway.openSnapshotsDialog(data);
   }
 }

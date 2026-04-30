@@ -1,12 +1,10 @@
-import { type ElementType } from '../../api-client';
 import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
-} from '../components/element-ref/element-ref.model';
-import {
-  type ElementTag,
-  type TagDefinition,
-} from '../components/tags/tag.model';
+} from '@models/element-ref.model';
+import { type ElementTag, type TagDefinition } from '@models/tag.model';
+
+import { type ElementType } from '../../api-client';
 import { type MediaTag } from './media-tag.model';
 import { type PublishPlan } from './publish-plan';
 import { type ElementTypeSchema } from './schema-types';

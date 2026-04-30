@@ -11,11 +11,11 @@ import { type IndexeddbPersistence } from 'y-indexeddb';
 import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import { LintApiService } from '../../components/lint/lint-api.service';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { SetupService } from '../core/setup.service';
 import { SystemConfigService } from '../core/system-config.service';
+import { LintApiService } from '../lint/lint-api.service';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
@@ -31,7 +31,7 @@ describe('DocumentService', () => {
   let service: DocumentService;
   let mockProjectStateService: DeepMockProxy<ProjectStateService>;
   let mockDocumentsService: DeepMockProxy<DocumentsService>;
-  let mockLintApiService: DeepMockProxy<LintApiService>;
+  let mockLintApiService: Partial<LintApiService>;
   let mockYDoc: DeepMockProxy<Y.Doc>;
   let mockWebSocketProvider: DeepMockProxy<WebsocketProvider>;
   let _mockIndexedDbProvider: DeepMockProxy<IndexeddbPersistence>;
@@ -119,7 +119,7 @@ describe('DocumentService', () => {
         style_recommendations: [],
         source: 'openai',
       }),
-    } as unknown as DeepMockProxy<LintApiService>;
+    };
 
     // Mock SetupService
     mockSetupService = {

@@ -1,17 +1,14 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
+import {
+  type ElementRelationship,
+  type RelationshipTypeDefinition,
+} from '@models/element-ref.model';
+import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import { nanoid } from 'nanoid';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
 
-import {
-  type ElementRelationship,
-  type RelationshipTypeDefinition,
-} from '../../components/element-ref/element-ref.model';
-import {
-  type ElementTag,
-  type TagDefinition,
-} from '../../components/tags/tag.model';
 import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';

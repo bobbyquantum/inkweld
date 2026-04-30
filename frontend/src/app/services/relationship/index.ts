@@ -10,8 +10,8 @@ export type {
   ElementRelationshipView,
   RelationshipTypeDefinition,
   ResolvedRelationship,
-} from '../../components/element-ref/element-ref.model';
+} from '@models/element-ref.model';
 
 // Create an alias for backwards compatibility and clarity
 export type StoredRelationship =
-  import('../../components/element-ref/element-ref.model').ElementRelationship;
+  import('@models/element-ref.model').ElementRelationship;

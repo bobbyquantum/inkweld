@@ -112,7 +112,7 @@ describe('LintApiService', () => {
 
   it('should set the ABORT_SIGNAL token in the context', async () => {
     // Mock response
-    lintService.lintParagraph.mockReturnValue(apiOk({} as LintResponse));
+    lintService.lintParagraph.mockReturnValue(apiOk({} as any));
 
     // Spy on HttpContext.set
     const contextSpy = vi.spyOn(HttpContext.prototype, 'set');
@@ -157,7 +157,7 @@ describe('LintApiService', () => {
 
   it('should create AbortSignal with the correct timeout value', async () => {
     // Mock response
-    lintService.lintParagraph.mockReturnValue(apiOk({} as LintResponse));
+    lintService.lintParagraph.mockReturnValue(apiOk({} as any));
 
     // Call the service
     await service.run('test text');

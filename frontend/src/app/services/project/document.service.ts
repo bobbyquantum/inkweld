@@ -7,7 +7,18 @@ import {
   type WritableSignal,
 } from '@angular/core';
 import { type Editor } from '@bobbyquantum/ngx-editor';
-import { createCommentPlugin } from '@components/comment-mark/comment-plugin';
+import {
+  createCommentPlugin,
+  createElementRefPlugin,
+  createFindPlugin,
+  createImagePastePlugin,
+  createKeyboardShortcutsPlugin,
+  createLintPlugin,
+  ElementRefService,
+  extractMediaId,
+  generateMediaId,
+  isMediaUrl,
+} from '@editor';
 import { DocumentsService } from '@inkweld/index';
 import { generateUserColor } from '@services/presence/user-color';
 import { Plugin } from 'prosemirror-state';
@@ -22,20 +33,6 @@ import {
 import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import { createKeyboardShortcutsPlugin } from '../../components/editor-shortcuts';
-import {
-  createElementRefPlugin,
-  ElementRefService,
-} from '../../components/element-ref';
-import { createFindPlugin } from '../../components/find-in-document';
-import {
-  createImagePastePlugin,
-  extractMediaId,
-  generateMediaId,
-  isMediaUrl,
-} from '../../components/image-paste';
-import { LintApiService } from '../../components/lint/lint-api.service';
-import { createLintPlugin } from '../../components/lint/lint-plugin';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { FindInDocumentService } from '../core/find-in-document.service';
@@ -46,6 +43,7 @@ import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { SystemConfigService } from '../core/system-config.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
+import { LintApiService } from '../lint/lint-api.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import {
   createAuthenticatedWebsocketProvider,

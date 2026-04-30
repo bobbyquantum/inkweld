@@ -25,7 +25,6 @@ import { type MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { createMediaUrl, extractMediaId } from '@components/image-paste';
 import { MediaItemCardComponent } from '@components/media-item-card/media-item-card.component';
-import { type TagDefinition } from '@components/tags/tag.model';
 import {
   AddMediaDialogComponent,
   type AddMediaDialogData,
@@ -39,6 +38,7 @@ import {
 } from '@dialogs/tag-picker-dialog/tag-picker-dialog.component';
 import { ElementType } from '@inkweld/index';
 import type { CanvasConfig } from '@models/canvas.model';
+import { type TagDefinition } from '@models/tag.model';
 import {
   type GenerationJob,
   ImageGenerationService,

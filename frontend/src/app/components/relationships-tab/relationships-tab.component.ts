@@ -7,25 +7,24 @@ import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import {
-  getCategoryIcon,
-  getCategoryLabel,
-  type RelationshipCategory,
-  type RelationshipTypeDefinition,
-} from '@components/element-ref/element-ref.model';
+import { SettingsTabStatusComponent } from '@components/settings-tab-status/settings-tab-status.component';
 import {
   EditRelationshipTypeDialogComponent,
   type EditRelationshipTypeDialogData,
   type EditRelationshipTypeDialogResult,
 } from '@dialogs/edit-relationship-type-dialog/edit-relationship-type-dialog.component';
 import { DocumentSyncState } from '@models/document-sync-state';
+import {
+  getCategoryIcon,
+  getCategoryLabel,
+  type RelationshipCategory,
+  type RelationshipTypeDefinition,
+} from '@models/element-ref.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { firstValueFrom } from 'rxjs';
-
-import { SettingsTabStatusComponent } from '../settings-tab-status.component';
 
 /**
  * View model for relationship types displayed in the list

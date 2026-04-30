@@ -12,18 +12,12 @@ import {
   type WritableSignal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { firstValueFrom } from 'rxjs';
 
 import { type Element, ElementType } from '../../../api-client/model/models';
-import {
-  ElementPickerDialogComponent,
-  type ElementPickerDialogData,
-  type ElementPickerDialogResult,
-} from '../../dialogs/element-picker-dialog/element-picker-dialog.component';
+import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import {
   type WorldbuildingIdentity,
@@ -102,7 +96,7 @@ export interface SelectionChangeEvent {
 export class WorldbuildingElementSelectorComponent implements OnInit {
   private readonly projectState = inject(ProjectStateService);
   private readonly worldbuildingService = inject(WorldbuildingService);
-  private readonly dialog = inject(MatDialog);
+  private readonly dialogGateway = inject(DialogGatewayService);
 
   /** Maximum number of elements that can be selected */
   readonly maxElements = input<number>(4);
@@ -244,22 +238,12 @@ export class WorldbuildingElementSelectorComponent implements OnInit {
 
     const remainingSlots = this.maxElements() - this.selectedElements().length;
 
-    const dialogRef = this.dialog.open<
-      ElementPickerDialogComponent,
-      ElementPickerDialogData,
-      ElementPickerDialogResult
-    >(ElementPickerDialogComponent, {
-      width: '500px',
-      maxHeight: '80vh',
-      data: {
-        filterType: ElementType.Worldbuilding,
-        excludeIds: this.selectedIds(),
-        maxSelections: remainingSlots,
-        title: 'Add Worldbuilding Elements',
-      },
+    const result = await this.dialogGateway.openElementPickerDialog({
+      filterType: ElementType.Worldbuilding,
+      excludeIds: this.selectedIds(),
+      maxSelections: remainingSlots,
+      title: 'Add Worldbuilding Elements',
     });
-
-    const result = await firstValueFrom(dialogRef.afterClosed());
 
     if (result?.elements.length) {
       for (const element of result.elements) {
