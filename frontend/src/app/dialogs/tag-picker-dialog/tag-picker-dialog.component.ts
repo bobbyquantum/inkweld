@@ -17,8 +17,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { type TagDefinition } from '@components/tags/tag.model';
 import { type Element, ElementType } from '@inkweld/index';
+import { type TagDefinition } from '@models/tag.model';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
 

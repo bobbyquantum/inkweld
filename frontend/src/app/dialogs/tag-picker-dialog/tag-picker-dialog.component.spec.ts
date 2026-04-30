@@ -6,8 +6,8 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { type TagDefinition } from '@components/tags/tag.model';
 import { type Element, ElementType } from '@inkweld/index';
+import { type TagDefinition } from '@models/tag.model';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
 import { describe, expect, it, vi } from 'vitest';

@@ -15,8 +15,8 @@ import {
   untracked,
 } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
+import { type RelationshipTypeDefinition } from '@models/element-ref.model';
 
-import { type RelationshipTypeDefinition } from '../../components/element-ref/element-ref.model';
 import {
   type ChartConfig,
   type ChartEdge,

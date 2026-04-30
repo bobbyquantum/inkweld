@@ -13,15 +13,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { SettingsTabStatusComponent } from '@components/settings-tab-status/settings-tab-status.component';
+import { type ElementTypeSchema, type TabSchema } from '@models/schema-types';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 
-import {
-  type ElementTypeSchema,
-  type TabSchema,
-} from '../../../../models/schema-types';
-import { SettingsTabStatusComponent } from '../settings-tab-status.component';
 import { TemplateEditorPageComponent } from './template-editor-page/template-editor-page.component';
 
 /**

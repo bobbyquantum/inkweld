@@ -15,7 +15,7 @@
 import type { McpContext, McpToolResult, ActiveProjectContext } from '../mcp.types';
 import { getProjectByKey, hasProjectPermission } from '../mcp.types';
 import { registerTool } from '../mcp.handler';
-import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
+import { MCP_PERMISSIONS } from '../../services/mcp-key.service';
 import { yjsService } from '../../services/yjs.service';
 import { YjsWorkerService } from '../../services/yjs-worker.service';
 import { getStorageService } from '../../services/storage.service';

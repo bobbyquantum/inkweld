@@ -1,9 +1,9 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { type Element, ElementType, ImagesService } from '@inkweld/index';
+import { type ElementRelationship } from '@models/element-ref.model';
 import JSZip from '@progress/jszip-esm';
 import { firstValueFrom } from 'rxjs';
 
-import { type ElementRelationship } from '../../components/element-ref/element-ref.model';
 import {
   ARCHIVE_VERSION,
   type ArchiveDocumentContent,

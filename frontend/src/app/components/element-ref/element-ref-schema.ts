@@ -6,10 +6,10 @@
  * within document content.
  */
 
+import { type ElementRefNodeAttrs } from '@models/element-ref.model';
 import { type NodeSpec } from 'prosemirror-model';
 
 import { type ElementType } from '../../../api-client';
-import { type ElementRefNodeAttrs } from './element-ref.model';
 
 /**
  * ProseMirror node specification for element references
@@ -66,7 +66,8 @@ export const elementRefNodeSpec: NodeSpec = {
   // Define how to serialize this node to HTML
   toDOM(node) {
     const attrs = node.attrs as ElementRefNodeAttrs;
-    const elementType = attrs.elementType?.toLowerCase() || 'unknown';
+    const rawType = attrs.elementType as string | undefined;
+    const elementType = rawType?.toLowerCase() ?? 'unknown';
     const isDeleted = !attrs.elementId;
     const hasNote = !!attrs.relationshipNote;
 

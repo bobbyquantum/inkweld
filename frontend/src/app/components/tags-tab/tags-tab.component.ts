@@ -7,18 +7,17 @@ import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { SettingsTabStatusComponent } from '@components/settings-tab-status/settings-tab-status.component';
+import {
+  TagEditDialogComponent,
+  type TagEditDialogResult,
+} from '@dialogs/tag-edit-dialog/tag-edit-dialog.component';
 import { type Element } from '@inkweld/index';
+import { type TagIndexEntry } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
 import { firstValueFrom } from 'rxjs';
-
-import { type TagIndexEntry } from '../../../../components/tags/tag.model';
-import {
-  TagEditDialogComponent,
-  type TagEditDialogResult,
-} from '../../../../dialogs/tag-edit-dialog/tag-edit-dialog.component';
-import { SettingsTabStatusComponent } from '../settings-tab-status.component';
 
 /**
  * View model for tags displayed in the list
@@ -107,18 +106,9 @@ export class TagsTabComponent {
       return;
     }
 
-    this.isLoading.set(true);
     this.error.set(null);
-
-    try {
-      const index = this.tagService.tagIndex();
-      this.updateTagViews(index);
-    } catch (err) {
-      console.error('Failed to load tags:', err);
-      this.error.set('Failed to load tags');
-    } finally {
-      this.isLoading.set(false);
-    }
+    const index = this.tagService.tagIndex();
+    this.updateTagViews(index);
   }
 
   /**
@@ -286,8 +276,20 @@ export class TagsTabComponent {
    * Get the contrast text color for a given background color
    */
   getTextColor(bgColor: string): string {
-    // Simple luminance check
-    const hex = bgColor.replaceAll('#', '');
+    if (!bgColor || typeof bgColor !== 'string') {
+      return '#000000';
+    }
+    // Normalise and expand hex colour
+    let hex = bgColor.replace(/^#/, '');
+    if (hex.length === 3) {
+      hex = hex
+        .split('')
+        .map(c => c + c)
+        .join('');
+    }
+    if (hex.length !== 6 || !/^[\da-f]{6}$/i.test(hex)) {
+      return '#000000';
+    }
     const r = Number.parseInt(hex.substring(0, 2), 16);
     const g = Number.parseInt(hex.substring(2, 4), 16);
     const b = Number.parseInt(hex.substring(4, 6), 16);

@@ -6,7 +6,7 @@
  * with typed, bidirectional relationships.
  */
 
-import { type ElementType } from '../../../api-client';
+import { type ElementType } from '@inkweld/index';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Relationship Categories & Types

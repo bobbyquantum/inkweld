@@ -6,15 +6,15 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import {
+  RelationshipCategory,
+  type RelationshipTypeDefinition,
+} from '@models/element-ref.model';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type Element, ElementType } from '../../../api-client';
-import {
-  RelationshipCategory,
-  type RelationshipTypeDefinition,
-} from '../../components/element-ref/element-ref.model';
 import {
   AddRelationshipDialogComponent,
   type AddRelationshipDialogData,

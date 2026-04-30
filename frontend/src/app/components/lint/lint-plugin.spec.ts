@@ -5,12 +5,12 @@ import {
   type LintResponse,
   LintResponseSource,
 } from '@inkweld/model/lint-response';
+import { type LintApiService } from '@services/lint/lint-api.service';
 import { Schema } from 'prosemirror-model';
 import { EditorState, type Plugin } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { type MockedObject, vi } from 'vitest';
 
-import { type LintApiService } from './lint-api.service';
 import { createLintPlugin, pluginKey, preserveWhitespace } from './lint-plugin';
 
 // Test timeout configuration is handled by vitest.config.ts

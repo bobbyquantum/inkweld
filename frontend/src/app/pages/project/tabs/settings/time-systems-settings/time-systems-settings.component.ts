@@ -9,11 +9,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TimeSystemEditPageComponent } from '@components/time-system-edit/time-system-edit-page.component';
 import type { TimeSystem } from '@models/time-system';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
-
-import { TimeSystemEditPageComponent } from '../../../../time-system-edit-page/time-system-edit-page.component';
 
 /**
  * Time-system editing mode: either showing the list, or an inline editor.

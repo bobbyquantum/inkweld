@@ -1,16 +1,15 @@
 import { HttpContext, HttpContextToken } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
-
-import { LintingService } from '../../../api-client/api/linting.service';
+import { LintingService } from '@inkweld/api/linting.service';
 import {
   type LintRequest,
   LintRequestLevel,
-} from '../../../api-client/model/lint-request';
+} from '@inkweld/model/lint-request';
 import {
   type LintResponse,
   LintResponseSource,
-} from '../../../api-client/model/lint-response';
+} from '@inkweld/model/lint-response';
+import { firstValueFrom } from 'rxjs';
 
 /**
  * Token to pass AbortSignal to the OpenAPI client

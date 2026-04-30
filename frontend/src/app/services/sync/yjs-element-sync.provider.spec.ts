@@ -1,14 +1,11 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
+import { type ElementRelationship } from '@models/element-ref.model';
+import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
-import { type ElementRelationship } from '../../components/element-ref/element-ref.model';
-import {
-  type ElementTag,
-  type TagDefinition,
-} from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';

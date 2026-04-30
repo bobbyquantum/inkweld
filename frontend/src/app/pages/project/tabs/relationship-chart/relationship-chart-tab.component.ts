@@ -29,8 +29,9 @@ import fcose from 'cytoscape-fcose';
 cytoscape.use(fcose);
 cytoscape.use(dagre);
 
+import { type RelationshipTypeDefinition } from '@models/element-ref.model';
+
 import { type Element, ElementType } from '../../../../../api-client';
-import { type RelationshipTypeDefinition } from '../../../../components/element-ref/element-ref.model';
 import {
   ElementPickerDialogComponent,
   type ElementPickerDialogResult,

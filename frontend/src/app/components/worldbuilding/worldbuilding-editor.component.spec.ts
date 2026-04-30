@@ -24,6 +24,8 @@ describe('WorldbuildingEditorComponent', () => {
   let worldbuildingService: WorldbuildingMock;
   let dialogGatewayMock: {
     openRenameDialog: ReturnType<typeof vi.fn>;
+    openTagEditorDialog: ReturnType<typeof vi.fn>;
+    openSnapshotsDialog: ReturnType<typeof vi.fn>;
   };
   let matDialogMock: {
     open: ReturnType<typeof vi.fn>;
@@ -139,6 +141,8 @@ describe('WorldbuildingEditorComponent', () => {
 
     dialogGatewayMock = {
       openRenameDialog: vi.fn().mockResolvedValue(null),
+      openTagEditorDialog: vi.fn().mockResolvedValue(undefined),
+      openSnapshotsDialog: vi.fn().mockResolvedValue(undefined),
     };
     matDialogMock = {
       open: vi.fn(),
@@ -768,30 +772,18 @@ describe('WorldbuildingEditorComponent', () => {
       it('should open the tags dialog with element context', () => {
         component.openTagsDialog();
 
-        expect(matDialogMock.open).toHaveBeenCalledWith(
-          expect.any(Function),
-          expect.objectContaining({
-            data: {
-              elementId: 'test-element-123',
-              elementName: 'Test Character',
-            },
-            width: '450px',
-            autoFocus: false,
-          })
-        );
+        expect(dialogGatewayMock.openTagEditorDialog).toHaveBeenCalledWith({
+          elementId: 'test-element-123',
+          elementName: 'Test Character',
+        });
       });
 
       it('should open the snapshots dialog for the active element', () => {
         component.openSnapshotsDialog();
 
-        expect(matDialogMock.open).toHaveBeenCalledWith(
-          expect.any(Function),
-          expect.objectContaining({
-            data: { documentId: 'test-element-123' },
-            width: '550px',
-            autoFocus: false,
-          })
-        );
+        expect(dialogGatewayMock.openSnapshotsDialog).toHaveBeenCalledWith({
+          documentId: 'test-element-123',
+        });
       });
     });
 

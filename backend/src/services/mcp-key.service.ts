@@ -9,6 +9,14 @@ import {
 } from '../db/schema/mcp-access-keys';
 import { logger } from './logger.service';
 
+// Re-export permission constants and key types so MCP tool files can import
+// them from the service layer instead of reaching directly into db/schema.
+export {
+  MCP_PERMISSIONS,
+  type McpPermission,
+  type McpAccessKey,
+} from '../db/schema/mcp-access-keys';
+
 /**
  * Generate a cryptographically secure random string
  */

@@ -9,7 +9,7 @@
  */
 
 import type { DurableObjectNamespace, DurableObjectStub } from '../types/cloudflare';
-import { type Element } from '../schemas/element.schemas';
+import { type Element } from '../types/element.types';
 import { logger } from './logger.service';
 import { stripTrailingSlashes } from '../utils/string-utils';
 

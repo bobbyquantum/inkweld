@@ -1,26 +1,27 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatDialog } from '@angular/material/dialog';
-import { SystemConfigService } from '@services/core/system-config.service';
-import { ProjectStateService } from '@services/project/project-state.service';
-import { RelationshipService } from '@services/relationship';
-import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
-import { of } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
-
 import {
   type ElementRelationship,
   RelationshipCategory,
   type RelationshipTypeDefinition,
-} from '../element-ref/element-ref.model';
+} from '@models/element-ref.model';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { SystemConfigService } from '@services/core/system-config.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { RelationshipService } from '@services/relationship';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
+import { describe, expect, it, vi } from 'vitest';
+
 import { ElementRefService } from '../element-ref/element-ref.service';
 import { MetaPanelComponent } from './meta-panel.component';
 
 describe('MetaPanelComponent', () => {
   let component: MetaPanelComponent;
   let fixture: ComponentFixture<MetaPanelComponent>;
-  let dialogMock: { open: ReturnType<typeof vi.fn> };
+  let dialogGatewayMock: {
+    openAddRelationshipDialog: ReturnType<typeof vi.fn>;
+  };
   let projectStateMock: {
     elements: ReturnType<typeof signal>;
     openDocument: ReturnType<typeof vi.fn>;
@@ -51,8 +52,8 @@ describe('MetaPanelComponent', () => {
       project: signal(null),
     };
 
-    dialogMock = {
-      open: vi.fn().mockReturnValue({ afterClosed: () => of(null) }),
+    dialogGatewayMock = {
+      openAddRelationshipDialog: vi.fn().mockResolvedValue(undefined),
     };
 
     const elementRefServiceMock = {
@@ -95,7 +96,7 @@ describe('MetaPanelComponent', () => {
         { provide: SystemConfigService, useValue: systemConfigMock },
         { provide: RelationshipService, useValue: relationshipServiceMock },
         { provide: ProjectStateService, useValue: projectStateMock },
-        { provide: MatDialog, useValue: dialogMock },
+        { provide: DialogGatewayService, useValue: dialogGatewayMock },
         { provide: ElementRefService, useValue: elementRefServiceMock },
         { provide: WorldbuildingService, useValue: worldbuildingServiceMock },
       ],
@@ -465,7 +466,7 @@ describe('MetaPanelComponent', () => {
   });
 
   describe('openAddRelationshipDialog', () => {
-    it('should open the add relationship dialog', () => {
+    it('should open the add relationship dialog', async () => {
       relationshipServiceMock.allTypes.set([
         {
           id: 'parent',
@@ -480,24 +481,24 @@ describe('MetaPanelComponent', () => {
       ]);
       fixture.detectChanges();
 
-      component.openAddRelationshipDialog();
+      await component.openAddRelationshipDialog();
 
-      expect(dialogMock.open).toHaveBeenCalled();
+      expect(dialogGatewayMock.openAddRelationshipDialog).toHaveBeenCalled();
     });
 
-    it('should add relationship when dialog returns result', () => {
+    it('should add relationship when dialog returns result', async () => {
       const dialogResult = {
         targetElementId: 'char-2',
         relationshipTypeId: 'parent',
         note: 'A note',
       };
-      dialogMock.open.mockReturnValue({
-        afterClosed: () => of(dialogResult),
-      });
+      dialogGatewayMock.openAddRelationshipDialog.mockResolvedValue(
+        dialogResult
+      );
       relationshipServiceMock.allTypes.set([]);
       fixture.detectChanges();
 
-      component.openAddRelationshipDialog();
+      await component.openAddRelationshipDialog();
 
       expect(relationshipServiceMock.addRelationship).toHaveBeenCalledWith(
         'test-doc-id',
@@ -507,14 +508,12 @@ describe('MetaPanelComponent', () => {
       );
     });
 
-    it('should not add relationship when dialog is cancelled', () => {
-      dialogMock.open.mockReturnValue({
-        afterClosed: () => of(null),
-      });
+    it('should not add relationship when dialog is cancelled', async () => {
+      dialogGatewayMock.openAddRelationshipDialog.mockResolvedValue(undefined);
       relationshipServiceMock.allTypes.set([]);
       fixture.detectChanges();
 
-      component.openAddRelationshipDialog();
+      await component.openAddRelationshipDialog();
 
       expect(relationshipServiceMock.addRelationship).not.toHaveBeenCalled();
     });
