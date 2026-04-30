@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { CanvasService } from './canvas.service';
 import { CanvasLayerService } from './canvas-layer.service';
 import {
   CanvasLayerActionsService,
@@ -10,6 +11,7 @@ import {
 describe('CanvasLayerActionsService', () => {
   let service: CanvasLayerActionsService;
   let layer: any;
+  let canvasService: any;
   let cb: LayerActionsCallbacks;
 
   beforeEach(() => {
@@ -21,11 +23,16 @@ describe('CanvasLayerActionsService', () => {
       duplicateLayer: vi.fn(),
       deleteLayer: vi.fn(() => Promise.resolve(true)),
     };
+    canvasService = {
+      reorderLayers: vi.fn(),
+      updateLayer: vi.fn(),
+    };
 
     TestBed.configureTestingModule({
       providers: [
         CanvasLayerActionsService,
         { provide: CanvasLayerService, useValue: layer },
+        { provide: CanvasService, useValue: canvasService },
       ],
     });
     service = TestBed.inject(CanvasLayerActionsService);
@@ -36,6 +43,7 @@ describe('CanvasLayerActionsService', () => {
       getSortedLayers: vi.fn(() => [
         { id: 'L1', order: 0 } as any,
         { id: 'L2', order: 1 } as any,
+        { id: 'L3', order: 2 } as any,
       ]),
     };
   });
@@ -84,5 +92,52 @@ describe('CanvasLayerActionsService', () => {
     layer.deleteLayer.mockResolvedValueOnce(false);
     await service.delete('L1', cb);
     expect(cb.setActiveLayerId).not.toHaveBeenCalled();
+  });
+
+  describe('moveUp / moveDown', () => {
+    it('moveUp swaps with the previous (visually higher) entry', () => {
+      service.moveUp('L2', cb);
+      expect(canvasService.reorderLayers).toHaveBeenCalledWith([
+        'L2',
+        'L1',
+        'L3',
+      ]);
+    });
+
+    it('moveUp is a no-op at the top of the panel', () => {
+      service.moveUp('L1', cb);
+      expect(canvasService.reorderLayers).not.toHaveBeenCalled();
+    });
+
+    it('moveDown swaps with the next (visually lower) entry', () => {
+      service.moveDown('L2', cb);
+      expect(canvasService.reorderLayers).toHaveBeenCalledWith([
+        'L1',
+        'L3',
+        'L2',
+      ]);
+    });
+
+    it('moveDown is a no-op at the bottom of the panel', () => {
+      service.moveDown('L3', cb);
+      expect(canvasService.reorderLayers).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('setOpacity', () => {
+    it('clamps to [0, 1] and updates the layer', () => {
+      service.setOpacity('L1', 0.5);
+      expect(canvasService.updateLayer).toHaveBeenLastCalledWith('L1', {
+        opacity: 0.5,
+      });
+      service.setOpacity('L1', -1);
+      expect(canvasService.updateLayer).toHaveBeenLastCalledWith('L1', {
+        opacity: 0,
+      });
+      service.setOpacity('L1', 5);
+      expect(canvasService.updateLayer).toHaveBeenLastCalledWith('L1', {
+        opacity: 1,
+      });
+    });
   });
 });

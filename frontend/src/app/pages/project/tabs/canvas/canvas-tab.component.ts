@@ -567,6 +567,11 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     if (z !== null) this.zoomLevel.set(z);
   }
 
+  protected onZoomReset(): void {
+    const z = this.canvasZoom.resetZoom();
+    if (z !== null) this.zoomLevel.set(z);
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Sidebar Actions (called from template)
   // ─────────────────────────────────────────────────────────────────────────
@@ -623,6 +628,23 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   protected onDeleteLayer(layerId: string): Promise<void> {
     return this.canvasLayerActions.delete(layerId, this.layerActionsCallbacks);
+  }
+
+  protected onMoveLayerUp(layerId: string): void {
+    this.canvasLayerActions.moveUp(layerId, this.layerActionsCallbacks);
+  }
+
+  protected onMoveLayerDown(layerId: string): void {
+    this.canvasLayerActions.moveDown(layerId, this.layerActionsCallbacks);
+  }
+
+  protected onLayerOpacityChange(
+    layerId: string,
+    value: number | string
+  ): void {
+    const num = typeof value === 'string' ? Number.parseFloat(value) : value;
+    if (!Number.isFinite(num)) return;
+    this.canvasLayerActions.setOpacity(layerId, num);
   }
 
   // ── Object actions ─────────────────────────────────────────────────────
@@ -725,6 +747,15 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   /** Move the selected object to a different layer */
   protected onSendToLayer(targetLayerId: string): void {
     this.canvasContextMenu.sendToLayer(targetLayerId, this.menuCallbacks);
+  }
+
+  /** Reorder the selected object within its layer's z-order */
+  protected onReorderObject(
+    direction: 'front' | 'back' | 'forward' | 'backward'
+  ): void {
+    const id = this.selectedObjectId();
+    if (!id) return;
+    this.canvasService.reorderObject(id, direction);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

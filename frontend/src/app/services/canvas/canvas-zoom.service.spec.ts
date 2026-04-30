@@ -139,4 +139,22 @@ describe('CanvasZoomService', () => {
       expect(stage.position).toHaveBeenCalled();
     });
   });
+
+  describe('resetZoom', () => {
+    it('returns null when stage is missing', () => {
+      expect(service.resetZoom()).toBeNull();
+    });
+
+    it('resets scale to 1 and position to origin', () => {
+      const stage = createStageStub();
+      stage.scale({ x: 3, y: 3 });
+      stage.position({ x: 100, y: 50 });
+      mockRenderer.stage = stage;
+
+      const result = service.resetZoom();
+      expect(result).toBe(1);
+      expect(stage.scale).toHaveBeenLastCalledWith({ x: 1, y: 1 });
+      expect(stage.position).toHaveBeenLastCalledWith({ x: 0, y: 0 });
+    });
+  });
 });

@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import type { CanvasLayer } from '@models/canvas.model';
+import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
 
 /** Callbacks the host component supplies for active-layer state. */
@@ -20,6 +21,7 @@ export interface LayerActionsCallbacks {
 @Injectable()
 export class CanvasLayerActionsService {
   private readonly canvasLayer = inject(CanvasLayerService);
+  private readonly canvasService = inject(CanvasService);
 
   /** Add a new layer and make it the active layer. */
   add(callbacks: LayerActionsCallbacks): void {
@@ -47,6 +49,42 @@ export class CanvasLayerActionsService {
   /** Duplicate a layer. */
   duplicate(layerId: string): void {
     this.canvasLayer.duplicateLayer(layerId);
+  }
+
+  /**
+   * Move a layer one row up in the visual layer panel. The panel renders
+   * sorted layers top-down (ascending order), so "up" means swapping with
+   * the previous entry in `getSortedLayers()`. No-op if already at top.
+   */
+  moveUp(layerId: string, callbacks: LayerActionsCallbacks): void {
+    const sorted = callbacks.getSortedLayers();
+    const idx = sorted.findIndex(l => l.id === layerId);
+    if (idx <= 0) return;
+    const reorderedIds = sorted.map(l => l.id);
+    [reorderedIds[idx], reorderedIds[idx - 1]] = [
+      reorderedIds[idx - 1],
+      reorderedIds[idx],
+    ];
+    this.canvasService.reorderLayers(reorderedIds);
+  }
+
+  /** Move a layer one row down in the visual layer panel. No-op at bottom. */
+  moveDown(layerId: string, callbacks: LayerActionsCallbacks): void {
+    const sorted = callbacks.getSortedLayers();
+    const idx = sorted.findIndex(l => l.id === layerId);
+    if (idx === -1 || idx === sorted.length - 1) return;
+    const reorderedIds = sorted.map(l => l.id);
+    [reorderedIds[idx], reorderedIds[idx + 1]] = [
+      reorderedIds[idx + 1],
+      reorderedIds[idx],
+    ];
+    this.canvasService.reorderLayers(reorderedIds);
+  }
+
+  /** Set opacity (0..1) for a layer. */
+  setOpacity(layerId: string, opacity: number): void {
+    const clamped = Math.max(0, Math.min(1, opacity));
+    this.canvasService.updateLayer(layerId, { opacity: clamped });
   }
 
   /**

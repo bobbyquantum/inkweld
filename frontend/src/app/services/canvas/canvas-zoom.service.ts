@@ -39,6 +39,15 @@ export class CanvasZoomService {
     return this.zoomToPoint(center, 1 / ZOOM_STEP);
   }
 
+  /** Reset the stage to 100% zoom centred at the origin. */
+  resetZoom(): number | null {
+    const stage = this.canvasRenderer.stage;
+    if (!stage) return null;
+    stage.scale({ x: 1, y: 1 });
+    stage.position({ x: 0, y: 0 });
+    return 1;
+  }
+
   fitAll(): number | null {
     const stage = this.canvasRenderer.stage;
     if (!stage) return null;

@@ -112,6 +112,23 @@
                   (click)="$event.stopPropagation()">
                   <mat-icon>more_vert</mat-icon>
                 </button>
+                @if (layer.id === activeLayerId()) {
+                  <input
+                    type="range"
+                    class="layer-opacity"
+                    data-testid="layer-opacity"
+                    aria-label="Layer opacity"
+                    matTooltip="Layer opacity"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    [value]="layer.opacity"
+                    (click)="$event.stopPropagation()"
+                    (keydown)="$event.stopPropagation()"
+                    (input)="
+                      onLayerOpacityChange(layer.id, $any($event.target).value)
+                    " />
+                }
               </div>
             }
           </div>
@@ -294,9 +311,14 @@
             (click)="onFitAll()">
             <mat-icon>fit_screen</mat-icon>
           </button>
-          <span class="zoom-label" data-testid="zoom-label">
+          <button
+            type="button"
+            class="zoom-label zoom-reset"
+            data-testid="zoom-label"
+            matTooltip="Reset zoom to 100%"
+            (click)="onZoomReset()">
             {{ zoomPercent() }}%
-          </span>
+          </button>
         </div>
 
         <div class="toolbar-spacer" aria-hidden="true"></div>
@@ -351,6 +373,37 @@
     <mat-icon>delete</mat-icon>
     <span>Delete</span>
   </button>
+  @if (selectedObjectId()) {
+    <mat-divider></mat-divider>
+    <button
+      mat-menu-item
+      data-testid="object-bring-to-front"
+      (click)="onReorderObject('front')">
+      <mat-icon>vertical_align_top</mat-icon>
+      <span>Bring to front</span>
+    </button>
+    <button
+      mat-menu-item
+      data-testid="object-bring-forward"
+      (click)="onReorderObject('forward')">
+      <mat-icon>arrow_upward</mat-icon>
+      <span>Bring forward</span>
+    </button>
+    <button
+      mat-menu-item
+      data-testid="object-send-backward"
+      (click)="onReorderObject('backward')">
+      <mat-icon>arrow_downward</mat-icon>
+      <span>Send backward</span>
+    </button>
+    <button
+      mat-menu-item
+      data-testid="object-send-to-back"
+      (click)="onReorderObject('back')">
+      <mat-icon>vertical_align_bottom</mat-icon>
+      <span>Send to back</span>
+    </button>
+  }
   @if (selectedObjectId() && sortedLayers().length > 1) {
     <mat-divider></mat-divider>
     <button mat-menu-item [matMenuTriggerFor]="sendToLayerMenu">
@@ -402,6 +455,22 @@
       <mat-icon>content_copy</mat-icon>
       <span>Duplicate</span>
     </button>
+    <mat-divider></mat-divider>
+    <button
+      mat-menu-item
+      data-testid="layer-move-up"
+      (click)="onMoveLayerUp(layerId)">
+      <mat-icon>arrow_upward</mat-icon>
+      <span>Move up</span>
+    </button>
+    <button
+      mat-menu-item
+      data-testid="layer-move-down"
+      (click)="onMoveLayerDown(layerId)">
+      <mat-icon>arrow_downward</mat-icon>
+      <span>Move down</span>
+    </button>
+    <mat-divider></mat-divider>
     <button
       mat-menu-item
       (click)="onDeleteLayer(layerId)"
