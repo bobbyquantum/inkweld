@@ -23,10 +23,6 @@ import { ActivatedRoute } from '@angular/router';
 import { createMediaUrl } from '@components/image-paste/image-paste-plugin';
 import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
 import {
-  CanvasColorDialogComponent,
-  type CanvasColorDialogData,
-} from '@dialogs/canvas-color-dialog/canvas-color-dialog.component';
-import {
   CanvasPinDialogComponent,
   type CanvasPinDialogData,
   type CanvasPinDialogResult,
@@ -50,6 +46,7 @@ import {
   createDefaultToolSettings,
 } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
+import { CanvasColorService } from '@services/canvas/canvas-color.service';
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
@@ -91,6 +88,7 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
     CanvasRendererService,
     CanvasLayerService,
     CanvasZoomService,
+    CanvasColorService,
   ],
 })
 export class CanvasTabComponent implements OnInit, OnDestroy {
@@ -100,6 +98,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly canvasRenderer = inject(CanvasRendererService);
   private readonly canvasLayer = inject(CanvasLayerService);
   private readonly canvasZoom = inject(CanvasZoomService);
+  private readonly canvasColor = inject(CanvasColorService);
   private readonly dialog = inject(MatDialog);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly localStorageService = inject(LocalStorageService);
@@ -1286,143 +1285,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   protected onEditObjectColors(): void {
     const objId = this.selectedObjectId();
     if (!objId) return;
-
-    const config = this.canvasService.activeConfig();
-    if (!config) return;
-
-    const obj = config.objects.find(o => o.id === objId);
-    if (!obj) return;
-
-    // Determine which color properties are relevant
-    let showFill = false;
-    let showStroke = false;
-    let fill: string | undefined;
-    let stroke: string | undefined;
-    const objType = obj.type;
-
-    if (objType === 'text') {
-      showFill = true;
-      fill = obj.fill;
-    } else if (objType === 'path') {
-      showStroke = true;
-      stroke = obj.stroke;
-      if (obj.closed) {
-        showFill = true;
-        fill = obj.fill;
-      }
-    } else if (objType === 'shape') {
-      showFill = true;
-      showStroke = true;
-      fill = obj.fill;
-      stroke = obj.stroke;
-    } else if (objType === 'pin') {
-      showFill = true;
-      fill = obj.color;
-    } else {
-      return; // images have no user-editable color
-    }
-
-    const data: CanvasColorDialogData = {
-      title: 'Edit Colors',
-      showFill,
-      showStroke,
-      fill,
-      stroke,
-    };
-
-    const dialogRef = this.dialog.open(CanvasColorDialogComponent, {
-      data,
-      width: '420px',
-    });
-
-    dialogRef
-      .afterClosed()
-      .subscribe((result: { fill?: string; stroke?: string } | undefined) => {
-        if (!result) return;
-
-        // Build update payload per object type
-        const updates: Record<string, unknown> = {};
-
-        if (objType === 'pin') {
-          if (result.fill) updates['color'] = result.fill;
-        } else {
-          if (result.fill !== undefined) updates['fill'] = result.fill;
-          if (result.stroke !== undefined) updates['stroke'] = result.stroke;
-        }
-
-        this.canvasService.updateObject(objId, updates);
-
-        // Also update the Konva node visually
-        this.updateKonvaNodeColors(objId, objType, result);
-      });
-  }
-
-  /** Apply color changes to the live Konva node. */
-  private updateKonvaNodeColors(
-    objId: string,
-    type: string,
-    result: { fill?: string; stroke?: string }
-  ): void {
-    const node = this.findKonvaNodeById(objId);
-    if (!node) return;
-
-    this.applyNodeColorUpdate(node, type, result);
-
-    node.getLayer()?.batchDraw();
-  }
-
-  private findKonvaNodeById(objId: string): Konva.Node | undefined {
-    for (const [, kLayer] of this.konvaLayers) {
-      const found = kLayer.findOne(`#${objId}`);
-      if (found) return found;
-    }
-    return undefined;
-  }
-
-  private applyNodeColorUpdate(
-    node: Konva.Node,
-    type: string,
-    result: { fill?: string; stroke?: string }
-  ): void {
-    if (type === 'pin' && node instanceof Konva.Group) {
-      this.applyPinColor(node, result.fill);
-      return;
-    }
-
-    if (type === 'text' && node instanceof Konva.Text) {
-      if (result.fill) node.fill(result.fill);
-      return;
-    }
-
-    if (type === 'path' && node instanceof Konva.Line) {
-      if (result.stroke) node.stroke(result.stroke);
-      if (result.fill) node.fill(result.fill);
-      return;
-    }
-
-    if (type === 'shape') {
-      this.applyShapeColors(node, result);
-    }
-  }
-
-  private applyPinColor(node: Konva.Group, fill?: string): void {
-    if (!fill) return;
-    const marker = node.findOne('Circle');
-    if (marker) {
-      (marker as Konva.Circle).fill(fill);
-    }
-  }
-
-  private applyShapeColors(
-    node: Konva.Node,
-    result: { fill?: string; stroke?: string }
-  ): void {
-    if (result.fill && 'fill' in node) {
-      (node as Konva.Shape).fill(result.fill);
-    }
-    if (result.stroke && 'stroke' in node) {
-      (node as Konva.Shape).stroke(result.stroke);
-    }
+    this.canvasColor.openEditColorsDialog(objId);
   }
 
   protected async onAddImage(): Promise<void> {
