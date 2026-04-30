@@ -87,7 +87,7 @@ Coming soon, once first numbered release is added.
 | ✅ | 🔥 | Find and replace in document | |
 | ✅ | 🟡 | Tag filtering in search | Filter search results by tags, element types, relationships, and worldbuilding schemas |
 | ⬜ | 🟡 | Tag filtering in project tree | Show/hide elements by tag |
-| ✅ | 🟡 | Breadcrumbs | Path to the current document, shown above the editor; folder segments expand the project tree |
+| ✅ | 🟡 | Breadcrumbs | Folder path shown above each editor (document, worldbuilding, canvas, relationship chart, timeline); toggle in user settings |
 | ✅ | 🟡 | Pinning | Pin elements to Home tab and sidebar for quick access |
 | ✅ | 🟢 | Recent files list | Tracks last 10 files per project |
 

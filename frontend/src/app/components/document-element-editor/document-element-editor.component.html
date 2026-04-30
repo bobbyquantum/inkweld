@@ -17,10 +17,6 @@
           (insertLinkClick)="openInsertLinkDialog()"
           (toggleComments)="toggleCommentPanel()">
         </app-editor-toolbar>
-        @if (bareElementId()) {
-          <app-document-breadcrumbs
-            [elementId]="bareElementId()"></app-document-breadcrumbs>
-        }
       }
       <div
         class="editor-container fit-width"

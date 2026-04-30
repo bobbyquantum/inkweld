@@ -11,13 +11,14 @@ import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { type Subscription } from 'rxjs';
 
+import { DocumentBreadcrumbsComponent } from '../../../../components/document-breadcrumbs/document-breadcrumbs.component';
 import { FolderElementEditorComponent } from '../../../../components/folder-element-editor/folder-element-editor.component';
 
 @Component({
   selector: 'app-folder-tab',
   templateUrl: './folder-tab.component.html',
   styleUrls: ['./folder-tab.component.scss'],
-  imports: [FolderElementEditorComponent],
+  imports: [FolderElementEditorComponent, DocumentBreadcrumbsComponent],
 })
 export class FolderTabComponent implements OnInit, OnDestroy {
   private elementId: string = '';
@@ -25,6 +26,7 @@ export class FolderTabComponent implements OnInit, OnDestroy {
 
   // Exposed to template
   protected fullElementId: string = '';
+  protected bareElementId: string = '';
 
   protected readonly projectState = inject(ProjectStateService);
   protected readonly documentService = inject(DocumentService);
@@ -43,6 +45,11 @@ export class FolderTabComponent implements OnInit, OnDestroy {
       // Use Promise.resolve to schedule update after current change detection
       void Promise.resolve().then(() => {
         this.fullElementId = this.calculateFullElementId();
+        // Bare id is the last `:` segment of the full id, falling back to the
+        // raw element id when no project context is available.
+        this.bareElementId = this.fullElementId.includes(':')
+          ? (this.fullElementId.split(':').at(-1) ?? '')
+          : this.fullElementId;
         this.cdr.markForCheck();
       });
     });

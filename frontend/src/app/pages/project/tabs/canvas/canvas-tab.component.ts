@@ -20,6 +20,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule, type MatMenuTrigger } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
+import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import {
   createMediaUrl,
   extractMediaId,
@@ -102,6 +103,7 @@ const ZOOM_STEP = 1.1;
     MatMenuModule,
     MatTooltipModule,
     TabPresenceIndicatorComponent,
+    DocumentBreadcrumbsComponent,
   ],
   providers: [
     // Each canvas tab gets its own service instance so config never bleeds

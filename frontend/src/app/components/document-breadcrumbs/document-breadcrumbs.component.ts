@@ -2,6 +2,7 @@ import { Component, computed, inject, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type Element } from '@inkweld/index';
+import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 
 /**
@@ -18,9 +19,8 @@ export interface BreadcrumbSegment {
  * Breadcrumb component that displays the folder path leading to the
  * currently-open document or element, e.g. "Part One › Chapter Two › Scene 3".
  *
- * Folder segments are clickable: clicking expands the folder (and all of its
- * ancestors) in the project tree so the user can quickly reveal the location
- * of the current document.
+ * Segments are purely informational — they show context only and are not
+ * interactive. Visibility is gated on the `showBreadcrumbs` user setting.
  */
 @Component({
   selector: 'app-document-breadcrumbs',
@@ -30,6 +30,7 @@ export interface BreadcrumbSegment {
 })
 export class DocumentBreadcrumbsComponent {
   private readonly projectState = inject(ProjectStateService);
+  private readonly settingsService = inject(SettingsService);
 
   /** Element id of the currently-open document/element (NOT the username:slug:id form). */
   readonly elementId = input.required<string>();
@@ -71,16 +72,11 @@ export class DocumentBreadcrumbsComponent {
   );
 
   /**
-   * Reveal a folder segment in the project tree by expanding it and all of
-   * its ancestors. The current element segment is not interactive.
+   * Whether the breadcrumb should render. Hidden when the user has disabled
+   * breadcrumbs in settings or when the element is at the top level (no
+   * folder path to display).
    */
-  protected onSegmentClick(segmentId: string): void {
-    const elements = this.projectState.elements();
-    const map = new Map<string, Element>(elements.map(el => [el.id, el]));
-    let cursor: Element | undefined = map.get(segmentId);
-    while (cursor) {
-      this.projectState.setExpanded(cursor.id, true);
-      cursor = cursor.parentId ? map.get(cursor.parentId) : undefined;
-    }
-  }
+  readonly visible = computed(
+    () => this.settingsService.showBreadcrumbs() && this.segments().length > 1
+  );
 }

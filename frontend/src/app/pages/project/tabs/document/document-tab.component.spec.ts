@@ -35,6 +35,15 @@ class MockDocumentElementEditorComponent implements OnInit, OnDestroy {
   }
 }
 
+// Mock DocumentBreadcrumbsComponent (standalone)
+@Component({
+  selector: 'app-document-breadcrumbs',
+  template: '',
+})
+class MockDocumentBreadcrumbsComponent {
+  @Input() elementId: string = '';
+}
+
 describe('DocumentTabComponent', () => {
   let component: DocumentTabComponent;
   let fixture: ComponentFixture<DocumentTabComponent>;
@@ -70,6 +79,7 @@ describe('DocumentTabComponent', () => {
 
     settingsService = {
       getSetting: vi.fn().mockReturnValue(true),
+      showBreadcrumbs: signal(true),
     };
 
     route = {
@@ -81,6 +91,7 @@ describe('DocumentTabComponent', () => {
         MatIconModule,
         DocumentTabComponent,
         MockDocumentElementEditorComponent,
+        MockDocumentBreadcrumbsComponent,
       ],
       providers: [
         provideZonelessChangeDetection(),
@@ -92,7 +103,11 @@ describe('DocumentTabComponent', () => {
     })
       .overrideComponent(DocumentTabComponent, {
         set: {
-          imports: [MockDocumentElementEditorComponent, MatIconModule],
+          imports: [
+            MockDocumentElementEditorComponent,
+            MockDocumentBreadcrumbsComponent,
+            MatIconModule,
+          ],
         },
       })
       .compileComponents();

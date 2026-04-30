@@ -11,6 +11,7 @@ import { LoggerService } from '@services/core/logger.service';
 import { type Subscription } from 'rxjs';
 
 import { type Element, type ElementType } from '../../../../../api-client';
+import { DocumentBreadcrumbsComponent } from '../../../../components/document-breadcrumbs/document-breadcrumbs.component';
 import { WorldbuildingEditorComponent } from '../../../../components/worldbuilding/worldbuilding-editor.component';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 
@@ -18,7 +19,7 @@ import { ProjectStateService } from '../../../../services/project/project-state.
   selector: 'app-worldbuilding-tab',
   templateUrl: './worldbuilding-tab.component.html',
   styleUrls: ['./worldbuilding-tab.component.scss'],
-  imports: [WorldbuildingEditorComponent],
+  imports: [WorldbuildingEditorComponent, DocumentBreadcrumbsComponent],
 })
 export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);

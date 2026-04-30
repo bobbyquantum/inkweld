@@ -30,6 +30,14 @@ class MockFolderElementEditorComponent implements OnInit, OnDestroy {
   }
 }
 
+@Component({
+  selector: 'app-document-breadcrumbs',
+  template: '',
+})
+class MockDocumentBreadcrumbsComponent {
+  @Input() elementId: string = '';
+}
+
 describe('FolderTabComponent', () => {
   let component: FolderTabComponent;
   let fixture: ComponentFixture<FolderTabComponent>;
@@ -76,6 +84,7 @@ describe('FolderTabComponent', () => {
         RouterTestingModule,
         FolderTabComponent,
         MockFolderElementEditorComponent,
+        MockDocumentBreadcrumbsComponent,
       ],
       providers: [
         provideZonelessChangeDetection(),
@@ -86,7 +95,10 @@ describe('FolderTabComponent', () => {
     })
       .overrideComponent(FolderTabComponent, {
         set: {
-          imports: [MockFolderElementEditorComponent],
+          imports: [
+            MockFolderElementEditorComponent,
+            MockDocumentBreadcrumbsComponent,
+          ],
         },
       })
       .compileComponents();

@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 
 import { StorageContextService } from './storage-context.service';
 
@@ -14,6 +14,17 @@ export class SettingsService {
     return this.storageContext.prefixKey(SETTINGS_BASE_KEY);
   }
 
+  /**
+   * Reactive signal for the "show breadcrumbs" preference. Components that
+   * conditionally render the editor breadcrumb bar should subscribe to this
+   * signal so the UI updates immediately when the user toggles it.
+   *
+   * Defaults to `true` (breadcrumbs visible).
+   */
+  readonly showBreadcrumbs = signal<boolean>(
+    this.getSetting<boolean>('showBreadcrumbs', true)
+  );
+
   getSetting<T>(key: string, defaultValue: T): T {
     const settings = this.getSettings();
     const value = settings[key];
@@ -24,6 +35,15 @@ export class SettingsService {
     const settings = this.getSettings();
     settings[key] = value;
     localStorage.setItem(this.settingsKey, JSON.stringify(settings));
+  }
+
+  /**
+   * Update the "show breadcrumbs" preference. Persists to storage and updates
+   * the reactive signal so subscribed components re-render.
+   */
+  setShowBreadcrumbs(value: boolean): void {
+    this.setSetting<boolean>('showBreadcrumbs', value);
+    this.showBreadcrumbs.set(value);
   }
 
   private getSettings(): Record<string, unknown> {

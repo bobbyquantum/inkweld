@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { type Element, ElementType } from '@inkweld/index';
+import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 
 import { DocumentBreadcrumbsComponent } from './document-breadcrumbs.component';
@@ -10,7 +11,7 @@ describe('DocumentBreadcrumbsComponent', () => {
   let fixture: ComponentFixture<DocumentBreadcrumbsComponent>;
   let component: DocumentBreadcrumbsComponent;
   let elementsSignal: ReturnType<typeof signal<Element[]>>;
-  let setExpandedSpy: ReturnType<typeof vi.fn>;
+  let showBreadcrumbsSignal: ReturnType<typeof signal<boolean>>;
 
   function makeElement(
     id: string,
@@ -29,11 +30,14 @@ describe('DocumentBreadcrumbsComponent', () => {
 
   beforeEach(async () => {
     elementsSignal = signal<Element[]>([]);
-    setExpandedSpy = vi.fn();
+    showBreadcrumbsSignal = signal<boolean>(true);
 
     const projectStateMock = {
       elements: elementsSignal,
-      setExpanded: setExpandedSpy,
+    };
+
+    const settingsMock = {
+      showBreadcrumbs: showBreadcrumbsSignal,
     };
 
     await TestBed.configureTestingModule({
@@ -41,6 +45,7 @@ describe('DocumentBreadcrumbsComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: projectStateMock },
+        { provide: SettingsService, useValue: settingsMock },
       ],
     }).compileComponents();
 
@@ -104,7 +109,7 @@ describe('DocumentBreadcrumbsComponent', () => {
     expect(names.length).toBe(2);
   });
 
-  it('renders segments and a separator only between them when path > 1', () => {
+  it('renders non-interactive segments and a separator only between them when path > 1', () => {
     elementsSignal.set([
       makeElement('root', 'Folder', null, ElementType.Folder),
       makeElement('leaf', 'Doc', 'root'),
@@ -120,8 +125,11 @@ describe('DocumentBreadcrumbsComponent', () => {
     expect(segments.length).toBe(2);
     const separators = nav.querySelectorAll('.breadcrumb-separator');
     expect(separators.length).toBe(1);
-    expect(segments[0].tagName.toLowerCase()).toBe('button');
+    // All segments are plain spans (no interactive controls)
+    expect(segments[0].tagName.toLowerCase()).toBe('span');
+    expect(segments[1].tagName.toLowerCase()).toBe('span');
     expect(segments[1].classList.contains('current')).toBe(true);
+    expect(nav.querySelector('button')).toBeNull();
   });
 
   it('hides the breadcrumb entirely for top-level elements', () => {
@@ -134,25 +142,17 @@ describe('DocumentBreadcrumbsComponent', () => {
     expect(nav).toBeNull();
   });
 
-  it('clicking a folder segment expands the folder and all ancestors', () => {
+  it('hides the breadcrumb when the showBreadcrumbs setting is disabled', () => {
     elementsSignal.set([
-      makeElement('root', 'Part', null, ElementType.Folder),
-      makeElement('mid', 'Chapter', 'root', ElementType.Folder),
-      makeElement('leaf', 'Scene', 'mid'),
+      makeElement('root', 'Folder', null, ElementType.Folder),
+      makeElement('leaf', 'Doc', 'root'),
     ]);
     fixture.componentRef.setInput('elementId', 'leaf');
+    showBreadcrumbsSignal.set(false);
     fixture.detectChanges();
-
-    const buttons = fixture.nativeElement.querySelectorAll(
-      'button.breadcrumb-segment.link'
+    const nav = fixture.nativeElement.querySelector(
+      '[data-testid="document-breadcrumbs"]'
     );
-    expect(buttons.length).toBe(2);
-
-    // Click the "Chapter" (second) segment
-    (buttons[1] as HTMLButtonElement).click();
-
-    expect(setExpandedSpy).toHaveBeenCalledWith('mid', true);
-    expect(setExpandedSpy).toHaveBeenCalledWith('root', true);
-    expect(setExpandedSpy).toHaveBeenCalledTimes(2);
+    expect(nav).toBeNull();
   });
 });

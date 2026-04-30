@@ -52,7 +52,6 @@ import type { EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { firstValueFrom } from 'rxjs';
 
-import { DocumentBreadcrumbsComponent } from '../document-breadcrumbs/document-breadcrumbs.component';
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
 import {
@@ -90,7 +89,6 @@ import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
     ElementRefTooltipComponent,
     EditorToolbarComponent,
     EditorFloatingMenuComponent,
-    DocumentBreadcrumbsComponent,
     FindInDocumentComponent,
     CommentPopoverComponent,
     CommentPanelComponent,
