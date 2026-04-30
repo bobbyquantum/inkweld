@@ -20,12 +20,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule, type MatMenuTrigger } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
-import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
-import {
-  createMediaUrl,
-  extractMediaId,
-  isMediaUrl,
-} from '@components/image-paste/image-paste-plugin';
+import { createMediaUrl } from '@components/image-paste/image-paste-plugin';
 import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
 import {
   CanvasColorDialogComponent,
@@ -63,6 +58,7 @@ import {
   createDefaultToolSettings,
 } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
+import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
@@ -105,16 +101,13 @@ const ZOOM_STEP = 1.1;
     TabPresenceIndicatorComponent,
     DocumentBreadcrumbsComponent,
   ],
-  providers: [
-    // Each canvas tab gets its own service instance so config never bleeds
-    // between multiple open canvases.
-    CanvasService,
-  ],
+  providers: [CanvasService, CanvasRendererService],
 })
 export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly projectState = inject(ProjectStateService);
   private readonly canvasService = inject(CanvasService);
+  private readonly canvasRenderer = inject(CanvasRendererService);
   private readonly dialog = inject(MatDialog);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly localStorageService = inject(LocalStorageService);
@@ -256,17 +249,22 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // Konva State
   // ─────────────────────────────────────────────────────────────────────────
 
-  private stage: Konva.Stage | null = null;
-  /** Map from CanvasLayer.id → Konva.Layer */
-  private readonly konvaLayers = new Map<string, Konva.Layer>();
-  /** Map from CanvasObject.id → Konva.Node */
-  private readonly konvaNodes = new Map<string, Konva.Node>();
-  /** Snapshot of render-affecting state keyed by CanvasObject.id */
-  private readonly objectRenderSignatures = new Map<string, string>();
-  /** Konva Transformer for selection handles */
-  private transformer: Konva.Transformer | null = null;
-  /** Top-level layer for the transformer and selection */
-  private selectionLayer: Konva.Layer | null = null;
+  // Konva state lives in CanvasRendererService. Stage getters delegate to it.
+  private get stage(): Konva.Stage | null {
+    return this.canvasRenderer.stage;
+  }
+  private get konvaLayers(): Map<string, Konva.Layer> {
+    return this.canvasRenderer.konvaLayers;
+  }
+  private get konvaNodes(): Map<string, Konva.Node> {
+    return this.canvasRenderer.konvaNodes;
+  }
+  private get transformer(): Konva.Transformer | null {
+    return this.canvasRenderer.transformer;
+  }
+  private get selectionLayer(): Konva.Layer | null {
+    return this.canvasRenderer.selectionLayer;
+  }
 
   /** Points being drawn with the draw/line tool */
   private drawingPoints: number[] = [];
@@ -281,11 +279,33 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private rectSelectRect: Konva.Rect | null = null;
   private rectSelectStart: { x: number; y: number } | null = null;
 
-  /** ResizeObserver for canvas container */
-  private resizeObserver: ResizeObserver | null = null;
-
   /** Guard to ensure keyboard shortcuts are only registered once per component lifetime */
   private keyboardShortcutsInitialized = false;
+
+  /** Handlers injected into CanvasRendererService for Konva node events */
+  private nodeHandlers = {
+    onSelect: (objId: string) => this.onSelectObject(objId),
+    onSelectKonvaNode: (node: Konva.Node) => this.selectKonvaNode(node),
+    onDragEnd: (objId: string, x: number, y: number) =>
+      this.canvasService.updateObject(objId, { x, y }),
+    onTransformEnd: (
+      objId: string,
+      x: number,
+      y: number,
+      scaleX: number,
+      scaleY: number,
+      rotation: number
+    ) =>
+      this.canvasService.updateObject(objId, {
+        x,
+        y,
+        scaleX,
+        scaleY,
+        rotation,
+      }),
+    onDblClickText: (obj: CanvasText, textNode: Konva.Text) =>
+      this.openTextEditDialog(obj, textNode),
+  };
 
   constructor() {
     // Keep the tab title in sync with the underlying element's name.
@@ -301,8 +321,13 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     effect(() => {
       const config = this.canvasService.activeConfig();
       const container = this.canvasContainer();
-      if (config && container) {
-        this.syncKonvaFromConfig(config.layers, config.objects);
+      if (config && container && this.stage) {
+        this.canvasRenderer.syncKonvaFromConfig(
+          config.layers,
+          config.objects,
+          this.selectedObjectId(),
+          this.nodeHandlers
+        );
       }
     });
   }
@@ -344,7 +369,6 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.saveViewport();
     this.destroyStage();
-    this.resizeObserver?.disconnect();
     // Stop broadcasting our presence on this canvas.
     this.presence.setActiveLocation(null);
   }
@@ -354,61 +378,26 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────
 
   private initStage(): void {
-    const container = this.canvasContainer()?.nativeElement;
+    const container = this.canvasContainer()?.nativeElement as HTMLDivElement;
     if (!container) return;
 
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-
-    this.stage = new Konva.Stage({
-      container,
-      width,
-      height,
-      draggable: true, // pan by dragging the stage
-    });
-
-    // Selection layer (always on top)
-    this.selectionLayer = new Konva.Layer();
-    this.transformer = new Konva.Transformer({
-      rotateEnabled: true,
-      enabledAnchors: [
-        'top-left',
-        'top-right',
-        'bottom-left',
-        'bottom-right',
-        'middle-left',
-        'middle-right',
-        'top-center',
-        'bottom-center',
-      ],
-    });
-    this.selectionLayer.add(this.transformer);
-
-    // Create Konva layers from config
     const config = this.canvasService.activeConfig();
-    if (config) {
-      this.buildKonvaLayers(config.layers);
-      this.buildKonvaObjects(config.objects);
-    }
+    if (!config) return;
 
-    // Add selection layer last (on top)
-    this.stage.add(this.selectionLayer);
-
-    // Restore saved viewport
     const savedViewport = this.canvasService.loadViewport(this.elementId());
-    if (savedViewport) {
-      this.stage.position({ x: savedViewport.x, y: savedViewport.y });
-      this.stage.scale({
-        x: savedViewport.zoom,
-        y: savedViewport.zoom,
-      });
-      this.zoomLevel.set(savedViewport.zoom);
-    }
 
-    // ── Event Handlers ─────────────────────────────────────────────────
+    const { zoomLevel } = this.canvasRenderer.initStage(
+      container,
+      config.layers,
+      config.objects,
+      savedViewport,
+      this.nodeHandlers
+    );
+
+    this.zoomLevel.set(zoomLevel);
 
     // Wheel zoom
-    this.stage.on('wheel', e => {
+    this.stage!.on('wheel', e => {
       e.evt.preventDefault();
       const oldScale = this.stage!.scaleX();
       const pointer = this.stage!.getPointerPosition();
@@ -437,7 +426,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     });
 
     // Click on empty space → deselect
-    this.stage.on('click tap', e => {
+    this.stage!.on('click tap', e => {
       if (e.target === this.stage) {
         this.handleStageClick(
           e as Konva.KonvaEventObject<MouseEvent | TouchEvent>
@@ -446,18 +435,18 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     });
 
     // Mouse events for drawing tools
-    this.stage.on('mousedown touchstart', e => {
+    this.stage!.on('mousedown touchstart', e => {
       if (e.target !== this.stage) return;
       this.handleDrawStart(
         e as Konva.KonvaEventObject<MouseEvent | TouchEvent>
       );
     });
 
-    this.stage.on('mousemove touchmove', () => {
+    this.stage!.on('mousemove touchmove', () => {
       this.handleDrawMove();
     });
 
-    this.stage.on('mouseup touchend', () => {
+    this.stage!.on('mouseup touchend', () => {
       this.handleDrawEnd();
     });
 
@@ -465,574 +454,6 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     if (!this.keyboardShortcutsInitialized) {
       this.setupKeyboardShortcuts();
       this.keyboardShortcutsInitialized = true;
-    }
-
-    // Resize observer
-    this.resizeObserver = new ResizeObserver(() => {
-      if (!this.stage) return;
-      this.stage.width(container.clientWidth);
-      this.stage.height(container.clientHeight);
-    });
-    this.resizeObserver.observe(container);
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Konva Layer/Object Sync
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Build Konva layers from config layers.
-   * Layers are added to the stage in order.
-   */
-  private buildKonvaLayers(layers: CanvasLayer[]): void {
-    if (!this.stage) return;
-
-    const sorted = [...layers].sort((a, b) => a.order - b.order);
-    for (const layerDef of sorted) {
-      const kLayer = new Konva.Layer({
-        id: layerDef.id,
-        visible: layerDef.visible,
-        opacity: layerDef.opacity,
-        listening: !layerDef.locked,
-      });
-      this.konvaLayers.set(layerDef.id, kLayer);
-      this.stage.add(kLayer);
-    }
-  }
-
-  /**
-   * Build Konva nodes from config objects and add to their layers.
-   */
-  private buildKonvaObjects(objects: CanvasObject[]): void {
-    for (const obj of objects) {
-      const kLayer = this.konvaLayers.get(obj.layerId);
-      if (!kLayer) continue;
-
-      const node = this.createKonvaNode(obj);
-      if (node) {
-        this.konvaNodes.set(obj.id, node);
-        kLayer.add(node);
-      }
-    }
-    // Redraw all layers
-    for (const kLayer of this.konvaLayers.values()) {
-      kLayer.batchDraw();
-    }
-  }
-
-  /**
-   * Called by the config-watching effect.
-   * Diffs the config against existing Konva nodes and applies changes.
-   * For simplicity in v1, we do a full rebuild when layers or object count changes,
-   * and just update positions/properties for simple changes.
-   */
-  private syncKonvaFromConfig(
-    layers: CanvasLayer[],
-    objects: CanvasObject[]
-  ): void {
-    if (!this.stage) return;
-
-    // Sync layer visibility/opacity/lock without full rebuild
-    for (const layerDef of layers) {
-      const kLayer = this.konvaLayers.get(layerDef.id);
-      if (kLayer) {
-        kLayer.visible(layerDef.visible);
-        kLayer.opacity(layerDef.opacity);
-        kLayer.listening(!layerDef.locked);
-      }
-    }
-
-    // Check if we need a full rebuild (layer added/removed or object count changed)
-    const configLayerIds = new Set(layers.map(l => l.id));
-    const existingLayerIds = new Set(this.konvaLayers.keys());
-    const configObjectIds = new Set(objects.map(o => o.id));
-    const existingObjectIds = new Set(this.konvaNodes.keys());
-
-    const layersChanged =
-      configLayerIds.size !== existingLayerIds.size ||
-      [...configLayerIds].some(id => !existingLayerIds.has(id));
-    const objectsChanged =
-      configObjectIds.size !== existingObjectIds.size ||
-      [...configObjectIds].some(id => !existingObjectIds.has(id));
-
-    const renderChanged = objects.some(obj => {
-      const prev = this.objectRenderSignatures.get(obj.id);
-      return prev !== this.getObjectRenderSignature(obj);
-    });
-
-    if (layersChanged || objectsChanged || renderChanged) {
-      this.rebuildAllKonvaNodes(layers, objects);
-    } else {
-      // Just sync positions/transforms
-      for (const obj of objects) {
-        const node = this.konvaNodes.get(obj.id);
-        if (node) {
-          node.position({ x: obj.x, y: obj.y });
-          node.rotation(obj.rotation);
-          node.scale({ x: obj.scaleX, y: obj.scaleY });
-          node.visible(obj.visible);
-          node.draggable(!obj.locked);
-        }
-      }
-
-      for (const kLayer of this.konvaLayers.values()) {
-        kLayer.batchDraw();
-      }
-    }
-
-    this.objectRenderSignatures.clear();
-    for (const obj of objects) {
-      this.objectRenderSignatures.set(
-        obj.id,
-        this.getObjectRenderSignature(obj)
-      );
-    }
-
-    // Re-add selection layer as the topmost layer
-    this.selectionLayer?.moveToTop();
-  }
-
-  /**
-   * Full rebuild: destroy all Konva layers/nodes and recreate from config.
-   */
-  private rebuildAllKonvaNodes(
-    layers: CanvasLayer[],
-    objects: CanvasObject[]
-  ): void {
-    // Remove all existing layers (but keep the selection layer)
-    for (const kLayer of this.konvaLayers.values()) {
-      kLayer.destroy();
-    }
-    this.konvaLayers.clear();
-    this.konvaNodes.clear();
-    this.objectRenderSignatures.clear();
-
-    // Recreate
-    this.buildKonvaLayers(layers);
-    this.buildKonvaObjects(objects);
-
-    for (const obj of objects) {
-      this.objectRenderSignatures.set(
-        obj.id,
-        this.getObjectRenderSignature(obj)
-      );
-    }
-
-    const selectedId = this.selectedObjectId();
-    if (selectedId) {
-      const selectedNode = this.konvaNodes.get(selectedId);
-      if (selectedNode) {
-        this.selectKonvaNode(selectedNode);
-      } else {
-        this.transformer?.nodes([]);
-        this.selectionLayer?.batchDraw();
-      }
-    }
-  }
-
-  /**
-   * Hash of fields that change how an object renders beyond basic transform.
-   * If this changes for any object, we rebuild Konva nodes to reflect remote edits.
-   */
-  private getObjectRenderSignature(obj: CanvasObject): string {
-    switch (obj.type) {
-      case 'image':
-        return JSON.stringify({
-          type: obj.type,
-          layerId: obj.layerId,
-          src: obj.src,
-          width: obj.width,
-          height: obj.height,
-        });
-      case 'text':
-        return JSON.stringify({
-          type: obj.type,
-          layerId: obj.layerId,
-          text: obj.text,
-          fontSize: obj.fontSize,
-          fontFamily: obj.fontFamily,
-          fontStyle: obj.fontStyle,
-          fill: obj.fill,
-          width: obj.width,
-          align: obj.align,
-        });
-      case 'path':
-        return JSON.stringify({
-          type: obj.type,
-          layerId: obj.layerId,
-          points: obj.points,
-          stroke: obj.stroke,
-          strokeWidth: obj.strokeWidth,
-          closed: obj.closed,
-          fill: obj.fill,
-          tension: obj.tension,
-        });
-      case 'shape':
-        return JSON.stringify({
-          type: obj.type,
-          layerId: obj.layerId,
-          shapeType: obj.shapeType,
-          width: obj.width,
-          height: obj.height,
-          points: obj.points,
-          fill: obj.fill,
-          stroke: obj.stroke,
-          strokeWidth: obj.strokeWidth,
-          cornerRadius: obj.cornerRadius,
-          dash: obj.dash,
-        });
-      case 'pin':
-        return JSON.stringify({
-          type: obj.type,
-          layerId: obj.layerId,
-          label: obj.label,
-          icon: obj.icon,
-          color: obj.color,
-          linkedElementId: obj.linkedElementId,
-          relationshipId: obj.relationshipId,
-          note: obj.note,
-        });
-      default:
-        return JSON.stringify(obj);
-    }
-  }
-
-  /**
-   * Create a Konva node from a CanvasObject definition.
-   */
-  private createKonvaNode(obj: CanvasObject): Konva.Group | Konva.Shape | null {
-    const commonAttrs: Konva.NodeConfig = {
-      id: obj.id,
-      x: obj.x,
-      y: obj.y,
-      rotation: obj.rotation,
-      scaleX: obj.scaleX,
-      scaleY: obj.scaleY,
-      visible: obj.visible,
-      draggable: !obj.locked,
-    };
-
-    let node: Konva.Node | null = null;
-
-    switch (obj.type) {
-      case 'image':
-        node = this.createImageNode(obj, commonAttrs);
-        break;
-      case 'text':
-        node = this.createTextNode(obj, commonAttrs);
-        break;
-      case 'path':
-        node = this.createPathNode(obj, commonAttrs);
-        break;
-      case 'shape':
-        node = this.createShapeNode(obj, commonAttrs);
-        break;
-      case 'pin':
-        node = this.createPinNode(obj, commonAttrs);
-        break;
-    }
-
-    if (node) {
-      // Click to select
-      node.on('click tap', () => {
-        this.onSelectObject(obj.id);
-        this.selectKonvaNode(node);
-      });
-
-      // Drag end → save position
-      node.on('dragend', () => {
-        const pos = node.position();
-        this.canvasService.updateObject(obj.id, {
-          x: pos.x,
-          y: pos.y,
-        });
-      });
-
-      // Transform end → save scale/rotation
-      node.on('transformend', () => {
-        this.canvasService.updateObject(obj.id, {
-          x: node.x(),
-          y: node.y(),
-          scaleX: node.scaleX(),
-          scaleY: node.scaleY(),
-          rotation: node.rotation(),
-        });
-      });
-    }
-
-    return node as Konva.Group | Konva.Shape | null;
-  }
-
-  private createImageNode(
-    obj: CanvasImage,
-    attrs: Konva.NodeConfig
-  ): Konva.Node {
-    // Create a placeholder rect first; load image async
-    const group = new Konva.Group({
-      ...attrs,
-    });
-
-    const placeholder = new Konva.Rect({
-      width: obj.width,
-      height: obj.height,
-      fill: '#e0e0e0',
-      stroke: '#bdbdbd',
-      strokeWidth: 1,
-    });
-    group.add(placeholder);
-
-    // Resolve the image source (media: URLs → blob URLs from IndexedDB)
-    void this.resolveImageSrc(obj.src).then(
-      resolvedSrc => {
-        const imageObj = new Image();
-        if (resolvedSrc.startsWith('http')) {
-          imageObj.crossOrigin = 'anonymous';
-        }
-        imageObj.onload = () => {
-          const kImage = new Konva.Image({
-            image: imageObj,
-            width: obj.width,
-            height: obj.height,
-          });
-          placeholder.destroy();
-          group.add(kImage);
-          group.getLayer()?.batchDraw();
-        };
-        imageObj.onerror = () => {
-          this.logger.warn(
-            '[Canvas]',
-            `Failed to load image: ${obj.id} src=${obj.src} resolved=${resolvedSrc}`
-          );
-          placeholder.fill('#ffcdd2');
-          group.getLayer()?.batchDraw();
-        };
-        imageObj.src = resolvedSrc;
-      },
-      err => {
-        this.logger.warn(
-          '[Canvas]',
-          'Failed to resolve image src:',
-          obj.src,
-          err
-        );
-        placeholder.fill('#ffcdd2');
-        group.getLayer()?.batchDraw();
-      }
-    );
-
-    return group;
-  }
-
-  private createTextNode(obj: CanvasText, attrs: Konva.NodeConfig): Konva.Text {
-    const textNode = new Konva.Text({
-      ...attrs,
-      text: obj.text,
-      fontSize: obj.fontSize,
-      fontFamily: obj.fontFamily,
-      fontStyle: obj.fontStyle,
-      fill: obj.fill,
-      width: obj.width || undefined,
-      align: obj.align,
-    });
-
-    // Double-click to edit text content
-    textNode.on('dblclick dbltap', () => {
-      this.openTextEditDialog(obj, textNode);
-    });
-
-    return textNode;
-  }
-
-  private createPathNode(obj: CanvasPath, attrs: Konva.NodeConfig): Konva.Line {
-    return new Konva.Line({
-      ...attrs,
-      points: obj.points,
-      stroke: obj.stroke,
-      strokeWidth: obj.strokeWidth,
-      closed: obj.closed,
-      fill: obj.closed ? obj.fill : undefined,
-      tension: obj.tension,
-      lineCap: 'round',
-      lineJoin: 'round',
-    });
-  }
-
-  private createShapeNode(
-    obj: CanvasShape,
-    attrs: Konva.NodeConfig
-  ): Konva.Node {
-    switch (obj.shapeType) {
-      case 'rect':
-        return new Konva.Rect({
-          ...attrs,
-          width: obj.width,
-          height: obj.height,
-          fill: obj.fill,
-          stroke: obj.stroke,
-          strokeWidth: obj.strokeWidth,
-          cornerRadius: obj.cornerRadius,
-          dash: obj.dash,
-        });
-      case 'ellipse':
-        return new Konva.Ellipse({
-          ...attrs,
-          radiusX: obj.width / 2,
-          radiusY: obj.height / 2,
-          fill: obj.fill,
-          stroke: obj.stroke,
-          strokeWidth: obj.strokeWidth,
-          dash: obj.dash,
-        });
-      case 'line':
-      case 'arrow':
-        return new Konva.Arrow({
-          ...attrs,
-          points: obj.points || [0, 0, obj.width, 0],
-          stroke: obj.stroke,
-          strokeWidth: obj.strokeWidth,
-          fill: obj.stroke,
-          dash: obj.dash,
-          pointerLength: obj.shapeType === 'arrow' ? 10 : 0,
-          pointerWidth: obj.shapeType === 'arrow' ? 10 : 0,
-        });
-      case 'polygon':
-        return new Konva.Line({
-          ...attrs,
-          points: obj.points || [],
-          stroke: obj.stroke,
-          strokeWidth: obj.strokeWidth,
-          fill: obj.fill,
-          closed: true,
-          dash: obj.dash,
-        });
-      default:
-        return new Konva.Rect({
-          ...attrs,
-          width: obj.width,
-          height: obj.height,
-          stroke: obj.stroke,
-          strokeWidth: obj.strokeWidth,
-        });
-    }
-  }
-
-  private createPinNode(obj: CanvasPin, attrs: Konva.NodeConfig): Konva.Group {
-    const group = new Konva.Group({
-      ...attrs,
-    });
-
-    // Pin marker (circle with border)
-    const pinSize = 24;
-    const marker = new Konva.Circle({
-      radius: pinSize / 2,
-      fill: obj.color,
-      stroke: '#fff',
-      strokeWidth: 2,
-      shadowColor: '#000',
-      shadowBlur: 4,
-      shadowOpacity: 0.3,
-      shadowOffset: { x: 0, y: 2 },
-    });
-    group.add(marker);
-
-    // Link indicator (small chain icon rendered as a circle with "🔗" feel)
-    if (obj.linkedElementId) {
-      const linkBadge = new Konva.Circle({
-        name: 'linkBadge',
-        x: pinSize / 2 + 2,
-        y: -(pinSize / 2) + 2,
-        radius: 6,
-        fill: '#1976D2',
-        stroke: '#fff',
-        strokeWidth: 1.5,
-      });
-      group.add(linkBadge);
-
-      const linkIcon = new Konva.Text({
-        name: 'linkIcon',
-        x: pinSize / 2 + 2 - 4,
-        y: -(pinSize / 2) + 2 - 5,
-        text: '🔗',
-        fontSize: 8,
-        listening: false,
-      });
-      group.add(linkIcon);
-    }
-
-    // Pin label
-    const label = new Konva.Text({
-      text: obj.label,
-      fontSize: 12,
-      fontFamily: 'Arial',
-      fill: '#333',
-      y: pinSize / 2 + 4,
-      align: 'center',
-    });
-    // Center label under pin
-    label.x(-label.width() / 2);
-    group.add(label);
-
-    // Double-click to edit pin label
-    group.on('dblclick dbltap', () => {
-      this.openPinEditDialog(obj, label, marker, group);
-    });
-
-    // Single-click navigates to linked element (if link exists)
-    if (obj.linkedElementId) {
-      group.on(
-        'click tap',
-        (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
-          // Only navigate on single-click in select mode, not during a drag
-          if (this.activeTool() !== 'select') return;
-          // Ignore if user is dragging
-          if (group.isDragging()) return;
-          // Need Ctrl/Cmd + click to navigate (avoid accidental navigation)
-          const evt = e.evt as MouseEvent;
-          if (!evt.ctrlKey && !evt.metaKey) return;
-
-          const linkedEl = this.projectState
-            .elements()
-            .find(el => el.id === obj.linkedElementId);
-          if (linkedEl) {
-            this.projectState.openDocument(linkedEl);
-          }
-        }
-      );
-    }
-
-    return group;
-  }
-
-  /** Add or remove the link badge indicator on a pin group */
-  private updatePinLinkIndicator(group: Konva.Group, hasLink: boolean): void {
-    const existingBadge = group.findOne('.linkBadge');
-    const existingIcon = group.findOne('.linkIcon');
-
-    if (hasLink && !existingBadge) {
-      const pinSize = 24;
-      const linkBadge = new Konva.Circle({
-        name: 'linkBadge',
-        x: pinSize / 2 + 2,
-        y: -(pinSize / 2) + 2,
-        radius: 6,
-        fill: '#1976D2',
-        stroke: '#fff',
-        strokeWidth: 1.5,
-      });
-      group.add(linkBadge);
-
-      const linkIcon = new Konva.Text({
-        name: 'linkIcon',
-        x: pinSize / 2 + 2 - 4,
-        y: -(pinSize / 2) + 2 - 5,
-        text: '🔗',
-        fontSize: 8,
-        listening: false,
-      });
-      group.add(linkIcon);
-    } else if (!hasLink) {
-      existingBadge?.destroy();
-      existingIcon?.destroy();
     }
   }
 
@@ -1630,7 +1051,10 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
         marker.fill(result.color);
 
         // Update or remove link indicator
-        this.updatePinLinkIndicator(group, !!result.linkedElementId);
+        CanvasRendererService.updatePinLinkIndicator(
+          group,
+          !!result.linkedElementId
+        );
 
         // Manage relationships when link changes
         const oldLink = obj.linkedElementId;
@@ -2572,10 +1996,6 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   }
 
   private destroyStage(): void {
-    // Disconnect ResizeObserver before tearing down the stage
-    this.resizeObserver?.disconnect();
-    this.resizeObserver = null;
-
     // Clean up any in-progress drawing
     this.drawingLine?.destroy();
     this.drawingLine = null;
@@ -2584,50 +2004,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     this.drawingStartPos = null;
     this.drawingPoints = [];
 
-    if (this.stage) {
-      this.stage.destroy();
-      this.stage = null;
-    }
-    this.konvaLayers.clear();
-    this.konvaNodes.clear();
-    this.transformer = null;
-    this.selectionLayer = null;
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Media URL Resolution
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Resolve an image src to a loadable URL.
-   * - `media:{mediaId}` → look up blob in IndexedDB → blob URL
-   * - `data:` / `http(s):` / `blob:` → return as-is
-   */
-  private async resolveImageSrc(src: string): Promise<string> {
-    if (!isMediaUrl(src)) return src;
-
-    const mediaId = extractMediaId(src);
-    if (!mediaId) return src;
-
-    const project = this.projectState.project();
-    if (!project) {
-      this.logger.warn(
-        '[Canvas]',
-        'Cannot resolve media URL — no project loaded'
-      );
-      return '';
-    }
-
-    const projectKey = `${project.username}/${project.slug}`;
-    const url = await this.localStorageService.getMediaUrl(projectKey, mediaId);
-    if (!url) {
-      this.logger.warn(
-        '[Canvas]',
-        `Media not found in IndexedDB: ${mediaId} (project: ${projectKey})`
-      );
-      return '';
-    }
-    return url;
+    this.canvasRenderer.destroyStage();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
