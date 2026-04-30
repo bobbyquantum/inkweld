@@ -654,4 +654,23 @@ export class CanvasRendererService {
     }
     return url;
   }
+
+  /** Convert pointer position to canvas world coordinates. */
+  getCanvasPointerPosition(): { x: number; y: number } | null {
+    if (!this._stage) return null;
+    const pointer = this._stage.getPointerPosition();
+    if (!pointer) return null;
+    const transform = this._stage.getAbsoluteTransform().copy().invert();
+    return transform.point(pointer);
+  }
+
+  /** Get the center of the visible viewport in canvas world coordinates. */
+  getViewportCenter(): { x: number; y: number } {
+    if (!this._stage) return { x: 0, y: 0 };
+    const transform = this._stage.getAbsoluteTransform().copy().invert();
+    return transform.point({
+      x: this._stage.width() / 2,
+      y: this._stage.height() / 2,
+    });
+  }
 }

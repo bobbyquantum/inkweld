@@ -15,12 +15,16 @@ import {
 import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasClipboardService } from '@services/canvas/canvas-clipboard.service';
 import { CanvasColorService } from '@services/canvas/canvas-color.service';
+import { CanvasContextMenuService } from '@services/canvas/canvas-context-menu.service';
 import { CanvasDrawingService } from '@services/canvas/canvas-drawing.service';
+import { CanvasExportService } from '@services/canvas/canvas-export.service';
 import { CanvasKeyboardService } from '@services/canvas/canvas-keyboard.service';
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
+import { CanvasLayerActionsService } from '@services/canvas/canvas-layer-actions.service';
 import { CanvasPlacementService } from '@services/canvas/canvas-placement.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import { CanvasSelectionService } from '@services/canvas/canvas-selection.service';
+import { CanvasStageEventsService } from '@services/canvas/canvas-stage-events.service';
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
@@ -242,6 +246,8 @@ describe('CanvasTabComponent', () => {
     r.resolveImageSrc = CanvasRendererService.prototype.resolveImageSrc.bind(r);
     r.initStage = vi.fn(() => ({ zoomLevel: 1 }));
     r.destroyStage = vi.fn();
+    r.getCanvasPointerPosition = vi.fn(() => null);
+    r.getViewportCenter = vi.fn(() => ({ x: 0, y: 0 }));
 
     r.projectState = mockProjectState;
     r.logger = mockLogger;
@@ -273,13 +279,17 @@ describe('CanvasTabComponent', () => {
             { provide: CanvasService, useValue: mockCanvasService },
             { provide: CanvasRendererService, useValue: mockCanvasRenderer },
             CanvasLayerService,
+            CanvasLayerActionsService,
             CanvasZoomService,
             CanvasColorService,
             CanvasClipboardService,
+            CanvasContextMenuService,
             CanvasKeyboardService,
             CanvasDrawingService,
+            CanvasExportService,
             CanvasPlacementService,
             CanvasSelectionService,
+            CanvasStageEventsService,
           ],
         },
       })
@@ -1882,7 +1892,7 @@ describe('CanvasTabComponent', () => {
       component['handleStageClick'](fakeEvent);
 
       expect(component['selectedObjectId']()).toBeNull();
-      expect(component['transformer']!.nodes).toHaveBeenCalledWith([]);
+      expect(mockCanvasRenderer.transformer.nodes).toHaveBeenCalledWith([]);
     });
 
     it('should deselect when tool is pan', () => {
@@ -2370,7 +2380,7 @@ describe('CanvasTabComponent', () => {
 
       expect(
         (
-          component['selectionLayer'] as unknown as {
+          mockCanvasRenderer.selectionLayer as unknown as {
             moveToTop: ReturnType<typeof vi.fn>;
           }
         ).moveToTop
@@ -2510,14 +2520,14 @@ describe('CanvasTabComponent', () => {
 
       expect(
         (
-          component['transformer'] as unknown as {
+          mockCanvasRenderer.transformer as unknown as {
             nodes: ReturnType<typeof vi.fn>;
           }
         ).nodes
       ).toHaveBeenCalledWith([]);
       expect(
         (
-          component['selectionLayer'] as unknown as {
+          mockCanvasRenderer.selectionLayer as unknown as {
             batchDraw: ReturnType<typeof vi.fn>;
           }
         ).batchDraw

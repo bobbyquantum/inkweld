@@ -33,23 +33,32 @@ import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasClipboardService } from '@services/canvas/canvas-clipboard.service';
 import { CanvasColorService } from '@services/canvas/canvas-color.service';
 import {
+  CanvasContextMenuService,
+  type ContextMenuCallbacks,
+} from '@services/canvas/canvas-context-menu.service';
+import {
   CanvasDrawingService,
   type DrawingHandlers,
 } from '@services/canvas/canvas-drawing.service';
+import { CanvasExportService } from '@services/canvas/canvas-export.service';
 import { CanvasKeyboardService } from '@services/canvas/canvas-keyboard.service';
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
+import {
+  CanvasLayerActionsService,
+  type LayerActionsCallbacks,
+} from '@services/canvas/canvas-layer-actions.service';
 import {
   CanvasPlacementService,
   type PlacementHandlers,
 } from '@services/canvas/canvas-placement.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import { CanvasSelectionService } from '@services/canvas/canvas-selection.service';
+import { CanvasStageEventsService } from '@services/canvas/canvas-stage-events.service';
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import type Konva from 'konva';
 
-import { downloadSvg } from './canvas-svg-export';
 import { getObjectIcon, getObjectLabel } from './canvas-utils';
 
 /** Delay (ms) after sidebar toggle before telling Konva to resize */
@@ -73,13 +82,17 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
     CanvasService,
     CanvasRendererService,
     CanvasLayerService,
+    CanvasLayerActionsService,
     CanvasZoomService,
     CanvasColorService,
     CanvasClipboardService,
+    CanvasContextMenuService,
     CanvasKeyboardService,
     CanvasDrawingService,
+    CanvasExportService,
     CanvasPlacementService,
     CanvasSelectionService,
+    CanvasStageEventsService,
   ],
 })
 export class CanvasTabComponent implements OnInit, OnDestroy {
@@ -87,14 +100,17 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly projectState = inject(ProjectStateService);
   private readonly canvasService = inject(CanvasService);
   private readonly canvasRenderer = inject(CanvasRendererService);
-  private readonly canvasLayer = inject(CanvasLayerService);
+  private readonly canvasLayerActions = inject(CanvasLayerActionsService);
   private readonly canvasZoom = inject(CanvasZoomService);
   private readonly canvasColor = inject(CanvasColorService);
   private readonly canvasClipboard = inject(CanvasClipboardService);
+  private readonly canvasContextMenu = inject(CanvasContextMenuService);
   private readonly canvasKeyboard = inject(CanvasKeyboardService);
   private readonly canvasDrawing = inject(CanvasDrawingService);
+  private readonly canvasExport = inject(CanvasExportService);
   private readonly canvasPlacement = inject(CanvasPlacementService);
   private readonly canvasSelection = inject(CanvasSelectionService);
+  private readonly canvasStageEvents = inject(CanvasStageEventsService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly presence = inject(PresenceService);
 
@@ -146,14 +162,13 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   /** Current zoom level (updated by Konva stage events) */
   protected readonly zoomLevel = signal<number>(1);
 
-  /** Clipboard for cut/copy/paste operations (proxied to CanvasClipboardService) */
-  protected readonly clipboard = this.canvasClipboard.clipboard;
+  /** Clipboard for cut/copy/paste operations (proxied to context menu service) */
+  protected readonly clipboard = this.canvasContextMenu.clipboard;
 
   /** Position (in page pixels) where the context menu should appear */
-  protected contextMenuPosition = { x: 0, y: 0 };
-
-  /** Canvas-space position where the context menu was opened (for paste) */
-  private contextMenuCanvasPos: { x: number; y: number } | null = null;
+  protected get contextMenuPosition(): { x: number; y: number } {
+    return this.canvasContextMenu.position();
+  }
 
   /** Zoom as percentage string */
   protected readonly zoomPercent = computed(() =>
@@ -232,24 +247,15 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private get stage(): Konva.Stage | null {
     return this.canvasRenderer.stage;
   }
-  private get konvaLayers(): Map<string, Konva.Layer> {
-    return this.canvasRenderer.konvaLayers;
-  }
   private get konvaNodes(): Map<string, Konva.Node> {
     return this.canvasRenderer.konvaNodes;
-  }
-  private get transformer(): Konva.Transformer | null {
-    return this.canvasRenderer.transformer;
-  }
-  private get selectionLayer(): Konva.Layer | null {
-    return this.canvasRenderer.selectionLayer;
   }
 
   /** Guard to ensure keyboard shortcuts are only registered once per component lifetime */
   private keyboardShortcutsInitialized = false;
 
   /** Handlers injected into CanvasRendererService for Konva node events */
-  private nodeHandlers = {
+  private readonly nodeHandlers = {
     onSelect: (objId: string) => this.onSelectObject(objId),
     onSelectKonvaNode: (node: Konva.Node) => this.selectKonvaNode(node),
     onDragEnd: (objId: string, x: number, y: number) =>
@@ -310,7 +316,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
         this.elementId.set(tabId);
 
         // Destroy previous Konva stage
-        this.destroyStage();
+        this.canvasRenderer.destroyStage();
 
         // Find element name
         const element = this.projectState.elements().find(e => e.id === tabId);
@@ -334,7 +340,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.saveViewport();
-    this.destroyStage();
+    this.canvasRenderer.destroyStage();
     // Stop broadcasting our presence on this canvas.
     this.presence.setActiveLocation(null);
   }
@@ -344,7 +350,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────
 
   private initStage(): void {
-    const container = this.canvasContainer()?.nativeElement as HTMLDivElement;
+    const container = this.canvasContainer()?.nativeElement;
     if (!container) return;
 
     const config = this.canvasService.activeConfig();
@@ -362,42 +368,15 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
     this.zoomLevel.set(zoomLevel);
 
-    // Wheel zoom
-    this.stage!.on('wheel', e => {
-      e.evt.preventDefault();
-      const pointer = this.stage!.getPointerPosition();
-      if (!pointer) return;
-      const factor =
-        e.evt.deltaY > 0
-          ? 1 / CanvasZoomService.ZOOM_STEP
-          : CanvasZoomService.ZOOM_STEP;
-      const newScale = this.canvasZoom.zoomToPoint(pointer, factor);
-      if (newScale !== null) this.zoomLevel.set(newScale);
-    });
+    const stage = this.stage;
+    if (!stage) return;
 
-    // Click on empty space → deselect
-    this.stage!.on('click tap', e => {
-      if (e.target === this.stage) {
-        this.handleStageClick(
-          e as Konva.KonvaEventObject<MouseEvent | TouchEvent>
-        );
-      }
-    });
-
-    // Mouse events for drawing tools
-    this.stage!.on('mousedown touchstart', e => {
-      if (e.target !== this.stage) return;
-      this.handleDrawStart(
-        e as Konva.KonvaEventObject<MouseEvent | TouchEvent>
-      );
-    });
-
-    this.stage!.on('mousemove touchmove', () => {
-      this.handleDrawMove();
-    });
-
-    this.stage!.on('mouseup touchend', () => {
-      this.handleDrawEnd();
+    this.canvasStageEvents.attach(stage, {
+      onZoomChange: scale => this.zoomLevel.set(scale),
+      onStageClick: e => this.handleStageClick(e),
+      onDrawStart: e => this.handleDrawStart(e),
+      onDrawMove: () => this.handleDrawMove(),
+      onDrawEnd: () => this.handleDrawEnd(),
     });
 
     // Keyboard shortcuts (register only once per component lifetime)
@@ -433,7 +412,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private get drawingHandlers(): DrawingHandlers {
     return {
       ensureLayer: () => this.ensureActiveLayer(),
-      pointer: () => this.getCanvasPointerPosition(),
+      pointer: () => this.canvasRenderer.getCanvasPointerPosition(),
       onRectSelect: rect => this.selectNodesInRect(rect),
       onClearSelection: () => this.clearCanvasSelection(),
     };
@@ -472,8 +451,8 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private get placementHandlers(): PlacementHandlers {
     return {
       ensureLayer: () => this.ensureActiveLayer(),
-      pointer: () => this.getCanvasPointerPosition(),
-      viewportCenter: () => this.getViewportCenter(),
+      pointer: () => this.canvasRenderer.getCanvasPointerPosition(),
+      viewportCenter: () => this.canvasRenderer.getViewportCenter(),
       elementId: () => this.elementId(),
     };
   }
@@ -496,29 +475,6 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   /** Open a dialog to edit an existing text node's content and color. */
   private openTextEditDialog(obj: CanvasText, textNode: Konva.Text): void {
     this.canvasPlacement.openTextEditDialog(obj, textNode);
-  }
-
-  /** Convert pointer position to canvas world coordinates */
-  private getCanvasPointerPosition(): {
-    x: number;
-    y: number;
-  } | null {
-    if (!this.stage) return null;
-    const pointer = this.stage.getPointerPosition();
-    if (!pointer) return null;
-
-    const transform = this.stage.getAbsoluteTransform().copy().invert();
-    return transform.point(pointer);
-  }
-
-  /** Get the center of the visible viewport in canvas world coordinates */
-  private getViewportCenter(): { x: number; y: number } {
-    if (!this.stage) return { x: 0, y: 0 };
-    const transform = this.stage.getAbsoluteTransform().copy().invert();
-    return transform.point({
-      x: this.stage.width() / 2,
-      y: this.stage.height() / 2,
-    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -551,7 +507,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       onCopy: () => this.onCopy(),
       onCut: () => this.onCut(),
       onPaste: () => {
-        this.contextMenuCanvasPos = null;
+        this.canvasContextMenu.clearCanvasPos();
         this.onPaste();
       },
       onDuplicate: () => this.onDuplicateObject(),
@@ -611,11 +567,6 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     if (z !== null) this.zoomLevel.set(z);
   }
 
-  private zoomToPoint(point: { x: number; y: number }, factor: number): void {
-    const z = this.canvasZoom.zoomToPoint(point, factor);
-    if (z !== null) this.zoomLevel.set(z);
-  }
-
   // ─────────────────────────────────────────────────────────────────────────
   // Sidebar Actions (called from template)
   // ─────────────────────────────────────────────────────────────────────────
@@ -638,11 +589,16 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   // ── Layer actions ──────────────────────────────────────────────────────
 
+  private get layerActionsCallbacks(): LayerActionsCallbacks {
+    return {
+      getActiveLayerId: () => this.activeLayerId(),
+      setActiveLayerId: id => this.activeLayerId.set(id),
+      getSortedLayers: () => this.sortedLayers(),
+    };
+  }
+
   protected onAddLayer(): void {
-    const layerId = this.canvasLayer.addLayer();
-    if (layerId) {
-      this.activeLayerId.set(layerId);
-    }
+    this.canvasLayerActions.add(this.layerActionsCallbacks);
   }
 
   protected onSelectLayer(layerId: string): void {
@@ -650,34 +606,23 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   }
 
   protected onToggleLayerVisibility(layerId: string, event: Event): void {
-    event.stopPropagation();
-    this.canvasLayer.toggleVisibility(layerId);
+    this.canvasLayerActions.toggleVisibility(layerId, event);
   }
 
   protected onToggleLayerLock(layerId: string, event: Event): void {
-    event.stopPropagation();
-    this.canvasLayer.toggleLock(layerId);
+    this.canvasLayerActions.toggleLock(layerId, event);
   }
 
-  protected async onRenameLayer(layerId: string): Promise<void> {
-    await this.canvasLayer.renameLayer(layerId);
+  protected onRenameLayer(layerId: string): Promise<void> {
+    return this.canvasLayerActions.rename(layerId);
   }
 
   protected onDuplicateLayer(layerId: string): void {
-    this.canvasLayer.duplicateLayer(layerId);
+    this.canvasLayerActions.duplicate(layerId);
   }
 
-  protected async onDeleteLayer(layerId: string): Promise<void> {
-    const deleted = await this.canvasLayer.deleteLayer(layerId);
-    if (deleted) {
-      // Switch to first remaining layer
-      const remaining = this.sortedLayers();
-      if (remaining.length > 0 && remaining[0].id !== layerId) {
-        this.activeLayerId.set(remaining[0].id);
-      } else if (remaining.length > 1) {
-        this.activeLayerId.set(remaining[1].id);
-      }
-    }
+  protected onDeleteLayer(layerId: string): Promise<void> {
+    return this.canvasLayerActions.delete(layerId, this.layerActionsCallbacks);
   }
 
   // ── Object actions ─────────────────────────────────────────────────────
@@ -719,60 +664,52 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // Context Menu & Clipboard
   // ─────────────────────────────────────────────────────────────────────────
 
+  /** Build the callback bag the context menu service needs. */
+  private get menuCallbacks(): ContextMenuCallbacks {
+    return {
+      getSelectedObjectId: () => this.selectedObjectId(),
+      setSelectedObjectId: id => this.selectedObjectId.set(id),
+      ensureActiveLayer: () => this.ensureActiveLayer(),
+      getViewportCenter: () => this.canvasRenderer.getViewportCenter(),
+      getCanvasPointerPosition: () =>
+        this.canvasRenderer.getCanvasPointerPosition(),
+      getElementId: () => this.elementId(),
+    };
+  }
+
   /** Open the right-click context menu at the cursor position */
   protected onContextMenu(event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();
-
-    // Position the hidden trigger at the mouse location
-    this.contextMenuPosition = { x: event.clientX, y: event.clientY };
-
-    // Record canvas-space position for paste
-    this.contextMenuCanvasPos = this.getCanvasPointerPosition();
-
+    this.canvasContextMenu.openAt(
+      event.clientX,
+      event.clientY,
+      this.canvasRenderer.getCanvasPointerPosition()
+    );
     this.canvasSelection.selectObjectAtPointer({
       onSelect: id => this.onSelectObject(id),
     });
-
-    // Open the menu on the next tick so Angular picks up position changes
-    setTimeout(() => {
-      this.contextMenuTrigger()?.openMenu();
-    });
+    setTimeout(() => this.contextMenuTrigger()?.openMenu());
   }
 
   /** Copy the selected object to the clipboard */
   protected onCopy(): void {
-    const id = this.selectedObjectId();
-    if (id) this.canvasClipboard.copy(id);
+    this.canvasContextMenu.copy(this.menuCallbacks);
   }
 
   /** Cut the selected object (copy + remove) */
   protected onCut(): void {
-    const id = this.selectedObjectId();
-    if (!id) return;
-    if (this.canvasClipboard.cutObject(id)) {
-      this.selectedObjectId.set(null);
-      this.canvasSelection.clearSelection();
-    }
+    this.canvasContextMenu.cut(this.menuCallbacks);
   }
 
   /** Paste from clipboard at the context menu position (or viewport center) */
   protected onPaste(): void {
-    if (!this.clipboard()) return;
-    const layerId = this.ensureActiveLayer();
-    if (!layerId) return;
-    const pos = this.contextMenuCanvasPos ?? this.getViewportCenter();
-    const newId = this.canvasClipboard.paste(layerId, pos, this.elementId());
-    if (newId) this.selectedObjectId.set(newId);
-    this.contextMenuCanvasPos = null;
+    this.canvasContextMenu.paste(this.menuCallbacks);
   }
 
   /** Duplicate the selected object with a small offset */
   protected onDuplicateObject(): void {
-    const id = this.selectedObjectId();
-    if (!id) return;
-    const newId = this.canvasClipboard.duplicate(id);
-    if (newId) this.selectedObjectId.set(newId);
+    this.canvasContextMenu.duplicate(this.menuCallbacks);
   }
 
   /** Delete from context menu (no event arg needed) */
@@ -782,18 +719,12 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   /** Get the layer ID of the currently selected object */
   protected getSelectedObjectLayerId(): string {
-    const config = this.canvasService.activeConfig();
-    const id = this.selectedObjectId();
-    if (!config || !id) return '';
-    const obj = config.objects.find(o => o.id === id);
-    return obj?.layerId ?? '';
+    return this.canvasContextMenu.getSelectedObjectLayerId(this.menuCallbacks);
   }
 
   /** Move the selected object to a different layer */
   protected onSendToLayer(targetLayerId: string): void {
-    const id = this.selectedObjectId();
-    if (!id) return;
-    this.canvasService.moveObjectToLayer(id, targetLayerId);
+    this.canvasContextMenu.sendToLayer(targetLayerId, this.menuCallbacks);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -801,27 +732,15 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────
 
   protected exportAsPng(): void {
-    if (!this.stage) return;
-    const dataUrl = this.stage.toDataURL({ pixelRatio: 2 });
-    const link = document.createElement('a');
-    link.download = `${this.elementName()}.png`;
-    link.href = dataUrl;
-    link.click();
+    this.canvasExport.exportAsPng(this.elementName());
   }
 
   protected exportAsHighResPng(): void {
-    if (!this.stage) return;
-    const dataUrl = this.stage.toDataURL({ pixelRatio: 3 });
-    const link = document.createElement('a');
-    link.download = `${this.elementName()}-highres.png`;
-    link.href = dataUrl;
-    link.click();
+    this.canvasExport.exportAsHighResPng(this.elementName());
   }
 
   protected exportAsSvg(): void {
-    const config = this.canvasService.activeConfig();
-    if (!config) return;
-    downloadSvg(config, this.elementName());
+    this.canvasExport.exportAsSvg(this.elementName());
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -837,10 +756,6 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       y: this.stage.y(),
       zoom: this.stage.scaleX(),
     });
-  }
-
-  private destroyStage(): void {
-    this.canvasRenderer.destroyStage();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
