@@ -14,10 +14,11 @@ import {
 } from '@angular/core';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { type AddRelationshipDialogData } from '@dialogs/add-relationship-dialog/add-relationship-dialog.component';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
   type ElementRelationship,
@@ -27,11 +28,6 @@ import {
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 
 import { type Element, ElementType } from '../../../api-client';
-import {
-  AddRelationshipDialogComponent,
-  type AddRelationshipDialogData,
-  type AddRelationshipDialogResult,
-} from '../../dialogs/add-relationship-dialog/add-relationship-dialog.component';
 import { ElementRefService } from '../element-ref/element-ref.service';
 import { type ElementRefTooltipData } from '../element-ref/element-ref-tooltip/element-ref-tooltip.component';
 
@@ -90,7 +86,7 @@ export class MetaPanelComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly elementRefService = inject(ElementRefService);
   private readonly worldbuildingService = inject(WorldbuildingService);
-  private readonly dialog = inject(MatDialog);
+  private readonly dialogGateway = inject(DialogGatewayService);
 
   /** The effective element ID (elementId or documentId) */
   private readonly effectiveElementId = computed(() => {
@@ -347,7 +343,7 @@ export class MetaPanelComponent {
   /**
    * Open the add relationship dialog
    */
-  openAddRelationshipDialog(): void {
+  async openAddRelationshipDialog(): Promise<void> {
     const currentElement = this.currentElement();
     const sourceSchema = currentElement
       ? this.getElementSchema(currentElement)
@@ -358,24 +354,16 @@ export class MetaPanelComponent {
       sourceSchemaType: sourceSchema,
     };
 
-    const dialogRef = this.dialog.open(AddRelationshipDialogComponent, {
-      data: dialogData,
-      width: '500px',
-      maxWidth: '90vw',
-    });
-
-    dialogRef
-      .afterClosed()
-      .subscribe((result: AddRelationshipDialogResult | null) => {
-        if (result) {
-          this.relationshipService.addRelationship(
-            this.effectiveElementId(),
-            result.targetElementId,
-            result.relationshipTypeId,
-            { note: result.note }
-          );
-        }
-      });
+    const result =
+      await this.dialogGateway.openAddRelationshipDialog(dialogData);
+    if (result) {
+      this.relationshipService.addRelationship(
+        this.effectiveElementId(),
+        result.targetElementId,
+        result.relationshipTypeId,
+        { note: result.note }
+      );
+    }
   }
 
   /**

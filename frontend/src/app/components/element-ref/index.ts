@@ -5,8 +5,8 @@
  * element reference and relationship system.
  */
 
-// Models (includes utility functions)
-export * from './element-ref.model';
+// Models (includes utility functions) — now in models/ to prevent upward deps
+export * from '../../models/element-ref.model';
 
 // ProseMirror schema
 export {

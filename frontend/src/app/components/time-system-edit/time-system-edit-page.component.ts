@@ -31,6 +31,8 @@ import { TIME_SYSTEM_TEMPLATES, type TimeSystem } from '@models/time-system';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
 
 interface UnitDraft {
+  /** Stable identity used for @for tracking. */
+  _id: number;
   name: string;
   /** `null` only on the top unit. */
   subdivision: number | null;
@@ -163,6 +165,7 @@ export class TimeSystemEditPageComponent {
     });
     this.units.set([
       {
+        _id: nextUnitId(),
         name: 'Year',
         subdivision: null,
         allowZero: false,
@@ -171,6 +174,7 @@ export class TimeSystemEditPageComponent {
         subdivisionOverrides: {},
       },
       {
+        _id: nextUnitId(),
         name: 'Month',
         subdivision: 12,
         allowZero: false,
@@ -179,6 +183,7 @@ export class TimeSystemEditPageComponent {
         subdivisionOverrides: {},
       },
       {
+        _id: nextUnitId(),
         name: 'Day',
         subdivision: 30,
         allowZero: false,
@@ -240,6 +245,7 @@ export class TimeSystemEditPageComponent {
 
   protected onAddUnit(): void {
     const next: UnitDraft = {
+      _id: nextUnitId(),
       name: '',
       subdivision: this.units().length === 0 ? null : 1,
       allowZero: false,
@@ -319,6 +325,7 @@ export class TimeSystemEditPageComponent {
       this.units.update(curr => {
         const next = [...curr];
         next[i] = {
+          _id: curr[i]._id,
           name: result.unit.name,
           // Top unit forced to null regardless of dialog input.
           subdivision: i === 0 ? null : (result.unit.subdivision ?? 1),
@@ -394,8 +401,15 @@ export class TimeSystemEditPageComponent {
 // Pure helpers (file-private)
 // ─────────────────────────────────────────────────────────────────────────
 
+/** Monotonically-increasing counter for stable @for tracking of UnitDraft rows. */
+let _unitIdCounter = 0;
+function nextUnitId(): number {
+  return ++_unitIdCounter;
+}
+
 function systemToDrafts(system: TimeSystem): UnitDraft[] {
   return system.unitLabels.map((label, i) => ({
+    _id: nextUnitId(),
     name: label,
     subdivision: i === 0 ? null : (system.subdivisions[i - 1] ?? 1),
     allowZero: system.unitAllowZero?.[i] ?? false,

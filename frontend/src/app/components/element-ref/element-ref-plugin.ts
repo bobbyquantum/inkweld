@@ -9,6 +9,10 @@
  */
 
 import {
+  type ElementRefClickEvent,
+  type ElementRefNodeAttrs,
+} from '@models/element-ref.model';
+import {
   type EditorState,
   Plugin,
   PluginKey,
@@ -18,10 +22,6 @@ import {
 import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 
 import { ElementType } from '../../../api-client';
-import {
-  type ElementRefClickEvent,
-  type ElementRefNodeAttrs,
-} from './element-ref.model';
 import { ELEMENT_REF_NODE_NAME } from './element-ref-schema';
 import type { ElementRefTooltipData } from './element-ref-tooltip/element-ref-tooltip.component';
 
@@ -238,10 +238,11 @@ export function createElementRefPlugin(
         // Check if we clicked on an elementRef node
         if (node?.type.name === ELEMENT_REF_NODE_NAME) {
           const attrs = node.attrs as ElementRefNodeAttrs;
+          const elementType1 = attrs.elementType;
 
           callbacks.onRefClick({
             elementId: attrs.elementId,
-            elementType: attrs.elementType,
+            elementType: elementType1,
             displayText: attrs.displayText,
             originalName: attrs.originalName,
             relationshipId: attrs.relationshipId,
@@ -315,10 +316,11 @@ export function createElementRefPlugin(
           if (node?.type.name === ELEMENT_REF_NODE_NAME) {
             event.preventDefault();
             const attrs = node.attrs as ElementRefNodeAttrs;
+            const elementType2 = attrs.elementType;
 
             callbacks.onRefClick({
               elementId: attrs.elementId,
-              elementType: attrs.elementType,
+              elementType: elementType2,
               displayText: attrs.displayText,
               originalName: attrs.originalName,
               relationshipId: attrs.relationshipId,

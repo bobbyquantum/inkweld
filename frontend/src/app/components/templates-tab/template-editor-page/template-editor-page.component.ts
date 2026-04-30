@@ -7,6 +7,7 @@ import {
   type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   inject,
   input,
   type OnInit,
@@ -15,6 +16,7 @@ import {
   signal,
   ViewChildren,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormBuilder,
   type FormControl,
@@ -33,12 +35,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-
 import {
   type ElementTypeSchema,
   type FieldSchema,
   type TabSchema,
-} from '../../../../../models/schema-types';
+} from '@models/schema-types';
 
 interface BasicForm {
   name: FormControl<string>;
@@ -73,6 +74,7 @@ interface BasicForm {
 })
 export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   private readonly fb = inject(FormBuilder).nonNullable;
+  private readonly destroyRef = inject(DestroyRef);
 
   /** The schema to edit. Required — pass a blank schema to create a new one. */
   readonly schema = input.required<ElementTypeSchema>();
@@ -156,18 +158,20 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    this.expansionPanels.changes.subscribe(() => {
-      if (this._lastFieldId) {
-        setTimeout(() => {
-          const panels = this.expansionPanels.toArray();
-          const lastPanel = panels[panels.length - 1];
-          if (lastPanel && !lastPanel.expanded) {
-            lastPanel.open();
-          }
-          this._lastFieldId = null;
-        }, 100);
-      }
-    });
+    this.expansionPanels.changes
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (this._lastFieldId) {
+          setTimeout(() => {
+            const panels = this.expansionPanels.toArray();
+            const lastPanel = panels[panels.length - 1];
+            if (lastPanel && !lastPanel.expanded) {
+              lastPanel.open();
+            }
+            this._lastFieldId = null;
+          }, 100);
+        }
+      });
   }
 
   /** Add a new tab */

@@ -18,6 +18,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router } from '@angular/router';
+import { RelationshipsTabComponent } from '@components/relationships-tab/relationships-tab.component';
+import { TagsTabComponent } from '@components/tags-tab/tags-tab.component';
+import { TemplatesTabComponent } from '@components/templates-tab/templates-tab.component';
 import { type CreateMcpKeyDialogResult } from '@dialogs/create-mcp-key-dialog/create-mcp-key-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
@@ -39,9 +42,6 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { of, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { RelationshipsTabComponent } from '../relationships/relationships-tab.component';
-import { TagsTabComponent } from '../tags/tags-tab.component';
-import { TemplatesTabComponent } from '../templates/templates-tab.component';
 import { SettingsTabComponent } from './settings-tab.component';
 
 // Mock child components to avoid their complex dependencies

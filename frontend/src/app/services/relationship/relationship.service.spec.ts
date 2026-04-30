@@ -1,14 +1,14 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
-import { BehaviorSubject } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import {
   type ElementRelationship,
   RelationshipCategory,
   type RelationshipTypeDefinition,
-} from '../../components/element-ref/element-ref.model';
+} from '@models/element-ref.model';
+import { BehaviorSubject } from 'rxjs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';

@@ -1,15 +1,12 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element } from '@inkweld/index';
-import { BehaviorSubject, type Observable, Subject } from 'rxjs';
-
 import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
-} from '../../components/element-ref/element-ref.model';
-import {
-  type ElementTag,
-  type TagDefinition,
-} from '../../components/tags/tag.model';
+} from '@models/element-ref.model';
+import { type ElementTag, type TagDefinition } from '@models/tag.model';
+import { BehaviorSubject, type Observable, Subject } from 'rxjs';
+
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';

@@ -22,7 +22,7 @@ import { nanoid } from 'nanoid';
 import { registerTool } from '../mcp.handler';
 import type { McpContext, McpToolResult, ActiveProjectContext } from '../mcp.types';
 import { getProjectByKey, hasProjectPermission } from '../mcp.types';
-import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
+import { MCP_PERMISSIONS } from '../../services/mcp-key.service';
 import { type Element, type ElementType, ELEMENT_TYPES } from '../../schemas/element.schemas';
 import { logger } from '../../services/logger.service';
 import {

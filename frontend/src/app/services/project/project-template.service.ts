@@ -1,15 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
-
 import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
-} from '../../components/element-ref/element-ref.model';
-import {
-  type ElementTag,
-  type TagDefinition,
-} from '../../components/tags/tag.model';
+} from '@models/element-ref.model';
+import { type ElementTag, type TagDefinition } from '@models/tag.model';
+import { firstValueFrom } from 'rxjs';
+
 import { type MediaTag } from '../../models/media-tag.model';
 import {
   ARCHIVE_VERSION,

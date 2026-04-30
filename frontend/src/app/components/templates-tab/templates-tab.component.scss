@@ -1,8 +1,8 @@
-@use '../_settings-tab-layout' as settingsTabLayout;
+@use '../../pages/project/tabs/_settings-tab-layout' as settingsTabLayout;
 
 @include settingsTabLayout.apply();
 
-.types-list {
+.templates-list {
   border: 1px solid var(--sys-outline-variant);
   border-radius: 8px;
   overflow: hidden;
@@ -10,18 +10,18 @@
   flex-direction: column;
 }
 
-.type-row {
+.template-row {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
 }
 
-.type-row + .type-row {
+.template-row + .template-row {
   border-top: 1px solid var(--sys-outline-variant);
 }
 
-.type-info {
+.template-info {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -29,7 +29,7 @@
   min-width: 0;
 }
 
-.type-name {
+.template-name {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -43,31 +43,15 @@
   }
 }
 
-.type-badge {
-  display: inline-block;
-  padding: 1px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 400;
-  background: var(--sys-surface-container-highest);
-  color: var(--sys-on-surface-variant);
-}
-
-.type-meta {
+.template-meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   color: var(--sys-on-surface-variant);
   font-size: 0.8rem;
 }
 
-.hidden-icon {
-  font-size: 14px;
-  width: 14px;
-  height: 14px;
-}
-
-.type-actions {
+.template-actions {
   display: flex;
   gap: 4px;
   flex-shrink: 0;

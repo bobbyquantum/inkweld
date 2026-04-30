@@ -1,9 +1,9 @@
-import type { RelationshipCategory } from '@components/element-ref/element-ref.model';
 import {
   CANVAS_PIN_RELATIONSHIP_TYPE,
   type CanvasObject,
   type CanvasPin,
 } from '@models/canvas.model';
+import type { RelationshipCategory } from '@models/element-ref.model';
 import type { RelationshipService } from '@services/relationship/relationship.service';
 
 /**

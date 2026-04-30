@@ -12,15 +12,15 @@
  */
 
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { nanoid } from 'nanoid';
-
 import {
   type ElementTag,
   type ElementTagView,
   type ResolvedTag,
   type TagDefinition,
   type TagIndexEntry,
-} from '../../components/tags/tag.model';
+} from '@models/tag.model';
+import { nanoid } from 'nanoid';
+
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';

@@ -1,4 +1,4 @@
-@use '../_settings-tab-layout' as settingsTabLayout;
+@use '../../pages/project/tabs/_settings-tab-layout' as settingsTabLayout;
 
 @include settingsTabLayout.apply();
 
