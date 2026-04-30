@@ -37,14 +37,6 @@ import {
   type CanvasTextDialogResult,
 } from '@dialogs/canvas-text-dialog/canvas-text-dialog.component';
 import {
-  ConfirmationDialogComponent,
-  type ConfirmationDialogData,
-} from '@dialogs/confirmation-dialog/confirmation-dialog.component';
-import {
-  RenameDialogComponent,
-  type RenameDialogData,
-} from '@dialogs/rename-dialog/rename-dialog.component';
-import {
   type CanvasImage,
   type CanvasLayer,
   type CanvasObject,
@@ -58,6 +50,7 @@ import {
   createDefaultToolSettings,
 } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
+import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
@@ -67,10 +60,8 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import Konva from 'konva';
 import { nanoid } from 'nanoid';
-import { firstValueFrom, type Observable } from 'rxjs';
 
 import {
-  cleanupPinRelationships,
   createPinRelationship,
   removePinRelationship,
 } from './canvas-pin-helpers';
@@ -101,13 +92,14 @@ const ZOOM_STEP = 1.1;
     TabPresenceIndicatorComponent,
     DocumentBreadcrumbsComponent,
   ],
-  providers: [CanvasService, CanvasRendererService],
+  providers: [CanvasService, CanvasRendererService, CanvasLayerService],
 })
 export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly projectState = inject(ProjectStateService);
   private readonly canvasService = inject(CanvasService);
   private readonly canvasRenderer = inject(CanvasRendererService);
+  private readonly canvasLayer = inject(CanvasLayerService);
   private readonly dialog = inject(MatDialog);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly localStorageService = inject(LocalStorageService);
@@ -1626,7 +1618,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // ── Layer actions ──────────────────────────────────────────────────────
 
   protected onAddLayer(): void {
-    const layerId = this.canvasService.addLayer();
+    const layerId = this.canvasLayer.addLayer();
     if (layerId) {
       this.activeLayerId.set(layerId);
     }
@@ -1638,90 +1630,25 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   protected onToggleLayerVisibility(layerId: string, event: Event): void {
     event.stopPropagation();
-    const config = this.canvasService.activeConfig();
-    const layer = config?.layers.find(l => l.id === layerId);
-    if (layer) {
-      this.canvasService.updateLayer(layerId, { visible: !layer.visible });
-    }
+    this.canvasLayer.toggleVisibility(layerId);
   }
 
   protected onToggleLayerLock(layerId: string, event: Event): void {
     event.stopPropagation();
-    const config = this.canvasService.activeConfig();
-    const layer = config?.layers.find(l => l.id === layerId);
-    if (layer) {
-      this.canvasService.updateLayer(layerId, { locked: !layer.locked });
-    }
+    this.canvasLayer.toggleLock(layerId);
   }
 
   protected async onRenameLayer(layerId: string): Promise<void> {
-    const config = this.canvasService.activeConfig();
-    const layer = config?.layers.find(l => l.id === layerId);
-    if (!layer) return;
-
-    const data: RenameDialogData = {
-      currentName: layer.name,
-      title: 'Rename Layer',
-    };
-    const newName = await firstValueFrom(
-      this.dialog
-        .open(RenameDialogComponent, {
-          data,
-          width: '400px',
-          disableClose: true,
-        })
-        .afterClosed() as Observable<string | undefined>
-    );
-    if (newName && typeof newName === 'string' && newName.trim()) {
-      this.canvasService.updateLayer(layerId, { name: newName.trim() });
-    }
+    await this.canvasLayer.renameLayer(layerId);
   }
 
   protected onDuplicateLayer(layerId: string): void {
-    const config = this.canvasService.activeConfig();
-    if (!config) return;
-
-    const layer = config.layers.find(l => l.id === layerId);
-    if (!layer) return;
-
-    const newLayerId = this.canvasService.addLayer(`${layer.name} (copy)`);
-    if (!newLayerId) return;
-
-    // Copy all objects from the source layer to the new layer
-    const objectsToCopy = config.objects.filter(o => o.layerId === layerId);
-    for (const obj of objectsToCopy) {
-      const copy: CanvasObject = {
-        ...obj,
-        id: nanoid(),
-        layerId: newLayerId,
-        // Clear relationship ownership so duplicates don't share the original's relationship
-        ...(obj.type === 'pin'
-          ? { relationshipId: undefined, linkedElementId: undefined }
-          : {}),
-      };
-      this.canvasService.addObject(copy);
-    }
+    this.canvasLayer.duplicateLayer(layerId);
   }
 
   protected async onDeleteLayer(layerId: string): Promise<void> {
-    const data: ConfirmationDialogData = {
-      title: 'Delete Layer',
-      message: 'Delete this layer and all its objects? This cannot be undone.',
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-    };
-    const confirmed = await firstValueFrom(
-      this.dialog
-        .open(ConfirmationDialogComponent, { data, disableClose: true })
-        .afterClosed() as Observable<boolean | undefined>
-    );
-    if (confirmed) {
-      // Clean up relationships for any linked pins on this layer
-      cleanupPinRelationships(
-        this.relationshipService,
-        this.canvasService.getObjectsForLayer(layerId)
-      );
-      this.canvasService.removeLayer(layerId);
+    const deleted = await this.canvasLayer.deleteLayer(layerId);
+    if (deleted) {
       // Switch to first remaining layer
       const remaining = this.sortedLayers();
       if (remaining.length > 0 && remaining[0].id !== layerId) {

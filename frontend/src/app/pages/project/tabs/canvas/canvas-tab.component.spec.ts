@@ -13,6 +13,7 @@ import {
   createDefaultToolSettings,
 } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
+import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
@@ -264,6 +265,7 @@ describe('CanvasTabComponent', () => {
           providers: [
             { provide: CanvasService, useValue: mockCanvasService },
             { provide: CanvasRendererService, useValue: mockCanvasRenderer },
+            CanvasLayerService,
           ],
         },
       })
