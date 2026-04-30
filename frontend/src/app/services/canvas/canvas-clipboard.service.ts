@@ -1,13 +1,13 @@
 import { inject, Injectable, signal } from '@angular/core';
+import type { CanvasObject } from '@models/canvas.model';
+import { CanvasService } from '@services/canvas/canvas.service';
+import { RelationshipService } from '@services/relationship/relationship.service';
 import { nanoid } from 'nanoid';
 
-import { RelationshipService } from '@services/relationship/relationship.service';
-import { CanvasService } from '@services/canvas/canvas.service';
 import {
   createPinRelationship,
   removePinRelationship,
 } from '../../pages/project/tabs/canvas/canvas-pin-helpers';
-import type { CanvasObject } from '@models/canvas.model';
 
 const PASTE_OFFSET = 20;
 const DUPLICATE_OFFSET = 20;

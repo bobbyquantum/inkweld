@@ -1,10 +1,10 @@
-import { TestBed } from '@angular/core/testing';
 import { Component, DestroyRef, inject } from '@angular/core';
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  CanvasKeyboardService,
   type CanvasKeyboardHandlers,
+  CanvasKeyboardService,
 } from './canvas-keyboard.service';
 
 @Component({

@@ -1,13 +1,13 @@
-import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import Konva from 'konva';
 import { of } from 'rxjs';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CanvasService } from './canvas.service';
-import { CanvasRendererService } from './canvas-renderer.service';
 import { CanvasColorService } from './canvas-color.service';
+import { CanvasRendererService } from './canvas-renderer.service';
 
 interface AnyObj {
   id: string;

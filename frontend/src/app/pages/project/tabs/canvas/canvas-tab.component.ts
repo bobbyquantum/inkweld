@@ -36,7 +36,6 @@ import {
   type CanvasImage,
   type CanvasLayer,
   type CanvasObject,
-  type CanvasPath,
   type CanvasPin,
   type CanvasShape,
   type CanvasShapeType,
@@ -48,6 +47,10 @@ import {
 import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasClipboardService } from '@services/canvas/canvas-clipboard.service';
 import { CanvasColorService } from '@services/canvas/canvas-color.service';
+import {
+  CanvasDrawingService,
+  type DrawingHandlers,
+} from '@services/canvas/canvas-drawing.service';
 import { CanvasKeyboardService } from '@services/canvas/canvas-keyboard.service';
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
@@ -93,6 +96,7 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
     CanvasColorService,
     CanvasClipboardService,
     CanvasKeyboardService,
+    CanvasDrawingService,
   ],
 })
 export class CanvasTabComponent implements OnInit, OnDestroy {
@@ -105,6 +109,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly canvasColor = inject(CanvasColorService);
   private readonly canvasClipboard = inject(CanvasClipboardService);
   private readonly canvasKeyboard = inject(CanvasKeyboardService);
+  private readonly canvasDrawing = inject(CanvasDrawingService);
   private readonly dialog = inject(MatDialog);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly localStorageService = inject(LocalStorageService);
@@ -259,19 +264,6 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private get selectionLayer(): Konva.Layer | null {
     return this.canvasRenderer.selectionLayer;
   }
-
-  /** Points being drawn with the draw/line tool */
-  private drawingPoints: number[] = [];
-  /** Temporary Konva.Line used during freehand/line drawing */
-  private drawingLine: Konva.Line | null = null;
-  /** Temporary Konva node for shape preview during drag-to-draw */
-  private drawingShape: Konva.Node | null = null;
-  /** Start position for line/shape drag drawing */
-  private drawingStartPos: { x: number; y: number } | null = null;
-
-  /** Rectangle selection state */
-  private rectSelectRect: Konva.Rect | null = null;
-  private rectSelectStart: { x: number; y: number } | null = null;
 
   /** Guard to ensure keyboard shortcuts are only registered once per component lifetime */
   private keyboardShortcutsInitialized = false;
@@ -445,401 +437,53 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     const tool = this.activeTool();
 
     if (tool === 'select' || tool === 'pan' || tool === 'rectSelect') {
-      // Deselect
-      this.selectedObjectId.set(null);
-      this.transformer?.nodes([]);
-      this.selectionLayer?.batchDraw();
+      this.clearCanvasSelection();
       return;
     }
+    if (tool === 'pin') return this.placePin(e);
+    if (tool === 'text') return this.placeText(e);
+    if (tool === 'shape') this.placeDefaultShape(e);
+  }
 
-    if (tool === 'pin') {
-      this.placePin(e);
-      return;
-    }
+  private clearCanvasSelection(): void {
+    this.selectedObjectId.set(null);
+    this.transformer?.nodes([]);
+    this.selectionLayer?.batchDraw();
+  }
 
-    if (tool === 'text') {
-      this.placeText(e);
-      return;
-    }
-
-    if (tool === 'shape') {
-      this.placeDefaultShape(e);
-    }
+  private get drawingHandlers(): DrawingHandlers {
+    return {
+      ensureLayer: () => this.ensureActiveLayer(),
+      pointer: () => this.getCanvasPointerPosition(),
+      onRectSelect: rect => this.selectNodesInRect(rect),
+      onClearSelection: () => this.clearCanvasSelection(),
+    };
   }
 
   private handleDrawStart(
     _e: Konva.KonvaEventObject<MouseEvent | TouchEvent>
   ): void {
     const tool = this.activeTool();
-    if (
-      tool !== 'draw' &&
-      tool !== 'line' &&
-      tool !== 'shape' &&
-      tool !== 'rectSelect'
-    )
-      return;
-
-    // Prevent stage from dragging during draw / rect-select
-    this.stage!.draggable(false);
-
-    if (tool === 'rectSelect') {
-      this.initRectSelect();
-      return;
-    }
-
-    const pos = this.getCanvasPointerPosition();
-    if (!pos) return;
-
-    const layerId = this.ensureActiveLayer();
-    if (!layerId) return;
-    const kLayer = this.konvaLayers.get(layerId);
-    if (!kLayer) return;
-
-    const settings = this.toolSettings();
-
-    if (tool === 'draw') {
-      this.initFreeDraw(pos, settings, kLayer);
-    } else if (tool === 'line') {
-      this.initLineDraw(pos, settings, kLayer);
-    } else if (tool === 'shape') {
-      this.initShapeDraw(pos, settings, kLayer);
-    }
-  }
-
-  private initRectSelect(): void {
-    const pos = this.getCanvasPointerPosition();
-    if (!pos) return;
-    this.rectSelectStart = pos;
-    this.rectSelectRect = new Konva.Rect({
-      x: pos.x,
-      y: pos.y,
-      width: 0,
-      height: 0,
-      stroke: '#1976d2',
-      strokeWidth: 1,
-      dash: [6, 3],
-      fill: 'rgba(25,118,210,0.08)',
-      listening: false,
-    });
-    this.selectionLayer?.add(this.rectSelectRect);
-  }
-
-  private initFreeDraw(
-    pos: { x: number; y: number },
-    settings: ReturnType<typeof this.toolSettings>,
-    kLayer: Konva.Layer
-  ): void {
-    this.drawingPoints = [pos.x, pos.y];
-    this.drawingLine = new Konva.Line({
-      stroke: settings.stroke,
-      strokeWidth: settings.strokeWidth,
-      points: this.drawingPoints,
-      lineCap: 'round',
-      lineJoin: 'round',
-      tension: settings.tension,
-    });
-    kLayer.add(this.drawingLine);
-  }
-
-  private initLineDraw(
-    pos: { x: number; y: number },
-    settings: ReturnType<typeof this.toolSettings>,
-    kLayer: Konva.Layer
-  ): void {
-    this.drawingStartPos = pos;
-    this.drawingLine = new Konva.Line({
-      stroke: settings.stroke,
-      strokeWidth: settings.strokeWidth,
-      points: [pos.x, pos.y, pos.x, pos.y],
-      lineCap: 'round',
-    });
-    kLayer.add(this.drawingLine);
-  }
-
-  private initShapeDraw(
-    pos: { x: number; y: number },
-    settings: ReturnType<typeof this.toolSettings>,
-    kLayer: Konva.Layer
-  ): void {
-    this.drawingStartPos = pos;
-    const shapeType = settings.shapeType;
-
-    if (shapeType === 'arrow' || shapeType === 'line') {
-      this.drawingLine = new Konva.Arrow({
-        stroke: settings.stroke,
-        strokeWidth: settings.strokeWidth,
-        points: [pos.x, pos.y, pos.x, pos.y],
-        fill: settings.stroke,
-        pointerLength: shapeType === 'arrow' ? 10 : 0,
-        pointerWidth: shapeType === 'arrow' ? 10 : 0,
-      });
-      kLayer.add(this.drawingLine);
-    } else if (shapeType === 'ellipse') {
-      this.drawingShape = new Konva.Ellipse({
-        x: pos.x,
-        y: pos.y,
-        radiusX: 0,
-        radiusY: 0,
-        fill: settings.fill,
-        stroke: settings.stroke,
-        strokeWidth: settings.strokeWidth,
-      });
-      kLayer.add(this.drawingShape as Konva.Ellipse);
-    } else {
-      this.drawingShape = new Konva.Rect({
-        x: pos.x,
-        y: pos.y,
-        width: 0,
-        height: 0,
-        fill: settings.fill,
-        stroke: settings.stroke,
-        strokeWidth: settings.strokeWidth,
-      });
-      kLayer.add(this.drawingShape as Konva.Rect);
-    }
+    const consumed = this.canvasDrawing.start(
+      tool,
+      this.toolSettings(),
+      this.drawingHandlers
+    );
+    if (consumed) this.stage?.draggable(false);
   }
 
   private handleDrawMove(): void {
-    const pos = this.getCanvasPointerPosition();
-    if (!pos) return;
-
-    // ── Rectangle selection drag ──────────────────────────────────────────
-    if (this.rectSelectRect && this.rectSelectStart) {
-      const start = this.rectSelectStart;
-      this.rectSelectRect.x(Math.min(start.x, pos.x));
-      this.rectSelectRect.y(Math.min(start.y, pos.y));
-      this.rectSelectRect.width(Math.abs(pos.x - start.x));
-      this.rectSelectRect.height(Math.abs(pos.y - start.y));
-      this.selectionLayer?.batchDraw();
-      return;
-    }
-
-    // Freehand drawing or line/arrow preview
-    if (this.drawingLine) {
-      const tool = this.activeTool();
-      if (tool === 'draw') {
-        this.drawingPoints.push(pos.x, pos.y);
-        this.drawingLine.points(this.drawingPoints);
-      } else {
-        // Line tool or arrow/line shape: update end point
-        const start = this.drawingStartPos;
-        if (start) {
-          this.drawingLine.points([start.x, start.y, pos.x, pos.y]);
-        }
-      }
-      this.drawingLine.getLayer()?.batchDraw();
-    }
-
-    // Rect/ellipse shape preview
-    if (this.drawingShape && this.drawingStartPos) {
-      const start = this.drawingStartPos;
-      const settings = this.toolSettings();
-
-      if (settings.shapeType === 'ellipse') {
-        const ellipse = this.drawingShape as Konva.Ellipse;
-        ellipse.x((start.x + pos.x) / 2);
-        ellipse.y((start.y + pos.y) / 2);
-        ellipse.radiusX(Math.abs(pos.x - start.x) / 2);
-        ellipse.radiusY(Math.abs(pos.y - start.y) / 2);
-      } else {
-        const rect = this.drawingShape as Konva.Rect;
-        rect.x(Math.min(start.x, pos.x));
-        rect.y(Math.min(start.y, pos.y));
-        rect.width(Math.abs(pos.x - start.x));
-        rect.height(Math.abs(pos.y - start.y));
-      }
-      this.drawingShape.getLayer()?.batchDraw();
-    }
+    this.canvasDrawing.move(
+      this.activeTool(),
+      this.toolSettings(),
+      this.drawingHandlers
+    );
   }
 
   private handleDrawEnd(): void {
     const tool = this.activeTool();
-    const restoreDraggable = (): void => {
-      this.stage?.draggable(tool === 'select' || tool === 'pan');
-    };
-
-    if (this.rectSelectRect && this.rectSelectStart) {
-      this.finalizeRectSelect();
-    } else if (this.drawingLine && tool === 'draw') {
-      this.finalizeFreeDraw();
-    } else if (this.drawingLine && tool === 'line') {
-      this.finalizeLineDraw();
-    } else if (this.drawingLine && tool === 'shape') {
-      this.finalizeLineShapeDraw();
-    } else if (this.drawingShape && tool === 'shape') {
-      this.finalizeRectShapeDraw();
-    }
-
-    restoreDraggable();
-  }
-
-  private finalizeRectSelect(): void {
-    const selRect = {
-      x: this.rectSelectRect!.x(),
-      y: this.rectSelectRect!.y(),
-      width: this.rectSelectRect!.width(),
-      height: this.rectSelectRect!.height(),
-    };
-    this.rectSelectRect!.destroy();
-    this.rectSelectRect = null;
-    this.rectSelectStart = null;
-
-    if (selRect.width > 2 || selRect.height > 2) {
-      this.selectNodesInRect(selRect);
-    } else {
-      this.selectedObjectId.set(null);
-      this.transformer?.nodes([]);
-    }
-    this.selectionLayer?.batchDraw();
-  }
-
-  private finalizeFreeDraw(): void {
-    if (this.drawingPoints.length >= 4) {
-      const layerId = this.ensureActiveLayer();
-      if (layerId) {
-        const settings = this.toolSettings();
-        const pathObj: CanvasPath = {
-          id: nanoid(),
-          layerId,
-          type: 'path',
-          x: 0,
-          y: 0,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          visible: true,
-          locked: false,
-          points: [...this.drawingPoints],
-          stroke: settings.stroke,
-          strokeWidth: settings.strokeWidth,
-          closed: false,
-          tension: settings.tension,
-        };
-        this.canvasService.addObject(pathObj);
-      }
-    }
-    this.drawingLine?.destroy();
-    this.drawingLine = null;
-    this.drawingPoints = [];
-  }
-
-  private finalizeLineDraw(): void {
-    const points = this.drawingLine!.points();
-    const dx = (points[2] ?? 0) - (points[0] ?? 0);
-    const dy = (points[3] ?? 0) - (points[1] ?? 0);
-    const len = Math.hypot(dx, dy);
-
-    if (len > 5) {
-      const layerId = this.ensureActiveLayer();
-      if (layerId) {
-        const settings = this.toolSettings();
-        const pathObj: CanvasPath = {
-          id: nanoid(),
-          layerId,
-          type: 'path',
-          x: 0,
-          y: 0,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          visible: true,
-          locked: false,
-          points: [...points],
-          stroke: settings.stroke,
-          strokeWidth: settings.strokeWidth,
-          closed: false,
-          tension: 0,
-        };
-        this.canvasService.addObject(pathObj);
-      }
-    }
-    this.drawingLine?.destroy();
-    this.drawingLine = null;
-    this.drawingStartPos = null;
-  }
-
-  private finalizeLineShapeDraw(): void {
-    const points = this.drawingLine!.points();
-    const dx = (points[2] ?? 0) - (points[0] ?? 0);
-    const dy = (points[3] ?? 0) - (points[1] ?? 0);
-    const len = Math.hypot(dx, dy);
-
-    if (len > 5) {
-      const layerId = this.ensureActiveLayer();
-      if (layerId) {
-        const settings = this.toolSettings();
-        const shapeObj: CanvasShape = {
-          id: nanoid(),
-          layerId,
-          type: 'shape',
-          x: points[0] ?? 0,
-          y: points[1] ?? 0,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          visible: true,
-          locked: false,
-          shapeType: settings.shapeType,
-          width: len,
-          height: 0,
-          points: [0, 0, dx, dy],
-          stroke: settings.stroke,
-          strokeWidth: settings.strokeWidth,
-          fill: settings.stroke,
-        };
-        this.canvasService.addObject(shapeObj);
-      }
-    }
-    this.drawingLine?.destroy();
-    this.drawingLine = null;
-    this.drawingStartPos = null;
-  }
-
-  private finalizeRectShapeDraw(): void {
-    const settings = this.toolSettings();
-    let w: number, h: number, sx: number, sy: number;
-
-    if (settings.shapeType === 'ellipse') {
-      const ellipse = this.drawingShape as Konva.Ellipse;
-      w = ellipse.radiusX() * 2;
-      h = ellipse.radiusY() * 2;
-      sx = ellipse.x() - ellipse.radiusX();
-      sy = ellipse.y() - ellipse.radiusY();
-    } else {
-      const rect = this.drawingShape as Konva.Rect;
-      w = rect.width();
-      h = rect.height();
-      sx = rect.x();
-      sy = rect.y();
-    }
-
-    if (w > 5 && h > 5) {
-      const layerId = this.ensureActiveLayer();
-      if (layerId) {
-        const shapeObj: CanvasShape = {
-          id: nanoid(),
-          layerId,
-          type: 'shape',
-          x: sx,
-          y: sy,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          visible: true,
-          locked: false,
-          shapeType: settings.shapeType,
-          width: w,
-          height: h,
-          stroke: settings.stroke,
-          strokeWidth: settings.strokeWidth,
-          fill: settings.fill,
-        };
-        this.canvasService.addObject(shapeObj);
-      }
-    }
-    this.drawingShape?.destroy();
-    this.drawingShape = null;
-    this.drawingStartPos = null;
+    this.canvasDrawing.end(tool, this.toolSettings(), this.drawingHandlers);
+    this.stage?.draggable(tool === 'select' || tool === 'pan');
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1528,14 +1172,6 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   }
 
   private destroyStage(): void {
-    // Clean up any in-progress drawing
-    this.drawingLine?.destroy();
-    this.drawingLine = null;
-    this.drawingShape?.destroy();
-    this.drawingShape = null;
-    this.drawingStartPos = null;
-    this.drawingPoints = [];
-
     this.canvasRenderer.destroyStage();
   }
 

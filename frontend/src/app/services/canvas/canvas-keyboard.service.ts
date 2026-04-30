@@ -1,5 +1,4 @@
 import { DestroyRef, inject, Injectable } from '@angular/core';
-
 import type { CanvasTool } from '@models/canvas.model';
 
 /**

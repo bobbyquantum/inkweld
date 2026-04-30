@@ -1,13 +1,12 @@
 import { inject, Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import Konva from 'konva';
-
-import { CanvasService } from '@services/canvas/canvas.service';
-import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import {
   CanvasColorDialogComponent,
   type CanvasColorDialogData,
 } from '@dialogs/canvas-color-dialog/canvas-color-dialog.component';
+import { CanvasService } from '@services/canvas/canvas.service';
+import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
+import Konva from 'konva';
 
 type ColorResult = { fill?: string; stroke?: string };
 

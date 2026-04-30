@@ -1,6 +1,6 @@
-import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CanvasService } from './canvas.service';
 import { CanvasRendererService } from './canvas-renderer.service';

@@ -1,16 +1,16 @@
-import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { describe, expect, it, beforeEach, vi } from 'vitest';
-
-import { CanvasClipboardService } from './canvas-clipboard.service';
-import { CanvasService } from './canvas.service';
-import { RelationshipService } from '@services/relationship/relationship.service';
+import { TestBed } from '@angular/core/testing';
 import type {
   CanvasConfig,
   CanvasObject,
-  CanvasShape,
   CanvasPin,
+  CanvasShape,
 } from '@models/canvas.model';
+import { RelationshipService } from '@services/relationship/relationship.service';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { CanvasService } from './canvas.service';
+import { CanvasClipboardService } from './canvas-clipboard.service';
 
 const makeShape = (id: string, layerId = 'L1', x = 10, y = 20): CanvasShape =>
   ({
@@ -75,7 +75,7 @@ describe('CanvasClipboardService', () => {
     } as CanvasConfig;
 
     mockCanvas = {
-      activeConfig: signal(cfg) as any,
+      activeConfig: signal(cfg),
       addObject: vi.fn(),
       removeObject: vi.fn(),
     };

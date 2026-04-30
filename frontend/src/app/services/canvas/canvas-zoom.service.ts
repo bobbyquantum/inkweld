@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
-import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import { CanvasService } from '@services/canvas/canvas.service';
+import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 
 /** Min/max zoom levels */
 const MIN_ZOOM = 0.05;
