@@ -1,0 +1,28 @@
+@if (segments().length > 1) {
+  <nav
+    class="document-breadcrumbs"
+    aria-label="Document path"
+    [matTooltip]="fullPath()"
+    matTooltipShowDelay="600"
+    data-testid="document-breadcrumbs">
+    @for (segment of segments(); track segment.id; let isLast = $last) {
+      @if (segment.isCurrent) {
+        <span class="breadcrumb-segment current" aria-current="page">
+          {{ segment.name }}
+        </span>
+      } @else {
+        <button
+          type="button"
+          class="breadcrumb-segment link"
+          (click)="onSegmentClick(segment.id)">
+          {{ segment.name }}
+        </button>
+      }
+      @if (!isLast) {
+        <mat-icon class="breadcrumb-separator" aria-hidden="true">
+          chevron_right
+        </mat-icon>
+      }
+    }
+  </nav>
+}
