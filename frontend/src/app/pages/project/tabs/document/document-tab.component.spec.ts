@@ -217,6 +217,35 @@ describe('DocumentTabComponent', () => {
     });
   });
 
+  describe('bareElementId computed signal', () => {
+    it('returns empty string when no tabs are open', () => {
+      (projectStateService.openTabs as any).set([]);
+      (projectStateService.selectedTabIndex as any).set(0);
+      expect((component as any).bareElementId()).toBe('');
+    });
+
+    it('returns the element id of the selected tab', () => {
+      (projectStateService.openTabs as any).set([
+        { element: { id: 'first' } },
+        { element: { id: 'second' } },
+      ]);
+      (projectStateService.selectedTabIndex as any).set(1);
+      expect((component as any).bareElementId()).toBe('second');
+    });
+
+    it('returns empty string when the selected tab has no element', () => {
+      (projectStateService.openTabs as any).set([{}]);
+      (projectStateService.selectedTabIndex as any).set(0);
+      expect((component as any).bareElementId()).toBe('');
+    });
+
+    it('returns empty string when selectedTabIndex is out of range', () => {
+      (projectStateService.openTabs as any).set([{ element: { id: 'a' } }]);
+      (projectStateService.selectedTabIndex as any).set(5);
+      expect((component as any).bareElementId()).toBe('');
+    });
+  });
+
   describe('documentUnavailable', () => {
     it('should default to false', () => {
       expect((component as any).documentUnavailable()).toBe(false);

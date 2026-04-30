@@ -50,8 +50,12 @@ export class SettingsService {
    * the reactive signal so subscribed components re-render.
    */
   setShowBreadcrumbs(value: boolean): void {
-    this.setSetting<boolean>('showBreadcrumbs', value);
     this._showBreadcrumbs.set(value);
+    try {
+      this.setSetting<boolean>('showBreadcrumbs', value);
+    } catch {
+      // Storage can be unavailable (private mode/quota); keep UI reactive.
+    }
   }
 
   private getSettings(): Record<string, unknown> {

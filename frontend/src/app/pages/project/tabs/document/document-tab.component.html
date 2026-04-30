@@ -10,6 +10,7 @@
 } @else if (fullDocumentId()) {
   @if (bareElementId()) {
     <app-document-breadcrumbs
+      data-testid="document-breadcrumbs"
       [elementId]="bareElementId()"></app-document-breadcrumbs>
   }
   @defer (on idle) {
