@@ -14,30 +14,15 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule, type MatMenuTrigger } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
-import { createMediaUrl } from '@components/image-paste/image-paste-plugin';
 import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
 import {
-  CanvasPinDialogComponent,
-  type CanvasPinDialogData,
-  type CanvasPinDialogResult,
-} from '@dialogs/canvas-pin-dialog/canvas-pin-dialog.component';
-import {
-  CanvasTextDialogComponent,
-  type CanvasTextDialogData,
-  type CanvasTextDialogResult,
-} from '@dialogs/canvas-text-dialog/canvas-text-dialog.component';
-import {
-  type CanvasImage,
   type CanvasLayer,
   type CanvasObject,
-  type CanvasPin,
-  type CanvasShape,
   type CanvasShapeType,
   type CanvasText,
   type CanvasTool,
@@ -53,21 +38,19 @@ import {
 } from '@services/canvas/canvas-drawing.service';
 import { CanvasKeyboardService } from '@services/canvas/canvas-keyboard.service';
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
+import {
+  CanvasPlacementService,
+  type PlacementHandlers,
+} from '@services/canvas/canvas-placement.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
-import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
-import { LocalStorageService } from '@services/local/local-storage.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import Konva from 'konva';
-import { nanoid } from 'nanoid';
 
-import {
-  createPinRelationship,
-  removePinRelationship,
-} from './canvas-pin-helpers';
+import { removePinRelationship } from './canvas-pin-helpers';
 import { downloadSvg } from './canvas-svg-export';
 import { getObjectIcon, getObjectLabel, rectsIntersect } from './canvas-utils';
 
@@ -97,6 +80,7 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
     CanvasClipboardService,
     CanvasKeyboardService,
     CanvasDrawingService,
+    CanvasPlacementService,
   ],
 })
 export class CanvasTabComponent implements OnInit, OnDestroy {
@@ -110,9 +94,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly canvasClipboard = inject(CanvasClipboardService);
   private readonly canvasKeyboard = inject(CanvasKeyboardService);
   private readonly canvasDrawing = inject(CanvasDrawingService);
-  private readonly dialog = inject(MatDialog);
-  private readonly dialogGateway = inject(DialogGatewayService);
-  private readonly localStorageService = inject(LocalStorageService);
+  private readonly canvasPlacement = inject(CanvasPlacementService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly logger = inject(LoggerService);
   private readonly relationshipService = inject(RelationshipService);
@@ -432,7 +414,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────
 
   private handleStageClick(
-    e: Konva.KonvaEventObject<MouseEvent | TouchEvent>
+    _e: Konva.KonvaEventObject<MouseEvent | TouchEvent>
   ): void {
     const tool = this.activeTool();
 
@@ -440,9 +422,9 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       this.clearCanvasSelection();
       return;
     }
-    if (tool === 'pin') return this.placePin(e);
-    if (tool === 'text') return this.placeText(e);
-    if (tool === 'shape') this.placeDefaultShape(e);
+    if (tool === 'pin') return this.placePin();
+    if (tool === 'text') return this.placeText();
+    if (tool === 'shape') this.placeDefaultShape();
   }
 
   private clearCanvasSelection(): void {
@@ -490,224 +472,33 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // Object Placement
   // ─────────────────────────────────────────────────────────────────────────
 
-  private placePin(_e: Konva.KonvaEventObject<MouseEvent | TouchEvent>): void {
-    const pos = this.getCanvasPointerPosition();
-    if (!pos) return;
-
-    const data: CanvasPinDialogData = {
-      title: 'Place Pin',
-      label: 'New Pin',
-      color: '#E53935',
+  private get placementHandlers(): PlacementHandlers {
+    return {
+      ensureLayer: () => this.ensureActiveLayer(),
+      pointer: () => this.getCanvasPointerPosition(),
+      viewportCenter: () => this.getViewportCenter(),
+      elementId: () => this.elementId(),
     };
-    const dialogRef = this.dialog.open(CanvasPinDialogComponent, {
-      data,
-      width: '420px',
-    });
-    dialogRef
-      .afterClosed()
-      .subscribe((result: CanvasPinDialogResult | undefined) => {
-        if (!result) return;
-        const layerId = this.ensureActiveLayer();
-        if (!layerId) return;
-
-        // Create formal relationship if linking to an element
-        let relationshipId: string | undefined;
-        if (result.linkedElementId) {
-          relationshipId = createPinRelationship(
-            this.relationshipService,
-            this.elementId(),
-            result.linkedElementId
-          );
-        }
-
-        const pin = this.canvasService.createPin(
-          layerId,
-          pos.x,
-          pos.y,
-          result.label,
-          {
-            color: result.color,
-            linkedElementId: result.linkedElementId,
-            relationshipId,
-          }
-        );
-        this.canvasService.addObject(pin);
-      });
   }
 
-  private placeText(_e: Konva.KonvaEventObject<MouseEvent | TouchEvent>): void {
-    const pos = this.getCanvasPointerPosition();
-    if (!pos) return;
-
-    const settings = this.toolSettings();
-    const data: CanvasTextDialogData = {
-      title: 'Add Text',
-      text: 'Text',
-      color: settings.fill,
-    };
-    const dialogRef = this.dialog.open(CanvasTextDialogComponent, {
-      data,
-      width: '450px',
-    });
-    dialogRef
-      .afterClosed()
-      .subscribe((result: CanvasTextDialogResult | undefined) => {
-        if (!result) return;
-        const layerId = this.ensureActiveLayer();
-        if (!layerId) return;
-        const textObj: CanvasText = {
-          id: nanoid(),
-          layerId,
-          type: 'text',
-          x: pos.x,
-          y: pos.y,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          visible: true,
-          locked: false,
-          text: result.text,
-          fontSize: settings.fontSize,
-          fontFamily: settings.fontFamily,
-          fontStyle: 'normal',
-          fill: result.color,
-          width: 200,
-          align: 'left',
-          name: result.text.substring(0, 30),
-        };
-        this.canvasService.addObject(textObj);
-      });
+  private placePin(): void {
+    this.canvasPlacement.placePin(this.placementHandlers);
   }
 
-  /** Click with shape tool → place a default-sized shape */
-  private placeDefaultShape(
-    _e: Konva.KonvaEventObject<MouseEvent | TouchEvent>
-  ): void {
-    const pos = this.getCanvasPointerPosition();
-    if (!pos) return;
+  private placeText(): void {
+    this.canvasPlacement.placeText(this.placementHandlers, this.toolSettings());
+  }
 
-    const settings = this.toolSettings();
-    const defaultSize = 100;
-    const isLinear =
-      settings.shapeType === 'line' || settings.shapeType === 'arrow';
-    const layerId = this.ensureActiveLayer();
-    if (!layerId) return;
-    const shapeObj: CanvasShape = {
-      id: nanoid(),
-      layerId,
-      type: 'shape',
-      x: pos.x - defaultSize / 2,
-      y: pos.y - defaultSize / 2,
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      visible: true,
-      locked: false,
-      shapeType: settings.shapeType,
-      width: defaultSize,
-      height: isLinear ? 0 : defaultSize,
-      points: isLinear ? [0, 0, defaultSize, 0] : undefined,
-      stroke: settings.stroke,
-      strokeWidth: settings.strokeWidth,
-      fill: settings.fill,
-    };
-    this.canvasService.addObject(shapeObj);
+  private placeDefaultShape(): void {
+    this.canvasPlacement.placeDefaultShape(
+      this.placementHandlers,
+      this.toolSettings()
+    );
   }
 
   /** Open a dialog to edit an existing text node's content and color. */
   private openTextEditDialog(obj: CanvasText, textNode: Konva.Text): void {
-    const data: CanvasTextDialogData = {
-      title: 'Edit Text',
-      text: obj.text,
-      color: obj.fill,
-      confirmLabel: 'Save',
-    };
-    const dialogRef = this.dialog.open(CanvasTextDialogComponent, {
-      data,
-      width: '450px',
-    });
-    dialogRef
-      .afterClosed()
-      .subscribe((result: CanvasTextDialogResult | undefined) => {
-        if (!result) return;
-        textNode.text(result.text);
-        textNode.fill(result.color);
-        this.canvasService.updateObject(obj.id, {
-          text: result.text,
-          fill: result.color,
-          name: result.text.substring(0, 30),
-        });
-      });
-  }
-
-  /** Open a dialog to edit an existing pin's label and color. */
-  private openPinEditDialog(
-    obj: CanvasPin,
-    label: Konva.Text,
-    marker: Konva.Circle,
-    group: Konva.Group
-  ): void {
-    // Resolve linked element name for display
-    const linkedElement = obj.linkedElementId
-      ? this.projectState.elements().find(e => e.id === obj.linkedElementId)
-      : undefined;
-
-    const data: CanvasPinDialogData = {
-      title: 'Edit Pin',
-      label: obj.label,
-      color: obj.color,
-      confirmLabel: 'Save',
-      linkedElementId: obj.linkedElementId,
-      linkedElementName: linkedElement?.name,
-    };
-    const dialogRef = this.dialog.open(CanvasPinDialogComponent, {
-      data,
-      width: '420px',
-    });
-    dialogRef
-      .afterClosed()
-      .subscribe((result: CanvasPinDialogResult | undefined) => {
-        if (!result) return;
-        label.text(result.label);
-        label.x(-label.width() / 2);
-        marker.fill(result.color);
-
-        // Update or remove link indicator
-        CanvasRendererService.updatePinLinkIndicator(
-          group,
-          !!result.linkedElementId
-        );
-
-        // Manage relationships when link changes
-        const oldLink = obj.linkedElementId;
-        const newLink = result.linkedElementId;
-        let relationshipId = obj.relationshipId;
-
-        if (oldLink !== newLink) {
-          // Remove old relationship if it existed
-          if (oldLink && relationshipId) {
-            removePinRelationship(this.relationshipService, obj);
-            relationshipId = undefined;
-          }
-          // Create new relationship if linking to an element
-          if (newLink) {
-            relationshipId = createPinRelationship(
-              this.relationshipService,
-              this.elementId(),
-              newLink
-            );
-          }
-        }
-
-        group.getLayer()?.batchDraw();
-        this.canvasService.updateObject(obj.id, {
-          label: result.label,
-          color: result.color,
-          name: result.label,
-          linkedElementId: result.linkedElementId,
-          relationshipId,
-        });
-      });
+    this.canvasPlacement.openTextEditDialog(obj, textNode);
   }
 
   /** Convert pointer position to canvas world coordinates */
@@ -826,63 +617,8 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     this.canvasColor.openEditColorsDialog(objId);
   }
 
-  protected async onAddImage(): Promise<void> {
-    const project = this.projectState.project();
-    if (!project) return;
-
-    const result = await this.dialogGateway.openInsertImageDialog({
-      username: project.username,
-      slug: project.slug,
-    });
-    if (!result?.mediaId || !result?.imageBlob) return;
-
-    const projectKey = `${project.username}/${project.slug}`;
-
-    // Save blob to IndexedDB
-    await this.localStorageService.saveMedia(
-      projectKey,
-      result.mediaId,
-      result.imageBlob
-    );
-
-    // Pre-cache a blob URL so createImageNode can resolve it immediately
-    // without waiting for another IndexedDB round-trip
-    this.localStorageService.preCacheMediaUrl(
-      projectKey,
-      result.mediaId,
-      result.imageBlob
-    );
-
-    // Get image dimensions from the blob
-    const blobUrl = URL.createObjectURL(result.imageBlob);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(blobUrl);
-      const center = this.getViewportCenter();
-      const layerId = this.ensureActiveLayer();
-      if (!layerId) {
-        return;
-      }
-      const imageObj: CanvasImage = {
-        id: nanoid(),
-        layerId,
-        type: 'image',
-        x: center.x - img.naturalWidth / 2,
-        y: center.y - img.naturalHeight / 2,
-        rotation: 0,
-        scaleX: 1,
-        scaleY: 1,
-        visible: true,
-        locked: false,
-        src: createMediaUrl(result.mediaId),
-        width: img.naturalWidth,
-        height: img.naturalHeight,
-        name: result.mediaId,
-      };
-      this.canvasService.addObject(imageObj);
-    };
-    img.onerror = () => URL.revokeObjectURL(blobUrl);
-    img.src = blobUrl;
+  protected onAddImage(): Promise<void> {
+    return this.canvasPlacement.addImage(this.placementHandlers);
   }
 
   protected onShapeTypeChange(shapeType: CanvasShapeType): void {

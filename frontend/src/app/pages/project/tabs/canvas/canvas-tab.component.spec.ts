@@ -18,6 +18,7 @@ import { CanvasColorService } from '@services/canvas/canvas-color.service';
 import { CanvasDrawingService } from '@services/canvas/canvas-drawing.service';
 import { CanvasKeyboardService } from '@services/canvas/canvas-keyboard.service';
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
+import { CanvasPlacementService } from '@services/canvas/canvas-placement.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -276,6 +277,7 @@ describe('CanvasTabComponent', () => {
             CanvasClipboardService,
             CanvasKeyboardService,
             CanvasDrawingService,
+            CanvasPlacementService,
           ],
         },
       })
@@ -1909,7 +1911,7 @@ describe('CanvasTabComponent', () => {
         .spyOn(component as any, 'placePin')
         .mockImplementation(() => {});
       component['handleStageClick'](fakeEvent);
-      expect(spy).toHaveBeenCalledWith(fakeEvent);
+      expect(spy).toHaveBeenCalled();
     });
 
     it('should call placeText when tool is text', () => {
@@ -1918,7 +1920,7 @@ describe('CanvasTabComponent', () => {
         .spyOn(component as any, 'placeText')
         .mockImplementation(() => {});
       component['handleStageClick'](fakeEvent);
-      expect(spy).toHaveBeenCalledWith(fakeEvent);
+      expect(spy).toHaveBeenCalled();
     });
 
     it('should call placeDefaultShape when tool is shape', () => {
@@ -1927,7 +1929,7 @@ describe('CanvasTabComponent', () => {
         .spyOn(component as any, 'placeDefaultShape')
         .mockImplementation(() => {});
       component['handleStageClick'](fakeEvent);
-      expect(spy).toHaveBeenCalledWith(fakeEvent);
+      expect(spy).toHaveBeenCalled();
     });
   });
 
