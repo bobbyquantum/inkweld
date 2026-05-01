@@ -101,6 +101,7 @@ describe('CanvasTabComponent', () => {
     removeLayer: vi.fn(),
     updateLayer: vi.fn(),
     reorderLayers: vi.fn(),
+    reorderObject: vi.fn(),
     getSortedLayers: vi.fn(() => defaultConfig.layers),
     addObject: vi.fn(),
     removeObject: vi.fn(),
@@ -506,6 +507,45 @@ describe('CanvasTabComponent', () => {
       await component['onDeleteLayer']('layer-1');
       expect(mockCanvasService.removeLayer).not.toHaveBeenCalled();
     });
+
+    it('should delegate move layer up to layer actions service', () => {
+      const moveUpSpy = vi.spyOn(component['canvasLayerActions'], 'moveUp');
+      component['onMoveLayerUp']('layer-1');
+      expect(moveUpSpy).toHaveBeenCalledWith('layer-1', expect.any(Object));
+    });
+
+    it('should delegate move layer down to layer actions service', () => {
+      const moveDownSpy = vi.spyOn(component['canvasLayerActions'], 'moveDown');
+      component['onMoveLayerDown']('layer-1');
+      expect(moveDownSpy).toHaveBeenCalledWith('layer-1', expect.any(Object));
+    });
+
+    it('should parse string value and delegate opacity change to service', () => {
+      const setOpacitySpy = vi.spyOn(
+        component['canvasLayerActions'],
+        'setOpacity'
+      );
+      component['onLayerOpacityChange']('layer-1', '0.75');
+      expect(setOpacitySpy).toHaveBeenCalledWith('layer-1', 0.75);
+    });
+
+    it('should pass numeric value directly to opacity service', () => {
+      const setOpacitySpy = vi.spyOn(
+        component['canvasLayerActions'],
+        'setOpacity'
+      );
+      component['onLayerOpacityChange']('layer-1', 0.5);
+      expect(setOpacitySpy).toHaveBeenCalledWith('layer-1', 0.5);
+    });
+
+    it('should not call setOpacity when value is not a finite number', () => {
+      const setOpacitySpy = vi.spyOn(
+        component['canvasLayerActions'],
+        'setOpacity'
+      );
+      component['onLayerOpacityChange']('layer-1', 'not-a-number');
+      expect(setOpacitySpy).not.toHaveBeenCalled();
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -525,6 +565,21 @@ describe('CanvasTabComponent', () => {
 
       expect(mockCanvasService.removeObject).toHaveBeenCalledWith('obj-1');
       expect(component['selectedObjectId']()).toBeNull();
+    });
+
+    it('should delegate reorder object to canvas service', () => {
+      component['selectedObjectId'].set('obj-1');
+      component['onReorderObject']('front');
+      expect(mockCanvasService.reorderObject).toHaveBeenCalledWith(
+        'obj-1',
+        'front'
+      );
+    });
+
+    it('should not reorder when no object is selected', () => {
+      component['selectedObjectId'].set(null);
+      component['onReorderObject']('back');
+      expect(mockCanvasService.reorderObject).not.toHaveBeenCalled();
     });
   });
 
@@ -853,6 +908,123 @@ describe('CanvasTabComponent', () => {
       // saveViewport is called but stage is null in jsdom -> no-op, shouldn't throw
       expect(() => fixture.destroy).not.toThrow();
     });
+
+    it('should save viewport on destroy when stage is set', () => {
+      const stage = createStageStub({ on: vi.fn() }) as never;
+
+      fixture.detectChanges();
+      // Set stage AFTER detectChanges to avoid the syncKonvaFromConfig effect
+      // running with a non-null stage (which would trigger real Konva creation).
+      mockCanvasRenderer.stage = stage;
+      vi.runAllTimers();
+
+      fixture.destroy();
+
+      expect(mockCanvasService.saveViewport).toHaveBeenCalledWith(
+        'test-canvas',
+        expect.objectContaining({ zoom: 1 })
+      );
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Stage Initialization
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('stage initialization', () => {
+    it('should init stage and attach stage/keyboard events when container is available', () => {
+      const stage = createStageStub({ on: vi.fn() }) as never;
+
+      fixture.detectChanges();
+      // Set stage AFTER detectChanges to avoid the syncKonvaFromConfig effect
+      // running with a non-null stage (which would trigger real Konva creation).
+      mockCanvasRenderer.stage = stage;
+      vi.runAllTimers();
+
+      expect(mockCanvasRenderer.initStage).toHaveBeenCalled();
+      expect(component['zoomLevel']()).toBe(1);
+      expect((stage as { on: ReturnType<typeof vi.fn> }).on).toHaveBeenCalled();
+    });
+
+    it('should not attach stage events when config is null', () => {
+      const stage = createStageStub({ on: vi.fn() }) as never;
+      mockCanvasRenderer.stage = stage;
+      mockCanvasService.activeConfig.set(null);
+
+      fixture.detectChanges();
+      vi.runAllTimers();
+
+      // initStage() was called but returned early at the !config guard
+      expect(mockCanvasRenderer.initStage).not.toHaveBeenCalled();
+    });
+
+    it('should invoke keyboard shortcut callbacks registered by setupKeyboardShortcuts', () => {
+      // Use a stub with all methods that onToolChange needs (draggable)
+      const stage = createStageStub({
+        on: vi.fn(),
+        draggable: vi.fn(),
+      }) as never;
+
+      fixture.detectChanges();
+      mockCanvasRenderer.stage = stage;
+      vi.runAllTimers();
+
+      // After runAllTimers, setupKeyboardShortcuts has registered a document keydown listener.
+      // Dispatch key events to exercise the registered callback lambdas.
+
+      // Escape → onEscape body (selectedObjectId.set / clearSelection / activeTool.set)
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+      );
+      expect(component['activeTool']()).toBe('select');
+
+      // Delete → onDelete lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })
+      );
+
+      // Tool key 'v' (no modifier) → onToolChange lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'v', bubbles: true })
+      );
+
+      // Ctrl+= → onZoomIn lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '=', ctrlKey: true, bubbles: true })
+      );
+
+      // Ctrl+- → onZoomOut lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '-', ctrlKey: true, bubbles: true })
+      );
+
+      // Ctrl+0 → onFitAll lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '0', ctrlKey: true, bubbles: true })
+      );
+
+      // Ctrl+C → onCopy lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'c', ctrlKey: true, bubbles: true })
+      );
+
+      // Ctrl+X → onCut lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'x', ctrlKey: true, bubbles: true })
+      );
+
+      // Ctrl+V → onPaste body (clearCanvasPos + paste)
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, bubbles: true })
+      );
+
+      // Ctrl+D → onDuplicate lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'd', ctrlKey: true, bubbles: true })
+      );
+
+      // No exceptions thrown = all callbacks handled gracefully
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1075,6 +1247,19 @@ describe('CanvasTabComponent', () => {
       // Should not have called position/scale because it returned early
       expect(stage.position).not.toHaveBeenCalled();
       expect(stage.scale).not.toHaveBeenCalled();
+    });
+
+    it('should reset zoom to 100% and update zoom level', () => {
+      mockCanvasRenderer.stage = createStageStub() as never;
+      component['onZoomReset']();
+      expect(component['zoomLevel']()).toBe(1);
+    });
+
+    it('should not update zoom level when reset returns null (no stage)', () => {
+      mockCanvasRenderer.stage = null;
+      const initialZoom = component['zoomLevel']();
+      component['onZoomReset']();
+      expect(component['zoomLevel']()).toBe(initialZoom);
     });
   });
 

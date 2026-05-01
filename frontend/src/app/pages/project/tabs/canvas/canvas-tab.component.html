@@ -82,36 +82,40 @@
                 "
                 (click)="onSelectLayer(layer.id)"
                 (keydown.enter)="onSelectLayer(layer.id)">
-                <button
-                  mat-icon-button
-                  class="layer-visibility"
-                  data-testid="layer-visibility"
-                  (click)="onToggleLayerVisibility(layer.id, $event)"
-                  [matTooltip]="layer.visible ? 'Hide layer' : 'Show layer'">
-                  <mat-icon>{{
-                    layer.visible ? 'visibility' : 'visibility_off'
-                  }}</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  class="layer-lock"
-                  data-testid="layer-lock"
-                  (click)="onToggleLayerLock(layer.id, $event)"
-                  [matTooltip]="layer.locked ? 'Unlock layer' : 'Lock layer'">
-                  <mat-icon>{{ layer.locked ? 'lock' : 'lock_open' }}</mat-icon>
-                </button>
-                <span class="layer-name" data-testid="layer-name">{{
-                  layer.name
-                }}</span>
-                <button
-                  mat-icon-button
-                  class="layer-action"
-                  aria-label="More options"
-                  [matMenuTriggerFor]="layerMenu"
-                  [matMenuTriggerData]="{ layerId: layer.id }"
-                  (click)="$event.stopPropagation()">
-                  <mat-icon>more_vert</mat-icon>
-                </button>
+                <div class="layer-item-row">
+                  <button
+                    mat-icon-button
+                    class="layer-visibility"
+                    data-testid="layer-visibility"
+                    (click)="onToggleLayerVisibility(layer.id, $event)"
+                    [matTooltip]="layer.visible ? 'Hide layer' : 'Show layer'">
+                    <mat-icon>{{
+                      layer.visible ? 'visibility' : 'visibility_off'
+                    }}</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    class="layer-lock"
+                    data-testid="layer-lock"
+                    (click)="onToggleLayerLock(layer.id, $event)"
+                    [matTooltip]="layer.locked ? 'Unlock layer' : 'Lock layer'">
+                    <mat-icon>{{
+                      layer.locked ? 'lock' : 'lock_open'
+                    }}</mat-icon>
+                  </button>
+                  <span class="layer-name" data-testid="layer-name">{{
+                    layer.name
+                  }}</span>
+                  <button
+                    mat-icon-button
+                    class="layer-action"
+                    aria-label="More options"
+                    [matMenuTriggerFor]="layerMenu"
+                    [matMenuTriggerData]="{ layerId: layer.id }"
+                    (click)="$event.stopPropagation()">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                </div>
                 @if (layer.id === activeLayerId()) {
                   <input
                     type="range"
