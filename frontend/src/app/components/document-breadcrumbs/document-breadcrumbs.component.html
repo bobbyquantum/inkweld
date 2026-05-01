@@ -1,0 +1,22 @@
+@if (visible()) {
+  <nav
+    class="document-breadcrumbs"
+    aria-label="Document path"
+    [matTooltip]="fullPath()"
+    matTooltipShowDelay="600"
+    data-testid="document-breadcrumbs">
+    @for (segment of segments(); track segment.id; let isLast = $last) {
+      <span
+        class="breadcrumb-segment"
+        [class.current]="segment.isCurrent"
+        [attr.aria-current]="segment.isCurrent ? 'page' : null">
+        {{ segment.name }}
+      </span>
+      @if (!isLast) {
+        <mat-icon class="breadcrumb-separator" aria-hidden="true">
+          chevron_right
+        </mat-icon>
+      }
+    }
+  </nav>
+}

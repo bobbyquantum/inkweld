@@ -98,4 +98,35 @@ describe('ProjectTreeSettingsComponent', () => {
       });
     });
   });
+
+  describe('showBreadcrumbs', () => {
+    it('should default to true when setting is not set', () => {
+      expect(component.showBreadcrumbs).toBe(true);
+    });
+
+    it('should reflect stored value when setting exists', () => {
+      settingsService.setShowBreadcrumbs(false);
+      expect(component.showBreadcrumbs).toBe(false);
+    });
+
+    it('should persist and update the signal when toggled', () => {
+      component.showBreadcrumbs = false;
+      expect(settingsService.showBreadcrumbs()).toBe(false);
+      expect(JSON.parse(localStorageMock['userSettings']).showBreadcrumbs).toBe(
+        false
+      );
+
+      component.showBreadcrumbs = true;
+      expect(settingsService.showBreadcrumbs()).toBe(true);
+      expect(JSON.parse(localStorageMock['userSettings']).showBreadcrumbs).toBe(
+        true
+      );
+    });
+
+    it('should treat non-boolean values as false', () => {
+      // @ts-expect-error Testing invalid type
+      component.showBreadcrumbs = 'invalid';
+      expect(settingsService.showBreadcrumbs()).toBe(false);
+    });
+  });
 });

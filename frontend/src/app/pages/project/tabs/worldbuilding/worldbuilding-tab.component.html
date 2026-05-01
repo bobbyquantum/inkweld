@@ -7,6 +7,8 @@
     </p>
   </div>
 } @else if (elementId() && elementType() && username() && slug()) {
+  <app-document-breadcrumbs
+    [elementId]="elementId()"></app-document-breadcrumbs>
   @defer (on idle) {
     <app-worldbuilding-editor
       [elementId]="elementId()"

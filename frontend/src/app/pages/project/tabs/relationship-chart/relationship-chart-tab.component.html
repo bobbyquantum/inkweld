@@ -1,3 +1,8 @@
+@if (elementId()) {
+  <app-document-breadcrumbs
+    data-testid="relationship-chart-breadcrumbs"
+    [elementId]="elementId()"></app-document-breadcrumbs>
+}
 <div class="chart-container" data-testid="chart-container">
   <div class="chart-body">
     <!-- Collapsed sidebar strip -->

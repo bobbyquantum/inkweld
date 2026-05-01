@@ -121,6 +121,43 @@ describe('SettingsService', () => {
     });
   });
 
+  describe('setShowBreadcrumbs', () => {
+    it('defaults the signal to true when nothing is stored', () => {
+      expect(service.showBreadcrumbs()).toBe(true);
+    });
+
+    it('persists the value and updates the reactive signal', () => {
+      service.setShowBreadcrumbs(false);
+      expect(service.showBreadcrumbs()).toBe(false);
+      expect(JSON.parse(localStorageMock['userSettings']).showBreadcrumbs).toBe(
+        false
+      );
+
+      service.setShowBreadcrumbs(true);
+      expect(service.showBreadcrumbs()).toBe(true);
+      expect(JSON.parse(localStorageMock['userSettings']).showBreadcrumbs).toBe(
+        true
+      );
+    });
+
+    it('still updates the signal when localStorage write throws', () => {
+      Object.defineProperty(window, 'localStorage', {
+        value: {
+          getItem: () => null,
+          setItem: () => {
+            throw new Error('quota exceeded');
+          },
+          removeItem: () => undefined,
+          clear: () => undefined,
+        },
+        writable: true,
+      });
+
+      expect(() => service.setShowBreadcrumbs(false)).not.toThrow();
+      expect(service.showBreadcrumbs()).toBe(false);
+    });
+  });
+
   describe('error handling', () => {
     it('should handle invalid JSON in localStorage', () => {
       localStorageMock['userSettings'] = 'invalid json';
