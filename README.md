@@ -98,7 +98,7 @@ Coming soon, once first numbered release is added.
 | ✅ | 🔥 | Image insertion | |
 | ✅ | 🟡 | Zen mode (distraction-free) | |
 | ✅ | 🟡 | Document snapshots | Version history for documents |
-| ✅ | 🟡 | Comments/Annotations | Inline feedback with threaded replies and resolution |
+| ✅ | ✅ | Comments/Annotations | Inline feedback with threaded replies and resolution |
 | ⬜ | 🟢 | Writing statistics | Daily/weekly word counts, session stats, goals |
 
 ### Worldbuilding
