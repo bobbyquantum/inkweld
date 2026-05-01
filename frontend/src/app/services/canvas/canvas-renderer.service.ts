@@ -42,11 +42,11 @@ export class CanvasRendererService {
   private readonly logger = inject(LoggerService);
 
   private _stage: Konva.Stage | null = null;
-  private _konvaLayers = new Map<string, Konva.Layer>();
-  private _konvaNodes = new Map<string, Konva.Node>();
+  private readonly _konvaLayers = new Map<string, Konva.Layer>();
+  private readonly _konvaNodes = new Map<string, Konva.Node>();
   private _transformer: Konva.Transformer | null = null;
   private _selectionLayer: Konva.Layer | null = null;
-  private _objectRenderSignatures = new Map<string, string>();
+  private readonly _objectRenderSignatures = new Map<string, string>();
   private _resizeObserver: ResizeObserver | null = null;
 
   get stage(): Konva.Stage | null {
@@ -334,7 +334,7 @@ export class CanvasRendererService {
       draggable: !obj.locked,
     };
 
-    let node: Konva.Node | null = null;
+    let node: Konva.Group | Konva.Shape | null = null;
 
     switch (obj.type) {
       case 'image':
@@ -361,29 +361,30 @@ export class CanvasRendererService {
     }
 
     if (node) {
-      node.on('click tap', () => {
+      const n: Konva.Node = node;
+      n.on('click tap', () => {
         handlers.onSelect(obj.id);
-        handlers.onSelectKonvaNode(node);
+        handlers.onSelectKonvaNode(n);
       });
 
-      node.on('dragend', () => {
-        const pos = node.position();
+      n.on('dragend', () => {
+        const pos = n.position();
         handlers.onDragEnd(obj.id, pos.x, pos.y);
       });
 
-      node.on('transformend', () => {
+      n.on('transformend', () => {
         handlers.onTransformEnd(
           obj.id,
-          node.x(),
-          node.y(),
-          node.scaleX(),
-          node.scaleY(),
-          node.rotation()
+          n.x(),
+          n.y(),
+          n.scaleX(),
+          n.scaleY(),
+          n.rotation()
         );
       });
     }
 
-    return node as Konva.Group | Konva.Shape | null;
+    return node;
   }
 
   static createImageNode(
@@ -391,7 +392,7 @@ export class CanvasRendererService {
     attrs: Konva.NodeConfig,
     resolveSrc: (src: string) => Promise<string>,
     warnLogger?: (msg: string) => void
-  ): Konva.Node {
+  ): Konva.Group {
     const log = warnLogger ?? (() => {});
     const group = new Konva.Group({ ...attrs });
 
@@ -481,7 +482,7 @@ export class CanvasRendererService {
   static createShapeNode(
     obj: CanvasShape,
     attrs: Konva.NodeConfig
-  ): Konva.Node {
+  ): Konva.Shape {
     switch (obj.shapeType) {
       case 'rect':
         return new Konva.Rect({
