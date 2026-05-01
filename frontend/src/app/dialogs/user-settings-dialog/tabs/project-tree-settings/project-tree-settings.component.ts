@@ -27,4 +27,14 @@ export class ProjectTreeSettingsComponent {
       this.settingsService.setSetting<boolean>('confirmElementMoves', false);
     }
   }
+
+  get showBreadcrumbs(): boolean {
+    return this.settingsService.showBreadcrumbs();
+  }
+
+  set showBreadcrumbs(value: boolean) {
+    this.settingsService.setShowBreadcrumbs(
+      typeof value === 'boolean' && value
+    );
+  }
 }

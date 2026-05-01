@@ -1,5 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { DocumentElementEditorComponent } from '@components/document-element-editor/document-element-editor.component';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -8,7 +9,11 @@ import { ProjectStateService } from '@services/project/project-state.service';
   selector: 'app-document-tab',
   templateUrl: './document-tab.component.html',
   styleUrls: ['./document-tab.component.scss'],
-  imports: [DocumentElementEditorComponent, MatIconModule],
+  imports: [
+    DocumentElementEditorComponent,
+    DocumentBreadcrumbsComponent,
+    MatIconModule,
+  ],
 })
 export class DocumentTabComponent {
   protected readonly settingsService = inject(SettingsService);
@@ -39,6 +44,16 @@ export class DocumentTabComponent {
       }
     }
 
+    return '';
+  });
+
+  /** Bare element id of the currently-active document tab. */
+  protected readonly bareElementId = computed(() => {
+    const tabs = this.projectState.openTabs();
+    const selectedIndex = this.projectState.selectedTabIndex();
+    if (selectedIndex >= 0 && selectedIndex < tabs.length) {
+      return tabs[selectedIndex]?.element?.id ?? '';
+    }
     return '';
   });
 

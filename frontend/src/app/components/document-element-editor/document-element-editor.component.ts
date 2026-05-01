@@ -223,11 +223,23 @@ export class DocumentElementEditorComponent
     return this.tagService.getResolvedTagsForElement(docId);
   });
 
+  /**
+   * Bare element id (last segment of `username:slug:elementId`).
+   * Used for lookups against `projectState.elements()` which key by element id.
+   */
+  readonly bareElementId = computed(() => {
+    const docId = this.documentIdSignal();
+    if (!docId || docId === 'invalid') return '';
+    const parts = docId.split(':');
+    return parts.at(-1) ?? '';
+  });
+
   /** Element name for the current document */
   readonly elementName = computed(() => {
-    const docId = this.documentIdSignal();
+    const id = this.bareElementId();
+    if (!id) return 'Untitled';
     const elements = this.projectState.elements();
-    const element = elements.find(e => e.id === docId);
+    const element = elements.find(e => e.id === id);
     return element?.name ?? 'Untitled';
   });
 

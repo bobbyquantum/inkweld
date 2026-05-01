@@ -35,6 +35,15 @@ class MockDocumentElementEditorComponent implements OnInit, OnDestroy {
   }
 }
 
+// Mock DocumentBreadcrumbsComponent (standalone)
+@Component({
+  selector: 'app-document-breadcrumbs',
+  template: '',
+})
+class MockDocumentBreadcrumbsComponent {
+  @Input() elementId: string = '';
+}
+
 describe('DocumentTabComponent', () => {
   let component: DocumentTabComponent;
   let fixture: ComponentFixture<DocumentTabComponent>;
@@ -70,6 +79,7 @@ describe('DocumentTabComponent', () => {
 
     settingsService = {
       getSetting: vi.fn().mockReturnValue(true),
+      showBreadcrumbs: signal(true),
     };
 
     route = {
@@ -81,6 +91,7 @@ describe('DocumentTabComponent', () => {
         MatIconModule,
         DocumentTabComponent,
         MockDocumentElementEditorComponent,
+        MockDocumentBreadcrumbsComponent,
       ],
       providers: [
         provideZonelessChangeDetection(),
@@ -92,7 +103,11 @@ describe('DocumentTabComponent', () => {
     })
       .overrideComponent(DocumentTabComponent, {
         set: {
-          imports: [MockDocumentElementEditorComponent, MatIconModule],
+          imports: [
+            MockDocumentElementEditorComponent,
+            MockDocumentBreadcrumbsComponent,
+            MatIconModule,
+          ],
         },
       })
       .compileComponents();
@@ -199,6 +214,35 @@ describe('DocumentTabComponent', () => {
         true
       );
       expect(result).toBe(true);
+    });
+  });
+
+  describe('bareElementId computed signal', () => {
+    it('returns empty string when no tabs are open', () => {
+      (projectStateService.openTabs as any).set([]);
+      (projectStateService.selectedTabIndex as any).set(0);
+      expect((component as any).bareElementId()).toBe('');
+    });
+
+    it('returns the element id of the selected tab', () => {
+      (projectStateService.openTabs as any).set([
+        { element: { id: 'first' } },
+        { element: { id: 'second' } },
+      ]);
+      (projectStateService.selectedTabIndex as any).set(1);
+      expect((component as any).bareElementId()).toBe('second');
+    });
+
+    it('returns empty string when the selected tab has no element', () => {
+      (projectStateService.openTabs as any).set([{}]);
+      (projectStateService.selectedTabIndex as any).set(0);
+      expect((component as any).bareElementId()).toBe('');
+    });
+
+    it('returns empty string when selectedTabIndex is out of range', () => {
+      (projectStateService.openTabs as any).set([{ element: { id: 'a' } }]);
+      (projectStateService.selectedTabIndex as any).set(5);
+      expect((component as any).bareElementId()).toBe('');
     });
   });
 

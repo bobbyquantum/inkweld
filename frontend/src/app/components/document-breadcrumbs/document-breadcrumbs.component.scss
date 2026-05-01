@@ -1,0 +1,42 @@
+.document-breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 4px 12px;
+  gap: 2px;
+  background-color: var(--sys-surface-container-lowest);
+  border-bottom: 1px solid var(--sys-outline-variant);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--sys-on-surface-variant);
+  scrollbar-width: thin;
+
+  // Make scrollbar thin (4px) whilst keeping horizontal scroll on overflow
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+}
+
+.breadcrumb-segment {
+  flex-shrink: 0;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 6px;
+  border-radius: 4px;
+
+  &.current {
+    color: var(--sys-on-surface);
+    font-weight: 500;
+  }
+}
+
+.breadcrumb-separator {
+  flex-shrink: 0;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--sys-outline);
+}
