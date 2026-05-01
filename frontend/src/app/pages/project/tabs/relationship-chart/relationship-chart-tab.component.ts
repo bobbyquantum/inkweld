@@ -29,6 +29,7 @@ import fcose from 'cytoscape-fcose';
 cytoscape.use(fcose);
 cytoscape.use(dagre);
 
+import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { type RelationshipTypeDefinition } from '@models/element-ref.model';
 
 import { type Element, ElementType } from '../../../../../api-client';
@@ -83,6 +84,7 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
     MatMenuModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    DocumentBreadcrumbsComponent,
   ],
   providers: [
     // Each chart tab gets its own service instance so config never bleeds

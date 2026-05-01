@@ -30,6 +30,14 @@ class MockFolderElementEditorComponent implements OnInit, OnDestroy {
   }
 }
 
+@Component({
+  selector: 'app-document-breadcrumbs',
+  template: '',
+})
+class MockDocumentBreadcrumbsComponent {
+  @Input() elementId: string = '';
+}
+
 describe('FolderTabComponent', () => {
   let component: FolderTabComponent;
   let fixture: ComponentFixture<FolderTabComponent>;
@@ -76,6 +84,7 @@ describe('FolderTabComponent', () => {
         RouterTestingModule,
         FolderTabComponent,
         MockFolderElementEditorComponent,
+        MockDocumentBreadcrumbsComponent,
       ],
       providers: [
         provideZonelessChangeDetection(),
@@ -86,7 +95,10 @@ describe('FolderTabComponent', () => {
     })
       .overrideComponent(FolderTabComponent, {
         set: {
-          imports: [MockFolderElementEditorComponent],
+          imports: [
+            MockFolderElementEditorComponent,
+            MockDocumentBreadcrumbsComponent,
+          ],
         },
       })
       .compileComponents();
@@ -208,6 +220,33 @@ describe('FolderTabComponent', () => {
 
   it('should provide the element ID via getElementId method', () => {
     expect(component.getElementId()).toBe('folder1');
+  });
+
+  it('should derive bareElementId from a full id with project prefix', async () => {
+    paramsSubject.next(convertToParamMap({ tabId: 'folder42' }));
+    fixture.detectChanges();
+    await new Promise(resolve => setTimeout(resolve, 10));
+    fixture.detectChanges();
+    expect((component as any).bareElementId).toBe('folder42');
+  });
+
+  it('should derive bareElementId from a colon-prefixed tab id', async () => {
+    paramsSubject.next(
+      convertToParamMap({ tabId: 'otheruser:other-project:nested' })
+    );
+    fixture.detectChanges();
+    await new Promise(resolve => setTimeout(resolve, 10));
+    fixture.detectChanges();
+    expect((component as any).bareElementId).toBe('nested');
+  });
+
+  it('should fall back to raw element id when no project context exists', async () => {
+    (projectStateService.project as any).set(undefined);
+    paramsSubject.next(convertToParamMap({ tabId: 'lone-folder' }));
+    fixture.detectChanges();
+    await new Promise(resolve => setTimeout(resolve, 10));
+    fixture.detectChanges();
+    expect((component as any).bareElementId).toBe('lone-folder');
   });
 
   it('should clean up subscription on destroy', () => {

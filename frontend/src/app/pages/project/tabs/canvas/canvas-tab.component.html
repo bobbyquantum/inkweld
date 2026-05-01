@@ -1,3 +1,8 @@
+@if (elementId()) {
+  <app-document-breadcrumbs
+    data-testid="canvas-breadcrumbs"
+    [elementId]="elementId()"></app-document-breadcrumbs>
+}
 <div class="canvas-container" data-testid="canvas-container">
   <div class="canvas-body">
     <!-- Collapsed sidebar strip -->

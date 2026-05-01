@@ -20,6 +20,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
+import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
 import {
   TimelineEraDialogComponent,
@@ -112,6 +113,7 @@ type DragKind = 'move' | 'resize-start' | 'resize-end';
     MatSelectModule,
     MatTooltipModule,
     TabPresenceIndicatorComponent,
+    DocumentBreadcrumbsComponent,
   ],
   providers: [
     // Each timeline tab gets its own service so state never bleeds between
@@ -294,7 +296,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
    * Current route tabId. Updated from the router paramMap; drives the
    * cold-start reload effect below.
    */
-  private readonly elementId = signal<string>('');
+  protected readonly elementId = signal<string>('');
 
   /**
    * On page refresh, project elements sync asynchronously after the component
