@@ -649,6 +649,71 @@ describe('CanvasService', () => {
     });
   });
 
+  describe('reorderObject', () => {
+    const setupReorderFixture = (): { layer1: string; layer2: string } => {
+      mockElements.set([makeElement()]);
+      service.loadConfig('canvas-1');
+      const layer1 = service.activeConfig()!.layers[0].id;
+      const layer2 = service.addLayer('Layer 2');
+      service.addObject(makeTextObject({ id: 'a', layerId: layer1 }));
+      service.addObject(makeTextObject({ id: 'b', layerId: layer1 }));
+      service.addObject(makeTextObject({ id: 'x', layerId: layer2 }));
+      service.addObject(makeTextObject({ id: 'c', layerId: layer1 }));
+      return { layer1, layer2 };
+    };
+
+    it('moves object forward within its layer (skips other layers)', () => {
+      setupReorderFixture();
+      service.reorderObject('a', 'forward');
+      const ids = service.activeConfig()!.objects.map(o => o.id);
+      expect(ids).toEqual(['b', 'a', 'x', 'c']);
+    });
+
+    it('moves object backward within its layer', () => {
+      setupReorderFixture();
+      service.reorderObject('c', 'backward');
+      const ids = service.activeConfig()!.objects.map(o => o.id);
+      expect(ids).toEqual(['a', 'c', 'x', 'b']);
+    });
+
+    it('sends object to back of its layer', () => {
+      setupReorderFixture();
+      service.reorderObject('c', 'back');
+      const ids = service.activeConfig()!.objects.map(o => o.id);
+      expect(ids).toEqual(['c', 'a', 'b', 'x']);
+    });
+
+    it('brings object to front of its layer', () => {
+      setupReorderFixture();
+      service.reorderObject('a', 'front');
+      const ids = service.activeConfig()!.objects.map(o => o.id);
+      expect(ids).toEqual(['b', 'x', 'c', 'a']);
+    });
+
+    it('is a no-op at the front edge', () => {
+      setupReorderFixture();
+      const before = service.activeConfig()!.objects.map(o => o.id);
+      service.reorderObject('c', 'forward');
+      service.reorderObject('c', 'front');
+      expect(service.activeConfig()!.objects.map(o => o.id)).toEqual(before);
+    });
+
+    it('is a no-op at the back edge', () => {
+      setupReorderFixture();
+      const before = service.activeConfig()!.objects.map(o => o.id);
+      service.reorderObject('a', 'backward');
+      service.reorderObject('a', 'back');
+      expect(service.activeConfig()!.objects.map(o => o.id)).toEqual(before);
+    });
+
+    it('does nothing for unknown object id', () => {
+      setupReorderFixture();
+      const before = service.activeConfig()!.objects.map(o => o.id);
+      service.reorderObject('nope', 'front');
+      expect(service.activeConfig()!.objects.map(o => o.id)).toEqual(before);
+    });
+  });
+
   // ─────────────────────────────────────────────────────────────────────────
   // Pin Helpers
   // ─────────────────────────────────────────────────────────────────────────

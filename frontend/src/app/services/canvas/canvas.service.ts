@@ -292,6 +292,68 @@ export class CanvasService {
     this.updateObject(objectId, { layerId: targetLayerId });
   }
 
+  /**
+   * Reorder an object within its layer's z-order. Object z-order is
+   * determined by position in the `objects` array — later entries render
+   * on top. This method reorders only relative to other objects on the
+   * same layer; objects on other layers retain their relative order.
+   */
+  reorderObject(
+    objectId: string,
+    direction: 'front' | 'back' | 'forward' | 'backward'
+  ): void {
+    const config = this.activeConfigSignal();
+    if (!config) return;
+    const target = config.objects.find(o => o.id === objectId);
+    if (!target) return;
+
+    // Indices within the global objects array of all objects on this layer
+    const layerIndices: number[] = [];
+    config.objects.forEach((o, i) => {
+      if (o.layerId === target.layerId) layerIndices.push(i);
+    });
+    const myGlobal = config.objects.findIndex(o => o.id === objectId);
+    const myPos = layerIndices.indexOf(myGlobal);
+    if (myPos === -1) return;
+
+    const next = this.computeReorderedObjects(
+      config.objects,
+      myGlobal,
+      myPos,
+      layerIndices,
+      direction
+    );
+    if (next === null) return;
+
+    this.saveConfig({ ...config, objects: next });
+  }
+
+  private computeReorderedObjects(
+    objects: CanvasObject[],
+    myGlobal: number,
+    myPos: number,
+    layerIndices: number[],
+    direction: 'front' | 'back' | 'forward' | 'backward'
+  ): CanvasObject[] | null {
+    if (direction === 'forward' || direction === 'backward') {
+      const swapPos = direction === 'forward' ? myPos + 1 : myPos - 1;
+      if (swapPos < 0 || swapPos >= layerIndices.length) return null;
+      const swapGlobal = layerIndices[swapPos];
+      const next = [...objects];
+      [next[myGlobal], next[swapGlobal]] = [next[swapGlobal], next[myGlobal]];
+      return next;
+    }
+
+    // front / back
+    const targetGlobal =
+      direction === 'front' ? layerIndices.at(-1) : layerIndices[0];
+    if (targetGlobal === undefined || targetGlobal === myGlobal) return null;
+    const next = [...objects];
+    const [moved] = next.splice(myGlobal, 1);
+    next.splice(targetGlobal, 0, moved);
+    return next;
+  }
+
   /** Get all objects on a specific layer */
   getObjectsForLayer(layerId: string): CanvasObject[] {
     const config = this.activeConfigSignal();

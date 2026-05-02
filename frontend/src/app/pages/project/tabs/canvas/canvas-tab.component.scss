@@ -156,11 +156,10 @@
 
 .layer-item {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   padding: 2px 4px 2px 4px;
   cursor: pointer;
   transition: background-color 0.1s;
-  min-height: 36px;
 
   &:hover {
     background: var(--sys-surface-container);
@@ -169,6 +168,12 @@
   &.active {
     background: var(--sys-secondary-container);
   }
+}
+
+.layer-item-row {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
 }
 
 .layer-visibility,
@@ -201,6 +206,10 @@
   opacity: 0;
 
   .layer-item:hover & {
+    opacity: 1;
+  }
+
+  .layer-item-row:hover & {
     opacity: 1;
   }
 
@@ -401,4 +410,35 @@
   width: 0;
   height: 0;
   visibility: hidden;
+}
+
+// Zoom-reset label (also a button)
+.zoom-label.zoom-reset {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  min-width: 48px;
+  text-align: center;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary, #1976d2);
+    outline-offset: 2px;
+  }
+}
+
+// Per-layer opacity slider on the active layer
+.layer-opacity {
+  display: block;
+  margin: 2px 4px 4px;
+  width: calc(100% - 8px);
+  cursor: pointer;
+  accent-color: var(--mat-sys-primary, #1976d2);
 }
