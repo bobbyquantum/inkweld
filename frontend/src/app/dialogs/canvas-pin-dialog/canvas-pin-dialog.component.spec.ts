@@ -5,6 +5,7 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
+import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
 import { type Element } from '../../../api-client/model/element';
@@ -120,6 +121,35 @@ describe('CanvasPinDialogComponent', () => {
       label: 'Map Pin',
       color: '#E53935',
       linkedElementId: 'el-456',
+    });
+  });
+
+  describe('pickElement()', () => {
+    it('sets linkedElementId and name when element picker returns a result', () => {
+      const fakeDialogRef = {
+        afterClosed: vi.fn(() =>
+          of({ elements: [{ id: 'el-99', name: 'Dragon Keep' }] })
+        ),
+      };
+      const mockMatDialog = { open: vi.fn(() => fakeDialogRef) };
+      // Replace dialog via component private property
+      (component as unknown as { dialog: unknown })['dialog'] = mockMatDialog;
+
+      component['pickElement']();
+
+      expect(mockMatDialog.open).toHaveBeenCalled();
+      expect(component['linkedElementId']()).toBe('el-99');
+      expect(component['linkedElementName']()).toBe('Dragon Keep');
+    });
+
+    it('does not set linkedElementId when picker returns null', () => {
+      const fakeDialogRef = { afterClosed: vi.fn(() => of(null)) };
+      const mockMatDialog = { open: vi.fn(() => fakeDialogRef) };
+      (component as unknown as { dialog: unknown })['dialog'] = mockMatDialog;
+
+      component['pickElement']();
+
+      expect(component['linkedElementId']()).toBeUndefined();
     });
   });
 });

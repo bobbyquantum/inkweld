@@ -530,4 +530,130 @@ test.describe('Canvas Tab', () => {
     await expect(layers.first()).toHaveClass(/active/);
     await expect(layers.last()).not.toHaveClass(/active/);
   });
+
+  // ── Zoom reset ────────────────────────────────────────────────────────────
+
+  test('should reset zoom to 100% when the zoom label is clicked', async ({
+    localPageWithProject: page,
+  }) => {
+    await createCanvasAndOpen(page);
+
+    const toolbar = page.getByTestId('canvas-toolbar');
+    const zoomLabel = toolbar.getByTestId('zoom-label');
+
+    await toolbar.getByRole('button', { name: /zoom in/i }).click();
+    await toolbar.getByRole('button', { name: /zoom in/i }).click();
+    await expect(zoomLabel).not.toHaveText('100%');
+
+    await zoomLabel.click();
+    await expect(zoomLabel).toHaveText('100%');
+  });
+
+  // ── Layer reorder ─────────────────────────────────────────────────────────
+
+  test('should reorder layers using move up / move down menu items', async ({
+    localPageWithProject: page,
+  }) => {
+    await createCanvasAndOpen(page);
+
+    const sidebar = page.getByTestId('canvas-sidebar');
+
+    // Add a second layer (named "Layer 2")
+    await sidebar.getByRole('button', { name: /add layer/i }).click();
+
+    const layers = sidebar.getByTestId('layer-item');
+    await expect(layers).toHaveCount(2);
+
+    // The panel renders bottom-of-stack at top: Layer 1 (order 0) is first,
+    // Layer 2 (order 1) is last.
+    await expect(layers.first().getByTestId('layer-name')).toHaveText(
+      'Layer 1'
+    );
+    await expect(layers.last().getByTestId('layer-name')).toHaveText('Layer 2');
+
+    // Open the menu on the bottom layer (Layer 2) and Move up
+    await layers
+      .last()
+      .getByRole('button', { name: /more options/i })
+      .click();
+    await page.getByTestId('layer-move-up').click();
+
+    await expect(layers.first().getByTestId('layer-name')).toHaveText(
+      'Layer 2'
+    );
+    await expect(layers.last().getByTestId('layer-name')).toHaveText('Layer 1');
+
+    // Now Move down on the top item to swap back
+    await layers
+      .first()
+      .getByRole('button', { name: /more options/i })
+      .click();
+    await page.getByTestId('layer-move-down').click();
+
+    await expect(layers.first().getByTestId('layer-name')).toHaveText(
+      'Layer 1'
+    );
+  });
+
+  // ── Layer opacity ─────────────────────────────────────────────────────────
+
+  test('should expose an opacity slider on the active layer', async ({
+    localPageWithProject: page,
+  }) => {
+    await createCanvasAndOpen(page);
+
+    const sidebar = page.getByTestId('canvas-sidebar');
+
+    // The opacity slider should be visible on the only (active) layer
+    const slider = sidebar.getByTestId('layer-opacity');
+    await expect(slider).toBeVisible();
+    await expect(slider).toHaveAttribute('min', '0');
+    await expect(slider).toHaveAttribute('max', '1');
+    await expect(slider).toHaveValue('1');
+
+    // Change the value via the input event and verify it persists
+    await slider.evaluate(el => {
+      const input = el as HTMLInputElement;
+      input.value = '0.4';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await expect(slider).toHaveValue('0.4');
+
+    // Adding a second layer keeps exactly one slider (only the active layer
+    // shows it).
+    await sidebar.getByRole('button', { name: /add layer/i }).click();
+    const sliders = sidebar.getByTestId('layer-opacity');
+    await expect(sliders).toHaveCount(1);
+  });
+
+  // ── Right-click context menu ─────────────────────────────────────────────
+
+  test('should open the canvas context menu on right-click', async ({
+    localPageWithProject: page,
+  }) => {
+    await createCanvasAndOpen(page);
+
+    const stage = page.getByTestId('canvas-stage');
+    await stage.click({ button: 'right' });
+
+    // Cut/Copy/Paste/Duplicate/Delete are present
+    await expect(page.getByRole('menuitem', { name: /^Cut$/ })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /^Copy$/ })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /^Paste$/ })).toBeVisible();
+    await expect(
+      page.getByRole('menuitem', { name: /^Delete$/ })
+    ).toBeVisible();
+
+    // With nothing selected, Cut/Copy/Delete should be disabled
+    await expect(page.getByRole('menuitem', { name: /^Cut$/ })).toBeDisabled();
+    await expect(page.getByRole('menuitem', { name: /^Copy$/ })).toBeDisabled();
+    await expect(
+      page.getByRole('menuitem', { name: /^Delete$/ })
+    ).toBeDisabled();
+
+    // No selection, so the z-order items should not be rendered
+    await expect(page.getByTestId('object-bring-to-front')).toHaveCount(0);
+
+    await page.keyboard.press('Escape');
+  });
 });
