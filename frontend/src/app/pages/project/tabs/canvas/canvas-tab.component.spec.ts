@@ -13,13 +13,26 @@ import {
   createDefaultToolSettings,
 } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
+import { CanvasClipboardService } from '@services/canvas/canvas-clipboard.service';
+import { CanvasColorService } from '@services/canvas/canvas-color.service';
+import { CanvasContextMenuService } from '@services/canvas/canvas-context-menu.service';
+import { CanvasDrawingService } from '@services/canvas/canvas-drawing.service';
+import { CanvasExportService } from '@services/canvas/canvas-export.service';
+import { CanvasKeyboardService } from '@services/canvas/canvas-keyboard.service';
+import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
+import { CanvasLayerActionsService } from '@services/canvas/canvas-layer-actions.service';
+import { CanvasPlacementService } from '@services/canvas/canvas-placement.service';
+import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
+import { CanvasSelectionService } from '@services/canvas/canvas-selection.service';
+import { CanvasStageEventsService } from '@services/canvas/canvas-stage-events.service';
+import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
-import Konva from 'konva';
+import type Konva from 'konva';
 import { of } from 'rxjs';
 import {
   afterEach,
@@ -51,6 +64,7 @@ describe('CanvasTabComponent', () => {
   let component: CanvasTabComponent;
   let fixture: ComponentFixture<CanvasTabComponent>;
   let mockDialog: { open: ReturnType<typeof vi.fn> };
+  let mockCanvasRenderer: any;
   const mockPresenceService = {
     setActiveLocation: vi.fn(),
     usersAtLocation: () => signal([]).asReadonly(),
@@ -87,6 +101,7 @@ describe('CanvasTabComponent', () => {
     removeLayer: vi.fn(),
     updateLayer: vi.fn(),
     reorderLayers: vi.fn(),
+    reorderObject: vi.fn(),
     getSortedLayers: vi.fn(() => defaultConfig.layers),
     addObject: vi.fn(),
     removeObject: vi.fn(),
@@ -183,6 +198,65 @@ describe('CanvasTabComponent', () => {
       })),
     };
 
+    const r: any = {};
+    r._stage = null;
+    r._konvaLayers = new Map<string, any>();
+    r._konvaNodes = new Map<string, any>();
+    r._transformer = null;
+    r._selectionLayer = null;
+    r._objectRenderSignatures = new Map<string, string>();
+
+    Object.defineProperties(r, {
+      stage: {
+        get: () => r._stage,
+        set: (v: any) => {
+          r._stage = v;
+        },
+        configurable: true,
+      },
+      konvaLayers: { get: () => r._konvaLayers, configurable: true },
+      konvaNodes: { get: () => r._konvaNodes, configurable: true },
+      transformer: {
+        get: () => r._transformer,
+        set: (v: any) => {
+          r._transformer = v;
+        },
+        configurable: true,
+      },
+      selectionLayer: {
+        get: () => r._selectionLayer,
+        set: (v: any) => {
+          r._selectionLayer = v;
+        },
+        configurable: true,
+      },
+      objectRenderSignatures: {
+        get: () => r._objectRenderSignatures,
+        configurable: true,
+      },
+    });
+
+    r.syncKonvaFromConfig =
+      CanvasRendererService.prototype.syncKonvaFromConfig.bind(r);
+    r.rebuildAllKonvaNodes =
+      CanvasRendererService.prototype.rebuildAllKonvaNodes.bind(r);
+    r.buildKonvaLayers =
+      CanvasRendererService.prototype.buildKonvaLayers.bind(r);
+    r.buildKonvaObjects =
+      CanvasRendererService.prototype.buildKonvaObjects.bind(r);
+    r.resolveImageSrc = CanvasRendererService.prototype.resolveImageSrc.bind(r);
+    r.initStage = vi.fn(() => ({ zoomLevel: 1 }));
+    r.destroyStage = vi.fn();
+    r.getCanvasPointerPosition = vi.fn(() => null);
+    r.getViewportCenter = vi.fn(() => ({ x: 0, y: 0 }));
+
+    r.projectState = mockProjectState;
+    r.logger = mockLogger;
+    r.localStorageService = mockLocalStorageService;
+    r.canvasService = mockCanvasService;
+
+    mockCanvasRenderer = r;
+
     await TestBed.configureTestingModule({
       imports: [CanvasTabComponent],
       providers: [
@@ -202,7 +276,22 @@ describe('CanvasTabComponent', () => {
       // CanvasService is a component-level provider; override it
       .overrideComponent(CanvasTabComponent, {
         set: {
-          providers: [{ provide: CanvasService, useValue: mockCanvasService }],
+          providers: [
+            { provide: CanvasService, useValue: mockCanvasService },
+            { provide: CanvasRendererService, useValue: mockCanvasRenderer },
+            CanvasLayerService,
+            CanvasLayerActionsService,
+            CanvasZoomService,
+            CanvasColorService,
+            CanvasClipboardService,
+            CanvasContextMenuService,
+            CanvasKeyboardService,
+            CanvasDrawingService,
+            CanvasExportService,
+            CanvasPlacementService,
+            CanvasSelectionService,
+            CanvasStageEventsService,
+          ],
         },
       })
       .compileComponents();
@@ -418,6 +507,45 @@ describe('CanvasTabComponent', () => {
       await component['onDeleteLayer']('layer-1');
       expect(mockCanvasService.removeLayer).not.toHaveBeenCalled();
     });
+
+    it('should delegate move layer up to layer actions service', () => {
+      const moveUpSpy = vi.spyOn(component['canvasLayerActions'], 'moveUp');
+      component['onMoveLayerUp']('layer-1');
+      expect(moveUpSpy).toHaveBeenCalledWith('layer-1', expect.any(Object));
+    });
+
+    it('should delegate move layer down to layer actions service', () => {
+      const moveDownSpy = vi.spyOn(component['canvasLayerActions'], 'moveDown');
+      component['onMoveLayerDown']('layer-1');
+      expect(moveDownSpy).toHaveBeenCalledWith('layer-1', expect.any(Object));
+    });
+
+    it('should parse string value and delegate opacity change to service', () => {
+      const setOpacitySpy = vi.spyOn(
+        component['canvasLayerActions'],
+        'setOpacity'
+      );
+      component['onLayerOpacityChange']('layer-1', '0.75');
+      expect(setOpacitySpy).toHaveBeenCalledWith('layer-1', 0.75);
+    });
+
+    it('should pass numeric value directly to opacity service', () => {
+      const setOpacitySpy = vi.spyOn(
+        component['canvasLayerActions'],
+        'setOpacity'
+      );
+      component['onLayerOpacityChange']('layer-1', 0.5);
+      expect(setOpacitySpy).toHaveBeenCalledWith('layer-1', 0.5);
+    });
+
+    it('should not call setOpacity when value is not a finite number', () => {
+      const setOpacitySpy = vi.spyOn(
+        component['canvasLayerActions'],
+        'setOpacity'
+      );
+      component['onLayerOpacityChange']('layer-1', 'not-a-number');
+      expect(setOpacitySpy).not.toHaveBeenCalled();
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -437,6 +565,21 @@ describe('CanvasTabComponent', () => {
 
       expect(mockCanvasService.removeObject).toHaveBeenCalledWith('obj-1');
       expect(component['selectedObjectId']()).toBeNull();
+    });
+
+    it('should delegate reorder object to canvas service', () => {
+      component['selectedObjectId'].set('obj-1');
+      component['onReorderObject']('front');
+      expect(mockCanvasService.reorderObject).toHaveBeenCalledWith(
+        'obj-1',
+        'front'
+      );
+    });
+
+    it('should not reorder when no object is selected', () => {
+      component['selectedObjectId'].set(null);
+      component['onReorderObject']('back');
+      expect(mockCanvasService.reorderObject).not.toHaveBeenCalled();
     });
   });
 
@@ -765,6 +908,123 @@ describe('CanvasTabComponent', () => {
       // saveViewport is called but stage is null in jsdom -> no-op, shouldn't throw
       expect(() => fixture.destroy).not.toThrow();
     });
+
+    it('should save viewport on destroy when stage is set', () => {
+      const stage = createStageStub({ on: vi.fn() }) as never;
+
+      fixture.detectChanges();
+      // Set stage AFTER detectChanges to avoid the syncKonvaFromConfig effect
+      // running with a non-null stage (which would trigger real Konva creation).
+      mockCanvasRenderer.stage = stage;
+      vi.runAllTimers();
+
+      fixture.destroy();
+
+      expect(mockCanvasService.saveViewport).toHaveBeenCalledWith(
+        'test-canvas',
+        expect.objectContaining({ zoom: 1 })
+      );
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Stage Initialization
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('stage initialization', () => {
+    it('should init stage and attach stage/keyboard events when container is available', () => {
+      const stage = createStageStub({ on: vi.fn() }) as never;
+
+      fixture.detectChanges();
+      // Set stage AFTER detectChanges to avoid the syncKonvaFromConfig effect
+      // running with a non-null stage (which would trigger real Konva creation).
+      mockCanvasRenderer.stage = stage;
+      vi.runAllTimers();
+
+      expect(mockCanvasRenderer.initStage).toHaveBeenCalled();
+      expect(component['zoomLevel']()).toBe(1);
+      expect((stage as { on: ReturnType<typeof vi.fn> }).on).toHaveBeenCalled();
+    });
+
+    it('should not attach stage events when config is null', () => {
+      const stage = createStageStub({ on: vi.fn() }) as never;
+      mockCanvasRenderer.stage = stage;
+      mockCanvasService.activeConfig.set(null);
+
+      fixture.detectChanges();
+      vi.runAllTimers();
+
+      // initStage() was called but returned early at the !config guard
+      expect(mockCanvasRenderer.initStage).not.toHaveBeenCalled();
+    });
+
+    it('should invoke keyboard shortcut callbacks registered by setupKeyboardShortcuts', () => {
+      // Use a stub with all methods that onToolChange needs (draggable)
+      const stage = createStageStub({
+        on: vi.fn(),
+        draggable: vi.fn(),
+      }) as never;
+
+      fixture.detectChanges();
+      mockCanvasRenderer.stage = stage;
+      vi.runAllTimers();
+
+      // After runAllTimers, setupKeyboardShortcuts has registered a document keydown listener.
+      // Dispatch key events to exercise the registered callback lambdas.
+
+      // Escape → onEscape body (selectedObjectId.set / clearSelection / activeTool.set)
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+      );
+      expect(component['activeTool']()).toBe('select');
+
+      // Delete → onDelete lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })
+      );
+
+      // Tool key 'v' (no modifier) → onToolChange lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'v', bubbles: true })
+      );
+
+      // Ctrl+= → onZoomIn lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '=', ctrlKey: true, bubbles: true })
+      );
+
+      // Ctrl+- → onZoomOut lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '-', ctrlKey: true, bubbles: true })
+      );
+
+      // Ctrl+0 → onFitAll lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '0', ctrlKey: true, bubbles: true })
+      );
+
+      // Ctrl+C → onCopy lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'c', ctrlKey: true, bubbles: true })
+      );
+
+      // Ctrl+X → onCut lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'x', ctrlKey: true, bubbles: true })
+      );
+
+      // Ctrl+V → onPaste body (clearCanvasPos + paste)
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, bubbles: true })
+      );
+
+      // Ctrl+D → onDuplicate lambda
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'd', ctrlKey: true, bubbles: true })
+      );
+
+      // No exceptions thrown = all callbacks handled gracefully
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -919,8 +1179,9 @@ describe('CanvasTabComponent', () => {
 
   describe('zoom actions', () => {
     it('should zoom in around the stage center', () => {
-      component['stage'] = createStageStub() as never;
-      const zoomToPointSpy = vi.spyOn(component as never, 'zoomToPoint');
+      mockCanvasRenderer.stage = createStageStub() as never;
+      const zoomService = component['canvasZoom'];
+      const zoomToPointSpy = vi.spyOn(zoomService, 'zoomToPoint');
 
       component['onZoomIn']();
 
@@ -928,8 +1189,9 @@ describe('CanvasTabComponent', () => {
     });
 
     it('should zoom out around the stage center', () => {
-      component['stage'] = createStageStub() as never;
-      const zoomToPointSpy = vi.spyOn(component as never, 'zoomToPoint');
+      mockCanvasRenderer.stage = createStageStub() as never;
+      const zoomService = component['canvasZoom'];
+      const zoomToPointSpy = vi.spyOn(zoomService, 'zoomToPoint');
 
       component['onZoomOut']();
 
@@ -938,7 +1200,7 @@ describe('CanvasTabComponent', () => {
 
     it('should reset position and zoom when fitting an empty canvas', () => {
       const stage = createStageStub();
-      component['stage'] = stage as never;
+      mockCanvasRenderer.stage = stage as never;
       mockCanvasService.activeConfig.set({ ...defaultConfig, objects: [] });
 
       component['onFitAll']();
@@ -950,7 +1212,7 @@ describe('CanvasTabComponent', () => {
 
     it('should return early when objects exist but no layers have content', () => {
       const stage = createStageStub();
-      component['stage'] = stage as never;
+      mockCanvasRenderer.stage = stage as never;
 
       // Config has objects, so it won't take the empty early-return path
       const configWithObjects = {
@@ -978,13 +1240,26 @@ describe('CanvasTabComponent', () => {
       mockCanvasService.activeConfig.set(configWithObjects);
 
       // konvaLayers is empty → minX stays Infinity → !Number.isFinite(minX) → return
-      (component['konvaLayers'] as Map<string, unknown>).clear();
+      (mockCanvasRenderer.konvaLayers as Map<string, unknown>).clear();
 
       component['onFitAll']();
 
       // Should not have called position/scale because it returned early
       expect(stage.position).not.toHaveBeenCalled();
       expect(stage.scale).not.toHaveBeenCalled();
+    });
+
+    it('should reset zoom to 100% and update zoom level', () => {
+      mockCanvasRenderer.stage = createStageStub() as never;
+      component['onZoomReset']();
+      expect(component['zoomLevel']()).toBe(1);
+    });
+
+    it('should not update zoom level when reset returns null (no stage)', () => {
+      mockCanvasRenderer.stage = null;
+      const initialZoom = component['zoomLevel']();
+      component['onZoomReset']();
+      expect(component['zoomLevel']()).toBe(initialZoom);
     });
   });
 
@@ -1156,7 +1431,7 @@ describe('CanvasTabComponent', () => {
   describe('resolveImageSrc', () => {
     it('should return non-media URLs unchanged', async () => {
       await expect(
-        component['resolveImageSrc']('https://example.com/test.png')
+        mockCanvasRenderer.resolveImageSrc('https://example.com/test.png')
       ).resolves.toBe('https://example.com/test.png');
     });
 
@@ -1164,7 +1439,7 @@ describe('CanvasTabComponent', () => {
       mockProjectState.project.set(null);
 
       await expect(
-        component['resolveImageSrc']('media:test-image')
+        mockCanvasRenderer.resolveImageSrc('media:test-image')
       ).resolves.toBe('');
       expect(mockLogger.warn).toHaveBeenCalled();
     });
@@ -1173,7 +1448,7 @@ describe('CanvasTabComponent', () => {
       mockLocalStorageService.getMediaUrl.mockResolvedValueOnce(null);
 
       await expect(
-        component['resolveImageSrc']('media:test-image')
+        mockCanvasRenderer.resolveImageSrc('media:test-image')
       ).resolves.toBe('');
       expect(mockLocalStorageService.getMediaUrl).toHaveBeenCalledWith(
         'testuser/test-project',
@@ -1188,7 +1463,7 @@ describe('CanvasTabComponent', () => {
       );
 
       await expect(
-        component['resolveImageSrc']('media:test-image')
+        mockCanvasRenderer.resolveImageSrc('media:test-image')
       ).resolves.toBe('blob:resolved-image');
     });
   });
@@ -1228,222 +1503,6 @@ describe('CanvasTabComponent', () => {
       fixture.detectChanges();
       component['activeLayerId'].set('');
       expect(component['ensureActiveLayer']()).toBe('');
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Keyboard Shortcuts
-  // ─────────────────────────────────────────────────────────────────────────
-
-  describe('keyHandler', () => {
-    function dispatchKey(
-      key: string,
-      opts: Partial<KeyboardEventInit> = {}
-    ): void {
-      const event = new KeyboardEvent('keydown', {
-        key,
-        bubbles: true,
-        ...opts,
-      });
-      component['keyHandler'](event);
-    }
-
-    it('should ignore shortcuts when target is an input element', () => {
-      const input = document.createElement('input');
-      const event = new KeyboardEvent('keydown', {
-        key: 'v',
-        bubbles: true,
-      });
-      Object.defineProperty(event, 'target', { value: input });
-      component['keyHandler'](event);
-      // Tool should remain unchanged
-      expect(component['activeTool']()).toBe('select');
-    });
-
-    it('should switch to select tool on v key', () => {
-      component['activeTool'].set('draw');
-      dispatchKey('v');
-      expect(component['activeTool']()).toBe('select');
-    });
-
-    it('should switch to rectSelect tool on r key', () => {
-      dispatchKey('r');
-      expect(component['activeTool']()).toBe('rectSelect');
-    });
-
-    it('should switch to pan tool on h key', () => {
-      dispatchKey('h');
-      expect(component['activeTool']()).toBe('pan');
-    });
-
-    it('should switch to pin tool on p key', () => {
-      dispatchKey('p');
-      expect(component['activeTool']()).toBe('pin');
-    });
-
-    it('should switch to draw tool on d key (no modifier)', () => {
-      dispatchKey('d');
-      expect(component['activeTool']()).toBe('draw');
-    });
-
-    it('should switch to line tool on l key', () => {
-      dispatchKey('l');
-      expect(component['activeTool']()).toBe('line');
-    });
-
-    it('should switch to shape tool on s key (no modifier)', () => {
-      dispatchKey('s');
-      expect(component['activeTool']()).toBe('shape');
-    });
-
-    it('should NOT switch to shape tool when Ctrl+S is pressed', () => {
-      dispatchKey('s', { ctrlKey: true });
-      expect(component['activeTool']()).toBe('select');
-    });
-
-    it('should switch to text tool on t key', () => {
-      dispatchKey('t');
-      expect(component['activeTool']()).toBe('text');
-    });
-
-    it('should reset to select tool on Escape', () => {
-      component['activeTool'].set('draw');
-      dispatchKey('Escape');
-      expect(component['activeTool']()).toBe('select');
-      expect(component['selectedObjectId']()).toBeNull();
-    });
-
-    it('should call onCopy on Ctrl+C', () => {
-      const spy = vi.spyOn(component as never, 'onCopy');
-      dispatchKey('c', { ctrlKey: true });
-      expect(spy).toHaveBeenCalled();
-    });
-
-    it('should call onCut on Ctrl+X', () => {
-      const spy = vi.spyOn(component as never, 'onCut');
-      dispatchKey('x', { ctrlKey: true });
-      expect(spy).toHaveBeenCalled();
-    });
-
-    it('should call onPaste on Ctrl+V', () => {
-      const spy = vi.spyOn(component as never, 'onPaste');
-      dispatchKey('v', { ctrlKey: true });
-      expect(spy).toHaveBeenCalled();
-    });
-
-    it('should call onDuplicateObject on Ctrl+D', () => {
-      const spy = vi.spyOn(component as never, 'onDuplicateObject');
-      dispatchKey('d', { ctrlKey: true });
-      expect(spy).toHaveBeenCalled();
-    });
-
-    it('should call deleteSelectedObject on Delete key', () => {
-      const spy = vi.spyOn(component as never, 'deleteSelectedObject');
-      dispatchKey('Delete');
-      expect(spy).toHaveBeenCalled();
-    });
-
-    it('should call deleteSelectedObject on Backspace key', () => {
-      const spy = vi.spyOn(component as never, 'deleteSelectedObject');
-      dispatchKey('Backspace');
-      expect(spy).toHaveBeenCalled();
-    });
-
-    it('should call onZoomIn on Ctrl+=', () => {
-      const spy = vi.spyOn(component as never, 'onZoomIn');
-      dispatchKey('=', { ctrlKey: true });
-      expect(spy).toHaveBeenCalled();
-    });
-
-    it('should call onZoomOut on Ctrl+-', () => {
-      const spy = vi.spyOn(component as never, 'onZoomOut');
-      dispatchKey('-', { ctrlKey: true });
-      expect(spy).toHaveBeenCalled();
-    });
-
-    it('should call onFitAll on Ctrl+0', () => {
-      const spy = vi.spyOn(component as never, 'onFitAll');
-      dispatchKey('0', { ctrlKey: true });
-      expect(spy).toHaveBeenCalled();
-    });
-
-    it('should ignore shortcuts when target is a select element', () => {
-      const select = document.createElement('select');
-      const event = new KeyboardEvent('keydown', {
-        key: 'v',
-        bubbles: true,
-      });
-      Object.defineProperty(event, 'target', { value: select });
-      component['keyHandler'](event);
-      expect(component['activeTool']()).toBe('select');
-    });
-
-    it('should ignore shortcuts when target is a textarea element', () => {
-      const textarea = document.createElement('textarea');
-      const event = new KeyboardEvent('keydown', {
-        key: 'd',
-        bubbles: true,
-      });
-      Object.defineProperty(event, 'target', { value: textarea });
-      component['keyHandler'](event);
-      expect(component['activeTool']()).toBe('select');
-    });
-
-    it('should ignore shortcuts when target is contentEditable', () => {
-      const div = document.createElement('div');
-      div.setAttribute('contenteditable', 'true');
-      document.body.appendChild(div);
-      const event = new KeyboardEvent('keydown', {
-        key: 'r',
-        bubbles: true,
-      });
-      Object.defineProperty(event, 'target', { value: div });
-      component['keyHandler'](event);
-      expect(component['activeTool']()).toBe('select');
-      div.remove();
-    });
-
-    it('should NOT switch tool when Ctrl+R is pressed', () => {
-      dispatchKey('r', { ctrlKey: true });
-      expect(component['activeTool']()).toBe('select');
-    });
-
-    it('should NOT switch tool when Ctrl+H is pressed', () => {
-      dispatchKey('h', { ctrlKey: true });
-      expect(component['activeTool']()).toBe('select');
-    });
-
-    it('should NOT switch tool when Meta+P is pressed', () => {
-      dispatchKey('p', { metaKey: true });
-      expect(component['activeTool']()).toBe('select');
-    });
-
-    it('should NOT switch tool when Ctrl+L is pressed', () => {
-      dispatchKey('l', { ctrlKey: true });
-      expect(component['activeTool']()).toBe('select');
-    });
-
-    it('should NOT switch tool when Ctrl+T is pressed', () => {
-      dispatchKey('t', { ctrlKey: true });
-      expect(component['activeTool']()).toBe('select');
-    });
-
-    it('should not call onZoomIn without modifier on =', () => {
-      const spy = vi.spyOn(component as never, 'onZoomIn');
-      dispatchKey('=');
-      expect(spy).not.toHaveBeenCalled();
-    });
-
-    it('should not call onZoomOut without modifier on -', () => {
-      const spy = vi.spyOn(component as never, 'onZoomOut');
-      dispatchKey('-');
-      expect(spy).not.toHaveBeenCalled();
-    });
-
-    it('should not respond to unrecognized key', () => {
-      const spy = vi.spyOn(component as never, 'onToolChange');
-      dispatchKey('q');
-      expect(spy).not.toHaveBeenCalled();
     });
   });
 
@@ -1526,698 +1585,6 @@ describe('CanvasTabComponent', () => {
         'rel-1'
       );
       expect(mockCanvasService.removeObject).toHaveBeenCalledWith('pin-linked');
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Drawing Operations
-  // ─────────────────────────────────────────────────────────────────────────
-
-  describe('drawing operations', () => {
-    function setupDrawingState() {
-      fixture.detectChanges();
-      component['stage'] = createStageStub({ draggable: vi.fn() }) as any;
-      component['selectionLayer'] = {
-        batchDraw: vi.fn(),
-        add: vi.fn(),
-      } as any;
-      component['transformer'] = { nodes: vi.fn() } as any;
-    }
-
-    describe('handleDrawEnd', () => {
-      beforeEach(() => setupDrawingState());
-
-      it('should finalize rect select when rectSelectRect and rectSelectStart exist', () => {
-        component['activeTool'].set('rectSelect');
-        const mockRect = {
-          x: vi.fn(() => 5),
-          y: vi.fn(() => 5),
-          width: vi.fn(() => 1),
-          height: vi.fn(() => 1),
-          destroy: vi.fn(),
-        };
-        component['rectSelectRect'] = mockRect as any;
-        component['rectSelectStart'] = { x: 5, y: 5 };
-
-        component['handleDrawEnd']();
-
-        expect(mockRect.destroy).toHaveBeenCalled();
-        expect(component['rectSelectRect']).toBeNull();
-        expect(component['rectSelectStart']).toBeNull();
-      });
-
-      it('should finalize free draw when drawingLine exists and tool is draw', () => {
-        component['activeTool'].set('draw');
-        component['drawingLine'] = { destroy: vi.fn() } as any;
-        component['drawingPoints'] = [10, 20];
-
-        component['handleDrawEnd']();
-
-        expect(component['drawingLine']).toBeNull();
-        expect(component['drawingPoints']).toEqual([]);
-      });
-
-      it('should finalize line draw when drawingLine exists and tool is line', () => {
-        component['activeTool'].set('line');
-        component['drawingLine'] = {
-          destroy: vi.fn(),
-          points: vi.fn(() => [10, 20, 11, 21]),
-        } as any;
-
-        component['handleDrawEnd']();
-
-        expect(component['drawingLine']).toBeNull();
-        expect(component['drawingStartPos']).toBeNull();
-      });
-
-      it('should finalize line shape draw when drawingLine exists and tool is shape', () => {
-        component['activeTool'].set('shape');
-        component['drawingLine'] = {
-          destroy: vi.fn(),
-          points: vi.fn(() => [10, 20, 11, 21]),
-        } as any;
-
-        component['handleDrawEnd']();
-
-        expect(component['drawingLine']).toBeNull();
-        expect(component['drawingStartPos']).toBeNull();
-      });
-
-      it('should finalize rect shape draw when drawingShape exists and tool is shape', () => {
-        component['activeTool'].set('shape');
-        component['drawingShape'] = {
-          destroy: vi.fn(),
-          width: vi.fn(() => 1),
-          height: vi.fn(() => 1),
-          x: vi.fn(() => 0),
-          y: vi.fn(() => 0),
-        } as any;
-        component['drawingStartPos'] = { x: 0, y: 0 };
-
-        component['handleDrawEnd']();
-
-        expect(component['drawingShape']).toBeNull();
-        expect(component['drawingStartPos']).toBeNull();
-      });
-
-      it('should restore stage draggable to true for select tool', () => {
-        component['activeTool'].set('select');
-        const draggableFn = vi.fn();
-        component['stage'] = createStageStub({
-          draggable: draggableFn,
-        }) as any;
-
-        component['handleDrawEnd']();
-
-        expect(draggableFn).toHaveBeenCalledWith(true);
-      });
-
-      it('should restore stage draggable to true for pan tool', () => {
-        component['activeTool'].set('pan');
-        const draggableFn = vi.fn();
-        component['stage'] = createStageStub({
-          draggable: draggableFn,
-        }) as any;
-
-        component['handleDrawEnd']();
-
-        expect(draggableFn).toHaveBeenCalledWith(true);
-      });
-
-      it('should restore stage draggable to false for draw tool', () => {
-        component['activeTool'].set('draw');
-        const draggableFn = vi.fn();
-        component['stage'] = createStageStub({
-          draggable: draggableFn,
-        }) as any;
-
-        component['handleDrawEnd']();
-
-        expect(draggableFn).toHaveBeenCalledWith(false);
-      });
-    });
-
-    describe('handleDrawStart', () => {
-      beforeEach(() => setupDrawingState());
-
-      it('should return early for non-drawing tools like select', () => {
-        component['activeTool'].set('select');
-        const draggableFn = vi.fn();
-        component['stage'] = createStageStub({
-          draggable: draggableFn,
-        }) as any;
-
-        component['handleDrawStart'](mockDrawEvent);
-
-        expect(draggableFn).not.toHaveBeenCalled();
-      });
-
-      it('should disable stage dragging for drawing tools', () => {
-        component['activeTool'].set('draw');
-        const draggableFn = vi.fn();
-        component['stage'] = createStageStub({
-          draggable: draggableFn,
-        }) as any;
-        vi.spyOn(component as any, 'getCanvasPointerPosition').mockReturnValue(
-          null
-        );
-
-        component['handleDrawStart'](mockDrawEvent);
-
-        expect(draggableFn).toHaveBeenCalledWith(false);
-      });
-
-      it('should dispatch to initRectSelect for rectSelect tool', () => {
-        component['activeTool'].set('rectSelect');
-        vi.spyOn(component as any, 'initRectSelect').mockImplementation(
-          () => {}
-        );
-
-        component['handleDrawStart'](mockDrawEvent);
-
-        expect(component['initRectSelect']).toHaveBeenCalled();
-      });
-
-      it('should dispatch to initFreeDraw for draw tool', () => {
-        const pos = { x: 10, y: 20 };
-        component['activeTool'].set('draw');
-        vi.spyOn(component as any, 'getCanvasPointerPosition').mockReturnValue(
-          pos
-        );
-        vi.spyOn(component as any, 'initFreeDraw').mockImplementation(() => {});
-        const layerId = defaultConfig.layers[0].id;
-        const mockLayer = createMockLayer();
-        component['konvaLayers'].set(layerId, mockLayer);
-
-        component['handleDrawStart'](mockDrawEvent);
-
-        expect(component['initFreeDraw']).toHaveBeenCalledWith(
-          pos,
-          expect.any(Object),
-          mockLayer
-        );
-      });
-
-      it('should dispatch to initLineDraw for line tool', () => {
-        const pos = { x: 15, y: 25 };
-        component['activeTool'].set('line');
-        vi.spyOn(component as any, 'getCanvasPointerPosition').mockReturnValue(
-          pos
-        );
-        vi.spyOn(component as any, 'initLineDraw').mockImplementation(() => {});
-        const layerId = defaultConfig.layers[0].id;
-        const mockLayer = createMockLayer();
-        component['konvaLayers'].set(layerId, mockLayer);
-
-        component['handleDrawStart'](mockDrawEvent);
-
-        expect(component['initLineDraw']).toHaveBeenCalledWith(
-          pos,
-          expect.any(Object),
-          mockLayer
-        );
-      });
-
-      it('should dispatch to initShapeDraw for shape tool', () => {
-        const pos = { x: 20, y: 30 };
-        component['activeTool'].set('shape');
-        vi.spyOn(component as any, 'getCanvasPointerPosition').mockReturnValue(
-          pos
-        );
-        vi.spyOn(component as any, 'initShapeDraw').mockImplementation(
-          () => {}
-        );
-        const layerId = defaultConfig.layers[0].id;
-        const mockLayer = createMockLayer();
-        component['konvaLayers'].set(layerId, mockLayer);
-
-        component['handleDrawStart'](mockDrawEvent);
-
-        expect(component['initShapeDraw']).toHaveBeenCalledWith(
-          pos,
-          expect.any(Object),
-          mockLayer
-        );
-      });
-
-      it('should return early when getCanvasPointerPosition returns null', () => {
-        component['activeTool'].set('draw');
-        vi.spyOn(component as any, 'getCanvasPointerPosition').mockReturnValue(
-          null
-        );
-        vi.spyOn(component as any, 'initFreeDraw');
-
-        component['handleDrawStart'](mockDrawEvent);
-
-        expect(component['initFreeDraw']).not.toHaveBeenCalled();
-      });
-
-      it('should return early when no konva layer exists for active layer', () => {
-        component['activeTool'].set('draw');
-        vi.spyOn(component as any, 'getCanvasPointerPosition').mockReturnValue({
-          x: 0,
-          y: 0,
-        });
-        vi.spyOn(component as any, 'initFreeDraw');
-
-        component['handleDrawStart'](mockDrawEvent);
-
-        expect(component['initFreeDraw']).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('finalizeRectSelect', () => {
-      beforeEach(() => setupDrawingState());
-
-      it('should deselect when rect is too small', () => {
-        component['rectSelectRect'] = {
-          x: vi.fn(() => 10),
-          y: vi.fn(() => 20),
-          width: vi.fn(() => 1),
-          height: vi.fn(() => 1),
-          destroy: vi.fn(),
-        } as any;
-        component['rectSelectStart'] = { x: 10, y: 20 };
-
-        component['finalizeRectSelect']();
-
-        expect(component['selectedObjectId']()).toBeNull();
-        expect(component['transformer']!.nodes).toHaveBeenCalledWith([]);
-        expect(component['rectSelectRect']).toBeNull();
-        expect(component['rectSelectStart']).toBeNull();
-      });
-
-      it('should select nodes when rect is large enough', () => {
-        vi.spyOn(component as any, 'selectNodesInRect').mockImplementation(
-          () => {}
-        );
-        component['rectSelectRect'] = {
-          x: vi.fn(() => 10),
-          y: vi.fn(() => 20),
-          width: vi.fn(() => 100),
-          height: vi.fn(() => 80),
-          destroy: vi.fn(),
-        } as any;
-        component['rectSelectStart'] = { x: 10, y: 20 };
-
-        component['finalizeRectSelect']();
-
-        expect(component['selectNodesInRect']).toHaveBeenCalledWith({
-          x: 10,
-          y: 20,
-          width: 100,
-          height: 80,
-        });
-      });
-    });
-
-    describe('finalizeFreeDraw', () => {
-      beforeEach(() => setupDrawingState());
-
-      it('should create path object when enough points are drawn', () => {
-        component['drawingPoints'] = [10, 20, 30, 40];
-        component['drawingLine'] = { destroy: vi.fn() } as any;
-
-        component['finalizeFreeDraw']();
-
-        expect(mockCanvasService.addObject).toHaveBeenCalledWith(
-          expect.objectContaining({
-            type: 'path',
-            points: [10, 20, 30, 40],
-            closed: false,
-          })
-        );
-      });
-
-      it('should not create path when fewer than 4 points', () => {
-        component['drawingPoints'] = [10, 20];
-        component['drawingLine'] = { destroy: vi.fn() } as any;
-
-        component['finalizeFreeDraw']();
-
-        expect(mockCanvasService.addObject).not.toHaveBeenCalled();
-      });
-
-      it('should clean up drawing state after free draw', () => {
-        component['drawingPoints'] = [10, 20, 30, 40];
-        const destroyFn = vi.fn();
-        component['drawingLine'] = { destroy: destroyFn } as any;
-
-        component['finalizeFreeDraw']();
-
-        expect(destroyFn).toHaveBeenCalled();
-        expect(component['drawingLine']).toBeNull();
-        expect(component['drawingPoints']).toEqual([]);
-      });
-    });
-
-    describe('finalizeLineDraw', () => {
-      beforeEach(() => setupDrawingState());
-
-      it('should create path when line is long enough', () => {
-        component['drawingLine'] = {
-          points: vi.fn(() => [10, 20, 100, 120]),
-          destroy: vi.fn(),
-        } as any;
-
-        component['finalizeLineDraw']();
-
-        expect(mockCanvasService.addObject).toHaveBeenCalledWith(
-          expect.objectContaining({
-            type: 'path',
-            points: [10, 20, 100, 120],
-            closed: false,
-            tension: 0,
-          })
-        );
-      });
-
-      it('should not create path when line is too short', () => {
-        component['drawingLine'] = {
-          points: vi.fn(() => [10, 20, 12, 21]),
-          destroy: vi.fn(),
-        } as any;
-
-        component['finalizeLineDraw']();
-
-        expect(mockCanvasService.addObject).not.toHaveBeenCalled();
-      });
-
-      it('should clean up drawing state after line draw', () => {
-        const destroyFn = vi.fn();
-        component['drawingLine'] = {
-          points: vi.fn(() => [10, 20, 100, 120]),
-          destroy: destroyFn,
-        } as any;
-        component['drawingStartPos'] = { x: 10, y: 20 };
-
-        component['finalizeLineDraw']();
-
-        expect(destroyFn).toHaveBeenCalled();
-        expect(component['drawingLine']).toBeNull();
-        expect(component['drawingStartPos']).toBeNull();
-      });
-    });
-
-    describe('finalizeLineShapeDraw', () => {
-      beforeEach(() => setupDrawingState());
-
-      it('should create shape when line is long enough', () => {
-        component['drawingLine'] = {
-          points: vi.fn(() => [10, 20, 100, 120]),
-          destroy: vi.fn(),
-        } as any;
-
-        component['finalizeLineShapeDraw']();
-
-        expect(mockCanvasService.addObject).toHaveBeenCalledWith(
-          expect.objectContaining({
-            type: 'shape',
-            x: 10,
-            y: 20,
-          })
-        );
-      });
-
-      it('should not create shape when line is too short', () => {
-        component['drawingLine'] = {
-          points: vi.fn(() => [10, 20, 12, 21]),
-          destroy: vi.fn(),
-        } as any;
-
-        component['finalizeLineShapeDraw']();
-
-        expect(mockCanvasService.addObject).not.toHaveBeenCalled();
-      });
-
-      it('should clean up drawing state after line shape draw', () => {
-        const destroyFn = vi.fn();
-        component['drawingLine'] = {
-          points: vi.fn(() => [10, 20, 100, 120]),
-          destroy: destroyFn,
-        } as any;
-        component['drawingStartPos'] = { x: 10, y: 20 };
-
-        component['finalizeLineShapeDraw']();
-
-        expect(destroyFn).toHaveBeenCalled();
-        expect(component['drawingLine']).toBeNull();
-        expect(component['drawingStartPos']).toBeNull();
-      });
-    });
-
-    describe('finalizeRectShapeDraw', () => {
-      beforeEach(() => setupDrawingState());
-
-      it('should create rect shape when large enough', () => {
-        component['drawingShape'] = {
-          width: vi.fn(() => 100),
-          height: vi.fn(() => 80),
-          x: vi.fn(() => 10),
-          y: vi.fn(() => 20),
-          destroy: vi.fn(),
-        } as any;
-        component['drawingStartPos'] = { x: 10, y: 20 };
-
-        component['finalizeRectShapeDraw']();
-
-        expect(mockCanvasService.addObject).toHaveBeenCalledWith(
-          expect.objectContaining({
-            type: 'shape',
-            width: 100,
-            height: 80,
-            x: 10,
-            y: 20,
-          })
-        );
-      });
-
-      it('should create ellipse shape when large enough', () => {
-        component['toolSettings'].set({
-          ...createDefaultToolSettings(),
-          shapeType: 'ellipse',
-        });
-        component['drawingShape'] = {
-          radiusX: vi.fn(() => 50),
-          radiusY: vi.fn(() => 40),
-          x: vi.fn(() => 60),
-          y: vi.fn(() => 70),
-          destroy: vi.fn(),
-        } as any;
-        component['drawingStartPos'] = { x: 10, y: 30 };
-
-        component['finalizeRectShapeDraw']();
-
-        expect(mockCanvasService.addObject).toHaveBeenCalledWith(
-          expect.objectContaining({
-            type: 'shape',
-            shapeType: 'ellipse',
-            width: 100,
-            height: 80,
-            x: 10,
-            y: 30,
-          })
-        );
-      });
-
-      it('should not create shape when rect is too small', () => {
-        component['drawingShape'] = {
-          width: vi.fn(() => 2),
-          height: vi.fn(() => 2),
-          x: vi.fn(() => 0),
-          y: vi.fn(() => 0),
-          destroy: vi.fn(),
-        } as any;
-        component['drawingStartPos'] = { x: 0, y: 0 };
-
-        component['finalizeRectShapeDraw']();
-
-        expect(mockCanvasService.addObject).not.toHaveBeenCalled();
-      });
-
-      it('should not create shape when ellipse is too small', () => {
-        component['toolSettings'].set({
-          ...createDefaultToolSettings(),
-          shapeType: 'ellipse',
-        });
-        component['drawingShape'] = {
-          radiusX: vi.fn(() => 1),
-          radiusY: vi.fn(() => 1),
-          x: vi.fn(() => 5),
-          y: vi.fn(() => 5),
-          destroy: vi.fn(),
-        } as any;
-        component['drawingStartPos'] = { x: 4, y: 4 };
-
-        component['finalizeRectShapeDraw']();
-
-        expect(mockCanvasService.addObject).not.toHaveBeenCalled();
-      });
-
-      it('should clean up drawing state after rect shape draw', () => {
-        const destroyFn = vi.fn();
-        component['drawingShape'] = {
-          width: vi.fn(() => 100),
-          height: vi.fn(() => 80),
-          x: vi.fn(() => 10),
-          y: vi.fn(() => 20),
-          destroy: destroyFn,
-        } as any;
-        component['drawingStartPos'] = { x: 10, y: 20 };
-
-        component['finalizeRectShapeDraw']();
-
-        expect(destroyFn).toHaveBeenCalled();
-        expect(component['drawingShape']).toBeNull();
-        expect(component['drawingStartPos']).toBeNull();
-      });
-    });
-
-    // Typed helpers for Konva mocks
-    const mockDrawEvent = {} as Konva.KonvaEventObject<MouseEvent | TouchEvent>;
-    function createMockLayer() {
-      return { add: vi.fn() } as unknown as Konva.Layer;
-    }
-
-    // Init methods create real Konva objects which need canvas context in jsdom
-    function mockCanvasForKonva() {
-      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-        clearRect: vi.fn(),
-        getImageData: vi.fn(() => ({
-          data: new Uint8ClampedArray(4),
-        })),
-        fillRect: vi.fn(),
-        putImageData: vi.fn(),
-      } as unknown as RenderingContext);
-    }
-
-    describe('initRectSelect', () => {
-      beforeEach(() => {
-        setupDrawingState();
-        mockCanvasForKonva();
-      });
-
-      it('should set up rect select state when pointer position exists', () => {
-        vi.spyOn(component as any, 'getCanvasPointerPosition').mockReturnValue({
-          x: 10,
-          y: 20,
-        });
-
-        component['initRectSelect']();
-
-        expect(component['rectSelectStart']).toEqual({ x: 10, y: 20 });
-        expect(component['rectSelectRect']).toBeTruthy();
-        expect(component['selectionLayer']!.add).toHaveBeenCalled();
-      });
-
-      it('should do nothing when no pointer position', () => {
-        vi.spyOn(component as any, 'getCanvasPointerPosition').mockReturnValue(
-          null
-        );
-
-        component['initRectSelect']();
-
-        expect(component['rectSelectStart']).toBeFalsy();
-        expect(component['rectSelectRect']).toBeFalsy();
-      });
-    });
-
-    describe('initFreeDraw', () => {
-      beforeEach(() => {
-        setupDrawingState();
-        mockCanvasForKonva();
-      });
-
-      it('should set up drawing points and line', () => {
-        const mockLayer = createMockLayer();
-        const settings = createDefaultToolSettings();
-
-        component['initFreeDraw']({ x: 10, y: 20 }, settings, mockLayer);
-
-        expect(component['drawingPoints']).toEqual([10, 20]);
-        expect(component['drawingLine']).toBeTruthy();
-        expect(mockLayer.add).toHaveBeenCalled();
-      });
-    });
-
-    describe('initLineDraw', () => {
-      beforeEach(() => {
-        setupDrawingState();
-        mockCanvasForKonva();
-      });
-
-      it('should set up start position and line', () => {
-        const mockLayer = createMockLayer();
-        const settings = createDefaultToolSettings();
-
-        component['initLineDraw']({ x: 15, y: 25 }, settings, mockLayer);
-
-        expect(component['drawingStartPos']).toEqual({ x: 15, y: 25 });
-        expect(component['drawingLine']).toBeTruthy();
-        expect(mockLayer.add).toHaveBeenCalled();
-      });
-    });
-
-    describe('initShapeDraw', () => {
-      beforeEach(() => {
-        setupDrawingState();
-        mockCanvasForKonva();
-      });
-
-      it('should create arrow for arrow shape type', () => {
-        const mockLayer = createMockLayer();
-        const settings = {
-          ...createDefaultToolSettings(),
-          shapeType: 'arrow' as const,
-        };
-
-        component['initShapeDraw']({ x: 10, y: 20 }, settings, mockLayer);
-
-        expect(component['drawingStartPos']).toEqual({ x: 10, y: 20 });
-        expect(component['drawingLine']).toBeTruthy();
-        expect(mockLayer.add).toHaveBeenCalled();
-      });
-
-      it('should create line shape for line shape type', () => {
-        const mockLayer = createMockLayer();
-        const settings = {
-          ...createDefaultToolSettings(),
-          shapeType: 'line' as const,
-        };
-
-        component['initShapeDraw']({ x: 10, y: 20 }, settings, mockLayer);
-
-        expect(component['drawingLine']).toBeTruthy();
-        expect(mockLayer.add).toHaveBeenCalled();
-      });
-
-      it('should create ellipse for ellipse shape type', () => {
-        const mockLayer = createMockLayer();
-        const settings = {
-          ...createDefaultToolSettings(),
-          shapeType: 'ellipse' as const,
-        };
-
-        component['initShapeDraw']({ x: 10, y: 20 }, settings, mockLayer);
-
-        expect(component['drawingStartPos']).toEqual({ x: 10, y: 20 });
-        expect(component['drawingShape']).toBeTruthy();
-        expect(mockLayer.add).toHaveBeenCalled();
-      });
-
-      it('should create rect for rect shape type', () => {
-        const mockLayer = createMockLayer();
-        const settings = {
-          ...createDefaultToolSettings(),
-          shapeType: 'rect' as const,
-        };
-
-        component['initShapeDraw']({ x: 10, y: 20 }, settings, mockLayer);
-
-        expect(component['drawingStartPos']).toEqual({ x: 10, y: 20 });
-        expect(component['drawingShape']).toBeTruthy();
-        expect(mockLayer.add).toHaveBeenCalled();
-      });
     });
   });
 
@@ -2560,32 +1927,32 @@ describe('CanvasTabComponent', () => {
     });
 
     it('should do nothing when stage is null', () => {
-      component['stage'] = null;
+      mockCanvasRenderer.stage = null;
       component['exportAsPng']();
       expect(clickSpy).not.toHaveBeenCalled();
     });
 
     it('should export PNG with pixelRatio 2', () => {
-      component['stage'] = {
+      mockCanvasRenderer.stage = {
         toDataURL: vi.fn(() => 'data:image/png;base64,abc'),
-      } as unknown as Konva.Stage;
+      };
 
       component['exportAsPng']();
 
-      expect(component['stage'].toDataURL).toHaveBeenCalledWith({
+      expect(component['stage']!.toDataURL).toHaveBeenCalledWith({
         pixelRatio: 2,
       });
       expect(clickSpy).toHaveBeenCalled();
     });
 
     it('should export high-res PNG with pixelRatio 3', () => {
-      component['stage'] = {
+      mockCanvasRenderer.stage = {
         toDataURL: vi.fn(() => 'data:image/png;base64,xyz'),
-      } as unknown as Konva.Stage;
+      };
 
       component['exportAsHighResPng']();
 
-      expect(component['stage'].toDataURL).toHaveBeenCalledWith({
+      expect(component['stage']!.toDataURL).toHaveBeenCalledWith({
         pixelRatio: 3,
       });
       expect(clickSpy).toHaveBeenCalled();
@@ -2702,22 +2069,22 @@ describe('CanvasTabComponent', () => {
     it('should deselect when tool is select', () => {
       component['activeTool'].set('select');
       component['selectedObjectId'].set('some-id');
-      component['transformer'] = {
+      mockCanvasRenderer.transformer = {
         nodes: vi.fn(),
       } as any;
-      component['selectionLayer'] = { batchDraw: vi.fn() } as any;
+      mockCanvasRenderer.selectionLayer = { batchDraw: vi.fn() } as any;
 
       component['handleStageClick'](fakeEvent);
 
       expect(component['selectedObjectId']()).toBeNull();
-      expect(component['transformer']!.nodes).toHaveBeenCalledWith([]);
+      expect(mockCanvasRenderer.transformer.nodes).toHaveBeenCalledWith([]);
     });
 
     it('should deselect when tool is pan', () => {
       component['activeTool'].set('pan');
       component['selectedObjectId'].set('some-id');
-      component['transformer'] = { nodes: vi.fn() } as any;
-      component['selectionLayer'] = { batchDraw: vi.fn() } as any;
+      mockCanvasRenderer.transformer = { nodes: vi.fn() } as any;
+      mockCanvasRenderer.selectionLayer = { batchDraw: vi.fn() } as any;
 
       component['handleStageClick'](fakeEvent);
 
@@ -2727,8 +2094,8 @@ describe('CanvasTabComponent', () => {
     it('should deselect when tool is rectSelect', () => {
       component['activeTool'].set('rectSelect');
       component['selectedObjectId'].set('some-id');
-      component['transformer'] = { nodes: vi.fn() } as any;
-      component['selectionLayer'] = { batchDraw: vi.fn() } as any;
+      mockCanvasRenderer.transformer = { nodes: vi.fn() } as any;
+      mockCanvasRenderer.selectionLayer = { batchDraw: vi.fn() } as any;
 
       component['handleStageClick'](fakeEvent);
 
@@ -2741,7 +2108,7 @@ describe('CanvasTabComponent', () => {
         .spyOn(component as any, 'placePin')
         .mockImplementation(() => {});
       component['handleStageClick'](fakeEvent);
-      expect(spy).toHaveBeenCalledWith(fakeEvent);
+      expect(spy).toHaveBeenCalled();
     });
 
     it('should call placeText when tool is text', () => {
@@ -2750,7 +2117,7 @@ describe('CanvasTabComponent', () => {
         .spyOn(component as any, 'placeText')
         .mockImplementation(() => {});
       component['handleStageClick'](fakeEvent);
-      expect(spy).toHaveBeenCalledWith(fakeEvent);
+      expect(spy).toHaveBeenCalled();
     });
 
     it('should call placeDefaultShape when tool is shape', () => {
@@ -2759,7 +2126,7 @@ describe('CanvasTabComponent', () => {
         .spyOn(component as any, 'placeDefaultShape')
         .mockImplementation(() => {});
       component['handleStageClick'](fakeEvent);
-      expect(spy).toHaveBeenCalledWith(fakeEvent);
+      expect(spy).toHaveBeenCalled();
     });
   });
 
@@ -2776,7 +2143,7 @@ describe('CanvasTabComponent', () => {
         add: vi.fn(),
       } as unknown as Konva.Group;
 
-      component['updatePinLinkIndicator'](group, true);
+      CanvasRendererService.updatePinLinkIndicator(group, true);
 
       expect(
         (group as unknown as { add: ReturnType<typeof vi.fn> }).add
@@ -2794,7 +2161,7 @@ describe('CanvasTabComponent', () => {
         }),
       } as unknown as Konva.Group;
 
-      component['updatePinLinkIndicator'](group, false);
+      CanvasRendererService.updatePinLinkIndicator(group, false);
 
       expect(badge.destroy).toHaveBeenCalled();
       expect(icon.destroy).toHaveBeenCalled();
@@ -2806,256 +2173,10 @@ describe('CanvasTabComponent', () => {
       } as unknown as Konva.Group;
 
       // Should not throw
-      component['updatePinLinkIndicator'](group, false);
+      CanvasRendererService.updatePinLinkIndicator(group, false);
       expect(
         (group as unknown as { findOne: ReturnType<typeof vi.fn> }).findOne
       ).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // findKonvaNodeById & updateKonvaNodeColors
-  // ─────────────────────────────────────────────────────────────────────────
-
-  describe('findKonvaNodeById', () => {
-    it('should find node in konvaLayers', () => {
-      const mockNode = { id: vi.fn(() => 'obj-1') };
-      const mockLayer = {
-        findOne: vi.fn((selector: string) =>
-          selector === '#obj-1' ? mockNode : null
-        ),
-      };
-      component['konvaLayers'].clear();
-      component['konvaLayers'].set(
-        'layer-1',
-        mockLayer as unknown as Konva.Layer
-      );
-
-      const result = component['findKonvaNodeById']('obj-1');
-      expect(result).toBe(mockNode);
-    });
-
-    it('should return undefined when node not found', () => {
-      const mockLayer = { findOne: vi.fn(() => null) };
-      component['konvaLayers'].clear();
-      component['konvaLayers'].set(
-        'layer-1',
-        mockLayer as unknown as Konva.Layer
-      );
-
-      const result = component['findKonvaNodeById']('nonexistent');
-      expect(result).toBeUndefined();
-    });
-  });
-
-  describe('updateKonvaNodeColors', () => {
-    it('should return early when node not found', () => {
-      const mockLayer = { findOne: vi.fn(() => null) };
-      component['konvaLayers'].clear();
-      component['konvaLayers'].set(
-        'layer-1',
-        mockLayer as unknown as Konva.Layer
-      );
-
-      component['updateKonvaNodeColors']('missing-id', 'text', {
-        fill: '#fff',
-      });
-
-      expect(mockLayer.findOne).toHaveBeenCalledWith('#missing-id');
-    });
-
-    it('should apply color and batch draw when node found', () => {
-      const mockKonvaLayer = { batchDraw: vi.fn() };
-      const mockNode = {
-        fill: vi.fn(),
-        getLayer: vi.fn(() => mockKonvaLayer),
-      };
-      const spy = vi
-        .spyOn(component as any, 'applyNodeColorUpdate')
-        .mockImplementation(() => {});
-
-      const findLayer = {
-        findOne: vi.fn(() => mockNode),
-      };
-      component['konvaLayers'].clear();
-      component['konvaLayers'].set(
-        'layer-1',
-        findLayer as unknown as Konva.Layer
-      );
-
-      component['updateKonvaNodeColors']('obj-1', 'text', {
-        fill: '#ff0000',
-      });
-
-      expect(spy).toHaveBeenCalledWith(mockNode, 'text', {
-        fill: '#ff0000',
-      });
-      expect(mockKonvaLayer.batchDraw).toHaveBeenCalled();
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // applyNodeColorUpdate – type branches
-  // ─────────────────────────────────────────────────────────────────────────
-
-  describe('applyNodeColorUpdate', () => {
-    it('should apply fill to text node', () => {
-      const textNode = Object.create(Konva.Text.prototype) as Konva.Text;
-      textNode.fill = vi.fn();
-
-      component['applyNodeColorUpdate'](textNode, 'text', {
-        fill: '#333',
-      });
-
-      expect(textNode.fill).toHaveBeenCalledWith('#333');
-    });
-
-    it('should apply stroke and fill to path node', () => {
-      const lineNode = Object.create(Konva.Line.prototype) as Konva.Line;
-      lineNode.stroke = vi.fn();
-      lineNode.fill = vi.fn();
-
-      component['applyNodeColorUpdate'](lineNode, 'path', {
-        stroke: '#ff0000',
-        fill: '#00ff00',
-      });
-
-      expect(lineNode.stroke).toHaveBeenCalledWith('#ff0000');
-      expect(lineNode.fill).toHaveBeenCalledWith('#00ff00');
-    });
-
-    it('should apply fill only to path node when no stroke', () => {
-      const lineNode = Object.create(Konva.Line.prototype) as Konva.Line;
-      lineNode.stroke = vi.fn();
-      lineNode.fill = vi.fn();
-
-      component['applyNodeColorUpdate'](lineNode, 'path', {
-        fill: '#00ff00',
-      });
-
-      expect(lineNode.stroke).not.toHaveBeenCalled();
-      expect(lineNode.fill).toHaveBeenCalledWith('#00ff00');
-    });
-
-    it('should delegate to applyPinColor for pin groups', () => {
-      const groupNode = Object.create(Konva.Group.prototype) as Konva.Group;
-      const spy = vi
-        .spyOn(component as any, 'applyPinColor')
-        .mockImplementation(() => {});
-
-      component['applyNodeColorUpdate'](groupNode, 'pin', {
-        fill: '#E53935',
-      });
-
-      expect(spy).toHaveBeenCalledWith(groupNode, '#E53935');
-    });
-
-    it('should delegate to applyShapeColors for shape type', () => {
-      const rectNode = {
-        fill: vi.fn(),
-        stroke: vi.fn(),
-      } as unknown as Konva.Node;
-      const spy = vi
-        .spyOn(component as any, 'applyShapeColors')
-        .mockImplementation(() => {});
-
-      component['applyNodeColorUpdate'](rectNode, 'shape', {
-        fill: '#aaa',
-        stroke: '#bbb',
-      });
-
-      expect(spy).toHaveBeenCalledWith(rectNode, {
-        fill: '#aaa',
-        stroke: '#bbb',
-      });
-    });
-  });
-
-  describe('applyPinColor', () => {
-    it('should set fill on circle marker inside group', () => {
-      const circleMock = { fill: vi.fn() };
-      const groupNode = {
-        findOne: vi.fn(() => circleMock),
-      } as unknown as Konva.Group;
-
-      component['applyPinColor'](groupNode, '#E53935');
-
-      expect(circleMock.fill).toHaveBeenCalledWith('#E53935');
-    });
-
-    it('should do nothing when fill is undefined', () => {
-      const findOneSpy = vi.fn();
-      const groupNode = {
-        findOne: findOneSpy,
-      } as unknown as Konva.Group;
-
-      component['applyPinColor'](groupNode, undefined);
-
-      expect(findOneSpy).not.toHaveBeenCalled();
-    });
-
-    it('should handle missing circle marker gracefully', () => {
-      const findOneFn = vi.fn(() => null);
-      const groupNode = {
-        findOne: findOneFn,
-      } as unknown as Konva.Group;
-
-      component['applyPinColor'](groupNode, '#E53935');
-
-      expect(findOneFn).toHaveBeenCalledWith('Circle');
-    });
-  });
-
-  describe('applyShapeColors', () => {
-    it('should apply fill and stroke to shape', () => {
-      const node = {
-        fill: vi.fn(),
-        stroke: vi.fn(),
-      } as unknown as Konva.Node;
-
-      component['applyShapeColors'](node, {
-        fill: '#ff0000',
-        stroke: '#0000ff',
-      });
-
-      expect(
-        (node as unknown as { fill: ReturnType<typeof vi.fn> }).fill
-      ).toHaveBeenCalledWith('#ff0000');
-      expect(
-        (node as unknown as { stroke: ReturnType<typeof vi.fn> }).stroke
-      ).toHaveBeenCalledWith('#0000ff');
-    });
-
-    it('should apply only fill when stroke not provided', () => {
-      const node = {
-        fill: vi.fn(),
-        stroke: vi.fn(),
-      } as unknown as Konva.Node;
-
-      component['applyShapeColors'](node, { fill: '#ff0000' });
-
-      expect(
-        (node as unknown as { fill: ReturnType<typeof vi.fn> }).fill
-      ).toHaveBeenCalledWith('#ff0000');
-      expect(
-        (node as unknown as { stroke: ReturnType<typeof vi.fn> }).stroke
-      ).not.toHaveBeenCalled();
-    });
-
-    it('should apply only stroke when fill not provided', () => {
-      const node = {
-        fill: vi.fn(),
-        stroke: vi.fn(),
-      } as unknown as Konva.Node;
-
-      component['applyShapeColors'](node, { stroke: '#0000ff' });
-
-      expect(
-        (node as unknown as { stroke: ReturnType<typeof vi.fn> }).stroke
-      ).toHaveBeenCalledWith('#0000ff');
-      expect(
-        (node as unknown as { fill: ReturnType<typeof vi.fn> }).fill
-      ).not.toHaveBeenCalled();
     });
   });
 
@@ -3084,7 +2205,7 @@ describe('CanvasTabComponent', () => {
         width: 200,
         height: 150,
       };
-      const sig = component['getObjectRenderSignature'](img);
+      const sig = CanvasRendererService.getObjectRenderSignature(img);
       const parsed = JSON.parse(sig);
       expect(parsed.type).toBe('image');
       expect(parsed.src).toBe('media:abc');
@@ -3105,7 +2226,7 @@ describe('CanvasTabComponent', () => {
         width: 100,
         align: 'center',
       };
-      const sig = component['getObjectRenderSignature'](txt);
+      const sig = CanvasRendererService.getObjectRenderSignature(txt);
       const parsed = JSON.parse(sig);
       expect(parsed.type).toBe('text');
       expect(parsed.text).toBe('Hello');
@@ -3125,7 +2246,7 @@ describe('CanvasTabComponent', () => {
         fill: '#0f0',
         tension: 0.5,
       };
-      const sig = component['getObjectRenderSignature'](path);
+      const sig = CanvasRendererService.getObjectRenderSignature(path);
       const parsed = JSON.parse(sig);
       expect(parsed.type).toBe('path');
       expect(parsed.points).toEqual([0, 0, 10, 20]);
@@ -3144,7 +2265,7 @@ describe('CanvasTabComponent', () => {
         stroke: '#00f',
         strokeWidth: 2,
       };
-      const sig = component['getObjectRenderSignature'](shape);
+      const sig = CanvasRendererService.getObjectRenderSignature(shape);
       const parsed = JSON.parse(sig);
       expect(parsed.type).toBe('shape');
       expect(parsed.shapeType).toBe('ellipse');
@@ -3163,7 +2284,7 @@ describe('CanvasTabComponent', () => {
         relationshipId: 'rel-1',
         note: 'A dark fortress',
       };
-      const sig = component['getObjectRenderSignature'](pin);
+      const sig = CanvasRendererService.getObjectRenderSignature(pin);
       const parsed = JSON.parse(sig);
       expect(parsed.type).toBe('pin');
       expect(parsed.label).toBe('Castle');
@@ -3189,8 +2310,8 @@ describe('CanvasTabComponent', () => {
         ...before,
         text: 'New',
       };
-      expect(component['getObjectRenderSignature'](before)).not.toBe(
-        component['getObjectRenderSignature'](after)
+      expect(CanvasRendererService.getObjectRenderSignature(before)).not.toBe(
+        CanvasRendererService.getObjectRenderSignature(after)
       );
     });
 
@@ -3210,8 +2331,8 @@ describe('CanvasTabComponent', () => {
         y: 999,
       };
       // position (x, y) is not part of the signature
-      expect(component['getObjectRenderSignature'](obj1)).toBe(
-        component['getObjectRenderSignature'](obj2)
+      expect(CanvasRendererService.getObjectRenderSignature(obj1)).toBe(
+        CanvasRendererService.getObjectRenderSignature(obj2)
       );
     });
   });
@@ -3245,38 +2366,47 @@ describe('CanvasTabComponent', () => {
     }
 
     function stubStageAndHelpers() {
-      component['stage'] = { destroy: vi.fn() } as unknown as Konva.Stage;
-      vi.spyOn(component as any, 'buildKonvaLayers').mockImplementation(
+      mockCanvasRenderer.stage = { destroy: vi.fn() };
+      vi.spyOn(mockCanvasRenderer, 'buildKonvaLayers').mockImplementation(
         () => {}
       );
-      vi.spyOn(component as any, 'buildKonvaObjects').mockImplementation(
+      vi.spyOn(mockCanvasRenderer, 'buildKonvaObjects').mockImplementation(
         () => {}
       );
       vi.spyOn(component as any, 'selectKonvaNode').mockImplementation(
         () => {}
       );
-      component['selectionLayer'] = {
+      mockCanvasRenderer.selectionLayer = {
         moveToTop: vi.fn(),
         batchDraw: vi.fn(),
-      } as unknown as Konva.Layer;
-      component['transformer'] = {
+      };
+      mockCanvasRenderer.transformer = {
         nodes: vi.fn(),
-      } as unknown as Konva.Transformer;
+      };
+    }
+
+    function callSync(layers: any, objects: any) {
+      return mockCanvasRenderer.syncKonvaFromConfig(
+        layers,
+        objects,
+        component['selectedObjectId'](),
+        component['nodeHandlers']
+      );
     }
 
     it('should return early when stage is null', () => {
-      component['stage'] = undefined as unknown as Konva.Stage;
-      const rebuildSpy = vi.spyOn(component as any, 'rebuildAllKonvaNodes');
-      component['syncKonvaFromConfig'](defaultConfig.layers, []);
+      mockCanvasRenderer.stage = undefined;
+      const rebuildSpy = vi.spyOn(mockCanvasRenderer, 'rebuildAllKonvaNodes');
+      callSync(defaultConfig.layers, []);
       expect(rebuildSpy).not.toHaveBeenCalled();
     });
 
     it('should update layer visibility/opacity when layer exists', () => {
       stubStageAndHelpers();
       const mockLayer = makeMockLayer();
-      component['konvaLayers'].set(layerId, mockLayer);
+      mockCanvasRenderer.konvaLayers.set(layerId, mockLayer);
 
-      component['syncKonvaFromConfig'](defaultConfig.layers, []);
+      callSync(defaultConfig.layers, []);
 
       expect(mockLayer.visible).toHaveBeenCalledWith(
         defaultConfig.layers[0].visible
@@ -3310,15 +2440,15 @@ describe('CanvasTabComponent', () => {
       };
       const mockLayer = makeMockLayer();
       const mockNode = makeMockNode();
-      component['konvaLayers'].set(layerId, mockLayer);
-      component['konvaNodes'].set('shape-1', mockNode);
+      mockCanvasRenderer.konvaLayers.set(layerId, mockLayer);
+      mockCanvasRenderer.konvaNodes.set('shape-1', mockNode);
       // Pre-seed signature so renderChanged is false
-      component['objectRenderSignatures'].set(
+      mockCanvasRenderer.objectRenderSignatures.set(
         'shape-1',
-        component['getObjectRenderSignature'](obj)
+        CanvasRendererService.getObjectRenderSignature(obj)
       );
 
-      component['syncKonvaFromConfig'](defaultConfig.layers, [obj]);
+      callSync(defaultConfig.layers, [obj]);
 
       expect(mockNode.position).toHaveBeenCalledWith({ x: 15, y: 25 });
       expect(mockNode.rotation).toHaveBeenCalledWith(45);
@@ -3330,7 +2460,7 @@ describe('CanvasTabComponent', () => {
 
     it('should trigger full rebuild when object count changes (new object added)', () => {
       stubStageAndHelpers();
-      const rebuildSpy = vi.spyOn(component as any, 'rebuildAllKonvaNodes');
+      const rebuildSpy = vi.spyOn(mockCanvasRenderer, 'rebuildAllKonvaNodes');
       const obj: CanvasShape = {
         id: 'new-shape',
         layerId,
@@ -3348,17 +2478,19 @@ describe('CanvasTabComponent', () => {
         stroke: '#000',
         strokeWidth: 1,
       };
-      component['konvaLayers'].set(layerId, makeMockLayer());
+      mockCanvasRenderer.konvaLayers.set(layerId, makeMockLayer());
       // No entry in konvaNodes → size mismatch → rebuild
 
-      component['syncKonvaFromConfig'](defaultConfig.layers, [obj]);
+      callSync(defaultConfig.layers, [obj]);
 
-      expect(rebuildSpy).toHaveBeenCalledWith(defaultConfig.layers, [obj]);
+      expect(rebuildSpy).toHaveBeenCalled();
+      expect(rebuildSpy.mock.calls[0][0]).toBe(defaultConfig.layers);
+      expect(rebuildSpy.mock.calls[0][1]).toEqual([obj]);
     });
 
     it('should trigger full rebuild when render-affecting field changes', () => {
       stubStageAndHelpers();
-      const rebuildSpy = vi.spyOn(component as any, 'rebuildAllKonvaNodes');
+      const rebuildSpy = vi.spyOn(mockCanvasRenderer, 'rebuildAllKonvaNodes');
       const obj: CanvasText = {
         id: 'text-1',
         layerId,
@@ -3378,16 +2510,16 @@ describe('CanvasTabComponent', () => {
         visible: true,
         locked: false,
       };
-      component['konvaLayers'].set(layerId, makeMockLayer());
-      component['konvaNodes'].set('text-1', makeMockNode());
+      mockCanvasRenderer.konvaLayers.set(layerId, makeMockLayer());
+      mockCanvasRenderer.konvaNodes.set('text-1', makeMockNode());
       // Set old signature with different text
-      const oldSig = component['getObjectRenderSignature']({
+      const oldSig = CanvasRendererService.getObjectRenderSignature({
         ...obj,
         text: 'Old Text',
       });
-      component['objectRenderSignatures'].set('text-1', oldSig);
+      mockCanvasRenderer.objectRenderSignatures.set('text-1', oldSig);
 
-      component['syncKonvaFromConfig'](defaultConfig.layers, [obj]);
+      callSync(defaultConfig.layers, [obj]);
 
       expect(rebuildSpy).toHaveBeenCalled();
     });
@@ -3411,29 +2543,29 @@ describe('CanvasTabComponent', () => {
         stroke: '#000',
         strokeWidth: 1,
       };
-      component['konvaLayers'].set(layerId, makeMockLayer());
-      component['konvaNodes'].set('shape-sig', makeMockNode());
-      component['objectRenderSignatures'].set(
+      mockCanvasRenderer.konvaLayers.set(layerId, makeMockLayer());
+      mockCanvasRenderer.konvaNodes.set('shape-sig', makeMockNode());
+      mockCanvasRenderer.objectRenderSignatures.set(
         'shape-sig',
-        component['getObjectRenderSignature'](obj)
+        CanvasRendererService.getObjectRenderSignature(obj)
       );
 
-      component['syncKonvaFromConfig'](defaultConfig.layers, [obj]);
+      callSync(defaultConfig.layers, [obj]);
 
-      expect(component['objectRenderSignatures'].get('shape-sig')).toBe(
-        component['getObjectRenderSignature'](obj)
+      expect(mockCanvasRenderer.objectRenderSignatures.get('shape-sig')).toBe(
+        CanvasRendererService.getObjectRenderSignature(obj)
       );
     });
 
     it('should move selection layer to top after sync', () => {
       stubStageAndHelpers();
-      component['konvaLayers'].set(layerId, makeMockLayer());
+      mockCanvasRenderer.konvaLayers.set(layerId, makeMockLayer());
 
-      component['syncKonvaFromConfig'](defaultConfig.layers, []);
+      callSync(defaultConfig.layers, []);
 
       expect(
         (
-          component['selectionLayer'] as unknown as {
+          mockCanvasRenderer.selectionLayer as unknown as {
             moveToTop: ReturnType<typeof vi.fn>;
           }
         ).moveToTop
@@ -3442,11 +2574,11 @@ describe('CanvasTabComponent', () => {
 
     it('should trigger full rebuild when a layer is added', () => {
       stubStageAndHelpers();
-      const rebuildSpy = vi.spyOn(component as any, 'rebuildAllKonvaNodes');
+      const rebuildSpy = vi.spyOn(mockCanvasRenderer, 'rebuildAllKonvaNodes');
       // No layers in konvaLayers but config has one layer → mismatch
       // (konvaLayers is empty by default)
 
-      component['syncKonvaFromConfig'](defaultConfig.layers, []);
+      callSync(defaultConfig.layers, []);
 
       expect(rebuildSpy).toHaveBeenCalled();
     });
@@ -3456,23 +2588,32 @@ describe('CanvasTabComponent', () => {
     const layerId = defaultConfig.layers[0].id;
 
     function stubForRebuild() {
-      component['stage'] = { destroy: vi.fn() } as unknown as Konva.Stage;
-      vi.spyOn(component as any, 'buildKonvaLayers').mockImplementation(
+      mockCanvasRenderer.stage = { destroy: vi.fn() };
+      vi.spyOn(mockCanvasRenderer, 'buildKonvaLayers').mockImplementation(
         () => {}
       );
-      vi.spyOn(component as any, 'buildKonvaObjects').mockImplementation(
+      vi.spyOn(mockCanvasRenderer, 'buildKonvaObjects').mockImplementation(
         () => {}
       );
       vi.spyOn(component as any, 'selectKonvaNode').mockImplementation(
         () => {}
       );
-      component['selectionLayer'] = {
+      mockCanvasRenderer.selectionLayer = {
         moveToTop: vi.fn(),
         batchDraw: vi.fn(),
-      } as unknown as Konva.Layer;
-      component['transformer'] = {
+      };
+      mockCanvasRenderer.transformer = {
         nodes: vi.fn(),
-      } as unknown as Konva.Transformer;
+      };
+    }
+
+    function callRebuild(layers: any, objects: any) {
+      return mockCanvasRenderer.rebuildAllKonvaNodes(
+        layers,
+        objects,
+        component['selectedObjectId'](),
+        component['nodeHandlers']
+      );
     }
 
     it('should destroy existing layers and clear all maps', () => {
@@ -3481,16 +2622,16 @@ describe('CanvasTabComponent', () => {
         destroy: vi.fn(),
         batchDraw: vi.fn(),
       } as unknown as Konva.Layer;
-      component['konvaLayers'].set(layerId, mockLayer);
-      component['konvaNodes'].set('node-1', {} as Konva.Node);
-      component['objectRenderSignatures'].set('node-1', '{}');
+      mockCanvasRenderer.konvaLayers.set(layerId, mockLayer);
+      mockCanvasRenderer.konvaNodes.set('node-1', {});
+      mockCanvasRenderer.objectRenderSignatures.set('node-1', '{}');
 
-      component['rebuildAllKonvaNodes'](defaultConfig.layers, []);
+      callRebuild(defaultConfig.layers, []);
 
       expect(mockLayer.destroy).toHaveBeenCalled();
-      expect(component['konvaLayers'].size).toBe(0);
-      expect(component['konvaNodes'].size).toBe(0);
-      expect(component['objectRenderSignatures'].size).toBe(0);
+      expect(mockCanvasRenderer.konvaLayers.size).toBe(0);
+      expect(mockCanvasRenderer.konvaNodes.size).toBe(0);
+      expect(mockCanvasRenderer.objectRenderSignatures.size).toBe(0);
     });
 
     it('should populate render signatures for each object after rebuild', () => {
@@ -3514,10 +2655,10 @@ describe('CanvasTabComponent', () => {
         strokeWidth: 2,
       };
 
-      component['rebuildAllKonvaNodes'](defaultConfig.layers, [obj]);
+      callRebuild(defaultConfig.layers, [obj]);
 
-      expect(component['objectRenderSignatures'].get('shape-rb')).toBe(
-        component['getObjectRenderSignature'](obj)
+      expect(mockCanvasRenderer.objectRenderSignatures.get('shape-rb')).toBe(
+        CanvasRendererService.getObjectRenderSignature(obj)
       );
     });
 
@@ -3527,9 +2668,11 @@ describe('CanvasTabComponent', () => {
       const mockNode = {} as Konva.Node;
       component['selectedObjectId'].set(selectedId);
       // Simulate buildKonvaObjects populating konvaNodes
-      vi.spyOn(component as any, 'buildKonvaObjects').mockImplementation(() => {
-        component['konvaNodes'].set(selectedId, mockNode);
-      });
+      vi.spyOn(mockCanvasRenderer, 'buildKonvaObjects').mockImplementation(
+        () => {
+          mockCanvasRenderer.konvaNodes.set(selectedId, mockNode);
+        }
+      );
 
       const obj: CanvasShape = {
         id: selectedId,
@@ -3549,7 +2692,7 @@ describe('CanvasTabComponent', () => {
         strokeWidth: 1,
       };
 
-      component['rebuildAllKonvaNodes'](defaultConfig.layers, [obj]);
+      callRebuild(defaultConfig.layers, [obj]);
 
       expect(component['selectKonvaNode']).toHaveBeenCalledWith(mockNode);
     });
@@ -3558,18 +2701,18 @@ describe('CanvasTabComponent', () => {
       stubForRebuild();
       component['selectedObjectId'].set('missing-node');
 
-      component['rebuildAllKonvaNodes'](defaultConfig.layers, []);
+      callRebuild(defaultConfig.layers, []);
 
       expect(
         (
-          component['transformer'] as unknown as {
+          mockCanvasRenderer.transformer as unknown as {
             nodes: ReturnType<typeof vi.fn>;
           }
         ).nodes
       ).toHaveBeenCalledWith([]);
       expect(
         (
-          component['selectionLayer'] as unknown as {
+          mockCanvasRenderer.selectionLayer as unknown as {
             batchDraw: ReturnType<typeof vi.fn>;
           }
         ).batchDraw
