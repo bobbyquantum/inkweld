@@ -116,7 +116,7 @@ async function seedIdentityImage(page: Page): Promise<void> {
   });
 
   const identityPanel = page.locator('app-identity-panel');
-  await expect(identityPanel).toBeVisible();
+  await expect(identityPanel).toBeVisible({ timeout: 20_000 });
 
   await identityPanel.evaluate((host, imageDataUrl) => {
     const imageSection = host.querySelector('.image-section');

@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type {
   CanvasImage,
+  CanvasLayer,
   CanvasObject,
   CanvasPath,
   CanvasPin,
@@ -12,9 +13,18 @@ import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import Konva from 'konva';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import { CanvasService } from './canvas.service';
+import type { CanvasNodeHandlers } from './canvas-renderer.service';
 import { CanvasRendererService } from './canvas-renderer.service';
 
 // jsdom does not implement canvas.getContext('2d'), which Konva requires.
@@ -155,6 +165,24 @@ const makeImage = (overrides: Partial<CanvasImage> = {}): CanvasImage => ({
   width: 200,
   height: 100,
   ...overrides,
+});
+
+const makeLayer = (overrides: Partial<CanvasLayer> = {}): CanvasLayer => ({
+  id: 'L1',
+  name: 'Layer 1',
+  visible: true,
+  locked: false,
+  opacity: 1,
+  order: 0,
+  ...overrides,
+});
+
+const makeHandlers = (): CanvasNodeHandlers => ({
+  onSelect: vi.fn(),
+  onSelectKonvaNode: vi.fn(),
+  onDragEnd: vi.fn(),
+  onTransformEnd: vi.fn(),
+  onDblClickText: vi.fn(),
 });
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
@@ -537,6 +565,206 @@ describe('CanvasRendererService', () => {
       await Promise.resolve();
       await Promise.resolve();
       expect(warnLogger).toHaveBeenCalled();
+    });
+  });
+
+  // ─── with stage initialized ──────────────────────────────────────────────
+
+  describe('with stage initialized', () => {
+    let container: HTMLDivElement;
+
+    beforeEach(() => {
+      container = document.createElement('div');
+      Object.defineProperty(container, 'clientWidth', {
+        get: () => 800,
+        configurable: true,
+      });
+      Object.defineProperty(container, 'clientHeight', {
+        get: () => 600,
+        configurable: true,
+      });
+      document.body.appendChild(container);
+      class ResizeObserverMock {
+        observe = vi.fn();
+        unobserve = vi.fn();
+        disconnect = vi.fn();
+      }
+      vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+    });
+
+    afterEach(() => {
+      service.destroyStage();
+      container.remove();
+      vi.unstubAllGlobals();
+    });
+
+    it('initStage creates a Konva.Stage', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      expect(service.stage).not.toBeNull();
+    });
+
+    it('initStage returns zoomLevel 1 when no savedViewport', () => {
+      const result = service.initStage(
+        container,
+        [makeLayer()],
+        [],
+        null,
+        makeHandlers()
+      );
+      expect(result.zoomLevel).toBe(1);
+    });
+
+    it('initStage creates a Konva.Transformer', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      expect(service.transformer).toBeInstanceOf(Konva.Transformer);
+    });
+
+    it('initStage creates a selection layer', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      expect(service.selectionLayer).toBeInstanceOf(Konva.Layer);
+    });
+
+    it('initStage creates a Konva.Layer per config layer', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      expect(service.konvaLayers.size).toBe(1);
+      expect(service.konvaLayers.get('L1')).toBeInstanceOf(Konva.Layer);
+    });
+
+    it('initStage applies savedViewport zoom and position', () => {
+      const result = service.initStage(
+        container,
+        [makeLayer()],
+        [],
+        { x: 10, y: 20, zoom: 1.5 },
+        makeHandlers()
+      );
+      expect(result.zoomLevel).toBe(1.5);
+      expect(service.stage!.x()).toBe(10);
+      expect(service.stage!.y()).toBe(20);
+    });
+
+    it('initStage builds text objects into konvaNodes', () => {
+      service.initStage(
+        container,
+        [makeLayer()],
+        [makeText()],
+        null,
+        makeHandlers()
+      );
+      expect(service.konvaNodes.size).toBe(1);
+      expect(service.konvaNodes.get('o1')).toBeInstanceOf(Konva.Text);
+    });
+
+    it('destroyStage clears stage, maps, transformer and selectionLayer', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.destroyStage();
+      expect(service.stage).toBeNull();
+      expect(service.konvaLayers.size).toBe(0);
+      expect(service.konvaNodes.size).toBe(0);
+      expect(service.transformer).toBeNull();
+      expect(service.selectionLayer).toBeNull();
+    });
+
+    it('getViewportCenter returns stage-center when no pan', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      const center = service.getViewportCenter();
+      expect(center.x).toBeCloseTo(400);
+      expect(center.y).toBeCloseTo(300);
+    });
+
+    it('getCanvasPointerPosition returns null when stage has no pointer', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      expect(service.getCanvasPointerPosition()).toBeNull();
+    });
+
+    it('syncKonvaFromConfig updates layer visibility', () => {
+      const layer = makeLayer({ visible: true });
+      service.initStage(container, [layer], [], null, makeHandlers());
+      service.syncKonvaFromConfig(
+        [{ ...layer, visible: false }],
+        [],
+        null,
+        makeHandlers()
+      );
+      expect(service.konvaLayers.get('L1')!.visible()).toBe(false);
+    });
+
+    it('syncKonvaFromConfig rebuilds when a new layer is added', () => {
+      const layer = makeLayer();
+      service.initStage(container, [layer], [], null, makeHandlers());
+      const layer2 = makeLayer({ id: 'L2', name: 'Layer 2', order: 1 });
+      service.syncKonvaFromConfig([layer, layer2], [], null, makeHandlers());
+      expect(service.konvaLayers.size).toBe(2);
+    });
+
+    it('syncKonvaFromConfig does position-only update on second identical sync', () => {
+      const layer = makeLayer();
+      const obj = makeText();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [obj], null, handlers);
+      // First sync: populates render signatures
+      service.syncKonvaFromConfig([layer], [obj], null, handlers);
+      // Second sync: only position changed (not in render signature)
+      service.syncKonvaFromConfig(
+        [layer],
+        [{ ...obj, x: 99, y: 88 }],
+        null,
+        handlers
+      );
+      const node = service.konvaNodes.get('o1')!;
+      expect(node.x()).toBe(99);
+      expect(node.y()).toBe(88);
+    });
+
+    it('rebuildAllKonvaNodes clears nodes when no objects provided', () => {
+      const layer = makeLayer();
+      service.initStage(container, [layer], [makeText()], null, makeHandlers());
+      service.rebuildAllKonvaNodes([layer], [], null, makeHandlers());
+      expect(service.konvaNodes.size).toBe(0);
+    });
+
+    it('rebuildAllKonvaNodes re-selects the selected node', () => {
+      const layer = makeLayer();
+      const obj = makeText();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [obj], null, handlers);
+      service.rebuildAllKonvaNodes([layer], [obj], 'o1', handlers);
+      expect(handlers.onSelectKonvaNode).toHaveBeenCalled();
+    });
+
+    it('createKonvaNode click fires onSelect and onSelectKonvaNode', () => {
+      const layer = makeLayer();
+      const obj = makeText();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [obj], null, handlers);
+      const node = service.konvaNodes.get('o1')!;
+      node.fire('click');
+      expect(handlers.onSelect).toHaveBeenCalledWith('o1');
+      expect(handlers.onSelectKonvaNode).toHaveBeenCalledWith(node);
+    });
+
+    it('createKonvaNode dragend fires onDragEnd with position', () => {
+      const layer = makeLayer();
+      const obj = makeText();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [obj], null, handlers);
+      const node = service.konvaNodes.get('o1')!;
+      node.fire('dragend');
+      expect(handlers.onDragEnd).toHaveBeenCalledWith(
+        'o1',
+        expect.any(Number),
+        expect.any(Number)
+      );
+    });
+
+    it('createKonvaNode transformend fires onTransformEnd', () => {
+      const layer = makeLayer();
+      const obj = makeText();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [obj], null, handlers);
+      const node = service.konvaNodes.get('o1')!;
+      node.fire('transformend');
+      expect(handlers.onTransformEnd).toHaveBeenCalled();
     });
   });
 });
