@@ -18,12 +18,13 @@
       <input
         matInput
         [(ngModel)]="confirmationInput"
-        placeholder="Type to confirm" />
+        placeholder="Type to confirm"
+        data-testid="confirm-dialog-input" />
     </mat-form-field>
   }
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()">
+  <button mat-button (click)="onCancel()" data-testid="cancel-dialog-button">
     {{ data.cancelText || 'Cancel' }}
   </button>
   <button

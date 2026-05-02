@@ -134,9 +134,7 @@ test.describe('Danger Zone', () => {
 
       await expect(page.getByTestId('delete-project-card')).toBeVisible();
       await expect(page.getByTestId('delete-project-button')).toBeVisible();
-      await expect(
-        page.getByText('This action cannot be undone')
-      ).toBeVisible();
+      await expect(page.getByTestId('danger-warning')).toBeVisible();
     });
 
     test('should open confirmation dialog when delete is clicked', async ({
@@ -175,7 +173,7 @@ test.describe('Danger Zone', () => {
       await expect(dialog).toBeVisible();
 
       // Type incorrect slug - button should remain disabled
-      const input = dialog.locator('input[placeholder="Type to confirm"]');
+      const input = dialog.getByTestId('confirm-dialog-input');
       await input.waitFor({ state: 'visible' });
       await input.fill('wrong-slug');
       await expect(page.getByTestId('confirm-delete-button')).toBeDisabled();
@@ -199,7 +197,7 @@ test.describe('Danger Zone', () => {
       await expect(dialog).toBeVisible();
 
       // Cancel the dialog
-      await dialog.getByRole('button', { name: /cancel/i }).click();
+      await page.getByTestId('cancel-dialog-button').click();
       await expect(dialog).not.toBeVisible();
 
       // Should still be on the danger zone page — project NOT deleted
@@ -226,7 +224,7 @@ test.describe('Danger Zone', () => {
       await expect(dialog).toBeVisible();
 
       // Type the slug to confirm
-      const input = dialog.locator('input[placeholder="Type to confirm"]');
+      const input = dialog.getByTestId('confirm-dialog-input');
       await input.waitFor({ state: 'visible' });
       await input.fill(slug);
 

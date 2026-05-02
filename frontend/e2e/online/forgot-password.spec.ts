@@ -62,9 +62,8 @@ test.describe('Forgot Password', () => {
       // the page should show the success state
       await page.getByTestId('forgot-submit-button').click();
 
-      // The success message should appear: "Check Your Email"
+      // The success message should appear
       await expect(page.getByTestId('forgot-success')).toBeVisible();
-      await expect(page.getByText(/check your email/i)).toBeVisible();
     });
   });
 

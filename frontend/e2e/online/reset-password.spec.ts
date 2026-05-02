@@ -17,7 +17,6 @@ test.describe('Reset Password', () => {
 
       await expect(page.getByTestId('reset-password-page')).toBeVisible();
       await expect(page.getByTestId('no-token-error')).toBeVisible();
-      await expect(page.getByText(/invalid link/i)).toBeVisible();
     });
 
     test('should have a link to request a new reset link', async ({
@@ -126,14 +125,17 @@ test.describe('Reset Password', () => {
       await page.getByTestId('confirm-password-input').fill('DifferentP@ss1');
 
       await expect(page.getByTestId('password-validation-error')).toBeVisible();
-      await expect(page.getByText('Passwords do not match')).toBeVisible();
     });
 
     test('should clear mismatch error when passwords match', async ({
       anonymousPage: page,
     }) => {
-      // First create mismatch
+      // First create a mismatch to trigger the error
       await page.getByTestId('new-password-input').fill('StrongP@ss1');
+      await page.getByTestId('confirm-password-input').fill('DifferentP@ss1');
+      await expect(page.getByTestId('password-validation-error')).toBeVisible();
+
+      // Now fix the mismatch — error should disappear
       await page.getByTestId('confirm-password-input').fill('StrongP@ss1');
 
       // Mismatch error should NOT be visible

@@ -204,8 +204,7 @@ test.describe('Tags Tab', () => {
 
       await expect(page.getByTestId('confirm-delete-button')).toBeVisible();
 
-      const dialog = page.locator('mat-dialog-container');
-      await dialog.getByRole('button', { name: /cancel/i }).click();
+      await page.getByTestId('cancel-dialog-button').click();
 
       await expect(tagRowByName(page, tagName)).toBeVisible();
     });
