@@ -14,12 +14,14 @@ This document tracks which pages, features, and routes have e2e test coverage ac
 | `/settings` | Account Settings | - | `account-settings.spec.ts` | - | Partial |
 | `/admin` | Admin Dashboard | - | `admin.spec.ts` | `admin-ai-screenshots`, `admin-kill-switch-screenshots` | Covered |
 | `/admin/ai-providers` | AI Providers | - | `admin.spec.ts` | `admin-ai-screenshots` | Partial |
+| `/forgot-password` | Forgot Password | - | `forgot-password.spec.ts` | - | Covered |
+| `/reset-password` | Reset Password | - | `reset-password.spec.ts` | - | Covered |
 | `/:user/:slug` | Project Home | `projects.spec.ts` | `projects.spec.ts` | `pwa-screenshots` | Covered |
 | `/:user/:slug/document/:id` | Document Editor | `element-ref.spec.ts`, `find-in-document.spec.ts`, `image-insert.spec.ts` | - | `pwa-screenshots`, `element-ref-screenshots` | Covered |
 | `/:user/:slug/folder/:id` | Folder View | `folder-operations.spec.ts` | - | `pwa-screenshots` | Partial |
 | `/:user/:slug` | Project Documents (tree flow) | `project-documents.spec.ts` | - | - | Covered |
 | `/:user/:slug/media` | Media Library | `media-tab.spec.ts`, `media-storage.spec.ts` | `media-storage.spec.ts` | `pwa-screenshots` | Covered |
-| `/:user/:slug/settings` | Project Settings | - | `relationships-tab.spec.ts` | `tags-screenshots`, `templates-tab-screenshots`, `relationships-tab-screenshots`, `project-rename-screenshots` | Covered |
+| `/:user/:slug/settings` | Project Settings | - | `relationships-tab.spec.ts`, `tags.spec.ts`, `danger-zone.spec.ts` | `tags-screenshots`, `templates-tab-screenshots`, `relationships-tab-screenshots`, `project-rename-screenshots` | Covered |
 | `/:user/:slug/worldbuilding/:id` | Worldbuilding | `worldbuilding.spec.ts` | - | - | Partial |
 | `/:user/:slug/publish-plan/:id` | Publish Plan | `publish.spec.ts` | `publish.spec.ts` | - | Partial |
 | `/messages` | Messages | - | - | - | Not Covered |
@@ -37,13 +39,16 @@ This document tracks which pages, features, and routes have e2e test coverage ac
 | **Authentication** | | | | |
 | Login | - | `auth/login.spec.ts` | - | Online only |
 | Registration | - | `auth/registration.spec.ts` | - | Online only |
+| Forgot Password | - | `forgot-password.spec.ts` | - | Online only |
+| Reset Password | - | `reset-password.spec.ts` | - | Online only |
 | OAuth | - | `auth/oauth.spec.ts`, `oauth-mcp.spec.ts` | - | Online only |
 | **Projects** | | | | |
 | Create | `projects.spec.ts` | `projects.spec.ts` | `pwa-screenshots` | |
 | List/Browse | `projects.spec.ts` | `projects.spec.ts` | `pwa-screenshots` | |
 | Open/Navigate | `projects.spec.ts` | `projects.spec.ts` | - | |
 | Import/Export | `project-import-export.spec.ts` | - | - | Local only |
-| Rename | - | - | `project-rename-screenshots` | Screenshot only |
+| Rename | - | `danger-zone.spec.ts` | `project-rename-screenshots` | |
+| Delete | - | `danger-zone.spec.ts` | `project-rename-screenshots` | Online only |
 | Switching | - | `project-switching.spec.ts` | - | Online only |
 | **Documents** | | | | |
 | Project document flow | `project-documents.spec.ts` | - | - | |
@@ -61,10 +66,11 @@ This document tracks which pages, features, and routes have e2e test coverage ac
 | **Publishing** | | | | |
 | Publish Plan | `publish.spec.ts` | `publish.spec.ts` | - | |
 | **Settings** | | | | |
-| Tags | - | - | `tags-screenshots` | Screenshot only |
+| Tags | - | `tags.spec.ts` | `tags-screenshots` | |
 | Templates | - | - | `templates-tab-screenshots` | Screenshot only |
 | Relationships | - | `relationships-tab.spec.ts` | `relationships-tab-screenshots` | |
 | Account Settings | - | `account-settings.spec.ts` | - | |
+| Danger Zone | - | `danger-zone.spec.ts` | `project-rename-screenshots` | |
 | **Admin** | | | | |
 | Dashboard | - | `admin.spec.ts` | - | |
 | AI Settings | - | - | `admin-ai-screenshots` | Screenshot only |
@@ -92,15 +98,13 @@ This document tracks which pages, features, and routes have e2e test coverage ac
 The following areas have been identified as having incomplete or no e2e coverage:
 
 ### Not Covered (No Tests)
-- **Messages page** (`/messages`) - No tests for the notification/messages center
-- **Approval Pending page** (`/approval-pending`) - No tests for the user approval flow
-- **Reset Data page** (`/reset`) - No tests for the data reset functionality
-- **User Profile page** (`/:username`) - No tests for public user profiles
+- **Messages page** (`/messages`) - No tests for the notification/messages center page (announcements flow is covered via `announcements.spec.ts`)
+- **Approval Pending page** (`/approval-pending`) - No tests for the user approval flow (low value: static informational page)
+- **Reset Data page** (`/reset`) - No tests for the data reset functionality (low value: single-action utility)
+- **User Profile page** (`/:username`) - No tests for public user profiles (work-in-progress page)
 
 ### Screenshot-Only Coverage
 These features have screenshot tests but no functional e2e tests:
-- **Project Rename** - Only captured in `project-rename-screenshots.spec.ts`
-- **Tags Management** - Only captured in `tags-screenshots.spec.ts`
 - **Templates Management** - Only captured in `templates-tab-screenshots.spec.ts`
 - **Admin AI Settings** - Only captured in `admin-ai-screenshots.spec.ts`
 - **Admin Kill Switch** - Only captured in `admin-kill-switch-screenshots.spec.ts`
@@ -116,7 +120,7 @@ These features have screenshot tests but no functional e2e tests:
 | Suite | Spec Files | Approx. Tests |
 |-------|:----------:|:-------------:|
 | Local | 17 | ~80 |
-| Online | 21 | ~90 |
+| Online | 25 | ~125 |
 | Screenshots | 12 | ~100 |
 | MCP | 6 | ~30 |
-| **Total** | **56** | **~300** |
+| **Total** | **60** | **~335** |
