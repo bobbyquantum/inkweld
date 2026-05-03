@@ -1,5 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import {
+  type AfterViewInit,
+  Component,
+  computed,
+  type ElementRef,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -171,7 +179,7 @@ export type EditRelationshipTypeDialogResult = Omit<
     MatTooltipModule,
   ],
 })
-export class EditRelationshipTypeDialogComponent {
+export class EditRelationshipTypeDialogComponent implements AfterViewInit {
   private readonly dialogRef = inject(
     MatDialogRef<EditRelationshipTypeDialogComponent>
   );
@@ -181,6 +189,25 @@ export class EditRelationshipTypeDialogComponent {
   readonly iconOptions = RELATIONSHIP_ICON_OPTIONS;
   readonly colorOptions = RELATIONSHIP_COLOR_OPTIONS;
   readonly categoryOptions = CATEGORY_OPTIONS;
+
+  // Refs to seed the text inputs once on init. We deliberately do NOT bind
+  // [value] on these <input> elements: in zoneless mode a [value] binding
+  // re-runs during CD cycles triggered by sibling control interactions
+  // (e.g. clicking a colour swatch / icon button), which deselects/replaces
+  // text and causes Playwright's fill() to concatenate instead of replace.
+  private readonly nameInput =
+    viewChild<ElementRef<HTMLInputElement>>('nameInput');
+  private readonly inverseInput =
+    viewChild<ElementRef<HTMLInputElement>>('inverseInput');
+
+  ngAfterViewInit(): void {
+    queueMicrotask(() => {
+      const nameEl = this.nameInput()?.nativeElement;
+      const invEl = this.inverseInput()?.nativeElement;
+      if (nameEl && this.name()) nameEl.value = this.name();
+      if (invEl && this.inverseLabel()) invEl.value = this.inverseLabel();
+    });
+  }
 
   // ── Form state ───────────────────────────────────────────────────────────────
   readonly name = signal(this.data.type?.name ?? '');

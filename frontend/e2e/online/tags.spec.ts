@@ -120,11 +120,10 @@ test.describe('Tags Tab', () => {
 
       const newName = uniqueName('RevisedName');
       const nameInput = page.getByTestId('tag-name-input');
-      await nameInput.click();
-      await nameInput.fill('');
+      await nameInput.click({ force: true });
       await nameInput.fill(newName);
-      // Wait for Angular to process the model change
-      await page.waitForTimeout(300);
+      await expect(nameInput).toHaveValue(newName);
+      await expect(page.getByTestId('tag-dialog-save')).toBeEnabled();
       await page.getByTestId('tag-dialog-save').click();
 
       await expect(page.getByTestId('tag-dialog-content')).not.toBeVisible();

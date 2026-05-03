@@ -50,8 +50,8 @@
       <mat-label>Name (forward label)</mat-label>
       <input
         matInput
-        [ngModel]="name()"
-        (ngModelChange)="name.set($event)"
+        #nameInput
+        (input)="name.set($any($event.target).value)"
         data-testid="rel-name-input"
         placeholder="e.g. Parent, Friend, Owns"
         required />
@@ -61,8 +61,8 @@
       <mat-label>Inverse label</mat-label>
       <input
         matInput
-        [ngModel]="inverseLabel()"
-        (ngModelChange)="inverseLabel.set($event)"
+        #inverseInput
+        (input)="inverseLabel.set($any($event.target).value)"
         data-testid="rel-inverse-input"
         placeholder="e.g. Child of, Friend of, Owned by"
         required />

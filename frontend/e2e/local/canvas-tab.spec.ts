@@ -207,13 +207,18 @@ test.describe('Canvas Tab', () => {
 
     // Clear the name and type a new one
     const input = dialog.getByRole('textbox').first();
+    await input.waitFor({ state: 'visible' });
+    await expect(input).not.toHaveValue('');
     await input.clear();
     await input.fill('Background');
+    await expect(input).toHaveValue('Background');
 
-    // Confirm
-    await dialog
-      .getByRole('button', { name: /rename|save|ok|confirm/i })
-      .click();
+    // Confirm — wait for button to be enabled before clicking (OnPush CD)
+    const confirmButton = dialog.getByRole('button', {
+      name: /rename|save|ok|confirm/i,
+    });
+    await expect(confirmButton).toBeEnabled();
+    await confirmButton.click();
     await expect(dialog).not.toBeVisible();
 
     // The layer should now have the new name

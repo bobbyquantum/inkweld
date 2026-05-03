@@ -63,7 +63,7 @@ describe('AnnouncementEditorDialogComponent', () => {
     });
 
     it('should have correct title for create mode', () => {
-      expect(component.title).toBe('Create Announcement');
+      expect(component.dialogTitle).toBe('Create Announcement');
     });
 
     it('should not be in edit mode', () => {
@@ -71,17 +71,16 @@ describe('AnnouncementEditorDialogComponent', () => {
     });
 
     it('should initialize empty form', () => {
-      expect(component.form.get('title')?.value).toBe('');
-      expect(component.form.get('content')?.value).toBe('');
+      expect(component.titleStr()).toBe('');
+      expect(component.contentStr()).toBe('');
       expect(component.form.get('type')?.value).toBe('announcement');
       expect(component.form.get('priority')?.value).toBe('normal');
       expect(component.form.get('isPublic')?.value).toBe(true);
       expect(component.form.get('expiresAt')?.value).toBeNull();
     });
 
-    it('should have required validators for title and content', () => {
-      expect(component.form.get('title')?.hasError('required')).toBe(true);
-      expect(component.form.get('content')?.hasError('required')).toBe(true);
+    it('should be invalid when title and content are empty', () => {
+      expect(component.isFormValid()).toBe(false);
     });
 
     describe('submit', () => {
@@ -95,10 +94,8 @@ describe('AnnouncementEditorDialogComponent', () => {
       });
 
       it('should create announcement with valid form', async () => {
-        component.form.patchValue({
-          title: 'Test Title',
-          content: 'Test Content',
-        });
+        component.titleStr.set('Test Title');
+        component.contentStr.set('Test Content');
 
         await component.submit();
 
@@ -118,10 +115,8 @@ describe('AnnouncementEditorDialogComponent', () => {
         mockAnnouncementService.createAnnouncement.mockRejectedValue(
           new Error('Failed')
         );
-        component.form.patchValue({
-          title: 'Test Title',
-          content: 'Test Content',
-        });
+        component.titleStr.set('Test Title');
+        component.contentStr.set('Test Content');
 
         await component.submit();
 
@@ -134,10 +129,8 @@ describe('AnnouncementEditorDialogComponent', () => {
       });
 
       it('should set isSubmitting during submit', async () => {
-        component.form.patchValue({
-          title: 'Test Title',
-          content: 'Test Content',
-        });
+        component.titleStr.set('Test Title');
+        component.contentStr.set('Test Content');
 
         let submittingDuringCall = false;
         mockAnnouncementService.createAnnouncement.mockImplementation(() => {
@@ -153,11 +146,9 @@ describe('AnnouncementEditorDialogComponent', () => {
 
       it('should convert expiresAt to ISO string', async () => {
         const expiresAt = new Date('2026-12-31');
-        component.form.patchValue({
-          title: 'Test Title',
-          content: 'Test Content',
-          expiresAt,
-        });
+        component.titleStr.set('Test Title');
+        component.contentStr.set('Test Content');
+        component.form.patchValue({ expiresAt });
 
         await component.submit();
 
@@ -201,7 +192,7 @@ describe('AnnouncementEditorDialogComponent', () => {
     });
 
     it('should have correct title for edit mode', () => {
-      expect(component.title).toBe('Edit Announcement');
+      expect(component.dialogTitle).toBe('Edit Announcement');
     });
 
     it('should be in edit mode', () => {
@@ -209,8 +200,8 @@ describe('AnnouncementEditorDialogComponent', () => {
     });
 
     it('should populate form with existing data', () => {
-      expect(component.form.get('title')?.value).toBe('Existing Title');
-      expect(component.form.get('content')?.value).toBe('Existing Content');
+      expect(component.titleStr()).toBe('Existing Title');
+      expect(component.contentStr()).toBe('Existing Content');
       expect(component.form.get('type')?.value).toBe('maintenance');
       expect(component.form.get('priority')?.value).toBe('high');
       expect(component.form.get('isPublic')?.value).toBe(false);
@@ -221,9 +212,7 @@ describe('AnnouncementEditorDialogComponent', () => {
 
     describe('submit', () => {
       it('should update announcement with valid form', async () => {
-        component.form.patchValue({
-          title: 'Updated Title',
-        });
+        component.titleStr.set('Updated Title');
 
         await component.submit();
 

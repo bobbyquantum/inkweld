@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 /**
  * Press a keyboard shortcut using the Control modifier key.
@@ -488,6 +488,8 @@ export async function openTagsTab(
 export async function openTagDialog(page: Page): Promise<void> {
   await page.getByTestId('new-tag-button').click();
   await page.getByTestId('tag-dialog-content').waitFor({ state: 'visible' });
+  // Wait for the dialog to be fully stable (animations complete)
+  await page.waitForLoadState('networkidle');
 }
 
 /**
@@ -499,7 +501,15 @@ export async function fillTagDialog(
   iconIndex: number = 0,
   colorIndex: number = 0
 ): Promise<void> {
-  await page.getByTestId('tag-name-input').fill(name);
+  const nameInput = page.getByTestId('tag-name-input');
+  await expect(nameInput).toBeVisible();
+  await nameInput.click({ force: true });
+  await nameInput.fill(name);
+  await expect(nameInput).toHaveValue(name);
+  // Wait for Angular to update the preview chip (confirms signal is set)
+  await expect(
+    page.locator('mat-dialog-content .preview-chip span').last()
+  ).not.toHaveText('Tag Name');
 
   const iconOption = page.getByTestId(`tag-icon-option-${iconIndex}`);
   if (await iconOption.isVisible().catch(() => false)) {
@@ -510,6 +520,9 @@ export async function fillTagDialog(
   if (await colorOption.isVisible().catch(() => false)) {
     await colorOption.click();
   }
+
+  // Wait for Angular to enable the save button
+  await expect(page.getByTestId('tag-dialog-save')).toBeEnabled();
 }
 
 /**

@@ -1,6 +1,12 @@
-import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import {
+  type AfterViewInit,
+  Component,
+  computed,
+  type ElementRef,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import {
@@ -99,8 +105,6 @@ const COLOR_OPTIONS = [
   templateUrl: './tag-edit-dialog.component.html',
   styleUrls: ['./tag-edit-dialog.component.scss'],
   imports: [
-    CommonModule,
-    FormsModule,
     MatButtonModule,
     MatChipsModule,
     MatDialogModule,
@@ -110,19 +114,48 @@ const COLOR_OPTIONS = [
     MatTooltipModule,
   ],
 })
-export class TagEditDialogComponent {
+export class TagEditDialogComponent implements AfterViewInit {
   private readonly dialogRef = inject(MatDialogRef<TagEditDialogComponent>);
   readonly data = inject<TagEditDialogData>(MAT_DIALOG_DATA);
 
   readonly iconOptions = ICON_OPTIONS;
   readonly colorOptions = COLOR_OPTIONS;
 
+  // Refs to seed the inputs once on init. We deliberately do NOT bind
+  // [value] on the <input> elements: in zoneless mode a [value] binding
+  // re-runs during CD cycles triggered by sibling control interactions
+  // (e.g. clicking on the chip grid), which deselects/replaces text and
+  // causes Playwright's fill() to concatenate instead of replace.
+  // See AGENTS notes on the announcement-editor for the same pattern.
+  private readonly nameInput =
+    viewChild<ElementRef<HTMLInputElement>>('nameInput');
+  private readonly descriptionInput =
+    viewChild<ElementRef<HTMLInputElement>>('descriptionInput');
+
+  // All fields as plain signals — updates are synchronous, no RxJS bridging needed.
+  // This avoids toSignal timing races in zoneless Angular where toSignal effects
+  // are scheduled asynchronously and can lag behind CD cycles triggered by other signals.
   readonly name = signal(this.data.tag?.name ?? '');
+  readonly description = signal(this.data.tag?.description ?? '');
   readonly icon = signal(this.data.tag?.icon ?? 'label');
   readonly color = signal(this.data.tag?.color ?? '#607D8B');
-  readonly description = signal(this.data.tag?.description ?? '');
 
   readonly isFormValid = computed(() => !!this.name().trim());
+
+  ngAfterViewInit(): void {
+    // Seed the DOM once. Use queueMicrotask to avoid
+    // ExpressionChangedAfterItHasBeenCheckedError in unit tests.
+    queueMicrotask(() => {
+      const nameEl = this.nameInput()?.nativeElement;
+      const descEl = this.descriptionInput()?.nativeElement;
+      if (nameEl && this.name()) {
+        nameEl.value = this.name();
+      }
+      if (descEl && this.description()) {
+        descEl.value = this.description();
+      }
+    });
+  }
 
   getTextColor(bgColor: string): string {
     const hex = bgColor.replaceAll('#', '');
@@ -138,16 +171,16 @@ export class TagEditDialogComponent {
   }
 
   onSave(): void {
-    const name = this.name();
-    if (!name?.trim()) {
+    const name = this.name().trim();
+    if (!name) {
       return;
     }
 
     const result: TagEditDialogResult = {
-      name: name.trim(),
+      name,
       icon: this.icon(),
       color: this.color(),
-      description: this.description()?.trim() || undefined,
+      description: this.description().trim() || undefined,
     };
 
     this.dialogRef.close(result);

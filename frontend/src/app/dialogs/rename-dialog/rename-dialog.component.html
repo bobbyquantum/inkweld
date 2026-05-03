@@ -4,12 +4,14 @@
     <mat-label>Name</mat-label>
     <input
       matInput
-      [formControl]="nameControl"
+      #nameInput
+      (input)="onInput($event)"
+      (blur)="onBlur()"
       cdkFocusInitial
       (keyup.enter)="onConfirm()"
       data-testid="rename-input"
       placeholder="Enter name" />
-    @if (nameControl.hasError('required') && nameControl.touched) {
+    @if (touched() && name().trim().length === 0) {
       <mat-error>Name is required</mat-error>
     }
   </mat-form-field>
@@ -19,7 +21,7 @@
   <button
     mat-button
     color="primary"
-    [disabled]="!nameControl.valid"
+    [disabled]="name().trim().length === 0"
     data-testid="rename-confirm-button"
     (click)="onConfirm()">
     Rename

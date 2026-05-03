@@ -1,11 +1,19 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType, type Project } from '@inkweld/index';
-// Import $typst from the globally mocked module (see setup-vitest.ts).
-// Do NOT re-mock @myriaddreamin/typst.ts here — with isolate: false the
-// duplicate vi.mock creates a separate object that diverges from the one
-// the service captures, causing $typst.pdf() to return undefined.
+// Import $typst from BOTH the bare module and the snippet sub-path.
+// The production code (`pdf-generator.service.ts`) imports from
+// `@myriaddreamin/typst.ts/contrib/snippet`, while older specs imported
+// from the bare `@myriaddreamin/typst.ts`. setup-vitest.ts mocks both
+// to share the same `mockTypstGlobal` object, so reassigning members on
+// one *should* be visible from the other — but with `isolate: false` and
+// shared module state across spec files, defensively patching both
+// surfaces eliminates a rare flake where `$typst.pdf()` resolved to
+// `undefined` and triggered "Typst compilation failed to produce PDF data".
+// Do NOT re-mock these modules here — duplicate vi.mock creates a separate
+// object that diverges from the one the service captures.
 import { $typst } from '@myriaddreamin/typst.ts';
+import { $typst as $typstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -132,11 +140,22 @@ describe('PdfGeneratorService', () => {
     // Replace $typst methods with fresh mocks each test.
     // With isolate: false the global vi.mock from setup-vitest.ts may not
     // have applied, so vi.mocked() could return the real (non-mock) function.
-    // Assigning vi.fn() directly is resilient regardless.
-    ($typst as any).setCompilerInitOptions = vi.fn().mockReturnValue(undefined);
-    ($typst as any).setRendererInitOptions = vi.fn().mockReturnValue(undefined);
-    ($typst as any).pdf = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]));
-    ($typst as any).mapShadow = vi.fn().mockResolvedValue(undefined);
+    // Assigning vi.fn() directly is resilient regardless. We patch BOTH
+    // the bare-module export and the /contrib/snippet export — the service
+    // imports from the latter, so if for any reason the two refs diverge
+    // we still cover the surface the production code actually calls.
+    const setupCompiler = vi.fn().mockReturnValue(undefined);
+    const setupRenderer = vi.fn().mockReturnValue(undefined);
+    const pdfFn = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]));
+    const mapShadowFn = vi.fn().mockResolvedValue(undefined);
+    const svgFn = vi.fn().mockResolvedValue('<svg></svg>');
+    for (const target of [$typst, $typstSnippet] as any[]) {
+      target.setCompilerInitOptions = setupCompiler;
+      target.setRendererInitOptions = setupRenderer;
+      target.pdf = pdfFn;
+      target.mapShadow = mapShadowFn;
+      target.svg = svgFn;
+    }
 
     // Stub fetch so WASM/data-URL fetches in the service succeed
     vi.stubGlobal(

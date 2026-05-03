@@ -50,17 +50,34 @@ async function fillAndSubmitAnnouncementForm(
     .locator('[data-testid="announcement-content-input"]')
     .fill(testData.content);
 
-  // Handle public checkbox if needed
+  // Handle public checkbox if needed. The form's default for `isPublic`
+  // is `true`, but Material's mat-checkbox can render its hidden input
+  // out of sync with the FormControl until interacted with. Read the
+  // checked state via the canonical aria-checked attribute on the
+  // mat-checkbox host and toggle if it doesn't match the desired state.
+  // Handle public checkbox if needed. The form's default for `isPublic`
+  // is `true`, but Material's mat-checkbox renders its hidden <input>
+  // as `checked=false` until the user interacts with it; the visible
+  // checked state lives on the host element's `mat-mdc-checkbox-checked`
+  // class. Reading the hidden input would incorrectly report unchecked
+  // and cause us to toggle the box OFF. We also wait for the class to
+  // settle (FormControl → mat-checkbox class propagation is async).
   if (options?.checkPublic) {
     const publicCheckbox = page.locator('mat-checkbox').filter({
       hasText: /unauthenticated/i,
     });
-    const isChecked = await publicCheckbox
-      .locator('input[type="checkbox"]')
-      .isChecked();
-    if (!isChecked) {
-      await publicCheckbox.click();
-    }
+    await publicCheckbox.waitFor({ state: 'visible' });
+    // Poll the host class until it stabilises (the FormControl's
+    // initial value of `true` propagates after a microtask).
+    await expect
+      .poll(
+        async () =>
+          publicCheckbox.evaluate(el =>
+            el.classList.contains('mat-mdc-checkbox-checked')
+          ),
+        { timeout: 5000 }
+      )
+      .toBe(true);
   }
 
   // Select type — scope option click to the open listbox overlay to avoid

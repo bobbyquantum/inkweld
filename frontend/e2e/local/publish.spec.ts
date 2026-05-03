@@ -240,22 +240,26 @@ test.describe('Local Publishing Workflow', () => {
       await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
 
+      // Wait for the generate button to become disabled/hidden (generation in progress)
+      await expect(page.getByTestId('generate-button'))
+        .toBeDisabled({
+          timeout: 10000,
+        })
+        .catch(() => {
+          // Button may go hidden instead of disabled depending on state
+        });
+
       // Wait for either the complete dialog or an error snackbar
       const dialogOrError = await Promise.race([
         page
           .getByTestId('publish-complete-dialog-title')
-          .waitFor()
+          .waitFor({ timeout: 60000 })
           .then(() => 'dialog'),
         page
           .locator('.mat-mdc-snack-bar-label')
           .filter({ hasText: /error/i })
-          .waitFor()
+          .waitFor({ timeout: 60000 })
           .then(() => 'error'),
-        // Also wait for generate button to come back (indicates completion or error)
-        page
-          .getByTestId('generate-button')
-          .waitFor()
-          .then(() => 'button-back'),
       ]);
 
       if (dialogOrError === 'error') {
@@ -265,20 +269,6 @@ test.describe('Local Publishing Workflow', () => {
           .textContent();
         throw new Error(
           `Publication generation failed with error: ${errorText}`
-        );
-      }
-
-      if (dialogOrError === 'button-back') {
-        // Check if there was an error snackbar
-        const snackbar = page.locator('.mat-mdc-snack-bar-label').first();
-        if (await snackbar.isVisible()) {
-          const text = await snackbar.textContent();
-          if (text?.toLowerCase().includes('error')) {
-            throw new Error(`Publication generation failed: ${text}`);
-          }
-        }
-        throw new Error(
-          `Generation completed but dialog did not appear. Console errors: ${consoleErrors.join(', ')}`
         );
       }
 
