@@ -1,4 +1,13 @@
-import { Component, inject, type OnInit } from '@angular/core';
+import {
+  type AfterViewInit,
+  Component,
+  computed,
+  type ElementRef,
+  inject,
+  type OnInit,
+  signal,
+  viewChild,
+} from '@angular/core';
 import {
   FormBuilder,
   type FormGroup,
@@ -31,8 +40,6 @@ export interface AnnouncementEditorDialogData {
 }
 
 interface AnnouncementFormValue {
-  title: string;
-  content: string;
   type: 'announcement' | 'update' | 'maintenance';
   priority: 'low' | 'normal' | 'high';
   isPublic: boolean;
@@ -57,7 +64,9 @@ interface AnnouncementFormValue {
   templateUrl: './announcement-editor-dialog.component.html',
   styleUrl: './announcement-editor-dialog.component.scss',
 })
-export class AnnouncementEditorDialogComponent implements OnInit {
+export class AnnouncementEditorDialogComponent
+  implements OnInit, AfterViewInit
+{
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(
     MatDialogRef<AnnouncementEditorDialogComponent>
@@ -66,11 +75,36 @@ export class AnnouncementEditorDialogComponent implements OnInit {
   private readonly announcementService = inject(AnnouncementService);
   private readonly snackBar = inject(MatSnackBar);
 
+  // Refs used to seed the DOM value in edit mode without using [value]
+  // (which would re-write during every CD cycle and clobber user input).
+  readonly titleInputRef =
+    viewChild<ElementRef<HTMLInputElement>>('titleInput');
+  readonly contentInputRef =
+    viewChild<ElementRef<HTMLTextAreaElement>>('contentInput');
+
+  // Title/content as signals with (input) handlers — the canonical
+  // zoneless Angular pattern. Plain [(ngModel)] doesn't trigger CD on
+  // typing in zoneless mode, so [disabled] bindings never update.
+  readonly titleStr = signal('');
+  readonly contentStr = signal('');
+
+  readonly isFormValid = computed(() => {
+    const t = this.titleStr();
+    const c = this.contentStr();
+    return (
+      t.trim().length > 0 &&
+      t.length <= 200 &&
+      c.trim().length > 0 &&
+      c.length <= 10000
+    );
+  });
+
+  // FormGroup for mat-select, mat-checkbox, mat-datepicker fields only.
   form!: FormGroup;
   isSubmitting = false;
 
   readonly isEditMode = this.data.mode === 'edit';
-  readonly title = this.isEditMode
+  readonly dialogTitle = this.isEditMode
     ? 'Edit Announcement'
     : 'Create Announcement';
 
@@ -86,22 +120,28 @@ export class AnnouncementEditorDialogComponent implements OnInit {
     { value: 'high', label: 'High' },
   ];
 
-  ngOnInit(): void {
-    this.initForm();
+  onTitleInput(event: Event): void {
+    this.titleStr.set((event.target as HTMLInputElement).value);
   }
 
-  private initForm(): void {
+  onContentInput(event: Event): void {
+    this.contentStr.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  ngOnInit(): void {
+    // Only seed in edit mode. In create mode, signals stay at their
+    // initial '' value (set in field initializer above). We avoid
+    // unconditionally re-setting here because Playwright's fill() in e2e
+    // tests can fire input events *before* ngOnInit runs (the dialog
+    // template is rendered very early), and re-seeding to '' would
+    // clobber the user-typed values.
     const announcement = this.data.announcement;
+    if (this.isEditMode && announcement) {
+      this.titleStr.set(announcement.title);
+      this.contentStr.set(announcement.content);
+    }
 
     this.form = this.fb.group({
-      title: [
-        announcement?.title || '',
-        [Validators.required, Validators.maxLength(200)],
-      ],
-      content: [
-        announcement?.content || '',
-        [Validators.required, Validators.maxLength(10000)],
-      ],
       type: [announcement?.type || 'announcement', Validators.required],
       priority: [announcement?.priority || 'normal', Validators.required],
       isPublic: [announcement?.isPublic ?? true],
@@ -111,8 +151,25 @@ export class AnnouncementEditorDialogComponent implements OnInit {
     });
   }
 
+  ngAfterViewInit(): void {
+    // Seed DOM input values once in edit mode. We avoid [value]/[(ngModel)]
+    // bindings because they re-write on every CD cycle and can clobber user
+    // edits during interactions with other form controls (mat-checkbox,
+    // mat-select) in zoneless mode. Defer to a microtask so the write
+    // doesn't happen during the same CD cycle that just finished
+    // (avoids ExpressionChangedAfterItHasBeenCheckedError in tests).
+    if (this.isEditMode) {
+      queueMicrotask(() => {
+        const titleEl = this.titleInputRef()?.nativeElement;
+        const contentEl = this.contentInputRef()?.nativeElement;
+        if (titleEl) titleEl.value = this.titleStr();
+        if (contentEl) contentEl.value = this.contentStr();
+      });
+    }
+  }
+
   async submit(): Promise<void> {
-    if (this.form.invalid || this.isSubmitting) {
+    if (!this.isFormValid() || this.isSubmitting) {
       return;
     }
 
@@ -121,8 +178,8 @@ export class AnnouncementEditorDialogComponent implements OnInit {
     try {
       const formValue = this.form.value as AnnouncementFormValue;
       const data = {
-        title: formValue.title,
-        content: formValue.content,
+        title: this.titleStr(),
+        content: this.contentStr(),
         type: formValue.type,
         priority: formValue.priority,
         isPublic: formValue.isPublic,

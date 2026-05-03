@@ -62,8 +62,15 @@ async function fillRelationshipTypeDialog(
   inverseName: string,
   options?: { iconIndex?: number; colorIndex?: number }
 ) {
-  await page.getByTestId('rel-name-input').fill(name);
-  await page.getByTestId('rel-inverse-input').fill(inverseName);
+  const nameInput = page.getByTestId('rel-name-input');
+  await nameInput.focus();
+  await nameInput.fill(name);
+  await expect(nameInput).toHaveValue(name);
+
+  const inverseInput = page.getByTestId('rel-inverse-input');
+  await inverseInput.focus();
+  await inverseInput.fill(inverseName);
+  await expect(inverseInput).toHaveValue(inverseName);
 
   if (options?.iconIndex !== undefined) {
     await page.getByTestId(`rel-icon-option-${options.iconIndex}`).click();
@@ -96,8 +103,10 @@ async function createRelationshipType(
   // Fill in the dialog
   await fillRelationshipTypeDialog(page, name, inverseName, options);
 
-  // Click Create
-  await page.getByTestId('rel-dialog-save').click();
+  // Wait for save button to be enabled then click
+  const saveButton = page.getByTestId('rel-dialog-save');
+  await expect(saveButton).toBeEnabled();
+  await saveButton.click();
 
   // Wait for dialog to close
   await expect(
@@ -265,11 +274,17 @@ test.describe('Relationships Tab', () => {
       await expect(page.getByTestId('rel-dialog-save')).toBeDisabled();
 
       // Fill name only — still disabled (inverse label empty)
-      await page.getByTestId('rel-name-input').fill('Friend');
+      const nameInputValidation = page.getByTestId('rel-name-input');
+      await nameInputValidation.focus();
+      await nameInputValidation.fill('Friend');
+      await expect(nameInputValidation).toHaveValue('Friend');
       await expect(page.getByTestId('rel-dialog-save')).toBeDisabled();
 
       // Fill inverse too — now enabled
-      await page.getByTestId('rel-inverse-input').fill('Friend of');
+      const inverseInputValidation = page.getByTestId('rel-inverse-input');
+      await inverseInputValidation.focus();
+      await inverseInputValidation.fill('Friend of');
+      await expect(inverseInputValidation).toHaveValue('Friend of');
       await expect(page.getByTestId('rel-dialog-save')).toBeEnabled();
 
       await page.getByTestId('rel-dialog-cancel').click();
@@ -309,8 +324,13 @@ test.describe('Relationships Tab', () => {
       );
 
       // Change the name
-      await page.getByTestId('rel-name-input').fill(updatedName);
-      await page.getByTestId('rel-dialog-save').click();
+      const nameInputEdit = page.getByTestId('rel-name-input');
+      await nameInputEdit.focus();
+      await nameInputEdit.fill(updatedName);
+      await expect(nameInputEdit).toHaveValue(updatedName);
+      const saveButtonEdit = page.getByTestId('rel-dialog-save');
+      await expect(saveButtonEdit).toBeEnabled();
+      await saveButtonEdit.click();
 
       // Wait for dialog to close
       await expect(
@@ -472,8 +492,13 @@ test.describe('Relationships Tab', () => {
       );
 
       // Enter a new name for the duplicate
-      await page.getByTestId('rel-name-input').fill(duplicateName);
-      await page.getByTestId('rel-dialog-save').click();
+      const nameInputDup = page.getByTestId('rel-name-input');
+      await nameInputDup.focus();
+      await nameInputDup.fill(duplicateName);
+      await expect(nameInputDup).toHaveValue(duplicateName);
+      const saveButtonDup = page.getByTestId('rel-dialog-save');
+      await expect(saveButtonDup).toBeEnabled();
+      await saveButtonDup.click();
 
       // Wait for dialog to close
       await expect(
