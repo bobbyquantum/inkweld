@@ -49,6 +49,7 @@ import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
+import { startWith } from 'rxjs/operators';
 
 /**
  * Result of a successful registration
@@ -216,6 +217,9 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   );
 
   readonly isRegistering = signal(false);
+  // Signal-backed form validity for zoneless Angular CD — registerForm.statusChanges
+  // does not automatically trigger CD in zoneless mode.
+  readonly registerFormValid = signal(false);
   usernameSuggestions: string[] | undefined = [];
   usernameAvailability: 'available' | 'unavailable' | 'unknown' = 'unknown';
   serverValidationErrors: { [key: string]: string[] } = {};
@@ -325,9 +329,23 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
 
     // Emit validity changes
     this.registerForm.statusChanges
+      .pipe(startWith(this.registerForm.status), takeUntil(this.destroy$))
+      .subscribe(() => {
+        const isValid = this.registerForm.valid;
+        this.validityChange.emit(isValid);
+        this.registerFormValid.set(isValid);
+      });
+
+    // Reactive Forms' valueChanges/statusChanges fire synchronously when
+    // setValue/patchValue is called, but in zoneless mode there is a window
+    // between an async validator (e.g. the username availability HTTP call
+    // that calls setErrors(null)) resolving and the next CD pass during
+    // which a click could see a stale [disabled] binding. Mirror the
+    // signal on every value change as well — cheap, idempotent.
+    this.registerForm.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        this.validityChange.emit(this.registerForm.valid);
+        this.registerFormValid.set(this.registerForm.valid);
       });
 
     // Clear general server errors when user modifies any field
@@ -518,6 +536,9 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
         // Set error on the form control to trigger Material's error state
         this.registerForm.get('username')?.setErrors({ usernameTaken: true });
       }
+      // setErrors() emits statusChanges but in zoneless mode the signal
+      // mirror may not flush before the next user interaction; sync it now.
+      this.registerFormValid.set(this.registerForm.valid);
       this.changeDetectorRef.detectChanges();
     } catch (error: unknown) {
       this.usernameAvailability = 'unknown';

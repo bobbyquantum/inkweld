@@ -62,9 +62,18 @@ test.describe('Error Handling and Edge Cases', () => {
     }) => {
       await openRegisterDialog(page);
 
-      await page.getByTestId('username-input').fill('user👨‍💻😀');
+      const usernameInput = page.getByTestId('username-input');
+      await usernameInput.fill('user👨‍💻😀');
       // Verify emoji value was set correctly before moving to other fields
-      await expect(page.getByTestId('username-input')).toHaveValue('user👨‍💻😀');
+      await expect(usernameInput).toHaveValue('user👨‍💻😀');
+
+      // Explicitly commit any pending IME composition from the ZWJ emoji
+      // sequence by pressing Tab to move focus away from the username field.
+      // Without this, Chromium can route subsequent keystrokes typed into
+      // the password field back into the still-composing username field.
+      // We don't assert on focus state — the password input click below
+      // handles focus regardless.
+      await page.keyboard.press('Tab');
 
       // Click password input explicitly to break any lingering composition from emoji
       await page.getByTestId('password-input').click();
@@ -74,7 +83,7 @@ test.describe('Error Handling and Edge Cases', () => {
         .fill(TEST_PASSWORDS.VALID);
 
       // Username should still have the emoji value
-      await expect(page.getByTestId('username-input')).toHaveValue('user👨‍💻😀');
+      await expect(usernameInput).toHaveValue('user👨‍💻😀');
     });
 
     test('should handle SQL injection attempts safely', async ({
