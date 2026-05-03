@@ -48,28 +48,28 @@ describe('RenameDialogComponent', () => {
   });
 
   it('should initialize with current name', () => {
-    expect(component.nameControl.value).toBe(mockData.currentName);
+    expect(component.name()).toBe(mockData.currentName);
   });
 
-  it('should validate required name', () => {
-    component.nameControl.setValue('');
-    expect(component.nameControl.valid).toBeFalsy();
-    expect(component.nameControl.errors?.['required']).toBeTruthy();
+  it('should treat empty name as invalid for confirm', () => {
+    component.name.set('');
+    component.onConfirm();
+    expect(mockDialogRef.close).not.toHaveBeenCalled();
 
-    component.nameControl.setValue('New Name');
-    expect(component.nameControl.valid).toBeTruthy();
-    expect(component.nameControl.errors).toBeNull();
+    component.name.set('New Name');
+    component.onConfirm();
+    expect(mockDialogRef.close).toHaveBeenCalledWith('New Name');
   });
 
   it('should close dialog with new name on confirm', () => {
     const newName = 'New Test Name';
-    component.nameControl.setValue(newName);
+    component.name.set(newName);
     component.onConfirm();
     expect(mockDialogRef.close).toHaveBeenCalledWith(newName);
   });
 
   it('should not close dialog with invalid name on confirm', () => {
-    component.nameControl.setValue('');
+    component.name.set('');
     component.onConfirm();
     expect(mockDialogRef.close).not.toHaveBeenCalled();
   });
@@ -79,15 +79,17 @@ describe('RenameDialogComponent', () => {
     expect(mockDialogRef.close).toHaveBeenCalledWith();
   });
 
-  it('should show error when field is touched and empty', async () => {
-    component.nameControl.setValue('');
-    component.nameControl.markAsTouched();
+  it('should disable confirm button when name is empty', async () => {
+    component.name.set('');
+    component.touched.set(true);
     fixture.detectChanges();
     await fixture.whenStable();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const error = compiled.querySelector('mat-error');
-    expect(error).toBeTruthy();
-    expect(error?.textContent).toContain('Name is required');
+    const confirmBtn = compiled.querySelector<HTMLButtonElement>(
+      '[data-testid="rename-confirm-button"]'
+    );
+    expect(confirmBtn).toBeTruthy();
+    expect(confirmBtn?.disabled).toBe(true);
   });
 });

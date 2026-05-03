@@ -87,9 +87,15 @@ test.describe('Timeline Tab', () => {
     await page.getByTestId('timeline-add-event').click();
 
     // Fill the form (Gregorian default → format "Y-M-D")
-    await page.getByTestId('timeline-event-title').fill('First event');
+    const titleInput = page.getByTestId('timeline-event-title');
+    await titleInput.waitFor({ state: 'visible' });
+    await titleInput.click();
+    await titleInput.fill('First event');
+    await expect(titleInput).toHaveValue('First event');
     await page.getByTestId('timeline-event-start-date').fill('2024-01-01');
 
+    // Wait for OnPush CD to propagate form validity before clicking
+    await expect(page.getByTestId('timeline-event-save')).toBeEnabled();
     await page.getByTestId('timeline-event-save').click();
 
     // Event pill should appear
@@ -115,6 +121,8 @@ test.describe('Timeline Tab', () => {
     await page.getByTestId('timeline-add-track').click();
     // The in-app rename dialog opens with a suggested track name; accept it.
     await expect(page.getByTestId('rename-input')).toBeVisible();
+    // Wait for the input to be populated with a non-empty default value
+    await expect(page.getByTestId('rename-input')).not.toHaveValue('');
     const createdTrackName = await page
       .getByTestId('rename-input')
       .inputValue();
@@ -166,8 +174,14 @@ test.describe('Timeline Tab', () => {
     // The in-app rename dialog opens; default value is the suggested name.
     const input = page.getByTestId('rename-input');
     await expect(input).toBeVisible();
+    // Wait for the input to be populated before clearing it
+    await expect(input).not.toHaveValue('');
+    await input.clear();
     await input.fill('Villains');
+    await expect(input).toHaveValue('Villains');
+    await expect(page.getByTestId('rename-confirm-button')).toBeEnabled();
     await page.getByTestId('rename-confirm-button').click();
+    await expect(page.getByTestId('rename-input')).toHaveCount(0);
 
     // A label with the new name should render inside the track column.
     const label = page.locator('[data-testid^="timeline-track-label-"]', {
@@ -189,7 +203,9 @@ test.describe('Timeline Tab', () => {
     const input = page.getByTestId('rename-input');
     await expect(input).toBeVisible();
     await expect(input).toHaveValue('Main track');
+    await input.clear();
     await input.fill('Main story');
+    await expect(input).toHaveValue('Main story');
     await page.getByTestId('rename-confirm-button').click();
 
     await expect(
@@ -206,8 +222,14 @@ test.describe('Timeline Tab', () => {
 
     // Add an event.
     await page.getByTestId('timeline-add-event').click();
-    await page.getByTestId('timeline-event-title').fill('Persisted event');
+    const titleInput = page.getByTestId('timeline-event-title');
+    await titleInput.waitFor({ state: 'visible' });
+    await titleInput.click();
+    await titleInput.fill('Persisted event');
+    await expect(titleInput).toHaveValue('Persisted event');
     await page.getByTestId('timeline-event-start-date').fill('2024-06-15');
+    // Wait for OnPush CD to propagate form validity before clicking
+    await expect(page.getByTestId('timeline-event-save')).toBeEnabled();
     await page.getByTestId('timeline-event-save').click();
 
     const pill = page.locator('[data-testid^="timeline-event-body-"]').first();
