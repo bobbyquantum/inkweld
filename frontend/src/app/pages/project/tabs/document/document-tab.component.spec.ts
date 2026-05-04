@@ -86,7 +86,13 @@ describe('DocumentTabComponent', () => {
 
     syncQueueService = {
       syncAllProjects: vi.fn().mockResolvedValue(undefined),
-      queueState: signal({ isActive: false, totalProjects: 1, completedProjects: 1, failedProjects: 0, currentProjectKey: null }),
+      queueState: signal({
+        isActive: false,
+        totalProjects: 1,
+        completedProjects: 1,
+        failedProjects: 0,
+        currentProjectKey: null,
+      }),
     };
 
     route = {
@@ -319,21 +325,29 @@ describe('DocumentTabComponent', () => {
   describe('triggerSync', () => {
     beforeEach(() => {
       // Put component into documentUnavailable state
-      (projectStateService.isDocumentUnavailable as ReturnType<typeof vi.fn>).mockResolvedValue(true);
-      (projectStateService.openTabs as any).set([{ element: { id: 'remote-doc' } }]);
+      (
+        projectStateService.isDocumentUnavailable as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(true);
+      (projectStateService.openTabs as any).set([
+        { element: { id: 'remote-doc' } },
+      ]);
       (projectStateService.selectedTabIndex as any).set(0);
     });
 
     it('calls syncAllProjects with the current project', async () => {
       await (component as any).triggerSync();
-      expect(syncQueueService.syncAllProjects).toHaveBeenCalledWith([mockProject]);
+      expect(syncQueueService.syncAllProjects).toHaveBeenCalledWith([
+        mockProject,
+      ]);
     });
 
     it('sets syncing to true during sync and false after', async () => {
       let syncingDuring = false;
-      (syncQueueService.syncAllProjects as ReturnType<typeof vi.fn>).mockImplementation(async () => {
-        syncingDuring = (component as any).syncing();
-      });
+      (syncQueueService.syncAllProjects as ReturnType<typeof vi.fn>)
+        .mockImplementation(() => {
+          syncingDuring = (component as any).syncing();
+          return Promise.resolve();
+        });
       await (component as any).triggerSync();
       expect(syncingDuring).toBe(true);
       expect((component as any).syncing()).toBe(false);
@@ -341,18 +355,30 @@ describe('DocumentTabComponent', () => {
 
     it('sets syncError when queueState reports failed projects', async () => {
       (syncQueueService.queueState as ReturnType<typeof signal>).set({
-        isActive: false, totalProjects: 1, completedProjects: 0, failedProjects: 1, currentProjectKey: null,
+        isActive: false,
+        totalProjects: 1,
+        completedProjects: 0,
+        failedProjects: 1,
+        currentProjectKey: null,
       });
       await (component as any).triggerSync();
-      expect((component as any).syncError()).toBe('Sync failed. Check your connection and try again.');
+      expect((component as any).syncError()).toBe(
+        'Sync failed. Check your connection and try again.'
+      );
     });
 
     it('clears syncError and re-checks availability on success', async () => {
       (syncQueueService.queueState as ReturnType<typeof signal>).set({
-        isActive: false, totalProjects: 1, completedProjects: 1, failedProjects: 0, currentProjectKey: null,
+        isActive: false,
+        totalProjects: 1,
+        completedProjects: 1,
+        failedProjects: 0,
+        currentProjectKey: null,
       });
       // After sync, document becomes available
-      (projectStateService.isDocumentUnavailable as ReturnType<typeof vi.fn>).mockResolvedValue(false);
+      (
+        projectStateService.isDocumentUnavailable as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(false);
       await (component as any).triggerSync();
       expect((component as any).syncError()).toBeNull();
       expect((component as any).documentUnavailable()).toBe(false);
@@ -360,12 +386,20 @@ describe('DocumentTabComponent', () => {
 
     it('sets syncError when document still unavailable after successful sync', async () => {
       (syncQueueService.queueState as ReturnType<typeof signal>).set({
-        isActive: false, totalProjects: 1, completedProjects: 1, failedProjects: 0, currentProjectKey: null,
+        isActive: false,
+        totalProjects: 1,
+        completedProjects: 1,
+        failedProjects: 0,
+        currentProjectKey: null,
       });
       // Document still unavailable after sync
-      (projectStateService.isDocumentUnavailable as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+      (
+        projectStateService.isDocumentUnavailable as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(true);
       await (component as any).triggerSync();
-      expect((component as any).syncError()).toBe('Document still unavailable after sync. Try again.');
+      expect((component as any).syncError()).toBe(
+        'Document still unavailable after sync. Try again.'
+      );
     });
 
     it('does nothing if no project is loaded', async () => {

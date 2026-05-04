@@ -71,7 +71,13 @@ describe('WorldbuildingTabComponent', () => {
 
     mockSyncQueueService = {
       syncAllProjects: vi.fn().mockResolvedValue(undefined),
-      queueState: signal({ isActive: false, totalProjects: 1, completedProjects: 1, failedProjects: 0, currentProjectKey: null }),
+      queueState: signal({
+        isActive: false,
+        totalProjects: 1,
+        completedProjects: 1,
+        failedProjects: 0,
+        currentProjectKey: null,
+      }),
     };
 
     await TestBed.configureTestingModule({
@@ -436,13 +442,16 @@ describe('WorldbuildingTabComponent', () => {
 
     it('calls syncAllProjects with the current project', async () => {
       await (component as any).triggerSync();
-      expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledWith([mockProject]);
+      expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledWith([
+        mockProject,
+      ]);
     });
 
     it('sets syncing to true during sync and false after', async () => {
       let syncingDuring = false;
-      mockSyncQueueService.syncAllProjects.mockImplementation(async () => {
+      mockSyncQueueService.syncAllProjects.mockImplementation(() => {
         syncingDuring = (component as any).syncing();
+        return Promise.resolve();
       });
       await (component as any).triggerSync();
       expect(syncingDuring).toBe(true);
@@ -451,15 +460,25 @@ describe('WorldbuildingTabComponent', () => {
 
     it('sets syncError when queueState reports failed projects', async () => {
       mockSyncQueueService.queueState.set({
-        isActive: false, totalProjects: 1, completedProjects: 0, failedProjects: 1, currentProjectKey: null,
+        isActive: false,
+        totalProjects: 1,
+        completedProjects: 0,
+        failedProjects: 1,
+        currentProjectKey: null,
       });
       await (component as any).triggerSync();
-      expect((component as any).syncError()).toBe('Sync failed. Check your connection and try again.');
+      expect((component as any).syncError()).toBe(
+        'Sync failed. Check your connection and try again.'
+      );
     });
 
     it('clears syncError on successful sync where document becomes available', async () => {
       mockSyncQueueService.queueState.set({
-        isActive: false, totalProjects: 1, completedProjects: 1, failedProjects: 0, currentProjectKey: null,
+        isActive: false,
+        totalProjects: 1,
+        completedProjects: 1,
+        failedProjects: 0,
+        currentProjectKey: null,
       });
       mockProjectState.isDocumentUnavailable.mockResolvedValue(false);
       await (component as any).triggerSync();
@@ -469,11 +488,17 @@ describe('WorldbuildingTabComponent', () => {
 
     it('sets syncError when document still unavailable after successful sync', async () => {
       mockSyncQueueService.queueState.set({
-        isActive: false, totalProjects: 1, completedProjects: 1, failedProjects: 0, currentProjectKey: null,
+        isActive: false,
+        totalProjects: 1,
+        completedProjects: 1,
+        failedProjects: 0,
+        currentProjectKey: null,
       });
       mockProjectState.isDocumentUnavailable.mockResolvedValue(true);
       await (component as any).triggerSync();
-      expect((component as any).syncError()).toBe('Document still unavailable after sync. Try again.');
+      expect((component as any).syncError()).toBe(
+        'Document still unavailable after sync. Try again.'
+      );
     });
 
     it('does nothing if no project is loaded', async () => {
