@@ -6,6 +6,7 @@ import {
 } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { SyncQueueService } from '@services/sync/sync-queue.service';
 import { BehaviorSubject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -24,6 +25,10 @@ describe('WorldbuildingTabComponent', () => {
     elements: ReturnType<typeof signal<Element[]>>;
     canWrite: ReturnType<typeof signal<boolean>>;
     isDocumentUnavailable: ReturnType<typeof vi.fn>;
+  };
+  let mockSyncQueueService: {
+    syncAllProjects: ReturnType<typeof vi.fn>;
+    queueState: ReturnType<typeof signal<any>>;
   };
   let paramMapSubject: BehaviorSubject<any>;
 
@@ -64,11 +69,17 @@ describe('WorldbuildingTabComponent', () => {
       isDocumentUnavailable: vi.fn().mockResolvedValue(false),
     };
 
+    mockSyncQueueService = {
+      syncAllProjects: vi.fn().mockResolvedValue(undefined),
+      queueState: signal({ isActive: false, totalProjects: 1, completedProjects: 1, failedProjects: 0, currentProjectKey: null }),
+    };
+
     await TestBed.configureTestingModule({
       imports: [WorldbuildingTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },
+        { provide: SyncQueueService, useValue: mockSyncQueueService },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -413,6 +424,62 @@ describe('WorldbuildingTabComponent', () => {
         );
         expect(warning).toBeFalsy();
       });
+    });
+  });
+
+  describe('triggerSync', () => {
+    beforeEach(() => {
+      mockProjectState.project.set(mockProject);
+      mockProjectState.isDocumentUnavailable.mockResolvedValue(true);
+      fixture.detectChanges();
+    });
+
+    it('calls syncAllProjects with the current project', async () => {
+      await (component as any).triggerSync();
+      expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledWith([mockProject]);
+    });
+
+    it('sets syncing to true during sync and false after', async () => {
+      let syncingDuring = false;
+      mockSyncQueueService.syncAllProjects.mockImplementation(async () => {
+        syncingDuring = (component as any).syncing();
+      });
+      await (component as any).triggerSync();
+      expect(syncingDuring).toBe(true);
+      expect((component as any).syncing()).toBe(false);
+    });
+
+    it('sets syncError when queueState reports failed projects', async () => {
+      mockSyncQueueService.queueState.set({
+        isActive: false, totalProjects: 1, completedProjects: 0, failedProjects: 1, currentProjectKey: null,
+      });
+      await (component as any).triggerSync();
+      expect((component as any).syncError()).toBe('Sync failed. Check your connection and try again.');
+    });
+
+    it('clears syncError on successful sync where document becomes available', async () => {
+      mockSyncQueueService.queueState.set({
+        isActive: false, totalProjects: 1, completedProjects: 1, failedProjects: 0, currentProjectKey: null,
+      });
+      mockProjectState.isDocumentUnavailable.mockResolvedValue(false);
+      await (component as any).triggerSync();
+      expect((component as any).syncError()).toBeNull();
+      expect((component as any).documentUnavailable()).toBe(false);
+    });
+
+    it('sets syncError when document still unavailable after successful sync', async () => {
+      mockSyncQueueService.queueState.set({
+        isActive: false, totalProjects: 1, completedProjects: 1, failedProjects: 0, currentProjectKey: null,
+      });
+      mockProjectState.isDocumentUnavailable.mockResolvedValue(true);
+      await (component as any).triggerSync();
+      expect((component as any).syncError()).toBe('Document still unavailable after sync. Try again.');
+    });
+
+    it('does nothing if no project is loaded', async () => {
+      mockProjectState.project.set(null);
+      await (component as any).triggerSync();
+      expect(mockSyncQueueService.syncAllProjects).not.toHaveBeenCalled();
     });
   });
 });

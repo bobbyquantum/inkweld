@@ -112,24 +112,28 @@ export class DocumentTabComponent {
     this.syncing.set(true);
     this.syncError.set(null);
 
-    try {
-      await this.syncQueueService.syncAllProjects([project]);
+    await this.syncQueueService.syncAllProjects([project]);
 
-      // Re-check availability after sync
-      const elementId = this.bareElementId();
-      if (elementId) {
-        const token = ++this.availabilityCheckToken;
-        await this.checkAvailability(elementId, token);
-      }
-
-      if (this.documentUnavailable()) {
-        this.syncError.set('Document still unavailable after sync. Try again.');
-      }
-    } catch {
+    // syncAllProjects swallows errors internally; inspect queue state for failures
+    const state = this.syncQueueService.queueState();
+    if (state.failedProjects > 0) {
       this.syncError.set('Sync failed. Check your connection and try again.');
-    } finally {
       this.syncing.set(false);
+      return;
     }
+
+    // Re-check availability after sync
+    const elementId = this.bareElementId();
+    if (elementId) {
+      const token = ++this.availabilityCheckToken;
+      await this.checkAvailability(elementId, token);
+    }
+
+    if (this.documentUnavailable()) {
+      this.syncError.set('Document still unavailable after sync. Try again.');
+    }
+
+    this.syncing.set(false);
   }
 
   /**
