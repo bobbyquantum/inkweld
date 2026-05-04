@@ -51,168 +51,144 @@ async function detachVirtualAuthenticator(
 }
 
 test.describe('Passkeys', () => {
-  test('register a passkey from account settings, then sign in with it', async ({
+  /**
+   * Full passkey lifecycle on a single virtual authenticator + single
+   * registered credential: register, rename, sign-out/sign-in roundtrip,
+   * then delete. Replaces three previously-separate tests that each ran
+   * the full authenticator + register dance.
+   */
+  test('passkey lifecycle: register, rename, sign-in, delete', async ({
     authenticatedPage,
   }) => {
     const va = await attachVirtualAuthenticator(authenticatedPage);
 
     try {
-      // Navigate to the account settings page where the passkeys section
-      // lives.
-      await authenticatedPage.goto('/settings');
-      await expect(
-        authenticatedPage.getByTestId('passkeys-settings')
-      ).toBeVisible();
+      await test.step('registers a passkey from account settings', async () => {
+        await authenticatedPage.goto('/settings');
+        await expect(
+          authenticatedPage.getByTestId('passkeys-settings')
+        ).toBeVisible();
+        await expect(
+          authenticatedPage.getByTestId('passkeys-empty')
+        ).toBeVisible();
 
-      // Initially there should be no passkeys.
-      await expect(
-        authenticatedPage.getByTestId('passkeys-empty')
-      ).toBeVisible();
+        await authenticatedPage.getByTestId('add-passkey-button').click();
 
-      // Register one - the virtual authenticator auto-confirms the prompt.
-      await authenticatedPage.getByTestId('add-passkey-button').click();
-
-      // Once registration succeeds the empty state is replaced by a list
-      // containing exactly one item.
-      await expect(authenticatedPage.getByTestId('passkey-list')).toBeVisible();
-      const items = authenticatedPage
-        .getByTestId('passkey-list')
-        .locator('mat-card');
-      await expect(items).toHaveCount(1);
-
-      // Capture the test credentials so we can sign back in via UI later.
-      // @ts-expect-error - Dynamic property attached by the fixture.
-      const { username } = authenticatedPage.testCredentials as {
-        username: string;
-      };
-
-      // ─── Sign out and try logging back in with the passkey ───────────
-      // Trigger logout via UI rather than mucking with localStorage so all
-      // in-memory state (signals, cached user, etc.) is properly reset.
-      // The virtual authenticator's resident credentials live in the CDP
-      // session, not the browser context, so they survive logout.
-      // Navigate home first — the settings page has its own toolbar
-      // without the user menu.
-      await authenticatedPage.goto('/');
-      const userMenuButton = authenticatedPage.locator(
-        '[data-testid="user-menu-button"]'
-      );
-      await expect(userMenuButton).toBeVisible();
-      await userMenuButton.click();
-      await authenticatedPage
-        .getByRole('menuitem', { name: /log out|logout|sign out/i })
-        .click();
-
-      // After logout the welcome screen surfaces a login button.
-      const welcomeLogin = authenticatedPage.getByTestId(
-        'welcome-login-button'
-      );
-      await expect(welcomeLogin).toBeVisible();
-      await welcomeLogin.click();
-
-      const dialog = authenticatedPage.getByTestId('login-dialog');
-      await expect(dialog).toBeVisible();
-
-      const passkeyButton = authenticatedPage.getByTestId(
-        'passkey-login-button'
-      );
-      await expect(passkeyButton).toBeVisible();
-      await passkeyButton.click();
-
-      // After a successful passkey login the dialog closes and the user
-      // menu becomes available — same heuristic the auth fixture uses.
-      await expect(dialog).toBeHidden();
-      await expect(
-        authenticatedPage.locator('[data-testid="user-menu-button"]')
-      ).toBeVisible();
-
-      // And the JWT is back in localStorage under the per-server prefix.
-      const token = await authenticatedPage.evaluate(() =>
-        localStorage.getItem('srv:server-1:auth_token')
-      );
-      expect(token).toBeTruthy();
-
-      // Sanity check: the user we logged in as matches the one whose
-      // passkey we registered. The username appears in multiple places
-      // (snackbar, menu name, menu @handle) — `.first()` is enough.
-      await authenticatedPage
-        .locator('[data-testid="user-menu-button"]')
-        .click();
-      await expect(authenticatedPage.getByText(username).first()).toBeVisible();
-    } finally {
-      await detachVirtualAuthenticator(va);
-    }
-  });
-
-  test('delete a registered passkey', async ({ authenticatedPage }) => {
-    const va = await attachVirtualAuthenticator(authenticatedPage);
-    try {
-      await authenticatedPage.goto('/settings');
-      await authenticatedPage.getByTestId('add-passkey-button').click();
-
-      const items = authenticatedPage
-        .getByTestId('passkey-list')
-        .locator('mat-card');
-      await expect(items).toHaveCount(1);
-
-      const deleteButton = items
-        .first()
-        .locator('[data-testid^="delete-passkey-"]');
-      await deleteButton.click();
-
-      // Confirmation dialog is rendered as a Material dialog.
-      const confirmButton = authenticatedPage
-        .locator('mat-dialog-container')
-        .getByRole('button', { name: /delete/i });
-      await expect(confirmButton).toBeVisible();
-      await confirmButton.click();
-
-      await expect(
-        authenticatedPage.getByTestId('passkeys-empty')
-      ).toBeVisible();
-    } finally {
-      await detachVirtualAuthenticator(va);
-    }
-  });
-
-  test('rename a registered passkey', async ({ authenticatedPage }) => {
-    const va = await attachVirtualAuthenticator(authenticatedPage);
-    try {
-      await authenticatedPage.goto('/settings');
-      await authenticatedPage.getByTestId('add-passkey-button').click();
-
-      const items = authenticatedPage
-        .getByTestId('passkey-list')
-        .locator('mat-card');
-      await expect(items).toHaveCount(1);
-
-      // Click the rename button on the first passkey card.
-      const renameButton = items
-        .first()
-        .locator('[data-testid^="rename-passkey-"]');
-      await renameButton.click();
-
-      // The rename dialog should appear — fill in the new name.
-      const dialog = authenticatedPage.locator('mat-dialog-container');
-      await expect(dialog).toBeVisible();
-      const input = dialog.locator('input');
-      await input.clear();
-      await input.fill('My renamed key');
-      await dialog
-        .getByRole('button', { name: /save|rename|ok|confirm/i })
-        .click();
-
-      // The updated name should appear in the list.
-      await expect(items.first()).toContainText('My renamed key');
-
-      // Reload and verify the name persists.
-      await authenticatedPage.goto('/settings');
-      await expect(
-        authenticatedPage
+        await expect(
+          authenticatedPage.getByTestId('passkey-list')
+        ).toBeVisible();
+        const items = authenticatedPage
           .getByTestId('passkey-list')
-          .locator('mat-card')
+          .locator('mat-card');
+        await expect(items).toHaveCount(1);
+      });
+
+      await test.step('renames the registered passkey and persists across reload', async () => {
+        const items = authenticatedPage
+          .getByTestId('passkey-list')
+          .locator('mat-card');
+
+        const renameButton = items
           .first()
-      ).toContainText('My renamed key');
+          .locator('[data-testid^="rename-passkey-"]');
+        await renameButton.click();
+
+        const dialog = authenticatedPage.locator('mat-dialog-container');
+        await expect(dialog).toBeVisible();
+        const input = dialog.locator('input');
+        await input.clear();
+        await input.fill('My renamed key');
+        await dialog
+          .getByRole('button', { name: /save|rename|ok|confirm/i })
+          .click();
+
+        await expect(items.first()).toContainText('My renamed key');
+
+        await authenticatedPage.goto('/settings');
+        await expect(
+          authenticatedPage
+            .getByTestId('passkey-list')
+            .locator('mat-card')
+            .first()
+        ).toContainText('My renamed key');
+      });
+
+      await test.step('signs out and signs back in using the passkey', async () => {
+        // @ts-expect-error - Dynamic property attached by the fixture.
+        const { username } = authenticatedPage.testCredentials as {
+          username: string;
+        };
+
+        // Trigger logout via UI so all in-memory state resets.
+        // The virtual authenticator's resident credentials live in the CDP
+        // session and survive logout.
+        await authenticatedPage.goto('/');
+        const userMenuButton = authenticatedPage.locator(
+          '[data-testid="user-menu-button"]'
+        );
+        await expect(userMenuButton).toBeVisible();
+        await userMenuButton.click();
+        await authenticatedPage
+          .getByRole('menuitem', { name: /log out|logout|sign out/i })
+          .click();
+
+        const welcomeLogin = authenticatedPage.getByTestId(
+          'welcome-login-button'
+        );
+        await expect(welcomeLogin).toBeVisible();
+        await welcomeLogin.click();
+
+        const dialog = authenticatedPage.getByTestId('login-dialog');
+        await expect(dialog).toBeVisible();
+
+        const passkeyButton = authenticatedPage.getByTestId(
+          'passkey-login-button'
+        );
+        await expect(passkeyButton).toBeVisible();
+        await passkeyButton.click();
+
+        await expect(dialog).toBeHidden();
+        await expect(
+          authenticatedPage.locator('[data-testid="user-menu-button"]')
+        ).toBeVisible();
+
+        const token = await authenticatedPage.evaluate(() =>
+          localStorage.getItem('srv:server-1:auth_token')
+        );
+        expect(token).toBeTruthy();
+
+        await authenticatedPage
+          .locator('[data-testid="user-menu-button"]')
+          .click();
+        await expect(
+          authenticatedPage.getByText(username).first()
+        ).toBeVisible();
+        // Close the user menu so the next step's clicks aren't intercepted.
+        await authenticatedPage.keyboard.press('Escape');
+      });
+
+      await test.step('deletes the passkey (back to empty state)', async () => {
+        await authenticatedPage.goto('/settings');
+        const items = authenticatedPage
+          .getByTestId('passkey-list')
+          .locator('mat-card');
+        await expect(items).toHaveCount(1);
+
+        const deleteButton = items
+          .first()
+          .locator('[data-testid^="delete-passkey-"]');
+        await deleteButton.click();
+
+        const confirmButton = authenticatedPage
+          .locator('mat-dialog-container')
+          .getByRole('button', { name: /delete/i });
+        await expect(confirmButton).toBeVisible();
+        await confirmButton.click();
+
+        await expect(
+          authenticatedPage.getByTestId('passkeys-empty')
+        ).toBeVisible();
+      });
     } finally {
       await detachVirtualAuthenticator(va);
     }

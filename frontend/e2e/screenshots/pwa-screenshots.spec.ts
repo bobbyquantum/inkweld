@@ -24,6 +24,44 @@ const SCREENSHOTS_DIR = join(
   'generated'
 );
 
+/**
+ * Capture a screenshot clipping the bounding box around two locators.
+ */
+async function captureBoundingBoxScreenshot(
+  page: import('@playwright/test').Page,
+  primary: import('@playwright/test').Locator,
+  secondary: import('@playwright/test').Locator,
+  outPath: string,
+  padding = 16
+): Promise<void> {
+  const primaryBox = await primary.boundingBox();
+  const secondaryBox = await secondary.boundingBox();
+  if (!primaryBox || !secondaryBox) return;
+
+  const x = Math.min(primaryBox.x, secondaryBox.x) - padding;
+  const y = Math.min(primaryBox.y, secondaryBox.y) - padding;
+  const right =
+    Math.max(
+      primaryBox.x + primaryBox.width,
+      secondaryBox.x + secondaryBox.width
+    ) + padding;
+  const bottom =
+    Math.max(
+      primaryBox.y + primaryBox.height,
+      secondaryBox.y + secondaryBox.height
+    ) + padding;
+
+  await page.screenshot({
+    path: outPath,
+    clip: {
+      x: Math.max(0, x),
+      y: Math.max(0, y),
+      width: right - x,
+      height: bottom - y,
+    },
+  });
+}
+
 test.describe('PWA Screenshots', () => {
   test.beforeAll(async () => {
     // Ensure screenshots directory exists
@@ -32,323 +70,194 @@ test.describe('PWA Screenshots', () => {
     }
   });
 
-  test('capture project bookshelf - desktop', async ({
+  test('capture project bookshelf - desktop light & dark', async ({
     authenticatedPage: page,
   }) => {
-    // Set viewport to desktop size - compact for promo shots
     await page.setViewportSize({ width: 1280, height: 720 });
 
-    // Wait for the covers grid to load (short timeout for mock data)
-    await page.waitForSelector('.covers-grid', {
-      state: 'visible',
-    });
-
-    // Wait for project cards to render
+    await page.waitForSelector('.covers-grid', { state: 'visible' });
     await page.waitForSelector('[data-testid="project-card"]', {
       state: 'visible',
     });
-
     await page.waitForLoadState('networkidle');
 
-    // Take screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'bookshelf-desktop-light.png'),
-      fullPage: true,
-    });
-  });
-
-  test('capture project bookshelf - desktop dark mode', async ({
-    authenticatedPage: page,
-  }) => {
-    // Set viewport to desktop size - compact for promo shots
-    await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Set dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Wait for the covers grid to load
-    await page.waitForSelector('.covers-grid', {
-      state: 'visible',
-    });
-
-    const projectCards = page.locator('[data-testid="project-card"]');
-    await projectCards.first().waitFor({ state: 'visible' });
-
-    // Take screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'bookshelf-desktop-dark.png'),
-      fullPage: true,
-    });
-  });
-
-  test('capture project bookshelf - mobile', async ({
-    authenticatedPage: page,
-  }) => {
-    // Set viewport to mobile size FIRST
-    await page.setViewportSize({ width: 375, height: 667 });
-
-    // Reload page so Angular's BreakpointObserver detects mobile viewport
-    await page.reload({ waitUntil: 'domcontentloaded' });
-
-    // Wait for covers grid to load
-    await page.waitForSelector('.covers-grid', {
-      state: 'visible',
-    });
-
-    const projectCards = page.locator('[data-testid="project-card"]');
-    await projectCards.first().waitFor({ state: 'visible' });
-
-    // Take screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'bookshelf-mobile-light.png'),
-      fullPage: true,
-    });
-  });
-
-  test('capture project bookshelf - mobile dark mode', async ({
-    authenticatedPage: page,
-  }) => {
-    // Set viewport to mobile size FIRST
-    await page.setViewportSize({ width: 375, height: 667 });
-
-    // Set dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Reload page so Angular's BreakpointObserver detects mobile viewport
-    await page.reload({ waitUntil: 'domcontentloaded' });
-
-    // Wait for covers grid to load
-    await page.waitForSelector('.covers-grid', {
-      state: 'visible',
-    });
-
-    const projectCards = page.locator('[data-testid="project-card"]');
-    await projectCards.first().waitFor({ state: 'visible' });
-
-    // Take screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'bookshelf-mobile-dark.png'),
-      fullPage: true,
-    });
-  });
-
-  test('capture project home - desktop', async ({ offlinePage: page }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Navigate to root
-    await page.goto('/');
-
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template for rich content
-    await createProjectWithTwoSteps(
-      page,
-      'My Novel',
-      'my-novel',
-      'A captivating story about creativity and collaboration',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/);
-
-    // Wait for the home tab to be visible (project home page)
-    await page.waitForSelector('.home-tab-content', {
-      state: 'visible',
-    });
-
-    // Take screenshot of project home page
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'project-home-desktop-light.png'),
-      fullPage: true,
-    });
-  });
-
-  test('capture element type chooser dialog - light mode', async ({
-    offlinePage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Navigate to root
-    await page.goto('/');
-
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template for rich content
-    await createProjectWithTwoSteps(
-      page,
-      'My Novel',
-      'my-novel',
-      'A captivating story about creativity and collaboration',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/);
-
-    // Wait for the project tree to be visible
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-
-    // Click the "Create" button at the bottom of the tree
-    await page.click('[data-testid="create-new-element"]');
-
-    // Wait for the dialog to appear
-    await page.waitForSelector('mat-dialog-container', {
-      state: 'visible',
-    });
-
-    // Take screenshot of the element type chooser
-    const dialog = page.locator('mat-dialog-container');
-    await dialog.screenshot({
-      path: join(SCREENSHOTS_DIR, 'element-type-chooser-light.png'),
-    });
-  });
-
-  test('capture element type chooser dialog - dark mode', async ({
-    offlinePage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Enable dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Navigate to root
-    await page.goto('/');
-
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template for rich content
-    await createProjectWithTwoSteps(
-      page,
-      'My Novel',
-      'my-novel',
-      'A captivating story about creativity and collaboration',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/);
-
-    // Wait for the project tree to be visible
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-
-    // Click the "Create" button at the bottom of the tree
-    await page.click('[data-testid="create-new-element"]');
-
-    // Wait for the dialog to appear
-    await page.waitForSelector('mat-dialog-container', {
-      state: 'visible',
-    });
-
-    // Take screenshot of the element type chooser
-    const dialog = page.locator('mat-dialog-container');
-    await dialog.screenshot({
-      path: join(SCREENSHOTS_DIR, 'element-type-chooser-dark.png'),
-    });
-  });
-
-  test('capture folder context menu - light mode', async ({
-    offlinePage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Navigate to root
-    await page.goto('/');
-
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template for rich content
-    await createProjectWithTwoSteps(
-      page,
-      'My Novel',
-      'my-novel',
-      'A captivating story about creativity and collaboration',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/);
-
-    // Wait for the project tree to be visible
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-
-    // Right-click on the "Chronicles" folder to open context menu
-    const folder = page.locator('[data-testid="element-Chronicles"]');
-    await folder.click({ button: 'right' });
-
-    // Wait for context menu to appear
-    await page.waitForSelector('.context-menu', {
-      state: 'visible',
-    });
-
-    // Take cropped screenshot including the folder and context menu
-    const folderBox = await folder.boundingBox();
-    const menu = page.locator('.context-menu');
-    const menuBox = await menu.boundingBox();
-
-    if (folderBox && menuBox) {
-      const padding = 16;
-      const x = Math.min(folderBox.x, menuBox.x) - padding;
-      const y = Math.min(folderBox.y, menuBox.y) - padding;
-      const right =
-        Math.max(folderBox.x + folderBox.width, menuBox.x + menuBox.width) +
-        padding;
-      const bottom =
-        Math.max(folderBox.y + folderBox.height, menuBox.y + menuBox.height) +
-        padding;
-
+    await test.step('light', async () => {
+      await page.emulateMedia({ colorScheme: 'light' });
       await page.screenshot({
-        path: join(SCREENSHOTS_DIR, 'folder-context-menu-light.png'),
-        clip: {
-          x: Math.max(0, x),
-          y: Math.max(0, y),
-          width: right - x,
-          height: bottom - y,
-        },
+        path: join(SCREENSHOTS_DIR, 'bookshelf-desktop-light.png'),
+        fullPage: true,
+      });
+    });
+
+    await test.step('dark', async () => {
+      await page.emulateMedia({ colorScheme: 'dark' });
+      await page.screenshot({
+        path: join(SCREENSHOTS_DIR, 'bookshelf-desktop-dark.png'),
+        fullPage: true,
+      });
+    });
+  });
+
+  test('capture project bookshelf - mobile light & dark', async ({
+    authenticatedPage: page,
+  }) => {
+    // Set viewport to mobile size FIRST and reload so Angular's
+    // BreakpointObserver detects mobile viewport.
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+
+    await page.waitForSelector('.covers-grid', { state: 'visible' });
+    const projectCards = page.locator('[data-testid="project-card"]');
+    await projectCards.first().waitFor({ state: 'visible' });
+
+    await test.step('light', async () => {
+      await page.emulateMedia({ colorScheme: 'light' });
+      await page.screenshot({
+        path: join(SCREENSHOTS_DIR, 'bookshelf-mobile-light.png'),
+        fullPage: true,
+      });
+    });
+
+    await test.step('dark', async () => {
+      await page.emulateMedia({ colorScheme: 'dark' });
+      await page.screenshot({
+        path: join(SCREENSHOTS_DIR, 'bookshelf-mobile-dark.png'),
+        fullPage: true,
+      });
+    });
+  });
+
+  test('capture project home - desktop light & dark', async ({
+    offlinePage: page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+
+    await page.goto('/');
+    await page.waitForSelector('.empty-state', { state: 'visible' });
+
+    await createProjectWithTwoSteps(
+      page,
+      'My Novel',
+      'my-novel',
+      'A captivating story about creativity and collaboration',
+      'worldbuilding-demo'
+    );
+
+    await page.waitForURL(/\/demouser\/my-novel/);
+    await page.waitForSelector('.home-tab-content', { state: 'visible' });
+
+    await test.step('light', async () => {
+      await page.emulateMedia({ colorScheme: 'light' });
+      await page.screenshot({
+        path: join(SCREENSHOTS_DIR, 'project-home-desktop-light.png'),
+        fullPage: true,
+      });
+    });
+
+    await test.step('dark', async () => {
+      await page.emulateMedia({ colorScheme: 'dark' });
+      await page.screenshot({
+        path: join(SCREENSHOTS_DIR, 'project-home-desktop-dark.png'),
+        fullPage: true,
+      });
+    });
+  });
+
+  test('capture element type chooser dialog - light & dark', async ({
+    offlinePage: page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+
+    await page.goto('/');
+    await page.waitForSelector('.empty-state', { state: 'visible' });
+
+    await createProjectWithTwoSteps(
+      page,
+      'My Novel',
+      'my-novel',
+      'A captivating story about creativity and collaboration',
+      'worldbuilding-demo'
+    );
+
+    await page.waitForURL(/\/demouser\/my-novel/);
+    await page.waitForSelector('app-project-tree', { state: 'visible' });
+
+    // Click the "Create" button at the bottom of the tree
+    await page.click('[data-testid="create-new-element"]');
+    await page.waitForSelector('mat-dialog-container', { state: 'visible' });
+
+    const dialog = page.locator('mat-dialog-container');
+
+    await test.step('light', async () => {
+      await page.emulateMedia({ colorScheme: 'light' });
+      await dialog.screenshot({
+        path: join(SCREENSHOTS_DIR, 'element-type-chooser-light.png'),
+      });
+    });
+
+    await test.step('dark', async () => {
+      await page.emulateMedia({ colorScheme: 'dark' });
+      await dialog.screenshot({
+        path: join(SCREENSHOTS_DIR, 'element-type-chooser-dark.png'),
+      });
+    });
+  });
+
+  test('capture folder context menu - light & dark', async ({
+    offlinePage: page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+
+    await page.goto('/');
+    await page.waitForSelector('.empty-state', { state: 'visible' });
+
+    await createProjectWithTwoSteps(
+      page,
+      'My Novel',
+      'my-novel',
+      'A captivating story about creativity and collaboration',
+      'worldbuilding-demo'
+    );
+
+    await page.waitForURL(/\/demouser\/my-novel/);
+    await page.waitForSelector('app-project-tree', { state: 'visible' });
+
+    const folder = page.locator('[data-testid="element-Chronicles"]');
+    const menu = page.locator('.context-menu');
+
+    for (const scheme of ['light', 'dark'] as const) {
+      await test.step(scheme, async () => {
+        await page.emulateMedia({ colorScheme: scheme });
+
+        // Open context menu (re-open each iteration since dismissing happens
+        // implicitly when emulateMedia or other actions occur)
+        await folder.click({ button: 'right' });
+        await menu.waitFor({ state: 'visible' });
+
+        await captureBoundingBoxScreenshot(
+          page,
+          folder,
+          menu,
+          join(SCREENSHOTS_DIR, `folder-context-menu-${scheme}.png`)
+        );
+
+        // Dismiss context menu before next iteration
+        await page.keyboard.press('Escape');
+        await menu.waitFor({ state: 'hidden' }).catch(() => {
+          /* already hidden */
+        });
       });
     }
   });
 
-  test('capture folder context menu - dark mode', async ({
+  test('capture tags tab and tag edit dialog - light & dark', async ({
     offlinePage: page,
   }) => {
-    // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 720 });
 
-    // Enable dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Navigate to root
     await page.goto('/');
+    await page.waitForSelector('.empty-state', { state: 'visible' });
 
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template for rich content
     await createProjectWithTwoSteps(
       page,
       'My Novel',
@@ -357,567 +266,54 @@ test.describe('PWA Screenshots', () => {
       'worldbuilding-demo'
     );
 
-    // Wait for navigation to the project page
     await page.waitForURL(/\/demouser\/my-novel/);
+    await page.waitForSelector('app-project-tree', { state: 'visible' });
 
-    // Wait for the project tree to be visible
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-
-    // Right-click on the "Chronicles" folder to open context menu
-    const folder = page.locator('[data-testid="element-Chronicles"]');
-    await folder.click({ button: 'right' });
-
-    // Wait for context menu to appear
-    await page.waitForSelector('.context-menu', {
-      state: 'visible',
-    });
-
-    // Take cropped screenshot including the folder and context menu
-    const folderBox = await folder.boundingBox();
-    const menu = page.locator('.context-menu');
-    const menuBox = await menu.boundingBox();
-
-    if (folderBox && menuBox) {
-      const padding = 16;
-      const x = Math.min(folderBox.x, menuBox.x) - padding;
-      const y = Math.min(folderBox.y, menuBox.y) - padding;
-      const right =
-        Math.max(folderBox.x + folderBox.width, menuBox.x + menuBox.width) +
-        padding;
-      const bottom =
-        Math.max(folderBox.y + folderBox.height, menuBox.y + menuBox.height) +
-        padding;
-
-      await page.screenshot({
-        path: join(SCREENSHOTS_DIR, 'folder-context-menu-dark.png'),
-        clip: {
-          x: Math.max(0, x),
-          y: Math.max(0, y),
-          width: right - x,
-          height: bottom - y,
-        },
-      });
-    }
-  });
-
-  test('capture tags tab in settings - light mode', async ({
-    offlinePage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Navigate to root
-    await page.goto('/');
-
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template (includes sample tags)
-    await createProjectWithTwoSteps(
-      page,
-      'My Novel',
-      'my-novel',
-      'A captivating story about creativity and collaboration',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/);
-
-    // Wait for project tree to be visible
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(500);
-
-    // Click the Settings button in sidebar
+    // Open settings → tags
     await page.click('[data-testid="sidebar-settings-button"]');
-    await page.waitForTimeout(300);
-
-    // Wait for settings to load
     await page.waitForSelector('[data-testid="settings-tab-content"]', {
       state: 'visible',
     });
-
-    // Click the Tags section in sidenav
     await page.click('[data-testid="nav-tags"]');
-    await page.waitForTimeout(500);
-
-    // Wait for tags section to be visible
     await page.waitForSelector('[data-testid="new-tag-button"]', {
       state: 'visible',
     });
 
-    // Screenshot of the tags management tab
     const settingsContent = page.locator(
       '[data-testid="settings-tab-content"]'
     );
-    await settingsContent.screenshot({
-      path: join(SCREENSHOTS_DIR, 'tags-tab-light.png'),
-    });
-  });
-
-  test('capture tags tab in settings - dark mode', async ({
-    offlinePage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Enable dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Navigate to root
-    await page.goto('/');
-
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template (includes sample tags)
-    await createProjectWithTwoSteps(
-      page,
-      'My Novel',
-      'my-novel',
-      'A captivating story about creativity and collaboration',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/);
-
-    // Wait for project tree to be visible
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(500);
-
-    // Click the Settings button in sidebar
-    await page.click('[data-testid="sidebar-settings-button"]');
-    await page.waitForTimeout(300);
-
-    // Wait for settings to load
-    await page.waitForSelector('[data-testid="settings-tab-content"]', {
-      state: 'visible',
-    });
-
-    // Click the Tags section in sidenav
-    await page.click('[data-testid="nav-tags"]');
-    await page.waitForTimeout(500);
-
-    // Wait for tags section to be visible
-    await page.waitForSelector('[data-testid="new-tag-button"]', {
-      state: 'visible',
-    });
-
-    // Screenshot of the tags management tab
-    const settingsContent = page.locator(
-      '[data-testid="settings-tab-content"]'
-    );
-    await settingsContent.screenshot({
-      path: join(SCREENSHOTS_DIR, 'tags-tab-dark.png'),
-    });
-  });
-
-  test('capture tag edit dialog - light mode', async ({
-    offlinePage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Navigate to root
-    await page.goto('/');
-
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template (includes sample tags)
-    await createProjectWithTwoSteps(
-      page,
-      'My Novel',
-      'my-novel',
-      'A captivating story about creativity and collaboration',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/);
-
-    // Wait for project tree to be visible
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(500);
-
-    // Click the Settings button in sidebar
-    await page.click('[data-testid="sidebar-settings-button"]');
-    await page.waitForTimeout(300);
-
-    // Wait for settings to load
-    await page.waitForSelector('[data-testid="settings-tab-content"]', {
-      state: 'visible',
-    });
-
-    // Click the Tags section in sidenav
-    await page.click('[data-testid="nav-tags"]');
-    await page.waitForTimeout(500);
-
-    // Click the New Tag button
-    await page.click('[data-testid="new-tag-button"]');
-    await page.waitForTimeout(300);
-
-    // Wait for dialog to appear
-    await page.waitForSelector('mat-dialog-container', {
-      state: 'visible',
-    });
-
-    // Screenshot of the tag edit dialog
     const dialog = page.locator('mat-dialog-container');
-    await dialog.screenshot({
-      path: join(SCREENSHOTS_DIR, 'tag-edit-dialog-light.png'),
-    });
-  });
 
-  test('capture tag edit dialog - dark mode', async ({ offlinePage: page }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 720 });
+    for (const scheme of ['light', 'dark'] as const) {
+      await test.step(`tags tab ${scheme}`, async () => {
+        await page.emulateMedia({ colorScheme: scheme });
+        await settingsContent.screenshot({
+          path: join(SCREENSHOTS_DIR, `tags-tab-${scheme}.png`),
+        });
+      });
 
-    // Enable dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
+      await test.step(`tag edit dialog ${scheme}`, async () => {
+        await page.click('[data-testid="new-tag-button"]');
+        await dialog.waitFor({ state: 'visible' });
+        await dialog.screenshot({
+          path: join(SCREENSHOTS_DIR, `tag-edit-dialog-${scheme}.png`),
+        });
 
-    // Navigate to root
-    await page.goto('/');
-
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template (includes sample tags)
-    await createProjectWithTwoSteps(
-      page,
-      'My Novel',
-      'my-novel',
-      'A captivating story about creativity and collaboration',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/);
-
-    // Wait for project tree to be visible
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(500);
-
-    // Click the Settings button in sidebar
-    await page.click('[data-testid="sidebar-settings-button"]');
-    await page.waitForTimeout(300);
-
-    // Wait for settings to load
-    await page.waitForSelector('[data-testid="settings-tab-content"]', {
-      state: 'visible',
-    });
-
-    // Click the Tags section in sidenav
-    await page.click('[data-testid="nav-tags"]');
-    await page.waitForTimeout(500);
-
-    // Click the New Tag button
-    await page.click('[data-testid="new-tag-button"]');
-    await page.waitForTimeout(300);
-
-    // Wait for dialog to appear
-    await page.waitForSelector('mat-dialog-container', {
-      state: 'visible',
-    });
-
-    // Screenshot of the tag edit dialog
-    const dialog = page.locator('mat-dialog-container');
-    await dialog.screenshot({
-      path: join(SCREENSHOTS_DIR, 'tag-edit-dialog-dark.png'),
-    });
-  });
-
-  test('capture new document naming dialog - light mode', async ({
-    offlinePage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Navigate to root
-    await page.goto('/');
-
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template for rich content
-    await createProjectWithTwoSteps(
-      page,
-      'My Novel',
-      'my-novel',
-      'A captivating story about creativity and collaboration',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/);
-
-    // Wait for the project tree to be visible
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(500);
-
-    // Click the "Create" button at the bottom of the tree
-    await page.click('[data-testid="create-new-element"]');
-    await page.waitForTimeout(300);
-
-    // Wait for the dialog to appear
-    await page.waitForSelector('mat-dialog-container', {
-      state: 'visible',
-    });
-
-    // Click on Document type to proceed to step 2
-    await page.click('[data-testid="element-type-item"]');
-    await page.waitForTimeout(300);
-
-    // Wait for the name input to appear
-    const nameInput = page.getByTestId('element-name-input');
-    await nameInput.waitFor({ state: 'visible' });
-
-    // Fill in a sample name
-    await nameInput.fill('Chapter 1: The Beginning');
-    await page.waitForTimeout(200);
-
-    // Take screenshot of the naming dialog
-    const dialog = page.locator('mat-dialog-container');
-    await dialog.screenshot({
-      path: join(SCREENSHOTS_DIR, 'new-document-dialog-light.png'),
-    });
-  });
-
-  test('capture new document naming dialog - dark mode', async ({
-    offlinePage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Enable dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Navigate to root
-    await page.goto('/');
-
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template for rich content
-    await createProjectWithTwoSteps(
-      page,
-      'My Novel',
-      'my-novel',
-      'A captivating story about creativity and collaboration',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/);
-
-    // Wait for the project tree to be visible
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(500);
-
-    // Click the "Create" button at the bottom of the tree
-    await page.click('[data-testid="create-new-element"]');
-    await page.waitForTimeout(300);
-
-    // Wait for the dialog to appear
-    await page.waitForSelector('mat-dialog-container', {
-      state: 'visible',
-    });
-
-    // Click on Document type to proceed to step 2
-    await page.click('[data-testid="element-type-item"]');
-    await page.waitForTimeout(300);
-
-    // Wait for the name input to appear
-    const nameInput = page.getByTestId('element-name-input');
-    await nameInput.waitFor({ state: 'visible' });
-
-    // Fill in a sample name
-    await nameInput.fill('Chapter 1: The Beginning');
-    await page.waitForTimeout(200);
-
-    // Take screenshot of the naming dialog
-    const dialog = page.locator('mat-dialog-container');
-    await dialog.screenshot({
-      path: join(SCREENSHOTS_DIR, 'new-document-dialog-dark.png'),
-    });
-  });
-
-  test('capture project home - desktop dark mode', async ({
-    offlinePage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Enable dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Navigate to root
-    await page.goto('/');
-
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template for rich content
-    await createProjectWithTwoSteps(
-      page,
-      'My Novel',
-      'my-novel',
-      'A captivating story about creativity and collaboration',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/);
-
-    // Wait for the home tab to be visible (project home page)
-    await page.waitForSelector('.home-tab-content', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(500);
-
-    // Take screenshot of project home page
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'project-home-desktop-dark.png'),
-      fullPage: true,
-    });
-  });
-
-  test('capture tab context menu - light mode', async ({
-    offlinePage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Navigate to root
-    await page.goto('/');
-
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template for rich content
-    await createProjectWithTwoSteps(
-      page,
-      'My Novel',
-      'my-novel',
-      'A captivating story about creativity and collaboration',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/);
-
-    // Wait for the project tree to be visible
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(500);
-
-    // Expand the "Chronicles" folder
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    await expandButton.click();
-    await page.waitForTimeout(300);
-
-    // Open "The Moonveil Accord" document to create a tab
-    await page.click('text="The Moonveil Accord"');
-    await page.waitForTimeout(500);
-
-    // Wait for the document tab to appear
-    await page.waitForSelector('[data-testid="tab-The Moonveil Accord"]', {
-      state: 'visible',
-    });
-
-    // Right-click on the document tab to open context menu
-    const docTab = page.locator('[data-testid="tab-The Moonveil Accord"]');
-    await docTab.click({ button: 'right' });
-    await page.waitForTimeout(300);
-
-    // Wait for context menu to appear
-    await page.waitForSelector('.tab-context-menu', {
-      state: 'visible',
-    });
-
-    // Capture tab bar and context menu together for context
-    const tabBar = page.locator('.tab-bar-container');
-    const menu = page.locator('.tab-context-menu');
-
-    const tabBarBox = await tabBar.boundingBox();
-    const menuBox = await menu.boundingBox();
-
-    if (tabBarBox && menuBox) {
-      // Calculate bounding box that includes both elements with padding
-      const padding = 16;
-      const x = Math.min(tabBarBox.x, menuBox.x) - padding;
-      const y = Math.min(tabBarBox.y, menuBox.y) - padding;
-      const right =
-        Math.max(tabBarBox.x + tabBarBox.width, menuBox.x + menuBox.width) +
-        padding;
-      const bottom =
-        Math.max(tabBarBox.y + tabBarBox.height, menuBox.y + menuBox.height) +
-        padding;
-
-      await page.screenshot({
-        path: join(SCREENSHOTS_DIR, 'tab-context-menu-light.png'),
-        clip: {
-          x: Math.max(0, x),
-          y: Math.max(0, y),
-          width: right - x,
-          height: bottom - y,
-        },
+        // Close dialog before next iteration
+        await page.keyboard.press('Escape');
+        await dialog.waitFor({ state: 'hidden' });
       });
     }
   });
 
-  test('capture tab context menu - dark mode', async ({
+  test('capture new document naming dialog - light & dark', async ({
     offlinePage: page,
   }) => {
-    // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 720 });
 
-    // Enable dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Navigate to root
     await page.goto('/');
+    await page.waitForSelector('.empty-state', { state: 'visible' });
 
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template for rich content
     await createProjectWithTwoSteps(
       page,
       'My Novel',
@@ -926,85 +322,98 @@ test.describe('PWA Screenshots', () => {
       'worldbuilding-demo'
     );
 
-    // Wait for navigation to the project page
     await page.waitForURL(/\/demouser\/my-novel/);
+    await page.waitForSelector('app-project-tree', { state: 'visible' });
 
-    // Wait for the project tree to be visible
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
+    // Open create dialog and proceed to naming step
+    await page.click('[data-testid="create-new-element"]');
+    await page.waitForSelector('mat-dialog-container', { state: 'visible' });
+    await page.click('[data-testid="element-type-item"]');
+
+    const nameInput = page.getByTestId('element-name-input');
+    await nameInput.waitFor({ state: 'visible' });
+    await nameInput.fill('Chapter 1: The Beginning');
+
+    const dialog = page.locator('mat-dialog-container');
+
+    await test.step('light', async () => {
+      await page.emulateMedia({ colorScheme: 'light' });
+      await dialog.screenshot({
+        path: join(SCREENSHOTS_DIR, 'new-document-dialog-light.png'),
+      });
     });
-    await page.waitForTimeout(500);
 
-    // Expand the "Chronicles" folder
+    await test.step('dark', async () => {
+      await page.emulateMedia({ colorScheme: 'dark' });
+      await dialog.screenshot({
+        path: join(SCREENSHOTS_DIR, 'new-document-dialog-dark.png'),
+      });
+    });
+  });
+
+  test('capture tab context menu - light & dark', async ({
+    offlinePage: page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+
+    await page.goto('/');
+    await page.waitForSelector('.empty-state', { state: 'visible' });
+
+    await createProjectWithTwoSteps(
+      page,
+      'My Novel',
+      'my-novel',
+      'A captivating story about creativity and collaboration',
+      'worldbuilding-demo'
+    );
+
+    await page.waitForURL(/\/demouser\/my-novel/);
+    await page.waitForSelector('app-project-tree', { state: 'visible' });
+
+    // Expand Chronicles folder and open document to create a tab
     const expandButton = page
       .locator('[data-testid="expand-folder-button"]')
       .first();
     await expandButton.click();
-    await page.waitForTimeout(300);
-
-    // Open "The Moonveil Accord" document to create a tab
     await page.click('text="The Moonveil Accord"');
-    await page.waitForTimeout(500);
-
-    // Wait for the document tab to appear
     await page.waitForSelector('[data-testid="tab-The Moonveil Accord"]', {
       state: 'visible',
     });
 
-    // Right-click on the document tab to open context menu
     const docTab = page.locator('[data-testid="tab-The Moonveil Accord"]');
-    await docTab.click({ button: 'right' });
-    await page.waitForTimeout(300);
-
-    // Wait for context menu to appear
-    await page.waitForSelector('.tab-context-menu', {
-      state: 'visible',
-    });
-
-    // Capture tab bar and context menu together for context
     const tabBar = page.locator('.tab-bar-container');
     const menu = page.locator('.tab-context-menu');
 
-    const tabBarBox = await tabBar.boundingBox();
-    const menuBox = await menu.boundingBox();
+    for (const scheme of ['light', 'dark'] as const) {
+      await test.step(scheme, async () => {
+        await page.emulateMedia({ colorScheme: scheme });
 
-    if (tabBarBox && menuBox) {
-      // Calculate bounding box that includes both elements with padding
-      const padding = 16;
-      const x = Math.min(tabBarBox.x, menuBox.x) - padding;
-      const y = Math.min(tabBarBox.y, menuBox.y) - padding;
-      const right =
-        Math.max(tabBarBox.x + tabBarBox.width, menuBox.x + menuBox.width) +
-        padding;
-      const bottom =
-        Math.max(tabBarBox.y + tabBarBox.height, menuBox.y + menuBox.height) +
-        padding;
+        await docTab.click({ button: 'right' });
+        await menu.waitFor({ state: 'visible' });
 
-      await page.screenshot({
-        path: join(SCREENSHOTS_DIR, 'tab-context-menu-dark.png'),
-        clip: {
-          x: Math.max(0, x),
-          y: Math.max(0, y),
-          width: right - x,
-          height: bottom - y,
-        },
+        await captureBoundingBoxScreenshot(
+          page,
+          tabBar,
+          menu,
+          join(SCREENSHOTS_DIR, `tab-context-menu-${scheme}.png`)
+        );
+
+        await page.keyboard.press('Escape');
+        await menu.waitFor({ state: 'hidden' }).catch(() => {
+          /* already hidden */
+        });
       });
     }
   });
 
-  test('capture project editor - desktop', async ({ offlinePage: page }) => {
-    // Set viewport to desktop size - tighter focus at 1280px
+  test('capture project editor - desktop light & dark', async ({
+    offlinePage: page,
+  }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
-    // Navigate to root - should go straight to home since configured
     await page.goto('/');
+    await page.waitForSelector('.empty-state', { state: 'visible' });
 
-    // Wait for the empty state (since no projects exist in offline mode initially)
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template for rich content
     await createProjectWithTwoSteps(
       page,
       'My Novel',
@@ -1013,54 +422,44 @@ test.describe('PWA Screenshots', () => {
       'worldbuilding-demo'
     );
 
-    // Wait for navigation to the project page
     await page.waitForURL(/\/demouser\/my-novel/);
+    await page.waitForSelector('app-project-tree', { state: 'visible' });
 
-    // Wait for the project tree to be visible (not just app-project component)
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(1500);
-
-    // The worldbuilding-demo template has "Chronicles" folder with "The Moonveil Accord" inside
-    // First, expand the "Chronicles" folder by clicking the chevron button
+    // Expand Chronicles folder and open the document
     const expandButton = page
       .locator('[data-testid="expand-folder-button"]')
       .first();
     await expandButton.click();
-    await page.waitForTimeout(500);
-
-    // Now "The Moonveil Accord" should be visible - click on it to open
     await page.click('text="The Moonveil Accord"');
-    await page.waitForTimeout(300);
 
-    // Wait for editor to load - the document already has rich content from the template
     const editor = page.locator('.ProseMirror').first();
     await editor.waitFor({ state: 'visible' });
 
-    // Wait for content to settle
-    await page.waitForTimeout(300);
+    await test.step('light', async () => {
+      await page.emulateMedia({ colorScheme: 'light' });
+      await page.screenshot({
+        path: join(SCREENSHOTS_DIR, 'editor-desktop-light.png'),
+        fullPage: true,
+      });
+    });
 
-    // Take screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'editor-desktop-light.png'),
-      fullPage: true,
+    await test.step('dark', async () => {
+      await page.emulateMedia({ colorScheme: 'dark' });
+      await page.screenshot({
+        path: join(SCREENSHOTS_DIR, 'editor-desktop-dark.png'),
+        fullPage: true,
+      });
     });
   });
 
-  test('capture project editor - mobile', async ({ offlinePage: page }) => {
-    // Set viewport to mobile size - smaller for tighter focus
+  test('capture project editor - mobile light & dark', async ({
+    offlinePage: page,
+  }) => {
     await page.setViewportSize({ width: 375, height: 667 });
 
-    // Navigate to root
     await page.goto('/');
+    await page.waitForSelector('.empty-state', { state: 'visible' });
 
-    // Wait for the empty state (no projects initially)
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template for rich content
     await createProjectWithTwoSteps(
       page,
       'Mobile Story',
@@ -1069,10 +468,9 @@ test.describe('PWA Screenshots', () => {
       'worldbuilding-demo'
     );
 
-    // Wait for navigation to project page
     await page.waitForURL(/\/demouser\/mobile-story/);
 
-    // On mobile, the project tree is in a sidebar - click hamburger menu to open it
+    // Open hamburger menu to reveal project tree on mobile
     await page.waitForSelector(
       'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))',
       { state: 'visible' }
@@ -1080,175 +478,35 @@ test.describe('PWA Screenshots', () => {
     await page.click(
       'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
     );
-    await page.waitForTimeout(500);
+    await page.waitForSelector('app-project-tree', { state: 'visible' });
 
-    // Wait for project tree to appear in sidebar
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(500);
-
-    // Expand "Chronicles" folder by clicking the chevron
+    // Expand Chronicles folder and open the document
     const expandButton = page
       .locator('[data-testid="expand-folder-button"]')
       .first();
     await expandButton.click();
-    await page.waitForTimeout(500);
-
-    // Click on "The Moonveil Accord" from worldbuilding-demo template
     await page.click('text="The Moonveil Accord"');
-    await page.waitForTimeout(300);
 
-    // Wait for editor to load - the document already has rich content from the template
     const editor = page.locator('.ProseMirror').first();
     await editor.waitFor({ state: 'visible' });
 
-    await page.waitForTimeout(500);
+    // Triple-click to select text and trigger inline formatting menu
+    await editor.click({ clickCount: 3 });
 
-    // Select some text by triple-clicking to trigger the inline menu
-    const editorElement = page.locator('.ProseMirror').first();
-    await editorElement.click({ clickCount: 3 });
-    await page.waitForTimeout(300); // Wait for inline menu to appear
-
-    // Take screenshot with text selected and formatting menu visible
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'editor-mobile-light.png'),
-      fullPage: true,
-    });
-  });
-
-  test('capture project editor - desktop dark mode', async ({
-    offlinePage: page,
-  }) => {
-    // Set viewport to desktop size - tighter focus at 1280px
-    await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Set dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Navigate to root - should go straight to home since configured
-    await page.goto('/');
-
-    // Wait for the empty state (since no projects exist in offline mode initially)
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
+    await test.step('light', async () => {
+      await page.emulateMedia({ colorScheme: 'light' });
+      await page.screenshot({
+        path: join(SCREENSHOTS_DIR, 'editor-mobile-light.png'),
+        fullPage: true,
+      });
     });
 
-    // Create project using worldbuilding-demo template for rich content
-    await createProjectWithTwoSteps(
-      page,
-      'My Novel',
-      'my-novel',
-      'A captivating story about creativity and collaboration',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/);
-
-    // Wait for the project tree to be visible (not just app-project component)
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(1500);
-
-    // The worldbuilding-demo template has "Chronicles" folder with "The Moonveil Accord" inside
-    // First, expand the "Chronicles" folder by clicking the chevron button
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    await expandButton.click();
-    await page.waitForTimeout(500);
-
-    // Now "The Moonveil Accord" should be visible - click on it to open
-    await page.click('text="The Moonveil Accord"');
-    await page.waitForTimeout(300);
-
-    // Wait for editor to load - the document already has rich content from the template
-    const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible' });
-
-    // Wait for content to settle
-    await page.waitForTimeout(300);
-
-    // Take screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'editor-desktop-dark.png'),
-      fullPage: true,
-    });
-  });
-
-  test('capture project editor - mobile dark mode', async ({
-    offlinePage: page,
-  }) => {
-    // Set viewport to mobile size - smaller for tighter focus
-    await page.setViewportSize({ width: 375, height: 667 });
-
-    // Set dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Navigate to root
-    await page.goto('/');
-
-    // Wait for the empty state (no projects initially)
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create project using worldbuilding-demo template for rich content
-    await createProjectWithTwoSteps(
-      page,
-      'Mobile Story',
-      'mobile-story',
-      'Writing on the go',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to project page
-    await page.waitForURL(/\/demouser\/mobile-story/);
-
-    // On mobile, the project tree is in a sidebar - click hamburger menu to open it
-    await page.waitForSelector(
-      'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))',
-      { state: 'visible' }
-    );
-    await page.click(
-      'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
-    );
-    await page.waitForTimeout(500);
-
-    // Wait for project tree to appear in sidebar
-    await page.waitForSelector('app-project-tree', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(500);
-
-    // Expand "Chronicles" folder by clicking the chevron
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    await expandButton.click();
-    await page.waitForTimeout(500);
-
-    // Click on "The Moonveil Accord" from worldbuilding-demo template
-    await page.click('text="The Moonveil Accord"');
-    await page.waitForTimeout(300);
-
-    // Wait for editor to load - the document already has rich content from the template
-    const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible' });
-
-    await page.waitForTimeout(500);
-
-    // Select some text by triple-clicking to trigger the inline menu
-    const editorElement = page.locator('.ProseMirror').first();
-    await editorElement.click({ clickCount: 3 });
-    await page.waitForTimeout(300); // Wait for inline menu to appear
-
-    // Take screenshot with text selected and formatting menu visible
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'editor-mobile-dark.png'),
-      fullPage: true,
+    await test.step('dark', async () => {
+      await page.emulateMedia({ colorScheme: 'dark' });
+      await page.screenshot({
+        path: join(SCREENSHOTS_DIR, 'editor-mobile-dark.png'),
+        fullPage: true,
+      });
     });
   });
 
@@ -1258,21 +516,14 @@ test.describe('PWA Screenshots', () => {
   // These tests use REAL images from assets/demo_covers and assets/demo_images
   // via the storeRealMediaInIndexedDB helper from test-helpers.ts
 
-  test('capture media tab - with various media types', async ({
+  test('capture media tab - with various media types (light & dark)', async ({
     offlinePage: page,
   }) => {
-    // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 800 });
 
-    // Navigate to root
     await page.goto('/');
+    await page.waitForSelector('.empty-state', { state: 'visible' });
 
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create a project first
     await createProjectWithTwoSteps(
       page,
       'Media Showcase',
@@ -1280,7 +531,6 @@ test.describe('PWA Screenshots', () => {
       'A project demonstrating media storage'
     );
     await page.waitForURL(/\/demouser\/media-showcase/);
-    await page.waitForTimeout(500);
 
     const projectKey = 'demouser/media-showcase';
 
@@ -1320,45 +570,40 @@ test.describe('PWA Screenshots', () => {
       'media-showcase-final.epub'
     );
 
-    // Navigate to media tab
     await page.goto(`/demouser/media-showcase/media`);
     await page.waitForLoadState('networkidle');
+    await page.waitForSelector('.media-grid', { state: 'visible' });
 
-    // Wait for media grid to load
-    await page.waitForSelector('.media-grid', {
-      state: 'visible',
+    await test.step('light', async () => {
+      await page.emulateMedia({ colorScheme: 'light' });
+      await page.screenshot({
+        path: join(SCREENSHOTS_DIR, 'media-tab-desktop-light.png'),
+        fullPage: true,
+      });
     });
-    await page.waitForTimeout(500);
 
-    // Take screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'media-tab-desktop-light.png'),
-      fullPage: true,
+    await test.step('dark', async () => {
+      await page.emulateMedia({ colorScheme: 'dark' });
+      await page.screenshot({
+        path: join(SCREENSHOTS_DIR, 'media-tab-dark.png'),
+        fullPage: true,
+      });
     });
   });
 
   test('capture media tab - filtered by inline images', async ({
     offlinePage: page,
   }) => {
-    // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 800 });
 
-    // Navigate to root
     await page.goto('/');
+    await page.waitForSelector('.empty-state', { state: 'visible' });
 
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create a project first
     await createProjectWithTwoSteps(page, 'Filtered Media', 'filtered-media');
     await page.waitForURL(/\/demouser\/filtered-media/);
-    await page.waitForTimeout(500);
 
     const projectKey = 'demouser/filtered-media';
 
-    // Store REAL demo images
     await storeRealMediaInIndexedDB(
       page,
       projectKey,
@@ -1388,12 +633,9 @@ test.describe('PWA Screenshots', () => {
       'landscape-art.png'
     );
 
-    // Navigate to media tab
     await page.goto(`/demouser/filtered-media/media`);
     await page.waitForLoadState('networkidle');
-    await page.waitForSelector('.media-grid', {
-      state: 'visible',
-    });
+    await page.waitForSelector('.media-grid', { state: 'visible' });
 
     // Open the filter panel, then click "Inline Images" category
     await page.click('[data-testid="media-filter-button"]');
@@ -1403,9 +645,7 @@ test.describe('PWA Screenshots', () => {
     await page.click(
       '[data-testid="filter-category"]:has-text("Inline Images")'
     );
-    await page.waitForTimeout(300);
 
-    // Take screenshot showing filtered view
     await page.screenshot({
       path: join(SCREENSHOTS_DIR, 'media-tab-filtered-light.png'),
       fullPage: true,
@@ -1413,33 +653,18 @@ test.describe('PWA Screenshots', () => {
   });
 
   test('capture media tab - empty state', async ({ offlinePage: page }) => {
-    // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 720 });
 
-    // Navigate to root
     await page.goto('/');
+    await page.waitForSelector('.empty-state', { state: 'visible' });
 
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create a project
     await createProjectWithTwoSteps(page, 'Empty Media', 'empty-media');
     await page.waitForURL(/\/demouser\/empty-media/);
-    await page.waitForTimeout(500);
 
-    // Navigate directly to media tab (no media stored)
     await page.goto(`/demouser/empty-media/media`);
     await page.waitForLoadState('networkidle');
+    await page.waitForSelector('.empty-card', { state: 'visible' });
 
-    // Wait for empty state to appear
-    await page.waitForSelector('.empty-card', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(300);
-
-    // Take screenshot of empty state
     await page.screenshot({
       path: join(SCREENSHOTS_DIR, 'media-tab-empty-light.png'),
       fullPage: true,
@@ -1447,25 +672,16 @@ test.describe('PWA Screenshots', () => {
   });
 
   test('capture media tab - mobile view', async ({ offlinePage: page }) => {
-    // Set viewport to mobile size
     await page.setViewportSize({ width: 375, height: 667 });
 
-    // Navigate to root
     await page.goto('/');
+    await page.waitForSelector('.empty-state', { state: 'visible' });
 
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create a project
     await createProjectWithTwoSteps(page, 'Mobile Media', 'mobile-media');
     await page.waitForURL(/\/demouser\/mobile-media/);
-    await page.waitForTimeout(500);
 
     const projectKey = 'demouser/mobile-media';
 
-    // Store REAL demo images
     await storeRealMediaInIndexedDB(
       page,
       projectKey,
@@ -1488,84 +704,12 @@ test.describe('PWA Screenshots', () => {
       'concept.png'
     );
 
-    // Navigate to media tab
     await page.goto(`/demouser/mobile-media/media`);
     await page.waitForLoadState('networkidle');
-    await page.waitForSelector('.media-grid', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(300);
+    await page.waitForSelector('.media-grid', { state: 'visible' });
 
-    // Take mobile screenshot
     await page.screenshot({
       path: join(SCREENSHOTS_DIR, 'media-tab-mobile-light.png'),
-      fullPage: true,
-    });
-  });
-
-  test('capture media tab - dark mode', async ({ offlinePage: page }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 800 });
-
-    // Enable dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Navigate to root
-    await page.goto('/');
-
-    // Wait for the empty state
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    // Create a project
-    await createProjectWithTwoSteps(page, 'Dark Media', 'dark-media');
-    await page.waitForURL(/\/demouser\/dark-media/);
-    await page.waitForTimeout(500);
-
-    const projectKey = 'demouser/dark-media';
-
-    // Store REAL demo images that look good in dark mode
-    await storeRealMediaInIndexedDB(
-      page,
-      projectKey,
-      'cover',
-      DEMO_ASSETS.covers.demo1,
-      'cover.png'
-    );
-    await storeRealMediaInIndexedDB(
-      page,
-      projectKey,
-      'img-1',
-      DEMO_ASSETS.images.cyberCityscape,
-      'neon-city.png'
-    );
-    await storeRealMediaInIndexedDB(
-      page,
-      projectKey,
-      'img-2',
-      DEMO_ASSETS.images.demoCharacter,
-      'character.png'
-    );
-    await storeRealMediaInIndexedDB(
-      page,
-      projectKey,
-      'img-3',
-      DEMO_ASSETS.images.landscapePencil,
-      'landscape.png'
-    );
-
-    // Navigate to media tab
-    await page.goto(`/demouser/dark-media/media`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForSelector('.media-grid', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(500);
-
-    // Take dark mode screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'media-tab-dark.png'),
       fullPage: true,
     });
   });
@@ -1574,394 +718,156 @@ test.describe('PWA Screenshots', () => {
   // Create Project Flow Screenshots
   // ─────────────────────────────────────────────────────────────────────────────
 
-  test('capture create button in nav bar - light mode', async ({
+  test('capture create button in nav bar - light & dark', async ({
     authenticatedPage: page,
   }) => {
-    // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 720 });
 
-    // Wait for the page to load
-    await page.waitForSelector('.covers-grid', {
-      state: 'visible',
-    });
-
-    // Take a cropped screenshot of just the header area with the Create button
+    await page.waitForSelector('.covers-grid', { state: 'visible' });
     const headerSection = page.locator('.header-section');
     await headerSection.waitFor({ state: 'visible' });
 
-    await headerSection.screenshot({
-      path: join(SCREENSHOTS_DIR, 'create-button-nav-light.png'),
+    await test.step('light', async () => {
+      await page.emulateMedia({ colorScheme: 'light' });
+      await headerSection.screenshot({
+        path: join(SCREENSHOTS_DIR, 'create-button-nav-light.png'),
+      });
+    });
+
+    await test.step('dark', async () => {
+      await page.emulateMedia({ colorScheme: 'dark' });
+      await headerSection.screenshot({
+        path: join(SCREENSHOTS_DIR, 'create-button-nav-dark.png'),
+      });
     });
   });
 
-  test('capture create button in nav bar - dark mode', async ({
+  test('capture create project flow - templates & details (light & dark)', async ({
     authenticatedPage: page,
   }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Set dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Wait for the page to load
-    await page.waitForSelector('.covers-grid', {
-      state: 'visible',
-    });
-
-    // Take a cropped screenshot of just the header area with the Create button
-    const headerSection = page.locator('.header-section');
-    await headerSection.waitFor({ state: 'visible' });
-
-    await headerSection.screenshot({
-      path: join(SCREENSHOTS_DIR, 'create-button-nav-dark.png'),
-    });
-  });
-
-  test('capture template selection step - light mode', async ({
-    authenticatedPage: page,
-  }) => {
-    // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 800 });
 
-    // Click the Create menu, then "New Project" to go to create project page
-    await page.click('.create-btn');
-    await page.getByTestId('create-new-project-menu-item').click();
+    for (const scheme of ['light', 'dark'] as const) {
+      await test.step(scheme, async () => {
+        await page.emulateMedia({ colorScheme: scheme });
 
-    // Wait for the template selection page to load
-    await page.waitForURL(/\/create-project/);
-    await page.waitForSelector('.template-grid', {
-      state: 'visible',
-    });
+        // Navigate fresh to the create-project page each iteration
+        await page.goto('/');
+        await page.waitForSelector('.covers-grid', { state: 'visible' });
+        await page.click('.create-btn');
+        await page.getByTestId('create-new-project-menu-item').click();
+        await page.waitForURL(/\/create-project/);
+        await page.waitForSelector('.template-grid', { state: 'visible' });
 
-    // Wait for templates to render
-    await page.waitForTimeout(300);
+        // Step 1: template selection screenshot
+        await page.screenshot({
+          path: join(SCREENSHOTS_DIR, `create-project-templates-${scheme}.png`),
+          fullPage: true,
+        });
 
-    // Take full page screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'create-project-templates-light.png'),
-      fullPage: true,
-    });
-  });
+        // Continue to step 2: project details
+        await page.click('[data-testid="template-worldbuilding-demo"]');
+        await page.click('[data-testid="next-button"]');
 
-  test('capture template selection step - dark mode', async ({
-    authenticatedPage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 800 });
+        await page.waitForSelector('[data-testid="project-title-input"]', {
+          state: 'visible',
+        });
+        await page.fill(
+          '[data-testid="project-title-input"]',
+          'My Fantasy Novel'
+        );
 
-    // Set dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Click the Create menu, then "New Project" to go to create project page
-    await page.click('.create-btn');
-    await page.getByTestId('create-new-project-menu-item').click();
-
-    // Wait for the template selection page to load
-    await page.waitForURL(/\/create-project/);
-    await page.waitForSelector('.template-grid', {
-      state: 'visible',
-    });
-
-    // Wait for templates to render
-    await page.waitForTimeout(300);
-
-    // Take full page screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'create-project-templates-dark.png'),
-      fullPage: true,
-    });
-  });
-
-  test('capture project details step - light mode', async ({
-    authenticatedPage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 800 });
-
-    // Click the Create menu, then "New Project" to go to create project page
-    await page.click('.create-btn');
-    await page.getByTestId('create-new-project-menu-item').click();
-
-    // Wait for the template selection page to load
-    await page.waitForURL(/\/create-project/);
-    await page.waitForSelector('.template-grid', {
-      state: 'visible',
-    });
-
-    // Select a template and click Next
-    await page.click('[data-testid="template-worldbuilding-demo"]');
-    await page.click('[data-testid="next-button"]');
-
-    // Wait for step 2 form to appear
-    await page.waitForSelector('[data-testid="project-title-input"]', {
-      state: 'visible',
-    });
-
-    // Fill in the form with sample data
-    await page.fill('[data-testid="project-title-input"]', 'My Fantasy Novel');
-    await page.waitForTimeout(200);
-
-    // Take full page screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'create-project-details-light.png'),
-      fullPage: true,
-    });
-  });
-
-  test('capture project details step - dark mode', async ({
-    authenticatedPage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 800 });
-
-    // Set dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Click the Create menu, then "New Project" to go to create project page
-    await page.click('.create-btn');
-    await page.getByTestId('create-new-project-menu-item').click();
-
-    // Wait for the template selection page to load
-    await page.waitForURL(/\/create-project/);
-    await page.waitForSelector('.template-grid', {
-      state: 'visible',
-    });
-
-    // Select a template and click Next
-    await page.click('[data-testid="template-worldbuilding-demo"]');
-    await page.click('[data-testid="next-button"]');
-
-    // Wait for step 2 form to appear
-    await page.waitForSelector('[data-testid="project-title-input"]', {
-      state: 'visible',
-    });
-
-    // Fill in the form with sample data
-    await page.fill('[data-testid="project-title-input"]', 'My Fantasy Novel');
-    await page.waitForTimeout(200);
-
-    // Take full page screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'create-project-details-dark.png'),
-      fullPage: true,
-    });
+        await page.screenshot({
+          path: join(SCREENSHOTS_DIR, `create-project-details-${scheme}.png`),
+          fullPage: true,
+        });
+      });
+    }
   });
 
   // =====================
   // Setup Screen Screenshots
   // =====================
 
-  test('capture setup mode selection - light mode', async ({
+  test('capture setup mode selection & offline profile - light & dark', async ({
     unconfiguredPage: page,
   }) => {
-    // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 800 });
 
-    // Set light mode
-    await page.emulateMedia({ colorScheme: 'light' });
+    for (const scheme of ['light', 'dark'] as const) {
+      await test.step(scheme, async () => {
+        await page.emulateMedia({ colorScheme: scheme });
 
-    // Navigate to home - should redirect to /setup
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+        // Navigate fresh each iteration to reset to mode selection
+        await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    // Wait for setup card to be visible
-    await page.waitForSelector('[data-testid="setup-card"]', {
-      state: 'visible',
-    });
+        await page.waitForSelector('[data-testid="setup-card"]', {
+          state: 'visible',
+        });
+        await page.waitForSelector('[data-testid="local-mode-button"]', {
+          state: 'visible',
+        });
+        await page.waitForSelector('[data-testid="server-mode-button"]', {
+          state: 'visible',
+        });
 
-    // Wait for mode selection buttons to appear
-    await page.waitForSelector('[data-testid="local-mode-button"]', {
-      state: 'visible',
-    });
-    await page.waitForSelector('[data-testid="server-mode-button"]', {
-      state: 'visible',
-    });
+        // Mode selection screenshot
+        await page.screenshot({
+          path: join(SCREENSHOTS_DIR, `setup-mode-selection-${scheme}.png`),
+          fullPage: true,
+        });
 
-    // Take full page screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'setup-mode-selection-light.png'),
-      fullPage: true,
-    });
+        // Click local/offline mode button
+        await page.click('[data-testid="local-mode-button"]');
+        await page.waitForSelector('[data-testid="local-username-input"]', {
+          state: 'visible',
+        });
+
+        await page.fill('[data-testid="local-username-input"]', 'writer');
+        await page.fill(
+          '[data-testid="local-displayname-input"]',
+          'Jane Writer'
+        );
+
+        await page.screenshot({
+          path: join(SCREENSHOTS_DIR, `setup-offline-${scheme}.png`),
+          fullPage: true,
+        });
+      });
+    }
   });
 
-  test('capture setup mode selection - dark mode', async ({
+  test('capture setup server connection - light & dark', async ({
     unconfiguredPage: page,
   }) => {
-    // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 800 });
 
-    // Set dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
+    for (const scheme of ['light', 'dark'] as const) {
+      await test.step(scheme, async () => {
+        await page.emulateMedia({ colorScheme: scheme });
 
-    // Navigate to home - should redirect to /setup
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+        // Navigate fresh each iteration to reset to mode selection
+        await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    // Wait for setup card to be visible
-    await page.waitForSelector('[data-testid="setup-card"]', {
-      state: 'visible',
-    });
+        await page.waitForSelector('[data-testid="setup-card"]', {
+          state: 'visible',
+        });
 
-    // Wait for mode selection buttons to appear
-    await page.waitForSelector('[data-testid="local-mode-button"]', {
-      state: 'visible',
-    });
-    await page.waitForSelector('[data-testid="server-mode-button"]', {
-      state: 'visible',
-    });
+        await page.click('[data-testid="server-mode-button"]');
+        await page.waitForSelector('[data-testid="server-url-input"]', {
+          state: 'visible',
+        });
 
-    // Take full page screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'setup-mode-selection-dark.png'),
-      fullPage: true,
-    });
-  });
+        await page.fill(
+          '[data-testid="server-url-input"]',
+          'https://inkweld.example.com'
+        );
 
-  test('capture setup offline profile - light mode', async ({
-    unconfiguredPage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 800 });
-
-    // Set light mode
-    await page.emulateMedia({ colorScheme: 'light' });
-
-    // Navigate to home - should redirect to /setup
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-
-    // Wait for setup card to be visible
-    await page.waitForSelector('[data-testid="setup-card"]', {
-      state: 'visible',
-    });
-
-    // Click the offline mode button
-    await page.click('[data-testid="local-mode-button"]');
-
-    // Wait for offline setup form to appear
-    await page.waitForSelector('[data-testid="local-username-input"]', {
-      state: 'visible',
-    });
-
-    // Fill in sample data for the screenshot
-    await page.fill('[data-testid="local-username-input"]', 'writer');
-    await page.fill('[data-testid="local-displayname-input"]', 'Jane Writer');
-
-    // Take full page screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'setup-offline-light.png'),
-      fullPage: true,
-    });
-  });
-
-  test('capture setup offline profile - dark mode', async ({
-    unconfiguredPage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 800 });
-
-    // Set dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Navigate to home - should redirect to /setup
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-
-    // Wait for setup card to be visible
-    await page.waitForSelector('[data-testid="setup-card"]', {
-      state: 'visible',
-    });
-
-    // Click the offline mode button
-    await page.click('[data-testid="local-mode-button"]');
-
-    // Wait for offline setup form to appear
-    await page.waitForSelector('[data-testid="local-username-input"]', {
-      state: 'visible',
-    });
-
-    // Fill in sample data for the screenshot
-    await page.fill('[data-testid="local-username-input"]', 'writer');
-    await page.fill('[data-testid="local-displayname-input"]', 'Jane Writer');
-
-    // Take full page screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'setup-offline-dark.png'),
-      fullPage: true,
-    });
-  });
-
-  test('capture setup server connection - light mode', async ({
-    unconfiguredPage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 800 });
-
-    // Set light mode
-    await page.emulateMedia({ colorScheme: 'light' });
-
-    // Navigate to home - should redirect to /setup
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-
-    // Wait for setup card to be visible
-    await page.waitForSelector('[data-testid="setup-card"]', {
-      state: 'visible',
-    });
-
-    // Click the server mode button
-    await page.click('[data-testid="server-mode-button"]');
-
-    // Wait for server setup form to appear
-    await page.waitForSelector('[data-testid="server-url-input"]', {
-      state: 'visible',
-    });
-
-    // The default URL should already be shown (localhost:8333)
-    // Clear and set a more realistic example URL
-    await page.fill(
-      '[data-testid="server-url-input"]',
-      'https://inkweld.example.com'
-    );
-
-    // Take full page screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'setup-server-light.png'),
-      fullPage: true,
-    });
-  });
-
-  test('capture setup server connection - dark mode', async ({
-    unconfiguredPage: page,
-  }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 800 });
-
-    // Set dark mode
-    await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Navigate to home - should redirect to /setup
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-
-    // Wait for setup card to be visible
-    await page.waitForSelector('[data-testid="setup-card"]', {
-      state: 'visible',
-    });
-
-    // Click the server mode button
-    await page.click('[data-testid="server-mode-button"]');
-
-    // Wait for server setup form to appear
-    await page.waitForSelector('[data-testid="server-url-input"]', {
-      state: 'visible',
-    });
-
-    // The default URL should already be shown (localhost:8333)
-    // Clear and set a more realistic example URL
-    await page.fill(
-      '[data-testid="server-url-input"]',
-      'https://inkweld.example.com'
-    );
-
-    // Take full page screenshot
-    await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'setup-server-dark.png'),
-      fullPage: true,
-    });
+        await page.screenshot({
+          path: join(SCREENSHOTS_DIR, `setup-server-${scheme}.png`),
+          fullPage: true,
+        });
+      });
+    }
   });
 });

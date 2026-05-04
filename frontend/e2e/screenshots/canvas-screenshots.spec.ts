@@ -1,14 +1,9 @@
 /**
  * Canvas Tab Screenshot Tests
  *
- * Captures screenshots demonstrating the Canvas element type:
- * - Full canvas tab with sidebar and toolbar (overview)
- * - Sidebar detail showing layers panel
- * - Toolbar showing all tool buttons
- * - Both light and dark mode variants
- *
- * Uses local mode (no server) since canvas elements are stored entirely
- * in the browser's local IndexedDB.
+ * Captures screenshots demonstrating the Canvas element type. Consolidated
+ * 6 → 2 tests (one per color scheme); each captures overview + sidebar +
+ * toolbar via test.step, sharing the (expensive) shape-drawing setup.
  */
 
 import { type Page } from '@playwright/test';
@@ -30,9 +25,9 @@ test.describe('Canvas Tab Screenshots', () => {
   });
 
   /**
-   * Helper: set up a project and canvas element in local mode.
-   * The `offlinePage` fixture already configures localStorage for local mode;
-   * we just need to navigate and create the project + canvas element via the UI.
+   * Helper: set up a project and canvas element in local mode, then draw
+   * a small composition (rectangles, ellipse, lines) so the canvas looks
+   * populated for the screenshots.
    */
   async function setupCanvas(page: Page): Promise<void> {
     await page.goto('/');
@@ -40,17 +35,17 @@ test.describe('Canvas Tab Screenshots', () => {
 
     // Create a project (empty state — no prior projects in offline mode)
     const createButton = page.getByTestId('create-first-project-button');
-    await createButton.waitFor({ timeout: 15_000 });
+    await createButton.waitFor();
     await createButton.click();
 
     // Step 1: Template selection — accept default (empty)
     const nextButton = page.getByTestId('next-button');
-    await nextButton.waitFor({ timeout: 10_000 });
+    await nextButton.waitFor();
     await nextButton.click();
 
     // Step 2: Project details
     const titleInput = page.getByTestId('project-title-input');
-    await titleInput.waitFor({ timeout: 10_000 });
+    await titleInput.waitFor();
     await titleInput.fill('World Atlas');
 
     const slugInput = page.getByTestId('project-slug-input');
@@ -61,7 +56,7 @@ test.describe('Canvas Tab Screenshots', () => {
     await submitButton.click();
 
     // Wait for navigation to the project
-    await page.waitForURL(/world-atlas/, { timeout: 15_000 });
+    await page.waitForURL(/world-atlas/);
     await page.waitForLoadState('domcontentloaded');
 
     // Dismiss the "Project created successfully!" toast if present
@@ -72,7 +67,7 @@ test.describe('Canvas Tab Screenshots', () => {
     await page.getByTestId('element-type-canvas').click();
 
     const nameInput = page.getByTestId('element-name-input');
-    await nameInput.waitFor({ state: 'visible', timeout: 10_000 });
+    await nameInput.waitFor({ state: 'visible' });
     await nameInput.fill('World Map');
 
     await page.getByTestId('create-element-button').click();
@@ -80,7 +75,6 @@ test.describe('Canvas Tab Screenshots', () => {
     // Wait for the canvas tab to open
     await page.waitForSelector('[data-testid="canvas-container"]', {
       state: 'visible',
-      timeout: 15_000,
     });
 
     // Add a second layer so the sidebar looks more interesting
@@ -151,82 +145,72 @@ test.describe('Canvas Tab Screenshots', () => {
     await page.waitForTimeout(300);
   }
 
-  // ── Light mode ──────────────────────────────────────────────────────────────
-
-  test('canvas tab overview (light)', async ({ offlinePage: page }) => {
+  test('canvas screenshots — light mode', async ({ offlinePage: page }) => {
     await setupCanvas(page);
 
-    const container = page.getByTestId('canvas-container');
-    await captureElementScreenshot(
-      page,
-      [container],
-      join(screenshotsDir, 'canvas-tab-overview-light.png'),
-      0
-    );
+    await test.step('overview', async () => {
+      const container = page.getByTestId('canvas-container');
+      await captureElementScreenshot(
+        page,
+        [container],
+        join(screenshotsDir, 'canvas-tab-overview-light.png'),
+        0
+      );
+    });
+
+    await test.step('sidebar', async () => {
+      const sidebar = page.getByTestId('canvas-sidebar');
+      await captureElementScreenshot(
+        page,
+        [sidebar],
+        join(screenshotsDir, 'canvas-tab-sidebar-light.png'),
+        8
+      );
+    });
+
+    await test.step('toolbar', async () => {
+      const toolbar = page.getByTestId('canvas-toolbar');
+      await captureElementScreenshot(
+        page,
+        [toolbar],
+        join(screenshotsDir, 'canvas-tab-toolbar-light.png'),
+        8
+      );
+    });
   });
 
-  test('canvas sidebar (light)', async ({ offlinePage: page }) => {
-    await setupCanvas(page);
-
-    const sidebar = page.getByTestId('canvas-sidebar');
-    await captureElementScreenshot(
-      page,
-      [sidebar],
-      join(screenshotsDir, 'canvas-tab-sidebar-light.png'),
-      8
-    );
-  });
-
-  test('canvas toolbar (light)', async ({ offlinePage: page }) => {
-    await setupCanvas(page);
-
-    const toolbar = page.getByTestId('canvas-toolbar');
-    await captureElementScreenshot(
-      page,
-      [toolbar],
-      join(screenshotsDir, 'canvas-tab-toolbar-light.png'),
-      8
-    );
-  });
-
-  // ── Dark mode ────────────────────────────────────────────────────────────────
-
-  test('canvas tab overview (dark)', async ({ offlinePage: page }) => {
+  test('canvas screenshots — dark mode', async ({ offlinePage: page }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await setupCanvas(page);
 
-    const container = page.getByTestId('canvas-container');
-    await captureElementScreenshot(
-      page,
-      [container],
-      join(screenshotsDir, 'canvas-tab-overview-dark.png'),
-      0
-    );
-  });
+    await test.step('overview', async () => {
+      const container = page.getByTestId('canvas-container');
+      await captureElementScreenshot(
+        page,
+        [container],
+        join(screenshotsDir, 'canvas-tab-overview-dark.png'),
+        0
+      );
+    });
 
-  test('canvas sidebar (dark)', async ({ offlinePage: page }) => {
-    await page.emulateMedia({ colorScheme: 'dark' });
-    await setupCanvas(page);
+    await test.step('sidebar', async () => {
+      const sidebar = page.getByTestId('canvas-sidebar');
+      await captureElementScreenshot(
+        page,
+        [sidebar],
+        join(screenshotsDir, 'canvas-tab-sidebar-dark.png'),
+        8
+      );
+    });
 
-    const sidebar = page.getByTestId('canvas-sidebar');
-    await captureElementScreenshot(
-      page,
-      [sidebar],
-      join(screenshotsDir, 'canvas-tab-sidebar-dark.png'),
-      8
-    );
-  });
-
-  test('canvas toolbar (dark)', async ({ offlinePage: page }) => {
-    await page.emulateMedia({ colorScheme: 'dark' });
-    await setupCanvas(page);
-
-    const toolbar = page.getByTestId('canvas-toolbar');
-    await captureElementScreenshot(
-      page,
-      [toolbar],
-      join(screenshotsDir, 'canvas-tab-toolbar-dark.png'),
-      8
-    );
+    await test.step('toolbar', async () => {
+      const toolbar = page.getByTestId('canvas-toolbar');
+      await captureElementScreenshot(
+        page,
+        [toolbar],
+        join(screenshotsDir, 'canvas-tab-toolbar-dark.png'),
+        8
+      );
+    });
   });
 });

@@ -11,6 +11,10 @@
  * Strategy: Set up the project and elements at desktop viewport (so sidebar
  * is visible), then resize to mobile viewport for screenshots.
  *
+ * Consolidated: each viewport now runs a single test that captures both the
+ * accordion overview and the expanded tab-fields screenshot, and verifies
+ * no horizontal overflow — sharing the (expensive) project + element setup.
+ *
  * Viewports tested:
  * - iPhone SE (375x667)
  * - iPhone 14 Pro (393x852)
@@ -116,7 +120,7 @@ async function seedIdentityImage(page: Page): Promise<void> {
   });
 
   const identityPanel = page.locator('app-identity-panel');
-  await expect(identityPanel).toBeVisible({ timeout: 20_000 });
+  await expect(identityPanel).toBeVisible();
 
   await identityPanel.evaluate((host, imageDataUrl) => {
     const imageSection = host.querySelector('.image-section');
@@ -156,10 +160,7 @@ async function seedIdentityImage(page: Page): Promise<void> {
     image.alt = elementName;
   }, dataUrl);
 
-  await page.waitForSelector('.image-placeholder img', {
-    state: 'visible',
-    timeout: 10000,
-  });
+  await page.waitForSelector('.image-placeholder img', { state: 'visible' });
 }
 
 async function expandAccordionPanel(
@@ -202,24 +203,22 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
   });
 
   for (const [viewportName, viewport] of Object.entries(MOBILE_VIEWPORTS)) {
-    test.describe(`${viewportName} (${viewport.width}x${viewport.height})`, () => {
-      test(`accordion overview`, async ({ offlinePage: page }) => {
-        await setupWorldbuildingAtMobile(
-          page,
-          `mobile-overview-${viewportName.toLowerCase()}`,
-          'character-v1',
-          'Test Character',
-          viewport
-        );
+    test(`worldbuilding mobile — ${viewportName} (${viewport.width}x${viewport.height})`, async ({
+      offlinePage: page,
+    }) => {
+      await setupWorldbuildingAtMobile(
+        page,
+        `mobile-${viewportName.toLowerCase()}`,
+        'character-v1',
+        'Test Character',
+        viewport
+      );
 
-        // On mobile, the editor should show accordion panels
+      await test.step('accordion overview screenshot', async () => {
         await expect(page.getByTestId('accordion-identity')).toBeVisible();
         await expect(page.getByTestId('accordion-relationships')).toBeVisible();
-
-        // Verify the identity panel content is visible (expanded by default)
         await expect(page.locator('app-identity-panel')).toBeVisible();
 
-        // Screenshot: accordion overview
         await page.screenshot({
           path: join(
             screenshotsDir,
@@ -229,28 +228,15 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
         });
       });
 
-      test(`expand tab panel`, async ({ offlinePage: page }) => {
-        await setupWorldbuildingAtMobile(
-          page,
-          `mobile-tab-${viewportName.toLowerCase()}`,
-          'character-v1',
-          'Tab Fields Test',
-          viewport
-        );
-
-        // Expand the Basic Info panel using its stable test ID
+      await test.step('expand tab panel screenshot', async () => {
         const basicTabPanel = page.getByTestId('accordion-basic');
         await expandAccordionPanel(page, 'accordion-basic');
-
-        // Wait for panel to expand and form fields to appear
         await expect(page.getByTestId('field-fullName')).toBeVisible();
 
-        // Verify form fields are visible
         const formFields = basicTabPanel.locator('[data-testid^="field-"]');
         const fieldCount = await formFields.count();
         expect(fieldCount).toBeGreaterThan(0);
 
-        // Screenshot: expanded tab panel
         await page.screenshot({
           path: join(
             screenshotsDir,
@@ -260,28 +246,14 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
         });
       });
 
-      test(`no overflow in expanded panel`, async ({ offlinePage: page }) => {
-        await setupWorldbuildingAtMobile(
-          page,
-          `mobile-ovf-${viewportName.toLowerCase()}`,
-          'character-v1',
-          'Overflow Check',
-          viewport
-        );
-
-        // Expand the Basic Info panel to check field overflow
+      await test.step('verify no horizontal overflow', async () => {
         const basicTabPanel = page.getByTestId('accordion-basic');
-        await expandAccordionPanel(page, 'accordion-basic');
-        await expect(page.getByTestId('field-fullName')).toBeVisible();
 
-        // Verify no horizontal overflow
         const hasHorizontalOverflow = await page.evaluate(() => {
           return document.documentElement.scrollWidth > window.innerWidth;
         });
-
         expect(hasHorizontalOverflow).toBe(false);
 
-        // Verify the worldbuilding editor container fits within viewport
         const editorBox = await page
           .getByTestId('worldbuilding-editor')
           .boundingBox();
@@ -289,7 +261,6 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
           expect(editorBox.width).toBeLessThanOrEqual(viewport.width + 1);
         }
 
-        // Verify all visible form fields are within viewport bounds
         const formFields = basicTabPanel.locator('[data-testid^="field-"]');
         const fieldCount = await formFields.count();
         for (let i = 0; i < Math.min(fieldCount, 5); i++) {
@@ -305,25 +276,24 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
     });
   }
 
-  // --- Dark Mode Screenshots ---
-  // Use a single representative viewport for dark mode to keep test count reasonable
-  const darkViewport = MOBILE_VIEWPORTS.iPhone14Pro;
+  // --- Dark Mode ---
+  // Single representative viewport, captures both screenshots.
+  test('worldbuilding mobile — dark mode (iPhone 14 Pro)', async ({
+    offlinePage: page,
+  }) => {
+    const darkViewport = MOBILE_VIEWPORTS.iPhone14Pro;
+    await setupWorldbuildingAtMobile(
+      page,
+      'mobile-dark',
+      'character-v1',
+      'Dark Mode Char',
+      darkViewport
+    );
 
-  test.describe('Dark Mode', () => {
-    test('accordion overview - dark mode', async ({ offlinePage: page }) => {
-      await setupWorldbuildingAtMobile(
-        page,
-        'mobile-dark-overview',
-        'character-v1',
-        'Dark Mode Char',
-        darkViewport
-      );
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.waitForTimeout(400);
 
-      // Switch to dark mode
-      await page.emulateMedia({ colorScheme: 'dark' });
-      await page.waitForTimeout(400);
-
-      // Verify accordion panels are visible
+    await test.step('accordion overview screenshot', async () => {
       await expect(page.getByTestId('accordion-identity')).toBeVisible();
       await expect(page.locator('app-identity-panel')).toBeVisible();
 
@@ -333,21 +303,8 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
       });
     });
 
-    test('expand tab panel - dark mode', async ({ offlinePage: page }) => {
-      await setupWorldbuildingAtMobile(
-        page,
-        'mobile-dark-tab',
-        'character-v1',
-        'Dark Tab Fields',
-        darkViewport
-      );
-
-      await page.emulateMedia({ colorScheme: 'dark' });
-      await page.waitForTimeout(400);
-
-      // Expand the Basic Info panel using its stable test ID
+    await test.step('expand tab panel screenshot', async () => {
       await expandAccordionPanel(page, 'accordion-basic');
-
       await expect(page.getByTestId('field-fullName')).toBeVisible();
 
       await page.screenshot({

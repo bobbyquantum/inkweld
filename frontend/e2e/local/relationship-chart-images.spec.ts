@@ -80,15 +80,14 @@ test.describe('Relationship Chart Element Images', () => {
     // The identity panel hides the image in sidenav mode (showImage=false),
     // but the sidenav thumbnail shows the image when it exists.
     const sidenavThumbnail = page.getByTestId('sidenav-thumbnail');
-    await expect(sidenavThumbnail).toBeVisible({ timeout: 10_000 });
+    await expect(sidenavThumbnail).toBeVisible();
 
     // ── Navigate to the Character Web chart ──────────────────────────────
-    await page.getByTestId('element-Character Web').click({ timeout: 10_000 });
+    await page.getByTestId('element-Character Web').click();
 
     // Wait for the Cytoscape canvas to initialise inside the chart area
     await page.waitForSelector('[data-testid="chart-area"] canvas', {
       state: 'visible',
-      timeout: 15_000,
     });
 
     // Allow time for the asynchronous node-image loading pipeline to complete.
