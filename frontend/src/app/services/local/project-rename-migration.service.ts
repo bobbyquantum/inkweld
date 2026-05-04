@@ -186,11 +186,21 @@ export class ProjectRenameMigrationService {
   }
 
   /**
-   * Check if a database exists by trying to open it
+   * Check if a database exists by trying to open it.
+   *
+   * We must abort any version-change transaction that fires (which only happens
+   * when the DB doesn't exist yet) to prevent creating an empty shell DB at
+   * version 1 with no object stores.  If such a shell is left behind,
+   * y-indexeddb will later open the same name, find it already at version 1,
+   * skip its own onupgradeneeded, and crash with a NotFoundError.
    */
   private async databaseExists(dbName: string): Promise<boolean> {
     return new Promise(resolve => {
       const request = indexedDB.open(dbName);
+
+      request.onupgradeneeded = event => {
+        (event.target as IDBOpenDBRequest).transaction?.abort();
+      };
 
       request.onsuccess = () => {
         const db = request.result;

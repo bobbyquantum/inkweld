@@ -418,16 +418,23 @@ export class ProjectSyncService {
   }
 
   /**
-   * Check if a document is available in IndexedDB
+   * Check if a document is available in IndexedDB.
+   *
+   * We must abort any `onupgradeneeded` transaction so we do NOT commit an
+   * empty version-1 database.  If we did, y-indexeddb would later see the DB
+   * already at version 1, skip its own upgrade, and crash trying to open
+   * the 'updates' object store that was never created.
    */
   private async checkDocumentAvailable(documentId: string): Promise<boolean> {
     try {
-      // Try to get the document from IndexedDB
-      // We check if there's any data stored for this document
       const dbName = documentId;
       const request = indexedDB.open(dbName);
 
       return new Promise(resolve => {
+        // Abort the version-change transaction so no empty DB is committed.
+        request.onupgradeneeded = event => {
+          (event.target as IDBOpenDBRequest).transaction?.abort();
+        };
         request.onsuccess = () => {
           const db = request.result;
           const hasData = db.objectStoreNames.length > 0;

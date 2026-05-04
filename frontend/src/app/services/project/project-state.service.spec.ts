@@ -720,6 +720,82 @@ describe('ProjectStateService', () => {
 
       vi.restoreAllMocks();
     });
+
+    /**
+     * REGRESSION: MCP-created documents failed to sync to the browser
+     * because `checkDocumentInIndexedDB` called `indexedDB.open(name)`
+     * with no `onupgradeneeded` handler. When the database did not exist,
+     * the browser COMMITTED an empty version-1 database with zero object
+     * stores. y-indexeddb later opened the same name, found v1 already
+     * present, skipped its own schema creation, and crashed with
+     * "NotFoundError: One of the specified object stores was not found"
+     * the moment the editor mounted — leaving the user staring at the
+     * "This document has not been synced to your browser yet" warning.
+     *
+     * The fix attaches an `onupgradeneeded` handler that immediately
+     * aborts the version-change transaction, preventing the empty shell
+     * DB from being persisted. y-indexeddb is then free to create the
+     * database itself with the correct `updates` and `custom` stores.
+     *
+     * This test asserts:
+     *  1. The probe wires an `onupgradeneeded` handler on the open request.
+     *  2. The handler aborts the version-change transaction.
+     *  3. The probe still resolves (treating the AbortError → false:
+     *     "no synced data on this device").
+     */
+    it('aborts the IndexedDB upgrade transaction so an empty shell DB is never committed (regression)', async () => {
+      const abortSpy = vi.fn();
+      const mockTransaction = { abort: abortSpy };
+      const mockRequest: {
+        onsuccess: ((event: Event) => void) | null;
+        onerror: ((event: Event) => void) | null;
+        onupgradeneeded: ((event: Event) => void) | null;
+        result: { objectStoreNames: { length: number }; close: () => void };
+        transaction: typeof mockTransaction;
+      } = {
+        onsuccess: null,
+        onerror: null,
+        onupgradeneeded: null,
+        result: { objectStoreNames: { length: 0 }, close: () => {} },
+        transaction: mockTransaction,
+      };
+
+      vi.spyOn(indexedDB, 'open').mockReturnValue(
+        mockRequest as unknown as IDBOpenDBRequest
+      );
+
+      const promise = service.isDocumentUnavailable('mcp-created-element');
+
+      // Simulate the browser firing onupgradeneeded for a fresh DB.
+      // The handler must abort the transaction synchronously.
+      queueMicrotask(() => {
+        expect(
+          mockRequest.onupgradeneeded,
+          'checkDocumentInIndexedDB must wire an onupgradeneeded handler ' +
+            'to prevent committing an empty version-1 database'
+        ).toBeTypeOf('function');
+        const event = {
+          target: mockRequest as unknown as IDBOpenDBRequest,
+        } as unknown as Event;
+        mockRequest.onupgradeneeded?.(event);
+        // The browser then fires onerror (with AbortError) when the
+        // version-change transaction is aborted.
+        mockRequest.onerror?.({} as Event);
+      });
+
+      const result = await promise;
+
+      expect(
+        abortSpy,
+        'onupgradeneeded handler must abort the transaction so the ' +
+          'empty DB shell is never persisted to disk'
+      ).toHaveBeenCalledTimes(1);
+      // Aborted upgrade ⇒ no data ⇒ document is "unavailable" so the UI
+      // can prompt the user to wait for WebSocket sync.
+      expect(result).toBe(true);
+
+      vi.restoreAllMocks();
+    });
   });
 
   describe('Tree Operations', () => {
