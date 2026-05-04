@@ -4,24 +4,34 @@
  * Tests the password reset page accessible via email link.
  * Covers the no-token error state, password requirement indicators,
  * real-time validation, form submission, and success state.
+ *
+ * NOTE: All sub-cases that share a page state are bundled into a single test
+ * with `test.step()` to avoid re-paying the page-load + fixture cost. Two
+ * top-level tests remain because they exercise different routes/states.
  */
 import { expect, test } from './fixtures';
 
 test.describe('Reset Password', () => {
-  test.describe('No Token Error State', () => {
-    test('should show error when visited without a token', async ({
-      anonymousPage: page,
-    }) => {
-      await page.goto('/reset-password');
-      await page.waitForLoadState('networkidle');
+  test('no-token error state: shows error UI and offers navigation links', async ({
+    anonymousPage: page,
+  }) => {
+    await page.goto('/reset-password');
+    await page.waitForLoadState('networkidle');
 
+    await test.step('renders the reset-password page with the no-token error', async () => {
       await expect(page.getByTestId('reset-password-page')).toBeVisible();
       await expect(page.getByTestId('no-token-error')).toBeVisible();
     });
 
-    test('should have a link to request a new reset link', async ({
-      anonymousPage: page,
-    }) => {
+    await test.step('shows back-to-home link and navigates home', async () => {
+      const backLink = page.getByTestId('back-to-home');
+      await expect(backLink).toBeVisible();
+      await backLink.click();
+      await expect(page).toHaveURL('/');
+    });
+
+    await test.step('offers a link to request a new reset link', async () => {
+      // Re-open the no-token state after the previous step navigated away.
       await page.goto('/reset-password');
       await page.waitForLoadState('networkidle');
 
@@ -30,131 +40,71 @@ test.describe('Reset Password', () => {
       });
       await expect(requestLink).toBeVisible();
       await requestLink.click();
-
-      // Should navigate to forgot-password page
       await expect(page).toHaveURL(/forgot-password/);
-    });
-
-    test('should show back-to-home link in no-token state', async ({
-      anonymousPage: page,
-    }) => {
-      await page.goto('/reset-password');
-      await page.waitForLoadState('networkidle');
-
-      await expect(page.getByTestId('back-to-home')).toBeVisible();
-      await page.getByTestId('back-to-home').click();
-      await expect(page).toHaveURL('/');
     });
   });
 
-  test.describe('Password Reset Form (with placeholder token)', () => {
+  test('reset form with placeholder token: rendering, validation, and submit-enable', async ({
+    anonymousPage: page,
+  }) => {
     const TOKEN = 'placeholder-test-token';
+    await page.goto(`/reset-password?token=${TOKEN}`);
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('reset-password-form')).toBeVisible();
 
-    test.beforeEach(async ({ anonymousPage: page }) => {
-      await page.goto(`/reset-password?token=${TOKEN}`);
-      await page.waitForLoadState('networkidle');
-      await expect(page.getByTestId('reset-password-form')).toBeVisible();
+    const newPassword = page.getByTestId('new-password-input');
+    const confirmPassword = page.getByTestId('confirm-password-input');
+    const submit = page.getByTestId('reset-submit-button');
+    const requirements = page.getByTestId('password-requirements');
+    const mismatchError = page.getByTestId('password-validation-error');
+
+    await test.step('renders the reset form with password fields', async () => {
+      await expect(newPassword).toBeVisible();
+      await expect(confirmPassword).toBeVisible();
+      await expect(requirements).toBeVisible();
+      await expect(submit).toBeVisible();
     });
 
-    test('should show the reset form with password fields', async ({
-      anonymousPage: page,
-    }) => {
-      await expect(page.getByTestId('new-password-input')).toBeVisible();
-      await expect(page.getByTestId('confirm-password-input')).toBeVisible();
-      await expect(page.getByTestId('password-requirements')).toBeVisible();
-      await expect(page.getByTestId('reset-submit-button')).toBeVisible();
+    await test.step('disables submit button for empty form', async () => {
+      await expect(submit).toBeDisabled();
     });
 
-    test('should disable submit button for empty form', async ({
-      anonymousPage: page,
-    }) => {
-      await expect(page.getByTestId('reset-submit-button')).toBeDisabled();
-    });
-
-    test('should show password requirements with unmet indicators', async ({
-      anonymousPage: page,
-    }) => {
-      const requirements = page.getByTestId('password-requirements');
-
-      // All requirement items should be visible
+    await test.step('shows password requirements with unmet indicators', async () => {
       await expect(
         requirements.locator('li.requirement-item').first()
       ).toBeVisible();
-
-      // The minLength requirement should be present
       await expect(requirements.getByText(/characters long/i)).toBeVisible();
     });
 
-    test('should mark requirements as met when typing valid password', async ({
-      anonymousPage: page,
-    }) => {
-      // Type a password that satisfies all common requirements
-      const strongPassword = 'StrongP@ss1';
-      await page.getByTestId('new-password-input').fill(strongPassword);
+    await test.step('marks requirements as unmet for a weak password', async () => {
+      await newPassword.fill('abc');
+      const unmetItems = requirements.locator('li.unmet');
+      expect(await unmetItems.count()).toBeGreaterThan(0);
+    });
 
-      // Wait for real-time validation to update
+    await test.step('marks requirements as met when typing a valid password', async () => {
+      await newPassword.fill('StrongP@ss1');
       await page.waitForTimeout(300);
-
-      // Requirements list items should show check_circle icons for met requirements
-      const metIcons = page
-        .getByTestId('password-requirements')
-        .locator('li.met mat-icon');
-      const metCount = await metIcons.count();
-      // At minimum, minLength and uppercase should be met
-      expect(metCount).toBeGreaterThan(0);
+      const metIcons = requirements.locator('li.met mat-icon');
+      expect(await metIcons.count()).toBeGreaterThan(0);
     });
 
-    test('should show requirements as unmet for weak password', async ({
-      anonymousPage: page,
-    }) => {
-      // Type a weak password
-      await page.getByTestId('new-password-input').fill('abc');
-
-      // Requirement items for unmet requirements should have class 'unmet'
-      const unmetItems = page
-        .getByTestId('password-requirements')
-        .locator('li.unmet');
-      const unmetCount = await unmetItems.count();
-      expect(unmetCount).toBeGreaterThan(0);
+    await test.step('shows mismatch error when passwords do not match', async () => {
+      await newPassword.fill('StrongP@ss1');
+      await confirmPassword.fill('DifferentP@ss1');
+      await expect(mismatchError).toBeVisible();
     });
 
-    test('should show mismatch error when passwords do not match', async ({
-      anonymousPage: page,
-    }) => {
-      await page.getByTestId('new-password-input').fill('StrongP@ss1');
-      await page.getByTestId('confirm-password-input').fill('DifferentP@ss1');
-
-      await expect(page.getByTestId('password-validation-error')).toBeVisible();
+    await test.step('clears mismatch error when passwords match', async () => {
+      // Continues from previous step which left a mismatch.
+      await confirmPassword.fill('StrongP@ss1');
+      await expect(mismatchError).not.toBeVisible();
     });
 
-    test('should clear mismatch error when passwords match', async ({
-      anonymousPage: page,
-    }) => {
-      // First create a mismatch to trigger the error
-      await page.getByTestId('new-password-input').fill('StrongP@ss1');
-      await page.getByTestId('confirm-password-input').fill('DifferentP@ss1');
-      await expect(page.getByTestId('password-validation-error')).toBeVisible();
-
-      // Now fix the mismatch — error should disappear
-      await page.getByTestId('confirm-password-input').fill('StrongP@ss1');
-
-      // Mismatch error should NOT be visible
-      await expect(
-        page.getByTestId('password-validation-error')
-      ).not.toBeVisible();
-    });
-
-    test('should enable submit button when form is valid', async ({
-      anonymousPage: page,
-    }) => {
-      const strongPassword = 'StrongP@ss1';
-      await page.getByTestId('new-password-input').fill(strongPassword);
-      await page.getByTestId('confirm-password-input').fill(strongPassword);
-
+    await test.step('enables submit button when form is valid', async () => {
+      // newPassword + confirmPassword already match a strong password from previous step.
       await page.waitForTimeout(300);
-
-      // Submit button should be enabled
-      await expect(page.getByTestId('reset-submit-button')).toBeEnabled();
+      await expect(submit).toBeEnabled();
     });
   });
 });

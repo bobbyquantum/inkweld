@@ -3,187 +3,133 @@
  *
  * Tests that verify project creation, management, and navigation
  * work correctly in pure local mode without any server connection.
+ *
+ * Consolidated from 9 individual tests into 3 grouped tests using
+ * `test.step()` to reduce repeated fixture setup. Steps that can
+ * share a single visit to /create-project are grouped together.
  */
+import { type Page } from '@playwright/test';
+
 import { expect, test } from './fixtures';
 
+/**
+ * Navigate to /create-project and advance past the template-selection step
+ * to the project-details form.
+ */
+async function gotoProjectDetailsForm(page: Page): Promise<void> {
+  await page.goto('/create-project');
+  // Step 1: template selection — default is pre-selected, just hit Next.
+  await page.getByRole('button', { name: /next/i }).click();
+}
+
 test.describe('Local Project Workflows', () => {
-  test('should create a new project successfully', async ({
+  test('create-project form: validation, slug auto-gen, URL preview, long content acceptance', async ({
     localPageWithProject: page,
   }) => {
-    // The fixture already creates a project, verify it exists
-    await expect(page.getByTestId('project-card').first()).toBeVisible();
+    await test.step('create button disabled until required fields populated', async () => {
+      await gotoProjectDetailsForm(page);
+      await expect(page.getByTestId('create-project-button')).toBeDisabled();
 
-    // Navigate to create another project
-    await page.goto('/create-project');
+      await page.getByTestId('project-slug-input').fill('test-slug');
+      await expect(page.getByTestId('create-project-button')).toBeDisabled();
 
-    // Step 1: Template selection - default template is pre-selected
-    // Click Next to proceed to step 2
-    await page.getByRole('button', { name: /next/i }).click();
-
-    // Step 2: Fill in project details
-    await page.getByTestId('project-title-input').fill('My Second Project');
-    await page.getByTestId('project-slug-input').fill('my-second-project');
-    await page
-      .getByTestId('project-description-input')
-      .fill('A second test project');
-
-    // Submit the form
-    await page.getByTestId('create-project-button').click();
-
-    // Should redirect to the project page
-    await expect(page).toHaveURL(/\/.*\/my-second-project/);
-  });
-
-  test('should show validation errors for empty project title', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.goto('/create-project');
-
-    // Step 1: Click Next to proceed to step 2
-    await page.getByRole('button', { name: /next/i }).click();
-
-    // Step 2: Now on project details form
-    // Create button should be disabled without required fields
-    await expect(page.getByTestId('create-project-button')).toBeDisabled();
-
-    // Fill only slug
-    await page.getByTestId('project-slug-input').fill('test-slug');
-    await expect(page.getByTestId('create-project-button')).toBeDisabled();
-
-    // Fill title - now it should be enabled
-    await page.getByTestId('project-title-input').fill('Test Title');
-    await expect(page.getByTestId('create-project-button')).toBeEnabled();
-  });
-
-  test('should auto-generate slug from title', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.goto('/create-project');
-
-    // Step 1: Click Next to proceed to step 2
-    await page.getByRole('button', { name: /next/i }).click();
-
-    // Step 2: Fill in title
-    await page.getByTestId('project-title-input').fill('My Awesome Project');
-
-    // Blur to trigger slug generation
-    await page.getByTestId('project-title-input').blur();
-
-    // Check if slug was auto-generated
-    await expect(page.getByTestId('project-slug-input')).not.toHaveValue('');
-    const slugValue = await page.getByTestId('project-slug-input').inputValue();
-    expect(slugValue).toBeTruthy();
-    expect(slugValue).toMatch(/^[a-z0-9-]+$/);
-  });
-
-  test('should list projects on home page', async ({
-    localPageWithProject: page,
-  }) => {
-    // The fixture creates a project, should be visible
-    await expect(page.getByTestId('project-card').first()).toBeVisible();
-  });
-
-  test('should open existing project', async ({
-    localPageWithProject: page,
-  }) => {
-    // Click on the project card
-    await page.getByTestId('project-card').first().click();
-
-    // Should navigate to project page
-    await expect(page).toHaveURL(/\/.+\/.+/);
-
-    // Project tree should be visible
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-  });
-
-  test('should cancel project creation and return home', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.goto('/create-project');
-
-    // Step 1: Click Next to proceed to step 2
-    await page.getByRole('button', { name: /next/i }).click();
-
-    // Step 2: Fill in some data
-    await page.getByTestId('project-title-input').fill('Cancelled Project');
-
-    // Click the back button in the top bar (arrow_back icon)
-    await page.getByLabel('Go back to home').click();
-
-    // Should navigate back to home
-    await expect(page).toHaveURL('/');
-  });
-
-  test('should persist project data in localStorage', async ({
-    localPageWithProject: page,
-  }) => {
-    // Get current projects from localStorage (uses prefixed key in local mode)
-    const projectsBefore = await page.evaluate(() => {
-      return localStorage.getItem('local:inkweld-local-projects');
+      await page.getByTestId('project-title-input').fill('Test Title');
+      await expect(page.getByTestId('create-project-button')).toBeEnabled();
     });
-    expect(projectsBefore).not.toBeNull();
 
-    // Create a new project
-    await page.goto('/create-project');
+    await test.step('slug auto-generates from title on blur', async () => {
+      // Re-enter the form so we can test slug auto-gen with empty slug.
+      await gotoProjectDetailsForm(page);
+      await page.getByTestId('project-title-input').fill('My Awesome Project');
+      await page.getByTestId('project-title-input').blur();
 
-    // Step 1: Click Next to proceed to step 2
-    await page.getByRole('button', { name: /next/i }).click();
-
-    // Step 2: Fill in project details
-    const uniqueSlug = `persist-test-${Date.now()}`;
-    await page.getByTestId('project-title-input').fill('Persistence Test');
-    await page.getByTestId('project-slug-input').fill(uniqueSlug);
-    await page.getByTestId('create-project-button').click();
-
-    // Wait for navigation
-    await page.waitForURL(new RegExp(uniqueSlug));
-
-    // Verify project was added to localStorage (uses prefixed key)
-    const projectsAfter = await page.evaluate(() => {
-      return localStorage.getItem('local:inkweld-local-projects');
+      await expect(page.getByTestId('project-slug-input')).not.toHaveValue('');
+      const slugValue = await page
+        .getByTestId('project-slug-input')
+        .inputValue();
+      expect(slugValue).toBeTruthy();
+      expect(slugValue).toMatch(/^[a-z0-9-]+$/);
     });
-    expect(projectsAfter).toContain(uniqueSlug);
+
+    await test.step('URL preview displays current slug', async () => {
+      await page.getByTestId('project-slug-input').fill('preview-test');
+      await expect(page.getByTestId('project-url-preview')).toBeVisible();
+      await expect(page.getByTestId('project-url-preview')).toContainText(
+        'preview-test'
+      );
+    });
+
+    await test.step('long titles and descriptions are accepted', async () => {
+      // Stay on the same form; just refill with long content.
+      const longTitle = 'A'.repeat(100);
+      const longDescription = 'B'.repeat(500);
+
+      await page.getByTestId('project-title-input').fill(longTitle);
+      await page.getByTestId('project-slug-input').fill('long-content-test');
+      await page.getByTestId('project-description-input').fill(longDescription);
+
+      await expect(page.getByTestId('create-project-button')).toBeEnabled();
+      await page.getByTestId('create-project-button').click();
+      await expect(page).toHaveURL(/\/.*\/long-content-test/);
+    });
   });
 
-  test('should handle long project titles and descriptions', async ({
+  test('successful creation flows: create + persist in localStorage + cancel back to home', async ({
     localPageWithProject: page,
   }) => {
-    await page.goto('/create-project');
+    await test.step('create a second project and redirect to its page', async () => {
+      await gotoProjectDetailsForm(page);
+      await page.getByTestId('project-title-input').fill('My Second Project');
+      await page.getByTestId('project-slug-input').fill('my-second-project');
+      await page
+        .getByTestId('project-description-input')
+        .fill('A second test project');
 
-    // Step 1: Click Next to proceed to step 2
-    await page.getByRole('button', { name: /next/i }).click();
+      await page.getByTestId('create-project-button').click();
+      await expect(page).toHaveURL(/\/.*\/my-second-project/);
+    });
 
-    // Step 2: Fill in long content
-    const longTitle = 'A'.repeat(100);
-    const longDescription = 'B'.repeat(500);
+    await test.step('new project persists to localStorage', async () => {
+      // Initial fixture project is already in localStorage; verify the new
+      // unique slug we create here also lands there.
+      const projectsBefore = await page.evaluate(() =>
+        localStorage.getItem('local:inkweld-local-projects')
+      );
+      expect(projectsBefore).not.toBeNull();
 
-    await page.getByTestId('project-title-input').fill(longTitle);
-    await page.getByTestId('project-slug-input').fill('long-content-test');
-    await page.getByTestId('project-description-input').fill(longDescription);
+      await gotoProjectDetailsForm(page);
 
-    // Should still be able to create
-    await expect(page.getByTestId('create-project-button')).toBeEnabled();
-    await page.getByTestId('create-project-button').click();
+      const uniqueSlug = `persist-test-${Date.now()}`;
+      await page.getByTestId('project-title-input').fill('Persistence Test');
+      await page.getByTestId('project-slug-input').fill(uniqueSlug);
+      await page.getByTestId('create-project-button').click();
+      await page.waitForURL(new RegExp(uniqueSlug));
 
-    // Should redirect successfully
-    await expect(page).toHaveURL(/\/.*\/long-content-test/);
+      const projectsAfter = await page.evaluate(() =>
+        localStorage.getItem('local:inkweld-local-projects')
+      );
+      expect(projectsAfter).toContain(uniqueSlug);
+    });
+
+    await test.step('cancel via back button returns to home', async () => {
+      await gotoProjectDetailsForm(page);
+      await page.getByTestId('project-title-input').fill('Cancelled Project');
+      await page.getByLabel('Go back to home').click();
+      await expect(page).toHaveURL('/');
+    });
   });
 
-  test('should show project URL preview during creation', async ({
+  test('list and open existing project from home page', async ({
     localPageWithProject: page,
   }) => {
-    await page.goto('/create-project');
+    await test.step('fixture-created project appears on home page', async () => {
+      await expect(page.getByTestId('project-card').first()).toBeVisible();
+    });
 
-    // Step 1: Click Next to proceed to step 2
-    await page.getByRole('button', { name: /next/i }).click();
-
-    // Step 2: Fill in slug
-    await page.getByTestId('project-slug-input').fill('preview-test');
-
-    // Should show URL preview
-    await expect(page.getByTestId('project-url-preview')).toBeVisible();
-    await expect(page.getByTestId('project-url-preview')).toContainText(
-      'preview-test'
-    );
+    await test.step('clicking a project card opens it with its tree', async () => {
+      await page.getByTestId('project-card').first().click();
+      await expect(page).toHaveURL(/\/.+\/.+/);
+      await expect(page.getByTestId('project-tree')).toBeVisible();
+    });
   });
 });

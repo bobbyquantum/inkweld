@@ -2,165 +2,128 @@
  * Pinning Feature Tests - Local Mode
  *
  * Verifies that project owners can pin / unpin elements, that pins appear in
- * both the sidebar pinned-section and the Home tab Pinned column, and that
- * pins survive a full page reload (persisted via IndexedDB in local mode).
+ * both the sidebar pinned-section and the Home tab Pinned column, that pins
+ * survive a full page reload (persisted via IndexedDB in local mode), and
+ * that the project title is preserved across pin operations.
+ *
+ * Consolidated from 5 individual tests into 1 grouped test using
+ * `test.step()`. All assertions operate on the same project so the
+ * pin / unpin lifecycle is exercised end-to-end without redoing the
+ * (slow) `createProjectWithTwoSteps` flow per case.
  */
+import { type Page } from '@playwright/test';
+
 import { createProjectWithTwoSteps } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
-/** Navigate to the project and wait for the tree to be ready. */
-async function openProject(
-  page: Parameters<typeof test>[1]['page'],
-  slug: string
-) {
+/** Wait for the project shell + tree to be hydrated. */
+async function waitForProjectReady(page: Page, slug: string): Promise<void> {
   await page.waitForURL(new RegExp(`testuser/${slug}`));
   await page.waitForSelector('app-project-tree', { state: 'visible' });
-  // Give IndexedDB a moment to hydrate
+  // Give IndexedDB a moment to hydrate.
   await page.waitForTimeout(500);
 }
 
-/** Right-click the named tree node and click Pin/Unpin. */
+/** Right-click the named tree node and click Pin/Unpin in the context menu. */
 async function togglePinViaContextMenu(
-  page: Parameters<typeof test>[1]['page'],
+  page: Page,
   elementName: string
-) {
+): Promise<void> {
   const node = page.locator(`[data-testid="element-${elementName}"]`);
   await node.waitFor({ state: 'visible' });
   await node.click({ button: 'right' });
   await page.waitForSelector('.context-menu', { state: 'visible' });
   await page.locator('[data-testid="context-menu-pin"]').click();
-  // Allow the Yjs write + IndexedDB flush to complete
+  // Allow the Yjs write + IndexedDB flush to complete.
   await page.waitForTimeout(500);
 }
 
+const TITLE_SELECTOR = 'h1, h2, .project-title, [data-testid="project-title"]';
+
 test.describe('Pinning', () => {
-  test('pinned element appears in the sidebar pinned section', async ({
-    localPage: page,
-  }) => {
-    await createProjectWithTwoSteps(page, 'Pin Test', 'pin-test');
-    await openProject(page, 'pin-test');
-
-    // Pinned section should not exist yet
-    await expect(page.locator('.pinned-section')).not.toBeVisible();
-
-    // Pin the default README element
-    await togglePinViaContextMenu(page, 'README');
-
-    // Pinned section should now appear with README
-    await expect(page.locator('.pinned-section')).toBeVisible();
-    await expect(page.locator('[data-testid="pinned-README"]')).toBeVisible();
-  });
-
-  test('pinned element appears in the Home tab Pinned column', async ({
-    localPage: page,
-  }) => {
-    await createProjectWithTwoSteps(page, 'Pin Home Test', 'pin-home-test');
-    await openProject(page, 'pin-home-test');
-
-    await togglePinViaContextMenu(page, 'README');
-
-    // Navigate to the Home tab
-    await page.locator('[data-testid="toolbar-home-button"]').click();
-    await page.waitForTimeout(300);
-
-    // Home tab Pinned column should list README
-    await expect(
-      page.locator('[data-testid="home-pinned-README"]')
-    ).toBeVisible();
-    // Empty-state hint should be gone
-    await expect(
-      page.locator('[data-testid="home-pinned-empty"]')
-    ).not.toBeVisible();
-  });
-
-  test('pins survive a page reload', async ({ localPage: page }) => {
-    await createProjectWithTwoSteps(page, 'Pin Reload Test', 'pin-reload-test');
-    await openProject(page, 'pin-reload-test');
-
-    await togglePinViaContextMenu(page, 'README');
-
-    // Confirm pin is visible before reload
-    await expect(page.locator('[data-testid="pinned-README"]')).toBeVisible();
-
-    // Reload the page — IndexedDB should restore the pin
-    await page.reload();
-    await openProject(page, 'pin-reload-test');
-
-    await expect(page.locator('.pinned-section')).toBeVisible();
-    await expect(page.locator('[data-testid="pinned-README"]')).toBeVisible();
-
-    // Home tab should also show the pin after reload
-    await page.locator('[data-testid="toolbar-home-button"]').click();
-    await page.waitForTimeout(300);
-    await expect(
-      page.locator('[data-testid="home-pinned-README"]')
-    ).toBeVisible();
-  });
-
-  test('unpinning removes element from both surfaces', async ({
-    localPage: page,
-  }) => {
-    await createProjectWithTwoSteps(page, 'Unpin Test', 'unpin-test');
-    await openProject(page, 'unpin-test');
-
-    // Pin first
-    await togglePinViaContextMenu(page, 'README');
-    await expect(page.locator('[data-testid="pinned-README"]')).toBeVisible();
-
-    // Unpin via context menu (same item toggles)
-    await togglePinViaContextMenu(page, 'README');
-
-    // Pinned section should disappear
-    await expect(page.locator('.pinned-section')).not.toBeVisible();
-
-    // Home tab empty state should be shown
-    await page.locator('[data-testid="toolbar-home-button"]').click();
-    await page.waitForTimeout(300);
-    await expect(
-      page.locator('[data-testid="home-pinned-empty"]')
-    ).toBeVisible();
-  });
-
-  test('project title is not blanked after pinning in local mode', async ({
+  test('pin/unpin lifecycle: sidebar, Home tab, reload persistence, title preservation', async ({
     localPage: page,
   }) => {
     await createProjectWithTwoSteps(
       page,
-      'Title Preserve Test',
-      'title-preserve-test'
+      'Pin Lifecycle Test',
+      'pin-lifecycle'
     );
-    await openProject(page, 'title-preserve-test');
+    await waitForProjectReady(page, 'pin-lifecycle');
 
-    // Navigate to home tab to see the project title
-    await page.locator('[data-testid="toolbar-home-button"]').click();
-    await page.waitForTimeout(300);
+    let titleBefore: string | null = null;
 
-    // Record the title shown before pinning
-    const titleBefore = await page
-      .locator('h1, h2, .project-title, [data-testid="project-title"]')
-      .first()
-      .textContent();
+    await test.step('initial state: no pinned section, Home tab shows empty title baseline', async () => {
+      await expect(page.locator('.pinned-section')).not.toBeVisible();
 
-    // Go back, pin an element
-    await page
-      .locator('[data-testid="toolbar-home-button"]')
-      .click()
-      .catch(() => {});
-    // Navigate to tree by going back to project URL
-    await page.goto(`/testuser/title-preserve-test`);
-    await openProject(page, 'title-preserve-test');
-    await togglePinViaContextMenu(page, 'README');
+      await page.locator('[data-testid="toolbar-home-button"]').click();
+      await page.waitForTimeout(300);
 
-    // Navigate to home tab again
-    await page.locator('[data-testid="toolbar-home-button"]').click();
-    await page.waitForTimeout(300);
+      titleBefore = await page.locator(TITLE_SELECTOR).first().textContent();
+      expect(titleBefore?.trim()).toBeTruthy();
 
-    // Title must still be present and non-empty
-    const titleAfter = await page
-      .locator('h1, h2, .project-title, [data-testid="project-title"]')
-      .first()
-      .textContent();
-    expect(titleAfter?.trim()).toBeTruthy();
-    expect(titleAfter?.trim()).toBe(titleBefore?.trim());
+      await expect(
+        page.locator('[data-testid="home-pinned-empty"]')
+      ).toBeVisible();
+    });
+
+    await test.step('pin README → sidebar pinned section + Home Pinned column show it', async () => {
+      // Return to project tree view.
+      await page.goto('/testuser/pin-lifecycle');
+      await waitForProjectReady(page, 'pin-lifecycle');
+
+      await togglePinViaContextMenu(page, 'README');
+
+      await expect(page.locator('.pinned-section')).toBeVisible();
+      await expect(page.locator('[data-testid="pinned-README"]')).toBeVisible();
+
+      await page.locator('[data-testid="toolbar-home-button"]').click();
+      await page.waitForTimeout(300);
+
+      await expect(
+        page.locator('[data-testid="home-pinned-README"]')
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-testid="home-pinned-empty"]')
+      ).not.toBeVisible();
+    });
+
+    await test.step('project title is preserved after pinning', async () => {
+      const titleAfter = await page
+        .locator(TITLE_SELECTOR)
+        .first()
+        .textContent();
+      expect(titleAfter?.trim()).toBeTruthy();
+      expect(titleAfter?.trim()).toBe(titleBefore?.trim());
+    });
+
+    await test.step('pin survives a full page reload', async () => {
+      await page.reload();
+      await waitForProjectReady(page, 'pin-lifecycle');
+
+      await expect(page.locator('.pinned-section')).toBeVisible();
+      await expect(page.locator('[data-testid="pinned-README"]')).toBeVisible();
+
+      await page.locator('[data-testid="toolbar-home-button"]').click();
+      await page.waitForTimeout(300);
+      await expect(
+        page.locator('[data-testid="home-pinned-README"]')
+      ).toBeVisible();
+    });
+
+    await test.step('unpinning removes the element from both surfaces', async () => {
+      await page.goto('/testuser/pin-lifecycle');
+      await waitForProjectReady(page, 'pin-lifecycle');
+
+      await togglePinViaContextMenu(page, 'README');
+
+      await expect(page.locator('.pinned-section')).not.toBeVisible();
+
+      await page.locator('[data-testid="toolbar-home-button"]').click();
+      await page.waitForTimeout(300);
+      await expect(
+        page.locator('[data-testid="home-pinned-empty"]')
+      ).toBeVisible();
+    });
   });
 });

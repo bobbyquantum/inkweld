@@ -57,7 +57,7 @@ test.describe('Inspector connection', () => {
     await connectButton.click();
 
     // Wait for connection (green status indicator)
-    await expect(page.locator('.bg-green-500')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.bg-green-500')).toBeVisible();
   });
 
   test('should show error when connecting without auth', async ({ page }) => {
@@ -70,7 +70,7 @@ test.describe('Inspector connection', () => {
     // Should show error indicator (red dot) or error state
     await expect(
       page.locator('.bg-red-500').or(page.getByText(/error|unauthorized|401/i))
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible();
   });
 });
 
@@ -85,7 +85,7 @@ test.describe('Inspector tool browsing', () => {
     // Wait for tools to load - look for known tool names
     await expect(
       page.getByText('get_project_tree').or(page.getByText('search_elements'))
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible();
   });
 
   test('should show tool details when selected', async ({
@@ -96,15 +96,13 @@ test.describe('Inspector tool browsing', () => {
     await page.goto(`${INSPECTOR_WITH_PARAMS}#tools`);
 
     // Wait for tools list
-    await expect(page.getByText('get_project_tree')).toBeVisible({
-      timeout: 15000,
-    });
+    await expect(page.getByText('get_project_tree')).toBeVisible();
 
     // Click on a tool to select it
     await page.getByText('get_project_tree').click();
 
     // Should show tool input form with project parameter
-    await expect(page.getByText('project')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('project')).toBeVisible();
   });
 
   test('should call a tool and display results', async ({
@@ -115,9 +113,7 @@ test.describe('Inspector tool browsing', () => {
     await page.goto(`${INSPECTOR_WITH_PARAMS}#tools`);
 
     // Wait for and select the get_project_tree tool
-    await expect(page.getByText('get_project_tree')).toBeVisible({
-      timeout: 15000,
-    });
+    await expect(page.getByText('get_project_tree')).toBeVisible();
     await page.getByText('get_project_tree').click();
 
     // Fill in the project parameter
@@ -169,7 +165,7 @@ test.describe('Inspector tool browsing', () => {
           .getByText(/content/i)
           .or(page.getByText(/result/i))
           .or(page.getByText(/text/i))
-      ).toBeVisible({ timeout: 15000 });
+      ).toBeVisible();
     }
   });
 });
@@ -187,7 +183,7 @@ test.describe('Inspector resource browsing', () => {
     // Wait for resources to load
     await expect(
       page.getByText('inkweld://projects').or(page.getByText(/project/i))
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible();
   });
 
   test('should read a resource', async ({ page, mcpContext }) => {
@@ -195,9 +191,7 @@ test.describe('Inspector resource browsing', () => {
     await page.goto(`${INSPECTOR_WITH_PARAMS}#resources`);
 
     // Wait for resource list
-    await expect(page.getByText('inkweld://projects')).toBeVisible({
-      timeout: 15000,
-    });
+    await expect(page.getByText('inkweld://projects')).toBeVisible();
 
     // Click on the projects resource
     await page.getByText('inkweld://projects').click();
@@ -210,7 +204,7 @@ test.describe('Inspector resource browsing', () => {
       // Should show resource contents
       await expect(
         page.getByText(mcpContext.projectSlug).or(page.getByText(/content/i))
-      ).toBeVisible({ timeout: 15000 });
+      ).toBeVisible();
     }
   });
 });
@@ -228,7 +222,7 @@ test.describe('Inspector prompts tab', () => {
     // The prompts tab should be visible (may show empty state or prompt list)
     await expect(
       page.getByText(/prompt/i).or(page.getByText(/no prompts/i))
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible();
   });
 });
 
@@ -241,7 +235,7 @@ test.describe('Inspector ping', () => {
 
     // Click the Ping button
     const pingButton = page.getByRole('button', { name: /ping/i });
-    await expect(pingButton).toBeVisible({ timeout: 10000 });
+    await expect(pingButton).toBeVisible();
     await pingButton.click();
 
     // Should show success or latency info
@@ -250,7 +244,7 @@ test.describe('Inspector ping', () => {
         .getByText(/success/i)
         .or(page.getByText(/ms/i))
         .or(page.getByText(/pong/i))
-    ).toBeVisible({ timeout: 10000 });
+    ).toBeVisible();
   });
 });
 
@@ -265,7 +259,7 @@ test.describe('Inspector disconnect', () => {
     await disconnectButton.click();
 
     // Should show disconnected state (gray dot)
-    await expect(page.locator('.bg-gray-500')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.bg-gray-500')).toBeVisible();
 
     // Connect button should reappear
     await expect(page.getByRole('button', { name: 'Connect' })).toBeVisible();
@@ -301,5 +295,5 @@ async function connectInspector(
   await connectButton.click();
 
   // Wait for green status dot (connected)
-  await expect(page.locator('.bg-green-500')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('.bg-green-500')).toBeVisible();
 }

@@ -91,12 +91,22 @@ test.describe('Error Handling and Edge Cases', () => {
     }) => {
       await openLoginDialog(page);
 
-      // Try SQL injection in username
+      // Try SQL injection in username/password. Client-side username
+      // pattern validation rejects these characters and keeps the submit
+      // button disabled — that is itself a safe outcome (the malicious
+      // payload never reaches the server). If the validator ever loosens
+      // and submission becomes possible, the server's parameterised
+      // queries should still reject the credentials.
       await page.getByTestId('username-input').fill("' OR '1'='1' --");
       await page.getByTestId('password-input').fill("' OR '1'='1' --");
-      await page.getByTestId('login-button').click();
 
-      // Should not succeed - should show error and stay in dialog
+      const loginButton = page.getByTestId('login-button');
+      const submittable = await loginButton.isEnabled().catch(() => false);
+      if (submittable) {
+        await loginButton.click();
+      }
+
+      // Either way: dialog stays open, no dashboard navigation.
       await expect(page.locator('mat-dialog-container')).toBeVisible();
       await expect(page).not.toHaveURL(/\/dashboard/);
     });
