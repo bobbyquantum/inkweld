@@ -3,16 +3,24 @@
  *
  * Tests that verify publishing documents to PDF, EPUB, Markdown, and HTML
  * work correctly in pure local mode without any server connection.
+ *
+ * NOTE: Tests are consolidated into three `test()` blocks using `test.step()`,
+ * so the project + plan setup cost is paid once per group rather than once
+ * per individual test case.
+ *
+ * - Test A: plan creation, metadata, format selection, empty states (no content)
+ * - Test B: add content → generate → download → remove content → auto-save reload
+ * - Test C: drag-and-drop scenarios (folder rejection + two document drags)
  */
+import { type Page } from '@playwright/test';
+
 import { expect, test } from './fixtures';
 
 test.describe('Local Publishing Workflow', () => {
   /**
    * Helper to navigate to the Publishing tab via sidenav
    */
-  async function navigateToPublishingTab(
-    page: import('@playwright/test').Page
-  ): Promise<void> {
+  async function navigateToPublishingTab(page: Page): Promise<void> {
     // Extract the project base path (e.g., /testuser/test-project)
     const url = new URL(page.url());
     const pathSegments = url.pathname.split('/').filter(Boolean);
@@ -26,10 +34,7 @@ test.describe('Local Publishing Workflow', () => {
   /**
    * Helper to select a section in the publish plan sidenav
    */
-  async function selectSection(
-    page: import('@playwright/test').Page,
-    section: string
-  ): Promise<void> {
+  async function selectSection(page: Page, section: string): Promise<void> {
     await page.getByTestId(`nav-${section}`).click();
   }
 
@@ -37,7 +42,7 @@ test.describe('Local Publishing Workflow', () => {
    * Helper to create a document element in the project tree
    */
   async function createDocumentElement(
-    page: import('@playwright/test').Page,
+    page: Page,
     name: string
   ): Promise<void> {
     await page.getByTestId('create-new-element').click();
@@ -50,216 +55,174 @@ test.describe('Local Publishing Workflow', () => {
   }
 
   /**
-   * Helper to navigate to project home and create a publish plan
+   * Helper to create a folder element in the project tree.
    */
-  async function navigateToPublishPlan(
-    page: import('@playwright/test').Page
-  ): Promise<void> {
-    // Click on the project card to open project
-    await page.getByTestId('project-card').first().click();
-    await page.waitForURL(/\/.+\/.+/);
-
-    // Navigate to Publishing tab via sidenav
-    await navigateToPublishingTab(page);
-
-    // Click the create publish plan button
-    await page.getByTestId('create-publish-plan-button').click();
-
-    // Wait for the publish plan tab to open
-    await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+  async function createFolderElement(page: Page, name: string): Promise<void> {
+    await page.getByTestId('create-new-element').click();
+    await page.getByTestId('element-type-folder').click();
+    const nameInput = page.getByTestId('element-name-input');
+    await nameInput.waitFor({ state: 'visible' });
+    await nameInput.fill(name);
+    await page.getByTestId('create-element-button').click();
+    await expect(page.getByTestId(`element-${name}`)).toBeVisible();
   }
 
   /**
-   * Helper to create a publish plan with a document available for content.
-   * Creates a document element first, then opens a publish plan.
+   * Helper: perform a CDK-compatible drag using mouse events.
+   * Angular CDK uses pointer/mouse events, not HTML5 drag events,
+   * so Playwright's dragTo() doesn't work. Uses deliberate timing
+   * to ensure CDK processes each phase through requestAnimationFrame.
    */
-  async function navigateToPublishPlanWithContent(
-    page: import('@playwright/test').Page,
-    docName = 'TestDoc'
+  async function cdkDragTo(
+    page: Page,
+    source: import('@playwright/test').Locator,
+    target: import('@playwright/test').Locator
   ): Promise<void> {
-    // Click on the project card to open project
-    await page.getByTestId('project-card').first().click();
-    await page.waitForURL(/\/.+\/.+/);
+    await source.scrollIntoViewIfNeeded();
+    await target.scrollIntoViewIfNeeded();
 
-    // Create a document element so "add everything" is available
-    await createDocumentElement(page, docName);
+    const sourceBox = await source.boundingBox();
+    const targetBox = await target.boundingBox();
+    if (!sourceBox || !targetBox) {
+      throw new Error('Could not get bounding boxes for drag operation');
+    }
 
-    // Navigate to Publishing tab via sidenav
-    await navigateToPublishingTab(page);
+    const srcX = sourceBox.x + sourceBox.width / 2;
+    const srcY = sourceBox.y + sourceBox.height / 2;
+    const tgtX = targetBox.x + targetBox.width / 2;
+    const tgtY = targetBox.y + targetBox.height / 2;
 
-    // Click the create publish plan button
-    await page.getByTestId('create-publish-plan-button').click();
+    await page.mouse.move(srcX, srcY);
+    await page.waitForTimeout(200);
 
-    // Wait for the publish plan tab to open
-    await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+    await page.mouse.down();
+    await page.waitForTimeout(200);
+
+    for (let i = 1; i <= 5; i++) {
+      await page.mouse.move(srcX + i * 4, srcY, { steps: 2 });
+      await page.waitForTimeout(50);
+    }
+
+    await page.waitForTimeout(300);
+
+    await page.mouse.move(tgtX, tgtY, { steps: 30 });
+
+    await page.waitForTimeout(500);
+
+    await page.mouse.up();
+    await page.waitForTimeout(200);
   }
 
-  test.describe('Publish Plan Creation', () => {
-    test('should show publishing tab via sidenav button', async ({
-      localPageWithProject: page,
-    }) => {
-      // Navigate to the project
-      await page.getByTestId('project-card').first().click();
-      await page.waitForURL(/\/.+\/.+/);
+  // ───────────────────────────────────────────────────────────────────────────
+  // Test A: plan creation + metadata + format selection + empty states
+  // ───────────────────────────────────────────────────────────────────────────
 
-      // Navigate to Publishing tab
-      await navigateToPublishingTab(page);
+  test('plan creation, metadata, format selection, and empty states', async ({
+    localPageWithProject: page,
+  }) => {
+    // Open project and navigate to Publishing tab
+    await page.getByTestId('project-card').first().click();
+    await page.waitForURL(/\/.+\/.+/);
+    await navigateToPublishingTab(page);
 
-      // Should see the create button
+    await test.step('publishing tab shows the create button', async () => {
       await expect(
         page.getByTestId('create-publish-plan-button')
       ).toBeVisible();
     });
 
-    test('should create a new publish plan', async ({
-      localPageWithProject: page,
-    }) => {
-      await navigateToPublishPlan(page);
+    // Create a publish plan to use for the rest of this test
+    await page.getByTestId('create-publish-plan-button').click();
+    await expect(page.getByTestId('publish-plan-container')).toBeVisible();
 
-      // Should see the publish plan container with default values
+    await test.step('plan opens with default values (name input visible)', async () => {
       await expect(page.getByTestId('plan-name-input')).toBeVisible();
     });
 
-    test('should update plan metadata', async ({
-      localPageWithProject: page,
-    }) => {
-      await navigateToPublishPlan(page);
-
-      // Update book title
+    await test.step('update plan metadata (book title + author)', async () => {
       const titleInput = page.getByTestId('book-title-input');
       await titleInput.fill('My Awesome Book');
 
-      // Update author
       const authorInput = page.getByTestId('author-input');
       await authorInput.fill('Test Author');
     });
 
-    test('should show empty state when no content items', async ({
-      localPageWithProject: page,
-    }) => {
-      await navigateToPublishPlan(page);
+    await test.step('format select dropdown shows all 4 formats; pick EPUB', async () => {
+      const formatSelect = page.getByTestId('format-select');
+      await formatSelect.click();
 
-      // Navigate to Contents section to check empty state
+      const options = page.getByRole('option');
+      await expect(options).toHaveCount(4);
+
+      await page.getByRole('option', { name: 'EPUB (E-Book)' }).click();
+
+      await selectSection(page, 'publish');
+      await expect(page.getByTestId('generate-button')).toContainText('EPUB');
+    });
+
+    await test.step('empty content state + disabled generate button', async () => {
       await selectSection(page, 'contents');
       await expect(page.getByTestId('empty-content-state')).toBeVisible();
 
-      // Navigate to Publish section for generate button state
       await selectSection(page, 'publish');
       await expect(page.getByTestId('generate-button')).toBeDisabled();
       await expect(page.getByTestId('generate-hint')).toBeVisible();
     });
   });
 
-  test.describe('Adding Content to Plan', () => {
-    test('should add content via add everything button', async ({
-      localPageWithProject: page,
-    }) => {
-      await navigateToPublishPlanWithContent(page);
+  // ───────────────────────────────────────────────────────────────────────────
+  // Test B: add content → generate → download → remove → auto-save reload
+  // ───────────────────────────────────────────────────────────────────────────
 
-      // Navigate to Contents section
+  test('add content, generate, download, remove, auto-save reload', async ({
+    localPageWithProject: page,
+  }) => {
+    // Capture console errors for the generation step
+    const consoleErrors: string[] = [];
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+      }
+    });
+
+    // Open project, create a doc, and open a publish plan
+    await page.getByTestId('project-card').first().click();
+    await page.waitForURL(/\/.+\/.+/);
+    await createDocumentElement(page, 'TestDoc');
+    await navigateToPublishingTab(page);
+    await page.getByTestId('create-publish-plan-button').click();
+    await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+
+    await test.step('add everything fills the content list', async () => {
       await selectSection(page, 'contents');
-
-      // Click add everything button
       await page.getByTestId('add-everything-button').click();
 
-      // Should show items in the list (may include default README)
       await expect(page.getByTestId('content-items-list')).toBeVisible();
       await expect(page.getByTestId('content-item-0')).toBeVisible();
     });
 
-    test('should remove content item', async ({
-      localPageWithProject: page,
-    }) => {
-      await navigateToPublishPlanWithContent(page);
-
-      // Navigate to Contents section and add content
-      await selectSection(page, 'contents');
-      await page.getByTestId('add-everything-button').click();
-      await expect(page.getByTestId('content-items-list')).toBeVisible();
-
-      // Remove all items until empty
-      const MAX_REMOVALS = 50;
-      let removals = 0;
-      while (
-        removals < MAX_REMOVALS &&
-        (await page.getByTestId('remove-item-button').first().isVisible())
-      ) {
-        await page.getByTestId('remove-item-button').first().click();
-        // Wait for Angular to process the removal
-        await page.waitForTimeout(300);
-        removals++;
-      }
-
-      // Should show empty state again
-      await expect(page.getByTestId('empty-content-state')).toBeVisible();
-    });
-  });
-
-  test.describe('Format Selection', () => {
-    test('should switch between PDF, EPUB, Markdown, and HTML formats', async ({
-      localPageWithProject: page,
-    }) => {
-      await navigateToPublishPlan(page);
-
-      const formatSelect = page.getByTestId('format-select');
-      await formatSelect.click();
-
-      // Check that dropdown opened with format options using mat-option role
-      const options = page.getByRole('option');
-      await expect(options).toHaveCount(4);
-
-      // Select EPUB (using role option)
-      await page.getByRole('option', { name: 'EPUB (E-Book)' }).click();
-
-      // Navigate to Publish section and verify generate button shows the selected format
-      await selectSection(page, 'publish');
-      await expect(page.getByTestId('generate-button')).toContainText('EPUB');
-    });
-  });
-
-  test.describe('Publishing Generation', () => {
-    test('should generate a publication and show complete dialog', async ({
-      localPageWithProject: page,
-    }) => {
-      // Capture console errors
-      const consoleErrors: string[] = [];
-      page.on('console', msg => {
-        if (msg.type() === 'error') {
-          consoleErrors.push(msg.text());
-        }
-      });
-
-      await navigateToPublishPlanWithContent(page);
-
-      // Navigate to Contents section and add content
-      await selectSection(page, 'contents');
-      await page.getByTestId('add-everything-button').click();
-      await expect(page.getByTestId('content-items-list')).toBeVisible();
-
-      // Navigate to Publish section and click generate
+    await test.step('generate publication shows complete dialog with file info', async () => {
       await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
 
-      // Wait for the generate button to become disabled/hidden (generation in progress)
-      await expect(page.getByTestId('generate-button'))
-        .toBeDisabled({
-          timeout: 10000,
-        })
+      // Generate button may go disabled OR hidden — either is fine.
+      await page
+        .getByTestId('generate-button')
+        .waitFor({ state: 'attached' })
         .catch(() => {
-          // Button may go hidden instead of disabled depending on state
+          /* may detach */
         });
 
-      // Wait for either the complete dialog or an error snackbar
       const dialogOrError = await Promise.race([
         page
           .getByTestId('publish-complete-dialog-title')
           .waitFor({ timeout: 60000 })
-          .then(() => 'dialog'),
+          .then(() => 'dialog' as const),
         page
           .locator('.mat-mdc-snack-bar-label')
           .filter({ hasText: /error/i })
           .waitFor({ timeout: 60000 })
-          .then(() => 'error'),
+          .then(() => 'error' as const),
       ]);
 
       if (dialogOrError === 'error') {
@@ -272,244 +235,113 @@ test.describe('Local Publishing Workflow', () => {
         );
       }
 
-      // Should show file info
       await expect(page.getByTestId('filename')).toBeVisible();
       await expect(page.getByTestId('format-name')).toBeVisible();
       await expect(page.getByTestId('file-size')).toBeVisible();
-
-      // In local mode, should show local notice
       await expect(page.getByTestId('local-notice')).toBeVisible();
     });
 
-    test('should allow downloading the generated file', async ({
-      localPageWithProject: page,
-    }) => {
-      await navigateToPublishPlanWithContent(page);
-
-      // Add content in Contents section
-      await selectSection(page, 'contents');
-      await page.getByTestId('add-everything-button').click();
-
-      // Navigate to Publish section and generate
-      await selectSection(page, 'publish');
-      await page.getByTestId('generate-button').click();
-
-      // Wait for complete dialog
-      await expect(
-        page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible();
-
-      // Prepare to intercept download
+    await test.step('download button triggers a .epub download', async () => {
       const downloadPromise = page.waitForEvent('download');
-
-      // Click download button
       await page.getByTestId('download-button').click();
 
-      // Wait for download to start
       const download = await downloadPromise;
-      expect(download.suggestedFilename()).toContain('.epub'); // Default format is now EPUB
+      expect(download.suggestedFilename()).toContain('.epub');
+
+      // Close the publish-complete dialog so the backdrop doesn't block
+      // subsequent interactions.
+      const doneButton = page.getByTestId('done-button');
+      if (await doneButton.isVisible()) {
+        await doneButton.click();
+      } else {
+        await page.keyboard.press('Escape');
+      }
+      await expect(
+        page.getByTestId('publish-complete-dialog-title')
+      ).not.toBeVisible();
     });
-  });
 
-  test.describe('Saving Changes', () => {
-    test('should auto-save changes to publish plan', async ({
-      localPageWithProject: page,
-    }) => {
-      await navigateToPublishPlan(page);
+    await test.step('remove all content items returns plan to empty state', async () => {
+      await selectSection(page, 'contents');
+      await expect(page.getByTestId('content-items-list')).toBeVisible();
 
-      // Make changes
+      const MAX_REMOVALS = 50;
+      let removals = 0;
+      while (
+        removals < MAX_REMOVALS &&
+        (await page.getByTestId('remove-item-button').first().isVisible())
+      ) {
+        await page.getByTestId('remove-item-button').first().click();
+        await page.waitForTimeout(300);
+        removals++;
+      }
+
+      await expect(page.getByTestId('empty-content-state')).toBeVisible();
+    });
+
+    await test.step('book title auto-saves and persists across reload', async () => {
+      // Book title lives in the metadata (default) section.
+      await selectSection(page, 'metadata');
       await page.getByTestId('book-title-input').fill('Updated Book Title');
 
-      // Auto-save debounce — wait for save to complete
+      // Auto-save debounce
       await page.waitForTimeout(1000);
 
-      // Reload the page
       await page.reload();
 
-      // The publish plan tab should still be open after reload
       await expect(page.getByTestId('publish-plan-container')).toBeVisible();
-
-      // Verify the saved value persisted
       await expect(page.getByTestId('book-title-input')).toHaveValue(
         'Updated Book Title'
       );
     });
   });
 
-  test.describe('Drag from Project Tree to Publish Plan', () => {
-    /**
-     * Helper: create a folder element in the project tree.
-     */
-    async function createFolderElement(
-      page: import('@playwright/test').Page,
-      name: string
-    ): Promise<void> {
-      await page.getByTestId('create-new-element').click();
-      await page.getByTestId('element-type-folder').click();
-      const nameInput = page.getByTestId('element-name-input');
-      await nameInput.waitFor({ state: 'visible' });
-      await nameInput.fill(name);
-      await page.getByTestId('create-element-button').click();
-      await expect(page.getByTestId(`element-${name}`)).toBeVisible();
-    }
+  // ───────────────────────────────────────────────────────────────────────────
+  // Test C: drag-and-drop from project tree (folder reject + two docs)
+  // ───────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Helper: perform a CDK-compatible drag using mouse events.
-     * Angular CDK uses pointer/mouse events, not HTML5 drag events,
-     * so Playwright's dragTo() doesn't work. Uses deliberate timing
-     * to ensure CDK processes each phase through requestAnimationFrame.
-     */
-    async function cdkDragTo(
-      page: import('@playwright/test').Page,
-      source: import('@playwright/test').Locator,
-      target: import('@playwright/test').Locator
-    ): Promise<void> {
-      // Ensure both elements are scrolled into view
-      await source.scrollIntoViewIfNeeded();
-      await target.scrollIntoViewIfNeeded();
+  test('drag from project tree: folders rejected, multiple documents accepted', async ({
+    localPageWithProject: page,
+  }) => {
+    // Open project and create a folder + two documents
+    await page.getByTestId('project-card').first().click();
+    await page.waitForURL(/\/.+\/.+/);
 
-      const sourceBox = await source.boundingBox();
-      const targetBox = await target.boundingBox();
-      if (!sourceBox || !targetBox) {
-        throw new Error('Could not get bounding boxes for drag operation');
-      }
+    await createFolderElement(page, 'TestFolder');
+    await createDocumentElement(page, 'Chapter1');
+    await createDocumentElement(page, 'Chapter2');
 
-      const srcX = sourceBox.x + sourceBox.width / 2;
-      const srcY = sourceBox.y + sourceBox.height / 2;
-      const tgtX = targetBox.x + targetBox.width / 2;
-      const tgtY = targetBox.y + targetBox.height / 2;
+    // Navigate to publish plan
+    await navigateToPublishingTab(page);
+    await page.getByTestId('create-publish-plan-button').click();
+    await expect(page.getByTestId('publish-plan-container')).toBeVisible();
 
-      // 1. Hover over source to ensure CDK registers the element
-      await page.mouse.move(srcX, srcY);
-      await page.waitForTimeout(200);
+    await selectSection(page, 'contents');
 
-      // 2. Press and hold on source
-      await page.mouse.down();
-      await page.waitForTimeout(200);
+    const dropTarget = page.getByTestId('content-items-list');
+    await expect(dropTarget).toBeVisible();
 
-      // 3. Move past CDK's 5px drag-start threshold slowly
-      for (let i = 1; i <= 5; i++) {
-        await page.mouse.move(srcX + i * 4, srcY, { steps: 2 });
-        await page.waitForTimeout(50);
-      }
-
-      // 4. Wait for CDK to create the drag preview
-      await page.waitForTimeout(300);
-
-      // 5. Move toward the target in many small steps
-      await page.mouse.move(tgtX, tgtY, { steps: 30 });
-
-      // 6. Hover over target to let CDK detect entry into the drop list
-      await page.waitForTimeout(500);
-
-      // 7. Drop
-      await page.mouse.up();
-      await page.waitForTimeout(200);
-    }
-
-    /**
-     * Helper: navigate into the project, create a document, then open a publish plan.
-     */
-    async function setupProjectWithDocAndPlan(
-      page: import('@playwright/test').Page,
-      docName: string
-    ): Promise<void> {
-      // Open the project
-      await page.getByTestId('project-card').first().click();
-      await page.waitForURL(/\/.+\/.+/);
-
-      // Create a document element
-      await createDocumentElement(page, docName);
-
-      // Go home and navigate to publish plan
-      await navigateToPublishingTab(page);
-      await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('publish-plan-container')).toBeVisible();
-
-      // Select Contents section so the drop target is visible
-      await selectSection(page, 'contents');
-    }
-
-    test('should add document to publish plan by dragging from project tree', async ({
-      localPageWithProject: page,
-    }) => {
-      const docName = 'DragTestDoc';
-      await setupProjectWithDocAndPlan(page, docName);
-
-      // The tree element and the publish plan drop list should both be visible
-      const treeItem = page.getByTestId(`element-${docName}`);
-      await expect(treeItem).toBeVisible();
-
-      const dropTarget = page.getByTestId('content-items-list');
-      await expect(dropTarget).toBeVisible();
-
-      // Drag the tree item onto the publish plan items list using CDK-compatible mouse events
-      await cdkDragTo(page, treeItem, dropTarget);
-
-      // Verify the document was added to the plan
-      await expect(page.getByTestId('content-item-0')).toBeVisible();
-      await expect(
-        page.getByTestId('content-item-0').getByTestId('item-name')
-      ).toContainText(docName);
-    });
-
-    test('should not allow dragging folder into publish plan', async ({
-      localPageWithProject: page,
-    }) => {
-      // Open the project
-      await page.getByTestId('project-card').first().click();
-      await page.waitForURL(/\/.+\/.+/);
-
-      // Create a folder
-      await createFolderElement(page, 'TestFolder');
-
-      // Navigate to publish plan
-      await navigateToPublishingTab(page);
-      await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('publish-plan-container')).toBeVisible();
-
-      // Select Contents section so the drop target is visible
-      await selectSection(page, 'contents');
-
-      // Attempt to drag folder onto the plan
+    await test.step('dragging a folder is rejected (plan stays empty)', async () => {
       const folderItem = page.getByTestId('element-TestFolder');
-      const dropTarget = page.getByTestId('content-items-list');
       await cdkDragTo(page, folderItem, dropTarget);
 
-      // Plan should still be empty — folder should be rejected
       await expect(page.getByTestId('empty-content-state')).toBeVisible();
     });
 
-    test('should allow dragging multiple documents into publish plan', async ({
-      localPageWithProject: page,
-    }) => {
-      // Open the project
-      await page.getByTestId('project-card').first().click();
-      await page.waitForURL(/\/.+\/.+/);
-
-      // Create two document elements
-      await createDocumentElement(page, 'Chapter1');
-      await createDocumentElement(page, 'Chapter2');
-
-      // Navigate to publish plan
-      await navigateToPublishingTab(page);
-      await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('publish-plan-container')).toBeVisible();
-
-      // Select Contents section so the drop target is visible
-      await selectSection(page, 'contents');
-
-      const dropTarget = page.getByTestId('content-items-list');
-
-      // Drag first document
+    await test.step('drag Chapter1 onto plan adds first content item', async () => {
       await cdkDragTo(page, page.getByTestId('element-Chapter1'), dropTarget);
-      await expect(page.getByTestId('content-item-0')).toBeVisible();
 
-      // Drag second document
+      await expect(page.getByTestId('content-item-0')).toBeVisible();
+      await expect(
+        page.getByTestId('content-item-0').getByTestId('item-name')
+      ).toContainText('Chapter1');
+    });
+
+    await test.step('drag Chapter2 onto plan adds a second content item', async () => {
       await cdkDragTo(page, page.getByTestId('element-Chapter2'), dropTarget);
+
       await expect(page.getByTestId('content-item-1')).toBeVisible();
 
-      // Verify both items are in the list (order may vary based on drop position)
       const names = await page
         .locator('[data-testid="item-name"]')
         .allTextContents();
