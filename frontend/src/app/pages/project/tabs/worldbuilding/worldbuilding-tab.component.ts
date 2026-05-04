@@ -7,8 +7,12 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { LoggerService } from '@services/core/logger.service';
+import { SyncQueueService } from '@services/sync/sync-queue.service';
 import { type Subscription } from 'rxjs';
 
 import { type Element, type ElementType } from '../../../../../api-client';
@@ -19,12 +23,13 @@ import { ProjectStateService } from '../../../../services/project/project-state.
   selector: 'app-worldbuilding-tab',
   templateUrl: './worldbuilding-tab.component.html',
   styleUrls: ['./worldbuilding-tab.component.scss'],
-  imports: [WorldbuildingEditorComponent, DocumentBreadcrumbsComponent],
+  imports: [WorldbuildingEditorComponent, DocumentBreadcrumbsComponent, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
 })
 export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly projectState = inject(ProjectStateService);
   private readonly logger = inject(LoggerService);
+  private readonly syncQueueService = inject(SyncQueueService);
   private paramSubscription: Subscription | null = null;
 
   protected elementId = signal<string>('');
@@ -37,6 +42,12 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
    * that hasn't synced). When true, a warning is shown instead of the editor.
    */
   protected readonly documentUnavailable = signal(false);
+
+  /** Whether a sync is currently in progress triggered from this component. */
+  protected readonly syncing = signal(false);
+
+  /** Error message from the last sync attempt, if any. */
+  protected readonly syncError = signal<string | null>(null);
 
   private availabilityCheckToken = 0;
 
@@ -89,6 +100,36 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
     );
     if (token !== this.availabilityCheckToken) return;
     this.documentUnavailable.set(unavailable);
+  }
+
+  /**
+   * Trigger a sync for the current project, then re-check document availability.
+   */
+  protected async triggerSync(): Promise<void> {
+    const project = this.projectState.project();
+    if (!project) return;
+
+    this.syncing.set(true);
+    this.syncError.set(null);
+
+    try {
+      await this.syncQueueService.syncAllProjects([project]);
+
+      // Re-check availability after sync
+      const elementId = this.elementId();
+      if (elementId) {
+        const token = ++this.availabilityCheckToken;
+        await this.checkAvailability(elementId, token);
+      }
+
+      if (this.documentUnavailable()) {
+        this.syncError.set('Document still unavailable after sync. Try again.');
+      }
+    } catch {
+      this.syncError.set('Sync failed. Check your connection and try again.');
+    } finally {
+      this.syncing.set(false);
+    }
   }
 
   ngOnInit(): void {
