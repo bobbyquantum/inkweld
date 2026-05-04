@@ -9,6 +9,7 @@ import {
   storeRealMediaInIndexedDB,
 } from '../common/test-helpers';
 import { test } from './fixtures';
+import { applyColorScheme, applyColorSchemeAndReload } from './theme-helpers';
 
 /**
  * Base directory for generated screenshots.
@@ -82,7 +83,7 @@ test.describe('PWA Screenshots', () => {
     await page.waitForLoadState('networkidle');
 
     await test.step('light', async () => {
-      await page.emulateMedia({ colorScheme: 'light' });
+      await applyColorScheme(page, 'light');
       await page.screenshot({
         path: join(SCREENSHOTS_DIR, 'bookshelf-desktop-light.png'),
         fullPage: true,
@@ -90,7 +91,7 @@ test.describe('PWA Screenshots', () => {
     });
 
     await test.step('dark', async () => {
-      await page.emulateMedia({ colorScheme: 'dark' });
+      await applyColorScheme(page, 'dark');
       await page.screenshot({
         path: join(SCREENSHOTS_DIR, 'bookshelf-desktop-dark.png'),
         fullPage: true,
@@ -111,7 +112,7 @@ test.describe('PWA Screenshots', () => {
     await projectCards.first().waitFor({ state: 'visible' });
 
     await test.step('light', async () => {
-      await page.emulateMedia({ colorScheme: 'light' });
+      await applyColorScheme(page, 'light');
       await page.screenshot({
         path: join(SCREENSHOTS_DIR, 'bookshelf-mobile-light.png'),
         fullPage: true,
@@ -119,7 +120,7 @@ test.describe('PWA Screenshots', () => {
     });
 
     await test.step('dark', async () => {
-      await page.emulateMedia({ colorScheme: 'dark' });
+      await applyColorScheme(page, 'dark');
       await page.screenshot({
         path: join(SCREENSHOTS_DIR, 'bookshelf-mobile-dark.png'),
         fullPage: true,
@@ -147,7 +148,7 @@ test.describe('PWA Screenshots', () => {
     await page.waitForSelector('.home-tab-content', { state: 'visible' });
 
     await test.step('light', async () => {
-      await page.emulateMedia({ colorScheme: 'light' });
+      await applyColorScheme(page, 'light');
       await page.screenshot({
         path: join(SCREENSHOTS_DIR, 'project-home-desktop-light.png'),
         fullPage: true,
@@ -155,7 +156,7 @@ test.describe('PWA Screenshots', () => {
     });
 
     await test.step('dark', async () => {
-      await page.emulateMedia({ colorScheme: 'dark' });
+      await applyColorScheme(page, 'dark');
       await page.screenshot({
         path: join(SCREENSHOTS_DIR, 'project-home-desktop-dark.png'),
         fullPage: true,
@@ -189,14 +190,14 @@ test.describe('PWA Screenshots', () => {
     const dialog = page.locator('mat-dialog-container');
 
     await test.step('light', async () => {
-      await page.emulateMedia({ colorScheme: 'light' });
+      await applyColorScheme(page, 'light');
       await dialog.screenshot({
         path: join(SCREENSHOTS_DIR, 'element-type-chooser-light.png'),
       });
     });
 
     await test.step('dark', async () => {
-      await page.emulateMedia({ colorScheme: 'dark' });
+      await applyColorScheme(page, 'dark');
       await dialog.screenshot({
         path: join(SCREENSHOTS_DIR, 'element-type-chooser-dark.png'),
       });
@@ -227,10 +228,10 @@ test.describe('PWA Screenshots', () => {
 
     for (const scheme of ['light', 'dark'] as const) {
       await test.step(scheme, async () => {
-        await page.emulateMedia({ colorScheme: scheme });
+        await applyColorScheme(page, scheme);
 
-        // Open context menu (re-open each iteration since dismissing happens
-        // implicitly when emulateMedia or other actions occur)
+        // Open context menu (re-open each iteration since the previous one
+        // was dismissed at the end of the prior step)
         await folder.click({ button: 'right' });
         await menu.waitFor({ state: 'visible' });
 
@@ -286,7 +287,7 @@ test.describe('PWA Screenshots', () => {
 
     for (const scheme of ['light', 'dark'] as const) {
       await test.step(`tags tab ${scheme}`, async () => {
-        await page.emulateMedia({ colorScheme: scheme });
+        await applyColorScheme(page, scheme);
         await settingsContent.screenshot({
           path: join(SCREENSHOTS_DIR, `tags-tab-${scheme}.png`),
         });
@@ -337,14 +338,14 @@ test.describe('PWA Screenshots', () => {
     const dialog = page.locator('mat-dialog-container');
 
     await test.step('light', async () => {
-      await page.emulateMedia({ colorScheme: 'light' });
+      await applyColorScheme(page, 'light');
       await dialog.screenshot({
         path: join(SCREENSHOTS_DIR, 'new-document-dialog-light.png'),
       });
     });
 
     await test.step('dark', async () => {
-      await page.emulateMedia({ colorScheme: 'dark' });
+      await applyColorScheme(page, 'dark');
       await dialog.screenshot({
         path: join(SCREENSHOTS_DIR, 'new-document-dialog-dark.png'),
       });
@@ -386,7 +387,7 @@ test.describe('PWA Screenshots', () => {
 
     for (const scheme of ['light', 'dark'] as const) {
       await test.step(scheme, async () => {
-        await page.emulateMedia({ colorScheme: scheme });
+        await applyColorScheme(page, scheme);
 
         await docTab.click({ button: 'right' });
         await menu.waitFor({ state: 'visible' });
@@ -425,18 +426,20 @@ test.describe('PWA Screenshots', () => {
     await page.waitForURL(/\/demouser\/my-novel/);
     await page.waitForSelector('app-project-tree', { state: 'visible' });
 
-    // Expand Chronicles folder and open the document
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    await expandButton.click();
-    await page.click('text="The Moonveil Accord"');
+    const openMoonveilDoc = async () => {
+      // Expand Chronicles folder and open the document
+      const expandButton = page
+        .locator('[data-testid="expand-folder-button"]')
+        .first();
+      await expandButton.click();
+      await page.click('text="The Moonveil Accord"');
+      await page.locator('.ProseMirror').first().waitFor({ state: 'visible' });
+    };
 
-    const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible' });
+    await openMoonveilDoc();
 
     await test.step('light', async () => {
-      await page.emulateMedia({ colorScheme: 'light' });
+      await applyColorScheme(page, 'light');
       await page.screenshot({
         path: join(SCREENSHOTS_DIR, 'editor-desktop-light.png'),
         fullPage: true,
@@ -444,7 +447,10 @@ test.describe('PWA Screenshots', () => {
     });
 
     await test.step('dark', async () => {
-      await page.emulateMedia({ colorScheme: 'dark' });
+      // Reload with dark theme seeded so :host-context(.dark-theme)
+      // chip styles evaluate at host creation (matches main's render).
+      await applyColorSchemeAndReload(page, 'dark', 'app-project-tree');
+      await openMoonveilDoc();
       await page.screenshot({
         path: join(SCREENSHOTS_DIR, 'editor-desktop-dark.png'),
         fullPage: true,
@@ -470,31 +476,42 @@ test.describe('PWA Screenshots', () => {
 
     await page.waitForURL(/\/demouser\/mobile-story/);
 
-    // Open hamburger menu to reveal project tree on mobile
-    await page.waitForSelector(
-      'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))',
-      { state: 'visible' }
-    );
-    await page.click(
-      'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
-    );
-    await page.waitForSelector('app-project-tree', { state: 'visible' });
+    const openMobileMoonveilDoc = async () => {
+      // Open hamburger menu to reveal project tree on mobile (no-op
+      // if it's already open from a prior visit / reload).
+      const tree = page.locator('app-project-tree');
+      if (!(await tree.isVisible().catch(() => false))) {
+        await page.waitForSelector(
+          'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))',
+          { state: 'visible' }
+        );
+        await page.click(
+          'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
+        );
+        await tree.waitFor({ state: 'visible' });
+      }
 
-    // Expand Chronicles folder and open the document
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    await expandButton.click();
-    await page.click('text="The Moonveil Accord"');
+      // Expand Chronicles folder and open the document. Scope the
+      // click to the project tree so we don't accidentally hit the
+      // breadcrumb (which also reads "The Moonveil Accord" once the
+      // document has been opened previously in this session).
+      const expandButton = page
+        .locator('[data-testid="expand-folder-button"]')
+        .first();
+      await expandButton.click();
+      await tree.locator('text="The Moonveil Accord"').first().click();
 
-    const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible' });
+      const editor = page.locator('.ProseMirror').first();
+      await editor.waitFor({ state: 'visible' });
 
-    // Triple-click to select text and trigger inline formatting menu
-    await editor.click({ clickCount: 3 });
+      // Triple-click to select text and trigger inline formatting menu
+      await editor.click({ clickCount: 3 });
+    };
+
+    await openMobileMoonveilDoc();
 
     await test.step('light', async () => {
-      await page.emulateMedia({ colorScheme: 'light' });
+      await applyColorScheme(page, 'light');
       await page.screenshot({
         path: join(SCREENSHOTS_DIR, 'editor-mobile-light.png'),
         fullPage: true,
@@ -502,7 +519,14 @@ test.describe('PWA Screenshots', () => {
     });
 
     await test.step('dark', async () => {
-      await page.emulateMedia({ colorScheme: 'dark' });
+      // Reload with dark theme seeded so :host-context(.dark-theme)
+      // chip styles evaluate at host creation (matches main's render).
+      await applyColorSchemeAndReload(
+        page,
+        'dark',
+        'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
+      );
+      await openMobileMoonveilDoc();
       await page.screenshot({
         path: join(SCREENSHOTS_DIR, 'editor-mobile-dark.png'),
         fullPage: true,
@@ -575,7 +599,7 @@ test.describe('PWA Screenshots', () => {
     await page.waitForSelector('.media-grid', { state: 'visible' });
 
     await test.step('light', async () => {
-      await page.emulateMedia({ colorScheme: 'light' });
+      await applyColorScheme(page, 'light');
       await page.screenshot({
         path: join(SCREENSHOTS_DIR, 'media-tab-desktop-light.png'),
         fullPage: true,
@@ -583,7 +607,7 @@ test.describe('PWA Screenshots', () => {
     });
 
     await test.step('dark', async () => {
-      await page.emulateMedia({ colorScheme: 'dark' });
+      await applyColorScheme(page, 'dark');
       await page.screenshot({
         path: join(SCREENSHOTS_DIR, 'media-tab-dark.png'),
         fullPage: true,
@@ -728,14 +752,14 @@ test.describe('PWA Screenshots', () => {
     await headerSection.waitFor({ state: 'visible' });
 
     await test.step('light', async () => {
-      await page.emulateMedia({ colorScheme: 'light' });
+      await applyColorScheme(page, 'light');
       await headerSection.screenshot({
         path: join(SCREENSHOTS_DIR, 'create-button-nav-light.png'),
       });
     });
 
     await test.step('dark', async () => {
-      await page.emulateMedia({ colorScheme: 'dark' });
+      await applyColorScheme(page, 'dark');
       await headerSection.screenshot({
         path: join(SCREENSHOTS_DIR, 'create-button-nav-dark.png'),
       });
@@ -749,7 +773,7 @@ test.describe('PWA Screenshots', () => {
 
     for (const scheme of ['light', 'dark'] as const) {
       await test.step(scheme, async () => {
-        await page.emulateMedia({ colorScheme: scheme });
+        await applyColorScheme(page, scheme);
 
         // Navigate fresh to the create-project page each iteration
         await page.goto('/');
@@ -796,7 +820,7 @@ test.describe('PWA Screenshots', () => {
 
     for (const scheme of ['light', 'dark'] as const) {
       await test.step(scheme, async () => {
-        await page.emulateMedia({ colorScheme: scheme });
+        await applyColorScheme(page, scheme);
 
         // Navigate fresh each iteration to reset to mode selection
         await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -844,7 +868,7 @@ test.describe('PWA Screenshots', () => {
 
     for (const scheme of ['light', 'dark'] as const) {
       await test.step(scheme, async () => {
-        await page.emulateMedia({ colorScheme: scheme });
+        await applyColorScheme(page, scheme);
 
         // Navigate fresh each iteration to reset to mode selection
         await page.goto('/', { waitUntil: 'domcontentloaded' });
