@@ -3,283 +3,151 @@
  *
  * Tests that verify the quick file open functionality (Cmd/Ctrl + P)
  * works correctly for fast navigation within projects.
+ *
+ * Consolidated from 9 individual tests into 3 grouped tests using
+ * `test.step()`. The first group exercises dialog lifecycle on an
+ * empty project; the second seeds a few documents and exercises
+ * search/filter; the third reuses the seeded documents to exercise
+ * result navigation and selection.
  */
+import { type Page } from '@playwright/test';
+
 import { pressShortcut } from '../common';
 import { expect, test } from './fixtures';
 
+/**
+ * Open the project (idempotent — checks if we're already inside a project).
+ */
+async function openProject(page: Page): Promise<void> {
+  if (await page.getByTestId('project-card').first().isVisible()) {
+    await page.getByTestId('project-card').first().click();
+  }
+  await expect(page.getByTestId('project-tree')).toBeVisible();
+}
+
+/**
+ * Create a document with the given name via the New Element flow.
+ */
+async function createDocument(page: Page, name: string): Promise<void> {
+  await page.getByTestId('create-new-element').click();
+  await page.getByRole('heading', { name: 'Document', level: 4 }).click();
+
+  const dialogInput = page.getByLabel('Document Name');
+  await dialogInput.waitFor({ state: 'visible' });
+  await dialogInput.fill(name);
+  await page.getByTestId('create-element-button').click();
+  // Brief wait for tree update + IndexedDB persistence.
+  await page.waitForTimeout(300);
+}
+
 test.describe('Quick Open', () => {
-  test('should open quick open dialog with keyboard shortcut', async ({
+  test('dialog lifecycle: open shortcut, Escape, recent files, clear button', async ({
     localPageWithProject: page,
   }) => {
-    // Open a project
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
+    await openProject(page);
 
-    // Press Cmd/Ctrl + P to open quick open
-    await pressShortcut(page, 'p');
+    const dialog = page.getByTestId('quick-open-dialog');
+    const search = page.getByTestId('quick-open-search');
 
-    // Quick open dialog should appear
-    await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
+    await test.step('Cmd/Ctrl+P opens dialog with focused search input', async () => {
+      await pressShortcut(page, 'p');
+      await expect(dialog).toBeVisible();
+      await expect(search).toBeFocused();
+    });
 
-    // Search input should be focused
-    await expect(page.getByTestId('quick-open-search')).toBeFocused();
+    await test.step('results container is visible (recent files area)', async () => {
+      await expect(page.getByTestId('quick-open-results')).toBeVisible();
+    });
+
+    await test.step('clear button clears the search input', async () => {
+      await search.fill('test query');
+      const clearButton = page.locator('.clear-button');
+      await expect(clearButton).toBeVisible();
+      await clearButton.click();
+      await expect(search).toHaveValue('');
+    });
+
+    await test.step('Escape closes the dialog', async () => {
+      await page.keyboard.press('Escape');
+      await expect(dialog).not.toBeVisible();
+    });
   });
 
-  test('should close quick open dialog with Escape', async ({
+  test('search filters results and shows empty state when no match', async ({
     localPageWithProject: page,
   }) => {
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
+    await openProject(page);
 
-    // Open quick open
-    await pressShortcut(page, 'p');
-    await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
+    // Seed a document we can search for.
+    await createDocument(page, 'Searchable Document');
 
-    // Press Escape to close
-    await page.keyboard.press('Escape');
+    const dialog = page.getByTestId('quick-open-dialog');
+    const search = page.getByTestId('quick-open-search');
+    const results = page.getByTestId('quick-open-results');
 
-    // Dialog should be closed
-    await expect(page.getByTestId('quick-open-dialog')).not.toBeVisible();
+    await test.step('filters results to matching documents as user types', async () => {
+      await pressShortcut(page, 'p');
+      await expect(dialog).toBeVisible();
+
+      await search.fill('Search');
+      await expect(results).toContainText('Searchable');
+    });
+
+    await test.step('shows "No files match" empty state for non-matching query', async () => {
+      await search.fill('xyznonexistent123');
+      await expect(results).toContainText('No files match');
+    });
   });
 
-  test('should show recent files when no search query', async ({
+  test('navigation and selection: arrow keys, Enter, click', async ({
     localPageWithProject: page,
   }) => {
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
+    await openProject(page);
 
-    // First open a document to add it to recent files
-    // Click on a document in the tree
-    const treeItems = page.locator('[data-testid^="element-"]');
-    const itemCount = await treeItems.count();
+    // Seed two documents we can navigate between.
+    await createDocument(page, 'Alpha Doc');
+    await createDocument(page, 'Beta Doc');
 
-    if (itemCount > 0) {
-      // Try to find a non-folder element
-      for (let i = 0; i < itemCount; i++) {
-        const item = treeItems.nth(i);
-        const isFolder = await item.evaluate(el =>
-          el.classList.contains('folder-node')
-        );
-        if (!isFolder) {
-          await item.click();
-          break;
-        }
-      }
-    }
+    const dialog = page.getByTestId('quick-open-dialog');
+    const search = page.getByTestId('quick-open-search');
 
-    // Open quick open
-    await pressShortcut(page, 'p');
-    await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
+    await test.step('ArrowDown / ArrowUp move selection between results', async () => {
+      await pressShortcut(page, 'p');
+      await expect(dialog).toBeVisible();
 
-    // Results should be visible (even with empty project, at least the container)
-    await expect(page.getByTestId('quick-open-results')).toBeVisible();
-  });
+      await search.fill('Doc');
+      await page.waitForTimeout(200);
 
-  test('should filter results as user types', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
+      const firstResult = page.getByTestId('quick-open-result-0');
+      const secondResult = page.getByTestId('quick-open-result-1');
+      await expect(firstResult).toHaveClass(/selected/);
 
-    // Create a document first so we have something to search
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
+      await page.keyboard.press('ArrowDown');
+      await expect(secondResult).toHaveClass(/selected/);
 
-    // Select "Document" from the Choose Element Type dialog
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
+      await page.keyboard.press('ArrowUp');
+      await expect(firstResult).toHaveClass(/selected/);
+    });
 
-    // The dialog proceeds to document name entry
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Searchable Document');
-    await page.getByTestId('create-element-button').click();
+    await test.step('Enter opens the currently selected result', async () => {
+      // Currently positioned on result-0 ("Alpha Doc" or "Beta Doc" depending
+      // on sort). Pressing Enter should close the dialog and navigate.
+      await page.keyboard.press('Enter');
+      await expect(dialog).not.toBeVisible();
+    });
 
-    // Wait for the document to be created
-    await page.waitForTimeout(500);
+    await test.step('clicking a result opens it and closes the dialog', async () => {
+      // Go back to home, then reopen quick-open and click a result.
+      await page.getByTestId('toolbar-home-button').click();
+      await page.waitForTimeout(200);
 
-    // Open quick open
-    await pressShortcut(page, 'p');
-    await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
+      await pressShortcut(page, 'p');
+      await expect(dialog).toBeVisible();
+      await search.fill('Doc');
+      await page.waitForTimeout(200);
 
-    // Type in search query
-    await page.getByTestId('quick-open-search').fill('Search');
-
-    // Results should update - check for the created document
-    await expect(page.getByTestId('quick-open-results')).toContainText(
-      'Searchable'
-    );
-  });
-
-  test('should navigate results with arrow keys', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Create multiple documents
-    for (const name of ['Alpha Doc', 'Beta Doc']) {
-      const newDocButton = page.getByTestId('create-new-element');
-      await expect(newDocButton).toBeVisible();
-      await newDocButton.click();
-
-      // Select "Document" from the Choose Element Type dialog
-      await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-
-      // The dialog proceeds to document name entry
-      const dialogInput = page.getByLabel('Document Name');
-      await dialogInput.waitFor({ state: 'visible' });
-      await dialogInput.fill(name);
-      await page.getByTestId('create-element-button').click();
-      await page.waitForTimeout(300);
-    }
-
-    // Open quick open
-    await pressShortcut(page, 'p');
-    await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
-
-    // Type to get results
-    await page.getByTestId('quick-open-search').fill('Doc');
-    await page.waitForTimeout(200);
-
-    // First result should be selected by default
-    const firstResult = page.getByTestId('quick-open-result-0');
-    await expect(firstResult).toHaveClass(/selected/);
-
-    // Press Down to select next
-    await page.keyboard.press('ArrowDown');
-    const secondResult = page.getByTestId('quick-open-result-1');
-    await expect(secondResult).toHaveClass(/selected/);
-
-    // Press Up to go back
-    await page.keyboard.press('ArrowUp');
-    await expect(firstResult).toHaveClass(/selected/);
-  });
-
-  test('should open selected document with Enter', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Create a document
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
-
-    // Select "Document" from the Choose Element Type dialog
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-
-    // The dialog proceeds to document name entry
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Quick Open Target');
-    await page.getByTestId('create-element-button').click();
-    await page.waitForTimeout(500);
-
-    // Go back to home tab (so the document isn't already open)
-    await page.getByTestId('toolbar-home-button').click();
-    await page.waitForTimeout(200);
-
-    // Open quick open
-    await pressShortcut(page, 'p');
-    await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
-
-    // Search for the document
-    await page.getByTestId('quick-open-search').fill('Quick Open Target');
-    await page.waitForTimeout(200);
-
-    // Press Enter to open
-    await page.keyboard.press('Enter');
-
-    // Dialog should close
-    await expect(page.getByTestId('quick-open-dialog')).not.toBeVisible();
-
-    // The document tab should be open (check for document name in tabs or content)
-    // The document name should appear somewhere indicating it's open
-    await page.waitForTimeout(500);
-  });
-
-  test('should open document by clicking on result', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Create a document
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
-
-    // Select "Document" from the Choose Element Type dialog
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-
-    // The dialog proceeds to document name entry
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Click Target Doc');
-    await page.getByTestId('create-element-button').click();
-    await page.waitForTimeout(500);
-
-    // Go back to home
-    await page.getByTestId('toolbar-home-button').click();
-    await page.waitForTimeout(200);
-
-    // Open quick open
-    await pressShortcut(page, 'p');
-    await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
-
-    // Search and click on result
-    await page.getByTestId('quick-open-search').fill('Click Target');
-    await page.waitForTimeout(200);
-
-    // Click on the first result
-    await page.getByTestId('quick-open-result-0').click();
-
-    // Dialog should close
-    await expect(page.getByTestId('quick-open-dialog')).not.toBeVisible();
-  });
-
-  test('should show empty state when no results match', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Open quick open
-    await pressShortcut(page, 'p');
-    await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
-
-    // Type something that won't match anything
-    await page.getByTestId('quick-open-search').fill('xyznonexistent123');
-
-    // Should show empty state with search_off icon or no matches message
-    await expect(page.getByTestId('quick-open-results')).toContainText(
-      'No files match'
-    );
-  });
-
-  test('should clear search with clear button', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Open quick open
-    await pressShortcut(page, 'p');
-    await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
-
-    // Type something
-    await page.getByTestId('quick-open-search').fill('test query');
-
-    // Clear button should appear
-    const clearButton = page.locator('.clear-button');
-    await expect(clearButton).toBeVisible();
-
-    // Click clear
-    await clearButton.click();
-
-    // Search should be empty
-    await expect(page.getByTestId('quick-open-search')).toHaveValue('');
+      await page.getByTestId('quick-open-result-0').click();
+      await expect(dialog).not.toBeVisible();
+    });
   });
 });

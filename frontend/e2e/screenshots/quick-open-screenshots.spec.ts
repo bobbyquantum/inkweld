@@ -1,12 +1,9 @@
 /**
  * Quick Open Screenshot Tests
  *
- * Captures screenshots demonstrating the Quick Open feature:
- * - Quick Open dialog with recent files
- * - Quick Open with search query and filtered results
- * - Both light and dark mode variants
- *
- * Screenshots are stored in docs/site/static/img/features/
+ * Captures screenshots demonstrating the Quick Open feature in both light
+ * and dark mode using a single shared project per mode (was 4 separate
+ * project setups). Each artifact path is preserved.
  */
 
 import { type Page } from '@playwright/test';
@@ -23,9 +20,8 @@ import {
   getScreenshotsDir,
 } from './screenshot-helpers';
 
-/**
- * Helper to create a project with some documents for Quick Open testing
- */
+const DESKTOP_VIEWPORT = { width: 1280, height: 800 } as const;
+
 async function setupProjectWithDocuments(
   page: Page,
   projectSlug: string,
@@ -33,10 +29,7 @@ async function setupProjectWithDocuments(
 ): Promise<void> {
   await page.goto('/');
 
-  // Wait for empty state (local/offline mode)
-  await page.waitForSelector('.empty-state', {
-    state: 'visible',
-  });
+  await page.waitForSelector('.empty-state', { state: 'visible' });
 
   await createProjectWithTwoSteps(page, projectTitle, projectSlug);
   await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
@@ -45,7 +38,6 @@ async function setupProjectWithDocuments(
     state: 'visible',
   });
 
-  // Create some documents to show in Quick Open
   const documentNames = [
     'Chapter One - The Beginning',
     'Chapter Two - The Journey',
@@ -57,16 +49,23 @@ async function setupProjectWithDocuments(
     const newDocButton = page.getByTestId('create-new-element');
     await newDocButton.click();
 
-    // Select "Document" from type chooser
     await page.getByRole('heading', { name: 'Document', level: 4 }).click();
 
-    // Fill in name
     const dialogInput = page.getByLabel('Document Name');
     await dialogInput.waitFor({ state: 'visible' });
     await dialogInput.fill(name);
     await page.getByTestId('create-element-button').click();
     await page.locator('mat-dialog-container').waitFor({ state: 'hidden' });
   }
+}
+
+async function openQuickOpen(page: Page): Promise<void> {
+  await pressShortcut(page, 'p');
+  await page.waitForSelector('[data-testid="quick-open-dialog"]', {
+    state: 'visible',
+  });
+  // Brief wait for results to populate
+  await page.waitForTimeout(300);
 }
 
 test.describe('Quick Open Screenshots', () => {
@@ -76,124 +75,58 @@ test.describe('Quick Open Screenshots', () => {
     await ensureDirectory(screenshotsDir);
   });
 
-  test.describe('Light Mode', () => {
-    test('Quick Open dialog with recent files', async ({
-      offlinePage: page,
-    }) => {
-      await page.setViewportSize({ width: 1280, height: 800 });
+  test('Quick Open screenshots — light mode', async ({ offlinePage: page }) => {
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+    await setupProjectWithDocuments(page, 'quick-open-demo-light', 'My Novel');
 
-      await setupProjectWithDocuments(page, 'quick-open-demo-1', 'My Novel');
-
-      // Open Quick Open with keyboard shortcut
-      await pressShortcut(page, 'p');
-
-      // Wait for dialog to appear
-      await page.waitForSelector('[data-testid="quick-open-dialog"]', {
-        state: 'visible',
-      });
-
-      // Wait for results to populate
-      await page.waitForTimeout(300);
-
-      // Capture screenshot of the dialog
+    await test.step('dialog with recent files', async () => {
+      await openQuickOpen(page);
       await captureElementScreenshot(
         page,
         [page.locator('[data-testid="quick-open-dialog"]')],
         join(screenshotsDir, 'quick-open-dialog-light.png'),
         16
       );
-
-      // Close dialog
-      await page.keyboard.press('Escape');
     });
 
-    test('Quick Open with search query', async ({ offlinePage: page }) => {
-      await page.setViewportSize({ width: 1280, height: 800 });
-
-      await setupProjectWithDocuments(page, 'quick-open-demo-2', 'My Novel');
-
-      // Open Quick Open
-      await pressShortcut(page, 'p');
-
-      // Wait for dialog
-      await page.waitForSelector('[data-testid="quick-open-dialog"]', {
-        state: 'visible',
-      });
-
-      // Type search query
+    await test.step('dialog filtered by search query', async () => {
+      // Dialog is still open from previous step.
       await page.getByTestId('quick-open-search').fill('chapter');
       await page.waitForTimeout(300);
-
-      // Capture screenshot with search results
       await captureElementScreenshot(
         page,
         [page.locator('[data-testid="quick-open-dialog"]')],
         join(screenshotsDir, 'quick-open-search-light.png'),
         16
       );
-
-      // Close dialog
       await page.keyboard.press('Escape');
     });
   });
 
-  test.describe('Dark Mode', () => {
-    test('Quick Open dialog - dark mode', async ({ offlinePage: page }) => {
-      await page.setViewportSize({ width: 1280, height: 800 });
-      await page.emulateMedia({ colorScheme: 'dark' });
+  test('Quick Open screenshots — dark mode', async ({ offlinePage: page }) => {
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await setupProjectWithDocuments(page, 'quick-open-demo-dark', 'My Novel');
 
-      await setupProjectWithDocuments(page, 'quick-open-demo-3', 'My Novel');
-
-      // Open Quick Open
-      await pressShortcut(page, 'p');
-
-      // Wait for dialog
-      await page.waitForSelector('[data-testid="quick-open-dialog"]', {
-        state: 'visible',
-      });
-      await page.waitForTimeout(300);
-
-      // Capture screenshot
+    await test.step('dialog with recent files', async () => {
+      await openQuickOpen(page);
       await captureElementScreenshot(
         page,
         [page.locator('[data-testid="quick-open-dialog"]')],
         join(screenshotsDir, 'quick-open-dialog-dark.png'),
         16
       );
-
-      // Close dialog
-      await page.keyboard.press('Escape');
     });
 
-    test('Quick Open with search - dark mode', async ({
-      offlinePage: page,
-    }) => {
-      await page.setViewportSize({ width: 1280, height: 800 });
-      await page.emulateMedia({ colorScheme: 'dark' });
-
-      await setupProjectWithDocuments(page, 'quick-open-demo-4', 'My Novel');
-
-      // Open Quick Open
-      await pressShortcut(page, 'p');
-
-      // Wait for dialog
-      await page.waitForSelector('[data-testid="quick-open-dialog"]', {
-        state: 'visible',
-      });
-
-      // Type search
+    await test.step('dialog filtered by search query', async () => {
       await page.getByTestId('quick-open-search').fill('chapter');
       await page.waitForTimeout(300);
-
-      // Capture screenshot
       await captureElementScreenshot(
         page,
         [page.locator('[data-testid="quick-open-dialog"]')],
         join(screenshotsDir, 'quick-open-search-dark.png'),
         16
       );
-
-      // Close dialog
       await page.keyboard.press('Escape');
     });
   });

@@ -6,40 +6,25 @@ import { createProject, expect, test } from './fixtures';
 /**
  * AI Image Generation E2E Tests
  *
- * These tests verify the image generation profile management and the
- * image generation dialog workflow, testing everything up to the point
- * of pressing "Generate" - which will fail with fake API keys.
- *
- * The tests use fake API keys to ensure we don't accidentally call
- * real AI services during testing.
+ * Verifies image-generation profile management and the user-facing
+ * generation dialog workflow up to the point of pressing "Generate" —
+ * which fails by design with the fake API key the suite installs.
  */
 
-/**
- * Helper to wait for the image generation dialog to finish loading.
- * The dialog has multiple loading states (config, profiles) before showing the stepper.
- */
 async function waitForDialogReady(page: Page): Promise<void> {
-  // Wait for dialog content to be present
   await expect(
     page.locator('[data-testid="image-gen-dialog-content"]')
   ).toBeVisible();
-
-  // Wait for any loading spinners to disappear
   await expect(page.locator('mat-dialog-container mat-spinner')).toBeHidden();
-
-  // Now the stepper should be visible (or an error/disabled notice)
-  // This may take time to load config and profiles from backend
   await expect(page.locator('.image-generation-stepper')).toBeVisible();
 }
 
-// Fake API keys that look valid but won't work
 const FAKE_API_KEYS = {
   openai: TEST_API_KEYS.FAKE_OPENAI,
   openrouter: TEST_API_KEYS.FAKE_OPENROUTER,
   falai: TEST_API_KEYS.FAKE_FALAI,
 };
 
-// Static test profile for user tests - created once
 const USER_TEST_PROFILE = {
   name: 'E2E-User-Test-OpenAI',
   description: 'Test profile for user e2e tests',
@@ -49,16 +34,10 @@ const USER_TEST_PROFILE = {
   defaultSize: '1024x1024',
 };
 
-/**
- * Helper to get the API base URL
- */
 function getApiBaseUrl(): string {
   return process.env['API_BASE_URL'] || 'http://localhost:9333';
 }
 
-/**
- * Helper to set an AI provider API key via the admin API
- */
 async function setProviderApiKey(
   page: Page,
   providerId: string,
@@ -80,9 +59,6 @@ async function setProviderApiKey(
   expect(response.ok()).toBe(true);
 }
 
-/**
- * Helper to create an image profile via the admin API
- */
 async function createImageProfile(
   page: Page,
   profile: {
@@ -120,7 +96,6 @@ async function createImageProfile(
   );
 
   if (response.status() === 409) {
-    // Profile already exists, that's fine for tests
     return 'existing';
   }
 
@@ -129,9 +104,6 @@ async function createImageProfile(
   return data.id;
 }
 
-/**
- * Helper to delete an image profile by name via the admin API
- */
 async function deleteImageProfileByName(
   page: Page,
   name: string
@@ -168,9 +140,6 @@ async function deleteImageProfileByName(
   }
 }
 
-/**
- * Helper to navigate to admin page via user menu
- */
 async function navigateToAdminViaMenu(page: Page): Promise<void> {
   await page.locator('[data-testid="user-menu-button"]').click();
   await page.locator('[data-testid="admin-menu-link"]').click();
@@ -178,154 +147,138 @@ async function navigateToAdminViaMenu(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle');
 }
 
-/**
- * Helper to navigate to media tab in project
- */
 async function navigateToMediaTab(page: Page): Promise<void> {
-  // Use the sidebar media button (same pattern as local tests)
   const mediaButton = page.getByTestId('sidebar-media-button');
   await mediaButton.click();
   await page.waitForURL(/\/media$/);
   await page.waitForLoadState('networkidle');
 
-  // Wait for the media tab content to be active
   await expect(
     page.locator('[data-testid="media-search-input"]')
   ).toBeVisible();
 }
 
+async function openImageGenDialog(page: Page): Promise<void> {
+  const addButton = page.locator('[data-testid="add-media-button"]');
+  await expect(addButton).toBeVisible();
+  await expect(addButton).toBeEnabled();
+  await addButton.click();
+
+  const generateOption = page.locator('[data-testid="add-media-generate"]');
+  await expect(generateOption).toBeVisible();
+  await expect(generateOption).toBeEnabled();
+  await generateOption.click();
+
+  await expect(
+    page.locator('[data-testid="image-gen-dialog-title"]')
+  ).toBeVisible();
+}
+
 test.describe('Image Generation - Admin Profile Management', () => {
-  test('should navigate to AI Settings and see image profiles section', async ({
-    adminPage,
-  }) => {
-    // Navigate to admin
-    await navigateToAdminViaMenu(adminPage);
-
-    // Navigate to AI Settings (where image profiles live)
-    await adminPage.locator('[data-testid="admin-nav-ai"]').click();
-    await adminPage.waitForURL('**/admin/ai');
-    await adminPage.waitForLoadState('networkidle');
-
-    // Look for the profiles section
-    const profilesCard = adminPage.locator('mat-card', {
-      hasText: 'Image Model Profiles',
-    });
-    await expect(profilesCard).toBeVisible();
-
-    // Look for Create Profile button
-    const createButton = adminPage.locator(
-      '[data-testid="create-profile-button"]'
-    );
-    await expect(createButton).toBeVisible();
-  });
-
-  test('should configure OpenAI API key via admin UI', async ({
-    adminPage,
-  }) => {
-    // Navigate to admin
-    await navigateToAdminViaMenu(adminPage);
-
-    // Navigate to AI providers
-    await adminPage.locator('[data-testid="admin-nav-ai-providers"]').click();
-    await adminPage.waitForURL('**/admin/ai-providers');
-    await adminPage.waitForLoadState('networkidle');
-
-    // Find OpenAI provider card
-    const openaiCard = adminPage.locator(
-      '[data-testid="ai-provider-card-openai"]'
-    );
-    await expect(openaiCard).toBeVisible();
-
-    // Look for the API key section (should show configured or not configured)
-    const keyConfigured = openaiCard.locator(
-      '[data-testid="ai-provider-key-configured"]'
-    );
-    const keyNotConfigured = openaiCard.locator(
-      '[data-testid="ai-provider-key-not-configured"]'
-    );
-
-    // One of these should be visible
-    await expect(keyConfigured.or(keyNotConfigured)).toBeVisible();
-  });
-
-  test('should create an image profile via API and see it in admin', async ({
+  /**
+   * Single admin session: AI Settings + AI Providers UI checks, profile
+   * created via API and seen in admin UI, create-profile UI dialog
+   * opens & cancels. Replaces 4 separate adminPage tests.
+   */
+  test('admin AI settings: pages, providers, profile creation (API + UI)', async ({
     adminPage,
   }) => {
     const testProfileName = `E2E-Admin-Test-${Date.now()}`;
 
-    // First set up the API key
-    await setProviderApiKey(adminPage, 'openai', FAKE_API_KEYS.openai);
+    await test.step('AI Settings page exposes Image Model Profiles section', async () => {
+      await navigateToAdminViaMenu(adminPage);
+      await adminPage.locator('[data-testid="admin-nav-ai"]').click();
+      await adminPage.waitForURL('**/admin/ai');
+      await adminPage.waitForLoadState('networkidle');
 
-    // Create profile via API
-    await createImageProfile(adminPage, {
-      ...USER_TEST_PROFILE,
-      name: testProfileName,
+      const profilesCard = adminPage.locator('mat-card', {
+        hasText: 'Image Model Profiles',
+      });
+      await expect(profilesCard).toBeVisible();
+      await expect(
+        adminPage.locator('[data-testid="create-profile-button"]')
+      ).toBeVisible();
     });
 
-    // Navigate to admin AI settings
-    await navigateToAdminViaMenu(adminPage);
-    await adminPage.locator('[data-testid="admin-nav-ai"]').click();
-    await adminPage.waitForURL('**/admin/ai');
-    await adminPage.waitForLoadState('networkidle');
+    await test.step('AI Providers page shows OpenAI key configured/not-configured state', async () => {
+      await adminPage.locator('[data-testid="admin-nav-ai-providers"]').click();
+      await adminPage.waitForURL('**/admin/ai-providers');
+      await adminPage.waitForLoadState('networkidle');
 
-    // Look for our created profile in the profiles grid
-    const profilesGrid = adminPage.locator('[data-testid="profiles-grid"]');
-    await expect(profilesGrid).toBeVisible();
+      const openaiCard = adminPage.locator(
+        '[data-testid="ai-provider-card-openai"]'
+      );
+      await expect(openaiCard).toBeVisible();
 
-    // Look for profile with matching text
-    const profileItem = adminPage.locator('.profile-item', {
-      hasText: testProfileName,
+      const keyConfigured = openaiCard.locator(
+        '[data-testid="ai-provider-key-configured"]'
+      );
+      const keyNotConfigured = openaiCard.locator(
+        '[data-testid="ai-provider-key-not-configured"]'
+      );
+      await expect(keyConfigured.or(keyNotConfigured)).toBeVisible();
     });
-    await expect(profileItem).toBeVisible();
 
-    // Clean up - delete the test profile
-    await deleteImageProfileByName(adminPage, testProfileName);
-  });
+    await test.step('profile created via API appears in the admin UI', async () => {
+      await setProviderApiKey(adminPage, 'openai', FAKE_API_KEYS.openai);
+      await createImageProfile(adminPage, {
+        ...USER_TEST_PROFILE,
+        name: testProfileName,
+      });
 
-  test('should open create profile dialog via UI', async ({ adminPage }) => {
-    // Set up API key first
-    await setProviderApiKey(adminPage, 'openai', FAKE_API_KEYS.openai);
+      // Re-enter via the user menu so the AI Settings page reloads with
+      // the latest profile list (a stale in-memory state from earlier
+      // steps can otherwise omit the just-created profile).
+      await navigateToAdminViaMenu(adminPage);
+      await adminPage.locator('[data-testid="admin-nav-ai"]').click();
+      await adminPage.waitForURL('**/admin/ai');
+      // Force a fresh profile fetch — the page caches its first load.
+      await adminPage.reload();
+      await adminPage.waitForLoadState('networkidle');
 
-    // Navigate to admin AI settings
-    await navigateToAdminViaMenu(adminPage);
-    await adminPage.locator('[data-testid="admin-nav-ai"]').click();
-    await adminPage.waitForURL('**/admin/ai');
-    await adminPage.waitForLoadState('networkidle');
+      const profilesGrid = adminPage.locator('[data-testid="profiles-grid"]');
+      await expect(profilesGrid).toBeVisible();
 
-    // Click Create Profile button
-    await adminPage.locator('[data-testid="create-profile-button"]').click();
+      const profileItem = adminPage.locator('.profile-item', {
+        hasText: testProfileName,
+      });
+      await expect(profileItem).toBeVisible();
+    });
 
-    // Wait for dialog
-    const dialogTitle = adminPage.locator(
-      '[data-testid="profile-dialog-title"]'
-    );
-    await expect(dialogTitle).toBeVisible();
-    await expect(dialogTitle).toContainText('Create Image Profile');
+    await test.step('create-profile UI dialog opens and can be cancelled', async () => {
+      await adminPage.locator('[data-testid="create-profile-button"]').click();
 
-    // Verify form fields are present
-    await expect(
-      adminPage.locator('[data-testid="profile-name-input"]')
-    ).toBeVisible();
-    await expect(
-      adminPage.locator('[data-testid="profile-provider-select"]')
-    ).toBeVisible();
+      const dialogTitle = adminPage.locator(
+        '[data-testid="profile-dialog-title"]'
+      );
+      await expect(dialogTitle).toBeVisible();
+      await expect(dialogTitle).toContainText('Create Image Profile');
 
-    // Cancel the dialog
-    await adminPage.locator('[data-testid="profile-dialog-cancel"]').click();
-    await expect(dialogTitle).not.toBeVisible();
+      await expect(
+        adminPage.locator('[data-testid="profile-name-input"]')
+      ).toBeVisible();
+      await expect(
+        adminPage.locator('[data-testid="profile-provider-select"]')
+      ).toBeVisible();
+
+      await adminPage.locator('[data-testid="profile-dialog-cancel"]').click();
+      await expect(dialogTitle).not.toBeVisible();
+    });
+
+    await test.step('cleanup: delete the API-created profile', async () => {
+      await deleteImageProfileByName(adminPage, testProfileName);
+    });
   });
 });
 
 test.describe('Image Generation - User Dialog Flow', () => {
-  // Run serially to ensure beforeAll completes before tests and avoid race conditions
+  // Run serially to ensure beforeAll completes before tests.
   test.describe.configure({ mode: 'serial' });
 
   test.beforeAll(async ({ browser }) => {
-    // Set up profiles before running user tests
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    // Login as admin
     const response = await page.request.post(
       `${getApiBaseUrl()}/api/v1/auth/login`,
       {
@@ -343,7 +296,6 @@ test.describe('Image Generation - User Dialog Flow', () => {
 
     const { token } = await response.json();
 
-    // Set fake API key
     await page.request.put(
       `${getApiBaseUrl()}/api/v1/ai/providers/openai/key`,
       {
@@ -355,7 +307,6 @@ test.describe('Image Generation - User Dialog Flow', () => {
       }
     );
 
-    // Create the test profile (ignore if already exists)
     await page.request.post(`${getApiBaseUrl()}/api/v1/admin/image-profiles`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -378,205 +329,76 @@ test.describe('Image Generation - User Dialog Flow', () => {
     await context.close();
   });
 
-  test('should show add media button with generate option on media tab', async ({
+  /**
+   * Full user-side dialog lifecycle on a single project: open dialog,
+   * cancel, reopen, navigate context → prompt → generate (failure path
+   * with fake API key) → try-again button. Replaces 6 separate tests
+   * (each of which previously created its own project).
+   */
+  test('user image-gen dialog: open, cancel, generate-fail, retry surface', async ({
     authenticatedPage,
   }) => {
-    const testSlug = `test-img-gen-${Date.now()}`;
-
-    await createProject(authenticatedPage, 'Image Gen Test', testSlug);
+    const testSlug = `test-img-flow-${Date.now()}`;
+    await createProject(authenticatedPage, 'Image Gen Flow', testSlug);
     await navigateToMediaTab(authenticatedPage);
 
-    // The + button opens the add media dialog
-    const addButton = authenticatedPage.locator(
-      '[data-testid="add-media-button"]'
-    );
-    await expect(addButton).toBeVisible();
-    await expect(addButton).toBeEnabled();
-    await addButton.click();
+    await test.step('add-media button surfaces a Generate option that opens the dialog', async () => {
+      await openImageGenDialog(authenticatedPage);
+    });
 
-    // The generate option should be available in the dialog
-    const generateOption = authenticatedPage.locator(
-      '[data-testid="add-media-generate"]'
-    );
-    await expect(generateOption).toBeVisible();
-    await expect(generateOption).toBeEnabled();
+    await test.step('Cancel button closes the dialog', async () => {
+      const cancelButton = authenticatedPage.locator(
+        '[data-testid="image-gen-cancel-button"]'
+      );
+      await expect(cancelButton).toBeVisible();
+      await cancelButton.click();
+      await expect(
+        authenticatedPage.locator('[data-testid="image-gen-dialog-title"]')
+      ).not.toBeVisible();
+    });
 
-    // Close dialog
-    await authenticatedPage.locator('[data-testid="add-media-cancel"]').click();
-  });
+    await test.step('reopen dialog and wait for profiles to load', async () => {
+      await openImageGenDialog(authenticatedPage);
+      await waitForDialogReady(authenticatedPage);
+    });
 
-  test('should open image generation dialog with profiles loaded', async ({
-    authenticatedPage,
-  }) => {
-    const testSlug = `test-img-dialog-${Date.now()}`;
+    await test.step('Next moves from context step to the prompt step', async () => {
+      const nextButton = authenticatedPage.locator(
+        '[data-testid="image-gen-next-button"]'
+      );
+      await expect(nextButton).toBeEnabled();
+      await nextButton.click();
 
-    await createProject(authenticatedPage, 'Image Dialog Test', testSlug);
-    await navigateToMediaTab(authenticatedPage);
+      const promptField = authenticatedPage.locator(
+        '[data-testid="image-gen-prompt-input"]'
+      );
+      await expect(promptField).toBeVisible();
+    });
 
-    // Open add media dialog, then choose generate
-    await authenticatedPage.locator('[data-testid="add-media-button"]').click();
-    await authenticatedPage
-      .locator('[data-testid="add-media-generate"]')
-      .click();
+    await test.step('filling the prompt enables Generate', async () => {
+      const promptField = authenticatedPage.locator(
+        '[data-testid="image-gen-prompt-input"]'
+      );
+      await promptField.fill('A fantasy castle on a mountain');
 
-    // Wait for dialog title
-    const dialogTitle = authenticatedPage.locator(
-      '[data-testid="image-gen-dialog-title"]'
-    );
-    await expect(dialogTitle).toBeVisible();
+      const generateButton = authenticatedPage.locator(
+        '[data-testid="image-gen-generate-button"]'
+      );
+      await expect(generateButton).toBeEnabled();
+    });
 
-    // Wait for loading to complete and stepper to appear
-    await waitForDialogReady(authenticatedPage);
-  });
+    await test.step('Generate fails with the fake API key and exposes Try Again', async () => {
+      const generateButton = authenticatedPage.locator(
+        '[data-testid="image-gen-generate-button"]'
+      );
+      await generateButton.click();
 
-  test('should navigate from context to prompt step', async ({
-    authenticatedPage,
-  }) => {
-    const testSlug = `test-img-prompt-${Date.now()}`;
-
-    await createProject(authenticatedPage, 'Image Prompt Test', testSlug);
-    await navigateToMediaTab(authenticatedPage);
-
-    // Open add media dialog, then choose generate
-    await authenticatedPage.locator('[data-testid="add-media-button"]').click();
-    await authenticatedPage
-      .locator('[data-testid="add-media-generate"]')
-      .click();
-
-    // Wait for dialog and loading to complete
-    await expect(
-      authenticatedPage.locator('[data-testid="image-gen-dialog-title"]')
-    ).toBeVisible();
-    await waitForDialogReady(authenticatedPage);
-
-    // Click Next button
-    const nextButton = authenticatedPage.locator(
-      '[data-testid="image-gen-next-button"]'
-    );
-    await expect(nextButton).toBeEnabled();
-    await nextButton.click();
-
-    // Verify prompt field is visible
-    const promptField = authenticatedPage.locator(
-      '[data-testid="image-gen-prompt-input"]'
-    );
-    await expect(promptField).toBeVisible();
-  });
-
-  test('should fill in prompt and enable Generate button', async ({
-    authenticatedPage,
-  }) => {
-    const testSlug = `test-img-fill-${Date.now()}`;
-
-    await createProject(authenticatedPage, 'Fill Prompt Test', testSlug);
-    await navigateToMediaTab(authenticatedPage);
-
-    // Open add media dialog, then choose generate
-    await authenticatedPage.locator('[data-testid="add-media-button"]').click();
-    await authenticatedPage
-      .locator('[data-testid="add-media-generate"]')
-      .click();
-
-    // Wait for dialog to be fully loaded
-    await waitForDialogReady(authenticatedPage);
-
-    // Navigate to prompt step
-    const nextButton = authenticatedPage.locator(
-      '[data-testid="image-gen-next-button"]'
-    );
-    await expect(nextButton).toBeEnabled();
-    await nextButton.click();
-
-    // Fill in prompt
-    const promptField = authenticatedPage.locator(
-      '[data-testid="image-gen-prompt-input"]'
-    );
-    await expect(promptField).toBeVisible();
-    await promptField.fill('A fantasy castle on a mountain');
-
-    // Verify Generate button is enabled
-    const generateButton = authenticatedPage.locator(
-      '[data-testid="image-gen-generate-button"]'
-    );
-    await expect(generateButton).toBeEnabled();
-  });
-
-  test('should attempt generation and fail with fake API key', async ({
-    authenticatedPage,
-  }) => {
-    const testSlug = `test-img-gen-fail-${Date.now()}`;
-
-    await createProject(authenticatedPage, 'Gen Fail Test', testSlug);
-    await navigateToMediaTab(authenticatedPage);
-
-    // Open add media dialog, then choose generate
-    await authenticatedPage.locator('[data-testid="add-media-button"]').click();
-    await authenticatedPage
-      .locator('[data-testid="add-media-generate"]')
-      .click();
-
-    // Wait for dialog to be fully loaded
-    await waitForDialogReady(authenticatedPage);
-
-    // Navigate to prompt step
-    await authenticatedPage
-      .locator('[data-testid="image-gen-next-button"]')
-      .click();
-
-    // Fill in prompt
-    const promptField = authenticatedPage.locator(
-      '[data-testid="image-gen-prompt-input"]'
-    );
-    await expect(promptField).toBeVisible();
-    await promptField.fill('A test image');
-
-    // Click Generate
-    const generateButton = authenticatedPage.locator(
-      '[data-testid="image-gen-generate-button"]'
-    );
-    await expect(generateButton).toBeEnabled();
-    await generateButton.click();
-
-    // Wait for error (generation should fail with fake API key)
-    const errorMessage = authenticatedPage.locator(
-      '[data-testid="image-gen-error-message"]'
-    );
-    await expect(errorMessage).toBeVisible();
-
-    // Verify Try Again button
-    const tryAgainButton = authenticatedPage.locator(
-      '[data-testid="image-gen-try-again-button"]'
-    );
-    await expect(tryAgainButton).toBeVisible();
-  });
-
-  test('should close dialog via Cancel button', async ({
-    authenticatedPage,
-  }) => {
-    const testSlug = `test-img-close-${Date.now()}`;
-
-    await createProject(authenticatedPage, 'Close Dialog Test', testSlug);
-    await navigateToMediaTab(authenticatedPage);
-
-    // Open add media dialog, then choose generate
-    await authenticatedPage.locator('[data-testid="add-media-button"]').click();
-    await authenticatedPage
-      .locator('[data-testid="add-media-generate"]')
-      .click();
-
-    const dialogTitle = authenticatedPage.locator(
-      '[data-testid="image-gen-dialog-title"]'
-    );
-    await expect(dialogTitle).toBeVisible();
-
-    // Click Cancel
-    const cancelButton = authenticatedPage.locator(
-      '[data-testid="image-gen-cancel-button"]'
-    );
-    await expect(cancelButton).toBeVisible();
-    await cancelButton.click();
-
-    // Dialog should close
-    await expect(dialogTitle).not.toBeVisible();
+      await expect(
+        authenticatedPage.locator('[data-testid="image-gen-error-message"]')
+      ).toBeVisible();
+      await expect(
+        authenticatedPage.locator('[data-testid="image-gen-try-again-button"]')
+      ).toBeVisible();
+    });
   });
 });

@@ -51,9 +51,7 @@ test.describe('Passkey recovery (magic link)', () => {
       .fill('nobody-special@example.com');
     await anonymousPage.getByTestId('recover-submit-button').click();
 
-    await expect(anonymousPage.getByTestId('recover-success')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(anonymousPage.getByTestId('recover-success')).toBeVisible();
   });
 
   test('redemption page shows the no-token error when visited without a token query param', async ({

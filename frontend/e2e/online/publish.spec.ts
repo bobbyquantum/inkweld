@@ -34,719 +34,326 @@ test.describe('Online Publishing Workflow', () => {
   }
 
   /**
-   * Helper to create a project and navigate to create a publish plan
+   * Helper to create a project. Returns the unique slug.
    */
-  async function setupProjectAndCreatePlan(
-    page: import('@playwright/test').Page
+  async function createProject(
+    page: import('@playwright/test').Page,
+    titlePrefix: string
   ): Promise<string> {
-    // Create a unique project
-    const uniqueSlug = `publish-test-${Date.now()}`;
+    const uniqueSlug = `${titlePrefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     await page.goto('/create-project');
-
-    // Step 1: Click Next to proceed to step 2
     await page.getByRole('button', { name: /next/i }).click();
-
-    // Step 2: Fill in project details
-    await page.getByTestId('project-title-input').fill('Publishing Test');
+    await page.getByTestId('project-title-input').fill(titlePrefix);
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
     await page.getByTestId('create-project-button').click();
-
-    // Wait for project page
     await page.waitForURL(new RegExp(uniqueSlug));
     await page.waitForLoadState('networkidle');
+    return uniqueSlug;
+  }
 
-    // Navigate to Publishing tab via sidenav
+  /**
+   * Helper to open Publishing tab and create a new publish plan.
+   */
+  async function createPublishPlan(
+    page: import('@playwright/test').Page
+  ): Promise<void> {
     await navigateToPublishingTab(page);
-
-    // Ensure button is visible and clickable before clicking
     const createPlanButton = page.getByTestId('create-publish-plan-button');
     await expect(createPlanButton).toBeVisible();
     await expect(createPlanButton).toBeEnabled();
     await createPlanButton.click();
     await page.waitForURL(/\/publish-plan\//);
     await expect(page.getByTestId('plan-name-input')).toBeVisible();
-
-    return uniqueSlug;
   }
 
-  test.describe('Publish Plan Creation', () => {
-    test('should show publishing tab via sidenav button', async ({
-      authenticatedPage: page,
-    }) => {
-      // Create a project
-      const uniqueSlug = `plan-test-${Date.now()}`;
-      await page.goto('/create-project');
+  /**
+   * Helper to select a format from the format dropdown. The format select
+   * lives in the Metadata section, so navigate there first.
+   */
+  async function selectFormat(
+    page: import('@playwright/test').Page,
+    optionName: RegExp | string
+  ): Promise<void> {
+    await selectSection(page, 'metadata');
+    await expect(page.getByTestId('format-select')).toBeVisible();
+    await page.getByTestId('format-select').click();
+    await page.getByRole('option', { name: optionName }).click();
+    await expect(page.getByRole('listbox')).not.toBeVisible();
+  }
 
-      // Step 1: Click Next to proceed to step 2
-      await page.getByRole('button', { name: /next/i }).click();
+  /**
+   * Helper to generate the publication and wait for the complete dialog.
+   */
+  async function generateAndOpenDialog(
+    page: import('@playwright/test').Page
+  ): Promise<void> {
+    await selectSection(page, 'publish');
+    await page.getByTestId('generate-button').click();
+    await expect(
+      page.getByTestId('publish-complete-dialog-title')
+    ).toBeVisible();
+  }
 
-      // Step 2: Fill in project details
-      await page.getByTestId('project-title-input').fill('Plan Test');
-      await page.getByTestId('project-slug-input').fill(uniqueSlug);
-      await page.getByTestId('create-project-button').click();
-      await page.waitForURL(new RegExp(uniqueSlug));
-      await page.waitForLoadState('networkidle');
+  /**
+   * Helper to close the publish-complete dialog so the next step can run.
+   */
+  async function closeCompleteDialog(
+    page: import('@playwright/test').Page
+  ): Promise<void> {
+    await page.getByTestId('done-button').click();
+    await expect(
+      page.getByTestId('publish-complete-dialog-title')
+    ).not.toBeVisible();
+  }
 
-      // Navigate to Publishing tab via sidenav
+  /**
+   * Plan-management workflow: covers sidenav navigation, plan creation/config,
+   * format selection + persistence, content add/remove, generation against an
+   * empty document, file download, and persistence across reload — all on a
+   * single project + plan to amortize setup cost.
+   */
+  test('plan management, format selection, content editing, and persistence', async ({
+    authenticatedPage: page,
+  }) => {
+    await createProject(page, 'plan-mgmt');
+
+    await test.step('shows publishing tab via sidenav button', async () => {
       await navigateToPublishingTab(page);
-
-      // Should see the create button
       await expect(
         page.getByTestId('create-publish-plan-button')
       ).toBeVisible();
     });
 
-    test('should create and configure a publish plan', async ({
-      authenticatedPage: page,
-    }) => {
-      await setupProjectAndCreatePlan(page);
+    await test.step('creates and configures a publish plan', async () => {
+      const createPlanButton = page.getByTestId('create-publish-plan-button');
+      await expect(createPlanButton).toBeEnabled();
+      await createPlanButton.click();
+      await page.waitForURL(/\/publish-plan\//);
+      await expect(page.getByTestId('plan-name-input')).toBeVisible();
 
-      // Update plan name
-      const planNameInput = page.getByTestId('plan-name-input');
-      await planNameInput.fill('My Book Export');
-
-      // Update book title
+      await page.getByTestId('plan-name-input').fill('My Book Export');
       await page.getByTestId('book-title-input').fill('My Published Book');
-
-      // Update author
       await page.getByTestId('author-input').fill('Test Author');
     });
-  });
 
-  test.describe('Adding Content to Plan', () => {
-    test('should add table of contents to publication', async ({
-      authenticatedPage: page,
-    }) => {
-      await setupProjectAndCreatePlan(page);
+    await test.step('switches between all formats', async () => {
+      await page.getByTestId('format-select').click();
+      await expect(page.getByRole('option')).toHaveCount(4);
+      await page.getByRole('option', { name: 'EPUB (E-Book)' }).click();
+      await selectSection(page, 'publish');
+      await expect(page.getByTestId('generate-button')).toContainText('EPUB');
+    });
 
-      // Navigate to Contents section and add content
+    await test.step('adds table of contents and removes items', async () => {
       await selectSection(page, 'contents');
       await page.getByTestId('add-everything-button').click();
-
-      // Should show in the items list
       await expect(page.getByTestId('content-items-list')).toBeVisible();
       await expect(page.getByTestId('content-item-0')).toBeVisible();
 
-      // Navigate to Publish section - generate button should be enabled
       await selectSection(page, 'publish');
       await expect(page.getByTestId('generate-button')).toBeEnabled();
-    });
 
-    test('should remove content items', async ({ authenticatedPage: page }) => {
-      await setupProjectAndCreatePlan(page);
-
-      // Navigate to Contents section and add content first
+      // Remove item, verify empty state
       await selectSection(page, 'contents');
-      await page.getByTestId('add-everything-button').click();
-      await expect(page.getByTestId('content-items-list')).toBeVisible();
-
-      // Remove it
       await page
         .getByTestId('content-item-0')
         .getByTestId('remove-item-button')
         .click();
-
-      // Should show empty state again
       await expect(page.getByTestId('empty-content-state')).toBeVisible();
-    });
-  });
 
-  test.describe('Format Selection', () => {
-    test('should allow switching between all formats', async ({
-      authenticatedPage: page,
-    }) => {
-      await setupProjectAndCreatePlan(page);
-
-      const formatSelect = page.getByTestId('format-select');
-      await formatSelect.click();
-
-      // Check that dropdown opened with format options
-      const options = page.getByRole('option');
-      await expect(options).toHaveCount(4);
-
-      // Select EPUB using role option to avoid multiple matches
-      await page.getByRole('option', { name: 'EPUB (E-Book)' }).click();
-
-      // Navigate to Publish section to see the generate button
-      await selectSection(page, 'publish');
-
-      // Verify generate button shows the selected format
-      await expect(page.getByTestId('generate-button')).toContainText('EPUB');
-    });
-
-    test('should remember format selection after auto-save', async ({
-      authenticatedPage: page,
-    }) => {
-      await setupProjectAndCreatePlan(page);
-
-      // Select PDF format (different from default EPUB)
-      await page.getByTestId('format-select').click();
-      await page.getByRole('option', { name: 'PDF' }).click();
-
-      // Auto-save debounce — wait for save to complete
-      await page.waitForTimeout(1000);
-
-      // Reload - the tab should remain open
-      await page.reload();
-
-      // The publish plan should still be visible
-      await expect(page.getByTestId('publish-plan-container')).toBeVisible();
-
-      // Navigate to Publish section to check generate button
-      await selectSection(page, 'publish');
-
-      // Generate button should show PDF
-      await expect(page.getByTestId('generate-button')).toContainText('PDF');
-    });
-  });
-
-  test.describe('Publishing Generation', () => {
-    test('should generate EPUB (default) and show complete dialog', async ({
-      authenticatedPage: page,
-    }) => {
-      await setupProjectAndCreatePlan(page);
-
-      // Navigate to Contents section and add content
-      await selectSection(page, 'contents');
+      // Re-add for downstream steps
       await page.getByTestId('add-everything-button').click();
       await expect(page.getByTestId('content-items-list')).toBeVisible();
+    });
 
-      // Navigate to Publish section and click generate
-      await selectSection(page, 'publish');
-      await page.getByTestId('generate-button').click();
+    await test.step('generates EPUB (default), shows complete dialog and downloads file', async () => {
+      await generateAndOpenDialog(page);
 
-      // Wait for publish complete dialog
-      await expect(
-        page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible();
-
-      // Should show file info
       await expect(page.getByTestId('filename')).toBeVisible();
       await expect(page.getByTestId('format-name')).toContainText('EPUB');
       await expect(page.getByTestId('file-size')).toBeVisible();
-
-      // In online mode, should NOT show offline notice
+      // Online mode should NOT show offline notice
       await expect(page.getByTestId('local-notice')).not.toBeVisible();
-    });
 
-    test('should generate PDF format with actual document content', async ({
-      authenticatedPage: page,
-    }) => {
-      // Create a unique project
-      const uniqueSlug = `pdf-content-test-${Date.now()}`;
-      const testContent =
-        'The quick brown fox jumps over the lazy dog near the riverbank.';
-
-      await page.goto('/create-project');
-
-      // Step 1: Click Next to proceed to step 2
-      await page.getByRole('button', { name: /next/i }).click();
-
-      // Step 2: Fill in project details
-      await page.getByTestId('project-title-input').fill('PDF Content Test');
-      await page.getByTestId('project-slug-input').fill(uniqueSlug);
-      await page.getByTestId('create-project-button').click();
-
-      // Wait for project page
-      await page.waitForURL(new RegExp(uniqueSlug));
-      await page.waitForLoadState('networkidle');
-
-      // Online projects now have a default README document
-      // Click on README using treeitem role
-      const readme = page.getByRole('treeitem', { name: /readme/i });
-      await expect(readme).toBeVisible();
-      await readme.click();
-
-      // Wait for editor to load
-      const editor = page.locator('.ProseMirror').first();
-      await expect(editor).toBeVisible();
-
-      // Wait for sync status to show "synced" (initial load)
-      await expect(page.locator('.sync-status')).toContainText('synced');
-
-      // Click into editor and add content
-      await editor.click();
-      await editor.pressSequentially(testContent, { delay: 5 });
-
-      // Wait for sync status to return to "synced" after edits
-      await expect(page.locator('.sync-status')).toContainText('synced');
-
-      // Additional wait to ensure IndexedDB is persisted
-      // y-indexeddb debounces writes with 1000ms timeout, and storeState needs
-      // to complete before the data is available. Wait 3 seconds to be safe.
-      await page.waitForTimeout(3000);
-
-      // Navigate to Publishing tab to create a plan
-      await navigateToPublishingTab(page);
-
-      // Create a new publish plan
-      await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('plan-name-input')).toBeVisible();
-
-      // Select PDF format
-      await page.getByTestId('format-select').click();
-      await page.getByRole('option', { name: 'PDF' }).click();
-
-      // Wait for format dropdown to close
-      await expect(page.getByRole('listbox')).not.toBeVisible();
-
-      // Navigate to Contents section and add all documents (README)
-      await selectSection(page, 'contents');
-      await page.getByTestId('add-everything-button').click();
-
-      // Verify document was added
-      await expect(page.getByTestId('content-items-list')).toBeVisible();
-      await expect(page.getByTestId('item-name')).toContainText('README');
-
-      // Navigate to Publish section and generate
-      await selectSection(page, 'publish');
-      await page.getByTestId('generate-button').click();
-
-      // Wait for completion - PDF generation can be slow in Docker
-      await expect(
-        page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible();
-
-      // Verify format in complete dialog
-      await expect(page.getByTestId('format-name')).toContainText('PDF');
-
-      // Download and verify the PDF was generated with document content
+      // Download check (covers the standalone "should download generated file"
+      // test — the suggested filename pattern verifies generation worked)
       const downloadPromise = page.waitForEvent('download');
       await page.getByTestId('download-button').click();
-      const download = await downloadPromise;
-      const filePath = await download.path();
-      expect(filePath).toBeTruthy();
-      if (filePath) {
-        const data = await fs.readFile(filePath);
-        // PDF with actual content should be substantially larger than empty PDF (~6KB)
-        // An empty PDF has only metadata/fonts, while one with content has text streams
-
-        expect(data.length).toBeGreaterThan(10000);
-
-        // The PDF is generated with actual document content because:
-        // 1. IndexedDB stores the document content when we type
-        // 2. PDF generator loads from IndexedDB using getDocumentContent()
-        // 3. The content is converted to PDF format and included in the PDF
-        //
-        // Note: jsPDF uses standard PDF encoding, so the raw bytes
-        // don't contain plain ASCII text - they contain glyph indices. To verify
-        // the content is present, we would need a full PDF text extractor.
-        //
-        // The increased file size (>10KB vs ~6KB for empty) indicates content was added.
-      }
-    });
-
-    test('should generate EPUB format with actual document content', async ({
-      authenticatedPage: page,
-    }) => {
-      // Create a unique project
-      const uniqueSlug = `epub-content-test-${Date.now()}`;
-      const testContent =
-        'The quick brown fox jumps over the lazy dog near the riverbank.';
-
-      await page.goto('/create-project');
-
-      // Step 1: Click Next to proceed to step 2
-      await page.getByRole('button', { name: /next/i }).click();
-
-      // Step 2: Fill in project details
-      await page.getByTestId('project-title-input').fill('EPUB Content Test');
-      await page.getByTestId('project-slug-input').fill(uniqueSlug);
-      await page.getByTestId('create-project-button').click();
-
-      // Wait for project page
-      await page.waitForURL(new RegExp(uniqueSlug));
-      await page.waitForLoadState('networkidle');
-
-      // Online projects now have a default README document
-      // Click on README using treeitem role
-      const readme = page.getByRole('treeitem', { name: /readme/i });
-      await expect(readme).toBeVisible();
-      await readme.click();
-
-      // Wait for editor to load
-      const editor = page.locator('.ProseMirror').first();
-      await expect(editor).toBeVisible();
-
-      // Wait for sync status to show "synced" (initial load)
-      await expect(page.locator('.sync-status')).toContainText('synced');
-
-      // Click into editor and add content
-      await editor.click();
-      await editor.pressSequentially(testContent, { delay: 5 });
-
-      // Wait for sync status to return to "synced" after edits
-      // y-indexeddb debounces writes, so we wait for the status to clearly indicate completion
-      await expect(page.locator('.sync-status')).toContainText('synced');
-
-      // Navigate to Publishing tab to create a plan
-      await navigateToPublishingTab(page);
-
-      // Create a new publish plan
-      await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('plan-name-input')).toBeVisible();
-
-      // EPUB is the default format, no need to change it
-
-      // Navigate to Contents section and add all documents (README)
-      await selectSection(page, 'contents');
-      await page.getByTestId('add-everything-button').click();
-
-      // Verify document was added
-      await expect(page.getByTestId('content-items-list')).toBeVisible();
-      await expect(page.getByTestId('item-name')).toContainText('README');
-
-      // Navigate to Publish section and generate
-      await selectSection(page, 'publish');
-      await page.getByTestId('generate-button').click();
-
-      // Wait for completion
-      await expect(
-        page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible();
-
-      // Verify format in complete dialog
-      await expect(page.getByTestId('format-name')).toContainText('EPUB');
-
-      // Download and verify the EPUB contains our actual document content
-      const downloadPromise = page.waitForEvent('download');
-      await page.getByTestId('download-button').click();
-      const download = await downloadPromise;
-      const filePath = await download.path();
-      expect(filePath).toBeTruthy();
-      if (filePath) {
-        const data = await fs.readFile(filePath);
-
-        // EPUB should be at least 1000 bytes (basic structure + content)
-        expect(data.length).toBeGreaterThan(1000);
-
-        // Use AdmZip to extract and read EPUB contents (EPUB is a ZIP file)
-        const zip = new AdmZip(filePath);
-        const zipEntries = zip.getEntries();
-
-        // Find and read the chapter XHTML files
-        let allContent = '';
-        for (const entry of zipEntries) {
-          if (entry.entryName.endsWith('.xhtml')) {
-            const content = entry.getData().toString('utf-8');
-
-            allContent += content;
-          }
-        }
-
-        const hasTestContent =
-          allContent.includes('quick brown fox') ||
-          allContent.includes('riverbank') ||
-          allContent.includes('lazy dog');
-
-        expect(hasTestContent).toBeTruthy();
-      }
-    });
-
-    test('should generate Markdown format with actual document content', async ({
-      authenticatedPage: page,
-    }) => {
-      // Create a unique project
-      const uniqueSlug = `markdown-content-test-${Date.now()}`;
-      const testContent =
-        'The quick brown fox jumps over the lazy dog near the riverbank.';
-
-      await page.goto('/create-project');
-
-      // Step 1: Click Next to proceed to step 2
-      await page.getByRole('button', { name: /next/i }).click();
-
-      // Step 2: Fill in project details
-      await page
-        .getByTestId('project-title-input')
-        .fill('Markdown Content Test');
-      await page.getByTestId('project-slug-input').fill(uniqueSlug);
-      await page.getByTestId('create-project-button').click();
-
-      // Wait for project page
-      await page.waitForURL(new RegExp(uniqueSlug));
-      await page.waitForLoadState('networkidle');
-
-      // Click on README document
-      const readme = page.getByRole('treeitem', { name: /readme/i });
-      await expect(readme).toBeVisible();
-      await readme.click();
-
-      // Wait for editor to load
-      const editor = page.locator('.ProseMirror').first();
-      await expect(editor).toBeVisible();
-
-      // Wait for sync status to show "synced"
-      await expect(page.locator('.sync-status')).toContainText('synced');
-
-      // Add content
-      await editor.click();
-      await editor.pressSequentially(testContent, { delay: 5 });
-
-      // Wait for sync
-      await expect(page.locator('.sync-status')).toContainText('synced');
-
-      // Navigate to Publishing tab to create a plan
-      await navigateToPublishingTab(page);
-
-      // Create publish plan
-      await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('plan-name-input')).toBeVisible();
-
-      // Select Markdown format
-      await page.getByTestId('format-select').click();
-      await page.getByRole('option', { name: 'Markdown' }).click();
-
-      // Wait for format dropdown to close
-      await expect(page.getByRole('listbox')).not.toBeVisible();
-
-      // Navigate to Contents section and add all documents (README)
-      await selectSection(page, 'contents');
-      await page.getByTestId('add-everything-button').click();
-
-      // Verify document was added
-      await expect(page.getByTestId('content-items-list')).toBeVisible();
-      await expect(page.getByTestId('item-name')).toContainText('README');
-
-      // Navigate to Publish section and generate
-      await selectSection(page, 'publish');
-      await page.getByTestId('generate-button').click();
-
-      // Wait for completion
-      await expect(
-        page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible();
-
-      // Verify format
-      await expect(page.getByTestId('format-name')).toContainText('Markdown');
-
-      // Download and verify
-      const downloadPromise = page.waitForEvent('download');
-      await page.getByTestId('download-button').click();
-      const download = await downloadPromise;
-      const filePath = await download.path();
-      expect(filePath).toBeTruthy();
-      if (filePath) {
-        const data = await fs.readFile(filePath, 'utf-8');
-
-        // Markdown should contain our test content in plain text
-        const hasTestContent =
-          data.includes('quick brown fox') ||
-          data.includes('riverbank') ||
-          data.includes('lazy dog');
-
-        expect(hasTestContent).toBeTruthy();
-      }
-    });
-
-    test('should generate HTML format with actual document content', async ({
-      authenticatedPage: page,
-    }) => {
-      // Create a unique project
-      const uniqueSlug = `html-content-test-${Date.now()}`;
-      const testContent =
-        'The quick brown fox jumps over the lazy dog near the riverbank.';
-
-      await page.goto('/create-project');
-
-      // Step 1: Click Next to proceed to step 2
-      await page.getByRole('button', { name: /next/i }).click();
-
-      // Step 2: Fill in project details
-      await page.getByTestId('project-title-input').fill('HTML Content Test');
-      await page.getByTestId('project-slug-input').fill(uniqueSlug);
-      await page.getByTestId('create-project-button').click();
-
-      // Wait for project page
-      await page.waitForURL(new RegExp(uniqueSlug));
-      await page.waitForLoadState('networkidle');
-
-      // Click on README document
-      const readme = page.getByRole('treeitem', { name: /readme/i });
-      await expect(readme).toBeVisible();
-      await readme.click();
-
-      // Wait for editor to load
-      const editor = page.locator('.ProseMirror').first();
-      await expect(editor).toBeVisible();
-
-      // Wait for sync status
-      await expect(page.locator('.sync-status')).toContainText('synced');
-
-      // Add content
-      await editor.click();
-      await editor.pressSequentially(testContent, { delay: 5 });
-
-      // Wait for sync
-      await expect(page.locator('.sync-status')).toContainText('synced');
-
-      // Navigate to Publishing tab to create a plan
-      await navigateToPublishingTab(page);
-
-      // Create publish plan
-      await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('plan-name-input')).toBeVisible();
-
-      // Select HTML format
-      await page.getByTestId('format-select').click();
-      await page.getByRole('option', { name: 'HTML' }).click();
-
-      // Wait for format dropdown to close
-      await expect(page.getByRole('listbox')).not.toBeVisible();
-
-      // Navigate to Contents section and add all documents (README)
-      await selectSection(page, 'contents');
-      await page.getByTestId('add-everything-button').click();
-
-      // Verify document was added
-      await expect(page.getByTestId('content-items-list')).toBeVisible();
-      await expect(page.getByTestId('item-name')).toContainText('README');
-
-      // Navigate to Publish section and generate
-      await selectSection(page, 'publish');
-      await page.getByTestId('generate-button').click();
-
-      // Wait for completion
-      await expect(
-        page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible();
-
-      // Verify format
-      await expect(page.getByTestId('format-name')).toContainText('HTML');
-
-      // Download and verify
-      const downloadPromise = page.waitForEvent('download');
-      await page.getByTestId('download-button').click();
-      const download = await downloadPromise;
-      const filePath = await download.path();
-      expect(filePath).toBeTruthy();
-      if (filePath) {
-        const data = await fs.readFile(filePath, 'utf-8');
-
-        // HTML should contain our test content
-        const hasTestContent =
-          data.includes('quick brown fox') ||
-          data.includes('riverbank') ||
-          data.includes('lazy dog');
-
-        expect(hasTestContent).toBeTruthy();
-      }
-    });
-
-    test('should generate Markdown format', async ({
-      authenticatedPage: page,
-    }) => {
-      await setupProjectAndCreatePlan(page);
-
-      // Select Markdown format
-      await page.getByTestId('format-select').click();
-      await page.getByRole('option', { name: 'Markdown' }).click();
-
-      // Navigate to Contents section and add content
-      await selectSection(page, 'contents');
-      await page.getByTestId('add-everything-button').click();
-
-      // Navigate to Publish section and generate
-      await selectSection(page, 'publish');
-      await page.getByTestId('generate-button').click();
-
-      // Wait for completion
-      await expect(
-        page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible();
-
-      // Verify format in complete dialog
-      await expect(page.getByTestId('format-name')).toContainText('Markdown');
-    });
-
-    test('should generate HTML format', async ({ authenticatedPage: page }) => {
-      await setupProjectAndCreatePlan(page);
-
-      // Select HTML format
-      await page.getByTestId('format-select').click();
-      await page.getByRole('option', { name: 'HTML' }).click();
-
-      // Navigate to Contents section and add content
-      await selectSection(page, 'contents');
-      await page.getByTestId('add-everything-button').click();
-
-      // Navigate to Publish section and generate
-      await selectSection(page, 'publish');
-      await page.getByTestId('generate-button').click();
-
-      // Wait for completion
-      await expect(
-        page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible();
-
-      // Verify format in complete dialog
-      await expect(page.getByTestId('format-name')).toContainText('HTML');
-    });
-  });
-
-  test.describe('File Download', () => {
-    test('should download generated file', async ({
-      authenticatedPage: page,
-    }) => {
-      await setupProjectAndCreatePlan(page);
-
-      // Navigate to Contents section, add content, then Publish and generate
-      await selectSection(page, 'contents');
-      await page.getByTestId('add-everything-button').click();
-      await selectSection(page, 'publish');
-      await page.getByTestId('generate-button').click();
-
-      // Wait for complete dialog
-      await expect(
-        page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible();
-
-      // Prepare to intercept download
-      const downloadPromise = page.waitForEvent('download');
-
-      // Click download button
-      await page.getByTestId('download-button').click();
-
-      // Wait for download to start
       const download = await downloadPromise;
       expect(download.suggestedFilename()).toMatch(/\.(pdf|epub|md|html)$/);
+
+      await closeCompleteDialog(page);
     });
-  });
 
-  test.describe('Persistence', () => {
-    test('should persist plan changes after reload', async ({
-      authenticatedPage: page,
-    }) => {
-      await setupProjectAndCreatePlan(page);
+    await test.step('persists format selection (PDF) across reload', async () => {
+      await selectFormat(page, 'PDF');
+      // Auto-save debounce
+      await page.waitForTimeout(1000);
 
-      // Make changes
+      await page.reload();
+      await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+      await selectSection(page, 'publish');
+      await expect(page.getByTestId('generate-button')).toContainText('PDF');
+    });
+
+    await test.step('persists plan field changes and content items across reload', async () => {
+      await selectSection(page, 'metadata');
       await page.getByTestId('book-title-input').fill('Persistent Title');
       await page.getByTestId('author-input').fill('Persistent Author');
 
-      // Navigate to Contents section and add content
+      // Content was already added earlier and should still be present.
       await selectSection(page, 'contents');
-      await page.getByTestId('add-everything-button').click();
+      await expect(page.getByTestId('content-items-list')).toBeVisible();
 
-      // Auto-save debounce — wait for save to complete
+      // Auto-save debounce
       await page.waitForTimeout(1000);
 
-      // Reload
       await page.reload();
-
-      // The publish plan should still be open - wait for plan name input which is more stable
       await expect(page.getByTestId('plan-name-input')).toBeVisible();
-
-      // Verify persistence
+      await selectSection(page, 'metadata');
       await expect(page.getByTestId('book-title-input')).toHaveValue(
         'Persistent Title'
       );
       await expect(page.getByTestId('author-input')).toHaveValue(
         'Persistent Author'
       );
-
-      // Navigate to Contents section to verify items persisted
       await selectSection(page, 'contents');
       await expect(page.getByTestId('content-items-list')).toBeVisible();
+    });
+  });
+
+  /**
+   * Format generation with real document content. Types README content ONCE
+   * and then re-uses the same publish plan to generate each format,
+   * switching the format setting between steps. This collapses four
+   * previously-independent tests (PDF/EPUB/Markdown/HTML content) plus the
+   * redundant "no-content" Markdown/HTML format tests into a single flow.
+   */
+  test('generates PDF, EPUB, Markdown, and HTML with real document content', async ({
+    authenticatedPage: page,
+  }) => {
+    const testContent =
+      'The quick brown fox jumps over the lazy dog near the riverbank.';
+
+    await createProject(page, 'format-content');
+
+    // Add real content to the README so all formats have something to render.
+    const readme = page.getByRole('treeitem', { name: /readme/i });
+    await expect(readme).toBeVisible();
+    await readme.click();
+
+    const editor = page.locator('.ProseMirror').first();
+    await expect(editor).toBeVisible();
+    await expect(page.locator('.sync-status')).toContainText('synced');
+
+    await editor.click();
+    await editor.pressSequentially(testContent, { delay: 5 });
+    await expect(page.locator('.sync-status')).toContainText('synced');
+
+    // y-indexeddb debounces writes ~1s; storeState needs to complete before
+    // PDF generation can read the document. Pad to be safe.
+    await page.waitForTimeout(3000);
+
+    await createPublishPlan(page);
+
+    await selectSection(page, 'contents');
+    await page.getByTestId('add-everything-button').click();
+    await expect(page.getByTestId('content-items-list')).toBeVisible();
+    await expect(page.getByTestId('item-name')).toContainText('README');
+
+    await test.step('PDF: generates and download is non-trivial size', async () => {
+      await selectFormat(page, 'PDF');
+      await generateAndOpenDialog(page);
+      await expect(page.getByTestId('format-name')).toContainText('PDF');
+
+      const downloadPromise = page.waitForEvent('download');
+      await page.getByTestId('download-button').click();
+      const download = await downloadPromise;
+      const filePath = await download.path();
+      expect(filePath).toBeTruthy();
+      if (filePath) {
+        const data = await fs.readFile(filePath);
+        // Empty PDF is ~6KB; a PDF with content is substantially larger.
+        // jsPDF encodes glyph indices, so we can't grep raw bytes for text.
+        expect(data.length).toBeGreaterThan(10000);
+      }
+
+      await closeCompleteDialog(page);
+    });
+
+    await test.step('EPUB: generates and chapter XHTML contains the typed content', async () => {
+      await selectFormat(page, 'EPUB (E-Book)');
+      await generateAndOpenDialog(page);
+      await expect(page.getByTestId('format-name')).toContainText('EPUB');
+
+      const downloadPromise = page.waitForEvent('download');
+      await page.getByTestId('download-button').click();
+      const download = await downloadPromise;
+      const filePath = await download.path();
+      expect(filePath).toBeTruthy();
+      if (filePath) {
+        const data = await fs.readFile(filePath);
+        expect(data.length).toBeGreaterThan(1000);
+
+        const zip = new AdmZip(filePath);
+        let allContent = '';
+        for (const entry of zip.getEntries()) {
+          if (entry.entryName.endsWith('.xhtml')) {
+            allContent += entry.getData().toString('utf-8');
+          }
+        }
+        const hasTestContent =
+          allContent.includes('quick brown fox') ||
+          allContent.includes('riverbank') ||
+          allContent.includes('lazy dog');
+        expect(hasTestContent).toBeTruthy();
+      }
+
+      await closeCompleteDialog(page);
+    });
+
+    await test.step('Markdown: generates and file contains plain-text content', async () => {
+      await selectFormat(page, 'Markdown');
+      await generateAndOpenDialog(page);
+      await expect(page.getByTestId('format-name')).toContainText('Markdown');
+
+      const downloadPromise = page.waitForEvent('download');
+      await page.getByTestId('download-button').click();
+      const download = await downloadPromise;
+      const filePath = await download.path();
+      expect(filePath).toBeTruthy();
+      if (filePath) {
+        const data = await fs.readFile(filePath, 'utf-8');
+        const hasTestContent =
+          data.includes('quick brown fox') ||
+          data.includes('riverbank') ||
+          data.includes('lazy dog');
+        expect(hasTestContent).toBeTruthy();
+      }
+
+      await closeCompleteDialog(page);
+    });
+
+    await test.step('HTML: generates and file contains content', async () => {
+      await selectFormat(page, 'HTML');
+      await generateAndOpenDialog(page);
+      await expect(page.getByTestId('format-name')).toContainText('HTML');
+
+      const downloadPromise = page.waitForEvent('download');
+      await page.getByTestId('download-button').click();
+      const download = await downloadPromise;
+      const filePath = await download.path();
+      expect(filePath).toBeTruthy();
+      if (filePath) {
+        const data = await fs.readFile(filePath, 'utf-8');
+        const hasTestContent =
+          data.includes('quick brown fox') ||
+          data.includes('riverbank') ||
+          data.includes('lazy dog');
+        expect(hasTestContent).toBeTruthy();
+      }
+
+      await closeCompleteDialog(page);
     });
   });
 });

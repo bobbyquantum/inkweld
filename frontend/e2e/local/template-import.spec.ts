@@ -6,206 +6,154 @@
  *
  * These tests specifically verify the fix for cross-project data collisions,
  * proper IndexedDB persistence timing, and relationship import.
+ *
+ * Consolidated from 8 individual tests into 3 grouped tests using
+ * `test.step()`. Tests A and B reuse a single demo-template project so we
+ * only pay the project-creation cost once per group; test C deliberately
+ * creates two projects to verify no cross-project data collision.
  */
+import { type Page } from '@playwright/test';
+
 import { createProjectWithTwoSteps } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
+/**
+ * Expand a folder in the project tree by clicking its chevron button.
+ * Idempotent in the sense that re-expanding an already-open folder is OK.
+ */
+async function expandTreeFolder(page: Page, folderName: string): Promise<void> {
+  const folder = page.getByRole('treeitem', { name: folderName });
+  await expect(folder).toBeVisible();
+  await folder.locator('button').first().click();
+}
+
+/**
+ * Click a tree element by its visible name.
+ */
+async function openTreeElement(page: Page, elementName: string): Promise<void> {
+  const el = page.getByRole('treeitem', { name: elementName });
+  await expect(el).toBeVisible();
+  await el.click();
+}
+
 test.describe('Template Worldbuilding Import', () => {
-  test('should import relationships from demo template', async ({
+  test('demo template imports element data: characters, location, tags, descriptions', async ({
     localPage: page,
   }) => {
-    // Create project using worldbuilding-demo template
     await createProjectWithTwoSteps(
       page,
-      'Relationships Test Project',
-      'rel-test',
-      'Testing relationships import',
+      'Element Data Project',
+      'element-data',
+      'Testing element data import',
       'worldbuilding-demo'
     );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/testuser\/rel-test/);
-
-    // Wait for project tree to be visible
+    await page.waitForURL(/\/testuser\/element-data/);
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
-    // Find Characters folder and expand it
-    const charactersFolder = page.getByRole('treeitem', { name: 'Characters' });
-    await expect(charactersFolder).toBeVisible();
-    const expandButton = charactersFolder.locator('button').first();
-    await expandButton.click();
-
-    // Click on Elara Nightwhisper character
-    const elaraElement = page.getByRole('treeitem', {
-      name: 'Elara Nightwhisper',
-    });
-    await expect(elaraElement).toBeVisible();
-    await elaraElement.click();
-
-    // In sidenav mode, click Relationships nav to show the meta panel
-    await page.getByTestId('nav-relationships').click();
-
-    // In sidenav mode, the meta panel renders fully expanded (no collapse toggle)
-    // Check that the meta panel is visible and has relationship panels
-    // Elara has: friend with Theron, originated-from Cloudspire, colleague with Mira, located-in Thornwood
-    const relationshipPanels = page.locator(
-      '[data-testid="relationship-type-panel"]'
-    );
-    await expect(relationshipPanels.first()).toBeVisible();
-
-    // Verify the add relationship button is visible (indicates the panel is open)
-    const addRelationshipButton = page.getByTestId('add-relationship-button');
-    await expect(addRelationshipButton).toBeVisible();
-  });
-
-  test('should import all worldbuilding data from demo template', async ({
-    localPage: page,
-  }) => {
-    // Create project using worldbuilding-demo template
-    await createProjectWithTwoSteps(
-      page,
-      'Demo Test Project',
-      'demo-test',
-      'Testing worldbuilding import',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/testuser\/demo-test/);
-
-    // Wait for project tree to be visible
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Find Characters folder and expand it by clicking the chevron
-    const charactersFolder = page.getByRole('treeitem', { name: 'Characters' });
-    await expect(charactersFolder).toBeVisible();
-
-    // Click the expand button (chevron) inside the folder
-    const expandButton = charactersFolder.locator('button').first();
-    await expandButton.click();
-
-    // Click on Elara Nightwhisper character
-    const elaraElement = page.getByRole('treeitem', {
-      name: 'Elara Nightwhisper',
-    });
-    await expect(elaraElement).toBeVisible();
-    await elaraElement.click();
-
-    // In sidenav mode, click the Basic Info tab to see imported character fields
-    await page.getByTestId('nav-basic').click();
-
-    // Verify the character data is populated (check for specific field values)
-    // The Basic Info tab should have "Full Name" field with value
-    const fullNameField = page.getByLabel('Full Name');
-    await expect(fullNameField).toBeVisible();
-
-    // Get the value and verify it's populated (not empty)
-    await expect(fullNameField).toHaveValue('Elara Nightwhisper');
-
-    // Check another field to ensure nested data was imported
-    // Look for the species field
-    const speciesField = page.getByLabel('Species');
-    await expect(speciesField).toHaveValue('Half-Elf');
-  });
-
-  test('should import location worldbuilding data from demo template', async ({
-    localPage: page,
-  }) => {
-    // Create project using worldbuilding-demo template
-    await createProjectWithTwoSteps(
-      page,
-      'Location Test',
-      'location-test',
-      'Testing location import',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/testuser\/location-test/);
-
-    // Wait for project tree to be visible
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Find Locations folder and expand it by clicking the chevron
-    const locationsFolder = page.getByRole('treeitem', { name: 'Locations' });
-    await expect(locationsFolder).toBeVisible();
-
-    // Click the expand button (chevron) inside the folder
-    const expandButton = locationsFolder.locator('button').first();
-    await expandButton.click();
-
-    // Click on Silverhollow location
-    const silverhollowElement = page.getByRole('treeitem', {
-      name: 'Silverhollow',
-    });
-    await expect(silverhollowElement).toBeVisible();
-    await silverhollowElement.click();
-
-    // In sidenav mode, click the Overview tab to see imported location fields
-    await page.getByTestId('nav-basic').click();
-
-    // Verify the location data is populated
-    const nameField = page.getByLabel('Name');
-    await expect(nameField).toBeVisible();
-
-    await expect(nameField).toHaveValue('Silverhollow');
-
-    // Verify population field
-    const populationField = page.getByLabel('Population');
-    await expect(populationField).toHaveValue('~3,000');
-  });
-
-  test('should import multiple characters with unique data', async ({
-    localPage: page,
-  }) => {
-    // Create project using worldbuilding-demo template
-    await createProjectWithTwoSteps(
-      page,
-      'Multi Char Test',
-      'multi-char-test',
-      'Testing multiple character import',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/testuser\/multi-char-test/);
-
-    // Wait for project tree to be visible
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Find Characters folder and expand it by clicking the chevron
-    const charactersFolder = page.getByRole('treeitem', { name: 'Characters' });
-    await expect(charactersFolder).toBeVisible();
-    const expandButton = charactersFolder.locator('button').first();
-    await expandButton.click();
-
-    // Test each character has unique data
-    const characters = [
-      { name: 'Elara Nightwhisper', expectedFullName: 'Elara Nightwhisper' },
-      { name: 'Theron Blackwood', expectedFullName: 'Theron Blackwood' },
-      { name: 'Mira Stonehart', expectedFullName: 'Mira Stonehart' },
-    ];
-
-    for (const char of characters) {
-      // Click on character
-      const charElement = page.getByRole('treeitem', { name: char.name });
-      await expect(charElement).toBeVisible();
-      await charElement.click();
-
-      // In sidenav mode, click the Basic Info tab to see imported character fields
+    await test.step('Elara character has imported Full Name and Species', async () => {
+      await expandTreeFolder(page, 'Characters');
+      await openTreeElement(page, 'Elara Nightwhisper');
       await page.getByTestId('nav-basic').click();
 
-      // Verify the character data is populated with correct value
       const fullNameField = page.getByLabel('Full Name');
       await expect(fullNameField).toBeVisible();
-      await expect(fullNameField).toHaveValue(char.expectedFullName);
-    }
+      await expect(fullNameField).toHaveValue('Elara Nightwhisper');
+
+      await expect(page.getByLabel('Species')).toHaveValue('Half-Elf');
+    });
+
+    await test.step('multiple characters each have unique imported data', async () => {
+      const characters = ['Theron Blackwood', 'Mira Stonehart'];
+      for (const name of characters) {
+        await openTreeElement(page, name);
+        await page.getByTestId('nav-basic').click();
+        const fullNameField = page.getByLabel('Full Name');
+        await expect(fullNameField).toBeVisible();
+        await expect(fullNameField).toHaveValue(name);
+      }
+    });
+
+    await test.step('Silverhollow location has Name and Population imported', async () => {
+      await expandTreeFolder(page, 'Locations');
+      await openTreeElement(page, 'Silverhollow');
+      await page.getByTestId('nav-basic').click();
+
+      await expect(page.getByLabel('Name')).toHaveValue('Silverhollow');
+      await expect(page.getByLabel('Population')).toHaveValue('~3,000');
+    });
+
+    await test.step('Elara identity panel has imported description and tags', async () => {
+      await openTreeElement(page, 'Elara Nightwhisper');
+
+      const descriptionField = page.locator(
+        'app-identity-panel textarea[placeholder*="description"]'
+      );
+      await expect(descriptionField).toBeVisible();
+      await expect(descriptionField).toHaveValue(/brilliant half-elf scholar/);
+
+      const tagGrid = page.locator('app-identity-panel [role="grid"]');
+      await expect(tagGrid).toBeVisible();
+      await expect(
+        tagGrid.locator('[role="gridcell"]').filter({ hasText: 'Protagonist' })
+      ).toBeVisible();
+      await expect(
+        tagGrid.locator('[role="gridcell"]').filter({ hasText: 'Complete' })
+      ).toBeVisible();
+    });
   });
 
-  test('should not have cross-project data collision', async ({
+  test('demo template imports relationships, backlinks, and renders authored timeline', async ({
     localPage: page,
   }) => {
-    // Create first project from demo template
+    await createProjectWithTwoSteps(
+      page,
+      'Relationships Backlinks Project',
+      'rel-backlinks',
+      'Testing relationships, backlinks and timeline',
+      'worldbuilding-demo'
+    );
+    await page.waitForURL(/\/testuser\/rel-backlinks/);
+    await expect(page.getByTestId('project-tree')).toBeVisible();
+
+    await test.step('Elara meta panel shows imported relationship type panels', async () => {
+      await expandTreeFolder(page, 'Characters');
+      await openTreeElement(page, 'Elara Nightwhisper');
+      await page.getByTestId('nav-relationships').click();
+
+      const relationshipPanels = page.locator(
+        '[data-testid="relationship-type-panel"]'
+      );
+      await expect(relationshipPanels.first()).toBeVisible();
+      await expect(page.getByTestId('add-relationship-button')).toBeVisible();
+    });
+
+    await test.step('Elara References panel lists template backlinks', async () => {
+      const metaPanel = page.locator('app-meta-panel');
+      await expect(metaPanel).toBeVisible();
+
+      await expect(metaPanel.getByText('References')).toBeVisible();
+      await expect(metaPanel.getByText('README')).toBeVisible();
+      await expect(metaPanel.getByText('The Moonveil Accord')).toBeVisible();
+    });
+
+    await test.step('Moonveil Chronicle timeline renders without setup overlay', async () => {
+      // Regression: the demo's Moonveil Reckoning time system must persist
+      // on project creation, otherwise the timeline gets stuck on the
+      // setup overlay instead of rendering authored events/eras.
+      await openTreeElement(page, 'Moonveil Chronicle');
+
+      await expect(page.getByTestId('timeline-canvas')).toBeVisible();
+      await expect(page.getByTestId('timeline-setup')).toHaveCount(0);
+      await expect(
+        page.locator('[data-testid^="timeline-event-body-"]').first()
+      ).toBeVisible();
+    });
+  });
+
+  test('two projects from the same template have isolated worldbuilding data', async ({
+    localPage: page,
+  }) => {
+    // Project A
     await createProjectWithTwoSteps(
       page,
       'Project A',
@@ -213,234 +161,53 @@ test.describe('Template Worldbuilding Import', () => {
       'First project',
       'worldbuilding-demo'
     );
-
     await page.waitForURL(/\/testuser\/project-a/);
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
-    // Navigate directly to create project page for second project
+    // Project B — go via the create-project page directly (no kebab nav).
     await page.goto('/create-project');
-
-    // Wait for template selection to be visible
     const templateDemo = page.getByTestId('template-worldbuilding-demo');
     await expect(templateDemo).toBeVisible();
-
-    // Create second project - click the template first
     await templateDemo.click();
+    await page.getByRole('button', { name: /next/i }).click();
 
-    // Click Next to proceed to step 2
-    const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.click();
-
-    // Fill in project details
-    const titleInput = page.getByTestId('project-title-input');
-    await expect(titleInput).toBeVisible();
-    await titleInput.fill('Project B');
+    await expect(page.getByTestId('project-title-input')).toBeVisible();
+    await page.getByTestId('project-title-input').fill('Project B');
     await page.getByTestId('project-slug-input').fill('project-b');
     await page.getByTestId('project-description-input').fill('Second project');
     await page.getByTestId('create-project-button').click();
-
     await page.waitForURL(/\/testuser\/project-b/);
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
-    // Find Characters folder in Project B and expand it
-    const charactersFolder = page.getByRole('treeitem', { name: 'Characters' });
-    await expect(charactersFolder).toBeVisible();
-    const expandButton = charactersFolder.locator('button').first();
-    await expandButton.click();
+    await test.step('Project B has its own correctly-imported Elara data', async () => {
+      await expandTreeFolder(page, 'Characters');
+      await openTreeElement(page, 'Elara Nightwhisper');
+      await page.getByTestId('nav-basic').click();
 
-    // Click on Elara in Project B
-    const elaraElement = page.getByRole('treeitem', {
-      name: 'Elara Nightwhisper',
+      const fullNameField = page.getByLabel('Full Name');
+      await expect(fullNameField).toBeVisible();
+      await expect(fullNameField).toHaveValue('Elara Nightwhisper');
     });
-    await expect(elaraElement).toBeVisible();
-    await elaraElement.click();
 
-    // In sidenav mode, click the Basic Info tab to see imported character fields
-    await page.getByTestId('nav-basic').click();
+    await test.step('Project A still has its own intact Elara data', async () => {
+      await page.goto('/');
+      const projectACard = page
+        .getByTestId('project-card')
+        .filter({ hasText: 'Project A' })
+        .first();
+      await expect(projectACard).toBeVisible();
+      await projectACard.click();
 
-    // Verify Project B has the correct data (not empty, not from Project A)
-    const fullNameField = page.getByLabel('Full Name');
-    await expect(fullNameField).toBeVisible();
-    await expect(fullNameField).toHaveValue('Elara Nightwhisper');
+      await page.waitForURL(/\/testuser\/project-a/);
+      await expect(page.getByTestId('project-tree')).toBeVisible();
 
-    // Now go back to Project A and verify its data is still intact
-    await page.goto('/');
+      await expandTreeFolder(page, 'Characters');
+      await openTreeElement(page, 'Elara Nightwhisper');
+      await page.getByTestId('nav-basic').click();
 
-    // Click on Project A (use first() in case there are multiple cards shown)
-    const projectACard = page
-      .getByTestId('project-card')
-      .filter({ hasText: 'Project A' })
-      .first();
-    await expect(projectACard).toBeVisible();
-    await projectACard.click();
-
-    await page.waitForURL(/\/testuser\/project-a/);
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Find Characters folder in Project A and expand it
-    const charactersFolderA = page.getByRole('treeitem', {
-      name: 'Characters',
+      const fullNameField = page.getByLabel('Full Name');
+      await expect(fullNameField).toBeVisible();
+      await expect(fullNameField).toHaveValue('Elara Nightwhisper');
     });
-    await expect(charactersFolderA).toBeVisible();
-    const expandButtonA = charactersFolderA.locator('button').first();
-    await expandButtonA.click();
-
-    // Click on Elara in Project A
-    const elaraElementA = page.getByRole('treeitem', {
-      name: 'Elara Nightwhisper',
-    });
-    await expect(elaraElementA).toBeVisible();
-    await elaraElementA.click();
-
-    // In sidenav mode, click the Basic Info tab to see imported character fields
-    await page.getByTestId('nav-basic').click();
-
-    // Verify Project A still has its data
-    const fullNameFieldA = page.getByLabel('Full Name');
-    await expect(fullNameFieldA).toBeVisible();
-    await expect(fullNameFieldA).toHaveValue('Elara Nightwhisper');
-  });
-
-  test('should import element tags and description from demo template', async ({
-    localPage: page,
-  }) => {
-    // Create project using worldbuilding-demo template
-    await createProjectWithTwoSteps(
-      page,
-      'Tags Test Project',
-      'tags-test',
-      'Testing tags and description import',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/testuser\/tags-test/);
-
-    // Wait for project tree to be visible
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Find Characters folder and expand it
-    const charactersFolder = page.getByRole('treeitem', { name: 'Characters' });
-    await expect(charactersFolder).toBeVisible();
-    const expandButton = charactersFolder.locator('button').first();
-    await expandButton.click();
-
-    // Click on Elara Nightwhisper character (the protagonist)
-    const elaraElement = page.getByRole('treeitem', {
-      name: 'Elara Nightwhisper',
-    });
-    await expect(elaraElement).toBeVisible();
-    await elaraElement.click();
-
-    // Verify the description field in identity panel is populated
-    const descriptionField = page.locator(
-      'app-identity-panel textarea[placeholder*="description"]'
-    );
-    await expect(descriptionField).toBeVisible();
-    await expect(descriptionField).toHaveValue(/brilliant half-elf scholar/);
-
-    // Verify tags are displayed in the identity panel
-    const tagGrid = page.locator('app-identity-panel [role="grid"]');
-    await expect(tagGrid).toBeVisible();
-
-    // Check that the "Protagonist" tag is visible in a gridcell
-    const protagonistTag = tagGrid.locator('[role="gridcell"]').filter({
-      hasText: 'Protagonist',
-    });
-    await expect(protagonistTag).toBeVisible();
-
-    // Also verify the "Complete" tag is present
-    const completeTag = tagGrid.locator('[role="gridcell"]').filter({
-      hasText: 'Complete',
-    });
-    await expect(completeTag).toBeVisible();
-  });
-
-  test('should render the demo timeline with its committed time system', async ({
-    localPage: page,
-  }) => {
-    // Regression test: the worldbuilding-demo template ships a Moonveil
-    // Reckoning time system and a timeline that references it. If the
-    // template's time systems are not persisted on project creation, the
-    // timeline is stuck on the "pick a system" setup overlay instead of
-    // rendering the authored events/eras.
-    await createProjectWithTwoSteps(
-      page,
-      'Timeline Demo Project',
-      'timeline-demo',
-      'Testing demo timeline renders',
-      'worldbuilding-demo'
-    );
-
-    await page.waitForURL(/\/testuser\/timeline-demo/);
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Open the Moonveil Chronicle timeline element from the tree.
-    const timelineElement = page.getByRole('treeitem', {
-      name: 'Moonveil Chronicle',
-    });
-    await expect(timelineElement).toBeVisible();
-    await timelineElement.click();
-
-    // The canvas must render — i.e. the time system was imported and the
-    // timeline is NOT blocked on the setup overlay.
-    await expect(page.getByTestId('timeline-canvas')).toBeVisible();
-    await expect(page.getByTestId('timeline-setup')).toHaveCount(0);
-
-    // Authored events from the template should be visible on the canvas.
-    await expect(
-      page.locator('[data-testid^="timeline-event-body-"]').first()
-    ).toBeVisible();
-  });
-
-  test('should show document-to-character backlink after @ reference', async ({
-    localPage: page,
-  }) => {
-    // Create project using worldbuilding-demo template
-    await createProjectWithTwoSteps(
-      page,
-      'Backlinks Test Project',
-      'backlinks-test',
-      'Testing document to character backlinks',
-      'worldbuilding-demo'
-    );
-
-    // Wait for navigation to the project page
-    await page.waitForURL(/\/testuser\/backlinks-test/);
-
-    // Wait for project tree to be visible
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Navigate directly to Elara to check that template backlinks exist
-    const charactersFolder = page.getByRole('treeitem', { name: 'Characters' });
-    await expect(charactersFolder).toBeVisible();
-    const charactersExpandButton = charactersFolder.locator('button').first();
-    await charactersExpandButton.click();
-
-    // Click on Elara Nightwhisper character
-    const elaraElement = page.getByRole('treeitem', {
-      name: 'Elara Nightwhisper',
-    });
-    await expect(elaraElement).toBeVisible();
-    await elaraElement.click();
-
-    // In sidenav mode, click Relationships nav to show the meta panel
-    await page.getByTestId('nav-relationships').click();
-
-    // In sidenav mode, the meta panel renders fully expanded (no collapse toggle)
-    const metaPanel = page.locator('app-meta-panel');
-    await expect(metaPanel).toBeVisible();
-
-    // Look for the References panel (backlinks from documents)
-    const referencesPanelHeader = metaPanel.getByText('References');
-    await expect(referencesPanelHeader).toBeVisible();
-
-    // Verify README appears in the relationships (template backlink)
-    const readmeReference = metaPanel.getByText('README');
-    await expect(readmeReference).toBeVisible();
-
-    // Verify The Moonveil Accord also appears (template backlink)
-    const moonveilReference = metaPanel.getByText('The Moonveil Accord');
-    await expect(moonveilReference).toBeVisible();
   });
 });
