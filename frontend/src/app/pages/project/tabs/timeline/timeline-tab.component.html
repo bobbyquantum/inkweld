@@ -278,7 +278,7 @@
             <text
               class="track-label"
               [attr.x]="8"
-              [attr.y]="row.y + trackHeight / 2"
+              [attr.y]="row.y + row.height / 2"
               [attr.data-testid]="'timeline-track-label-' + row.track.id"
               (click)="onTrackLabelClick(row.track)"
               (keydown.enter)="onTrackLabelClick(row.track)"
@@ -291,36 +291,75 @@
               class="tick-line track-divider"
               [attr.x1]="0"
               [attr.x2]="viewWidth()"
-              [attr.y1]="row.y + trackHeight"
-              [attr.y2]="row.y + trackHeight" />
+              [attr.y1]="row.y + row.height"
+              [attr.y2]="row.y + row.height" />
           </g>
         }
 
         @for (pill of eventPills(); track pill.event.id) {
-          <g
-            class="event-pill"
-            [attr.data-testid]="'timeline-event-' + pill.event.id">
-            <rect
-              [attr.x]="pill.x"
-              [attr.y]="pill.y"
-              [attr.width]="pill.width"
-              [attr.height]="pill.height"
-              [attr.rx]="pill.height / 2"
-              [attr.ry]="pill.height / 2"
-              [attr.fill]="pill.color"
-              [attr.data-testid]="'timeline-event-body-' + pill.event.id"
-              (pointerdown)="onEventPointerDown($event, pill.event, 'move')"
-              (pointermove)="onEventPointerMove($event)"
-              (pointerup)="onEventPointerUp($event, pill.event)"
-              (pointercancel)="onEventPointerUp($event, pill.event)"
-              (keydown.enter)="onEventClick(pill.event)"
-              (keydown.space)="onEventClick(pill.event)"
-              tabindex="0"
-              role="button" />
-            @if (pill.event.end) {
+          @if (pill.isInstant) {
+            <g
+              class="event-pill event-pill-instant"
+              [attr.data-testid]="'timeline-event-' + pill.event.id">
+              <!-- Stalk: from axis line down to top of diamond -->
+              <line
+                class="event-stalk"
+                [attr.x1]="pill.cx"
+                [attr.x2]="pill.cx"
+                [attr.y1]="pill.labelY! + 4"
+                [attr.y2]="pill.diamondCY! - diamondHalf" />
+              <!-- Diamond -->
+              <polygon
+                class="event-diamond"
+                [attr.points]="pill.diamondPoints"
+                [attr.fill]="pill.color"
+                [attr.data-testid]="'timeline-event-body-' + pill.event.id" />
+              <!-- Label centred above the stalk -->
+              <text
+                class="event-label-instant"
+                [attr.x]="pill.cx"
+                [attr.y]="pill.labelY"
+                text-anchor="middle"
+                dominant-baseline="middle">
+                {{ pill.event.title }}
+              </text>
+              <!-- Hit / drag area: invisible rect over diamond -->
+              <rect
+                class="event-hit"
+                [attr.x]="pill.hitX"
+                [attr.y]="pill.hitY"
+                [attr.width]="pill.hitW"
+                [attr.height]="pill.hitH"
+                fill="transparent"
+                tabindex="0"
+                role="button"
+                (pointerdown)="onEventPointerDown($event, pill.event, 'move')"
+                (keydown.enter)="onEventClick(pill.event)"
+                (keydown.space)="onEventClick(pill.event)" />
+            </g>
+          } @else {
+            <g
+              class="event-pill event-pill-ranged"
+              [attr.data-testid]="'timeline-event-' + pill.event.id"
+              [matTooltip]="pill.titleFits ? '' : pill.event.title"
+              matTooltipPosition="above">
+              <rect
+                [attr.x]="pill.x"
+                [attr.y]="pill.y"
+                [attr.width]="pill.width"
+                [attr.height]="pill.height"
+                [attr.rx]="0"
+                [attr.ry]="0"
+                [attr.fill]="pill.color"
+                [attr.data-testid]="'timeline-event-body-' + pill.event.id"
+                (pointerdown)="onEventPointerDown($event, pill.event, 'move')"
+                (keydown.enter)="onEventClick(pill.event)"
+                (keydown.space)="onEventClick(pill.event)"
+                tabindex="0"
+                role="button" />
               <rect
                 class="event-handle event-handle-start"
-                [attr.x]="pill.x - 3"
+                [attr.x]="pill.x! - 3"
                 [attr.y]="pill.y"
                 [attr.width]="6"
                 [attr.height]="pill.height"
@@ -329,13 +368,10 @@
                 "
                 (pointerdown)="
                   onEventPointerDown($event, pill.event, 'resize-start')
-                "
-                (pointermove)="onEventPointerMove($event)"
-                (pointerup)="onEventPointerUp($event, pill.event)"
-                (pointercancel)="onEventPointerUp($event, pill.event)" />
+                " />
               <rect
                 class="event-handle event-handle-end"
-                [attr.x]="pill.x + pill.width - 3"
+                [attr.x]="pill.x! + pill.width! - 3"
                 [attr.y]="pill.y"
                 [attr.width]="6"
                 [attr.height]="pill.height"
@@ -344,21 +380,19 @@
                 "
                 (pointerdown)="
                   onEventPointerDown($event, pill.event, 'resize-end')
-                "
-                (pointermove)="onEventPointerMove($event)"
-                (pointerup)="onEventPointerUp($event, pill.event)"
-                (pointercancel)="onEventPointerUp($event, pill.event)" />
-            }
-            <text
-              [attr.x]="pill.x + 10"
-              [attr.y]="pill.y + pill.height / 2"
-              fill="var(--timeline-pill-text, #fff)"
-              font-size="11"
-              dominant-baseline="middle"
-              style="pointer-events: none">
-              {{ pill.event.title }}
-            </text>
-          </g>
+                " />
+              <text
+                class="event-label-ranged"
+                [attr.x]="pill.x! + 8"
+                [attr.y]="pill.rangedLabelY"
+                fill="var(--timeline-pill-text, #fff)"
+                font-size="11"
+                dominant-baseline="middle"
+                style="pointer-events: none">
+                {{ pill.event.title }}
+              </text>
+            </g>
+          }
         }
       </svg>
     </div>

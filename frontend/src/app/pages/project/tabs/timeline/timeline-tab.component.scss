@@ -273,8 +273,53 @@ svg.timeline-svg:active {
   cursor: grabbing;
 }
 
-.event-pill:hover > rect:first-of-type {
+// Ranged event hover highlight (the body rect is the first rect inside the g)
+.event-pill-ranged:hover > rect:first-of-type {
   filter: brightness(1.1);
+}
+
+// ── Instant events: diamond + stalk + label ────────────────────────────────
+
+.event-stalk {
+  stroke: var(--sys-outline, #999);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.event-diamond {
+  stroke: var(--sys-outline-variant, #ccc);
+  stroke-width: 0.5;
+  pointer-events: none;
+  transition: filter 120ms ease;
+}
+
+.event-pill-instant:hover .event-diamond {
+  filter: brightness(1.15);
+}
+
+.event-pill-instant:focus-within .event-diamond {
+  stroke: var(--sys-primary, #6750a4);
+  stroke-width: 1.5;
+}
+
+.event-label-instant {
+  fill: var(--sys-on-surface, #111);
+  font-size: 11px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.event-hit {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sys-primary, #6750a4);
+    outline-offset: 2px;
+  }
 }
 
 .event-handle {
