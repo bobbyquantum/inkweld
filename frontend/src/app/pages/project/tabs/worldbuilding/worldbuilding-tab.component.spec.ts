@@ -449,10 +449,12 @@ describe('WorldbuildingTabComponent', () => {
 
     it('sets syncing to true during sync and false after', async () => {
       let syncingDuring = false;
-      mockSyncQueueService.syncAllProjects.mockImplementation(() => {
-        syncingDuring = (component as any).syncing();
-        return Promise.resolve();
-      });
+      mockSyncQueueService.syncAllProjects.mockImplementationOnce(
+        // eslint-disable-next-line @typescript-eslint/require-await
+        async () => {
+          syncingDuring = (component as any).syncing();
+        }
+      );
       await (component as any).triggerSync();
       expect(syncingDuring).toBe(true);
       expect((component as any).syncing()).toBe(false);
