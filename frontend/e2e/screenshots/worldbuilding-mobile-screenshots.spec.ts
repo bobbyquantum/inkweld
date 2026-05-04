@@ -83,6 +83,10 @@ async function setupWorldbuildingAtMobile(
   // Wait for accordion layout to appear
   await expect(page.getByTestId('accordion-identity')).toBeVisible();
 
+  // Ensure the identity accordion is expanded so app-identity-panel is
+  // in the DOM before seedIdentityImage tries to locate it.
+  await expandAccordionPanel(page, 'accordion-identity');
+
   // Seed an image directly so screenshot tests do not depend on cropper timing.
   await seedIdentityImage(page);
 }
