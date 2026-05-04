@@ -1267,17 +1267,40 @@ export class ProjectStateService implements OnDestroy {
   /**
    * Check if a Yjs document has been persisted to IndexedDB.
    * A document with object stores has been synced at least once.
+   *
+   * IMPORTANT: We must NOT allow IndexedDB to commit a version-1 database with
+   * zero object stores. If we do, y-indexeddb will later open the same database,
+   * see that it is already at version 1, skip the `onupgradeneeded` handler, and
+   * then crash with "NotFoundError: … object store was not found" when it tries to
+   * access the 'updates' store that was never created.
+   *
+   * To prevent this we intercept `onupgradeneeded` (which fires only when the
+   * database does not yet exist) and immediately abort the version-change
+   * transaction.  The abort causes `request.onerror` to fire (with an
+   * AbortError), so we resolve `false` — the document has not been synced.
+   * Because the transaction was aborted, no database is written to disk and
+   * y-indexeddb can safely create it (with its own stores) the first time the
+   * editor opens the document.
    */
   private checkDocumentInIndexedDB(documentId: string): Promise<boolean> {
     return new Promise(resolve => {
       try {
         const request = indexedDB.open(documentId);
+
+        // `onupgradeneeded` fires when the DB does not yet exist (version 0 → 1).
+        // Aborting here prevents an empty shell DB from being committed, which
+        // would block y-indexeddb from running its own upgrade later.
+        request.onupgradeneeded = event => {
+          (event.target as IDBOpenDBRequest).transaction?.abort();
+        };
+
         request.onsuccess = () => {
           const db = request.result;
           const hasData = db.objectStoreNames.length > 0;
           db.close();
           resolve(hasData);
         };
+        // Covers both real errors and the AbortError from onupgradeneeded above.
         request.onerror = () => resolve(false);
       } catch {
         resolve(false);
