@@ -342,16 +342,9 @@ describe('DocumentTabComponent', () => {
     });
 
     it('sets syncing to true during sync and false after', async () => {
-      let syncingDuring = false;
-      (syncQueueService.syncAllProjects as ReturnType<typeof vi.fn>)
-        .mockImplementationOnce(
-          // eslint-disable-next-line @typescript-eslint/require-await
-          async () => {
-            syncingDuring = (component as any).syncing();
-          }
-        );
-      await (component as any).triggerSync();
-      expect(syncingDuring).toBe(true);
+      const syncPromise = (component as any).triggerSync();
+      expect((component as any).syncing()).toBe(true);
+      await syncPromise;
       expect((component as any).syncing()).toBe(false);
     });
 
