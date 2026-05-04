@@ -6,10 +6,10 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ActivatedRoute } from '@angular/router';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { LoggerService } from '@services/core/logger.service';
 import { SyncQueueService } from '@services/sync/sync-queue.service';
@@ -23,7 +23,13 @@ import { ProjectStateService } from '../../../../services/project/project-state.
   selector: 'app-worldbuilding-tab',
   templateUrl: './worldbuilding-tab.component.html',
   styleUrls: ['./worldbuilding-tab.component.scss'],
-  imports: [WorldbuildingEditorComponent, DocumentBreadcrumbsComponent, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [
+    WorldbuildingEditorComponent,
+    DocumentBreadcrumbsComponent,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+  ],
 })
 export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
