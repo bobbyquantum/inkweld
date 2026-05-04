@@ -3,118 +3,65 @@
  *
  * Tests that verify the About page renders correctly and
  * navigation works in pure local mode without any server connection.
+ *
+ * Consolidated from 8 individual tests into a single grouped test using
+ * `test.step()` since every assertion runs against the same `/about`
+ * page state. The "back button" step runs last to avoid breaking the
+ * page-level assertions earlier in the test.
  */
 import { expect, test } from './fixtures';
 
 test.describe('About Page', () => {
-  test('should navigate to about page and display version card', async ({
+  test('about page renders all cards, version metadata, and back navigation', async ({
     localPage: page,
   }) => {
     await page.goto('/about');
     await page.waitForLoadState('domcontentloaded');
 
-    // Version card should be visible
-    await expect(page.getByTestId('version-card')).toBeVisible();
-
-    // Should display app name
-    await expect(page.locator('h1')).toContainText('Inkweld');
-  });
-
-  test('should display key libraries card with library entries', async ({
-    localPage: page,
-  }) => {
-    await page.goto('/about');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Libraries card should be visible
-    await expect(page.getByTestId('libraries-card')).toBeVisible();
-
-    // Should list Angular as a key library
-    await expect(page.getByTestId('libraries-card')).toContainText('Angular');
-
-    // Should list Yjs as a key library
-    await expect(page.getByTestId('libraries-card')).toContainText('Yjs');
-
-    // Should list ProseMirror
-    await expect(page.getByTestId('libraries-card')).toContainText(
-      'ProseMirror'
-    );
-  });
-
-  test('should display licenses card with view button', async ({
-    localPage: page,
-  }) => {
-    await page.goto('/about');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Licenses card should be visible
-    await expect(page.getByTestId('licenses-card')).toBeVisible();
-
-    // View licenses button should be visible
-    await expect(page.getByTestId('view-licenses-button')).toBeVisible();
-  });
-
-  test('should display links card with GitHub links', async ({
-    localPage: page,
-  }) => {
-    await page.goto('/about');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Links card should be visible
-    await expect(page.getByTestId('links-card')).toBeVisible();
-
-    // Should show source code link
-    await expect(page.getByTestId('links-card')).toContainText('Source Code');
-
-    // Should show report issues link
-    await expect(page.getByTestId('links-card')).toContainText('Report Issues');
-  });
-
-  test('should navigate back to home when back button is clicked', async ({
-    localPage: page,
-  }) => {
-    await page.goto('/about');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Click the back button
-    await page.getByTestId('about-back-button').click();
-
-    // Should navigate to home
-    await expect(page).toHaveURL('/');
-  });
-
-  test('should display copyright with current year', async ({
-    localPage: page,
-  }) => {
-    await page.goto('/about');
-    await page.waitForLoadState('domcontentloaded');
-
-    const currentYear = new Date().getFullYear().toString();
-
-    // Copyright should contain current year
-    await expect(page.getByTestId('version-card')).toContainText(currentYear);
-  });
-
-  test('should have changelog button in version card', async ({
-    localPage: page,
-  }) => {
-    await page.goto('/about');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Changelog button should be visible (it's a <button> with routerLink, not <a>)
-    const changelogButton = page.getByRole('button', {
-      name: /view changelog/i,
+    await test.step('version card shows app name and version string', async () => {
+      await expect(page.getByTestId('version-card')).toBeVisible();
+      await expect(page.locator('h1')).toContainText('Inkweld');
+      await expect(page.getByTestId('version-card')).toContainText(
+        /Version \d/
+      );
     });
-    await expect(changelogButton).toBeVisible();
-  });
 
-  test('should display version number in version card subtitle', async ({
-    localPage: page,
-  }) => {
-    await page.goto('/about');
-    await page.waitForLoadState('domcontentloaded');
+    await test.step('version card shows copyright with the current year', async () => {
+      const currentYear = new Date().getFullYear().toString();
+      await expect(page.getByTestId('version-card')).toContainText(currentYear);
+    });
 
-    // Version card should display a version string (e.g. "Version X.Y.Z")
-    await expect(page.getByTestId('version-card')).toContainText(/Version \d/);
+    await test.step('version card has a changelog button', async () => {
+      // It's a <button> with routerLink, not <a>.
+      const changelogButton = page.getByRole('button', {
+        name: /view changelog/i,
+      });
+      await expect(changelogButton).toBeVisible();
+    });
+
+    await test.step('libraries card lists key dependencies', async () => {
+      const libraries = page.getByTestId('libraries-card');
+      await expect(libraries).toBeVisible();
+      await expect(libraries).toContainText('Angular');
+      await expect(libraries).toContainText('Yjs');
+      await expect(libraries).toContainText('ProseMirror');
+    });
+
+    await test.step('licenses card has a view-licenses button', async () => {
+      await expect(page.getByTestId('licenses-card')).toBeVisible();
+      await expect(page.getByTestId('view-licenses-button')).toBeVisible();
+    });
+
+    await test.step('links card has Source Code and Report Issues links', async () => {
+      const links = page.getByTestId('links-card');
+      await expect(links).toBeVisible();
+      await expect(links).toContainText('Source Code');
+      await expect(links).toContainText('Report Issues');
+    });
+
+    await test.step('back button navigates to the home page', async () => {
+      await page.getByTestId('about-back-button').click();
+      await expect(page).toHaveURL('/');
+    });
   });
 });

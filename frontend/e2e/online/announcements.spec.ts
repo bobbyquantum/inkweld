@@ -6,33 +6,19 @@ import { expect, test } from './fixtures';
  * Helper to navigate to admin announcements page via sidebar.
  */
 async function navigateToAdminAnnouncements(page: Page): Promise<void> {
-  // Open user menu
   await page.locator('[data-testid="user-menu-button"]').click();
-  // Click admin link
   await page.locator('[data-testid="admin-menu-link"]').click();
-  // Wait for admin page to load
   await expect(page).toHaveURL(/.*\/admin\/.*/);
   await page.waitForLoadState('networkidle');
 
-  // Navigate to announcements via sidebar
   await page.locator('[data-testid="admin-nav-announcements"]').click();
   await expect(page).toHaveURL(/.*\/admin\/announcements/);
   await page.waitForLoadState('networkidle');
 }
 
 /**
- * Helper to get unique test data
- */
-function generateTestAnnouncement() {
-  const id = Date.now();
-  return {
-    title: `Test Announcement ${id}`,
-    content: `This is test content for announcement ${id}`,
-  };
-}
-
-/**
- * Helper to fill and submit the announcement form with proper waits for CI stability.
+ * Helper to fill and submit the announcement form. Includes the
+ * mat-checkbox-class polling that the original tests required.
  */
 async function fillAndSubmitAnnouncementForm(
   page: Page,
@@ -41,7 +27,6 @@ async function fillAndSubmitAnnouncementForm(
 ): Promise<void> {
   await page.locator('[data-testid="create-announcement-btn"]').click();
 
-  // Wait for dialog to be fully open before interacting
   const titleInput = page.locator('[data-testid="announcement-title-input"]');
   await titleInput.waitFor({ state: 'visible' });
 
@@ -50,25 +35,17 @@ async function fillAndSubmitAnnouncementForm(
     .locator('[data-testid="announcement-content-input"]')
     .fill(testData.content);
 
-  // Handle public checkbox if needed. The form's default for `isPublic`
-  // is `true`, but Material's mat-checkbox can render its hidden input
-  // out of sync with the FormControl until interacted with. Read the
-  // checked state via the canonical aria-checked attribute on the
-  // mat-checkbox host and toggle if it doesn't match the desired state.
-  // Handle public checkbox if needed. The form's default for `isPublic`
-  // is `true`, but Material's mat-checkbox renders its hidden <input>
-  // as `checked=false` until the user interacts with it; the visible
-  // checked state lives on the host element's `mat-mdc-checkbox-checked`
-  // class. Reading the hidden input would incorrectly report unchecked
-  // and cause us to toggle the box OFF. We also wait for the class to
-  // settle (FormControl → mat-checkbox class propagation is async).
+  // The form's default for `isPublic` is `true`, but Material's
+  // mat-checkbox renders its hidden <input> as `checked=false` until the
+  // user interacts with it; the visible checked state lives on the host
+  // element's `mat-mdc-checkbox-checked` class. Reading the hidden input
+  // would incorrectly report unchecked and cause us to toggle the box
+  // OFF. Poll the host class until it stabilises.
   if (options?.checkPublic) {
     const publicCheckbox = page.locator('mat-checkbox').filter({
       hasText: /unauthenticated/i,
     });
     await publicCheckbox.waitFor({ state: 'visible' });
-    // Poll the host class until it stabilises (the FormControl's
-    // initial value of `true` propagates after a microtask).
     await expect
       .poll(
         async () =>
@@ -80,8 +57,7 @@ async function fillAndSubmitAnnouncementForm(
       .toBe(true);
   }
 
-  // Select type — scope option click to the open listbox overlay to avoid
-  // matching unrelated page elements, and skip Tab (not needed for reactive forms)
+  // Type — scope to the open listbox overlay.
   await page.locator('[data-testid="announcement-type-select"]').click();
   const typeListbox = page.locator('[role="listbox"]');
   await typeListbox.waitFor({ state: 'visible' });
@@ -90,7 +66,7 @@ async function fillAndSubmitAnnouncementForm(
     .first()
     .click();
 
-  // Select priority — same pattern
+  // Priority — same.
   await page.locator('[data-testid="announcement-priority-select"]').click();
   const priorityListbox = page.locator('[role="listbox"]');
   await priorityListbox.waitFor({ state: 'visible' });
@@ -99,13 +75,11 @@ async function fillAndSubmitAnnouncementForm(
     .first()
     .click();
 
-  // Submit - Use global expect timeout
   await expect(
     page.locator('[data-testid="announcement-submit-btn"]')
   ).toBeEnabled();
   await page.locator('[data-testid="announcement-submit-btn"]').click();
 
-  // Wait for creation confirmation
   await page
     .locator('.mat-mdc-snack-bar-label')
     .first()
@@ -113,40 +87,43 @@ async function fillAndSubmitAnnouncementForm(
     .waitFor();
 }
 
-test.describe('Admin Announcements', () => {
-  test.describe('Announcements Page', () => {
-    test('should navigate to announcements page from admin sidebar', async ({
-      adminPage,
-    }) => {
-      await navigateToAdminAnnouncements(adminPage);
+async function publishAnnouncement(page: Page, title: string): Promise<void> {
+  const card = page.getByTestId('announcement-card').filter({ hasText: title });
+  await expect(card).toBeVisible();
+  await card.locator('button', { hasText: /publish/i }).click();
+  await page
+    .locator('.mat-mdc-snack-bar-label')
+    .first()
+    .filter({ hasText: /published/i })
+    .waitFor();
+}
 
-      // Should be on announcements page
+test.describe('Admin Announcements', () => {
+  /**
+   * Full admin-side announcements lifecycle on a single admin session:
+   * page renders → create button visible → empty-or-list state → open
+   * dialog → create private → create+publish public → delete one.
+   * Replaces 7 separate adminPage-based tests.
+   */
+  test('admin announcements page: navigate, create dialog, CRUD lifecycle', async ({
+    adminPage,
+  }) => {
+    await test.step('navigate to admin announcements page from sidebar', async () => {
+      await navigateToAdminAnnouncements(adminPage);
       await expect(
         adminPage.locator('[data-testid="admin-announcements-page"]')
       ).toBeVisible();
-    });
-
-    test('should show create announcement button', async ({ adminPage }) => {
-      await navigateToAdminAnnouncements(adminPage);
-
-      // Create button should be visible
       await expect(
         adminPage.locator('[data-testid="create-announcement-btn"]')
       ).toBeVisible();
     });
 
-    test('should show empty state when no announcements exist', async ({
-      adminPage,
-    }) => {
-      await navigateToAdminAnnouncements(adminPage);
-
-      // Should show empty state OR announcements list
+    await test.step('shows either empty state or announcements list', async () => {
       const emptyState = adminPage.locator('.empty-state');
       const announcementsList = adminPage.locator(
         '[data-testid="admin-announcements-list"]'
       );
 
-      // Wait for either to be visible
       await Promise.race([
         emptyState.waitFor().catch(() => {}),
         announcementsList.waitFor().catch(() => {}),
@@ -156,319 +133,195 @@ test.describe('Admin Announcements', () => {
       const isListVisible = await announcementsList
         .isVisible()
         .catch(() => false);
-
       expect(isEmptyVisible || isListVisible).toBe(true);
     });
-  });
 
-  test.describe('CRUD Operations', () => {
-    test('should open create dialog when clicking create button', async ({
-      adminPage,
-    }) => {
-      await navigateToAdminAnnouncements(adminPage);
-
-      // Click create button
+    await test.step('opens create dialog', async () => {
       await adminPage
         .locator('[data-testid="create-announcement-btn"]')
         .click();
-
-      // Dialog should open
       await expect(
         adminPage.locator('[data-testid="announcement-title-input"]')
       ).toBeVisible();
       await expect(
         adminPage.locator('[data-testid="announcement-content-input"]')
       ).toBeVisible();
+      // Close dialog before re-opening via the helper.
+      await adminPage.keyboard.press('Escape');
+      await expect(
+        adminPage.locator('[data-testid="announcement-title-input"]')
+      ).not.toBeVisible();
     });
 
-    test('should create a new announcement', async ({ adminPage }) => {
-      await navigateToAdminAnnouncements(adminPage);
-
-      const testData = generateTestAnnouncement();
-
-      // Use helper for stable form filling
-      await fillAndSubmitAnnouncementForm(adminPage, testData);
-
-      // Should see the new announcement in the list
+    await test.step('creates a private announcement', async () => {
+      const data = {
+        title: `Test Announcement ${Date.now()}`,
+        content: `Private content ${Date.now()}`,
+      };
+      await fillAndSubmitAnnouncementForm(adminPage, data);
       await expect(
         adminPage.locator('[data-testid="admin-announcements-list"]')
       ).toBeVisible();
-      await expect(adminPage.getByText(testData.title)).toBeVisible();
+      await expect(adminPage.getByText(data.title)).toBeVisible();
     });
 
-    test('should create and publish a public announcement', async ({
-      adminPage,
-    }) => {
-      await navigateToAdminAnnouncements(adminPage);
-
-      const testData = generateTestAnnouncement();
-
-      // Use helper for stable form filling with public option
-      await fillAndSubmitAnnouncementForm(adminPage, testData, {
+    await test.step('creates and publishes a public announcement', async () => {
+      const data = {
+        title: `Public Announcement ${Date.now()}`,
+        content: `Public content ${Date.now()}`,
+      };
+      await fillAndSubmitAnnouncementForm(adminPage, data, {
         checkPublic: true,
       });
+      await expect(adminPage.getByText(data.title)).toBeVisible();
+      await publishAnnouncement(adminPage, data.title);
 
-      // Should see the new announcement
-      await expect(adminPage.getByText(testData.title)).toBeVisible();
-
-      // Find the new announcement card and publish it
-      const announcementCard = adminPage
-        .locator('mat-card')
-        .filter({ hasText: testData.title });
-      await expect(announcementCard).toBeVisible();
-
-      // Click publish button on the card
-      const publishButton = announcementCard.locator('button', {
-        hasText: /publish/i,
-      });
-      await publishButton.click();
-
-      // Wait for snackbar
-      await adminPage
-        .locator('.mat-mdc-snack-bar-label')
-        .first()
-        .filter({ hasText: /published/i })
-        .first()
-        .waitFor();
-
-      // Should show "Public" chip now
-      const finalCard = adminPage
+      const card = adminPage
         .getByTestId('announcement-card')
-        .filter({ hasText: testData.title });
-      await expect(finalCard.getByTestId('public-chip').first()).toBeVisible();
+        .filter({ hasText: data.title });
+      await expect(card.getByTestId('public-chip').first()).toBeVisible();
     });
 
-    test('should delete an announcement', async ({ adminPage }) => {
-      await navigateToAdminAnnouncements(adminPage);
+    await test.step('deletes a freshly-created announcement', async () => {
+      const data = {
+        title: `Delete Me ${Date.now()}`,
+        content: 'Will be deleted',
+      };
+      await fillAndSubmitAnnouncementForm(adminPage, data);
 
-      const testData = generateTestAnnouncement();
-
-      // Use helper for stable form filling
-      await fillAndSubmitAnnouncementForm(adminPage, testData);
-
-      // Find the announcement card
-      const announcementCard = adminPage
+      const card = adminPage
         .getByTestId('announcement-card')
-        .filter({ hasText: testData.title });
-      await expect(announcementCard).toBeVisible();
+        .filter({ hasText: data.title });
+      await expect(card).toBeVisible();
 
-      // Open more menu and click delete
-      const moreButton = announcementCard.locator('button[mat-icon-button]', {
+      const moreButton = card.locator('button[mat-icon-button]', {
         has: adminPage.locator('mat-icon:has-text("more_vert")'),
       });
       await moreButton.click();
 
-      // Click delete in menu
       await adminPage.locator('button mat-icon:has-text("delete")').click();
+      await adminPage.getByTestId('confirm-delete-button').click();
 
-      // Confirm deletion dialog
-      const confirmButton = adminPage.getByTestId('confirm-delete-button');
-      await confirmButton.click();
-
-      // Wait for deletion confirmation
       await adminPage
         .locator('.mat-mdc-snack-bar-label')
         .first()
         .filter({ hasText: /deleted/i })
-        .first()
         .waitFor();
 
-      // Announcement should no longer be visible
-      await expect(
-        adminPage.getByText(testData.title).first()
-      ).not.toBeVisible();
+      await expect(adminPage.getByText(data.title).first()).not.toBeVisible();
     });
   });
 });
 
 test.describe('User Messages', () => {
-  test('should show Messages item in user menu for authenticated users', async ({
+  /**
+   * User-side messages flow: menu item visible → click navigates → page
+   * renders empty state or list. Replaces 3 separate tests.
+   */
+  test('user messages: menu link, navigation, page renders', async ({
     authenticatedPage,
   }) => {
-    // Open user menu
-    await authenticatedPage.locator('[data-testid="user-menu-button"]').click();
+    await test.step('Messages link in user menu navigates to /messages', async () => {
+      await authenticatedPage
+        .locator('[data-testid="user-menu-button"]')
+        .click();
 
-    // Messages link should be visible
-    const messagesLink = authenticatedPage.locator(
-      '[data-testid="messages-menu-link"]'
-    );
-    await expect(messagesLink).toBeVisible();
-  });
+      const messagesLink = authenticatedPage.locator(
+        '[data-testid="messages-menu-link"]'
+      );
+      await expect(messagesLink).toBeVisible();
+      await messagesLink.click();
 
-  test('should navigate to messages page when clicking Messages', async ({
-    authenticatedPage,
-  }) => {
-    // Open user menu
-    await authenticatedPage.locator('[data-testid="user-menu-button"]').click();
-
-    // Click messages link
-    await authenticatedPage
-      .locator('[data-testid="messages-menu-link"]')
-      .click();
-
-    // Should navigate to messages page
-    await expect(authenticatedPage).toHaveURL(/.*\/messages/);
-    await expect(
-      authenticatedPage.locator('[data-testid="messages-page"]')
-    ).toBeVisible();
-  });
-
-  test('should show empty state when no announcements', async ({
-    authenticatedPage,
-  }) => {
-    // Navigate to messages
-    await authenticatedPage.goto('/messages');
-    await authenticatedPage.waitForLoadState('networkidle');
-
-    // Wait for page to load
-    await expect(
-      authenticatedPage.locator('[data-testid="messages-page"]')
-    ).toBeVisible();
-
-    // Should show either empty state or messages list
-    const emptyState = authenticatedPage.locator('.empty-state');
-    const messagesList = authenticatedPage.locator(
-      '[data-testid="messages-list"]'
-    );
-
-    // Wait for either to appear
-    await Promise.race([
-      emptyState.waitFor().catch(() => {}),
-      messagesList.waitFor().catch(() => {}),
-    ]);
-
-    const isEmptyVisible = await emptyState.isVisible().catch(() => false);
-    const isListVisible = await messagesList.isVisible().catch(() => false);
-
-    expect(isEmptyVisible || isListVisible).toBe(true);
-  });
-});
-
-test.describe('Public Announcement Feed', () => {
-  test('should show announcement feed on home page for anonymous users when announcements exist', async ({
-    adminPage,
-    anonymousPage,
-  }) => {
-    // First, create a public announcement as admin
-    await navigateToAdminAnnouncements(adminPage);
-
-    const testData = {
-      title: `Public Feed Test ${Date.now()}`,
-      content: 'This should appear in the public feed',
-    };
-
-    // Use helper for stable form filling with public checkbox
-    await fillAndSubmitAnnouncementForm(adminPage, testData, {
-      checkPublic: true,
+      await expect(authenticatedPage).toHaveURL(/.*\/messages/);
+      await expect(
+        authenticatedPage.locator('[data-testid="messages-page"]')
+      ).toBeVisible();
     });
 
-    // Publish the announcement
-    const announcementCard = adminPage
-      .locator('mat-card')
-      .filter({ hasText: testData.title });
-    await announcementCard.locator('button:has-text("Publish")').click();
+    await test.step('messages page shows empty state or list', async () => {
+      // Reload via direct nav to assert the page also renders standalone.
+      await authenticatedPage.goto('/messages');
+      await authenticatedPage.waitForLoadState('networkidle');
 
-    await adminPage
-      .locator('.mat-mdc-snack-bar-label')
-      .first()
-      .filter({ hasText: /published/i })
-      .waitFor();
+      await expect(
+        authenticatedPage.locator('[data-testid="messages-page"]')
+      ).toBeVisible();
 
-    // Now check the anonymous page
-    await anonymousPage.goto('/');
-    await anonymousPage.waitForLoadState('networkidle');
+      const emptyState = authenticatedPage.locator('.empty-state');
+      const messagesList = authenticatedPage.locator(
+        '[data-testid="messages-list"]'
+      );
 
-    // The announcement feed should be visible with the public announcement
-    const feed = anonymousPage.locator('[data-testid="announcement-feed"]');
+      await Promise.race([
+        emptyState.waitFor().catch(() => {}),
+        messagesList.waitFor().catch(() => {}),
+      ]);
 
-    // Check if feed is visible and contains our announcement
-    const isFeedVisible = await feed.isVisible().catch(() => false);
-    if (isFeedVisible) {
-      // The announcement should be visible in the feed
-      await expect(anonymousPage.getByText(testData.title)).toBeVisible();
-    }
-    // If feed is not visible, that's also OK if there are no public announcements
-    // (they might have been cleaned up or expired)
+      const isEmptyVisible = await emptyState.isVisible().catch(() => false);
+      const isListVisible = await messagesList.isVisible().catch(() => false);
+      expect(isEmptyVisible || isListVisible).toBe(true);
+    });
   });
 });
 
-test.describe('Unread Badge', () => {
-  test('should show unread badge when there are unread announcements', async ({
+test.describe('Published Announcement Visibility', () => {
+  /**
+   * Single admin publishes ONE public announcement, then we verify both
+   * the anonymous public feed AND the authenticated user's messages flow
+   * (mark-all-as-read) against the same data. Combines public-feed,
+   * unread-badge and mark-as-read tests.
+   */
+  test('public announcement appears in anon feed and can be marked read by users', async ({
     adminPage,
-  }) => {
-    // First, create and publish an announcement as admin
-    await navigateToAdminAnnouncements(adminPage);
-
-    const testData = {
-      title: `Unread Badge Test ${Date.now()}`,
-      content: 'This tests the unread badge',
-    };
-
-    // Use helper for stable form filling
-    await fillAndSubmitAnnouncementForm(adminPage, testData);
-
-    // Publish it
-    const announcementCard = adminPage
-      .getByTestId('announcement-card')
-      .filter({ hasText: testData.title });
-    await announcementCard.locator('button:has-text("Publish")').click();
-
-    await adminPage
-      .locator('.mat-mdc-snack-bar-label')
-      .first()
-      .filter({ hasText: /published/i })
-      .waitFor();
-  });
-});
-
-test.describe('Mark as Read', () => {
-  test('should mark all announcements as read', async ({
-    adminPage,
+    anonymousPage,
     authenticatedPage,
   }) => {
-    // First create and publish an announcement as admin
-    await navigateToAdminAnnouncements(adminPage);
-
     const testData = {
-      title: `Mark Read Test ${Date.now()}`,
-      content: 'This tests marking as read',
+      title: `Cross-context Announcement ${Date.now()}`,
+      content: 'Visible publicly and to authenticated users',
     };
 
-    // Use helper for stable form filling
-    await fillAndSubmitAnnouncementForm(adminPage, testData);
+    await test.step('admin creates and publishes a public announcement', async () => {
+      await navigateToAdminAnnouncements(adminPage);
+      await fillAndSubmitAnnouncementForm(adminPage, testData, {
+        checkPublic: true,
+      });
+      await publishAnnouncement(adminPage, testData.title);
+    });
 
-    // Publish it
-    const announcementCard = adminPage
-      .getByTestId('announcement-card')
-      .filter({ hasText: testData.title });
-    await announcementCard.locator('button:has-text("Publish")').click();
+    await test.step('anonymous home page surfaces the announcement (when feed is shown)', async () => {
+      await anonymousPage.goto('/');
+      await anonymousPage.waitForLoadState('networkidle');
 
-    await adminPage
-      .locator('.mat-mdc-snack-bar-label')
-      .first()
-      .filter({ hasText: /published/i })
-      .waitFor();
+      const feed = anonymousPage.locator('[data-testid="announcement-feed"]');
+      const isFeedVisible = await feed.isVisible().catch(() => false);
+      if (isFeedVisible) {
+        await expect(anonymousPage.getByText(testData.title)).toBeVisible();
+      }
+      // If the feed is hidden the test is still valid: home may suppress
+      // the feed in some configurations.
+    });
 
-    // Now check the authenticated user page
-    await authenticatedPage.goto('/messages');
-    await authenticatedPage.waitForLoadState('networkidle');
+    await test.step('authenticated user can mark all messages as read', async () => {
+      await authenticatedPage.goto('/messages');
+      await authenticatedPage.waitForLoadState('networkidle');
 
-    // Wait for page to load
-    await authenticatedPage.locator('[data-testid="messages-page"]').waitFor();
+      await authenticatedPage
+        .locator('[data-testid="messages-page"]')
+        .waitFor();
 
-    // Check if mark all as read button is visible (indicates unread messages)
-    const markAllButton = authenticatedPage.locator(
-      '[data-testid="mark-all-read-btn"]'
-    );
+      const markAllButton = authenticatedPage.locator(
+        '[data-testid="mark-all-read-btn"]'
+      );
 
-    const isButtonVisible = await markAllButton.isVisible().catch(() => false);
+      const isButtonVisible = await markAllButton
+        .isVisible()
+        .catch(() => false);
 
-    if (isButtonVisible) {
-      // Click mark all as read
-      await markAllButton.click();
-
-      // Button should disappear after marking all as read
-      await expect(markAllButton).not.toBeVisible();
-    }
+      if (isButtonVisible) {
+        await markAllButton.click();
+        await expect(markAllButton).not.toBeVisible();
+      }
+    });
   });
 });

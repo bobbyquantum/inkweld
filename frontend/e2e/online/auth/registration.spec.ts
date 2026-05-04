@@ -293,8 +293,12 @@ test.describe('User Registration', () => {
     await expect(page.getByTestId('username-available-icon')).toBeVisible();
 
     await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
-    await page.keyboard.press('Tab');
+    await page.getByTestId('password-input').blur();
     await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
+    // Tab away so the confirm-password validator (mismatch check) commits
+    // and the form transitions to valid; mirrors the pattern in the passing
+    // test at line 25-50.
+    await page.keyboard.press('Tab');
 
     // Wait for the button to be enabled (gives time for async validation and providers loaded signal)
     await expect(

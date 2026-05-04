@@ -459,9 +459,7 @@ export async function createProjectWithTwoSteps(
   await page.click('button[data-testid="create-project-button"]');
 
   // Wait for navigation to the new project page
-  await page.waitForURL(url => url.pathname.endsWith(`/${projectSlug}`), {
-    timeout: 15_000,
-  });
+  await page.waitForURL(url => url.pathname.endsWith(`/${projectSlug}`));
 
   // Dismiss the "Project created successfully!" toast so it doesn't
   // appear in screenshots or interfere with subsequent interactions.

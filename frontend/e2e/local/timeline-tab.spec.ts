@@ -3,10 +3,16 @@
  *
  * Verifies that the Timeline element type works end-to-end:
  *   - Creating a timeline element opens the timeline tab
- *   - Toolbar, SVG canvas, empty state render correctly
+ *   - Toolbar, SVG canvas, empty state, sticky bands render correctly
  *   - Events can be added through the event dialog and appear on the timeline
- *   - Tracks can be added
+ *   - Tracks can be added and renamed
  *   - Zoom controls respond
+ *   - Events persist across page reloads
+ *
+ * Consolidated from 9 individual tests into 3 grouped tests using
+ * `test.step()` to share the expensive timeline-setup flow (which
+ * involves navigating to settings, installing the Gregorian time
+ * system, and committing the timeline).
  */
 
 import { type Page } from '@playwright/test';
@@ -62,199 +68,161 @@ async function createTimelineAndOpen(page: Page) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 test.describe('Timeline Tab', () => {
-  test('creates a timeline element and opens the timeline tab', async ({
+  test('initial render: timeline tab, toolbar, SVG, empty state, sticky bands', async ({
     localPageWithProject: page,
   }) => {
     await createTimelineAndOpen(page);
-    await expect(page).toHaveURL(/timeline\/.+/);
-    await expect(page.getByTestId('timeline-toolbar')).toBeVisible();
-    await expect(page.getByTestId('timeline-svg-tracks')).toBeVisible();
+
+    await test.step('navigates to timeline tab with toolbar and SVG tracks', async () => {
+      await expect(page).toHaveURL(/timeline\/.+/);
+      await expect(page.getByTestId('timeline-toolbar')).toBeVisible();
+      await expect(page.getByTestId('timeline-svg-tracks')).toBeVisible();
+    });
+
+    await test.step('shows empty-state hint when no events exist', async () => {
+      await expect(page.getByTestId('timeline-empty')).toBeVisible();
+    });
+
+    await test.step('renders sticky top and bottom bands around scroll area', async () => {
+      await expect(page.getByTestId('timeline-svg-top')).toBeVisible();
+      await expect(page.getByTestId('timeline-tracks-scroll')).toBeVisible();
+      await expect(page.getByTestId('timeline-svg-bottom')).toBeVisible();
+    });
   });
 
-  test('shows the empty-state hint when the timeline has no events', async ({
+  test('tracks: prompt for name, rename existing, populate dropdown in event dialog', async ({
     localPageWithProject: page,
   }) => {
     await createTimelineAndOpen(page);
-    await expect(page.getByTestId('timeline-empty')).toBeVisible();
+
+    await test.step('add-track prompts for a name and renders the new label', async () => {
+      await page.getByTestId('timeline-add-track').click();
+
+      const input = page.getByTestId('rename-input');
+      await expect(input).toBeVisible();
+      // Wait for default value to populate before clearing.
+      await expect(input).not.toHaveValue('');
+      await input.clear();
+      await input.fill('Villains');
+      await expect(input).toHaveValue('Villains');
+      await expect(page.getByTestId('rename-confirm-button')).toBeEnabled();
+      await page.getByTestId('rename-confirm-button').click();
+      await expect(page.getByTestId('rename-input')).toHaveCount(0);
+
+      await expect(
+        page.locator('[data-testid^="timeline-track-label-"]', {
+          hasText: 'Villains',
+        })
+      ).toBeVisible();
+    });
+
+    await test.step('clicking an existing track label prompts to rename it', async () => {
+      // Rename the default "Main track" → "Main story".
+      const mainLabel = page
+        .locator('[data-testid^="timeline-track-label-"]', {
+          hasText: 'Main track',
+        })
+        .first();
+      await mainLabel.click();
+
+      const input = page.getByTestId('rename-input');
+      await expect(input).toBeVisible();
+      await expect(input).toHaveValue('Main track');
+      await input.clear();
+      await input.fill('Main story');
+      await page.getByTestId('rename-confirm-button').click();
+      await expect(page.getByTestId('rename-input')).toHaveCount(0);
+
+      await expect(
+        page.locator('[data-testid^="timeline-track-label-"]', {
+          hasText: 'Main story',
+        })
+      ).toBeVisible();
+    });
+
+    await test.step('event dialog track dropdown contains custom tracks', async () => {
+      await page.getByTestId('timeline-add-event').click();
+      await page.getByTestId('timeline-event-track').click();
+
+      const villainsOption = page
+        .locator('[data-testid^="timeline-track-option-"]')
+        .filter({ hasText: 'Villains' });
+      await expect(villainsOption).toBeVisible();
+
+      // Close the dialog without saving so the next step starts clean if added.
+      await page.keyboard.press('Escape');
+    });
   });
 
-  test('can add a new event via the dialog and render it on the timeline', async ({
+  test('events: add via dialog, zoom changes ticks, persist across reload', async ({
     localPageWithProject: page,
   }) => {
     await createTimelineAndOpen(page);
 
-    // Open the add-event dialog
-    await page.getByTestId('timeline-add-event').click();
+    await test.step('add event via dialog renders pill and clears empty state', async () => {
+      await page.getByTestId('timeline-add-event').click();
 
-    // Fill the form (Gregorian default → format "Y-M-D")
-    const titleInput = page.getByTestId('timeline-event-title');
-    await titleInput.waitFor({ state: 'visible' });
-    await titleInput.click();
-    await titleInput.fill('First event');
-    await expect(titleInput).toHaveValue('First event');
-    await page.getByTestId('timeline-event-start-date').fill('2024-01-01');
+      const titleInput = page.getByTestId('timeline-event-title');
+      await titleInput.waitFor({ state: 'visible' });
+      await titleInput.click();
+      await titleInput.fill('First event');
+      await expect(titleInput).toHaveValue('First event');
+      await page.getByTestId('timeline-event-start-date').fill('2024-01-01');
 
-    // Wait for OnPush CD to propagate form validity before clicking
-    await expect(page.getByTestId('timeline-event-save')).toBeEnabled();
-    await page.getByTestId('timeline-event-save').click();
+      // Wait for OnPush CD to propagate form validity before clicking.
+      await expect(page.getByTestId('timeline-event-save')).toBeEnabled();
+      await page.getByTestId('timeline-event-save').click();
 
-    // Event pill should appear
-    await expect(
-      page.locator('[data-testid^="timeline-event-"]').first()
-    ).toBeVisible();
+      await expect(
+        page.locator('[data-testid^="timeline-event-"]').first()
+      ).toBeVisible();
+      await expect(page.getByTestId('timeline-empty')).toHaveCount(0);
+    });
 
-    // Empty state should be gone
-    await expect(page.getByTestId('timeline-empty')).toHaveCount(0);
-  });
-
-  test('can add additional tracks via the toolbar', async ({
-    localPageWithProject: page,
-  }) => {
-    await createTimelineAndOpen(page);
-
-    // Existing tracks ("Main track" by default)
-    const countBefore = await page
-      .locator('[data-testid^="timeline-event-"]')
-      .count();
-    expect(countBefore).toBe(0);
-
-    await page.getByTestId('timeline-add-track').click();
-    // The in-app rename dialog opens with a suggested track name; accept it.
-    await expect(page.getByTestId('rename-input')).toBeVisible();
-    // Wait for the input to be populated with a non-empty default value
-    await expect(page.getByTestId('rename-input')).not.toHaveValue('');
-    const createdTrackName = await page
-      .getByTestId('rename-input')
-      .inputValue();
-    await page.getByTestId('rename-confirm-button').click();
-    // Wait for the rename dialog to close before proceeding.
-    await expect(page.getByTestId('rename-input')).toHaveCount(0);
-    // No visual assertion needed for the track itself — it's in the SVG.
-    // Confirm the UI is still responsive by clicking add-event.
-    await page.getByTestId('timeline-add-event').click();
-
-    // Track dropdown inside the dialog should include the newly added track.
-    await page.getByTestId('timeline-event-track').click();
-    const addedTrackOption = page
-      .locator('[data-testid^="timeline-track-option-"]')
-      .filter({ hasText: createdTrackName });
-    await expect(addedTrackOption).toBeVisible();
-  });
-
-  test('zoom in button changes the tick span', async ({
-    localPageWithProject: page,
-  }) => {
-    await createTimelineAndOpen(page);
-
-    // Click zoom-in twice; test that the tick labels change.
-    const beforeLabels = await page.getByTestId('tick-label').allTextContents();
-
-    await page.getByTestId('timeline-zoom-in').click();
-    await page.getByTestId('timeline-zoom-in').click();
-
-    // Wait for the tick labels to change after zoom.
-    await expect(async () => {
-      const afterLabels = await page
+    await test.step('zoom-in changes the tick label set', async () => {
+      const beforeLabels = await page
         .getByTestId('tick-label')
         .allTextContents();
-      expect(
-        beforeLabels.join('|') !== afterLabels.join('|') ||
-          beforeLabels.length !== afterLabels.length
-      ).toBeTruthy();
-    }).toPass({ timeout: 5000 });
-  });
 
-  test('prompts for a track name when adding a new track', async ({
-    localPageWithProject: page,
-  }) => {
-    await createTimelineAndOpen(page);
+      await page.getByTestId('timeline-zoom-in').click();
+      await page.getByTestId('timeline-zoom-in').click();
 
-    await page.getByTestId('timeline-add-track').click();
-
-    // The in-app rename dialog opens; default value is the suggested name.
-    const input = page.getByTestId('rename-input');
-    await expect(input).toBeVisible();
-    // Wait for the input to be populated before clearing it
-    await expect(input).not.toHaveValue('');
-    await input.clear();
-    await input.fill('Villains');
-    await expect(input).toHaveValue('Villains');
-    await expect(page.getByTestId('rename-confirm-button')).toBeEnabled();
-    await page.getByTestId('rename-confirm-button').click();
-    await expect(page.getByTestId('rename-input')).toHaveCount(0);
-
-    // A label with the new name should render inside the track column.
-    const label = page.locator('[data-testid^="timeline-track-label-"]', {
-      hasText: 'Villains',
+      await expect(async () => {
+        const afterLabels = await page
+          .getByTestId('tick-label')
+          .allTextContents();
+        expect(
+          beforeLabels.join('|') !== afterLabels.join('|') ||
+            beforeLabels.length !== afterLabels.length
+        ).toBeTruthy();
+      }).toPass({ timeout: 5000 });
     });
-    await expect(label).toBeVisible();
-  });
 
-  test('click on a track label prompts to rename the track', async ({
-    localPageWithProject: page,
-  }) => {
-    await createTimelineAndOpen(page);
+    await test.step('add a second event then verify both persist after reload', async () => {
+      await page.getByTestId('timeline-add-event').click();
+      const titleInput = page.getByTestId('timeline-event-title');
+      await titleInput.waitFor({ state: 'visible' });
+      await titleInput.click();
+      await titleInput.fill('Persisted event');
+      await expect(titleInput).toHaveValue('Persisted event');
+      await page.getByTestId('timeline-event-start-date').fill('2024-06-15');
+      await expect(page.getByTestId('timeline-event-save')).toBeEnabled();
+      await page.getByTestId('timeline-event-save').click();
 
-    const firstLabel = page
-      .locator('[data-testid^="timeline-track-label-"]')
-      .first();
-    await firstLabel.click();
+      const pill = page
+        .locator('[data-testid^="timeline-event-body-"]')
+        .first();
+      await expect(pill).toBeVisible();
 
-    const input = page.getByTestId('rename-input');
-    await expect(input).toBeVisible();
-    await expect(input).toHaveValue('Main track');
-    await input.clear();
-    await input.fill('Main story');
-    await expect(input).toHaveValue('Main story');
-    await page.getByTestId('rename-confirm-button').click();
+      // Reload the page; the timeline must come back populated.
+      await page.reload();
+      await page.waitForLoadState('domcontentloaded');
 
-    await expect(
-      page.locator('[data-testid^="timeline-track-label-"]', {
-        hasText: 'Main story',
-      })
-    ).toBeVisible();
-  });
-
-  test('persists events after a page refresh', async ({
-    localPageWithProject: page,
-  }) => {
-    await createTimelineAndOpen(page);
-
-    // Add an event.
-    await page.getByTestId('timeline-add-event').click();
-    const titleInput = page.getByTestId('timeline-event-title');
-    await titleInput.waitFor({ state: 'visible' });
-    await titleInput.click();
-    await titleInput.fill('Persisted event');
-    await expect(titleInput).toHaveValue('Persisted event');
-    await page.getByTestId('timeline-event-start-date').fill('2024-06-15');
-    // Wait for OnPush CD to propagate form validity before clicking
-    await expect(page.getByTestId('timeline-event-save')).toBeEnabled();
-    await page.getByTestId('timeline-event-save').click();
-
-    const pill = page.locator('[data-testid^="timeline-event-body-"]').first();
-    await expect(pill).toBeVisible();
-
-    // Reload the page; the timeline must come back populated.
-    await page.reload();
-    await page.waitForLoadState('domcontentloaded');
-
-    await expect(page.getByTestId('timeline-svg-top')).toBeVisible();
-    // Empty-state must NOT appear; the persisted event pill must render.
-    await expect(page.getByTestId('timeline-empty')).toHaveCount(0);
-    await expect(
-      page.locator('[data-testid^="timeline-event-body-"]').first()
-    ).toBeVisible();
-  });
-
-  test('has sticky top and bottom timeline bands around a scrollable track area', async ({
-    localPageWithProject: page,
-  }) => {
-    await createTimelineAndOpen(page);
-
-    // The top, scroll, and bottom containers should all be present.
-    await expect(page.getByTestId('timeline-svg-top')).toBeVisible();
-    await expect(page.getByTestId('timeline-tracks-scroll')).toBeVisible();
-    await expect(page.getByTestId('timeline-svg-bottom')).toBeVisible();
+      await expect(page.getByTestId('timeline-svg-top')).toBeVisible();
+      await expect(page.getByTestId('timeline-empty')).toHaveCount(0);
+      await expect(
+        page.locator('[data-testid^="timeline-event-body-"]').first()
+      ).toBeVisible();
+    });
   });
 });

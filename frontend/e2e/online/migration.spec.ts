@@ -139,7 +139,7 @@ test.describe('Offline to Server Migration', () => {
     const syncSuccess = offlinePage.locator('[data-testid="sync-success"]');
 
     // Wait for the success message - this indicates migration and sync are fully complete
-    await expect(syncSuccess).toBeVisible({ timeout: 45000 });
+    await expect(syncSuccess).toBeVisible();
 
     // Wait a moment for any final async operations to settle
     await offlinePage.waitForTimeout(2000);
@@ -310,7 +310,7 @@ test.describe('Offline to Server Migration', () => {
     const syncSuccess = offlinePage.locator('[data-testid="sync-success"]');
 
     // Wait for the success message - this indicates migration and sync are fully complete
-    await expect(syncSuccess).toBeVisible({ timeout: 45000 });
+    await expect(syncSuccess).toBeVisible();
 
     // Wait a moment for any final async operations to settle
     await offlinePage.waitForTimeout(2000);
@@ -334,16 +334,23 @@ test.describe('Offline to Server Migration', () => {
 
     // Wait for project card to be visible
     // Projects were created on server during migration, so they should appear.
-    // If the project list is empty after navigation, reload to ensure a fresh fetch.
+    // The migration is asynchronous and the home-page project list can take
+    // a few seconds (and sometimes a reload) to surface the new server
+    // project. Poll-with-reload up to ~30s before giving up.
     const projectButton = offlinePage.getByRole('button', {
       name: /Open project Content Test/i,
     });
-    if (
-      !(await projectButton.isVisible({ timeout: 5000 }).catch(() => false))
-    ) {
-      await offlinePage.reload();
-      await offlinePage.waitForLoadState('networkidle');
-    }
+    await expect
+      .poll(
+        async () => {
+          if (await projectButton.isVisible().catch(() => false)) return true;
+          await offlinePage.reload();
+          await offlinePage.waitForLoadState('networkidle');
+          return projectButton.isVisible({ timeout: 5000 }).catch(() => false);
+        },
+        { timeout: 30_000, intervals: [0] }
+      )
+      .toBe(true);
     await expect(projectButton).toBeVisible();
 
     // Click on the project card
@@ -466,7 +473,7 @@ test.describe('Offline to Server Migration', () => {
 
     // Wait for migration and sync to complete
     const syncSuccess = offlinePage.locator('[data-testid="sync-success"]');
-    await expect(syncSuccess).toBeVisible({ timeout: 45000 });
+    await expect(syncSuccess).toBeVisible();
 
     await offlinePage.waitForTimeout(2000);
     await offlinePage.goto('/');
@@ -474,7 +481,7 @@ test.describe('Offline to Server Migration', () => {
     // Verify project A exists on server (wait for project list to load)
     await expect(
       offlinePage.getByRole('button', { name: /Open project Project A/i })
-    ).toBeVisible({ timeout: 45000 });
+    ).toBeVisible();
 
     // ════════════════════════════════════════════════════════════════════════
     // PHASE 2: Create project B on server (to test rename conflict)
@@ -583,7 +590,7 @@ test.describe('Offline to Server Migration', () => {
     const loginToggle = offlinePage.locator(
       '[data-testid="toggle-auth-mode-button"]'
     );
-    await expect(loginToggle).toBeVisible({ timeout: 5000 });
+    await expect(loginToggle).toBeVisible();
     await loginToggle.click();
 
     // Wait for login form to appear
@@ -609,7 +616,7 @@ test.describe('Offline to Server Migration', () => {
     const migrationHeading = offlinePage.getByRole('heading', {
       name: /Select Projects to Migrate/i,
     });
-    await expect(migrationHeading).toBeVisible({ timeout: 10000 });
+    await expect(migrationHeading).toBeVisible();
 
     // Verify the local project is shown in the migration list
     const projectCheckbox = offlinePage.getByRole('checkbox', {
@@ -656,7 +663,7 @@ test.describe('Offline to Server Migration', () => {
     // Wait for validation - should show check icon
     await offlinePage.waitForTimeout(1000);
     const validIcon = offlinePage.locator('.valid-icon').first();
-    await expect(validIcon).toBeVisible({ timeout: 5000 });
+    await expect(validIcon).toBeVisible();
 
     // Migrate button should now be enabled
     await expect(migrateButton).toBeEnabled();
@@ -668,11 +675,11 @@ test.describe('Offline to Server Migration', () => {
     const renamedSyncSuccess = offlinePage.locator(
       '[data-testid="sync-success"]'
     );
-    await expect(renamedSyncSuccess).toBeVisible({ timeout: 30000 });
+    await expect(renamedSyncSuccess).toBeVisible();
 
     // Wait for the dialog to close and page to redirect
     // The dialog does window.location.href = '/' after sync success
-    await offlinePage.waitForURL('**/', { timeout: 30000 });
+    await offlinePage.waitForURL('**/');
 
     // Wait for page to settle
     await offlinePage.waitForLoadState('networkidle');

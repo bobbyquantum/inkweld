@@ -1,15 +1,10 @@
 /**
  * Media Tab Screenshot Tests
  *
- * Captures screenshots of the media library tab for documentation:
- * - Media grid with images (light + dark)
- * - Empty state
- * - Search with results
- * - Filter panel open
- * - Status bar
- *
- * Uses the offlinePage fixture (local mode, no server needed).
- * Real demo images from assets/ are stored into IndexedDB.
+ * Captures screenshots of the media library tab. Consolidated 10 → 4 tests:
+ * one populated test + one empty-state test per color scheme. The populated
+ * test captures the full tab, cropped gallery, search results, and filter
+ * panel via test.step against the same project + media seeding.
  */
 
 import { type Page } from '@playwright/test';
@@ -29,10 +24,8 @@ import {
 } from './screenshot-helpers';
 
 const screenshotsDir = getScreenshotsDir();
+const DESKTOP_VIEWPORT = { width: 1280, height: 800 } as const;
 
-/**
- * Helper: create a project, store demo media, navigate to the media tab.
- */
 async function setupMediaTab(
   page: Page,
   projectSlug: string,
@@ -91,177 +84,115 @@ async function setupMediaTab(
   await page.waitForTimeout(500);
 }
 
+async function setupEmptyMediaProject(
+  page: Page,
+  projectSlug: string,
+  projectTitle: string
+): Promise<void> {
+  await page.goto('/');
+  await page.waitForSelector('[data-testid="empty-state"]', {
+    state: 'visible',
+  });
+
+  await createProjectWithTwoSteps(page, projectTitle, projectSlug);
+  await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
+
+  await page.goto(`/demouser/${projectSlug}/media`);
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForSelector('[data-testid="empty-card"]', {
+    state: 'visible',
+  });
+  await page.waitForTimeout(300);
+}
+
+async function capturePopulatedMediaScreenshots(
+  page: Page,
+  suffix: 'light' | 'dark'
+): Promise<void> {
+  await test.step('full media tab', async () => {
+    await page.screenshot({
+      path: join(screenshotsDir, `media-tab-${suffix}.png`),
+      fullPage: false,
+    });
+  });
+
+  await test.step('cropped gallery area', async () => {
+    const grid = page.getByTestId('media-grid');
+    await captureElementScreenshot(
+      page,
+      [grid],
+      join(screenshotsDir, `media-gallery-${suffix}.png`),
+      16
+    );
+  });
+
+  await test.step('search with results', async () => {
+    const searchInput = page.getByTestId('media-search-input');
+    await searchInput.fill('hero');
+    await page.waitForTimeout(300);
+
+    await page.screenshot({
+      path: join(screenshotsDir, `media-search-${suffix}.png`),
+      fullPage: false,
+    });
+
+    // Reset search so the filter panel screenshot shows the full grid.
+    await searchInput.fill('');
+    await page.waitForTimeout(200);
+  });
+
+  await test.step('filter panel open', async () => {
+    await page.getByTestId('media-filter-button').click();
+    await page.waitForSelector('[data-testid="filter-panel"]', {
+      state: 'visible',
+    });
+    await page.waitForTimeout(300);
+
+    await page.screenshot({
+      path: join(screenshotsDir, `media-filter-panel-${suffix}.png`),
+      fullPage: false,
+    });
+  });
+}
+
 test.describe('Media Tab Screenshots', () => {
   test.beforeAll(async () => {
     await ensureDirectory(screenshotsDir);
   });
 
-  test.describe('Light Mode', () => {
-    test('media grid with items', async ({ offlinePage: page }) => {
-      await page.setViewportSize({ width: 1280, height: 800 });
-      await setupMediaTab(page, 'media-light', 'Media Demo');
+  test('media tab populated screenshots — light mode', async ({
+    offlinePage: page,
+  }) => {
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+    await setupMediaTab(page, 'media-light', 'Media Demo');
+    await capturePopulatedMediaScreenshots(page, 'light');
+  });
 
-      await page.screenshot({
-        path: join(screenshotsDir, 'media-tab-light.png'),
-        fullPage: false,
-      });
-    });
-
-    test('media grid - cropped gallery area', async ({ offlinePage: page }) => {
-      await page.setViewportSize({ width: 1280, height: 800 });
-      await setupMediaTab(page, 'media-gallery-light', 'Media Gallery');
-
-      const grid = page.getByTestId('media-grid');
-      await captureElementScreenshot(
-        page,
-        [grid],
-        join(screenshotsDir, 'media-gallery-light.png'),
-        16
-      );
-    });
-
-    test('empty state', async ({ offlinePage: page }) => {
-      await page.setViewportSize({ width: 1280, height: 800 });
-      await page.goto('/');
-      await page.waitForSelector('[data-testid="empty-state"]', {
-        state: 'visible',
-      });
-
-      await createProjectWithTwoSteps(page, 'Empty Media', 'empty-media-light');
-      await page.waitForURL(/\/demouser\/empty-media-light/);
-
-      await page.goto('/demouser/empty-media-light/media');
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForSelector('[data-testid="empty-card"]', {
-        state: 'visible',
-      });
-      await page.waitForTimeout(300);
-
-      await page.screenshot({
-        path: join(screenshotsDir, 'media-empty-light.png'),
-        fullPage: false,
-      });
-    });
-
-    test('search with results', async ({ offlinePage: page }) => {
-      await page.setViewportSize({ width: 1280, height: 800 });
-      await setupMediaTab(page, 'media-search-light', 'Media Search');
-
-      // Type a search query
-      const searchInput = page.getByTestId('media-search-input');
-      await searchInput.fill('hero');
-      await page.waitForTimeout(300);
-
-      await page.screenshot({
-        path: join(screenshotsDir, 'media-search-light.png'),
-        fullPage: false,
-      });
-    });
-
-    test('filter panel open', async ({ offlinePage: page }) => {
-      await page.setViewportSize({ width: 1280, height: 800 });
-      await setupMediaTab(page, 'media-filter-light', 'Media Filters');
-
-      // Open the filter panel
-      await page.getByTestId('media-filter-button').click();
-      await page.waitForSelector('[data-testid="filter-panel"]', {
-        state: 'visible',
-      });
-      await page.waitForTimeout(300);
-
-      await page.screenshot({
-        path: join(screenshotsDir, 'media-filter-panel-light.png'),
-        fullPage: false,
-      });
+  test('media tab empty state — light mode', async ({ offlinePage: page }) => {
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+    await setupEmptyMediaProject(page, 'empty-media-light', 'Empty Media');
+    await page.screenshot({
+      path: join(screenshotsDir, 'media-empty-light.png'),
+      fullPage: false,
     });
   });
 
-  test.describe('Dark Mode', () => {
-    test('media grid with items', async ({ offlinePage: page }) => {
-      await page.setViewportSize({ width: 1280, height: 800 });
-      await page.emulateMedia({ colorScheme: 'dark' });
-      await setupMediaTab(page, 'media-dark', 'Media Demo Dark');
+  test('media tab populated screenshots — dark mode', async ({
+    offlinePage: page,
+  }) => {
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await setupMediaTab(page, 'media-dark', 'Media Demo Dark');
+    await capturePopulatedMediaScreenshots(page, 'dark');
+  });
 
-      await page.screenshot({
-        path: join(screenshotsDir, 'media-tab-dark.png'),
-        fullPage: false,
-      });
-    });
-
-    test('media grid - cropped gallery area', async ({ offlinePage: page }) => {
-      await page.setViewportSize({ width: 1280, height: 800 });
-      await page.emulateMedia({ colorScheme: 'dark' });
-      await setupMediaTab(page, 'media-gallery-dark', 'Media Gallery Dark');
-
-      const grid = page.getByTestId('media-grid');
-      await captureElementScreenshot(
-        page,
-        [grid],
-        join(screenshotsDir, 'media-gallery-dark.png'),
-        16
-      );
-    });
-
-    test('filter panel open', async ({ offlinePage: page }) => {
-      await page.setViewportSize({ width: 1280, height: 800 });
-      await page.emulateMedia({ colorScheme: 'dark' });
-      await setupMediaTab(page, 'media-filter-dark', 'Media Filters Dark');
-
-      // Open the filter panel
-      await page.getByTestId('media-filter-button').click();
-      await page.waitForSelector('[data-testid="filter-panel"]', {
-        state: 'visible',
-      });
-      await page.waitForTimeout(300);
-
-      await page.screenshot({
-        path: join(screenshotsDir, 'media-filter-panel-dark.png'),
-        fullPage: false,
-      });
-    });
-
-    test('empty state', async ({ offlinePage: page }) => {
-      await page.setViewportSize({ width: 1280, height: 800 });
-      await page.emulateMedia({ colorScheme: 'dark' });
-      await page.goto('/');
-      await page.waitForSelector('[data-testid="empty-state"]', {
-        state: 'visible',
-      });
-
-      await createProjectWithTwoSteps(
-        page,
-        'Empty Media Dark',
-        'empty-media-dark'
-      );
-      await page.waitForURL(/\/demouser\/empty-media-dark/);
-
-      await page.goto('/demouser/empty-media-dark/media');
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForSelector('[data-testid="empty-card"]', {
-        state: 'visible',
-      });
-      await page.waitForTimeout(300);
-
-      await page.screenshot({
-        path: join(screenshotsDir, 'media-empty-dark.png'),
-        fullPage: false,
-      });
-    });
-
-    test('search with results', async ({ offlinePage: page }) => {
-      await page.setViewportSize({ width: 1280, height: 800 });
-      await page.emulateMedia({ colorScheme: 'dark' });
-      await setupMediaTab(page, 'media-search-dark', 'Media Search Dark');
-
-      // Type a search query
-      const searchInput = page.getByTestId('media-search-input');
-      await searchInput.fill('hero');
-      await page.waitForTimeout(300);
-
-      await page.screenshot({
-        path: join(screenshotsDir, 'media-search-dark.png'),
-        fullPage: false,
-      });
+  test('media tab empty state — dark mode', async ({ offlinePage: page }) => {
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await setupEmptyMediaProject(page, 'empty-media-dark', 'Empty Media Dark');
+    await page.screenshot({
+      path: join(screenshotsDir, 'media-empty-dark.png'),
+      fullPage: false,
     });
   });
 });

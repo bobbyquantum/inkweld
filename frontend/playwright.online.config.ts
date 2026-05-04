@@ -63,7 +63,7 @@ export default (async () => {
       baseURL: frontendUrl,
 
       /* Action timeout for slow CI environments */
-      actionTimeout: 15000,
+      actionTimeout: 30000,
       navigationTimeout: 30000,
 
       /* Collect trace when retrying the failed test */

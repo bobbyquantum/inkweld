@@ -1,14 +1,16 @@
 /**
  * Templates Tab Screenshot Tests
  *
- * Captures comprehensive screenshots demonstrating the template management feature:
- * - Full list view with templates
- * - Create new template flow
- * - Clone template flow
- * - Template editor dialog
+ * Captures screenshots of the template management feature.
+ * Consolidated 10 → 2 tests (one per color scheme); each captures
+ * overview, grid, header/create button, create dialog, clone menu, and
+ * card details via test.step.
  *
- * Screenshots are cropped to show only the relevant UI elements with padding
- * for cleaner documentation images.
+ * NOTE: This entire suite is `describe.skip` because schemas are not
+ * available in local/offline mode after project creation from a template.
+ * The schema sync provider doesn't populate schemas in time for the
+ * templates tab to display them. This is a pre-existing issue unrelated
+ * to the sidenav redesign / consolidation work.
  */
 
 import { type Page } from '@playwright/test';
@@ -22,86 +24,49 @@ import {
   getScreenshotsDir,
 } from './screenshot-helpers';
 
-// TODO: These tests are skipped because schemas are not available in local/offline
-// mode after project creation from a template. The schema sync provider doesn't
-// populate schemas in time for the templates tab to display them. This is a
-// pre-existing issue unrelated to the sidenav redesign.
-test.describe.skip('Templates Tab Screenshots', () => {
-  const screenshotsDir = getScreenshotsDir();
+async function setupProjectAndTemplatesTab(
+  page: Page,
+  projectSlug: string,
+  projectTitle: string
+): Promise<void> {
+  await page.goto('/');
 
-  test.beforeAll(async () => {
-    await ensureDirectory(screenshotsDir);
+  await page.waitForSelector('.empty-state', { state: 'visible' });
+
+  await createProjectWithTwoSteps(page, projectTitle, projectSlug);
+  await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
+
+  await page.goto(`/demouser/${projectSlug}/settings`);
+  await page.waitForSelector('[data-testid="settings-tab-content"]', {
+    state: 'visible',
   });
 
-  /**
-   * Helper to create a project and navigate to templates tab
-   */
-  async function setupProjectAndTemplatesTab(
-    page: Page,
-    projectSlug: string,
-    projectTitle: string
-  ) {
-    await page.goto('/');
+  await page.getByTestId('nav-templates').click();
 
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
+  await page.waitForSelector('.templates-tab-container', { state: 'visible' });
+  await page.waitForTimeout(500);
+}
+
+async function captureAllTemplateScreenshots(
+  page: Page,
+  screenshotsDir: string,
+  suffix: 'light' | 'dark'
+): Promise<void> {
+  await page.waitForSelector('[data-testid="template-card"]', {
+    state: 'visible',
+  });
+  await page.waitForTimeout(300);
+
+  await test.step('overview', async () => {
+    await page.screenshot({
+      path: join(screenshotsDir, `templates-overview-${suffix}.png`),
+      fullPage: false,
     });
+  });
 
-    await createProjectWithTwoSteps(page, projectTitle, projectSlug);
-    await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
-
-    // Navigate to Settings tab first
-    await page.goto(`/demouser/${projectSlug}/settings`);
-    await page.waitForSelector('[data-testid="settings-tab-content"]', {
-      state: 'visible',
-    });
-
-    // Click on the Templates section in sidenav
-    await page.getByTestId('nav-templates').click();
-
-    // Wait for templates container
-    await page.waitForSelector('.templates-tab-container', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(500);
-  }
-
-  test.describe('Light Mode Screenshots', () => {
-    test('templates tab overview', async ({ offlinePage: page }) => {
-      await setupProjectAndTemplatesTab(
-        page,
-        'tpl-overview-light',
-        'Templates Demo'
-      );
-
-      // Wait for templates to load
-      await page.waitForSelector('[data-testid="template-card"]', {
-        state: 'visible',
-      });
-      await page.waitForTimeout(300);
-
-      // Capture full tab view
-      await page.screenshot({
-        path: join(screenshotsDir, 'templates-overview-light.png'),
-        fullPage: false,
-      });
-    });
-
-    test('templates grid section', async ({ offlinePage: page }) => {
-      await setupProjectAndTemplatesTab(
-        page,
-        'tpl-grid-light',
-        'Templates Demo'
-      );
-
-      await page.waitForSelector('[data-testid="template-card"]', {
-        state: 'visible',
-      });
-      await page.waitForTimeout(300);
-
-      // Capture the templates grid section
+  if (suffix === 'light') {
+    await test.step('grid section', async () => {
       const gridSection = page.locator('.templates-grid').first();
-
       await captureElementScreenshot(
         page,
         [gridSection],
@@ -110,16 +75,8 @@ test.describe.skip('Templates Tab Screenshots', () => {
       );
     });
 
-    test('create template button', async ({ offlinePage: page }) => {
-      await setupProjectAndTemplatesTab(
-        page,
-        'tpl-create-light',
-        'Create Template Demo'
-      );
-
-      // Capture header with create button visible
+    await test.step('header / create button', async () => {
       const header = page.locator('.templates-header').first();
-
       await captureElementScreenshot(
         page,
         [header],
@@ -127,203 +84,72 @@ test.describe.skip('Templates Tab Screenshots', () => {
         16
       );
     });
+  }
 
-    test('create template dialog', async ({ offlinePage: page }) => {
-      await setupProjectAndTemplatesTab(
-        page,
-        'tpl-create-dlg-light',
-        'Create Template Dialog Demo'
-      );
-
-      // Click create template button
-      await page.click('[data-testid="create-template-button"]');
-
-      // Wait for template editor dialog
-      await page.waitForSelector('app-template-editor-dialog', {
-        state: 'visible',
-      });
-      await page.waitForTimeout(300);
-
-      // Screenshot of the dialog
-      await captureElementScreenshot(
-        page,
-        [page.locator('app-template-editor-dialog')],
-        join(screenshotsDir, 'templates-create-dialog-light.png'),
-        32
-      );
-
-      // Cancel the dialog
-      await page.click('app-template-editor-dialog button:has-text("Cancel")');
-    });
-
-    test('clone template flow', async ({ offlinePage: page }) => {
-      await setupProjectAndTemplatesTab(
-        page,
-        'tpl-clone-light',
-        'Clone Template Demo'
-      );
-
-      // Wait for template cards
-      await page.waitForSelector('[data-testid="template-card"]', {
-        state: 'visible',
-      });
-
-      // Open menu on first template
-      await page
-        .locator('[data-testid="template-card"]')
-        .first()
-        .locator('button[aria-label="Template actions"]')
-        .click();
-
-      await page.waitForTimeout(200);
-
-      // Screenshot the menu
-      const menu = page.locator('mat-menu.mat-mdc-menu-panel');
-
-      await captureElementScreenshot(
-        page,
-        [menu],
-        join(screenshotsDir, 'templates-clone-menu-light.png'),
-        16
-      );
-    });
-
-    test('template card details', async ({ offlinePage: page }) => {
-      await setupProjectAndTemplatesTab(
-        page,
-        'tpl-card-light',
-        'Template Card Demo'
-      );
-
-      // Wait for template cards to load
-      await page.waitForSelector('[data-testid="template-card"]', {
-        state: 'visible',
-      });
-      await page.waitForTimeout(300);
-
-      // Screenshot a single template card
-      const card = page.locator('[data-testid="template-card"]').first();
-
-      await captureElementScreenshot(
-        page,
-        [card],
-        join(screenshotsDir, 'templates-card-menu-light.png'),
-        16
-      );
-    });
+  await test.step('template card', async () => {
+    const card = page.locator('[data-testid="template-card"]').first();
+    await captureElementScreenshot(
+      page,
+      [card],
+      join(screenshotsDir, `templates-card-menu-${suffix}.png`),
+      16
+    );
   });
 
-  test.describe('Dark Mode Screenshots', () => {
-    /**
-     * Helper to enable dark mode on a page
-     */
-    async function enableDarkMode(page: Page) {
-      await page.emulateMedia({ colorScheme: 'dark' });
-    }
+  await test.step('clone template menu', async () => {
+    await page
+      .locator('[data-testid="template-card"]')
+      .first()
+      .locator('button[aria-label="Template actions"]')
+      .click();
+    await page.waitForTimeout(200);
 
-    test('templates tab overview dark', async ({ offlinePage: page }) => {
-      await enableDarkMode(page);
-      await setupProjectAndTemplatesTab(
-        page,
-        'tpl-overview-dark',
-        'Templates Demo'
-      );
+    const menu = page.locator('mat-menu.mat-mdc-menu-panel');
+    await captureElementScreenshot(
+      page,
+      [menu],
+      join(screenshotsDir, `templates-clone-menu-${suffix}.png`),
+      16
+    );
 
-      await page.waitForSelector('[data-testid="template-card"]', {
-        state: 'visible',
-      });
-      await page.waitForTimeout(300);
+    // Dismiss the menu before opening the create dialog.
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+  });
 
-      await page.screenshot({
-        path: join(screenshotsDir, 'templates-overview-dark.png'),
-        fullPage: false,
-      });
+  await test.step('create template dialog', async () => {
+    await page.click('[data-testid="create-template-button"]');
+    await page.waitForSelector('app-template-editor-dialog', {
+      state: 'visible',
     });
+    await page.waitForTimeout(300);
 
-    test('create template dialog dark', async ({ offlinePage: page }) => {
-      await enableDarkMode(page);
-      await setupProjectAndTemplatesTab(
-        page,
-        'tpl-create-dark',
-        'Create Template Demo'
-      );
+    await captureElementScreenshot(
+      page,
+      [page.locator('app-template-editor-dialog')],
+      join(screenshotsDir, `templates-create-dialog-${suffix}.png`),
+      32
+    );
 
-      // Click create template button
-      await page.click('[data-testid="create-template-button"]');
+    await page.click('app-template-editor-dialog button:has-text("Cancel")');
+  });
+}
 
-      // Wait for template editor dialog
-      await page.waitForSelector('app-template-editor-dialog', {
-        state: 'visible',
-      });
-      await page.waitForTimeout(300);
+test.describe.skip('Templates Tab Screenshots', () => {
+  const screenshotsDir = getScreenshotsDir();
 
-      // Screenshot of the dialog
-      await captureElementScreenshot(
-        page,
-        [page.locator('app-template-editor-dialog')],
-        join(screenshotsDir, 'templates-create-dialog-dark.png'),
-        32
-      );
+  test.beforeAll(async () => {
+    await ensureDirectory(screenshotsDir);
+  });
 
-      // Cancel the dialog
-      await page.click('app-template-editor-dialog button:has-text("Cancel")');
-    });
+  test('templates screenshots — light mode', async ({ offlinePage: page }) => {
+    await setupProjectAndTemplatesTab(page, 'tpl-light', 'Templates Demo');
+    await captureAllTemplateScreenshots(page, screenshotsDir, 'light');
+  });
 
-    test('template card dark', async ({ offlinePage: page }) => {
-      await enableDarkMode(page);
-      await setupProjectAndTemplatesTab(
-        page,
-        'tpl-card-dark',
-        'Template Card Demo'
-      );
-
-      await page.waitForSelector('[data-testid="template-card"]', {
-        state: 'visible',
-      });
-      await page.waitForTimeout(300);
-
-      // Screenshot a single template card
-      const card = page.locator('[data-testid="template-card"]').first();
-
-      await captureElementScreenshot(
-        page,
-        [card],
-        join(screenshotsDir, 'templates-card-menu-dark.png'),
-        16
-      );
-    });
-
-    test('clone template menu dark', async ({ offlinePage: page }) => {
-      await enableDarkMode(page);
-      await setupProjectAndTemplatesTab(
-        page,
-        'tpl-clone-dark',
-        'Clone Template Demo'
-      );
-
-      // Wait for template cards
-      await page.waitForSelector('[data-testid="template-card"]', {
-        state: 'visible',
-      });
-
-      // Open menu on first template
-      await page
-        .locator('[data-testid="template-card"]')
-        .first()
-        .locator('button[aria-label="Template actions"]')
-        .click();
-
-      await page.waitForTimeout(200);
-
-      // Screenshot the menu
-      const menu = page.locator('mat-menu.mat-mdc-menu-panel');
-
-      await captureElementScreenshot(
-        page,
-        [menu],
-        join(screenshotsDir, 'templates-clone-menu-dark.png'),
-        16
-      );
-    });
+  test('templates screenshots — dark mode', async ({ offlinePage: page }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await setupProjectAndTemplatesTab(page, 'tpl-dark', 'Templates Demo');
+    await captureAllTemplateScreenshots(page, screenshotsDir, 'dark');
   });
 });

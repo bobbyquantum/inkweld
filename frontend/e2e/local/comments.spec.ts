@@ -4,13 +4,9 @@
  * Tests for the comment/annotation system in local-only mode.
  * Comments are stored entirely in ProseMirror marks (no server).
  *
- * Covers:
- * - Adding a comment via Ctrl+Alt+M
- * - Comment highlight appears in editor
- * - Clicking a highlight opens the popover
- * - Comment panel toggle and thread listing
- * - Resolving (deleting) a local comment
- * - Deleting a comment
+ * Consolidated from 7 individual tests into 3 grouped tests using
+ * `test.step()`. Each grouped test owns one project so flows that
+ * mutate marks (resolve / delete) stay isolated.
  */
 
 import { expect, type Page } from '@playwright/test';
@@ -26,8 +22,8 @@ import { test } from './fixtures';
 // ---------------------------------------------------------------------------
 
 /**
- * Open a project, navigate into a document, and return the editor locator.
- * Uses the 'worldbuilding-demo' template so there is a README with content.
+ * Open a project, navigate into the README document, and ensure the editor
+ * is visible. Uses the 'worldbuilding-demo' template so README has content.
  */
 async function openEditorInProject(
   page: Page,
@@ -47,40 +43,44 @@ async function openEditorInProject(
   await page.waitForURL(new RegExp(projectSlug));
   await expect(page.getByTestId('project-tree')).toBeVisible();
 
-  // Open the README document
   await page
     .getByTestId('element-README')
     .click()
     .catch(() => page.locator('[role="treeitem"]').first().click());
 
-  const editor = page.getByTestId('document-editor');
-  await expect(editor).toBeVisible();
+  await expect(page.getByTestId('document-editor')).toBeVisible();
 }
 
 /**
- * Select a plain-text paragraph in the editor and add a comment via the
- * keyboard shortcut, accepting the browser prompt with the given text.
- * Targets the first <p> element (intro paragraph) to avoid element references.
+ * Select a fresh paragraph in the editor and add a comment via the keyboard
+ * shortcut, accepting the Material dialog with the given text.
+ *
+ * @param paragraphIndex - which <p> in the editor to comment on (each call
+ *   should use a different index so highlights don't overlap).
  */
 async function addCommentViaShortcut(
   page: Page,
-  commentText: string
+  commentText: string,
+  paragraphIndex = 0
 ): Promise<void> {
   const editor = page.getByTestId('document-editor');
-
-  // Click on the first plain-text paragraph (no element refs)
-  // Triple-click to select the entire paragraph
-  const paragraph = editor.locator('p').first();
+  const paragraph = editor.locator('p').nth(paragraphIndex);
   await paragraph.click({ clickCount: 3 });
 
-  // Trigger the add-comment shortcut (Ctrl+Alt+M)
   await pressShortcut(page, 'Alt+m');
 
-  // Fill in the Material dialog
   const dialogInput = page.getByTestId('comment-text-input');
   await expect(dialogInput).toBeVisible();
   await dialogInput.fill(commentText);
   await page.getByTestId('submit-comment-btn').click();
+
+  // Wait for the dialog to dismiss before continuing.
+  await expect(dialogInput).not.toBeVisible();
+
+  // Clear any text selection left over from the triple-click — subsequent
+  // clicks on the highlight need to be treated as fresh clicks, not as
+  // selection extensions.
+  await page.evaluate(() => window.getSelection()?.removeAllRanges());
 }
 
 // ---------------------------------------------------------------------------
@@ -88,148 +88,98 @@ async function addCommentViaShortcut(
 // ---------------------------------------------------------------------------
 
 test.describe('Comments — Local Mode', () => {
-  test('should add a comment via Ctrl+Alt+M and highlight text', async ({
+  test('add comment, highlight, popover open & close-button lifecycle', async ({
     localPage: page,
   }) => {
-    await openEditorInProject(page, 'comment-add');
+    await openEditorInProject(page, 'comment-lifecycle');
 
-    await addCommentViaShortcut(page, 'This is a test comment');
+    await test.step('Ctrl+Alt+M adds a local comment with highlight attrs', async () => {
+      await addCommentViaShortcut(page, 'Lifecycle test comment');
 
-    // A comment-highlight span should appear in the editor
-    const highlight = page.locator('.comment-highlight').first();
-    await expect(highlight).toBeVisible();
+      const highlight = page.locator('.comment-highlight').first();
+      await expect(highlight).toBeVisible();
+      await expect(highlight).toHaveAttribute('data-comment-id', /.+/);
+      await expect(highlight).toHaveAttribute(
+        'data-comment-local-only',
+        'true'
+      );
+    });
 
-    // The highlight should carry the data-comment-id attribute
-    await expect(highlight).toHaveAttribute('data-comment-id', /.+/);
+    await test.step('clicking the highlight opens the popover with a close button', async () => {
+      await page.locator('.comment-highlight').first().click();
+      await expect(page.getByTestId('comment-popover')).toBeVisible();
+      await expect(page.getByTestId('comment-close-btn')).toBeVisible();
+    });
 
-    // It should be marked as local-only
-    await expect(highlight).toHaveAttribute('data-comment-local-only', 'true');
+    await test.step('close button dismisses the popover but keeps the highlight', async () => {
+      await page.getByTestId('comment-close-btn').click();
+      await expect(page.getByTestId('comment-popover')).not.toBeVisible();
+      await expect(page.locator('.comment-highlight').first()).toBeVisible();
+    });
   });
 
-  test('should open popover when clicking a comment highlight', async ({
-    localPage: page,
-  }) => {
-    await openEditorInProject(page, 'comment-popover');
-    await addCommentViaShortcut(page, 'Popover test comment');
-
-    // Click the highlighted text to open the popover
-    const highlight = page.locator('.comment-highlight').first();
-    await expect(highlight).toBeVisible();
-    await highlight.click();
-
-    // The popover should appear
-    const popover = page.getByTestId('comment-popover');
-    await expect(popover).toBeVisible();
-
-    // Close btn should be visible
-    await expect(page.getByTestId('comment-close-btn')).toBeVisible();
-  });
-
-  test('should delete a comment via popover', async ({ localPage: page }) => {
-    await openEditorInProject(page, 'comment-delete');
-    await addCommentViaShortcut(page, 'Delete me');
-
-    // Verify highlight exists
-    const highlight = page.locator('.comment-highlight').first();
-    await expect(highlight).toBeVisible();
-
-    // Open popover
-    await highlight.click();
-    await expect(page.getByTestId('comment-popover')).toBeVisible();
-
-    // Click delete
-    await page.getByTestId('comment-delete-btn').click();
-
-    // Popover should close
-    await expect(page.getByTestId('comment-popover')).not.toBeVisible();
-
-    // Highlight should be removed from editor
-    await expect(page.locator('.comment-highlight')).not.toBeVisible();
-  });
-
-  test('should resolve a comment via popover', async ({ localPage: page }) => {
-    await openEditorInProject(page, 'comment-resolve');
-    await addCommentViaShortcut(page, 'Resolve me');
-
-    const highlight = page.locator('.comment-highlight').first();
-    await expect(highlight).toBeVisible();
-
-    // Open popover
-    await highlight.click();
-    await expect(page.getByTestId('comment-popover')).toBeVisible();
-
-    // Click resolve
-    await page.getByTestId('comment-resolve-btn').click();
-
-    // Popover closes after resolve
-    await expect(page.getByTestId('comment-popover')).not.toBeVisible();
-
-    // Mark stays but is now resolved (subtle dashed underline)
-    await expect(
-      page.locator('.comment-highlight--resolved').first()
-    ).toBeVisible();
-  });
-
-  test('should open and close the comment panel', async ({
+  test('comment panel: empty state, listing after add, and close', async ({
     localPage: page,
   }) => {
     await openEditorInProject(page, 'comment-panel');
 
-    // Click the comments toggle button in the toolbar
-    await page.getByTestId('toolbar-comments').click();
+    await test.step('toolbar toggle opens the panel and shows empty state', async () => {
+      await page.getByTestId('toolbar-comments').click();
+      await expect(page.getByTestId('comment-panel')).toBeVisible();
+      await expect(page.getByTestId('comment-panel-empty')).toBeVisible();
+    });
 
-    // Panel should appear
-    const panel = page.getByTestId('comment-panel');
-    await expect(panel).toBeVisible();
+    await test.step('adding a comment makes a thread appear in the panel', async () => {
+      // Close the panel first so it doesn't intercept selection clicks in the editor.
+      await page.getByTestId('comment-panel-close').click();
+      await expect(page.getByTestId('comment-panel')).not.toBeVisible();
 
-    // With no comments, should show empty state
-    await expect(page.getByTestId('comment-panel-empty')).toBeVisible();
+      await addCommentViaShortcut(page, 'Panel test comment');
+      await expect(page.locator('.comment-highlight').first()).toBeVisible();
 
-    // Close the panel
-    await page.getByTestId('comment-panel-close').click();
-    await expect(panel).not.toBeVisible();
+      await page.getByTestId('toolbar-comments').click();
+      await expect(page.getByTestId('comment-panel')).toBeVisible();
+
+      const thread = page.getByTestId('comment-panel-thread').first();
+      await expect(thread).toBeVisible();
+      await expect(thread).toContainText('Panel test comment');
+    });
+
+    await test.step('panel close button dismisses the panel', async () => {
+      await page.getByTestId('comment-panel-close').click();
+      await expect(page.getByTestId('comment-panel')).not.toBeVisible();
+    });
   });
 
-  test('should list comments in the panel after adding one', async ({
-    localPage: page,
-  }) => {
-    await openEditorInProject(page, 'comment-panel-list');
-    await addCommentViaShortcut(page, 'Panel test comment');
-
-    // Verify highlight exists
-    await expect(page.locator('.comment-highlight').first()).toBeVisible();
-
-    // Open the comment panel
-    await page.getByTestId('toolbar-comments').click();
-
-    const panel = page.getByTestId('comment-panel');
-    await expect(panel).toBeVisible();
-
-    // Should show the thread
-    const thread = page.getByTestId('comment-panel-thread').first();
-    await expect(thread).toBeVisible();
-
-    // Thread preview should contain our comment text
-    await expect(thread).toContainText('Panel test comment');
-  });
-
-  test('should close popover with close button', async ({
-    localPage: page,
-  }) => {
-    await openEditorInProject(page, 'comment-close');
-    await addCommentViaShortcut(page, 'Close test comment');
+  test('delete a comment via the popover', async ({ localPage: page }) => {
+    await openEditorInProject(page, 'comment-delete');
+    await addCommentViaShortcut(page, 'Delete me', 0);
 
     const highlight = page.locator('.comment-highlight').first();
+    await expect(highlight).toBeVisible();
     await highlight.click();
 
-    const popover = page.getByTestId('comment-popover');
-    await expect(popover).toBeVisible();
+    await expect(page.getByTestId('comment-popover')).toBeVisible();
+    await page.getByTestId('comment-delete-btn').click();
 
-    // Click the close button
-    await page.getByTestId('comment-close-btn').click();
-    await expect(popover).not.toBeVisible();
+    await expect(page.getByTestId('comment-popover')).not.toBeVisible();
+    await expect(page.locator('.comment-highlight')).toHaveCount(0);
+  });
 
-    // Highlight should still exist (we only closed the popover, not deleted)
-    await expect(page.locator('.comment-highlight').first()).toBeVisible();
+  test('resolve a comment via the popover', async ({ localPage: page }) => {
+    await openEditorInProject(page, 'comment-resolve');
+    await addCommentViaShortcut(page, 'Resolve me', 0);
+
+    const highlight = page.locator('.comment-highlight').first();
+    await expect(highlight).toBeVisible();
+    await highlight.click();
+
+    await expect(page.getByTestId('comment-popover')).toBeVisible();
+    await page.getByTestId('comment-resolve-btn').click();
+
+    await expect(page.getByTestId('comment-popover')).not.toBeVisible();
+    await expect(
+      page.locator('.comment-highlight--resolved').first()
+    ).toBeVisible();
   });
 });

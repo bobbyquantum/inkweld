@@ -1,9 +1,11 @@
 /**
  * Admin Settings Kill Switch Screenshot Tests
  *
- * These tests capture screenshots of the AI kill switch settings
- * for documentation purposes.
+ * Captures screenshots of the AI kill switch settings for documentation.
+ * Consolidated 4 → 2 tests (one per color scheme), each capturing both
+ * the full settings page and the focused kill-switch card via test.step.
  */
+import type { Page } from '@playwright/test';
 import path from 'path';
 
 import { test } from './fixtures';
@@ -14,14 +16,7 @@ const SCREENSHOTS_DIR = path.join(
   '../docs/site/static/img/features'
 );
 
-/**
- * Helper to set up kill switch as ENABLED in the mock API.
- * This overrides the default mock which has kill switch disabled.
- */
-async function enableKillSwitchMock(
-  page: import('@playwright/test').Page
-): Promise<void> {
-  // Intercept config/features endpoint to return kill switch as enabled
+async function enableKillSwitchMock(page: Page): Promise<void> {
   await page.route('**/api/v1/config/features', async route => {
     await route.fulfill({
       status: 200,
@@ -39,7 +34,6 @@ async function enableKillSwitchMock(
     });
   });
 
-  // Also override the admin config GET for AI_KILL_SWITCH
   await page.route('**/api/v1/admin/config/AI_KILL_SWITCH', async route => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
@@ -53,21 +47,12 @@ async function enableKillSwitchMock(
   });
 }
 
-/**
- * Helper to navigate to admin settings page via user menu.
- */
-async function navigateToAdminSettingsViaMenu(
-  page: import('@playwright/test').Page
-): Promise<void> {
-  // Open user menu
+async function navigateToAdminSettingsViaMenu(page: Page): Promise<void> {
   await page.locator('[data-testid="user-menu-button"]').click();
-  // Click admin link (Playwright clicks wait for visibility)
   await page.locator('[data-testid="admin-menu-link"]').click();
-  // Wait for admin page to load
   await page.waitForURL('**/admin/**');
   await page.waitForLoadState('networkidle');
 
-  // Navigate to settings
   const settingsLink = page.locator(
     '[data-testid="admin-nav-settings"], a[href*="/admin/settings"]'
   );
@@ -77,88 +62,78 @@ async function navigateToAdminSettingsViaMenu(
   }
 }
 
+async function applyColorScheme(
+  page: Page,
+  scheme: 'light' | 'dark'
+): Promise<void> {
+  await page.evaluate(mode => {
+    const html = document.documentElement;
+    if (mode === 'dark') {
+      html.classList.remove('light-mode');
+      html.classList.add('dark-mode');
+    } else {
+      html.classList.remove('dark-mode');
+      html.classList.add('light-mode');
+    }
+  }, scheme);
+}
+
 test.describe('Admin Kill Switch Screenshots', () => {
   test.beforeEach(async ({ adminPage }) => {
-    // Set up kill switch as enabled BEFORE navigating
     await enableKillSwitchMock(adminPage);
-
-    // Navigate via user menu (more reliable than direct URL)
     await navigateToAdminSettingsViaMenu(adminPage);
 
-    // Wait for the page to load
     await adminPage.waitForSelector(
       '.settings-container, .loading-container',
       {}
     );
 
-    // Wait for loading to complete
     const loadingSpinner = adminPage.locator('mat-spinner');
     if (await loadingSpinner.isVisible()) {
       await loadingSpinner.waitFor({ state: 'hidden' });
     }
   });
 
-  test('Admin settings page with kill switch - light mode', async ({
-    adminPage,
-  }) => {
-    // Ensure light mode
-    await adminPage.evaluate(() => {
-      document.documentElement.classList.remove('dark-mode');
-      document.documentElement.classList.add('light-mode');
-    });
+  test('Admin kill switch screenshots — light mode', async ({ adminPage }) => {
+    await applyColorScheme(adminPage, 'light');
 
-    // Take screenshot of the full page
-    await adminPage.screenshot({
-      path: path.join(SCREENSHOTS_DIR, 'admin-kill-switch-settings-light.png'),
-      fullPage: false,
-    });
-  });
-
-  test('Admin settings page with kill switch - dark mode', async ({
-    adminPage,
-  }) => {
-    // Set dark mode
-    await adminPage.evaluate(() => {
-      document.documentElement.classList.remove('light-mode');
-      document.documentElement.classList.add('dark-mode');
-    });
-
-    // Take screenshot of the full page
-    await adminPage.screenshot({
-      path: path.join(SCREENSHOTS_DIR, 'admin-kill-switch-settings-dark.png'),
-      fullPage: false,
-    });
-  });
-
-  test('Kill switch card focused - light mode', async ({ adminPage }) => {
-    // Ensure light mode
-    await adminPage.evaluate(() => {
-      document.documentElement.classList.remove('dark-mode');
-      document.documentElement.classList.add('light-mode');
-    });
-
-    // Find and screenshot just the AI kill switch card
-    const killSwitchCard = adminPage.locator('.kill-switch-card');
-    if (await killSwitchCard.isVisible()) {
-      await killSwitchCard.screenshot({
-        path: path.join(SCREENSHOTS_DIR, 'admin-kill-switch-card-light.png'),
+    await test.step('full settings page', async () => {
+      await adminPage.screenshot({
+        path: path.join(
+          SCREENSHOTS_DIR,
+          'admin-kill-switch-settings-light.png'
+        ),
+        fullPage: false,
       });
-    }
-  });
-
-  test('Kill switch card focused - dark mode', async ({ adminPage }) => {
-    // Set dark mode
-    await adminPage.evaluate(() => {
-      document.documentElement.classList.remove('light-mode');
-      document.documentElement.classList.add('dark-mode');
     });
 
-    // Find and screenshot just the AI kill switch card
-    const killSwitchCard = adminPage.locator('.kill-switch-card');
-    if (await killSwitchCard.isVisible()) {
-      await killSwitchCard.screenshot({
-        path: path.join(SCREENSHOTS_DIR, 'admin-kill-switch-card-dark.png'),
+    await test.step('focused kill-switch card', async () => {
+      const killSwitchCard = adminPage.locator('.kill-switch-card');
+      if (await killSwitchCard.isVisible()) {
+        await killSwitchCard.screenshot({
+          path: path.join(SCREENSHOTS_DIR, 'admin-kill-switch-card-light.png'),
+        });
+      }
+    });
+  });
+
+  test('Admin kill switch screenshots — dark mode', async ({ adminPage }) => {
+    await applyColorScheme(adminPage, 'dark');
+
+    await test.step('full settings page', async () => {
+      await adminPage.screenshot({
+        path: path.join(SCREENSHOTS_DIR, 'admin-kill-switch-settings-dark.png'),
+        fullPage: false,
       });
-    }
+    });
+
+    await test.step('focused kill-switch card', async () => {
+      const killSwitchCard = adminPage.locator('.kill-switch-card');
+      if (await killSwitchCard.isVisible()) {
+        await killSwitchCard.screenshot({
+          path: path.join(SCREENSHOTS_DIR, 'admin-kill-switch-card-dark.png'),
+        });
+      }
+    });
   });
 });

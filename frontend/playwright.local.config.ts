@@ -61,7 +61,7 @@ export default (async () => {
       baseURL: process.env['PLAYWRIGHT_TEST_BASE_URL'] ?? frontendUrl,
 
       /* Action timeout for slow CI environments */
-      actionTimeout: 15000,
+      actionTimeout: 30000,
       navigationTimeout: 30000,
 
       /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */

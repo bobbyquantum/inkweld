@@ -28,17 +28,21 @@ export default defineConfig({
   retries: 0, // No retries for screenshot generation
   reporter: [['list'], ['html', { open: 'never' }]],
 
+  /* Per-test timeout (covers heavier flows that build a project + capture
+   * multiple screenshots in one consolidated test). */
+  timeout: 120000,
+
   /* Expect timeout for assertions */
   expect: {
-    timeout: 10000,
+    timeout: 30000,
   },
 
   use: {
     baseURL: process.env['PLAYWRIGHT_TEST_BASE_URL'] ?? FRONTEND_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    actionTimeout: 10000,
-    navigationTimeout: 15000,
+    actionTimeout: 30000,
+    navigationTimeout: 30000,
   },
 
   projects: [

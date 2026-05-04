@@ -1,320 +1,243 @@
-import { createProjectWithTwoSteps } from '../common/test-helpers';
-import { expect, test } from './fixtures';
-
 /**
  * Worldbuilding Template Tests - Local Mode
  *
  * These tests verify worldbuilding functionality in pure local mode.
  * Any API requests will cause the test to fail, ensuring the feature
  * works correctly without a server connection.
+ *
+ * Consolidated from 7 individual tests into 3 grouped tests using
+ * `test.step()`. Test B reuses a single Settings → Templates tab visit
+ * to exercise create/clone/edit/delete operations.
  */
+import { type Page } from '@playwright/test';
+
+import { createProjectWithTwoSteps } from '../common/test-helpers';
+import { expect, test } from './fixtures';
+
+/**
+ * Open the project, then create one Character element so that the
+ * worldbuilding template library is initialized for the project.
+ */
+async function openProjectAndInitTemplates(
+  page: Page,
+  characterName = 'Init Character'
+): Promise<void> {
+  await page.getByTestId('project-card').first().click();
+  await expect(page).toHaveURL(/\/.+\/.+/);
+
+  await page.getByTestId('create-new-element').click();
+  await page.getByTestId('element-type-character-v1').click();
+  await page.getByTestId('element-name-input').fill(characterName);
+  await page.getByTestId('create-element-button').click();
+  await expect(page.getByTestId(`element-${characterName}`)).toBeVisible();
+}
+
+/**
+ * Navigate from anywhere in the project shell to Settings → Element Templates.
+ */
+async function gotoTemplatesTab(page: Page): Promise<void> {
+  const settingsButton = page.getByTestId('sidebar-settings-button');
+  await expect(settingsButton).toBeVisible();
+  await settingsButton.click();
+  await page.waitForURL(/\/settings$/);
+  await expect(page.getByTestId('settings-tab-content')).toBeVisible();
+  await page.getByTestId('nav-templates').click();
+  await expect(page.getByTestId('template-card').first()).toBeVisible();
+}
 
 test.describe('Worldbuilding Templates', () => {
-  test('should create a new template from scratch via Create Template button', async ({
+  test('worldbuilding elements initialize with their expected schemas', async ({
     localPageWithProject: page,
   }) => {
-    // Navigate to project
     await page.getByTestId('project-card').first().click();
-    await expect(page).toHaveURL(/\/.+\/.+/);
-
-    // Create a character element to initialize templates
-    await page.getByTestId('create-new-element').click();
-    await page.getByTestId('element-type-character-v1').click();
-    await page.getByTestId('element-name-input').fill('Test Character');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.getByTestId('element-Test Character')).toBeVisible();
-
-    // Navigate to Settings > Element Templates
-    const settingsButton = page.getByTestId('sidebar-settings-button');
-    await expect(settingsButton).toBeVisible();
-    await settingsButton.click();
-    await page.waitForURL(/\/settings$/);
-    await expect(page.getByTestId('settings-tab-content')).toBeVisible();
-    await page.getByTestId('nav-templates').click();
-    await expect(page.getByTestId('template-card').first()).toBeVisible();
-
-    // Click the Create Template button
-    await page.getByTestId('create-template-button').click();
-
-    // Wait for inline template editor to appear
-    await expect(page.getByTestId('template-editor-page')).toBeVisible();
-
-    // Fill in template details using data-testid attributes
-    const nameInput = page.getByTestId('template-name-input');
-    await nameInput.clear();
-    await nameInput.fill('Custom Event');
-
-    // Icon is a mat-select, so we need to click it and select an option
-    // Use 'star' which is one of the available icons
-    const iconSelect = page.getByTestId('template-icon-input');
-    await iconSelect.click();
-    await page.getByRole('option', { name: /star/ }).click();
-
-    // Fill in description
-    const descriptionInput = page.getByTestId('template-description-input');
-    await descriptionInput.fill('Template for story events');
-
-    // Save the template
-    await page.getByTestId('save-template-button').click();
-
-    // Wait for inline editor to close (returns to list view)
-    await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
-
-    // Verify the new template appears in the list
-    await expect(
-      page.getByTestId('template-card').filter({ hasText: 'Custom Event' })
-    ).toBeVisible();
-  });
-
-  test('should create, clone and delete custom templates from Templates tab', async ({
-    localPageWithProject: page,
-  }) => {
-    // Navigate to project (fixture has already waited for projects to load and cards to be visible)
-    await page.getByTestId('project-card').first().click();
-    await expect(page).toHaveURL(/\/.+\/.+/);
-
-    // Create a character worldbuilding element to initialize templates
-    await page.getByTestId('create-new-element').click();
-    await page.getByTestId('element-type-character-v1').click();
-    await page.getByTestId('element-name-input').fill('Test Character');
-    await page.getByTestId('create-element-button').click();
-
-    // Verify character element was created
-    await expect(page.getByTestId('element-Test Character')).toBeVisible();
-
-    // Navigate to Settings via sidebar button (preserves SPA state unlike page.goto)
-    const settingsButton = page.getByTestId('sidebar-settings-button');
-    await expect(settingsButton).toBeVisible();
-    await settingsButton.click();
-    await page.waitForURL(/\/settings$/);
-
-    // Wait for settings content to load
-    await expect(page.getByTestId('settings-tab-content')).toBeVisible();
-
-    // Click the Element Templates inner tab
-    await page.getByTestId('nav-templates').click();
-
-    // Wait for templates to load (use specific data-testid and first() to avoid strict mode violation)
-    await expect(page.getByTestId('template-card').first()).toBeVisible();
-
-    // Find a template card and open its menu
-    const templateCards = page
-      .getByTestId('template-card')
-      .filter({ hasText: 'Character' });
-    await templateCards.getByTestId('clone-template-button').first().click();
-
-    // Fill in the rename dialog (clone uses a simple rename dialog)
-    await page.getByLabel(/name/i).fill('Hero Template');
-    await page.getByRole('button', { name: 'Rename' }).click();
-
-    // Verify new template was cloned (scope to templates-list to avoid snackbar text collision)
-    await expect(
-      page.getByTestId('templates-list').getByText('Hero Template')
-    ).toBeVisible();
-
-    // Test deleting the custom template
-    const heroCard = page
-      .getByTestId('template-card')
-      .filter({ hasText: 'Hero Template' });
-    await heroCard.getByTestId('delete-template-button').click();
-    await page.getByRole('button', { name: 'Delete' }).click();
-
-    // Wait for the dialog to disappear
-    await expect(
-      page.getByRole('button', { name: 'Delete' })
-    ).not.toBeVisible();
-
-    // Verify template was deleted (check specifically for the card, not general text)
-    await expect(
-      page.getByTestId('template-card').filter({ hasText: 'Hero Template' })
-    ).not.toBeVisible();
-  });
-
-  test('should initialize worldbuilding elements with correct schemas', async ({
-    localPageWithProject: page,
-  }) => {
-    // Navigate to project (fixture has already waited for projects to load and cards to be visible)
-    await page.getByTestId('project-card').first().click();
-
-    // Wait for project to fully load
     await page.waitForLoadState('domcontentloaded');
 
-    // Create different types of worldbuilding elements
     const elementTypes = [
-      {
-        type: 'character-v1',
-        name: 'Test Character',
-        expectedTabKey: 'basic',
-      },
+      { type: 'character-v1', name: 'Test Character', expectedTabKey: 'basic' },
       { type: 'location-v1', name: 'Test Location', expectedTabKey: 'basic' },
       { type: 'wb-item-v1', name: 'Test Item', expectedTabKey: 'basic' },
     ];
 
     for (const element of elementTypes) {
-      // Check if there's already a dialog open
-      const existingDialogs = await page
-        .locator('mat-dialog-container')
-        .count();
+      await test.step(`creates ${element.type} and shows ${element.expectedTabKey} schema tab`, async () => {
+        // If a previous step left a dialog open, close it first.
+        const existingDialogs = await page
+          .locator('mat-dialog-container')
+          .count();
+        if (existingDialogs > 0) {
+          await page.keyboard.press('Escape');
+          await expect(page.locator('mat-dialog-container')).not.toBeVisible();
+        }
 
-      if (existingDialogs > 0) {
-        await page.keyboard.press('Escape');
-        await expect(page.locator('mat-dialog-container')).not.toBeVisible();
-      }
+        const addButton = page.getByTestId('create-new-element');
+        await expect(addButton).toBeVisible();
+        await addButton.click();
 
-      // Ensure create-new-element is visible and clickable
-      const addButton = page.getByTestId('create-new-element');
-      await expect(addButton).toBeVisible();
+        // Wait for dialog to mount (search field is the first stable signal).
+        await expect(
+          page.locator('mat-form-field input[matInput]')
+        ).toBeVisible();
 
-      // Create element
-      await addButton.click();
+        // Element type cards are loaded asynchronously from the schema library.
+        try {
+          await page.waitForSelector(
+            `[data-testid="element-type-${element.type}"]`
+          );
+        } catch {
+          const dialogContent = await page
+            .locator('mat-dialog-content')
+            .textContent();
+          throw new Error(
+            `Timeout waiting for element-type-${element.type}. Dialog content: ${dialogContent}`
+          );
+        }
 
-      // Wait for dialog content to appear (mat-dialog-title or the search field)
-      await expect(
-        page.locator('mat-form-field input[matInput]')
-      ).toBeVisible();
+        await page.getByTestId(`element-type-${element.type}`).click();
+        await page.getByTestId('element-name-input').fill(element.name);
+        await page.getByTestId('create-element-button').click();
 
-      // Wait for worldbuilding options to load (async from schema library)
-      // Give more time since schemas are loaded asynchronously
-      try {
-        await page.waitForSelector(
-          `[data-testid="element-type-${element.type}"]`
+        await expect(page.locator('mat-dialog-container')).toBeHidden();
+
+        await page.getByTestId(`element-${element.name}`).click();
+        await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
+
+        const sidenavTab = page.getByTestId(`nav-${element.expectedTabKey}`);
+        const accordionTab = page.getByTestId(
+          `accordion-${element.expectedTabKey}`
         );
-      } catch {
-        // Debug: capture current state of dialog
-        const dialogContent = await page
-          .locator('mat-dialog-content')
-          .textContent();
-        throw new Error(
-          `Timeout waiting for element-type-${element.type}. Dialog content: ${dialogContent}`
-        );
-      }
+        await expect(sidenavTab.or(accordionTab)).toBeVisible();
 
-      await page.getByTestId(`element-type-${element.type}`).click();
-      await page.getByTestId('element-name-input').fill(element.name);
-      await page.getByTestId('create-element-button').click();
-
-      // Wait for dialog to fully close before continuing
-      await expect(page.locator('mat-dialog-container')).toBeHidden();
-
-      // Open element and verify schema initialization
-      await page.getByTestId(`element-${element.name}`).click();
-      await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
-
-      // Verify the expected schema tab is present in the sidenav or accordion
-      const sidenavTab = page.getByTestId(`nav-${element.expectedTabKey}`);
-      const accordionTab = page.getByTestId(
-        `accordion-${element.expectedTabKey}`
-      );
-      await expect(sidenavTab.or(accordionTab)).toBeVisible();
-
-      // Go back to project view
-      await page.getByTestId('toolbar-home-button').click();
-
-      // Wait for navigation to complete
-      await page.waitForLoadState('domcontentloaded');
+        await page.getByTestId('toolbar-home-button').click();
+        await page.waitForLoadState('domcontentloaded');
+      });
     }
   });
 
-  test('should validate template editor form inputs', async ({
+  test('custom templates: create, clone, edit (validation + field types), delete, use', async ({
     localPageWithProject: page,
   }) => {
-    // Navigate to project (fixture has already waited for projects to load and cards to be visible)
-    await page.getByTestId('project-card').first().click();
-    await expect(page).toHaveURL(/\/.+\/.+/);
+    await openProjectAndInitTemplates(page, 'Init Character');
+    await gotoTemplatesTab(page);
 
-    // Create a character first to ensure templates are initialized
-    await page.getByTestId('create-new-element').click();
-    await page.getByTestId('element-type-character-v1').click();
-    await page.getByTestId('element-name-input').fill('Validation Test');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.getByTestId('element-Validation Test')).toBeVisible();
+    await test.step('Create Template button creates a brand-new template', async () => {
+      await page.getByTestId('create-template-button').click();
+      await expect(page.getByTestId('template-editor-page')).toBeVisible();
 
-    // Navigate to Settings via sidebar button (preserves SPA state unlike page.goto)
-    const settingsButton = page.getByTestId('sidebar-settings-button');
-    await expect(settingsButton).toBeVisible();
-    await settingsButton.click();
-    await page.waitForURL(/\/settings$/);
+      const nameInput = page.getByTestId('template-name-input');
+      await nameInput.clear();
+      await nameInput.fill('Custom Event');
 
-    // Wait for settings content to load
-    await expect(page.getByTestId('settings-tab-content')).toBeVisible();
+      // Icon is a mat-select; pick 'star' from the available icons.
+      await page.getByTestId('template-icon-input').click();
+      await page.getByRole('option', { name: /star/ }).click();
 
-    // Click the Element Templates inner tab
-    await page.getByTestId('nav-templates').click();
-    await expect(page.getByTestId('template-card').first()).toBeVisible();
+      await page
+        .getByTestId('template-description-input')
+        .fill('Template for story events');
 
-    // Clone Character template
-    const templateCards = page
-      .getByTestId('template-card')
-      .filter({ hasText: 'Character' });
-    await templateCards.getByTestId('clone-template-button').first().click();
-    await page.getByLabel(/name/i).fill('Test Template');
-    await page.getByRole('button', { name: 'Rename' }).click();
-    await expect(
-      page.getByRole('button', { name: 'Rename' })
-    ).not.toBeVisible();
+      await page.getByTestId('save-template-button').click();
+      await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
+      await expect(
+        page.getByTestId('template-card').filter({ hasText: 'Custom Event' })
+      ).toBeVisible();
+    });
 
-    // Now edit the custom template
-    await page
-      .getByTestId('template-card')
-      .filter({ hasText: 'Test Template' })
-      .getByTestId('edit-template-button')
-      .click();
-    await expect(page.getByTestId('template-editor-page')).toBeVisible();
+    await test.step('cloning Character produces a new template card', async () => {
+      const characterCards = page
+        .getByTestId('template-card')
+        .filter({ hasText: 'Character' });
+      await characterCards.getByTestId('clone-template-button').first().click();
 
-    // Clear the required template name field by selecting all and deleting
-    // This is more reliable than .clear() for Angular reactive forms
-    const nameInput = page.getByTestId('template-name-input');
-    await nameInput.click();
-    await nameInput.fill('');
+      await page.getByLabel(/name/i).fill('Hero Template');
+      await page.getByRole('button', { name: 'Rename' }).click();
 
-    // Tab away to trigger validation and blur event
-    await page.keyboard.press('Tab');
+      // Scope to templates-list to avoid colliding with snackbar text.
+      await expect(
+        page.getByTestId('templates-list').getByText('Hero Template')
+      ).toBeVisible();
+    });
 
-    // Verify the save button is disabled due to validation (use global baseline timeout)
-    await expect(page.getByTestId('save-template-button')).toBeDisabled();
+    await test.step('editing Hero Template enforces a non-empty name', async () => {
+      await page
+        .getByTestId('template-card')
+        .filter({ hasText: 'Hero Template' })
+        .getByTestId('edit-template-button')
+        .click();
+      await expect(page.getByTestId('template-editor-page')).toBeVisible();
 
-    // Fix validation error
-    await page.getByTestId('template-name-input').fill('Valid Name');
+      const nameInput = page.getByTestId('template-name-input');
+      await nameInput.click();
+      await nameInput.fill('');
+      await page.keyboard.press('Tab');
+      await expect(page.getByTestId('save-template-button')).toBeDisabled();
 
-    // Now button should be enabled and save should work
-    await expect(page.getByTestId('save-template-button')).toBeEnabled();
-    await page.getByTestId('save-template-button').click();
-    await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
+      // Restore a valid name so we can proceed to the next step.
+      await nameInput.fill('Hero Template');
+      await expect(page.getByTestId('save-template-button')).toBeEnabled();
+    });
+
+    await test.step('Date is exposed as a field type in the template editor', async () => {
+      // We're still on the Hero Template edit page from the previous step.
+      await page.getByTestId('add-field-button').click();
+      await page.getByTestId('field-expansion-header').last().click();
+      await page.getByTestId('field-type-select').last().click();
+      await expect(page.getByTestId('field-type-option-date')).toBeVisible();
+
+      // Close the select dropdown so we can save without leaving an open overlay.
+      await page.keyboard.press('Escape');
+      await page.getByTestId('save-template-button').click();
+      await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
+    });
+
+    await test.step('custom template can be used to create an element with the right icon', async () => {
+      await page.getByTestId('toolbar-home-button').click();
+      await expect(page.getByTestId('create-new-element')).toBeVisible();
+      await page.getByTestId('create-new-element').click();
+
+      const customHeroOption = page
+        .locator('.type-card')
+        .filter({ hasText: 'Hero Template' });
+      await expect(customHeroOption).toBeVisible();
+
+      const testId = await customHeroOption.getAttribute('data-testid');
+      expect(testId).toMatch(/^element-type-custom-\d+$/);
+
+      await customHeroOption.click();
+      await page.getByTestId('element-name-input').fill('My Hero');
+      await page.getByTestId('create-element-button').click();
+
+      const heroElement = page.getByTestId('element-My Hero');
+      await expect(heroElement).toBeVisible();
+      // Cloned from Character, so the icon defaults to 'person'.
+      await expect(
+        heroElement.locator('mat-icon', { hasText: 'person' })
+      ).toBeVisible();
+
+      await heroElement.click();
+      const sidenavTab = page.getByTestId('nav-basic');
+      const accordionTab = page.getByTestId('accordion-basic');
+      await expect(sidenavTab.or(accordionTab)).toBeVisible();
+    });
+
+    await test.step('deleting Hero Template removes it from the list', async () => {
+      await gotoTemplatesTab(page);
+
+      const heroCard = page
+        .getByTestId('template-card')
+        .filter({ hasText: 'Hero Template' });
+      await heroCard.getByTestId('delete-template-button').click();
+      await page.getByRole('button', { name: 'Delete' }).click();
+      await expect(
+        page.getByRole('button', { name: 'Delete' })
+      ).not.toBeVisible();
+
+      await expect(
+        page.getByTestId('template-card').filter({ hasText: 'Hero Template' })
+      ).not.toBeVisible();
+    });
   });
 
-  test('should expose Date as a template editor field type', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await expect(page).toHaveURL(/\/.+\/.+/);
-
-    await page.getByTestId('create-new-element').click();
-    await page.getByTestId('element-type-character-v1').click();
-    await page.getByTestId('element-name-input').fill('Date Type Init');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.getByTestId('element-Date Type Init')).toBeVisible();
-
-    await page.getByTestId('sidebar-settings-button').click();
-    await page.waitForURL(/\/settings$/);
-    await expect(page.getByTestId('settings-tab-content')).toBeVisible();
-    await page.getByTestId('nav-templates').click();
-    await expect(page.getByTestId('template-card').first()).toBeVisible();
-
-    await page
-      .getByTestId('template-card')
-      .filter({ hasText: 'Character' })
-      .getByTestId('edit-template-button')
-      .first()
-      .click();
-    await expect(page.getByTestId('template-editor-page')).toBeVisible();
-
-    await page.getByTestId('add-field-button').click();
-    await page.getByTestId('field-expansion-header').last().click();
-    await page.getByTestId('field-type-select').last().click();
-    await expect(page.getByTestId('field-type-option-date')).toBeVisible();
-  });
-
-  test('should show demo character date of birth values from the template', async ({
+  test('demo template populates character date-of-birth field correctly', async ({
     localPage: page,
   }) => {
     await createProjectWithTwoSteps(
@@ -345,85 +268,5 @@ test.describe('Worldbuilding Templates', () => {
     const dateField = page.getByTestId('field-background.dateOfBirth');
     await expect(dateField).toBeVisible();
     await expect(dateField.locator('input')).toHaveValue('1198-5-12');
-  });
-
-  test('should handle icon display for custom templates', async ({
-    localPageWithProject: page,
-  }) => {
-    // Navigate to project (fixture has already waited for projects to load and cards to be visible)
-    await page.getByTestId('project-card').first().click();
-    await expect(page).toHaveURL(/\/.+\/.+/);
-
-    // Create a character first to ensure templates are initialized
-    await page.getByTestId('create-new-element').click();
-    await page.getByTestId('element-type-character-v1').click();
-    await page.getByTestId('element-name-input').fill('Init Character');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.getByTestId('element-Init Character')).toBeVisible();
-
-    // Navigate to Settings via sidebar button (preserves SPA state unlike page.goto)
-    const settingsButton = page.getByTestId('sidebar-settings-button');
-    await expect(settingsButton).toBeVisible();
-    await settingsButton.click();
-    await page.waitForURL(/\/settings$/);
-
-    // Wait for settings content to load
-    await expect(page.getByTestId('settings-tab-content')).toBeVisible();
-
-    // Click the Element Templates inner tab
-    await page.getByTestId('nav-templates').click();
-    await expect(page.getByTestId('template-card').first()).toBeVisible();
-
-    // Find Character template and clone it
-    const templateCards = page
-      .getByTestId('template-card')
-      .filter({ hasText: 'Character' });
-    await templateCards.getByTestId('clone-template-button').first().click();
-
-    // Fill in the rename dialog
-    await page.getByLabel(/name/i).fill('Custom Hero');
-
-    await page.getByRole('button', { name: 'Rename' }).click();
-
-    // Wait for template to be created (dialog closes)
-    await expect(
-      page.getByRole('button', { name: 'Rename' })
-    ).not.toBeVisible();
-
-    // Go back to project home to create element
-    await page.getByTestId('toolbar-home-button').click();
-    await expect(page.getByTestId('create-new-element')).toBeVisible();
-
-    // Create element using custom template
-    await page.getByTestId('create-new-element').click();
-
-    // Find the custom template option by its label "Custom Hero"
-    const customHeroOption = page
-      .locator('.type-card')
-      .filter({ hasText: 'Custom Hero' });
-
-    // Wait for the custom template option to appear (async from schema library)
-    await expect(customHeroOption).toBeVisible();
-
-    // Get the data-testid attribute to verify it has the expected format
-    const testId = await customHeroOption.getAttribute('data-testid');
-    expect(testId).toMatch(/^element-type-custom-\d+$/);
-
-    await customHeroOption.click();
-    await page.getByTestId('element-name-input').fill('My Hero');
-    await page.getByTestId('create-element-button').click();
-
-    // Verify icon is displayed in project tree (cloned from Character, so should be 'person' icon)
-    const heroElement = page.getByTestId('element-My Hero');
-    await expect(heroElement).toBeVisible();
-    await expect(
-      heroElement.locator('mat-icon', { hasText: 'person' })
-    ).toBeVisible();
-
-    // Verify schema loaded correctly by checking first tab is visible
-    await heroElement.click();
-    const sidenavTab = page.getByTestId('nav-basic');
-    const accordionTab = page.getByTestId('accordion-basic');
-    await expect(sidenavTab.or(accordionTab)).toBeVisible();
   });
 });

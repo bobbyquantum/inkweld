@@ -1,13 +1,10 @@
 /**
  * Project Rename Feature Screenshot Tests
  *
- * Captures comprehensive screenshots demonstrating the project rename feature:
- * - Rename project card in danger zone
- * - Rename form with slug input
- * - Rename confirmation state
- *
- * Screenshots are cropped to show only the relevant UI elements with padding
- * for cleaner documentation images.
+ * Captures screenshots demonstrating the project rename feature.
+ * Consolidated 9 → 2 tests (one per color scheme); each captures the
+ * collapsed rename card, expanded form, filled form, danger zone
+ * overview, and delete card via test.step.
  */
 
 import { type Page } from '@playwright/test';
@@ -21,6 +18,106 @@ import {
   getScreenshotsDir,
 } from './screenshot-helpers';
 
+async function setupProjectAndSettings(
+  page: Page,
+  projectSlug: string,
+  projectTitle: string
+) {
+  await page.goto('/');
+
+  await page.waitForSelector('.empty-state', { state: 'visible' });
+
+  await createProjectWithTwoSteps(page, projectTitle, projectSlug);
+  await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
+
+  // Navigate to Settings tab
+  await page.goto(`/demouser/${projectSlug}/settings`);
+  await page.waitForSelector('[data-testid="settings-tab-content"]', {
+    state: 'visible',
+  });
+
+  // Click on the Danger Zone section in sidenav
+  await page.getByTestId('nav-danger').click();
+
+  // Wait for danger zone content
+  await page.waitForSelector('[data-testid="rename-project-card"]', {
+    state: 'visible',
+  });
+  await page.waitForTimeout(500);
+}
+
+async function captureAllRenameScreenshots(
+  page: Page,
+  screenshotsDir: string,
+  suffix: 'light' | 'dark'
+): Promise<void> {
+  const renameCard = page.locator('[data-testid="rename-project-card"]');
+  const deleteCard = page.locator('[data-testid="delete-project-card"]');
+
+  await test.step('rename card collapsed', async () => {
+    await captureElementScreenshot(
+      page,
+      [renameCard],
+      join(screenshotsDir, `project-rename-card-${suffix}.png`),
+      16
+    );
+  });
+
+  await test.step('rename form expanded (empty)', async () => {
+    await page.click('[data-testid="rename-project-button"]');
+    await page.waitForSelector('[data-testid="new-slug-input"]', {
+      state: 'visible',
+    });
+    await page.waitForTimeout(300);
+
+    await captureElementScreenshot(
+      page,
+      [renameCard],
+      join(screenshotsDir, `project-rename-form-${suffix}.png`),
+      16
+    );
+  });
+
+  // Light mode also captured a "filled" variant.
+  if (suffix === 'light') {
+    await test.step('rename form with new slug entered', async () => {
+      await page.fill('[data-testid="new-slug-input"]', 'my-new-project-name');
+      await page.waitForTimeout(300);
+
+      await captureElementScreenshot(
+        page,
+        [renameCard],
+        join(screenshotsDir, `project-rename-filled-${suffix}.png`),
+        16
+      );
+    });
+  }
+
+  await test.step('danger zone overview', async () => {
+    await deleteCard.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(200);
+
+    await captureElementScreenshot(
+      page,
+      [renameCard, deleteCard],
+      join(screenshotsDir, `danger-zone-overview-${suffix}.png`),
+      16
+    );
+  });
+
+  await test.step('delete card', async () => {
+    await deleteCard.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(200);
+
+    await captureElementScreenshot(
+      page,
+      [deleteCard],
+      join(screenshotsDir, `project-delete-card-${suffix}.png`),
+      16
+    );
+  });
+}
+
 test.describe('Project Rename Feature Screenshots', () => {
   const screenshotsDir = getScreenshotsDir();
 
@@ -28,262 +125,19 @@ test.describe('Project Rename Feature Screenshots', () => {
     await ensureDirectory(screenshotsDir);
   });
 
-  /**
-   * Helper to create a project and navigate to settings danger zone
-   */
-  async function setupProjectAndSettings(
-    page: Page,
-    projectSlug: string,
-    projectTitle: string
-  ) {
-    await page.goto('/');
-
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    await createProjectWithTwoSteps(page, projectTitle, projectSlug);
-    await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
-
-    // Navigate to Settings tab
-    await page.goto(`/demouser/${projectSlug}/settings`);
-    await page.waitForSelector('[data-testid="settings-tab-content"]', {
-      state: 'visible',
-    });
-
-    // Click on the Danger Zone section in sidenav
-    await page.getByTestId('nav-danger').click();
-
-    // Wait for danger zone content
-    await page.waitForSelector('[data-testid="rename-project-card"]', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(500);
-  }
-
-  test.describe('Light Mode Screenshots', () => {
-    test('rename project card - collapsed state', async ({
-      offlinePage: page,
-    }) => {
-      await setupProjectAndSettings(
-        page,
-        'rename-demo-light',
-        'Rename Demo Project'
-      );
-
-      // Capture the rename card in its initial collapsed state
-      const renameCard = page.locator('[data-testid="rename-project-card"]');
-      await captureElementScreenshot(
-        page,
-        [renameCard],
-        join(screenshotsDir, 'project-rename-card-light.png'),
-        16
-      );
-    });
-
-    test('rename project form - expanded state', async ({
-      offlinePage: page,
-    }) => {
-      await setupProjectAndSettings(
-        page,
-        'rename-form-light',
-        'Rename Form Demo'
-      );
-
-      // Click the rename button to show the form
-      await page.click('[data-testid="rename-project-button"]');
-      await page.waitForSelector('[data-testid="new-slug-input"]', {
-        state: 'visible',
-      });
-      await page.waitForTimeout(300);
-
-      // Capture the expanded form
-      const renameCard = page.locator('[data-testid="rename-project-card"]');
-      await captureElementScreenshot(
-        page,
-        [renameCard],
-        join(screenshotsDir, 'project-rename-form-light.png'),
-        16
-      );
-    });
-
-    test('rename project form - with new slug entered', async ({
-      offlinePage: page,
-    }) => {
-      await setupProjectAndSettings(
-        page,
-        'rename-filled-light',
-        'Rename Filled Demo'
-      );
-
-      // Click the rename button to show the form
-      await page.click('[data-testid="rename-project-button"]');
-      await page.waitForSelector('[data-testid="new-slug-input"]', {
-        state: 'visible',
-      });
-
-      // Fill in a new slug
-      await page.fill('[data-testid="new-slug-input"]', 'my-new-project-name');
-      await page.waitForTimeout(300);
-
-      // Capture the form with a valid slug entered
-      const renameCard = page.locator('[data-testid="rename-project-card"]');
-      await captureElementScreenshot(
-        page,
-        [renameCard],
-        join(screenshotsDir, 'project-rename-filled-light.png'),
-        16
-      );
-    });
-
-    test('danger zone overview - with rename and delete cards', async ({
-      offlinePage: page,
-    }) => {
-      await setupProjectAndSettings(
-        page,
-        'danger-zone-light',
-        'Danger Zone Demo'
-      );
-
-      // Capture both danger cards together
-      const renameCard = page.locator('[data-testid="rename-project-card"]');
-      const deleteCard = page.locator('[data-testid="delete-project-card"]');
-
-      // Scroll the delete card into view to ensure both cards are visible
-      await deleteCard.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(200);
-
-      await captureElementScreenshot(
-        page,
-        [renameCard, deleteCard],
-        join(screenshotsDir, 'danger-zone-overview-light.png'),
-        16
-      );
-    });
-
-    test('delete project card', async ({ offlinePage: page }) => {
-      await setupProjectAndSettings(
-        page,
-        'delete-card-light',
-        'Delete Card Demo'
-      );
-
-      // Capture just the delete card
-      const deleteCard = page.locator('[data-testid="delete-project-card"]');
-      await deleteCard.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(200);
-
-      await captureElementScreenshot(
-        page,
-        [deleteCard],
-        join(screenshotsDir, 'project-delete-card-light.png'),
-        16
-      );
-    });
+  test('project rename screenshots — light mode', async ({
+    offlinePage: page,
+  }) => {
+    await setupProjectAndSettings(page, 'rename-light', 'Rename Demo');
+    await captureAllRenameScreenshots(page, screenshotsDir, 'light');
   });
 
-  test.describe('Dark Mode Screenshots', () => {
-    test('rename project card - dark mode', async ({ offlinePage: page }) => {
-      await setupProjectAndSettings(
-        page,
-        'rename-demo-dark',
-        'Rename Demo Dark'
-      );
-
-      // Toggle dark mode
-      await page.emulateMedia({ colorScheme: 'dark' });
-      await page.waitForTimeout(300);
-
-      // Capture the rename card in dark mode
-      const renameCard = page.locator('[data-testid="rename-project-card"]');
-      await captureElementScreenshot(
-        page,
-        [renameCard],
-        join(screenshotsDir, 'project-rename-card-dark.png'),
-        16
-      );
-    });
-
-    test('rename project form - dark mode', async ({ offlinePage: page }) => {
-      await setupProjectAndSettings(
-        page,
-        'rename-form-dark',
-        'Rename Form Dark'
-      );
-
-      // Toggle dark mode
-      await page.emulateMedia({ colorScheme: 'dark' });
-      await page.waitForTimeout(300);
-
-      // Click the rename button to show the form
-      await page.click('[data-testid="rename-project-button"]');
-      await page.waitForSelector('[data-testid="new-slug-input"]', {
-        state: 'visible',
-      });
-
-      // Fill in a new slug
-      await page.fill('[data-testid="new-slug-input"]', 'my-new-project-name');
-      await page.waitForTimeout(300);
-
-      // Capture the form in dark mode
-      const renameCard = page.locator('[data-testid="rename-project-card"]');
-      await captureElementScreenshot(
-        page,
-        [renameCard],
-        join(screenshotsDir, 'project-rename-form-dark.png'),
-        16
-      );
-    });
-
-    test('danger zone overview - dark mode', async ({ offlinePage: page }) => {
-      await setupProjectAndSettings(
-        page,
-        'danger-zone-dark',
-        'Danger Zone Dark'
-      );
-
-      // Toggle dark mode
-      await page.emulateMedia({ colorScheme: 'dark' });
-      await page.waitForTimeout(300);
-
-      // Capture both danger cards together
-      const renameCard = page.locator('[data-testid="rename-project-card"]');
-      const deleteCard = page.locator('[data-testid="delete-project-card"]');
-
-      // Scroll the delete card into view to ensure both cards are visible
-      await deleteCard.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(200);
-
-      await captureElementScreenshot(
-        page,
-        [renameCard, deleteCard],
-        join(screenshotsDir, 'danger-zone-overview-dark.png'),
-        16
-      );
-    });
-
-    test('delete project card - dark mode', async ({ offlinePage: page }) => {
-      await setupProjectAndSettings(
-        page,
-        'delete-card-dark',
-        'Delete Card Dark'
-      );
-
-      // Toggle dark mode
-      await page.emulateMedia({ colorScheme: 'dark' });
-      await page.waitForTimeout(300);
-
-      // Capture just the delete card
-      const deleteCard = page.locator('[data-testid="delete-project-card"]');
-      await deleteCard.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(200);
-
-      await captureElementScreenshot(
-        page,
-        [deleteCard],
-        join(screenshotsDir, 'project-delete-card-dark.png'),
-        16
-      );
-    });
+  test('project rename screenshots — dark mode', async ({
+    offlinePage: page,
+  }) => {
+    await setupProjectAndSettings(page, 'rename-dark', 'Rename Demo');
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.waitForTimeout(300);
+    await captureAllRenameScreenshots(page, screenshotsDir, 'dark');
   });
 });

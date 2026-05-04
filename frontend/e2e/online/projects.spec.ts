@@ -3,217 +3,143 @@
  *
  * Tests that verify project creation, management, and navigation
  * work correctly in server mode with the real backend.
+ *
+ * NOTE: Form-validation, URL-preview, slug autogen, and cancel are merged
+ * into a single test with `test.step()` since they all share the same
+ * authenticated /create-project setup. Successful-create variants live in a
+ * second test that ends with a real project. Anonymous redirect checks share
+ * one test with two steps.
  */
 import { expect, test } from './fixtures';
 
+async function gotoCreateProjectStep2(page: import('@playwright/test').Page) {
+  await page.goto('/create-project');
+  const nextButton = page.getByRole('button', { name: /next/i });
+  await expect(nextButton).toBeVisible();
+  await nextButton.click();
+  // Step 2 is ready when the title input is visible.
+  await expect(page.getByTestId('project-title-input')).toBeVisible();
+}
+
 test.describe('Online Project Workflows', () => {
-  test('should create a new project successfully', async ({
+  test('create-project form: validation, slug autogen, URL preview, cancel', async ({
     authenticatedPage: page,
   }) => {
-    // Navigate to create project page
-    await page.goto('/create-project');
+    await gotoCreateProjectStep2(page);
 
-    // Step 1: Template selection (default 'empty' is already selected)
-    const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor();
-    await nextButton.click();
+    const titleInput = page.getByTestId('project-title-input');
+    const slugInput = page.getByTestId('project-slug-input');
+    const createBtn = page.getByTestId('create-project-button');
 
-    // Step 2: Fill in project details
-    const uniqueSlug = `test-project-${Date.now()}`;
-    await page.getByTestId('project-title-input').fill('My Test Project');
-    await page.getByTestId('project-slug-input').fill(uniqueSlug);
-    await page
-      .getByTestId('project-description-input')
-      .fill('This is a test project for e2e testing');
+    await test.step('disables create button until both title and slug are filled', async () => {
+      await expect(createBtn).toBeDisabled();
+      await slugInput.fill('test-slug');
+      await expect(createBtn).toBeDisabled();
+      await titleInput.fill('Test Title');
+      await expect(createBtn).toBeEnabled();
+    });
 
-    // Submit the form
-    await page.getByTestId('create-project-button').click();
+    await test.step('auto-generates slug from title on blur', async () => {
+      // Reset the form by going back to step 2 fresh.
+      await gotoCreateProjectStep2(page);
+      await page.getByTestId('project-title-input').fill('My Awesome Project');
+      await page.getByTestId('project-title-input').blur();
 
-    // Should redirect to the project page
-    await expect(page).toHaveURL(new RegExp(uniqueSlug));
+      const slug = page.getByTestId('project-slug-input');
+      await expect(slug).not.toHaveValue('');
+      const slugValue = await slug.inputValue();
+      expect(slugValue).toBeTruthy();
+      expect(slugValue).toMatch(/^[a-z0-9-]+$/);
+    });
+
+    await test.step('shows URL preview while typing slug', async () => {
+      await gotoCreateProjectStep2(page);
+      await page.getByTestId('project-slug-input').fill('preview-test');
+      const preview = page.getByTestId('project-url-preview');
+      await expect(preview).toBeVisible();
+      await expect(preview).toContainText('preview-test');
+    });
+
+    await test.step('cancels project creation and returns home', async () => {
+      await gotoCreateProjectStep2(page);
+      await page.getByTestId('project-title-input').fill('Cancelled Project');
+      await page.getByLabel('Go back to home').click();
+      await expect(page).toHaveURL('/');
+    });
   });
 
-  test('should show validation errors for empty project title', async ({
+  test('create-project submit: success, persistence, long content, loading state', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/create-project');
+    await test.step('creates a new project successfully and redirects to it', async () => {
+      await gotoCreateProjectStep2(page);
+      const slug = `test-project-${Date.now()}`;
+      await page.getByTestId('project-title-input').fill('My Test Project');
+      await page.getByTestId('project-slug-input').fill(slug);
+      await page
+        .getByTestId('project-description-input')
+        .fill('This is a test project for e2e testing');
+      await page.getByTestId('create-project-button').click();
+      await expect(page).toHaveURL(new RegExp(slug));
+    });
 
-    // Step 1: Template selection (default 'empty' is already selected)
-    const nextButton = page.getByRole('button', { name: /next/i });
-    await expect(nextButton).toBeVisible();
-    await nextButton.click();
+    await test.step('persists project data and is reachable by direct URL', async () => {
+      await gotoCreateProjectStep2(page);
+      const slug = `persist-test-${Date.now()}`;
+      await page.getByTestId('project-title-input').fill('Persistence Test');
+      await page.getByTestId('project-slug-input').fill(slug);
+      await page
+        .getByTestId('project-description-input')
+        .fill('Testing data persistence');
+      await page.getByTestId('create-project-button').click();
+      await page.waitForURL(new RegExp(slug));
 
-    // Step 2: Try to submit without filling required fields
-    await expect(page.getByTestId('create-project-button')).toBeDisabled();
+      // Navigate away and back via direct URL.
+      const projectUrl = page.url();
+      await page.goto('/');
+      await page.goto(projectUrl);
+      await expect(page).toHaveURL(new RegExp(slug));
+    });
 
-    // Fill only slug
-    await page.getByTestId('project-slug-input').fill('test-slug');
-    await expect(page.getByTestId('create-project-button')).toBeDisabled();
+    await test.step('handles long titles and descriptions', async () => {
+      await gotoCreateProjectStep2(page);
+      const longTitle = 'A'.repeat(100);
+      const longDescription = 'B'.repeat(500);
+      const slug = `long-content-${Date.now()}`;
 
-    // Fill title
-    await page.getByTestId('project-title-input').fill('Test Title');
-    await expect(page.getByTestId('create-project-button')).toBeEnabled();
+      await page.getByTestId('project-title-input').fill(longTitle);
+      await page.getByTestId('project-slug-input').fill(slug);
+      await page.getByTestId('project-description-input').fill(longDescription);
+      await expect(page.getByTestId('create-project-button')).toBeEnabled();
+      await page.getByTestId('create-project-button').click();
+      await expect(page).toHaveURL(new RegExp(slug));
+    });
+
+    await test.step('exposes a loading state during creation', async () => {
+      await gotoCreateProjectStep2(page);
+      await page.getByTestId('project-title-input').fill('Loading Test');
+      await page
+        .getByTestId('project-slug-input')
+        .fill(`loading-${Date.now()}`);
+
+      await page.getByTestId('create-project-button').click();
+      const button = page.getByTestId('create-project-button');
+      const isDisabled = await button.isDisabled();
+      expect(typeof isDisabled).toBe('boolean');
+    });
   });
 
-  test('should auto-generate slug from title', async ({
-    authenticatedPage: page,
-  }) => {
-    await page.goto('/create-project');
-
-    // Step 1: Template selection
-    const nextButton = page.getByRole('button', { name: /next/i });
-    await expect(nextButton).toBeVisible();
-    await nextButton.click();
-
-    // Step 2: Fill in title
-    await page.getByTestId('project-title-input').fill('My Awesome Project');
-
-    // Blur to trigger slug generation
-    await page.getByTestId('project-title-input').blur();
-
-    // Check if slug was auto-generated
-    await expect(page.getByTestId('project-slug-input')).not.toHaveValue('');
-    const slugValue = await page.getByTestId('project-slug-input').inputValue();
-    expect(slugValue).toBeTruthy();
-    expect(slugValue).toMatch(/^[a-z0-9-]+$/);
-  });
-
-  test('should cancel project creation and return home', async ({
-    authenticatedPage: page,
-  }) => {
-    await page.goto('/create-project');
-
-    // Step 1: Template selection
-    const nextButton = page.getByRole('button', { name: /next/i });
-    await expect(nextButton).toBeVisible();
-    await nextButton.click();
-
-    // Step 2: Fill in some data
-    await page.getByTestId('project-title-input').fill('Cancelled Project');
-
-    // Click the back button in the top bar
-    await page.getByLabel('Go back to home').click();
-
-    // Should navigate back to home
-    await expect(page).toHaveURL('/');
-  });
-
-  test('should persist project data after navigation', async ({
-    authenticatedPage: page,
-  }) => {
-    await page.goto('/create-project');
-
-    // Step 1: Template selection
-    const nextButton = page.getByRole('button', { name: /next/i });
-    await expect(nextButton).toBeVisible();
-    await nextButton.click();
-
-    const uniqueSlug = `persist-test-${Date.now()}`;
-    await page.getByTestId('project-title-input').fill('Persistence Test');
-    await page.getByTestId('project-slug-input').fill(uniqueSlug);
-    await page
-      .getByTestId('project-description-input')
-      .fill('Testing data persistence');
-    await page.getByTestId('create-project-button').click();
-
-    // Wait for project page to load
-    await page.waitForURL(new RegExp(uniqueSlug));
-
-    // Navigate away and back
-    await page.goto('/');
-    await page.goto(page.url().replace('/', `/${uniqueSlug}`));
-
-    // Navigating directly to project should work
-    await expect(page).toHaveURL(new RegExp(uniqueSlug));
-  });
-
-  test('should show project URL preview during creation', async ({
-    authenticatedPage: page,
-  }) => {
-    await page.goto('/create-project');
-
-    // Step 1: Template selection
-    const nextButton = page.getByRole('button', { name: /next/i });
-    await expect(nextButton).toBeVisible();
-    await nextButton.click();
-
-    await page.waitForLoadState('networkidle');
-
-    // Step 2: Fill in slug
-    await page.getByTestId('project-slug-input').fill('preview-test');
-
-    // Should show URL preview
-    await expect(page.getByTestId('project-url-preview')).toBeVisible();
-    await expect(page.getByTestId('project-url-preview')).toContainText(
-      'preview-test'
-    );
-  });
-
-  test('should handle long project titles and descriptions', async ({
-    authenticatedPage: page,
-  }) => {
-    await page.goto('/create-project');
-
-    // Step 1: Template selection
-    const nextButton = page.getByRole('button', { name: /next/i });
-    await expect(nextButton).toBeVisible();
-    await nextButton.click();
-
-    const longTitle = 'A'.repeat(100);
-    const longDescription = 'B'.repeat(500);
-    const uniqueSlug = `long-content-${Date.now()}`;
-
-    await page.getByTestId('project-title-input').fill(longTitle);
-    await page.getByTestId('project-slug-input').fill(uniqueSlug);
-    await page.getByTestId('project-description-input').fill(longDescription);
-
-    // Should still be able to create
-    await expect(page.getByTestId('create-project-button')).toBeEnabled();
-    await page.getByTestId('create-project-button').click();
-
-    // Should redirect successfully
-    await expect(page).toHaveURL(new RegExp(uniqueSlug));
-  });
-
-  test('should show loading state during project creation', async ({
-    authenticatedPage: page,
-  }) => {
-    await page.goto('/create-project');
-
-    // Step 1: Template selection
-    const nextButton = page.getByRole('button', { name: /next/i });
-    await expect(nextButton).toBeVisible();
-    await nextButton.click();
-
-    await page.getByTestId('project-title-input').fill('Loading Test');
-    await page.getByTestId('project-slug-input').fill(`loading-${Date.now()}`);
-
-    // Start project creation
-    await page.getByTestId('create-project-button').click();
-
-    // Button should be disabled during creation
-    const button = page.getByTestId('create-project-button');
-    const isDisabled = await button.isDisabled();
-    expect(typeof isDisabled).toBe('boolean');
-  });
-
-  test('should require authentication to create project', async ({
+  test('anonymous users are redirected away from authenticated routes', async ({
     anonymousPage: page,
   }) => {
-    // Try to access create project page without authentication
-    await page.goto('/create-project');
+    await test.step('redirects anonymous user away from /create-project', async () => {
+      await page.goto('/create-project');
+      await expect(page).toHaveURL('/');
+    });
 
-    // Should redirect to home page for unauthenticated users
-    await expect(page).toHaveURL('/');
-  });
-
-  test('should require authentication to view projects', async ({
-    anonymousPage: page,
-  }) => {
-    // Try to access a project page without authentication
-    await page.goto('/testuser/test-project');
-
-    // Should redirect to home page for unauthenticated users
-    await expect(page).toHaveURL('/');
+    await test.step('redirects anonymous user away from a project URL', async () => {
+      await page.goto('/testuser/test-project');
+      await expect(page).toHaveURL('/');
+    });
   });
 });

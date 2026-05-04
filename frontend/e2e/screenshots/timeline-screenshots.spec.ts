@@ -1,13 +1,9 @@
 /**
  * Timeline Tab Screenshot Tests
  *
- * Captures screenshots demonstrating the Timeline element type:
- * - Full timeline tab (overview) with multiple tracks, events, and an era
- * - Toolbar showing time system picker + add/zoom/fit controls
- * - Both light and dark mode variants
- *
- * Uses local (offline) mode since timeline configs are persisted in element
- * metadata that syncs through the local Yjs/IndexedDB stack.
+ * Captures screenshots demonstrating the Timeline element type in both
+ * light and dark mode. Each color scheme runs the (expensive) timeline
+ * setup once and captures the canvas overview + toolbar via test.step.
  */
 
 import { type Page } from '@playwright/test';
@@ -37,15 +33,15 @@ test.describe('Timeline Tab Screenshots', () => {
 
     // Create a project
     const createButton = page.getByTestId('create-first-project-button');
-    await createButton.waitFor({ timeout: 15_000 });
+    await createButton.waitFor();
     await createButton.click();
 
     const nextButton = page.getByTestId('next-button');
-    await nextButton.waitFor({ timeout: 10_000 });
+    await nextButton.waitFor();
     await nextButton.click();
 
     const titleInput = page.getByTestId('project-title-input');
-    await titleInput.waitFor({ timeout: 10_000 });
+    await titleInput.waitFor();
     await titleInput.fill('Chronicle Saga');
 
     const slugInput = page.getByTestId('project-slug-input');
@@ -53,7 +49,7 @@ test.describe('Timeline Tab Screenshots', () => {
 
     await page.getByTestId('create-project-button').click();
 
-    await page.waitForURL(/chronicle-saga/, { timeout: 15_000 });
+    await page.waitForURL(/chronicle-saga/);
     await page.waitForLoadState('domcontentloaded');
 
     await dismissToastIfPresent(page);
@@ -63,7 +59,7 @@ test.describe('Timeline Tab Screenshots', () => {
     await page.getByTestId('element-type-timeline').click();
 
     const nameInput = page.getByTestId('element-name-input');
-    await nameInput.waitFor({ state: 'visible', timeout: 10_000 });
+    await nameInput.waitFor({ state: 'visible' });
     await nameInput.fill('Main Timeline');
 
     await page.getByTestId('create-element-button').click();
@@ -73,9 +69,7 @@ test.describe('Timeline Tab Screenshots', () => {
     // (lock-in is intentional so events/eras can't silently disappear when
     // the system changes). The default `worldbuilding-empty` template
     // ships with no time systems installed, so we install Gregorian first.
-    await page
-      .getByTestId('timeline-setup')
-      .waitFor({ state: 'visible', timeout: 15_000 });
+    await page.getByTestId('timeline-setup').waitFor({ state: 'visible' });
 
     // Install a time system via the settings page. The setup overlay offers
     // a shortcut button for this when the project has no systems yet.
@@ -87,40 +81,37 @@ test.describe('Timeline Tab Screenshots', () => {
     await page.goto(settingsUrl);
 
     const installTemplate = page.getByTestId('time-systems-install-template');
-    await installTemplate.waitFor({ state: 'visible', timeout: 10_000 });
+    await installTemplate.waitFor({ state: 'visible' });
     await installTemplate.click();
 
     const gregorianItem = page.getByTestId('time-systems-template-gregorian');
-    await gregorianItem.waitFor({ state: 'visible', timeout: 5000 });
+    await gregorianItem.waitFor({ state: 'visible' });
     await gregorianItem.click();
 
     // Confirm the install persisted by waiting for the list row to appear.
     await page
       .getByTestId('time-systems-row-gregorian')
-      .waitFor({ state: 'visible', timeout: 5000 });
+      .waitFor({ state: 'visible' });
 
     // Navigate back to the timeline tab. The setup overlay should now offer
     // Gregorian in its picker (it's pre-selected as the first installed
     // system by the setup effect).
     await page.goto(timelineUrl);
-    await page
-      .getByTestId('timeline-setup')
-      .waitFor({ state: 'visible', timeout: 10_000 });
+    await page.getByTestId('timeline-setup').waitFor({ state: 'visible' });
 
     // Commit Gregorian — this is the lock-in step. Afterwards the timeline
     // canvas is rendered and the toolbar exposes the add-event/add-era
     // buttons.
     const commit = page.getByTestId('timeline-setup-commit');
-    await expect(commit).toBeEnabled({ timeout: 5000 });
+    await expect(commit).toBeEnabled();
     await commit.click();
 
     await page.waitForSelector('[data-testid="timeline-canvas"]', {
       state: 'visible',
-      timeout: 10_000,
     });
 
     const addEventBtn = page.getByTestId('timeline-add-event');
-    await expect(addEventBtn).toBeEnabled({ timeout: 10_000 });
+    await expect(addEventBtn).toBeEnabled();
 
     // Rename the default track via the in-app rename dialog.
     await page
@@ -154,7 +145,7 @@ test.describe('Timeline Tab Screenshots', () => {
     for (const ev of events) {
       await page.getByTestId('timeline-add-event').click();
       const titleInput = page.getByTestId('timeline-event-title');
-      await titleInput.waitFor({ state: 'visible', timeout: 5000 });
+      await titleInput.waitFor({ state: 'visible' });
       await titleInput.click();
       await titleInput.fill(ev.title);
       await expect(titleInput).toHaveValue(ev.title);
@@ -164,22 +155,22 @@ test.describe('Timeline Tab Screenshots', () => {
       await page
         .locator('[data-testid^="timeline-track-option-"]')
         .nth(ev.trackIdx)
-        .click({ timeout: 5000 });
+        .click();
 
       await page.getByTestId('timeline-event-start-date').fill(ev.start);
 
       const save = page.getByTestId('timeline-event-save');
-      await expect(save).toBeEnabled({ timeout: 5000 });
+      await expect(save).toBeEnabled();
       await save.click();
 
       // Wait for dialog to close so the next iteration picks up a fresh one.
-      await titleInput.waitFor({ state: 'detached', timeout: 5000 });
+      await titleInput.waitFor({ state: 'detached' });
     }
 
     // Add an era spanning part of the timeline.
     await page.getByTestId('timeline-add-era').click();
     const eraName = page.getByTestId('timeline-era-name');
-    await eraName.waitFor({ state: 'visible', timeout: 5000 });
+    await eraName.waitFor({ state: 'visible' });
     await eraName.click();
     await eraName.fill('Age of Heroes');
     await expect(eraName).toHaveValue('Age of Heroes');
@@ -187,9 +178,9 @@ test.describe('Timeline Tab Screenshots', () => {
     await page.getByTestId('timeline-era-end-date').fill('2025-12-30');
     await page.getByTestId('timeline-era-color').fill('#8b5cf6');
     const eraSave = page.getByTestId('timeline-era-save');
-    await expect(eraSave).toBeEnabled({ timeout: 5000 });
+    await expect(eraSave).toBeEnabled();
     await eraSave.click();
-    await eraName.waitFor({ state: 'detached', timeout: 5000 });
+    await eraName.waitFor({ state: 'detached' });
 
     // Fit so the composition is framed nicely.
     await page.getByTestId('timeline-fit').click();
@@ -197,57 +188,52 @@ test.describe('Timeline Tab Screenshots', () => {
     await page.waitForTimeout(300);
   }
 
-  // ── Light mode ─────────────────────────────────────────────────────────────
-
-  test('timeline tab overview (light)', async ({ offlinePage: page }) => {
+  test('timeline screenshots — light mode', async ({ offlinePage: page }) => {
     await setupTimeline(page);
 
-    const canvas = page.getByTestId('timeline-canvas');
-    await captureElementScreenshot(
-      page,
-      [canvas],
-      join(screenshotsDir, 'timeline-tab-overview-light.png'),
-      0
-    );
+    await test.step('canvas overview', async () => {
+      const canvas = page.getByTestId('timeline-canvas');
+      await captureElementScreenshot(
+        page,
+        [canvas],
+        join(screenshotsDir, 'timeline-tab-overview-light.png'),
+        0
+      );
+    });
+
+    await test.step('toolbar', async () => {
+      const toolbar = page.getByTestId('timeline-toolbar');
+      await captureElementScreenshot(
+        page,
+        [toolbar],
+        join(screenshotsDir, 'timeline-tab-toolbar-light.png'),
+        8
+      );
+    });
   });
 
-  test('timeline toolbar (light)', async ({ offlinePage: page }) => {
-    await setupTimeline(page);
-
-    const toolbar = page.getByTestId('timeline-toolbar');
-    await captureElementScreenshot(
-      page,
-      [toolbar],
-      join(screenshotsDir, 'timeline-tab-toolbar-light.png'),
-      8
-    );
-  });
-
-  // ── Dark mode ──────────────────────────────────────────────────────────────
-
-  test('timeline tab overview (dark)', async ({ offlinePage: page }) => {
+  test('timeline screenshots — dark mode', async ({ offlinePage: page }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await setupTimeline(page);
 
-    const canvas = page.getByTestId('timeline-canvas');
-    await captureElementScreenshot(
-      page,
-      [canvas],
-      join(screenshotsDir, 'timeline-tab-overview-dark.png'),
-      0
-    );
-  });
+    await test.step('canvas overview', async () => {
+      const canvas = page.getByTestId('timeline-canvas');
+      await captureElementScreenshot(
+        page,
+        [canvas],
+        join(screenshotsDir, 'timeline-tab-overview-dark.png'),
+        0
+      );
+    });
 
-  test('timeline toolbar (dark)', async ({ offlinePage: page }) => {
-    await page.emulateMedia({ colorScheme: 'dark' });
-    await setupTimeline(page);
-
-    const toolbar = page.getByTestId('timeline-toolbar');
-    await captureElementScreenshot(
-      page,
-      [toolbar],
-      join(screenshotsDir, 'timeline-tab-toolbar-dark.png'),
-      8
-    );
+    await test.step('toolbar', async () => {
+      const toolbar = page.getByTestId('timeline-toolbar');
+      await captureElementScreenshot(
+        page,
+        [toolbar],
+        join(screenshotsDir, 'timeline-tab-toolbar-dark.png'),
+        8
+      );
+    });
   });
 });

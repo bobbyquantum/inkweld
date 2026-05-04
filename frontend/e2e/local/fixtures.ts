@@ -205,7 +205,7 @@ export const test = base.extend<LocalTestFixtures>({
     // Step 1: Template Selection
     // Wait for the wizard dialog to fully render before interacting
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor({ timeout: 30_000 });
+    await nextButton.waitFor();
     await nextButton.click();
 
     // Step 2: Fill in project details

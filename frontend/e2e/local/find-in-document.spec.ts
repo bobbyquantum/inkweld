@@ -3,573 +3,256 @@
  *
  * Tests that verify the find and replace functionality (Cmd/Ctrl + F)
  * works correctly for searching and replacing text within documents.
+ *
+ * Consolidated from 13 individual tests into 3 grouped tests using
+ * `test.step()` to share the expensive project + document setup. Each
+ * grouped test creates its own document(s) within a single shared
+ * project so individual steps remain isolated and the find-bar state
+ * doesn't leak between assertions.
  */
+import { type Page } from '@playwright/test';
+
 import { pressShortcut } from '../common';
 import { expect, test } from './fixtures';
 
+/**
+ * Open the project, create a new document with the given name, and focus
+ * the ngx-editor inside it. Returns the editor locator for convenience.
+ *
+ * Assumes we're on the project list page (or the previously-created
+ * document still has the project tree visible — the create flow handles
+ * both cases).
+ */
+async function openProjectAndCreateDocument(
+  page: Page,
+  documentName: string
+): Promise<ReturnType<Page['locator']>> {
+  // Project may already be open from a previous step; only click the card
+  // if we're still on the project list.
+  if (await page.getByTestId('project-card').first().isVisible()) {
+    await page.getByTestId('project-card').first().click();
+  }
+  await expect(page.getByTestId('project-tree')).toBeVisible();
+
+  await page.getByTestId('create-new-element').click();
+  await page.getByRole('heading', { name: 'Document', level: 4 }).click();
+
+  const dialogInput = page.getByLabel('Document Name');
+  await dialogInput.waitFor({ state: 'visible' });
+  await dialogInput.fill(documentName);
+  await page.getByTestId('create-element-button').click();
+
+  await expect(page.locator('ngx-editor')).toBeVisible();
+  // Brief wait for editor initialization (matches original tests).
+  await page.waitForTimeout(500);
+
+  const editor = page.locator('ngx-editor .ProseMirror');
+  await editor.click();
+  return editor;
+}
+
 test.describe('Find in Document', () => {
-  test('should open find bar with keyboard shortcut', async ({
+  test('find bar lifecycle: open, close with Escape, close with button', async ({
     localPageWithProject: page,
   }) => {
-    // Open a project
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
+    const findBar = page.getByTestId('find-bar');
+    const findInput = page.getByTestId('find-input');
 
-    // Create a document first
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
+    await test.step('open find bar with keyboard shortcut', async () => {
+      await openProjectAndCreateDocument(page, 'Find Lifecycle Doc');
+      await pressShortcut(page, 'f');
+      await expect(findBar).toBeVisible();
+      await expect(findInput).toBeVisible();
+    });
 
-    // Select "Document" from the Choose Element Type dialog
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
+    await test.step('close find bar with Escape', async () => {
+      await expect(findInput).toBeFocused();
+      await page.keyboard.press('Escape');
+      await expect(findBar).not.toBeVisible();
+    });
 
-    // The dialog proceeds to document name entry
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Find Test Document');
-    await page.getByTestId('create-element-button').click();
+    await test.step('close find bar with close button', async () => {
+      // Re-focus the editor and reopen the find bar.
+      await page.locator('ngx-editor .ProseMirror').click();
+      await pressShortcut(page, 'f');
+      await expect(findBar).toBeVisible();
 
-    // Wait for the document to be created and editor to appear
-    await expect(page.locator('ngx-editor')).toBeVisible();
-
-    // Wait for editor to be ready and click to focus it
-    await page.waitForTimeout(500);
-    const editor = page.locator('ngx-editor .ProseMirror');
-    await editor.click();
-
-    // Press Cmd/Ctrl + F to open find bar
-    await pressShortcut(page, 'f');
-
-    // Find bar should appear
-    await expect(page.getByTestId('find-bar')).toBeVisible();
-
-    // Search input should be visible
-    await expect(page.getByTestId('find-input')).toBeVisible();
+      await page.getByTestId('find-close').click();
+      await expect(findBar).not.toBeVisible();
+    });
   });
 
-  test('should close find bar with Escape', async ({
+  test('find: text matches, no-results, navigation with keyboard and buttons', async ({
     localPageWithProject: page,
   }) => {
-    // Open a project
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
+    await openProjectAndCreateDocument(page, 'Find Search Doc');
+    const matchCounter = page.getByTestId('find-match-counter');
+    const findInput = page.getByTestId('find-input');
 
-    // Create a document
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Find Close Test');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.locator('ngx-editor')).toBeVisible();
-    await page.waitForTimeout(500);
-
-    // Focus the editor
-    const editor = page.locator('ngx-editor .ProseMirror');
-    await editor.click();
-
-    // Open find bar
-    await pressShortcut(page, 'f');
-    await expect(page.getByTestId('find-bar')).toBeVisible();
-
-    // Wait for find input to be focused (auto-focus uses setTimeout)
-    await expect(page.getByTestId('find-input')).toBeFocused();
-
-    // Press Escape to close
-    await page.keyboard.press('Escape');
-
-    // Find bar should be closed
-    await expect(page.getByTestId('find-bar')).not.toBeVisible();
-  });
-
-  test('should find text in document', async ({
-    localPageWithProject: page,
-  }) => {
-    // Open a project
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Create a document
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Search Test Document');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.locator('ngx-editor')).toBeVisible();
-    await page.waitForTimeout(500);
-
-    // Type some text in the editor
-    const editor = page.locator('ngx-editor .ProseMirror');
-    await editor.click();
-    await page.keyboard.type('Hello world, hello universe, hello everyone');
-
-    // Wait for text to be entered
+    // Single shared document content powers all search assertions.
+    // - "hello" → 3 matches (case-insensitive)
+    // - "find" → 2 matches
+    // - "xyz123" → no results
+    await page.keyboard.type(
+      'Hello world, hello universe, hello everyone. find me, find me again'
+    );
     await page.waitForTimeout(300);
 
-    // Open find bar
-    await pressShortcut(page, 'f');
-    await expect(page.getByTestId('find-bar')).toBeVisible();
+    await test.step('find text and show match count', async () => {
+      await pressShortcut(page, 'f');
+      await expect(page.getByTestId('find-bar')).toBeVisible();
+      await findInput.fill('hello');
+      // Debounced search.
+      await page.waitForTimeout(200);
+      await expect(matchCounter).toContainText('1 of 3');
+    });
 
-    // Type search query
+    await test.step('navigate matches with Enter and Shift+Enter', async () => {
+      await page.keyboard.press('Enter');
+      await expect(matchCounter).toContainText('2 of 3');
+      await page.keyboard.press('Enter');
+      await expect(matchCounter).toContainText('3 of 3');
+      await page.keyboard.press('Shift+Enter');
+      await expect(matchCounter).toContainText('2 of 3');
+    });
+
+    await test.step('navigate matches with next/previous buttons', async () => {
+      // Switch the search query so we have a fresh 1 of N starting state.
+      await findInput.fill('find');
+      await page.waitForTimeout(200);
+      await expect(matchCounter).toContainText('1 of 2');
+
+      await page.getByTestId('find-next').click();
+      await expect(matchCounter).toContainText('2 of 2');
+
+      await page.getByTestId('find-previous').click();
+      await expect(matchCounter).toContainText('1 of 2');
+    });
+
+    await test.step('show "No results" when query has no matches', async () => {
+      await findInput.fill('xyz123');
+      await page.waitForTimeout(200);
+      await expect(matchCounter).toContainText('No results');
+    });
+  });
+
+  test('replace: toggle, single, all, Enter, Shift+Enter, and close', async ({
+    localPageWithProject: page,
+  }) => {
+    const editor = await openProjectAndCreateDocument(page, 'Replace Doc');
     const findInput = page.getByTestId('find-input');
-    await findInput.fill('hello');
-
-    // Wait for search to complete (debounced)
-    await page.waitForTimeout(200);
-
-    // Should show match count
+    const replaceBar = page.getByTestId('replace-bar');
     const matchCounter = page.getByTestId('find-match-counter');
-    await expect(matchCounter).toContainText('1 of 3');
-  });
-
-  test('should navigate between matches with Enter and Shift+Enter', async ({
-    localPageWithProject: page,
-  }) => {
-    // Open a project
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Create a document
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Navigation Test Document');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.locator('ngx-editor')).toBeVisible();
-    await page.waitForTimeout(500);
-
-    // Type some text in the editor
-    const editor = page.locator('ngx-editor .ProseMirror');
-    await editor.click();
-    await page.keyboard.type('test one, test two, test three');
-    await page.waitForTimeout(300);
-
-    // Open find bar and search
-    await pressShortcut(page, 'f');
-    const findInput = page.getByTestId('find-input');
-    await findInput.fill('test');
-    await page.waitForTimeout(200);
-
-    const matchCounter = page.getByTestId('find-match-counter');
-    await expect(matchCounter).toContainText('1 of 3');
-
-    // Press Enter to go to next match
-    await page.keyboard.press('Enter');
-    await expect(matchCounter).toContainText('2 of 3');
-
-    // Press Enter again
-    await page.keyboard.press('Enter');
-    await expect(matchCounter).toContainText('3 of 3');
-
-    // Press Shift+Enter to go back
-    await page.keyboard.press('Shift+Enter');
-    await expect(matchCounter).toContainText('2 of 3');
-  });
-
-  test('should show "No results" when no matches found', async ({
-    localPageWithProject: page,
-  }) => {
-    // Open a project
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Create a document
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('No Results Test');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.locator('ngx-editor')).toBeVisible();
-    await page.waitForTimeout(500);
-
-    // Type some text in the editor
-    const editor = page.locator('ngx-editor .ProseMirror');
-    await editor.click();
-    await page.keyboard.type('Hello world');
-    await page.waitForTimeout(300);
-
-    // Open find bar and search for non-existent text
-    await pressShortcut(page, 'f');
-    const findInput = page.getByTestId('find-input');
-    await findInput.fill('xyz123');
-    await page.waitForTimeout(200);
-
-    // Should show "No results"
-    const matchCounter = page.getByTestId('find-match-counter');
-    await expect(matchCounter).toContainText('No results');
-  });
-
-  test('should close find bar with close button', async ({
-    localPageWithProject: page,
-  }) => {
-    // Open a project
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Create a document
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Close Button Test');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.locator('ngx-editor')).toBeVisible();
-    await page.waitForTimeout(500);
-
-    // Focus the editor
-    const editor = page.locator('ngx-editor .ProseMirror');
-    await editor.click();
-
-    // Open find bar
-    await pressShortcut(page, 'f');
-    await expect(page.getByTestId('find-bar')).toBeVisible();
-
-    // Click close button
-    await page.getByTestId('find-close').click();
-
-    // Find bar should be closed
-    await expect(page.getByTestId('find-bar')).not.toBeVisible();
-  });
-
-  test('should navigate with next/previous buttons', async ({
-    localPageWithProject: page,
-  }) => {
-    // Open a project
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Create a document
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Button Navigation Test');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.locator('ngx-editor')).toBeVisible();
-    await page.waitForTimeout(500);
-
-    // Type some text in the editor
-    const editor = page.locator('ngx-editor .ProseMirror');
-    await editor.click();
-    await page.keyboard.type('find me, find me again');
-    await page.waitForTimeout(300);
-
-    // Open find bar and search
-    await pressShortcut(page, 'f');
-    const findInput = page.getByTestId('find-input');
-    await findInput.fill('find');
-    await page.waitForTimeout(200);
-
-    const matchCounter = page.getByTestId('find-match-counter');
-    await expect(matchCounter).toContainText('1 of 2');
-
-    // Click next button
-    await page.getByTestId('find-next').click();
-    await expect(matchCounter).toContainText('2 of 2');
-
-    // Click previous button
-    await page.getByTestId('find-previous').click();
-    await expect(matchCounter).toContainText('1 of 2');
-  });
-
-  test('should toggle replace mode with toggle button', async ({
-    localPageWithProject: page,
-  }) => {
-    // Open a project
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Create a document
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Replace Toggle Test');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.locator('ngx-editor')).toBeVisible();
-    await page.waitForTimeout(500);
-
-    // Focus the editor
-    const editor = page.locator('ngx-editor .ProseMirror');
-    await editor.click();
-
-    // Open find bar
-    await pressShortcut(page, 'f');
-    await expect(page.getByTestId('find-bar')).toBeVisible();
-
-    // Replace bar should not be visible initially
-    await expect(page.getByTestId('replace-bar')).not.toBeVisible();
-
-    // Click toggle replace button
-    await page.getByTestId('find-toggle-replace').click();
-
-    // Replace bar should now be visible
-    await expect(page.getByTestId('replace-bar')).toBeVisible();
-    await expect(page.getByTestId('replace-input')).toBeVisible();
-
-    // Click toggle again to hide
-    await page.getByTestId('find-toggle-replace').click();
-    await expect(page.getByTestId('replace-bar')).not.toBeVisible();
-  });
-
-  test('should replace single match', async ({
-    localPageWithProject: page,
-  }) => {
-    // Open a project
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Create a document
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Replace Single Test');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.locator('ngx-editor')).toBeVisible();
-    await page.waitForTimeout(500);
-
-    // Type some text in the editor
-    const editor = page.locator('ngx-editor .ProseMirror');
-    await editor.click();
-    await page.keyboard.type('cat and cat and cat');
-    await page.waitForTimeout(300);
-
-    // Open find bar and search
-    await pressShortcut(page, 'f');
-    const findInput = page.getByTestId('find-input');
-    await findInput.fill('cat');
-    await page.waitForTimeout(200);
-
-    // Verify we have 3 matches
-    const matchCounter = page.getByTestId('find-match-counter');
-    await expect(matchCounter).toContainText('1 of 3');
-
-    // Open replace mode
-    await page.getByTestId('find-toggle-replace').click();
-    await expect(page.getByTestId('replace-bar')).toBeVisible();
-
-    // Enter replacement text
-    const replaceInput = page.getByTestId('replace-input');
-    await replaceInput.fill('dog');
-
-    // Click replace button
-    await page.getByTestId('replace-single').click();
-    await page.waitForTimeout(200);
-
-    // Should now have 2 matches (one replaced)
-    await expect(matchCounter).toContainText('1 of 2');
-
-    // Verify the text was replaced
-    await expect(editor).toContainText('dog');
-  });
-
-  test('should replace all matches', async ({ localPageWithProject: page }) => {
-    // Open a project
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Create a document
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Replace All Test');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.locator('ngx-editor')).toBeVisible();
-    await page.waitForTimeout(500);
-
-    // Type some text in the editor
-    const editor = page.locator('ngx-editor .ProseMirror');
-    await editor.click();
-    await page.keyboard.type('foo bar foo baz foo');
-    await page.waitForTimeout(300);
-
-    // Open find bar and search
-    await pressShortcut(page, 'f');
-    const findInput = page.getByTestId('find-input');
-    await findInput.fill('foo');
-    await page.waitForTimeout(200);
-
-    // Verify we have 3 matches
-    const matchCounter = page.getByTestId('find-match-counter');
-    await expect(matchCounter).toContainText('1 of 3');
-
-    // Open replace mode
-    await page.getByTestId('find-toggle-replace').click();
-
-    // Enter replacement text
-    const replaceInput = page.getByTestId('replace-input');
-    await replaceInput.fill('qux');
-
-    // Click replace all button
-    await page.getByTestId('replace-all').click();
-    await page.waitForTimeout(200);
-
-    // Should have no matches (all replaced)
-    await expect(matchCounter).toContainText('No results');
-
-    // Verify all text was replaced
-    await expect(editor).toContainText('qux bar qux baz qux');
-    await expect(editor).not.toContainText('foo');
-  });
-
-  test('should replace with Enter key in replace input', async ({
-    localPageWithProject: page,
-  }) => {
-    // Open a project
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Create a document
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Replace Enter Key Test');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.locator('ngx-editor')).toBeVisible();
-    await page.waitForTimeout(500);
-
-    // Type some text in the editor
-    const editor = page.locator('ngx-editor .ProseMirror');
-    await editor.click();
-    await page.keyboard.type('apple banana apple');
-    await page.waitForTimeout(300);
-
-    // Open find bar and search
-    await pressShortcut(page, 'f');
-    const findInput = page.getByTestId('find-input');
-    await findInput.fill('apple');
-    await page.waitForTimeout(200);
-
-    const matchCounter = page.getByTestId('find-match-counter');
-    await expect(matchCounter).toContainText('1 of 2');
-
-    // Open replace mode
-    await page.getByTestId('find-toggle-replace').click();
-
-    // Enter replacement text and press Enter
-    const replaceInput = page.getByTestId('replace-input');
-    await replaceInput.fill('orange');
-    await replaceInput.press('Enter');
-    await page.waitForTimeout(200);
-
-    // Should now have 1 match (one replaced)
-    await expect(matchCounter).toContainText('1 of 1');
-  });
-
-  test('should replace all with Shift+Enter in replace input', async ({
-    localPageWithProject: page,
-  }) => {
-    // Open a project
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Create a document
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Replace Shift Enter Test');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.locator('ngx-editor')).toBeVisible();
-    await page.waitForTimeout(500);
-
-    // Type some text in the editor
-    const editor = page.locator('ngx-editor .ProseMirror');
-    await editor.click();
-    await page.keyboard.type('red blue red green red');
-    await page.waitForTimeout(300);
-
-    // Open find bar and search
-    await pressShortcut(page, 'f');
-    const findInput = page.getByTestId('find-input');
-    await findInput.fill('red');
-    await page.waitForTimeout(200);
-
-    const matchCounter = page.getByTestId('find-match-counter');
-    await expect(matchCounter).toContainText('1 of 3');
-
-    // Open replace mode
-    await page.getByTestId('find-toggle-replace').click();
-
-    // Enter replacement text and press Shift+Enter to replace all
-    const replaceInput = page.getByTestId('replace-input');
-    await replaceInput.fill('yellow');
-    await replaceInput.press('Shift+Enter');
-    await page.waitForTimeout(200);
-
-    // Should have no matches (all replaced)
-    await expect(matchCounter).toContainText('No results');
-
-    // Verify all text was replaced
-    await expect(editor).toContainText('yellow blue yellow green yellow');
-  });
-
-  test('should close replace bar when closing find bar', async ({
-    localPageWithProject: page,
-  }) => {
-    // Open a project
-    await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Create a document
-    const newDocButton = page.getByTestId('create-new-element');
-    await expect(newDocButton).toBeVisible();
-    await newDocButton.click();
-    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
-    const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible' });
-    await dialogInput.fill('Close Replace Test');
-    await page.getByTestId('create-element-button').click();
-    await expect(page.locator('ngx-editor')).toBeVisible();
-    await page.waitForTimeout(500);
-
-    // Focus the editor
-    const editor = page.locator('ngx-editor .ProseMirror');
-    await editor.click();
-
-    // Open find bar
-    await pressShortcut(page, 'f');
-    await expect(page.getByTestId('find-bar')).toBeVisible();
-
-    // Open replace mode
-    await page.getByTestId('find-toggle-replace').click();
-    await expect(page.getByTestId('replace-bar')).toBeVisible();
-
-    // Focus the find input before pressing Escape (Escape handler is on input)
-    await page.getByTestId('find-input').click();
-
-    // Close find bar with Escape
-    await page.keyboard.press('Escape');
-
-    // Both find bar and replace bar should be closed
-    await expect(page.getByTestId('find-bar')).not.toBeVisible();
+
+    await test.step('toggle replace mode shows and hides replace bar', async () => {
+      await pressShortcut(page, 'f');
+      await expect(page.getByTestId('find-bar')).toBeVisible();
+      await expect(replaceBar).not.toBeVisible();
+
+      await page.getByTestId('find-toggle-replace').click();
+      await expect(replaceBar).toBeVisible();
+      await expect(page.getByTestId('replace-input')).toBeVisible();
+
+      // Toggle off then back on; subsequent steps assume replace bar open.
+      await page.getByTestId('find-toggle-replace').click();
+      await expect(replaceBar).not.toBeVisible();
+      await page.getByTestId('find-toggle-replace').click();
+      await expect(replaceBar).toBeVisible();
+    });
+
+    await test.step('replace single match with replace-single button', async () => {
+      // Type fresh content for this step.
+      await editor.click();
+      await page.keyboard.type('cat and cat and cat');
+      await page.waitForTimeout(300);
+
+      await findInput.click();
+      await findInput.fill('cat');
+      await page.waitForTimeout(200);
+      await expect(matchCounter).toContainText('1 of 3');
+
+      const replaceInput = page.getByTestId('replace-input');
+      await replaceInput.fill('dog');
+      await page.getByTestId('replace-single').click();
+      await page.waitForTimeout(200);
+
+      await expect(matchCounter).toContainText('1 of 2');
+      await expect(editor).toContainText('dog');
+    });
+
+    await test.step('replace all matches with replace-all button', async () => {
+      // Add a fresh, distinct line of content for this step.
+      await editor.click();
+      await page.keyboard.press('End');
+      await page.keyboard.press('Enter');
+      await page.keyboard.type('foo bar foo baz foo');
+      await page.waitForTimeout(300);
+
+      await findInput.click();
+      await findInput.fill('foo');
+      await page.waitForTimeout(200);
+      await expect(matchCounter).toContainText('1 of 3');
+
+      const replaceInput = page.getByTestId('replace-input');
+      await replaceInput.click();
+      await replaceInput.fill('qux');
+      await page.getByTestId('replace-all').click();
+      await page.waitForTimeout(200);
+
+      await expect(matchCounter).toContainText('No results');
+      await expect(editor).toContainText('qux bar qux baz qux');
+      await expect(editor).not.toContainText('foo');
+    });
+
+    await test.step('replace single match with Enter key in replace input', async () => {
+      await editor.click();
+      await page.keyboard.press('End');
+      await page.keyboard.press('Enter');
+      await page.keyboard.type('apple banana apple');
+      await page.waitForTimeout(300);
+
+      await findInput.click();
+      await findInput.fill('apple');
+      await page.waitForTimeout(200);
+      await expect(matchCounter).toContainText('1 of 2');
+
+      const replaceInput = page.getByTestId('replace-input');
+      await replaceInput.click();
+      await replaceInput.fill('orange');
+      await replaceInput.press('Enter');
+      await page.waitForTimeout(200);
+
+      await expect(matchCounter).toContainText('1 of 1');
+    });
+
+    await test.step('replace all with Shift+Enter in replace input', async () => {
+      await editor.click();
+      await page.keyboard.press('End');
+      await page.keyboard.press('Enter');
+      await page.keyboard.type('red blue red green red');
+      await page.waitForTimeout(300);
+
+      await findInput.click();
+      await findInput.fill('red');
+      await page.waitForTimeout(200);
+      await expect(matchCounter).toContainText('1 of 3');
+
+      const replaceInput = page.getByTestId('replace-input');
+      await replaceInput.click();
+      await replaceInput.fill('yellow');
+      await replaceInput.press('Shift+Enter');
+      await page.waitForTimeout(200);
+
+      await expect(matchCounter).toContainText('No results');
+      await expect(editor).toContainText('yellow blue yellow green yellow');
+    });
+
+    await test.step('Escape from find input closes both bars', async () => {
+      // Replace bar is currently open. Focus find input and Escape.
+      await findInput.click();
+      await page.keyboard.press('Escape');
+      await expect(page.getByTestId('find-bar')).not.toBeVisible();
+      await expect(replaceBar).not.toBeVisible();
+    });
   });
 });

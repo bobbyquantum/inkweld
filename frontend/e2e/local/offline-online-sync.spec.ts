@@ -15,6 +15,10 @@
  *    that the document is unavailable locally.
  *
  * All tests run in pure local mode — any API/WebSocket request fails the test.
+ *
+ * NOTE: Tests are consolidated into three `test()` blocks (one per describe)
+ * using `test.step()`, so the project-open cost is paid once per group rather
+ * than 14 times. Each step uses uniquely-named elements to avoid collisions.
  */
 
 import { type Page } from '@playwright/test';
@@ -122,124 +126,74 @@ async function createFolderElement(page: Page, name: string) {
 test.describe('Offline Mode - Element Availability', () => {
   test.slow();
 
-  test('should show element tree with all element types in offline mode', async ({
-    localPageWithProject: page,
-  }) => {
-    // Navigate to the project created by the fixture
-    await page.getByTestId('project-card').first().click();
-    await page.waitForURL(/\/.+\/.+/);
-
-    // Element tree should be visible
-    await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // The default README element should be present
-    await expect(page.getByTestId('element-README')).toBeVisible();
-  });
-
-  test('should create and open a document element offline', async ({
+  test('element tree, documents, worldbuilding, folders are all available offline', async ({
     localPageWithProject: page,
   }) => {
     await page.getByTestId('project-card').first().click();
     await page.waitForURL(/\/.+\/.+/);
 
-    // Create a document element
-    await createDocumentElement(page, 'Offline Document');
+    await test.step('element tree shows default README', async () => {
+      await expect(page.getByTestId('project-tree')).toBeVisible();
+      await expect(page.getByTestId('element-README')).toBeVisible();
+    });
 
-    // Click it to open the document tab
-    await page.getByTestId('element-Offline Document').click();
-    await expect(page).toHaveURL(/document\/.+/);
+    await test.step('create and open a document element offline', async () => {
+      await createDocumentElement(page, 'Offline Document');
+      await page.getByTestId('element-Offline Document').click();
+      await expect(page).toHaveURL(/document\/.+/);
 
-    // ProseMirror editor should be visible and editable
-    const editor = page
-      .getByTestId('document-editor')
-      .locator('[contenteditable="true"]');
-    await expect(editor).toBeVisible();
+      const editor = page
+        .getByTestId('document-editor')
+        .locator('[contenteditable="true"]');
+      await expect(editor).toBeVisible();
 
-    // Type content and verify it persists
-    await editor.click();
-    await page.keyboard.insertText('Hello offline world');
-    await expect(editor).toContainText('Hello offline world');
-  });
+      await editor.click();
+      await page.keyboard.insertText('Hello offline world');
+      await expect(editor).toContainText('Hello offline world');
+    });
 
-  test('should create and open a worldbuilding character offline', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await page.waitForURL(/\/.+\/.+/);
+    await test.step('create and open a worldbuilding character offline', async () => {
+      await createCharacterElement(page, 'Offline Character');
+      await page.getByTestId('element-Offline Character').click();
+      await expect(page).toHaveURL(/worldbuilding\/.+/);
+      await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
+    });
 
-    // Create a character element
-    await createCharacterElement(page, 'Offline Character');
+    await test.step('create and open a worldbuilding location offline', async () => {
+      await createLocationElement(page, 'Offline Location');
+      await page.getByTestId('element-Offline Location').click();
+      await expect(page).toHaveURL(/worldbuilding\/.+/);
+      await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
+    });
 
-    // Click it to open the worldbuilding tab
-    await page.getByTestId('element-Offline Character').click();
-    await expect(page).toHaveURL(/worldbuilding\/.+/);
+    await test.step('create and open a folder element offline', async () => {
+      await createFolderElement(page, 'Offline Folder');
+      await page.getByTestId('element-Offline Folder').click();
+      await expect(page).toHaveURL(/folder\/.+/);
+    });
 
-    // Worldbuilding editor should be visible
-    await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
-  });
+    await test.step('document content is retained after navigating away and back', async () => {
+      await createDocumentElement(page, 'Persistent Doc');
+      await page.getByTestId('element-Persistent Doc').click();
+      await expect(page).toHaveURL(/document\/.+/);
 
-  test('should create and open a worldbuilding location offline', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await page.waitForURL(/\/.+\/.+/);
+      const editor = page
+        .getByTestId('document-editor')
+        .locator('[contenteditable="true"]');
+      await expect(editor).toBeVisible();
+      await editor.click();
+      await page.keyboard.insertText('Persistent content here');
+      await expect(editor).toContainText('Persistent content here');
 
-    // Create a location element
-    await createLocationElement(page, 'Offline Location');
+      await page.getByTestId('toolbar-home-button').click();
+      await page.getByTestId('element-Persistent Doc').click();
+      await expect(page).toHaveURL(/document\/.+/);
 
-    // Click it to open the worldbuilding tab
-    await page.getByTestId('element-Offline Location').click();
-    await expect(page).toHaveURL(/worldbuilding\/.+/);
-
-    // Worldbuilding editor should be visible
-    await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
-  });
-
-  test('should create and open a folder element offline', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await page.waitForURL(/\/.+\/.+/);
-
-    // Create a folder element
-    await createFolderElement(page, 'Offline Folder');
-
-    // Click it to open the folder tab
-    await page.getByTestId('element-Offline Folder').click();
-    await expect(page).toHaveURL(/folder\/.+/);
-  });
-
-  test('should retain document content after navigating away and back', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await page.waitForURL(/\/.+\/.+/);
-
-    // Create and type in a document
-    await createDocumentElement(page, 'Persistent Doc');
-    await page.getByTestId('element-Persistent Doc').click();
-    await expect(page).toHaveURL(/document\/.+/);
-
-    const editor = page
-      .getByTestId('document-editor')
-      .locator('[contenteditable="true"]');
-    await expect(editor).toBeVisible();
-    await editor.click();
-    await page.keyboard.insertText('Persistent content here');
-    await expect(editor).toContainText('Persistent content here');
-
-    // Navigate to home
-    await page.getByTestId('toolbar-home-button').click();
-
-    // Navigate back to the document
-    await page.getByTestId('element-Persistent Doc').click();
-    await expect(page).toHaveURL(/document\/.+/);
-
-    // Content should still be there (loaded from IndexedDB)
-    const editorAgain = page
-      .getByTestId('document-editor')
-      .locator('[contenteditable="true"]');
-    await expect(editorAgain).toContainText('Persistent content here');
+      const editorAgain = page
+        .getByTestId('document-editor')
+        .locator('[contenteditable="true"]');
+      await expect(editorAgain).toContainText('Persistent content here');
+    });
   });
 });
 
@@ -250,87 +204,69 @@ test.describe('Offline Mode - Element Availability', () => {
 test.describe('Local Document Creation - IndexedDB Storage', () => {
   test.slow();
 
-  test('should store document data in IndexedDB when a document element is created', async ({
+  test('document, worldbuilding, and tree data persist to IndexedDB', async ({
     localPageWithProject: page,
   }) => {
     await page.getByTestId('project-card').first().click();
     await page.waitForURL(/\/.+\/.+/);
 
-    // Create a document element and open it
-    await createDocumentElement(page, 'IndexedDB Doc');
-    await page.getByTestId('element-IndexedDB Doc').click();
-    await expect(page).toHaveURL(/document\/.+/);
+    await test.step('document content is stored in IndexedDB', async () => {
+      await createDocumentElement(page, 'IndexedDB Doc');
+      await page.getByTestId('element-IndexedDB Doc').click();
+      await expect(page).toHaveURL(/document\/.+/);
 
-    // Extract element ID from URL to construct exact DB name
-    const elementId = new URL(page.url()).pathname.split('/').pop()!;
-    const expectedDocDb = `testuser:test-project:${elementId}`;
+      const elementId = new URL(page.url()).pathname.split('/').pop()!;
+      const expectedDocDb = `testuser:test-project:${elementId}`;
 
-    // Type some content to trigger a Yjs update + IndexedDB persist
-    const editor = page
-      .getByTestId('document-editor')
-      .locator('[contenteditable="true"]');
-    await expect(editor).toBeVisible();
-    await editor.click();
-    await page.keyboard.insertText('Stored in IndexedDB');
+      const editor = page
+        .getByTestId('document-editor')
+        .locator('[contenteditable="true"]');
+      await expect(editor).toBeVisible();
+      await editor.click();
+      await page.keyboard.insertText('Stored in IndexedDB');
 
-    // Wait for IndexedDB persistence to flush
-    await expect
-      .poll(async () => {
-        const dbs = await listIndexedDBDatabases(page);
-        return dbs.includes(expectedDocDb);
-      })
-      .toBe(true);
-  });
+      await expect
+        .poll(async () => {
+          const dbs = await listIndexedDBDatabases(page);
+          return dbs.includes(expectedDocDb);
+        })
+        .toBe(true);
+    });
 
-  test('should store worldbuilding data in IndexedDB when a worldbuilding element is opened', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await page.waitForURL(/\/.+\/.+/);
+    await test.step('worldbuilding data is stored in IndexedDB', async () => {
+      await createCharacterElement(page, 'Stored Character');
+      await page.getByTestId('element-Stored Character').click();
+      await expect(page).toHaveURL(/worldbuilding\/.+/);
+      await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
 
-    // Create a character element and open it
-    await createCharacterElement(page, 'Stored Character');
-    await page.getByTestId('element-Stored Character').click();
-    await expect(page).toHaveURL(/worldbuilding\/.+/);
-    await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
+      const elementId = new URL(page.url()).pathname.split('/').pop()!;
+      const expectedWbDb = `worldbuilding:testuser:test-project:${elementId}`;
 
-    // Extract element ID from URL to construct exact DB name
-    const elementId = new URL(page.url()).pathname.split('/').pop()!;
-    const expectedWbDb = `worldbuilding:testuser:test-project:${elementId}`;
+      await expect
+        .poll(async () => {
+          const dbs = await listIndexedDBDatabases(page);
+          return dbs.includes(expectedWbDb);
+        })
+        .toBe(true);
+    });
 
-    // Wait for IndexedDB persistence to flush
-    await expect
-      .poll(async () => {
-        const dbs = await listIndexedDBDatabases(page);
-        return dbs.includes(expectedWbDb);
-      })
-      .toBe(true);
-  });
+    await test.step('element tree is stored in IndexedDB as a unified Yjs document', async () => {
+      await createDocumentElement(page, 'Tree Doc 1');
+      await createCharacterElement(page, 'Tree Char 1');
+      await createFolderElement(page, 'Tree Folder 1');
 
-  test('should store element tree in IndexedDB as a unified Yjs document', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await page.waitForURL(/\/.+\/.+/);
+      await expect(page.getByTestId('element-Tree Doc 1')).toBeVisible();
+      await expect(page.getByTestId('element-Tree Char 1')).toBeVisible();
+      await expect(page.getByTestId('element-Tree Folder 1')).toBeVisible();
 
-    // Add multiple elements to the tree
-    await createDocumentElement(page, 'Tree Doc 1');
-    await createCharacterElement(page, 'Tree Char 1');
-    await createFolderElement(page, 'Tree Folder 1');
-
-    // All elements should be visible in the tree
-    await expect(page.getByTestId('element-Tree Doc 1')).toBeVisible();
-    await expect(page.getByTestId('element-Tree Char 1')).toBeVisible();
-    await expect(page.getByTestId('element-Tree Folder 1')).toBeVisible();
-
-    // Verify the elements tree Yjs document exists in IndexedDB
-    const expectedElementsDb = 'local:testuser:test-project:elements';
-    await expect
-      .poll(async () => {
-        const dbs = await listIndexedDBDatabases(page);
-        return dbs.includes(expectedElementsDb);
-      })
-      .toBe(true);
+      const expectedElementsDb = 'local:testuser:test-project:elements';
+      await expect
+        .poll(async () => {
+          const dbs = await listIndexedDBDatabases(page);
+          return dbs.includes(expectedElementsDb);
+        })
+        .toBe(true);
+    });
   });
 });
 
@@ -341,214 +277,155 @@ test.describe('Local Document Creation - IndexedDB Storage', () => {
 test.describe('Unsynchronized Document Detection', () => {
   test.slow();
 
-  test('should detect when a document referenced in the tree has no local IndexedDB data', async ({
+  test('availability detection: phantom IDs, deletion, empty editors, and synced warnings', async ({
     localPageWithProject: page,
   }) => {
     await page.getByTestId('project-card').first().click();
     await page.waitForURL(/\/.+\/.+/);
 
-    // Create a document element and open it to trigger IndexedDB persistence
-    await createDocumentElement(page, 'Synced Doc');
-    await page.getByTestId('element-Synced Doc').click();
-    await expect(page).toHaveURL(/document\/.+/);
+    await test.step('phantom doc IDs are detected as unavailable; real ones available', async () => {
+      await createDocumentElement(page, 'Synced Doc');
+      await page.getByTestId('element-Synced Doc').click();
+      await expect(page).toHaveURL(/document\/.+/);
 
-    // Extract element ID from URL to construct exact DB name
-    const elementId = new URL(page.url()).pathname.split('/').pop()!;
-    const expectedDocDb = `testuser:test-project:${elementId}`;
+      const elementId = new URL(page.url()).pathname.split('/').pop()!;
+      const expectedDocDb = `testuser:test-project:${elementId}`;
 
-    // Type content so the doc has data in IndexedDB
-    const editor = page
-      .getByTestId('document-editor')
-      .locator('[contenteditable="true"]');
-    await expect(editor).toBeVisible();
-    await editor.click();
-    await page.keyboard.insertText('Real document content');
+      const editor = page
+        .getByTestId('document-editor')
+        .locator('[contenteditable="true"]');
+      await expect(editor).toBeVisible();
+      await editor.click();
+      await page.keyboard.insertText('Real document content');
 
-    // Wait for IndexedDB persistence to flush
-    await expect
-      .poll(async () => {
-        return checkIndexedDBAvailability(page, expectedDocDb);
-      })
-      .toBe(true);
+      await expect
+        .poll(async () => {
+          return checkIndexedDBAvailability(page, expectedDocDb);
+        })
+        .toBe(true);
 
-    // A fabricated document ID that was never synced — simulates the
-    // scenario where another user added an element to the shared tree
-    // and our browser received the reference but never got the content
-    const phantomDocId = 'testuser:test-project:phantom-element-id-12345';
-    const phantomAvailable = await checkIndexedDBAvailability(
-      page,
-      phantomDocId
-    );
+      const phantomDocId = 'testuser:test-project:phantom-element-id-12345';
+      const phantomAvailable = await checkIndexedDBAvailability(
+        page,
+        phantomDocId
+      );
+      expect(phantomAvailable).toBe(false);
 
-    // The phantom document should NOT be available — it was never synced
-    expect(phantomAvailable).toBe(false);
+      const realDocAvailable = await checkIndexedDBAvailability(
+        page,
+        expectedDocDb
+      );
+      expect(realDocAvailable).toBe(true);
+    });
 
-    // But the real document should be available
-    const realDocAvailable = await checkIndexedDBAvailability(
-      page,
-      expectedDocDb
-    );
-    expect(realDocAvailable).toBe(true);
-  });
+    await test.step('deleting an IndexedDB DB makes the doc unavailable', async () => {
+      await createDocumentElement(page, 'To Be Removed');
+      await page.getByTestId('element-To Be Removed').click();
+      await expect(page).toHaveURL(/document\/.+/);
 
-  test('should detect unavailability after deleting a documents IndexedDB data', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await page.waitForURL(/\/.+\/.+/);
+      const elementId = new URL(page.url()).pathname.split('/').pop()!;
+      const expectedDocDb = `testuser:test-project:${elementId}`;
 
-    // Create a document and write content
-    await createDocumentElement(page, 'To Be Removed');
-    await page.getByTestId('element-To Be Removed').click();
-    await expect(page).toHaveURL(/document\/.+/);
+      const editor = page
+        .getByTestId('document-editor')
+        .locator('[contenteditable="true"]');
+      await expect(editor).toBeVisible();
+      await editor.click();
+      await page.keyboard.insertText('Content that will be lost');
 
-    // Extract element ID from URL to construct exact DB name
-    const elementId = new URL(page.url()).pathname.split('/').pop()!;
-    const expectedDocDb = `testuser:test-project:${elementId}`;
+      await expect
+        .poll(async () => {
+          return checkIndexedDBAvailability(page, expectedDocDb);
+        })
+        .toBe(true);
 
-    const editor = page
-      .getByTestId('document-editor')
-      .locator('[contenteditable="true"]');
-    await expect(editor).toBeVisible();
-    await editor.click();
-    await page.keyboard.insertText('Content that will be lost');
+      await page.getByTestId('toolbar-home-button').click();
 
-    // Wait for IndexedDB persistence to flush
-    await expect
-      .poll(async () => {
-        return checkIndexedDBAvailability(page, expectedDocDb);
-      })
-      .toBe(true);
+      const beforeDelete = await checkIndexedDBAvailability(
+        page,
+        expectedDocDb
+      );
 
-    // Navigate away from the document
-    await page.getByTestId('toolbar-home-button').click();
+      await page.evaluate(async (docId: string) => {
+        await new Promise<void>((resolve, reject) => {
+          const deleteReq = indexedDB.deleteDatabase(docId);
+          deleteReq.onsuccess = () => resolve();
+          deleteReq.onerror = () => reject(new Error(String(deleteReq.error)));
+        });
+      }, expectedDocDb);
 
-    // Delete the IndexedDB for this document — simulating the scenario where
-    // the element tree knows about this document, but the content was never
-    // synced to our browser (e.g., another user created it remotely and we
-    // lost connection before the content arrived)
-    const beforeDelete = await checkIndexedDBAvailability(page, expectedDocDb);
+      const afterDelete = await checkIndexedDBAvailability(page, expectedDocDb);
 
-    // Delete the database
-    await page.evaluate(async (docId: string) => {
-      await new Promise<void>((resolve, reject) => {
-        const deleteReq = indexedDB.deleteDatabase(docId);
-        deleteReq.onsuccess = () => resolve();
-        deleteReq.onerror = () => reject(new Error(String(deleteReq.error)));
-      });
-    }, expectedDocDb);
+      expect(beforeDelete).toBe(true);
+      expect(afterDelete).toBe(false);
+    });
 
-    const afterDelete = await checkIndexedDBAvailability(page, expectedDocDb);
+    await test.step('opening a doc with no IndexedDB shows empty editor', async () => {
+      await createDocumentElement(page, 'Phantom Test');
+      await page.getByTestId('element-Phantom Test').click();
+      await expect(page).toHaveURL(/document\/.+/);
 
-    // Document was available before, unavailable after deletion
-    expect(beforeDelete).toBe(true);
-    expect(afterDelete).toBe(false);
-  });
+      const elementId = new URL(page.url()).pathname.split('/').pop()!;
+      const expectedDocDb = `testuser:test-project:${elementId}`;
 
-  test('should show empty editor when opening a document with no IndexedDB data', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await page.waitForURL(/\/.+\/.+/);
+      const editor = page
+        .getByTestId('document-editor')
+        .locator('[contenteditable="true"]');
+      await expect(editor).toBeVisible();
+      await editor.click();
+      await page.keyboard.insertText('Original content');
 
-    // Create a document, open it, and type content
-    await createDocumentElement(page, 'Phantom Test');
-    await page.getByTestId('element-Phantom Test').click();
-    await expect(page).toHaveURL(/document\/.+/);
+      await expect
+        .poll(async () => {
+          return checkIndexedDBAvailability(page, expectedDocDb);
+        })
+        .toBe(true);
 
-    // Extract element ID from URL to construct exact DB name
-    const elementId = new URL(page.url()).pathname.split('/').pop()!;
-    const expectedDocDb = `testuser:test-project:${elementId}`;
+      await page.getByTestId('toolbar-home-button').click();
+      await expect(page.getByTestId('element-Phantom Test')).toBeVisible();
 
-    const editor = page
-      .getByTestId('document-editor')
-      .locator('[contenteditable="true"]');
-    await expect(editor).toBeVisible();
-    await editor.click();
-    await page.keyboard.insertText('Original content');
+      await page.evaluate(async (docId: string) => {
+        await new Promise<void>(resolve => {
+          const req = indexedDB.deleteDatabase(docId);
+          req.onsuccess = () => resolve();
+          req.onerror = () => resolve();
+        });
+      }, expectedDocDb);
 
-    // Wait for IndexedDB persistence to flush
-    await expect
-      .poll(async () => {
-        return checkIndexedDBAvailability(page, expectedDocDb);
-      })
-      .toBe(true);
+      await page.getByTestId('element-Phantom Test').click();
+      await expect(page).toHaveURL(/document\/.+/);
 
-    // Navigate to project home to close the document editor
-    await page.getByTestId('toolbar-home-button').click();
-    // Wait for the document tab to be deselected (home tab visible)
-    await expect(page.getByTestId('element-Phantom Test')).toBeVisible();
+      const editorAfter = page
+        .getByTestId('document-editor')
+        .locator('[contenteditable="true"]');
+      await expect(editorAfter).toBeVisible();
+      await expect(editorAfter).not.toContainText('Original content');
+    });
 
-    // Delete only this document's IndexedDB to simulate unsynced state
-    await page.evaluate(async (docId: string) => {
-      await new Promise<void>(resolve => {
-        const req = indexedDB.deleteDatabase(docId);
-        req.onsuccess = () => resolve();
-        req.onerror = () => resolve();
-      });
-    }, expectedDocDb);
+    await test.step('worldbuilding elements that synced do NOT show warning', async () => {
+      await createCharacterElement(page, 'Synced Character');
+      await page.getByTestId('element-Synced Character').click();
+      await expect(page).toHaveURL(/worldbuilding\/.+/);
+      await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
 
-    // Re-open the document — it still exists in the element tree
-    // but has no IndexedDB backing (simulates unsynchronized state)
-    await page.getByTestId('element-Phantom Test').click();
-    await expect(page).toHaveURL(/document\/.+/);
+      await expect(
+        page.getByTestId('unsynchronized-document-warning')
+      ).not.toBeVisible();
+    });
 
-    // The editor should load but with empty content
-    // (the original content was in the deleted IndexedDB)
-    const editorAfter = page
-      .getByTestId('document-editor')
-      .locator('[contenteditable="true"]');
-    await expect(editorAfter).toBeVisible();
+    await test.step('document elements that synced do NOT show warning', async () => {
+      await createDocumentElement(page, 'Synced Document');
+      await page.getByTestId('element-Synced Document').click();
+      await expect(page).toHaveURL(/document\/.+/);
 
-    // The original content should NOT be present
-    await expect(editorAfter).not.toContainText('Original content');
-  });
+      const editor = page
+        .getByTestId('document-editor')
+        .locator('[contenteditable="true"]');
+      await expect(editor).toBeVisible();
 
-  test('should NOT show unsynchronized warning for worldbuilding elements that have been synced', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await page.waitForURL(/\/.+\/.+/);
-
-    // Create a worldbuilding character and open it
-    await createCharacterElement(page, 'Synced Character');
-    await page.getByTestId('element-Synced Character').click();
-    await expect(page).toHaveURL(/worldbuilding\/.+/);
-
-    // Worldbuilding editor should be visible
-    await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
-
-    // The unsynchronized document warning should NOT be shown —
-    // this is the regression check: worldbuilding elements use a different
-    // IndexedDB key format (worldbuilding:user:slug:id) than regular
-    // documents (user:slug:id), so the availability check must account
-    // for this difference. If it doesn't, ALL worldbuilding elements
-    // will falsely show as unavailable.
-    await expect(
-      page.getByTestId('unsynchronized-document-warning')
-    ).not.toBeVisible();
-  });
-
-  test('should NOT show unsynchronized warning for document elements that have been synced', async ({
-    localPageWithProject: page,
-  }) => {
-    await page.getByTestId('project-card').first().click();
-    await page.waitForURL(/\/.+\/.+/);
-
-    // Create a document and open it
-    await createDocumentElement(page, 'Synced Document');
-    await page.getByTestId('element-Synced Document').click();
-    await expect(page).toHaveURL(/document\/.+/);
-
-    // Editor should be visible
-    const editor = page
-      .getByTestId('document-editor')
-      .locator('[contenteditable="true"]');
-    await expect(editor).toBeVisible();
-
-    // The unsynchronized document warning should NOT be shown
-    await expect(
-      page.getByTestId('unsynchronized-document-warning')
-    ).not.toBeVisible();
+      await expect(
+        page.getByTestId('unsynchronized-document-warning')
+      ).not.toBeVisible();
+    });
   });
 });

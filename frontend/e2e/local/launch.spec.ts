@@ -1,14 +1,18 @@
 /**
  * Application Launch Tests - Local Mode
  *
- * Tests that verify the app launches correctly in local mode
- * without any server connection.
+ * Verifies the app launches correctly in local mode without any server
+ * connection, that local mode persists across reload, and that navigation
+ * into a project still works.
+ *
+ * Consolidated from 4 individual tests into 1 grouped test using
+ * `test.step()`. The local-mode indicator and config-active-mode checks
+ * are merged with launch + persistence + navigation since they all
+ * operate on the same `localPageWithProject` fixture.
  */
 import { expect, test } from './fixtures';
 
-/**
- * Helper to get the active mode from the v2 config format
- */
+/** Read the active mode from the v2 (or legacy v1) config blob. */
 function getActiveMode(config: string): 'local' | 'server' | undefined {
   const parsed = JSON.parse(config);
   if (parsed.version === 2) {
@@ -17,69 +21,43 @@ function getActiveMode(config: string): 'local' | 'server' | undefined {
     );
     return activeConfig?.type;
   }
-  // Legacy v1 format fallback
+  // Legacy v1 format fallback.
   return parsed.mode;
 }
 
 test.describe('Local Application Launch', () => {
-  test('should launch app in local mode with test project', async ({
+  test('launch in local mode, persist across reload, navigate to project', async ({
     localPageWithProject: page,
   }) => {
-    // The fixture already sets up local mode with a test project
-    // Verify we're on the home page with a project card visible
-    await expect(page.getByTestId('project-card').first()).toBeVisible();
+    await test.step('app launches with local config and a project card visible', async () => {
+      await expect(page.getByTestId('project-card').first()).toBeVisible();
 
-    // Verify localStorage has local config
-    const config = await page.evaluate(() => {
-      return localStorage.getItem('inkweld-app-config');
-    });
-    expect(config).not.toBeNull();
-    expect(getActiveMode(config!)).toBe('local');
-  });
-
-  test('should show local indicator in UI', async ({
-    localPageWithProject: page,
-  }) => {
-    // Check for local mode indicator (if present in UI)
-    // The app should indicate it's running in local mode
-    const config = await page.evaluate(() => {
-      return localStorage.getItem('inkweld-app-config');
-    });
-    expect(config).not.toBeNull();
-    expect(getActiveMode(config!)).toBe('local');
-  });
-
-  test('should persist local mode across page refresh', async ({
-    localPageWithProject: page,
-  }) => {
-    // Get initial config
-    const configBefore = await page.evaluate(() => {
-      return localStorage.getItem('inkweld-app-config');
+      const config = await page.evaluate(() =>
+        localStorage.getItem('inkweld-app-config')
+      );
+      expect(config).not.toBeNull();
+      expect(getActiveMode(config!)).toBe('local');
     });
 
-    // Refresh the page
-    await page.reload();
+    await test.step('local mode persists across a page reload', async () => {
+      const configBefore = await page.evaluate(() =>
+        localStorage.getItem('inkweld-app-config')
+      );
 
-    // Wait for app to reinitialize
-    await expect(page.getByTestId('project-card').first()).toBeVisible();
+      await page.reload();
+      await expect(page.getByTestId('project-card').first()).toBeVisible();
 
-    // Verify config is still local mode (timestamps may differ but mode should be same)
-    const configAfter = await page.evaluate(() => {
-      return localStorage.getItem('inkweld-app-config');
+      const configAfter = await page.evaluate(() =>
+        localStorage.getItem('inkweld-app-config')
+      );
+      expect(getActiveMode(configAfter!)).toBe(getActiveMode(configBefore!));
+      expect(getActiveMode(configAfter!)).toBe('local');
     });
-    expect(getActiveMode(configAfter!)).toBe(getActiveMode(configBefore!));
-  });
 
-  test('should navigate to project in local mode', async ({
-    localPageWithProject: page,
-  }) => {
-    // Click on the project card
-    await page.getByTestId('project-card').first().click();
-
-    // Should navigate to the project page
-    await expect(page).toHaveURL(/\/.+\/.+/);
-
-    // Project tree should be visible
-    await expect(page.getByTestId('project-tree')).toBeVisible();
+    await test.step('clicking a project card opens the project tree', async () => {
+      await page.getByTestId('project-card').first().click();
+      await expect(page).toHaveURL(/\/.+\/.+/);
+      await expect(page.getByTestId('project-tree')).toBeVisible();
+    });
   });
 });
