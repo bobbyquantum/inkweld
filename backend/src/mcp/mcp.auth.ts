@@ -8,11 +8,13 @@
  */
 
 import type { Context, Next } from 'hono';
+import { sign } from 'hono/jwt';
 import type { AppContext } from '../types/context';
 import type { DurableObjectNamespace } from '../types/cloudflare';
 import { mcpKeyService, parsePermissions } from '../services/mcp-key.service';
 import { mcpOAuthService, type CloudflareEnv } from '../services/mcp-oauth.service';
 import { projectService } from '../services/project.service';
+import { config } from '../config/env';
 import type { McpContext, McpLegacyContext, McpOAuthContext, McpOAuthGrant } from './mcp.types';
 import { createErrorResponse, JSON_RPC_ERRORS } from './mcp.types';
 import { logger } from '../services/logger.service';
@@ -81,6 +83,45 @@ function getClientIp(c: Context): string | undefined {
 }
 
 /**
+ * Mint a short-lived JWT compatible with the Durable Object's verifyToken().
+ *
+ * Legacy API keys (iw_proj_...) are not JWTs, so the Durable Object HTTP API
+ * rejects them with 401. We mint a short-lived JWT signed with the same
+ * DATABASE_KEY / SESSION_SECRET that the DO uses, so it passes verifyToken().
+ *
+ * The JWT contains the minimum fields the DO checks:
+ *   - userId / sub (required by SessionData)
+ *   - username     (required by SessionData; compared against projectOwner)
+ *   - exp          (24-hour TTL to prevent indefinite reuse)
+ */
+async function mintDoJwt(
+  username: string,
+  userId: string,
+  env: Record<string, unknown>
+): Promise<string> {
+  // Mirror the secret resolution in YjsProject.getSecret() and McpOAuthService.getSecret()
+  const secret =
+    (env.DATABASE_KEY as string | undefined) ||
+    (env.SESSION_SECRET as string | undefined) ||
+    config.databaseKey;
+
+  if (!secret || secret.length < 32) {
+    throw new Error('DATABASE_KEY must be at least 32 characters for JWT signing');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const payload: Record<string, unknown> = {
+    sub: userId,
+    userId,
+    username,
+    iat: now,
+    exp: now + 86400, // 24-hour TTL
+  };
+
+  return sign(payload, secret, 'HS256');
+}
+
+/**
  * Handle legacy API key authentication (iw_proj_...)
  */
 async function handleLegacyApiKey(
@@ -124,6 +165,12 @@ async function handleLegacyApiKey(
   }
 
   // Return legacy context
+  const env = c.env as { YJS_PROJECTS?: DurableObjectNamespace; [key: string]: unknown };
+
+  // Mint a DO-compatible JWT so the Durable Object HTTP API accepts write operations.
+  // The raw legacy key (iw_proj_...) is not a JWT and is rejected by the DO's verifyToken().
+  const doAuthToken = await mintDoJwt(user.username, String(user.id), env);
+
   return {
     type: 'legacy',
     key: validation.key,
@@ -133,8 +180,8 @@ async function handleLegacyApiKey(
     slug: project.slug,
     clientIp,
     initialized: false,
-    authToken: token,
-    env: c.env as { YJS_PROJECTS?: DurableObjectNamespace; [key: string]: unknown },
+    authToken: doAuthToken,
+    env,
   };
 }
 
