@@ -3,6 +3,7 @@ import type { TimelineEra, TimelineEvent } from '@models/timeline.model';
 import { describe, expect, it } from 'vitest';
 
 import {
+  assignLabelLanes,
   computeDefaultBounds,
   computeTickMarks,
   panBounds,
@@ -345,6 +346,107 @@ describe('timeline-view-math', () => {
 
     it('returns empty array for no events', () => {
       expect(sortEventsByStart([], SYS)).toEqual([]);
+    });
+  });
+
+  // ─── assignLabelLanes ─────────────────────────────────────────────
+
+  describe('assignLabelLanes', () => {
+    it('returns empty assignments for empty input', () => {
+      const result = assignLabelLanes([], 8);
+      expect(result.assignments).toEqual([]);
+      expect(result.laneCount).toBe(0);
+    });
+
+    it('places a single item into lane 0', () => {
+      const result = assignLabelLanes([{ x: 100, labelWidth: 50 }], 8);
+      expect(result.assignments).toEqual([0]);
+      expect(result.laneCount).toBe(1);
+    });
+
+    it('places non-overlapping items in lane 0', () => {
+      const result = assignLabelLanes(
+        [
+          { x: 0, labelWidth: 20 },
+          { x: 100, labelWidth: 20 },
+          { x: 200, labelWidth: 20 },
+        ],
+        8
+      );
+      expect(result.assignments).toEqual([0, 0, 0]);
+      expect(result.laneCount).toBe(1);
+    });
+
+    it('stacks overlapping items into separate lanes', () => {
+      // Three centred-on-50 items with width 60 each → all overlap
+      const result = assignLabelLanes(
+        [
+          { x: 50, labelWidth: 60 },
+          { x: 55, labelWidth: 60 },
+          { x: 60, labelWidth: 60 },
+        ],
+        4
+      );
+      expect(result.laneCount).toBe(3);
+      // Each gets its own lane (in left-to-right order all conflict)
+      expect(new Set(result.assignments).size).toBe(3);
+    });
+
+    it('reuses an earlier lane once it has cleared', () => {
+      // a@0, b@5 overlap → b goes to lane 1. c@200 is far → can use lane 0.
+      const result = assignLabelLanes(
+        [
+          { x: 0, labelWidth: 20 },
+          { x: 5, labelWidth: 20 },
+          { x: 200, labelWidth: 20 },
+        ],
+        4
+      );
+      expect(result.laneCount).toBe(2);
+      expect(result.assignments[0]).toBe(0);
+      expect(result.assignments[1]).toBe(1);
+      expect(result.assignments[2]).toBe(0);
+    });
+
+    it('respects minGap when deciding overlap', () => {
+      // Two items 30px apart with 20-wide labels would not overlap visually,
+      // but a gap of 20 forces them to separate lanes.
+      const tight = assignLabelLanes(
+        [
+          { x: 0, labelWidth: 20 },
+          { x: 30, labelWidth: 20 },
+        ],
+        20
+      );
+      expect(tight.laneCount).toBe(2);
+      const loose = assignLabelLanes(
+        [
+          { x: 0, labelWidth: 20 },
+          { x: 30, labelWidth: 20 },
+        ],
+        2
+      );
+      expect(loose.laneCount).toBe(1);
+    });
+
+    it('processes items left-to-right regardless of input order', () => {
+      // Out-of-order input: the algorithm sorts by x internally, so the
+      // leftmost item always wins lane 0 regardless of input position.
+      // Width 50 + minGap 8 → each item occupies x±29. With items spaced
+      // 50 apart, x=0 and x=50 overlap (x=0 right edge=29 > x=50 left=21),
+      // but x=100 (left=71) clears x=0's footprint in lane 0 → reuses it.
+      const result = assignLabelLanes(
+        [
+          { x: 100, labelWidth: 50 },
+          { x: 0, labelWidth: 50 },
+          { x: 50, labelWidth: 50 },
+        ],
+        8
+      );
+      expect(result.assignments[1]).toBe(0); // x=0   → lane 0 (leftmost)
+      expect(result.assignments[2]).toBe(1); // x=50  → lane 1 (overlaps x=0)
+      expect(result.assignments[0]).toBe(0); // x=100 → lane 0 (reused, x=0 cleared)
+      expect(result.laneCount).toBe(2);
     });
   });
 });

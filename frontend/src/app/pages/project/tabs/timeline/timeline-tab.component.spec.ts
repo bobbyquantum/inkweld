@@ -1011,10 +1011,12 @@ describe('TimelineTabComponent', () => {
     });
   });
 
-  it('tracksCanvasHeight is at least one track height', () => {
+  it('tracksCanvasHeight is at least one event area height', () => {
     fixture.detectChanges();
+    // After the redesign, a track with no instant events collapses to just
+    // the eventAreaHeight (no label lanes reserved).
     expect(component['tracksCanvasHeight']()).toBeGreaterThanOrEqual(
-      component['trackHeight']
+      component['eventAreaHeight']
     );
   });
 
@@ -1032,7 +1034,10 @@ describe('TimelineTabComponent', () => {
     const pills = component['eventPills']();
     expect(pills.length).toBe(1);
     expect(pills[0].event.id).toBe('pill-ev');
-    expect(pills[0].width).toBeGreaterThanOrEqual(80); // minWidth
+    // Instant events render as diamonds with `cx`/`diamondPoints`, no `width`.
+    expect(pills[0].isInstant).toBe(true);
+    expect(pills[0].cx).toBeGreaterThan(component['labelGutter']);
+    expect(pills[0].diamondPoints).toBeTruthy();
   });
 
   it('eventPills filters out events from a different system', () => {
@@ -1141,7 +1146,7 @@ describe('TimelineTabComponent', () => {
 
   // ─── Event pills with ranged events ────────────────────────────────────────
 
-  it('eventPills gives wider pill for ranged events', () => {
+  it('eventPills renders ranged events as rectangles, not diamonds', () => {
     fixture.detectChanges();
     const system = TIME_SYSTEM_TEMPLATES[0];
     const event: TimelineEvent = {
@@ -1155,8 +1160,11 @@ describe('TimelineTabComponent', () => {
     fixture.detectChanges();
     const pills = component['eventPills']();
     expect(pills.length).toBe(1);
-    // Width should be at least minWidth (80)
-    expect(pills[0].width).toBeGreaterThanOrEqual(80);
+    // Ranged events use rect geometry: x/y/width/height, not cx/diamondPoints.
+    expect(pills[0].isInstant).toBe(false);
+    expect(pills[0].width).toBeGreaterThan(0);
+    expect(pills[0].height).toBeGreaterThan(0);
+    expect(pills[0].diamondPoints).toBeUndefined();
   });
 
   it('eventPills omits events whose track does not exist', () => {
