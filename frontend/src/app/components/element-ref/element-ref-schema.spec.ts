@@ -2,7 +2,6 @@
  * Element Reference Schema Tests
  */
 
-import type { Node as ProseMirrorNode } from 'prosemirror-model';
 import { describe, expect, it } from 'vitest';
 
 import { ElementType } from '../../../api-client';
@@ -101,9 +100,7 @@ describe('element-ref-schema', () => {
       const getResult = (node: {
         attrs: Record<string, unknown>;
       }): unknown[] => {
-        return elementRefNodeSpec.toDOM!(
-          node as unknown as ProseMirrorNode
-        ) as unknown as unknown[];
+        return elementRefNodeSpec.toDOM!(node as never) as unknown as unknown[];
       };
 
       it('should generate DOM for complete element ref', () => {

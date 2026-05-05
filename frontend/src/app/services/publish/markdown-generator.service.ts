@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
+import { xmlToMarkdown } from '@inkweld/prosemirror/markdown';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
 import {
@@ -317,224 +318,180 @@ export class MarkdownGeneratorService {
   }
 
   /**
-   * Convert ProseMirror document to Markdown
+   * Convert a ProseMirror document (JSON form) to Markdown by first
+   * serializing it to canonical Inkweld XML, then handing it off to the
+   * shared `xmlToMarkdown` converter. Centralising the markdown logic
+   * in `@inkweld/prosemirror` keeps the publish pipeline, MCP layer,
+   * and editor preview in lock-step.
+   *
+   * Lossy marks (`text_color`, `text_background_color`) are dropped
+   * here at the JSON→XML stage because the publish output prefers a
+   * clean, paste-ready document over a fully-reversible one. Comment
+   * marks are likewise omitted from published output.
    */
   private prosemirrorToMarkdown(data: unknown): string {
     if (!data) return '';
+    const xml = this.serializeProseMirrorToXml(data);
+    if (!xml) return '';
+    return xmlToMarkdown(xml);
+  }
+
+  /**
+   * Walk a loosely-typed ProseMirror JSON tree and produce the canonical
+   * Inkweld XML string consumed by `xmlToMarkdown`.
+   */
+  private serializeProseMirrorToXml(data: unknown): string {
     if (Array.isArray(data)) {
-      return data
-        .map(node => this.nodeToMarkdown(node as ProseMirrorNode))
-        .filter(s => s.trim())
-        .join('\n\n');
+      return data.map(n => this.nodeToXml(n as ProseMirrorNode)).join('');
     }
-    if (typeof data === 'object') {
-      return this.nodeToMarkdown(data as ProseMirrorNode);
+    if (typeof data === 'object' && data !== null) {
+      return this.nodeToXml(data as ProseMirrorNode);
     }
     return '';
   }
 
-  private nodeToMarkdown(node: ProseMirrorNode): string {
+  private nodeToXml(node: ProseMirrorNode): string {
     if (!node) return '';
-    if (typeof node === 'string') return node;
-    if (Array.isArray(node)) {
-      return node
-        .map(n => this.nodeToMarkdown(n))
-        .filter(s => s.trim())
-        .join('\n\n');
+    if (typeof node === 'string') return this.escapeXmlText(node);
+    if (Array.isArray(node)) return node.map(n => this.nodeToXml(n)).join('');
+
+    const name = this.getNodeName(node);
+    const children = this.getChildren(node);
+
+    // Text node — wrap in marks (innermost first).
+    const textVal = (node as Record<string, unknown>)['text'];
+    if (typeof textVal === 'string') {
+      let inner = this.escapeXmlText(textVal);
+      const marks = this.getRawMarks(node);
+      // Inside-out: code → strong/em/s/u/sup/sub → link. Lossy marks
+      // (text_color, comment, …) are intentionally dropped to match
+      // the previous publish output.
+      let linkAttrs: Record<string, unknown> | undefined;
+      for (const m of marks) {
+        switch (m.type) {
+          case 'code':
+            inner = `<code>${inner}</code>`;
+            break;
+          default:
+            break;
+        }
+      }
+      for (const m of marks) {
+        switch (m.type) {
+          case 'bold':
+          case 'strong':
+            inner = `<strong>${inner}</strong>`;
+            break;
+          case 'italic':
+          case 'em':
+            inner = `<em>${inner}</em>`;
+            break;
+          case 'strike':
+          case 's':
+            inner = `<s>${inner}</s>`;
+            break;
+          case 'u':
+            inner = `<u>${inner}</u>`;
+            break;
+          case 'sup':
+            inner = `<sup>${inner}</sup>`;
+            break;
+          case 'sub':
+            inner = `<sub>${inner}</sub>`;
+            break;
+          case 'link':
+            linkAttrs = m.attrs;
+            break;
+          default:
+            break;
+        }
+      }
+      if (linkAttrs) {
+        const href = this.safeStringAttr(linkAttrs, 'href');
+        const title = this.safeStringAttr(linkAttrs, 'title');
+        const titleAttr = title ? ` title="${this.escapeXmlAttr(title)}"` : '';
+        inner = `<a href="${this.escapeXmlAttr(href)}"${titleAttr}>${inner}</a>`;
+      }
+      return inner;
     }
 
-    const nodeName = this.getNodeName(node);
-    const children = this.getChildren(node);
-    const childText = children.map(c => this.extractText(c)).join('');
+    const inner = children.map(c => this.nodeToXml(c)).join('');
 
-    switch (nodeName) {
+    switch (name) {
       case 'doc':
-        return children
-          .map(c => this.nodeToMarkdown(c))
-          .filter(s => s.trim())
-          .join('\n\n');
-
+        return inner;
       case 'paragraph':
-        return childText;
-
+        return `<paragraph>${inner}</paragraph>`;
       case 'heading': {
         const level = this.getAttr(node, 'level', 2);
-        const hashes = '#'.repeat(Math.min(level, 6));
-        return `${hashes} ${childText}`;
+        return `<heading level="${level}">${inner}</heading>`;
       }
-
-      case 'blockquote': {
-        // Recursively render block children, then prefix each line with '> '
-        const inner = children
-          .map(c => this.nodeToMarkdown(c))
-          .filter(s => s.trim())
-          .join('\n\n');
-        return inner
-          .split('\n')
-          .map(line => `> ${line}`)
-          .join('\n');
-      }
-
+      case 'blockquote':
+        return `<blockquote>${inner}</blockquote>`;
       case 'bullet_list':
-        return children.map(c => this.renderListItem(c, '-', 0)).join('\n');
-
+      case 'bulletlist':
+        return `<bullet_list>${inner}</bullet_list>`;
       case 'ordered_list':
-        return children
-          .map((c, i) => this.renderListItem(c, `${i + 1}.`, 0))
-          .join('\n');
-
+      case 'orderedlist':
+        return `<ordered_list>${inner}</ordered_list>`;
+      case 'list_item':
+      case 'listitem':
+        return `<list_item>${inner}</list_item>`;
+      case 'code_block':
+      case 'codeblock': {
+        const attrs = (node as Record<string, unknown>)['attrs'] as
+          | Record<string, unknown>
+          | undefined;
+        const lang = this.safeStringAttr(attrs, 'lang');
+        const langAttr = lang ? ` lang="${this.escapeXmlAttr(lang)}"` : '';
+        return `<code_block${langAttr}>${inner}</code_block>`;
+      }
       case 'image': {
-        const attrs = node['attrs'] as Record<string, unknown> | undefined;
+        const attrs = (node as Record<string, unknown>)['attrs'] as
+          | Record<string, unknown>
+          | undefined;
         const src = this.safeStringAttr(attrs, 'src');
         const alt = this.safeStringAttr(attrs, 'alt');
         const title = this.safeStringAttr(attrs, 'title');
         if (!src) return '';
-        return title ? `![${alt}](${src} "${title}")` : `![${alt}](${src})`;
+        const titleAttr = title ? ` title="${this.escapeXmlAttr(title)}"` : '';
+        return `<image src="${this.escapeXmlAttr(src)}" alt="${this.escapeXmlAttr(alt)}"${titleAttr}/>`;
       }
-
-      case 'code_block': {
-        const langAttr = node['attrs'] as Record<string, unknown> | undefined;
-        const lang = this.safeStringAttr(langAttr, 'lang');
-        return '```' + lang + '\n' + childText + '\n```';
-      }
-
       case 'horizontal_rule':
-        return '---';
-
+      case 'horizontalrule':
+      case 'hr':
+        return '<horizontal_rule/>';
       case 'hard_break':
-        return '  \n';
-
-      default:
-        return childText;
-    }
-  }
-
-  /**
-   * Render a list_item node with a given bullet prefix, indenting nested lists.
-   */
-  private renderListItem(
-    node: ProseMirrorNode,
-    bullet: string,
-    _depth: number
-  ): string {
-    if (!node) return '';
-    const children = this.getChildren(node);
-    const [first, ...rest] = children;
-    const itemText = first ? this.extractText(first) : '';
-    const line = `${bullet} ${itemText}`;
-    if (rest.length === 0) return line;
-    const nested = rest
-      .map(c => this.nodeToMarkdown(c))
-      .join('\n')
-      .split('\n')
-      .map(l => `  ${l}`)
-      .join('\n');
-    return `${line}\n${nested}`;
-  }
-
-  /**
-   * Extract inline text from a node, preserving inline formatting as Markdown.
-   * Images within inline contexts are rendered as Markdown image syntax.
-   */
-  private extractText(node: ProseMirrorNode): string {
-    if (!node) return '';
-    if (typeof node === 'string') return node;
-    if (Array.isArray(node)) {
-      return node.map(n => this.extractText(n)).join('');
-    }
-
-    const nodeName = this.getNodeName(node);
-
-    // Inline element reference - render display text
-    if (nodeName === 'elementRef') {
-      const attrs = node['attrs'] as Record<string, unknown> | undefined;
-      const displayText = attrs?.['displayText'];
-      return typeof displayText === 'string' ? displayText : '';
-    }
-
-    // Inline image
-    if (nodeName === 'image') {
-      const attrs = node['attrs'] as Record<string, unknown> | undefined;
-      const src = this.safeStringAttr(attrs, 'src');
-      const alt = this.safeStringAttr(attrs, 'alt');
-      const title = this.safeStringAttr(attrs, 'title');
-      if (!src) return '';
-      return title ? `![${alt}](${src} "${title}")` : `![${alt}](${src})`;
-    }
-
-    // Hard break
-    if (nodeName === 'hard_break') return '  \n';
-
-    const text = node['text'];
-    if (typeof text === 'string') {
-      const rawMarks = this.getRawMarks(node);
-      return this.applyMarks(text, rawMarks);
-    }
-
-    const children = this.getChildren(node);
-    return children.map(c => this.extractText(c)).join('');
-  }
-
-  /**
-   * Apply ProseMirror marks to a text string, producing Markdown/HTML syntax.
-   * Link marks are applied last so they wrap the fully-formatted text.
-   */
-  private applyMarks(
-    text: string,
-    marks: Array<{ type: string; attrs?: Record<string, unknown> }>
-  ): string {
-    let result = text;
-    let linkHref: string | undefined;
-    let linkTitle: string | undefined;
-
-    for (const mark of marks) {
-      switch (mark.type) {
-        case 'bold':
-        case 'strong':
-          result = `**${result}**`;
-          break;
-        case 'italic':
-        case 'em':
-          result = `*${result}*`;
-          break;
-        case 'code':
-          result = `\`${result}\``;
-          break;
-        case 'strike':
-        case 's':
-          result = `~~${result}~~`;
-          break;
-        case 'u':
-          // Underline has no native Markdown syntax; use inline HTML
-          result = `<u>${result}</u>`;
-          break;
-        case 'sup':
-          result = `<sup>${result}</sup>`;
-          break;
-        case 'sub':
-          result = `<sub>${result}</sub>`;
-          break;
-        case 'link':
-          linkHref = this.safeStringAttr(mark.attrs, 'href');
-          linkTitle = mark.attrs?.['title']
-            ? this.safeStringAttr(mark.attrs, 'title')
-            : undefined;
-          break;
-        // text_color and text_background_color have no Markdown equivalent;
-        // we intentionally drop them to keep the output clean.
-        default:
-          break;
+      case 'hardbreak':
+      case 'br':
+        return '<hard_break/>';
+      case 'elementref':
+      case 'elementRef': {
+        const attrs = (node as Record<string, unknown>)['attrs'] as
+          | Record<string, unknown>
+          | undefined;
+        const display = this.safeStringAttr(attrs, 'displayText');
+        // Render as plain text — publish output should not include
+        // `inkweld://` URIs because they only resolve inside the app.
+        return display ? this.escapeXmlText(display) : '';
       }
+      default:
+        return inner;
     }
+  }
 
-    // Apply link last so it wraps the fully-formatted inline content
-    if (linkHref) {
-      result = linkTitle
-        ? `[${result}](${linkHref} "${linkTitle}")`
-        : `[${result}](${linkHref})`;
-    }
+  private escapeXmlText(text: string): string {
+    return text
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
+  }
 
-    return result;
+  private escapeXmlAttr(text: string): string {
+    return text
+      .replaceAll('&', '&amp;')
+      .replaceAll('"', '&quot;')
+      .replaceAll('<', '&lt;');
   }
 
   /**
