@@ -14,12 +14,8 @@
     "./runtime": "./src/runtime/index.ts"
   },
   "//": "Path mapping in consumer tsconfigs uses bare 'index' (not 'index.ts') so the Angular compiler accepts the imports without allowImportingTsExtensions.",
-  "peerDependencies": {
-    "prosemirror-model": "*",
-    "yjs": "*"
-  },
-  "peerDependenciesMeta": {
-    "prosemirror-model": { "optional": true },
-    "yjs": { "optional": true }
+  "dependencies": {
+    "prosemirror-model": "1.25.4",
+    "yjs": "13.6.30"
   }
 }

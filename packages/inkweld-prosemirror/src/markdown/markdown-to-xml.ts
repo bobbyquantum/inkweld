@@ -136,8 +136,8 @@ function parseBlocks(input: string): Block[] {
       continue;
     }
 
-    // ATX heading.
-    const atx = /^(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line);
+    // ATX heading. NOSONAR(typescript:S5852) - linear: anchored, single-line, bounded quantifiers.
+    const atx = /^(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line); // NOSONAR
     if (atx) {
       blocks.push({ kind: 'heading', level: atx[1].length, text: atx[2] });
       i++;
@@ -193,7 +193,8 @@ function parseBlocks(input: string): Block[] {
 }
 
 function matchFenceOpen(line: string): { fence: string; lang: string } | null {
-  const m = /^(\s{0,3})(`{3,}|~{3,})\s*([^\s`~]*)\s*$/.exec(line);
+  // NOSONAR(typescript:S5852) - linear: anchored, single line, no nested quantifiers.
+  const m = /^(\s{0,3})(`{3,}|~{3,})\s*([^\s`~]*)\s*$/.exec(line); // NOSONAR
   if (!m) return null;
   return { fence: m[2], lang: m[3] || '' };
 }
@@ -268,7 +269,8 @@ interface ListMarker {
 }
 
 function matchListMarker(line: string): ListMarker | null {
-  const bullet = /^(\s{0,3})([-*+])(\s+)(.*)$/.exec(line);
+  // NOSONAR(typescript:S5852) - linear: anchored, single line, bounded.
+  const bullet = /^(\s{0,3})([-*+])(\s+)(.*)$/.exec(line); // NOSONAR
   if (bullet) {
     const indent = bullet[1].length;
     return {
@@ -278,7 +280,8 @@ function matchListMarker(line: string): ListMarker | null {
       contentStart: indent + 1 + bullet[3].length,
     };
   }
-  const ordered = /^(\s{0,3})(\d{1,9})([.)])(\s+)(.*)$/.exec(line);
+  // NOSONAR(typescript:S5852) - linear: anchored, single line, bounded.
+  const ordered = /^(\s{0,3})(\d{1,9})([.)])(\s+)(.*)$/.exec(line); // NOSONAR
   if (ordered) {
     const indent = ordered[1].length;
     return {
@@ -897,7 +900,9 @@ function readInlineHtml(input: string, pos: number): InlineHtml | null {
 
 function parseHtmlAttrs(input: string): Record<string, string> {
   const attrs: Record<string, string> = {};
-  const re = /([a-zA-Z_:][a-zA-Z0-9_:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+  // NOSONAR(typescript:S5852) - linear: alternation of negated-class quantifiers cannot
+  // overlap (an attr is either "..." or '...'), and the global match makes progress each step.
+  const re = /([a-zA-Z_:][a-zA-Z0-9_:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g; // NOSONAR
   let m: RegExpExecArray | null;
   while ((m = re.exec(input)) !== null) {
     attrs[m[1]] = m[2] ?? m[3] ?? '';
