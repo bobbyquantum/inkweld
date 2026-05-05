@@ -100,7 +100,13 @@ describe('element-ref-schema', () => {
       const getResult = (node: {
         attrs: Record<string, unknown>;
       }): unknown[] => {
-        return elementRefNodeSpec.toDOM!(node as never) as unknown as unknown[];
+        const toDOM = elementRefNodeSpec.toDOM;
+        if (!toDOM) {
+          throw new Error('elementRefNodeSpec.toDOM is undefined');
+        }
+        // toDOM signature is too narrow for our test mock; cast through unknown
+        // is the minimum needed and works under both local and CI tsconfigs.
+        return (toDOM as unknown as (n: unknown) => unknown[])(node);
       };
 
       it('should generate DOM for complete element ref', () => {

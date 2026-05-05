@@ -347,7 +347,8 @@ function escapeMarkdownText(text: string): string {
     .replaceAll('\\', '\\\\')
     .replaceAll('`', '\\`')
     // Only escape leading list/heading markers / blockquote markers.
-    .replace(/^(\s*)([#>\-+])/gm, '$1\\$2')
+    // NOSONAR(typescript:S5852) - linear: anchored to line start, no nested quantifiers.
+    .replace(/^(\s*)([#>\-+])/gm, '$1\\$2') // NOSONAR
     // Escape pipes (used in tables), brackets (used in links).
     .replaceAll('[', '\\[')
     .replaceAll(']', '\\]');

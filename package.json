@@ -5,6 +5,9 @@
   "author": "bobbyquantum",
   "license": "MIT",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "postinstall": "cd frontend && bun install --save-text-lockfile && cd ../backend && bun install && cd ../docs/site && bun install",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
