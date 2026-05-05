@@ -1,0 +1,25 @@
+{
+  "name": "@inkweld/prosemirror",
+  "version": "0.1.0",
+  "description": "Shared ProseMirror schema, Yjs XML serialization, and Markdown <-> XML conversion for Inkweld.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./xml": "./src/xml/index.ts",
+    "./markdown": "./src/markdown/index.ts",
+    "./uri": "./src/uri/index.ts",
+    "./runtime": "./src/runtime/index.ts"
+  },
+  "//": "Path mapping in consumer tsconfigs uses bare 'index' (not 'index.ts') so the Angular compiler accepts the imports without allowImportingTsExtensions.",
+  "peerDependencies": {
+    "prosemirror-model": "*",
+    "yjs": "*"
+  },
+  "peerDependenciesMeta": {
+    "prosemirror-model": { "optional": true },
+    "yjs": { "optional": true }
+  }
+}

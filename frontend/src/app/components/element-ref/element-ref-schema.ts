@@ -1,130 +1,40 @@
 /**
- * Element Reference Schema Extension
+ * Element Reference Schema — frontend wrapper.
  *
- * Defines the ProseMirror node type for inline element references.
- * This node is used to embed clickable references to other elements
- * within document content.
+ * The node spec, attribute interface, and extension object live in the
+ * shared package (`@inkweld/prosemirror/schema`) so the backend can use
+ * them too. Only the CSS string stays here — it is frontend-only and
+ * injected into the editor stylesheet.
+ *
+ * ⚠️ Existing imports of `elementRefNodeSpec`, `ELEMENT_REF_NODE_NAME`,
+ * `ElementRefNodeAttrs`, and `elementRefSchemaExtension` from this file
+ * continue to work via re-export.
  */
 
-import { type ElementRefNodeAttrs } from '@models/element-ref.model';
-import { type NodeSpec } from 'prosemirror-model';
+import { type ElementRefNodeAttrs as SharedAttrs } from '@inkweld/prosemirror/schema';
 
 import { type ElementType } from '../../../api-client';
 
+export {
+  ELEMENT_REF_NODE_NAME,
+  elementRefNodeSpec,
+  elementRefSchemaExtension,
+} from '@inkweld/prosemirror/schema';
+
 /**
- * ProseMirror node specification for element references
- *
- * The elementRef node is an inline, atomic node that displays a reference
- * to another element in the project. It stores the element ID for stable
- * references and customizable display text (like a hyperlink).
+ * Frontend-narrowed `ElementRefNodeAttrs`: replaces the shared package's
+ * `ElementTypeLike` (string) with the generated `ElementType` enum so
+ * existing frontend code keeps strict typing.
  */
-export const elementRefNodeSpec: NodeSpec = {
-  // Node is inline and part of the inline content group
-  group: 'inline',
-  inline: true,
-
-  // Atomic means it cannot be directly edited - treated as a single unit
-  atom: true,
-
-  // Define the attributes stored on this node
-  attrs: {
-    /** The referenced element's ID */
-    elementId: { default: null },
-    /** The element's type (for styling) */
-    elementType: { default: null },
-    /** Display text shown in the editor */
-    displayText: { default: '' },
-    /** Original element name (for detecting renames) */
-    originalName: { default: '' },
-    /** Associated relationship record ID */
-    relationshipId: { default: null },
-    /** Relationship type for quick access */
-    relationshipTypeId: { default: 'referenced-in' },
-    /** Inline note (shown as tooltip) */
-    relationshipNote: { default: null },
-  },
-
-  // Define how to parse this node from HTML
-  parseDOM: [
-    {
-      tag: 'span[data-element-ref]',
-      getAttrs(dom: HTMLElement): ElementRefNodeAttrs {
-        return {
-          elementId: dom.dataset['elementId'] || '',
-          elementType: (dom.dataset['elementType'] as ElementType) || null,
-          displayText: dom.textContent || '',
-          originalName: dom.dataset['originalName'] || '',
-          relationshipId: dom.dataset['relationshipId'] || undefined,
-          relationshipTypeId:
-            dom.dataset['relationshipType'] || 'referenced-in',
-          relationshipNote: dom.dataset['relationshipNote'] || undefined,
-        };
-      },
-    },
-  ],
-
-  // Define how to serialize this node to HTML
-  toDOM(node) {
-    const attrs = node.attrs as ElementRefNodeAttrs;
-    const rawType = attrs.elementType as string | undefined;
-    const elementType = rawType?.toLowerCase() ?? 'unknown';
-    const isDeleted = !attrs.elementId;
-    const hasNote = !!attrs.relationshipNote;
-
-    // Build CSS classes
-    const classes = [
-      'element-ref',
-      `element-ref--${elementType}`,
-      isDeleted ? 'element-ref--deleted' : '',
-      hasNote ? 'element-ref--has-note' : '',
-    ]
-      .filter(Boolean)
-      .join(' ');
-
-    // Build tooltip content
-    const tooltipParts: string[] = [];
-    if (attrs.displayText) {
-      tooltipParts.push(attrs.displayText);
-    }
-    if (attrs.elementType) {
-      tooltipParts.push(`(${attrs.elementType})`);
-    }
-    if (attrs.relationshipNote) {
-      tooltipParts.push(`— ${attrs.relationshipNote}`);
-    }
-    const tooltipText = tooltipParts.join(' ') || 'Element reference';
-
-    // Build DOM attributes
-    const domAttrs: Record<string, string> = {
-      'data-element-ref': 'true',
-      'data-element-id': attrs.elementId || '',
-      'data-element-type': attrs.elementType || '',
-      'data-original-name': attrs.originalName || '',
-      'data-relationship-type': attrs.relationshipTypeId || 'referenced-in',
-      class: classes,
-      contenteditable: 'false',
-      // Note: Native title attribute removed in favor of rich tooltip component
-      'aria-label': tooltipText,
-      role: 'link',
-      tabindex: '0',
-    };
-
-    // Add optional attributes
-    if (attrs.relationshipId) {
-      domAttrs['data-relationship-id'] = attrs.relationshipId;
-    }
-    if (attrs.relationshipNote) {
-      domAttrs['data-relationship-note'] = attrs.relationshipNote;
-    }
-
-    return ['span', domAttrs, attrs.displayText || '???'];
-  },
+export type ElementRefNodeAttrs = Omit<SharedAttrs, 'elementType'> & {
+  elementType: ElementType | null;
 };
 
 /**
- * CSS styles for element reference nodes
+ * CSS styles for element reference nodes.
  *
- * These styles should be added to the document editor's stylesheet.
+ * Injected into the document editor's stylesheet. Lives in the frontend
+ * because the backend has no DOM and never renders these chips.
  */
 export const elementRefStyles = `
   /* Base element reference style */
@@ -240,17 +150,3 @@ export const elementRefStyles = `
     border-color: var(--sys-surface, #1c1b1f);
   }
 `;
-
-/**
- * Get the node name for registering with ProseMirror schema
- */
-export const ELEMENT_REF_NODE_NAME = 'elementRef';
-
-/**
- * Schema extension object for adding elementRef to an existing schema
- */
-export const elementRefSchemaExtension = {
-  nodes: {
-    [ELEMENT_REF_NODE_NAME]: elementRefNodeSpec,
-  },
-};

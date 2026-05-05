@@ -22,6 +22,8 @@ import { getStorageService } from '../../services/storage.service';
 import { type Element } from '../../schemas/element.schemas';
 import { buildVisualTree, treeToText } from './tree-helpers';
 import { getRelationships as runtimeGetRelationships } from './yjs-runtime';
+import { xmlToMarkdown } from '@inkweld/prosemirror/markdown';
+import { encodeInkweldUri } from '@inkweld/prosemirror/uri';
 import { logger } from '../../services/logger.service';
 
 const mcpSearchLog = logger.child('MCP-Search');
@@ -923,7 +925,7 @@ registerTool({
     name: 'get_document_content',
     title: 'Get Document Content',
     description:
-      'Get the prose content of a document element. Returns the text content from the ProseMirror editor.',
+      'Get the prose content of a document element. Defaults to ProseMirror XML, the canonical Inkweld format. Use "markdown" for a human-friendly round-trippable form (lossy marks like comments and colors are preserved as inline HTML spans). Use "text" for plain text without structure.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -934,9 +936,9 @@ registerTool({
         },
         format: {
           type: 'string',
-          enum: ['text', 'xml'],
+          enum: ['prosemirror_xml', 'markdown', 'text', 'xml'],
           description:
-            'Output format: "text" for plain text, "xml" for ProseMirror XML (default: text)',
+            'Output format: "prosemirror_xml" (default) for the canonical XML representation, "markdown" for round-trippable Markdown, "text" for plain text. "xml" is accepted as a deprecated alias for "prosemirror_xml".',
         },
       },
       required: ['project', 'elementId'],
@@ -953,7 +955,14 @@ registerTool({
     const { username, slug } = result.project;
 
     const elementId = typeof args.elementId === 'string' ? args.elementId : '';
-    const format = (args.format as string) ?? 'text';
+    // Normalize format: accept legacy 'xml' as alias for 'prosemirror_xml'.
+    // Default has changed from 'text' to 'prosemirror_xml' so callers that omit
+    // the parameter receive the canonical, lossless representation.
+    const rawFormat = (args.format as string) ?? 'prosemirror_xml';
+    const format =
+      rawFormat === 'xml'
+        ? 'prosemirror_xml'
+        : (rawFormat as 'prosemirror_xml' | 'markdown' | 'text');
 
     if (!elementId) {
       return {
@@ -1002,20 +1011,42 @@ registerTool({
 
       const xmlString = xmlFragment.toString();
 
-      if (format === 'xml') {
-        // Return XML representation
+      if (format === 'prosemirror_xml') {
         return {
-          content: [
-            {
-              type: 'text',
-              text: xmlString,
-            },
-          ],
+          content: [{ type: 'text', text: xmlString }],
           structuredContent: {
             elementId,
             elementName: element.name,
-            format: 'xml',
+            format: 'prosemirror_xml',
             content: xmlString,
+          },
+        };
+      }
+
+      if (format === 'markdown') {
+        // Encode element_ref hrefs as project-scoped inkweld:// URIs so
+        // round-tripping through markdown preserves the project context.
+        const markdown = xmlToMarkdown(xmlString, {
+          encodeElementRefHref: (attrs) => {
+            const refId = typeof attrs.elementId === 'string' ? attrs.elementId : '';
+            return encodeInkweldUri({
+              elementId: refId,
+              username,
+              slug,
+              params: {
+                type: typeof attrs.type === 'string' ? attrs.type : undefined,
+                note: typeof attrs.note === 'string' ? attrs.note : undefined,
+              },
+            });
+          },
+        });
+        return {
+          content: [{ type: 'text', text: markdown }],
+          structuredContent: {
+            elementId,
+            elementName: element.name,
+            format: 'markdown',
+            content: markdown,
           },
         };
       }
