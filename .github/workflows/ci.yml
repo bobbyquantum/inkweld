@@ -586,8 +586,11 @@ jobs:
         with:
           bun-version-file: package.json
 
-      - name: Install frontend dependencies
-        run: cd frontend && bun install --frozen-lockfile
+      - name: Install dependencies
+        # Workspace-root install so the @inkweld/prosemirror peer deps
+        # (prosemirror-model, yjs) are available for the shared package
+        # consumed by the frontend build.
+        run: bun install --frozen-lockfile
 
       - name: Build frontend
         run: cd frontend && bun run build
