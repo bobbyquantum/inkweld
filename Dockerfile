@@ -14,7 +14,7 @@
 
 # Frontend builder stage (Angular) - only used when not using pre-built frontend
 FROM oven/bun:1.3.13 AS frontend-builder
-WORKDIR /app/frontend
+WORKDIR /app
 
 # Check if we should skip building (pre-built frontend provided)
 ARG FRONTEND_PREBUILT=false
@@ -24,7 +24,16 @@ RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
   apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*; \
   fi
 
-COPY frontend/bun.lock frontend/package.json ./
+# Workspace-aware install: the frontend resolves `@inkweld/prosemirror/*`
+# via tsconfig path aliases that point at `../packages/inkweld-prosemirror/src/*`.
+# We need the workspace package on disk before the Angular build runs, so we
+# copy the root workspace manifest plus every package's manifest first to
+# maximise Docker layer caching, then install per-app inside `frontend/`.
+COPY package.json bun.lock* ./
+COPY packages ./packages
+COPY frontend/bun.lock frontend/package.json ./frontend/
+
+WORKDIR /app/frontend
 # Skip Electron binary download - not needed for web frontend build in Docker
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 # Install with --ignore-scripts to disable arbitrary postinstall execution,
@@ -35,7 +44,7 @@ RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
   && node node_modules/esbuild/install.js; \
   fi
 
-COPY frontend .
+COPY frontend ./
 # Build frontend and verify output exists - fail early with clear error if build doesn't produce expected output
 # Then compress WASM files with Brotli (they're served with Content-Encoding: br)
 RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
