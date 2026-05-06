@@ -4,9 +4,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/app",
-    "rootDir": "src",
+    "rootDir": "..",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "../packages/inkweld-prosemirror/src/**/*.ts"],
   "exclude": ["src/**/*.spec.ts"]
 }

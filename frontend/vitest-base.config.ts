@@ -12,6 +12,16 @@ import { defineConfig } from 'vitest/config';
 const isCI = process.env['CI'] === 'true';
 
 export default defineConfig({
+  // Force a single copy of `prosemirror-model` and `yjs` across the bundle.
+  // Source files under `packages/inkweld-prosemirror/src` import these
+  // packages for types only — but Vite's resolver can still pick up the
+  // package's own `node_modules` if one exists, producing TWO Schema/Y.Doc
+  // constructors. ProseMirror throws "looks like multiple versions of
+  // prosemirror-model were loaded" when this happens. Deduping at the
+  // resolver level guarantees a single instance. See PR #1068.
+  resolve: {
+    dedupe: ['prosemirror-model', 'yjs'],
+  },
   test: {
     // This prevents hanging tests from blocking CI for too long
     testTimeout: 6000,

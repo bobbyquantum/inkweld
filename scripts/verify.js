@@ -108,8 +108,9 @@ const fastParallelSteps = [
 ];
 
 // Phase 2 — unit tests (run after lint to fail fast on obvious issues)
-// Frontend and backend tests can run in parallel.
+// Frontend, backend, and shared package tests can run in parallel.
 const unitTestSteps = [
+  { name: "test:packages", command: "npm", args: ["run", "test:packages"] },
   { name: "test:frontend", command: "npm", args: ["run", "test:frontend"] },
   { name: "test:backend", command: "npm", args: ["run", "test:backend"] },
 ];

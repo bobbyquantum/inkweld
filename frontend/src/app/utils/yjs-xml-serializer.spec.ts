@@ -273,7 +273,9 @@ describe('yjs-xml-serializer', () => {
 
       const child = fragment.get(0) as Y.XmlElement;
       expect(child.nodeName).toBe('heading');
-      expect(child.getAttribute('level')).toBe(2); // Parsed as number
+      // Numeric-looking strings round-trip as strings; consumers that
+      // need typed scalars should encode them as JSON or coerce locally.
+      expect(child.getAttribute('level')).toBe('2');
     });
 
     it('should apply nested elements', () => {
@@ -411,11 +413,14 @@ describe('yjs-xml-serializer', () => {
       }).toThrow();
     });
 
-    it('should parse boolean attributes', () => {
+    it('should preserve boolean-looking attributes as strings', () => {
       applyXmlToFragment(ydoc, fragment, '<custom enabled="true"/>');
 
       const child = fragment.get(0) as Y.XmlElement;
-      expect(child.getAttribute('enabled')).toBe(true);
+      // Boolean-looking strings round-trip as strings (the parser only
+      // unmarshals JSON objects/arrays). This avoids corrupting attrs
+      // like commentResolved="true" that legitimately need string handling.
+      expect(child.getAttribute('enabled')).toBe('true');
     });
 
     it('should parse JSON object attributes', () => {

@@ -2,7 +2,6 @@
  * Element Reference Schema Tests
  */
 
-import type { Node as ProseMirrorNode } from 'prosemirror-model';
 import { describe, expect, it } from 'vitest';
 
 import { ElementType } from '../../../api-client';
@@ -82,13 +81,13 @@ describe('element-ref-schema', () => {
 
         const attrs = getAttrs(mockElement);
 
-        expect(attrs['elementId']).toBe('');
+        expect(attrs['elementId']).toBeNull();
         expect(attrs['elementType']).toBeNull();
         expect(attrs['displayText']).toBe('');
         expect(attrs['originalName']).toBe('');
-        expect(attrs['relationshipId']).toBeUndefined();
+        expect(attrs['relationshipId']).toBeNull();
         expect(attrs['relationshipTypeId']).toBe('referenced-in');
-        expect(attrs['relationshipNote']).toBeUndefined();
+        expect(attrs['relationshipNote']).toBeNull();
       });
     });
 
@@ -101,9 +100,13 @@ describe('element-ref-schema', () => {
       const getResult = (node: {
         attrs: Record<string, unknown>;
       }): unknown[] => {
-        return elementRefNodeSpec.toDOM!(
-          node as unknown as ProseMirrorNode
-        ) as unknown as unknown[];
+        const toDOM = elementRefNodeSpec.toDOM;
+        if (!toDOM) {
+          throw new Error('elementRefNodeSpec.toDOM is undefined');
+        }
+        // toDOM signature is too narrow for our test mock; cast through unknown
+        // is the minimum needed and works under both local and CI tsconfigs.
+        return (toDOM as unknown as (n: unknown) => unknown[])(node);
       };
 
       it('should generate DOM for complete element ref', () => {

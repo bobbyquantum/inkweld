@@ -5,6 +5,8 @@
     "rootDir": "./e2e",
     "types": ["node", "@playwright/test"],
     "paths": {
+      "@inkweld/prosemirror": ["../packages/inkweld-prosemirror/src/index"],
+      "@inkweld/prosemirror/*": ["../packages/inkweld-prosemirror/src/*/index"],
       "@inkweld/*": ["./src/api-client/*"],
       "@components/*": ["./src/app/components/*"],
       "@dialogs/*": ["./src/app/dialogs/*"],

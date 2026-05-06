@@ -15,6 +15,9 @@ frontend/wrangler.toml
 
 # TypeScript build info
 *.tsbuildinfo
+
+# Coverage reports
+coverage/
 .actrc
 .vscode
 .cscode
