@@ -53,6 +53,11 @@ type ProseMirrorNode =
   | null
   | undefined;
 
+interface ProseMirrorMark {
+  type: string;
+  attrs?: Record<string, unknown>;
+}
+
 /**
  * Markdown Generator Service
  *
@@ -355,108 +360,95 @@ export class MarkdownGeneratorService {
     if (typeof node === 'string') return this.escapeXmlText(node);
     if (Array.isArray(node)) return node.map(n => this.nodeToXml(n)).join('');
 
-    const name = this.getNodeName(node);
-    const children = this.getChildren(node);
-
     // Text node — wrap in marks (innermost first).
     const textVal = (node as Record<string, unknown>)['text'];
     if (typeof textVal === 'string') {
-      let inner = this.escapeXmlText(textVal);
-      const marks = this.getRawMarks(node);
-      // Inside-out: code → strong/em/s/u/sup/sub → link. Lossy marks
-      // (text_color, comment, …) are intentionally dropped to match
-      // the previous publish output.
-      let linkAttrs: Record<string, unknown> | undefined;
-      for (const m of marks) {
-        switch (m.type) {
-          case 'code':
-            inner = `<code>${inner}</code>`;
-            break;
-          default:
-            break;
-        }
-      }
-      for (const m of marks) {
-        switch (m.type) {
-          case 'bold':
-          case 'strong':
-            inner = `<strong>${inner}</strong>`;
-            break;
-          case 'italic':
-          case 'em':
-            inner = `<em>${inner}</em>`;
-            break;
-          case 'strike':
-          case 's':
-            inner = `<s>${inner}</s>`;
-            break;
-          case 'u':
-            inner = `<u>${inner}</u>`;
-            break;
-          case 'sup':
-            inner = `<sup>${inner}</sup>`;
-            break;
-          case 'sub':
-            inner = `<sub>${inner}</sub>`;
-            break;
-          case 'link':
-            linkAttrs = m.attrs;
-            break;
-          default:
-            break;
-        }
-      }
-      if (linkAttrs) {
-        const href = this.safeStringAttr(linkAttrs, 'href');
-        const title = this.safeStringAttr(linkAttrs, 'title');
-        const titleAttr = title ? ` title="${this.escapeXmlAttr(title)}"` : '';
-        inner = `<a href="${this.escapeXmlAttr(href)}"${titleAttr}>${inner}</a>`;
-      }
-      return inner;
+      return this.textNodeToXml(textVal, this.getRawMarks(node));
     }
 
+    const name = this.getNodeName(node);
+    const children = this.getChildren(node);
     const inner = children.map(c => this.nodeToXml(c)).join('');
+    return this.blockNodeToXml(node, name, inner);
+  }
+
+  /**
+   * Wrap escaped text content in its mark tags. Order matches the legacy
+   * publish output: code (innermost) → emphasis-like → link.
+   *
+   * Lossy marks (text_color, comment, …) are intentionally dropped.
+   */
+  private textNodeToXml(textVal: string, marks: ProseMirrorMark[]): string {
+    let inner = this.escapeXmlText(textVal);
+    if (marks.some(m => m.type === 'code')) {
+      inner = `<code>${inner}</code>`;
+    }
+    inner = this.applyEmphasisMarks(inner, marks);
+    const linkMark = marks.find(m => m.type === 'link');
+    if (linkMark?.attrs) {
+      inner = this.wrapWithLink(inner, linkMark.attrs);
+    }
+    return inner;
+  }
+
+  private applyEmphasisMarks(inner: string, marks: ProseMirrorMark[]): string {
+    const tagByMark: Record<string, string> = {
+      bold: 'strong',
+      strong: 'strong',
+      italic: 'em',
+      em: 'em',
+      strike: 's',
+      s: 's',
+      u: 'u',
+      sup: 'sup',
+      sub: 'sub',
+    };
+    let result = inner;
+    for (const m of marks) {
+      const tag = tagByMark[m.type];
+      if (tag) result = `<${tag}>${result}</${tag}>`;
+    }
+    return result;
+  }
+
+  private wrapWithLink(inner: string, attrs: Record<string, unknown>): string {
+    const href = this.safeStringAttr(attrs, 'href');
+    const title = this.safeStringAttr(attrs, 'title');
+    const titleAttr = title ? ` title="${this.escapeXmlAttr(title)}"` : '';
+    return `<a href="${this.escapeXmlAttr(href)}"${titleAttr}>${inner}</a>`;
+  }
+
+  private blockNodeToXml(
+    node: ProseMirrorNode,
+    name: string,
+    inner: string
+  ): string {
+    // Simple wrap-in-tag block elements with no attribute handling.
+    const simpleWrappers: Record<string, string> = {
+      paragraph: 'paragraph',
+      blockquote: 'blockquote',
+      bullet_list: 'bullet_list',
+      bulletlist: 'bullet_list',
+      ordered_list: 'ordered_list',
+      orderedlist: 'ordered_list',
+      list_item: 'list_item',
+      listitem: 'list_item',
+    };
+    const wrapper = simpleWrappers[name];
+    if (wrapper) return `<${wrapper}>${inner}</${wrapper}>`;
 
     switch (name) {
       case 'doc':
         return inner;
-      case 'paragraph':
-        return `<paragraph>${inner}</paragraph>`;
       case 'heading': {
         const level = this.getAttr(node, 'level', 2);
         return `<heading level="${level}">${inner}</heading>`;
       }
-      case 'blockquote':
-        return `<blockquote>${inner}</blockquote>`;
-      case 'bullet_list':
-      case 'bulletlist':
-        return `<bullet_list>${inner}</bullet_list>`;
-      case 'ordered_list':
-      case 'orderedlist':
-        return `<ordered_list>${inner}</ordered_list>`;
-      case 'list_item':
-      case 'listitem':
-        return `<list_item>${inner}</list_item>`;
       case 'code_block':
-      case 'codeblock': {
-        const attrs = (node as Record<string, unknown>)['attrs'] as
-          | Record<string, unknown>
-          | undefined;
-        const lang = this.safeStringAttr(attrs, 'lang');
-        const langAttr = lang ? ` lang="${this.escapeXmlAttr(lang)}"` : '';
-        return `<code_block${langAttr}>${inner}</code_block>`;
-      }
-      case 'image': {
-        const attrs = (node as Record<string, unknown>)['attrs'] as
-          | Record<string, unknown>
-          | undefined;
-        const src = this.safeStringAttr(attrs, 'src');
-        const alt = this.safeStringAttr(attrs, 'alt');
-        const title = this.safeStringAttr(attrs, 'title');
-        if (!src) return '';
-        const titleAttr = title ? ` title="${this.escapeXmlAttr(title)}"` : '';
-        return `<image src="${this.escapeXmlAttr(src)}" alt="${this.escapeXmlAttr(alt)}"${titleAttr}/>`;
-      }
+      case 'codeblock':
+        return this.renderCodeBlockXml(node, inner);
+      case 'image':
+        return this.renderImageXml(node);
       case 'horizontal_rule':
       case 'horizontalrule':
       case 'hr':
@@ -480,6 +472,27 @@ export class MarkdownGeneratorService {
     }
   }
 
+  private renderCodeBlockXml(node: ProseMirrorNode, inner: string): string {
+    const attrs = (node as Record<string, unknown>)['attrs'] as
+      | Record<string, unknown>
+      | undefined;
+    const lang = this.safeStringAttr(attrs, 'lang');
+    const langAttr = lang ? ` lang="${this.escapeXmlAttr(lang)}"` : '';
+    return `<code_block${langAttr}>${inner}</code_block>`;
+  }
+
+  private renderImageXml(node: ProseMirrorNode): string {
+    const attrs = (node as Record<string, unknown>)['attrs'] as
+      | Record<string, unknown>
+      | undefined;
+    const src = this.safeStringAttr(attrs, 'src');
+    const alt = this.safeStringAttr(attrs, 'alt');
+    const title = this.safeStringAttr(attrs, 'title');
+    if (!src) return '';
+    const titleAttr = title ? ` title="${this.escapeXmlAttr(title)}"` : '';
+    return `<image src="${this.escapeXmlAttr(src)}" alt="${this.escapeXmlAttr(alt)}"${titleAttr}/>`;
+  }
+
   private escapeXmlText(text: string): string {
     return text
       .replaceAll('&', '&amp;')
@@ -498,9 +511,7 @@ export class MarkdownGeneratorService {
    * Return raw mark objects (type + attrs) from a ProseMirror node.
    * Unlike the old getMarks(), this preserves attrs so link hrefs etc. are available.
    */
-  private getRawMarks(
-    node: ProseMirrorNode
-  ): Array<{ type: string; attrs?: Record<string, unknown> }> {
+  private getRawMarks(node: ProseMirrorNode): ProseMirrorMark[] {
     if (typeof node !== 'object' || !node) return [];
     const marks = (node as Record<string, unknown>)['marks'];
     if (!Array.isArray(marks)) return [];

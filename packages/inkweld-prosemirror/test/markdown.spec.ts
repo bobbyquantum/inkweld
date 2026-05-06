@@ -2,15 +2,14 @@
  * Tests for the `@inkweld/prosemirror/markdown` and
  * `@inkweld/prosemirror/uri` modules.
  *
- * These live in the frontend test tree rather than the shared package
- * because the project's vitest runner is configured by the Angular CLI
- * and only collects `frontend/src/**\/*.spec.ts`. The path alias
- * `@inkweld/prosemirror/*` resolves to `packages/inkweld-prosemirror/src/*`
- * via `tsconfig.spec.json`, so this file exercises the real package code.
+ * Run via `bun run test` (or `bun run test:coverage`) from inside the
+ * package directory, or `npm run test:package` from the repo root. Both
+ * paths feed the generated `lcov.info` to Sonar.
  */
-import { markdownToXml, xmlToMarkdown } from '@inkweld/prosemirror/markdown';
-import { decodeInkweldUri, encodeInkweldUri } from '@inkweld/prosemirror/uri';
 import { describe, expect, it } from 'vitest';
+
+import { markdownToXml, xmlToMarkdown } from '../src/markdown';
+import { decodeInkweldUri, encodeInkweldUri } from '../src/uri';
 
 // ---------------------------------------------------------------------------
 // inkweld:// URI codec

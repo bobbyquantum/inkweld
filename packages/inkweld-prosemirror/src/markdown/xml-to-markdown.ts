@@ -52,7 +52,7 @@ export function xmlToMarkdown(xml: string, options: XmlToMarkdownOptions = {}): 
   // markdown hard-break marker (`  \n`).
   return blocks
     .join('\n\n')
-    .replace(/\n{3,}/g, '\n\n')
+    .replaceAll(/\n{3,}/g, '\n\n')
     .trim();
 }
 
@@ -344,23 +344,23 @@ function escapeAttr(value: string): string {
  */
 function escapeMarkdownText(text: string): string {
   return text
-    .replaceAll('\\', '\\\\')
-    .replaceAll('`', '\\`')
+    .replaceAll('\\', String.raw`\\`)
+    .replaceAll('`', String.raw`\``)
     // Escape leading block markers: heading (#), blockquote (>), bullet
     // list markers (-, +, *) and ordered-list markers ("1." / "1)").
     // Without escaping `*` and ordered markers, paragraphs that begin
     // with text like `* foo` or `1. foo` get re-parsed as lists.
     // NOSONAR(typescript:S5852) - linear: anchored, single line, no nested quantifiers.
-    .replace(/^(\s*)([#>\-+*])/gm, '$1\\$2') // NOSONAR
+    .replaceAll(/^(\s*)([#>\-+*])/gm, '$1\\$2') // NOSONAR
     // NOSONAR(typescript:S5852) - linear: anchored, bounded `\d+`.
-    .replace(/^(\s*)(\d+)([.)])/gm, '$1$2\\$3') // NOSONAR
+    .replaceAll(/^(\s*)(\d+)([.)])/gm, '$1$2\\$3') // NOSONAR
     // Escape brackets (used in links).
-    .replaceAll('[', '\\[')
-    .replaceAll(']', '\\]');
+    .replaceAll('[', String.raw`\[`)
+    .replaceAll(']', String.raw`\]`);
 }
 
 function escapeMarkdownLinkText(text: string): string {
-  return text.replaceAll('[', '\\[').replaceAll(']', '\\]');
+  return text.replaceAll('[', String.raw`\[`).replaceAll(']', String.raw`\]`);
 }
 
 function stringAttr(attrs: Record<string, unknown>, key: string): string | undefined {

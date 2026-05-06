@@ -13,17 +13,16 @@
 import { type Node, type NodeSpec } from 'prosemirror-model';
 
 /**
- * Permitted element types on an element_ref. Kept as a string union (not the
- * generated `ElementType` enum) so the shared package has zero coupling to
- * the OpenAPI client. Consumers can narrow further if they want.
+ * Permitted element types on an element_ref are represented as plain `string`
+ * to keep the shared package decoupled from the OpenAPI client's `ElementType`
+ * enum. Consumers (e.g. the frontend) can narrow further if they want.
  */
-export type ElementTypeLike = string;
 
 export interface ElementRefNodeAttrs {
   /** Referenced element's ID. Empty string = deleted/orphaned reference. */
   elementId: string | null;
   /** Element type (folder, item, worldbuilding, …). Used for styling. */
-  elementType: ElementTypeLike | null;
+  elementType: string | null;
   /** Display text shown in the editor (acts like hyperlink text). */
   displayText: string;
   /** Original element name at insertion time, for rename detection. */

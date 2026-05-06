@@ -120,76 +120,96 @@ function parseBlocks(input: string): Block[] {
       continue;
     }
 
-    // Fenced code block.
-    const fence = matchFenceOpen(line);
-    if (fence) {
-      const { closeIndex, content } = readFenceContent(lines, i + 1, fence.fence);
-      blocks.push({ kind: 'code', lang: fence.lang, content });
-      i = closeIndex + 1;
+    const consumed = tryParseBlock(lines, i, blocks);
+    if (consumed > 0) {
+      i += consumed;
       continue;
     }
 
-    // Thematic break.
-    if (isThematicBreak(line)) {
-      blocks.push({ kind: 'hr' });
-      i++;
-      continue;
-    }
-
-    // ATX heading. NOSONAR(typescript:S5852) - linear: anchored, single-line, bounded quantifiers.
-    const atx = /^(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line); // NOSONAR
-    if (atx) {
-      blocks.push({ kind: 'heading', level: atx[1].length, text: atx[2] });
-      i++;
-      continue;
-    }
-
-    // Blockquote.
-    if (/^\s{0,3}>/.test(line)) {
-      const { end, inner } = collectBlockquote(lines, i);
-      blocks.push({ kind: 'blockquote', children: parseBlocks(inner) });
-      i = end;
-      continue;
-    }
-
-    // List.
-    const listStart = matchListMarker(line);
-    if (listStart) {
-      const { end, list } = collectList(lines, i, listStart.ordered);
-      blocks.push(list);
-      i = end;
-      continue;
-    }
-
-    // Setext heading? (current line is paragraph text; next line is === or ---)
-    const setext = lookaheadSetext(lines, i);
-    if (setext) {
-      blocks.push({ kind: 'heading', level: setext.level, text: line.trim() });
-      i += 2;
-      continue;
-    }
-
-    // Paragraph: gather subsequent non-blank, non-special lines.
-    const paraLines = [line];
-    let j = i + 1;
-    while (j < lines.length) {
-      const l = lines[j];
-      if (l.trim() === '') break;
-      if (matchFenceOpen(l)) break;
-      if (isThematicBreak(l)) break;
-      if (/^(#{1,6})\s/.test(l)) break;
-      if (/^\s{0,3}>/.test(l)) break;
-      if (matchListMarker(l)) break;
-      // Setext underline ends the paragraph (and would have been handled above).
-      if (/^\s{0,3}(=+|-+)\s*$/.test(l)) break;
-      paraLines.push(l);
-      j++;
-    }
-    blocks.push({ kind: 'paragraph', text: paraLines.join('\n') });
-    i = j;
+    // Paragraph fallback: gather subsequent non-blank, non-special lines.
+    const { end, paragraph } = collectParagraph(lines, i);
+    blocks.push(paragraph);
+    i = end;
   }
 
   return blocks;
+}
+
+/**
+ * Try to parse a structural block (fence, hr, heading, blockquote, list,
+ * setext) starting at `lines[i]`. Returns the number of lines consumed, or
+ * 0 when no match — in which case the caller falls back to paragraph
+ * collection. On a match, the parsed block is appended to `out`.
+ */
+function tryParseBlock(lines: string[], i: number, out: Block[]): number {
+  const line = lines[i];
+
+  // Fenced code block.
+  const fence = matchFenceOpen(line);
+  if (fence) {
+    const { closeIndex, content } = readFenceContent(lines, i + 1, fence.fence);
+    out.push({ kind: 'code', lang: fence.lang, content });
+    return closeIndex - i + 1;
+  }
+
+  // Thematic break.
+  if (isThematicBreak(line)) {
+    out.push({ kind: 'hr' });
+    return 1;
+  }
+
+  // ATX heading. NOSONAR(typescript:S5852) - linear: anchored, single-line, bounded quantifiers.
+  const atx = /^(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line); // NOSONAR
+  if (atx) {
+    out.push({ kind: 'heading', level: atx[1].length, text: atx[2] });
+    return 1;
+  }
+
+  // Blockquote.
+  if (/^\s{0,3}>/.test(line)) {
+    const { end, inner } = collectBlockquote(lines, i);
+    out.push({ kind: 'blockquote', children: parseBlocks(inner) });
+    return end - i;
+  }
+
+  // List.
+  const listStart = matchListMarker(line);
+  if (listStart) {
+    const { end, list } = collectList(lines, i, listStart.ordered);
+    out.push(list);
+    return end - i;
+  }
+
+  // Setext heading? (current line is paragraph text; next line is === or ---)
+  const setext = lookaheadSetext(lines, i);
+  if (setext) {
+    out.push({ kind: 'heading', level: setext.level, text: line.trim() });
+    return 2;
+  }
+
+  return 0;
+}
+
+function collectParagraph(lines: string[], start: number): { end: number; paragraph: Block } {
+  const paraLines = [lines[start]];
+  let j = start + 1;
+  while (j < lines.length && !isParagraphTerminator(lines[j])) {
+    paraLines.push(lines[j]);
+    j++;
+  }
+  return { end: j, paragraph: { kind: 'paragraph', text: paraLines.join('\n') } };
+}
+
+function isParagraphTerminator(line: string): boolean {
+  if (line.trim() === '') return true;
+  if (matchFenceOpen(line)) return true;
+  if (isThematicBreak(line)) return true;
+  if (/^(#{1,6})\s/.test(line)) return true;
+  if (/^\s{0,3}>/.test(line)) return true;
+  if (matchListMarker(line)) return true;
+  // Setext underline ends the paragraph (and is handled by lookaheadSetext).
+  if (/^\s{0,3}(=+|-+)\s*$/.test(line)) return true;
+  return false;
 }
 
 function matchFenceOpen(line: string): { fence: string; lang: string } | null {
@@ -204,7 +224,7 @@ function readFenceContent(
   start: number,
   fence: string
 ): { closeIndex: number; content: string } {
-  const closeRe = new RegExp(`^\\s{0,3}${escapeRegex(fence[0])}{${fence.length},}\\s*$`);
+  const closeRe = new RegExp(String.raw`^\s{0,3}${escapeRegex(fence[0])}{${fence.length},}\s*$`);
   const content: string[] = [];
   let i = start;
   while (i < lines.length) {
@@ -218,7 +238,7 @@ function readFenceContent(
 }
 
 function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return s.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 function isThematicBreak(line: string): boolean {
@@ -306,58 +326,96 @@ function collectList(
 
   while (i < lines.length) {
     const marker = matchListMarker(lines[i]);
-    if (!marker || marker.ordered !== ordered) break;
+    if (marker?.ordered !== ordered) break;
     if (firstItem) {
       listStart = marker.start;
       firstItem = false;
     }
-
-    // Collect item content: first line after marker, plus any continuation
-    // lines indented at least `marker.contentStart` columns.
-    const itemLines: string[] = [lines[i].slice(marker.contentStart)];
-    let j = i + 1;
-    while (j < lines.length) {
-      const l = lines[j];
-      if (l.trim() === '') {
-        // Blank line might be inside item OR end the list.
-        // Peek ahead: if next non-blank is indented >= contentStart, continue.
-        let k = j + 1;
-        while (k < lines.length && lines[k].trim() === '') k++;
-        if (k >= lines.length) break;
-        const nextLine = lines[k];
-        const nextMarker = matchListMarker(nextLine);
-        if (nextMarker && nextMarker.ordered === ordered) {
-          // Sibling list item — break out so outer loop picks it up.
-          break;
-        }
-        if (countLeadingSpaces(nextLine) >= marker.contentStart) {
-          // Continuation belongs to current item.
-          for (; j < k; j++) itemLines.push('');
-          continue;
-        }
-        break;
-      }
-      const nextMarker = matchListMarker(l);
-      if (nextMarker && countLeadingSpaces(l) < marker.contentStart) {
-        // Sibling marker at same indent — end this item.
-        break;
-      }
-      // Lazy continuation: any non-blank line that isn't a sibling marker
-      // belongs to the current item, with leading indent stripped if it
-      // matches the content column.
-      const stripped = stripIndent(l, marker.contentStart);
-      itemLines.push(stripped);
-      j++;
-    }
-
+    const { end: itemEnd, itemLines } = collectListItemLines(lines, i, marker, ordered);
     items.push(parseBlocks(itemLines.join('\n')));
-    i = j;
+    i = itemEnd;
   }
 
   return {
     end: i,
     list: { kind: 'list', ordered, start: listStart, items },
   };
+}
+
+/**
+ * Collect the lines belonging to a single list item. Returns the next index
+ * after the item and the item's content lines (with the marker stripped from
+ * the first line and continuation indent normalised).
+ */
+function collectListItemLines(
+  lines: string[],
+  itemStart: number,
+  marker: ListMarker,
+  ordered: boolean
+): { end: number; itemLines: string[] } {
+  // First line: strip marker prefix.
+  const itemLines: string[] = [lines[itemStart].slice(marker.contentStart)];
+  let j = itemStart + 1;
+
+  while (j < lines.length) {
+    const l = lines[j];
+    if (l.trim() === '') {
+      const next = handleBlankInsideListItem(lines, j, itemLines, marker, ordered);
+      if (next === null) break;
+      j = next;
+      continue;
+    }
+    if (isSiblingMarkerForItem(l, marker, ordered)) break;
+    // Lazy continuation: any non-blank line that isn't a sibling marker
+    // belongs to the current item, with leading indent stripped if it
+    // matches the content column.
+    itemLines.push(stripIndent(l, marker.contentStart));
+    j++;
+  }
+
+  return { end: j, itemLines };
+}
+
+/**
+ * Decide what to do with a blank line inside a list item. Returns the next
+ * `j` to continue at (with appropriate blank lines pushed into `itemLines`),
+ * or `null` to terminate the item.
+ */
+function handleBlankInsideListItem(
+  lines: string[],
+  j: number,
+  itemLines: string[],
+  marker: ListMarker,
+  ordered: boolean
+): number | null {
+  // Peek ahead: skip consecutive blank lines.
+  let k = j + 1;
+  while (k < lines.length && lines[k].trim() === '') k++;
+  if (k >= lines.length) return null;
+
+  const nextLine = lines[k];
+  const nextMarker = matchListMarker(nextLine);
+  if (nextMarker?.ordered === ordered) {
+    // Sibling list item — terminate so the outer loop picks it up.
+    return null;
+  }
+  if (countLeadingSpaces(nextLine) >= marker.contentStart) {
+    // Continuation belongs to current item — preserve blank separator(s).
+    for (let p = j; p < k; p++) itemLines.push('');
+    return k;
+  }
+  return null;
+}
+
+function isSiblingMarkerForItem(
+  line: string,
+  marker: ListMarker,
+  ordered: boolean
+): boolean {
+  const m = matchListMarker(line);
+  if (!m) return false;
+  if (m.ordered !== ordered) return false;
+  return countLeadingSpaces(line) < marker.contentStart;
 }
 
 function countLeadingSpaces(line: string): number {
@@ -400,24 +458,33 @@ function renderBlock(block: Block, ctx: ParseContext): string {
       return `<paragraph>${renderInline(block.text, ctx)}</paragraph>`;
     case 'blockquote':
       return `<blockquote>${block.children.map((c) => renderBlock(c, ctx)).join('')}</blockquote>`;
-    case 'list': {
-      const itemsXml = block.items
-        .map(
-          (itemBlocks) =>
-            `<list_item>${itemBlocks.map((b) => renderBlock(b, ctx)).join('')}</list_item>`
-        )
-        .join('');
-      const tag = block.ordered ? 'ordered_list' : 'bullet_list';
-      const attrs = block.ordered && block.start !== 1 ? ` order="${block.start}"` : '';
-      return `<${tag}${attrs}>${itemsXml}</${tag}>`;
-    }
-    case 'code': {
-      const langAttr = block.lang ? ` lang="${escapeXmlAttr(block.lang)}"` : '';
-      return `<code_block${langAttr}>${escapeXmlText(block.content)}</code_block>`;
-    }
+    case 'list':
+      return renderListBlock(block, ctx);
+    case 'code':
+      return renderCodeBlock(block);
     case 'hr':
       return '<horizontal_rule/>';
   }
+}
+
+function renderListBlock(
+  block: Extract<Block, { kind: 'list' }>,
+  ctx: ParseContext
+): string {
+  const itemsXml = block.items
+    .map(
+      (itemBlocks) =>
+        `<list_item>${itemBlocks.map((b) => renderBlock(b, ctx)).join('')}</list_item>`
+    )
+    .join('');
+  const tag = block.ordered ? 'ordered_list' : 'bullet_list';
+  const attrs = block.ordered && block.start !== 1 ? ` order="${block.start}"` : '';
+  return `<${tag}${attrs}>${itemsXml}</${tag}>`;
+}
+
+function renderCodeBlock(block: Extract<Block, { kind: 'code' }>): string {
+  const langAttr = block.lang ? ` lang="${escapeXmlAttr(block.lang)}"` : '';
+  return `<code_block${langAttr}>${escapeXmlText(block.content)}</code_block>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -470,58 +537,83 @@ function renderInlineNode(node: InlineNode): string {
   switch (node.kind) {
     case 'hardBreak':
       return '<hard_break/>';
-    case 'image': {
-      const titleAttr = node.title ? ` title="${escapeXmlAttr(node.title)}"` : '';
-      return `<image src="${escapeXmlAttr(node.src)}" alt="${escapeXmlAttr(node.alt)}"${titleAttr}/>`;
-    }
-    case 'elementRef': {
-      const parts: string[] = [];
-      for (const [k, v] of Object.entries(node.attrs)) {
-        if (v === undefined || v === null) continue;
-        const str =
-          typeof v === 'object'
-            ? JSON.stringify(v)
-            : // eslint-disable-next-line @typescript-eslint/no-base-to-string -- intentional primitive coercion
-              String(v);
-        parts.push(`${k}="${escapeXmlAttr(str)}"`);
-      }
-      return `<elementRef ${parts.join(' ')}/>`;
-    }
-    case 'text': {
-      let inner = escapeXmlText(node.text);
-      const m = node.marks;
-      // Inside-out wrapping order: code → emphasis-like → generic → link.
-      if (m.code) inner = `<code>${inner}</code>`;
-      if (m.strong) inner = `<strong>${inner}</strong>`;
-      if (m.em) inner = `<em>${inner}</em>`;
-      if (m.s) inner = `<s>${inner}</s>`;
-      if (m.u) inner = `<u>${inner}</u>`;
-      if (m.sup) inner = `<sup>${inner}</sup>`;
-      if (m.sub) inner = `<sub>${inner}</sub>`;
-      if (m.generic) {
-        for (const g of m.generic) {
-          inner = `<span ${spanAttrs(g.name, g.attrs)}>${inner}</span>`;
-        }
-      }
-      if (m.link) {
-        const titleAttr = m.link.title ? ` title="${escapeXmlAttr(m.link.title)}"` : '';
-        inner = `<a href="${escapeXmlAttr(m.link.href)}"${titleAttr}>${inner}</a>`;
-      }
-      return inner;
-    }
+    case 'image':
+      return renderImageNode(node);
+    case 'elementRef':
+      return renderElementRefNode(node);
+    case 'text':
+      return renderTextNode(node);
   }
+}
+
+function renderImageNode(node: InlineImage): string {
+  const titleAttr = node.title ? ` title="${escapeXmlAttr(node.title)}"` : '';
+  return `<image src="${escapeXmlAttr(node.src)}" alt="${escapeXmlAttr(node.alt)}"${titleAttr}/>`;
+}
+
+function renderElementRefNode(node: InlineElementRef): string {
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(node.attrs)) {
+    if (v === undefined || v === null) continue;
+    parts.push(`${k}="${escapeXmlAttr(stringifyAttrValue(v))}"`);
+  }
+  return `<elementRef ${parts.join(' ')}/>`;
+}
+
+function renderTextNode(node: InlineRun): string {
+  let inner = escapeXmlText(node.text);
+  const m = node.marks;
+  // Inside-out wrapping order: code → emphasis-like → generic → link.
+  inner = applyEmphasisMarks(inner, m);
+  inner = applyGenericMarks(inner, m);
+  inner = applyLinkMark(inner, m);
+  return inner;
+}
+
+/**
+ * Apply the set of mutually-exclusive emphasis / styling marks (code,
+ * strong, em, s, u, sup, sub) inside-out so the rendered XML mirrors the
+ * original mark stacking. The relative order is preserved across all
+ * call-sites.
+ */
+function applyEmphasisMarks(inner: string, m: InlineMarks): string {
+  let out = inner;
+  if (m.code) out = `<code>${out}</code>`;
+  if (m.strong) out = `<strong>${out}</strong>`;
+  if (m.em) out = `<em>${out}</em>`;
+  if (m.s) out = `<s>${out}</s>`;
+  if (m.u) out = `<u>${out}</u>`;
+  if (m.sup) out = `<sup>${out}</sup>`;
+  if (m.sub) out = `<sub>${out}</sub>`;
+  return out;
+}
+
+function applyGenericMarks(inner: string, m: InlineMarks): string {
+  if (!m.generic) return inner;
+  let out = inner;
+  for (const g of m.generic) {
+    out = `<span ${spanAttrs(g.name, g.attrs)}>${out}</span>`;
+  }
+  return out;
+}
+
+function applyLinkMark(inner: string, m: InlineMarks): string {
+  if (!m.link) return inner;
+  const titleAttr = m.link.title ? ` title="${escapeXmlAttr(m.link.title)}"` : '';
+  return `<a href="${escapeXmlAttr(m.link.href)}"${titleAttr}>${inner}</a>`;
+}
+
+function stringifyAttrValue(v: unknown): string {
+  if (typeof v === 'object') return JSON.stringify(v);
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string -- intentional primitive coercion
+  return String(v);
 }
 
 function spanAttrs(name: string, attrs: Record<string, unknown>): string {
   const parts = [`data-mark="${escapeXmlAttr(name)}"`];
   for (const [k, v] of Object.entries(attrs)) {
     if (v === undefined || v === null) continue;
-    const str =
-      typeof v === 'object'
-        ? JSON.stringify(v)
-        : // eslint-disable-next-line @typescript-eslint/no-base-to-string -- intentional primitive coercion
-          String(v);
-    parts.push(`${k}="${escapeXmlAttr(str)}"`);
+    parts.push(`${k}="${escapeXmlAttr(stringifyAttrValue(v))}"`);
   }
   return parts.join(' ');
 }
@@ -534,159 +626,190 @@ function spanAttrs(name: string, attrs: Record<string, unknown>): string {
  * the top of this file. Edge cases (e.g. nested emphasis with mixed
  * delimiters) follow a simple "earliest match wins" heuristic.
  */
-function parseInline(input: string, ctx: ParseContext): InlineNode[] {
-  // Stage 1: tokenize into segments separated by inline constructs.
-  const out: InlineNode[] = [];
-  let pos = 0;
-  let pendingText = '';
-  const marks: InlineMarks = {};
+/**
+ * Mutable cursor passed to per-character inline handlers. Handlers may
+ * push nodes into `out`, mutate `pendingText`, and advance `pos`. They
+ * return `true` if they consumed input (in which case the main loop
+ * `continue`s), or `false` to indicate "no match — try the next handler
+ * or fall through to literal text accumulation".
+ */
+interface InlineParseState {
+  input: string;
+  ctx: ParseContext;
+  out: InlineNode[];
+  marks: InlineMarks;
+  pos: number;
+  pendingText: string;
+}
 
-  const flushText = () => {
-    if (pendingText.length === 0) return;
-    out.push({ kind: 'text', text: pendingText, marks: cloneMarks(marks) });
-    pendingText = '';
+function flushPending(state: InlineParseState): void {
+  if (state.pendingText.length === 0) return;
+  state.out.push({ kind: 'text', text: state.pendingText, marks: cloneMarks(state.marks) });
+  state.pendingText = '';
+}
+
+function parseInline(input: string, ctx: ParseContext): InlineNode[] {
+  const state: InlineParseState = {
+    input,
+    ctx,
+    out: [],
+    marks: {},
+    pos: 0,
+    pendingText: '',
   };
 
-  while (pos < input.length) {
-    const ch = input[pos];
-
-    // Hard break: backslash at end of line, or two trailing spaces + newline.
-    if (ch === '\n') {
-      // Two-space hard break.
-      if (pendingText.endsWith('  ')) {
-        pendingText = pendingText.slice(0, -2);
-        flushText();
-        out.push({ kind: 'hardBreak' });
-        pos++;
-        continue;
-      }
-      // Otherwise treat as soft line break — represent as a literal space.
-      pendingText += ' ';
-      pos++;
-      continue;
-    }
-
-    if (ch === '\\' && pos + 1 < input.length) {
-      // Backslash escape.
-      const next = input[pos + 1];
-      if (next === '\n') {
-        flushText();
-        out.push({ kind: 'hardBreak' });
-        pos += 2;
-        continue;
-      }
-      if (isMdEscapable(next)) {
-        pendingText += next;
-        pos += 2;
-        continue;
-      }
-    }
-
-    // Inline code.
-    if (ch === '`') {
-      const code = readInlineCode(input, pos);
-      if (code) {
-        flushText();
-        out.push({ kind: 'text', text: code.content, marks: { ...cloneMarks(marks), code: true } });
-        pos = code.end;
-        continue;
-      }
-    }
-
-    // Image: ![alt](src "title")
-    if (ch === '!' && input[pos + 1] === '[') {
-      const img = readImage(input, pos);
-      if (img) {
-        flushText();
-        out.push({ kind: 'image', src: img.src, alt: img.alt, title: img.title });
-        pos = img.end;
-        continue;
-      }
-    }
-
-    // Link: [text](href "title")
-    if (ch === '[') {
-      const link = readLink(input, pos);
-      if (link) {
-        flushText();
-        // If the href decodes to an elementRef, emit that. Otherwise,
-        // recursively render the link text with a link mark.
-        const refAttrs = ctx.decodeElementRefHref(link.href);
-        if (refAttrs) {
-          // Use plain link text as displayText if not provided in attrs.
-          if (refAttrs['displayText'] === undefined) {
-            refAttrs['displayText'] = link.text;
-          }
-          out.push({ kind: 'elementRef', attrs: refAttrs });
-        } else {
-          const inner = parseInline(link.text, ctx);
-          for (const n of inner) {
-            if (n.kind === 'text') {
-              n.marks.link = { href: link.href, ...(link.title ? { title: link.title } : {}) };
-              out.push(n);
-            } else {
-              out.push(n);
-            }
-          }
-        }
-        pos = link.end;
-        continue;
-      }
-    }
-
-    // Strong/emphasis (`**`, `__`, `*`, `_`).
-    if (ch === '*' || ch === '_') {
-      const delim = ch;
-      const isStrong = input[pos + 1] === delim;
-      const close = findClosingDelim(input, pos + (isStrong ? 2 : 1), delim, isStrong);
-      if (close !== -1) {
-        const inner = input.substring(pos + (isStrong ? 2 : 1), close);
-        flushText();
-        const innerMarks = { ...cloneMarks(marks), [isStrong ? 'strong' : 'em']: true };
-        const innerCtx: ParseContext = ctx;
-        const innerNodes = parseInlineWithMarks(inner, innerCtx, innerMarks);
-        out.push(...innerNodes);
-        pos = close + (isStrong ? 2 : 1);
-        continue;
-      }
-    }
-
-    // Strikethrough `~~…~~`
-    if (ch === '~' && input[pos + 1] === '~') {
-      const close = input.indexOf('~~', pos + 2);
-      if (close !== -1) {
-        const inner = input.substring(pos + 2, close);
-        flushText();
-        const innerNodes = parseInlineWithMarks(inner, ctx, { ...cloneMarks(marks), s: true });
-        out.push(...innerNodes);
-        pos = close + 2;
-        continue;
-      }
-    }
-
-    // Inline HTML for u/sup/sub/br/span data-mark.
-    if (ch === '<') {
-      const html = readInlineHtml(input, pos);
-      if (html) {
-        flushText();
-        if (html.kind === 'br') {
-          out.push({ kind: 'hardBreak' });
-        } else if (html.kind === 'tag') {
-          const innerMarks = applyHtmlTagToMarks(marks, html);
-          const innerNodes = parseInlineWithMarks(html.content, ctx, innerMarks);
-          out.push(...innerNodes);
-        }
-        pos = html.end;
-        continue;
-      }
-    }
-
-    pendingText += ch;
-    pos++;
+  while (state.pos < input.length) {
+    if (handleInlineChar(state)) continue;
+    state.pendingText += input[state.pos];
+    state.pos++;
   }
 
-  flushText();
-  return out;
+  flushPending(state);
+  return state.out;
+}
+
+/**
+ * Try each inline construct handler in priority order. Returns true if
+ * one of them consumed input.
+ */
+function handleInlineChar(state: InlineParseState): boolean {
+  const ch = state.input[state.pos];
+  if (ch === '\n') return handleNewline(state);
+  if (ch === '\\') return handleBackslash(state);
+  if (ch === '`' && tryConsumeInlineCode(state)) return true;
+  if (ch === '!' && state.input[state.pos + 1] === '[' && tryConsumeImage(state)) return true;
+  if (ch === '[' && tryConsumeLink(state)) return true;
+  if ((ch === '*' || ch === '_') && tryConsumeEmphasis(state, ch)) return true;
+  if (ch === '~' && state.input[state.pos + 1] === '~' && tryConsumeStrikethrough(state)) {
+    return true;
+  }
+  if (ch === '<' && tryConsumeInlineHtml(state)) return true;
+  return false;
+}
+
+function handleNewline(state: InlineParseState): boolean {
+  // Two-space hard break.
+  if (state.pendingText.endsWith('  ')) {
+    state.pendingText = state.pendingText.slice(0, -2);
+    flushPending(state);
+    state.out.push({ kind: 'hardBreak' });
+    state.pos++;
+    return true;
+  }
+  // Otherwise treat as soft line break — represent as a literal space.
+  state.pendingText += ' ';
+  state.pos++;
+  return true;
+}
+
+function handleBackslash(state: InlineParseState): boolean {
+  if (state.pos + 1 >= state.input.length) return false;
+  const next = state.input[state.pos + 1];
+  if (next === '\n') {
+    flushPending(state);
+    state.out.push({ kind: 'hardBreak' });
+    state.pos += 2;
+    return true;
+  }
+  if (isMdEscapable(next)) {
+    state.pendingText += next;
+    state.pos += 2;
+    return true;
+  }
+  return false;
+}
+
+function tryConsumeInlineCode(state: InlineParseState): boolean {
+  const code = readInlineCode(state.input, state.pos);
+  if (!code) return false;
+  flushPending(state);
+  state.out.push({
+    kind: 'text',
+    text: code.content,
+    marks: { ...cloneMarks(state.marks), code: true },
+  });
+  state.pos = code.end;
+  return true;
+}
+
+function tryConsumeImage(state: InlineParseState): boolean {
+  const img = readImage(state.input, state.pos);
+  if (!img) return false;
+  flushPending(state);
+  state.out.push({ kind: 'image', src: img.src, alt: img.alt, title: img.title });
+  state.pos = img.end;
+  return true;
+}
+
+function tryConsumeLink(state: InlineParseState): boolean {
+  const link = readLink(state.input, state.pos);
+  if (!link) return false;
+  flushPending(state);
+  // If the href decodes to an elementRef, emit that. Otherwise render the
+  // link text recursively with a `link` mark applied to its text nodes.
+  const refAttrs = state.ctx.decodeElementRefHref(link.href);
+  if (refAttrs) {
+    if (refAttrs['displayText'] === undefined) {
+      refAttrs['displayText'] = link.text;
+    }
+    state.out.push({ kind: 'elementRef', attrs: refAttrs });
+  } else {
+    appendLinkInner(state, link);
+  }
+  state.pos = link.end;
+  return true;
+}
+
+function appendLinkInner(
+  state: InlineParseState,
+  link: { text: string; href: string; title?: string }
+): void {
+  const inner = parseInline(link.text, state.ctx);
+  for (const n of inner) {
+    if (n.kind === 'text') {
+      n.marks.link = { href: link.href, ...(link.title ? { title: link.title } : {}) };
+    }
+    state.out.push(n);
+  }
+}
+
+function tryConsumeEmphasis(state: InlineParseState, delim: string): boolean {
+  const isStrong = state.input[state.pos + 1] === delim;
+  const offset = isStrong ? 2 : 1;
+  const close = findClosingDelim(state.input, state.pos + offset, delim, isStrong);
+  if (close === -1) return false;
+  const inner = state.input.substring(state.pos + offset, close);
+  flushPending(state);
+  const innerMarks = { ...cloneMarks(state.marks), [isStrong ? 'strong' : 'em']: true };
+  state.out.push(...parseInlineWithMarks(inner, state.ctx, innerMarks));
+  state.pos = close + offset;
+  return true;
+}
+
+function tryConsumeStrikethrough(state: InlineParseState): boolean {
+  const close = state.input.indexOf('~~', state.pos + 2);
+  if (close === -1) return false;
+  const inner = state.input.substring(state.pos + 2, close);
+  flushPending(state);
+  state.out.push(
+    ...parseInlineWithMarks(inner, state.ctx, { ...cloneMarks(state.marks), s: true })
+  );
+  state.pos = close + 2;
+  return true;
+}
+
+function tryConsumeInlineHtml(state: InlineParseState): boolean {
+  const html = readInlineHtml(state.input, state.pos);
+  if (!html) return false;
+  flushPending(state);
+  if (html.kind === 'br') {
+    state.out.push({ kind: 'hardBreak' });
+  } else if (html.kind === 'tag') {
+    const innerMarks = applyHtmlTagToMarks(state.marks, html);
+    state.out.push(...parseInlineWithMarks(html.content, state.ctx, innerMarks));
+  }
+  state.pos = html.end;
+  return true;
 }
 
 function parseInlineWithMarks(
@@ -759,9 +882,30 @@ function readLink(
   pos: number
 ): { text: string; href: string; title?: string; end: number } | null {
   if (input[pos] !== '[') return null;
-  // Find matching `]` (allowing nested brackets).
+  const labelEnd = findLinkLabelEnd(input, pos + 1);
+  if (labelEnd === -1) return null;
+  if (input[labelEnd + 1] !== '(') return null;
+
+  const text = input.substring(pos + 1, labelEnd);
+  const hrefResult = readLinkHref(input, labelEnd + 2);
+  const titleResult = readLinkTitle(input, hrefResult.end);
+  if (!titleResult) return null;
+  if (input[titleResult.end] !== ')') return null;
+
+  return {
+    text,
+    href: hrefResult.href,
+    title: titleResult.title,
+    end: titleResult.end + 1,
+  };
+}
+
+/** Find the matching `]` for a link label starting at `start`, allowing
+ * nested `[...]` and backslash escapes. Returns the index of the closing
+ * `]`, or -1 if unmatched. */
+function findLinkLabelEnd(input: string, start: number): number {
   let depth = 1;
-  let i = pos + 1;
+  let i = start;
   while (i < input.length && depth > 0) {
     const c = input[i];
     if (c === '\\' && i + 1 < input.length) {
@@ -770,15 +914,14 @@ function readLink(
     }
     if (c === '[') depth++;
     else if (c === ']') depth--;
-    if (depth === 0) break;
+    if (depth === 0) return i;
     i++;
   }
-  if (depth !== 0) return null;
-  const text = input.substring(pos + 1, i);
-  if (input[i + 1] !== '(') return null;
-  // Read href (and optional title).
-  let j = i + 2;
-  // Skip leading whitespace.
+  return -1;
+}
+
+function readLinkHref(input: string, start: number): { href: string; end: number } {
+  let j = start;
   while (j < input.length && /\s/.test(input[j])) j++;
   let href = '';
   while (j < input.length) {
@@ -792,29 +935,38 @@ function readLink(
     href += c;
     j++;
   }
-  // Optional title.
-  let title: string | undefined;
+  return { href, end: j };
+}
+
+/**
+ * Read an optional `"title"` or `'title'` after the href. Returns the
+ * advanced position (past trailing whitespace) and the parsed title (or
+ * `undefined` if no title was present). Returns `null` only when a quote
+ * was opened but never closed.
+ */
+function readLinkTitle(
+  input: string,
+  start: number
+): { title?: string; end: number } | null {
+  let j = start;
   while (j < input.length && /\s/.test(input[j])) j++;
-  if (input[j] === '"' || input[j] === "'") {
-    const quote = input[j];
-    j++;
-    let titleBuf = '';
-    while (j < input.length && input[j] !== quote) {
-      if (input[j] === '\\' && j + 1 < input.length) {
-        titleBuf += input[j + 1];
-        j += 2;
-      } else {
-        titleBuf += input[j];
-        j++;
-      }
+  const quote = input[j];
+  if (quote !== '"' && quote !== "'") return { end: j };
+  j++;
+  let title = '';
+  while (j < input.length && input[j] !== quote) {
+    if (input[j] === '\\' && j + 1 < input.length) {
+      title += input[j + 1];
+      j += 2;
+    } else {
+      title += input[j];
+      j++;
     }
-    if (input[j] !== quote) return null;
-    j++;
-    title = titleBuf;
-    while (j < input.length && /\s/.test(input[j])) j++;
   }
-  if (input[j] !== ')') return null;
-  return { text, href, title, end: j + 1 };
+  if (input[j] !== quote) return null;
+  j++;
+  while (j < input.length && /\s/.test(input[j])) j++;
+  return { title, end: j };
 }
 
 function findClosingDelim(
@@ -831,31 +983,35 @@ function findClosingDelim(
       continue;
     }
     if (input[i] === '`') {
-      // Skip code spans so we don't match delimiters inside them.
       const code = readInlineCode(input, i);
       if (code) {
         i = code.end;
         continue;
       }
     }
-    if (input.startsWith(target, i)) {
-      // For single-char delim, ensure it isn't actually the start of a double.
-      if (!isDouble && input[i + 1] === delim) {
-        i++;
-        continue;
-      }
-      // Skip leading whitespace check: emphasis delimiters can't be
-      // preceded by whitespace on the closing side. Approximate by
-      // requiring the previous char to be non-whitespace.
-      if (i > start && /\s/.test(input[i - 1])) {
-        i++;
-        continue;
-      }
+    if (input.startsWith(target, i) && isValidClosingDelim(input, i, delim, isDouble, start)) {
       return i;
     }
     i++;
   }
   return -1;
+}
+
+/**
+ * Decide whether `input.startsWith(target, i)` is a valid emphasis
+ * closer. Two rules apply: a single-char delimiter must not be the start
+ * of a double, and the closer cannot be preceded by whitespace.
+ */
+function isValidClosingDelim(
+  input: string,
+  i: number,
+  delim: string,
+  isDouble: boolean,
+  start: number
+): boolean {
+  if (!isDouble && input[i + 1] === delim) return false;
+  if (i > start && /\s/.test(input[i - 1])) return false;
+  return true;
 }
 
 interface InlineHtmlTag {
