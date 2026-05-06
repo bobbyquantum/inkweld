@@ -6,7 +6,9 @@
  *     `ElementTypeLike`, `elementRefSchemaExtension`
  *   - `commentMarkSpec`, `COMMENT_MARK_NAME`, `CommentMarkAttrs`
  *   - `secureLinkMarkSpec`
- *   - `createExtendedSchema({ baseNodes, baseMarks })`
+ *   - `createExtendedSchemaSpec({ baseNodes, baseMarks })` — returns
+ *     `{nodes, marks}`; the host constructs `new Schema(...)` itself
+ *     using its own copy of `prosemirror-model`.
  *
  * CSS for `elementRef` and `comment-highlight` rendering is intentionally
  * not exported — it stays in the frontend.
@@ -30,5 +32,6 @@ export { secureLinkMarkSpec } from './secure-link-spec';
 
 export {
   type CreateExtendedSchemaInput,
-  createExtendedSchema,
+  type ExtendedSchemaSpec,
+  createExtendedSchemaSpec,
 } from './create-extended-schema';
