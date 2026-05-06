@@ -404,13 +404,16 @@ function parseChildren(
 }
 
 /**
- * Parse an XML attribute value, decoding the JSON-encoded objects,
- * booleans and numbers that the serializer is allowed to emit.
+ * Parse an XML attribute value, decoding the JSON-encoded objects and
+ * arrays that the serializer is allowed to emit. Pure strings round-trip
+ * unchanged.
  *
- * Pure strings round-trip unchanged — this is intentionally lossy in
- * the sense that "true", "false" and numeric literals are coerced.
- * Schemas that need to preserve those as raw strings should escape
- * them at the source.
+ * NOTE: We intentionally do NOT coerce numeric- or boolean-looking
+ * strings (e.g. `"123"`, `"true"`) into their scalar forms. Element IDs
+ * and similar identifiers are frequently numeric strings, and silently
+ * turning them into `number` would break round-tripping and downstream
+ * type assumptions. Schemas that need typed scalars should encode them
+ * explicitly as JSON (e.g. `attr='[42]'`) or unmarshal at the consumer.
  */
 export function parseAttrValue(value: string): unknown {
   if (value.startsWith('{') || value.startsWith('[')) {
@@ -420,9 +423,5 @@ export function parseAttrValue(value: string): unknown {
       return value;
     }
   }
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  const num = Number(value);
-  if (!Number.isNaN(num) && value !== '') return num;
   return value;
 }

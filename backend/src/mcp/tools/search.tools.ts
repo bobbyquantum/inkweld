@@ -958,11 +958,25 @@ registerTool({
     // Normalize format: accept legacy 'xml' as alias for 'prosemirror_xml'.
     // Default has changed from 'text' to 'prosemirror_xml' so callers that omit
     // the parameter receive the canonical, lossless representation.
-    const rawFormat = (args.format as string) ?? 'prosemirror_xml';
-    const format =
-      rawFormat === 'xml'
-        ? 'prosemirror_xml'
-        : (rawFormat as 'prosemirror_xml' | 'markdown' | 'text');
+    // MCP runtimes don't always enforce input schemas, so we validate here too.
+    const rawFormat =
+      typeof args.format === 'string' && args.format ? args.format : 'prosemirror_xml';
+    const normalisedFormat = rawFormat === 'xml' ? 'prosemirror_xml' : rawFormat;
+    const allowedFormats = ['prosemirror_xml', 'markdown', 'text'] as const;
+    if (!(allowedFormats as readonly string[]).includes(normalisedFormat)) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error: invalid format "${rawFormat}". Expected one of ${allowedFormats.join(
+              ', '
+            )} (or deprecated alias 'xml').`,
+          },
+        ],
+        isError: true,
+      };
+    }
+    const format = normalisedFormat as (typeof allowedFormats)[number];
 
     if (!elementId) {
       return {
@@ -1026,6 +1040,8 @@ registerTool({
       if (format === 'markdown') {
         // Encode element_ref hrefs as project-scoped inkweld:// URIs so
         // round-tripping through markdown preserves the project context.
+        // Attribute names match the shared element-ref schema spec
+        // (`elementType` / `relationshipNote`).
         const markdown = xmlToMarkdown(xmlString, {
           encodeElementRefHref: (attrs) => {
             const refId = typeof attrs.elementId === 'string' ? attrs.elementId : '';
@@ -1034,8 +1050,9 @@ registerTool({
               username,
               slug,
               params: {
-                type: typeof attrs.type === 'string' ? attrs.type : undefined,
-                note: typeof attrs.note === 'string' ? attrs.note : undefined,
+                type: typeof attrs.elementType === 'string' ? attrs.elementType : undefined,
+                note:
+                  typeof attrs.relationshipNote === 'string' ? attrs.relationshipNote : undefined,
               },
             });
           },

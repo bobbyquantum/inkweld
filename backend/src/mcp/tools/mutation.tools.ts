@@ -1344,8 +1344,9 @@ The content replaces the entire document. Use get_document_content first to read
     try {
       // Convert markdown to canonical XML if needed. Element references in
       // markdown links use the inkweld:// scheme and are decoded back to
-      // <element_ref> nodes, restoring `type` and `note` from the URI's query
-      // string when present.
+      // <element_ref> nodes, restoring `elementType` and `relationshipNote`
+      // from the URI's query string when present. (Matches the attribute
+      // names declared in the shared element-ref schema spec.)
       let xmlContent = content;
       if (format === 'markdown') {
         xmlContent = markdownToXml(content, {
@@ -1354,8 +1355,8 @@ The content replaces the entire document. Use get_document_content first to read
             if (!decoded) return null;
             return {
               elementId: decoded.elementId,
-              type: decoded.params.type,
-              note: decoded.params.note,
+              elementType: decoded.params.type,
+              relationshipNote: decoded.params.note,
             };
           },
         });

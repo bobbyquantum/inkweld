@@ -49,12 +49,16 @@ export function decodeInkweldUri(uri: string): DecodedInkweldUri | null {
   let username: string | undefined;
   let slug: string | undefined;
 
-  if (segments[0] === 'element' && segments[1]) {
-    elementId = segments[1];
-  } else if (segments.length >= 4 && segments[2] === 'element' && segments[3]) {
+  // Prefer the scoped form when the path has 4 segments and the third
+  // segment is `element`, so a username of `"element"` (e.g. URI like
+  // `inkweld://element/myproj/element/abc`) is decoded as a scoped
+  // reference rather than being mis-parsed as a bare reference.
+  if (segments.length >= 4 && segments[2] === 'element' && segments[3]) {
     username = segments[0];
     slug = segments[1];
     elementId = segments[3];
+  } else if (segments.length === 2 && segments[0] === 'element' && segments[1]) {
+    elementId = segments[1];
   }
   if (!elementId) return null;
 
