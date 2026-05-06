@@ -49,11 +49,17 @@ export function decodeInkweldUri(uri: string): DecodedInkweldUri | null {
   let username: string | undefined;
   let slug: string | undefined;
 
-  // Prefer the scoped form when the path has 4 segments and the third
-  // segment is `element`, so a username of `"element"` (e.g. URI like
-  // `inkweld://element/myproj/element/abc`) is decoded as a scoped
-  // reference rather than being mis-parsed as a bare reference.
-  if (segments.length >= 4 && segments[2] === 'element' && segments[3]) {
+  // Strict scoped form: exactly 4 segments, non-empty username/slug,
+  // third segment is the literal `element`. Anything longer (e.g.
+  // `inkweld://u/p/element/id/extra`) or with blank username/slug is
+  // rejected so malformed URIs don't silently truncate to a valid one.
+  if (
+    segments.length === 4 &&
+    segments[0] &&
+    segments[1] &&
+    segments[2] === 'element' &&
+    segments[3]
+  ) {
     username = segments[0];
     slug = segments[1];
     elementId = segments[3];
@@ -112,7 +118,10 @@ function encodeQuery(
   if (!params) return '';
   const parts: string[] = [];
   for (const [k, v] of Object.entries(params)) {
-    if (v === undefined || v === null || v === '') continue;
+    // Drop undefined/null so callers can pass partial maps, but
+    // preserve empty strings as `key=` so `decodeInkweldUri` round-trips
+    // unknown flag-style parameters losslessly.
+    if (v === undefined || v === null) continue;
     parts.push(`${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
   }
   return parts.join('&');

@@ -9,26 +9,21 @@
  * ⚠️ Existing imports of `elementRefNodeSpec`, `ELEMENT_REF_NODE_NAME`,
  * `ElementRefNodeAttrs`, and `elementRefSchemaExtension` from this file
  * continue to work via re-export.
+ *
+ * `ElementRefNodeAttrs.elementType` is intentionally re-exported as
+ * `string | null` (the shared package's type) rather than narrowed to
+ * the OpenAPI `ElementType` enum: the underlying `parseDOM`/JSON
+ * parsing in `elementRefNodeSpec` accepts free-form strings, so a
+ * narrower frontend type would lie about runtime values that originate
+ * from the shared spec or from MCP-authored documents.
  */
-
-import { type ElementRefNodeAttrs as SharedAttrs } from '@inkweld/prosemirror/schema';
-
-import { type ElementType } from '../../../api-client';
 
 export {
   ELEMENT_REF_NODE_NAME,
+  type ElementRefNodeAttrs,
   elementRefNodeSpec,
   elementRefSchemaExtension,
 } from '@inkweld/prosemirror/schema';
-
-/**
- * Frontend-narrowed `ElementRefNodeAttrs`: replaces the shared package's
- * `string` `elementType` with the generated `ElementType` enum so existing
- * frontend code keeps strict typing.
- */
-export type ElementRefNodeAttrs = Omit<SharedAttrs, 'elementType'> & {
-  elementType: ElementType | null;
-};
 
 /**
  * CSS styles for element reference nodes.

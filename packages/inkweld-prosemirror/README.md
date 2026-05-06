@@ -43,4 +43,16 @@ Both peers are marked optional so a hypothetical pure-Markdown-only consumer cou
 
 ## Tests
 
-Tests live under `packages/inkweld-prosemirror/test/` and are run by the **frontend Vitest** project (added to its `include` glob) so we get one consistent runner with the same Angular-free environment. They do not touch Angular APIs.
+Tests live under `packages/inkweld-prosemirror/test/` and are run by a
+**package-local Vitest config** (`vitest.config.ts`) with `@vitest/coverage-v8`.
+They do not touch Angular APIs and can be run independently:
+
+```bash
+cd packages/inkweld-prosemirror && bun run test
+# or with coverage:
+cd packages/inkweld-prosemirror && bun run test:coverage
+```
+
+The root `bun run test` script (and `bun run verify`) invokes this suite via
+the workspace-level `test:packages` script. Coverage thresholds enforced:
+80% statements / 60% branches / 80% functions / 80% lines.

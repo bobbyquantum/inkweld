@@ -308,4 +308,90 @@ describe('xmlToMarkdown + markdownToXml — round-trip extras', () => {
     expect(xml).toContain('<hard_break/>');
     expect(xmlToMarkdown(xml).replace(/\s+$/, '')).toMatch(/a {2}\nb/);
   });
+
+  // -------------------------------------------------------------------------
+  // CodeRabbit follow-up regressions (PR #1068, 2026-05-06 review)
+  // -------------------------------------------------------------------------
+
+  it('does NOT trim a trailing hard break off the document', () => {
+    const xml = '<paragraph>a<hard_break/></paragraph>';
+    // Two-space hard-break marker must survive the post-render cleanup.
+    expect(xmlToMarkdown(xml)).toMatch(/a {2}\n$/);
+  });
+
+  it('escapes an embedded ``` inside a code block by widening the fence', () => {
+    const xml =
+      '<code_block lang="md">before\n```\nfake close\n```\nafter</code_block>';
+    const md = xmlToMarkdown(xml);
+    // Outer fence must be longer than 3 backticks so the inner ``` does
+    // not close the block early.
+    expect(md.startsWith('````md\n')).toBe(true);
+    expect(md.endsWith('\n````')).toBe(true);
+    // Round-trip preserves the inner backticks verbatim.
+    expect(markdownToXml(md)).toContain('```\nfake close\n```');
+  });
+
+  it('preserves ordered_list start attribute', () => {
+    const xml =
+      '<ordered_list order="5"><list_item><paragraph>a</paragraph></list_item><list_item><paragraph>b</paragraph></list_item></ordered_list>';
+    const md = xmlToMarkdown(xml);
+    expect(md).toMatch(/^5\. a\n6\. b$/);
+  });
+
+  it('indents continuation lines inside the FIRST list-item block (hard break)', () => {
+    const xml =
+      '<bullet_list><list_item><paragraph>line1<hard_break/>line2</paragraph></list_item></bullet_list>';
+    const md = xmlToMarkdown(xml);
+    // The second line ("line2") must be indented under the bullet so a
+    // markdown parser keeps it inside the list item.
+    expect(md).toMatch(/^- line1 {2}\n {2}line2$/);
+  });
+
+  it('falls back gracefully when an inkweld:// URL has malformed percent-encoding', () => {
+    // `%E0%A4` is an incomplete UTF-8 sequence — decodeURIComponent throws.
+    // The conversion must NOT abort; the link becomes a normal link with
+    // no elementRef attrs.
+    const md = 'see [chip](inkweld://element/%E0%A4)';
+    expect(() => markdownToXml(md)).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// URI codec — strict scoped form + flag-style query preservation
+// ---------------------------------------------------------------------------
+
+describe('inkweld:// URI codec — strict validation', () => {
+  it('rejects scoped URIs with an extra trailing segment', async () => {
+    const { decodeInkweldUri } = await import('../src/uri');
+    expect(decodeInkweldUri('inkweld://u/p/element/id/extra')).toBeNull();
+  });
+
+  it('rejects scoped URIs with a blank username or slug', async () => {
+    const { decodeInkweldUri } = await import('../src/uri');
+    expect(decodeInkweldUri('inkweld:///p/element/id')).toBeNull();
+    expect(decodeInkweldUri('inkweld://u//element/id')).toBeNull();
+  });
+
+  it('round-trips an empty-string flag-style query parameter', async () => {
+    const { decodeInkweldUri, encodeInkweldUri } = await import('../src/uri');
+    const decoded = decodeInkweldUri('inkweld://element/x?flag=&kept=v');
+    expect(decoded?.params).toEqual({ flag: '', kept: 'v' });
+    expect(
+      encodeInkweldUri({ elementId: 'x', params: decoded!.params })
+    ).toBe('inkweld://element/x?flag=&kept=v');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// XML parser — mismatched closing tag is now a hard error
+// ---------------------------------------------------------------------------
+
+describe('XML AST parser — mismatched-tag safety', () => {
+  it('throws when a closing tag does not match the open element', async () => {
+    const { parseXmlToAst } = await import('../src/xml/ast');
+    // <strong> closed by </paragraph> — must NOT silently flatten.
+    expect(() =>
+      parseXmlToAst('<paragraph><strong>x</paragraph>')
+    ).toThrow(/Mismatched closing tag/);
+  });
 });

@@ -81,13 +81,13 @@ describe('element-ref-schema', () => {
 
         const attrs = getAttrs(mockElement);
 
-        expect(attrs['elementId']).toBe('');
+        expect(attrs['elementId']).toBeNull();
         expect(attrs['elementType']).toBeNull();
         expect(attrs['displayText']).toBe('');
         expect(attrs['originalName']).toBe('');
-        expect(attrs['relationshipId']).toBeUndefined();
+        expect(attrs['relationshipId']).toBeNull();
         expect(attrs['relationshipTypeId']).toBe('referenced-in');
-        expect(attrs['relationshipNote']).toBeUndefined();
+        expect(attrs['relationshipNote']).toBeNull();
       });
     });
 

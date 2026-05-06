@@ -16,13 +16,11 @@
     "packages/inkweld-prosemirror": {
       "name": "@inkweld/prosemirror",
       "version": "0.1.0",
-      "dependencies": {
-        "prosemirror-model": "1.25.4",
-        "yjs": "13.6.30",
-      },
       "devDependencies": {
         "@vitest/coverage-v8": "^4.0.16",
+        "prosemirror-model": "1.25.4",
         "vitest": "^4.0.16",
+        "yjs": "13.6.30",
       },
       "peerDependencies": {
         "prosemirror-model": "1.25.4",
