@@ -16,10 +16,20 @@
     "emitDecoratorMetadata": true,
     "types": ["bun-types", "node"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@inkweld/prosemirror": ["../packages/inkweld-prosemirror/src/index"],
+      "@inkweld/prosemirror/*": ["../packages/inkweld-prosemirror/src/*/index"]
     }
   },
-  "include": ["src/**/*", "scripts/**/*", "test/test-credentials.ts"],
+  "include": [
+    "src/**/*",
+    "scripts/**/*",
+    "test/test-credentials.ts",
+    "../packages/inkweld-prosemirror/src/xml/**/*",
+    "../packages/inkweld-prosemirror/src/markdown/**/*",
+    "../packages/inkweld-prosemirror/src/uri/**/*",
+    "../packages/inkweld-prosemirror/src/runtime/**/*"
+  ],
   "exclude": [
     "node_modules",
     "dist",

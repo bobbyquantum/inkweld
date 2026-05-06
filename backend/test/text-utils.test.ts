@@ -5,7 +5,6 @@ import {
   filterMoveRootIds,
   moveRequestedElements,
   parseMoveElementsArgs,
-  textToProseMirrorXml,
   toErrorResult,
   validateMoveParent,
   validateSnapshotPayloadForPersistence,
@@ -18,48 +17,6 @@ import {
   skipTopLevelWhitespace,
 } from '../src/utils/xml-utils';
 import { escapeHtml } from '../src/routes/document.routes';
-
-describe('textToProseMirrorXml', () => {
-  it('should return empty paragraph for whitespace-only input', () => {
-    expect(textToProseMirrorXml('')).toBe('<paragraph></paragraph>');
-    expect(textToProseMirrorXml('   ')).toBe('<paragraph></paragraph>');
-  });
-
-  it('should wrap plain text in paragraph tags', () => {
-    expect(textToProseMirrorXml('Hello world')).toBe('<paragraph>Hello world</paragraph>');
-  });
-
-  it('should escape XML special characters', () => {
-    const result = textToProseMirrorXml('a & b < c > d "e" \'f\'');
-    expect(result).toBe(
-      '<paragraph>a &amp; b &lt; c &gt; d &quot;e&quot; &apos;f&apos;</paragraph>'
-    );
-  });
-
-  it('should split on double newlines into separate paragraphs', () => {
-    const result = textToProseMirrorXml('First paragraph\n\nSecond paragraph');
-    expect(result).toBe(
-      '<paragraph>First paragraph</paragraph><paragraph>Second paragraph</paragraph>'
-    );
-  });
-
-  it('should convert single newlines to hard_break elements', () => {
-    const result = textToProseMirrorXml('Line 1\nLine 2');
-    expect(result).toBe('<paragraph>Line 1<hard_break/>Line 2</paragraph>');
-  });
-
-  it('should handle triple+ newlines as paragraph break', () => {
-    const result = textToProseMirrorXml('A\n\n\nB');
-    expect(result).toBe('<paragraph>A</paragraph><paragraph>B</paragraph>');
-  });
-
-  it('should handle mixed paragraphs and line breaks', () => {
-    const result = textToProseMirrorXml('Line 1\nLine 2\n\nParagraph 2');
-    expect(result).toBe(
-      '<paragraph>Line 1<hard_break/>Line 2</paragraph><paragraph>Paragraph 2</paragraph>'
-    );
-  });
-});
 
 describe('decodeXmlEntities', () => {
   it('should decode named XML entities', () => {
