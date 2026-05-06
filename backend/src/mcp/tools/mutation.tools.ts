@@ -49,6 +49,8 @@ import {
   findParentByPosition,
 } from './tree-helpers';
 import { xmlContentToText } from '../../utils/xml-utils';
+import { markdownToXml } from '@inkweld/prosemirror/markdown';
+import { decodeInkweldUri } from '@inkweld/prosemirror/uri';
 
 /**
  * Common project parameter schema for all mutation tools
@@ -1242,9 +1244,9 @@ registerTool({
     title: 'Update Document Content',
     description: `Replace the prose content of a document element. Supports two input formats:
 
-- "xml" (default): ProseMirror XML format. Use tags like <paragraph>, <heading level="1">, <blockquote>, etc.
+- "prosemirror_xml" (default): Inkweld's canonical XML format. Use tags like <paragraph>, <heading level="1">, <blockquote>, <bullet_list><list_item>...</list_item></bullet_list>, etc.
   Example: <paragraph>Hello <bold>world</bold></paragraph>
-- "text": Plain text that will be automatically wrapped in <paragraph> tags. Double newlines create paragraph breaks.
+- "markdown": Standard CommonMark-style Markdown. Lossy formatting (comments, text colors) can be expressed via inline <span data-mark="..."> elements. Element references use <code>[label](inkweld://username/slug/element/{id})</code> links.
 
 The content replaces the entire document. Use get_document_content first to read the current content if you need to make partial edits.`,
     inputSchema: {
@@ -1258,13 +1260,13 @@ The content replaces the entire document. Use get_document_content first to read
         content: {
           type: 'string',
           description:
-            'The new document content. For "xml" format: ProseMirror XML string. For "text" format: plain text (double newlines = paragraph breaks).',
+            'The new document content. For "prosemirror_xml" format: Inkweld XML string. For "markdown" format: Markdown text.',
         },
         format: {
           type: 'string',
-          enum: ['xml', 'text'],
+          enum: ['prosemirror_xml', 'markdown', 'xml'],
           description:
-            'Input format: "xml" for ProseMirror XML (default), "text" for plain text wrapped in paragraphs',
+            'Input format: "prosemirror_xml" (default) for canonical Inkweld XML, "markdown" for Markdown. "xml" is accepted as a deprecated alias for "prosemirror_xml".',
         },
       },
       required: ['project', 'elementId', 'content'],
@@ -1288,7 +1290,13 @@ The content replaces the entire document. Use get_document_content first to read
       };
     }
     const content = args.content;
-    const format = (args.format as string) ?? 'xml';
+    // Normalize format: accept legacy 'xml' as alias for 'prosemirror_xml'.
+    // 'text' is no longer supported on the write side: callers can trivially
+    // produce a single-paragraph XML / Markdown payload themselves, and
+    // accepting plain text encouraged silent loss of structure.
+    const rawFormat = (args.format as string) ?? 'prosemirror_xml';
+    const format: 'prosemirror_xml' | 'markdown' =
+      rawFormat === 'xml' ? 'prosemirror_xml' : (rawFormat as 'prosemirror_xml' | 'markdown');
 
     if (!elementId) {
       return {
@@ -1297,11 +1305,13 @@ The content replaces the entire document. Use get_document_content first to read
       };
     }
 
-    // Validate format
-    if (format !== 'xml' && format !== 'text') {
+    if (format !== 'prosemirror_xml' && format !== 'markdown') {
       return {
         content: [
-          { type: 'text', text: `Error: invalid format "${format}". Use "xml" or "text".` },
+          {
+            type: 'text',
+            text: `Error: invalid format "${rawFormat}". Use "prosemirror_xml" or "markdown".`,
+          },
         ],
         isError: true,
       };
@@ -1332,10 +1342,24 @@ The content replaces the entire document. Use get_document_content first to read
     }
 
     try {
-      // Convert text format to XML if needed
+      // Convert markdown to canonical XML if needed. Element references in
+      // markdown links use the inkweld:// scheme and are decoded back to
+      // <element_ref> nodes, restoring `elementType` and `relationshipNote`
+      // from the URI's query string when present. (Matches the attribute
+      // names declared in the shared element-ref schema spec.)
       let xmlContent = content;
-      if (format === 'text') {
-        xmlContent = textToProseMirrorXml(content);
+      if (format === 'markdown') {
+        xmlContent = markdownToXml(content, {
+          decodeElementRefHref: (href) => {
+            const decoded = decodeInkweldUri(href);
+            if (!decoded) return null;
+            return {
+              elementId: decoded.elementId,
+              elementType: decoded.params.type,
+              relationshipNote: decoded.params.note,
+            };
+          },
+        });
       }
 
       // Apply the content update via Yjs
@@ -1373,37 +1397,10 @@ The content replaces the entire document. Use get_document_content first to read
 });
 
 /**
- * Convert plain text to ProseMirror XML format.
- * Double newlines create paragraph breaks, single newlines are preserved as hard breaks.
+ * NOTE: `textToProseMirrorXml` has been removed alongside the deprecated
+ * `text` write format. Callers should pass either canonical
+ * `prosemirror_xml` or `markdown` to `update_document_content` instead.
  */
-export function textToProseMirrorXml(text: string): string {
-  if (!text.trim()) {
-    return '<paragraph></paragraph>';
-  }
-
-  // Split on double newlines to create paragraphs
-  const paragraphs = text.split(/\n\n+/);
-
-  return paragraphs
-    .map((para) => {
-      const trimmed = para.trim();
-      if (!trimmed) return '<paragraph></paragraph>';
-
-      // Escape XML special characters
-      const escaped = trimmed
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&apos;');
-
-      // Convert single newlines to hard_break elements
-      const withBreaks = escaped.replaceAll('\n', '<hard_break/>');
-
-      return `<paragraph>${withBreaks}</paragraph>`;
-    })
-    .join('');
-}
 
 // ============================================
 // create_relationship tool
