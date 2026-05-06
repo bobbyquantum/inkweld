@@ -26,16 +26,24 @@ RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
 
 # Workspace-aware install: the frontend resolves `@inkweld/prosemirror/*`
 # via tsconfig path aliases that point at `../packages/inkweld-prosemirror/src/*`.
-# We need the workspace package on disk before the Angular build runs, so we
-# copy the root workspace manifest plus every package's manifest first to
-# maximise Docker layer caching, then install per-app inside `frontend/`.
+# That package in turn imports `prosemirror-model` and `yjs`, so the workspace
+# package needs its own `node_modules`. We install at the workspace root first
+# (which links the `packages/*` workspace deps), then per-app inside `frontend/`.
 COPY package.json bun.lock* ./
 COPY packages ./packages
 COPY frontend/bun.lock frontend/package.json ./frontend/
 
-WORKDIR /app/frontend
 # Skip Electron binary download - not needed for web frontend build in Docker
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
+
+# Install workspace deps so `packages/inkweld-prosemirror/node_modules/{prosemirror-model,yjs}`
+# get linked. The root `postinstall` script chains into `frontend && backend && docs/site`
+# installs that we don't want here, so override it.
+RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
+  bun install --frozen-lockfile --ignore-scripts; \
+  fi
+
+WORKDIR /app/frontend
 # Install with --ignore-scripts to disable arbitrary postinstall execution,
 # then explicitly run esbuild's binary installer (the only postinstall the
 # Angular build genuinely needs).
