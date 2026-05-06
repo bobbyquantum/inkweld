@@ -65,21 +65,40 @@ function normalizeLineEndings(s: string): string {
   return s.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
 }
 
+/**
+ * Decode a percent-encoded segment without throwing. Malformed inputs
+ * (e.g. lone `%` characters) are returned verbatim so a single bad URL
+ * cannot abort the whole markdown → XML conversion.
+ */
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 /** Default `inkweld://` decoder. */
 function defaultDecodeElementRefHref(href: string): Record<string, unknown> | null {
   if (!href.startsWith('inkweld://')) return null;
   // Strip protocol + parse query string.
   const rest = href.slice('inkweld://'.length);
   const [pathPart, queryPart] = rest.split('?', 2);
-  const segments = pathPart.split('/').map((s) => decodeURIComponent(s));
+  const segments = pathPart.split('/').map(safeDecodeURIComponent);
   // Forms supported:
   //   element/{id}
   //   {username}/{slug}/element/{id}
   let elementId: string | null = null;
-  if (segments[0] === 'element' && segments[1]) {
-    elementId = segments[1];
-  } else if (segments[2] === 'element' && segments[3]) {
+  if (
+    segments.length === 4 &&
+    segments[0] &&
+    segments[1] &&
+    segments[2] === 'element' &&
+    segments[3]
+  ) {
     elementId = segments[3];
+  } else if (segments.length === 2 && segments[0] === 'element' && segments[1]) {
+    elementId = segments[1];
   }
   if (!elementId) return null;
 
@@ -88,7 +107,7 @@ function defaultDecodeElementRefHref(href: string): Record<string, unknown> | nu
     for (const param of queryPart.split('&')) {
       const [k, v = ''] = param.split('=', 2);
       if (!k) continue;
-      attrs[decodeURIComponent(k)] = decodeURIComponent(v);
+      attrs[safeDecodeURIComponent(k)] = safeDecodeURIComponent(v);
     }
   }
   return attrs;

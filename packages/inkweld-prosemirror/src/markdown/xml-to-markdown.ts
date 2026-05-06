@@ -49,11 +49,17 @@ export function xmlToMarkdown(xml: string, options: XmlToMarkdownOptions = {}): 
   const blocks = renderBlocks(ast, ctx);
   // Collapse 3+ blank lines to 2. We deliberately do NOT trim trailing
   // whitespace per line because that would destroy the two-space
-  // markdown hard-break marker (`  \n`).
-  return blocks
-    .join('\n\n')
-    .replaceAll(/\n{3,}/g, '\n\n')
-    .trim();
+  // markdown hard-break marker (`  \n`). We also avoid `String#trim()`
+  // for the same reason — instead, strip only outer blank lines while
+  // preserving a trailing hard-break (paragraph ending in `<hard_break/>`).
+  const joined = blocks.join('\n\n').replaceAll(/\n{3,}/g, '\n\n');
+  const head = joined.replace(/^\n+/, '');
+  // Preserve a trailing `  \n` (hard break) by keeping a single newline
+  // after at least two spaces; otherwise drop trailing newlines.
+  return head.replace(/(\n+)$/, (_match, nls: string) => {
+    const before = head.slice(0, head.length - nls.length);
+    return before.endsWith('  ') ? '\n' : '';
+  });
 }
 
 interface RenderContext {
@@ -105,7 +111,11 @@ function renderBlockElement(node: AstElement, ctx: RenderContext): string {
     case 'codeBlock': {
       const lang = stringAttr(node.attrs, 'lang') ?? stringAttr(node.attrs, 'language') ?? '';
       const content = collectRawText(node.children);
-      return '```' + lang + '\n' + content + '\n```';
+      // Pick a fence longer than the longest backtick run inside the
+      // content so embedded ``` (or longer) sequences cannot close it
+      // early. CommonMark §4.5 requires fences of at least 3 backticks.
+      const fence = '`'.repeat(Math.max(3, longestBacktickRun(content) + 1));
+      return fence + lang + '\n' + content + '\n' + fence;
     }
     case 'horizontal_rule':
     case 'horizontalRule':
@@ -131,13 +141,18 @@ function renderList(
   marker: '-' | 'ordered',
   ctx: RenderContext
 ): string {
+  // Honor `order="N"` on ordered lists so XML→MD→XML round-trips and
+  // visible numbering survive. Default per ProseMirror schema is 1.
+  const startRaw = stringAttr(node.attrs, 'order') ?? stringAttr(node.attrs, 'start');
+  const startNum = startRaw === undefined ? 1 : Number(startRaw);
+  const start = Number.isFinite(startNum) && startNum >= 1 ? Math.trunc(startNum) : 1;
   const items: string[] = [];
   let index = 0;
   for (const child of node.children) {
     if (child.type !== 'element') continue;
     const isItem = child.name === 'list_item' || child.name === 'listItem' || child.name === 'li';
     if (!isItem) continue;
-    const bullet = marker === '-' ? '-' : `${index + 1}.`;
+    const bullet = marker === '-' ? '-' : `${start + index}.`;
     items.push(renderListItem(child, bullet, ctx));
     index++;
   }
@@ -152,15 +167,23 @@ function renderListItem(
   const blocks = renderBlocks(node.children, ctx);
   if (blocks.length === 0) return `${bullet} `;
   const [first, ...rest] = blocks;
-  // Indent continuation lines so the markdown parser keeps them inside
-  // the list item.
   const indent = ' '.repeat(bullet.length + 1);
+  // Indent continuation lines (including those inside the FIRST block,
+  // e.g. hard breaks) so markdown parsers keep them inside the item.
+  const indentInside = (s: string): string =>
+    s
+      .split('\n')
+      .map((l, idx) => (idx === 0 || !l ? l : indent + l))
+      .join('\n');
+  const firstIndented = indentInside(first);
   const restIndented = rest
     .join('\n\n')
     .split('\n')
     .map((l) => (l ? indent + l : l))
     .join('\n');
-  return rest.length > 0 ? `${bullet} ${first}\n${restIndented}` : `${bullet} ${first}`;
+  return rest.length > 0
+    ? `${bullet} ${firstIndented}\n${restIndented}`
+    : `${bullet} ${firstIndented}`;
 }
 
 function renderImage(node: AstElement): string {
@@ -377,4 +400,19 @@ function collectRawText(nodes: AstNode[]): string {
     else out += collectRawText(n.children);
   }
   return out;
+}
+
+/** Longest run of consecutive backticks anywhere in `s`. */
+function longestBacktickRun(s: string): number {
+  let max = 0;
+  let cur = 0;
+  for (const ch of s) {
+    if (ch === '`') {
+      cur++;
+      if (cur > max) max = cur;
+    } else {
+      cur = 0;
+    }
+  }
+  return max;
 }

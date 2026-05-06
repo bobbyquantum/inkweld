@@ -391,8 +391,17 @@ function parseChildren(
 
     const childResult = parseNode(Y, xml, cursor, marks);
     if (!childResult) {
-      const closeMatch = /^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/.exec(xml.substring(cursor));
-      if (closeMatch) cursor += closeMatch[0].length;
+      // We hit a closing tag that doesn't belong to us (mismatched
+      // nesting). Refuse to silently consume it — that turns malformed
+      // XML into a different document tree, which could be surfaced to
+      // an LLM as if it were the user's authored content. Surface the
+      // failure so callers can fall back to a recovery strategy.
+      const closeMatch = /^<\/([a-zA-Z_][a-zA-Z0-9_-]*)>/.exec(xml.substring(cursor));
+      if (closeMatch) {
+        throw new Error(
+          `Mismatched closing tag </${closeMatch[1]}> while inside <${rawTagName}> at offset ${cursor}`
+        );
+      }
       break;
     }
     for (const child of childResult.children) children.push(child);

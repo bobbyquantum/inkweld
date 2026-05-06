@@ -19,7 +19,7 @@ import { type Node, type NodeSpec } from 'prosemirror-model';
  */
 
 export interface ElementRefNodeAttrs {
-  /** Referenced element's ID. Empty string = deleted/orphaned reference. */
+  /** Referenced element's ID. `null` = deleted/orphaned reference. */
   elementId: string | null;
   /** Element type (folder, item, worldbuilding, …). Used for styling. */
   elementType: string | null;
@@ -28,11 +28,11 @@ export interface ElementRefNodeAttrs {
   /** Original element name at insertion time, for rename detection. */
   originalName: string;
   /** Optional relationship row backing this reference. */
-  relationshipId: string | null | undefined;
+  relationshipId: string | null;
   /** Relationship type id (default: `referenced-in`). */
   relationshipTypeId: string;
   /** Optional inline note shown as a tooltip. */
-  relationshipNote: string | null | undefined;
+  relationshipNote: string | null;
 }
 
 export const ELEMENT_REF_NODE_NAME = 'elementRef';
@@ -57,14 +57,14 @@ export const elementRefNodeSpec: NodeSpec = {
       tag: 'span[data-element-ref]',
       getAttrs(dom: HTMLElement): ElementRefNodeAttrs {
         return {
-          elementId: dom.dataset['elementId'] || '',
+          elementId: dom.dataset['elementId'] || null,
           elementType: dom.dataset['elementType'] || null,
           displayText: dom.textContent || '',
           originalName: dom.dataset['originalName'] || '',
-          relationshipId: dom.dataset['relationshipId'] || undefined,
+          relationshipId: dom.dataset['relationshipId'] || null,
           relationshipTypeId:
             dom.dataset['relationshipType'] || 'referenced-in',
-          relationshipNote: dom.dataset['relationshipNote'] || undefined,
+          relationshipNote: dom.dataset['relationshipNote'] || null,
         };
       },
     },

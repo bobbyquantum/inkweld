@@ -197,8 +197,15 @@ function parseChildren(
     }
     const result = parseAstNode(xml, cursor, marks);
     if (!result) {
-      const closeMatch = /^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/.exec(xml.substring(cursor));
-      if (closeMatch) cursor += closeMatch[0].length;
+      // See `parser.ts` — refuse to silently consume a closing tag that
+      // belongs to an ancestor; otherwise malformed XML is normalised
+      // into a different AST.
+      const closeMatch = /^<\/([a-zA-Z_][a-zA-Z0-9_-]*)>/.exec(xml.substring(cursor));
+      if (closeMatch) {
+        throw new Error(
+          `Mismatched closing tag </${closeMatch[1]}> while inside <${rawTagName}> at offset ${cursor}`
+        );
+      }
       break;
     }
     for (const n of result.nodes) children.push(n);

@@ -35,13 +35,15 @@ describe('inkweld:// URI codec', () => {
     );
   });
 
-  it('drops empty/null/undefined params at encode time', () => {
+  it('drops null/undefined params but preserves empty strings as flag-style', () => {
+    // Empty-string values must round-trip as `key=` so unknown
+    // flag-style query parameters survive decode → encode.
     expect(
       encodeInkweldUri({
         elementId: 'x',
         params: { a: 'kept', b: undefined, c: null, d: '' },
       })
-    ).toBe('inkweld://element/x?a=kept');
+    ).toBe('inkweld://element/x?a=kept&d=');
   });
 
   it('percent-encodes path segments and param values', () => {
