@@ -15,7 +15,7 @@
  * checks in y-prosemirror, ngx-editor, and `EditorView` — typing into
  * the editor would silently produce no output. See PR #1068.
  */
-import { marks, nodes, schema } from '@bobbyquantum/ngx-editor/schema';
+import { marks, nodes } from '@bobbyquantum/ngx-editor/schema';
 import { createExtendedSchemaSpec } from '@inkweld/prosemirror/schema';
 import { Schema } from 'prosemirror-model';
 
@@ -46,4 +46,4 @@ export { buildInkweldSchema as createExtendedSchema };
  * Re-export ngx-editor's plain schema for cases where Inkweld extensions
  * aren't needed.
  */
-export { schema as ngxEditorSchema };
+export { schema as ngxEditorSchema } from '@bobbyquantum/ngx-editor/schema';

@@ -3,7 +3,7 @@
  *
  * Public API:
  *   - `elementRefNodeSpec`, `ELEMENT_REF_NODE_NAME`, `ElementRefNodeAttrs`,
- *     `ElementTypeLike`, `elementRefSchemaExtension`
+ *     `elementRefSchemaExtension`
  *   - `commentMarkSpec`, `COMMENT_MARK_NAME`, `CommentMarkAttrs`
  *   - `secureLinkMarkSpec`
  *   - `createExtendedSchemaSpec({ baseNodes, baseMarks })` — returns
@@ -17,7 +17,6 @@
 export {
   ELEMENT_REF_NODE_NAME,
   type ElementRefNodeAttrs,
-  type ElementTypeLike,
   elementRefNodeSpec,
   elementRefSchemaExtension,
 } from './element-ref-spec';

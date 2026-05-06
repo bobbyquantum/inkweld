@@ -96,7 +96,9 @@ COPY backend .
 # `packages/inkweld-prosemirror/node_modules` (linked by a workspace-root install).
 COPY package.json bun.lock* /app/
 COPY packages /app/packages
-RUN cd /app && bun install --frozen-lockfile --ignore-scripts
+WORKDIR /app
+RUN bun install --frozen-lockfile --ignore-scripts
+WORKDIR /app/backend
 
 # Determine target architecture for native module patching and Bun compilation
 ARG TARGETARCH

@@ -23,8 +23,8 @@ export {
 
 /**
  * Frontend-narrowed `ElementRefNodeAttrs`: replaces the shared package's
- * `ElementTypeLike` (string) with the generated `ElementType` enum so
- * existing frontend code keeps strict typing.
+ * `string` `elementType` with the generated `ElementType` enum so existing
+ * frontend code keeps strict typing.
  */
 export type ElementRefNodeAttrs = Omit<SharedAttrs, 'elementType'> & {
   elementType: ElementType | null;
