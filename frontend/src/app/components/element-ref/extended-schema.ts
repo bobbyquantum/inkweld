@@ -5,17 +5,28 @@
  * (`elementRef`, `comment`, secure `link`) defined in the shared package
  * `@inkweld/prosemirror/schema`. Keeping the ngx-editor coupling here
  * means the shared package stays editor-library-free.
+ *
+ * IMPORTANT — `new Schema(...)` is constructed HERE, not in the shared
+ * package. The shared package returns specs only; the frontend uses its
+ * own copy of `prosemirror-model` to build the Schema. This guarantees
+ * a single Schema/Node/Mark constructor across the bundle. Constructing
+ * the Schema inside the shared package would cause the bundler to pull
+ * in a SECOND copy of `prosemirror-model`, breaking class-identity
+ * checks in y-prosemirror, ngx-editor, and `EditorView` — typing into
+ * the editor would silently produce no output. See PR #1068.
  */
 import { marks, nodes, schema } from '@bobbyquantum/ngx-editor/schema';
-import { createExtendedSchema as createSharedSchema } from '@inkweld/prosemirror/schema';
-import type { Schema } from 'prosemirror-model';
+import { createExtendedSchemaSpec } from '@inkweld/prosemirror/schema';
+import { Schema } from 'prosemirror-model';
 
 /**
  * Build the Inkweld editor schema by merging ngx-editor's base specs with
- * the shared Inkweld extensions.
+ * the shared Inkweld extensions, then constructing a `Schema` with the
+ * frontend's own copy of `prosemirror-model`.
  */
 export function buildInkweldSchema(): Schema {
-  return createSharedSchema({ baseNodes: nodes, baseMarks: marks });
+  const spec = createExtendedSchemaSpec({ baseNodes: nodes, baseMarks: marks });
+  return new Schema(spec);
 }
 
 /**

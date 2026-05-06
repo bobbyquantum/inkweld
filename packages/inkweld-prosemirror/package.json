@@ -14,7 +14,12 @@
     "./runtime": "./src/runtime/index.ts"
   },
   "//": "Path mapping in consumer tsconfigs uses bare 'index' (not 'index.ts') so the Angular compiler accepts the imports without allowImportingTsExtensions.",
+  "//deps": "prosemirror-model and yjs are listed as regular dependencies so the shared package's TYPE imports resolve correctly under standard Node module resolution. They are ALSO declared as peer dependencies to signal that the host application MUST provide them — and Vite's `resolve.dedupe` (in `frontend/vitest-base.config.ts` and the Angular build) ensures only ONE copy is bundled at runtime. Without dedup, two Schema/Y.Doc constructors are loaded and class-identity checks in y-prosemirror/ngx-editor/EditorView fail silently — typing into the editor produces no output. See PR #1068.",
   "dependencies": {
+    "prosemirror-model": "1.25.4",
+    "yjs": "13.6.30"
+  },
+  "peerDependencies": {
     "prosemirror-model": "1.25.4",
     "yjs": "13.6.30"
   }
