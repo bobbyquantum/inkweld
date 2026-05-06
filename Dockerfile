@@ -89,6 +89,15 @@ RUN bun install --frozen-lockfile --ignore-scripts && \
 # Copy source and build scripts
 COPY backend .
 
+# Copy the workspace `@inkweld/prosemirror` package source plus root manifests:
+# backend imports it via tsconfig path aliases (`../packages/inkweld-prosemirror/src/*`)
+# which Bun resolves at build/compile time. The package itself depends on
+# `prosemirror-model` and `yjs`, which Bun resolves through the workspace's
+# `packages/inkweld-prosemirror/node_modules` (linked by a workspace-root install).
+COPY package.json bun.lock* /app/
+COPY packages /app/packages
+RUN cd /app && bun install --frozen-lockfile --ignore-scripts
+
 # Determine target architecture for native module patching and Bun compilation
 ARG TARGETARCH
 
