@@ -16,7 +16,7 @@ Before this package, the schema lived in `frontend/src/app/components/{element-r
 
 ## Layout
 
-```
+```text
 src/
 ├── schema/      Schema specs (nodes + marks) + factory: createExtendedSchema(baseNodes, baseMarks)
 ├── xml/         Canonical Yjs <-> XML string conversion (parser, serializer, mark/node tag tables)

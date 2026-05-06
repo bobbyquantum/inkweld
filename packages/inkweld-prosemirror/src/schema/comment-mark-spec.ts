@@ -46,13 +46,17 @@ export const commentMarkSpec: MarkSpec = {
     {
       tag: 'span[data-comment-id]',
       getAttrs(dom: HTMLElement): CommentMarkAttrs {
+        // Guard numeric dataset parsing so malformed HTML attributes can't
+        // leak NaN into mark attrs (and downstream UI/state).
+        const parsedCount = Number(dom.dataset['commentCount'] ?? '1');
+        const parsedCreatedAt = Number(dom.dataset['commentCreatedAt'] ?? '0');
         return {
           commentId: dom.dataset['commentId'] || '',
           authorName: dom.dataset['commentAuthor'] || '',
           preview: dom.dataset['commentPreview'] || '',
-          messageCount: Number(dom.dataset['commentCount'] || '1'),
+          messageCount: Number.isFinite(parsedCount) ? parsedCount : 1,
           resolved: dom.dataset['commentResolved'] === 'true',
-          createdAt: Number(dom.dataset['commentCreatedAt'] || '0'),
+          createdAt: Number.isFinite(parsedCreatedAt) ? parsedCreatedAt : 0,
           localOnly: dom.dataset['commentLocalOnly'] === 'true',
           messages: dom.dataset['commentMessages'] || null,
         };

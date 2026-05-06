@@ -26,10 +26,13 @@ function isValidXmlCodePoint(cp: number): boolean {
  * `&apos;`) plus numeric character references back to their character
  * equivalents. Invalid code points are left untouched so we never produce
  * an XML string that cannot be safely re-encoded.
+ *
+ * `&amp;` is decoded LAST so that an input that originally encoded the
+ * literal text `&lt;` (serialised as `&amp;lt;`) round-trips to `&lt;`
+ * rather than being double-decoded into `<`.
  */
 export function decodeXmlEntities(text: string): string {
   return text
-    .replaceAll('&amp;', '&')
     .replaceAll('&lt;', '<')
     .replaceAll('&gt;', '>')
     .replaceAll('&quot;', '"')
@@ -41,7 +44,8 @@ export function decodeXmlEntities(text: string): string {
     .replaceAll(/&#x([0-9a-fA-F]+);/g, (match, code: string) => {
       const cp = Number.parseInt(code, 16);
       return Number.isInteger(cp) && isValidXmlCodePoint(cp) ? String.fromCodePoint(cp) : match;
-    });
+    })
+    .replaceAll('&amp;', '&');
 }
 
 /**

@@ -42,12 +42,15 @@ export function xmlContentToText(xmlContent: string): string {
     }
   }
 
+  // Decode named entities first, then `&amp;` last so that escaped
+  // sequences like `&amp;lt;` round-trip to the literal `&lt;` rather
+  // than being double-decoded into `<`.
   return stripped
-    .replaceAll('&amp;', '&')
     .replaceAll('&lt;', '<')
     .replaceAll('&gt;', '>')
     .replaceAll('&quot;', '"')
     .replaceAll('&apos;', "'")
     .replaceAll('&#39;', "'")
+    .replaceAll('&amp;', '&')
     .trim();
 }

@@ -227,8 +227,9 @@ function parseAttrs(xml: string, start: number): { attrs: Record<string, string>
 }
 
 /**
- * Parse an XML attribute value. JSON objects / booleans / numbers are
- * unmarshalled; everything else round-trips as the raw string.
+ * Parse an XML attribute value. Only JSON objects and arrays are
+ * unmarshalled; numeric- or boolean-looking strings round-trip as raw
+ * strings to avoid corrupting identifiers like `elementId="123"`.
  */
 export function parseAttrValue(value: string): unknown {
   if (value.startsWith('{') || value.startsWith('[')) {
@@ -238,9 +239,5 @@ export function parseAttrValue(value: string): unknown {
       return value;
     }
   }
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  const num = Number(value);
-  if (!Number.isNaN(num) && value !== '') return num;
   return value;
 }

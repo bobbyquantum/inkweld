@@ -38,16 +38,15 @@ export const secureLinkMarkSpec: MarkSpec = {
       target: string | null;
       rel: string | null;
     };
-    const safeRel =
-      target === '_blank'
-        ? Array.from(
-            new Set([
-              ...(rel?.split(/\s+/).filter(Boolean) ?? []),
-              'noopener',
-              'noreferrer',
-            ])
-          ).join(' ')
-        : rel;
+    // Normalise `target` so case/whitespace variations like `_BLANK` or
+    // `" _blank "` cannot bypass rel-hardening.
+    const isBlankTarget =
+      typeof target === 'string' && target.trim().toLowerCase() === '_blank';
+    const safeRel = isBlankTarget
+      ? Array.from(
+          new Set([...(rel?.split(/\s+/).filter(Boolean) ?? []), 'noopener', 'noreferrer'])
+        ).join(' ')
+      : rel;
     return ['a', { href, title, target, rel: safeRel }, 0];
   },
 };

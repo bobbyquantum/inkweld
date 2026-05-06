@@ -346,10 +346,15 @@ function escapeMarkdownText(text: string): string {
   return text
     .replaceAll('\\', '\\\\')
     .replaceAll('`', '\\`')
-    // Only escape leading list/heading markers / blockquote markers.
-    // NOSONAR(typescript:S5852) - linear: anchored to line start, no nested quantifiers.
-    .replace(/^(\s*)([#>\-+])/gm, '$1\\$2') // NOSONAR
-    // Escape pipes (used in tables), brackets (used in links).
+    // Escape leading block markers: heading (#), blockquote (>), bullet
+    // list markers (-, +, *) and ordered-list markers ("1." / "1)").
+    // Without escaping `*` and ordered markers, paragraphs that begin
+    // with text like `* foo` or `1. foo` get re-parsed as lists.
+    // NOSONAR(typescript:S5852) - linear: anchored, single line, no nested quantifiers.
+    .replace(/^(\s*)([#>\-+*])/gm, '$1\\$2') // NOSONAR
+    // NOSONAR(typescript:S5852) - linear: anchored, bounded `\d+`.
+    .replace(/^(\s*)(\d+)([.)])/gm, '$1$2\\$3') // NOSONAR
+    // Escape brackets (used in links).
     .replaceAll('[', '\\[')
     .replaceAll(']', '\\]');
 }
