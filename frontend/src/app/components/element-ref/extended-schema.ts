@@ -1,89 +1,32 @@
 /**
- * Extended ProseMirror Schema for Inkweld
+ * Extended ProseMirror Schema for Inkweld — frontend factory.
  *
- * Extends ngx-editor's default schema with custom nodes like elementRef
- * for inline element references (@ mentions).
+ * Composes ngx-editor's base schema with the Inkweld-specific extensions
+ * (`elementRef`, `comment`, secure `link`) defined in the shared package
+ * `@inkweld/prosemirror/schema`. Keeping the ngx-editor coupling here
+ * means the shared package stays editor-library-free.
+ *
+ * IMPORTANT — `new Schema(...)` is constructed HERE, not in the shared
+ * package. The shared package returns specs only; the frontend uses its
+ * own copy of `prosemirror-model` to build the Schema. This guarantees
+ * a single Schema/Node/Mark constructor across the bundle. Constructing
+ * the Schema inside the shared package would cause the bundler to pull
+ * in a SECOND copy of `prosemirror-model`, breaking class-identity
+ * checks in y-prosemirror, ngx-editor, and `EditorView` — typing into
+ * the editor would silently produce no output. See PR #1068.
  */
 import { marks, nodes } from '@bobbyquantum/ngx-editor/schema';
-import { commentMarkSpec } from '@components/comment-mark/comment-mark-schema';
-import { type MarkSpec, Schema } from 'prosemirror-model';
-
-import { elementRefNodeSpec } from './element-ref-schema';
+import { createExtendedSchemaSpec } from '@inkweld/prosemirror/schema';
+import { Schema } from 'prosemirror-model';
 
 /**
- * Override of ngx-editor's link mark that adds `rel` attribute support.
- * When a link opens in a new tab (target="_blank"), rel="noopener noreferrer"
- * is written into the DOM to prevent opener attacks.
+ * Build the Inkweld editor schema by merging ngx-editor's base specs with
+ * the shared Inkweld extensions, then constructing a `Schema` with the
+ * frontend's own copy of `prosemirror-model`.
  */
-const linkMarkSpec: MarkSpec = {
-  attrs: {
-    href: {},
-    title: { default: null },
-    target: { default: null },
-    rel: { default: null },
-  },
-  inclusive: false,
-  parseDOM: [
-    {
-      tag: 'a[href]',
-      getAttrs(dom: HTMLElement) {
-        return {
-          href: dom.getAttribute('href'),
-          title: dom.getAttribute('title'),
-          target: dom.getAttribute('target'),
-          rel: dom.getAttribute('rel'),
-        };
-      },
-    },
-  ],
-  toDOM(node) {
-    const { href, title, target, rel } = node.attrs as {
-      href: string;
-      title: string | null;
-      target: string | null;
-      rel: string | null;
-    };
-    // Always enforce opener protection for new-tab links, even if rel was
-    // omitted or came from parsed HTML without it.
-    const safeRel =
-      target === '_blank'
-        ? Array.from(
-            new Set([
-              ...(rel?.split(/\s+/).filter(Boolean) ?? []),
-              'noopener',
-              'noreferrer',
-            ])
-          ).join(' ')
-        : rel;
-    return ['a', { href, title, target, rel: safeRel }, 0];
-  },
-};
-
-/**
- * Creates an extended schema that includes ngx-editor's nodes and marks
- * plus custom Inkweld nodes like elementRef.
- *
- * @returns A new Schema with all standard nodes/marks plus elementRef
- */
-export function createExtendedSchema(): Schema {
-  // Start with ngx-editor's nodes and add our custom ones
-  const extendedNodes = {
-    ...nodes,
-    elementRef: elementRefNodeSpec,
-  };
-
-  // Use the same marks as ngx-editor plus custom ones.
-  // Override the link mark to add rel attribute support for opener protection.
-  const extendedMarks = {
-    ...marks,
-    link: linkMarkSpec,
-    comment: commentMarkSpec,
-  };
-
-  return new Schema({
-    nodes: extendedNodes,
-    marks: extendedMarks,
-  });
+export function buildInkweldSchema(): Schema {
+  const spec = createExtendedSchemaSpec({ baseNodes: nodes, baseMarks: marks });
+  return new Schema(spec);
 }
 
 /**
@@ -91,9 +34,16 @@ export function createExtendedSchema(): Schema {
  * This should be used instead of ngx-editor's default schema when
  * element references are needed.
  */
-export const extendedSchema = createExtendedSchema();
+export const extendedSchema = buildInkweldSchema();
 
 /**
- * Re-export the original schema for cases where extensions aren't needed
+ * @deprecated Use `buildInkweldSchema()` (clearer name). Kept as an alias
+ * for back-compat with existing call sites.
+ */
+export { buildInkweldSchema as createExtendedSchema };
+
+/**
+ * Re-export ngx-editor's plain schema for cases where Inkweld extensions
+ * aren't needed.
  */
 export { schema as ngxEditorSchema } from '@bobbyquantum/ngx-editor/schema';
