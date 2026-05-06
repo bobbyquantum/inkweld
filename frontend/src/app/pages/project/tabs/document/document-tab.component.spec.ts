@@ -292,7 +292,8 @@ describe('DocumentTabComponent', () => {
       // Wait for the async check to complete
       await vi.waitFor(() => {
         expect(projectStateService.isDocumentUnavailable).toHaveBeenCalledWith(
-          'local-doc'
+          'local-doc',
+          'document'
         );
       });
       expect((component as any).documentUnavailable()).toBe(false);
