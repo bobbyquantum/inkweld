@@ -1,9 +1,12 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { DocumentElementEditorComponent } from '@components/document-element-editor/document-element-editor.component';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { DocumentSyncService } from '@services/sync/document-sync.service';
 
 @Component({
   selector: 'app-document-tab',
@@ -13,32 +16,32 @@ import { ProjectStateService } from '@services/project/project-state.service';
     DocumentElementEditorComponent,
     DocumentBreadcrumbsComponent,
     MatIconModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
   ],
+  providers: [DocumentSyncService],
 })
 export class DocumentTabComponent {
   protected readonly settingsService = inject(SettingsService);
   protected readonly projectState = inject(ProjectStateService);
+  protected readonly documentSync = inject(DocumentSyncService);
 
-  /**
-   * Whether the current document is unavailable (remote element that hasn't synced).
-   * When true, a warning is shown instead of the editor.
-   */
-  protected readonly documentUnavailable = signal(false);
-
-  private availabilityCheckToken = 0;
+  // Expose sync state signals for the template
+  protected readonly documentUnavailable =
+    this.documentSync.documentUnavailable;
+  protected readonly syncing = this.documentSync.syncing;
+  protected readonly syncError = this.documentSync.syncError;
 
   // Computed signal that gets the document ID from the active tab
   protected readonly fullDocumentId = computed(() => {
     const tabs = this.projectState.openTabs();
     const selectedIndex = this.projectState.selectedTabIndex();
 
-    // selectedTabIndex directly indexes into openTabs (home is at index 0)
     if (selectedIndex >= 0 && selectedIndex < tabs.length) {
       const tab = tabs[selectedIndex];
       if (tab?.element?.id) {
         const project = this.projectState.project();
         if (project?.username && project?.slug) {
-          // Return the properly formatted ID: username:slug:elementId
           return `${project.username}:${project.slug}:${tab.element.id}`;
         }
       }
@@ -69,25 +72,12 @@ export class DocumentTabComponent {
         elementId = tab?.element?.id ?? '';
       }
 
-      const token = ++this.availabilityCheckToken;
-
-      // Reset unavailable state while checking
-      this.documentUnavailable.set(false);
-
-      if (elementId) {
-        void this.checkAvailability(elementId, token);
-      }
+      void this.documentSync.checkAvailability(elementId);
     });
   }
 
-  private async checkAvailability(
-    elementId: string,
-    token: number
-  ): Promise<void> {
-    const unavailable =
-      await this.projectState.isDocumentUnavailable(elementId);
-    if (token !== this.availabilityCheckToken) return;
-    this.documentUnavailable.set(unavailable);
+  protected async triggerSync(): Promise<void> {
+    await this.documentSync.triggerSync(this.bareElementId());
   }
 
   /**

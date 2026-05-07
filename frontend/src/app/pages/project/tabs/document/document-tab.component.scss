@@ -24,8 +24,19 @@
     font-size: 0.875rem;
   }
 
-  .subtitle {
+  .sync-error {
     font-size: 0.75rem;
-    opacity: 0.8;
+    color: var(--sys-error);
+    opacity: 1;
+  }
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+
+    mat-spinner {
+      display: inline-flex;
+    }
   }
 }
