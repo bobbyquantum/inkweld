@@ -1,4 +1,8 @@
-import { GREGORIAN_SYSTEM, type TimePoint } from '@models/time-system';
+import {
+  GREGORIAN_SYSTEM,
+  type TimePoint,
+  type TimeSystem,
+} from '@models/time-system';
 import type { TimelineEra, TimelineEvent } from '@models/timeline.model';
 import { describe, expect, it } from 'vitest';
 
@@ -6,6 +10,7 @@ import {
   assignLabelLanes,
   computeDefaultBounds,
   computeTickMarks,
+  computeTimeSystemTickMarks,
   panBounds,
   sortEventsByStart,
   tickToX,
@@ -15,6 +20,15 @@ import {
 } from './timeline-view-math';
 
 const SYS = GREGORIAN_SYSTEM;
+const MOONVEIL_SYSTEM: TimeSystem = {
+  id: 'moonveil-test',
+  name: 'Moonveil Reckoning',
+  isBuiltIn: false,
+  unitLabels: ['Cycle', 'Moon', 'Night'],
+  subdivisions: [13, 28],
+  format: 'C{u0} M{u1} N{u2}',
+  parseSeparator: '-',
+};
 
 function tp(units: string[]): TimePoint {
   return { systemId: SYS.id, units };
@@ -280,6 +294,47 @@ describe('timeline-view-math', () => {
       const bounds: TimelineBounds = { minTick: 0n, maxTick: 1000000n };
       const marks = computeTickMarks(bounds, 1000000);
       expect(marks.length).toBeLessThanOrEqual(501);
+    });
+  });
+
+  describe('computeTimeSystemTickMarks', () => {
+    it('uses top-level cycle labels at broad zoom levels', () => {
+      const cycle = 13n * 28n;
+      const cycleStartOffset = 29n;
+      const marks = computeTimeSystemTickMarks(
+        {
+          minTick: 1000n * cycle + cycleStartOffset,
+          maxTick: 1250n * cycle + cycleStartOffset,
+        },
+        600,
+        MOONVEIL_SYSTEM
+      );
+
+      const labels = marks.map(mark => mark.label).filter(Boolean);
+      expect(labels.length).toBeGreaterThan(0);
+      expect(labels.every(label => /^C\d+$/.test(label))).toBe(true);
+      expect(labels.some(label => label.includes('M'))).toBe(false);
+      expect(labels.some(label => label.includes('N'))).toBe(false);
+    });
+
+    it('adds minor second-unit ticks when a top-level unit has room', () => {
+      const cycle = 13n * 28n;
+      const cycleStartOffset = 29n;
+      const marks = computeTimeSystemTickMarks(
+        {
+          minTick: 1000n * cycle + cycleStartOffset,
+          maxTick: 1001n * cycle + cycleStartOffset,
+        },
+        640,
+        MOONVEIL_SYSTEM
+      );
+
+      expect(
+        marks.some(mark => mark.kind === 'major' && mark.label === 'C1000')
+      ).toBe(true);
+      expect(
+        marks.some(mark => mark.kind === 'minor' && mark.level === 1)
+      ).toBe(true);
     });
   });
 

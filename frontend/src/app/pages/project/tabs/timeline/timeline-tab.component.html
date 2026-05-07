@@ -3,26 +3,6 @@
     [elementId]="elementId()"></app-document-breadcrumbs>
 }
 <div class="toolbar" data-testid="timeline-toolbar">
-  @if (hasActiveSystem()) {
-    <div
-      class="system-chip"
-      matTooltip="Time system is locked for this timeline. Create a new timeline to use a different calendar."
-      data-testid="timeline-system-chip">
-      <mat-icon>schedule</mat-icon>
-      <span>{{ activeSystemName() }}</span>
-      <mat-icon class="lock-icon" aria-hidden="true">lock</mat-icon>
-    </div>
-  } @else if (availableSystems().length === 0) {
-    <button
-      mat-stroked-button
-      color="primary"
-      (click)="onOpenTimeSystemSettings()"
-      data-testid="timeline-install-systems">
-      <mat-icon>schedule</mat-icon>
-      Install a time system
-    </button>
-  }
-
   <button
     mat-stroked-button
     (click)="onAddEvent()"
@@ -30,15 +10,6 @@
     data-testid="timeline-add-event">
     <mat-icon>add</mat-icon>
     Add event
-  </button>
-
-  <button
-    mat-stroked-button
-    (click)="onAddTrack()"
-    [disabled]="!hasActiveSystem()"
-    data-testid="timeline-add-track">
-    <mat-icon>playlist_add</mat-icon>
-    Add track
   </button>
 
   <button
@@ -199,17 +170,22 @@
         <g>
           <line
             class="tick-line"
+            [class.tick-line-major]="tick.kind === 'major'"
+            [class.tick-line-minor]="tick.kind === 'minor'"
             [attr.x1]="tick.x"
             [attr.x2]="tick.x"
-            [attr.y1]="topAxisY - 6"
-            [attr.y2]="topAxisY + 6" />
-          <text
-            class="tick-label tick-label-top"
-            data-testid="tick-label"
-            [attr.x]="tick.x + 3"
-            [attr.y]="topAxisY - 8">
-            {{ tick.label }}
-          </text>
+            [attr.y1]="topAxisY - (tick.kind === 'major' ? 8 : 4)"
+            [attr.y2]="topAxisY + (tick.kind === 'major' ? 6 : 4)" />
+          @if (tick.label) {
+            <text
+              class="tick-label tick-label-top"
+              [class.tick-label-minor]="tick.kind === 'minor'"
+              data-testid="tick-label"
+              [attr.x]="tick.x + 3"
+              [attr.y]="topAxisY - 8">
+              {{ tick.label }}
+            </text>
+          }
         </g>
       }
     </svg>
@@ -395,6 +371,21 @@
           }
         }
       </svg>
+
+      <div class="add-track-row" data-testid="timeline-add-track-row">
+        <div class="add-track-gutter" [style.width.px]="labelGutter">
+          <button
+            mat-button
+            class="add-track-button"
+            (click)="onAddTrack()"
+            [disabled]="!hasActiveSystem()"
+            matTooltip="Add track"
+            data-testid="timeline-add-track">
+            <mat-icon>playlist_add</mat-icon>
+            <span>Add track</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <svg
@@ -426,17 +417,22 @@
         <g>
           <line
             class="tick-line"
+            [class.tick-line-major]="tick.kind === 'major'"
+            [class.tick-line-minor]="tick.kind === 'minor'"
             [attr.x1]="tick.x"
             [attr.x2]="tick.x"
             [attr.y1]="bottomAxisY - 1"
-            [attr.y2]="bottomAxisY + 6" />
-          <text
-            class="tick-label"
-            data-testid="tick-label"
-            [attr.x]="tick.x + 3"
-            [attr.y]="bottomAxisY + 8">
-            {{ tick.label }}
-          </text>
+            [attr.y2]="bottomAxisY + (tick.kind === 'major' ? 8 : 5)" />
+          @if (tick.label) {
+            <text
+              class="tick-label"
+              [class.tick-label-minor]="tick.kind === 'minor'"
+              data-testid="tick-label"
+              [attr.x]="tick.x + 3"
+              [attr.y]="bottomAxisY + 8">
+              {{ tick.label }}
+            </text>
+          }
         </g>
       }
     </svg>
@@ -456,3 +452,28 @@
     }
   </div>
 }
+
+<div class="timeline-status-bar" data-testid="timeline-status-bar">
+  <span class="status-stats">
+    <span
+      class="time-system-status"
+      [class.time-system-status--missing]="!hasActiveSystem()"
+      [matTooltip]="
+        hasActiveSystem()
+          ? 'Time system is locked for this timeline'
+          : 'No time system selected'
+      "
+      data-testid="timeline-status-system">
+      <mat-icon aria-hidden="true">schedule</mat-icon>
+      <span>{{ activeSystemName() || 'No time system' }}</span>
+      @if (hasActiveSystem()) {
+        <mat-icon class="lock-icon" aria-hidden="true">lock</mat-icon>
+      }
+    </span>
+  </span>
+  <span class="timeline-status-summary">
+    {{ tracks().length }} {{ tracks().length === 1 ? 'track' : 'tracks' }} ·
+    {{ events().length }} {{ events().length === 1 ? 'event' : 'events' }} ·
+    {{ eras().length }} {{ eras().length === 1 ? 'era' : 'eras' }}
+  </span>
+</div>
