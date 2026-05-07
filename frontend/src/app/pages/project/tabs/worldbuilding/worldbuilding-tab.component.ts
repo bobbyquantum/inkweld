@@ -6,9 +6,13 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute } from '@angular/router';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { LoggerService } from '@services/core/logger.service';
+import { DocumentSyncService } from '@services/sync/document-sync.service';
 import { type Subscription } from 'rxjs';
 
 import { type Element, type ElementType } from '../../../../../api-client';
@@ -19,12 +23,20 @@ import { ProjectStateService } from '../../../../services/project/project-state.
   selector: 'app-worldbuilding-tab',
   templateUrl: './worldbuilding-tab.component.html',
   styleUrls: ['./worldbuilding-tab.component.scss'],
-  imports: [WorldbuildingEditorComponent, DocumentBreadcrumbsComponent],
+  imports: [
+    WorldbuildingEditorComponent,
+    DocumentBreadcrumbsComponent,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+  ],
+  providers: [DocumentSyncService],
 })
 export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly projectState = inject(ProjectStateService);
   private readonly logger = inject(LoggerService);
+  protected readonly documentSync = inject(DocumentSyncService);
   private paramSubscription: Subscription | null = null;
 
   protected elementId = signal<string>('');
@@ -32,13 +44,11 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   protected username = signal<string | undefined>(undefined);
   protected slug = signal<string | undefined>(undefined);
 
-  /**
-   * Whether the current worldbuilding element is unavailable (remote element
-   * that hasn't synced). When true, a warning is shown instead of the editor.
-   */
-  protected readonly documentUnavailable = signal(false);
-
-  private availabilityCheckToken = 0;
+  // Expose sync state signals for the template
+  protected readonly documentUnavailable =
+    this.documentSync.documentUnavailable;
+  protected readonly syncing = this.documentSync.syncing;
+  protected readonly syncError = this.documentSync.syncError;
 
   constructor() {
     // Watch for elements loading and update element type when available
@@ -71,28 +81,17 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
     effect(() => {
       const currentId = this.elementId();
       const project = this.projectState.project();
-      const token = ++this.availabilityCheckToken;
-      this.documentUnavailable.set(false);
       if (currentId && project) {
-        void this.checkAvailability(currentId, token);
+        void this.documentSync.checkAvailability(currentId, 'worldbuilding');
       }
     });
   }
 
-  private async checkAvailability(
-    elementId: string,
-    token: number
-  ): Promise<void> {
-    const unavailable = await this.projectState.isDocumentUnavailable(
-      elementId,
-      'worldbuilding'
-    );
-    if (token !== this.availabilityCheckToken) return;
-    this.documentUnavailable.set(unavailable);
+  protected async triggerSync(): Promise<void> {
+    await this.documentSync.triggerSync(this.elementId(), 'worldbuilding');
   }
 
   ngOnInit(): void {
-    // Subscribe to route param changes
     this.paramSubscription = this.route.paramMap.subscribe(params => {
       const newElementId = params.get('tabId') || '';
       this.logger.debug(
@@ -102,7 +101,6 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
 
       this.elementId.set(newElementId);
 
-      // Try to get the element type from project state
       const element = this.findElement(newElementId);
       if (element) {
         this.elementType.set(element.type);
@@ -123,9 +121,6 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Find element in project tree (flat array)
-   */
   private findElement(elementId: string): Element | null {
     const elements = this.projectState.elements();
     return elements.find(el => el.id === elementId) || null;
