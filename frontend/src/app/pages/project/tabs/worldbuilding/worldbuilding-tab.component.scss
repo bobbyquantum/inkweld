@@ -24,9 +24,25 @@ app-worldbuilding-editor {
   height: 100%;
   padding: 2rem;
   text-align: center;
-  color: var(--sys-error);
+  color: var(--sys-on-surface-variant);
 
   p {
     margin: 0.5rem 0;
+  }
+
+  .sync-error {
+    color: var(--sys-error);
+    font-size: 0.875rem;
+  }
+
+  button {
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+
+    mat-spinner {
+      display: inline-flex;
+    }
   }
 }
