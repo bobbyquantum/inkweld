@@ -1,9 +1,9 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { type Project } from '@inkweld/index';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { SyncQueueService } from '@services/sync/sync-queue.service';
-import { type Project } from '@inkweld/index';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DocumentSyncService } from './document-sync.service';
 

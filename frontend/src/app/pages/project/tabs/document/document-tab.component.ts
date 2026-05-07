@@ -27,7 +27,8 @@ export class DocumentTabComponent {
   protected readonly documentSync = inject(DocumentSyncService);
 
   // Expose sync state signals for the template
-  protected readonly documentUnavailable = this.documentSync.documentUnavailable;
+  protected readonly documentUnavailable =
+    this.documentSync.documentUnavailable;
   protected readonly syncing = this.documentSync.syncing;
   protected readonly syncError = this.documentSync.syncError;
 

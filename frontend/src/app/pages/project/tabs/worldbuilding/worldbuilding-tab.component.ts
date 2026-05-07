@@ -45,7 +45,8 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   protected slug = signal<string | undefined>(undefined);
 
   // Expose sync state signals for the template
-  protected readonly documentUnavailable = this.documentSync.documentUnavailable;
+  protected readonly documentUnavailable =
+    this.documentSync.documentUnavailable;
   protected readonly syncing = this.documentSync.syncing;
   protected readonly syncError = this.documentSync.syncError;
 
