@@ -9,12 +9,14 @@
  *   • requestRecovery email-failure path
  *   • isAvailable when recovery flag is on but email is off
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { createHash } from 'node:crypto';
 import { getDatabase } from '../src/db/index';
 import type { DatabaseInstance } from '../src/types/context';
+import type { User } from '../src/db/schema/users';
+import type { RegistrationResponseJSON } from '@simplewebauthn/server';
 import { users, userPasskeys, passkeyRecoveryTokens } from '../src/db/schema/index';
 import { passkeyRecoveryService } from '../src/services/passkey-recovery.service';
 import { passkeyService } from '../src/services/passkey.service';
@@ -84,7 +86,7 @@ describe('PasskeyRecoveryService – redeemFinish', () => {
     const result = await passkeyRecoveryService.redeemFinish(
       db,
       'unknown-token',
-      {} as any,
+      {} as unknown as RegistrationResponseJSON,
       RP,
       'label'
     );
@@ -128,11 +130,13 @@ describe('PasskeyRecoveryService – redeemFinish', () => {
     const passkeyId = crypto.randomUUID();
 
     const originalFinish = passkeyService.finishRegistration.bind(passkeyService);
-    (passkeyService as any).finishRegistration = async (
-      _db: any,
-      _user: any,
-      _response: any,
-      _rp: any,
+    (
+      passkeyService as unknown as { finishRegistration: typeof passkeyService.finishRegistration }
+    ).finishRegistration = async (
+      _db: DatabaseInstance,
+      _user: User,
+      _response: RegistrationResponseJSON,
+      _rp: typeof RP,
       _label?: string
     ) => {
       await db.insert(userPasskeys).values({
@@ -154,7 +158,13 @@ describe('PasskeyRecoveryService – redeemFinish', () => {
     };
 
     try {
-      const result = await passkeyRecoveryService.redeemFinish(db, raw, {} as any, RP, 'recovered');
+      const result = await passkeyRecoveryService.redeemFinish(
+        db,
+        raw,
+        {} as unknown as RegistrationResponseJSON,
+        RP,
+        'recovered'
+      );
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.userId).toBe(USER_ID);
@@ -166,7 +176,11 @@ describe('PasskeyRecoveryService – redeemFinish', () => {
       const creds = await passkeyRecoveryService._countCredentialsForUser(db, USER_ID);
       expect(creds).toBe(1);
     } finally {
-      (passkeyService as any).finishRegistration = originalFinish;
+      (
+        passkeyService as unknown as {
+          finishRegistration: typeof passkeyService.finishRegistration;
+        }
+      ).finishRegistration = originalFinish;
       await db.delete(userPasskeys).where(eq(userPasskeys.userId, USER_ID));
     }
   });

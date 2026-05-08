@@ -2,6 +2,8 @@ import { describe, it, expect } from 'bun:test';
 import { sign } from 'hono/jwt';
 import { authService } from '../src/services/auth.service';
 import type { Context } from 'hono';
+import type { DatabaseInstance } from '../src/types/context';
+import type { User } from '../src/db/schema/users';
 
 const DEV_SECRET = 'fallback-secret-for-development-only';
 
@@ -25,44 +27,47 @@ function mockContext(overrides?: {
   } as unknown as Context;
 }
 
+// Typed accessor for the private `getSecret` method used in unit tests only
+const authServiceWithPrivates = authService as unknown as { getSecret: (c: Context) => string };
+
 describe('AuthService – getSecret', () => {
   it('returns DATABASE_KEY from env when >= 32 chars', () => {
     const key = 'd'.repeat(32);
     const c = mockContext({ env: { DATABASE_KEY: key } });
-    expect((authService as any).getSecret(c)).toBe(key);
+    expect(authServiceWithPrivates.getSecret(c)).toBe(key);
   });
 
   it('returns SESSION_SECRET from env when DATABASE_KEY absent and secret >= 32 chars', () => {
     const key = 's'.repeat(32);
     const c = mockContext({ env: { SESSION_SECRET: key } });
-    expect((authService as any).getSecret(c)).toBe(key);
+    expect(authServiceWithPrivates.getSecret(c)).toBe(key);
   });
 
   it('prefers DATABASE_KEY over SESSION_SECRET when both are present', () => {
     const dk = 'd'.repeat(32);
     const c = mockContext({ env: { DATABASE_KEY: dk, SESSION_SECRET: 's'.repeat(32) } });
-    expect((authService as any).getSecret(c)).toBe(dk);
+    expect(authServiceWithPrivates.getSecret(c)).toBe(dk);
   });
 
   it('falls back to config secret when env key is too short', () => {
     const c = mockContext({ env: { DATABASE_KEY: 'short' } });
-    expect((authService as any).getSecret(c)).toBe(DEV_SECRET);
+    expect(authServiceWithPrivates.getSecret(c)).toBe(DEV_SECRET);
   });
 
   it('falls back to config secret when no env present', () => {
     const c = mockContext({ env: {} });
-    expect((authService as any).getSecret(c)).toBe(DEV_SECRET);
+    expect(authServiceWithPrivates.getSecret(c)).toBe(DEV_SECRET);
   });
 
   it('falls back to config secret when env is empty object', () => {
     const c = mockContext();
-    expect((authService as any).getSecret(c)).toBe(DEV_SECRET);
+    expect(authServiceWithPrivates.getSecret(c)).toBe(DEV_SECRET);
   });
 });
 
 describe('AuthService – createSession', () => {
   it('creates a valid JWT token for a user', async () => {
-    const user = { id: 'user-1', username: 'alice', email: 'alice@test.com' } as any;
+    const user = { id: 'user-1', username: 'alice', email: 'alice@test.com' } as User;
     const c = mockContext({ env: { DATABASE_KEY: DEV_SECRET } });
 
     const token = await authService.createSession(c, user);
@@ -72,7 +77,7 @@ describe('AuthService – createSession', () => {
   });
 
   it('creates an enrolment session with short expiry', async () => {
-    const user = { id: 'user-2', username: 'bob', email: 'bob@test.com' } as any;
+    const user = { id: 'user-2', username: 'bob', email: 'bob@test.com' } as User;
     const c = mockContext({ env: { DATABASE_KEY: DEV_SECRET } });
 
     const token = await authService.createEnrolmentSession(c, user);
@@ -237,7 +242,7 @@ describe('AuthService – authenticate', () => {
   it('returns null when username not found', async () => {
     const db = {
       select: () => ({ from: () => ({ where: () => ({ limit: () => Promise.resolve([]) }) }) }),
-    } as any;
+    } as unknown as DatabaseInstance;
     expect(await authService.authenticate(db, 'nobody', 'pwd')).toBeNull();
   });
 });
