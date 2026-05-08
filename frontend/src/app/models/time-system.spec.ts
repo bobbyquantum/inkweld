@@ -1,4 +1,5 @@
 import {
+  absoluteToTimePoint,
   assertValidTimeSystem,
   compareTimePoints,
   effectiveSubdivision,
@@ -7,6 +8,7 @@ import {
   GREGORIAN_SYSTEM,
   isTemplateSystemId,
   isValidTimePointFor,
+  normalizeTimePoint,
   parseTimePoint,
   RELATIVE_YEARS_SYSTEM,
   TIME_SYSTEM_TEMPLATES,
@@ -192,6 +194,58 @@ describe('time-system', () => {
     it('throws on invalid point', () => {
       const tp: TimePoint = { systemId: 'other', units: ['1', '2', '3'] };
       expect(() => timePointToAbsolute(tp, GREGORIAN_SYSTEM)).toThrow();
+    });
+  });
+
+  describe('absoluteToTimePoint', () => {
+    it('returns canonical unit values that respect one-based lower units', () => {
+      const point = absoluteToTimePoint(423n, GREGORIAN_SYSTEM);
+
+      expect(point).toEqual({
+        systemId: 'gregorian',
+        units: ['1', '2', '3'],
+      });
+      expect(isValidTimePointFor(point, GREGORIAN_SYSTEM)).toBe(true);
+    });
+
+    it('borrows across one-based month and day boundaries', () => {
+      const point = absoluteToTimePoint(2020n * 360n + 30n, GREGORIAN_SYSTEM);
+
+      expect(point.units).toEqual(['2019', '12', '30']);
+      expect(isValidTimePointFor(point, GREGORIAN_SYSTEM)).toBe(true);
+    });
+
+    it('round-trips valid Gregorian points through absolute ticks', () => {
+      const source: TimePoint = {
+        systemId: 'gregorian',
+        units: ['2024', '12', '30'],
+      };
+      const tick = timePointToAbsolute(source, GREGORIAN_SYSTEM);
+
+      expect(absoluteToTimePoint(tick, GREGORIAN_SYSTEM)).toEqual(source);
+    });
+  });
+
+  describe('normalizeTimePoint', () => {
+    it('repairs overflowed bounded units by canonicalizing their tick value', () => {
+      const repaired = normalizeTimePoint(
+        { systemId: 'gregorian', units: ['2020', '1', '0'] },
+        GREGORIAN_SYSTEM
+      );
+
+      expect(repaired?.units).toEqual(['2019', '12', '30']);
+      expect(repaired && isValidTimePointFor(repaired, GREGORIAN_SYSTEM)).toBe(
+        true
+      );
+    });
+
+    it('returns null when normalization cannot produce a valid point', () => {
+      const repaired = normalizeTimePoint(
+        { systemId: 'gregorian', units: ['0', '1', '0'] },
+        GREGORIAN_SYSTEM
+      );
+
+      expect(repaired).toBeNull();
     });
   });
 
