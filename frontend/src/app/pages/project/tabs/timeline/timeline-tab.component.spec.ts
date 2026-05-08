@@ -3,6 +3,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
+  isValidTimePointFor,
   TIME_SYSTEM_TEMPLATES,
   type TimePoint,
   timePointToAbsolute,
@@ -784,6 +785,54 @@ describe('TimelineTabComponent', () => {
     expect(component['eventDragPreview']()).toBeNull();
   });
 
+  it('keeps event drag previews valid across calendar unit boundaries', () => {
+    fixture.detectChanges();
+    const system = TIME_SYSTEM_TEMPLATES[0];
+    const event: TimelineEvent = {
+      id: 'ev-boundary',
+      trackId: defaultConfig.tracks[0].id,
+      title: 'Boundary Event',
+      start: { systemId: system.id, units: ['2020', '1', '1'] },
+      end: { systemId: system.id, units: ['2020', '1', '2'] },
+    };
+    timelineSignal.set({ ...defaultConfig, events: [event] });
+    component['viewWidth'].set(800);
+    component['bounds'].set({ minTick: 0n, maxTick: 345n });
+    fixture.detectChanges();
+
+    const downEvt = new PointerEvent('pointerdown', {
+      button: 0,
+      clientX: 300,
+      pointerId: 26,
+    });
+    Object.defineProperty(downEvt, 'target', {
+      value: { setPointerCapture: vi.fn() },
+    });
+    downEvt.stopPropagation = vi.fn();
+    component['onEventPointerDown'](downEvt, event, 'move');
+
+    const moveEvt = new PointerEvent('pointermove', {
+      clientX: 298,
+      pointerId: 26,
+    });
+    component['onEventPointerMove'](moveEvt);
+    const preview = component['eventDragPreview']();
+
+    expect(preview).not.toBeNull();
+    expect(preview && isValidTimePointFor(preview.start, system)).toBe(true);
+    expect(preview?.start.units).toEqual(['2019', '12', '30']);
+    expect(preview?.end && isValidTimePointFor(preview.end, system)).toBe(true);
+
+    const upEvt = new PointerEvent('pointerup', { pointerId: 26 });
+    component['onEventPointerUp'](upEvt, event);
+    expect(mockTimelineService.updateEvent).toHaveBeenCalledWith(
+      'ev-boundary',
+      expect.objectContaining({
+        start: expect.objectContaining({ units: ['2019', '12', '30'] }),
+      })
+    );
+  });
+
   it('opens event dialog on non-moved pointer up (click)', () => {
     fixture.detectChanges();
     const system = TIME_SYSTEM_TEMPLATES[0];
@@ -923,7 +972,7 @@ describe('TimelineTabComponent', () => {
     component['onEventPointerMove'](moveEvt);
     const preview = component['eventDragPreview']();
     expect(preview).not.toBeNull();
-    if (preview && preview.end) {
+    if (preview?.end) {
       const startTick = timePointToAbsolute(preview.start, system);
       const endTick = timePointToAbsolute(preview.end, system);
       expect(endTick).toBeGreaterThanOrEqual(startTick);
@@ -1011,10 +1060,12 @@ describe('TimelineTabComponent', () => {
     });
   });
 
-  it('tracksCanvasHeight is at least one track height', () => {
+  it('tracksCanvasHeight is at least one event area height', () => {
     fixture.detectChanges();
+    // After the redesign, a track with no instant events collapses to just
+    // the eventAreaHeight (no label lanes reserved).
     expect(component['tracksCanvasHeight']()).toBeGreaterThanOrEqual(
-      component['trackHeight']
+      component['eventAreaHeight']
     );
   });
 
@@ -1032,7 +1083,37 @@ describe('TimelineTabComponent', () => {
     const pills = component['eventPills']();
     expect(pills.length).toBe(1);
     expect(pills[0].event.id).toBe('pill-ev');
-    expect(pills[0].width).toBeGreaterThanOrEqual(80); // minWidth
+    // Instant events render as diamonds with `cx`/`diamondPoints`, no `width`.
+    expect(pills[0].isInstant).toBe(true);
+    expect(pills[0].cx).toBeGreaterThan(component['labelGutter']);
+    expect(pills[0].diamondPoints).toBeTruthy();
+  });
+
+  it('orders ranged event pills before instant event pills', () => {
+    fixture.detectChanges();
+    const system = TIME_SYSTEM_TEMPLATES[0];
+    const ranged: TimelineEvent = {
+      id: 'ranged-ev',
+      trackId: defaultConfig.tracks[0].id,
+      title: 'Ranged Event',
+      start: { systemId: system.id, units: ['2022', '1', '1'] },
+      end: { systemId: system.id, units: ['2022', '2', '1'] },
+    };
+    const instant: TimelineEvent = {
+      id: 'instant-ev',
+      trackId: defaultConfig.tracks[0].id,
+      title: 'Instant Event',
+      start: { systemId: system.id, units: ['2022', '1', '15'] },
+    };
+    timelineSignal.set({ ...defaultConfig, events: [instant, ranged] });
+    fixture.detectChanges();
+
+    const pills = component['eventPills']();
+
+    expect(pills.map(pill => pill.event.id)).toEqual([
+      'ranged-ev',
+      'instant-ev',
+    ]);
   });
 
   it('eventPills filters out events from a different system', () => {
@@ -1141,7 +1222,7 @@ describe('TimelineTabComponent', () => {
 
   // ─── Event pills with ranged events ────────────────────────────────────────
 
-  it('eventPills gives wider pill for ranged events', () => {
+  it('eventPills renders ranged events as rectangles, not diamonds', () => {
     fixture.detectChanges();
     const system = TIME_SYSTEM_TEMPLATES[0];
     const event: TimelineEvent = {
@@ -1155,8 +1236,11 @@ describe('TimelineTabComponent', () => {
     fixture.detectChanges();
     const pills = component['eventPills']();
     expect(pills.length).toBe(1);
-    // Width should be at least minWidth (80)
-    expect(pills[0].width).toBeGreaterThanOrEqual(80);
+    // Ranged events use rect geometry: x/y/width/height, not cx/diamondPoints.
+    expect(pills[0].isInstant).toBe(false);
+    expect(pills[0].width).toBeGreaterThan(0);
+    expect(pills[0].height).toBeGreaterThan(0);
+    expect(pills[0].diamondPoints).toBeUndefined();
   });
 
   it('eventPills omits events whose track does not exist', () => {
