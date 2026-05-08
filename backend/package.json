@@ -7,6 +7,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "preinstall": "node -e \"var ua=process.env.npm_config_user_agent||'';if(ua.startsWith('npm/')&&!process.env.INKWELD_BUN_POSTINSTALL){console.error('\\n\\u274c Use bun install, not npm install.\\n   npm creates a package-lock.json that conflicts with bun.lock.\\n   Run from repo root: bun install\\n');process.exit(1)}\"",
     "dev": "bun --watch src/bun-runner.ts",
     "dev:node": "node --watch src/node-runner.ts",
     "dev:worker": "wrangler dev",
