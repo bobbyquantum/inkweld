@@ -1,10 +1,16 @@
-import { GREGORIAN_SYSTEM, type TimePoint } from '@models/time-system';
+import {
+  GREGORIAN_SYSTEM,
+  type TimePoint,
+  type TimeSystem,
+} from '@models/time-system';
 import type { TimelineEra, TimelineEvent } from '@models/timeline.model';
 import { describe, expect, it } from 'vitest';
 
 import {
+  assignLabelLanes,
   computeDefaultBounds,
   computeTickMarks,
+  computeTimeSystemTickMarks,
   panBounds,
   sortEventsByStart,
   tickToX,
@@ -14,6 +20,15 @@ import {
 } from './timeline-view-math';
 
 const SYS = GREGORIAN_SYSTEM;
+const MOONVEIL_SYSTEM: TimeSystem = {
+  id: 'moonveil-test',
+  name: 'Moonveil Reckoning',
+  isBuiltIn: false,
+  unitLabels: ['Cycle', 'Moon', 'Night'],
+  subdivisions: [13, 28],
+  format: 'C{u0} M{u1} N{u2}',
+  parseSeparator: '-',
+};
 
 function tp(units: string[]): TimePoint {
   return { systemId: SYS.id, units };
@@ -282,6 +297,47 @@ describe('timeline-view-math', () => {
     });
   });
 
+  describe('computeTimeSystemTickMarks', () => {
+    it('uses top-level cycle labels at broad zoom levels', () => {
+      const cycle = 13n * 28n;
+      const cycleStartOffset = 29n;
+      const marks = computeTimeSystemTickMarks(
+        {
+          minTick: 1000n * cycle + cycleStartOffset,
+          maxTick: 1250n * cycle + cycleStartOffset,
+        },
+        600,
+        MOONVEIL_SYSTEM
+      );
+
+      const labels = marks.map(mark => mark.label).filter(Boolean);
+      expect(labels.length).toBeGreaterThan(0);
+      expect(labels.every(label => /^C\d+$/.test(label))).toBe(true);
+      expect(labels.some(label => label.includes('M'))).toBe(false);
+      expect(labels.some(label => label.includes('N'))).toBe(false);
+    });
+
+    it('adds minor second-unit ticks when a top-level unit has room', () => {
+      const cycle = 13n * 28n;
+      const cycleStartOffset = 29n;
+      const marks = computeTimeSystemTickMarks(
+        {
+          minTick: 1000n * cycle + cycleStartOffset,
+          maxTick: 1001n * cycle + cycleStartOffset,
+        },
+        640,
+        MOONVEIL_SYSTEM
+      );
+
+      expect(
+        marks.some(mark => mark.kind === 'major' && mark.label === 'C1000')
+      ).toBe(true);
+      expect(
+        marks.some(mark => mark.kind === 'minor' && mark.level === 1)
+      ).toBe(true);
+    });
+  });
+
   // ─── sortEventsByStart ─────────────────────────────────────────────
 
   describe('sortEventsByStart', () => {
@@ -345,6 +401,107 @@ describe('timeline-view-math', () => {
 
     it('returns empty array for no events', () => {
       expect(sortEventsByStart([], SYS)).toEqual([]);
+    });
+  });
+
+  // ─── assignLabelLanes ─────────────────────────────────────────────
+
+  describe('assignLabelLanes', () => {
+    it('returns empty assignments for empty input', () => {
+      const result = assignLabelLanes([], 8);
+      expect(result.assignments).toEqual([]);
+      expect(result.laneCount).toBe(0);
+    });
+
+    it('places a single item into lane 0', () => {
+      const result = assignLabelLanes([{ x: 100, labelWidth: 50 }], 8);
+      expect(result.assignments).toEqual([0]);
+      expect(result.laneCount).toBe(1);
+    });
+
+    it('places non-overlapping items in lane 0', () => {
+      const result = assignLabelLanes(
+        [
+          { x: 0, labelWidth: 20 },
+          { x: 100, labelWidth: 20 },
+          { x: 200, labelWidth: 20 },
+        ],
+        8
+      );
+      expect(result.assignments).toEqual([0, 0, 0]);
+      expect(result.laneCount).toBe(1);
+    });
+
+    it('stacks overlapping items into separate lanes', () => {
+      // Three centred-on-50 items with width 60 each → all overlap
+      const result = assignLabelLanes(
+        [
+          { x: 50, labelWidth: 60 },
+          { x: 55, labelWidth: 60 },
+          { x: 60, labelWidth: 60 },
+        ],
+        4
+      );
+      expect(result.laneCount).toBe(3);
+      // Each gets its own lane (in left-to-right order all conflict)
+      expect(new Set(result.assignments).size).toBe(3);
+    });
+
+    it('reuses an earlier lane once it has cleared', () => {
+      // a@0, b@5 overlap → b goes to lane 1. c@200 is far → can use lane 0.
+      const result = assignLabelLanes(
+        [
+          { x: 0, labelWidth: 20 },
+          { x: 5, labelWidth: 20 },
+          { x: 200, labelWidth: 20 },
+        ],
+        4
+      );
+      expect(result.laneCount).toBe(2);
+      expect(result.assignments[0]).toBe(0);
+      expect(result.assignments[1]).toBe(1);
+      expect(result.assignments[2]).toBe(0);
+    });
+
+    it('respects minGap when deciding overlap', () => {
+      // Two items 30px apart with 20-wide labels would not overlap visually,
+      // but a gap of 20 forces them to separate lanes.
+      const tight = assignLabelLanes(
+        [
+          { x: 0, labelWidth: 20 },
+          { x: 30, labelWidth: 20 },
+        ],
+        20
+      );
+      expect(tight.laneCount).toBe(2);
+      const loose = assignLabelLanes(
+        [
+          { x: 0, labelWidth: 20 },
+          { x: 30, labelWidth: 20 },
+        ],
+        2
+      );
+      expect(loose.laneCount).toBe(1);
+    });
+
+    it('processes items left-to-right regardless of input order', () => {
+      // Out-of-order input: the algorithm sorts by x internally, so the
+      // leftmost item always wins lane 0 regardless of input position.
+      // Width 50 + minGap 8 → each item occupies x±29. With items spaced
+      // 50 apart, x=0 and x=50 overlap (x=0 right edge=29 > x=50 left=21),
+      // but x=100 (left=71) clears x=0's footprint in lane 0 → reuses it.
+      const result = assignLabelLanes(
+        [
+          { x: 100, labelWidth: 50 },
+          { x: 0, labelWidth: 50 },
+          { x: 50, labelWidth: 50 },
+        ],
+        8
+      );
+      expect(result.assignments[1]).toBe(0); // x=0   → lane 0 (leftmost)
+      expect(result.assignments[2]).toBe(1); // x=50  → lane 1 (overlaps x=0)
+      expect(result.assignments[0]).toBe(0); // x=100 → lane 0 (reused, x=0 cleared)
+      expect(result.laneCount).toBe(2);
     });
   });
 });
