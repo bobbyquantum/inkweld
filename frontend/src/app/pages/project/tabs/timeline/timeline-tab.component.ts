@@ -118,6 +118,13 @@ interface TrackRow {
   laneCount: number;
 }
 
+interface InstantLaneItem {
+  trackId: string;
+  eventId: string;
+  x: number;
+  labelWidth: number;
+}
+
 interface EraBand {
   id: string;
   name: string;
@@ -134,6 +141,11 @@ interface EraBand {
 }
 
 type DragKind = 'move' | 'resize-start' | 'resize-end';
+type EventDragPreview = {
+  eventId: string;
+  start: TimePoint;
+  end: TimePoint | undefined;
+} | null;
 
 @Component({
   selector: 'app-timeline-tab',
@@ -329,11 +341,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     moved: boolean;
   } | null = null;
 
-  protected readonly eventDragPreview = signal<{
-    eventId: string;
-    start: TimePoint;
-    end: TimePoint | undefined;
-  } | null>(null);
+  protected readonly eventDragPreview = signal<EventDragPreview>(null);
 
   protected readonly eraDragPreview = signal<{
     eraId: string;
@@ -356,39 +364,22 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     const available = Math.max(1, width - this.labelGutter);
     const preview = this.eventDragPreview();
     // Group instant events per track, then assign lanes per group.
-    const byTrack = new Map<string, { x: number; labelWidth: number }[]>();
+    const byTrack = new Map<string, InstantLaneItem[]>();
     for (const event of this.events()) {
-      const isPreview = preview?.eventId === event.id;
-      const effectiveStart = isPreview ? preview.start : event.start;
-      const effectiveEnd = isPreview ? preview.end : event.end;
-      // During an active drag, the preview's start/end may temporarily fall
-      // outside the calendar's per-unit bounds (e.g. month=15). Skip the
-      // validity guard for the dragged event so it doesn't vanish from the
-      // canvas mid-gesture; the commit on pointerup will re-clamp via
-      // updateEvent. For non-dragged events, drop invalid points as before.
-      if (!isPreview && !isValidTimePointFor(effectiveStart, system)) continue;
-      // Only instant events (no end) contribute to label lanes.
-      if (effectiveEnd) continue;
-      let startTick: bigint;
-      try {
-        startTick = timePointToAbsolute(effectiveStart, system);
-      } catch {
-        // Preview may produce a TimePoint that fails the round-trip; bail
-        // for lane-count purposes (the event will still render via the
-        // pill pass below using fallback geometry).
-        continue;
-      }
-      const cx = this.labelGutter + tickToX(startTick, bounds, available);
-      const labelWidth = Math.max(
-        24,
-        event.title.length * this.labelCharWidth + 8
+      const item = this.instantLaneItem(
+        event,
+        system,
+        bounds,
+        available,
+        preview
       );
-      let arr = byTrack.get(event.trackId);
+      if (!item) continue;
+      let arr = byTrack.get(item.trackId);
       if (!arr) {
         arr = [];
-        byTrack.set(event.trackId, arr);
+        byTrack.set(item.trackId, arr);
       }
-      arr.push({ x: cx, labelWidth });
+      arr.push(item);
     }
     for (const [trackId, items] of byTrack) {
       const { laneCount } = assignLabelLanes(items, this.labelMinGap);
@@ -507,34 +498,23 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     // lane assignment and recover each event's lane index. Doing this
     // here (instead of caching in `trackLaneCounts`) keeps the lanes
     // signal cheap (just lane *counts*, no per-event index map).
-    const instantsByTrack = new Map<
-      string,
-      { eventId: string; x: number; labelWidth: number }[]
-    >();
+    const instantsByTrack = new Map<string, InstantLaneItem[]>();
     for (const event of this.events()) {
-      const isPreview = preview?.eventId === event.id;
-      const effectiveStart = isPreview ? preview.start : event.start;
-      const effectiveEnd = isPreview ? preview.end : event.end;
-      if (!isPreview && !isValidTimePointFor(effectiveStart, system)) continue;
-      if (effectiveEnd) continue;
-      if (!rowByTrack.has(event.trackId)) continue;
-      let startTick: bigint;
-      try {
-        startTick = timePointToAbsolute(effectiveStart, system);
-      } catch {
-        continue;
-      }
-      const cx = this.labelGutter + tickToX(startTick, bounds, available);
-      const labelWidth = Math.max(
-        24,
-        event.title.length * this.labelCharWidth + 8
+      const item = this.instantLaneItem(
+        event,
+        system,
+        bounds,
+        available,
+        preview,
+        rowByTrack
       );
-      let arr = instantsByTrack.get(event.trackId);
+      if (!item) continue;
+      let arr = instantsByTrack.get(item.trackId);
       if (!arr) {
         arr = [];
-        instantsByTrack.set(event.trackId, arr);
+        instantsByTrack.set(item.trackId, arr);
       }
-      arr.push({ eventId: event.id, x: cx, labelWidth });
+      arr.push(item);
     }
     const laneByEventId = new Map<string, number>();
     for (const items of instantsByTrack.values()) {
@@ -554,113 +534,174 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
         const isPreview = preview?.eventId === event.id;
         const effectiveStart = isPreview ? preview.start : event.start;
         const effectiveEnd = isPreview ? preview.end : event.end;
-        // Skip the validity guard for the actively-dragged event so it stays
-        // on screen even when the cursor briefly crosses unit-boundary
-        // limits (e.g. month=15 in a Gregorian system).
-        if (!isPreview && !isValidTimePointFor(effectiveStart, system))
+        if (!this.canRenderEventStart(effectiveStart, system, isPreview))
           return [];
-        let startTick: bigint;
-        try {
-          startTick = timePointToAbsolute(effectiveStart, system);
-        } catch {
-          return [];
-        }
-        const isInstant = !effectiveEnd;
-        const color = event.color ?? row.track.color;
 
-        // Axis line sits between the label area and the event area.
+        const startTick = this.safeTimePointToAbsolute(effectiveStart, system);
+        if (startTick === null) return [];
+
         const axisY = row.y + row.laneCount * this.labelLaneHeight;
-        // Event area runs axisY → axisY + eventAreaHeight.
-
-        if (isInstant) {
-          const cx = this.labelGutter + tickToX(startTick, bounds, available);
-          const laneIndex = laneByEventId.get(event.id) ?? 0;
-          // Diamond is vertically centred in the event area, with its top
-          // and bottom points symmetric about the centre line. Top point
-          // sits a few px below the axis so the stalk is always visible.
-          const diamondCY = axisY + this.eventAreaHeight / 2;
-          const half = this.diamondHalf;
-          const topY = diamondCY - half;
-          const bottomY = diamondCY + half;
-          const points = [
-            `${cx},${topY}`,
-            `${cx + half},${diamondCY}`,
-            `${cx},${bottomY}`,
-            `${cx - half},${diamondCY}`,
-          ].join(' ');
-          // Label sits in its assigned lane above the axis. Lane 0 is
-          // closest to the axis (just above it), higher lanes float
-          // further up.
-          // Convert lane index → Y. We render lane 0 nearest the axis.
-          const labelY =
-            axisY -
-            (laneIndex * this.labelLaneHeight + this.labelLaneHeight / 2);
-          // Hit area generously around the diamond (24x24).
-          const hitSize = 24;
+        const color = event.color ?? row.track.color;
+        if (!effectiveEnd) {
           return [
-            {
+            this.instantPill(
               event,
-              isInstant: true,
               color,
-              cx,
+              startTick,
+              bounds,
+              available,
               axisY,
-              diamondCY,
-              labelY,
-              diamondPoints: points,
-              hitX: cx - hitSize / 2,
-              hitY: diamondCY - hitSize / 2,
-              hitW: hitSize,
-              hitH: hitSize,
-              // unused for instants but make TS happy via undefined
-              titleFits: true,
-            },
+              laneByEventId
+            ),
           ];
         }
 
-        // Ranged event.
-        // effectiveEnd is defined here (we're in the !isInstant branch).
-        // Validate it; if invalid, fall back to startTick to avoid blowing
-        // out coordinates.
-        let endTick = startTick;
-        if (effectiveEnd && isValidTimePointFor(effectiveEnd, system)) {
-          try {
-            endTick = timePointToAbsolute(effectiveEnd, system);
-          } catch {
-            endTick = startTick;
-          }
-        }
-        const startX = this.labelGutter + tickToX(startTick, bounds, available);
-        const endX = this.labelGutter + tickToX(endTick, bounds, available);
-        // Clamp to the visible viewport so a long-range event doesn't blow
-        // out the SVG coordinate space and stretch the entire layer.
-        const viewportLeft = this.labelGutter;
-        const viewportRight = width;
-        const rectLeft = Math.max(viewportLeft, Math.min(startX, endX));
-        const rectRight = Math.min(viewportRight, Math.max(startX, endX));
-        const rectWidth = Math.max(2, rectRight - rectLeft);
-        const rectY = axisY + this.eventAreaPadding;
-        const rectHeight = this.eventAreaHeight - 2 * this.eventAreaPadding;
-        // Decide whether the title fits inside the rect (controls tooltip).
-        const titleApproxWidth =
-          event.title.length * this.labelCharWidth + 16; /* padding */
-        const titleFits = titleApproxWidth <= rectWidth;
         return [
-          {
+          this.rangedPill(
             event,
-            isInstant: false,
             color,
-            x: rectLeft,
-            y: rectY,
-            width: rectWidth,
-            height: rectHeight,
-            rangedLabelY: rectY + rectHeight / 2,
-            titleFits,
-            axisY,
-          },
+            startTick,
+            effectiveEnd,
+            system,
+            bounds,
+            available,
+            width,
+            axisY
+          ),
         ];
       })
       .sort((a, b) => Number(a.isInstant) - Number(b.isInstant));
   });
+
+  private instantLaneItem(
+    event: TimelineEvent,
+    system: TimeSystem,
+    bounds: TimelineBounds,
+    available: number,
+    preview: EventDragPreview,
+    rowByTrack?: ReadonlyMap<string, TrackRow>
+  ): InstantLaneItem | null {
+    if (rowByTrack && !rowByTrack.has(event.trackId)) return null;
+    const isPreview = preview?.eventId === event.id;
+    const start = isPreview ? preview.start : event.start;
+    const end = isPreview ? preview.end : event.end;
+    if (end) return null;
+    if (!this.canRenderEventStart(start, system, isPreview)) return null;
+
+    const startTick = this.safeTimePointToAbsolute(start, system);
+    if (startTick === null) return null;
+    return {
+      trackId: event.trackId,
+      eventId: event.id,
+      x: this.labelGutter + tickToX(startTick, bounds, available),
+      labelWidth: this.eventLabelWidth(event),
+    };
+  }
+
+  private canRenderEventStart(
+    start: TimePoint,
+    system: TimeSystem,
+    isPreview: boolean
+  ): boolean {
+    // Active drag previews may temporarily cross unit-boundary limits (e.g.
+    // month=15). Keep the dragged event visible; pointer-up re-clamps.
+    return isPreview || isValidTimePointFor(start, system);
+  }
+
+  private safeTimePointToAbsolute(
+    timePoint: TimePoint,
+    system: TimeSystem
+  ): bigint | null {
+    try {
+      return timePointToAbsolute(timePoint, system);
+    } catch {
+      return null;
+    }
+  }
+
+  private eventLabelWidth(event: TimelineEvent): number {
+    return Math.max(24, event.title.length * this.labelCharWidth + 8);
+  }
+
+  private instantPill(
+    event: TimelineEvent,
+    color: string,
+    startTick: bigint,
+    bounds: TimelineBounds,
+    available: number,
+    axisY: number,
+    laneByEventId: ReadonlyMap<string, number>
+  ): EventPill {
+    const cx = this.labelGutter + tickToX(startTick, bounds, available);
+    const laneIndex = laneByEventId.get(event.id) ?? 0;
+    const diamondCY = axisY + this.eventAreaHeight / 2;
+    const half = this.diamondHalf;
+    const hitSize = 24;
+    return {
+      event,
+      isInstant: true,
+      color,
+      cx,
+      axisY,
+      diamondCY,
+      labelY:
+        axisY - (laneIndex * this.labelLaneHeight + this.labelLaneHeight / 2),
+      diamondPoints: [
+        `${cx},${diamondCY - half}`,
+        `${cx + half},${diamondCY}`,
+        `${cx},${diamondCY + half}`,
+        `${cx - half},${diamondCY}`,
+      ].join(' '),
+      hitX: cx - hitSize / 2,
+      hitY: diamondCY - hitSize / 2,
+      hitW: hitSize,
+      hitH: hitSize,
+      titleFits: true,
+    };
+  }
+
+  private rangedPill(
+    event: TimelineEvent,
+    color: string,
+    startTick: bigint,
+    end: TimePoint | undefined,
+    system: TimeSystem,
+    bounds: TimelineBounds,
+    available: number,
+    width: number,
+    axisY: number
+  ): EventPill {
+    const endTick = this.rangedEndTick(end, system, startTick);
+    const startX = this.labelGutter + tickToX(startTick, bounds, available);
+    const endX = this.labelGutter + tickToX(endTick, bounds, available);
+    const rectLeft = Math.max(this.labelGutter, Math.min(startX, endX));
+    const rectRight = Math.min(width, Math.max(startX, endX));
+    const rectWidth = Math.max(2, rectRight - rectLeft);
+    const rectY = axisY + this.eventAreaPadding;
+    const rectHeight = this.eventAreaHeight - 2 * this.eventAreaPadding;
+    const titleApproxWidth = event.title.length * this.labelCharWidth + 16;
+    return {
+      event,
+      isInstant: false,
+      color,
+      x: rectLeft,
+      y: rectY,
+      width: rectWidth,
+      height: rectHeight,
+      rangedLabelY: rectY + rectHeight / 2,
+      titleFits: titleApproxWidth <= rectWidth,
+      axisY,
+    };
+  }
+
+  private rangedEndTick(
+    end: TimePoint | undefined,
+    system: TimeSystem,
+    fallback: bigint
+  ): bigint {
+    if (!end || !isValidTimePointFor(end, system)) return fallback;
+    return this.safeTimePointToAbsolute(end, system) ?? fallback;
+  }
 
   protected readonly eraBands = computed<EraBand[]>(() => {
     const system = this.activeSystem();
