@@ -3,7 +3,7 @@
  *
  * Captures screenshots of the template management feature.
  * Consolidated 10 → 2 tests (one per color scheme); each captures
- * overview, grid, header/create button, create dialog, clone menu, and
+ * overview, grid, header/create button, template editor page, clone menu, and
  * card details via test.step.
  *
  * NOTE: This entire suite is `describe.skip` because schemas are not
@@ -119,19 +119,21 @@ async function captureAllTemplateScreenshots(
 
   await test.step('create template dialog', async () => {
     await page.click('[data-testid="create-template-button"]');
-    await page.waitForSelector('app-template-editor-dialog', {
+    await page.waitForSelector('[data-testid="template-editor-page"]', {
       state: 'visible',
     });
     await page.waitForTimeout(300);
 
     await captureElementScreenshot(
       page,
-      [page.locator('app-template-editor-dialog')],
+      [page.locator('[data-testid="template-editor-page"]')],
       join(screenshotsDir, `templates-create-dialog-${suffix}.png`),
       32
     );
 
-    await page.click('app-template-editor-dialog button:has-text("Cancel")');
+    await page.click(
+      '[data-testid="template-editor-page"] button:has-text("Cancel")'
+    );
   });
 }
 
