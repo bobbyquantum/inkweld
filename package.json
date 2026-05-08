@@ -9,7 +9,7 @@
     "packages/*"
   ],
   "scripts": {
-    "postinstall": "cd frontend && bun install --save-text-lockfile && cd ../backend && bun install && cd ../docs/site && bun install",
+    "postinstall": "INKWELD_BUN_POSTINSTALL=1 bun install --save-text-lockfile --cwd frontend && INKWELD_BUN_POSTINSTALL=1 bun install --cwd backend && INKWELD_BUN_POSTINSTALL=1 bun install --cwd docs/site",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && bun run start",
     "dev:backend": "cd backend && bun run dev",
