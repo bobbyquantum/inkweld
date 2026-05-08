@@ -127,6 +127,47 @@ describe('TimelineService', () => {
       expect(config.events[0].title).toBe('Founding');
     });
 
+    it('repairs persisted event and era units that overflow calendar bounds', () => {
+      const stored = createDefaultTimelineConfig('timeline-1');
+      stored.timeSystemId = GREGORIAN_SYSTEM.id;
+      stored.events = [
+        {
+          id: 'e1',
+          trackId: stored.tracks[0].id,
+          title: 'Boundary Event',
+          start: { systemId: 'gregorian', units: ['2020', '1', '0'] },
+        },
+      ];
+      stored.eras = [
+        {
+          id: 'era1',
+          name: 'Boundary Era',
+          color: '#abcdef',
+          start: { systemId: 'gregorian', units: ['2020', '1', '0'] },
+          end: { systemId: 'gregorian', units: ['2020', '13', '1'] },
+        },
+      ];
+      mockElements.set([
+        makeTimelineElement({
+          metadata: {
+            [TIMELINE_CONFIG_META_KEY]: JSON.stringify({
+              version: stored.version,
+              timeSystemId: stored.timeSystemId,
+              tracks: stored.tracks,
+              events: stored.events,
+              eras: stored.eras,
+            }),
+          },
+        }),
+      ]);
+
+      const config = service.loadConfig('timeline-1');
+
+      expect(config.events[0].start.units).toEqual(['2019', '12', '30']);
+      expect(config.eras[0].start.units).toEqual(['2019', '12', '30']);
+      expect(config.eras[0].end.units).toEqual(['2021', '1', '1']);
+    });
+
     it('falls back to defaults on malformed JSON', () => {
       mockElements.set([
         makeTimelineElement({
@@ -421,6 +462,18 @@ describe('TimelineService', () => {
       expect(event?.description).toBe('note');
     });
 
+    it('normalizes overflowed time points in event updates', () => {
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+      const id = service.addEvent(base());
+
+      service.updateEvent(id, {
+        start: { systemId: 'gregorian', units: ['2020', '1', '0'] },
+      });
+
+      const event = service.activeConfig()?.events.find(e => e.id === id);
+      expect(event?.start.units).toEqual(['2019', '12', '30']);
+    });
+
     it('removeEvent drops it', () => {
       const id = service.addEvent(base());
       service.removeEvent(id);
@@ -455,6 +508,20 @@ describe('TimelineService', () => {
       const id = service.addEra(era());
       service.updateEra(id, { name: 'Golden Age' });
       expect(service.activeConfig()?.eras[0].name).toBe('Golden Age');
+    });
+
+    it('normalizes overflowed time points in era updates', () => {
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+      const id = service.addEra(era());
+
+      service.updateEra(id, {
+        start: { systemId: 'gregorian', units: ['2020', '1', '0'] },
+        end: { systemId: 'gregorian', units: ['2020', '13', '1'] },
+      });
+
+      const eraConfig = service.activeConfig()?.eras.find(e => e.id === id);
+      expect(eraConfig?.start.units).toEqual(['2019', '12', '30']);
+      expect(eraConfig?.end.units).toEqual(['2021', '1', '1']);
     });
 
     it('removeEra drops it', () => {

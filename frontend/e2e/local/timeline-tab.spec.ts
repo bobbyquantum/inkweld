@@ -63,6 +63,17 @@ async function createTimelineAndOpen(page: Page) {
   await expect(page.getByTestId('timeline-canvas')).toBeVisible();
 }
 
+async function visibleTickSignature(page: Page): Promise<string> {
+  return page.getByTestId('tick-label').evaluateAll(labels =>
+    labels
+      .map(label => {
+        const rect = label.getBoundingClientRect();
+        return `${label.textContent?.trim() ?? ''}@${Math.round(rect.x)}`;
+      })
+      .join('|')
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Tests
 // ─────────────────────────────────────────────────────────────────────────────
@@ -180,21 +191,15 @@ test.describe('Timeline Tab', () => {
     });
 
     await test.step('zoom-in changes the tick label set', async () => {
-      const beforeLabels = await page
-        .getByTestId('tick-label')
-        .allTextContents();
+      const beforeTicks = await visibleTickSignature(page);
 
       await page.getByTestId('timeline-zoom-in').click();
       await page.getByTestId('timeline-zoom-in').click();
 
       await expect(async () => {
-        const afterLabels = await page
-          .getByTestId('tick-label')
-          .allTextContents();
-        expect(
-          beforeLabels.join('|') !== afterLabels.join('|') ||
-            beforeLabels.length !== afterLabels.length
-        ).toBeTruthy();
+        await expect(page.getByTestId('tick-label').first()).toBeVisible();
+        const afterTicks = await visibleTickSignature(page);
+        expect(afterTicks).not.toBe(beforeTicks);
       }).toPass({ timeout: 5000 });
     });
 

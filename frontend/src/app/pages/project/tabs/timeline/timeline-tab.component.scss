@@ -26,6 +26,11 @@
   padding: 8px 12px;
   border-bottom: 1px solid var(--sys-outline-variant, #ddd);
   flex: 0 0 auto;
+
+  button[mat-stroked-button] {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
 }
 
 .toolbar .spacer {
@@ -34,34 +39,6 @@
 
 .system-select {
   min-width: 180px;
-}
-
-.system-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px 4px 8px;
-  border: 1px solid var(--sys-outline-variant);
-  border-radius: 999px;
-  background: var(--sys-surface-container-low);
-  color: var(--sys-on-surface);
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: default;
-  user-select: none;
-
-  .mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-  }
-
-  .lock-icon {
-    color: var(--sys-on-surface-variant);
-    font-size: 14px;
-    width: 14px;
-    height: 14px;
-  }
 }
 
 .setup-overlay {
@@ -141,6 +118,38 @@
   background: var(--sys-surface-container-lowest);
 }
 
+.add-track-row {
+  min-height: 44px;
+  display: flex;
+  align-items: stretch;
+}
+
+.add-track-gutter {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  box-sizing: border-box;
+  background: var(--sys-surface-container-high);
+}
+
+.add-track-button {
+  width: 100%;
+  min-width: 0;
+  justify-content: flex-start;
+  color: var(--sys-primary);
+  font-size: 0.8125rem;
+  line-height: 1;
+  white-space: nowrap;
+
+  mat-icon {
+    margin-right: 4px;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
 .empty {
   position: absolute;
   inset: 0;
@@ -163,6 +172,18 @@ svg.timeline-svg {
   display: block;
   cursor: grab;
   user-select: none;
+
+  text {
+    font-family: var(
+      --mat-ref-typeface-plain,
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif
+    );
+    font-stretch: normal;
+    letter-spacing: 0;
+  }
 }
 
 .timeline-svg-top,
@@ -188,10 +209,22 @@ svg.timeline-svg:active {
   stroke-width: 1;
 }
 
+.tick-line-major {
+  stroke: var(--sys-outline, #999);
+}
+
+.tick-line-minor {
+  stroke-opacity: 0.55;
+}
+
 .tick-label {
   fill: var(--sys-on-surface-variant, #666);
   font-size: 11px;
   dominant-baseline: hanging;
+}
+
+.tick-label-minor {
+  opacity: 0.75;
 }
 
 .track-label {
@@ -273,8 +306,53 @@ svg.timeline-svg:active {
   cursor: grabbing;
 }
 
-.event-pill:hover > rect:first-of-type {
+// Ranged event hover highlight (the body rect is the first rect inside the g)
+.event-pill-ranged:hover > rect:first-of-type {
   filter: brightness(1.1);
+}
+
+// ── Instant events: diamond + stalk + label ────────────────────────────────
+
+.event-stalk {
+  stroke: var(--sys-outline, #999);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.event-diamond {
+  stroke: var(--sys-outline-variant, #ccc);
+  stroke-width: 0.5;
+  pointer-events: none;
+  transition: filter 120ms ease;
+}
+
+.event-pill-instant:hover .event-diamond {
+  filter: brightness(1.15);
+}
+
+.event-pill-instant:focus-within .event-diamond {
+  stroke: var(--sys-primary, #6750a4);
+  stroke-width: 1.5;
+}
+
+.event-label-instant {
+  fill: var(--sys-on-surface, #111);
+  font-size: 11px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.event-hit {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sys-primary, #6750a4);
+    outline-offset: 2px;
+  }
 }
 
 .event-handle {
@@ -294,4 +372,68 @@ svg.timeline-svg:active {
 
 .tick-label-top {
   dominant-baseline: auto;
+}
+
+.timeline-status-bar {
+  flex: 0 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 24px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border-top: 1px solid var(--sys-outline-variant);
+  background: var(--sys-surface-container);
+  color: var(--sys-on-surface);
+  font-size: 0.8125rem;
+  overflow: hidden;
+}
+
+.status-stats,
+.time-system-status,
+.timeline-status-summary {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.time-system-status {
+  gap: 6px;
+  font-weight: 500;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  mat-icon {
+    flex: 0 0 auto;
+    color: var(--sys-primary);
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  .lock-icon {
+    color: var(--sys-on-surface-variant);
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.time-system-status--missing {
+  color: var(--sys-on-surface-variant);
+
+  mat-icon {
+    color: currentcolor;
+  }
+}
+
+.timeline-status-summary {
+  flex: 0 1 auto;
+  color: var(--sys-on-surface-variant);
+  white-space: nowrap;
 }

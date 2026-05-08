@@ -8,7 +8,7 @@
  */
 
 import { effect, inject, Injectable, signal, untracked } from '@angular/core';
-import type { TimeSystem } from '@models/time-system';
+import { normalizeTimePoint, type TimeSystem } from '@models/time-system';
 import {
   createDefaultTimelineConfig,
   pickNextColor,
@@ -130,7 +130,7 @@ export class TimelineService {
           eras: Array.isArray(parsed.eras) ? parsed.eras : [],
           timeSystemId: parsed.timeSystemId ?? defaults.timeSystemId,
         };
-        this.activeConfigSignal.set(config);
+        this.activeConfigSignal.set(this.normalizeConfigTimePoints(config));
         return;
       } catch {
         this.logger.warn(
@@ -141,6 +141,38 @@ export class TimelineService {
     }
 
     this.activeConfigSignal.set(createDefaultTimelineConfig(elementId));
+  }
+
+  private normalizeConfigTimePoints(config: TimelineConfig): TimelineConfig {
+    const system = this.library.resolveSystem(config.timeSystemId);
+    if (!system) return config;
+
+    return {
+      ...config,
+      events: config.events.map(event => this.normalizeEvent(event, system)),
+      eras: config.eras.map(era => this.normalizeEra(era, system)),
+    };
+  }
+
+  private normalizeEvent(
+    event: TimelineEvent,
+    system: TimeSystem
+  ): TimelineEvent {
+    return {
+      ...event,
+      start: normalizeTimePoint(event.start, system) ?? event.start,
+      ...(event.end
+        ? { end: normalizeTimePoint(event.end, system) ?? event.end }
+        : {}),
+    };
+  }
+
+  private normalizeEra(era: TimelineEra, system: TimeSystem): TimelineEra {
+    return {
+      ...era,
+      start: normalizeTimePoint(era.start, system) ?? era.start,
+      end: normalizeTimePoint(era.end, system) ?? era.end,
+    };
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -236,11 +268,14 @@ export class TimelineService {
   updateEvent(eventId: string, updates: Partial<TimelineEvent>): void {
     const config = this.activeConfigSignal();
     if (!config) return;
+    const system = this.library.resolveSystem(config.timeSystemId);
     this.saveConfig({
       ...config,
-      events: config.events.map(e =>
-        e.id === eventId ? { ...e, ...updates, id: eventId } : e
-      ),
+      events: config.events.map(e => {
+        if (e.id !== eventId) return e;
+        const next = { ...e, ...updates, id: eventId };
+        return system ? this.normalizeEvent(next, system) : next;
+      }),
     });
   }
 
@@ -268,11 +303,14 @@ export class TimelineService {
   updateEra(eraId: string, updates: Partial<TimelineEra>): void {
     const config = this.activeConfigSignal();
     if (!config) return;
+    const system = this.library.resolveSystem(config.timeSystemId);
     this.saveConfig({
       ...config,
-      eras: config.eras.map(era =>
-        era.id === eraId ? { ...era, ...updates, id: eraId } : era
-      ),
+      eras: config.eras.map(era => {
+        if (era.id !== eraId) return era;
+        const next = { ...era, ...updates, id: eraId };
+        return system ? this.normalizeEra(next, system) : next;
+      }),
     });
   }
 

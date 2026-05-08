@@ -257,6 +257,92 @@ export function timePointToAbsolute(
   return total;
 }
 
+/**
+ * Convert an absolute smallest-unit tick back into the nearest canonical
+ * {@link TimePoint} for the system.
+ *
+ * Unlike a simple division/modulo inverse, this respects per-unit minimums
+ * (for example Month/Day values that start at 1), so adjacent ticks around
+ * boundaries map to valid dates such as `2019-12-30` instead of invalid
+ * values such as `2020-1-0`.
+ */
+export function absoluteToTimePoint(
+  tick: bigint,
+  system: TimeSystem
+): TimePoint {
+  const n = system.unitLabels.length;
+  const weights = timeSystemUnitWeights(system);
+  const minSuffix: bigint[] = new Array<bigint>(n + 1).fill(0n);
+  for (let i = n - 1; i >= 1; i--) {
+    minSuffix[i] =
+      minSuffix[i + 1] + BigInt(unitMinValue(system, i)) * weights[i];
+  }
+
+  const units: string[] = Array.from({ length: n }, () => '0');
+  let consumed = 0n;
+  for (let i = 0; i < n; i++) {
+    const weight = weights[i];
+    const remaining = tick - consumed;
+    let value: bigint;
+    if (i === 0) {
+      value = n === 1 ? remaining : floorDiv(remaining - minSuffix[1], weight);
+    } else {
+      value =
+        BigInt(unitMinValue(system, i)) +
+        floorDiv(remaining - minSuffix[i], weight);
+    }
+    units[i] = value.toString();
+    consumed += value * weight;
+  }
+
+  return { systemId: system.id, units };
+}
+
+/**
+ * Canonicalize a time point that may have overflowed bounded units.
+ * Returns `null` when the point does not belong to the system or cannot be
+ * represented as a valid point after normalization.
+ */
+export function normalizeTimePoint(
+  point: TimePoint,
+  system: TimeSystem
+): TimePoint | null {
+  if (point.systemId !== system.id) return null;
+  if (point.units.length !== system.unitLabels.length) return null;
+  if (!point.units.every(unit => /^-?\d+$/.test(unit))) return null;
+  if (isValidTimePointFor(point, system)) return point;
+
+  let tick = 0n;
+  const weights = timeSystemUnitWeights(system);
+  for (let i = 0; i < point.units.length; i++) {
+    tick += BigInt(point.units[i]) * weights[i];
+  }
+
+  const normalized = {
+    ...point,
+    units: absoluteToTimePoint(tick, system).units,
+  } satisfies TimePoint;
+
+  return isValidTimePointFor(normalized, system) ? normalized : null;
+}
+
+function timeSystemUnitWeights(system: TimeSystem): bigint[] {
+  const n = system.unitLabels.length;
+  const weights: bigint[] = new Array<bigint>(n);
+  weights[n - 1] = 1n;
+  for (let i = n - 2; i >= 0; i--) {
+    weights[i] = weights[i + 1] * BigInt(system.subdivisions[i]);
+  }
+  return weights;
+}
+
+function floorDiv(value: bigint, divisor: bigint): bigint {
+  let quotient = value / divisor;
+  const remainder = value % divisor;
+  if (remainder < 0n) quotient -= 1n;
+  return quotient;
+}
+
 /** Strictly compare two time points in the same system. Returns -1, 0, or 1. */
 export function compareTimePoints(
   a: TimePoint,

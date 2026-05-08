@@ -7,6 +7,7 @@ import {
   type ElementRef,
   HostListener,
   inject,
+  NgZone,
   type OnDestroy,
   type OnInit,
   signal,
@@ -33,7 +34,7 @@ import {
   type TimelineEventDialogResult,
 } from '@dialogs/timeline-event-dialog/timeline-event-dialog.component';
 import {
-  formatTimePoint,
+  absoluteToTimePoint,
   isValidTimePointFor,
   type TimePoint,
   timePointToAbsolute,
@@ -56,8 +57,9 @@ import {
 import { firstValueFrom } from 'rxjs';
 
 import {
+  assignLabelLanes,
   computeDefaultBounds,
-  computeTickMarks,
+  computeTimeSystemTickMarks,
   panBounds,
   tickToX,
   type TimelineBounds,
@@ -66,22 +68,71 @@ import {
 
 interface EventPill {
   event: TimelineEvent;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  /** True when the event has no `end` (rendered as diamond + stalk). */
+  isInstant: boolean;
+  /** Diamond/rect colour. */
   color: string;
+  // ── Instant-event geometry ─────────────────────────────────────────
+  /** Centre X of the diamond / vertical stalk (instants only). */
+  cx?: number;
+  /** Y of the axis-line within the track row (instants only). */
+  axisY?: number;
+  /** Y of the diamond's vertical centre (instants only). */
+  diamondCY?: number;
+  /** Y baseline of the label text (instants only). */
+  labelY?: number;
+  /** Polygon points string for the diamond (instants only). */
+  diamondPoints?: string;
+  /** Hit area for the diamond (instants only). */
+  hitX?: number;
+  hitY?: number;
+  hitW?: number;
+  hitH?: number;
+  // ── Ranged-event geometry ──────────────────────────────────────────
+  /** Left edge of the rectangle (ranged only). */
+  x?: number;
+  /** Top edge of the rectangle (ranged only). */
+  y?: number;
+  /** Rectangle width clamped to the visible viewport (ranged only). */
+  width?: number;
+  /** Rectangle height (ranged only). */
+  height?: number;
+  /** Label baseline Y inside the rectangle (ranged only). */
+  rangedLabelY?: number;
+  /** Title text clipped to fit the visible ranged rectangle. */
+  displayTitle?: string;
+  /** True if the title fits inside `width` (used to decide tooltip). */
+  titleFits?: boolean;
 }
 
 interface TickMark {
   tick: bigint;
   x: number;
   label: string;
+  level: number;
+  kind: 'major' | 'minor';
 }
 
 interface TrackRow {
   track: TimelineTrack;
   y: number;
+  height: number;
+  laneCount: number;
+}
+
+interface InstantLaneItem {
+  trackId: string;
+  eventId: string;
+  x: number;
+  labelWidth: number;
+}
+
+interface PillLayoutContext {
+  system: TimeSystem;
+  bounds: TimelineBounds;
+  available: number;
+  width: number;
+  axisY: number;
 }
 
 interface EraBand {
@@ -100,6 +151,11 @@ interface EraBand {
 }
 
 type DragKind = 'move' | 'resize-start' | 'resize-end';
+type EventDragPreview = {
+  eventId: string;
+  start: TimePoint;
+  end: TimePoint | undefined;
+} | null;
 
 @Component({
   selector: 'app-timeline-tab',
@@ -131,6 +187,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   private readonly projectState = inject(ProjectStateService);
   private readonly dialogs = inject(DialogGatewayService);
   private readonly presence = inject(PresenceService);
+  private readonly ngZone = inject(NgZone);
 
   /** Stable location key broadcast via awareness so peers see who is here. */
   protected readonly presenceLocation = computed(() => {
@@ -140,11 +197,39 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
 
   protected readonly wrapRef = viewChild<ElementRef<HTMLDivElement>>('wrap');
 
+  private readonly measureWrapEffect = effect(onCleanup => {
+    const wrap = this.wrapRef()?.nativeElement;
+    if (!wrap) return;
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() => {
+        this.ngZone.run(() => this.measureViewport());
+      });
+      observer.observe(wrap);
+      onCleanup(() => observer.disconnect());
+    }
+
+    this.scheduleMeasureViewport();
+  });
+
   protected readonly availableSystems = computed<readonly TimeSystem[]>(() =>
     this.timelineService.getAvailableSystems()
   );
   protected readonly labelGutter = 110;
   protected readonly axisHeight = 28;
+  /** Fixed event-area height per track (where diamonds + ranged rectangles sit). */
+  protected readonly eventAreaHeight = 38;
+  /** Vertical height per stacked label lane above the event area. */
+  protected readonly labelLaneHeight = 18;
+  /** Half-width of an instant-event diamond, in pixels. */
+  protected readonly diamondHalf = 7;
+  /** Approximate per-character width used for label-overlap calculation. */
+  private readonly labelCharWidth = 6.5;
+  /** Minimum gap (px) required between adjacent labels in the same lane. */
+  private readonly labelMinGap = 8;
+  /** Vertical padding below event area, before the divider line. */
+  private readonly eventAreaPadding = 4;
+  /** @deprecated retained for backward-compat with older tests. */
   protected readonly trackHeight = 52;
   /** Dedicated strip above the top axis showing era names. */
   protected readonly eraHeaderHeight = 28;
@@ -266,11 +351,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     moved: boolean;
   } | null = null;
 
-  protected readonly eventDragPreview = signal<{
-    eventId: string;
-    start: TimePoint;
-    end: TimePoint | undefined;
-  } | null>(null);
+  protected readonly eventDragPreview = signal<EventDragPreview>(null);
 
   protected readonly eraDragPreview = signal<{
     eraId: string;
@@ -279,12 +360,72 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   } | null>(null);
 
   /**
+   * Per-track label lane counts. Computed from the instant events' X
+   * positions so each track row can grow tall enough to host its label
+   * stack. Ranged events do not contribute to the lane count (their labels
+   * sit inside the rectangle).
+   */
+  private readonly trackLaneCounts = computed<Map<string, number>>(() => {
+    const map = new Map<string, number>();
+    const system = this.activeSystem();
+    if (!system) return map;
+    const bounds = this.bounds();
+    const width = this.viewWidth();
+    const available = Math.max(1, width - this.labelGutter);
+    const preview = this.eventDragPreview();
+    // Group instant events per track, then assign lanes per group.
+    const byTrack = new Map<string, InstantLaneItem[]>();
+    for (const event of this.events()) {
+      const item = this.instantLaneItem(
+        event,
+        system,
+        bounds,
+        available,
+        preview
+      );
+      if (!item) continue;
+      let arr = byTrack.get(item.trackId);
+      if (!arr) {
+        arr = [];
+        byTrack.set(item.trackId, arr);
+      }
+      arr.push(item);
+    }
+    for (const [trackId, items] of byTrack) {
+      const { laneCount } = assignLabelLanes(items, this.labelMinGap);
+      map.set(trackId, laneCount);
+    }
+    return map;
+  });
+
+  /** Height of a single track row, given its label lane count. */
+  private trackRowHeight(laneCount: number): number {
+    return laneCount * this.labelLaneHeight + this.eventAreaHeight;
+  }
+
+  protected readonly trackRows = computed<TrackRow[]>(() => {
+    const lanes = this.trackLaneCounts();
+    const rows: TrackRow[] = [];
+    let y = 0;
+    for (const track of this.tracks()) {
+      const laneCount = lanes.get(track.id) ?? 0;
+      const height = this.trackRowHeight(laneCount);
+      rows.push({ track, y, height, laneCount });
+      y += height;
+    }
+    return rows;
+  });
+
+  /**
    * Tracks area is intentionally independent from viewport height. The middle
    * pane scrolls vertically while top and bottom timeline bands stay fixed.
    */
-  protected readonly tracksCanvasHeight = computed(() =>
-    Math.max(this.trackHeight, this.tracks().length * this.trackHeight)
-  );
+  protected readonly tracksCanvasHeight = computed(() => {
+    const rows = this.trackRows();
+    if (rows.length === 0) return this.eventAreaHeight;
+    const last = rows[rows.length - 1];
+    return last.y + last.height;
+  });
 
   /**
    * When a timeline loads before systems are available, defer first fit until
@@ -344,18 +485,13 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     const bounds = this.bounds();
     const width = this.viewWidth();
     const available = Math.max(1, width - this.labelGutter);
-    const marks = computeTickMarks(bounds, 8);
-    return marks.map(tick => ({
-      tick,
-      x: this.labelGutter + tickToX(tick, bounds, available),
-      label: formatTickForSystem(tick, system),
-    }));
-  });
-
-  protected readonly trackRows = computed<TrackRow[]>(() => {
-    return this.tracks().map((track, idx) => ({
-      track,
-      y: idx * this.trackHeight,
+    const marks = computeTimeSystemTickMarks(bounds, available, system);
+    return marks.map(mark => ({
+      tick: mark.tick,
+      x: this.labelGutter + tickToX(mark.tick, bounds, available),
+      label: mark.label,
+      level: mark.level,
+      kind: mark.kind,
     }));
   });
 
@@ -368,37 +504,229 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     const rowByTrack = new Map(this.trackRows().map(r => [r.track.id, r]));
     const preview = this.eventDragPreview();
 
-    return this.events().flatMap((event): EventPill[] => {
-      if (!isValidTimePointFor(event.start, system)) return [];
-      const row = rowByTrack.get(event.trackId);
-      if (!row) return [];
-      const effectiveStart =
-        preview?.eventId === event.id ? preview.start : event.start;
-      const effectiveEnd =
-        preview?.eventId === event.id ? preview.end : event.end;
-      if (!isValidTimePointFor(effectiveStart, system)) return [];
-      const startTick = timePointToAbsolute(effectiveStart, system);
-      const startX = this.labelGutter + tickToX(startTick, bounds, available);
-      const endTick =
-        effectiveEnd && isValidTimePointFor(effectiveEnd, system)
-          ? timePointToAbsolute(effectiveEnd, system)
-          : startTick;
-      const endX = this.labelGutter + tickToX(endTick, bounds, available);
-      const minWidth = 80;
-      const pillWidth = Math.max(minWidth, endX - startX);
-      const height = this.trackHeight - 14;
-      return [
-        {
-          event,
-          x: startX,
-          y: row.y + 7,
-          width: pillWidth,
-          height,
-          color: event.color ?? row.track.color,
-        },
-      ];
-    });
+    // First pass: bucket instant events per track so we can re-run the
+    // lane assignment and recover each event's lane index. Doing this
+    // here (instead of caching in `trackLaneCounts`) keeps the lanes
+    // signal cheap (just lane *counts*, no per-event index map).
+    const instantsByTrack = new Map<string, InstantLaneItem[]>();
+    for (const event of this.events()) {
+      const item = this.instantLaneItem(
+        event,
+        system,
+        bounds,
+        available,
+        preview,
+        rowByTrack
+      );
+      if (!item) continue;
+      let arr = instantsByTrack.get(item.trackId);
+      if (!arr) {
+        arr = [];
+        instantsByTrack.set(item.trackId, arr);
+      }
+      arr.push(item);
+    }
+    const laneByEventId = new Map<string, number>();
+    for (const items of instantsByTrack.values()) {
+      const { assignments } = assignLabelLanes(
+        items.map(({ x, labelWidth }) => ({ x, labelWidth })),
+        this.labelMinGap
+      );
+      items.forEach((it, i) => {
+        laneByEventId.set(it.eventId, assignments[i]);
+      });
+    }
+
+    return this.events()
+      .flatMap((event): EventPill[] => {
+        const row = rowByTrack.get(event.trackId);
+        if (!row) return [];
+        const isPreview = preview?.eventId === event.id;
+        const effectiveStart = isPreview ? preview.start : event.start;
+        const effectiveEnd = isPreview ? preview.end : event.end;
+        if (!this.canRenderEventStart(effectiveStart, system, isPreview))
+          return [];
+
+        const startTick = this.safeTimePointToAbsolute(effectiveStart, system);
+        if (startTick === null) return [];
+
+        const axisY = row.y + row.laneCount * this.labelLaneHeight;
+        const color = event.color ?? row.track.color;
+        const pillLayout: PillLayoutContext = {
+          system,
+          bounds,
+          available,
+          width,
+          axisY,
+        };
+        if (!effectiveEnd) {
+          return [
+            this.instantPill(
+              event,
+              color,
+              startTick,
+              bounds,
+              available,
+              axisY,
+              laneByEventId
+            ),
+          ];
+        }
+
+        return [
+          this.rangedPill(event, color, startTick, effectiveEnd, pillLayout),
+        ];
+      })
+      .sort((a, b) => Number(a.isInstant) - Number(b.isInstant));
   });
+
+  private instantLaneItem(
+    event: TimelineEvent,
+    system: TimeSystem,
+    bounds: TimelineBounds,
+    available: number,
+    preview: EventDragPreview,
+    rowByTrack?: ReadonlyMap<string, TrackRow>
+  ): InstantLaneItem | null {
+    if (rowByTrack && !rowByTrack.has(event.trackId)) return null;
+    const isPreview = preview?.eventId === event.id;
+    const start = isPreview ? preview.start : event.start;
+    const end = isPreview ? preview.end : event.end;
+    if (end) return null;
+    if (!this.canRenderEventStart(start, system, isPreview)) return null;
+
+    const startTick = this.safeTimePointToAbsolute(start, system);
+    if (startTick === null) return null;
+    return {
+      trackId: event.trackId,
+      eventId: event.id,
+      x: this.labelGutter + tickToX(startTick, bounds, available),
+      labelWidth: this.eventLabelWidth(event),
+    };
+  }
+
+  private canRenderEventStart(
+    start: TimePoint,
+    system: TimeSystem,
+    isPreview: boolean
+  ): boolean {
+    // Active drag previews may temporarily cross unit-boundary limits (e.g.
+    // month=15). Keep the dragged event visible; pointer-up re-clamps.
+    return isPreview || isValidTimePointFor(start, system);
+  }
+
+  private safeTimePointToAbsolute(
+    timePoint: TimePoint,
+    system: TimeSystem
+  ): bigint | null {
+    try {
+      return timePointToAbsolute(timePoint, system);
+    } catch {
+      return null;
+    }
+  }
+
+  private eventLabelWidth(event: TimelineEvent): number {
+    return Math.max(24, event.title.length * this.labelCharWidth + 8);
+  }
+
+  private instantPill(
+    event: TimelineEvent,
+    color: string,
+    startTick: bigint,
+    bounds: TimelineBounds,
+    available: number,
+    axisY: number,
+    laneByEventId: ReadonlyMap<string, number>
+  ): EventPill {
+    const cx = this.labelGutter + tickToX(startTick, bounds, available);
+    const laneIndex = laneByEventId.get(event.id) ?? 0;
+    const diamondCY = axisY + this.eventAreaHeight / 2;
+    const half = this.diamondHalf;
+    const hitSize = 24;
+    return {
+      event,
+      isInstant: true,
+      color,
+      cx,
+      axisY,
+      diamondCY,
+      labelY:
+        axisY - (laneIndex * this.labelLaneHeight + this.labelLaneHeight / 2),
+      diamondPoints: [
+        `${cx},${diamondCY - half}`,
+        `${cx + half},${diamondCY}`,
+        `${cx},${diamondCY + half}`,
+        `${cx - half},${diamondCY}`,
+      ].join(' '),
+      hitX: cx - hitSize / 2,
+      hitY: diamondCY - hitSize / 2,
+      hitW: hitSize,
+      hitH: hitSize,
+      titleFits: true,
+    };
+  }
+
+  private rangedPill(
+    event: TimelineEvent,
+    color: string,
+    startTick: bigint,
+    end: TimePoint | undefined,
+    layout: PillLayoutContext
+  ): EventPill {
+    const endTick = this.rangedEndTick(end, layout.system, startTick);
+    const startX =
+      this.labelGutter + tickToX(startTick, layout.bounds, layout.available);
+    const endX =
+      this.labelGutter + tickToX(endTick, layout.bounds, layout.available);
+    const rectLeft = Math.min(
+      layout.width,
+      Math.max(this.labelGutter, Math.min(startX, endX))
+    );
+    const rectRight = Math.max(
+      this.labelGutter,
+      Math.min(layout.width, Math.max(startX, endX))
+    );
+    const rectWidth = Math.max(2, rectRight - rectLeft);
+    const rectY = layout.axisY + this.eventAreaPadding;
+    const rectHeight = this.eventAreaHeight - 2 * this.eventAreaPadding;
+    const titleApproxWidth = event.title.length * this.labelCharWidth + 16;
+    const titleFits = titleApproxWidth <= rectWidth;
+    return {
+      event,
+      isInstant: false,
+      color,
+      x: rectLeft,
+      y: rectY,
+      width: rectWidth,
+      height: rectHeight,
+      rangedLabelY: rectY + rectHeight / 2,
+      displayTitle: titleFits
+        ? event.title
+        : this.truncatedRangedTitle(event, rectWidth),
+      titleFits,
+      axisY: layout.axisY,
+    };
+  }
+
+  private truncatedRangedTitle(
+    event: TimelineEvent,
+    rectWidth: number
+  ): string {
+    const availableChars = Math.floor((rectWidth - 16) / this.labelCharWidth);
+    if (availableChars <= 0) return '';
+    if (availableChars === 1) return '…';
+    return `${event.title.slice(0, availableChars - 1)}…`;
+  }
+
+  private rangedEndTick(
+    end: TimePoint | undefined,
+    system: TimeSystem,
+    fallback: bigint
+  ): bigint {
+    if (!end || !isValidTimePointFor(end, system)) return fallback;
+    return this.safeTimePointToAbsolute(end, system) ?? fallback;
+  }
 
   protected readonly eraBands = computed<EraBand[]>(() => {
     const system = this.activeSystem();
@@ -471,8 +799,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Observe size of the wrap element after view init
-    queueMicrotask(() => this.measureViewport());
+    this.scheduleMeasureViewport();
   }
 
   /** Mirror the route's elementId into awareness so other peers see us here. */
@@ -507,6 +834,16 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     if (rect.width > 0) this.viewWidth.set(Math.floor(rect.width));
   }
 
+  private scheduleMeasureViewport(): void {
+    const measure = () => this.ngZone.run(() => this.measureViewport());
+    if (typeof globalThis.requestAnimationFrame === 'function') {
+      globalThis.requestAnimationFrame(() => {
+        globalThis.requestAnimationFrame(measure);
+      });
+      return;
+    }
+    queueMicrotask(measure);
+  }
   // ─────────────────────────────────────────────────────────────────────────
   // Toolbar actions
   // ─────────────────────────────────────────────────────────────────────────
@@ -523,12 +860,9 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     if (!this.availableSystems().some(s => s.id === id)) return;
     this.timelineService.setTimeSystem(id);
     // The canvas-wrap is only rendered once a system is committed, so its
-    // dimensions aren't available until the next microtask. Measure before
-    // fitting so tickmarks and pills don't lay out against a stale width.
-    queueMicrotask(() => {
-      this.measureViewport();
-      this.fitContents();
-    });
+    // dimensions aren't available until the browser has painted that layout.
+    queueMicrotask(() => this.fitContents());
+    this.scheduleMeasureViewport();
   }
 
   protected onPendingSystemChange(id: string): void {
@@ -622,8 +956,8 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     const data: TimelineEraDialogData = {
       era: null,
       system,
-      defaultStart: tickToTimePoint(firstTick, system),
-      defaultEnd: tickToTimePoint(lastTick, system),
+      defaultStart: absoluteToTimePoint(firstTick, system),
+      defaultEnd: absoluteToTimePoint(lastTick, system),
       defaultColor: pickNextColor(this.eras().length),
     };
     const ref = this.dialog.open<
@@ -724,8 +1058,8 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
 
     this.eraDragPreview.set({
       eraId: drag.eraId,
-      start: tickToTimePoint(newStart, system),
-      end: tickToTimePoint(newEnd, system),
+      start: absoluteToTimePoint(newStart, system),
+      end: absoluteToTimePoint(newEnd, system),
     });
   }
 
@@ -740,7 +1074,13 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
       void this.onEraClick(era);
       return;
     }
-    if (preview?.eraId === era.id) {
+    const system = this.activeSystem();
+    if (
+      preview?.eraId === era.id &&
+      system &&
+      isValidTimePointFor(preview.start, system) &&
+      isValidTimePointFor(preview.end, system)
+    ) {
       this.timelineService.updateEra(era.id, {
         start: preview.start,
         end: preview.end,
@@ -811,8 +1151,8 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
 
     this.eventDragPreview.set({
       eventId: drag.eventId,
-      start: tickToTimePoint(newStart, system),
-      end: drag.wasRanged ? tickToTimePoint(newEnd, system) : undefined,
+      start: absoluteToTimePoint(newStart, system),
+      end: drag.wasRanged ? absoluteToTimePoint(newEnd, system) : undefined,
     });
   }
 
@@ -827,7 +1167,12 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
       void this.onEventClick(ev);
       return;
     }
-    if (preview?.eventId === ev.id) {
+    const system = this.activeSystem();
+    if (
+      preview?.eventId === ev.id &&
+      system &&
+      this.isValidEventPreview(preview, system)
+    ) {
       this.timelineService.updateEvent(ev.id, {
         start: preview.start,
         end: preview.end,
@@ -858,6 +1203,16 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
       );
       this.bounds.set({ minTick: 0n, maxTick: 100n });
     }
+  }
+
+  private isValidEventPreview(
+    preview: { start: TimePoint; end: TimePoint | undefined },
+    system: TimeSystem
+  ): boolean {
+    return (
+      isValidTimePointFor(preview.start, system) &&
+      (!preview.end || isValidTimePointFor(preview.end, system))
+    );
   }
 
   protected onOpenTimeSystemSettings(): void {
@@ -907,6 +1262,21 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   }
 
   protected onPointerMove(event: PointerEvent): void {
+    // Drags initiated on an event pill or era band may not receive
+    // subsequent move events on the originating element (e.g. when the
+    // pointer leaves the rect bounds before pointer capture kicks in, or
+    // when capture lands on a child rect that is hidden during the drag).
+    // Routing all moves through the canvas-level handler guarantees the
+    // in-flight drag preview keeps tracking the cursor and the element
+    // never "vanishes" mid-drag.
+    if (this.eventDrag?.pointerId === event.pointerId) {
+      this.onEventPointerMove(event);
+      return;
+    }
+    if (this.eraDrag?.pointerId === event.pointerId) {
+      this.onEraPointerMove(event);
+      return;
+    }
     if (this.pointerDrag?.pointerId !== event.pointerId) {
       return;
     }
@@ -916,56 +1286,33 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   }
 
   protected onPointerUp(event: PointerEvent): void {
+    // Mirror the move handler: commit any in-flight event/era drag
+    // before falling through to pan-drag cleanup.
+    if (this.eventDrag?.pointerId === event.pointerId) {
+      const eventId = this.eventDrag.eventId;
+      const ev = this.events().find(e => e.id === eventId);
+      if (ev) this.onEventPointerUp(event, ev);
+      else {
+        // Source event vanished mid-drag: clear state without committing.
+        this.eventDrag = null;
+        this.eventDragPreview.set(null);
+      }
+      return;
+    }
+    if (this.eraDrag?.pointerId === event.pointerId) {
+      const eraId = this.eraDrag.eraId;
+      const era = this.eras().find(e => e.id === eraId);
+      if (era) this.onEraPointerUp(event, era);
+      else {
+        this.eraDrag = null;
+        this.eraDragPreview.set(null);
+      }
+      return;
+    }
     if (this.pointerDrag?.pointerId !== event.pointerId) {
       return;
     }
     this.pointerDrag = null;
-  }
-}
-
-function tickToTimePoint(tick: bigint, system: TimeSystem): TimePoint {
-  // Convert an absolute tick (smallest-unit count) back to unit strings,
-  // most-significant first. Mirrors the inverse of `timePointToAbsolute`.
-  //
-  // For negative ticks, normalise with borrow so lower-level units stay
-  // within [0, subdivision-1] and only the top unit carries the sign.
-  const weights: bigint[] = [];
-  const n = system.unitLabels.length;
-  let acc = 1n;
-  weights[n - 1] = acc;
-  for (let i = n - 2; i >= 0; i--) {
-    acc *= BigInt(system.subdivisions[i]);
-    weights[i] = acc;
-  }
-  const units: string[] = Array.from({ length: n }, () => '0');
-  let remainder = tick;
-  for (let i = 0; i < n; i++) {
-    const w = weights[i];
-    if (i === n - 1) {
-      units[i] = remainder.toString();
-    } else {
-      let value = remainder / w;
-      let leftover = remainder - value * w;
-      // Borrow: if the leftover is negative, decrement this unit and
-      // make the leftover positive so lower units stay in-range.
-      if (leftover < 0n) {
-        value -= 1n;
-        leftover += w;
-      }
-      units[i] = value.toString();
-      remainder = leftover;
-    }
-  }
-  return { systemId: system.id, units };
-}
-
-function formatTickForSystem(tick: bigint, system: TimeSystem): string {
-  const tp = tickToTimePoint(tick, system);
-  try {
-    return formatTimePoint(tp, system);
-  } catch {
-    // formatTimePoint can throw for edge-case unit values; fall back to raw tick
-    return tick.toString();
   }
 }
 
