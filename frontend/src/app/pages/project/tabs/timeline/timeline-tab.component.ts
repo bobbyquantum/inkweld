@@ -99,6 +99,8 @@ interface EventPill {
   height?: number;
   /** Label baseline Y inside the rectangle (ranged only). */
   rangedLabelY?: number;
+  /** Title text clipped to fit the visible ranged rectangle. */
+  displayTitle?: string;
   /** True if the title fits inside `width` (used to decide tooltip). */
   titleFits?: boolean;
 }
@@ -674,12 +676,19 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     const endTick = this.rangedEndTick(end, system, startTick);
     const startX = this.labelGutter + tickToX(startTick, bounds, available);
     const endX = this.labelGutter + tickToX(endTick, bounds, available);
-    const rectLeft = Math.max(this.labelGutter, Math.min(startX, endX));
-    const rectRight = Math.min(width, Math.max(startX, endX));
+    const rectLeft = Math.min(
+      width,
+      Math.max(this.labelGutter, Math.min(startX, endX))
+    );
+    const rectRight = Math.max(
+      this.labelGutter,
+      Math.min(width, Math.max(startX, endX))
+    );
     const rectWidth = Math.max(2, rectRight - rectLeft);
     const rectY = axisY + this.eventAreaPadding;
     const rectHeight = this.eventAreaHeight - 2 * this.eventAreaPadding;
     const titleApproxWidth = event.title.length * this.labelCharWidth + 16;
+    const titleFits = titleApproxWidth <= rectWidth;
     return {
       event,
       isInstant: false,
@@ -689,9 +698,22 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
       width: rectWidth,
       height: rectHeight,
       rangedLabelY: rectY + rectHeight / 2,
-      titleFits: titleApproxWidth <= rectWidth,
+      displayTitle: titleFits
+        ? event.title
+        : this.truncatedRangedTitle(event, rectWidth),
+      titleFits,
       axisY,
     };
+  }
+
+  private truncatedRangedTitle(
+    event: TimelineEvent,
+    rectWidth: number
+  ): string {
+    const availableChars = Math.floor((rectWidth - 16) / this.labelCharWidth);
+    if (availableChars <= 0) return '';
+    if (availableChars === 1) return '…';
+    return `${event.title.slice(0, availableChars - 1)}…`;
   }
 
   private rangedEndTick(
