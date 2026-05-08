@@ -45,6 +45,18 @@ For more information, visit: <https://angular.dev/ai/mcp>
 
 ## Core Development Rules
 
+### 0. Package Manager — CRITICAL
+
+**This project uses Bun exclusively for dependency management. NEVER run `npm install` inside `frontend/` or `backend/`.**
+
+- `npm install` inside `frontend/` or `backend/` generates a `package-lock.json` that is gitignored, causing non-deterministic installs on every fresh checkout
+- Both `frontend/package.json` and `backend/package.json` have a `preinstall` guard that will error if you try
+- Always install dependencies from the **repo root** using:
+  ```bash
+  bun install
+  ```
+- `npm test`, `npm run lint`, `npm run e2e` etc. are fine to run — they invoke the Angular CLI via Node.js internally, which is correct. The restriction is only on `npm install` / `npm ci`.
+
 ### 1. Code Quality & Testing
 
 - **Test Coverage Required**: Before completing any code change, ensure test coverage exists
@@ -82,7 +94,7 @@ For more information, visit: <https://angular.dev/ai/mcp>
 - **Modules**: Everything is standalone - no NgModules
 - **State**: Service-based with RxJS
 - **Testing**: Vitest for unit tests, Playwright for e2e
-- **Package Manager**: npm (dev server runs on Node.js)
+- **Package Manager**: Bun (NEVER run `npm install` or `bun install` inside `frontend/` or `backend/` directly — always install from the repo root with `bun install`)
 
 ### Angular Control Flow Guidelines
 
