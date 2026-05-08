@@ -127,6 +127,14 @@ interface InstantLaneItem {
   labelWidth: number;
 }
 
+interface PillLayoutContext {
+  system: TimeSystem;
+  bounds: TimelineBounds;
+  available: number;
+  width: number;
+  axisY: number;
+}
+
 interface EraBand {
   id: string;
   name: string;
@@ -544,6 +552,13 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
 
         const axisY = row.y + row.laneCount * this.labelLaneHeight;
         const color = event.color ?? row.track.color;
+        const pillLayout: PillLayoutContext = {
+          system,
+          bounds,
+          available,
+          width,
+          axisY,
+        };
         if (!effectiveEnd) {
           return [
             this.instantPill(
@@ -559,17 +574,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
         }
 
         return [
-          this.rangedPill(
-            event,
-            color,
-            startTick,
-            effectiveEnd,
-            system,
-            bounds,
-            available,
-            width,
-            axisY
-          ),
+          this.rangedPill(event, color, startTick, effectiveEnd, pillLayout),
         ];
       })
       .sort((a, b) => Number(a.isInstant) - Number(b.isInstant));
@@ -667,25 +672,23 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     color: string,
     startTick: bigint,
     end: TimePoint | undefined,
-    system: TimeSystem,
-    bounds: TimelineBounds,
-    available: number,
-    width: number,
-    axisY: number
+    layout: PillLayoutContext
   ): EventPill {
-    const endTick = this.rangedEndTick(end, system, startTick);
-    const startX = this.labelGutter + tickToX(startTick, bounds, available);
-    const endX = this.labelGutter + tickToX(endTick, bounds, available);
+    const endTick = this.rangedEndTick(end, layout.system, startTick);
+    const startX =
+      this.labelGutter + tickToX(startTick, layout.bounds, layout.available);
+    const endX =
+      this.labelGutter + tickToX(endTick, layout.bounds, layout.available);
     const rectLeft = Math.min(
-      width,
+      layout.width,
       Math.max(this.labelGutter, Math.min(startX, endX))
     );
     const rectRight = Math.max(
       this.labelGutter,
-      Math.min(width, Math.max(startX, endX))
+      Math.min(layout.width, Math.max(startX, endX))
     );
     const rectWidth = Math.max(2, rectRight - rectLeft);
-    const rectY = axisY + this.eventAreaPadding;
+    const rectY = layout.axisY + this.eventAreaPadding;
     const rectHeight = this.eventAreaHeight - 2 * this.eventAreaPadding;
     const titleApproxWidth = event.title.length * this.labelCharWidth + 16;
     const titleFits = titleApproxWidth <= rectWidth;
@@ -702,7 +705,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
         ? event.title
         : this.truncatedRangedTitle(event, rectWidth),
       titleFits,
-      axisY,
+      axisY: layout.axisY,
     };
   }
 
