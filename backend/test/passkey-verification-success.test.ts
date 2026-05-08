@@ -119,8 +119,8 @@ describe('PasskeyService – finishRegistration success', () => {
 
     expect(result.verified).toBe(true);
     expect(result.passkey).toBeDefined();
-    expect(result.passkey!.name).toBe('test-label');
-    expect(result.passkey!.userId).toBe(USER_ID);
+    expect(result.passkey?.name).toBe('test-label');
+    expect(result.passkey?.userId).toBe(USER_ID);
 
     const creds = await db.select().from(userPasskeys).where(eq(userPasskeys.userId, USER_ID));
     expect(creds).toHaveLength(1);
