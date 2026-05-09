@@ -12,14 +12,15 @@ describe('ElementTreeService', () => {
     name: string,
     level: number,
     type: ElementType = ElementType.Item,
-    order = 0
+    order = 0,
+    parentId: string | null = null
   ): Element => ({
     id,
     name,
     level,
     type,
     order,
-    parentId: null,
+    parentId,
     expandable: type === ElementType.Folder,
     version: 1,
     metadata: {},
@@ -361,6 +362,55 @@ describe('ElementTreeService', () => {
       result.forEach((el, index) => {
         expect(el.order).toBe(index);
       });
+    });
+
+    // Tree with realistic parentId values (matching the level/order structure)
+    const createTreeWithParents = () => [
+      createElement('1', 'Folder A', 0, ElementType.Folder, 0, null),
+      createElement('2', 'Child A1', 1, ElementType.Item, 1, '1'),
+      createElement('3', 'Child A2', 1, ElementType.Item, 2, '1'),
+      createElement('4', 'Folder B', 0, ElementType.Folder, 3, null),
+      createElement('5', 'Child B1', 1, ElementType.Item, 4, '4'),
+    ];
+
+    it('should clear parentId when moving an element to root level', () => {
+      const elements = createTreeWithParents();
+      // Move Child A1 (parentId '1') to root (level 0) at the start
+      const result = service.moveElement(elements, '2', 0, 0);
+      const moved = result.find(e => e.id === '2');
+      expect(moved?.parentId).toBeNull();
+    });
+
+    it('should set parentId to the new parent folder when moving into another folder', () => {
+      const elements = createTreeWithParents();
+      // Move Child A1 (currently child of '1') into Folder B as a child (level 1)
+      // After removing index 1, indices shift to ['1','3','4','5']; insert at 4 => after '5'
+      const result = service.moveElement(elements, '2', 5, 1);
+      const moved = result.find(e => e.id === '2');
+      expect(moved?.parentId).toBe('4');
+    });
+
+    it("should update the moved root's parentId without altering descendants' parentIds", () => {
+      const elements = createTreeWithParents();
+      // Move Folder A (root) inside Folder B at level 1
+      const result = service.moveElement(elements, '1', 4, 1);
+      const folderA = result.find(e => e.id === '1');
+      const childA1 = result.find(e => e.id === '2');
+      const childA2 = result.find(e => e.id === '3');
+
+      // Folder A's new parent is Folder B
+      expect(folderA?.parentId).toBe('4');
+      // Children still point at Folder A (their parentId is unchanged)
+      expect(childA1?.parentId).toBe('1');
+      expect(childA2?.parentId).toBe('1');
+    });
+
+    it('should keep parentId null when moving a root element to a different root position', () => {
+      const elements = createTreeWithParents();
+      // Move Folder A (root) to the end, still at level 0
+      const result = service.moveElement(elements, '1', 5, 0);
+      const moved = result.find(e => e.id === '1');
+      expect(moved?.parentId).toBeNull();
     });
   });
 
