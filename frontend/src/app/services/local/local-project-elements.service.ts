@@ -900,11 +900,44 @@ export class LocalProjectElementsService {
     // Remove subtree from current position
     const newElements = elements.filter(e => !subtree.includes(e));
 
-    // Update levels in subtree
-    subtree.forEach(e => (e.level += levelDiff));
+    // Update levels in subtree (clone to avoid mutating original)
+    const updatedSubtree = subtree.map(e => ({
+      ...e,
+      level: e.level + levelDiff,
+    }));
+
+    // Adjust target index if moving forward (account for removed subtree)
+    let adjustedTargetIndex = targetIndex;
+    if (targetIndex > elementIndex) {
+      adjustedTargetIndex -= subtree.length;
+    }
+    adjustedTargetIndex = Math.max(
+      0,
+      Math.min(adjustedTargetIndex, newElements.length)
+    );
 
     // Insert at new position
-    newElements.splice(targetIndex, 0, ...subtree);
+    newElements.splice(adjustedTargetIndex, 0, ...updatedSubtree);
+
+    // Update parentId of moved root to reflect its new ancestor (closest
+    // preceding element with level === newLevel - 1). Without this the
+    // parentId stays stale and breaks any consumer that walks the tree via
+    // parentId (e.g. the document breadcrumb). See ElementTreeService.moveElement.
+    const movedRootIndex = adjustedTargetIndex;
+    let newParentId: string | null = null;
+    if (newLevel > 0) {
+      for (let i = movedRootIndex - 1; i >= 0; i--) {
+        if (newElements[i].level === newLevel - 1) {
+          newParentId = newElements[i].id;
+          break;
+        }
+      }
+    }
+    newElements[movedRootIndex] = {
+      ...newElements[movedRootIndex],
+      parentId: newParentId,
+    };
+
     const recomputedElements = this.recomputePositions(newElements);
 
     await this.saveElements(username, slug, recomputedElements);
