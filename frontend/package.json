@@ -136,7 +136,7 @@
     "http-server": "^14.1.1",
     "jsdom": "^29.0.0",
     "jszip": "^3.10.1",
-    "playwright-ng-schematics": "21.0.10",
+    "playwright-ng-schematics": "21.1.0",
     "png-to-ico": "^3.0.1",
     "prettier": "^3.7.4",
     "rimraf": "6.1.3",
