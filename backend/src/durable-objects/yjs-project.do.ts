@@ -1,6 +1,6 @@
 /**
  * Cloudflare Durable Object for Yjs project collaboration
- * Uses y-durableobjects library with multi-document extension
+ * Uses y-durableobjects WSSharedDoc primitives with a custom multi-document DO
  *
  * Each PROJECT gets one instance that manages ALL documents + elements
  * This dramatically reduces costs vs one DO per document
@@ -9,7 +9,7 @@
  * - One DO per username:projectSlug
  * - Manages multiple Y.Docs (elements + all open documents)
  * - Routes WebSocket messages based on documentId query param
- * - Uses y-durableobjects for proper Yjs persistence
+ * - Uses WSSharedDoc for Yjs wire-protocol handling
  *
  * WebSocket Authentication Protocol:
  * - Client connects and sends JWT token as first text message
@@ -24,13 +24,14 @@
 
 import { createEncoder, toUint8Array, writeVarUint, writeVarUint8Array } from 'lib0/encoding';
 import { createDecoder, readVarUint, readVarUint8Array } from 'lib0/decoding';
+import { DurableObject } from 'cloudflare:workers';
 import {
   applyAwarenessUpdate,
   encodeAwarenessUpdate,
   removeAwarenessStates,
 } from 'y-protocols/awareness';
 import { writeSyncStep1 } from 'y-protocols/sync';
-import { YDurableObjects, WSSharedDoc } from 'y-durableobjects';
+import { WSSharedDoc } from 'y-durableobjects';
 import { logger } from '../services/logger.service';
 import { stripTrailingSlashes } from '../utils/string-utils';
 import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
@@ -96,12 +97,17 @@ const Y_MESSAGE_AWARENESS = 1;
 
 /**
  * Multi-document Yjs Durable Object
- * Extends y-durableobjects to support multiple documents per DO instance
  */
-export class YjsProject extends YDurableObjects<YjsEnv> {
+export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
+  private readonly state: DurableObjectState;
   private readonly documents: Map<string, WSSharedDoc> = new Map();
   private readonly connections: Map<WebSocket, ConnectionInfo> = new Map();
   private projectId: string = '';
+
+  constructor(state: DurableObjectState, env: YjsEnv['Bindings']) {
+    super(state, env);
+    this.state = state;
+  }
 
   /**
    * Get the JWT secret from environment
