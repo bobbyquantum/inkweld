@@ -16,6 +16,7 @@ import { type ElementTypeSchema } from '../../models/schema-types';
 import { type TimeSystem } from '../../models/time-system';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
+import { ElementTreeService } from '../project/element-tree.service';
 import { type ProjectMeta } from '../sync/element-sync-provider.interface';
 
 const LOCAL_ELEMENTS_BASE_KEY = 'inkweld-local-elements';
@@ -74,6 +75,7 @@ interface YjsProjectConnection {
 export class LocalProjectElementsService {
   private readonly logger = inject(LoggerService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly elementTree = inject(ElementTreeService);
 
   readonly elements = signal<Element[]>([]);
   readonly publishPlans = signal<PublishPlan[]>([]);
@@ -846,7 +848,7 @@ export class LocalProjectElementsService {
       level: parentLevel + 1,
       expandable: type === ElementType.Folder,
       order: elements.length,
-      parentId: null,
+      parentId: parentId ?? null,
       version: 0,
       metadata,
     };
@@ -889,24 +891,12 @@ export class LocalProjectElementsService {
     targetIndex: number,
     newLevel: number
   ): Promise<Element[]> {
-    const elements = this.elements();
-    const elementIndex = elements.findIndex(e => e.id === elementId);
-    if (elementIndex === -1) return elements;
-
-    const element = elements[elementIndex];
-    const subtree = this.getSubtree(elements, elementIndex);
-    const levelDiff = newLevel - element.level;
-
-    // Remove subtree from current position
-    const newElements = elements.filter(e => !subtree.includes(e));
-
-    // Update levels in subtree
-    subtree.forEach(e => (e.level += levelDiff));
-
-    // Insert at new position
-    newElements.splice(targetIndex, 0, ...subtree);
-    const recomputedElements = this.recomputePositions(newElements);
-
+    const recomputedElements = this.elementTree.moveElement(
+      this.elements(),
+      elementId,
+      targetIndex,
+      newLevel
+    );
     await this.saveElements(username, slug, recomputedElements);
     return recomputedElements;
   }
@@ -1016,7 +1006,6 @@ export class LocalProjectElementsService {
     return elements.map((element, index) => ({
       ...element,
       order: index,
-      parentId: null,
     }));
   }
 }
