@@ -59,6 +59,21 @@ interface ConnectionInfo {
   ) => void;
 }
 
+/**
+ * Per-WebSocket state persisted via `ws.serializeAttachment()` so it
+ * survives Durable Object hibernation. Must stay under 2 KB and be
+ * structured-clone safe (no functions, no class instances).
+ *
+ * Everything else in `ConnectionInfo` (sharedDoc reference, listener
+ * closures, awareness client IDs) is rebuilt lazily in
+ * `rehydrateConnection()` after a wake.
+ */
+interface WSAttachment {
+  documentId: string;
+  authenticated: boolean;
+  userId?: string;
+}
+
 interface SessionData {
   // Standard JWT fields (OAuth format)
   sub?: string;
@@ -716,6 +731,14 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       awarenessClientIds: new Set(),
     });
 
+    // Persist minimal per-connection state so the DO can hibernate
+    // and rehydrate this connection on wake. See WSAttachment + rehydrateConnection().
+    const attachment: WSAttachment = {
+      documentId,
+      authenticated: false,
+    };
+    server.serializeAttachment(attachment);
+
     // Accept WebSocket with hibernation and tag with documentId
     this.state.acceptWebSocket(server, [documentId]);
 
@@ -743,6 +766,42 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       console.log('[DO-HTTP] getOrCreateDocument - not in cache, creating new...');
       // Create new shared doc with persistence
       sharedDoc = new WSSharedDoc();
+
+      // ============================================================
+      // CRITICAL: Disable y-protocols Awareness server-side timers
+      // ============================================================
+      // The Awareness constructor does two things that block hibernation:
+      //
+      //   1. Calls `setLocalState({})` so the local clientID has presence.
+      //   2. Registers a `setInterval` (every ~3s) that:
+      //        a. Renews the local clock every 15s by calling
+      //           `setLocalState(getLocalState())`, which fires an
+      //           awareness `update` event → broadcast to every connected
+      //           client (this is what was producing the "20 outbound
+      //           messages per minute" with zero inbound).
+      //        b. Reaps stale remote awareness states.
+      //
+      // Cloudflare's Hibernation API explicitly states that any active
+      // `setInterval`/`setTimeout` prevents the DO from being evicted
+      // from memory — even if the callback is a no-op. While the timer
+      // is alive, billable Duration (GB-s) accrues continuously.
+      //
+      // The DO has no business publishing its own awareness state
+      // (it's not a "user"); it only relays awareness between clients.
+      // Stale-state cleanup is handled in `cleanupConnection()` when a
+      // socket closes, so we don't need the periodic reaper either.
+      //
+      // Clearing local state + the interval lets the DO hibernate
+      // between client messages and stops the server-originated
+      // outbound broadcast loop.
+      sharedDoc.awareness.setLocalState(null);
+      const checkInterval = (sharedDoc.awareness as unknown as { _checkInterval?: number })
+        ._checkInterval;
+      if (checkInterval !== undefined) {
+        clearInterval(checkInterval);
+      }
+      // ============================================================
+
       console.log('[DO-HTTP] getOrCreateDocument - loading from storage...');
 
       // Set up storage-backed persistence for this specific document
@@ -763,8 +822,18 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
 
   /**
    * Register WebSocket with document-specific message handling
+   *
+   * @param skipInitialSync When true, the y-protocols sync step 1 + awareness
+   *   broadcast is suppressed. Used by `rehydrateConnection()` after a
+   *   hibernation wake — the client already completed the initial sync
+   *   handshake and resending it would cause an unnecessary state echo.
    */
-  private registerWebSocketForDocument(ws: WebSocket, sharedDoc: WSSharedDoc, documentId: string) {
+  private registerWebSocketForDocument(
+    ws: WebSocket,
+    sharedDoc: WSSharedDoc,
+    documentId: string,
+    options: { skipInitialSync?: boolean } = {}
+  ) {
     // Subscribe to document updates and send to this WebSocket
     const unsubscribe = sharedDoc.notify((message: Uint8Array) => {
       if (ws.readyState === WebSocket.OPEN) {
@@ -796,7 +865,9 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
 
     // Send initial sync state to the new client
     // This triggers the Yjs sync protocol to exchange document state
-    this.sendInitialSyncState(ws, sharedDoc, documentId);
+    if (!options.skipInitialSync) {
+      this.sendInitialSyncState(ws, sharedDoc, documentId);
+    }
   }
 
   /**
@@ -838,14 +909,90 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
   }
 
   /**
+   * Rebuild in-memory ConnectionInfo for a WebSocket after a hibernation
+   * wake.
+   *
+   * Cloudflare evicts the DO from memory between events when WebSockets
+   * are accepted via `state.acceptWebSocket()` and no timers / pending I/O
+   * are pinning the instance. On the next event the constructor reruns
+   * and `this.connections` (plus `this.documents`) are empty — but the
+   * runtime preserves the WebSocket objects themselves and any value we
+   * stashed via `ws.serializeAttachment()`.
+   *
+   * This method is idempotent within a single wake cycle: subsequent
+   * calls return the cached ConnectionInfo without rebuilding listeners.
+   *
+   * Returns `null` if the WebSocket has no attachment (which would only
+   * happen for a connection accepted before this code shipped, or a
+   * malformed handshake — in either case the caller should drop it).
+   */
+  private async rehydrateConnection(ws: WebSocket): Promise<ConnectionInfo | null> {
+    const existing = this.connections.get(ws);
+    if (existing) return existing;
+
+    const attachment = ws.deserializeAttachment() as WSAttachment | null;
+    if (!attachment || !attachment.documentId) {
+      projDOLog.warn('Cannot rehydrate WebSocket: missing attachment');
+      return null;
+    }
+
+    // Restore projectId from documentId so HTTP API logs and any future
+    // logic that reads it stay accurate after a wake.
+    const parts = attachment.documentId.split(':');
+    if (parts.length >= 2) {
+      this.projectId = `${parts[0]}:${parts[1]}`;
+    }
+
+    const connInfo: ConnectionInfo = {
+      documentId: attachment.documentId,
+      userId: attachment.userId,
+      authenticated: attachment.authenticated,
+      pendingMessages: [],
+      awarenessClientIds: new Set(),
+    };
+    this.connections.set(ws, connInfo);
+
+    // If this connection had already authenticated before hibernation,
+    // re-attach it to the document so outbound broadcasts resume.
+    // Awareness state is in-memory only and is rebuilt lazily as clients
+    // resend their awareness updates (every ~3s via y-protocols).
+    if (connInfo.authenticated) {
+      try {
+        const sharedDoc = await this.getOrCreateDocument(connInfo.documentId);
+        connInfo.sharedDoc = sharedDoc;
+        // Re-subscribe this socket to document broadcasts. We deliberately
+        // do NOT resend sync step 1 here: the client already completed the
+        // initial sync before hibernation, and any updates that occurred
+        // while hibernated are persisted to storage and were replayed when
+        // we just reloaded the doc.
+        this.registerWebSocketForDocument(ws, sharedDoc, connInfo.documentId, {
+          skipInitialSync: true,
+        });
+        projDOLog.debug(
+          `🔄 Rehydrated authenticated connection for ${connInfo.documentId} after wake`
+        );
+      } catch (error) {
+        projDOLog.error(`Failed to rehydrate document for ${connInfo.documentId}:`, error);
+      }
+    }
+
+    return connInfo;
+  }
+
+  /**
    * Handle incoming WebSocket messages
    * Text messages: Authentication (first message must be JWT token)
    * Binary messages: Yjs sync protocol (only after auth)
    */
   async webSocketMessage(ws: WebSocket, message: ArrayBuffer | string): Promise<void> {
-    const connInfo = this.connections.get(ws);
+    const connInfo = await this.rehydrateConnection(ws);
     if (!connInfo) {
       projDOLog.warn('Received message from unknown connection');
+      try {
+        ws.close(4000, 'Unknown connection');
+      } catch {
+        // already closed
+      }
       return;
     }
 
@@ -889,6 +1036,17 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         // Authentication successful!
         connInfo.authenticated = true;
         connInfo.userId = sessionData.userId;
+
+        // Persist the new authenticated state so a hibernation wake will
+        // immediately re-attach this socket to the document instead of
+        // waiting for another auth round-trip.
+        const attachment: WSAttachment = {
+          documentId: connInfo.documentId,
+          authenticated: true,
+          userId: sessionData.userId,
+        };
+        ws.serializeAttachment(attachment);
+
         projDOLog.debug(
           `WS authenticated for ${connInfo.documentId} (user: ${sessionData.username})`
         );
@@ -964,6 +1122,9 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
    * Handle WebSocket close
    */
   async webSocketClose(ws: WebSocket) {
+    // Rehydrate so the cleanup path can find the connection even if the
+    // DO hibernated between the upgrade and the close event.
+    await this.rehydrateConnection(ws);
     this.cleanupConnection(ws);
 
     // Close WebSocket from server side
@@ -984,6 +1145,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
    */
   async webSocketError(ws: WebSocket) {
     projDOLog.error(`WebSocket error for project ${this.projectId}`);
+    await this.rehydrateConnection(ws);
     const connInfo = this.connections.get(ws);
     if (connInfo) {
       projDOLog.error(`Error was for document: ${connInfo.documentId}`);
