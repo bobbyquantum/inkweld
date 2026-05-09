@@ -846,7 +846,7 @@ export class LocalProjectElementsService {
       level: parentLevel + 1,
       expandable: type === ElementType.Folder,
       order: elements.length,
-      parentId: null,
+      parentId: parentId ?? null,
       version: 0,
       metadata,
     };
@@ -1049,7 +1049,6 @@ export class LocalProjectElementsService {
     return elements.map((element, index) => ({
       ...element,
       order: index,
-      parentId: null,
     }));
   }
 }
