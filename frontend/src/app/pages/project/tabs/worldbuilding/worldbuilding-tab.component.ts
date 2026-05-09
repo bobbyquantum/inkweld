@@ -1,5 +1,6 @@
 import {
   Component,
+  computed,
   effect,
   inject,
   type OnDestroy,
@@ -12,6 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute } from '@angular/router';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { LoggerService } from '@services/core/logger.service';
+import { SettingsService } from '@services/core/settings.service';
 import { DocumentSyncService } from '@services/sync/document-sync.service';
 import { type Subscription } from 'rxjs';
 
@@ -36,6 +38,7 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly projectState = inject(ProjectStateService);
   private readonly logger = inject(LoggerService);
+  private readonly settingsService = inject(SettingsService);
   protected readonly documentSync = inject(DocumentSyncService);
   private paramSubscription: Subscription | null = null;
 
@@ -49,6 +52,14 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
     this.documentSync.documentUnavailable;
   protected readonly syncing = this.documentSync.syncing;
   protected readonly syncError = this.documentSync.syncError;
+
+  /** Whether the breadcrumb bar is visible — mirrors DocumentBreadcrumbsComponent logic. */
+  protected readonly breadcrumbVisible = computed(() => {
+    const id = this.elementId();
+    if (!id || !this.settingsService.showBreadcrumbs()) return false;
+    const el = this.projectState.elements().find(e => e.id === id);
+    return !!el?.parentId;
+  });
 
   constructor() {
     // Watch for elements loading and update element type when available

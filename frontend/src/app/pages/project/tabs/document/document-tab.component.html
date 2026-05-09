@@ -31,6 +31,7 @@
   }
   @defer (on idle) {
     <app-document-element-editor
+      [style.--breadcrumb-height.px]="breadcrumbVisible() ? 29 : 0"
       [documentId]="fullDocumentId()"
       [tabsDisabled]="!useTabsDesktop()"></app-document-element-editor>
   } @placeholder {

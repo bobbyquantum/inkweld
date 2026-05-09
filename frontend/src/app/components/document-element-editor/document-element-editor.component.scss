@@ -27,9 +27,9 @@
   min-height: 0;
   overflow: hidden;
   transition: flex 200ms ease-out;
-  height: var(--app-height-offset-50);
+  height: calc(var(--app-height-offset-50) - var(--breadcrumb-height, 0px));
   &.no-tabs {
-    height: var(--app-height);
+    height: calc(var(--app-height) - var(--breadcrumb-height, 0px));
   }
 }
 
@@ -382,16 +382,24 @@
   // Use visual viewport height so editor fits above keyboard
   // The -48px accounts for the tab bar when present
   .editor-section {
-    height: var(--visual-viewport-height-48) !important;
-    max-height: var(--visual-viewport-height-48) !important;
+    height: calc(
+      var(--visual-viewport-height-48) - var(--breadcrumb-height, 0px)
+    ) !important;
+    max-height: calc(
+      var(--visual-viewport-height-48) - var(--breadcrumb-height, 0px)
+    ) !important;
     transition:
       height 0.15s ease-out,
       max-height 0.15s ease-out;
   }
 
   .editor-section.no-tabs {
-    height: var(--visual-viewport-height) !important;
-    max-height: var(--visual-viewport-height) !important;
+    height: calc(
+      var(--visual-viewport-height) - var(--breadcrumb-height, 0px)
+    ) !important;
+    max-height: calc(
+      var(--visual-viewport-height) - var(--breadcrumb-height, 0px)
+    ) !important;
   }
 
   // Ensure scrollable area within editor adapts properly
