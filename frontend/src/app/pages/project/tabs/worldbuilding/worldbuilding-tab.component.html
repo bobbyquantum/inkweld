@@ -27,6 +27,7 @@
     [elementId]="elementId()"></app-document-breadcrumbs>
   @defer (on idle) {
     <app-worldbuilding-editor
+      [style.--breadcrumb-height.px]="breadcrumbVisible() ? 29 : 0"
       [elementId]="elementId()"
       [elementType]="elementType()!"
       [username]="username()!"

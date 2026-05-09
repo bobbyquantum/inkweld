@@ -60,6 +60,21 @@ export class DocumentTabComponent {
     return '';
   });
 
+  /**
+   * Whether the breadcrumb bar is currently visible above the editor.
+   * Mirrors the visibility logic in DocumentBreadcrumbsComponent so that
+   * the editor's fixed height can be compensated accordingly.
+   */
+  protected readonly breadcrumbVisible = computed(() => {
+    const elementId = this.bareElementId();
+    if (!elementId || !this.settingsService.showBreadcrumbs()) return false;
+    const elements = this.projectState.elements();
+    const el = elements.find(e => e.id === elementId);
+    if (!el) return false;
+    // Breadcrumb only shows when the element has a parent (not top-level)
+    return !!el.parentId;
+  });
+
   constructor() {
     // Check document availability when the active tab changes
     effect(() => {

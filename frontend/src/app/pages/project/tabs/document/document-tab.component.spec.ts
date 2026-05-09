@@ -76,6 +76,7 @@ describe('DocumentTabComponent', () => {
       project: signal(mockProject),
       openTabs: signal([]),
       selectedTabIndex: signal(0),
+      elements: signal([]),
       isDocumentUnavailable: vi.fn().mockResolvedValue(false),
     };
 

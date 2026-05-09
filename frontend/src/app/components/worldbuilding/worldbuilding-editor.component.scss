@@ -9,7 +9,7 @@
 .worldbuilding-editor-container {
   display: flex;
   flex-direction: column;
-  height: var(--app-height-offset-50);
+  height: calc(var(--app-height-offset-50) - var(--breadcrumb-height, 0px));
   overflow: hidden;
   container-type: inline-size;
   container-name: wb-editor;

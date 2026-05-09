@@ -281,6 +281,19 @@ export class ElementTreeService {
     // Insert at new position
     newElements.splice(adjustedTargetIndex, 0, ...updatedSubtree);
 
+    // Update the parentId of the moved root to reflect its new position in
+    // the tree. Without this, the parentId stays stale (pointing at the old
+    // parent), which breaks anything that walks the tree via parentId — for
+    // example the document breadcrumb. The visible tree itself is built from
+    // `level` + array order so the bug is invisible there but persists to
+    // Yjs / IndexedDB and survives refresh.
+    const movedRootIndex = adjustedTargetIndex;
+    const newParent = this.findParent(newElements, movedRootIndex);
+    newElements[movedRootIndex] = {
+      ...newElements[movedRootIndex],
+      parentId: newParent?.id ?? null,
+    };
+
     return this.recomputeOrder(newElements);
   }
 

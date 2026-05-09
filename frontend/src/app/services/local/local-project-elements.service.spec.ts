@@ -436,6 +436,83 @@ describe('LocalProjectElementsService', () => {
 
       expect(result).toHaveLength(3); // No change
     });
+
+    it('should set parentId when moving element into a folder', async () => {
+      // Move doc-2 (root) to index 2 at level 1 (inside folder-1)
+      const result = await service.moveElement(
+        TEST_USERNAME,
+        TEST_SLUG,
+        'doc-2',
+        2,
+        1
+      );
+      const movedElement = result.find(e => e.id === 'doc-2');
+      expect(movedElement?.parentId).toBe('folder-1');
+    });
+
+    it('should clear parentId when moving element to root level', async () => {
+      // doc-1 starts at level 1; move it to index 0 at level 0 (root)
+      const result = await service.moveElement(
+        TEST_USERNAME,
+        TEST_SLUG,
+        'doc-1',
+        0,
+        0
+      );
+      const movedElement = result.find(e => e.id === 'doc-1');
+      expect(movedElement?.parentId).toBeNull();
+    });
+
+    it('recomputePositions should not clobber parentId on other elements', async () => {
+      // Move doc-2 into folder-1; doc-1's parentId (folder-1) should survive recompute
+      const initialWithParent: Element[] = [
+        {
+          id: 'folder-1',
+          name: 'Folder 1',
+          type: ElementType.Folder,
+          parentId: null,
+          level: 0,
+          expandable: true,
+          order: 0,
+          version: 0,
+          metadata: {},
+        },
+        {
+          id: 'doc-1',
+          name: 'Document 1',
+          type: ElementType.Item,
+          parentId: 'folder-1',
+          level: 1,
+          expandable: false,
+          order: 1,
+          version: 0,
+          metadata: {},
+        },
+        {
+          id: 'doc-2',
+          name: 'Document 2',
+          type: ElementType.Item,
+          parentId: null,
+          level: 0,
+          expandable: false,
+          order: 2,
+          version: 0,
+          metadata: {},
+        },
+      ];
+      service.elements.set(initialWithParent);
+
+      // Move doc-2 to the end at root level — doc-1's parentId must still be folder-1
+      const result = await service.moveElement(
+        TEST_USERNAME,
+        TEST_SLUG,
+        'doc-2',
+        2,
+        0
+      );
+      const doc1 = result.find(e => e.id === 'doc-1');
+      expect(doc1?.parentId).toBe('folder-1');
+    });
   });
 
   describe('renameElement', () => {
