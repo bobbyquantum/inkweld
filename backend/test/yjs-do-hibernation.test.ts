@@ -92,6 +92,11 @@ describe('Yjs DO hibernation guards', () => {
     // This simulates the post-fix state of a server-side awareness:
     // local state set to null + interval cleared = zero outbound traffic
     // unless a client explicitly applies an update.
+    //
+    // The Awareness `_checkInterval` fires every `outdatedTimeout/10` =
+    // 3000ms, so we must wait >3000ms to prove the timer is actually
+    // suppressed. We also drive a control awareness in the same window
+    // to confirm the interval *would* have fired had we not cleared it.
     const doc = new Y.Doc();
     const awareness = new awarenessProtocol.Awareness(doc);
 
@@ -102,15 +107,24 @@ describe('Yjs DO hibernation guards', () => {
     const updateHandler = mock(() => {});
     awareness.on('update', updateHandler);
 
-    // Wait long enough that a 3-second checkInterval would have fired
-    // multiple times if it were still running.
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    // Control: an unmodified Awareness should produce at least one
+    // outdated-state callback fire in the same window. If the control
+    // never fires, our wait is too short and the test proves nothing.
+    const controlDoc = new Y.Doc();
+    const controlAwareness = new awarenessProtocol.Awareness(controlDoc);
+    const controlOutdated = mock(() => {});
+    controlAwareness.on('change', controlOutdated);
+
+    // Wait >3000ms so the y-protocols 3s checkInterval fires at least once.
+    await new Promise((resolve) => setTimeout(resolve, 3200));
 
     expect(updateHandler).not.toHaveBeenCalled();
 
     awareness.destroy();
     doc.destroy();
-  });
+    controlAwareness.destroy();
+    controlDoc.destroy();
+  }, 10000);
 
   it('Awareness with default settings DOES broadcast (control test)', async () => {
     // Sanity check: without our fix, the keepalive mechanism is active.

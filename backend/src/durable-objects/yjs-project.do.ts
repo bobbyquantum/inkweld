@@ -931,7 +931,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     if (existing) return existing;
 
     const attachment = ws.deserializeAttachment() as WSAttachment | null;
-    if (!attachment || !attachment.documentId) {
+    if (!attachment?.documentId) {
       projDOLog.warn('Cannot rehydrate WebSocket: missing attachment');
       return null;
     }
@@ -968,6 +968,42 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         this.registerWebSocketForDocument(ws, sharedDoc, connInfo.documentId, {
           skipInitialSync: true,
         });
+
+        // Re-attach OTHER authenticated peers for the same document.
+        // Cloudflare wakes the DO for a single WS event, so other sockets
+        // remain attached but unregistered as listeners on the doc — they
+        // would silently miss broadcasts triggered by this socket's update
+        // until they themselves received an event. Walk getWebSockets() so
+        // we cover sockets whose ConnectionInfo hasn't been rebuilt yet.
+        for (const peerWs of this.state.getWebSockets()) {
+          if (peerWs === ws) continue;
+          let peerInfo = this.connections.get(peerWs);
+          if (!peerInfo) {
+            const peerAttachment = peerWs.deserializeAttachment() as WSAttachment | null;
+            if (!peerAttachment?.documentId || peerAttachment.documentId !== connInfo.documentId) {
+              continue;
+            }
+            if (!peerAttachment.authenticated) continue;
+            peerInfo = {
+              documentId: peerAttachment.documentId,
+              userId: peerAttachment.userId,
+              authenticated: true,
+              pendingMessages: [],
+              awarenessClientIds: new Set(),
+              sharedDoc,
+            };
+            this.connections.set(peerWs, peerInfo);
+            this.registerWebSocketForDocument(peerWs, sharedDoc, peerInfo.documentId, {
+              skipInitialSync: true,
+            });
+          } else if (peerInfo.documentId === connInfo.documentId && !peerInfo.sharedDoc) {
+            peerInfo.sharedDoc = sharedDoc;
+            this.registerWebSocketForDocument(peerWs, sharedDoc, peerInfo.documentId, {
+              skipInitialSync: true,
+            });
+          }
+        }
+
         projDOLog.debug(
           `🔄 Rehydrated authenticated connection for ${connInfo.documentId} after wake`
         );
@@ -1002,78 +1038,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         // Already authenticated, ignore text messages
         return;
       }
-
-      // First text message should be the JWT token
-      const token = message;
-
-      try {
-        // Verify the token
-        const sessionData = await this.verifyToken(token);
-        if (!sessionData) {
-          projDOLog.error(`Invalid auth token for ${connInfo.documentId}`);
-          ws.send('access-denied:invalid-token');
-          ws.close(4001, 'Invalid token');
-          return;
-        }
-
-        // Validate project access (document format: username:slug:documentId)
-        const parts = connInfo.documentId.split(':');
-        const [projectOwner] = parts;
-
-        // Check access - the token's username should match the project owner
-        // Future work: add collaborator support - this requires D1 access from the DO
-        // For now, collaborators can only work on the Bun runtime, not Cloudflare Workers
-        // See yjs.routes.ts for the Bun implementation with collaborationService.checkAccess()
-        if (sessionData.username !== projectOwner) {
-          projDOLog.error(
-            `User ${sessionData.username} attempted to access project owned by ${projectOwner}`
-          );
-          ws.send('access-denied:forbidden');
-          ws.close(4003, 'Access denied');
-          return;
-        }
-
-        // Authentication successful!
-        connInfo.authenticated = true;
-        connInfo.userId = sessionData.userId;
-
-        // Persist the new authenticated state so a hibernation wake will
-        // immediately re-attach this socket to the document instead of
-        // waiting for another auth round-trip.
-        const attachment: WSAttachment = {
-          documentId: connInfo.documentId,
-          authenticated: true,
-          userId: sessionData.userId,
-        };
-        ws.serializeAttachment(attachment);
-
-        projDOLog.debug(
-          `WS authenticated for ${connInfo.documentId} (user: ${sessionData.username})`
-        );
-
-        // Send success message
-        ws.send('authenticated');
-
-        // Now set up Yjs connection
-        const sharedDoc = await this.getOrCreateDocument(connInfo.documentId);
-        connInfo.sharedDoc = sharedDoc;
-        this.registerWebSocketForDocument(ws, sharedDoc, connInfo.documentId);
-
-        // Process any binary messages that arrived during auth
-        for (const data of connInfo.pendingMessages) {
-          this.applyDocumentMessage(sharedDoc, ws, data);
-        }
-        connInfo.pendingMessages = [];
-
-        projDOLog.debug(
-          `Yjs sync started for ${connInfo.documentId} (${this.documents.size} docs in DO)`
-        );
-      } catch (error) {
-        projDOLog.error(`Auth error for ${connInfo.documentId}:`, error);
-        ws.send('access-denied:error');
-        ws.close(4000, 'Authentication error');
-      }
-
+      await this.handleAuthMessage(ws, connInfo, message);
       return;
     }
 
@@ -1094,6 +1059,84 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       this.applyDocumentMessage(sharedDoc, ws, message);
     } catch (error) {
       projDOLog.error('Error handling WebSocket message:', error);
+    }
+  }
+
+  /**
+   * Verify the JWT token from a connection's first text message and, if
+   * valid, transition the connection to authenticated and start Yjs sync.
+   *
+   * Extracted from webSocketMessage to keep cognitive complexity in check.
+   */
+  private async handleAuthMessage(
+    ws: WebSocket,
+    connInfo: ConnectionInfo,
+    token: string
+  ): Promise<void> {
+    try {
+      const sessionData = await this.verifyToken(token);
+      if (!sessionData) {
+        projDOLog.error(`Invalid auth token for ${connInfo.documentId}`);
+        ws.send('access-denied:invalid-token');
+        ws.close(4001, 'Invalid token');
+        return;
+      }
+
+      // Validate project access (document format: username:slug:documentId)
+      const [projectOwner] = connInfo.documentId.split(':');
+
+      // Check access - the token's username should match the project owner
+      // Future work: add collaborator support - this requires D1 access from the DO
+      // For now, collaborators can only work on the Bun runtime, not Cloudflare Workers
+      // See yjs.routes.ts for the Bun implementation with collaborationService.checkAccess()
+      if (sessionData.username !== projectOwner) {
+        projDOLog.error(
+          `User ${sessionData.username} attempted to access project owned by ${projectOwner}`
+        );
+        ws.send('access-denied:forbidden');
+        ws.close(4003, 'Access denied');
+        return;
+      }
+
+      // Authentication successful!
+      connInfo.authenticated = true;
+      connInfo.userId = sessionData.userId;
+
+      // Persist the new authenticated state so a hibernation wake will
+      // immediately re-attach this socket to the document instead of
+      // waiting for another auth round-trip.
+      const attachment: WSAttachment = {
+        documentId: connInfo.documentId,
+        authenticated: true,
+        userId: sessionData.userId,
+      };
+      ws.serializeAttachment(attachment);
+
+      projDOLog.debug(
+        `WS authenticated for ${connInfo.documentId} (user: ${sessionData.username})`
+      );
+
+      // Send success message
+      ws.send('authenticated');
+
+      // Now set up Yjs connection
+      const sharedDoc = await this.getOrCreateDocument(connInfo.documentId);
+      connInfo.sharedDoc = sharedDoc;
+      this.registerWebSocketForDocument(ws, sharedDoc, connInfo.documentId);
+
+      // Process any binary messages that arrived during auth
+      for (const data of connInfo.pendingMessages) {
+        this.applyDocumentMessage(sharedDoc, ws, data);
+      }
+      connInfo.pendingMessages = [];
+
+      projDOLog.debug(
+        `Yjs sync started for ${connInfo.documentId} (${this.documents.size} docs in DO)`
+      );
+    } catch (error) {
+      projDOLog.error(`Auth error for ${connInfo.documentId}:`, error);
+      ws.send('access-denied:error');
+      ws.close(4000, 'Authentication error');
     }
   }
 
