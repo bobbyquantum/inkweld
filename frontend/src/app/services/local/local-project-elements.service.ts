@@ -16,6 +16,7 @@ import { type ElementTypeSchema } from '../../models/schema-types';
 import { type TimeSystem } from '../../models/time-system';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
+import { ElementTreeService } from '../project/element-tree.service';
 import { type ProjectMeta } from '../sync/element-sync-provider.interface';
 
 const LOCAL_ELEMENTS_BASE_KEY = 'inkweld-local-elements';
@@ -74,6 +75,7 @@ interface YjsProjectConnection {
 export class LocalProjectElementsService {
   private readonly logger = inject(LoggerService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly elementTree = inject(ElementTreeService);
 
   readonly elements = signal<Element[]>([]);
   readonly publishPlans = signal<PublishPlan[]>([]);
@@ -889,57 +891,12 @@ export class LocalProjectElementsService {
     targetIndex: number,
     newLevel: number
   ): Promise<Element[]> {
-    const elements = this.elements();
-    const elementIndex = elements.findIndex(e => e.id === elementId);
-    if (elementIndex === -1) return elements;
-
-    const element = elements[elementIndex];
-    const subtree = this.getSubtree(elements, elementIndex);
-    const levelDiff = newLevel - element.level;
-
-    // Remove subtree from current position
-    const newElements = elements.filter(e => !subtree.includes(e));
-
-    // Update levels in subtree (clone to avoid mutating original)
-    const updatedSubtree = subtree.map(e => ({
-      ...e,
-      level: e.level + levelDiff,
-    }));
-
-    // Adjust target index if moving forward (account for removed subtree)
-    let adjustedTargetIndex = targetIndex;
-    if (targetIndex > elementIndex) {
-      adjustedTargetIndex -= subtree.length;
-    }
-    adjustedTargetIndex = Math.max(
-      0,
-      Math.min(adjustedTargetIndex, newElements.length)
+    const recomputedElements = this.elementTree.moveElement(
+      this.elements(),
+      elementId,
+      targetIndex,
+      newLevel
     );
-
-    // Insert at new position
-    newElements.splice(adjustedTargetIndex, 0, ...updatedSubtree);
-
-    // Update parentId of moved root to reflect its new ancestor (closest
-    // preceding element with level === newLevel - 1). Without this the
-    // parentId stays stale and breaks any consumer that walks the tree via
-    // parentId (e.g. the document breadcrumb). See ElementTreeService.moveElement.
-    const movedRootIndex = adjustedTargetIndex;
-    let newParentId: string | null = null;
-    if (newLevel > 0) {
-      for (let i = movedRootIndex - 1; i >= 0; i--) {
-        if (newElements[i].level === newLevel - 1) {
-          newParentId = newElements[i].id;
-          break;
-        }
-      }
-    }
-    newElements[movedRootIndex] = {
-      ...newElements[movedRootIndex],
-      parentId: newParentId,
-    };
-
-    const recomputedElements = this.recomputePositions(newElements);
-
     await this.saveElements(username, slug, recomputedElements);
     return recomputedElements;
   }
