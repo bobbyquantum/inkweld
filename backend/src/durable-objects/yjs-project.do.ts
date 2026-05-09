@@ -936,20 +936,9 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       return null;
     }
 
-    // Restore projectId from documentId so HTTP API logs and any future
-    // logic that reads it stay accurate after a wake.
-    const parts = attachment.documentId.split(':');
-    if (parts.length >= 2) {
-      this.projectId = `${parts[0]}:${parts[1]}`;
-    }
+    this.restoreProjectIdFromDocumentId(attachment.documentId);
 
-    const connInfo: ConnectionInfo = {
-      documentId: attachment.documentId,
-      userId: attachment.userId,
-      authenticated: attachment.authenticated,
-      pendingMessages: [],
-      awarenessClientIds: new Set(),
-    };
+    const connInfo = this.connectionInfoFromAttachment(attachment);
     this.connections.set(ws, connInfo);
 
     // If this connection had already authenticated before hibernation,
@@ -957,62 +946,108 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     // Awareness state is in-memory only and is rebuilt lazily as clients
     // resend their awareness updates (every ~3s via y-protocols).
     if (connInfo.authenticated) {
-      try {
-        const sharedDoc = await this.getOrCreateDocument(connInfo.documentId);
-        connInfo.sharedDoc = sharedDoc;
-        // Re-subscribe this socket to document broadcasts. We deliberately
-        // do NOT resend sync step 1 here: the client already completed the
-        // initial sync before hibernation, and any updates that occurred
-        // while hibernated are persisted to storage and were replayed when
-        // we just reloaded the doc.
-        this.registerWebSocketForDocument(ws, sharedDoc, connInfo.documentId, {
-          skipInitialSync: true,
-        });
-
-        // Re-attach OTHER authenticated peers for the same document.
-        // Cloudflare wakes the DO for a single WS event, so other sockets
-        // remain attached but unregistered as listeners on the doc — they
-        // would silently miss broadcasts triggered by this socket's update
-        // until they themselves received an event. Walk getWebSockets() so
-        // we cover sockets whose ConnectionInfo hasn't been rebuilt yet.
-        for (const peerWs of this.state.getWebSockets()) {
-          if (peerWs === ws) continue;
-          let peerInfo = this.connections.get(peerWs);
-          if (!peerInfo) {
-            const peerAttachment = peerWs.deserializeAttachment() as WSAttachment | null;
-            if (!peerAttachment?.documentId || peerAttachment.documentId !== connInfo.documentId) {
-              continue;
-            }
-            if (!peerAttachment.authenticated) continue;
-            peerInfo = {
-              documentId: peerAttachment.documentId,
-              userId: peerAttachment.userId,
-              authenticated: true,
-              pendingMessages: [],
-              awarenessClientIds: new Set(),
-              sharedDoc,
-            };
-            this.connections.set(peerWs, peerInfo);
-            this.registerWebSocketForDocument(peerWs, sharedDoc, peerInfo.documentId, {
-              skipInitialSync: true,
-            });
-          } else if (peerInfo.documentId === connInfo.documentId && !peerInfo.sharedDoc) {
-            peerInfo.sharedDoc = sharedDoc;
-            this.registerWebSocketForDocument(peerWs, sharedDoc, peerInfo.documentId, {
-              skipInitialSync: true,
-            });
-          }
-        }
-
-        projDOLog.debug(
-          `🔄 Rehydrated authenticated connection for ${connInfo.documentId} after wake`
-        );
-      } catch (error) {
-        projDOLog.error(`Failed to rehydrate document for ${connInfo.documentId}:`, error);
-      }
+      await this.rehydrateAuthenticatedConnection(ws, connInfo);
     }
 
     return connInfo;
+  }
+
+  private restoreProjectIdFromDocumentId(documentId: string): void {
+    // Restore projectId from documentId so HTTP API logs and any future
+    // logic that reads it stay accurate after a wake.
+    const parts = documentId.split(':');
+    if (parts.length >= 2) {
+      this.projectId = `${parts[0]}:${parts[1]}`;
+    }
+  }
+
+  private connectionInfoFromAttachment(
+    attachment: WSAttachment,
+    sharedDoc?: WSSharedDoc
+  ): ConnectionInfo {
+    return {
+      documentId: attachment.documentId,
+      userId: attachment.userId,
+      authenticated: attachment.authenticated,
+      pendingMessages: [],
+      awarenessClientIds: new Set(),
+      sharedDoc,
+    };
+  }
+
+  private async rehydrateAuthenticatedConnection(
+    ws: WebSocket,
+    connInfo: ConnectionInfo
+  ): Promise<void> {
+    try {
+      const sharedDoc = await this.getOrCreateDocument(connInfo.documentId);
+      this.registerRehydratedSocket(ws, connInfo, sharedDoc);
+      this.rehydrateAuthenticatedPeers(ws, connInfo.documentId, sharedDoc);
+
+      projDOLog.debug(
+        `🔄 Rehydrated authenticated connection for ${connInfo.documentId} after wake`
+      );
+    } catch (error) {
+      projDOLog.error(`Failed to rehydrate document for ${connInfo.documentId}:`, error);
+    }
+  }
+
+  private rehydrateAuthenticatedPeers(
+    wakingWs: WebSocket,
+    documentId: string,
+    sharedDoc: WSSharedDoc
+  ): void {
+    // Cloudflare wakes the DO for a single WS event. Other sockets remain
+    // attached but unregistered as listeners, so restore them before the
+    // waking socket's update broadcasts.
+    for (const peerWs of this.state.getWebSockets()) {
+      if (peerWs !== wakingWs) {
+        this.rehydrateAuthenticatedPeer(peerWs, documentId, sharedDoc);
+      }
+    }
+  }
+
+  private rehydrateAuthenticatedPeer(
+    peerWs: WebSocket,
+    documentId: string,
+    sharedDoc: WSSharedDoc
+  ): void {
+    const existing = this.connections.get(peerWs);
+    if (existing) {
+      this.registerPeerIfDetached(peerWs, existing, documentId, sharedDoc);
+      return;
+    }
+
+    const attachment = peerWs.deserializeAttachment() as WSAttachment | null;
+    if (attachment?.documentId !== documentId || !attachment.authenticated) return;
+
+    const peerInfo = this.connectionInfoFromAttachment(attachment, sharedDoc);
+    this.connections.set(peerWs, peerInfo);
+    this.registerRehydratedSocket(peerWs, peerInfo, sharedDoc);
+  }
+
+  private registerPeerIfDetached(
+    peerWs: WebSocket,
+    peerInfo: ConnectionInfo,
+    documentId: string,
+    sharedDoc: WSSharedDoc
+  ): void {
+    if (peerInfo.documentId !== documentId || peerInfo.sharedDoc) return;
+    this.registerRehydratedSocket(peerWs, peerInfo, sharedDoc);
+  }
+
+  private registerRehydratedSocket(
+    ws: WebSocket,
+    connInfo: ConnectionInfo,
+    sharedDoc: WSSharedDoc
+  ): void {
+    connInfo.sharedDoc = sharedDoc;
+    // Do NOT resend sync step 1 here: these clients already completed the
+    // initial sync before hibernation. Any persisted updates were replayed
+    // when the document was loaded.
+    this.registerWebSocketForDocument(ws, sharedDoc, connInfo.documentId, {
+      skipInitialSync: true,
+    });
   }
 
   /**
