@@ -220,7 +220,13 @@ test.describe('Online Publish Style Editor', () => {
     await page.getByTestId('create-project-button').click();
     await page.waitForURL(new RegExp(slug));
     await page.waitForLoadState('networkidle');
-    // Wait for any post-template sync to settle.
+    // Open the README element so the sync indicator is mounted, then wait
+    // for the post-template sync to settle. The project landing page does
+    // not render `.sync-status` until an editor is open.
+    const readme = page.getByRole('treeitem', { name: /readme/i });
+    await expect(readme).toBeVisible();
+    await readme.click();
+    await expect(page.locator('.ProseMirror').first()).toBeVisible();
     await expect(page.locator('.sync-status')).toContainText('synced');
 
     await createPublishPlan(page);

@@ -153,7 +153,16 @@ async function fetchFamily({ slug }) {
     return { slug, status: 'cached', count: 0 };
   }
   const url = `https://gwfh.mranftl.com/api/fonts/${slug}?download=zip&subsets=latin&variants=${VARIANTS}&formats=ttf`;
-  const res = await fetch(url);
+  // Bind the install-path network call so a stalled mirror cannot hang
+  // local installs or CI indefinitely.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  let res;
+  try {
+    res = await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} for ${url}`);
   }
