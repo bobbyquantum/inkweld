@@ -317,8 +317,8 @@ export class HtmlGeneratorService {
       ? ` ink-wb-schema-${this.cssSafe(entry.schemaId)}`
       : '';
     const parts: string[] = [];
-    parts.push(`<article class="ink-wb-entry ${layoutClass}${schemaClass}">`);
     parts.push(
+      `<article class="ink-wb-entry ${layoutClass}${schemaClass}">`,
       `<h3 class="ink-wb-entry-title">${this.escapeHtml(entry.title)}</h3>`
     );
     if (entry.imageRef) {
@@ -362,53 +362,72 @@ export class HtmlGeneratorService {
     const element = elements.find(e => e.id === item.elementId);
     if (!element) return '';
 
-    const parts: string[] = [];
-
     if (isWorldbuildingType(element.type)) {
       // Worldbuilding element added inline (e.g. via "Add everything").
       // Render as a single-entry block wrapped in the standard WB section
       // so global WB styling still applies.
-      const synthetic = this.singleEntryWbItem(element.id);
-      const html = await this.processWorldbuilding(synthetic, [element]);
-      if (html) parts.push(html);
-    } else if (element.type === ElementType.Item) {
-      const content = await this.getDocumentContent(element.id);
-      // The user's document supplies its own heading (if any). We only wrap
-      // it in a <section> so chapter-level styling (page breaks, margins)
-      // can still target it. The id matches the anchor produced by buildTOC
-      // so TOC links resolve to a real target in the rendered document.
-      const elemTitle = item.titleOverride || element.name;
-      const formattedTitle = this.formatChapterTitle(
-        elemTitle,
-        chapterNumber,
-        item.isChapter ?? false,
-        plan.options
-      );
-      const anchor = this.cssSafe(formattedTitle);
-      parts.push(
-        `<section class="ink-chapter" id="${anchor}">`,
-        content,
-        `</section>`
-      );
-    } else if (element.type === ElementType.Folder && item.includeChildren) {
-      const children = this.getChildElements(element, elements);
-      for (const child of children) {
-        if (child.type === ElementType.Item) {
-          const content = await this.getDocumentContent(child.id);
-          const childAnchor = this.cssSafe(child.name);
-          parts.push(
-            `<section class="ink-section" id="${childAnchor}">`,
-            content,
-            `</section>`
-          );
-        } else if (isWorldbuildingType(child.type)) {
-          const synthetic = this.singleEntryWbItem(child.id);
-          const html = await this.processWorldbuilding(synthetic, [child]);
-          if (html) parts.push(html);
-        }
+      return await this.renderInlineWbHtml(element);
+    }
+    if (element.type === ElementType.Item) {
+      return await this.renderItemSection(item, element, plan, chapterNumber);
+    }
+    if (element.type === ElementType.Folder && item.includeChildren) {
+      return await this.renderFolderChildrenHtml(element, elements);
+    }
+    return '';
+  }
+
+  private async renderInlineWbHtml(element: Element): Promise<string> {
+    const synthetic = this.singleEntryWbItem(element.id);
+    return await this.processWorldbuilding(synthetic, [element]);
+  }
+
+  private async renderItemSection(
+    item: ElementItem,
+    element: Element,
+    plan: PublishPlan,
+    chapterNumber: number
+  ): Promise<string> {
+    const content = await this.getDocumentContent(element.id);
+    // The user's document supplies its own heading (if any). We only wrap
+    // it in a <section> so chapter-level styling (page breaks, margins)
+    // can still target it. The id matches the anchor produced by buildTOC
+    // so TOC links resolve to a real target in the rendered document.
+    const elemTitle = item.titleOverride || element.name;
+    const formattedTitle = this.formatChapterTitle(
+      elemTitle,
+      chapterNumber,
+      item.isChapter ?? false,
+      plan.options
+    );
+    const anchor = this.cssSafe(formattedTitle);
+    return [
+      `<section class="ink-chapter" id="${anchor}">`,
+      content,
+      `</section>`,
+    ].join('\n');
+  }
+
+  private async renderFolderChildrenHtml(
+    element: Element,
+    elements: Element[]
+  ): Promise<string> {
+    const parts: string[] = [];
+    const children = this.getChildElements(element, elements);
+    for (const child of children) {
+      if (child.type === ElementType.Item) {
+        const content = await this.getDocumentContent(child.id);
+        const childAnchor = this.cssSafe(child.name);
+        parts.push(
+          `<section class="ink-section" id="${childAnchor}">`,
+          content,
+          `</section>`
+        );
+      } else if (isWorldbuildingType(child.type)) {
+        const html = await this.renderInlineWbHtml(child);
+        if (html) parts.push(html);
       }
     }
-
     return parts.join('\n');
   }
 
@@ -581,60 +600,68 @@ export class HtmlGeneratorService {
     return displayText ? this.escapeHtml(displayText) : '';
   }
 
+  private static readonly NODE_TAG_MAP: Record<
+    string,
+    { tag: string; cls: string }
+  > = {
+    paragraph: { tag: 'p', cls: 'ink-doc-paragraph' },
+    blockquote: { tag: 'blockquote', cls: 'ink-doc-blockquote' },
+    bullet_list: { tag: 'ul', cls: 'ink-doc-bullet-list' },
+    bulletlist: { tag: 'ul', cls: 'ink-doc-bullet-list' },
+    ordered_list: { tag: 'ol', cls: 'ink-doc-ordered-list' },
+    orderedlist: { tag: 'ol', cls: 'ink-doc-ordered-list' },
+    list_item: { tag: 'li', cls: 'ink-doc-list-item' },
+    listitem: { tag: 'li', cls: 'ink-doc-list-item' },
+    hard_break: { tag: 'br', cls: '' },
+    horizontal_rule: { tag: 'hr', cls: 'ink-doc-horizontal-rule' },
+    code_block: { tag: 'pre', cls: 'ink-doc-code-block' },
+    codeblock: { tag: 'pre', cls: 'ink-doc-code-block' },
+    image: { tag: 'img', cls: 'ink-doc-image' },
+    figure: { tag: 'figure', cls: 'ink-doc-figure' },
+    caption: { tag: 'figcaption', cls: 'ink-doc-caption' },
+  };
+
   private getTagAndClass(node: ProseMirrorNode): {
     tagName: string;
     classNames: string[];
   } {
-    const typeMap: Record<string, { tag: string; cls: string }> = {
-      paragraph: { tag: 'p', cls: 'ink-doc-paragraph' },
-      blockquote: { tag: 'blockquote', cls: 'ink-doc-blockquote' },
-      bullet_list: { tag: 'ul', cls: 'ink-doc-bullet-list' },
-      bulletlist: { tag: 'ul', cls: 'ink-doc-bullet-list' },
-      ordered_list: { tag: 'ol', cls: 'ink-doc-ordered-list' },
-      orderedlist: { tag: 'ol', cls: 'ink-doc-ordered-list' },
-      list_item: { tag: 'li', cls: 'ink-doc-list-item' },
-      listitem: { tag: 'li', cls: 'ink-doc-list-item' },
-      hard_break: { tag: 'br', cls: '' },
-      horizontal_rule: { tag: 'hr', cls: 'ink-doc-horizontal-rule' },
-      code_block: { tag: 'pre', cls: 'ink-doc-code-block' },
-      codeblock: { tag: 'pre', cls: 'ink-doc-code-block' },
-      image: { tag: 'img', cls: 'ink-doc-image' },
-      figure: { tag: 'figure', cls: 'ink-doc-figure' },
-      caption: { tag: 'figcaption', cls: 'ink-doc-caption' },
-    };
-
-    if (typeof node === 'object' && node) {
-      let name: string;
-      if ('nodeName' in node) {
-        name = node['nodeName'] as string;
-      } else if ('type' in node) {
-        name = node['type'] as string;
-      } else {
-        name = '';
-      }
-      const lower = name.toLowerCase();
-      if (lower === 'heading') {
-        const attrs =
-          'attrs' in node ? (node['attrs'] as Record<string, unknown>) : null;
-        const level = clampLevel(Number(attrs?.['level'] ?? 1));
-        return {
-          tagName: `h${level}`,
-          classNames: [`ink-doc-heading-${level}`],
-        };
-      }
-      const mapped = typeMap[lower];
-      if (mapped) {
-        return {
-          tagName: mapped.tag,
-          classNames: mapped.cls ? [mapped.cls] : [],
-        };
-      }
-      // Unknown node types render as a neutral container so a malicious
-      // document JSON cannot smuggle in attacker-controlled tags like
-      // <script>, <iframe>, or <object>.
-      return { tagName: 'div', classNames: [] };
+    if (typeof node !== 'object' || !node) {
+      return { tagName: 'span', classNames: [] };
     }
-    return { tagName: 'span', classNames: [] };
+    const lower = this.getNodeTypeName(node).toLowerCase();
+    if (lower === 'heading') {
+      const attrs =
+        'attrs' in node ? (node['attrs'] as Record<string, unknown>) : null;
+      const level = clampLevel(Number(attrs?.['level'] ?? 1));
+      return {
+        tagName: `h${level}`,
+        classNames: [`ink-doc-heading-${level}`],
+      };
+    }
+    const mapped = HtmlGeneratorService.NODE_TAG_MAP[lower];
+    if (mapped) {
+      return {
+        tagName: mapped.tag,
+        classNames: mapped.cls ? [mapped.cls] : [],
+      };
+    }
+    // Unknown node types render as a neutral container so a malicious
+    // document JSON cannot smuggle in attacker-controlled tags like
+    // <script>, <iframe>, or <object>.
+    return { tagName: 'div', classNames: [] };
+  }
+
+  private getNodeTypeName(node: ProseMirrorNode): string {
+    if (typeof node !== 'object' || !node) return '';
+    if ('nodeName' in node) {
+      const v = node['nodeName'];
+      return typeof v === 'string' ? v : '';
+    }
+    if ('type' in node) {
+      const v = node['type'];
+      return typeof v === 'string' ? v : '';
+    }
+    return '';
   }
 
   private getChildren(node: ProseMirrorNode): ProseMirrorNode[] {
@@ -650,40 +677,61 @@ export class HtmlGeneratorService {
     const markObjs = this.getMarksWithAttrs(node);
     let result = text;
     for (const m of markObjs) {
-      const name = m.type;
-      if (name === 'comment') continue; // comments stripped from publish output
-      if (name === 'bold' || name === 'strong') {
-        result = `<strong class="ink-mark-bold">${result}</strong>`;
-      } else if (name === 'italic' || name === 'em') {
-        result = `<em class="ink-mark-italic">${result}</em>`;
-      } else if (name === 'underline') {
-        result = `<u class="ink-mark-underline">${result}</u>`;
-      } else if (name === 'strike') {
-        result = `<s class="ink-mark-strike">${result}</s>`;
-      } else if (name === 'code') {
-        result = `<code class="ink-mark-code">${result}</code>`;
-      } else if (name === 'subscript' || name === 'sub') {
-        result = `<sub class="ink-mark-subscript">${result}</sub>`;
-      } else if (name === 'superscript' || name === 'sup') {
-        result = `<sup class="ink-mark-superscript">${result}</sup>`;
-      } else if (name === 'link') {
-        const hrefRaw = m.attrs?.['href'];
-        const safeHref = this.sanitizeUrl(
-          typeof hrefRaw === 'string' ? hrefRaw : ''
-        );
-        if (safeHref) {
-          // External http(s) links open in a new tab; we always strip
-          // window.opener access for safety.
-          const isExternal = /^https?:/i.test(safeHref);
-          const relAttr = isExternal
-            ? ' rel="noopener noreferrer" target="_blank"'
-            : '';
-          result = `<a class="ink-mark-link" href="${this.escapeHtml(safeHref)}"${relAttr}>${result}</a>`;
-        }
-        // Empty/disallowed href: drop the link wrapper but keep the text.
-      }
+      result = this.applySingleMark(result, m);
     }
     return result;
+  }
+
+  private static readonly SIMPLE_MARK_WRAPPERS: Record<
+    string,
+    { tag: string; cls: string }
+  > = {
+    bold: { tag: 'strong', cls: 'ink-mark-bold' },
+    strong: { tag: 'strong', cls: 'ink-mark-bold' },
+    italic: { tag: 'em', cls: 'ink-mark-italic' },
+    em: { tag: 'em', cls: 'ink-mark-italic' },
+    underline: { tag: 'u', cls: 'ink-mark-underline' },
+    strike: { tag: 's', cls: 'ink-mark-strike' },
+    code: { tag: 'code', cls: 'ink-mark-code' },
+    subscript: { tag: 'sub', cls: 'ink-mark-subscript' },
+    sub: { tag: 'sub', cls: 'ink-mark-subscript' },
+    superscript: { tag: 'sup', cls: 'ink-mark-superscript' },
+    sup: { tag: 'sup', cls: 'ink-mark-superscript' },
+  };
+
+  private applySingleMark(
+    text: string,
+    m: { type: string; attrs?: Record<string, unknown> }
+  ): string {
+    const name = m.type;
+    if (name === 'comment') return text; // comments stripped from publish output
+    if (name === 'link') return this.applyLinkMark(text, m.attrs);
+    const wrapper = HtmlGeneratorService.SIMPLE_MARK_WRAPPERS[name];
+    if (wrapper) {
+      return `<${wrapper.tag} class="${wrapper.cls}">${text}</${wrapper.tag}>`;
+    }
+    return text;
+  }
+
+  private applyLinkMark(
+    text: string,
+    attrs: Record<string, unknown> | undefined
+  ): string {
+    const hrefRaw = attrs?.['href'];
+    const safeHref = this.sanitizeUrl(
+      typeof hrefRaw === 'string' ? hrefRaw : ''
+    );
+    if (!safeHref) {
+      // Empty/disallowed href: drop the link wrapper but keep the text.
+      return text;
+    }
+    // External http(s) links open in a new tab; we always strip
+    // window.opener access for safety.
+    const isExternal = /^https?:/i.test(safeHref);
+    const relAttr = isExternal
+      ? ' rel="noopener noreferrer" target="_blank"'
+      : '';
+    return `<a class="ink-mark-link" href="${this.escapeHtml(safeHref)}"${relAttr}>${text}</a>`;
   }
 
   private getMarksWithAttrs(
@@ -759,44 +807,61 @@ ${content}
       const element = elements.find(e => e.id === item.elementId);
       if (!element) continue;
 
-      const elemTitle = item.titleOverride || element.name;
-      const formattedTitle = this.formatChapterTitle(
-        elemTitle,
-        chapterNumber,
-        item.isChapter ?? false,
-        plan.options
-      );
-      const safe = this.escapeHtml(formattedTitle);
-      const anchor = this.cssSafe(formattedTitle);
-
-      if (element.type === ElementType.Folder && item.includeChildren) {
-        lines.push(`<li class="ink-toc-folder"><strong>${safe}</strong>`);
-        const children = this.getChildElements(element, elements);
-        if (children.length) {
-          lines.push(`<ul class="ink-toc-list">`);
-          for (const child of children) {
-            if (child.type === ElementType.Item) {
-              const childSafe = this.escapeHtml(child.name);
-              const childAnchor = this.cssSafe(child.name);
-              lines.push(
-                `<li class="ink-toc-entry"><a href="#${childAnchor}">${childSafe}</a></li>`
-              );
-            }
-          }
-          lines.push(`</ul>`);
-        }
-        lines.push(`</li>`);
-      } else {
-        lines.push(
-          `<li class="ink-toc-entry"><a href="#${anchor}">${safe}</a></li>`
-        );
-      }
-
+      this.appendTocEntry(lines, item, element, elements, chapterNumber, plan);
       if (item.isChapter) chapterNumber++;
     }
 
     lines.push(`</ul>`, `</nav>`);
     return lines.join('\n');
+  }
+
+  private appendTocEntry(
+    lines: string[],
+    item: ElementItem,
+    element: Element,
+    elements: Element[],
+    chapterNumber: number,
+    plan: PublishPlan
+  ): void {
+    const elemTitle = item.titleOverride || element.name;
+    const formattedTitle = this.formatChapterTitle(
+      elemTitle,
+      chapterNumber,
+      item.isChapter ?? false,
+      plan.options
+    );
+    const safe = this.escapeHtml(formattedTitle);
+    const anchor = this.cssSafe(formattedTitle);
+
+    if (element.type === ElementType.Folder && item.includeChildren) {
+      lines.push(`<li class="ink-toc-folder"><strong>${safe}</strong>`);
+      this.appendTocFolderChildren(lines, element, elements);
+      lines.push(`</li>`);
+    } else {
+      lines.push(
+        `<li class="ink-toc-entry"><a href="#${anchor}">${safe}</a></li>`
+      );
+    }
+  }
+
+  private appendTocFolderChildren(
+    lines: string[],
+    element: Element,
+    elements: Element[]
+  ): void {
+    const children = this.getChildElements(element, elements);
+    if (!children.length) return;
+    lines.push(`<ul class="ink-toc-list">`);
+    for (const child of children) {
+      if (child.type === ElementType.Item) {
+        const childSafe = this.escapeHtml(child.name);
+        const childAnchor = this.cssSafe(child.name);
+        lines.push(
+          `<li class="ink-toc-entry"><a href="#${childAnchor}">${childSafe}</a></li>`
+        );
+      }
+    }
+    lines.push(`</ul>`);
   }
 
   private formatChapterTitle(

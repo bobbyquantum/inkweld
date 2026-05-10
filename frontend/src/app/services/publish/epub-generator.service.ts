@@ -398,80 +398,101 @@ export class EpubGeneratorService {
     const chapters: Chapter[] = [];
 
     if (isWorldbuildingType(element.type)) {
-      // Inline worldbuilding element (e.g. via "Add everything"): render
-      // it as a one-entry chapter using the element's name for the spine
-      // title.
-      const synthetic = this.singleEntryWbItem(element.id);
-      const wbHtml = await this.renderInlineWbHtml(synthetic, [element]);
-      if (wbHtml) {
-        const title = item.titleOverride || element.name;
-        chapters.push({
-          id: element.id,
-          title,
-          filename: `chapter_${String(chapters.length + 1).padStart(3, '0')}.xhtml`,
-          content: this.wrapInXhtml(title, wbHtml),
-          order: chapters.length,
-          level: 0,
-        });
-      }
-    } else if (element.type === ElementType.Item) {
-      // Process document
-      const content = await this.getDocumentContent(element.id);
-      const title = item.titleOverride || element.name;
-      const formattedTitle = this.formatChapterTitle(
-        title,
-        chapterNumber,
-        item.isChapter ?? false,
-        options
+      await this.appendInlineWbChapter(
+        chapters,
+        element,
+        item.titleOverride,
+        0
       );
-
-      // Use the element name only for the EPUB navigation/spine title.
-      // Do NOT inject an <h1> into the XHTML body — the user's document
-      // is responsible for any visible heading.
-      chapters.push({
-        id: element.id,
-        title: formattedTitle,
-        filename: `chapter_${String(chapters.length + 1).padStart(3, '0')}.xhtml`,
-        content: this.wrapInXhtml(formattedTitle, content),
-        order: chapters.length,
-        level: 0,
-      });
+    } else if (element.type === ElementType.Item) {
+      await this.appendItemChapter(
+        chapters,
+        element,
+        item,
+        options,
+        chapterNumber
+      );
     } else if (element.type === ElementType.Folder && item.includeChildren) {
-      // Process folder and children
-      const children = this.getChildElements(element, elements);
-
-      for (const child of children) {
-        if (child.type === ElementType.Item) {
-          const content = await this.getDocumentContent(child.id);
-          const title = child.name;
-
-          chapters.push({
-            id: child.id,
-            title,
-            filename: `chapter_${String(chapters.length + 1).padStart(3, '0')}.xhtml`,
-            content: this.wrapInXhtml(title, content),
-            order: chapters.length,
-            level: child.level - element.level,
-          });
-        } else if (isWorldbuildingType(child.type)) {
-          const synthetic = this.singleEntryWbItem(child.id);
-          const wbHtml = await this.renderInlineWbHtml(synthetic, [child]);
-          if (wbHtml) {
-            const title = child.name;
-            chapters.push({
-              id: child.id,
-              title,
-              filename: `chapter_${String(chapters.length + 1).padStart(3, '0')}.xhtml`,
-              content: this.wrapInXhtml(title, wbHtml),
-              order: chapters.length,
-              level: child.level - element.level,
-            });
-          }
-        }
-      }
+      await this.appendFolderChildrenChapters(chapters, element, elements);
     }
 
     return chapters;
+  }
+
+  private async appendItemChapter(
+    chapters: Chapter[],
+    element: Element,
+    item: ElementItem,
+    options: PublishOptions,
+    chapterNumber: number
+  ): Promise<void> {
+    const content = await this.getDocumentContent(element.id);
+    const title = item.titleOverride || element.name;
+    const formattedTitle = this.formatChapterTitle(
+      title,
+      chapterNumber,
+      item.isChapter ?? false,
+      options
+    );
+
+    // Use the element name only for the EPUB navigation/spine title.
+    // Do NOT inject an <h1> into the XHTML body — the user's document
+    // is responsible for any visible heading.
+    chapters.push({
+      id: element.id,
+      title: formattedTitle,
+      filename: `chapter_${String(chapters.length + 1).padStart(3, '0')}.xhtml`,
+      content: this.wrapInXhtml(formattedTitle, content),
+      order: chapters.length,
+      level: 0,
+    });
+  }
+
+  private async appendInlineWbChapter(
+    chapters: Chapter[],
+    element: Element,
+    titleOverride: string | undefined,
+    level: number
+  ): Promise<void> {
+    // Inline worldbuilding element (e.g. via "Add everything"): render
+    // it as a one-entry chapter using the element's name for the spine
+    // title.
+    const synthetic = this.singleEntryWbItem(element.id);
+    const wbHtml = await this.renderInlineWbHtml(synthetic, [element]);
+    if (!wbHtml) return;
+    const title = titleOverride || element.name;
+    chapters.push({
+      id: element.id,
+      title,
+      filename: `chapter_${String(chapters.length + 1).padStart(3, '0')}.xhtml`,
+      content: this.wrapInXhtml(title, wbHtml),
+      order: chapters.length,
+      level,
+    });
+  }
+
+  private async appendFolderChildrenChapters(
+    chapters: Chapter[],
+    element: Element,
+    elements: Element[]
+  ): Promise<void> {
+    const children = this.getChildElements(element, elements);
+    for (const child of children) {
+      const level = child.level - element.level;
+      if (child.type === ElementType.Item) {
+        const content = await this.getDocumentContent(child.id);
+        chapters.push({
+          id: child.id,
+          title: child.name,
+          filename: `chapter_${String(chapters.length + 1).padStart(3, '0')}.xhtml`,
+          content: this.wrapInXhtml(child.name, content),
+          order: chapters.length,
+          level,
+        });
+      } else if (isWorldbuildingType(child.type)) {
+        await this.appendInlineWbChapter(chapters, child, undefined, level);
+      }
+    }
   }
 
   /**
@@ -1002,8 +1023,8 @@ export class EpubGeneratorService {
       ? ` ink-wb-schema-${this.cssSafe(entry.schemaId)}`
       : '';
     const parts: string[] = [];
-    parts.push(`<article class="ink-wb-entry ${layoutClass}${schemaClass}">`);
     parts.push(
+      `<article class="ink-wb-entry ${layoutClass}${schemaClass}">`,
       `<h3 class="ink-wb-entry-title">${this.escapeHtml(entry.title)}</h3>`
     );
     if (entry.imageRef) {

@@ -248,35 +248,43 @@ export class MarkdownGeneratorService {
     const element = elements.find(e => e.id === item.elementId);
     if (!element) return '';
 
-    const parts: string[] = [];
-
     if (isWorldbuildingType(element.type)) {
-      // A worldbuilding element added directly via "Add everything" is
-      // rendered as a single-entry, untitled WB block so it shows up in
-      // the output instead of being silently skipped.
-      const synthetic = this.singleEntryWbItem(element.id);
-      const md = await this.processWorldbuilding(synthetic, [element]);
-      if (md) parts.push(md);
-    } else if (element.type === ElementType.Item) {
-      const content = await this.getDocumentContent(element.id);
+      return await this.renderInlineWb(element);
+    }
+    if (element.type === ElementType.Item) {
       // We deliberately do NOT emit the element name as a heading here.
       // The user's document is responsible for its own title (or none).
       // Chapter numbering (if enabled) is reflected in the TOC only.
-      parts.push(content);
-    } else if (element.type === ElementType.Folder && item.includeChildren) {
-      const children = this.getChildElements(element, elements);
-      for (const child of children) {
-        if (child.type === ElementType.Item) {
-          const content = await this.getDocumentContent(child.id);
-          parts.push(content);
-        } else if (isWorldbuildingType(child.type)) {
-          const synthetic = this.singleEntryWbItem(child.id);
-          const md = await this.processWorldbuilding(synthetic, [child]);
-          if (md) parts.push(md);
-        }
+      return await this.getDocumentContent(element.id);
+    }
+    if (element.type === ElementType.Folder && item.includeChildren) {
+      return await this.renderFolderChildren(element, elements);
+    }
+    return '';
+  }
+
+  private async renderInlineWb(element: Element): Promise<string> {
+    // A worldbuilding element added directly via "Add everything" is
+    // rendered as a single-entry, untitled WB block so it shows up in
+    // the output instead of being silently skipped.
+    const synthetic = this.singleEntryWbItem(element.id);
+    return await this.processWorldbuilding(synthetic, [element]);
+  }
+
+  private async renderFolderChildren(
+    element: Element,
+    elements: Element[]
+  ): Promise<string> {
+    const parts: string[] = [];
+    const children = this.getChildElements(element, elements);
+    for (const child of children) {
+      if (child.type === ElementType.Item) {
+        parts.push(await this.getDocumentContent(child.id));
+      } else if (isWorldbuildingType(child.type)) {
+        const md = await this.renderInlineWb(child);
+        if (md) parts.push(md);
       }
     }
-
     return parts.join('\n\n');
   }
 
@@ -774,35 +782,42 @@ export class MarkdownGeneratorService {
       const element = elements.find(e => e.id === item.elementId);
       if (!element) continue;
 
-      const title = item.titleOverride || element.name;
-      const formattedTitle = this.formatChapterTitle(
-        title,
-        chapterNumber,
-        item.isChapter ?? false,
-        plan.options
-      );
-
-      const anchor = this.headingToAnchor(formattedTitle);
-
-      if (element.type === ElementType.Folder && item.includeChildren) {
-        // Folder: list as a section header (no link, no anchor)
-        lines.push(`- **${formattedTitle}**`);
-        // Recurse into children so their names appear under the folder.
-        const children = this.getChildElements(element, elements);
-        for (const child of children) {
-          if (child.type === ElementType.Item) {
-            const childAnchor = this.headingToAnchor(child.name);
-            lines.push(`  - [${child.name}](#${childAnchor})`);
-          }
-        }
-      } else {
-        lines.push(`- [${formattedTitle}](#${anchor})`);
-      }
-
+      this.appendTocEntry(lines, item, element, elements, chapterNumber, plan);
       if (item.isChapter) chapterNumber++;
     }
 
     return lines.join('\n');
+  }
+
+  private appendTocEntry(
+    lines: string[],
+    item: ElementItem,
+    element: Element,
+    elements: Element[],
+    chapterNumber: number,
+    plan: PublishPlan
+  ): void {
+    const title = item.titleOverride || element.name;
+    const formattedTitle = this.formatChapterTitle(
+      title,
+      chapterNumber,
+      item.isChapter ?? false,
+      plan.options
+    );
+
+    if (element.type === ElementType.Folder && item.includeChildren) {
+      lines.push(`- **${formattedTitle}**`);
+      const children = this.getChildElements(element, elements);
+      for (const child of children) {
+        if (child.type === ElementType.Item) {
+          const childAnchor = this.headingToAnchor(child.name);
+          lines.push(`  - [${child.name}](#${childAnchor})`);
+        }
+      }
+    } else {
+      const anchor = this.headingToAnchor(formattedTitle);
+      lines.push(`- [${formattedTitle}](#${anchor})`);
+    }
   }
 
   /**

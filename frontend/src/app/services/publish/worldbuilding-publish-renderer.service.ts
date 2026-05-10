@@ -249,7 +249,7 @@ export class WorldbuildingPublishRendererService {
     for (const [key, value] of Object.entries(data)) {
       if (key.startsWith('_') || key === 'lastModified') continue;
       if (includeKeys && !includeKeys.has(key)) continue;
-      if (excludeKeys && excludeKeys.has(key)) continue;
+      if (excludeKeys?.has(key)) continue;
       const display = formatFieldValue(value);
       if (!display && !includeEmpty) continue;
       fields.push({
@@ -313,7 +313,7 @@ export class WorldbuildingPublishRendererService {
     }
 
     if (includeKeys && !includeKeys.has(fullKey)) return;
-    if (excludeKeys && excludeKeys.has(fullKey)) return;
+    if (excludeKeys?.has(fullKey)) return;
     if (fullKey.startsWith('_') || fullKey === 'lastModified') return;
 
     const value = readDottedKey(data, fullKey);

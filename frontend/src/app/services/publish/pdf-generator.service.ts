@@ -1102,8 +1102,8 @@ export class PdfGeneratorService {
 function typstString(s: string): string {
   // Single backslash and double quote derived from char codes to avoid
   // double-escaped sequences in source (Sonar S7780).
-  const BACKSLASH = String.fromCharCode(92);
-  const QUOTE = String.fromCharCode(34);
+  const BACKSLASH = String.fromCodePoint(92);
+  const QUOTE = String.fromCodePoint(34);
   const escaped = s
     .replaceAll(BACKSLASH, BACKSLASH + BACKSLASH)
     .replaceAll(QUOTE, BACKSLASH + QUOTE);
