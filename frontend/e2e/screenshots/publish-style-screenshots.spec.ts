@@ -6,7 +6,7 @@
  * (page setup, body text, headings, chapter title, scene break,
  * worldbuilding). Outputs go to docs/site/static/img/features/.
  */
-import { type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { join } from 'path';
 
 import { createProjectWithTwoSteps } from '../common/test-helpers';
@@ -142,6 +142,7 @@ test.describe('Publish Style Editor Screenshots', () => {
       'Publish Style Demo'
     );
     await captureStyleScreenshots(page, screenshotsDir, 'light');
+    await expect(page.getByTestId('publish-style-editor')).toBeVisible();
   });
 
   test('publish-style screenshots — dark mode', async ({
@@ -154,5 +155,6 @@ test.describe('Publish Style Editor Screenshots', () => {
       'Publish Style Demo'
     );
     await captureStyleScreenshots(page, screenshotsDir, 'dark');
+    await expect(page.getByTestId('publish-style-editor')).toBeVisible();
   });
 });

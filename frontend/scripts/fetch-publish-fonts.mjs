@@ -26,10 +26,11 @@
  * — the rest of the app still works, only PDF font rendering degrades.
  */
 
-import { mkdir, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const FAMILIES = [
   { slug: 'eb-garamond', token: 'eb-garamond' },
@@ -59,6 +60,33 @@ const VARIANTS = Object.keys(VARIANT_MAP).join(',');
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TARGET_DIR = resolve(__dirname, '..', 'public', 'assets', 'fonts');
 const REFETCH = process.env.INKWELD_REFETCH_FONTS === '1';
+
+/**
+ * Optional integrity manifest. If `frontend/scripts/font-digests.json`
+ * exists, every downloaded TTF must match the pinned SHA-256 digest
+ * recorded there or the install is aborted (supply-chain protection).
+ *
+ * Shape: `{ "<slug>-latin-<weight>-<style>.ttf": "<hex sha256>" }`.
+ *
+ * When the file is absent we still compute and log digests so an operator
+ * can pin them after a clean fetch (`INKWELD_LOG_FONT_DIGESTS=1`).
+ */
+const DIGESTS_PATH = resolve(__dirname, 'font-digests.json');
+const LOG_DIGESTS = process.env.INKWELD_LOG_FONT_DIGESTS === '1';
+
+async function loadDigests() {
+  if (!existsSync(DIGESTS_PATH)) return null;
+  try {
+    const raw = await readFile(DIGESTS_PATH, 'utf-8');
+    return JSON.parse(raw);
+  } catch (err) {
+    throw new Error(`failed to read ${DIGESTS_PATH}: ${err.message}`);
+  }
+}
+
+function sha256(bytes) {
+  return createHash('sha256').update(bytes).digest('hex');
+}
 
 /**
  * Returns the set of expected TTF filenames for a family.
@@ -148,7 +176,7 @@ function inflateRaw(compData, uncompSize) {
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
-async function fetchFamily({ slug }) {
+async function fetchFamily({ slug }, digests) {
   if (await alreadyHave(slug)) {
     return { slug, status: 'cached', count: 0 };
   }
@@ -178,6 +206,25 @@ async function fetchFamily({ slug }) {
     if (!m) continue;
     const ourVariant = VARIANT_MAP[m[1]];
     const outName = `${slug}-latin-${ourVariant}.ttf`;
+    // Supply-chain integrity: verify SHA-256 against the optional pinned
+    // manifest BEFORE writing to disk. Mismatches abort the entire
+    // install rather than risk shipping a tampered binary.
+    const digest = sha256(entry.data);
+    if (digests) {
+      const expected = digests[outName];
+      if (!expected) {
+        throw new Error(
+          `font-digests.json is missing an entry for ${outName} (got ${digest}); refusing to install an unverified font from ${url}`
+        );
+      }
+      if (expected.toLowerCase() !== digest) {
+        throw new Error(
+          `font integrity check failed for ${outName}: expected ${expected}, got ${digest} (source: ${url})`
+        );
+      }
+    } else if (LOG_DIGESTS) {
+      console.log(`[fetch-publish-fonts] sha256 ${outName} = ${digest}`);
+    }
     await writeFile(join(TARGET_DIR, outName), entry.data);
     written++;
   }
@@ -196,7 +243,15 @@ async function fetchFamily({ slug }) {
 
 async function main() {
   console.log(`[fetch-publish-fonts] target: ${TARGET_DIR}`);
-  const results = await Promise.allSettled(FAMILIES.map(fetchFamily));
+  const digests = await loadDigests();
+  if (digests) {
+    console.log(
+      `[fetch-publish-fonts] integrity manifest loaded: ${DIGESTS_PATH}`
+    );
+  }
+  const results = await Promise.allSettled(
+    FAMILIES.map(f => fetchFamily(f, digests))
+  );
   let cached = 0;
   let downloaded = 0;
   let failed = 0;

@@ -15,7 +15,11 @@
           (selectionChange)="selectPreset($event.value)"
           data-testid="preset-select">
           @for (preset of presets; track preset.id) {
-            <mat-option [value]="preset.id">{{ preset.label }}</mat-option>
+            <mat-option
+              [value]="preset.id"
+              [attr.data-testid]="'preset-option-' + preset.id"
+              >{{ preset.label }}</mat-option
+            >
           }
         </mat-select>
       </mat-form-field>
@@ -73,7 +77,12 @@
             min="0"
             step="0.05"
             [value]="styles.page.marginTop"
-            (change)="updatePage('marginTop', parseNumber($event) ?? 0)" />
+            (change)="
+              updatePage(
+                'marginTop',
+                parsePositiveNumber($event) ?? styles.page.marginTop
+              )
+            " />
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Margin bottom (in)</mat-label>
@@ -83,7 +92,12 @@
             min="0"
             step="0.05"
             [value]="styles.page.marginBottom"
-            (change)="updatePage('marginBottom', parseNumber($event) ?? 0)" />
+            (change)="
+              updatePage(
+                'marginBottom',
+                parsePositiveNumber($event) ?? styles.page.marginBottom
+              )
+            " />
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Margin inside (in)</mat-label>
@@ -93,7 +107,12 @@
             min="0"
             step="0.05"
             [value]="styles.page.marginInside"
-            (change)="updatePage('marginInside', parseNumber($event) ?? 0)" />
+            (change)="
+              updatePage(
+                'marginInside',
+                parsePositiveNumber($event) ?? styles.page.marginInside
+              )
+            " />
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Margin outside (in)</mat-label>
@@ -103,7 +122,12 @@
             min="0"
             step="0.05"
             [value]="styles.page.marginOutside"
-            (change)="updatePage('marginOutside', parseNumber($event) ?? 0)" />
+            (change)="
+              updatePage(
+                'marginOutside',
+                parsePositiveNumber($event) ?? styles.page.marginOutside
+              )
+            " />
         </mat-form-field>
       </div>
       <mat-checkbox

@@ -1100,6 +1100,12 @@ export class PdfGeneratorService {
  * Wrap a raw string as a Typst string literal (escapes `\` and `"`).
  */
 function typstString(s: string): string {
-  const escaped = s.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
-  return `"${escaped}"`;
+  // Single backslash and double quote derived from char codes to avoid
+  // double-escaped sequences in source (Sonar S7780).
+  const BACKSLASH = String.fromCharCode(92);
+  const QUOTE = String.fromCharCode(34);
+  const escaped = s
+    .replaceAll(BACKSLASH, BACKSLASH + BACKSLASH)
+    .replaceAll(QUOTE, BACKSLASH + QUOTE);
+  return QUOTE + escaped + QUOTE;
 }

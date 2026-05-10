@@ -94,15 +94,12 @@ export class PublishStyleResolverService {
     styles: PublishStyles | undefined | null,
     key: DocNodeKey
   ): ResolvedNodeStyle {
-    const base = mergeText(DEFAULT_BASE_TEXT, styles?.baseText ?? {});
+    const base = mergeText(DEFAULT_BASE_TEXT, styles?.baseText);
     const defaultNode = DEFAULT_DOC_NODE_STYLES[key] ?? {};
     const overrideNode = styles?.nodes?.[key] ?? {};
     return {
-      text: mergeText(
-        base,
-        mergeText(defaultNode.text ?? {}, overrideNode.text ?? {})
-      ),
-      box: { ...(defaultNode.box ?? {}), ...(overrideNode.box ?? {}) },
+      text: mergeText(base, mergeText(defaultNode.text, overrideNode.text)),
+      box: { ...defaultNode.box, ...overrideNode.box },
     };
   }
 
@@ -113,54 +110,51 @@ export class PublishStyleResolverService {
     styles: PublishStyles | undefined | null,
     key: MarkKey
   ): TextStyle {
-    return mergeText(
-      DEFAULT_MARK_STYLES[key] ?? {},
-      styles?.marks?.[key] ?? {}
-    );
+    return mergeText(DEFAULT_MARK_STYLES[key] ?? {}, styles?.marks?.[key]);
   }
 
   /**
    * Returns the resolved page style.
    */
   resolvePage(styles: PublishStyles | undefined | null) {
-    return { ...DEFAULT_PAGE_STYLE, ...(styles?.page ?? {}) };
+    return { ...DEFAULT_PAGE_STYLE, ...styles?.page };
   }
 
   /**
    * Resolved chapter title style (text + box + numberPrefix + pageBreak flag).
    */
   resolveChapterTitle(styles: PublishStyles | undefined | null) {
-    const base = mergeText(DEFAULT_BASE_TEXT, styles?.baseText ?? {});
+    const base = mergeText(DEFAULT_BASE_TEXT, styles?.baseText);
     const defaults = DEFAULT_STRUCTURE_STYLES.chapterTitle;
     const override = styles?.structure?.chapterTitle ?? defaults;
     return {
-      text: mergeText(base, mergeText(defaults.text, override.text ?? {})),
-      box: { ...defaults.box, ...(override.box ?? {}) },
+      text: mergeText(base, mergeText(defaults.text, override.text)),
+      box: { ...defaults.box, ...override.box },
       numberPrefix: mergeText(
         defaults.numberPrefix ?? {},
-        override.numberPrefix ?? {}
+        override.numberPrefix
       ),
       pageBreakBefore: override.pageBreakBefore ?? defaults.pageBreakBefore,
     };
   }
 
   resolveSceneBreak(styles: PublishStyles | undefined | null) {
-    const base = mergeText(DEFAULT_BASE_TEXT, styles?.baseText ?? {});
+    const base = mergeText(DEFAULT_BASE_TEXT, styles?.baseText);
     const defaults = DEFAULT_STRUCTURE_STYLES.sceneBreak;
     const override = styles?.structure?.sceneBreak ?? defaults;
     return {
-      text: mergeText(base, mergeText(defaults.text, override.text ?? {})),
-      box: { ...defaults.box, ...(override.box ?? {}) },
+      text: mergeText(base, mergeText(defaults.text, override.text)),
+      box: { ...defaults.box, ...override.box },
     };
   }
 
   resolveToc(styles: PublishStyles | undefined | null) {
-    const base = mergeText(DEFAULT_BASE_TEXT, styles?.baseText ?? {});
+    const base = mergeText(DEFAULT_BASE_TEXT, styles?.baseText);
     const defaults = DEFAULT_STRUCTURE_STYLES.toc;
     const override = styles?.structure?.toc ?? defaults;
     return {
-      title: mergeText(base, mergeText(defaults.title, override.title ?? {})),
-      entry: mergeText(base, mergeText(defaults.entry, override.entry ?? {})),
+      title: mergeText(base, mergeText(defaults.title, override.title)),
+      entry: mergeText(base, mergeText(defaults.entry, override.entry)),
       indentPerLevel: override.indentPerLevel ?? defaults.indentPerLevel,
     };
   }
@@ -177,13 +171,13 @@ export class PublishStyleResolverService {
     styles: PublishStyles | undefined | null,
     which: 'frontmatter' | 'backmatter'
   ) {
-    const base = mergeText(DEFAULT_BASE_TEXT, styles?.baseText ?? {});
+    const base = mergeText(DEFAULT_BASE_TEXT, styles?.baseText);
     const defaults = DEFAULT_STRUCTURE_STYLES[which];
     const override = styles?.structure?.[which] ?? defaults;
     return {
-      title: mergeText(base, mergeText(defaults.title, override.title ?? {})),
-      body: mergeText(base, mergeText(defaults.body, override.body ?? {})),
-      box: { ...defaults.box, ...(override.box ?? {}) },
+      title: mergeText(base, mergeText(defaults.title, override.title)),
+      body: mergeText(base, mergeText(defaults.body, override.body)),
+      box: { ...defaults.box, ...override.box },
     };
   }
 
@@ -197,11 +191,11 @@ export class PublishStyleResolverService {
     schemaId: string | undefined,
     requestedLayout?: WorldbuildingLayout
   ): ResolvedWorldbuildingEntryStyle {
-    const base = mergeText(DEFAULT_BASE_TEXT, styles?.baseText ?? {});
+    const base = mergeText(DEFAULT_BASE_TEXT, styles?.baseText);
     const defaults = DEFAULT_WORLDBUILDING_STYLES;
     const wb: WorldbuildingStyles = {
       ...defaults,
-      ...(styles?.worldbuilding ?? {}),
+      ...styles?.worldbuilding,
     };
     const schemaOverride: WorldbuildingSchemaOverride | undefined = schemaId
       ? wb.schemas?.[schemaId]
@@ -212,9 +206,9 @@ export class PublishStyleResolverService {
         requestedLayout ?? schemaOverride?.layout ?? wb.defaultLayout ?? 'card',
       entryTitle: mergeText(
         base,
-        mergeText(wb.entryTitle, schemaOverride?.entryTitle ?? {})
+        mergeText(wb.entryTitle, schemaOverride?.entryTitle)
       ),
-      entryBox: { ...wb.entryBox, ...(schemaOverride?.entryBox ?? {}) },
+      entryBox: { ...wb.entryBox, ...schemaOverride?.entryBox },
       tabHeading: mergeText(base, wb.tabHeading),
       fieldLabel: mergeText(base, wb.fieldLabel),
       fieldValue: mergeText(base, wb.fieldValue),
@@ -226,10 +220,14 @@ export class PublishStyleResolverService {
 
 /**
  * Shallow-merges TextStyle with override winning. Undefined override values
- * fall through to the base.
+ * (or an undefined override object) fall through to the base.
  */
-function mergeText(base: TextStyle, override: TextStyle): TextStyle {
+function mergeText(
+  base: TextStyle | undefined,
+  override: TextStyle | undefined
+): TextStyle {
   const out: Record<string, unknown> = { ...base };
+  if (!override) return out;
   for (const k of Object.keys(override) as (keyof TextStyle)[]) {
     const v = override[k];
     if (v !== undefined) {

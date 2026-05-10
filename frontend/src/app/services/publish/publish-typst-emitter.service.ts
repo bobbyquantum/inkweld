@@ -52,8 +52,6 @@ export class PublishTypstEmitterService {
     const ch = this.resolver.resolveChapterTitle(styles);
     const sb = this.resolver.resolveSceneBreak(styles);
 
-    const out: string[] = [];
-
     // Page setup
     const dims = PAGE_TYPST[page.size] ?? {
       kind: 'paper' as const,
@@ -63,35 +61,20 @@ export class PublishTypstEmitterService {
       dims.kind === 'paper'
         ? `  paper: ${dims.paper},`
         : `  width: ${dims.width},\n  height: ${dims.height},`;
-    out.push(`#set page(
-${paperLine}
-  margin: (top: ${page.marginTop}in, bottom: ${page.marginBottom}in, inside: ${page.marginInside}in, outside: ${page.marginOutside}in),
-  numbering: ${page.pageNumbers === 'none' ? 'none' : page.pageNumbers === 'roman' ? '"i"' : '"1"'},
-)`);
-
-    // Base text
-    out.push(`#set text(
-  font: ${typstFontList(base.font)},
-  size: ${base.fontSize ?? 11}pt,
-  fill: ${typstColor(base.color)},
-)`);
+    const numbering = pageNumberingExpr(page.pageNumbers);
 
     // Paragraph defaults
-    const indent = base.firstLineIndent ?? 1.25;
     // CSS line-height is a unitless multiplier on font-size that includes
     // the glyph box; Typst `leading` is the additional gap inserted
     // between consecutive lines, on top of the glyph box. Convert by
     // subtracting 1 (clamped at 0): line-height 1.0 -> leading 0em
     // (single spaced, lines touch), 1.5 -> 0.5em, 2.0 -> 1em (double).
+    const indent = base.firstLineIndent ?? 1.25;
     const lineHeight = base.lineHeight ?? 1.45;
     const leading = Math.max(0, lineHeight - 1);
-    out.push(`#set par(
-  leading: ${leading.toFixed(2)}em,
-  first-line-indent: (amount: ${indent}em, all: false),
-  justify: ${base.align === 'justify' ? 'true' : 'false'},
-)`);
 
     // Helper: heading levels 1-6
+    const headingHelpers: string[] = [];
     for (
       let lvl = 1 as 1 | 2 | 3 | 4 | 5 | 6;
       lvl <= 6;
@@ -103,25 +86,15 @@ ${paperLine}
         r.text,
         `[#text(${typstTextArgs(r.text)})[#body]]`
       );
-      out.push(
+      headingHelpers.push(
         `#let doc-heading-${lvl}(body) = block(above: ${r.box?.marginTop ?? 12}pt, below: ${r.box?.marginBottom ?? 6}pt)[#${headingBody}]`
       );
     }
 
-    // Helper: paragraph (uses default par settings; provided for symmetry)
-    out.push(`#let doc-paragraph(body) = par[#body]`);
-
     // Helper: blockquote
     const bq = this.resolver.resolveNode(styles, 'blockquote');
-    out.push(
-      `#let doc-blockquote(body) = block(inset: (left: ${bq.box?.marginLeft ?? 24}pt, right: ${bq.box?.marginRight ?? 24}pt), above: ${bq.box?.marginTop ?? 10}pt, below: ${bq.box?.marginBottom ?? 10}pt)[#text(${typstTextArgs(bq.text)})[#body]]`
-    );
-
     // Helper: code block
     const cb = this.resolver.resolveNode(styles, 'codeBlock');
-    out.push(
-      `#let doc-code-block(body) = block(fill: ${typstColor(cb.box?.background ?? '#f5f5f5')}, inset: ${cb.box?.paddingLeft ?? 12}pt, above: ${cb.box?.marginTop ?? 10}pt, below: ${cb.box?.marginBottom ?? 10}pt, radius: ${cb.box?.borderRadius ?? 4}pt)[#text(${typstTextArgs(cb.text)})[#raw(body)]]`
-    );
 
     // Helper: chapter title. Honors align (center/right) and uppercase
     // transform on the title text style; numbering prefix is rendered
@@ -130,56 +103,74 @@ ${paperLine}
       ch.text,
       `[#text(${typstTextArgs(ch.text)})[#body]]`
     );
-    const chNumWrapped = (() => {
-      const numAlign = typstAlign(ch.numberPrefix.align);
-      const inner = `[#text(${typstTextArgs(ch.numberPrefix)})[#num]]`;
-      if (ch.numberPrefix.transform === 'uppercase') {
-        return numAlign && numAlign !== 'left'
-          ? `align(${numAlign})[#upper(${inner})]`
-          : `upper(${inner})`;
-      }
-      return numAlign && numAlign !== 'left'
-        ? `align(${numAlign})[${inner}]`
-        : inner;
-    })();
-    out.push(
-      `#let chapter-title(num: none, body) = {
-${ch.pageBreakBefore ? '  pagebreak(weak: true)\n' : ''}  block(above: ${ch.box.marginTop ?? 48}pt, below: ${ch.box.marginBottom ?? 24}pt)[
-    #if num != none [#${chNumWrapped}]
-    #${chTitleInner}
-  ]
-}`
-    );
-
-    // Helper: scene break
-    out.push(
-      `#let scene-break(text-content) = block(above: ${sb.box.marginTop ?? 18}pt, below: ${sb.box.marginBottom ?? 18}pt)[#align(center)[#text(${typstTextArgs(sb.text)})[#text-content]]]`
-    );
+    const chNumWrapped = chapterNumberPrefixExpr(ch.numberPrefix);
+    const chPageBreak = ch.pageBreakBefore ? '  pagebreak(weak: true)\n' : '';
 
     // Helper: worldbuilding entry + field
     const wb = this.resolver.resolveWorldbuildingEntry(styles, undefined);
-    out.push(
-      `#let wb-entry(title, body) = block(stroke: ${wb.entryBox.borderWidth ? `${wb.entryBox.borderWidth}pt + ${typstColor(wb.entryBox.borderColor ?? '#888')}` : 'none'}, inset: ${wb.entryBox.paddingLeft ?? 12}pt, above: ${wb.entryBox.marginTop ?? 12}pt, below: ${wb.entryBox.marginBottom ?? 12}pt, radius: ${wb.entryBox.borderRadius ?? 4}pt)[
+    const wbStroke = wb.entryBox.borderWidth
+      ? `${wb.entryBox.borderWidth}pt + ${typstColor(wb.entryBox.borderColor ?? '#888')}`
+      : 'none';
+    const wbSectionTitleStyle = styles?.worldbuilding?.sectionTitle ?? {};
+
+    const out: string[] = [
+      `#set page(
+${paperLine}
+  margin: (top: ${page.marginTop}in, bottom: ${page.marginBottom}in, inside: ${page.marginInside}in, outside: ${page.marginOutside}in),
+  numbering: ${numbering},
+)`,
+      `#set text(
+  font: ${typstFontList(base.font)},
+  size: ${base.fontSize ?? 11}pt,
+  fill: ${typstColor(base.color)},
+)`,
+      `#set par(
+  leading: ${leading.toFixed(2)}em,
+  first-line-indent: (amount: ${indent}em, all: false),
+  justify: ${base.align === 'justify' ? 'true' : 'false'},
+)`,
+      ...headingHelpers,
+      `#let doc-paragraph(body) = par[#body]`,
+      `#let doc-blockquote(body) = block(inset: (left: ${bq.box?.marginLeft ?? 24}pt, right: ${bq.box?.marginRight ?? 24}pt), above: ${bq.box?.marginTop ?? 10}pt, below: ${bq.box?.marginBottom ?? 10}pt)[#text(${typstTextArgs(bq.text)})[#body]]`,
+      `#let doc-code-block(body) = block(fill: ${typstColor(cb.box?.background ?? '#f5f5f5')}, inset: ${cb.box?.paddingLeft ?? 12}pt, above: ${cb.box?.marginTop ?? 10}pt, below: ${cb.box?.marginBottom ?? 10}pt, radius: ${cb.box?.borderRadius ?? 4}pt)[#text(${typstTextArgs(cb.text)})[#raw(body)]]`,
+      `#let chapter-title(num: none, body) = {
+${chPageBreak}  block(above: ${ch.box.marginTop ?? 48}pt, below: ${ch.box.marginBottom ?? 24}pt)[
+    #if num != none [#${chNumWrapped}]
+    #${chTitleInner}
+  ]
+}`,
+      `#let scene-break(text-content) = block(above: ${sb.box.marginTop ?? 18}pt, below: ${sb.box.marginBottom ?? 18}pt)[#align(center)[#text(${typstTextArgs(sb.text)})[#text-content]]]`,
+      `#let wb-entry(title, body) = block(stroke: ${wbStroke}, inset: ${wb.entryBox.paddingLeft ?? 12}pt, above: ${wb.entryBox.marginTop ?? 12}pt, below: ${wb.entryBox.marginBottom ?? 12}pt, radius: ${wb.entryBox.borderRadius ?? 4}pt)[
   #text(${typstTextArgs(wb.entryTitle)})[#title]
   #v(4pt)
   #body
-]`
-    );
-    out.push(
+]`,
       `#let wb-tab(title, body) = {
   block(above: 8pt, below: 4pt)[#text(${typstTextArgs(wb.tabHeading)})[#title]]
   body
-}`
-    );
-    out.push(
-      `#let wb-field(label, value) = grid(columns: (auto, 1fr), column-gutter: 8pt, [#text(${typstTextArgs(wb.fieldLabel)})[#label]], [#text(${typstTextArgs(wb.fieldValue)})[#value]])`
-    );
-    out.push(
-      `#let wb-section-title(body) = block(above: 24pt, below: 12pt)[#text(${typstTextArgs(styles?.worldbuilding?.sectionTitle ?? {})})[#body]]`
-    );
+}`,
+      `#let wb-field(label, value) = grid(columns: (auto, 1fr), column-gutter: 8pt, [#text(${typstTextArgs(wb.fieldLabel)})[#label]], [#text(${typstTextArgs(wb.fieldValue)})[#value]])`,
+      `#let wb-section-title(body) = block(above: 24pt, below: 12pt)[#text(${typstTextArgs(wbSectionTitleStyle)})[#body]]`,
+    ];
 
     return out.join('\n\n') + '\n\n';
   }
+}
+
+function pageNumberingExpr(mode: PageStyle['pageNumbers']): string {
+  if (mode === 'none') return 'none';
+  if (mode === 'roman') return '"i"';
+  return '"1"';
+}
+
+function chapterNumberPrefixExpr(numberPrefix: TextStyle): string {
+  const numAlign = typstAlign(numberPrefix.align);
+  const inner = `[#text(${typstTextArgs(numberPrefix)})[#num]]`;
+  const aligned = numAlign && numAlign !== 'left';
+  if (numberPrefix.transform === 'uppercase') {
+    return aligned ? `align(${numAlign})[#upper(${inner})]` : `upper(${inner})`;
+  }
+  return aligned ? `align(${numAlign})[${inner}]` : inner;
 }
 
 function typstFontList(token: TextStyle['font']): string {

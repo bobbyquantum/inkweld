@@ -185,7 +185,7 @@ export class PublishStyleEditorComponent {
     const existing = nodes[nodeKey] ?? {};
     nodes[nodeKey] = {
       ...existing,
-      text: { ...(existing.text ?? {}), [key]: value },
+      text: { ...existing.text, [key]: value },
     };
     this.emit({ ...this.styles, preset: undefined, nodes });
   }
@@ -303,6 +303,18 @@ export class PublishStyleEditorComponent {
     if (raw === '' || raw == null) return undefined;
     const n = Number(raw);
     return Number.isFinite(n) ? n : undefined;
+  }
+
+  /**
+   * Coerce a numeric input to a finite, non-negative number. Returns
+   * `undefined` for blank, invalid, or negative input so the caller can
+   * fall back to the previous value rather than persisting `0` (which
+   * would silently break page-margin or font-size styling).
+   */
+  parsePositiveNumber(event: Event): number | undefined {
+    const n = this.parseNumber(event);
+    if (n === undefined || n < 0) return undefined;
+    return n;
   }
 
   /** Coerce an `<input type="text">` color value to a string or undefined. */

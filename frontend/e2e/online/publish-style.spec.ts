@@ -36,7 +36,7 @@ test.describe('Online Publish Style Editor', () => {
   ): Promise<string> {
     const uniqueSlug = `${titlePrefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     await page.goto('/create-project');
-    await page.getByRole('button', { name: /next/i }).click();
+    await page.getByTestId('next-button').click();
     await page.getByTestId('project-title-input').fill(titlePrefix);
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
     await page.getByTestId('create-project-button').click();
@@ -66,13 +66,15 @@ test.describe('Online Publish Style Editor', () => {
 
   /**
    * Helper to choose a preset by id from the preset select.
+   * Uses the per-option `data-testid="preset-option-<id>"` attribute for
+   * a stable, text-independent selector.
    */
   async function selectPreset(
     page: import('@playwright/test').Page,
     presetId: string
   ): Promise<void> {
     await page.getByTestId('preset-select').click();
-    await page.getByRole('option', { name: presetId, exact: false }).click();
+    await page.getByTestId(`preset-option-${presetId}`).click();
     await expect(page.getByRole('listbox')).not.toBeVisible();
   }
 
@@ -85,15 +87,19 @@ test.describe('Online Publish Style Editor', () => {
     await createProject(page, 'pub-style');
 
     // Add a small amount of content so HTML generation has something to render.
-    const readme = page.getByRole('treeitem', { name: /readme/i });
+    const readme = page.getByTestId('element-readme');
     await expect(readme).toBeVisible();
     await readme.click();
-    const editor = page.locator('.ProseMirror').first();
+    const editor = page
+      .getByTestId('document-editor')
+      .locator('.ProseMirror')
+      .first();
     await expect(editor).toBeVisible();
-    await expect(page.locator('.sync-status')).toContainText('synced');
+    const syncStatus = page.getByTestId('document-sync-status');
+    await expect(syncStatus).toContainText('synced');
     await editor.click();
     await editor.pressSequentially(testContent, { delay: 5 });
-    await expect(page.locator('.sync-status')).toContainText('synced');
+    await expect(syncStatus).toContainText('synced');
     await page.waitForTimeout(2000);
 
     await createPublishPlan(page);
@@ -116,7 +122,7 @@ test.describe('Online Publish Style Editor', () => {
     });
 
     await test.step('Selecting Manuscript preset updates label', async () => {
-      await selectPreset(page, 'Manuscript');
+      await selectPreset(page, 'manuscript');
       await expect(page.getByTestId('current-preset-label')).toHaveText(
         /manuscript/i
       );
@@ -134,14 +140,16 @@ test.describe('Online Publish Style Editor', () => {
       );
     });
 
+    let expectedPageBreak = false;
     await test.step('Toggling chapter page-break persists the structural option', async () => {
       await page.getByTestId('section-chapter').click();
       const pageBreak = page
         .getByTestId('chapter-page-break')
         .locator('input[type="checkbox"]');
       const wasChecked = await pageBreak.isChecked();
+      expectedPageBreak = !wasChecked;
       await page.getByTestId('chapter-page-break').click();
-      await expect(pageBreak).toBeChecked({ checked: !wasChecked });
+      await expect(pageBreak).toBeChecked({ checked: expectedPageBreak });
     });
 
     await test.step('Style edits persist across reload', async () => {
@@ -154,6 +162,13 @@ test.describe('Online Publish Style Editor', () => {
       );
       await page.getByTestId('section-node-heading1').click();
       await expect(page.getByTestId('font-size-heading1')).toHaveValue('42');
+      // Bug-fix coverage: the chapter page-break flag must also survive
+      // the reload — it is part of the persisted PublishStyles payload
+      // and was the regression CodeRabbit flagged on this test.
+      await page.getByTestId('section-chapter').click();
+      await expect(
+        page.getByTestId('chapter-page-break').locator('input[type="checkbox"]')
+      ).toBeChecked({ checked: expectedPageBreak });
     });
 
     await test.step('Generated HTML reflects the customized styles', async () => {
@@ -214,7 +229,7 @@ test.describe('Online Publish Style Editor', () => {
     await page.waitForLoadState('networkidle');
     // Step 1: choose the worldbuilding-demo template, then advance.
     await page.getByTestId('template-worldbuilding-demo').click();
-    await page.getByRole('button', { name: /next/i }).click();
+    await page.getByTestId('next-button').click();
     await page.getByTestId('project-title-input').fill('pub-regress');
     await page.getByTestId('project-slug-input').fill(slug);
     await page.getByTestId('create-project-button').click();
@@ -222,12 +237,16 @@ test.describe('Online Publish Style Editor', () => {
     await page.waitForLoadState('networkidle');
     // Open the README element so the sync indicator is mounted, then wait
     // for the post-template sync to settle. The project landing page does
-    // not render `.sync-status` until an editor is open.
-    const readme = page.getByRole('treeitem', { name: /readme/i });
+    // not render the sync status until an editor is open.
+    const readme = page.getByTestId('element-readme');
     await expect(readme).toBeVisible();
     await readme.click();
-    await expect(page.locator('.ProseMirror').first()).toBeVisible();
-    await expect(page.locator('.sync-status')).toContainText('synced');
+    await expect(
+      page.getByTestId('document-editor').locator('.ProseMirror').first()
+    ).toBeVisible();
+    await expect(page.getByTestId('document-sync-status')).toContainText(
+      'synced'
+    );
 
     await createPublishPlan(page);
 
@@ -240,7 +259,7 @@ test.describe('Online Publish Style Editor', () => {
     // ---------- Bug #2: paperback PDF compiles ----------------------------
     await test.step('bug #2: paperback PDF compiles without Typst page error', async () => {
       await openStyleEditor(page);
-      await selectPreset(page, 'Paperback');
+      await selectPreset(page, 'paperback');
 
       await selectSection(page, 'metadata');
       await page.getByTestId('format-select').click();
@@ -258,8 +277,9 @@ test.describe('Online Publish Style Editor', () => {
     // ---------- Bugs #1, #3, #4: HTML + Markdown output assertions --------
     await test.step('bug #3: Book preset emits bundled EB Garamond in HTML <style>', async () => {
       await openStyleEditor(page);
-      // Book preset wires base text to serifBook (EB Garamond).
-      await selectPreset(page, 'Book');
+      // The Ebook preset wires base text to serifBook (EB Garamond),
+      // letting us assert the bundled font family is emitted in HTML.
+      await selectPreset(page, 'ebook');
 
       await selectSection(page, 'metadata');
       await page.getByTestId('format-select').click();

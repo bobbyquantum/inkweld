@@ -1,14 +1,14 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element } from '@inkweld/index';
-
-import { type WorldbuildingItem } from '../../models/publish-plan';
-import { type WorldbuildingLayout } from '../../models/publish-style';
+import { type WorldbuildingItem } from '@models/publish-plan';
+import { type WorldbuildingLayout } from '@models/publish-style';
 import {
   type ElementTypeSchema,
   type FieldSchema,
   type FieldType,
   type TabSchema,
-} from '../../models/schema-types';
+} from '@models/schema-types';
+
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
@@ -94,15 +94,7 @@ export class WorldbuildingPublishRendererService {
         item
       );
       if (!rendered) continue;
-      // Category filter: schema name OR id match (case-insensitive)
-      if (item.categories?.length) {
-        const cats = item.categories.map(c => c.toLowerCase());
-        const candidates = [
-          rendered.schemaId?.toLowerCase(),
-          rendered.schemaLabel?.toLowerCase(),
-        ].filter(Boolean) as string[];
-        if (!candidates.some(c => cats.includes(c))) continue;
-      }
+      if (!matchesCategoryFilter(rendered, item.categories)) continue;
       entries.push(rendered);
     }
 
@@ -117,97 +109,32 @@ export class WorldbuildingPublishRendererService {
     schemas: ElementTypeSchema[],
     item: WorldbuildingItem
   ): Promise<RenderedWorldbuildingEntry | null> {
-    let schema: ElementTypeSchema | null = null;
-    try {
-      schema = await this.worldbuilding.getSchemaForElement(
-        element.id,
-        username,
-        slug
-      );
-    } catch (err) {
-      this.logger.warn(
-        'WorldbuildingPublishRenderer',
-        `Failed to load schema for ${element.id}`,
-        err
-      );
-    }
+    const schema = await this.loadSchemaSafe(element.id, username, slug);
+    const data = await this.loadDataSafe(element.id, username, slug);
+    const identity = await this.loadIdentitySafe(
+      element.id,
+      username,
+      slug,
+      item
+    );
 
-    let data: Record<string, unknown> | null = null;
-    try {
-      data = await this.worldbuilding.getWorldbuildingData(
-        element.id,
-        username,
-        slug
-      );
-    } catch (err) {
-      this.logger.warn(
-        'WorldbuildingPublishRenderer',
-        `Failed to load data for ${element.id}`,
-        err
-      );
-    }
-    data = data ?? {};
-
-    let identityImage: string | undefined;
-    let identityDescription: string | undefined;
-    if (item.includeIdentity !== false || item.includeImages !== false) {
-      try {
-        const identity = await this.worldbuilding.getIdentityData(
-          element.id,
-          username,
-          slug
-        );
-        identityImage = identity.image;
-        identityDescription = identity.description;
-      } catch {
-        // identity data is optional
-      }
-    }
-
-    const tabs: RenderedWorldbuildingTab[] = [];
     const includeKeys = item.includedFieldKeys
       ? new Set(item.includedFieldKeys)
       : null;
     const excludeKeys = item.excludedFieldKeys
       ? new Set(item.excludedFieldKeys)
       : null;
+    const includeEmpty = item.includeEmptyFields ?? false;
 
-    if (schema) {
-      const orderedTabs = [...schema.tabs].sort(
-        (a, b) => (a.order ?? 0) - (b.order ?? 0)
-      );
-      for (const tab of orderedTabs) {
-        const fields = this.collectTabFields(
-          tab,
+    const tabs = schema
+      ? this.renderTabsFromSchema(
+          schema,
           data,
           includeKeys,
           excludeKeys,
-          item.includeEmptyFields ?? false
-        );
-        if (fields.length === 0) continue;
-        tabs.push({ key: tab.key, label: tab.label, fields });
-      }
-    } else {
-      // No schema: emit one synthetic tab from raw keys
-      const fields: RenderedWorldbuildingField[] = [];
-      for (const [key, value] of Object.entries(data)) {
-        if (key.startsWith('_') || key === 'lastModified') continue;
-        if (includeKeys && !includeKeys.has(key)) continue;
-        if (excludeKeys && excludeKeys.has(key)) continue;
-        const display = formatFieldValue(value);
-        if (!display && !(item.includeEmptyFields ?? false)) continue;
-        fields.push({
-          key,
-          label: humanizeKey(key),
-          rawValue: value,
-          displayValue: display,
-          type: 'text',
-        });
-      }
-      if (fields.length) {
-        tabs.push({ key: 'fields', label: 'Fields', fields });
-      }
-    }
+          includeEmpty
+        )
+      : this.renderSyntheticTab(data, includeKeys, excludeKeys, includeEmpty);
 
     return {
       elementId: element.id,
@@ -216,10 +143,124 @@ export class WorldbuildingPublishRendererService {
       schemaLabel: schema?.name,
       layout,
       description:
-        item.includeIdentity === false ? undefined : identityDescription,
-      imageRef: item.includeImages === false ? undefined : identityImage,
+        item.includeIdentity === false ? undefined : identity.description,
+      imageRef: item.includeImages === false ? undefined : identity.image,
       tabs,
     };
+  }
+
+  private async loadSchemaSafe(
+    elementId: string,
+    username: string,
+    slug: string
+  ): Promise<ElementTypeSchema | null> {
+    try {
+      return await this.worldbuilding.getSchemaForElement(
+        elementId,
+        username,
+        slug
+      );
+    } catch (err) {
+      this.logger.warn(
+        'WorldbuildingPublishRenderer',
+        `Failed to load schema for ${elementId}`,
+        err
+      );
+      return null;
+    }
+  }
+
+  private async loadDataSafe(
+    elementId: string,
+    username: string,
+    slug: string
+  ): Promise<Record<string, unknown>> {
+    try {
+      const data = await this.worldbuilding.getWorldbuildingData(
+        elementId,
+        username,
+        slug
+      );
+      return data ?? {};
+    } catch (err) {
+      this.logger.warn(
+        'WorldbuildingPublishRenderer',
+        `Failed to load data for ${elementId}`,
+        err
+      );
+      return {};
+    }
+  }
+
+  private async loadIdentitySafe(
+    elementId: string,
+    username: string,
+    slug: string,
+    item: WorldbuildingItem
+  ): Promise<{ image?: string; description?: string }> {
+    if (item.includeIdentity === false && item.includeImages === false) {
+      return {};
+    }
+    try {
+      const identity = await this.worldbuilding.getIdentityData(
+        elementId,
+        username,
+        slug
+      );
+      return { image: identity.image, description: identity.description };
+    } catch {
+      // identity data is optional
+      return {};
+    }
+  }
+
+  private renderTabsFromSchema(
+    schema: ElementTypeSchema,
+    data: Record<string, unknown>,
+    includeKeys: Set<string> | null,
+    excludeKeys: Set<string> | null,
+    includeEmpty: boolean
+  ): RenderedWorldbuildingTab[] {
+    const tabs: RenderedWorldbuildingTab[] = [];
+    const orderedTabs = [...schema.tabs].sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0)
+    );
+    for (const tab of orderedTabs) {
+      const fields = this.collectTabFields(
+        tab,
+        data,
+        includeKeys,
+        excludeKeys,
+        includeEmpty
+      );
+      if (fields.length === 0) continue;
+      tabs.push({ key: tab.key, label: tab.label, fields });
+    }
+    return tabs;
+  }
+
+  private renderSyntheticTab(
+    data: Record<string, unknown>,
+    includeKeys: Set<string> | null,
+    excludeKeys: Set<string> | null,
+    includeEmpty: boolean
+  ): RenderedWorldbuildingTab[] {
+    const fields: RenderedWorldbuildingField[] = [];
+    for (const [key, value] of Object.entries(data)) {
+      if (key.startsWith('_') || key === 'lastModified') continue;
+      if (includeKeys && !includeKeys.has(key)) continue;
+      if (excludeKeys && excludeKeys.has(key)) continue;
+      const display = formatFieldValue(value);
+      if (!display && !includeEmpty) continue;
+      fields.push({
+        key,
+        label: humanizeKey(key),
+        rawValue: value,
+        displayValue: display,
+        type: 'text',
+      });
+    }
+    return fields.length ? [{ key: 'fields', label: 'Fields', fields }] : [];
   }
 
   private collectTabFields(
@@ -334,4 +375,22 @@ function humanizeKey(key: string): string {
     .replace(/[._]/g, ' ')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+/**
+ * Returns true when `entry` matches the (case-insensitive) category filter.
+ * An empty/undefined category list matches every entry. The filter accepts
+ * either schema id or schema label.
+ */
+function matchesCategoryFilter(
+  entry: RenderedWorldbuildingEntry,
+  categories: string[] | undefined
+): boolean {
+  if (!categories?.length) return true;
+  const cats = new Set(categories.map(c => c.toLowerCase()));
+  const candidates = [
+    entry.schemaId?.toLowerCase(),
+    entry.schemaLabel?.toLowerCase(),
+  ].filter(Boolean) as string[];
+  return candidates.some(c => cats.has(c));
 }

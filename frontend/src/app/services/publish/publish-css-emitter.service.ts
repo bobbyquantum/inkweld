@@ -1,12 +1,12 @@
 import { inject, Injectable } from '@angular/core';
-
 import {
   type DocNodeKey,
   type MarkKey,
   PUBLISH_FONT_TOKENS,
   type PublishStyles,
   type TextStyle,
-} from '../../models/publish-style';
+} from '@models/publish-style';
+
 import {
   PublishStyleResolverService,
   type ResolvedNodeStyle,
@@ -90,24 +90,28 @@ export class PublishCssEmitterService {
   private readonly resolver = inject(PublishStyleResolverService);
 
   emitHtmlStylesheet(styles: PublishStyles | undefined | null): string {
-    const out: string[] = [];
-    out.push(this.baseHtmlReset());
-    out.push(this.bodyRule(styles));
-    out.push(this.nodeRules(styles, /* asTag */ true));
-    out.push(this.markRules(styles));
-    out.push(this.structureRules(styles));
-    out.push(this.worldbuildingRules(styles));
-    return out.filter(Boolean).join('\n\n');
+    return [
+      this.baseHtmlReset(),
+      this.bodyRule(styles),
+      this.nodeRules(styles, /* asTag */ true),
+      this.markRules(styles),
+      this.structureRules(styles),
+      this.worldbuildingRules(styles),
+    ]
+      .filter(Boolean)
+      .join('\n\n');
   }
 
   emitEpubStylesheet(styles: PublishStyles | undefined | null): string {
-    const out: string[] = [];
-    out.push(this.bodyRule(styles, /* epub */ true));
-    out.push(this.nodeRules(styles, /* asTag */ true, /* epub */ true));
-    out.push(this.markRules(styles, /* epub */ true));
-    out.push(this.structureRules(styles, /* epub */ true));
-    out.push(this.worldbuildingRules(styles, /* epub */ true));
-    return out.filter(Boolean).join('\n\n');
+    return [
+      this.bodyRule(styles, /* epub */ true),
+      this.nodeRules(styles, /* asTag */ true, /* epub */ true),
+      this.markRules(styles, /* epub */ true),
+      this.structureRules(styles, /* epub */ true),
+      this.worldbuildingRules(styles, /* epub */ true),
+    ]
+      .filter(Boolean)
+      .join('\n\n');
   }
 
   private baseHtmlReset(): string {
@@ -186,50 +190,29 @@ ${indent}}`;
     const fm = this.resolver.resolveFrontmatter(styles);
     const bm = this.resolver.resolveBackmatter(styles);
 
-    const rules: string[] = [];
-    rules.push(
+    const rules: string[] = [
       `.ink-chapter-title { ${textStyleDecls(ch.text, { epub })
         .concat(boxStyleDecls(ch.box, { epub }))
         .concat(ch.pageBreakBefore ? ['page-break-before: always;'] : [])
-        .join(' ')} }`
-    );
-    rules.push(
-      `.ink-chapter-number { ${textStyleDecls(ch.numberPrefix, { epub }).join(' ')} display: block; }`
-    );
-    rules.push(
+        .join(' ')} }`,
+      `.ink-chapter-number { ${textStyleDecls(ch.numberPrefix, { epub }).join(' ')} display: block; }`,
       `.ink-scene-break { ${textStyleDecls(sb.text, { epub })
         .concat(boxStyleDecls(sb.box, { epub }))
-        .join(' ')} }`
-    );
-    rules.push(
-      `.ink-toc-title { ${textStyleDecls(toc.title, { epub }).join(' ')} }`
-    );
-    rules.push(
-      `.ink-toc-entry { ${textStyleDecls(toc.entry, { epub }).join(' ')} }`
-    );
-    rules.push(
-      `.ink-toc-entry[data-level="2"] { padding-left: ${toc.indentPerLevel}em; }`
-    );
-    rules.push(
-      `.ink-toc-entry[data-level="3"] { padding-left: ${toc.indentPerLevel * 2}em; }`
-    );
-    rules.push(
-      `.ink-frontmatter-title { ${textStyleDecls(fm.title, { epub }).join(' ')} }`
-    );
-    rules.push(
+        .join(' ')} }`,
+      `.ink-toc-title { ${textStyleDecls(toc.title, { epub }).join(' ')} }`,
+      `.ink-toc-entry { ${textStyleDecls(toc.entry, { epub }).join(' ')} }`,
+      `.ink-toc-entry[data-level="2"] { padding-left: ${toc.indentPerLevel}em; }`,
+      `.ink-toc-entry[data-level="3"] { padding-left: ${toc.indentPerLevel * 2}em; }`,
+      `.ink-frontmatter-title { ${textStyleDecls(fm.title, { epub }).join(' ')} }`,
       `.ink-frontmatter { ${textStyleDecls(fm.body, { epub })
         .concat(boxStyleDecls(fm.box, { epub }))
-        .join(' ')} }`
-    );
-    rules.push(
-      `.ink-backmatter-title { ${textStyleDecls(bm.title, { epub }).join(' ')} }`
-    );
-    rules.push(
+        .join(' ')} }`,
+      `.ink-backmatter-title { ${textStyleDecls(bm.title, { epub }).join(' ')} }`,
       `.ink-backmatter { ${textStyleDecls(bm.body, { epub })
         .concat(boxStyleDecls(bm.box, { epub }))
-        .join(' ')} }`
-    );
-    rules.push('.ink-page-break { page-break-after: always; }');
+        .join(' ')} }`,
+      '.ink-page-break { page-break-after: always; }',
+    ];
     return rules.join('\n');
   }
 
@@ -238,38 +221,21 @@ ${indent}}`;
     epub = false
   ): string {
     const wb = this.resolver.resolveWorldbuildingEntry(styles, undefined);
-    const rules: string[] = [];
-    rules.push(
+    const rules: string[] = [
       `.ink-wb-section-title { ${textStyleDecls(
         textStyleFromWorldbuildingSection(styles),
         { epub }
-      ).join(' ')} }`
-    );
-    rules.push(
-      `.ink-wb-entry { ${boxStyleDecls(wb.entryBox, { epub }).join(' ')} }`
-    );
-    rules.push(
-      `.ink-wb-entry-title { ${textStyleDecls(wb.entryTitle, { epub }).join(' ')} }`
-    );
-    rules.push(
-      `.ink-wb-tab-heading { ${textStyleDecls(wb.tabHeading, { epub }).join(' ')} }`
-    );
-    rules.push(
-      `.ink-wb-field-label { ${textStyleDecls(wb.fieldLabel, { epub }).join(' ')} display: inline-block; min-width: 8em; margin-right: 0.5em; }`
-    );
-    rules.push(
-      `.ink-wb-field-value { ${textStyleDecls(wb.fieldValue, { epub }).join(' ')} }`
-    );
-    // Layout-specific tweaks
-    rules.push(
-      `.ink-wb-entry.ink-wb-layout-compact { border-width: 0; padding: 4pt 0; }`
-    );
-    rules.push(
-      `.ink-wb-entry.ink-wb-layout-detail { border-width: 0; padding: 16pt 0; }`
-    );
-    rules.push(
-      `.ink-wb-entry.ink-wb-layout-appendix { border-width: 0; padding: 4pt 0; page-break-inside: avoid; }`
-    );
+      ).join(' ')} }`,
+      `.ink-wb-entry { ${boxStyleDecls(wb.entryBox, { epub }).join(' ')} }`,
+      `.ink-wb-entry-title { ${textStyleDecls(wb.entryTitle, { epub }).join(' ')} }`,
+      `.ink-wb-tab-heading { ${textStyleDecls(wb.tabHeading, { epub }).join(' ')} }`,
+      `.ink-wb-field-label { ${textStyleDecls(wb.fieldLabel, { epub }).join(' ')} display: inline-block; min-width: 8em; margin-right: 0.5em; }`,
+      `.ink-wb-field-value { ${textStyleDecls(wb.fieldValue, { epub }).join(' ')} }`,
+      // Layout-specific tweaks
+      `.ink-wb-entry.ink-wb-layout-compact { border-width: 0; padding: 4pt 0; }`,
+      `.ink-wb-entry.ink-wb-layout-detail { border-width: 0; padding: 16pt 0; }`,
+      `.ink-wb-entry.ink-wb-layout-appendix { border-width: 0; padding: 4pt 0; page-break-inside: avoid; }`,
+    ];
     return rules.join('\n');
   }
 }

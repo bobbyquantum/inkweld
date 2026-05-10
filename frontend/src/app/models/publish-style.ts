@@ -577,6 +577,10 @@ function structuredCloneSafe<T>(value: T): T {
   if (typeof structuredClone === 'function') {
     return structuredClone(value);
   }
+  // Fallback for older runtimes without structuredClone (e.g. legacy Node).
+  // The preferred path above already uses structuredClone; this branch only
+  // executes when it is unavailable, so the JSON round-trip is intentional.
+  // NOSONAR: typescript:S7784 — structuredClone is preferred but unavailable here.
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
