@@ -70,6 +70,7 @@
           <input
             matInput
             type="number"
+            min="0"
             step="0.05"
             [value]="styles.page.marginTop"
             (change)="updatePage('marginTop', parseNumber($event) ?? 0)" />
@@ -79,6 +80,7 @@
           <input
             matInput
             type="number"
+            min="0"
             step="0.05"
             [value]="styles.page.marginBottom"
             (change)="updatePage('marginBottom', parseNumber($event) ?? 0)" />
@@ -88,6 +90,7 @@
           <input
             matInput
             type="number"
+            min="0"
             step="0.05"
             [value]="styles.page.marginInside"
             (change)="updatePage('marginInside', parseNumber($event) ?? 0)" />
@@ -97,6 +100,7 @@
           <input
             matInput
             type="number"
+            min="0"
             step="0.05"
             [value]="styles.page.marginOutside"
             (change)="updatePage('marginOutside', parseNumber($event) ?? 0)" />
@@ -237,6 +241,7 @@
       <input
         matInput
         type="number"
+        min="1"
         step="0.5"
         [value]="text.fontSize ?? ''"
         [attr.data-testid]="controlsId ? 'font-size-' + controlsId : null"
@@ -271,6 +276,7 @@
       <input
         matInput
         type="number"
+        min="0.5"
         step="0.05"
         [value]="text.lineHeight ?? ''"
         [attr.data-testid]="controlsId ? 'line-height-' + controlsId : null"
@@ -303,6 +309,7 @@
       <input
         matInput
         type="number"
+        min="0"
         step="0.1"
         [value]="text.firstLineIndent ?? ''"
         [attr.data-testid]="

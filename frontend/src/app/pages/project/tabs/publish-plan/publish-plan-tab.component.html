@@ -377,7 +377,7 @@
     </div>
 
     <app-publish-style-editor
-      [styles]="plan.styles"
+      [styles]="effectiveStyles(plan)"
       (stylesChange)="updateStyles($event)"
       data-testid="plan-style-editor">
     </app-publish-style-editor>

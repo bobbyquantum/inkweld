@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-
 import {
   DEFAULT_BASE_TEXT,
   DEFAULT_DOC_NODE_STYLES,
@@ -15,7 +14,7 @@ import {
   type WorldbuildingLayout,
   type WorldbuildingSchemaOverride,
   type WorldbuildingStyles,
-} from '../../models/publish-style';
+} from '@models/publish-style';
 
 /**
  * Resolved style for a single ProseMirror node, with the inherited base text

@@ -269,8 +269,14 @@ export interface PublishPlan {
   /**
    * Visual typography and layout styles. Consumed by HTML, EPUB, and PDF
    * generators; ignored by markdown.
+   *
+   * Optional for backward compatibility with plans persisted before the
+   * style system existed: when absent, generators fall back to
+   * `createDefaultPublishStyles()` (the equivalent of the Paperback preset).
+   * New plans created via {@link createDefaultPublishPlan} always include
+   * a fully populated `styles` field.
    */
-  styles: PublishStyles;
+  styles?: PublishStyles;
 }
 
 /**

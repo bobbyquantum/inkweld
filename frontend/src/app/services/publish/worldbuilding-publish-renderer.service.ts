@@ -312,10 +312,13 @@ function formatFieldValue(value: unknown): string {
   if (value === null || value === undefined) return '';
   if (typeof value === 'string') return value;
   if (Array.isArray(value)) {
+    // Drop only null/undefined entries — `0`, `false`, and `''` are
+    // legitimate values that `formatFieldValue` knows how to render
+    // ("0", "No", "" respectively); the join below skips empties.
     return value
-      .filter(Boolean)
+      .filter(v => v !== null && v !== undefined)
       .map(v => formatFieldValue(v))
-      .filter(Boolean)
+      .filter(s => s !== '')
       .join(', ');
   }
   if (typeof value === 'object') return '';

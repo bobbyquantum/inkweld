@@ -26,7 +26,9 @@ async function setupProjectAndOpenStyleEditor(
   await page.waitForSelector('.empty-state', { state: 'visible' });
 
   await createProjectWithTwoSteps(page, projectTitle, projectSlug);
-  await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
+  await page.waitForURL(url =>
+    url.pathname.includes(`/demouser/${projectSlug}`)
+  );
 
   // Open Publishing tab via sidebar.
   await page.getByTestId('sidebar-publishing-button').click();

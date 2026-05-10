@@ -1,5 +1,9 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
+import {
+  createDefaultPublishStyles,
+  type PublishStyles,
+} from '@models/publish-style';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
 import {
@@ -17,7 +21,6 @@ import {
   SeparatorStyle,
   type WorldbuildingItem,
 } from '../../models/publish-plan';
-import { type PublishStyles } from '../../models/publish-style';
 import { trimHyphens } from '../../utils/string-utils';
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { LoggerService } from '../core/logger.service';
@@ -242,7 +245,7 @@ export class HtmlGeneratorService {
       sections.join('\n'),
       plan.metadata,
       plan.options,
-      plan.styles
+      plan.styles ?? createDefaultPublishStyles()
     );
   }
 
@@ -255,7 +258,7 @@ export class HtmlGeneratorService {
   ): Promise<string> {
     switch (item.type) {
       case PublishPlanItemType.Element:
-        return this.processElement(item, elements, plan.options, chapterNumber);
+        return this.processElement(item, elements, plan, chapterNumber);
 
       case PublishPlanItemType.Separator:
         return this.processSeparator(item, plan.options);
@@ -353,8 +356,8 @@ export class HtmlGeneratorService {
   private async processElement(
     item: ElementItem,
     elements: Element[],
-    _options: PublishOptions,
-    _chapterNumber: number
+    plan: PublishPlan,
+    chapterNumber: number
   ): Promise<string> {
     const element = elements.find(e => e.id === item.elementId);
     if (!element) return '';
@@ -372,14 +375,32 @@ export class HtmlGeneratorService {
       const content = await this.getDocumentContent(element.id);
       // The user's document supplies its own heading (if any). We only wrap
       // it in a <section> so chapter-level styling (page breaks, margins)
-      // can still target it.
-      parts.push(`<section class="ink-chapter">`, content, `</section>`);
+      // can still target it. The id matches the anchor produced by buildTOC
+      // so TOC links resolve to a real target in the rendered document.
+      const elemTitle = item.titleOverride || element.name;
+      const formattedTitle = this.formatChapterTitle(
+        elemTitle,
+        chapterNumber,
+        item.isChapter ?? false,
+        plan.options
+      );
+      const anchor = this.cssSafe(formattedTitle);
+      parts.push(
+        `<section class="ink-chapter" id="${anchor}">`,
+        content,
+        `</section>`
+      );
     } else if (element.type === ElementType.Folder && item.includeChildren) {
       const children = this.getChildElements(element, elements);
       for (const child of children) {
         if (child.type === ElementType.Item) {
           const content = await this.getDocumentContent(child.id);
-          parts.push(`<section class="ink-section">`, content, `</section>`);
+          const childAnchor = this.cssSafe(child.name);
+          parts.push(
+            `<section class="ink-section" id="${childAnchor}">`,
+            content,
+            `</section>`
+          );
         } else if (isWorldbuildingType(child.type)) {
           const synthetic = this.singleEntryWbItem(child.id);
           const html = await this.processWorldbuilding(synthetic, [child]);
@@ -608,7 +629,10 @@ export class HtmlGeneratorService {
           classNames: mapped.cls ? [mapped.cls] : [],
         };
       }
-      return { tagName: lower || 'div', classNames: [] };
+      // Unknown node types render as a neutral container so a malicious
+      // document JSON cannot smuggle in attacker-controlled tags like
+      // <script>, <iframe>, or <object>.
+      return { tagName: 'div', classNames: [] };
     }
     return { tagName: 'span', classNames: [] };
   }
@@ -644,8 +668,19 @@ export class HtmlGeneratorService {
         result = `<sup class="ink-mark-superscript">${result}</sup>`;
       } else if (name === 'link') {
         const hrefRaw = m.attrs?.['href'];
-        const href = typeof hrefRaw === 'string' ? hrefRaw : '';
-        result = `<a class="ink-mark-link" href="${this.escapeHtml(href)}">${result}</a>`;
+        const safeHref = this.sanitizeUrl(
+          typeof hrefRaw === 'string' ? hrefRaw : ''
+        );
+        if (safeHref) {
+          // External http(s) links open in a new tab; we always strip
+          // window.opener access for safety.
+          const isExternal = /^https?:/i.test(safeHref);
+          const relAttr = isExternal
+            ? ' rel="noopener noreferrer" target="_blank"'
+            : '';
+          result = `<a class="ink-mark-link" href="${this.escapeHtml(safeHref)}"${relAttr}>${result}</a>`;
+        }
+        // Empty/disallowed href: drop the link wrapper but keep the text.
       }
     }
     return result;
@@ -846,6 +881,21 @@ ${content}
       .replaceAll('<', '&lt;')
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;');
+  }
+
+  /**
+   * Returns the URL unchanged if it uses a safe scheme (http, https,
+   * mailto, tel) or is a relative/anchor reference; otherwise returns
+   * the empty string. This prevents `javascript:`, `data:`, `vbscript:`
+   * and other potentially dangerous schemes from being emitted as the
+   * `href` of a generated `<a>` tag.
+   */
+  private sanitizeUrl(url: string): string {
+    const trimmed = url.trim();
+    if (!trimmed) return '';
+    if (/^(?:#|\/|\.{1,2}\/)/.test(trimmed)) return trimmed;
+    if (/^(?:https?|mailto|tel):/i.test(trimmed)) return trimmed;
+    return '';
   }
 
   private countWords(html: string): number {

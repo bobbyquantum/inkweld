@@ -1,5 +1,9 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
+import {
+  createDefaultPublishStyles,
+  type PublishStyles,
+} from '@models/publish-style';
 import JSZip from '@progress/jszip-esm';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
@@ -19,7 +23,6 @@ import {
   SeparatorStyle,
   type WorldbuildingItem,
 } from '../../models/publish-plan';
-import { type PublishStyles } from '../../models/publish-style';
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
@@ -1077,7 +1080,10 @@ export class EpubGeneratorService {
     }
 
     // Add stylesheet
-    zip.file('OEBPS/styles.css', this.generateStylesheet(plan.styles));
+    zip.file(
+      'OEBPS/styles.css',
+      this.generateStylesheet(plan.styles ?? createDefaultPublishStyles())
+    );
 
     // Add OPF (package) file
     zip.file(

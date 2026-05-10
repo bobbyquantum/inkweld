@@ -47,7 +47,10 @@ import {
   PublishPlanItemType,
   SeparatorStyle,
 } from '@models/publish-plan';
-import { type PublishStyles } from '@models/publish-style';
+import {
+  createDefaultPublishStyles,
+  type PublishStyles,
+} from '@models/publish-style';
 import { type PublishedFile } from '@models/published-file';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
@@ -306,6 +309,16 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   /** Replace the plan's PublishStyles object. */
   updateStyles(styles: PublishStyles): void {
     this.updatePlan({ styles });
+  }
+
+  /**
+   * Returns the plan's styles, or a freshly-created default tree when the
+   * plan was persisted before the typography pipeline existed (or by an
+   * older client that omitted the field). Bound by the template so the
+   * style editor always receives a fully-populated object.
+   */
+  effectiveStyles(plan: PublishPlan): PublishStyles {
+    return plan.styles ?? createDefaultPublishStyles();
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

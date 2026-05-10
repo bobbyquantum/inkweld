@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
+import { type PublishStyles } from '@models/publish-style';
 import { $typst, TypstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
@@ -18,7 +19,6 @@ import {
   SeparatorStyle,
   type WorldbuildingItem,
 } from '../../models/publish-plan';
-import { type PublishStyles } from '../../models/publish-style';
 import { trimHyphens } from '../../utils/string-utils';
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { LoggerService } from '../core/logger.service';
@@ -532,6 +532,14 @@ export class PdfGeneratorService {
     if (entry.description) {
       body.push(`#emph[${this.escapeTypst(entry.description)}]`, '#v(4pt)');
     }
+    // Worldbuilding identity images (`entry.imageRef`) are intentionally
+    // NOT rendered in PDF output. The HTML/EPUB/Markdown generators embed
+    // the URL directly because they run inside a browser context that
+    // resolves it natively, but Typst's `#image()` requires the raw image
+    // bytes to be registered with the compiler via `addSource`/asset map.
+    // Wiring per-entry image fetch + asset registration into the typst.ts
+    // pipeline is tracked separately; until then we omit the image rather
+    // than emit a broken `#image()` call that would fail compilation.
     for (const tab of entry.tabs) {
       const tabBody: string[] = [];
       for (const f of tab.fields) {

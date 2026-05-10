@@ -172,6 +172,16 @@ async function fetchFamily({ slug }) {
     await writeFile(join(TARGET_DIR, outName), entry.data);
     written++;
   }
+  // We expect one TTF per requested variant. If the upstream archive is
+  // missing files (gwfh occasionally drops a variant for less-common
+  // families), surface this as a failure rather than silently shipping a
+  // partial family that would render with the wrong style at runtime.
+  const expected = expectedFiles(slug).length;
+  if (written < expected) {
+    throw new Error(
+      `incomplete download: got ${written}/${expected} variants for ${slug}`
+    );
+  }
   return { slug, status: 'downloaded', count: written };
 }
 

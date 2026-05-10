@@ -211,8 +211,10 @@ test.describe('Online Publish Style Editor', () => {
     // ---------- Setup: worldbuilding-demo template (has WB + chapters) ----
     const slug = `pub-regress-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     await page.goto('/create-project');
-    await page.getByRole('button', { name: /next/i }).click();
+    await page.waitForLoadState('networkidle');
+    // Step 1: choose the worldbuilding-demo template, then advance.
     await page.getByTestId('template-worldbuilding-demo').click();
+    await page.getByRole('button', { name: /next/i }).click();
     await page.getByTestId('project-title-input').fill('pub-regress');
     await page.getByTestId('project-slug-input').fill(slug);
     await page.getByTestId('create-project-button').click();

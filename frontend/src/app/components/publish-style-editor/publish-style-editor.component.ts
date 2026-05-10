@@ -16,7 +16,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
-
 import {
   createDefaultPublishStyles,
   type DocNodeKey,
@@ -31,11 +30,11 @@ import {
   type TextAlign,
   type TextStyle,
   type WorldbuildingLayout,
-} from '../../models/publish-style';
+} from '@models/publish-style';
 import {
   getPublishStylePreset,
   PUBLISH_STYLE_PRESETS,
-} from '../../models/publish-style-presets';
+} from '@models/publish-style-presets';
 
 interface NodeSection {
   key: DocNodeKey;

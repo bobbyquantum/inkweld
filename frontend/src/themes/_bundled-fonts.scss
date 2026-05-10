@@ -1,18 +1,14 @@
 // Bundled publishing fonts (latin charset, 400/700 × normal/italic).
-//
 // These @font-face declarations are emitted at runtime instead of being
 // brought in via fontsource's prebuilt CSS files in angular.json `styles[]`.
 // The previous setup imported 24 separate fontsource CSS modules at build
 // time, which significantly slowed test bootstrap (Vitest setup time
 // pushed several heavy specs over the 6s default timeout).
-//
 // This partial does the exact same job — it just inlines the @font-face
 // rules ourselves, pointing at the woff2 files copied to /assets/fonts/
 // by the corresponding `assets[]` glob entries in angular.json.
-//
 // Family names match @fontsource exactly so PUBLISH_FONT_TOKENS CSS
 // stacks (and Typst's `text(font: ...)`) resolve correctly.
-//
 // All declarations use `font-display: swap` to match fontsource defaults
 // and avoid blocking text rendering on cold cache.
 

@@ -207,4 +207,68 @@ describe('PublishStyleEditorComponent', () => {
       expect(JSON.stringify(styles)).toBe(before);
     });
   });
+
+  describe('bound callbacks (used by ngTemplateOutlet)', () => {
+    it('updateBaseTextBound delegates to updateBaseText with this preserved', () => {
+      const { component, emissions } = setupComponent();
+      const fn = component['updateBaseTextBound'];
+      fn('fontSize', 17);
+      expect(emissions[0].baseText.fontSize).toBe(17);
+    });
+
+    it('updateChapterTextBound delegates to updateChapterText', () => {
+      const { component, emissions } = setupComponent();
+      const fn = component['updateChapterTextBound'];
+      fn('weight', 'bold');
+      expect(emissions[0].structure.chapterTitle.text.weight).toBe('bold');
+    });
+
+    it('updateSceneBreakTextBound delegates to updateSceneBreakText', () => {
+      const { component, emissions } = setupComponent();
+      const fn = component['updateSceneBreakTextBound'];
+      fn('color', '#abcdef');
+      expect(emissions[0].structure.sceneBreak.text.color).toBe('#abcdef');
+    });
+
+    it('updateWorldbuildingEntryTitleBound delegates to updateWorldbuildingEntryTitle', () => {
+      const { component, emissions } = setupComponent();
+      const fn = component['updateWorldbuildingEntryTitleBound'];
+      fn('fontSize', 19);
+      expect(emissions[0].worldbuilding.entryTitle.fontSize).toBe(19);
+    });
+  });
+
+  describe('getNodeText', () => {
+    it('returns the existing text style for a node when set', () => {
+      const styles = createDefaultPublishStyles();
+      styles.nodes.heading1 = { text: { fontSize: 33 } };
+      const { component } = setupComponent(styles);
+      expect(component.getNodeText('heading1').fontSize).toBe(33);
+    });
+
+    it('returns an empty object for a node with no text slice in defaults', () => {
+      const { component } = setupComponent();
+      // `image` ships with only a box style; .text should be empty.
+      expect(component.getNodeText('image')).toEqual({});
+    });
+
+    it('returns an empty object when node entry is removed entirely', () => {
+      const styles = createDefaultPublishStyles();
+      delete styles.nodes.heading2;
+      const { component } = setupComponent(styles);
+      expect(component.getNodeText('heading2')).toEqual({});
+    });
+  });
+
+  describe('updateNodeText edge cases', () => {
+    it('creates a brand-new node entry when none exists', () => {
+      const styles = createDefaultPublishStyles();
+      delete styles.nodes.heading4;
+      const { component, emissions } = setupComponent(styles);
+
+      component.updateNodeText('heading4', 'fontSize', 14);
+
+      expect(emissions[0].nodes.heading4?.text?.fontSize).toBe(14);
+    });
+  });
 });

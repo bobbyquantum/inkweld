@@ -1,12 +1,12 @@
 import { inject, Injectable } from '@angular/core';
-
 import {
   type DocNodeKey,
   type PageStyle,
   PUBLISH_FONT_TOKENS,
   type PublishStyles,
   type TextStyle,
-} from '../../models/publish-style';
+} from '@models/publish-style';
+
 import { PublishStyleResolverService } from './publish-style-resolver.service';
 
 /**
@@ -99,8 +99,12 @@ ${paperLine}
     ) {
       const key = `heading${lvl}` as DocNodeKey;
       const r = this.resolver.resolveNode(styles, key);
+      const headingBody = wrapAlignTransform(
+        r.text,
+        `[#text(${typstTextArgs(r.text)})[#body]]`
+      );
       out.push(
-        `#let doc-heading-${lvl}(body) = block(above: ${r.box?.marginTop ?? 12}pt, below: ${r.box?.marginBottom ?? 6}pt)[#text(${typstTextArgs(r.text)})[#body]]`
+        `#let doc-heading-${lvl}(body) = block(above: ${r.box?.marginTop ?? 12}pt, below: ${r.box?.marginBottom ?? 6}pt)[#${headingBody}]`
       );
     }
 
@@ -119,12 +123,30 @@ ${paperLine}
       `#let doc-code-block(body) = block(fill: ${typstColor(cb.box?.background ?? '#f5f5f5')}, inset: ${cb.box?.paddingLeft ?? 12}pt, above: ${cb.box?.marginTop ?? 10}pt, below: ${cb.box?.marginBottom ?? 10}pt, radius: ${cb.box?.borderRadius ?? 4}pt)[#text(${typstTextArgs(cb.text)})[#raw(body)]]`
     );
 
-    // Helper: chapter title
+    // Helper: chapter title. Honors align (center/right) and uppercase
+    // transform on the title text style; numbering prefix is rendered
+    // with its own (typically smaller) text style above the title.
+    const chTitleInner = wrapAlignTransform(
+      ch.text,
+      `[#text(${typstTextArgs(ch.text)})[#body]]`
+    );
+    const chNumWrapped = (() => {
+      const numAlign = typstAlign(ch.numberPrefix.align);
+      const inner = `[#text(${typstTextArgs(ch.numberPrefix)})[#num]]`;
+      if (ch.numberPrefix.transform === 'uppercase') {
+        return numAlign && numAlign !== 'left'
+          ? `align(${numAlign})[#upper(${inner})]`
+          : `upper(${inner})`;
+      }
+      return numAlign && numAlign !== 'left'
+        ? `align(${numAlign})[${inner}]`
+        : inner;
+    })();
     out.push(
       `#let chapter-title(num: none, body) = {
 ${ch.pageBreakBefore ? '  pagebreak(weak: true)\n' : ''}  block(above: ${ch.box.marginTop ?? 48}pt, below: ${ch.box.marginBottom ?? 24}pt)[
-    #if num != none [#text(${typstTextArgs(ch.numberPrefix)})[#num]]
-    #text(${typstTextArgs(ch.text)})[#body]
+    #if num != none [#${chNumWrapped}]
+    #${chTitleInner}
   ]
 }`
     );
@@ -168,9 +190,29 @@ function typstFontList(token: TextStyle['font']): string {
 }
 
 function typstColor(hexOrName: string | undefined): string {
-  if (!hexOrName) return 'rgb("#111111")';
-  if (hexOrName.startsWith('#')) return `rgb("${hexOrName}")`;
-  return `rgb("${hexOrName}")`;
+  // Only accept #RGB / #RRGGBB / #RRGGBBAA. Anything else (named colors,
+  // CSS functions, attacker-controlled strings) falls back to the default
+  // text color so we never emit unvalidated content into the Typst source.
+  if (
+    typeof hexOrName === 'string' &&
+    /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(hexOrName)
+  ) {
+    return `rgb("${hexOrName}")`;
+  }
+  return 'rgb("#111111")';
+}
+
+function typstAlign(a: TextStyle['align']): string | null {
+  switch (a) {
+    case 'center':
+      return 'center';
+    case 'right':
+      return 'right';
+    case 'left':
+      return 'left';
+    default:
+      return null;
+  }
 }
 
 function typstTextArgs(s: TextStyle): string {
@@ -182,6 +224,25 @@ function typstTextArgs(s: TextStyle): string {
   if (s.color) parts.push(`fill: ${typstColor(s.color)}`);
   if (s.transform === 'uppercase') parts.push(`tracking: 0.05em`);
   return parts.join(', ');
+}
+
+/**
+ * Wraps `body` in `#align(...)` and/or `#upper(...)` calls when the text
+ * style requests an explicit alignment (other than the document default
+ * left/justify) or an uppercase transform. Returns `body` unchanged when
+ * neither transform applies. The Typst body argument supplied by the
+ * caller must already be a valid expression (e.g. `[#text(...)[#body]]`).
+ */
+function wrapAlignTransform(s: TextStyle, body: string): string {
+  let out = body;
+  if (s.transform === 'uppercase') {
+    out = `upper(${out})`;
+  }
+  const align = typstAlign(s.align);
+  if (align && align !== 'left') {
+    out = `align(${align})[${out}]`;
+  }
+  return out;
 }
 
 function typstWeight(w: NonNullable<TextStyle['weight']>): string {
