@@ -15,4 +15,17 @@ export type {
   PublishOptions,
 } from './publish.service';
 export { PublishingPhase, PublishService } from './publish.service';
+export { PublishCssEmitterService } from './publish-css-emitter.service';
 export { PublishPlanService } from './publish-plan.service';
+export type {
+  ResolvedNodeStyle,
+  ResolvedWorldbuildingEntryStyle,
+} from './publish-style-resolver.service';
+export { PublishStyleResolverService } from './publish-style-resolver.service';
+export { PublishTypstEmitterService } from './publish-typst-emitter.service';
+export type {
+  RenderedWorldbuildingEntry,
+  RenderedWorldbuildingField,
+  RenderedWorldbuildingTab,
+} from './worldbuilding-publish-renderer.service';
+export { WorldbuildingPublishRendererService } from './worldbuilding-publish-renderer.service';

@@ -8,6 +8,11 @@
  * - Configure output format and styling
  * - Save multiple plans for different audiences
  */
+import {
+  createDefaultPublishStyles,
+  type PublishStyles,
+} from './publish-style';
+export type { PublishStyles } from './publish-style';
 
 /**
  * Supported output formats for publishing
@@ -155,6 +160,18 @@ export interface WorldbuildingItem extends PublishPlanItemBase {
   format: 'appendix' | 'inline';
   /** Title for the worldbuilding section */
   title: string;
+  /** Layout for each entry; falls back to PublishStyles.worldbuilding.defaultLayout */
+  layout?: 'card' | 'compact' | 'detail' | 'appendix';
+  /** Include the entry's identity block (name + schema label). Defaults to true. */
+  includeIdentity?: boolean;
+  /** Include images attached to the entry. Defaults to true. */
+  includeImages?: boolean;
+  /** Include fields whose values are empty/blank. Defaults to false. */
+  includeEmptyFields?: boolean;
+  /** When set, only these dotted field keys are emitted. */
+  includedFieldKeys?: string[];
+  /** When set, these dotted field keys are excluded (applied after include list). */
+  excludedFieldKeys?: string[];
 }
 
 /**
@@ -189,7 +206,11 @@ export interface PublishMetadata {
 }
 
 /**
- * Styling and formatting options
+ * Styling and formatting options.
+ *
+ * Visual typography (fonts, sizes, line height, page setup, per-node styling)
+ * lives on PublishPlan.styles (see publish-style.ts). This interface holds
+ * only structural/semantic options that apply across all output formats.
  */
 export interface PublishOptions {
   /** Chapter numbering style */
@@ -204,14 +225,6 @@ export interface PublishOptions {
   includeCover: boolean;
   /** Cover image reference */
   coverImage?: string;
-  /** Font family for the output */
-  fontFamily: string;
-  /** Base font size in points */
-  fontSize: number;
-  /** Line height multiplier */
-  lineHeight: number;
-  /** Custom CSS for advanced styling */
-  customCss?: string;
 }
 
 /**
@@ -223,9 +236,6 @@ export const DEFAULT_PUBLISH_OPTIONS: PublishOptions = {
   includeWordCounts: false,
   includeToc: true,
   includeCover: true,
-  fontFamily: 'Georgia, serif',
-  fontSize: 12,
-  lineHeight: 1.5,
 };
 
 /**
@@ -254,8 +264,13 @@ export interface PublishPlan {
   metadata: PublishMetadata;
   /** Ordered list of items to include */
   items: PublishPlanItem[];
-  /** Formatting options */
+  /** Structural / semantic options shared across formats */
   options: PublishOptions;
+  /**
+   * Visual typography and layout styles. Consumed by HTML, EPUB, and PDF
+   * generators; ignored by markdown.
+   */
+  styles: PublishStyles;
 }
 
 /**
@@ -361,6 +376,7 @@ export function createDefaultPublishPlan(
     },
     items: [],
     options: { ...DEFAULT_PUBLISH_OPTIONS },
+    styles: createDefaultPublishStyles(),
   };
 }
 

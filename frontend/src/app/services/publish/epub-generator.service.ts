@@ -17,12 +17,25 @@ import {
   type PublishStats,
   type SeparatorItem,
   SeparatorStyle,
+  type WorldbuildingItem,
 } from '../../models/publish-plan';
+import { type PublishStyles } from '../../models/publish-style';
+import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { PublishCssEmitterService } from './publish-css-emitter.service';
 import { applyMarks, MARK_TAGS } from './publish-marks-helper';
+import {
+  type RenderedWorldbuildingEntry,
+  WorldbuildingPublishRendererService,
+} from './worldbuilding-publish-renderer.service';
+
+function clampLevel(n: number): 1 | 2 | 3 | 4 | 5 | 6 {
+  if (!Number.isFinite(n)) return 1;
+  return Math.max(1, Math.min(6, Math.round(n))) as 1 | 2 | 3 | 4 | 5 | 6;
+}
 
 /**
  * Progress information for EPUB generation
@@ -112,6 +125,10 @@ export class EpubGeneratorService {
   private readonly documentService = inject(DocumentService);
   private readonly projectStateService = inject(ProjectStateService);
   private readonly localStorage = inject(LocalStorageService);
+  private readonly cssEmitter = inject(PublishCssEmitterService);
+  private readonly worldbuildingRenderer = inject(
+    WorldbuildingPublishRendererService
+  );
 
   // Cover image data (set during generation)
   private coverImageData: { blob: Blob; mimeType: string } | null = null;
@@ -354,8 +371,7 @@ export class EpubGeneratorService {
         return [this.processBackmatter(item, plan.metadata, chapterNumber)];
 
       case PublishPlanItemType.Worldbuilding:
-        // Future work: implement worldbuilding content
-        return [];
+        return this.processWorldbuilding(item, elements, chapterNumber);
 
       default:
         return [];
@@ -378,7 +394,24 @@ export class EpubGeneratorService {
 
     const chapters: Chapter[] = [];
 
-    if (element.type === ElementType.Item) {
+    if (isWorldbuildingType(element.type)) {
+      // Inline worldbuilding element (e.g. via "Add everything"): render
+      // it as a one-entry chapter using the element's name for the spine
+      // title.
+      const synthetic = this.singleEntryWbItem(element.id);
+      const wbHtml = await this.renderInlineWbHtml(synthetic, [element]);
+      if (wbHtml) {
+        const title = item.titleOverride || element.name;
+        chapters.push({
+          id: element.id,
+          title,
+          filename: `chapter_${String(chapters.length + 1).padStart(3, '0')}.xhtml`,
+          content: this.wrapInXhtml(title, wbHtml),
+          order: chapters.length,
+          level: 0,
+        });
+      }
+    } else if (element.type === ElementType.Item) {
       // Process document
       const content = await this.getDocumentContent(element.id);
       const title = item.titleOverride || element.name;
@@ -389,6 +422,9 @@ export class EpubGeneratorService {
         options
       );
 
+      // Use the element name only for the EPUB navigation/spine title.
+      // Do NOT inject an <h1> into the XHTML body — the user's document
+      // is responsible for any visible heading.
       chapters.push({
         id: element.id,
         title: formattedTitle,
@@ -414,6 +450,20 @@ export class EpubGeneratorService {
             order: chapters.length,
             level: child.level - element.level,
           });
+        } else if (isWorldbuildingType(child.type)) {
+          const synthetic = this.singleEntryWbItem(child.id);
+          const wbHtml = await this.renderInlineWbHtml(synthetic, [child]);
+          if (wbHtml) {
+            const title = child.name;
+            chapters.push({
+              id: child.id,
+              title,
+              filename: `chapter_${String(chapters.length + 1).padStart(3, '0')}.xhtml`,
+              content: this.wrapInXhtml(title, wbHtml),
+              order: chapters.length,
+              level: child.level - element.level,
+            });
+          }
         }
       }
     }
@@ -592,17 +642,21 @@ export class EpubGeneratorService {
     if (textHtml !== null) return textHtml;
 
     // Element node from ProseMirror/Yjs
-    const tagName = this.getTagName(node);
+    const { tagName, classNames } = this.getTagAndClass(node);
     const attributes = this.getAttributes(node);
     const children = this.getChildren(node);
 
+    const classAttr = classNames.length
+      ? ` class="${classNames.join(' ')}"`
+      : '';
+
     // Self-closing tags
     if (['br', 'hr', 'img'].includes(tagName)) {
-      return `<${tagName}${attributes} />`;
+      return `<${tagName}${classAttr}${attributes} />`;
     }
 
     const childHtml = children.map(c => this.nodeToHtml(c)).join('');
-    return `<${tagName}${attributes}>${childHtml}</${tagName}>`;
+    return `<${tagName}${classAttr}${attributes}>${childHtml}</${tagName}>`;
   }
 
   private renderElementRefNode(node: ProseMirrorNode): string | null {
@@ -641,35 +695,52 @@ export class EpubGeneratorService {
     return applyMarks(text, marks, MARK_TAGS);
   }
 
-  private getTagName(node: ProseMirrorNode): string {
-    // Handle ProseMirror node types
-    const typeMap: Record<string, string> = {
-      paragraph: 'p',
-      heading: 'h1', // Will be adjusted based on attrs
-      blockquote: 'blockquote',
-      code_block: 'pre',
-      bullet_list: 'ul',
-      ordered_list: 'ol',
-      list_item: 'li',
-      hard_break: 'br',
-      horizontal_rule: 'hr',
-      image: 'img',
+  private getTagAndClass(node: ProseMirrorNode): {
+    tagName: string;
+    classNames: string[];
+  } {
+    const typeMap: Record<string, { tag: string; cls: string }> = {
+      paragraph: { tag: 'p', cls: 'ink-doc-paragraph' },
+      blockquote: { tag: 'blockquote', cls: 'ink-doc-blockquote' },
+      bullet_list: { tag: 'ul', cls: 'ink-doc-bullet-list' },
+      bulletlist: { tag: 'ul', cls: 'ink-doc-bullet-list' },
+      ordered_list: { tag: 'ol', cls: 'ink-doc-ordered-list' },
+      orderedlist: { tag: 'ol', cls: 'ink-doc-ordered-list' },
+      list_item: { tag: 'li', cls: 'ink-doc-list-item' },
+      listitem: { tag: 'li', cls: 'ink-doc-list-item' },
+      hard_break: { tag: 'br', cls: '' },
+      horizontal_rule: { tag: 'hr', cls: 'ink-doc-horizontal-rule' },
+      code_block: { tag: 'pre', cls: 'ink-doc-code-block' },
+      codeblock: { tag: 'pre', cls: 'ink-doc-code-block' },
+      image: { tag: 'img', cls: 'ink-doc-image' },
+      figure: { tag: 'figure', cls: 'ink-doc-figure' },
+      caption: { tag: 'figcaption', cls: 'ink-doc-caption' },
     };
 
-    // Handle Yjs XmlElement with nodeName (from toJSON())
-    if (typeof node === 'object' && 'nodeName' in node) {
-      const nodeName = String(node.nodeName).toLowerCase();
-      // Map ProseMirror node names to HTML tags
-      return typeMap[nodeName] || nodeName;
+    if (typeof node === 'object' && node) {
+      let name = '';
+      if ('nodeName' in node) name = String(node.nodeName);
+      else if ('type' in node) name = String(node.type);
+      const lower = name.toLowerCase();
+      if (lower === 'heading') {
+        const attrs =
+          'attrs' in node ? (node['attrs'] as Record<string, unknown>) : null;
+        const level = clampLevel(Number(attrs?.['level'] ?? 1));
+        return {
+          tagName: `h${level}`,
+          classNames: [`ink-doc-heading-${level}`],
+        };
+      }
+      const mapped = typeMap[lower];
+      if (mapped) {
+        return {
+          tagName: mapped.tag,
+          classNames: mapped.cls ? [mapped.cls] : [],
+        };
+      }
+      return { tagName: lower || 'div', classNames: [] };
     }
-
-    // Handle ProseMirror-style nodes with type property
-    if (typeof node === 'object' && 'type' in node) {
-      const nodeType = String(node.type);
-      return typeMap[nodeType] || 'div';
-    }
-
-    return 'span';
+    return { tagName: 'span', classNames: [] };
   }
 
   private getAttributes(node: ProseMirrorNode): string {
@@ -781,15 +852,15 @@ export class EpubGeneratorService {
 
     switch (item.style) {
       case SeparatorStyle.PageBreak:
-        content = '<div class="page-break"></div>';
+        content = '<div class="ink-page-break"></div>';
         break;
 
       case SeparatorStyle.SceneBreak:
-        content = `<p class="scene-break">${item.customText || '* * *'}</p>`;
+        content = `<p class="ink-scene-break">${this.escapeHtml(item.customText || '* * *')}</p>`;
         break;
 
       case SeparatorStyle.ChapterBreak:
-        content = '<hr class="chapter-break" />';
+        content = '<hr class="ink-chapter-break" />';
         break;
     }
 
@@ -853,6 +924,117 @@ export class EpubGeneratorService {
     };
   }
 
+  /**
+   * Build a minimal {@link WorldbuildingItem} for a single worldbuilding
+   * element added inline via the publish plan. Suppresses section title.
+   */
+  private singleEntryWbItem(elementId: string): WorldbuildingItem {
+    return {
+      id: `wb-inline-${elementId}`,
+      type: PublishPlanItemType.Worldbuilding,
+      categories: [],
+      format: 'inline',
+      title: '',
+    };
+  }
+
+  /**
+   * Render the inner XHTML for a single inline worldbuilding element,
+   * wrapped in the standard `<section class="ink-wb-section">` so global
+   * WB styles still apply. Returns an empty string when no entry is
+   * produced.
+   */
+  private async renderInlineWbHtml(
+    item: WorldbuildingItem,
+    elements: Element[]
+  ): Promise<string> {
+    const entries = await this.worldbuildingRenderer.renderItem(item, elements);
+    if (entries.length === 0) return '';
+    const parts: string[] = [`<section class="ink-wb-section">`];
+    for (const entry of entries) {
+      parts.push(this.renderWorldbuildingEntry(entry));
+    }
+    parts.push('</section>');
+    return parts.join('\n');
+  }
+
+  /**
+   * Process a Worldbuilding plan item into a single EPUB chapter (one file
+   * containing all included entries).
+   */
+  private async processWorldbuilding(
+    item: WorldbuildingItem,
+    elements: Element[],
+    order: number
+  ): Promise<Chapter[]> {
+    const entries = await this.worldbuildingRenderer.renderItem(item, elements);
+    if (entries.length === 0) return [];
+    const title = item.title || 'Worldbuilding';
+    const parts: string[] = [];
+    parts.push(`<section class="ink-wb-section">`);
+    if (item.title) {
+      parts.push(
+        `<h2 class="ink-wb-section-title">${this.escapeHtml(item.title)}</h2>`
+      );
+    }
+    for (const entry of entries) {
+      parts.push(this.renderWorldbuildingEntry(entry));
+    }
+    parts.push('</section>');
+    return [
+      {
+        id: `worldbuilding-${item.id}`,
+        title,
+        filename: `worldbuilding_${String(order + 1).padStart(3, '0')}.xhtml`,
+        content: this.wrapInXhtml(title, parts.join('\n')),
+        order,
+        level: 0,
+      },
+    ];
+  }
+
+  private renderWorldbuildingEntry(entry: RenderedWorldbuildingEntry): string {
+    const layoutClass = `ink-wb-layout-${entry.layout}`;
+    const schemaClass = entry.schemaId
+      ? ` ink-wb-schema-${this.cssSafe(entry.schemaId)}`
+      : '';
+    const parts: string[] = [];
+    parts.push(`<article class="ink-wb-entry ${layoutClass}${schemaClass}">`);
+    parts.push(
+      `<h3 class="ink-wb-entry-title">${this.escapeHtml(entry.title)}</h3>`
+    );
+    if (entry.imageRef) {
+      parts.push(
+        `<img class="ink-wb-entry-image" src="${this.escapeHtml(entry.imageRef)}" alt="${this.escapeHtml(entry.title)}" />`
+      );
+    }
+    if (entry.description) {
+      parts.push(
+        `<p class="ink-wb-entry-description">${this.escapeHtml(entry.description)}</p>`
+      );
+    }
+    for (const tab of entry.tabs) {
+      parts.push(
+        `<section class="ink-wb-tab" data-tab="${this.cssSafe(tab.key)}">`,
+        `<h4 class="ink-wb-tab-heading">${this.escapeHtml(tab.label)}</h4>`,
+        '<dl class="ink-wb-fields">'
+      );
+      for (const f of tab.fields) {
+        parts.push(
+          `<dt class="ink-wb-field-label">${this.escapeHtml(f.label)}</dt>`,
+          `<dd class="ink-wb-field-value">${this.escapeHtml(f.displayValue)}</dd>`
+        );
+      }
+      parts.push('</dl>', '</section>');
+    }
+    parts.push('</article>');
+    return parts.join('\n');
+  }
+
+  private cssSafe(s: string): string {
+    return s.replaceAll(/[^a-zA-Z0-9_-]/g, '-');
+  }
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Private Methods - EPUB Structure
   // ─────────────────────────────────────────────────────────────────────────────
@@ -895,7 +1077,7 @@ export class EpubGeneratorService {
     }
 
     // Add stylesheet
-    zip.file('OEBPS/styles.css', this.generateStylesheet(plan.options));
+    zip.file('OEBPS/styles.css', this.generateStylesheet(plan.styles));
 
     // Add OPF (package) file
     zip.file(
@@ -1094,80 +1276,8 @@ ${navItems}
   /**
    * Generate stylesheet
    */
-  private generateStylesheet(options: PublishOptions): string {
-    return `/* Inkweld EPUB Stylesheet */
-
-body {
-  font-family: ${options.fontFamily};
-  font-size: ${options.fontSize}pt;
-  line-height: ${options.lineHeight};
-  margin: 1em;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-weight: bold;
-  margin-top: 1em;
-  margin-bottom: 0.5em;
-}
-
-h1 { font-size: 2em; }
-h2 { font-size: 1.5em; }
-h3 { font-size: 1.17em; }
-h4 { font-size: 1em; }
-
-p {
-  margin: 0;
-  text-indent: 1.5em;
-}
-
-p:first-of-type,
-h1 + p, h2 + p, h3 + p, h4 + p,
-.scene-break + p {
-  text-indent: 0;
-}
-
-blockquote {
-  margin: 1em 2em;
-  font-style: italic;
-}
-
-.scene-break {
-  text-align: center;
-  margin: 2em 0;
-  text-indent: 0;
-}
-
-.page-break {
-  page-break-before: always;
-}
-
-.chapter-break {
-  margin: 2em 0;
-  border: none;
-  border-top: 1px solid #ccc;
-}
-
-.title-page {
-  text-align: center;
-  padding-top: 30%;
-}
-
-.title-page h1 {
-  font-size: 2.5em;
-  margin-bottom: 0.5em;
-}
-
-.title-page .subtitle {
-  font-size: 1.2em;
-  font-style: italic;
-}
-
-.title-page .author {
-  font-size: 1.5em;
-  margin-top: 2em;
-}
-
-${options.customCss || ''}`;
+  private generateStylesheet(styles: PublishStyles): string {
+    return this.cssEmitter.emitEpubStylesheet(styles);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1224,10 +1334,10 @@ ${content}
    * Generate title page HTML
    */
   private generateTitlePage(metadata: PublishMetadata): string {
-    return `<div class="title-page">
-  <h1>${this.escapeHtml(metadata.title)}</h1>
-  ${metadata.subtitle ? `<p class="subtitle">${this.escapeHtml(metadata.subtitle)}</p>` : ''}
-  <p class="author">${this.escapeHtml(metadata.author)}</p>
+    return `<div class="ink-frontmatter ink-frontmatter-title">
+  <h1 class="ink-frontmatter-title-text">${this.escapeHtml(metadata.title)}</h1>
+  ${metadata.subtitle ? `<p class="ink-frontmatter-subtitle">${this.escapeHtml(metadata.subtitle)}</p>` : ''}
+  <p class="ink-frontmatter-author">${this.escapeHtml(metadata.author)}</p>
 </div>`;
   }
 
@@ -1236,7 +1346,7 @@ ${content}
    */
   private generateCopyrightPage(metadata: PublishMetadata): string {
     const year = new Date().getFullYear();
-    return `<div class="copyright-page">
+    return `<div class="ink-frontmatter ink-frontmatter-copyright">
   <p>${this.escapeHtml(metadata.copyright || `Copyright © ${year} ${metadata.author}`)}</p>
   <p>All rights reserved.</p>
   ${metadata.publisher ? `<p>Published by ${this.escapeHtml(metadata.publisher)}</p>` : ''}

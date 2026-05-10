@@ -26,9 +26,10 @@ import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { ProjectCoverComponent } from '@components/project-cover/project-cover.component';
 import { PublishPreviewComponent } from '@components/publish-preview/publish-preview.component';
+import { PublishStyleEditorComponent } from '@components/publish-style-editor/publish-style-editor.component';
 import {
   PublishCompleteDialogComponent,
   type PublishCompleteDialogData,
@@ -46,6 +47,7 @@ import {
   PublishPlanItemType,
   SeparatorStyle,
 } from '@models/publish-plan';
+import { type PublishStyles } from '@models/publish-style';
 import { type PublishedFile } from '@models/published-file';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
@@ -84,13 +86,13 @@ type PlanSection =
     MatTooltipModule,
     ProjectCoverComponent,
     PublishPreviewComponent,
+    PublishStyleEditorComponent,
     DatePipe,
     FileSizePipe,
   ],
 })
 export class PublishPlanTabComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
   protected projectState = inject(ProjectStateService);
   private readonly publishService = inject(PublishService);
@@ -130,7 +132,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   }[] = [
     { key: 'metadata', icon: 'menu_book', label: 'Metadata' },
     { key: 'contents', icon: 'list', label: 'Contents' },
-    { key: 'formatting', icon: 'tune', label: 'Formatting' },
+    { key: 'formatting', icon: 'format_paint', label: 'Style' },
     { key: 'preview', icon: 'visibility', label: 'Preview' },
     { key: 'publish', icon: 'publish', label: 'Publish' },
   ];
@@ -299,6 +301,11 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     this.updatePlan({
       options: { ...plan.options, [option]: event.checked },
     });
+  }
+
+  /** Replace the plan's PublishStyles object. */
+  updateStyles(styles: PublishStyles): void {
+    this.updatePlan({ styles });
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -701,19 +708,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     });
 
     firstValueFrom(dialogRef.afterClosed())
-      .then(dialogResult => {
-        if (dialogResult?.action === 'view-files') {
-          const parts = projectKey.split('/');
-          return this.router.navigate([
-            '/project',
-            parts[0],
-            parts[1],
-            'tab',
-            'published-files',
-          ]);
-        }
-        return undefined;
-      })
+      .then(() => undefined)
       .catch(() => {});
   }
 

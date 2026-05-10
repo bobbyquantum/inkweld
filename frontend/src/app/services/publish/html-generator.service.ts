@@ -15,12 +15,26 @@ import {
   type PublishStats,
   type SeparatorItem,
   SeparatorStyle,
+  type WorldbuildingItem,
 } from '../../models/publish-plan';
+import { type PublishStyles } from '../../models/publish-style';
 import { trimHyphens } from '../../utils/string-utils';
+import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { PublishCssEmitterService } from './publish-css-emitter.service';
+import {
+  type RenderedWorldbuildingEntry,
+  WorldbuildingPublishRendererService,
+} from './worldbuilding-publish-renderer.service';
+
+function clampLevel(n: number): 1 | 2 | 3 | 4 | 5 | 6 {
+  if (!Number.isFinite(n)) return 1;
+  const v = Math.max(1, Math.min(6, Math.round(n)));
+  return v as 1 | 2 | 3 | 4 | 5 | 6;
+}
 
 export interface HtmlProgress {
   phase: HtmlPhase;
@@ -67,6 +81,10 @@ export class HtmlGeneratorService {
   private readonly documentService = inject(DocumentService);
   private readonly projectStateService = inject(ProjectStateService);
   private readonly localStorage = inject(LocalStorageService);
+  private readonly cssEmitter = inject(PublishCssEmitterService);
+  private readonly worldbuildingRenderer = inject(
+    WorldbuildingPublishRendererService
+  );
 
   private coverImageData: string | null = null;
 
@@ -223,7 +241,8 @@ export class HtmlGeneratorService {
     return this.wrapInHtmlDocument(
       sections.join('\n'),
       plan.metadata,
-      plan.options
+      plan.options,
+      plan.styles
     );
   }
 
@@ -245,51 +264,126 @@ export class HtmlGeneratorService {
         return this.processFrontmatter(item, plan.metadata);
 
       case PublishPlanItemType.TableOfContents:
-        return '<nav class="toc"><h2>Table of Contents</h2></nav>';
+        return this.buildTOC(plan, elements, item.title || 'Table of Contents');
+
+      case PublishPlanItemType.Worldbuilding:
+        return this.processWorldbuilding(item, elements);
 
       default:
         return '';
     }
   }
 
+  /**
+   * Build a minimal {@link WorldbuildingItem} for a single worldbuilding
+   * element added inline via the publish plan. Suppresses section title.
+   */
+  private singleEntryWbItem(elementId: string): WorldbuildingItem {
+    return {
+      id: `wb-inline-${elementId}`,
+      type: PublishPlanItemType.Worldbuilding,
+      categories: [],
+      format: 'inline',
+      title: '',
+    };
+  }
+
+  private async processWorldbuilding(
+    item: WorldbuildingItem,
+    elements: Element[]
+  ): Promise<string> {
+    const entries = await this.worldbuildingRenderer.renderItem(item, elements);
+    if (entries.length === 0) return '';
+    const parts: string[] = [];
+    parts.push(`<section class="ink-wb-section">`);
+    if (item.title) {
+      parts.push(
+        `<h2 class="ink-wb-section-title">${this.escapeHtml(item.title)}</h2>`
+      );
+    }
+    for (const entry of entries) {
+      parts.push(this.renderWorldbuildingEntry(entry));
+    }
+    parts.push('</section>');
+    return parts.join('\n');
+  }
+
+  private renderWorldbuildingEntry(entry: RenderedWorldbuildingEntry): string {
+    const layoutClass = `ink-wb-layout-${entry.layout}`;
+    const schemaClass = entry.schemaId
+      ? ` ink-wb-schema-${this.cssSafe(entry.schemaId)}`
+      : '';
+    const parts: string[] = [];
+    parts.push(`<article class="ink-wb-entry ${layoutClass}${schemaClass}">`);
+    parts.push(
+      `<h3 class="ink-wb-entry-title">${this.escapeHtml(entry.title)}</h3>`
+    );
+    if (entry.imageRef) {
+      parts.push(
+        `<img class="ink-wb-entry-image" src="${this.escapeHtml(entry.imageRef)}" alt="${this.escapeHtml(entry.title)}" />`
+      );
+    }
+    if (entry.description) {
+      parts.push(
+        `<p class="ink-wb-entry-description">${this.escapeHtml(entry.description)}</p>`
+      );
+    }
+    for (const tab of entry.tabs) {
+      parts.push(
+        `<section class="ink-wb-tab" data-tab="${this.cssSafe(tab.key)}">`,
+        `<h4 class="ink-wb-tab-heading">${this.escapeHtml(tab.label)}</h4>`,
+        '<dl class="ink-wb-fields">'
+      );
+      for (const f of tab.fields) {
+        parts.push(
+          `<dt class="ink-wb-field-label">${this.escapeHtml(f.label)}</dt>`,
+          `<dd class="ink-wb-field-value">${this.escapeHtml(f.displayValue)}</dd>`
+        );
+      }
+      parts.push('</dl>', '</section>');
+    }
+    parts.push('</article>');
+    return parts.join('\n');
+  }
+
+  private cssSafe(s: string): string {
+    return s.replaceAll(/[^a-zA-Z0-9_-]/g, '-');
+  }
+
   private async processElement(
     item: ElementItem,
     elements: Element[],
-    options: PublishOptions,
-    chapterNumber: number
+    _options: PublishOptions,
+    _chapterNumber: number
   ): Promise<string> {
     const element = elements.find(e => e.id === item.elementId);
     if (!element) return '';
 
     const parts: string[] = [];
 
-    if (element.type === ElementType.Item) {
+    if (isWorldbuildingType(element.type)) {
+      // Worldbuilding element added inline (e.g. via "Add everything").
+      // Render as a single-entry block wrapped in the standard WB section
+      // so global WB styling still applies.
+      const synthetic = this.singleEntryWbItem(element.id);
+      const html = await this.processWorldbuilding(synthetic, [element]);
+      if (html) parts.push(html);
+    } else if (element.type === ElementType.Item) {
       const content = await this.getDocumentContent(element.id);
-      const title = item.titleOverride || element.name;
-      const formattedTitle = this.formatChapterTitle(
-        title,
-        chapterNumber,
-        item.isChapter ?? false,
-        options
-      );
-
-      parts.push(
-        `<section class="chapter">`,
-        `<h1>${this.escapeHtml(formattedTitle)}</h1>`,
-        content,
-        `</section>`
-      );
+      // The user's document supplies its own heading (if any). We only wrap
+      // it in a <section> so chapter-level styling (page breaks, margins)
+      // can still target it.
+      parts.push(`<section class="ink-chapter">`, content, `</section>`);
     } else if (element.type === ElementType.Folder && item.includeChildren) {
       const children = this.getChildElements(element, elements);
       for (const child of children) {
         if (child.type === ElementType.Item) {
           const content = await this.getDocumentContent(child.id);
-          parts.push(
-            `<section class="section">`,
-            `<h2>${this.escapeHtml(child.name)}</h2>`,
-            content,
-            `</section>`
-          );
+          parts.push(`<section class="ink-section">`, content, `</section>`);
+        } else if (isWorldbuildingType(child.type)) {
+          const synthetic = this.singleEntryWbItem(child.id);
+          const html = await this.processWorldbuilding(synthetic, [child]);
+          if (html) parts.push(html);
         }
       }
     }
@@ -303,11 +397,11 @@ export class HtmlGeneratorService {
   ): string {
     switch (item.style) {
       case SeparatorStyle.PageBreak:
-        return '<div class="page-break"></div>';
+        return '<div class="ink-page-break"></div>';
       case SeparatorStyle.SceneBreak:
-        return `<div class="scene-break">${this.escapeHtml(item.customText || options.sceneBreakText || '* * *')}</div>`;
+        return `<div class="ink-scene-break">${this.escapeHtml(item.customText || options.sceneBreakText || '* * *')}</div>`;
       case SeparatorStyle.ChapterBreak:
-        return '<hr class="chapter-break" />';
+        return '<hr class="ink-chapter-break" />';
       default:
         return '';
     }
@@ -443,12 +537,15 @@ export class HtmlGeneratorService {
     const elementRefHtml = this.renderElementRef(node);
     if (elementRefHtml !== null) return elementRefHtml;
 
-    const tagName = this.getTagName(node);
+    const { tagName, classNames } = this.getTagAndClass(node);
     const children = this.getChildren(node);
     const childHtml = children.map(c => this.nodeToHtml(c)).join('');
 
     if (['br', 'hr'].includes(tagName)) return `<${tagName} />`;
-    return `<${tagName}>${childHtml}</${tagName}>`;
+    const classAttr = classNames.length
+      ? ` class="${classNames.join(' ')}"`
+      : '';
+    return `<${tagName}${classAttr}>${childHtml}</${tagName}>`;
   }
 
   private renderElementRef(node: ProseMirrorNode): string | null {
@@ -463,16 +560,26 @@ export class HtmlGeneratorService {
     return displayText ? this.escapeHtml(displayText) : '';
   }
 
-  private getTagName(node: ProseMirrorNode): string {
-    const typeMap: Record<string, string> = {
-      paragraph: 'p',
-      heading: 'h2',
-      blockquote: 'blockquote',
-      bullet_list: 'ul',
-      ordered_list: 'ol',
-      list_item: 'li',
-      hard_break: 'br',
-      horizontal_rule: 'hr',
+  private getTagAndClass(node: ProseMirrorNode): {
+    tagName: string;
+    classNames: string[];
+  } {
+    const typeMap: Record<string, { tag: string; cls: string }> = {
+      paragraph: { tag: 'p', cls: 'ink-doc-paragraph' },
+      blockquote: { tag: 'blockquote', cls: 'ink-doc-blockquote' },
+      bullet_list: { tag: 'ul', cls: 'ink-doc-bullet-list' },
+      bulletlist: { tag: 'ul', cls: 'ink-doc-bullet-list' },
+      ordered_list: { tag: 'ol', cls: 'ink-doc-ordered-list' },
+      orderedlist: { tag: 'ol', cls: 'ink-doc-ordered-list' },
+      list_item: { tag: 'li', cls: 'ink-doc-list-item' },
+      listitem: { tag: 'li', cls: 'ink-doc-list-item' },
+      hard_break: { tag: 'br', cls: '' },
+      horizontal_rule: { tag: 'hr', cls: 'ink-doc-horizontal-rule' },
+      code_block: { tag: 'pre', cls: 'ink-doc-code-block' },
+      codeblock: { tag: 'pre', cls: 'ink-doc-code-block' },
+      image: { tag: 'img', cls: 'ink-doc-image' },
+      figure: { tag: 'figure', cls: 'ink-doc-figure' },
+      caption: { tag: 'figcaption', cls: 'ink-doc-caption' },
     };
 
     if (typeof node === 'object' && node) {
@@ -484,9 +591,26 @@ export class HtmlGeneratorService {
       } else {
         name = '';
       }
-      return typeMap[name.toLowerCase()] || name.toLowerCase() || 'div';
+      const lower = name.toLowerCase();
+      if (lower === 'heading') {
+        const attrs =
+          'attrs' in node ? (node['attrs'] as Record<string, unknown>) : null;
+        const level = clampLevel(Number(attrs?.['level'] ?? 1));
+        return {
+          tagName: `h${level}`,
+          classNames: [`ink-doc-heading-${level}`],
+        };
+      }
+      const mapped = typeMap[lower];
+      if (mapped) {
+        return {
+          tagName: mapped.tag,
+          classNames: mapped.cls ? [mapped.cls] : [],
+        };
+      }
+      return { tagName: lower || 'div', classNames: [] };
     }
-    return 'span';
+    return { tagName: 'span', classNames: [] };
   }
 
   private getChildren(node: ProseMirrorNode): ProseMirrorNode[] {
@@ -499,42 +623,66 @@ export class HtmlGeneratorService {
   }
 
   private applyMarks(text: string, node: ProseMirrorNode): string {
-    const marks = this.getMarks(node);
+    const markObjs = this.getMarksWithAttrs(node);
     let result = text;
-    if (marks.includes('bold') || marks.includes('strong')) {
-      result = `<strong>${result}</strong>`;
-    }
-    if (marks.includes('italic') || marks.includes('em')) {
-      result = `<em>${result}</em>`;
-    }
-    if (marks.includes('code')) {
-      result = `<code>${result}</code>`;
-    }
-    if (marks.includes('strike')) {
-      result = `<del>${result}</del>`;
+    for (const m of markObjs) {
+      const name = m.type;
+      if (name === 'comment') continue; // comments stripped from publish output
+      if (name === 'bold' || name === 'strong') {
+        result = `<strong class="ink-mark-bold">${result}</strong>`;
+      } else if (name === 'italic' || name === 'em') {
+        result = `<em class="ink-mark-italic">${result}</em>`;
+      } else if (name === 'underline') {
+        result = `<u class="ink-mark-underline">${result}</u>`;
+      } else if (name === 'strike') {
+        result = `<s class="ink-mark-strike">${result}</s>`;
+      } else if (name === 'code') {
+        result = `<code class="ink-mark-code">${result}</code>`;
+      } else if (name === 'subscript' || name === 'sub') {
+        result = `<sub class="ink-mark-subscript">${result}</sub>`;
+      } else if (name === 'superscript' || name === 'sup') {
+        result = `<sup class="ink-mark-superscript">${result}</sup>`;
+      } else if (name === 'link') {
+        const hrefRaw = m.attrs?.['href'];
+        const href = typeof hrefRaw === 'string' ? hrefRaw : '';
+        result = `<a class="ink-mark-link" href="${this.escapeHtml(href)}">${result}</a>`;
+      }
     }
     return result;
   }
 
-  private getMarks(node: ProseMirrorNode): string[] {
+  private getMarksWithAttrs(
+    node: ProseMirrorNode
+  ): { type: string; attrs?: Record<string, unknown> }[] {
     if (typeof node !== 'object' || !node) return [];
     const marks = (node as Record<string, unknown>)['marks'];
     if (!Array.isArray(marks)) return [];
     return marks
       .map(m => {
-        if (typeof m === 'string') return m;
-        if (typeof m === 'object' && m && 'type' in m)
-          return String((m as Record<string, unknown>)['type']);
-        return '';
+        if (typeof m === 'string') return { type: m };
+        if (typeof m === 'object' && m && 'type' in m) {
+          const obj = m as Record<string, unknown>;
+          return {
+            type: String(obj['type']),
+            attrs: (obj['attrs'] as Record<string, unknown>) ?? undefined,
+          };
+        }
+        return { type: '' };
       })
-      .filter(Boolean);
+      .filter(m => Boolean(m.type));
+  }
+
+  private getMarks(node: ProseMirrorNode): string[] {
+    return this.getMarksWithAttrs(node).map(m => m.type);
   }
 
   private wrapInHtmlDocument(
     content: string,
     metadata: PublishMetadata,
-    options: PublishOptions
+    _options: PublishOptions,
+    styles: PublishStyles
   ): string {
+    const stylesheet = this.cssEmitter.emitHtmlStylesheet(styles);
     return `<!DOCTYPE html>
 <html lang="${metadata.language || 'en'}">
 <head>
@@ -544,33 +692,76 @@ export class HtmlGeneratorService {
   <meta name="author" content="${this.escapeHtml(metadata.author)}">
   ${metadata.description ? `<meta name="description" content="${this.escapeHtml(metadata.description)}">` : ''}
   <style>
-    body {
-      font-family: ${options.fontFamily || 'Georgia, serif'};
-      font-size: ${options.fontSize || 12}pt;
-      line-height: ${options.lineHeight || 1.5};
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 2rem;
-      color: #333;
-    }
-    .title-page { text-align: center; margin-bottom: 3rem; }
-    .title { font-size: 2.5rem; margin-bottom: 0.5rem; }
-    .subtitle { font-size: 1.5rem; font-style: italic; color: #666; }
-    .author { font-size: 1.25rem; margin-top: 2rem; }
-    .cover-image { max-width: 100%; height: auto; margin-bottom: 2rem; }
-    .chapter { margin-bottom: 3rem; }
-    .chapter h1 { font-size: 1.75rem; border-bottom: 1px solid #ddd; padding-bottom: 0.5rem; }
-    .scene-break { text-align: center; margin: 2rem 0; color: #666; }
-    .page-break { page-break-after: always; }
-    .copyright { font-size: 0.875rem; color: #666; margin-top: 2rem; }
-    blockquote { border-left: 3px solid #ddd; padding-left: 1rem; margin-left: 0; font-style: italic; }
-    ${options.customCss || ''}
+${stylesheet}
   </style>
 </head>
 <body>
 ${content}
 </body>
 </html>`;
+  }
+
+  /**
+   * Build an HTML table of contents listing each top-level Element item.
+   * Folder entries appear as section headers; document entries link to a
+   * generated id. Chapter numbering (when enabled) is reflected here only
+   * — the document body never contains an auto-emitted heading.
+   */
+  private buildTOC(
+    plan: PublishPlan,
+    elements: Element[],
+    title: string
+  ): string {
+    const lines: string[] = [
+      `<nav class="ink-toc">`,
+      `<h2 class="ink-toc-title">${this.escapeHtml(title)}</h2>`,
+      `<ul class="ink-toc-list">`,
+    ];
+    let chapterNumber = 0;
+
+    for (const item of plan.items) {
+      if (item.type !== PublishPlanItemType.Element) continue;
+      const element = elements.find(e => e.id === item.elementId);
+      if (!element) continue;
+
+      const elemTitle = item.titleOverride || element.name;
+      const formattedTitle = this.formatChapterTitle(
+        elemTitle,
+        chapterNumber,
+        item.isChapter ?? false,
+        plan.options
+      );
+      const safe = this.escapeHtml(formattedTitle);
+      const anchor = this.cssSafe(formattedTitle);
+
+      if (element.type === ElementType.Folder && item.includeChildren) {
+        lines.push(`<li class="ink-toc-folder"><strong>${safe}</strong>`);
+        const children = this.getChildElements(element, elements);
+        if (children.length) {
+          lines.push(`<ul class="ink-toc-list">`);
+          for (const child of children) {
+            if (child.type === ElementType.Item) {
+              const childSafe = this.escapeHtml(child.name);
+              const childAnchor = this.cssSafe(child.name);
+              lines.push(
+                `<li class="ink-toc-entry"><a href="#${childAnchor}">${childSafe}</a></li>`
+              );
+            }
+          }
+          lines.push(`</ul>`);
+        }
+        lines.push(`</li>`);
+      } else {
+        lines.push(
+          `<li class="ink-toc-entry"><a href="#${anchor}">${safe}</a></li>`
+        );
+      }
+
+      if (item.isChapter) chapterNumber++;
+    }
+
+    lines.push(`</ul>`, `</nav>`);
+    return lines.join('\n');
   }
 
   private formatChapterTitle(

@@ -1,0 +1,314 @@
+<div class="style-editor" data-testid="publish-style-editor">
+  <!-- Preset picker -->
+  <section class="editor-section preset-section">
+    <header class="section-header">
+      <h3>Preset</h3>
+      <span class="current-preset" data-testid="current-preset-label">{{
+        currentPresetLabel()
+      }}</span>
+    </header>
+    <div class="preset-controls">
+      <mat-form-field appearance="outline" class="preset-select">
+        <mat-label>Style preset</mat-label>
+        <mat-select
+          [value]="styles.preset ?? ''"
+          (selectionChange)="selectPreset($event.value)"
+          data-testid="preset-select">
+          @for (preset of presets; track preset.id) {
+            <mat-option [value]="preset.id">{{ preset.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="resetToDefaults()"
+        data-testid="reset-defaults-button">
+        Reset to defaults
+      </button>
+    </div>
+    @if (styles.preset; as id) {
+      @for (preset of presets; track preset.id) {
+        @if (preset.id === id) {
+          <p class="preset-description">{{ preset.description }}</p>
+        }
+      }
+    }
+  </section>
+
+  <mat-accordion class="style-sections" multi>
+    <!-- Page setup -->
+    <mat-expansion-panel data-testid="section-page">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Page setup</mat-panel-title>
+      </mat-expansion-panel-header>
+      <div class="grid two-col">
+        <mat-form-field appearance="outline">
+          <mat-label>Page size</mat-label>
+          <mat-select
+            [value]="styles.page.size"
+            (selectionChange)="updatePage('size', $event.value)"
+            data-testid="page-size-select">
+            @for (size of pageSizes; track size.id) {
+              <mat-option [value]="size.id">{{ size.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Page numbers</mat-label>
+          <mat-select
+            [value]="styles.page.pageNumbers"
+            (selectionChange)="updatePage('pageNumbers', $event.value)"
+            data-testid="page-numbers-select">
+            @for (fmt of pageNumberFormats; track fmt.id) {
+              <mat-option [value]="fmt.id">{{ fmt.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Margin top (in)</mat-label>
+          <input
+            matInput
+            type="number"
+            step="0.05"
+            [value]="styles.page.marginTop"
+            (change)="updatePage('marginTop', parseNumber($event) ?? 0)" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Margin bottom (in)</mat-label>
+          <input
+            matInput
+            type="number"
+            step="0.05"
+            [value]="styles.page.marginBottom"
+            (change)="updatePage('marginBottom', parseNumber($event) ?? 0)" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Margin inside (in)</mat-label>
+          <input
+            matInput
+            type="number"
+            step="0.05"
+            [value]="styles.page.marginInside"
+            (change)="updatePage('marginInside', parseNumber($event) ?? 0)" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Margin outside (in)</mat-label>
+          <input
+            matInput
+            type="number"
+            step="0.05"
+            [value]="styles.page.marginOutside"
+            (change)="updatePage('marginOutside', parseNumber($event) ?? 0)" />
+        </mat-form-field>
+      </div>
+      <mat-checkbox
+        [checked]="styles.page.runningHeader"
+        (change)="updatePage('runningHeader', $event.checked)"
+        data-testid="page-running-header">
+        Running header with chapter title
+      </mat-checkbox>
+    </mat-expansion-panel>
+
+    <!-- Base text -->
+    <mat-expansion-panel data-testid="section-base-text">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Body text</mat-panel-title>
+      </mat-expansion-panel-header>
+      <ng-container
+        [ngTemplateOutlet]="textStyleControls"
+        [ngTemplateOutletContext]="{
+          $implicit: styles.baseText,
+          onChange: updateBaseTextBound,
+          controlsId: 'base-text',
+        }">
+      </ng-container>
+    </mat-expansion-panel>
+
+    <!-- Per-node sections -->
+    @for (section of nodeSections; track section.key) {
+      <mat-expansion-panel [attr.data-testid]="'section-node-' + section.key">
+        <mat-expansion-panel-header>
+          <mat-panel-title>{{ section.label }}</mat-panel-title>
+        </mat-expansion-panel-header>
+        <ng-container
+          [ngTemplateOutlet]="textStyleControls"
+          [ngTemplateOutletContext]="{
+            $implicit: getNodeText(section.key),
+            onChange: makeNodeUpdater(section.key),
+            controlsId: section.key,
+          }">
+        </ng-container>
+      </mat-expansion-panel>
+    }
+
+    <!-- Chapter title -->
+    <mat-expansion-panel data-testid="section-chapter">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Chapter title</mat-panel-title>
+      </mat-expansion-panel-header>
+      <ng-container
+        [ngTemplateOutlet]="textStyleControls"
+        [ngTemplateOutletContext]="{
+          $implicit: styles.structure.chapterTitle.text,
+          onChange: updateChapterTextBound,
+          controlsId: 'chapter',
+        }">
+      </ng-container>
+      <mat-checkbox
+        [checked]="styles.structure.chapterTitle.pageBreakBefore"
+        (change)="updateChapterPageBreak($event.checked)"
+        data-testid="chapter-page-break">
+        Page break before chapter
+      </mat-checkbox>
+    </mat-expansion-panel>
+
+    <!-- Scene break -->
+    <mat-expansion-panel data-testid="section-scene-break">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Scene break</mat-panel-title>
+      </mat-expansion-panel-header>
+      <ng-container
+        [ngTemplateOutlet]="textStyleControls"
+        [ngTemplateOutletContext]="{
+          $implicit: styles.structure.sceneBreak.text,
+          onChange: updateSceneBreakTextBound,
+          controlsId: 'scene-break',
+        }">
+      </ng-container>
+    </mat-expansion-panel>
+
+    <!-- Worldbuilding -->
+    <mat-expansion-panel data-testid="section-worldbuilding">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Worldbuilding</mat-panel-title>
+      </mat-expansion-panel-header>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Default layout</mat-label>
+        <mat-select
+          [value]="styles.worldbuilding.defaultLayout"
+          (selectionChange)="updateWorldbuildingLayout($event.value)"
+          data-testid="worldbuilding-layout-select">
+          @for (layout of worldbuildingLayouts; track layout.id) {
+            <mat-option [value]="layout.id">{{ layout.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <h4>Entry title</h4>
+      <ng-container
+        [ngTemplateOutlet]="textStyleControls"
+        [ngTemplateOutletContext]="{
+          $implicit: styles.worldbuilding.entryTitle,
+          onChange: updateWorldbuildingEntryTitleBound,
+          controlsId: 'wb-entry-title',
+        }">
+      </ng-container>
+    </mat-expansion-panel>
+  </mat-accordion>
+</div>
+
+<!-- Reusable TextStyle controls. The `onChange` callback receives (key, value). -->
+<ng-template
+  #textStyleControls
+  let-text
+  let-onChange="onChange"
+  let-controlsId="controlsId">
+  <div
+    class="grid two-col"
+    [attr.data-testid]="
+      controlsId ? 'text-style-controls-' + controlsId : null
+    ">
+    <mat-form-field appearance="outline">
+      <mat-label>Font</mat-label>
+      <mat-select
+        [value]="text.font ?? ''"
+        [attr.data-testid]="controlsId ? 'font-' + controlsId : null"
+        (selectionChange)="onChange('font', $event.value || undefined)">
+        <mat-option [value]="''">Inherit</mat-option>
+        @for (token of fontTokens; track token.id) {
+          <mat-option [value]="token.id" [style.font-family]="token.css">
+            {{ token.label }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Size (pt)</mat-label>
+      <input
+        matInput
+        type="number"
+        step="0.5"
+        [value]="text.fontSize ?? ''"
+        [attr.data-testid]="controlsId ? 'font-size-' + controlsId : null"
+        (change)="onChange('fontSize', parseNumber($event))" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Weight</mat-label>
+      <mat-select
+        [value]="text.weight ?? ''"
+        [attr.data-testid]="controlsId ? 'weight-' + controlsId : null"
+        (selectionChange)="onChange('weight', $event.value || undefined)">
+        <mat-option [value]="''">Inherit</mat-option>
+        @for (w of weights; track w) {
+          <mat-option [value]="w">{{ w }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Style</mat-label>
+      <mat-select
+        [value]="text.style ?? ''"
+        [attr.data-testid]="controlsId ? 'style-' + controlsId : null"
+        (selectionChange)="onChange('style', $event.value || undefined)">
+        <mat-option [value]="''">Inherit</mat-option>
+        @for (s of fontStyles; track s) {
+          <mat-option [value]="s">{{ s }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Line height</mat-label>
+      <input
+        matInput
+        type="number"
+        step="0.05"
+        [value]="text.lineHeight ?? ''"
+        [attr.data-testid]="controlsId ? 'line-height-' + controlsId : null"
+        (change)="onChange('lineHeight', parseNumber($event))" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Alignment</mat-label>
+      <mat-select
+        [value]="text.align ?? ''"
+        [attr.data-testid]="controlsId ? 'align-' + controlsId : null"
+        (selectionChange)="onChange('align', $event.value || undefined)">
+        <mat-option [value]="''">Inherit</mat-option>
+        @for (a of aligns; track a) {
+          <mat-option [value]="a">{{ a }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Color</mat-label>
+      <input
+        matInput
+        type="text"
+        placeholder="#111111"
+        [value]="text.color ?? ''"
+        [attr.data-testid]="controlsId ? 'color-' + controlsId : null"
+        (change)="onChange('color', parseColor($event))" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>First-line indent (em)</mat-label>
+      <input
+        matInput
+        type="number"
+        step="0.1"
+        [value]="text.firstLineIndent ?? ''"
+        [attr.data-testid]="
+          controlsId ? 'first-line-indent-' + controlsId : null
+        "
+        (change)="onChange('firstLineIndent', parseNumber($event))" />
+    </mat-form-field>
+  </div>
+</ng-template>

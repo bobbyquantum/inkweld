@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
-import { $typst } from '@myriaddreamin/typst.ts/contrib/snippet';
+import { $typst, TypstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
 import {
@@ -16,13 +16,21 @@ import {
   type PublishStats,
   type SeparatorItem,
   SeparatorStyle,
+  type WorldbuildingItem,
 } from '../../models/publish-plan';
+import { type PublishStyles } from '../../models/publish-style';
 import { trimHyphens } from '../../utils/string-utils';
+import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { applyMarks, TYPST_MARK_TAGS } from './publish-marks-helper';
+import { PublishTypstEmitterService } from './publish-typst-emitter.service';
+import {
+  type RenderedWorldbuildingEntry,
+  WorldbuildingPublishRendererService,
+} from './worldbuilding-publish-renderer.service';
 
 /**
  * Progress information for PDF generation
@@ -61,6 +69,7 @@ export interface PdfResult {
 interface PdfContext {
   markup: string;
   options: PublishOptions;
+  styles?: PublishStyles;
   wordCount: number;
   chapterCount: number;
 }
@@ -79,6 +88,62 @@ type ProseMirrorNode =
   | undefined;
 
 /**
+ * URLs of bundled font files preloaded into the Typst WASM compiler.
+ *
+ * **Format must be TTF/OTF.** The WASM compiler parses fonts via
+ * `ttf-parser`, which rejects woff/woff2 silently — Typst then falls
+ * back to its default Libertinus Serif and font-preset switching has no
+ * visible effect. The `@fontsource/*` packages we use for browser CSS
+ * only ship woff/woff2, so TTFs are downloaded by
+ * `frontend/scripts/fetch-publish-fonts.mjs` during `bun install` and
+ * placed in `frontend/public/assets/fonts/` (gitignored). Angular serves
+ * `public/` as static assets, so they are reachable at the URLs below.
+ *
+ * Typst resolves the `font:` argument by matching the family name
+ * embedded in the font file, so the URL list itself just needs to cover
+ * every variant (regular / italic / bold / bold-italic) we want
+ * available in PDF output without weight-synthesis or italic-faux
+ * artefacts.
+ *
+ * Exported for testing — `publish-style.spec.ts` and the spec for this
+ * service assert every URL points at a bundled family present in
+ * `PUBLISH_FONT_TOKENS` and that the list contains exactly 4 variants
+ * per family.
+ */
+export const BUNDLED_TYPST_FONT_URLS: readonly string[] = [
+  // EB Garamond (serifBook)
+  '/assets/fonts/eb-garamond-latin-400-normal.ttf',
+  '/assets/fonts/eb-garamond-latin-400-italic.ttf',
+  '/assets/fonts/eb-garamond-latin-700-normal.ttf',
+  '/assets/fonts/eb-garamond-latin-700-italic.ttf',
+  // Source Serif 4 (serifClassic)
+  '/assets/fonts/source-serif-4-latin-400-normal.ttf',
+  '/assets/fonts/source-serif-4-latin-400-italic.ttf',
+  '/assets/fonts/source-serif-4-latin-700-normal.ttf',
+  '/assets/fonts/source-serif-4-latin-700-italic.ttf',
+  // Source Sans 3 (sansClean)
+  '/assets/fonts/source-sans-3-latin-400-normal.ttf',
+  '/assets/fonts/source-sans-3-latin-400-italic.ttf',
+  '/assets/fonts/source-sans-3-latin-700-normal.ttf',
+  '/assets/fonts/source-sans-3-latin-700-italic.ttf',
+  // Lato (sansHumanist)
+  '/assets/fonts/lato-latin-400-normal.ttf',
+  '/assets/fonts/lato-latin-400-italic.ttf',
+  '/assets/fonts/lato-latin-700-normal.ttf',
+  '/assets/fonts/lato-latin-700-italic.ttf',
+  // Source Code Pro (mono)
+  '/assets/fonts/source-code-pro-latin-400-normal.ttf',
+  '/assets/fonts/source-code-pro-latin-400-italic.ttf',
+  '/assets/fonts/source-code-pro-latin-700-normal.ttf',
+  '/assets/fonts/source-code-pro-latin-700-italic.ttf',
+  // Courier Prime (serifManuscript)
+  '/assets/fonts/courier-prime-latin-400-normal.ttf',
+  '/assets/fonts/courier-prime-latin-400-italic.ttf',
+  '/assets/fonts/courier-prime-latin-700-normal.ttf',
+  '/assets/fonts/courier-prime-latin-700-italic.ttf',
+];
+
+/**
  * PDF Generator Service using Typst
  *
  * Generates high-quality PDF documents using the Typst typesetting system.
@@ -91,6 +156,10 @@ export class PdfGeneratorService {
   private readonly documentService = inject(DocumentService);
   private readonly projectStateService = inject(ProjectStateService);
   private readonly localStorage = inject(LocalStorageService);
+  private readonly typstEmitter = inject(PublishTypstEmitterService);
+  private readonly worldbuildingRenderer = inject(
+    WorldbuildingPublishRendererService
+  );
 
   private coverImageData: CoverImageData | null = null;
 
@@ -122,6 +191,12 @@ export class PdfGeneratorService {
       $typst.setRendererInitOptions({
         getModule: () => '/assets/wasm/typst_ts_renderer_bg.wasm',
       });
+      // Preload bundled fonts so the PDF compiler can resolve every family
+      // listed in PUBLISH_FONT_TOKENS without requiring network access.
+      // Files are copied to /assets/fonts/ at build time (see angular.json).
+      // The PWA service worker prefetches them like any other asset, so
+      // subsequent visits and offline use both work.
+      $typst.use(TypstSnippet.preloadFonts([...BUNDLED_TYPST_FONT_URLS]));
       this.isInitialized = true;
     } catch (error: unknown) {
       const errorMessage =
@@ -177,6 +252,7 @@ export class PdfGeneratorService {
       const ctx: PdfContext = {
         markup: this.getTypstTemplate(plan),
         options: plan.options,
+        styles: plan.styles,
         wordCount: 0,
         chapterCount: 0,
       };
@@ -262,30 +338,15 @@ export class PdfGeneratorService {
   }
 
   private getTypstTemplate(plan: PublishPlan): string {
-    const fontSize = plan.options.fontSize || 12;
-    const lineHeight = plan.options.lineHeight || 1.5;
-    const sceneBreakText = this.escapeTypst(
-      plan.options.sceneBreakText || '* * *'
-    );
+    return this.typstEmitter.emitPreamble(plan.styles);
+  }
 
-    return `
-#set page(paper: "us-letter", margin: 1in)
-#set text(font: "Linux Libertine", size: ${fontSize}pt)
-#set par(justify: true, leading: ${lineHeight - 1}em)
-
-#let quote(body) = block(
-  inset: (left: 1em),
-  stroke: (left: 0.5pt + gray),
-  emph(body)
-)
-
-#let scene-break() = align(center)[
-  #v(1em)
-  ${sceneBreakText}
-  #v(1em)
-]
-
-`;
+  /**
+   * True if the resolved chapter-title style asks for a page break before
+   * each chapter. Defaults to false when no styles are configured.
+   */
+  private shouldPageBreakBeforeChapter(ctx: PdfContext): boolean {
+    return ctx.styles?.structure?.chapterTitle?.pageBreakBefore ?? false;
   }
 
   private updateProgress(updates: Partial<PdfProgress>): void {
@@ -425,35 +486,92 @@ export class PdfGeneratorService {
         ctx.markup += '= Table of Contents\n\n';
         ctx.markup += '#outline(title: none, indent: auto)\n\n';
         break;
+
+      case PublishPlanItemType.Worldbuilding:
+        await this.processWorldbuilding(item, elements, ctx);
+        break;
     }
+  }
+
+  /**
+   * Build a minimal {@link WorldbuildingItem} for a single worldbuilding
+   * element added inline via the publish plan. Suppresses section title.
+   */
+  private singleEntryWbItem(elementId: string): WorldbuildingItem {
+    return {
+      id: `wb-inline-${elementId}`,
+      type: PublishPlanItemType.Worldbuilding,
+      categories: [],
+      format: 'inline',
+      title: '',
+    };
+  }
+
+  private async processWorldbuilding(
+    item: WorldbuildingItem,
+    elements: Element[],
+    ctx: PdfContext
+  ): Promise<void> {
+    const entries = await this.worldbuildingRenderer.renderItem(item, elements);
+    if (entries.length === 0) return;
+    if (item.title) {
+      ctx.markup += `#pagebreak(weak: true)\n`;
+      ctx.markup += `#wb-section-title[${this.escapeTypst(item.title)}]\n\n`;
+    }
+    for (const entry of entries) {
+      ctx.markup += this.renderWorldbuildingEntryTypst(entry);
+    }
+  }
+
+  private renderWorldbuildingEntryTypst(
+    entry: RenderedWorldbuildingEntry
+  ): string {
+    const parts: string[] = [];
+    const titleArg = `[${this.escapeTypst(entry.title)}]`;
+    const body: string[] = [];
+    if (entry.description) {
+      body.push(`#emph[${this.escapeTypst(entry.description)}]`, '#v(4pt)');
+    }
+    for (const tab of entry.tabs) {
+      const tabBody: string[] = [];
+      for (const f of tab.fields) {
+        tabBody.push(
+          `#wb-field([${this.escapeTypst(f.label)}], [${this.escapeTypst(f.displayValue)}])`
+        );
+      }
+      body.push(
+        `#wb-tab([${this.escapeTypst(tab.label)}], [\n${tabBody.join('\n')}\n])`
+      );
+    }
+    parts.push(`#wb-entry(${titleArg}, [\n${body.join('\n')}\n])\n\n`);
+    return parts.join('');
   }
 
   private async processElementItem(
     item: ElementItem,
     elements: Element[],
     ctx: PdfContext,
-    chapterNumber: number
+    _chapterNumber: number
   ): Promise<void> {
     const element = elements.find(e => e.id === item.elementId);
     if (!element) {
       throw new Error(`Element not found: ${item.elementId}`);
     }
 
-    if (element.type === ElementType.Item) {
-      const title = item.titleOverride || element.name;
-      const formattedTitle = this.formatChapterTitle(
-        title,
-        chapterNumber,
-        item.isChapter ?? false,
-        ctx.options
-      );
-
-      // Add chapter title
-      if (chapterNumber > 0 || item.isChapter) {
-        ctx.markup += '#pagebreak(weak: true)\n';
+    if (isWorldbuildingType(element.type)) {
+      // Inline worldbuilding element (e.g. via "Add everything"): render
+      // as a single-entry block with no section title (user document
+      // controls headings).
+      const synthetic = this.singleEntryWbItem(element.id);
+      await this.processWorldbuilding(synthetic, [element], ctx);
+    } else if (element.type === ElementType.Item) {
+      // The publish style chapter-title page break (if enabled) is still
+      // emitted so chapters start on a new page. The element name itself
+      // is NOT auto-rendered as a heading — the user's document supplies
+      // its own title (or none).
+      if (item.isChapter && this.shouldPageBreakBeforeChapter(ctx)) {
+        ctx.markup += '#pagebreak(weak: true)\n\n';
       }
-      ctx.markup += `= ${formattedTitle}\n\n`;
-
       // Add document content
       await this.addDocumentContent(element.id, ctx);
     } else if (element.type === ElementType.Folder && item.includeChildren) {
@@ -461,8 +579,10 @@ export class PdfGeneratorService {
 
       for (const child of children) {
         if (child.type === ElementType.Item) {
-          ctx.markup += `== ${child.name}\n\n`;
           await this.addDocumentContent(child.id, ctx);
+        } else if (isWorldbuildingType(child.type)) {
+          const synthetic = this.singleEntryWbItem(child.id);
+          await this.processWorldbuilding(synthetic, [child], ctx);
         }
       }
     }
@@ -475,9 +595,13 @@ export class PdfGeneratorService {
         ctx.markup += '#pagebreak(weak: true)\n';
         break;
 
-      case SeparatorStyle.SceneBreak:
-        ctx.markup += '#scene-break()\n\n';
+      case SeparatorStyle.SceneBreak: {
+        const text = this.escapeTypst(
+          item.customText || ctx.options.sceneBreakText || '* * *'
+        );
+        ctx.markup += `#scene-break([${text}])\n\n`;
         break;
+      }
     }
   }
 
@@ -567,7 +691,7 @@ export class PdfGeneratorService {
       ctx.markup += `ISBN: ${this.escapeTypst(metadata.isbn)}\n`;
     }
 
-    ctx.markup += `#set text(size: ${ctx.options.fontSize || 12}pt, fill: black)\n`;
+    ctx.markup += `#set text(fill: black)\n`;
     ctx.markup += '\n';
   }
 
@@ -657,20 +781,17 @@ export class PdfGeneratorService {
       }
 
       case 'heading': {
-        const level = this.getAttr(node, 'level', 1);
-        const prefix = '='.repeat(level + 1); // +1 because level 1 is reserved for chapters
+        const level = Math.min(6, Math.max(1, this.getAttr(node, 'level', 1)));
         const text = children.map(c => this.extractPlainText(c)).join('');
-        ctx.markup += `${prefix} ${this.escapeTypst(text)}\n\n`;
+        ctx.markup += `#doc-heading-${level}[${this.escapeTypst(text)}]\n\n`;
         break;
       }
 
-      case 'blockquote':
-        ctx.markup += '#quote[\n';
-        children.forEach(c => {
-          ctx.markup += `  ${this.extractTypstText(c)}\n`;
-        });
-        ctx.markup += ']\n\n';
+      case 'blockquote': {
+        const inner = children.map(c => this.extractTypstText(c)).join(' ');
+        ctx.markup += `#doc-blockquote[${inner}]\n\n`;
         break;
+      }
 
       case 'bullet_list':
         children.forEach(item => {
@@ -693,6 +814,13 @@ export class PdfGeneratorService {
       case 'horizontal_rule':
         ctx.markup += '#line(length: 100%, stroke: 0.5pt + gray)\n\n';
         break;
+
+      case 'code_block':
+      case 'codeblock': {
+        const text = children.map(c => this.extractPlainText(c)).join('');
+        ctx.markup += `#doc-code-block(${typstString(text)})\n\n`;
+        break;
+      }
 
       default:
         // Process children for unknown nodes
@@ -813,21 +941,27 @@ export class PdfGeneratorService {
     if (!isChapter || options.chapterNumbering === ChapterNumbering.None) {
       return title;
     }
+    return title;
+  }
 
-    let prefix = '';
+  private formatChapterNumber(
+    chapterNumber: number,
+    isChapter: boolean,
+    options: PublishOptions
+  ): string {
+    if (!isChapter || options.chapterNumbering === ChapterNumbering.None) {
+      return '';
+    }
     switch (options.chapterNumbering) {
       case ChapterNumbering.Numeric:
-        prefix = `Chapter ${chapterNumber + 1}: `;
-        break;
+        return `Chapter ${chapterNumber + 1}`;
       case ChapterNumbering.Roman:
-        prefix = `Chapter ${this.toRoman(chapterNumber + 1)}: `;
-        break;
+        return `Chapter ${this.toRoman(chapterNumber + 1)}`;
       case ChapterNumbering.Written:
-        prefix = `Chapter ${this.toWritten(chapterNumber + 1)}: `;
-        break;
+        return `Chapter ${this.toWritten(chapterNumber + 1)}`;
+      default:
+        return '';
     }
-
-    return prefix + title;
   }
 
   private escapeTypst(text: string): string {
@@ -921,6 +1055,7 @@ export class PdfGeneratorService {
     const ctx: PdfContext = {
       markup: this.getTypstTemplate(plan),
       options: plan.options,
+      styles: plan.styles,
       wordCount: 0,
       chapterCount: 0,
     };
@@ -951,4 +1086,12 @@ export class PdfGeneratorService {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
+}
+
+/**
+ * Wrap a raw string as a Typst string literal (escapes `\` and `"`).
+ */
+function typstString(s: string): string {
+  const escaped = s.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+  return `"${escaped}"`;
 }

@@ -101,9 +101,6 @@ describe('publish-plan models', () => {
       expect(DEFAULT_PUBLISH_OPTIONS.includeWordCounts).toBe(false);
       expect(DEFAULT_PUBLISH_OPTIONS.includeToc).toBe(true);
       expect(DEFAULT_PUBLISH_OPTIONS.includeCover).toBe(true);
-      expect(DEFAULT_PUBLISH_OPTIONS.fontFamily).toBe('Georgia, serif');
-      expect(DEFAULT_PUBLISH_OPTIONS.fontSize).toBe(12);
-      expect(DEFAULT_PUBLISH_OPTIONS.lineHeight).toBe(1.5);
     });
   });
 
