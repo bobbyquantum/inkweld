@@ -87,7 +87,7 @@ test.describe('Online Publish Style Editor', () => {
     await createProject(page, 'pub-style');
 
     // Add a small amount of content so HTML generation has something to render.
-    const readme = page.getByTestId('element-readme');
+    const readme = page.getByTestId('element-README');
     await expect(readme).toBeVisible();
     await readme.click();
     const editor = page
@@ -238,7 +238,7 @@ test.describe('Online Publish Style Editor', () => {
     // Open the README element so the sync indicator is mounted, then wait
     // for the post-template sync to settle. The project landing page does
     // not render the sync status until an editor is open.
-    const readme = page.getByTestId('element-readme');
+    const readme = page.getByTestId('element-README');
     await expect(readme).toBeVisible();
     await readme.click();
     await expect(
