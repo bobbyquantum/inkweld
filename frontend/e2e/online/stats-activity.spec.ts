@@ -61,10 +61,12 @@ test.describe('Stats + Activity — Online Mode', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Block ONLY the activity endpoint so the rest of the app stays healthy.
+    // Use a regex because Playwright's glob `**` is unreliable mid-URL.
     const apiUrl = getApiBaseUrl();
-    await page.route(`${apiUrl}/api/v1/activity/projects/**`, route =>
-      route.abort('failed')
+    const activityPattern = new RegExp(
+      `${apiUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/api/v1/activity/projects/`
     );
+    await page.route(activityPattern, route => route.abort('failed'));
 
     await page.getByTestId('sidebar-activity-button').click();
 
@@ -79,7 +81,7 @@ test.describe('Stats + Activity — Online Mode', () => {
 
     // Now restore the endpoint and click retry — the activity feed should
     // render successfully (either an empty state or one or more events).
-    await page.unroute(`${apiUrl}/api/v1/activity/projects/**`);
+    await page.unroute(activityPattern);
     await errorState.getByRole('button', { name: /retry/i }).click();
 
     await expect(errorState).toHaveCount(0, { timeout: 15_000 });
@@ -113,12 +115,18 @@ test.describe('Stats + Activity — Online Mode', () => {
     // Block ONLY the stats endpoint, then load the profile page so the widget
     // attempts to fetch and falls into its errored() branch.
     const apiUrl = getApiBaseUrl();
-    await page.route(`${apiUrl}/api/v1/stats/me**`, route =>
-      route.abort('failed')
+    const statsPattern = new RegExp(
+      `${apiUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/api/v1/stats/me`
     );
+    await page.route(statsPattern, route => route.abort('failed'));
     await page.goto(`/${page.testCredentials.username}`, {
       waitUntil: 'domcontentloaded',
     });
+
+    // Wait for the loading card to disappear (errored() supersedes loading()).
+    await expect(
+      page.locator('app-writing-stats-widget .stats-widget.loading')
+    ).toHaveCount(0, { timeout: 15_000 });
 
     // The card should not appear at all (errored() branch renders an empty
     // template, by design).
