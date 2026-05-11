@@ -14,6 +14,7 @@ import { RouterLink } from '@angular/router';
 import type { UserActivityEvent } from '@models/activity-event';
 import type { UserStatsResponse } from '@models/writing-stats';
 import { LoggerService } from '@services/core/logger.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { ActivityFeedService } from '@services/stats/activity-feed.service';
 import { WritingStatsService } from '@services/stats/writing-stats.service';
 import { firstValueFrom } from 'rxjs';
@@ -48,6 +49,7 @@ export class WritingStatsWidgetComponent implements OnInit {
   private readonly statsService = inject(WritingStatsService);
   private readonly activityService = inject(ActivityFeedService);
   private readonly logger = inject(LoggerService);
+  private readonly storageContext = inject(StorageContextService);
 
   /** Look-back window in days; default 30. */
   readonly windowDays = 30;
@@ -72,6 +74,9 @@ export class WritingStatsWidgetComponent implements OnInit {
   );
 
   ngOnInit(): void {
+    if (this.storageContext.isLocalMode()) {
+      return;
+    }
     void this.load();
   }
 

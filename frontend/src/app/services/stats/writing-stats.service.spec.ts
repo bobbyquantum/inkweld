@@ -5,14 +5,14 @@ import {
 } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom } from 'rxjs';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-
 import type {
   ProjectStatsResponse,
   UserStatsResponse,
 } from '@models/writing-stats';
 import { SetupService } from '@services/core/setup.service';
+import { firstValueFrom } from 'rxjs';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import { WritingStatsService } from './writing-stats.service';
 
 describe('WritingStatsService', () => {

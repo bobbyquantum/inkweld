@@ -1,12 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import type { Observable } from 'rxjs';
-
 import type {
   ProjectActivityResponse,
   UserActivityResponse,
 } from '@models/activity-event';
 import { SetupService } from '@services/core/setup.service';
+import type { Observable } from 'rxjs';
 
 /**
  * Reads the append-only activity feed.

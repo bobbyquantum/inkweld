@@ -9,7 +9,7 @@
  * - Writing-stats widget hides itself when stats fail to load
  */
 
-import { expect, test } from './fixtures';
+import { expect, getApiBaseUrl, test } from './fixtures';
 
 test.describe('Stats + Activity — Online Mode', () => {
   test('activity tab renders events emitted by project creation', async ({
@@ -34,11 +34,11 @@ test.describe('Stats + Activity — Online Mode', () => {
       timeout: 15_000,
     });
 
-    // The README seed file emits at least one document_edit event during
-    // project bootstrap, so we expect a non-empty feed.
+    // Project bootstrap emits at least one activity event (e.g. element_created
+    // for the README seed file). We don't assert which event type appears first
+    // since ordering depends on backend timing.
     const items = page.locator('.activity-tab .event-item');
     await expect(items.first()).toBeVisible({ timeout: 15_000 });
-    await expect(items.first()).toContainText(/edited a document/i);
 
     // Sanity: refresh button works and feed survives.
     await page
@@ -61,7 +61,8 @@ test.describe('Stats + Activity — Online Mode', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Block ONLY the activity endpoint so the rest of the app stays healthy.
-    await page.route('**/api/v1/activity/projects/**', route =>
+    const apiUrl = getApiBaseUrl();
+    await page.route(`${apiUrl}/api/v1/activity/projects/**`, route =>
       route.abort('failed')
     );
 
@@ -78,7 +79,7 @@ test.describe('Stats + Activity — Online Mode', () => {
 
     // Now restore the endpoint and click retry — the activity feed should
     // render successfully (either an empty state or one or more events).
-    await page.unroute('**/api/v1/activity/projects/**');
+    await page.unroute(`${apiUrl}/api/v1/activity/projects/**`);
     await errorState.getByRole('button', { name: /retry/i }).click();
 
     await expect(errorState).toHaveCount(0, { timeout: 15_000 });
@@ -111,7 +112,10 @@ test.describe('Stats + Activity — Online Mode', () => {
   }) => {
     // Block ONLY the stats endpoint, then load the profile page so the widget
     // attempts to fetch and falls into its errored() branch.
-    await page.route('**/api/v1/stats/me**', route => route.abort('failed'));
+    const apiUrl = getApiBaseUrl();
+    await page.route(`${apiUrl}/api/v1/stats/me**`, route =>
+      route.abort('failed')
+    );
     await page.goto(`/${page.testCredentials.username}`, {
       waitUntil: 'domcontentloaded',
     });

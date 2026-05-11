@@ -1,12 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import type { Observable } from 'rxjs';
-
 import type {
   ProjectStatsResponse,
   UserStatsResponse,
 } from '@models/writing-stats';
 import { SetupService } from '@services/core/setup.service';
+import type { Observable } from 'rxjs';
 
 /**
  * Reads server-side writing statistics aggregated from Yjs WS sessions.

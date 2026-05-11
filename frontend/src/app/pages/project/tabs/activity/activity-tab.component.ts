@@ -1,11 +1,5 @@
 import { DatePipe } from '@angular/common';
-import {
-  Component,
-  computed,
-  inject,
-  type OnInit,
-  signal,
-} from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -45,7 +39,7 @@ import { formatRelativeDate } from '../../../../utils/date-format';
     MatTooltipModule,
   ],
 })
-export class ActivityTabComponent implements OnInit {
+export class ActivityTabComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly activityFeed = inject(ActivityFeedService);
   private readonly logger = inject(LoggerService);
@@ -66,8 +60,17 @@ export class ActivityTabComponent implements OnInit {
     () => !this.loading() && this.events().length === 0 && !this.error()
   );
 
-  ngOnInit(): void {
-    void this.loadInitial();
+  constructor() {
+    // Load (or reload) the feed whenever the active project changes.
+    // Using an effect ensures we also handle the case where project() is
+    // still undefined when the component first mounts (e.g. during route
+    // transitions) and becomes defined shortly after.
+    effect(() => {
+      const project = this.projectState.project();
+      if (project?.username && project.slug) {
+        void this.loadInitial();
+      }
+    });
   }
 
   protected async loadInitial(): Promise<void> {
