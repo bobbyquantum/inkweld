@@ -189,11 +189,7 @@
                       matTooltipPosition="right"
                       [attr.data-testid]="'collapsed-pinned-' + element.name"
                       [attr.aria-label]="element.name">
-                      <mat-icon>
-                        {{
-                          element.type === 'FOLDER' ? 'folder' : 'description'
-                        }}
-                      </mat-icon>
+                      <mat-icon>{{ getIconForElement(element) }}</mat-icon>
                     </button>
                   }
                 </div>

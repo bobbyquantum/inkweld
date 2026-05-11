@@ -996,6 +996,16 @@ describe('ProjectComponent', () => {
     });
   });
 
+  describe('getIconForElement', () => {
+    it('should return "folder" for folder elements', () => {
+      expect(component.getIconForElement(mockFolderElement)).toBe('folder');
+    });
+
+    it('should return "description" for non-folder elements', () => {
+      expect(component.getIconForElement(mockElement)).toBe('description');
+    });
+  });
+
   describe('project activation guard', () => {
     it('should redirect to home when project is not activated', async () => {
       const activationService = TestBed.inject(ProjectActivationService);

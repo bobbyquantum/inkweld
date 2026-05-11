@@ -377,6 +377,11 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  /** Returns the Material icon name for a pinned element based on its type. */
+  public getIconForElement(element: Element): string {
+    return element.type === ElementType.Folder ? 'folder' : 'description';
+  }
+
   onDocumentOpened = (element: Element) => {
     this.projectState.openDocument(element);
     if (this.isMobile()) {
