@@ -177,6 +177,28 @@
                 </button>
               </div>
 
+              <!-- Pinned elements section -->
+              @if (pinnedElements().length > 0) {
+                <div class="collapsed-pinned-section">
+                  <div class="collapsed-pinned-divider"></div>
+                  @for (element of pinnedElements(); track element.id) {
+                    <button
+                      mat-icon-button
+                      (click)="onDocumentOpened(element)"
+                      [matTooltip]="element.name"
+                      matTooltipPosition="right"
+                      [attr.data-testid]="'collapsed-pinned-' + element.name"
+                      [attr.aria-label]="element.name">
+                      <mat-icon>
+                        {{
+                          element.type === 'FOLDER' ? 'folder' : 'description'
+                        }}
+                      </mat-icon>
+                    </button>
+                  }
+                </div>
+              }
+
               <!-- Bottom section: Sync, Media, Settings, Exit -->
               <div class="collapsed-sidebar-bottom">
                 @defer (on idle) {

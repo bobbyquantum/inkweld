@@ -2,6 +2,7 @@ import { BreakpointObserver } from '@angular/cdk/layout';
 import {
   type AfterViewInit,
   Component,
+  computed,
   effect,
   HostListener,
   inject,
@@ -119,6 +120,15 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     this.projectState.getLastConnectionError;
   /** Whether we're in local-only mode (no server configured) */
   protected readonly isLocalMode = this.storageContext.isLocalMode;
+
+  /** Pinned elements resolved from the current element list, in pin order. */
+  protected readonly pinnedElements = computed(() => {
+    const ids = this.projectState.pinnedElementIds();
+    const elements = this.projectState.elements();
+    return ids
+      .map(id => elements.find(e => e.id === id))
+      .filter((e): e is NonNullable<typeof e> => e !== undefined);
+  });
 
   // Define a consistent breakpoint value for the application
   private readonly MOBILE_BREAKPOINT = '(max-width: 759px)';
