@@ -52,6 +52,13 @@ test.describe('Stats + Activity — Online Mode', () => {
   }) => {
     const slug = `activity-error-${Date.now()}`;
 
+    // Block the activity endpoint BEFORE navigating so the intercept is in
+    // place when the ActivityTabComponent's effect() fires on project load.
+    const apiUrl = getApiBaseUrl();
+    await page.route(`${apiUrl}/api/v1/activity/**`, route =>
+      route.abort('failed')
+    );
+
     await page.goto('/create-project');
     await page.getByRole('button', { name: /next/i }).click();
     await page.getByTestId('project-title-input').fill('Activity Error');
@@ -59,14 +66,6 @@ test.describe('Stats + Activity — Online Mode', () => {
     await page.getByTestId('create-project-button').click();
     await expect(page).toHaveURL(new RegExp(slug));
     await expect(page.getByTestId('project-tree')).toBeVisible();
-
-    // Block ONLY the activity endpoint so the rest of the app stays healthy.
-    // Use a regex because Playwright's glob `**` is unreliable mid-URL.
-    const apiUrl = getApiBaseUrl();
-    const activityPattern = new RegExp(
-      `${apiUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/api/v1/activity/projects/`
-    );
-    await page.route(activityPattern, route => route.abort('failed'));
 
     await page.getByTestId('sidebar-activity-button').click();
 
@@ -81,7 +80,7 @@ test.describe('Stats + Activity — Online Mode', () => {
 
     // Now restore the endpoint and click retry — the activity feed should
     // render successfully (either an empty state or one or more events).
-    await page.unroute(activityPattern);
+    await page.unroute(`${apiUrl}/api/v1/activity/**`);
     await errorState.getByRole('button', { name: /retry/i }).click();
 
     await expect(errorState).toHaveCount(0, { timeout: 15_000 });
@@ -114,14 +113,12 @@ test.describe('Stats + Activity — Online Mode', () => {
   }) => {
     // Block ONLY the stats endpoint, then load the profile page so the widget
     // attempts to fetch and falls into its errored() branch.
+    // Use a trailing * glob to match query params (?days=30).
     const apiUrl = getApiBaseUrl();
-    const statsPattern = new RegExp(
-      `${apiUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/api/v1/stats/me`
+    await page.route(`${apiUrl}/api/v1/stats/me*`, route =>
+      route.abort('failed')
     );
-    await page.route(statsPattern, route => route.abort('failed'));
-    await page.goto(`/${page.testCredentials.username}`, {
-      waitUntil: 'domcontentloaded',
-    });
+    await page.goto(`/${page.testCredentials.username}`);
 
     // Wait for the loading card to disappear (errored() supersedes loading()).
     await expect(
@@ -134,7 +131,9 @@ test.describe('Stats + Activity — Online Mode', () => {
       page.locator('app-writing-stats-widget .stats-widget')
     ).toHaveCount(0);
 
-    // Sanity: the home page itself still loaded (user menu present).
-    await expect(page.getByTestId('user-menu-button')).toBeVisible();
+    // Sanity: the profile page itself still loaded (user menu present).
+    await expect(page.getByTestId('user-menu-button')).toBeVisible({
+      timeout: 15_000,
+    });
   });
 });
