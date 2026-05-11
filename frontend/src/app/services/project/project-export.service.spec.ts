@@ -6,6 +6,7 @@ import {
   RelationshipCategory,
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
+import { createDefaultPublishStyles } from '@models/publish-style';
 import JSZip from '@progress/jszip-esm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
@@ -661,6 +662,7 @@ describe('ProjectExportService', () => {
           metadata: { ...DEFAULT_PUBLISH_METADATA, title: 'Test' },
           items: [],
           options: DEFAULT_PUBLISH_OPTIONS,
+          styles: createDefaultPublishStyles(),
         },
       ];
       localElements.publishPlans.mockReturnValue(mockPlans);

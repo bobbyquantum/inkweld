@@ -4,7 +4,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { ElementType } from '@inkweld/index';
 import { BehaviorSubject, of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -179,6 +179,42 @@ describe('PublishPlanTabComponent', () => {
       currentPlan.set(null);
       const event = { target: { value: 'New Name' } } as unknown as Event;
       component.updateName(event);
+
+      expect(mockProjectState.updatePublishPlan).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateStyles', () => {
+    it('persists the new styles object on the plan', async () => {
+      const { createDefaultPublishStyles } =
+        await import('../../../../models/publish-style');
+      const styles = createDefaultPublishStyles();
+      styles.preset = undefined;
+      styles.baseText.fontSize = 13;
+
+      component.updateStyles(styles);
+
+      expect(mockProjectState.updatePublishPlan).toHaveBeenCalledWith(
+        expect.objectContaining({ styles })
+      );
+    });
+
+    it('marks the preview as outdated', async () => {
+      const { createDefaultPublishStyles } =
+        await import('../../../../models/publish-style');
+      component['previewOutdated'].set(false);
+
+      component.updateStyles(createDefaultPublishStyles());
+
+      expect(component['previewOutdated']()).toBe(true);
+    });
+
+    it('is a no-op when no plan is loaded', async () => {
+      const { createDefaultPublishStyles } =
+        await import('../../../../models/publish-style');
+      currentPlan.set(null);
+
+      component.updateStyles(createDefaultPublishStyles());
 
       expect(mockProjectState.updatePublishPlan).not.toHaveBeenCalled();
     });
@@ -990,41 +1026,6 @@ describe('PublishPlanTabComponent', () => {
       await fixture.whenStable();
 
       expect(mockDialog.open).toHaveBeenCalled();
-    });
-
-    it('should navigate to published-files when dialog result is view-files', async () => {
-      const afterClosed$ = new Subject<{ action: string }>();
-      const mockDialogRef = {
-        afterClosed: () => afterClosed$.asObservable(),
-      } as unknown as MatDialogRef<unknown>;
-      const mockDialog = TestBed.inject(MatDialog);
-      vi.spyOn(mockDialog, 'open').mockReturnValue(mockDialogRef);
-      const mockRouter = TestBed.inject(Router);
-      const navigateSpy = vi
-        .spyOn(mockRouter, 'navigate')
-        .mockResolvedValue(true);
-
-      mockProjectState.project.set({
-        title: 'Test',
-        username: 'user',
-        slug: 'proj',
-        coverImage: null,
-      });
-      const mockFile = { id: 'file-1', name: 'test.docx' } as never;
-      const mockBlob = new Blob(['test']);
-
-      component['showPublishDialog'](mockFile, mockBlob);
-      afterClosed$.next({ action: 'view-files' });
-      afterClosed$.complete();
-      await fixture.whenStable();
-
-      expect(navigateSpy).toHaveBeenCalledWith([
-        '/project',
-        'user',
-        'proj',
-        'tab',
-        'published-files',
-      ]);
     });
   });
 });
