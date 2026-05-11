@@ -1,6 +1,7 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType, type Project } from '@inkweld/index';
+import { createDefaultPublishStyles } from '@models/publish-style';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -80,10 +81,8 @@ describe('HtmlGeneratorService', () => {
       chapterNumbering: ChapterNumbering.None,
       sceneBreakText: '* * *',
       includeWordCounts: false,
-      fontFamily: 'serif',
-      fontSize: 12,
-      lineHeight: 1.5,
     },
+    styles: createDefaultPublishStyles(),
     items: [],
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
@@ -310,7 +309,7 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
-      expect(text).toContain('Table of Contents');
+      expect(text).toContain('Contents');
     });
 
     it('should handle chapter break separator', async () => {
@@ -420,7 +419,15 @@ describe('HtmlGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Numeric,
         },
+        styles: createDefaultPublishStyles(),
         items: [
+          {
+            id: 'toc',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
           {
             id: 'item-1',
             type: PublishPlanItemType.Element,
@@ -445,7 +452,15 @@ describe('HtmlGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Roman,
         },
+        styles: createDefaultPublishStyles(),
         items: [
+          {
+            id: 'toc',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
           {
             id: 'item-1',
             type: PublishPlanItemType.Element,
@@ -470,7 +485,15 @@ describe('HtmlGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Written,
         },
+        styles: createDefaultPublishStyles(),
         items: [
+          {
+            id: 'toc',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
           {
             id: 'item-1',
             type: PublishPlanItemType.Element,
@@ -562,6 +585,7 @@ describe('HtmlGeneratorService', () => {
       const planWithCover: PublishPlan = {
         ...mockPlan,
         options: { ...mockPlan.options, includeCover: true },
+        styles: createDefaultPublishStyles(),
         items: [
           {
             id: 'fm-1',
@@ -642,26 +666,17 @@ describe('HtmlGeneratorService', () => {
       expect(text).toContain('An exciting story');
     });
 
-    it('should include custom CSS when provided', async () => {
-      const planWithCss: PublishPlan = {
-        ...mockPlan,
-        options: {
-          ...mockPlan.options,
-          customCss: '.chapter { background: red; }',
-        },
-      };
-
-      const result = await service.generateHtml(planWithCss);
-
-      expect(result.success).toBe(true);
-      const text = await result.file!.text();
-      expect(text).toContain('.chapter { background: red; }');
-    });
-
     it('should handle title override for elements', async () => {
       const planWithTitleOverride: PublishPlan = {
         ...mockPlan,
         items: [
+          {
+            id: 'toc',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
           {
             id: 'item-1',
             type: PublishPlanItemType.Element,
@@ -677,6 +692,8 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
+      // titleOverride is reflected in the TOC; the body intentionally
+      // contains no auto-emitted heading.
       expect(text).toContain('Custom Title');
     });
   });
@@ -684,7 +701,11 @@ describe('HtmlGeneratorService', () => {
   describe('ProseMirror conversion', () => {
     it('should convert heading nodes', async () => {
       documentServiceMock.getDocumentContent.mockResolvedValue([
-        { type: 'heading', content: [{ text: 'My Heading' }] },
+        {
+          type: 'heading',
+          attrs: { level: 2 },
+          content: [{ text: 'My Heading' }],
+        },
       ]);
 
       const planWithElement: PublishPlan = {
@@ -704,7 +725,7 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
-      expect(text).toContain('<h2>');
+      expect(text).toContain('<h2 class="ink-doc-heading-2">');
     });
 
     it('should convert blockquote nodes', async () => {
@@ -732,7 +753,7 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
-      expect(text).toContain('<blockquote>');
+      expect(text).toContain('<blockquote class="ink-doc-blockquote">');
     });
 
     it('should convert bullet_list nodes', async () => {
@@ -760,8 +781,8 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
-      expect(text).toContain('<ul>');
-      expect(text).toContain('<li>');
+      expect(text).toContain('<ul class="ink-doc-bullet-list">');
+      expect(text).toContain('<li class="ink-doc-list-item">');
     });
 
     it('should convert ordered_list nodes', async () => {
@@ -789,7 +810,7 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
-      expect(text).toContain('<ol>');
+      expect(text).toContain('<ol class="ink-doc-ordered-list">');
     });
 
     it('should convert hard_break nodes', async () => {
@@ -864,7 +885,9 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
-      expect(text).toContain('<p>');
+      expect(text).toContain(
+        '<p class="ink-doc-paragraph">Text using nodeName</p>'
+      );
     });
 
     it('should handle object as top-level data', async () => {
@@ -1001,6 +1024,13 @@ describe('HtmlGeneratorService', () => {
         ...mockPlan,
         items: [
           {
+            id: 'toc',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
+          {
             id: 'item-1',
             type: PublishPlanItemType.Element,
             elementId: 'folder-1',
@@ -1014,6 +1044,8 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
+      // Child element name appears in the TOC; document body contains no
+      // auto-emitted heading.
       expect(text).toContain('Chapter in folder');
     });
   });
@@ -1025,6 +1057,7 @@ describe('HtmlGeneratorService', () => {
       const planWithCover: PublishPlan = {
         ...mockPlan,
         options: { ...mockPlan.options, includeCover: true },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generateHtml(planWithCover);
@@ -1039,6 +1072,7 @@ describe('HtmlGeneratorService', () => {
       const planWithCover: PublishPlan = {
         ...mockPlan,
         options: { ...mockPlan.options, includeCover: true },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generateHtml(planWithCover);
@@ -1083,7 +1117,17 @@ describe('HtmlGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Written,
         },
-        items,
+        styles: createDefaultPublishStyles(),
+        items: [
+          {
+            id: 'toc',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
+          ...items,
+        ],
       };
 
       const result = await service.generateHtml(planWithManyChapters);
@@ -1127,7 +1171,17 @@ describe('HtmlGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Written,
         },
-        items,
+        styles: createDefaultPublishStyles(),
+        items: [
+          {
+            id: 'toc',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
+          ...items,
+        ],
       };
 
       const result = await service.generateHtml(planWithManyChapters);
@@ -1164,7 +1218,9 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
-      expect(text).toContain('<strong>Bold text</strong>');
+      expect(text).toContain(
+        '<strong class="ink-mark-bold">Bold text</strong>'
+      );
     });
 
     it('should render italic text', async () => {
@@ -1192,7 +1248,7 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
-      expect(text).toContain('<em>Italic text</em>');
+      expect(text).toContain('<em class="ink-mark-italic">Italic text</em>');
     });
 
     it('should render code text', async () => {
@@ -1220,7 +1276,7 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
-      expect(text).toContain('<code>const x = 1</code>');
+      expect(text).toContain('<code class="ink-mark-code">const x = 1</code>');
     });
 
     it('should render strikethrough text', async () => {
@@ -1248,7 +1304,7 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
-      expect(text).toContain('<del>Deleted</del>');
+      expect(text).toContain('<s class="ink-mark-strike">Deleted</s>');
     });
 
     it('should render combined marks (bold + italic)', async () => {
@@ -1282,7 +1338,9 @@ describe('HtmlGeneratorService', () => {
       expect(result.success).toBe(true);
       const text = await result.file!.text();
       // Note: marks are applied in order: bold wraps first, then italic wraps the result
-      expect(text).toContain('<em><strong>Bold and italic</strong></em>');
+      expect(text).toContain(
+        '<em class="ink-mark-italic"><strong class="ink-mark-bold">Bold and italic</strong></em>'
+      );
     });
 
     it('should handle text with string marks', async () => {
@@ -1310,7 +1368,9 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
-      expect(text).toContain('<strong>String mark</strong>');
+      expect(text).toContain(
+        '<strong class="ink-mark-bold">String mark</strong>'
+      );
     });
   });
 

@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
 import { type ElementRelationship } from '@models/element-ref.model';
+import { createDefaultPublishStyles } from '@models/publish-style';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
@@ -89,10 +90,8 @@ describe('YjsElementSyncProvider', () => {
         includeWordCounts: false,
         includeToc: true,
         includeCover: false,
-        fontFamily: 'Georgia',
-        fontSize: 12,
-        lineHeight: 1.5,
       },
+      styles: createDefaultPublishStyles(),
     },
   ];
   const sampleRelationships: ElementRelationship[] = [

@@ -1,6 +1,7 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType, type Project } from '@inkweld/index';
+import { createDefaultPublishStyles } from '@models/publish-style';
 // Import $typst from BOTH the bare module and the snippet sub-path.
 // The production code (`pdf-generator.service.ts`) imports from
 // `@myriaddreamin/typst.ts/contrib/snippet`, while older specs imported
@@ -28,6 +29,7 @@ import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { BUNDLED_TYPST_FONT_URLS } from './pdf-generator.service';
 import {
   PdfGeneratorService,
   PdfPhase,
@@ -93,10 +95,8 @@ describe('PdfGeneratorService', () => {
       chapterNumbering: ChapterNumbering.None,
       sceneBreakText: '* * *',
       includeWordCounts: false,
-      fontFamily: 'serif',
-      fontSize: 12,
-      lineHeight: 1.5,
     },
+    styles: createDefaultPublishStyles(),
     items: [
       {
         id: 'item-1',
@@ -323,6 +323,7 @@ describe('PdfGeneratorService', () => {
       const planWithCover = {
         ...mockPlan,
         options: { ...mockPlan.options, includeCover: true },
+        styles: createDefaultPublishStyles(),
       };
 
       await service.generatePdf(planWithCover);
@@ -416,6 +417,7 @@ describe('PdfGeneratorService', () => {
       const planWithCover = {
         ...mockPlan,
         options: { ...mockPlan.options, includeCover: true },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generatePdf(planWithCover);
@@ -434,6 +436,7 @@ describe('PdfGeneratorService', () => {
       const planWithCover = {
         ...mockPlan,
         options: { ...mockPlan.options, includeCover: true },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generatePdf(planWithCover);
@@ -491,6 +494,7 @@ describe('PdfGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Numeric,
         },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generatePdf(planWithNumbering);
@@ -505,6 +509,7 @@ describe('PdfGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Roman,
         },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generatePdf(planWithNumbering);
@@ -519,6 +524,7 @@ describe('PdfGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Written,
         },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generatePdf(planWithNumbering);
@@ -963,6 +969,7 @@ describe('PdfGeneratorService', () => {
       const planWithCover = {
         ...mockPlan,
         options: { ...mockPlan.options, includeCover: true },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generatePdf(planWithCover);
@@ -1062,5 +1069,49 @@ describe('PdfGeneratorService', () => {
       const result = await service.generatePdf(mockPlan);
       expect(result.success).toBe(true);
     });
+  });
+});
+
+describe('BUNDLED_TYPST_FONT_URLS', () => {
+  // Bundled families that ship as TTF in /assets/fonts/ (downloaded by
+  // frontend/scripts/fetch-publish-fonts.mjs during `bun install`). MUST
+  // match BUNDLED_FAMILIES in publish-style.spec.ts and the @font-face
+  // declarations in src/themes/_bundled-fonts.scss. The Typst WASM
+  // compiler requires TTF/OTF — woff/woff2 are silently rejected by
+  // ttf-parser, so the URL list intentionally targets `.ttf` files
+  // alongside the woff2 variants used for browser CSS.
+  const BUNDLED_FAMILY_SLUGS = [
+    'eb-garamond',
+    'source-serif-4',
+    'source-sans-3',
+    'lato',
+    'source-code-pro',
+    'courier-prime',
+  ] as const;
+
+  it('contains exactly 24 URLs (6 families × 4 variants)', () => {
+    expect(BUNDLED_TYPST_FONT_URLS).toHaveLength(24);
+  });
+
+  it('every URL targets /assets/fonts/ as a TTF file', () => {
+    for (const url of BUNDLED_TYPST_FONT_URLS) {
+      expect(url).toMatch(/^\/assets\/fonts\/[a-z0-9-]+\.ttf$/);
+    }
+  });
+
+  it('exposes 4 variants (regular + bold × normal + italic) per bundled family', () => {
+    for (const slug of BUNDLED_FAMILY_SLUGS) {
+      const variants = BUNDLED_TYPST_FONT_URLS.filter(u =>
+        u.includes(`/${slug}-latin-`)
+      );
+      expect(
+        variants,
+        `Family ${slug} should have 4 variants in BUNDLED_TYPST_FONT_URLS`
+      ).toHaveLength(4);
+      expect(variants).toContain(`/assets/fonts/${slug}-latin-400-normal.ttf`);
+      expect(variants).toContain(`/assets/fonts/${slug}-latin-400-italic.ttf`);
+      expect(variants).toContain(`/assets/fonts/${slug}-latin-700-normal.ttf`);
+      expect(variants).toContain(`/assets/fonts/${slug}-latin-700-italic.ttf`);
+    }
   });
 });

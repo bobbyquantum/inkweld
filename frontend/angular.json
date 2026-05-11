@@ -41,6 +41,36 @@
                 "glob": "typst_ts_web_compiler_bg.wasm",
                 "input": "node_modules/@myriaddreamin/typst-ts-web-compiler/pkg",
                 "output": "assets/wasm"
+              },
+              {
+                "glob": "*-latin-{400,700}-{normal,italic}.woff2",
+                "input": "node_modules/@fontsource/eb-garamond/files",
+                "output": "assets/fonts"
+              },
+              {
+                "glob": "*-latin-{400,700}-{normal,italic}.woff2",
+                "input": "node_modules/@fontsource/source-serif-4/files",
+                "output": "assets/fonts"
+              },
+              {
+                "glob": "*-latin-{400,700}-{normal,italic}.woff2",
+                "input": "node_modules/@fontsource/source-sans-3/files",
+                "output": "assets/fonts"
+              },
+              {
+                "glob": "*-latin-{400,700}-{normal,italic}.woff2",
+                "input": "node_modules/@fontsource/lato/files",
+                "output": "assets/fonts"
+              },
+              {
+                "glob": "*-latin-{400,700}-{normal,italic}.woff2",
+                "input": "node_modules/@fontsource/source-code-pro/files",
+                "output": "assets/fonts"
+              },
+              {
+                "glob": "*-latin-{400,700}-{normal,italic}.woff2",
+                "input": "node_modules/@fontsource/courier-prime/files",
+                "output": "assets/fonts"
               }
             ],
             "styles": [

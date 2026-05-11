@@ -1,6 +1,7 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType, type Project } from '@inkweld/index';
+import { createDefaultPublishStyles } from '@models/publish-style';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -75,10 +76,8 @@ describe('MarkdownGeneratorService', () => {
       chapterNumbering: ChapterNumbering.None,
       sceneBreakText: '* * *',
       includeWordCounts: false,
-      fontFamily: 'serif',
-      fontSize: 12,
-      lineHeight: 1.5,
     },
+    styles: createDefaultPublishStyles(),
     items: [],
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
@@ -265,6 +264,7 @@ describe('MarkdownGeneratorService', () => {
       const planWithToc: PublishPlan = {
         ...mockPlan,
         options: { ...mockPlan.options, includeToc: true },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generateMarkdown(planWithToc);
@@ -276,6 +276,7 @@ describe('MarkdownGeneratorService', () => {
       const planWithoutToc: PublishPlan = {
         ...mockPlan,
         options: { ...mockPlan.options, includeToc: false },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generateMarkdown(planWithoutToc);
@@ -485,7 +486,15 @@ describe('MarkdownGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Numeric,
         },
+        styles: createDefaultPublishStyles(),
         items: [
+          {
+            id: 'toc',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
           {
             id: 'item-1',
             type: PublishPlanItemType.Element,
@@ -510,7 +519,15 @@ describe('MarkdownGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Roman,
         },
+        styles: createDefaultPublishStyles(),
         items: [
+          {
+            id: 'toc',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
           {
             id: 'item-1',
             type: PublishPlanItemType.Element,
@@ -535,7 +552,15 @@ describe('MarkdownGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Written,
         },
+        styles: createDefaultPublishStyles(),
         items: [
+          {
+            id: 'toc',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
           {
             id: 'item-1',
             type: PublishPlanItemType.Element,
@@ -642,6 +667,13 @@ describe('MarkdownGeneratorService', () => {
         ...mockPlan,
         items: [
           {
+            id: 'toc',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
+          {
             id: 'item-1',
             type: PublishPlanItemType.Element,
             elementId: 'doc-1',
@@ -656,6 +688,8 @@ describe('MarkdownGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
+      // titleOverride is reflected in the TOC; the body intentionally
+      // contains no auto-emitted heading.
       expect(text).toContain('Custom Title');
     });
   });
@@ -1529,6 +1563,13 @@ describe('MarkdownGeneratorService', () => {
         ...mockPlan,
         items: [
           {
+            id: 'toc',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
+          {
             id: 'item-1',
             type: PublishPlanItemType.Element,
             elementId: 'folder-1',
@@ -1542,6 +1583,8 @@ describe('MarkdownGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
+      // Child element name appears in the TOC; document body contains no
+      // auto-emitted heading.
       expect(text).toContain('Chapter in folder');
     });
   });
@@ -1582,7 +1625,17 @@ describe('MarkdownGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Written,
         },
-        items,
+        styles: createDefaultPublishStyles(),
+        items: [
+          {
+            id: 'toc',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
+          ...items,
+        ],
       };
 
       const result = await service.generateMarkdown(planWithManyChapters);
@@ -1627,7 +1680,17 @@ describe('MarkdownGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Written,
         },
-        items,
+        styles: createDefaultPublishStyles(),
+        items: [
+          {
+            id: 'toc',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
+          ...items,
+        ],
       };
 
       const result = await service.generateMarkdown(planWithManyChapters);

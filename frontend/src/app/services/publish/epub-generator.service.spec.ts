@@ -1,6 +1,7 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType, type Project } from '@inkweld/index';
+import { createDefaultPublishStyles } from '@models/publish-style';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -85,10 +86,8 @@ describe('EpubGeneratorService', () => {
       chapterNumbering: ChapterNumbering.None,
       sceneBreakText: '* * *',
       includeWordCounts: false,
-      fontFamily: 'serif',
-      fontSize: 12,
-      lineHeight: 1.5,
     },
+    styles: createDefaultPublishStyles(),
     items: [
       {
         id: 'item-1',
@@ -279,6 +278,7 @@ describe('EpubGeneratorService', () => {
       const planWithCover = {
         ...mockPlan,
         options: { ...mockPlan.options, includeCover: true },
+        styles: createDefaultPublishStyles(),
       };
 
       await service.generateEpub(planWithCover);
@@ -371,6 +371,7 @@ describe('EpubGeneratorService', () => {
       const planWithCover = {
         ...mockPlan,
         options: { ...mockPlan.options, includeCover: true },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generateEpub(planWithCover);
@@ -385,6 +386,7 @@ describe('EpubGeneratorService', () => {
       const planWithCover = {
         ...mockPlan,
         options: { ...mockPlan.options, includeCover: true },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generateEpub(planWithCover);
@@ -479,6 +481,7 @@ describe('EpubGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Numeric,
         },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generateEpub(planWithNumbering);
@@ -493,6 +496,7 @@ describe('EpubGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Roman,
         },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generateEpub(planWithNumbering);
@@ -507,6 +511,7 @@ describe('EpubGeneratorService', () => {
           ...mockPlan.options,
           chapterNumbering: ChapterNumbering.Written,
         },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generateEpub(planWithNumbering);
@@ -520,6 +525,7 @@ describe('EpubGeneratorService', () => {
       const planWithToc = {
         ...mockPlan,
         options: { ...mockPlan.options, includeToc: true },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generateEpub(planWithToc);
@@ -531,6 +537,7 @@ describe('EpubGeneratorService', () => {
       const planWithoutToc = {
         ...mockPlan,
         options: { ...mockPlan.options, includeToc: false },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generateEpub(planWithoutToc);
@@ -1004,6 +1011,7 @@ describe('EpubGeneratorService', () => {
       const planWithCover = {
         ...mockPlan,
         options: { ...mockPlan.options, includeCover: true },
+        styles: createDefaultPublishStyles(),
       };
 
       const result = await service.generateEpub(planWithCover);

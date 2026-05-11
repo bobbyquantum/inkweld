@@ -65,3 +65,8 @@ debug-screenshot.png
 
 # Generated license file
 /public/3rdpartylicenses.txt
+
+# Bundled publish-plan TTF fonts (downloaded by scripts/fetch-publish-fonts.mjs
+# during `bun install`). Required by the Typst WASM compiler, which rejects
+# the woff2 files shipped by @fontsource/* packages.
+/public/assets/fonts/

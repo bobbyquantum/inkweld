@@ -16,11 +16,17 @@ import {
   type PublishStats,
   type SeparatorItem,
   SeparatorStyle,
+  type WorldbuildingItem,
 } from '../../models/publish-plan';
 import { trimHyphens } from '../../utils/string-utils';
+import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { LoggerService } from '../core/logger.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import {
+  type RenderedWorldbuildingEntry,
+  WorldbuildingPublishRendererService,
+} from './worldbuilding-publish-renderer.service';
 
 export interface MarkdownProgress {
   phase: MarkdownPhase;
@@ -71,6 +77,9 @@ export class MarkdownGeneratorService {
   private readonly logger = inject(LoggerService);
   private readonly documentService = inject(DocumentService);
   private readonly projectStateService = inject(ProjectStateService);
+  private readonly worldbuildingRenderer = inject(
+    WorldbuildingPublishRendererService
+  );
 
   private readonly progressSubject = new BehaviorSubject<MarkdownProgress>({
     phase: MarkdownPhase.Idle,
@@ -222,6 +231,9 @@ export class MarkdownGeneratorService {
       case PublishPlanItemType.TableOfContents:
         return this.buildTOC(plan, elements);
 
+      case PublishPlanItemType.Worldbuilding:
+        return this.processWorldbuilding(item, elements);
+
       default:
         return '';
     }
@@ -230,35 +242,49 @@ export class MarkdownGeneratorService {
   private async processElement(
     item: ElementItem,
     elements: Element[],
-    options: PublishOptions,
-    chapterNumber: number
+    _options: PublishOptions,
+    _chapterNumber: number
   ): Promise<string> {
     const element = elements.find(e => e.id === item.elementId);
     if (!element) return '';
 
-    const parts: string[] = [];
-
+    if (isWorldbuildingType(element.type)) {
+      return await this.renderInlineWb(element);
+    }
     if (element.type === ElementType.Item) {
-      const content = await this.getDocumentContent(element.id);
-      const title = item.titleOverride || element.name;
-      const formattedTitle = this.formatChapterTitle(
-        title,
-        chapterNumber,
-        item.isChapter ?? false,
-        options
-      );
+      // We deliberately do NOT emit the element name as a heading here.
+      // The user's document is responsible for its own title (or none).
+      // Chapter numbering (if enabled) is reflected in the TOC only.
+      return await this.getDocumentContent(element.id);
+    }
+    if (element.type === ElementType.Folder && item.includeChildren) {
+      return await this.renderFolderChildren(element, elements);
+    }
+    return '';
+  }
 
-      parts.push(`# ${formattedTitle}`, content);
-    } else if (element.type === ElementType.Folder && item.includeChildren) {
-      const children = this.getChildElements(element, elements);
-      for (const child of children) {
-        if (child.type === ElementType.Item) {
-          const content = await this.getDocumentContent(child.id);
-          parts.push(`## ${child.name}`, content);
-        }
+  private async renderInlineWb(element: Element): Promise<string> {
+    // A worldbuilding element added directly via "Add everything" is
+    // rendered as a single-entry, untitled WB block so it shows up in
+    // the output instead of being silently skipped.
+    const synthetic = this.singleEntryWbItem(element.id);
+    return await this.processWorldbuilding(synthetic, [element]);
+  }
+
+  private async renderFolderChildren(
+    element: Element,
+    elements: Element[]
+  ): Promise<string> {
+    const parts: string[] = [];
+    const children = this.getChildElements(element, elements);
+    for (const child of children) {
+      if (child.type === ElementType.Item) {
+        parts.push(await this.getDocumentContent(child.id));
+      } else if (isWorldbuildingType(child.type)) {
+        const md = await this.renderInlineWb(child);
+        if (md) parts.push(md);
       }
     }
-
     return parts.join('\n\n');
   }
 
@@ -291,6 +317,76 @@ export class MarkdownGeneratorService {
       default:
         return '';
     }
+  }
+
+  /**
+   * Build a minimal {@link WorldbuildingItem} for a single worldbuilding
+   * element added inline via the publish plan (e.g. through "Add
+   * everything"). No section title is emitted; defaults match the
+   * generic WB section behaviour.
+   */
+  private singleEntryWbItem(elementId: string): WorldbuildingItem {
+    return {
+      id: `wb-inline-${elementId}`,
+      type: PublishPlanItemType.Worldbuilding,
+      categories: [],
+      format: 'inline',
+      title: '',
+    };
+  }
+
+  /**
+   * Render a worldbuilding item as plain Markdown: a section heading,
+   * one sub-heading per entry, optional description/identity, and one
+   * sub-section per tab with bullet-list fields. Visual styling is
+   * intentionally ignored — Markdown is semantic only.
+   */
+  private async processWorldbuilding(
+    item: WorldbuildingItem,
+    elements: Element[]
+  ): Promise<string> {
+    const entries = await this.worldbuildingRenderer.renderItem(item, elements);
+    if (!entries.length) return '';
+
+    const lines: string[] = [];
+    if (item.title) lines.push(`## ${item.title}`, '');
+
+    for (const entry of entries) {
+      lines.push(...this.renderWorldbuildingEntryMarkdown(entry, item));
+    }
+    return lines.join('\n').trimEnd();
+  }
+
+  private renderWorldbuildingEntryMarkdown(
+    entry: RenderedWorldbuildingEntry,
+    item: WorldbuildingItem
+  ): string[] {
+    const lines: string[] = [];
+    const includeIdentity = item.includeIdentity !== false;
+    const includeImages = item.includeImages !== false;
+
+    lines.push(`### ${entry.title}`, '');
+    if (includeIdentity && entry.schemaLabel) {
+      lines.push(`*${entry.schemaLabel}*`, '');
+    }
+    if (entry.description) {
+      lines.push(entry.description, '');
+    }
+    if (includeImages && entry.imageRef) {
+      lines.push(`![${entry.title}](${entry.imageRef})`, '');
+    }
+
+    for (const tab of entry.tabs) {
+      if (!tab.fields.length) continue;
+      lines.push(`#### ${tab.label}`, '');
+      for (const field of tab.fields) {
+        const value = field.displayValue || '';
+        if (!value && !item.includeEmptyFields) continue;
+        lines.push(`- **${field.label}:** ${value}`);
+      }
+      lines.push('');
+    }
+    return lines;
   }
 
   private getChildElements(parent: Element, allElements: Element[]): Element[] {
@@ -686,27 +782,42 @@ export class MarkdownGeneratorService {
       const element = elements.find(e => e.id === item.elementId);
       if (!element) continue;
 
-      const title = item.titleOverride || element.name;
-      const formattedTitle = this.formatChapterTitle(
-        title,
-        chapterNumber,
-        item.isChapter ?? false,
-        plan.options
-      );
-
-      const anchor = this.headingToAnchor(formattedTitle);
-
-      if (element.type === ElementType.Folder && item.includeChildren) {
-        // Folder: list as a section header (no link, no anchor)
-        lines.push(`- **${formattedTitle}**`);
-      } else {
-        lines.push(`- [${formattedTitle}](#${anchor})`);
-      }
-
+      this.appendTocEntry(lines, item, element, elements, chapterNumber, plan);
       if (item.isChapter) chapterNumber++;
     }
 
     return lines.join('\n');
+  }
+
+  private appendTocEntry(
+    lines: string[],
+    item: ElementItem,
+    element: Element,
+    elements: Element[],
+    chapterNumber: number,
+    plan: PublishPlan
+  ): void {
+    const title = item.titleOverride || element.name;
+    const formattedTitle = this.formatChapterTitle(
+      title,
+      chapterNumber,
+      item.isChapter ?? false,
+      plan.options
+    );
+
+    if (element.type === ElementType.Folder && item.includeChildren) {
+      lines.push(`- **${formattedTitle}**`);
+      const children = this.getChildElements(element, elements);
+      for (const child of children) {
+        if (child.type === ElementType.Item) {
+          const childAnchor = this.headingToAnchor(child.name);
+          lines.push(`  - [${child.name}](#${childAnchor})`);
+        }
+      }
+    } else {
+      const anchor = this.headingToAnchor(formattedTitle);
+      lines.push(`- [${formattedTitle}](#${anchor})`);
+    }
   }
 
   /**

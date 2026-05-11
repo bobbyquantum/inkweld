@@ -190,7 +190,7 @@ Coming soon, once first numbered release is added.
 | ✅ | 🔥 | Markdown export | Plain text with formatting |
 | ✅ | 🔥 | HTML export | Single-file web output |
 | ✅ | 🟡 | Publish plans | Save export configurations for reuse |
-| ⬜ | 🟡 | Typography customization | Print formatting options |
+| ✅ | 🟡 | Typography customization | Per-plan style editor with 6 presets and full per-section overrides (font, size, weight, alignment, color, indent, page breaks) |
 
 ### Auth & Security
 |  |  | Feature | Notes |

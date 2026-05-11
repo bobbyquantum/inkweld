@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { createDefaultPublishStyles } from '@models/publish-style';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -39,10 +40,8 @@ describe('PublishPlanService', () => {
       chapterNumbering: ChapterNumbering.None,
       sceneBreakText: '* * *',
       includeWordCounts: false,
-      fontFamily: 'serif',
-      fontSize: 12,
-      lineHeight: 1.5,
     },
+    styles: createDefaultPublishStyles(),
     items: [],
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',

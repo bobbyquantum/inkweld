@@ -5,11 +5,26 @@ import { applyMarks, MARK_TAGS, TYPST_MARK_TAGS } from './publish-marks-helper';
 describe('publish-marks-helper', () => {
   describe('MARK_TAGS', () => {
     it('should define HTML tag pairs for all standard marks', () => {
-      expect(MARK_TAGS['bold']).toEqual(['<strong>', '</strong>']);
-      expect(MARK_TAGS['italic']).toEqual(['<em>', '</em>']);
-      expect(MARK_TAGS['underline']).toEqual(['<u>', '</u>']);
-      expect(MARK_TAGS['strike']).toEqual(['<s>', '</s>']);
-      expect(MARK_TAGS['code']).toEqual(['<code>', '</code>']);
+      expect(MARK_TAGS['bold']).toEqual([
+        '<strong class="ink-mark-bold">',
+        '</strong>',
+      ]);
+      expect(MARK_TAGS['italic']).toEqual([
+        '<em class="ink-mark-italic">',
+        '</em>',
+      ]);
+      expect(MARK_TAGS['underline']).toEqual([
+        '<u class="ink-mark-underline">',
+        '</u>',
+      ]);
+      expect(MARK_TAGS['strike']).toEqual([
+        '<s class="ink-mark-strike">',
+        '</s>',
+      ]);
+      expect(MARK_TAGS['code']).toEqual([
+        '<code class="ink-mark-code">',
+        '</code>',
+      ]);
     });
 
     it('should map strong as alias for bold', () => {
@@ -38,13 +53,15 @@ describe('publish-marks-helper', () => {
 
     it('should wrap text with a single HTML mark', () => {
       expect(applyMarks('hello', ['bold'], MARK_TAGS)).toBe(
-        '<strong>hello</strong>'
+        '<strong class="ink-mark-bold">hello</strong>'
       );
     });
 
     it('should wrap text with multiple HTML marks in order', () => {
       const result = applyMarks('hello', ['bold', 'italic'], MARK_TAGS);
-      expect(result).toBe('<em><strong>hello</strong></em>');
+      expect(result).toBe(
+        '<em class="ink-mark-italic"><strong class="ink-mark-bold">hello</strong></em>'
+      );
     });
 
     it('should skip unknown mark types', () => {

@@ -4,6 +4,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ElementType, type Project, ProjectsService } from '@inkweld/index';
+import { createDefaultPublishStyles } from '@models/publish-style';
 import JSZip from '@progress/jszip-esm';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -657,6 +658,7 @@ describe('ProjectImportService', () => {
             metadata: {} as any,
             items: [],
             options: {} as any,
+            styles: createDefaultPublishStyles(),
           },
         ],
       };

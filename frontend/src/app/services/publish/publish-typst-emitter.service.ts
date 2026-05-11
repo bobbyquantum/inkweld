@@ -1,0 +1,252 @@
+import { inject, Injectable } from '@angular/core';
+import {
+  type DocNodeKey,
+  type PageStyle,
+  PUBLISH_FONT_TOKENS,
+  type PublishStyles,
+  type TextStyle,
+} from '@models/publish-style';
+
+import { PublishStyleResolverService } from './publish-style-resolver.service';
+
+/**
+ * Page configuration per page-size token.
+ *
+ * Typst's `#set page(paper: ...)` only accepts a fixed list of named paper
+ * sizes (a4, a5, us-letter, etc.). For our custom book sizes (us-trade,
+ * pocket) we instead emit explicit `width:` and `height:` arguments and
+ * omit the `paper:` argument entirely.
+ */
+type PageDims =
+  | { kind: 'paper'; paper: string }
+  | { kind: 'custom'; width: string; height: string };
+
+const PAGE_TYPST: Record<PageStyle['size'], PageDims> = {
+  'us-letter': { kind: 'paper', paper: '"us-letter"' },
+  'us-trade': { kind: 'custom', width: '6in', height: '9in' },
+  a4: { kind: 'paper', paper: '"a4"' },
+  a5: { kind: 'paper', paper: '"a5"' },
+  b5: { kind: 'paper', paper: '"iso-b5"' },
+  pocket: { kind: 'custom', width: '4.25in', height: '6.87in' },
+};
+
+/**
+ * Emits a Typst preamble for a {@link PublishStyles} tree. The preamble:
+ *
+ * - Sets `#set page(...)` from the page style.
+ * - Sets `#set text(...)` from the base text style.
+ * - Defines helper functions (`#let doc-paragraph`, `doc-heading`,
+ *   `doc-blockquote`, `chapter-title`, `scene-break`, `wb-entry`,
+ *   `wb-field`, ...) used by the PDF generator when emitting markup.
+ *
+ * Generators concatenate the preamble with the document body produced via
+ * the helper functions.
+ */
+@Injectable({ providedIn: 'root' })
+export class PublishTypstEmitterService {
+  private readonly resolver = inject(PublishStyleResolverService);
+
+  emitPreamble(styles: PublishStyles | undefined | null): string {
+    const page = this.resolver.resolvePage(styles);
+    const base = this.resolver.resolveNode(styles, 'paragraph').text;
+    const ch = this.resolver.resolveChapterTitle(styles);
+    const sb = this.resolver.resolveSceneBreak(styles);
+
+    // Page setup
+    const dims = PAGE_TYPST[page.size] ?? {
+      kind: 'paper' as const,
+      paper: '"us-letter"',
+    };
+    const paperLine =
+      dims.kind === 'paper'
+        ? `  paper: ${dims.paper},`
+        : `  width: ${dims.width},\n  height: ${dims.height},`;
+    const numbering = pageNumberingExpr(page.pageNumbers);
+
+    // Paragraph defaults
+    // CSS line-height is a unitless multiplier on font-size that includes
+    // the glyph box; Typst `leading` is the additional gap inserted
+    // between consecutive lines, on top of the glyph box. Convert by
+    // subtracting 1 (clamped at 0): line-height 1.0 -> leading 0em
+    // (single spaced, lines touch), 1.5 -> 0.5em, 2.0 -> 1em (double).
+    const indent = base.firstLineIndent ?? 1.25;
+    const lineHeight = base.lineHeight ?? 1.45;
+    const leading = Math.max(0, lineHeight - 1);
+
+    // Helper: heading levels 1-6
+    const headingHelpers: string[] = [];
+    for (
+      let lvl = 1 as 1 | 2 | 3 | 4 | 5 | 6;
+      lvl <= 6;
+      lvl = (lvl + 1) as 1 | 2 | 3 | 4 | 5 | 6
+    ) {
+      const key = `heading${lvl}` as DocNodeKey;
+      const r = this.resolver.resolveNode(styles, key);
+      const headingBody = wrapAlignTransform(
+        r.text,
+        `[#text(${typstTextArgs(r.text)})[#body]]`
+      );
+      headingHelpers.push(
+        `#let doc-heading-${lvl}(body) = block(above: ${r.box?.marginTop ?? 12}pt, below: ${r.box?.marginBottom ?? 6}pt)[#${headingBody}]`
+      );
+    }
+
+    // Helper: blockquote
+    const bq = this.resolver.resolveNode(styles, 'blockquote');
+    // Helper: code block
+    const cb = this.resolver.resolveNode(styles, 'codeBlock');
+
+    // Helper: chapter title. Honors align (center/right) and uppercase
+    // transform on the title text style; numbering prefix is rendered
+    // with its own (typically smaller) text style above the title.
+    const chTitleInner = wrapAlignTransform(
+      ch.text,
+      `[#text(${typstTextArgs(ch.text)})[#body]]`
+    );
+    const chNumWrapped = chapterNumberPrefixExpr(ch.numberPrefix);
+    const chPageBreak = ch.pageBreakBefore ? '  pagebreak(weak: true)\n' : '';
+
+    // Helper: worldbuilding entry + field
+    const wb = this.resolver.resolveWorldbuildingEntry(styles, undefined);
+    const wbStroke = wb.entryBox.borderWidth
+      ? `${wb.entryBox.borderWidth}pt + ${typstColor(wb.entryBox.borderColor ?? '#888')}`
+      : 'none';
+    const wbSectionTitleStyle = styles?.worldbuilding?.sectionTitle ?? {};
+
+    const out: string[] = [
+      `#set page(
+${paperLine}
+  margin: (top: ${page.marginTop}in, bottom: ${page.marginBottom}in, inside: ${page.marginInside}in, outside: ${page.marginOutside}in),
+  numbering: ${numbering},
+)`,
+      `#set text(
+  font: ${typstFontList(base.font)},
+  size: ${base.fontSize ?? 11}pt,
+  fill: ${typstColor(base.color)},
+)`,
+      `#set par(
+  leading: ${leading.toFixed(2)}em,
+  first-line-indent: (amount: ${indent}em, all: false),
+  justify: ${base.align === 'justify' ? 'true' : 'false'},
+)`,
+      ...headingHelpers,
+      `#let doc-paragraph(body) = par[#body]`,
+      `#let doc-blockquote(body) = block(inset: (left: ${bq.box?.marginLeft ?? 24}pt, right: ${bq.box?.marginRight ?? 24}pt), above: ${bq.box?.marginTop ?? 10}pt, below: ${bq.box?.marginBottom ?? 10}pt)[#text(${typstTextArgs(bq.text)})[#body]]`,
+      `#let doc-code-block(body) = block(fill: ${typstColor(cb.box?.background ?? '#f5f5f5')}, inset: ${cb.box?.paddingLeft ?? 12}pt, above: ${cb.box?.marginTop ?? 10}pt, below: ${cb.box?.marginBottom ?? 10}pt, radius: ${cb.box?.borderRadius ?? 4}pt)[#text(${typstTextArgs(cb.text)})[#raw(body)]]`,
+      `#let chapter-title(num: none, body) = {
+${chPageBreak}  block(above: ${ch.box.marginTop ?? 48}pt, below: ${ch.box.marginBottom ?? 24}pt)[
+    #if num != none [#${chNumWrapped}]
+    #${chTitleInner}
+  ]
+}`,
+      `#let scene-break(text-content) = block(above: ${sb.box.marginTop ?? 18}pt, below: ${sb.box.marginBottom ?? 18}pt)[#align(center)[#text(${typstTextArgs(sb.text)})[#text-content]]]`,
+      `#let wb-entry(title, body) = block(stroke: ${wbStroke}, inset: ${wb.entryBox.paddingLeft ?? 12}pt, above: ${wb.entryBox.marginTop ?? 12}pt, below: ${wb.entryBox.marginBottom ?? 12}pt, radius: ${wb.entryBox.borderRadius ?? 4}pt)[
+  #text(${typstTextArgs(wb.entryTitle)})[#title]
+  #v(4pt)
+  #body
+]`,
+      `#let wb-tab(title, body) = {
+  block(above: 8pt, below: 4pt)[#text(${typstTextArgs(wb.tabHeading)})[#title]]
+  body
+}`,
+      `#let wb-field(label, value) = grid(columns: (auto, 1fr), column-gutter: 8pt, [#text(${typstTextArgs(wb.fieldLabel)})[#label]], [#text(${typstTextArgs(wb.fieldValue)})[#value]])`,
+      `#let wb-section-title(body) = block(above: 24pt, below: 12pt)[#text(${typstTextArgs(wbSectionTitleStyle)})[#body]]`,
+    ];
+
+    return out.join('\n\n') + '\n\n';
+  }
+}
+
+function pageNumberingExpr(mode: PageStyle['pageNumbers']): string {
+  if (mode === 'none') return 'none';
+  if (mode === 'roman') return '"i"';
+  return '"1"';
+}
+
+function chapterNumberPrefixExpr(numberPrefix: TextStyle): string {
+  const numAlign = typstAlign(numberPrefix.align);
+  const inner = `[#text(${typstTextArgs(numberPrefix)})[#num]]`;
+  const aligned = numAlign && numAlign !== 'left';
+  if (numberPrefix.transform === 'uppercase') {
+    return aligned ? `align(${numAlign})[#upper(${inner})]` : `upper(${inner})`;
+  }
+  return aligned ? `align(${numAlign})[${inner}]` : inner;
+}
+
+function typstFontList(token: TextStyle['font']): string {
+  if (!token) return `("${PUBLISH_FONT_TOKENS.serifClassic.typst}",)`;
+  const primary =
+    PUBLISH_FONT_TOKENS[token]?.typst ?? PUBLISH_FONT_TOKENS.serifClassic.typst;
+  return `("${primary}",)`;
+}
+
+function typstColor(hexOrName: string | undefined): string {
+  // Only accept #RGB / #RRGGBB / #RRGGBBAA. Anything else (named colors,
+  // CSS functions, attacker-controlled strings) falls back to the default
+  // text color so we never emit unvalidated content into the Typst source.
+  if (
+    typeof hexOrName === 'string' &&
+    /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(hexOrName)
+  ) {
+    return `rgb("${hexOrName}")`;
+  }
+  return 'rgb("#111111")';
+}
+
+function typstAlign(a: TextStyle['align']): string | null {
+  switch (a) {
+    case 'center':
+      return 'center';
+    case 'right':
+      return 'right';
+    case 'left':
+      return 'left';
+    default:
+      return null;
+  }
+}
+
+function typstTextArgs(s: TextStyle): string {
+  const parts: string[] = [];
+  if (s.font) parts.push(`font: ${typstFontList(s.font)}`);
+  if (s.fontSize !== undefined) parts.push(`size: ${s.fontSize}pt`);
+  if (s.weight) parts.push(`weight: "${typstWeight(s.weight)}"`);
+  if (s.style === 'italic') parts.push(`style: "italic"`);
+  if (s.color) parts.push(`fill: ${typstColor(s.color)}`);
+  if (s.transform === 'uppercase') parts.push(`tracking: 0.05em`);
+  return parts.join(', ');
+}
+
+/**
+ * Wraps `body` in `#align(...)` and/or `#upper(...)` calls when the text
+ * style requests an explicit alignment (other than the document default
+ * left/justify) or an uppercase transform. Returns `body` unchanged when
+ * neither transform applies. The Typst body argument supplied by the
+ * caller must already be a valid expression (e.g. `[#text(...)[#body]]`).
+ */
+function wrapAlignTransform(s: TextStyle, body: string): string {
+  let out = body;
+  if (s.transform === 'uppercase') {
+    out = `upper(${out})`;
+  }
+  const align = typstAlign(s.align);
+  if (align && align !== 'left') {
+    out = `align(${align})[${out}]`;
+  }
+  return out;
+}
+
+function typstWeight(w: NonNullable<TextStyle['weight']>): string {
+  switch (w) {
+    case 'light':
+      return 'light';
+    case 'medium':
+      return 'medium';
+    case 'semibold':
+      return 'semibold';
+    case 'bold':
+      return 'bold';
+    default:
+      return 'regular';
+  }
+}

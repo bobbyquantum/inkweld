@@ -38,7 +38,7 @@ export interface PublishCompleteDialogData {
  * Result from the publish complete dialog
  */
 export interface PublishCompleteDialogResult {
-  action: 'download' | 'share' | 'view-files' | 'close';
+  action: 'download' | 'share' | 'close';
   file?: PublishedFile;
 }
 
@@ -200,16 +200,6 @@ export class PublishCompleteDialogComponent {
     } finally {
       this.updating.set(false);
     }
-  }
-
-  /**
-   * Navigate to published files view
-   */
-  viewFiles(): void {
-    this.dialogRef.close({
-      action: 'view-files',
-      file: this.file(),
-    });
   }
 
   /**
