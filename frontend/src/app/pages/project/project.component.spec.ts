@@ -129,6 +129,7 @@ describe('ProjectComponent', () => {
   // Signals for tracking state
   const projectSignal = signal<Project | undefined>(mockProject);
   const elementsSignal = signal<Element[]>([]);
+  const pinnedElementIdsSignal = signal<string[]>([]);
   const openTabsSignal = signal<any[]>([]);
   const selectedTabIndexSignal = signal(0);
   const isLoadingSignal = signal(false);
@@ -142,6 +143,7 @@ describe('ProjectComponent', () => {
     // Reset signals
     projectSignal.set(mockProject);
     elementsSignal.set([]);
+    pinnedElementIdsSignal.set([]);
     openTabsSignal.set([]);
     selectedTabIndexSignal.set(0);
     isLoadingSignal.set(false);
@@ -159,6 +161,7 @@ describe('ProjectComponent', () => {
     projectStateService = {
       project: projectSignal,
       elements: elementsSignal,
+      pinnedElementIds: pinnedElementIdsSignal,
       openTabs: openTabsSignal,
       selectedTabIndex: selectedTabIndexSignal,
       isLoading: isLoadingSignal,
@@ -1025,6 +1028,112 @@ describe('ProjectComponent', () => {
         );
       });
       expect(router.navigate).not.toHaveBeenCalledWith(['/']);
+    });
+  });
+
+  describe('pinnedElements computed signal', () => {
+    it('should return an empty array when there are no pinned ids', () => {
+      pinnedElementIdsSignal.set([]);
+      elementsSignal.set([mockElement, mockFolderElement]);
+
+      expect(component['pinnedElements']()).toEqual([]);
+    });
+
+    it('should resolve pinned element ids to their full element objects in order', () => {
+      elementsSignal.set([mockElement, mockFolderElement]);
+      pinnedElementIdsSignal.set([mockFolderElement.id, mockElement.id]);
+
+      const pinned = component['pinnedElements']();
+      expect(pinned).toHaveLength(2);
+      expect(pinned[0]).toEqual(mockFolderElement);
+      expect(pinned[1]).toEqual(mockElement);
+    });
+
+    it('should filter out pinned ids that no longer have a matching element', () => {
+      elementsSignal.set([mockElement]);
+      pinnedElementIdsSignal.set(['deleted-id', mockElement.id]);
+
+      const pinned = component['pinnedElements']();
+      expect(pinned).toHaveLength(1);
+      expect(pinned[0]).toEqual(mockElement);
+    });
+
+    it('should return empty array when all pinned ids have been deleted', () => {
+      elementsSignal.set([]);
+      pinnedElementIdsSignal.set(['deleted-1', 'deleted-2']);
+
+      expect(component['pinnedElements']()).toEqual([]);
+    });
+  });
+
+  describe('collapsed sidebar pinned items', () => {
+    beforeEach(() => {
+      // Put the sidebar into collapsed mode
+      component['sidebarCollapsed'].set(true);
+      component['showSidebar'].set(true);
+      component['isMobile'].set(false);
+    });
+
+    it('should not render the pinned section when there are no pinned elements', async () => {
+      pinnedElementIdsSignal.set([]);
+      elementsSignal.set([mockElement]);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const section = fixture.nativeElement.querySelector(
+        '.collapsed-pinned-section'
+      );
+      expect(section).toBeNull();
+    });
+
+    it('should render a button for each pinned element', async () => {
+      elementsSignal.set([mockElement, mockFolderElement]);
+      pinnedElementIdsSignal.set([mockElement.id, mockFolderElement.id]);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const buttons = fixture.nativeElement.querySelectorAll(
+        '[data-testid^="collapsed-pinned-"]'
+      );
+      expect(buttons.length).toBe(2);
+    });
+
+    it('should open the element when a pinned button is clicked', async () => {
+      elementsSignal.set([mockElement]);
+      pinnedElementIdsSignal.set([mockElement.id]);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const button = fixture.nativeElement.querySelector(
+        `[data-testid="collapsed-pinned-${mockElement.name}"]`
+      );
+      expect(button).not.toBeNull();
+      button.click();
+
+      expect(projectStateService.openDocument).toHaveBeenCalledWith(
+        mockElement
+      );
+    });
+
+    it('should hide the pinned section after all pins are removed', async () => {
+      elementsSignal.set([mockElement]);
+      pinnedElementIdsSignal.set([mockElement.id]);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      // Section should be visible
+      expect(
+        fixture.nativeElement.querySelector('.collapsed-pinned-section')
+      ).not.toBeNull();
+
+      // Remove the pin
+      pinnedElementIdsSignal.set([]);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(
+        fixture.nativeElement.querySelector('.collapsed-pinned-section')
+      ).toBeNull();
     });
   });
 });
