@@ -5,8 +5,8 @@ import type { Observable } from 'rxjs';
 import type {
   ProjectActivityResponse,
   UserActivityResponse,
-} from '../../models/activity-event';
-import { SetupService } from '../core/setup.service';
+} from '@models/activity-event';
+import { SetupService } from '@services/core/setup.service';
 
 /**
  * Reads the append-only activity feed.

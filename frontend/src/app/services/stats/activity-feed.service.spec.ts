@@ -11,8 +11,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type {
   ProjectActivityResponse,
   UserActivityResponse,
-} from '../../models/activity-event';
-import { SetupService } from '../core/setup.service';
+} from '@models/activity-event';
+import { SetupService } from '@services/core/setup.service';
 import { ActivityFeedService } from './activity-feed.service';
 
 describe('ActivityFeedService', () => {

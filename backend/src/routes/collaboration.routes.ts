@@ -288,7 +288,7 @@ collaborationRoutes.openapi(inviteCollaboratorRoute, async (c) => {
     user.id
   );
 
-  await activityService.record(db, {
+  void activityService.record(db, {
     projectId,
     userId: user.id,
     eventType: 'collaborator_invited',
@@ -360,7 +360,7 @@ collaborationRoutes.openapi(updateCollaboratorRoute, async (c) => {
     role as CollaboratorRole
   );
 
-  await activityService.record(db, {
+  void activityService.record(db, {
     projectId,
     userId: user!.id,
     eventType: 'collaborator_role_changed',
@@ -419,7 +419,7 @@ collaborationRoutes.openapi(removeCollaboratorRoute, async (c) => {
 
   await collaborationService.removeCollaborator(db, projectId, collaboratorId);
 
-  await activityService.record(db, {
+  void activityService.record(db, {
     projectId,
     userId: user!.id,
     eventType: 'collaborator_removed',
@@ -513,7 +513,7 @@ collaborationRoutes.openapi(acceptInvitationRoute, async (c) => {
 
   const collaborator = await collaborationService.acceptInvitation(db, projectId, user.id);
 
-  await activityService.record(db, {
+  void activityService.record(db, {
     projectId,
     userId: user.id,
     eventType: 'collaborator_joined',

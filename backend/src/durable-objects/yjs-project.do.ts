@@ -104,21 +104,6 @@ interface WSAttachment {
   canWrite: boolean;
 }
 
-/**
- * Per-WebSocket state persisted via `ws.serializeAttachment()` so it
- * survives Durable Object hibernation. Must stay under 2 KB and be
- * structured-clone safe (no functions, no class instances).
- *
- * Everything else in `ConnectionInfo` (sharedDoc reference, listener
- * closures, awareness client IDs) is rebuilt lazily in
- * `rehydrateConnection()` after a wake.
- */
-interface WSAttachment {
-  documentId: string;
-  authenticated: boolean;
-  userId?: string;
-}
-
 interface SessionData {
   // Standard JWT fields (OAuth format)
   sub?: string;
@@ -1319,10 +1304,14 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   /**
    * Best-effort: read the current word count from a live Yjs shared doc
    * by walking its `prosemirror` XmlFragment.
+   *
+   * `WSSharedDoc` from `y-durableobjects` extends `Y.Doc` directly, so
+   * `getXmlFragment` is available on the instance itself (no `.doc` wrapper).
    */
   private readWordCount(sharedDoc: WSSharedDoc | undefined): number {
     try {
-      const fragment = (sharedDoc as any)?.doc?.getXmlFragment?.('prosemirror');
+      if (!sharedDoc) return 0;
+      const fragment = sharedDoc.getXmlFragment('prosemirror');
       if (!fragment) return 0;
       return countWords(extractTextContent(fragment));
     } catch {
@@ -1546,7 +1535,6 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
       // If this is the elements doc, attach the snapshot-diff observer so
       // element creates/renames/deletes are recorded as activity events.
-      const db = this.getDb();
       if (db && projectDbId && isElementsDoc(connInfo.documentId)) {
         this.watchElementsDocDO(sharedDoc, connInfo.documentId, projectDbId, db);
       }

@@ -11,8 +11,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type {
   ProjectStatsResponse,
   UserStatsResponse,
-} from '../../models/writing-stats';
-import { SetupService } from '../core/setup.service';
+} from '@models/writing-stats';
+import { SetupService } from '@services/core/setup.service';
 import { WritingStatsService } from './writing-stats.service';
 
 describe('WritingStatsService', () => {

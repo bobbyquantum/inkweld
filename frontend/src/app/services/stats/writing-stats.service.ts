@@ -5,8 +5,8 @@ import type { Observable } from 'rxjs';
 import type {
   ProjectStatsResponse,
   UserStatsResponse,
-} from '../../models/writing-stats';
-import { SetupService } from '../core/setup.service';
+} from '@models/writing-stats';
+import { SetupService } from '@services/core/setup.service';
 
 /**
  * Reads server-side writing statistics aggregated from Yjs WS sessions.
