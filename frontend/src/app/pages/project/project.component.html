@@ -93,6 +93,18 @@
             <mat-icon>auto_stories</mat-icon>
             <span class="nav-title">Publishing</span>
           </button>
+          @if (!isLocalMode()) {
+            <button
+              type="button"
+              class="mobile-nav-item"
+              [class.selected-item]="isSystemTabSelected('activity')"
+              data-testid="mobile-activity-button"
+              (click)="onShowActivity(); toggleSidebar()"
+              aria-label="Activity">
+              <mat-icon>history</mat-icon>
+              <span class="nav-title">Activity</span>
+            </button>
+          }
           <button
             type="button"
             class="mobile-nav-item"
@@ -209,6 +221,17 @@
                   aria-label="Publishing">
                   <mat-icon>auto_stories</mat-icon>
                 </button>
+                @if (!isLocalMode()) {
+                  <button
+                    mat-icon-button
+                    (click)="onShowActivity()"
+                    [class.active]="isSystemTabSelected('activity')"
+                    matTooltip="Activity"
+                    data-testid="collapsed-activity-button"
+                    aria-label="Activity">
+                    <mat-icon>history</mat-icon>
+                  </button>
+                }
                 <button
                   mat-icon-button
                   (click)="onShowSettings()"
@@ -311,6 +334,18 @@
                     <mat-icon>auto_stories</mat-icon>
                     <span class="nav-title">Publishing</span>
                   </button>
+                  @if (!isLocalMode()) {
+                    <button
+                      type="button"
+                      class="sidebar-nav-item"
+                      [class.selected-item]="isSystemTabSelected('activity')"
+                      data-testid="sidebar-activity-button"
+                      (click)="onShowActivity()"
+                      aria-label="Activity">
+                      <mat-icon>history</mat-icon>
+                      <span class="nav-title">Activity</span>
+                    </button>
+                  }
                   <button
                     type="button"
                     class="sidebar-nav-item"

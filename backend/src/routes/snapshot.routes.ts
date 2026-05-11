@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { userService } from '../services/user.service';
 import { documentSnapshotService } from '../services/document-snapshot.service';
+import { activityService } from '../services/activity.service';
 import { UnauthorizedError, ForbiddenError, NotFoundError } from '../errors';
 import { type AppContext } from '../types/context';
 import {
@@ -202,6 +203,18 @@ snapshotRoutes.openapi(createSnapshotRoute, async (c) => {
     worldbuildingData: data.worldbuildingData,
     wordCount: data.wordCount,
     metadata: data.metadata,
+  });
+
+  await activityService.record(db, {
+    projectId: project.id,
+    userId: user.id,
+    eventType: 'snapshot_created',
+    entityId: snapshot.id,
+    entityName: snapshot.name,
+    metadata: {
+      documentId: snapshot.documentId,
+      wordCount: snapshot.wordCount ?? null,
+    },
   });
 
   return c.json(

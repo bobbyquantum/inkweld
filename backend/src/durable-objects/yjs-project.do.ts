@@ -35,6 +35,18 @@ import { WSSharedDoc } from 'y-durableobjects';
 import { logger } from '../services/logger.service';
 import { stripTrailingSlashes } from '../utils/string-utils';
 import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
+import { makeD1Database, type D1DatabaseInstance } from '../db/d1';
+import { projectService } from '../services/project.service';
+import { collaborationService } from '../services/collaboration.service';
+import { writingSessionService } from '../services/writing-session.service';
+import { activityService } from '../services/activity.service';
+import { countWords, extractTextContent } from '../mcp/tools/mutation.tools';
+import {
+  parseDocumentOwner as parseDocumentOwnerUtil,
+  parseTrackableElementId as parseTrackableElementIdUtil,
+  isYjsFrameBlockedForViewer,
+  isElementsDoc,
+} from '../utils/yjs-document-utils';
 
 const projDOLog = logger.child('YjsProjectDO');
 
@@ -43,7 +55,9 @@ declare const WebSocketPair: any;
 interface ConnectionInfo {
   documentId: string; // Which document this connection is for
   userId?: string;
+  username?: string;
   authenticated: boolean; // Whether this connection has been authenticated
+  canWrite: boolean; // Resolved from collaboration access; viewers cannot send updates
   sharedDoc?: WSSharedDoc; // Document (only set after auth)
   pendingMessages: ArrayBuffer[]; // Binary messages queued before auth
   unsubscribe?: () => void; // Cleanup function for document subscription
@@ -58,6 +72,36 @@ interface ConnectionInfo {
     changes: { added: number[]; updated: number[]; removed: number[] },
     origin: unknown
   ) => void;
+  // Writing-session tracking — populated after successful auth, used by the
+  // close handler to finalize the session row and emit a `document_edit`
+  // activity event when the session has a non-zero word delta. Mirrors the
+  // Bun runtime in routes/yjs.routes.ts.
+  writingSessionId?: string | null;
+  trackedProjectId?: string | null;
+  trackedUserId?: string | null;
+  trackedElementId?: string | null;
+  trackedProjectOwner?: string | null;
+  trackedProjectSlug?: string | null;
+}
+
+/**
+ * Per-WebSocket state persisted via `ws.serializeAttachment()` so it
+ * survives Durable Object hibernation. Must stay under 2 KB and be
+ * structured-clone safe (no functions, no class instances).
+ *
+ * Everything else in `ConnectionInfo` (sharedDoc reference, listener
+ * closures, awareness client IDs) is rebuilt lazily in
+ * `rehydrateConnection()` after a wake.
+ */
+interface WSAttachment {
+  documentId: string;
+  authenticated: boolean;
+  userId?: string;
+  username?: string;
+  /** Whether the user has write access (false = viewer/commenter). Persisted
+   *  so the DO can enforce read-only after a hibernation wake without a new
+   *  DB lookup. */
+  canWrite: boolean;
 }
 
 /**
@@ -89,6 +133,9 @@ type YjsEnv = {
   Bindings: {
     DATABASE_KEY?: string;
     SESSION_SECRET?: string;
+    // D1 binding from wrangler.toml — bound at the Worker level, automatically
+    // propagated into Durable Objects so we can run drizzle-d1 inside the DO.
+    DB?: unknown;
   };
 };
 
@@ -103,6 +150,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   private readonly documents: Map<string, WSSharedDoc> = new Map();
   private readonly connections: Map<WebSocket, ConnectionInfo> = new Map();
   private projectId: string = '';
+  /** Per-doc element snapshots used for CRUD activity event diffing. */
+  private readonly elementSnapshots: Map<string, Map<string, { name: string; type: string }>> =
+    new Map();
 
   constructor(state: DurableObjectState, env: YjsEnv['Bindings']) {
     super(state, env);
@@ -733,6 +783,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     this.connections.set(server, {
       documentId,
       authenticated: false,
+      canWrite: false,
       pendingMessages: [],
       awarenessClientIds: new Set(),
     });
@@ -742,6 +793,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     const attachment: WSAttachment = {
       documentId,
       authenticated: false,
+      canWrite: false,
     };
     server.serializeAttachment(attachment);
 
@@ -759,6 +811,130 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       status: 101,
       webSocket: client,
     } as any);
+  }
+
+  /**
+   * Build a snapshot of the elements array from the Yjs doc.
+   * Returns a map of elementId → {name, type}.
+   */
+  private buildElementSnapshot(
+    sharedDoc: WSSharedDoc
+  ): Map<string, { name: string; type: string }> {
+    const snapshot = new Map<string, { name: string; type: string }>();
+    try {
+      const arr = sharedDoc.getArray('elements');
+      arr.forEach((value) => {
+        if (value && typeof value === 'object') {
+          const elem = value as Record<string, unknown>;
+          const id = typeof elem.id === 'string' ? elem.id : null;
+          if (id) {
+            snapshot.set(id, {
+              name: typeof elem.name === 'string' ? elem.name : '',
+              type: typeof elem.type === 'string' ? elem.type : 'ITEM',
+            });
+          }
+        }
+      });
+    } catch (err) {
+      projDOLog.debug(`buildElementSnapshot failed: ${String(err)}`);
+    }
+    return snapshot;
+  }
+
+  /**
+   * Attach a Yjs update observer to the elements doc for the first caller;
+   * subsequent calls are no-ops (idempotent). On each update, diffs the
+   * element array vs the stored snapshot and emits element_created /
+   * element_renamed / element_deleted activity events attributed to the
+   * WebSocket origin user.
+   *
+   * @param sharedDoc - the WSSharedDoc (extends Y.Doc) for the elements doc
+   * @param documentId - used as the snapshot map key
+   * @param projectDbId - DB project id for activity records
+   * @param db - D1 database instance
+   */
+  private watchElementsDocDO(
+    sharedDoc: WSSharedDoc,
+    documentId: string,
+    projectDbId: string,
+    db: ReturnType<typeof this.getDb>
+  ): void {
+    if (!db) return;
+    // Idempotent: only attach once per doc lifetime in this DO instance.
+    if (this.elementSnapshots.has(documentId)) return;
+
+    this.elementSnapshots.set(documentId, this.buildElementSnapshot(sharedDoc));
+
+    const dbInstance = db;
+    sharedDoc.on('update', (_update: Uint8Array, origin: unknown) => {
+      // Skip server-originated updates (persistence replay, HTTP mutations).
+      // origin is the raw WebSocket for client-sent frames.
+      const ws = origin as WebSocket | null;
+      if (!ws) return;
+      const connInfo = this.connections.get(ws);
+      const userId = connInfo?.userId;
+      if (!userId) return;
+
+      const prev = this.elementSnapshots.get(documentId) ?? new Map();
+      const next = this.buildElementSnapshot(sharedDoc);
+      this.elementSnapshots.set(documentId, next);
+
+      void this.emitElementDiffEventsDO(prev, next, projectDbId, userId, dbInstance);
+    });
+  }
+
+  /**
+   * Diff two element snapshots and fire activity events for any changes.
+   * Best-effort — failures are logged and swallowed.
+   */
+  private async emitElementDiffEventsDO(
+    prev: Map<string, { name: string; type: string }>,
+    next: Map<string, { name: string; type: string }>,
+    projectId: string,
+    userId: string,
+    db: ReturnType<typeof this.getDb>
+  ): Promise<void> {
+    if (!db) return;
+    try {
+      for (const [id, nextElem] of next) {
+        if (!prev.has(id)) {
+          await activityService.record(db, {
+            projectId,
+            userId,
+            eventType: 'element_created',
+            entityId: id,
+            entityName: nextElem.name || null,
+            metadata: { elementType: nextElem.type },
+          });
+        } else {
+          const prevElem = prev.get(id)!;
+          if (prevElem.name !== nextElem.name) {
+            await activityService.record(db, {
+              projectId,
+              userId,
+              eventType: 'element_renamed',
+              entityId: id,
+              entityName: nextElem.name || null,
+              metadata: { oldName: prevElem.name, newName: nextElem.name },
+            });
+          }
+        }
+      }
+      for (const [id, prevElem] of prev) {
+        if (!next.has(id)) {
+          await activityService.record(db, {
+            projectId,
+            userId,
+            eventType: 'element_deleted',
+            entityId: id,
+            entityName: prevElem.name || null,
+            metadata: { elementType: prevElem.type },
+          });
+        }
+      }
+    } catch (err) {
+      projDOLog.error('emitElementDiffEventsDO failed', err, { projectId, userId });
+    }
   }
 
   /**
@@ -974,7 +1150,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     return {
       documentId: attachment.documentId,
       userId: attachment.userId,
+      username: attachment.username,
       authenticated: attachment.authenticated,
+      canWrite: attachment.canWrite,
       pendingMessages: [],
       awarenessClientIds: new Set(),
       sharedDoc,
@@ -1097,9 +1275,156 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
 
     try {
+      // Block writes from read-only viewers (commenter / viewer roles).
+      if (!connInfo.canWrite && isYjsFrameBlockedForViewer(message)) {
+        projDOLog.debug(`Blocked write frame from read-only viewer for ${connInfo.documentId}`);
+        return;
+      }
       this.applyDocumentMessage(sharedDoc, ws, message);
     } catch (error) {
       projDOLog.error('Error handling WebSocket message:', error);
+    }
+  }
+
+  /**
+   * Build a Drizzle-D1 database handle from the DO env binding.
+   * Returns null if the DB binding is unavailable (e.g. in tests without
+   * a configured wrangler env). Callers should treat that as a soft
+   * failure — sync must continue to work even if metadata writes don't.
+   */
+  private getDb(): D1DatabaseInstance | null {
+    if (!this.env.DB) {
+      projDOLog.warn('No D1 binding (env.DB) available in DO — auth + session tracking disabled');
+      return null;
+    }
+    return makeD1Database(this.env.DB);
+  }
+
+  /**
+   * Parse the project owner + slug out of a Yjs document id. Delegates to
+   * the shared util so the Bun WS route and DO stay in lockstep.
+   */
+  private parseDocumentOwner(documentId: string): { projectOwner: string; slug: string } | null {
+    return parseDocumentOwnerUtil(documentId);
+  }
+
+  /**
+   * Extract the trackable elementId from a documentId. Returns null for
+   * project-level `elements` docs and `worldbuilding:` docs.
+   */
+  private parseTrackableElementId(documentId: string): string | null {
+    return parseTrackableElementIdUtil(documentId);
+  }
+
+  /**
+   * Best-effort: read the current word count from a live Yjs shared doc
+   * by walking its `prosemirror` XmlFragment.
+   */
+  private readWordCount(sharedDoc: WSSharedDoc | undefined): number {
+    try {
+      const fragment = (sharedDoc as any)?.doc?.getXmlFragment?.('prosemirror');
+      if (!fragment) return 0;
+      return countWords(extractTextContent(fragment));
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * Open a writing session for this connection if the user can write and
+   * the document id maps to a trackable element. Failures are swallowed.
+   */
+  private async tryStartSession(connInfo: ConnectionInfo, projectId: string): Promise<void> {
+    try {
+      if (!connInfo.canWrite) return;
+      if (!connInfo.userId) return;
+      const elementId = this.parseTrackableElementId(connInfo.documentId);
+      if (!elementId) return;
+      const db = this.getDb();
+      if (!db) return;
+
+      const startWordCount = this.readWordCount(connInfo.sharedDoc);
+      const id = await writingSessionService.start(db, {
+        projectId,
+        elementId,
+        userId: connInfo.userId,
+        startWordCount,
+      });
+      connInfo.writingSessionId = id;
+      connInfo.trackedProjectId = projectId;
+      connInfo.trackedUserId = connInfo.userId;
+      connInfo.trackedElementId = elementId;
+      const parsed = this.parseDocumentOwner(connInfo.documentId);
+      connInfo.trackedProjectOwner = parsed?.projectOwner ?? null;
+      connInfo.trackedProjectSlug = parsed?.slug ?? null;
+      projDOLog.debug(
+        `Writing session started ${id} for ${connInfo.documentId} (start words: ${startWordCount})`
+      );
+    } catch (err) {
+      projDOLog.error(`Failed to start writing session for ${connInfo.documentId}`, err);
+    }
+  }
+
+  /**
+   * Finalize the writing session on disconnect. Emits a `document_edit`
+   * activity event when the session produced a non-zero word delta.
+   */
+  private async tryFinalizeSession(connInfo: ConnectionInfo): Promise<void> {
+    if (!connInfo.writingSessionId) return;
+    const id = connInfo.writingSessionId;
+    const projectId = connInfo.trackedProjectId;
+    const userId = connInfo.trackedUserId;
+    const elementId = connInfo.trackedElementId;
+    const projectOwner = connInfo.trackedProjectOwner;
+    const projectSlug = connInfo.trackedProjectSlug;
+    connInfo.writingSessionId = null; // prevent double-finalize
+    try {
+      const db = this.getDb();
+      if (!db) return;
+      const endWordCount = this.readWordCount(connInfo.sharedDoc);
+      const result = await writingSessionService.finalize(db, id, endWordCount);
+      projDOLog.debug(
+        `Writing session finalized ${id} for ${connInfo.documentId} (end words: ${endWordCount}, delta: ${result?.wordsDelta ?? 'n/a'})`
+      );
+      if (result && result.wordsDelta !== 0 && projectId && userId && elementId) {
+        // Best-effort element name lookup so the activity feed can show
+        // "edited <document name>" instead of just "edited a document".
+        let entityName: string | null = null;
+        if (projectOwner && projectSlug) {
+          try {
+            const elementsDoc = await this.getOrCreateDocument(
+              `${projectOwner}:${projectSlug}:elements/`
+            );
+            const arr = elementsDoc.getArray('elements');
+            arr.forEach((value) => {
+              if (
+                entityName === null &&
+                value &&
+                typeof value === 'object' &&
+                (value as Record<string, unknown>).id === elementId
+              ) {
+                const name = (value as Record<string, unknown>).name;
+                if (typeof name === 'string') entityName = name;
+              }
+            });
+          } catch (err) {
+            projDOLog.debug(
+              `Failed to resolve element name for ${elementId} in ${projectOwner}/${projectSlug}: ${String(err)}`
+            );
+          }
+        }
+        await activityService.recordOrCoalesceEdit(db, {
+          projectId,
+          userId,
+          entityId: elementId,
+          entityName,
+          wordsDelta: result.wordsDelta,
+          endWordCount,
+          durationMs: result.durationMs,
+        });
+      }
+    } catch (err) {
+      projDOLog.error(`Failed to finalize writing session ${id} for ${connInfo.documentId}`, err);
     }
   }
 
@@ -1123,38 +1448,87 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         return;
       }
 
-      // Validate project access (document format: username:slug:documentId)
-      const [projectOwner] = connInfo.documentId.split(':');
-
-      // Check access - the token's username should match the project owner
-      // Future work: add collaborator support - this requires D1 access from the DO
-      // For now, collaborators can only work on the Bun runtime, not Cloudflare Workers
-      // See yjs.routes.ts for the Bun implementation with collaborationService.checkAccess()
-      if (sessionData.username !== projectOwner) {
-        projDOLog.error(
-          `User ${sessionData.username} attempted to access project owned by ${projectOwner}`
-        );
-        ws.send('access-denied:forbidden');
-        ws.close(4003, 'Access denied');
+      // Validate project access. Replaces the legacy owner-only check with a
+      // real collaboration lookup so collaborators (editor/commenter/viewer)
+      // can sync via the Cloudflare Durable Object runtime. Mirrors
+      // routes/yjs.routes.ts (Bun reference impl).
+      const parsed = this.parseDocumentOwner(connInfo.documentId);
+      if (!parsed) {
+        projDOLog.error(`Invalid documentId format: ${connInfo.documentId}`);
+        ws.send('access-denied:invalid-document');
+        ws.close(4002, 'Invalid document ID');
         return;
+      }
+
+      const db = this.getDb();
+      let canWrite = false;
+      let projectDbId: string | null = null;
+
+      if (db) {
+        const project = await projectService.findByUsernameAndSlug(
+          db,
+          parsed.projectOwner,
+          parsed.slug
+        );
+        if (!project) {
+          projDOLog.warn(`Project not found: ${parsed.projectOwner}/${parsed.slug}`);
+          ws.send('access-denied:project-not-found');
+          ws.close(4003, 'Project not found');
+          return;
+        }
+        projectDbId = project.id;
+
+        const jwtUserId = sessionData.userId ?? sessionData.sub;
+        if (project.userId === jwtUserId) {
+          canWrite = true;
+        } else {
+          const access = await collaborationService.checkAccess(db, project.id, jwtUserId);
+          if (!access.canRead) {
+            projDOLog.warn(
+              `User ${sessionData.username} attempted to access project ${parsed.projectOwner}/${parsed.slug}`
+            );
+            ws.send('access-denied:forbidden');
+            ws.close(4003, 'Access denied');
+            return;
+          }
+          canWrite = access.canWrite;
+          projDOLog.info(
+            `Collaborator ${sessionData.username} (${access.role}, canWrite: ${canWrite}) accessing ${parsed.projectOwner}/${parsed.slug}`
+          );
+        }
+      } else {
+        // No D1 binding — fall back to legacy owner-only check so single-user
+        // deployments without DB plumbing still function.
+        if (sessionData.username !== parsed.projectOwner) {
+          projDOLog.error(
+            `User ${sessionData.username} attempted to access project owned by ${parsed.projectOwner}`
+          );
+          ws.send('access-denied:forbidden');
+          ws.close(4003, 'Access denied');
+          return;
+        }
+        canWrite = true;
       }
 
       // Authentication successful!
       connInfo.authenticated = true;
-      connInfo.userId = sessionData.userId;
+      connInfo.userId = sessionData.userId ?? sessionData.sub;
+      connInfo.username = sessionData.username;
+      connInfo.canWrite = canWrite;
 
-      // Persist the new authenticated state so a hibernation wake will
-      // immediately re-attach this socket to the document instead of
-      // waiting for another auth round-trip.
+      // Persist the new authenticated state (including canWrite) so a
+      // hibernation wake will re-attach this socket without a new DB lookup.
       const attachment: WSAttachment = {
         documentId: connInfo.documentId,
         authenticated: true,
-        userId: sessionData.userId,
+        userId: connInfo.userId,
+        username: connInfo.username,
+        canWrite,
       };
       ws.serializeAttachment(attachment);
 
       projDOLog.debug(
-        `WS authenticated for ${connInfo.documentId} (user: ${sessionData.username})`
+        `WS authenticated for ${connInfo.documentId} (user: ${sessionData.username}, canWrite: ${canWrite})`
       );
 
       // Send success message
@@ -1164,6 +1538,18 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       const sharedDoc = await this.getOrCreateDocument(connInfo.documentId);
       connInfo.sharedDoc = sharedDoc;
       this.registerWebSocketForDocument(ws, sharedDoc, connInfo.documentId);
+
+      // Open a writing session for this connection (best-effort).
+      if (projectDbId) {
+        await this.tryStartSession(connInfo, projectDbId);
+      }
+
+      // If this is the elements doc, attach the snapshot-diff observer so
+      // element creates/renames/deletes are recorded as activity events.
+      const db = this.getDb();
+      if (db && projectDbId && isElementsDoc(connInfo.documentId)) {
+        this.watchElementsDocDO(sharedDoc, connInfo.documentId, projectDbId, db);
+      }
 
       // Process any binary messages that arrived during auth
       for (const data of connInfo.pendingMessages) {
@@ -1209,6 +1595,14 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     // Rehydrate so the cleanup path can find the connection even if the
     // DO hibernated between the upgrade and the close event.
     await this.rehydrateConnection(ws);
+
+    // Finalize the writing session BEFORE cleanup so we read the final word
+    // count while the doc is still in connInfo. Fire-and-forget.
+    const connInfo = this.connections.get(ws);
+    if (connInfo) {
+      void this.tryFinalizeSession(connInfo);
+    }
+
     this.cleanupConnection(ws);
 
     // Close WebSocket from server side
@@ -1233,6 +1627,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     const connInfo = this.connections.get(ws);
     if (connInfo) {
       projDOLog.error(`Error was for document: ${connInfo.documentId}`);
+      void this.tryFinalizeSession(connInfo);
     }
     this.cleanupConnection(ws);
   }

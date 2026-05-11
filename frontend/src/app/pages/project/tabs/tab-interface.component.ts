@@ -46,6 +46,7 @@ const SYSTEM_TAB_ICONS: Partial<
   'templates-list': 'description',
   settings: 'settings',
   'publish-plans': 'auto_stories',
+  activity: 'history',
 };
 
 const TAB_TYPE_ICONS: Partial<Record<AppTab['type'], string>> = {
@@ -427,6 +428,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         'tags-list',
         'settings',
         'publish-plans',
+        'activity',
       ];
 
       for (const route of systemRoutes) {
@@ -503,6 +505,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
           | 'relationships-list'
           | 'tags-list'
           | 'publish-plans'
+          | 'activity'
       );
       tabIndex = this.projectState
         .openTabs()
