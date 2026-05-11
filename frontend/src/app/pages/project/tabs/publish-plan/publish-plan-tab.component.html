@@ -148,7 +148,7 @@
               <ng-container *ngTemplateOutlet="contentsTemplate" />
             </mat-expansion-panel>
 
-            <!-- Formatting -->
+            <!-- Style -->
             <mat-expansion-panel
               [expanded]="optionsExpanded()"
               (opened)="optionsExpanded.set(true)"
@@ -156,8 +156,8 @@
               data-testid="accordion-formatting">
               <mat-expansion-panel-header>
                 <mat-panel-title>
-                  <mat-icon class="panel-title-icon">tune</mat-icon>
-                  Formatting
+                  <mat-icon class="panel-title-icon">format_paint</mat-icon>
+                  Style
                 </mat-panel-title>
               </mat-expansion-panel-header>
               <ng-container *ngTemplateOutlet="formattingTemplate" />
@@ -375,6 +375,12 @@
         </div>
       }
     </div>
+
+    <app-publish-style-editor
+      [styles]="effectiveStyles(plan)"
+      (stylesChange)="updateStyles($event)"
+      data-testid="plan-style-editor">
+    </app-publish-style-editor>
   }
 </ng-template>
 

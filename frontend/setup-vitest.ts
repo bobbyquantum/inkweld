@@ -50,6 +50,22 @@ const mockTypstGlobal = {
   setRendererInitOptions: vi.fn().mockReturnValue(undefined),
   pdf: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
   mapShadow: vi.fn().mockResolvedValue(undefined),
+  // `use(...providers)` is called from PdfGeneratorService.initTypst() to
+  // preload bundled fonts. The real signature accepts variadic providers
+  // and returns void; the mock just no-ops.
+  use: vi.fn().mockReturnValue(undefined),
+};
+
+// `TypstSnippet` is the class whose static helpers (preloadFonts,
+// preloadFontFromUrl, etc.) build provider objects passed to `$typst.use()`.
+// Tests don't need them to do anything real — they just need to exist as
+// callables that return *something* (we pass a token through).
+const mockTypstSnippet = {
+  preloadFonts: vi.fn().mockReturnValue({}),
+  preloadFontFromUrl: vi.fn().mockReturnValue({}),
+  preloadFontData: vi.fn().mockReturnValue({}),
+  preloadFontAssets: vi.fn().mockReturnValue({}),
+  disableDefaultFontAssets: vi.fn().mockReturnValue({}),
 };
 
 vi.mock('@myriaddreamin/typst.ts', () => {
@@ -71,6 +87,7 @@ vi.mock('@myriaddreamin/typst.ts', () => {
 
 vi.mock('@myriaddreamin/typst.ts/contrib/snippet', () => ({
   $typst: mockTypstGlobal,
+  TypstSnippet: mockTypstSnippet,
 }));
 
 import { getTestBed } from '@angular/core/testing';

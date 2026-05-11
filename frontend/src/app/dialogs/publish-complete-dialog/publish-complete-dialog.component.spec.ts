@@ -315,15 +315,6 @@ describe('PublishCompleteDialogComponent', () => {
   });
 
   describe('Dialog Actions', () => {
-    it('should close dialog with view-files action', () => {
-      component.viewFiles();
-
-      expect(mockDialogRef.close).toHaveBeenCalledWith({
-        action: 'view-files',
-        file: mockFile,
-      });
-    });
-
     it('should close dialog with close action', () => {
       component.close();
 

@@ -4,6 +4,7 @@ import {
   PublishFormat,
   type PublishPlan,
 } from '@models/publish-plan';
+import { createDefaultPublishStyles } from '@models/publish-style';
 import { HtmlGeneratorService } from '@services/publish/html-generator.service';
 import { MarkdownGeneratorService } from '@services/publish/markdown-generator.service';
 import { PdfGeneratorService } from '@services/publish/pdf-generator.service';
@@ -35,10 +36,8 @@ describe('PublishPreviewComponent', () => {
       includeWordCounts: false,
       includeToc: false,
       includeCover: false,
-      fontFamily: 'Georgia, serif',
-      fontSize: 12,
-      lineHeight: 1.5,
     },
+    styles: createDefaultPublishStyles(),
   };
 
   beforeEach(async () => {
