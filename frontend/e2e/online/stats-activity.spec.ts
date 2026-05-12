@@ -9,7 +9,7 @@
  * - Writing-stats widget hides itself when stats fail to load
  */
 
-import { expect, getApiBaseUrl, test } from './fixtures';
+import { expect, test } from './fixtures';
 
 test.describe('Stats + Activity — Online Mode', () => {
   test('activity tab renders events emitted by project creation', async ({
@@ -52,12 +52,14 @@ test.describe('Stats + Activity — Online Mode', () => {
   }) => {
     const slug = `activity-error-${Date.now()}`;
 
-    // Block the activity endpoint BEFORE navigating so the intercept is in
-    // place when the ActivityTabComponent's effect() fires on project load.
-    const apiUrl = getApiBaseUrl();
-    await page.route(`${apiUrl}/api/v1/activity/**`, route =>
-      route.abort('failed')
-    );
+    // Use a predicate-based route handler so the match is URL-substring based
+    // and immune to port/hostname differences between getApiBaseUrl() and the
+    // actual request origin seen by Playwright.
+    const activityHandler = (route: import('@playwright/test').Route) =>
+      route.abort('failed');
+    const activityMatcher = (url: URL) =>
+      url.pathname.includes('/api/v1/activity/');
+    await page.route(activityMatcher, activityHandler);
 
     await page.goto('/create-project');
     await page.getByRole('button', { name: /next/i }).click();
@@ -80,7 +82,7 @@ test.describe('Stats + Activity — Online Mode', () => {
 
     // Now restore the endpoint and click retry — the activity feed should
     // render successfully (either an empty state or one or more events).
-    await page.unroute(`${apiUrl}/api/v1/activity/**`);
+    await page.unroute(activityMatcher);
     await errorState.getByRole('button', { name: /retry/i }).click();
 
     await expect(errorState).toHaveCount(0, { timeout: 15_000 });
@@ -111,13 +113,13 @@ test.describe('Stats + Activity — Online Mode', () => {
   test('writing-stats widget hides itself when /stats/me fails', async ({
     authenticatedPage: page,
   }) => {
-    // Block ONLY the stats endpoint, then load the profile page so the widget
-    // attempts to fetch and falls into its errored() branch.
-    // Use a trailing * glob to match query params (?days=30).
-    const apiUrl = getApiBaseUrl();
-    await page.route(`${apiUrl}/api/v1/stats/me*`, route =>
-      route.abort('failed')
-    );
+    // Block ONLY the stats/me endpoint using a predicate so the match is
+    // path-based and immune to hostname/port differences.
+    const statsHandler = (route: import('@playwright/test').Route) =>
+      route.abort('failed');
+    const statsMatcher = (url: URL) =>
+      url.pathname.startsWith('/api/v1/stats/me');
+    await page.route(statsMatcher, statsHandler);
     await page.goto(`/${page.testCredentials.username}`);
 
     // Wait for the loading card to disappear (errored() supersedes loading()).

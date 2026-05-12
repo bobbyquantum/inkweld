@@ -44,6 +44,9 @@ export class ActivityTabComponent {
   private readonly activityFeed = inject(ActivityFeedService);
   private readonly logger = inject(LoggerService);
 
+  /** Monotonically-increasing token; guards against stale async responses. */
+  private requestToken = 0;
+
   /** Loaded events, newest-first. */
   protected readonly events = signal<ProjectActivityEvent[]>([]);
   /** Initial-load spinner. */
@@ -74,6 +77,7 @@ export class ActivityTabComponent {
   }
 
   protected async loadInitial(): Promise<void> {
+    const token = ++this.requestToken;
     const project = this.projectState.project();
     if (!project?.username || !project.slug) return;
 
@@ -88,13 +92,15 @@ export class ActivityTabComponent {
           limit: 50,
         })
       );
+      if (token !== this.requestToken) return; // stale response — discard
       this.events.set(res.events);
       this.nextBefore.set(res.nextBefore);
     } catch (err) {
+      if (token !== this.requestToken) return;
       this.logger.error('ActivityTab', 'Failed to load activity feed', err);
       this.error.set('Could not load activity. Check your connection.');
     } finally {
-      this.loading.set(false);
+      if (token === this.requestToken) this.loading.set(false);
     }
   }
 
