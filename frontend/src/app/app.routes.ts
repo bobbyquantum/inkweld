@@ -374,6 +374,16 @@ export const routes: Routes = [
           reuseComponent: false,
         },
       },
+      {
+        path: 'activity',
+        loadComponent: () =>
+          import('./pages/project/tabs/activity/activity-tab.component').then(
+            m => m.ActivityTabComponent
+          ),
+        data: {
+          reuseComponent: false,
+        },
+      },
     ],
   },
   // Old routes for files and documents have been replaced by tab components

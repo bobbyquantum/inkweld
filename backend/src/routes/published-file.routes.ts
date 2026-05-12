@@ -5,6 +5,7 @@ import { UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } fro
 
 import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
+import { activityService } from '../services/activity.service';
 import { getStorageService } from '../services/storage.service';
 import { publishedFiles, type SharePermission } from '../db/schema';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
@@ -242,6 +243,20 @@ publishedFileRoutes.openapi(createPublishedFileRoute, async (c) => {
       updatedAt: now,
     })
     .returning();
+
+  await activityService.record(db, {
+    projectId: project.id,
+    userId: user.id,
+    eventType: 'file_published',
+    entityId: newFile.id,
+    entityName: newFile.filename,
+    metadata: {
+      format: newFile.format,
+      size: newFile.size,
+      planName: newFile.planName,
+      sharePermission: newFile.sharePermission,
+    },
+  });
 
   return c.json(
     {

@@ -10,11 +10,22 @@ import { fileStorageService } from './file-storage.service';
 import * as path from 'node:path';
 import { type Element, type ElementType } from '../types/element.types';
 import { logger } from './logger.service';
+import { activityService } from './activity.service';
+import type { DatabaseInstance } from '../types/context';
 
 const yjsLog = logger.child('Yjs');
 
 const messageSync = 0;
 const messageAwareness = 1;
+
+/**
+ * Lightweight snapshot of a single element used for diffing before/after
+ * each Yjs update on the `elements/` shared doc.
+ */
+interface ElementSnapshot {
+  name: string;
+  type: string;
+}
 
 /** Convert a non-null value to a string without producing '[object Object]'. */
 export function coerceToString(value: NonNullable<unknown>): string {
@@ -40,6 +51,17 @@ interface WSSharedDoc {
     changes: { added: number[]; updated: number[]; removed: number[] },
     origin: unknown
   ) => void;
+  /**
+   * Maps each authenticated WebSocket to the userId that owns it. Populated
+   * after a successful auth handshake so the update listener can attribute
+   * element-CRUD activity events to the correct user.
+   */
+  wsUserIds: Map<WebSocket, string>;
+  /**
+   * Last-known snapshot of the elements array (only populated for `elements/`
+   * documents). Keyed by element id; used to diff creates/renames/deletes.
+   */
+  elementSnapshot?: Map<string, ElementSnapshot>;
 }
 
 export class YjsService {
@@ -77,6 +99,7 @@ export class YjsService {
         doc: ydoc,
         awareness,
         conns: new Map(),
+        wsUserIds: new Map(),
       };
 
       // Track which client IDs each socket is responsible for so we can
@@ -287,8 +310,129 @@ export class YjsService {
   }
 
   /**
-   * Handle incoming message - call this from WebSocket onMessage handler
+   * Associate an authenticated userId with a WebSocket on the given document.
+   * Called after a successful auth handshake so update listeners can attribute
+   * element-CRUD mutations to the correct user.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
+  registerUserConnection(ws: any, documentId: string, userId: string): void {
+    const doc = this.docs.get(documentId);
+    if (doc) doc.wsUserIds.set(ws, userId);
+  }
+
+  /**
+   * Remove the WebSocket→userId association for a disconnecting connection.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
+  unregisterUserConnection(ws: any, documentId: string): void {
+    const doc = this.docs.get(documentId);
+    if (doc) doc.wsUserIds.delete(ws);
+  }
+
+  /**
+   * Attach element-change diffing to an `elements/` shared doc so that
+   * creates, renames, and deletes emit `activity_events` rows. Idempotent —
+   * calling it again for the same `documentId` is a no-op if an observer is
+   * already registered (the snapshot will already exist).
+   *
+   * Must be called after the doc is loaded (i.e. after the first
+   * `handleConnection` call for this documentId).
+   */
+  watchElementsDoc(documentId: string, projectId: string, db: DatabaseInstance): void {
+    const sharedDoc = this.docs.get(documentId);
+    if (!sharedDoc) return;
+    // Already watching — don't attach a second listener.
+    if (sharedDoc.elementSnapshot !== undefined) return;
+
+    // Seed the initial snapshot from the current state.
+    sharedDoc.elementSnapshot = this.buildElementSnapshot(sharedDoc.doc);
+
+    sharedDoc.doc.on('update', (_update: Uint8Array, origin: unknown) => {
+      const snapshot = sharedDoc.elementSnapshot!;
+      const userId = sharedDoc.wsUserIds.get(origin as WebSocket) ?? null;
+      if (!userId) return; // Ignore server-originated updates (persistence replay etc.)
+
+      const newSnapshot = this.buildElementSnapshot(sharedDoc.doc);
+      void this.emitElementDiffEvents(snapshot, newSnapshot, projectId, userId, db);
+      sharedDoc.elementSnapshot = newSnapshot;
+    });
+  }
+
+  /** Build a snapshot Map<elementId, {name, type}> from the current Y.Array state. */
+  private buildElementSnapshot(doc: Y.Doc): Map<string, ElementSnapshot> {
+    const snapshot = new Map<string, ElementSnapshot>();
+    try {
+      const arr = doc.getArray('elements');
+      arr.forEach((value) => {
+        if (value && typeof value === 'object') {
+          const elem = value as Record<string, unknown>;
+          const id = this.coerceFieldString(elem.id);
+          if (id) {
+            snapshot.set(id, {
+              name: this.coerceFieldString(elem.name),
+              type: this.coerceFieldString(elem.type) || 'ITEM',
+            });
+          }
+        }
+      });
+    } catch (err) {
+      yjsLog.debug(`Failed to build element snapshot: ${String(err)}`);
+    }
+    return snapshot;
+  }
+
+  /**
+   * Diff two element snapshots and fire activity events for any changes.
+   * Best-effort — failures are logged and swallowed.
+   */
+  private async emitElementDiffEvents(
+    prev: Map<string, ElementSnapshot>,
+    next: Map<string, ElementSnapshot>,
+    projectId: string,
+    userId: string,
+    db: DatabaseInstance
+  ): Promise<void> {
+    try {
+      for (const [id, nextElem] of next) {
+        if (prev.has(id)) {
+          const prevElem = prev.get(id)!;
+          if (prevElem.name !== nextElem.name) {
+            await activityService.record(db, {
+              projectId,
+              userId,
+              eventType: 'element_renamed',
+              entityId: id,
+              entityName: nextElem.name || null,
+              metadata: { oldName: prevElem.name, newName: nextElem.name },
+            });
+          }
+        } else {
+          await activityService.record(db, {
+            projectId,
+            userId,
+            eventType: 'element_created',
+            entityId: id,
+            entityName: nextElem.name || null,
+            metadata: { elementType: nextElem.type },
+          });
+        }
+      }
+      for (const [id, prevElem] of prev) {
+        if (!next.has(id)) {
+          await activityService.record(db, {
+            projectId,
+            userId,
+            eventType: 'element_deleted',
+            entityId: id,
+            entityName: prevElem.name || null,
+            metadata: { elementType: prevElem.type },
+          });
+        }
+      }
+    } catch (err) {
+      yjsLog.error('Failed to emit element diff activity events', err, { projectId, userId });
+    }
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
   handleMessage(ws: any, doc: WSSharedDoc, message: Buffer) {
     try {

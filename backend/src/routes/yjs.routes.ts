@@ -4,45 +4,46 @@ import { yjsService } from '../services/yjs.service';
 import { authService } from '../services/auth.service';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
+import { writingSessionService } from '../services/writing-session.service';
+import { activityService } from '../services/activity.service';
+import { countWords, extractTextContent } from '../mcp/tools/mutation.tools';
 import { type AppContext } from '../types/context';
 import { logger } from '../services/logger.service';
+import {
+  parseDocumentOwner,
+  parseTrackableElementId,
+  isYjsFrameBlockedForViewer,
+  isElementsDoc,
+} from '../utils/yjs-document-utils';
 
 const wsLog = logger.child('WebSocket');
 const app = new Hono<AppContext>();
 
-function parseDocumentOwner(documentId: string): { projectOwner: string; slug: string } | null {
-  let docIdForParsing = documentId;
-  if (docIdForParsing.startsWith('worldbuilding:')) {
-    docIdForParsing = docIdForParsing.substring('worldbuilding:'.length);
+/**
+ * Best-effort: read the current word count from a live Yjs shared doc
+ * by walking its `prosemirror` XmlFragment. Returns 0 if the doc has no
+ * such fragment yet (newly created documents).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- WSSharedDoc type is internal to y-websocket
+function readWordCount(sharedDoc: any): number {
+  try {
+    const fragment = sharedDoc?.doc?.getXmlFragment?.('prosemirror');
+    if (!fragment) return 0;
+    return countWords(extractTextContent(fragment));
+  } catch {
+    return 0;
   }
-  const parts = docIdForParsing.split(':');
-  if (parts.length < 2) return null;
-  return { projectOwner: parts[0], slug: parts[1] };
 }
 
 function isBlockedForViewer(buffer: Buffer, documentId: string): boolean {
-  const messageType = buffer[0];
-
-  if (messageType === 2) {
-    wsLog.debug(`Blocked update message from read-only viewer for ${documentId}`);
-    return true;
+  // Buffer is a Uint8Array subclass — pass the underlying view to the util.
+  // Slicing the appropriate region keeps Node Buffer pooling out of the picture.
+  const view = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+  const blocked = isYjsFrameBlockedForViewer(view);
+  if (blocked) {
+    wsLog.debug(`Blocked write frame from read-only viewer for ${documentId}`);
   }
-
-  if (messageType === 0 && buffer.length > 1) {
-    const syncMessageType = buffer[1];
-    if (syncMessageType === 1) {
-      wsLog.debug(
-        `Blocked sync-step-2 (client sending updates) from read-only viewer for ${documentId}`
-      );
-      return true;
-    }
-    if (syncMessageType === 2) {
-      wsLog.debug(`Blocked sync-update from read-only viewer for ${documentId}`);
-      return true;
-    }
-  }
-
-  return false;
+  return blocked;
 }
 
 async function resolveWriteAccess(
@@ -133,6 +134,99 @@ app.get(
     // Queue binary messages received before auth is complete
     let pendingMessages: ArrayBuffer[] = [];
 
+    // Writing-session tracking state. Populated after successful auth, used
+    // by the close handler to finalize the row in `writing_sessions` and to
+    // emit a `document_edit` activity event when the session has a non-zero
+    // word delta.
+    let writingSessionId: string | null = null;
+    let trackedProjectId: string | null = null;
+    let trackedUserId: string | null = null;
+    let trackedElementId: string | null = null;
+    let trackedProjectOwner: string | null = null;
+    let trackedProjectSlug: string | null = null;
+
+    /**
+     * Open a writing session for this connection if (a) the user can write
+     * and (b) the document id maps to a trackable element (a prose
+     * document, not the `elements` tree or a `worldbuilding:` doc).
+     * Failures are swallowed — session tracking must never break sync.
+     */
+    const tryStartSession = async (sessionUserId: string, projectId: string): Promise<void> => {
+      try {
+        if (!canWrite) return;
+        const elementId = parseTrackableElementId(documentId);
+        if (!elementId) return;
+
+        const startWordCount = readWordCount(doc);
+        writingSessionId = await writingSessionService.start(db, {
+          projectId,
+          elementId,
+          userId: sessionUserId,
+          startWordCount,
+        });
+        trackedProjectId = projectId;
+        trackedUserId = sessionUserId;
+        trackedElementId = elementId;
+        const parsed = parseDocumentOwner(documentId);
+        trackedProjectOwner = parsed?.projectOwner ?? null;
+        trackedProjectSlug = parsed?.slug ?? null;
+        wsLog.debug(
+          `Writing session started ${writingSessionId} for ${documentId} (start words: ${startWordCount})`
+        );
+      } catch (err) {
+        wsLog.error(`Failed to start writing session for ${documentId}`, err);
+      }
+    };
+
+    /**
+     * Finalize the writing session on disconnect. Best-effort. When the
+     * session produced a non-zero word delta we also emit a `document_edit`
+     * activity event so the project feed reflects the edit.
+     */
+    const tryFinalizeSession = async (): Promise<void> => {
+      if (!writingSessionId) return;
+      const id = writingSessionId;
+      const projectId = trackedProjectId;
+      const userId = trackedUserId;
+      const elementId = trackedElementId;
+      const projectOwner = trackedProjectOwner;
+      const projectSlug = trackedProjectSlug;
+      writingSessionId = null; // prevent double-finalize on error+close
+      try {
+        const endWordCount = readWordCount(doc);
+        const result = await writingSessionService.finalize(db, id, endWordCount);
+        wsLog.debug(
+          `Writing session finalized ${id} for ${documentId} (end words: ${endWordCount}, delta: ${result?.wordsDelta ?? 'n/a'})`
+        );
+        if (result && result.wordsDelta !== 0 && projectId && userId && elementId) {
+          // Best-effort element name lookup so the activity feed can show
+          // "edited <document name>" instead of just "edited a document".
+          let entityName: string | null = null;
+          if (projectOwner && projectSlug) {
+            try {
+              const elements = await yjsService.getElements(projectOwner, projectSlug);
+              entityName = elements.find((e) => e.id === elementId)?.name ?? null;
+            } catch (err) {
+              wsLog.debug(
+                `Failed to resolve element name for ${elementId} in ${projectOwner}/${projectSlug}: ${String(err)}`
+              );
+            }
+          }
+          await activityService.recordOrCoalesceEdit(db, {
+            projectId,
+            userId,
+            entityId: elementId,
+            entityName,
+            wordsDelta: result.wordsDelta,
+            endWordCount,
+            durationMs: result.durationMs,
+          });
+        }
+      } catch (err) {
+        wsLog.error(`Failed to finalize writing session ${id} for ${documentId}`, err);
+      }
+    };
+
     // Validates token, project access, sets up Yjs connection.
     // Closes over connection state variables for mutation.
     const authenticateWs = async (token: string, ws: WsHandle): Promise<void> => {
@@ -201,6 +295,19 @@ app.get(
         wsLog.info(`Authenticated for ${documentId} (user: ${sessionData.username})`);
         ws.send('authenticated');
 
+        // Open a writing session for this connection (best-effort).
+        await tryStartSession(sessionData.userId, project.id);
+
+        // Register this user against the raw WebSocket so the elements doc
+        // update listener can attribute mutations to them. For elements docs,
+        // also attach the snapshot-diff observer (idempotent).
+        if (ws.raw) {
+          yjsService.registerUserConnection(ws.raw, documentId, sessionData.userId);
+          if (isElementsDoc(documentId)) {
+            yjsService.watchElementsDoc(documentId, project.id, db);
+          }
+        }
+
         for (const data of pendingMessages) {
           const buffer = Buffer.from(data);
           if (!canWrite && isBlockedForViewer(buffer, documentId)) continue;
@@ -253,6 +360,13 @@ app.get(
         if (pingInterval) {
           clearInterval(pingInterval);
           pingInterval = null;
+        }
+        // Finalize writing session BEFORE handing off to yjs disconnect, so
+        // we read the final word count while the doc is still in-memory.
+        // Fire-and-forget: don't block the close handler on the DB write.
+        void tryFinalizeSession();
+        if (ws.raw) {
+          yjsService.unregisterUserConnection(ws.raw, documentId);
         }
         if (doc) {
           yjsService.handleDisconnect(ws.raw, doc);

@@ -1085,6 +1085,7 @@ export class ProjectStateService implements OnDestroy {
       | 'settings'
       | 'home'
       | 'publish-plans'
+      | 'activity'
   ): { index: number; wasCreated: boolean } {
     const result = this.tabManager.openSystemTab(type);
     if (result.wasCreated) {
@@ -1429,6 +1430,7 @@ export class ProjectStateService implements OnDestroy {
   private static readonly URL_TO_SYSTEM_TAB: Record<string, string> = {
     media: 'media',
     templates: 'templates-list',
+    activity: 'activity',
   };
 
   private resolveTabIndexFromUrl(tabs: AppTab[], projectSlug: string): number {

@@ -1,0 +1,66 @@
+<div class="activity-tab">
+  <header class="tab-header">
+    <h2><mat-icon>history</mat-icon> Activity</h2>
+    <button
+      mat-icon-button
+      matTooltip="Refresh"
+      [disabled]="loading()"
+      (click)="loadInitial()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </header>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (error()) {
+    <div class="error-state">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <h3>Could not load activity</h3>
+      <p>{{ error() }}</p>
+      <button mat-raised-button color="primary" (click)="loadInitial()">
+        <mat-icon>refresh</mat-icon> Retry
+      </button>
+    </div>
+  } @else if (isEmpty()) {
+    <div class="empty-state">
+      <mat-icon>history_toggle_off</mat-icon>
+      <h3>No activity yet</h3>
+      <p>Edits, comments, snapshots and other changes will appear here.</p>
+    </div>
+  } @else {
+    <ol class="event-list">
+      @for (event of events(); track event.id) {
+        <li class="event-item">
+          <div class="event-icon">
+            <mat-icon>{{ iconFor(event.eventType) }}</mat-icon>
+          </div>
+          <div class="event-body">
+            <div class="event-text">{{ describe(event) }}</div>
+            <div
+              class="event-time"
+              [matTooltip]="event.createdAt | date: 'medium'">
+              {{ formatTime(event.createdAt) }}
+            </div>
+          </div>
+        </li>
+      }
+    </ol>
+
+    @if (hasMore()) {
+      <div class="load-more">
+        <button
+          mat-stroked-button
+          [disabled]="loadingMore()"
+          (click)="loadMore()">
+          @if (loadingMore()) {
+            <mat-spinner diameter="18" />
+          } @else {
+            <ng-container>Load more</ng-container>
+          }
+        </button>
+      </div>
+    }
+  }
+</div>

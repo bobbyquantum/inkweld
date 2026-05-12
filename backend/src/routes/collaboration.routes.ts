@@ -9,6 +9,7 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
+import { activityService } from '../services/activity.service';
 import { type CollaboratorRole } from '../db/schema/project-collaborators';
 import { UnauthorizedError, ForbiddenError, NotFoundError } from '../errors';
 import type { AppContext, DatabaseInstance, User } from '../types/context';
@@ -287,6 +288,15 @@ collaborationRoutes.openapi(inviteCollaboratorRoute, async (c) => {
     user.id
   );
 
+  void activityService.record(db, {
+    projectId,
+    userId: user.id,
+    eventType: 'collaborator_invited',
+    entityId: collaborator.userId,
+    entityName: targetUsername,
+    metadata: { role },
+  });
+
   return c.json(collaborator as CollaboratorData, 201);
 });
 
@@ -350,6 +360,15 @@ collaborationRoutes.openapi(updateCollaboratorRoute, async (c) => {
     role as CollaboratorRole
   );
 
+  void activityService.record(db, {
+    projectId,
+    userId: user!.id,
+    eventType: 'collaborator_role_changed',
+    entityId: collaboratorId,
+    entityName: updated.username ?? null,
+    metadata: { role },
+  });
+
   return c.json(updated as CollaboratorData, 200);
 });
 
@@ -394,7 +413,20 @@ collaborationRoutes.openapi(removeCollaboratorRoute, async (c) => {
   // Only project owner can remove collaborators
   const { projectId } = await verifyProjectOwnership(db, user, username, slug);
 
+  // Look up the collaborator before removal so we can record their username
+  const collaborators = await collaborationService.getCollaborators(db, projectId);
+  const existing = collaborators.find((c) => c.userId === collaboratorId);
+
   await collaborationService.removeCollaborator(db, projectId, collaboratorId);
+
+  void activityService.record(db, {
+    projectId,
+    userId: user!.id,
+    eventType: 'collaborator_removed',
+    entityId: collaboratorId,
+    entityName: existing?.username ?? null,
+    metadata: null,
+  });
 
   return c.json({ message: 'Collaborator removed' }, 200);
 });
@@ -480,6 +512,15 @@ collaborationRoutes.openapi(acceptInvitationRoute, async (c) => {
   }
 
   const collaborator = await collaborationService.acceptInvitation(db, projectId, user.id);
+
+  void activityService.record(db, {
+    projectId,
+    userId: user.id,
+    eventType: 'collaborator_joined',
+    entityId: user.id,
+    entityName: user.username,
+    metadata: { role: collaborator.role },
+  });
 
   return c.json(collaborator as CollaboratorData, 200);
 });

@@ -76,7 +76,11 @@ const sidebars: SidebarsConfig = {
         type: 'generated-index',
         description: 'Work together with co-authors in real-time.',
       },
-      items: ['collaboration/real-time', 'collaboration/sharing'],
+      items: [
+        'collaboration/real-time',
+        'collaboration/sharing',
+        'collaboration/activity-and-stats',
+      ],
     },
     {
       type: 'category',

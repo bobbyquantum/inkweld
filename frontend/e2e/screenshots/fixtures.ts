@@ -15,6 +15,7 @@ import { setupAiImageHandlers } from './mock-api/ai-image';
 import { setupAuthHandlers } from './mock-api/auth';
 import { setupConfigHandlers } from './mock-api/config';
 import { mockProjects, setupProjectHandlers } from './mock-api/projects';
+import { setupStatsHandlers } from './mock-api/stats';
 import { setupUserHandlers } from './mock-api/users';
 
 /**
@@ -29,6 +30,7 @@ function initializeMockApi(): void {
   setupConfigHandlers();
   setupProjectHandlers();
   setupAiImageHandlers();
+  setupStatsHandlers();
 }
 
 async function initializeServerFixturePage(

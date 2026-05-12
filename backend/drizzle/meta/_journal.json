@@ -169,6 +169,13 @@
       "when": 1777766400000,
       "tag": "0024_add-passkey-recovery-tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1778280193142,
+      "tag": "0025_add-writing-sessions-and-activity-events",
+      "breakpoints": true
     }
   ]
 }

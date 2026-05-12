@@ -1,4 +1,6 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -93,6 +95,8 @@ describe('UserProfileComponent', () => {
       imports: [UserProfileComponent],
       providers: [
         provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: ActivatedRoute, useValue: activatedRouteMock },
         { provide: UserService, useValue: userService },
         { provide: UnifiedUserService, useValue: unifiedUserService },
@@ -128,6 +132,8 @@ describe('UserProfileComponent', () => {
         imports: [UserProfileComponent],
         providers: [
           provideZonelessChangeDetection(),
+          provideHttpClient(),
+          provideHttpClientTesting(),
           { provide: ActivatedRoute, useValue: activatedRouteMock },
           { provide: UserService, useValue: userService },
           { provide: UnifiedUserService, useValue: unifiedUserService },
