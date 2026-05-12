@@ -22,3 +22,5 @@ export * from './comment-read-status';
 export * from './user-passkeys';
 export * from './webauthn-challenges';
 export * from './passkey-recovery-tokens';
+export * from './writing-sessions';
+export * from './activity-events';
