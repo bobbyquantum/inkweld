@@ -14,7 +14,13 @@ import {
   type PresenceSession,
 } from '@inkweld/presence';
 
-import { ProjectPresenceService, Y_MESSAGE_PRESENCE } from './presence.service';
+import {
+  ProjectPresenceService,
+  Y_MESSAGE_PRESENCE,
+  isPresenceMessageTag,
+  encodeLeaveFrame,
+  peekFrameTag,
+} from './presence.service';
 
 class MockSocket {
   readonly sent: Uint8Array[] = [];
@@ -152,5 +158,35 @@ describe('ProjectPresenceService', () => {
   it('defines text keepalive messages for Cloudflare auto-response', () => {
     expect(PRESENCE_KEEPALIVE_PING).toBe('inkweld:presence:ping');
     expect(PRESENCE_KEEPALIVE_PONG).toBe('inkweld:presence:pong');
+  });
+
+  it('isPresenceMessageTag returns true for Y_MESSAGE_PRESENCE and false otherwise', () => {
+    expect(isPresenceMessageTag(Y_MESSAGE_PRESENCE)).toBe(true);
+    expect(isPresenceMessageTag(0)).toBe(false);
+    expect(isPresenceMessageTag(1)).toBe(false);
+  });
+
+  it('encodeLeaveFrame builds a valid Leave frame with the outer multiplex byte', () => {
+    const frame = encodeLeaveFrame('sess-xyz');
+    const result = peekFrameTag(frame);
+    expect(result).not.toBeNull();
+    expect(result!.tag).toBe(Y_MESSAGE_PRESENCE);
+    // Verify full decode works
+    const msg = decode(frame);
+    expect(msg.type).toBe(PRESENCE_MSG_LEAVE);
+    if (msg.type === PRESENCE_MSG_LEAVE) {
+      expect(msg.sessionId).toBe('sess-xyz');
+    }
+  });
+
+  it('peekFrameTag returns null for an empty frame', () => {
+    expect(peekFrameTag(new Uint8Array(0))).toBeNull();
+  });
+
+  it('peekFrameTag returns tag and positioned decoder for non-empty frames', () => {
+    const frame = encodeLeaveFrame('s1');
+    const result = peekFrameTag(frame);
+    expect(result).not.toBeNull();
+    expect(result!.tag).toBe(Y_MESSAGE_PRESENCE);
   });
 });

@@ -14,6 +14,7 @@ import {
 import { type ElementRelationship } from '@models/element-ref.model';
 import { createDefaultPublishStyles } from '@models/publish-style';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
+import { type TimeSystem } from '@models/time-system';
 import type * as decoding from 'lib0/decoding';
 import { createDecoder, readVarUint } from 'lib0/decoding';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -375,6 +376,22 @@ describe('YjsElementSyncProvider', () => {
     ).handleConnectionError('temporary network failure');
 
     expect(provider.getSyncState()).toBe(DocumentSyncState.Local);
+  });
+
+  it('extracts type from Event instances in connection-error handler', () => {
+    (
+      provider as unknown as { handleConnectionError: (event: unknown) => void }
+    ).handleConnectionError(new Event('close'));
+
+    expect(provider.getSyncState()).toBe(DocumentSyncState.Local);
+  });
+
+  it('treats unknown WebSocket status as Syncing', () => {
+    (
+      provider as unknown as { handleWebSocketStatus: (status: string) => void }
+    ).handleWebSocketStatus('unknown-future-status');
+
+    expect(provider.getSyncState()).toBe(DocumentSyncState.Syncing);
   });
 
   it('installs browser online and offline handlers that reconnect and downgrade sync state', () => {
@@ -1057,6 +1074,35 @@ describe('YjsElementSyncProvider', () => {
       ).loadElementsFromDoc();
 
       expect(provider.getProjectMeta()?.pinnedElementIds).toBeUndefined();
+    });
+  });
+
+  describe('Time Systems', () => {
+    it('returns empty time systems initially', () => {
+      expect(provider.getTimeSystems()).toEqual([]);
+    });
+
+    it('updates time systems in yjs doc and emits via observable', () => {
+      attachDoc();
+      const systems: TimeSystem[] = [
+        {
+          id: 'ts-1',
+          name: 'Standard',
+          hoursPerDay: 24,
+        } as unknown as TimeSystem,
+      ];
+      const emitted: TimeSystem[][] = [];
+      provider.timeSystems$.subscribe(v => emitted.push(v));
+
+      provider.updateTimeSystems(systems);
+
+      expect(emitted[emitted.length - 1]).toEqual(systems);
+      expect(provider.getTimeSystems()).toEqual(systems);
+    });
+
+    it('does not throw when updating time systems without a connected doc', () => {
+      // doc is null — the guard branch (line 633-635) fires
+      expect(() => provider.updateTimeSystems([])).not.toThrow();
     });
   });
 });

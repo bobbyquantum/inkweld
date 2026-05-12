@@ -251,4 +251,23 @@ describe('PresenceService', () => {
       });
     });
   });
+
+  it('transitions to idle when the idle timer fires', () => {
+    vi.useFakeTimers();
+    const service = setupService({ provider, currentUser });
+    currentUser.set({ id: 'u1', username: 'alice' });
+    TestBed.flushEffects();
+    provider.setLocalPresence.mockClear();
+
+    // Trigger markActive via public API to arm the idle timer
+    service.setActiveLocation({ kind: 'elements' });
+
+    // Advance past the idle timeout (5 minutes)
+    vi.advanceTimersByTime(6 * 60 * 1000);
+
+    expect(provider.setLocalPresence).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'idle' })
+    );
+    vi.useRealTimers();
+  });
 });
