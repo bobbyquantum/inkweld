@@ -135,8 +135,9 @@ test.describe('Stats + Activity — Online Mode', () => {
       page.locator('app-writing-stats-widget .stats-widget')
     ).toHaveCount(0);
 
-    // Sanity: the profile page itself still loaded (user menu present).
-    await expect(page.getByTestId('user-menu-button')).toBeVisible({
+    // Sanity: the profile page itself still loaded correctly.
+    // The user-profile page renders a toolbar with an "User Profile" heading.
+    await expect(page.locator('.profile-toolbar')).toBeVisible({
       timeout: 15_000,
     });
   });
