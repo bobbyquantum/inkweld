@@ -394,16 +394,7 @@ export class YjsService {
   ): Promise<void> {
     try {
       for (const [id, nextElem] of next) {
-        if (!prev.has(id)) {
-          await activityService.record(db, {
-            projectId,
-            userId,
-            eventType: 'element_created',
-            entityId: id,
-            entityName: nextElem.name || null,
-            metadata: { elementType: nextElem.type },
-          });
-        } else {
+        if (prev.has(id)) {
           const prevElem = prev.get(id)!;
           if (prevElem.name !== nextElem.name) {
             await activityService.record(db, {
@@ -415,6 +406,15 @@ export class YjsService {
               metadata: { oldName: prevElem.name, newName: nextElem.name },
             });
           }
+        } else {
+          await activityService.record(db, {
+            projectId,
+            userId,
+            eventType: 'element_created',
+            entityId: id,
+            entityName: nextElem.name || null,
+            metadata: { elementType: nextElem.type },
+          });
         }
       }
       for (const [id, prevElem] of prev) {

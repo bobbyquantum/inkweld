@@ -68,7 +68,8 @@ class WritingSessionService {
       .where(eq(writingSessions.id, sessionId))
       .limit(1);
     const session = existing[0];
-    if (!session || session.sessionEnd !== null) return null;
+    if (!session) return null;
+    if (session.sessionEnd !== null) return null;
 
     const delta = endWordCount - session.startWordCount;
     const sessionEnd = Date.now();

@@ -882,16 +882,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     if (!db) return;
     try {
       for (const [id, nextElem] of next) {
-        if (!prev.has(id)) {
-          await activityService.record(db, {
-            projectId,
-            userId,
-            eventType: 'element_created',
-            entityId: id,
-            entityName: nextElem.name || null,
-            metadata: { elementType: nextElem.type },
-          });
-        } else {
+        if (prev.has(id)) {
           const prevElem = prev.get(id)!;
           if (prevElem.name !== nextElem.name) {
             await activityService.record(db, {
@@ -903,6 +894,15 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
               metadata: { oldName: prevElem.name, newName: nextElem.name },
             });
           }
+        } else {
+          await activityService.record(db, {
+            projectId,
+            userId,
+            eventType: 'element_created',
+            entityId: id,
+            entityName: nextElem.name || null,
+            metadata: { elementType: nextElem.type },
+          });
         }
       }
       for (const [id, prevElem] of prev) {
@@ -1418,6 +1418,69 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
+   * Check project access using the D1 database (full collaboration support).
+   * Returns `{ canWrite, projectDbId }` or null if access was denied (response already sent).
+   */
+  private async checkAccessWithDb(
+    db: D1DatabaseInstance,
+    parsed: { projectOwner: string; slug: string },
+    sessionData: SessionData,
+    ws: WebSocket
+  ): Promise<{ canWrite: boolean; projectDbId: string } | null> {
+    const project = await projectService.findByUsernameAndSlug(
+      db,
+      parsed.projectOwner,
+      parsed.slug
+    );
+    if (!project) {
+      projDOLog.warn(`Project not found: ${parsed.projectOwner}/${parsed.slug}`);
+      ws.send('access-denied:project-not-found');
+      ws.close(4003, 'Project not found');
+      return null;
+    }
+
+    const jwtUserId = sessionData.userId ?? sessionData.sub;
+    if (project.userId === jwtUserId) {
+      return { canWrite: true, projectDbId: project.id };
+    }
+
+    const access = await collaborationService.checkAccess(db, project.id, jwtUserId);
+    if (!access.canRead) {
+      projDOLog.warn(
+        `User ${sessionData.username} attempted to access project ${parsed.projectOwner}/${parsed.slug}`
+      );
+      ws.send('access-denied:forbidden');
+      ws.close(4003, 'Access denied');
+      return null;
+    }
+
+    projDOLog.info(
+      `Collaborator ${sessionData.username} (${access.role}, canWrite: ${access.canWrite}) accessing ${parsed.projectOwner}/${parsed.slug}`
+    );
+    return { canWrite: access.canWrite, projectDbId: project.id };
+  }
+
+  /**
+   * Legacy owner-only access check for deployments without a D1 binding.
+   * Returns `{ canWrite, projectDbId }` or null if access was denied (response already sent).
+   */
+  private checkAccessLegacy(
+    parsed: { projectOwner: string },
+    sessionData: SessionData,
+    ws: WebSocket
+  ): { canWrite: boolean; projectDbId: null } | null {
+    if (sessionData.username !== parsed.projectOwner) {
+      projDOLog.error(
+        `User ${sessionData.username} attempted to access project owned by ${parsed.projectOwner}`
+      );
+      ws.send('access-denied:forbidden');
+      ws.close(4003, 'Access denied');
+      return null;
+    }
+    return { canWrite: true, projectDbId: null };
+  }
+
+  /**
    * Verify the JWT token from a connection's first text message and, if
    * valid, transition the connection to authenticated and start Yjs sync.
    *
@@ -1450,54 +1513,11 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       }
 
       const db = this.getDb();
-      let canWrite = false;
-      let projectDbId: string | null = null;
-
-      if (db) {
-        const project = await projectService.findByUsernameAndSlug(
-          db,
-          parsed.projectOwner,
-          parsed.slug
-        );
-        if (!project) {
-          projDOLog.warn(`Project not found: ${parsed.projectOwner}/${parsed.slug}`);
-          ws.send('access-denied:project-not-found');
-          ws.close(4003, 'Project not found');
-          return;
-        }
-        projectDbId = project.id;
-
-        const jwtUserId = sessionData.userId ?? sessionData.sub;
-        if (project.userId === jwtUserId) {
-          canWrite = true;
-        } else {
-          const access = await collaborationService.checkAccess(db, project.id, jwtUserId);
-          if (!access.canRead) {
-            projDOLog.warn(
-              `User ${sessionData.username} attempted to access project ${parsed.projectOwner}/${parsed.slug}`
-            );
-            ws.send('access-denied:forbidden');
-            ws.close(4003, 'Access denied');
-            return;
-          }
-          canWrite = access.canWrite;
-          projDOLog.info(
-            `Collaborator ${sessionData.username} (${access.role}, canWrite: ${canWrite}) accessing ${parsed.projectOwner}/${parsed.slug}`
-          );
-        }
-      } else {
-        // No D1 binding — fall back to legacy owner-only check so single-user
-        // deployments without DB plumbing still function.
-        if (sessionData.username !== parsed.projectOwner) {
-          projDOLog.error(
-            `User ${sessionData.username} attempted to access project owned by ${parsed.projectOwner}`
-          );
-          ws.send('access-denied:forbidden');
-          ws.close(4003, 'Access denied');
-          return;
-        }
-        canWrite = true;
-      }
+      const accessResult = db
+        ? await this.checkAccessWithDb(db, parsed, sessionData, ws)
+        : this.checkAccessLegacy(parsed, sessionData, ws);
+      if (!accessResult) return;
+      const { canWrite, projectDbId } = accessResult;
 
       // Authentication successful!
       connInfo.authenticated = true;

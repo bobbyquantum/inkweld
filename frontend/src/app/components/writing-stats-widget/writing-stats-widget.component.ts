@@ -111,15 +111,17 @@ export class WritingStatsWidgetComponent implements OnInit {
   protected eventSummary(event: UserActivityEvent): string {
     const who = event.username ?? 'Someone';
     const name = event.entityName ?? '';
+    const onName = name ? ` on ${name}` : '';
+    const ofName = name ? ` of ${name}` : '';
     switch (event.eventType) {
       case 'document_edit':
         return `${who} edited ${name || 'a document'}`;
       case 'snapshot_created':
-        return `${who} saved a snapshot${name ? ` of ${name}` : ''}`;
+        return `${who} saved a snapshot${ofName}`;
       case 'comment_thread_created':
-        return `${who} commented${name ? ` on ${name}` : ''}`;
+        return `${who} commented${onName}`;
       case 'comment_reply_added':
-        return `${who} replied${name ? ` on ${name}` : ''}`;
+        return `${who} replied${onName}`;
       case 'file_published':
         return `${who} published ${name || 'a file'}`;
       case 'collaborator_invited':

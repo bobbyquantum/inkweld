@@ -13,6 +13,7 @@
  */
 
 import type { Page } from '@playwright/test';
+import { expect } from '@playwright/test';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
@@ -60,6 +61,7 @@ test.describe('Writing Stats & Activity Screenshots', () => {
     await test.step('light', async () => {
       await waitForWidget(page);
       const widget = page.locator('app-writing-stats-widget .stats-widget');
+      await expect(widget).toBeVisible();
       await widget.screenshot({
         path: join(SCREENSHOTS_DIR, 'writing-stats-widget-light.png'),
       });
@@ -70,6 +72,7 @@ test.describe('Writing Stats & Activity Screenshots', () => {
       await page.reload({ waitUntil: 'domcontentloaded' });
       await waitForWidget(page);
       const widget = page.locator('app-writing-stats-widget .stats-widget');
+      await expect(widget).toBeVisible();
       await widget.screenshot({
         path: join(SCREENSHOTS_DIR, 'writing-stats-widget-dark.png'),
       });

@@ -137,15 +137,17 @@ export class ActivityTabComponent {
   protected describe(event: ProjectActivityEvent): string {
     const who = event.username ?? 'Someone';
     const name = event.entityName ?? '';
+    const ofName = name ? ` of ${name}` : '';
+    const onName = name ? ` on ${name}` : '';
     switch (event.eventType) {
       case 'document_edit':
         return `${who} edited ${name || 'a document'}`;
       case 'snapshot_created':
-        return `${who} saved a snapshot${name ? ` of ${name}` : ''}`;
+        return `${who} saved a snapshot${ofName}`;
       case 'comment_thread_created':
-        return `${who} started a comment thread${name ? ` on ${name}` : ''}`;
+        return `${who} started a comment thread${onName}`;
       case 'comment_reply_added':
-        return `${who} replied to a comment${name ? ` on ${name}` : ''}`;
+        return `${who} replied to a comment${onName}`;
       case 'file_published':
         return `${who} published ${name || 'a file'}`;
       case 'collaborator_invited':

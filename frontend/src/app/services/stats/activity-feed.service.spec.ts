@@ -134,6 +134,7 @@ describe('ActivityFeedService', () => {
       const req = httpController.expectOne(
         r => r.url === '/api/v1/activity/projects/a%20b/c%2Fd'
       );
+      expect(req.request.url).toBe('/api/v1/activity/projects/a%20b/c%2Fd');
       req.flush(projectResponse);
       await promise;
     });

@@ -82,7 +82,7 @@ activityRoutes.get('/projects/:username/:slug', async (c) => {
       metadata: e.metadata,
       createdAt: e.createdAt,
     })),
-    nextBefore: events.length === limit ? events[events.length - 1].createdAt : null,
+    nextBefore: events.length === limit ? events.at(-1)!.createdAt : null,
   });
 });
 
@@ -152,7 +152,7 @@ activityRoutes.get('/me', async (c) => {
         createdAt: e.createdAt,
       };
     }),
-    nextBefore: events.length === limit ? events[events.length - 1].createdAt : null,
+    nextBefore: events.length === limit ? events.at(-1)!.createdAt : null,
   });
 });
 

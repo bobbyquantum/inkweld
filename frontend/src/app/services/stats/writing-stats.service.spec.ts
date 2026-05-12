@@ -91,6 +91,9 @@ describe('WritingStatsService', () => {
       const req = httpController.expectOne(
         r => r.url === '/api/v1/stats/projects/with%20space/slug%2Fwith-slash'
       );
+      expect(req.request.url).toBe(
+        '/api/v1/stats/projects/with%20space/slug%2Fwith-slash'
+      );
       req.flush(mockResponse);
       await promise;
     });
@@ -120,6 +123,9 @@ describe('WritingStatsService', () => {
         r =>
           r.url ===
           'https://api.example.com/api/v1/stats/projects/alice/my-book'
+      );
+      expect(req.request.url).toBe(
+        'https://api.example.com/api/v1/stats/projects/alice/my-book'
       );
       req.flush(mockResponse);
       await promise;
