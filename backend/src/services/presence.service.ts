@@ -309,6 +309,6 @@ export function peekFrameTag(frame: Uint8Array): { tag: number; decoder: decodin
   return { tag, decoder };
 }
 
-// Suppress unused-imports warning when only some runtimes use these helpers.
-void writeHello;
-void writeUpdate;
+// Re-export codec helpers so callers (e.g. routes/yjs.routes.ts) can import
+// them from a single point without reaching into @inkweld/presence directly.
+export { writeHello, writeUpdate };

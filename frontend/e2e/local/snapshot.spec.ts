@@ -38,9 +38,7 @@ async function createElement(
 }
 
 async function openSnapshotsDialog(page: Page): Promise<void> {
-  const snapshotsButton = page
-    .getByTestId('toolbar-snapshots')
-    .or(page.getByRole('button', { name: 'Open document snapshots' }));
+  const snapshotsButton = page.getByTestId('toolbar-snapshots');
   await snapshotsButton.click();
   await expect(page.getByTestId('create-snapshot-btn')).toBeVisible();
 }

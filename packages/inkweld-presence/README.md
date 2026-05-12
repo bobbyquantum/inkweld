@@ -18,7 +18,7 @@ message-type tag — Yjs reserves `0` (sync) and `1` (awareness). This package
 claims tag `100` for presence so peers (and the server) can ignore it without
 disturbing Yjs sync state.
 
-```
+```text
 [varUint: 100][varUint: presenceMsgType][... payload ...]
 ```
 

@@ -539,6 +539,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       onEscape: () => {
         this.selectedObjectId.set(null);
         this.canvasSelection.clearSelection();
+        this.presence.setSelection(null);
         this.activeTool.set('select');
       },
       onToolChange: tool => this.onToolChange(tool),

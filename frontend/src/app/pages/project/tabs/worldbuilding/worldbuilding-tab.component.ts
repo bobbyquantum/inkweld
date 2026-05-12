@@ -147,6 +147,7 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
       this.paramSubscription.unsubscribe();
       this.paramSubscription = null;
     }
+    this.presence.setActiveLocation(null);
     this.presence.setSelection(null);
   }
 

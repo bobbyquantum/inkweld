@@ -268,7 +268,8 @@ function writeOptionalString(encoder: encoding.Encoder, value: string | undefine
 function readOptionalString(decoder: decoding.Decoder): string | undefined {
   const present = decoding.readVarUint(decoder);
   if (present === 0) return undefined;
-  return decoding.readVarString(decoder);
+  if (present === 1) return decoding.readVarString(decoder);
+  throw new Error(`presence codec: invalid optional-string flag ${present}`);
 }
 
 function writeOptionalSelection(

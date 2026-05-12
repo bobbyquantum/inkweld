@@ -1321,6 +1321,7 @@ export class DocumentService {
           },
           destroy: () => {
             remotePresenceEffect.destroy();
+            this.presenceService.setActiveLocation(null);
             this.presenceService.setSelection(null);
           },
         };

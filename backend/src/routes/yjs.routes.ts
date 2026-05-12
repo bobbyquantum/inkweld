@@ -345,6 +345,22 @@ app.get(
         }
 
         for (const data of pendingMessages) {
+          const bytes = new Uint8Array(data);
+          const peeked = peekFrameTag(bytes);
+          if (peeked && peeked.tag === Y_MESSAGE_PRESENCE) {
+            if (isElementsDocumentId(documentId)) {
+              const projectKey = projectKeyForDocumentId(documentId);
+              if (projectKey && ws.raw) {
+                presenceService.handleMessage(
+                  projectKey,
+                  ws.raw as unknown as PresenceSocket,
+                  peeked.decoder,
+                  bytes
+                );
+              }
+            }
+            continue;
+          }
           const buffer = Buffer.from(data);
           if (!canWrite && isBlockedForViewer(buffer, documentId)) continue;
           yjsService.handleMessage(ws.raw, doc, buffer);

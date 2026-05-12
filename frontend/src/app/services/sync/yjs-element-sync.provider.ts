@@ -998,9 +998,15 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     const provider = this.wsProvider;
     const ws = provider?.ws;
     if (!provider?.wsconnected || !ws || ws.readyState !== ws.OPEN) return;
-    const copy = new Uint8Array(frame.byteLength);
-    copy.set(frame);
-    ws.send(copy.buffer);
+    // lib0 may return a Uint8Array whose backing buffer is larger than the
+    // frame (growing-buffer optimisation). Slice to get an exact ArrayBuffer
+    // so WebSocket.send() transmits only the frame bytes.
+    ws.send(
+      frame.buffer.slice(
+        frame.byteOffset,
+        frame.byteOffset + frame.byteLength
+      ) as ArrayBuffer
+    );
   }
 
   private handlePresenceMessage(decoder: decoding.Decoder): void {
