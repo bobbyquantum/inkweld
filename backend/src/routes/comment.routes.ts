@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
 import { commentService } from '../services/comment.service';
+import { activityService } from '../services/activity.service';
 import { UnauthorizedError, ForbiddenError, NotFoundError } from '../errors';
 import { type AppContext, type DatabaseInstance } from '../types/context';
 import {
@@ -239,6 +240,18 @@ commentRoutes.openapi(createThreadRoute, async (c) => {
     text: data.text,
   });
 
+  await activityService.record(db, {
+    projectId: project.id,
+    userId: user.id,
+    eventType: 'comment_thread_created',
+    entityId: thread.id,
+    entityName: null,
+    metadata: {
+      documentId: thread.documentId,
+      preview: data.text.slice(0, 200),
+    },
+  });
+
   return c.json(
     {
       ...thread,
@@ -302,6 +315,19 @@ commentRoutes.openapi(addMessageRoute, async (c) => {
     threadId,
     authorId: user.id,
     text: data.text,
+  });
+
+  await activityService.record(db, {
+    projectId: project.id,
+    userId: user.id,
+    eventType: 'comment_reply_added',
+    entityId: threadId,
+    entityName: null,
+    metadata: {
+      documentId: thread.documentId,
+      messageId: message.id,
+      preview: data.text.slice(0, 200),
+    },
   });
 
   return c.json(

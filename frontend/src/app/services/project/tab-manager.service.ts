@@ -31,7 +31,8 @@ export interface AppTab {
     | 'tags-list'
     | 'settings'
     | 'home'
-    | 'publish-plans';
+    | 'publish-plans'
+    | 'activity';
   /** The element associated with this tab (for document/folder/worldbuilding tabs) */
   element?: Element;
   /** The element type (for filtering/display purposes) */
@@ -196,6 +197,7 @@ export class TabManagerService {
       | 'settings'
       | 'home'
       | 'publish-plans'
+      | 'activity'
   ): OpenTabResult {
     const tabs = this.openTabs();
     const tabId = `system-${type}`;
@@ -207,6 +209,7 @@ export class TabManagerService {
       settings: 'Settings',
       'relationships-list': 'Relationships',
       'publish-plans': 'Publishing',
+      activity: 'Activity',
     };
     const tabName = TAB_NAMES[type] ?? type;
 
