@@ -52,14 +52,15 @@ test.describe('Stats + Activity — Online Mode', () => {
   }) => {
     const slug = `activity-error-${Date.now()}`;
 
-    // Use a predicate-based route handler so the match is URL-substring based
-    // and immune to port/hostname differences between getApiBaseUrl() and the
-    // actual request origin seen by Playwright.
-    const activityHandler = (route: import('@playwright/test').Route) =>
-      route.abort('failed');
+    // Register the intercept on the browser context so it fires before any
+    // service-worker or page-level caching layers.  Using 'connectionfailed'
+    // (the same error code used by the serverUnavailablePage fixture) ensures
+    // Angular's HttpClient surfaces a real network error.
     const activityMatcher = (url: URL) =>
       url.pathname.includes('/api/v1/activity/');
-    await page.route(activityMatcher, activityHandler);
+    const activityHandler = (route: import('@playwright/test').Route) =>
+      route.abort('connectionfailed');
+    await page.context().route(activityMatcher, activityHandler);
 
     await page.goto('/create-project');
     await page.getByRole('button', { name: /next/i }).click();
@@ -82,7 +83,7 @@ test.describe('Stats + Activity — Online Mode', () => {
 
     // Now restore the endpoint and click retry — the activity feed should
     // render successfully (either an empty state or one or more events).
-    await page.unroute(activityMatcher);
+    await page.context().unroute(activityMatcher);
     await errorState.getByRole('button', { name: /retry/i }).click();
 
     await expect(errorState).toHaveCount(0, { timeout: 15_000 });
@@ -113,13 +114,14 @@ test.describe('Stats + Activity — Online Mode', () => {
   test('writing-stats widget hides itself when /stats/me fails', async ({
     authenticatedPage: page,
   }) => {
-    // Block ONLY the stats/me endpoint using a predicate so the match is
-    // path-based and immune to hostname/port differences.
-    const statsHandler = (route: import('@playwright/test').Route) =>
-      route.abort('failed');
+    // Block ONLY the stats/me endpoint using a context-level route so the
+    // intercept fires before any service-worker or page-level caching layers.
+    // 'connectionfailed' matches the abort code used by serverUnavailablePage.
     const statsMatcher = (url: URL) =>
       url.pathname.startsWith('/api/v1/stats/me');
-    await page.route(statsMatcher, statsHandler);
+    const statsHandler = (route: import('@playwright/test').Route) =>
+      route.abort('connectionfailed');
+    await page.context().route(statsMatcher, statsHandler);
     await page.goto(`/${page.testCredentials.username}`);
 
     // Wait for the loading card to disappear (errored() supersedes loading()).
