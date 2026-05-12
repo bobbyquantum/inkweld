@@ -941,6 +941,156 @@ describe('DocumentService', () => {
       expect(cursor.textContent).toBe('peer');
       expect(cursor.style.borderColor).toBe('rgb(51, 102, 153)');
     });
+
+    it('skips sessions whose selection documentId does not match', () => {
+      const ydoc = new Y.Doc();
+      const yXmlFragment = ydoc.getXmlFragment('prosemirror');
+      const doc = testSchema.node('doc', null, [
+        testSchema.node('paragraph', null, [testSchema.text('hi')]),
+      ]);
+      const encodePosition = (index: number) =>
+        Y.encodeRelativePosition(
+          Y.createRelativePositionFromTypeIndex(yXmlFragment, index)
+        );
+      const session: PresenceSession = {
+        sessionId: 'session-other',
+        user: { id: 'u2', username: 'bob', color: '#ff0000' },
+        status: 'active',
+        location: { kind: 'document', documentId: 'other-doc' },
+        selection: {
+          kind: 'prosemirror',
+          documentId: 'other-doc',
+          anchor: encodePosition(0),
+          head: encodePosition(1),
+        },
+        lastActivityAt: 1,
+      };
+      const privateService = service as unknown as {
+        createRemotePresenceDecorations: (
+          sessions: PresenceSession[],
+          documentId: string,
+          ydoc: Y.Doc,
+          yXmlFragment: Y.XmlFragment,
+          yjsMapping: Map<unknown, unknown>,
+          doc: ProseMirrorDoc
+        ) => { find: (from: number, to: number) => unknown[] };
+      };
+
+      // documentId 'test-doc' doesn't match session's 'other-doc'
+      const decorations = privateService.createRemotePresenceDecorations(
+        [session],
+        testDocumentId,
+        ydoc,
+        yXmlFragment,
+        new Map(),
+        doc
+      );
+      expect(decorations.find(0, doc.content.size)).toHaveLength(0);
+    });
+
+    it('skips sessions with no selection', () => {
+      const ydoc = new Y.Doc();
+      const yXmlFragment = ydoc.getXmlFragment('prosemirror');
+      const doc = testSchema.node('doc', null, [
+        testSchema.node('paragraph', null, [testSchema.text('hi')]),
+      ]);
+      const session: PresenceSession = {
+        sessionId: 'session-nosel',
+        user: { id: 'u3', username: 'charlie', color: '#00ff00' },
+        status: 'active',
+        location: { kind: 'document', documentId: testDocumentId },
+        lastActivityAt: 1,
+      };
+      const privateService = service as unknown as {
+        createRemotePresenceDecorations: (
+          sessions: PresenceSession[],
+          documentId: string,
+          ydoc: Y.Doc,
+          yXmlFragment: Y.XmlFragment,
+          yjsMapping: Map<unknown, unknown>,
+          doc: ProseMirrorDoc
+        ) => { find: (from: number, to: number) => unknown[] };
+      };
+
+      const decorations = privateService.createRemotePresenceDecorations(
+        [session],
+        testDocumentId,
+        ydoc,
+        yXmlFragment,
+        new Map(),
+        doc
+      );
+      expect(decorations.find(0, doc.content.size)).toHaveLength(0);
+    });
+
+    it('renders only cursor widget (no selection decoration) when anchor equals head', () => {
+      const ydoc = new Y.Doc();
+      const yXmlFragment = ydoc.getXmlFragment('prosemirror');
+      yXmlFragment.insert(
+        0,
+        Array.from('hello').map(ch => new Y.XmlText(ch))
+      );
+      const doc = testSchema.node('doc', null, [
+        testSchema.node('paragraph', null, [testSchema.text('hello')]),
+      ]);
+      const encodePosition = (index: number) =>
+        Y.encodeRelativePosition(
+          Y.createRelativePositionFromTypeIndex(yXmlFragment, index)
+        );
+      const session: PresenceSession = {
+        sessionId: 'session-cursor',
+        user: { id: 'u4', username: 'dave', color: '#336699' },
+        status: 'editing',
+        location: { kind: 'document', documentId: testDocumentId },
+        selection: {
+          kind: 'prosemirror',
+          documentId: testDocumentId,
+          anchor: encodePosition(2),
+          head: encodePosition(2), // same position → collapsed selection
+        },
+        lastActivityAt: 1,
+      };
+      const privateService = service as unknown as {
+        createRemotePresenceDecorations: (
+          sessions: PresenceSession[],
+          documentId: string,
+          ydoc: Y.Doc,
+          yXmlFragment: Y.XmlFragment,
+          yjsMapping: Map<unknown, unknown>,
+          doc: ProseMirrorDoc
+        ) => { find: (from: number, to: number) => unknown[] };
+      };
+
+      const decorations = privateService.createRemotePresenceDecorations(
+        [session],
+        testDocumentId,
+        ydoc,
+        yXmlFragment,
+        new Map(),
+        doc
+      );
+      // Only the cursor widget, not the selection range decoration
+      expect(decorations.find(0, doc.content.size)).toHaveLength(1);
+    });
+
+    it('colorWithAlpha returns original color for non-hex input', () => {
+      const privateService = service as unknown as {
+        colorWithAlpha: (color: string, alpha: number) => string;
+      };
+      expect(privateService.colorWithAlpha('red', 0.5)).toBe('red');
+      expect(privateService.colorWithAlpha('rgb(1,2,3)', 0.5)).toBe(
+        'rgb(1,2,3)'
+      );
+    });
+
+    it('colorWithAlpha correctly converts hex to rgba', () => {
+      const privateService = service as unknown as {
+        colorWithAlpha: (color: string, alpha: number) => string;
+      };
+      expect(privateService.colorWithAlpha('#336699', 0.18)).toBe(
+        'rgba(51, 102, 153, 0.18)'
+      );
+    });
   });
 
   describe('Network Handling', () => {

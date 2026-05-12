@@ -148,4 +148,107 @@ describe('PresenceService', () => {
       'mallory',
     ]);
   });
+
+  it('does not re-call setLocalPresence when already active', () => {
+    currentUser.set({ id: 'u1', username: 'alice' });
+    const service = setupService({ provider, currentUser });
+    // First call: sets identity and marks active
+    service.setActiveLocation({ kind: 'elements' });
+    TestBed.flushEffects();
+    const callCount = provider.setLocalPresence.mock.calls.length;
+
+    // Second call while still active — markActive should be a no-op re: status
+    // (setActiveLocation still calls setLocalPresence for location, but markActive's
+    //  inner if-block should NOT fire again)
+    service.setActiveLocation({ kind: 'timeline', elementId: 'e1' });
+    // Only one additional setLocalPresence call (for location update), not two
+    expect(provider.setLocalPresence.mock.calls.length).toBe(callCount + 1);
+  });
+
+  it('re-marks status as active after becoming editing/idle (covers markActive if-branch)', () => {
+    currentUser.set({ id: 'u1', username: 'alice' });
+    const service = setupService({ provider, currentUser });
+    service.setActiveLocation({ kind: 'elements' });
+    TestBed.flushEffects();
+
+    // Transition to editing status
+    service.markEditing();
+    provider.setLocalPresence.mockClear();
+
+    // Now setActiveLocation calls markActive while status is 'editing' → should
+    // enter the `if (currentStatus !== 'active')` branch and push active status
+    service.setActiveLocation({ kind: 'timeline', elementId: 'e1' });
+
+    const calls = provider.setLocalPresence.mock.calls;
+    const statusCall = calls.find(
+      (c: unknown[]) =>
+        (c[0] as Record<string, unknown>)?.['status'] === 'active'
+    );
+    expect(statusCall).toBeDefined();
+  });
+
+  describe('normalizeLocation string parsing', () => {
+    let service: PresenceService;
+
+    beforeEach(() => {
+      service = setupService({ provider, currentUser });
+    });
+
+    function getLastLocation() {
+      const calls = provider.setLocalPresence.mock.calls;
+      return calls[calls.length - 1]?.[0]?.location ?? null;
+    }
+
+    it('parses canvas:id string', () => {
+      service.setActiveLocation('canvas:elem-5');
+      expect(getLastLocation()).toEqual({
+        kind: 'canvas',
+        elementId: 'elem-5',
+      });
+    });
+
+    it('parses document:id string', () => {
+      service.setActiveLocation('document:doc-9');
+      expect(getLastLocation()).toEqual({
+        kind: 'document',
+        documentId: 'doc-9',
+      });
+    });
+
+    it('parses worldbuilding:schemaId string', () => {
+      service.setActiveLocation('worldbuilding:schema-3');
+      expect(getLastLocation()).toEqual({
+        kind: 'worldbuilding',
+        schemaId: 'schema-3',
+      });
+    });
+
+    it('parses worldbuilding (no id) string', () => {
+      service.setActiveLocation('worldbuilding:');
+      expect(getLastLocation()).toEqual({ kind: 'worldbuilding' });
+    });
+
+    it('parses media string', () => {
+      service.setActiveLocation('media:something');
+      expect(getLastLocation()).toEqual({ kind: 'media' });
+    });
+
+    it('parses settings string', () => {
+      service.setActiveLocation('settings:');
+      expect(getLastLocation()).toEqual({ kind: 'settings' });
+    });
+
+    it('parses elements string', () => {
+      service.setActiveLocation('elements:');
+      expect(getLastLocation()).toEqual({ kind: 'elements' });
+    });
+
+    it('falls back to other for unknown kind', () => {
+      service.setActiveLocation('unknown:label-xyz');
+      expect(getLastLocation()).toEqual({
+        kind: 'other',
+        label: 'unknown:label-xyz',
+      });
+    });
+  });
 });
