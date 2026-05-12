@@ -3,7 +3,9 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Editor } from '@bobbyquantum/ngx-editor';
 import { DocumentsService } from '@inkweld/api/documents.service';
+import { type PresenceSession } from '@inkweld/presence';
 import { generateUserColor } from '@services/presence/user-color';
+import { type Node as ProseMirrorDoc, Schema } from 'prosemirror-model';
 import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy } from 'vitest-mock-extended';
@@ -26,6 +28,19 @@ import { ProjectStateService } from './project-state.service';
 // (vi.mock can't intercept local source files bundled by esbuild)
 
 type ProviderStatus = 'connected' | 'disconnected' | 'connecting';
+
+const testSchema = new Schema({
+  nodes: {
+    doc: { content: 'paragraph+' },
+    paragraph: {
+      content: 'text*',
+      group: 'block',
+      parseDOM: [{ tag: 'p' }],
+      toDOM: () => ['p', 0],
+    },
+    text: { group: 'inline' },
+  },
+});
 
 describe('DocumentService', () => {
   let service: DocumentService;
@@ -690,7 +705,7 @@ describe('DocumentService', () => {
       service.disconnect(testDocumentId);
 
       expect(mediaObserver.disconnect).toHaveBeenCalledTimes(1);
-      expect(provider.awareness.setLocalState).toHaveBeenCalledWith(null);
+      expect(provider.awareness.setLocalState).not.toHaveBeenCalled();
       expect(provider.disconnect).toHaveBeenCalledTimes(1);
       expect(provider.destroy).toHaveBeenCalledTimes(1);
       expect(service.isConnected(testDocumentId)).toBe(false);
@@ -868,6 +883,63 @@ describe('DocumentService', () => {
 
       // Plugins should not have been re-added
       expect(mockEditor.view.state.plugins.length).toBe(pluginCountBefore);
+    });
+  });
+
+  describe('Presence Decorations', () => {
+    it('renders remote ProseMirror cursors and selections from relative positions', () => {
+      const ydoc = new Y.Doc();
+      const yXmlFragment = ydoc.getXmlFragment('prosemirror');
+      yXmlFragment.insert(
+        0,
+        Array.from('hello world').map(character => new Y.XmlText(character))
+      );
+      const doc = testSchema.node('doc', null, [
+        testSchema.node('paragraph', null, [testSchema.text('hello world')]),
+      ]);
+      const encodePosition = (index: number) =>
+        Y.encodeRelativePosition(
+          Y.createRelativePositionFromTypeIndex(yXmlFragment, index)
+        );
+      const session: PresenceSession = {
+        sessionId: 'session-1',
+        user: { id: 'user-2', username: 'peer', color: '#336699' },
+        status: 'editing',
+        location: { kind: 'document', documentId: testDocumentId },
+        selection: {
+          kind: 'prosemirror',
+          documentId: testDocumentId,
+          anchor: encodePosition(1),
+          head: encodePosition(5),
+        },
+        lastActivityAt: 1,
+      };
+      const privateService = service as unknown as {
+        createRemotePresenceDecorations: (
+          sessions: PresenceSession[],
+          documentId: string,
+          ydoc: Y.Doc,
+          yXmlFragment: Y.XmlFragment,
+          yjsMapping: Map<unknown, { nodeSize?: number }>,
+          doc: ProseMirrorDoc
+        ) => { find: (from: number, to: number) => unknown[] };
+        createRemoteCursorElement: (session: PresenceSession) => HTMLElement;
+      };
+
+      const decorations = privateService.createRemotePresenceDecorations(
+        [session],
+        testDocumentId,
+        ydoc,
+        yXmlFragment,
+        new Map(),
+        doc
+      );
+
+      expect(decorations.find(0, doc.content.size)).toHaveLength(2);
+      const cursor = privateService.createRemoteCursorElement(session);
+      expect(cursor.dataset['presenceSessionId']).toBe('session-1');
+      expect(cursor.textContent).toBe('peer');
+      expect(cursor.style.borderColor).toBe('rgb(51, 102, 153)');
     });
   });
 
@@ -1102,7 +1174,7 @@ describe('DocumentService', () => {
           '',
           expect.any(Y.Doc),
           'test-auth-token',
-          { resyncInterval: 10000 }
+          { resyncInterval: 60000 }
         );
         expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
         expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
@@ -1226,7 +1298,7 @@ describe('DocumentService', () => {
           '',
           expect.any(Y.Doc),
           'test-auth-token',
-          { resyncInterval: 10000 }
+          { resyncInterval: 60000 }
         );
         expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
         expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
@@ -1328,7 +1400,7 @@ describe('DocumentService', () => {
           '',
           expect.any(Y.Doc),
           'test-auth-token',
-          { resyncInterval: 10000 }
+          { resyncInterval: 60000 }
         );
         expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
         expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);

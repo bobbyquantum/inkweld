@@ -107,6 +107,7 @@ describe('TimelineTabComponent', () => {
           provide: PresenceService,
           useValue: {
             setActiveLocation: vi.fn(),
+            setSelection: vi.fn(),
             usersAtLocation: () => signal([]).asReadonly(),
             users: signal([]).asReadonly(),
           },

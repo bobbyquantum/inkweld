@@ -1,9 +1,17 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
+import {
+  encodePresenceFrame,
+  PRESENCE_KEEPALIVE_PING,
+  type PresenceSession,
+  readPresenceMessage,
+  writeSnapshot,
+} from '@inkweld/presence';
 import { type ElementRelationship } from '@models/element-ref.model';
 import { createDefaultPublishStyles } from '@models/publish-style';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
+import { createDecoder, readVarUint } from 'lib0/decoding';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
@@ -42,6 +50,13 @@ describe('YjsElementSyncProvider', () => {
     off: ReturnType<typeof vi.fn>;
     connect: ReturnType<typeof vi.fn>;
     destroy: ReturnType<typeof vi.fn>;
+    wsconnected: boolean;
+    ws: {
+      readyState: number;
+      OPEN: number;
+      send: ReturnType<typeof vi.fn>;
+    } | null;
+    messageHandlers: Array<unknown>;
     awareness: {
       setLocalState: ReturnType<typeof vi.fn>;
       setLocalStateField: ReturnType<typeof vi.fn>;
@@ -154,6 +169,9 @@ describe('YjsElementSyncProvider', () => {
       off: vi.fn(),
       connect: vi.fn(),
       destroy: vi.fn(),
+      wsconnected: true,
+      ws: { readyState: 1, OPEN: 1, send: vi.fn() },
+      messageHandlers: [],
       awareness: {
         setLocalState: vi.fn(),
         setLocalStateField: vi.fn(),
@@ -458,32 +476,36 @@ describe('YjsElementSyncProvider', () => {
       expect(provider.getSyncState()).toBe(DocumentSyncState.Local);
     });
 
-    it('preserves queued awareness across pre-connect cleanup', () => {
-      provider.setLocalAwareness({
-        user: { name: 'alice', color: '#abcdef' },
-        location: 'timeline:e1',
+    it('preserves queued presence across pre-connect cleanup', () => {
+      provider.setLocalPresence({
+        user: { id: 'u1', username: 'alice', color: '#abcdef' },
+        location: { kind: 'timeline', elementId: 'e1' },
       });
 
-      // Simulate connect() preserving pending awareness across disconnect().
-      const queued = (provider as unknown as { pendingAwareness: unknown })
-        .pendingAwareness;
+      // Simulate connect() preserving pending presence across disconnect().
+      const queued = (provider as unknown as { pendingPresence: unknown })
+        .pendingPresence;
       provider.disconnect();
-      (provider as unknown as { pendingAwareness: unknown }).pendingAwareness =
+      (provider as unknown as { pendingPresence: unknown }).pendingPresence =
         queued;
 
       (
         provider as unknown as { wsProvider: typeof websocketProvider | null }
       ).wsProvider = websocketProvider;
       (
-        provider as unknown as { setupAwarenessHandlers: () => void }
-      ).setupAwarenessHandlers();
+        provider as unknown as { setupPresenceHandlers: () => void }
+      ).setupPresenceHandlers();
 
-      expect(
-        websocketProvider.awareness.setLocalStateField
-      ).toHaveBeenCalledWith('user', { name: 'alice', color: '#abcdef' });
-      expect(
-        websocketProvider.awareness.setLocalStateField
-      ).toHaveBeenCalledWith('location', 'timeline:e1');
+      const sent = websocketProvider.ws?.send.mock.calls[0]?.[0] as ArrayBuffer;
+      const decoder = createDecoder(new Uint8Array(sent));
+      readVarUint(decoder);
+      const decoded = readPresenceMessage(decoder);
+      expect(decoded).toMatchObject({
+        session: {
+          user: { username: 'alice', color: '#abcdef' },
+          location: { kind: 'timeline', elementId: 'e1' },
+        },
+      });
     });
 
     it.skip('falls back to local mode when websocket authentication fails', async () => {
@@ -658,102 +680,91 @@ describe('YjsElementSyncProvider', () => {
     });
   });
 
-  describe('awareness / presence', () => {
-    it('queues awareness fields and applies them to the websocket provider once connected', () => {
-      // Before wsProvider exists, queue should accumulate.
-      provider.setLocalAwareness({
-        user: { name: 'alice', color: '#abcdef' },
-      });
-      provider.setLocalAwareness({ location: 'timeline:e1' });
+  describe('presence', () => {
+    function remoteSession(username: string): PresenceSession {
+      return {
+        sessionId: `s-${username}`,
+        user: { id: username, username, color: '#112233' },
+        status: 'active',
+        location: { kind: 'timeline', elementId: 'e1' },
+        lastActivityAt: 1,
+      };
+    }
 
-      // Attach the mocked ws provider, then trigger applyPendingAwareness.
+    it('sends Hello once identity and websocket are ready', () => {
+      provider.setLocalPresence({
+        user: { id: 'u1', username: 'alice', color: '#abcdef' },
+      });
       (
         provider as unknown as { wsProvider: typeof websocketProvider | null }
       ).wsProvider = websocketProvider;
       (
-        provider as unknown as { applyPendingAwareness: () => void }
-      ).applyPendingAwareness();
+        provider as unknown as { setupPresenceHandlers: () => void }
+      ).setupPresenceHandlers();
 
-      expect(
-        websocketProvider.awareness.setLocalStateField
-      ).toHaveBeenCalledWith('user', { name: 'alice', color: '#abcdef' });
-      expect(
-        websocketProvider.awareness.setLocalStateField
-      ).toHaveBeenCalledWith('location', 'timeline:e1');
+      expect(websocketProvider.ws?.send).toHaveBeenCalledTimes(1);
     });
 
-    it('emits remote presence excluding the local clientID', () => {
+    it('handles snapshot messages excluding local username', () => {
+      provider.setLocalPresence({
+        user: { id: 'self', username: 'alice', color: '#abcdef' },
+      });
       (
         provider as unknown as { wsProvider: typeof websocketProvider | null }
       ).wsProvider = websocketProvider;
-      websocketProvider.awareness.getStates.mockReturnValue(
-        new Map<number, unknown>([
-          [123, { user: { name: 'self', color: '#000000' } }],
-          [
-            456,
-            {
-              user: { name: 'bob', color: '#112233' },
-              location: 'timeline:e1',
-            },
-          ],
-        ])
-      );
-
-      const received: unknown[] = [];
-      const sub = provider.remotePresence$.subscribe(users => {
-        received.push(users);
-      });
-
       (
-        provider as unknown as { emitRemotePresence: () => void }
-      ).emitRemotePresence();
+        provider as unknown as { setupPresenceHandlers: () => void }
+      ).setupPresenceHandlers();
+
+      const received: PresenceSession[][] = [];
+      const sub = provider.remotePresence$.subscribe(users =>
+        received.push(users)
+      );
+      const frame = encodePresenceFrame(encoder =>
+        writeSnapshot(encoder, [remoteSession('alice'), remoteSession('bob')])
+      );
+      const decoder = createDecoder(frame);
+      readVarUint(decoder);
+      (
+        provider as unknown as {
+          handlePresenceMessage: (d: typeof decoder) => void;
+        }
+      ).handlePresenceMessage(decoder);
 
       sub.unsubscribe();
-      const last = received[received.length - 1] as Array<{
-        clientId: number;
-        username: string;
-      }>;
-      expect(last.map(u => u.clientId)).toEqual([456]);
-      expect(last[0]).toMatchObject({
-        clientId: 456,
-        username: 'bob',
-        color: '#112233',
-        location: 'timeline:e1',
-      });
+      expect(received.at(-1)?.map(u => u.user.username)).toEqual(['bob']);
     });
 
-    it('subscribes to awareness change/update events on setup', () => {
+    it('destroys websocket provider on disconnect without awareness cleanup', () => {
       (
         provider as unknown as { wsProvider: typeof websocketProvider | null }
       ).wsProvider = websocketProvider;
-      (
-        provider as unknown as { setupAwarenessHandlers: () => void }
-      ).setupAwarenessHandlers();
-
-      expect(websocketProvider.awareness.on).toHaveBeenCalledWith(
-        'change',
-        expect.any(Function)
-      );
-      expect(websocketProvider.awareness.on).toHaveBeenCalledWith(
-        'update',
-        expect.any(Function)
-      );
-    });
-
-    it('clears local awareness state on disconnect', () => {
-      (
-        provider as unknown as { wsProvider: typeof websocketProvider | null }
-      ).wsProvider = websocketProvider;
-      (
-        provider as unknown as { setupAwarenessHandlers: () => void }
-      ).setupAwarenessHandlers();
-
       provider.disconnect();
 
-      expect(websocketProvider.awareness.setLocalState).toHaveBeenCalledWith(
-        null
-      );
+      expect(websocketProvider.awareness.setLocalState).not.toHaveBeenCalled();
       expect(websocketProvider.destroy).toHaveBeenCalledTimes(1);
+    });
+
+    it('sends text keepalive pings without using Yjs or presence binary frames', () => {
+      vi.useFakeTimers();
+      provider.setLocalPresence({
+        user: { id: 'u1', username: 'alice', color: '#abcdef' },
+      });
+      (
+        provider as unknown as { wsProvider: typeof websocketProvider | null }
+      ).wsProvider = websocketProvider;
+      (
+        provider as unknown as { setupPresenceHandlers: () => void }
+      ).setupPresenceHandlers();
+      websocketProvider.ws?.send.mockClear();
+
+      vi.advanceTimersByTime(30_000);
+
+      expect(websocketProvider.ws?.send).toHaveBeenCalledWith(
+        PRESENCE_KEEPALIVE_PING
+      );
+      provider.disconnect();
+      vi.useRealTimers();
     });
   });
 

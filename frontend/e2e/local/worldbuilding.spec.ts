@@ -179,8 +179,18 @@ test.describe('Worldbuilding Templates', () => {
     await test.step('Date is exposed as a field type in the template editor', async () => {
       // We're still on the Hero Template edit page from the previous step.
       await page.getByTestId('add-field-button').click();
-      await page.getByTestId('field-expansion-header').last().click();
-      await page.getByTestId('field-type-select').last().click();
+      const currentTabPanel = page.locator('.tab-editor').filter({
+        has: page.getByRole('heading', { name: 'Basic Info' }),
+      });
+      await currentTabPanel
+        .getByTestId('field-expansion-header')
+        .last()
+        .click();
+      const fieldTypeSelect = currentTabPanel
+        .getByTestId('field-type-select')
+        .last();
+      await expect(fieldTypeSelect).toBeVisible();
+      await fieldTypeSelect.click();
       await expect(page.getByTestId('field-type-option-date')).toBeVisible();
 
       // Close the select dropdown so we can save without leaving an open overlay.

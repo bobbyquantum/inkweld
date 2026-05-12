@@ -115,13 +115,13 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly presence = inject(PresenceService);
 
-  /** Stable awareness location for this canvas tab. */
+  /** Stable presence location for this canvas tab. */
   protected readonly presenceLocation = computed(() => {
     const id = this.elementId();
-    return id ? `canvas:${id}` : null;
+    return id ? { kind: 'canvas' as const, elementId: id } : null;
   });
 
-  /** Mirror our presence into the project's awareness whenever the route changes. */
+  /** Mirror our presence into the project's presence channel whenever the route changes. */
   private readonly presenceLocationEffect = effect(() => {
     this.presence.setActiveLocation(this.presenceLocation());
   });
@@ -408,6 +408,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private clearCanvasSelection(): void {
     this.selectedObjectId.set(null);
     this.canvasSelection.clearSelection();
+    this.presence.setSelection(null);
   }
 
   private get drawingHandlers(): DrawingHandlers {
@@ -484,6 +485,15 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   private selectKonvaNode(node: Konva.Node): void {
     this.canvasSelection.selectNode(node);
+    const id = node.id();
+    const elementId = this.elementId();
+    if (id && elementId) {
+      this.presence.setSelection({
+        kind: 'canvas',
+        elementId,
+        selectedIds: [id],
+      });
+    }
   }
 
   /** Select all Konva nodes whose bounding box intersects the given rect. */
@@ -494,8 +504,21 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     height: number;
   }): void {
     this.canvasSelection.selectNodesInRect(rect, {
-      onSingleSelected: id => this.selectedObjectId.set(id),
-      onCleared: () => this.selectedObjectId.set(null),
+      onSingleSelected: id => {
+        this.selectedObjectId.set(id);
+        const elementId = this.elementId();
+        if (elementId) {
+          this.presence.setSelection({
+            kind: 'canvas',
+            elementId,
+            selectedIds: [id],
+          });
+        }
+      },
+      onCleared: () => {
+        this.selectedObjectId.set(null);
+        this.presence.setSelection(null);
+      },
     });
   }
 

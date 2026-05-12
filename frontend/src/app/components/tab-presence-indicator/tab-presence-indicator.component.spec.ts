@@ -1,16 +1,26 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { type PresenceSession } from '@inkweld/presence';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { PresenceService } from '../../services/presence/presence.service';
-import { type PresenceUser } from '../../services/sync/element-sync-provider.interface';
 import { TabPresenceIndicatorComponent } from './tab-presence-indicator.component';
 
+function session(sessionId: string, username: string): PresenceSession {
+  return {
+    sessionId,
+    user: { id: username, username, color: '#abcabc' },
+    status: 'active',
+    location: { kind: 'timeline', elementId: 'abc' },
+    lastActivityAt: 1,
+  };
+}
+
 describe('TabPresenceIndicatorComponent', () => {
-  let usersAtLocationResult: ReturnType<typeof signal<PresenceUser[]>>;
+  let usersAtLocationResult: ReturnType<typeof signal<PresenceSession[]>>;
 
   beforeEach(() => {
-    usersAtLocationResult = signal<PresenceUser[]>([]);
+    usersAtLocationResult = signal<PresenceSession[]>([]);
 
     TestBed.configureTestingModule({
       imports: [TabPresenceIndicatorComponent],
@@ -27,7 +37,10 @@ describe('TabPresenceIndicatorComponent', () => {
 
   it('renders nothing when no users are present', () => {
     const fixture = TestBed.createComponent(TabPresenceIndicatorComponent);
-    fixture.componentRef.setInput('location', 'timeline:abc');
+    fixture.componentRef.setInput('location', {
+      kind: 'timeline',
+      elementId: 'abc',
+    });
     fixture.detectChanges();
 
     expect(
@@ -38,12 +51,12 @@ describe('TabPresenceIndicatorComponent', () => {
   });
 
   it('renders one avatar per visible user', () => {
-    usersAtLocationResult.set([
-      { clientId: 1, username: 'alice', color: '#fff' },
-      { clientId: 2, username: 'bob', color: '#000' },
-    ]);
+    usersAtLocationResult.set([session('s1', 'alice'), session('s2', 'bob')]);
     const fixture = TestBed.createComponent(TabPresenceIndicatorComponent);
-    fixture.componentRef.setInput('location', 'timeline:abc');
+    fixture.componentRef.setInput('location', {
+      kind: 'timeline',
+      elementId: 'abc',
+    });
     fixture.detectChanges();
 
     const avatars = fixture.nativeElement.querySelectorAll(
@@ -56,14 +69,13 @@ describe('TabPresenceIndicatorComponent', () => {
 
   it('collapses overflow users into a +N chip', () => {
     usersAtLocationResult.set(
-      Array.from({ length: 7 }, (_, i) => ({
-        clientId: i + 1,
-        username: `user${i + 1}`,
-        color: '#abcabc',
-      }))
+      Array.from({ length: 7 }, (_, i) => session(`s${i + 1}`, `user${i + 1}`))
     );
     const fixture = TestBed.createComponent(TabPresenceIndicatorComponent);
-    fixture.componentRef.setInput('location', 'timeline:abc');
+    fixture.componentRef.setInput('location', {
+      kind: 'timeline',
+      elementId: 'abc',
+    });
     fixture.componentRef.setInput('maxDisplayed', 5);
     fixture.detectChanges();
 

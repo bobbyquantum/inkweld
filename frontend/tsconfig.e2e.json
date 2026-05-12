@@ -7,6 +7,8 @@
     "paths": {
       "@inkweld/prosemirror": ["../packages/inkweld-prosemirror/src/index"],
       "@inkweld/prosemirror/*": ["../packages/inkweld-prosemirror/src/*/index"],
+      "@inkweld/presence": ["../packages/inkweld-presence/src/index"],
+      "@inkweld/presence/*": ["../packages/inkweld-presence/src/*/index"],
       "@inkweld/*": ["./src/api-client/*"],
       "@components/*": ["./src/app/components/*"],
       "@dialogs/*": ["./src/app/dialogs/*"],

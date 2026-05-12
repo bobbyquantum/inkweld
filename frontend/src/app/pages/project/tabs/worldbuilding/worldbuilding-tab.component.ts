@@ -14,6 +14,7 @@ import { ActivatedRoute } from '@angular/router';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { LoggerService } from '@services/core/logger.service';
 import { SettingsService } from '@services/core/settings.service';
+import { PresenceService } from '@services/presence/presence.service';
 import { DocumentSyncService } from '@services/sync/document-sync.service';
 import { type Subscription } from 'rxjs';
 
@@ -39,6 +40,7 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   private readonly projectState = inject(ProjectStateService);
   private readonly logger = inject(LoggerService);
   private readonly settingsService = inject(SettingsService);
+  private readonly presence = inject(PresenceService);
   protected readonly documentSync = inject(DocumentSyncService);
   private paramSubscription: Subscription | null = null;
 
@@ -96,6 +98,21 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
         void this.documentSync.checkAvailability(currentId, 'worldbuilding');
       }
     });
+
+    effect(() => {
+      const element = this.findElement(this.elementId());
+      this.presence.setActiveLocation({
+        kind: 'worldbuilding',
+        ...(element?.schemaId && { schemaId: element.schemaId }),
+      });
+      if (element) {
+        this.presence.setSelection({
+          kind: 'worldbuilding',
+          ...(element.schemaId && { schemaId: element.schemaId }),
+          selectedElementId: element.id,
+        });
+      }
+    });
   }
 
   protected async triggerSync(): Promise<void> {
@@ -130,6 +147,7 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
       this.paramSubscription.unsubscribe();
       this.paramSubscription = null;
     }
+    this.presence.setSelection(null);
   }
 
   private findElement(elementId: string): Element | null {

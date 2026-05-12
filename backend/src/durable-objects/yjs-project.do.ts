@@ -47,6 +47,12 @@ import {
   isYjsFrameBlockedForViewer,
   isElementsDoc,
 } from '../utils/yjs-document-utils';
+import {
+  PRESENCE_KEEPALIVE_PING,
+  PRESENCE_KEEPALIVE_PONG,
+  Y_MESSAGE_PRESENCE,
+} from '@inkweld/presence';
+import { ProjectPresenceService, type PresenceSocket } from '../services/presence.service';
 
 const projDOLog = logger.child('YjsProjectDO');
 
@@ -139,9 +145,21 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   private readonly elementSnapshots: Map<string, Map<string, { name: string; type: string }>> =
     new Map();
 
+  /**
+   * Per-DO presence registry. Each Durable Object instance is a project,
+   * so we hold exactly one `ProjectPresenceService` here. The service is
+   * runtime-agnostic; the only contract is that we feed it `PresenceSocket`s
+   * (CF `WebSocket` satisfies `.send(Uint8Array)` because `Uint8Array` is an
+   * `ArrayBufferView`) and remember to call `removeSocket` on close/error.
+   */
+  private readonly presence: ProjectPresenceService = new ProjectPresenceService();
+
   constructor(state: DurableObjectState, env: YjsEnv['Bindings']) {
     super(state, env);
     this.state = state;
+    this.state.setWebSocketAutoResponse(
+      new WebSocketRequestResponsePair(PRESENCE_KEEPALIVE_PING, PRESENCE_KEEPALIVE_PONG)
+    );
   }
 
   /**
@@ -1238,6 +1256,10 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
     // Handle text messages (authentication)
     if (typeof message === 'string') {
+      if (message === PRESENCE_KEEPALIVE_PING) {
+        if (connInfo.authenticated) ws.send(PRESENCE_KEEPALIVE_PONG);
+        return;
+      }
       if (connInfo.authenticated) {
         // Already authenticated, ignore text messages
         return;
@@ -1576,6 +1598,33 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
+   * Project key (`username:slug`) used to scope presence broadcasts. Mirrors
+   * `projectKeyForDocumentId` in `yjs.routes.ts` so the Bun and CF runtimes
+   * agree on grouping. Strips the optional `worldbuilding:` prefix and keeps
+   * only the first two `:`-separated parts.
+   */
+  private projectKeyForDocumentId(documentId: string): string | null {
+    let docIdForParsing = documentId;
+    if (docIdForParsing.startsWith('worldbuilding:')) {
+      docIdForParsing = docIdForParsing.substring('worldbuilding:'.length);
+    }
+    const parts = docIdForParsing.split(':');
+    if (parts.length < 2) return null;
+    return `${parts[0]}:${parts[1]}`;
+  }
+
+  /**
+   * Presence multiplexes onto the elements WS ONLY. See `yjs.routes.ts` for
+   * the full rationale — duplicated here so the CF runtime enforces the same
+   * invariant a buggy/forked client could otherwise violate to inflate the
+   * registry with N sessions per user.
+   */
+  private isElementsDocumentId(documentId: string): boolean {
+    const stripped = documentId.replace(/\/+$/, '');
+    return stripped.endsWith(':elements');
+  }
+
+  /**
    * Dispatch a client frame to the shared document.
    *
    * y-durableobjects applies awareness messages with `origin = null`, which
@@ -1590,6 +1639,21 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
     if (messageType === Y_MESSAGE_AWARENESS) {
       applyAwarenessUpdate(sharedDoc.awareness, readVarUint8Array(decoder), ws);
+      return;
+    }
+
+    if (messageType === Y_MESSAGE_PRESENCE) {
+      // Drop presence frames received on per-document sockets — only the
+      // elements WS carries presence (one session per user, not per tab).
+      const connInfo = this.connections.get(ws);
+      const documentId = connInfo?.documentId;
+      if (!documentId || !this.isElementsDocumentId(documentId)) {
+        projDOLog.debug(`Ignoring presence frame on non-elements doc ${documentId ?? '<unknown>'}`);
+        return;
+      }
+      const projectKey = this.projectKeyForDocumentId(documentId);
+      if (!projectKey) return;
+      this.presence.handleMessage(projectKey, ws as unknown as PresenceSocket, decoder, message);
       return;
     }
 
@@ -1646,6 +1710,11 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * remote peers drop the ghost user, and purges our tracking map.
    */
   private cleanupConnection(ws: WebSocket): void {
+    // Always evict from presence — safe no-op if the socket never sent Hello.
+    // Done unconditionally (before the connInfo guard) so presence is cleaned
+    // even on sockets we failed to fully register (e.g. auth aborted).
+    this.presence.removeSocket(ws as unknown as PresenceSocket);
+
     const connInfo = this.connections.get(ws);
     if (!connInfo) return;
 

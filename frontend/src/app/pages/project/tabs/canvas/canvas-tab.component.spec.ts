@@ -67,6 +67,7 @@ describe('CanvasTabComponent', () => {
   let mockCanvasRenderer: any;
   const mockPresenceService = {
     setActiveLocation: vi.fn(),
+    setSelection: vi.fn(),
     usersAtLocation: () => signal([]).asReadonly(),
     users: signal([]).asReadonly(),
   };
@@ -303,6 +304,7 @@ describe('CanvasTabComponent', () => {
   afterEach(() => {
     vi.useRealTimers();
     mockPresenceService.setActiveLocation.mockReset();
+    mockPresenceService.setSelection.mockReset();
   });
 
   it('should create', () => {
@@ -312,9 +314,10 @@ describe('CanvasTabComponent', () => {
   it('should load canvas config on init', () => {
     fixture.detectChanges();
     expect(mockCanvasService.loadConfig).toHaveBeenCalledWith('test-canvas');
-    expect(mockPresenceService.setActiveLocation).toHaveBeenCalledWith(
-      'canvas:test-canvas'
-    );
+    expect(mockPresenceService.setActiveLocation).toHaveBeenCalledWith({
+      kind: 'canvas',
+      elementId: 'test-canvas',
+    });
 
     fixture.destroy();
     expect(mockPresenceService.setActiveLocation).toHaveBeenCalledWith(null);

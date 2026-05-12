@@ -7,6 +7,13 @@ import { collaborationService } from '../services/collaboration.service';
 import { writingSessionService } from '../services/writing-session.service';
 import { activityService } from '../services/activity.service';
 import { countWords, extractTextContent } from '../mcp/tools/mutation.tools';
+import { PRESENCE_KEEPALIVE_PING, PRESENCE_KEEPALIVE_PONG } from '@inkweld/presence';
+import {
+  Y_MESSAGE_PRESENCE,
+  peekFrameTag,
+  presenceService,
+  type PresenceSocket,
+} from '../services/presence.service';
 import { type AppContext } from '../types/context';
 import { logger } from '../services/logger.service';
 import {
@@ -33,6 +40,35 @@ function readWordCount(sharedDoc: any): number {
   } catch {
     return 0;
   }
+}
+
+/**
+ * Project key (`username:slug`) used to scope presence broadcasts. We
+ * deliberately strip everything after the first two colons so that ALL
+ * sockets for the same project (elements doc + each open document doc) live
+ * in the same presence "room" and see each other's avatars/cursors.
+ *
+ * Returns null when the documentId is malformed (missing `:`).
+ */
+function projectKeyForDocumentId(documentId: string): string | null {
+  const parsed = parseDocumentOwner(documentId);
+  if (!parsed) return null;
+  return `${parsed.projectOwner}:${parsed.slug}`;
+}
+
+/**
+ * Presence multiplexes onto the elements WebSocket ONLY. Per-document tabs
+ * still open their own Yjs WS for sync, but they must not piggyback presence
+ * onto those sockets — otherwise we get N sessions per user (one per open
+ * tab) instead of one. The frontend enforces this by installing the presence
+ * handler exclusively on the elements provider; we double-check on the
+ * server to prevent a misbehaving client from polluting the registry.
+ */
+function isElementsDocumentId(documentId: string): boolean {
+  // Tolerate the documented trailing-slash quirk between FE/BE/MCP — see
+  // AGENTS.md "Yjs Document ID Trailing Slash" note.
+  const stripped = documentId.replace(/\/+$/, '');
+  return stripped.endsWith(':elements');
 }
 
 function isBlockedForViewer(buffer: Buffer, documentId: string): boolean {
@@ -332,6 +368,10 @@ app.get(
       async onMessage(event, ws) {
         // Text messages carry the authentication token
         if (typeof event.data === 'string') {
+          if (event.data === PRESENCE_KEEPALIVE_PING) {
+            if (authenticated) ws.send(PRESENCE_KEEPALIVE_PONG);
+            return;
+          }
           try {
             await authenticateWs(event.data, ws);
           } catch (error) {
@@ -342,10 +382,33 @@ app.get(
           return;
         }
 
-        // Binary messages are Yjs sync protocol
+        // Binary messages are Yjs sync protocol — UNLESS the outer
+        // multiplex byte marks this as a presence frame.
         if (event.data instanceof ArrayBuffer) {
           if (!authenticated || !doc) {
             pendingMessages.push(event.data);
+            return;
+          }
+
+          const bytes = new Uint8Array(event.data);
+          const peeked = peekFrameTag(bytes);
+          if (peeked && peeked.tag === Y_MESSAGE_PRESENCE) {
+            // Presence is project-scoped and only travels on the elements
+            // WS. Drop presence frames that arrive on per-document sockets
+            // so a buggy/forked client cannot inflate the registry with
+            // duplicate sessions.
+            if (!isElementsDocumentId(documentId)) {
+              wsLog.debug(`Ignoring presence frame on non-elements doc ${documentId}`);
+              return;
+            }
+            const projectKey = projectKeyForDocumentId(documentId);
+            if (!projectKey || !ws.raw) return;
+            presenceService.handleMessage(
+              projectKey,
+              ws.raw as unknown as PresenceSocket,
+              peeked.decoder,
+              bytes
+            );
             return;
           }
 
@@ -367,17 +430,21 @@ app.get(
         void tryFinalizeSession();
         if (ws.raw) {
           yjsService.unregisterUserConnection(ws.raw, documentId);
+          presenceService.removeSocket(ws.raw as unknown as PresenceSocket);
         }
         if (doc) {
           yjsService.handleDisconnect(ws.raw, doc);
         }
       },
 
-      onError(evt, _ws) {
+      onError(evt, ws) {
         wsLog.error(`Error for ${documentId}`, evt);
         if (pingInterval) {
           clearInterval(pingInterval);
           pingInterval = null;
+        }
+        if (ws.raw) {
+          presenceService.removeSocket(ws.raw as unknown as PresenceSocket);
         }
       },
     };

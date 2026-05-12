@@ -1,5 +1,12 @@
 import { type Element } from '@inkweld/index';
 import {
+  type PresenceLocation,
+  type PresenceSelection,
+  type PresenceSession,
+  type PresenceStatus,
+  type PresenceUserIdentity,
+} from '@inkweld/presence';
+import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
@@ -14,42 +21,29 @@ import { type ElementTypeSchema } from '../../models/schema-types';
 import { type TimeSystem } from '../../models/time-system';
 
 /**
- * Snapshot of a single user's awareness state, as produced by the sync
- * provider. Used to power presence indicators across collaborative tabs
- * (timeline, canvas, etc.). The provider strips the local client from
- * `remotePresence$` so consumers only see other users.
+ * Local presence fields that can be set on a sync provider. These are
+ * broadcast to other peers via the project-level presence protocol. Providers
+ * without a real-time backend should treat `setLocalPresence` as a no-op.
  */
-export interface PresenceUser {
-  /** Yjs awareness clientID for the remote peer. */
-  clientId: number;
-  /** Display name for the user (typically the account username). */
-  username: string;
-  /** Stable hex color used for cursors / avatars. */
-  color: string;
-  /**
-   * Optional location identifier set by the peer (e.g. `timeline:<elementId>`
-   * or `canvas:<elementId>`) so consumers can show only users currently
-   * focused on a specific tab.
-   */
-  location?: string;
+export interface LocalPresenceFields {
+  /** Identity of the local user. Required before the initial Hello is sent. */
+  user?: PresenceUserIdentity | null;
+  /** Current liveness/editing state. */
+  status?: PresenceStatus;
+  /** Current project surface the user is focused on. */
+  location?: PresenceLocation | null;
+  /** Current surface/editor selection. `null` clears a previous selection. */
+  selection?: PresenceSelection | null;
+  /** Sender wall-clock timestamp for display/debugging. */
+  lastActivityAt?: number;
 }
 
-/**
- * Local awareness fields that can be set on a sync provider. These are
- * broadcast to other peers via the underlying real-time protocol (Yjs
- * awareness). Providers without a real-time backend should treat
- * `setLocalAwareness` as a no-op.
- */
-export interface LocalAwarenessFields {
-  /** Identity of the local user. Set once per connection. */
-  user?: { name: string; color: string } | null;
-  /**
-   * Current location of the local user inside the project (e.g. which tab
-   * they have focused). Pass `null` to clear. Use a stable string key per
-   * tab/element so consumers can filter.
-   */
-  location?: string | null;
-}
+export type {
+  PresenceLocation,
+  PresenceSelection,
+  PresenceSession,
+  PresenceStatus,
+};
 
 /**
  * Project metadata stored in Yjs for offline-first sync.
@@ -400,26 +394,27 @@ export interface IElementSyncProvider {
   updateProjectMeta(meta: Partial<ProjectMeta>): void;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Presence / awareness
+  // Presence
   // ─────────────────────────────────────────────────────────────────────────────
 
   /**
-   * Set the local user's awareness fields. Broadcast to other peers via the
-   * underlying real-time protocol so they can render presence (cursors,
+   * Set the local user's presence fields. Broadcast to other peers via the
+   * project-level presence protocol so they can render presence (cursors,
    * avatars, "X is editing" indicators, etc.).
    *
    * Providers without a real-time backend MUST implement this as a no-op.
    *
-   * @param fields Partial awareness fields to merge into the local state.
+   * @param fields Partial presence fields to merge into the local state.
    */
-  setLocalAwareness(fields: LocalAwarenessFields): void;
+  setLocalPresence(fields: LocalPresenceFields): void;
 
   /**
-   * Observable stream of remote presence users, excluding the local client.
-   * Emits whenever any remote peer joins, leaves, or updates their awareness
+   * Observable stream of remote presence sessions, excluding the local user by
+   * username (so same-account multi-device sessions are filtered too).
+   * Emits whenever any remote peer joins, leaves, or updates their presence
    * state. Providers without a real-time backend MUST emit an empty array.
    */
-  remotePresence$: Observable<PresenceUser[]>;
+  remotePresence$: Observable<PresenceSession[]>;
 }
 
 /**
