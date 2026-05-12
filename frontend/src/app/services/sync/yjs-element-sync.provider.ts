@@ -1485,6 +1485,14 @@ function mergePresenceFields(
   return merged;
 }
 
+function resolveSelectionPatch(
+  selection: PresenceSession['selection'] | null | undefined
+): Partial<Pick<PresenceSession, 'selection'>> {
+  if (selection === undefined) return {};
+  if (selection === null) return { selection: undefined };
+  return { selection };
+}
+
 function applyLocalPresenceFields(
   session: PresenceSession,
   fields: LocalPresenceFields
@@ -1496,11 +1504,7 @@ function applyLocalPresenceFields(
     ...(fields.status !== undefined && { status: fields.status }),
     ...(fields.location !== undefined &&
       fields.location !== null && { location: fields.location }),
-    ...(fields.selection !== undefined
-      ? fields.selection === null
-        ? { selection: undefined }
-        : { selection: fields.selection }
-      : {}),
+    ...resolveSelectionPatch(fields.selection),
     ...(fields.lastActivityAt !== undefined && {
       lastActivityAt: fields.lastActivityAt,
     }),
@@ -1515,11 +1519,7 @@ function applyRemotePresenceUpdate(
     ...session,
     ...(fields.status !== undefined && { status: fields.status }),
     ...(fields.location !== undefined && { location: fields.location }),
-    ...(fields.selection !== undefined
-      ? fields.selection === null
-        ? { selection: undefined }
-        : { selection: fields.selection }
-      : {}),
+    ...resolveSelectionPatch(fields.selection),
     ...(fields.lastActivityAt !== undefined && {
       lastActivityAt: fields.lastActivityAt,
     }),

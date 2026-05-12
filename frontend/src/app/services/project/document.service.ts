@@ -70,6 +70,19 @@ type YjsProseMirrorMapping = Parameters<
   typeof absolutePositionToRelativePosition
 >[2];
 
+/** Internal Yjs item node shape used for cursor position traversal. */
+interface YjsItemNode {
+  deleted: boolean;
+  content: { type: Y.AbstractType<unknown> };
+  right: YjsItemNode | null;
+}
+
+/** Internal Yjs type shape exposing private list-head and length fields. */
+interface YjsTypeInternal {
+  _first: YjsItemNode | null;
+  _length: number;
+}
+
 /**
  * Represents an active Yjs document connection
  */
@@ -1418,6 +1431,44 @@ export class DocumentService {
     return syncState?.binding?.mapping ?? emptyMapping;
   }
 
+  private yjsChildPositionOffset(
+    type: Y.AbstractType<unknown>,
+    index: number,
+    yjsMapping: YjsProseMirrorMapping
+  ): number {
+    let position = 0;
+    const internal = type as unknown as YjsTypeInternal;
+    let node: YjsItemNode | null = internal._first;
+    let i = 0;
+    while (i < internal._length && i < index && node !== null) {
+      if (!node.deleted) {
+        const childType = node.content.type;
+        i++;
+        position += this.yjsMappedNodeSize(childType, yjsMapping);
+      }
+      node = node.right;
+    }
+    return position;
+  }
+
+  private yjsParentPositionOffset(
+    type: Y.AbstractType<unknown>,
+    child: Y.AbstractType<unknown>,
+    yjsMapping: YjsProseMirrorMapping
+  ): number {
+    let position = 0;
+    let node: YjsItemNode | null = (type as unknown as YjsTypeInternal)._first;
+    while (node !== null) {
+      const childType = node.content.type;
+      if (childType === child) break;
+      if (!node.deleted) {
+        position += this.yjsMappedNodeSize(childType, yjsMapping);
+      }
+      node = node.right;
+    }
+    return position;
+  }
+
   private relativePositionToAbsolutePosition(
     relativePosition: Y.RelativePosition,
     ydoc: Y.Doc,
@@ -1441,36 +1492,20 @@ export class DocumentService {
     if (type instanceof Y.XmlText) {
       position = decoded.index;
     } else if (type._item === null || !type._item.deleted) {
-      let node = type._first;
-      let index = 0;
-      while (index < type._length && index < decoded.index && node !== null) {
-        if (!node.deleted) {
-          const childType = (
-            node.content as unknown as { type: Y.AbstractType<unknown> }
-          ).type;
-          index++;
-          position += this.yjsMappedNodeSize(childType, yjsMapping);
-        }
-        node = node.right;
-      }
-      position += 1;
+      position =
+        this.yjsChildPositionOffset(type, decoded.index, yjsMapping) + 1;
     }
 
     while (type !== yXmlFragment && type._item !== null) {
       const parent = type._item.parent as Y.AbstractType<unknown>;
       if (parent._item === null || !parent._item.deleted) {
-        position += 1;
-        let node = parent._first;
-        while (node !== null) {
-          const childType = (
-            node.content as unknown as { type: Y.AbstractType<unknown> }
-          ).type;
-          if (childType === type) break;
-          if (!node.deleted) {
-            position += this.yjsMappedNodeSize(childType, yjsMapping);
-          }
-          node = node.right;
-        }
+        position +=
+          1 +
+          this.yjsParentPositionOffset(
+            parent,
+            type as Y.AbstractType<unknown>,
+            yjsMapping
+          );
       }
       type = parent;
     }
@@ -1505,9 +1540,9 @@ export class DocumentService {
   }
 
   private colorWithAlpha(color: string, alpha: number): string {
-    const hex = color.match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
+    const hex = /^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(color);
     if (!hex) return color;
-    return `rgba(${parseInt(hex[1], 16)}, ${parseInt(hex[2], 16)}, ${parseInt(hex[3], 16)}, ${alpha})`;
+    return `rgba(${Number.parseInt(hex[1], 16)}, ${Number.parseInt(hex[2], 16)}, ${Number.parseInt(hex[3], 16)}, ${alpha})`;
   }
 
   /**

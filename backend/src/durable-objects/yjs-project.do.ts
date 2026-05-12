@@ -1254,23 +1254,31 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       return;
     }
 
-    // Handle text messages (authentication)
     if (typeof message === 'string') {
-      if (message === PRESENCE_KEEPALIVE_PING) {
-        if (connInfo.authenticated) ws.send(PRESENCE_KEEPALIVE_PONG);
-        return;
-      }
-      if (connInfo.authenticated) {
-        // Already authenticated, ignore text messages
-        return;
-      }
-      await this.handleAuthMessage(ws, connInfo, message);
+      await this.handleTextMessage(ws, connInfo, message);
+    } else {
+      this.handleBinaryMessage(ws, connInfo, message);
+    }
+  }
+
+  private async handleTextMessage(
+    ws: WebSocket,
+    connInfo: ConnectionInfo,
+    message: string
+  ): Promise<void> {
+    if (message === PRESENCE_KEEPALIVE_PING) {
+      if (connInfo.authenticated) ws.send(PRESENCE_KEEPALIVE_PONG);
       return;
     }
+    if (connInfo.authenticated) {
+      // Already authenticated, ignore text messages
+      return;
+    }
+    await this.handleAuthMessage(ws, connInfo, message);
+  }
 
-    // Handle binary messages (Yjs sync protocol)
+  private handleBinaryMessage(ws: WebSocket, connInfo: ConnectionInfo, message: ArrayBuffer): void {
     if (!connInfo.authenticated) {
-      // Not authenticated yet - queue the message
       connInfo.pendingMessages.push(message);
       return;
     }
@@ -1282,7 +1290,6 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
 
     try {
-      // Block writes from read-only viewers (commenter / viewer roles).
       if (!connInfo.canWrite && isYjsFrameBlockedForViewer(message)) {
         projDOLog.debug(`Blocked write frame from read-only viewer for ${connInfo.documentId}`);
         return;

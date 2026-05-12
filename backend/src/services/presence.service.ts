@@ -39,12 +39,11 @@ import {
   Y_MESSAGE_PRESENCE,
   encodePresenceFrame,
   readPresenceMessage,
-  writeHello,
   writeLeave,
   writeSnapshot,
-  writeUpdate,
   type PresenceSession,
 } from '@inkweld/presence';
+export { writeHello, writeUpdate } from '@inkweld/presence';
 import { logger } from './logger.service';
 
 const presLog = logger.child('Presence');
@@ -309,6 +308,4 @@ export function peekFrameTag(frame: Uint8Array): { tag: number; decoder: decodin
   return { tag, decoder };
 }
 
-// Re-export codec helpers so callers (e.g. routes/yjs.routes.ts) can import
-// them from a single point without reaching into @inkweld/presence directly.
-export { writeHello, writeUpdate };
+// writeHello and writeUpdate are re-exported above (at the import site).

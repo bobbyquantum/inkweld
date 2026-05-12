@@ -71,6 +71,11 @@ function isElementsDocumentId(documentId: string): boolean {
   return stripped.endsWith(':elements');
 }
 
+/** Cast a raw Bun ServerWebSocket to the PresenceSocket structural type. */
+function toPresenceSocket(raw: unknown): PresenceSocket {
+  return raw as PresenceSocket;
+}
+
 function isBlockedForViewer(buffer: Buffer, documentId: string): boolean {
   // Buffer is a Uint8Array subclass — pass the underlying view to the util.
   // Slicing the appropriate region keeps Node Buffer pooling out of the picture.
@@ -265,6 +270,31 @@ app.get(
 
     // Validates token, project access, sets up Yjs connection.
     // Closes over connection state variables for mutation.
+    const drainPendingMessages = (raw: NonNullable<WsHandle['raw']>): void => {
+      for (const data of pendingMessages) {
+        const bytes = new Uint8Array(data);
+        const peeked = peekFrameTag(bytes);
+        if (peeked?.tag === Y_MESSAGE_PRESENCE) {
+          if (isElementsDocumentId(documentId)) {
+            const projectKey = projectKeyForDocumentId(documentId);
+            if (projectKey) {
+              presenceService.handleMessage(
+                projectKey,
+                toPresenceSocket(raw),
+                peeked.decoder,
+                bytes
+              );
+            }
+          }
+          continue;
+        }
+        const buffer = Buffer.from(data);
+        if (!canWrite && isBlockedForViewer(buffer, documentId)) continue;
+        yjsService.handleMessage(raw, doc, buffer);
+      }
+      pendingMessages = [];
+    };
+
     const authenticateWs = async (token: string, ws: WsHandle): Promise<void> => {
       if (authenticated || authInProgress) return;
       authInProgress = true;
@@ -316,9 +346,8 @@ app.get(
           ws.close(4000, 'Authentication error');
           return;
         }
-        let connectedDoc: typeof doc;
         try {
-          connectedDoc = await yjsService.handleConnection(ws.raw, documentId);
+          doc = await yjsService.handleConnection(ws.raw, documentId);
         } catch (err) {
           wsLog.error(`Failed to initialize Yjs connection for ${documentId}`, err);
           ws.send('access-denied:error');
@@ -326,46 +355,21 @@ app.get(
           return;
         }
 
-        doc = connectedDoc;
         authenticated = true;
         wsLog.info(`Authenticated for ${documentId} (user: ${sessionData.username})`);
         ws.send('authenticated');
 
-        // Open a writing session for this connection (best-effort).
         await tryStartSession(sessionData.userId, project.id);
 
         // Register this user against the raw WebSocket so the elements doc
         // update listener can attribute mutations to them. For elements docs,
         // also attach the snapshot-diff observer (idempotent).
-        if (ws.raw) {
-          yjsService.registerUserConnection(ws.raw, documentId, sessionData.userId);
-          if (isElementsDoc(documentId)) {
-            yjsService.watchElementsDoc(documentId, project.id, db);
-          }
+        yjsService.registerUserConnection(ws.raw, documentId, sessionData.userId);
+        if (isElementsDoc(documentId)) {
+          yjsService.watchElementsDoc(documentId, project.id, db);
         }
 
-        for (const data of pendingMessages) {
-          const bytes = new Uint8Array(data);
-          const peeked = peekFrameTag(bytes);
-          if (peeked && peeked.tag === Y_MESSAGE_PRESENCE) {
-            if (isElementsDocumentId(documentId)) {
-              const projectKey = projectKeyForDocumentId(documentId);
-              if (projectKey && ws.raw) {
-                presenceService.handleMessage(
-                  projectKey,
-                  ws.raw as unknown as PresenceSocket,
-                  peeked.decoder,
-                  bytes
-                );
-              }
-            }
-            continue;
-          }
-          const buffer = Buffer.from(data);
-          if (!canWrite && isBlockedForViewer(buffer, documentId)) continue;
-          yjsService.handleMessage(ws.raw, doc, buffer);
-        }
-        pendingMessages = [];
+        drainPendingMessages(ws.raw);
 
         pingInterval = startPingInterval(ws, documentId, () => {
           pingInterval = null;
@@ -373,6 +377,34 @@ app.get(
       } finally {
         authInProgress = false;
       }
+    };
+
+    const handleBinaryMessage = (data: ArrayBuffer, ws: WsHandle): void => {
+      if (!authenticated || !doc) {
+        pendingMessages.push(data);
+        return;
+      }
+
+      const bytes = new Uint8Array(data);
+      const peeked = peekFrameTag(bytes);
+      if (peeked?.tag === Y_MESSAGE_PRESENCE) {
+        // Presence is project-scoped and only travels on the elements
+        // WS. Drop presence frames that arrive on per-document sockets
+        // so a buggy/forked client cannot inflate the registry with
+        // duplicate sessions.
+        if (!isElementsDocumentId(documentId)) {
+          wsLog.debug(`Ignoring presence frame on non-elements doc ${documentId}`);
+          return;
+        }
+        const projectKey = projectKeyForDocumentId(documentId);
+        if (!projectKey || !ws.raw) return;
+        presenceService.handleMessage(projectKey, toPresenceSocket(ws.raw), peeked.decoder, bytes);
+        return;
+      }
+
+      const buffer = Buffer.from(data);
+      if (!canWrite && isBlockedForViewer(buffer, documentId)) return;
+      yjsService.handleMessage(ws.raw, doc, buffer);
     };
 
     return {
@@ -401,36 +433,7 @@ app.get(
         // Binary messages are Yjs sync protocol — UNLESS the outer
         // multiplex byte marks this as a presence frame.
         if (event.data instanceof ArrayBuffer) {
-          if (!authenticated || !doc) {
-            pendingMessages.push(event.data);
-            return;
-          }
-
-          const bytes = new Uint8Array(event.data);
-          const peeked = peekFrameTag(bytes);
-          if (peeked && peeked.tag === Y_MESSAGE_PRESENCE) {
-            // Presence is project-scoped and only travels on the elements
-            // WS. Drop presence frames that arrive on per-document sockets
-            // so a buggy/forked client cannot inflate the registry with
-            // duplicate sessions.
-            if (!isElementsDocumentId(documentId)) {
-              wsLog.debug(`Ignoring presence frame on non-elements doc ${documentId}`);
-              return;
-            }
-            const projectKey = projectKeyForDocumentId(documentId);
-            if (!projectKey || !ws.raw) return;
-            presenceService.handleMessage(
-              projectKey,
-              ws.raw as unknown as PresenceSocket,
-              peeked.decoder,
-              bytes
-            );
-            return;
-          }
-
-          const buffer = Buffer.from(event.data);
-          if (!canWrite && isBlockedForViewer(buffer, documentId)) return;
-          yjsService.handleMessage(ws.raw, doc, buffer);
+          handleBinaryMessage(event.data, ws);
         }
       },
 
@@ -446,7 +449,7 @@ app.get(
         void tryFinalizeSession();
         if (ws.raw) {
           yjsService.unregisterUserConnection(ws.raw, documentId);
-          presenceService.removeSocket(ws.raw as unknown as PresenceSocket);
+          presenceService.removeSocket(toPresenceSocket(ws.raw));
         }
         if (doc) {
           yjsService.handleDisconnect(ws.raw, doc);
@@ -460,7 +463,7 @@ app.get(
           pingInterval = null;
         }
         if (ws.raw) {
-          presenceService.removeSocket(ws.raw as unknown as PresenceSocket);
+          presenceService.removeSocket(toPresenceSocket(ws.raw));
         }
       },
     };
