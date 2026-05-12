@@ -1091,6 +1091,99 @@ describe('DocumentService', () => {
         'rgba(51, 102, 153, 0.18)'
       );
     });
+
+    it('relativePositionToAbsolutePosition returns null for unresolvable position', () => {
+      // A relative position encoded against one doc cannot be resolved in another
+      const ydoc1 = new Y.Doc();
+      const yXmlFragment1 = ydoc1.getXmlFragment('prosemirror');
+      yXmlFragment1.insert(0, [new Y.XmlText('hello')]);
+
+      const ydoc2 = new Y.Doc(); // different doc — position won't resolve
+      const yXmlFragment2 = ydoc2.getXmlFragment('prosemirror');
+
+      const relPos = Y.createRelativePositionFromTypeIndex(yXmlFragment1, 0);
+      const encoded = Y.encodeRelativePosition(relPos);
+
+      const privateService = service as unknown as {
+        relativePositionToAbsolutePosition: (
+          relPos: Y.RelativePosition,
+          ydoc: Y.Doc,
+          yXmlFragment: Y.XmlFragment,
+          mapping: Map<unknown, unknown>
+        ) => number | null;
+      };
+
+      const result = privateService.relativePositionToAbsolutePosition(
+        Y.decodeRelativePosition(encoded),
+        ydoc2,
+        yXmlFragment2,
+        new Map()
+      );
+      expect(result).toBeNull();
+    });
+
+    it('yjsMappedNodeSize returns XmlText length for XmlText', () => {
+      const ydoc = new Y.Doc();
+      const xmlText = new Y.XmlText('hello');
+      ydoc.getXmlFragment('x').insert(0, [xmlText]);
+
+      const privateService = service as unknown as {
+        yjsMappedNodeSize: (
+          yjsType: Y.AbstractType<unknown>,
+          mapping: Map<unknown, unknown>
+        ) => number;
+      };
+
+      expect(
+        privateService.yjsMappedNodeSize(
+          xmlText as unknown as Y.AbstractType<unknown>,
+          new Map()
+        )
+      ).toBe(5);
+    });
+
+    it('yjsMappedNodeSize returns 0 for unmapped type', () => {
+      const ydoc = new Y.Doc();
+      const xmlEl = new Y.XmlElement('p');
+      ydoc.getXmlFragment('x').insert(0, [xmlEl]);
+
+      const privateService = service as unknown as {
+        yjsMappedNodeSize: (
+          yjsType: Y.AbstractType<unknown>,
+          mapping: Map<unknown, unknown>
+        ) => number;
+      };
+
+      expect(
+        privateService.yjsMappedNodeSize(
+          xmlEl as unknown as Y.AbstractType<unknown>,
+          new Map()
+        )
+      ).toBe(0);
+    });
+
+    it('yjsMappedNodeSize sums nodeSize for array-mapped type', () => {
+      const ydoc = new Y.Doc();
+      const xmlEl = new Y.XmlElement('p');
+      ydoc.getXmlFragment('x').insert(0, [xmlEl]);
+
+      const privateService = service as unknown as {
+        yjsMappedNodeSize: (
+          yjsType: Y.AbstractType<unknown>,
+          mapping: Map<unknown, unknown>
+        ) => number;
+      };
+
+      const mapping = new Map<unknown, unknown>([
+        [xmlEl, [{ nodeSize: 3 }, { nodeSize: 5 }]],
+      ]);
+      expect(
+        privateService.yjsMappedNodeSize(
+          xmlEl as unknown as Y.AbstractType<unknown>,
+          mapping
+        )
+      ).toBe(8);
+    });
   });
 
   describe('Network Handling', () => {

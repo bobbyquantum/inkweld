@@ -14,7 +14,7 @@ import {
 import { type ElementRelationship } from '@models/element-ref.model';
 import { createDefaultPublishStyles } from '@models/publish-style';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
-import * as decoding from 'lib0/decoding';
+import type * as decoding from 'lib0/decoding';
 import { createDecoder, readVarUint } from 'lib0/decoding';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
@@ -512,7 +512,7 @@ describe('YjsElementSyncProvider', () => {
       });
     });
 
-    it('falls back to local mode and logs error when websocket authentication fails', async () => {
+    it('falls back to local mode and logs error when websocket authentication fails', () => {
       // Inject a connected wsProvider with a pre-failed auth scenario by directly
       // exercising the error-handling path that setupReauthentication exposes.
       // This covers the error callback branch inside connectWebSocket.
@@ -530,14 +530,6 @@ describe('YjsElementSyncProvider', () => {
         provider as unknown as { wsProvider: typeof websocketProvider | null }
       ).wsProvider = websocketProvider;
 
-      // Trigger re-auth error callback manually
-      let errorCb: ((e: unknown) => void) | undefined;
-      websocketModuleMocks.setupReauthentication.mockImplementationOnce(
-        (_p: unknown, _g: unknown, cb: (e: unknown) => void) => {
-          errorCb = cb;
-        }
-      );
-
       // Simulate what happens when auth error fires
       const subject = (
         provider as unknown as {
@@ -549,7 +541,7 @@ describe('YjsElementSyncProvider', () => {
       provider.disconnect();
     });
 
-    it('handles the setupWebSocketHandlers status: connected branch', async () => {
+    it('handles the setupWebSocketHandlers status: connected branch', () => {
       // Directly call handleWebSocketStatus to cover the 'connected' branch
       const privateProvider = provider as unknown as {
         reconnectAttempts: number;
