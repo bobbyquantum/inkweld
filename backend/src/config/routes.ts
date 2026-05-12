@@ -43,6 +43,8 @@ import passwordResetRoutes from '../routes/password-reset.routes';
 import passkeyRoutes, { passkeyManagementHandlers } from '../routes/passkey.routes';
 import passkeyRecoveryRoutes from '../routes/passkey-recovery.routes';
 import { adminEmailRoutes } from '../routes/admin-email.routes';
+import statsRoutes from '../routes/stats.routes';
+import activityRoutes from '../routes/activity.routes';
 
 /**
  * Register common API routes that work in all runtime environments
@@ -133,6 +135,10 @@ export function registerCommonRoutes(app: any): void {
 
   // Admin email settings (test email)
   app.route('/api/v1/admin/email', adminEmailRoutes);
+
+  // Writing statistics & activity feed (per-project + cross-project)
+  app.route('/api/v1/stats', statsRoutes);
+  app.route('/api/v1/activity', activityRoutes);
 
   // OAuth 2.1 for MCP authorization
   // Note: OAuth routes are mounted at root level for standard .well-known paths

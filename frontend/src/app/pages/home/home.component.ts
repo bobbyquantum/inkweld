@@ -89,6 +89,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly storageContext = inject(StorageContextService);
   readonly activationService = inject(ProjectActivationService);
 
+  /** True when the app is running in local-only mode (no backend). */
+  protected readonly isLocalMode = this.storageContext.isLocalMode;
+
   // Component state
   loadError = false;
   selectedProject: Project | null = null;

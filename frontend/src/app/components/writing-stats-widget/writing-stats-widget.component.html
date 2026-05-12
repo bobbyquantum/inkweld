@@ -1,0 +1,62 @@
+@if (loading()) {
+  <mat-card class="stats-widget loading">
+    <mat-spinner diameter="28" />
+  </mat-card>
+} @else if (errored()) {
+  <!-- Hidden on error so the rest of the home page is unaffected. -->
+} @else {
+  <mat-card class="stats-widget">
+    <header class="widget-header">
+      <h3>
+        <mat-icon>insights</mat-icon>
+        Your writing
+      </h3>
+      <span class="window-label">Last {{ windowDays }} days</span>
+    </header>
+
+    <section class="stats-row">
+      <div class="stat">
+        <div class="stat-value">{{ stats()?.totalWords ?? 0 | number }}</div>
+        <div class="stat-label">words</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">{{ activeDays() }}</div>
+        <div class="stat-label">active days</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">{{ stats()?.projectCount ?? 0 }}</div>
+        <div class="stat-label">projects</div>
+      </div>
+      @if (bestDay(); as best) {
+        <div class="stat" [matTooltip]="best.day">
+          <div class="stat-value">{{ best.words | number }}</div>
+          <div class="stat-label">best day</div>
+        </div>
+      }
+    </section>
+
+    @if (events().length > 0) {
+      <section class="recent-section">
+        <h4>Recent activity</h4>
+        <ul class="recent-list">
+          @for (event of events(); track event.id) {
+            <li class="recent-item">
+              <div class="recent-text">{{ eventSummary(event) }}</div>
+              <div class="recent-meta">
+                @if (event.projectTitle && projectLink(event); as link) {
+                  <a class="project-link" [routerLink]="link">
+                    {{ event.projectTitle }}
+                  </a>
+                  <span class="dot">·</span>
+                }
+                <span [matTooltip]="(event.createdAt | date: 'medium') ?? ''">
+                  {{ formatTime(event.createdAt) }}
+                </span>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  </mat-card>
+}

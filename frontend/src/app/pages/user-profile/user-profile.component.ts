@@ -15,6 +15,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
+import { WritingStatsWidgetComponent } from '@components/writing-stats-widget/writing-stats-widget.component';
 import { type User } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
@@ -32,6 +33,7 @@ import { debounceTime } from 'rxjs/operators';
     MatToolbarModule,
     MatProgressSpinnerModule,
     UserAvatarComponent,
+    WritingStatsWidgetComponent,
   ],
   templateUrl: './user-profile.component.html',
   styleUrls: ['./user-profile.component.scss'],
