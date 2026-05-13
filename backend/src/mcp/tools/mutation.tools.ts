@@ -41,6 +41,17 @@ import {
 } from './yjs-runtime';
 
 const mcpMutLog = logger.child('MCP-Mutation');
+
+/**
+ * Returns the activity actor fields for the current MCP context.
+ * OAuth sessions supply a `userId`; legacy API-key sessions supply an
+ * `actorLabel` (the key's display name, or "MCP" as a fallback).
+ */
+function mcpActor(ctx: McpContext): { userId: string } | { actorLabel: string } {
+  return ctx.type === 'oauth'
+    ? { userId: ctx.userId }
+    : { actorLabel: ctx.key.name || 'MCP' };
+}
 import {
   insertElement,
   removeElement,
@@ -302,25 +313,13 @@ Use move_elements or reorder_element to reposition after creation.`,
       // Replace entire array (maintains positional integrity)
       await runtimeReplaceAllElements(ctx, username, slug, updatedElements);
 
-      // Record activity — for OAuth sessions use the user ID; for legacy API
-      // key sessions use the key name (or "MCP") as actor label.
-      if (ctx.type === 'oauth') {
-        await activityService.record(db, {
-          projectId: result.project.projectId,
-          userId: ctx.userId,
-          eventType: 'element_created',
-          entityId: newElement.id,
-          entityName: name,
-        });
-      } else {
-        await activityService.record(db, {
-          projectId: result.project.projectId,
-          actorLabel: ctx.key.name || 'MCP',
-          eventType: 'element_created',
-          entityId: newElement.id,
-          entityName: name,
-        });
-      }
+      await activityService.record(db, {
+        projectId: result.project.projectId,
+        ...mcpActor(ctx),
+        eventType: 'element_created',
+        entityId: newElement.id,
+        entityName: name,
+      });
 
       // Initialize worldbuilding doc with template binding when schemaId is provided
       if (type === 'WORLDBUILDING' && schemaId) {
@@ -579,28 +578,16 @@ This tool only updates name and type without changing position.`,
 
       await runtimeReplaceAllElements(ctx, username, slug, updatedElements);
 
-      // Record rename activity — for OAuth sessions use the user ID; for
-      // legacy API key sessions use the key name (or "MCP") as actor label.
+      // Record rename activity
       if (newName !== undefined) {
-        if (ctx.type === 'oauth') {
-          await activityService.record(db, {
-            projectId: result.project.projectId,
-            userId: ctx.userId,
-            eventType: 'element_renamed',
-            entityId: elementId,
-            entityName: newName,
-            metadata: { oldName: element.name },
-          });
-        } else {
-          await activityService.record(db, {
-            projectId: result.project.projectId,
-            actorLabel: ctx.key.name || 'MCP',
-            eventType: 'element_renamed',
-            entityId: elementId,
-            entityName: newName,
-            metadata: { oldName: element.name },
-          });
-        }
+        await activityService.record(db, {
+          projectId: result.project.projectId,
+          ...mcpActor(ctx),
+          eventType: 'element_renamed',
+          entityId: elementId,
+          entityName: newName,
+          metadata: { oldName: element.name },
+        });
       }
 
       const changes: string[] = [];
@@ -691,25 +678,13 @@ this element in the array at deeper levels).`,
 
       await runtimeReplaceAllElements(ctx, username, slug, updatedElements);
 
-      // Record activity — for OAuth sessions use the user ID; for legacy API
-      // key sessions use the key name (or "MCP") as actor label.
-      if (ctx.type === 'oauth') {
-        await activityService.record(db, {
-          projectId: result.project.projectId,
-          userId: ctx.userId,
-          eventType: 'element_deleted',
-          entityId: elementId,
-          entityName: element.name,
-        });
-      } else {
-        await activityService.record(db, {
-          projectId: result.project.projectId,
-          actorLabel: ctx.key.name || 'MCP',
-          eventType: 'element_deleted',
-          entityId: elementId,
-          entityName: element.name,
-        });
-      }
+      await activityService.record(db, {
+        projectId: result.project.projectId,
+        ...mcpActor(ctx),
+        eventType: 'element_deleted',
+        entityId: elementId,
+        entityName: element.name,
+      });
 
       return {
         content: [
@@ -1436,29 +1411,15 @@ The content replaces the entire document. Use get_document_content first to read
 
       const wordCount = textContent.split(/\s+/).filter((w) => w.length > 0).length;
 
-      // Record activity — for OAuth sessions use the user ID; for legacy API
-      // key sessions use the key name (or "MCP" if unset) as actor label.
-      if (ctx.type === 'oauth') {
-        await activityService.recordOrCoalesceEdit(db, {
-          projectId: result.project.projectId,
-          userId: ctx.userId,
-          entityId: elementId,
-          entityName: element.name,
-          wordsDelta: 0,
-          endWordCount: wordCount,
-          durationMs: 0,
-        });
-      } else {
-        await activityService.recordOrCoalesceEdit(db, {
-          projectId: result.project.projectId,
-          actorLabel: ctx.key.name || 'MCP',
-          entityId: elementId,
-          entityName: element.name,
-          wordsDelta: 0,
-          endWordCount: wordCount,
-          durationMs: 0,
-        });
-      }
+      await activityService.recordOrCoalesceEdit(db, {
+        projectId: result.project.projectId,
+        ...mcpActor(ctx),
+        entityId: elementId,
+        entityName: element.name,
+        wordsDelta: 0,
+        endWordCount: wordCount,
+        durationMs: 0,
+      });
 
       return {
         content: [
@@ -1898,7 +1859,7 @@ registerTool({
       const userId = ctx.type === 'oauth' ? ctx.userId : 'mcp-api-key';
 
       const snapshot = await documentSnapshotService.create(
-        db as Parameters<typeof documentSnapshotService.create>[0],
+        db,
         {
           documentId: elementId,
           projectId,
