@@ -21,8 +21,8 @@ coveragePathIgnorePatterns = [
   "**/node_modules/**",
   # MCP protocol handlers & tools (require Yjs runtime / Durable Objects)
   "**/mcp/**",
-  # Cloudflare Durable Objects (Workers runtime only)
-  "**/durable-objects/**",
+  # Cloudflare Durable Objects (Workers runtime only — main DO class)
+  "**/durable-objects/yjs-project.do.ts",
   # Cloudflare R2 storage adapter (Workers runtime only)
   "**/r2-storage.service.ts",
   # Yjs collaboration services (require LevelDB / Durable Objects)
