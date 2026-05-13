@@ -12,13 +12,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute } from '@angular/router';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
+import { type Element, type ElementType } from '@inkweld/api-client';
 import { LoggerService } from '@services/core/logger.service';
 import { SettingsService } from '@services/core/settings.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { DocumentSyncService } from '@services/sync/document-sync.service';
 import { type Subscription } from 'rxjs';
 
-import { type Element, type ElementType } from '@inkweld/api-client';
 import { WorldbuildingEditorComponent } from '../../../../components/worldbuilding/worldbuilding-editor.component';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 

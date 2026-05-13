@@ -2,13 +2,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { isDevMode } from '@angular/core';
+import { type LintResponse } from '@inkweld/api-client/model/lint-response';
 import { type LintApiService } from '@services/lint/lint-api.service';
 import { type Node } from 'prosemirror-model';
 import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
 import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 import { debounceTime, Subject, type Subscription } from 'rxjs';
 
-import { type LintResponse } from '@inkweld/api-client/model/lint-response';
 import { type ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintStorageService } from './lint-storage.service';
 

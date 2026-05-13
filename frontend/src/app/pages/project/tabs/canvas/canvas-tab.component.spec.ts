@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
+import { type Element, ElementType } from '@inkweld/api-client';
 import {
   type CanvasConfig,
   type CanvasImage,
@@ -44,7 +45,6 @@ import {
   vi,
 } from 'vitest';
 
-import { type Element, ElementType } from '@inkweld/api-client';
 import { CanvasTabComponent } from './canvas-tab.component';
 
 // Konva requires ResizeObserver which is not available in jsdom

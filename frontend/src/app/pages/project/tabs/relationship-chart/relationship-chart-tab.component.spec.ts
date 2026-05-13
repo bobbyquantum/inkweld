@@ -1,10 +1,10 @@
 import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
+import { type Element, ElementType } from '@inkweld/api-client';
 import { of } from 'rxjs';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type Element, ElementType } from '@inkweld/api-client';
 import {
   type ChartGraphData,
   createDefaultChartConfig,

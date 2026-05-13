@@ -6,6 +6,7 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { type Element, ElementType } from '@inkweld/api-client';
 import {
   RelationshipCategory,
   type RelationshipTypeDefinition,
@@ -14,7 +15,6 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
 import { describe, expect, it, vi } from 'vitest';
 
-import { type Element, ElementType } from '@inkweld/api-client';
 import {
   AddRelationshipDialogComponent,
   type AddRelationshipDialogData,

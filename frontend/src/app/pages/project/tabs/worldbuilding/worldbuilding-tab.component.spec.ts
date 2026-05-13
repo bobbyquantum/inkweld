@@ -5,16 +5,12 @@ import {
   TestBed,
 } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { type Element, ElementType, type Project } from '@inkweld/api-client';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { SyncQueueService } from '@services/sync/sync-queue.service';
 import { BehaviorSubject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  type Element,
-  ElementType,
-  type Project,
-} from '@inkweld/api-client';
 import { WorldbuildingTabComponent } from './worldbuilding-tab.component';
 
 describe('WorldbuildingTabComponent', () => {

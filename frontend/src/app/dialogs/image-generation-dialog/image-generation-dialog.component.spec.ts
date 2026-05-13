@@ -4,9 +4,6 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of } from 'rxjs';
-import { type MockedObject, vi } from 'vitest';
-
 import { AIImageGenerationService } from '@inkweld/api-client/api/ai-image-generation.service';
 import { ImageProfilesService } from '@inkweld/api-client/api/image-profiles.service';
 import {
@@ -17,6 +14,9 @@ import {
   type PublicImageModelProfile,
   PublicImageModelProfileProvider,
 } from '@inkweld/api-client/model/models';
+import { of } from 'rxjs';
+import { type MockedObject, vi } from 'vitest';
+
 import { type WorldbuildingElementSelection } from '../../components/worldbuilding-element-selector/worldbuilding-element-selector.component';
 import {
   type GenerationJob,

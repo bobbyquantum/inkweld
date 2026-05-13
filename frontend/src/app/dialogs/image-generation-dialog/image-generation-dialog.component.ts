@@ -26,8 +26,6 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { type MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { firstValueFrom } from 'rxjs';
-
 import { AIImageGenerationService } from '@inkweld/api-client/api/ai-image-generation.service';
 import { ImageProfilesService } from '@inkweld/api-client/api/image-profiles.service';
 import {
@@ -45,6 +43,8 @@ import {
   type WorldbuildingContext,
   WorldbuildingContextRole,
 } from '@inkweld/api-client/model/models';
+import { firstValueFrom } from 'rxjs';
+
 import {
   type SelectionChangeEvent,
   type WorldbuildingElementSelection,
