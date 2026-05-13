@@ -109,9 +109,12 @@ export async function compactDocumentStorage(
   const prefix = docStoragePrefix(documentId);
   const snap = snapshotKey(prefix);
   const snapshot = Y.encodeStateAsUpdate(doc);
+  const keysToDelete = [...updateKeys.keys()];
   await storage.transaction(async (txn) => {
     await txn.put(snap, Array.from(snapshot));
-    await txn.delete([...updateKeys.keys()]);
+    for (let i = 0; i < keysToDelete.length; i += DELETE_BATCH_SIZE) {
+      await txn.delete(keysToDelete.slice(i, i + DELETE_BATCH_SIZE));
+    }
   });
 }
 
@@ -120,6 +123,7 @@ export async function compactDocumentStorage(
 // ---------------------------------------------------------------------------
 
 export const COMPACT_THRESHOLD = 50;
+const DELETE_BATCH_SIZE = 128;
 
 /**
  * Returns true when there are enough pending update keys to warrant a background
