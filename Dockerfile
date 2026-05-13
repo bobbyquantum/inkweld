@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.23
+# syntax=docker/dockerfile:1.24
 #
 # Inkweld Backend Dockerfile
 # Uses Bun's --compile flag to create a single-file executable with embedded native modules.
