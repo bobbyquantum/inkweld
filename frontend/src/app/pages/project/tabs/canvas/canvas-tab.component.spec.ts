@@ -44,7 +44,7 @@ import {
   vi,
 } from 'vitest';
 
-import { type Element, ElementType } from '../../../../../api-client';
+import { type Element, ElementType } from '@inkweld/api-client';
 import { CanvasTabComponent } from './canvas-tab.component';
 
 // Konva requires ResizeObserver which is not available in jsdom

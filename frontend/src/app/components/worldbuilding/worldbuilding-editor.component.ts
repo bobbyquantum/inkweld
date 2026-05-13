@@ -35,7 +35,7 @@ import { debounceTime } from 'rxjs';
 import {
   type Element as ApiElement,
   type ElementType,
-} from '../../../api-client';
+} from '@inkweld/api-client';
 import { type SnapshotsDialogData } from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
 import { type TagEditorDialogData } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
 import {

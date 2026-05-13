@@ -11,7 +11,7 @@ import {
 import { DecorationSet, type EditorView } from 'prosemirror-view';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ElementType } from '../../../api-client';
+import { ElementType } from '@inkweld/api-client';
 import {
   cancelElementRef,
   createElementRefPlugin,

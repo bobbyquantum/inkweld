@@ -1,8 +1,8 @@
 import { vi } from 'vitest';
 
 import { HttpHeaders, HttpParameterCodec } from "@angular/common/http";
-import { Configuration } from "@inkweld/configuration";
-import { UpdateProfileRequest, User, UsernameAvailability, RegisterRequest } from "@inkweld/index";
+import { Configuration } from "@inkweld/api-client/configuration";
+import { UpdateProfileRequest, User, UsernameAvailability, RegisterRequest } from "@inkweld/api-client";
 import { Observable } from "rxjs";
 
 export const userServiceMock = {

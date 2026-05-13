@@ -14,7 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
-import { ElementType } from '../../../../api-client';
+import { ElementType } from '@inkweld/api-client';
 import {
   type ElementRefContextData,
   ElementRefContextMenuComponent,

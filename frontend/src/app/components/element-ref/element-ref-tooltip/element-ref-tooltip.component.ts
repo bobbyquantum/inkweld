@@ -24,7 +24,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { firstValueFrom } from 'rxjs';
 
-import { ElementType } from '../../../../api-client';
+import { ElementType } from '@inkweld/api-client';
 import { environment } from '../../../../environments/environment';
 import { LocalStorageService } from '../../../services/local/local-storage.service';
 import { DocumentService } from '../../../services/project/document.service';

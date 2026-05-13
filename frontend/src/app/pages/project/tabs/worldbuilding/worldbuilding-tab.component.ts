@@ -18,7 +18,7 @@ import { PresenceService } from '@services/presence/presence.service';
 import { DocumentSyncService } from '@services/sync/document-sync.service';
 import { type Subscription } from 'rxjs';
 
-import { type Element, type ElementType } from '../../../../../api-client';
+import { type Element, type ElementType } from '@inkweld/api-client';
 import { WorldbuildingEditorComponent } from '../../../../components/worldbuilding/worldbuilding-editor.component';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 

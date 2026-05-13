@@ -27,7 +27,7 @@ import {
 } from '@services/relationship';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 
-import { type Element, ElementType } from '../../../api-client';
+import { type Element, ElementType } from '@inkweld/api-client';
 import { ElementRefService } from '../element-ref/element-ref.service';
 import { type ElementRefTooltipData } from '../element-ref/element-ref-tooltip/element-ref-tooltip.component';
 

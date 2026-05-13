@@ -1,4 +1,4 @@
-import { type ElementType } from '../../api-client';
+import { type ElementType } from '@inkweld/api-client';
 
 /**
  * Helper to check if an element type is a worldbuilding type.

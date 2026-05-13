@@ -4,13 +4,13 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
-import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
+import { AIImageGenerationService } from '@inkweld/api-client/api/ai-image-generation.service';
 import {
   type GeneratedImage,
   type ImageGenerateRequest,
   type ImageGenerateResponse,
   type ImageProviderType,
-} from '../../../api-client/model/models';
+} from '@inkweld/api-client/model/models';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectService } from '../project/project.service';

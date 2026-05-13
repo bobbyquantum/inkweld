@@ -3,8 +3,8 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { vi } from 'vitest';
 
-import { type Element } from '../../../api-client/model/element';
-import { ElementType } from '../../../api-client/model/element-type';
+import { type Element } from '@inkweld/api-client/model/element';
+import { ElementType } from '@inkweld/api-client/model/element-type';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import {
   ElementPickerDialogComponent,
