@@ -1120,7 +1120,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    */
   private async rehydrateConnection(ws: WebSocket): Promise<ConnectionInfo | null> {
     const existing = this.connections.get(ws);
-    if (existing) return existing;
+    if (existing) {
+      if (existing.authenticated && !existing.sharedDoc) {
+        await this.rehydrateAuthenticatedConnection(ws, existing);
+      }
+      return existing;
+    }
 
     const attachment = ws.deserializeAttachment() as WSAttachment | null;
     if (!attachment?.documentId) {
