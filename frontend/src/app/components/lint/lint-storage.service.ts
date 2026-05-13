@@ -1,6 +1,6 @@
 import { Injectable, Optional } from '@angular/core';
-
 import { type Correction } from '@inkweld/api-client/model/correction';
+
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- Used as Angular DI token, required at runtime
 import { LoggerService } from '../../services/core/logger.service';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- Used as Angular DI token, required at runtime

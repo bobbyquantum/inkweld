@@ -1,10 +1,10 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { vi } from 'vitest';
-
 import { type Element } from '@inkweld/api-client/model/element';
 import { ElementType } from '@inkweld/api-client/model/element-type';
+import { vi } from 'vitest';
+
 import { ProjectStateService } from '../../services/project/project-state.service';
 import {
   ElementPickerDialogComponent,

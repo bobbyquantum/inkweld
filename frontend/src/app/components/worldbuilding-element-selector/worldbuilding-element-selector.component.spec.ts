@@ -1,10 +1,10 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { type Element } from '@inkweld/api-client/model/element';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 
-import { type Element } from '@inkweld/api-client/model/element';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { WorldbuildingElementSelectorComponent } from './worldbuilding-element-selector.component';

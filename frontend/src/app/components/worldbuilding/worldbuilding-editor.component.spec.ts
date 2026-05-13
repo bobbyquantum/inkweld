@@ -3,10 +3,10 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormArray, ReactiveFormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { type Element, ElementType } from '@inkweld/api-client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
-import { type Element, ElementType } from '@inkweld/api-client';
 import {
   type ElementTypeSchema,
   type TabSchema,

@@ -1,12 +1,12 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { firstValueFrom, timeout, TimeoutError } from 'rxjs';
-
 import { AIImageGenerationService } from '@inkweld/api-client/api/ai-image-generation.service';
 import {
   type GeneratedImage,
   type ImageGenerateRequest,
   type ImageGenerateResponse,
 } from '@inkweld/api-client/model/models';
+import { firstValueFrom, timeout, TimeoutError } from 'rxjs';
+
 import { environment } from '../../../environments/environment';
 import { AuthTokenService } from '../auth/auth-token.service';
 import {

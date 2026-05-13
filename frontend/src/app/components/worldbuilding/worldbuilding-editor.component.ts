@@ -29,13 +29,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { type ResolvedTag } from '@models/tag.model';
-import { debounceTime } from 'rxjs';
-
 import {
   type Element as ApiElement,
   type ElementType,
 } from '@inkweld/api-client';
+import { type ResolvedTag } from '@models/tag.model';
+import { debounceTime } from 'rxjs';
+
 import { type SnapshotsDialogData } from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
 import { type TagEditorDialogData } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
 import {

@@ -1,6 +1,6 @@
+import { ElementType } from '@inkweld/api-client';
 import { describe, expect, it } from 'vitest';
 
-import { ElementType } from '@inkweld/api-client';
 import {
   formatWorldbuildingFields,
   isWorldbuildingType,

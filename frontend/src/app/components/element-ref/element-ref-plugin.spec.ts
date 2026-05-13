@@ -1,6 +1,7 @@
 /**
  * Tests for Element Reference ProseMirror Plugin
  */
+import { ElementType } from '@inkweld/api-client';
 import { type ElementRefNodeAttrs } from '@models/element-ref.model';
 import { Schema } from 'prosemirror-model';
 import {
@@ -11,7 +12,6 @@ import {
 import { DecorationSet, type EditorView } from 'prosemirror-view';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ElementType } from '@inkweld/api-client';
 import {
   cancelElementRef,
   createElementRefPlugin,

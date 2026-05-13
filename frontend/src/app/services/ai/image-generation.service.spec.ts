@@ -1,9 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
-import { type MockedObject, vi } from 'vitest';
-
 import { AIImageGenerationService } from '@inkweld/api-client/api/ai-image-generation.service';
 import {
   type GeneratedImage,
@@ -11,6 +8,9 @@ import {
   type ImageGenerateResponse,
   type ImageProviderType,
 } from '@inkweld/api-client/model/models';
+import { of } from 'rxjs';
+import { type MockedObject, vi } from 'vitest';
+
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectService } from '../project/project.service';
