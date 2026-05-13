@@ -35,8 +35,8 @@ export interface DOStorageWriter {
 // ---------------------------------------------------------------------------
 
 export interface YDocLike {
-  /** Apply a Yjs update binary to the document. */
-  update(update: Uint8Array): void;
+  /** Placeholder — kept for back-compat; loadDocumentFromStorage accepts Y.Doc directly. */
+  _yjsDocBrand?: never;
 }
 
 // ---------------------------------------------------------------------------
@@ -71,7 +71,7 @@ export function docStoragePrefix(documentId: string): string {
  */
 export async function loadDocumentFromStorage(
   documentId: string,
-  sharedDoc: YDocLike,
+  sharedDoc: Y.Doc,
   storage: DOStorageReader
 ): Promise<Map<string, number[]>> {
   const prefix = docStoragePrefix(documentId);
@@ -80,13 +80,13 @@ export async function loadDocumentFromStorage(
   // 1. Apply the compacted snapshot — single storage read, may be absent.
   const snapshotRaw = await storage.get<number[]>(snap);
   if (snapshotRaw) {
-    sharedDoc.update(new Uint8Array(snapshotRaw));
+    Y.applyUpdate(sharedDoc, new Uint8Array(snapshotRaw));
   }
 
   // 2. Apply incremental updates written after the last compaction.
   const updates = await storage.list<number[]>({ prefix: updateKeyPrefix(prefix) });
   for (const [, updateArray] of updates.entries()) {
-    sharedDoc.update(new Uint8Array(updateArray));
+    Y.applyUpdate(sharedDoc, new Uint8Array(updateArray));
   }
 
   return updates;
