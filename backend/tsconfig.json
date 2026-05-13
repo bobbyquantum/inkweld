@@ -41,6 +41,6 @@
     "src/bun-app.ts",
     "src/bun-runner.ts",
     "src/cloudflare-runner.ts",
-    "src/durable-objects/**"
+    "src/durable-objects/yjs-project.do.ts"
   ]
 }

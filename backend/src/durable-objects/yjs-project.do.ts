@@ -26,6 +26,15 @@ import { createEncoder, toUint8Array, writeVarUint, writeVarUint8Array } from 'l
 import { createDecoder, readVarUint, readVarUint8Array } from 'lib0/decoding';
 import { DurableObject } from 'cloudflare:workers';
 import {
+  loadDocumentFromStorage as loadDocFromStorageUtil,
+  compactDocumentStorage as compactDocStorageUtil,
+  peekMessageType,
+  docStoragePrefix,
+  snapshotKey,
+  COMPACT_THRESHOLD,
+  shouldCompact,
+} from './do-storage-utils';
+import {
   applyAwarenessUpdate,
   encodeAwarenessUpdate,
   removeAwarenessStates,
@@ -1137,6 +1146,38 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     return connInfo;
   }
 
+  /**
+   * Lightweight rehydration for awareness and presence frames.
+   *
+   * Restores ConnectionInfo from the WebSocket attachment (a plain object read) without
+   * calling getOrCreateDocument() — meaning no DO storage.list() is issued. This is safe
+   * for awareness and presence messages because:
+   *
+   *   - Awareness updates are applied to `sharedDoc.awareness` if the doc is already in
+   *     memory (same wake cycle after a sync message). If the doc is not in memory the
+   *     awareness state will be rebuilt lazily when the client resends it, which y-protocols
+   *     does automatically every ~3 seconds.
+   *   - Presence frames are handled entirely by ProjectPresenceService which maintains its
+   *     own in-memory registry and does not need the Yjs document.
+   *
+   * Returns null (same as rehydrateConnection) if the attachment is missing/malformed.
+   */
+  private async rehydrateConnectionMetaOnly(ws: WebSocket): Promise<ConnectionInfo | null> {
+    const existing = this.connections.get(ws);
+    if (existing) return existing;
+
+    const attachment = ws.deserializeAttachment() as WSAttachment | null;
+    if (!attachment?.documentId) {
+      projDOLog.warn('Cannot rehydrate WebSocket (meta-only): missing attachment');
+      return null;
+    }
+
+    this.restoreProjectIdFromDocumentId(attachment.documentId);
+    const connInfo = this.connectionInfoFromAttachment(attachment);
+    this.connections.set(ws, connInfo);
+    return connInfo;
+  }
+
   private restoreProjectIdFromDocumentId(documentId: string): void {
     // Restore projectId from documentId so HTTP API logs and any future
     // logic that reads it stay accurate after a wake.
@@ -1241,8 +1282,23 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * Handle incoming WebSocket messages
    * Text messages: Authentication (first message must be JWT token)
    * Binary messages: Yjs sync protocol (only after auth)
+   *
+   * Awareness and presence frames do not require the Yjs document to be loaded from storage —
+   * they are either forwarded to other already-connected peers or handled entirely in-memory by
+   * the presence service. To avoid a full loadDocumentFromStorage() on every hibernation wake
+   * triggered by a high-frequency awareness/presence ping, we use a lightweight rehydration path
+   * for those message types that only restores ConnectionInfo metadata without touching storage.
    */
   async webSocketMessage(ws: WebSocket, message: ArrayBuffer | string): Promise<void> {
+    // Fast path for binary awareness / presence frames: rehydrate metadata only (no doc load).
+    const msgType = peekMessageType(message);
+    if (msgType === Y_MESSAGE_AWARENESS || msgType === Y_MESSAGE_PRESENCE) {
+      const connInfo = await this.rehydrateConnectionMetaOnly(ws);
+      if (!connInfo?.authenticated) return; // unauthenticated socket — drop silently
+      this.handleBinaryMessage(ws, connInfo, message as ArrayBuffer);
+      return;
+    }
+
     const connInfo = await this.rehydrateConnection(ws);
     if (!connInfo) {
       projDOLog.warn('Received message from unknown connection');
@@ -1280,6 +1336,41 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   private handleBinaryMessage(ws: WebSocket, connInfo: ConnectionInfo, message: ArrayBuffer): void {
     if (!connInfo.authenticated) {
       connInfo.pendingMessages.push(message);
+      return;
+    }
+
+    if (message.byteLength === 0) return;
+
+    // Presence and awareness frames do not need the Yjs document to be loaded.
+    // Handle them directly so the meta-only rehydration path (no doc load) works correctly.
+    const firstByte = new Uint8Array(message)[0];
+    if (firstByte === Y_MESSAGE_PRESENCE || firstByte === Y_MESSAGE_AWARENESS) {
+      try {
+        const msgBytes = new Uint8Array(message);
+        const decoder = createDecoder(msgBytes);
+        const messageType = readVarUint(decoder);
+        if (messageType === Y_MESSAGE_AWARENESS) {
+          const sharedDoc = connInfo.sharedDoc;
+          if (sharedDoc) {
+            applyAwarenessUpdate(sharedDoc.awareness, readVarUint8Array(decoder), ws);
+          }
+          // If sharedDoc not yet loaded, the client will resend awareness in ~3s — safe to drop.
+          return;
+        }
+        if (messageType === Y_MESSAGE_PRESENCE) {
+          const documentId = connInfo.documentId;
+          if (!documentId || !this.isElementsDocumentId(documentId)) {
+            projDOLog.debug(`Ignoring presence frame on non-elements doc ${documentId ?? '<unknown>'}`);
+            return;
+          }
+          const projectKey = this.projectKeyForDocumentId(documentId);
+          if (!projectKey) return;
+          this.presence.handleMessage(projectKey, ws as unknown as PresenceSocket, decoder, msgBytes);
+          return;
+        }
+      } catch (error) {
+        projDOLog.error('Error handling awareness/presence message:', error);
+      }
       return;
     }
 
@@ -1744,34 +1835,21 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
-   * Load persisted state for a specific document using y-durableobjects storage pattern
-   * Each document gets its own storage namespace
+   * Load persisted state for a specific document using a snapshot + incremental updates strategy.
+   *
+   * Delegates to the runtime-agnostic `loadDocumentFromStorage` util so the algorithm can be
+   * unit-tested independently of the Cloudflare Workers runtime.
    */
   private async loadDocumentFromStorage(documentId: string, sharedDoc: WSSharedDoc) {
     try {
-      const storagePrefix = `doc:${documentId}:`;
-      console.log(
-        '[DO-HTTP] loadDocumentFromStorage - listing storage with prefix:',
-        storagePrefix
+      const updates = await loadDocFromStorageUtil(documentId, sharedDoc, this.state.storage);
+      projDOLog.debug(
+        updates.size > 0
+          ? `📦 Loaded snapshot + ${updates.size} incremental updates for ${documentId}`
+          : `📦 Loaded snapshot (no incremental updates) for ${documentId}`
       );
-
-      // Use y-durableobjects storage transaction approach
-      const updates = await this.state.storage.list<number[]>({
-        prefix: `${storagePrefix}update:`,
-      });
-      console.log('[DO-HTTP] loadDocumentFromStorage - found', updates.size, 'updates');
-
       if (updates.size > 0) {
-        projDOLog.debug(`📦 Loading ${updates.size} persisted updates for ${documentId}`);
-
-        for (const [_key, updateArray] of updates.entries()) {
-          const update = new Uint8Array(updateArray);
-          sharedDoc.update(update);
-        }
-
-        projDOLog.debug(`📦 Loaded document ${documentId} from storage`);
-      } else {
-        projDOLog.debug(`📦 No persisted updates found for ${documentId} - starting fresh`);
+        void this.compactDocumentStorage(documentId, sharedDoc, updates);
       }
     } catch (error) {
       projDOLog.error(`❌ Error loading document ${documentId} from storage:`, error);
@@ -1779,16 +1857,57 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
-   * Persist a document update to storage
-   * Uses document-specific storage namespace
+   * Compact incremental update keys into a single snapshot entry.
+   *
+   * Delegates to the runtime-agnostic `compactDocumentStorage` util.
+   */
+  private async compactDocumentStorage(
+    documentId: string,
+    sharedDoc: WSSharedDoc,
+    updateKeys: Map<string, number[]>
+  ): Promise<void> {
+    try {
+      await compactDocStorageUtil(
+        documentId,
+        sharedDoc as unknown as import('yjs').Doc,
+        updateKeys,
+        this.state.storage
+      );
+      projDOLog.debug(`📦 Compacted ${updateKeys.size} update keys → snapshot for ${documentId}`);
+    } catch (error) {
+      projDOLog.error(`❌ Error compacting storage for ${documentId}:`, error);
+    }
+  }
+
+  /**
+   * Persist a document update to storage.
+   *
+   * Appends a timestamp-keyed entry so offline clients that reconnect can always merge
+   * their local changes against the server state (compaction never discards updates that
+   * arrived while the client was offline — the snapshot already incorporates them).
+   *
+   * Once the number of pending update keys for a document crosses COMPACT_THRESHOLD we
+   * compact in the background so long-lived sessions don't accumulate an unbounded list.
    */
   private async persistUpdate(documentId: string, update: Uint8Array) {
     try {
-      const storagePrefix = `doc:${documentId}:`;
+      const prefix = docStoragePrefix(documentId);
       const timestamp = Date.now();
-      const key = `${storagePrefix}update:${timestamp}`;
+      const key = `${prefix}update:${timestamp}`;
 
       await this.state.storage.put(key, Array.from(update));
+
+      // Background compaction: keep the incremental update list short so the next wake
+      // only needs to replay a small number of keys on top of the snapshot.
+      const sharedDoc = this.documents.get(documentId);
+      if (sharedDoc) {
+        const pending = await this.state.storage.list<number[]>({
+          prefix: `${prefix}update:`,
+        });
+        if (shouldCompact(pending.size)) {
+          void this.compactDocumentStorage(documentId, sharedDoc, pending);
+        }
+      }
     } catch (error) {
       projDOLog.error(`Error persisting update for ${documentId}:`, error);
     }
