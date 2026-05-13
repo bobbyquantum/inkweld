@@ -43,19 +43,19 @@ RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
   bun install --frozen-lockfile --ignore-scripts; \
   fi
 
-# Recreate node_modules symlinks that postinstall (skipped by --ignore-scripts) would normally create.
-# packages/inkweld-api-client needs @angular, rxjs, tslib symlinked from frontend/node_modules.
-RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
-  node scripts/link-api-client-deps.js; \
-  fi
+COPY scripts ./scripts
 
 WORKDIR /app/frontend
 # Install with --ignore-scripts to disable arbitrary postinstall execution,
 # then explicitly run esbuild's binary installer (the only postinstall the
 # Angular build genuinely needs).
+# Then recreate node_modules symlinks that postinstall would normally create:
+# packages/inkweld-api-client needs @angular, rxjs, tslib symlinked from
+# frontend/node_modules (frontend/ must be installed first so the sources exist).
 RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
   bun install --frozen-lockfile --ignore-scripts \
-  && node node_modules/esbuild/install.js; \
+  && node node_modules/esbuild/install.js \
+  && node /app/scripts/link-api-client-deps.js; \
   fi
 
 COPY frontend ./
