@@ -13,7 +13,7 @@ import { MatListModule } from '@angular/material/list';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { type ElementSearchResult } from '@models/element-ref.model';
 
-import { ElementType } from '../../../../api-client';
+import { ElementType } from '@inkweld/api-client';
 import { ElementRefService } from '../element-ref.service';
 import { ElementRefPopupComponent } from './element-ref-popup.component';
 

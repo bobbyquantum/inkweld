@@ -25,7 +25,7 @@ import { type RelationshipTypeDefinition } from '@models/element-ref.model';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
 
-import { type Element, ElementType } from '../../../api-client';
+import { type Element, ElementType } from '@inkweld/api-client';
 
 /**
  * Data passed to the dialog

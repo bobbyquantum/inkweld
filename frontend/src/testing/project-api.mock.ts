@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 
-import { Project } from "@inkweld/index";
+import { Project } from "@inkweld/api-client";
 import { Observable } from "rxjs";
 
 export const projectServiceMock = {

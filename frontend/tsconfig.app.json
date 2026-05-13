@@ -7,6 +7,10 @@
     "rootDir": "..",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "../packages/inkweld-prosemirror/src/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
+    "../packages/inkweld-prosemirror/src/**/*.ts",
+    "../packages/inkweld-api-client/src/**/*.ts"
+  ],
   "exclude": ["src/**/*.spec.ts"]
 }

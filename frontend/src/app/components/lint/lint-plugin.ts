@@ -8,7 +8,7 @@ import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
 import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 import { debounceTime, Subject, type Subscription } from 'rxjs';
 
-import { type LintResponse } from '../../../api-client/model/lint-response';
+import { type LintResponse } from '@inkweld/api-client/model/lint-response';
 import { type ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintStorageService } from './lint-storage.service';
 

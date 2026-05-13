@@ -14,7 +14,7 @@ import {
   type Element,
   ElementType,
   type Project,
-} from '../../../../../api-client';
+} from '@inkweld/api-client';
 import { WorldbuildingTabComponent } from './worldbuilding-tab.component';
 
 describe('WorldbuildingTabComponent', () => {

@@ -6,7 +6,7 @@
     "generators": {
       "angular-client": {
         "generatorName": "typescript-angular",
-        "output": "../frontend/src/api-client",
+        "output": "../packages/inkweld-api-client/src",
         "inputSpec": "openapi.json",
         "additionalProperties": {
           "fileNaming": "kebab-case",

@@ -8,7 +8,7 @@ import {
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
-import { type Element } from '../../../api-client/model/element';
+import { type Element } from '@inkweld/api-client/model/element';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import {
   CanvasPinDialogComponent,

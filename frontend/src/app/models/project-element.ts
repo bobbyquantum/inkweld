@@ -1,4 +1,4 @@
-import { type Element } from '../../api-client/model/element';
+import { type Element } from '@inkweld/api-client/model/element';
 
 // ProjectElement extends the API type with UI-only fields
 export interface ProjectElement extends Element {

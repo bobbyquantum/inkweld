@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { ElementType } from '../../../api-client';
+import { ElementType } from '@inkweld/api-client';
 import {
   ELEMENT_REF_NODE_NAME,
   elementRefNodeSpec,

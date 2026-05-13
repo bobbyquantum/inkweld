@@ -32,7 +32,7 @@ cytoscape.use(dagre);
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { type RelationshipTypeDefinition } from '@models/element-ref.model';
 
-import { type Element, ElementType } from '../../../../../api-client';
+import { type Element, ElementType } from '@inkweld/api-client';
 import {
   ElementPickerDialogComponent,
   type ElementPickerDialogResult,

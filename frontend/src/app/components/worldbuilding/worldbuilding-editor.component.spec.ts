@@ -6,7 +6,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
-import { type Element, ElementType } from '../../../api-client';
+import { type Element, ElementType } from '@inkweld/api-client';
 import {
   type ElementTypeSchema,
   type TabSchema,

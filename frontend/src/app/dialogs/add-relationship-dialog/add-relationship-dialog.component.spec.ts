@@ -14,7 +14,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
 import { describe, expect, it, vi } from 'vitest';
 
-import { type Element, ElementType } from '../../../api-client';
+import { type Element, ElementType } from '@inkweld/api-client';
 import {
   AddRelationshipDialogComponent,
   type AddRelationshipDialogData,

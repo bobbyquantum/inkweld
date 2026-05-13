@@ -4,7 +4,7 @@
  * This script:
  * 1. Reads the openapi.json file
  * 2. Generates TypeScript Angular client code
- * 3. Outputs to frontend/src/api-client directory
+ * 3. Outputs to packages/inkweld-api-client/src directory
  *
  * Prerequisites:
  * - openapi.json must exist (run `bun run generate:openapi` first)
@@ -20,7 +20,7 @@ import * as fs from 'fs';
 function generateAngularClient() {
   const projectRoot = process.cwd();
   const openapiJsonPath = path.resolve(projectRoot, 'openapi.json');
-  const outputDir = path.resolve(projectRoot, '../frontend/src/api-client');
+  const outputDir = path.resolve(projectRoot, '../packages/inkweld-api-client/src');
 
   // Check if openapi.json exists
   if (!fs.existsSync(openapiJsonPath)) {

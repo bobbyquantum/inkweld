@@ -7,8 +7,8 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
-import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
-import { ImageProfilesService } from '../../../api-client/api/image-profiles.service';
+import { AIImageGenerationService } from '@inkweld/api-client/api/ai-image-generation.service';
+import { ImageProfilesService } from '@inkweld/api-client/api/image-profiles.service';
 import {
   type CustomSizesResponse,
   type ImageGenerationStatus,
@@ -16,7 +16,7 @@ import {
   ImageSize,
   type PublicImageModelProfile,
   PublicImageModelProfileProvider,
-} from '../../../api-client/model/models';
+} from '@inkweld/api-client/model/models';
 import { type WorldbuildingElementSelection } from '../../components/worldbuilding-element-selector/worldbuilding-element-selector.component';
 import {
   type GenerationJob,

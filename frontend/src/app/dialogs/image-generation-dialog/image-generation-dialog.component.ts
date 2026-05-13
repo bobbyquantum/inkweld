@@ -28,8 +28,8 @@ import { type MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 
-import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
-import { ImageProfilesService } from '../../../api-client/api/image-profiles.service';
+import { AIImageGenerationService } from '@inkweld/api-client/api/ai-image-generation.service';
+import { ImageProfilesService } from '@inkweld/api-client/api/image-profiles.service';
 import {
   type CustomImageSize,
   type GeneratedImage,
@@ -44,7 +44,7 @@ import {
   PublicImageModelProfileProvider,
   type WorldbuildingContext,
   WorldbuildingContextRole,
-} from '../../../api-client/model/models';
+} from '@inkweld/api-client/model/models';
 import {
   type SelectionChangeEvent,
   type WorldbuildingElementSelection,

@@ -1,0 +1,15 @@
+{
+  "name": "@inkweld/api-client",
+  "version": "0.1.0",
+  "description": "Auto-generated Angular API client for the Inkweld backend (generated from OpenAPI spec).",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./api": "./src/api/api.ts",
+    "./api/*": "./src/api/*.ts",
+    "./model": "./src/model/models.ts",
+    "./model/*": "./src/model/*.ts"
+  }
+}

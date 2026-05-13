@@ -1,4 +1,4 @@
-import { ElementType } from '../../api-client';
+import { ElementType } from '@inkweld/api-client';
 import {
   ARCHIVE_VERSION,
   type ArchiveElement,

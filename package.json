@@ -9,7 +9,7 @@
     "packages/*"
   ],
   "scripts": {
-    "postinstall": "INKWELD_BUN_POSTINSTALL=1 bun install --save-text-lockfile --cwd frontend && INKWELD_BUN_POSTINSTALL=1 bun install --cwd backend && INKWELD_BUN_POSTINSTALL=1 bun install --cwd docs/site",
+    "postinstall": "INKWELD_BUN_POSTINSTALL=1 bun install --save-text-lockfile --cwd frontend && INKWELD_BUN_POSTINSTALL=1 bun install --cwd backend && INKWELD_BUN_POSTINSTALL=1 bun install --cwd docs/site && node scripts/link-api-client-deps.js",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && bun run start",
     "dev:backend": "cd backend && bun run dev",
@@ -92,7 +92,7 @@
     "prettier": "^3.8.1"
   },
   "lint-staged": {
-    "frontend/src/!(api-client)/**/*.{ts,html,scss}": [
+    "frontend/src/**/*.{ts,html,scss}": [
       "prettier --write --config frontend/.prettierrc.json"
     ],
     "backend/src/**/*.ts": [
