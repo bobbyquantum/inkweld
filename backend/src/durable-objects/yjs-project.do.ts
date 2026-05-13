@@ -30,8 +30,6 @@ import {
   compactDocumentStorage as compactDocStorageUtil,
   peekMessageType,
   docStoragePrefix,
-  snapshotKey,
-  COMPACT_THRESHOLD,
   shouldCompact,
 } from './do-storage-utils';
 import {
@@ -1360,12 +1358,19 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         if (messageType === Y_MESSAGE_PRESENCE) {
           const documentId = connInfo.documentId;
           if (!documentId || !this.isElementsDocumentId(documentId)) {
-            projDOLog.debug(`Ignoring presence frame on non-elements doc ${documentId ?? '<unknown>'}`);
+            projDOLog.debug(
+              `Ignoring presence frame on non-elements doc ${documentId ?? '<unknown>'}`
+            );
             return;
           }
           const projectKey = this.projectKeyForDocumentId(documentId);
           if (!projectKey) return;
-          this.presence.handleMessage(projectKey, ws as unknown as PresenceSocket, decoder, msgBytes);
+          this.presence.handleMessage(
+            projectKey,
+            ws as unknown as PresenceSocket,
+            decoder,
+            msgBytes
+          );
           return;
         }
       } catch (error) {

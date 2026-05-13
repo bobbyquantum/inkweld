@@ -17,7 +17,6 @@ import {
   COMPACT_THRESHOLD,
   type DOStorageReader,
   type DOStorageWriter,
-  type YDocLike,
 } from '../src/durable-objects/do-storage-utils';
 
 // ---------------------------------------------------------------------------
@@ -145,13 +144,13 @@ describe('shouldCompact', () => {
 describe('loadDocumentFromStorage', () => {
   it('returns an empty map and does not call update() for a brand-new document', async () => {
     const { storage } = makeStorage();
-    const applied: Uint8Array[] = [];
-    const fakeDoc: YDocLike = { update: (u) => applied.push(u) };
+    const doc = new Y.Doc();
 
-    const result = await loadDocumentFromStorage('alice:proj:doc1', fakeDoc, storage);
+    const result = await loadDocumentFromStorage('alice:proj:doc1', doc, storage);
 
     expect(result.size).toBe(0);
-    expect(applied).toHaveLength(0);
+    // Doc should have no content (empty map)
+    expect(doc.getMap('root').size).toBe(0);
   });
 
   it('applies a persisted snapshot on load', async () => {
@@ -203,7 +202,7 @@ describe('loadDocumentFromStorage', () => {
       [`${updateKeyPrefix(prefix)}200`]: update2,
     });
 
-    const fakeDoc: YDocLike = { update: () => {} };
+    const fakeDoc = new Y.Doc();
     const result = await loadDocumentFromStorage('alice:proj:doc1', fakeDoc, storage);
 
     expect(result.size).toBe(2);
@@ -221,10 +220,10 @@ describe('loadDocumentFromStorage', () => {
       },
     };
 
-    const fakeDoc: YDocLike = { update: () => {} };
-    await expect(
-      loadDocumentFromStorage('alice:proj:doc1', fakeDoc, badStorage)
-    ).rejects.toThrow('storage error');
+    const fakeDoc = new Y.Doc();
+    await expect(loadDocumentFromStorage('alice:proj:doc1', fakeDoc, badStorage)).rejects.toThrow(
+      'storage error'
+    );
   });
 });
 
