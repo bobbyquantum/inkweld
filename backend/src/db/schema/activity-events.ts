@@ -44,9 +44,12 @@ export const activityEvents = sqliteTable(
     projectId: text('project_id')
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
-    userId: text('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+    userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    /**
+     * Display label for non-user actors (e.g. MCP API key name or "MCP").
+     * Populated when userId is null. One of userId or actorLabel will be set.
+     */
+    actorLabel: text('actor_label'),
     eventType: text('event_type', { length: 64 }).notNull().$type<ActivityEventType>(),
     entityId: text('entity_id', { length: 500 }),
     entityName: text('entity_name', { length: 500 }),

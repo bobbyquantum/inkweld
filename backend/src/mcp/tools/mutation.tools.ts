@@ -25,6 +25,8 @@ import { getProjectByKey, hasProjectPermission } from '../mcp.types';
 import { MCP_PERMISSIONS } from '../../services/mcp-key.service';
 import { type Element, type ElementType, ELEMENT_TYPES } from '../../schemas/element.schemas';
 import { logger } from '../../services/logger.service';
+import type { DatabaseInstance } from '../../types/context';
+import { activityService } from '../../services/activity.service';
 import {
   isCloudflareWorkers,
   getElements as runtimeGetElements,
@@ -230,7 +232,7 @@ Use move_elements or reorder_element to reposition after creation.`,
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   async execute(
     ctx: McpContext,
-    _db: unknown,
+    db: DatabaseInstance,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
     const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
@@ -299,6 +301,26 @@ Use move_elements or reorder_element to reposition after creation.`,
 
       // Replace entire array (maintains positional integrity)
       await runtimeReplaceAllElements(ctx, username, slug, updatedElements);
+
+      // Record activity — for OAuth sessions use the user ID; for legacy API
+      // key sessions use the key name (or "MCP") as actor label.
+      if (ctx.type === 'oauth') {
+        await activityService.record(db, {
+          projectId: result.project.projectId,
+          userId: ctx.userId,
+          eventType: 'element_created',
+          entityId: newElement.id,
+          entityName: name,
+        });
+      } else {
+        await activityService.record(db, {
+          projectId: result.project.projectId,
+          actorLabel: ctx.key.name || 'MCP',
+          eventType: 'element_created',
+          entityId: newElement.id,
+          entityName: name,
+        });
+      }
 
       // Initialize worldbuilding doc with template binding when schemaId is provided
       if (type === 'WORLDBUILDING' && schemaId) {
@@ -397,7 +419,7 @@ WARNING: This will delete all existing elements and replace them.`,
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   async execute(
     ctx: McpContext,
-    _db: unknown,
+    db: DatabaseInstance,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
     const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
@@ -497,7 +519,7 @@ This tool only updates name and type without changing position.`,
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   async execute(
     ctx: McpContext,
-    _db: unknown,
+    db: DatabaseInstance,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
     const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
@@ -557,6 +579,30 @@ This tool only updates name and type without changing position.`,
 
       await runtimeReplaceAllElements(ctx, username, slug, updatedElements);
 
+      // Record rename activity — for OAuth sessions use the user ID; for
+      // legacy API key sessions use the key name (or "MCP") as actor label.
+      if (newName !== undefined) {
+        if (ctx.type === 'oauth') {
+          await activityService.record(db, {
+            projectId: result.project.projectId,
+            userId: ctx.userId,
+            eventType: 'element_renamed',
+            entityId: elementId,
+            entityName: newName,
+            metadata: { oldName: element.name },
+          });
+        } else {
+          await activityService.record(db, {
+            projectId: result.project.projectId,
+            actorLabel: ctx.key.name || 'MCP',
+            eventType: 'element_renamed',
+            entityId: elementId,
+            entityName: newName,
+            metadata: { oldName: element.name },
+          });
+        }
+      }
+
       const changes: string[] = [];
       if (newName !== undefined) changes.push(`name="${newName}"`);
       if (newType !== undefined) changes.push(`type=${newType}`);
@@ -610,7 +656,7 @@ this element in the array at deeper levels).`,
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   async execute(
     ctx: McpContext,
-    _db: unknown,
+    db: DatabaseInstance,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
     const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
@@ -644,6 +690,26 @@ this element in the array at deeper levels).`,
       const updatedElements = removeElement(currentElements, elementId);
 
       await runtimeReplaceAllElements(ctx, username, slug, updatedElements);
+
+      // Record activity — for OAuth sessions use the user ID; for legacy API
+      // key sessions use the key name (or "MCP") as actor label.
+      if (ctx.type === 'oauth') {
+        await activityService.record(db, {
+          projectId: result.project.projectId,
+          userId: ctx.userId,
+          eventType: 'element_deleted',
+          entityId: elementId,
+          entityName: element.name,
+        });
+      } else {
+        await activityService.record(db, {
+          projectId: result.project.projectId,
+          actorLabel: ctx.key.name || 'MCP',
+          eventType: 'element_deleted',
+          entityId: elementId,
+          entityName: element.name,
+        });
+      }
 
       return {
         content: [
@@ -704,7 +770,7 @@ To move multiple elements, call this tool multiple times or provide all IDs.`,
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   async execute(
     ctx: McpContext,
-    _db: unknown,
+    db: DatabaseInstance,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
     const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
@@ -890,7 +956,7 @@ to a new position among its siblings.`,
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   async execute(
     ctx: McpContext,
-    _db: unknown,
+    db: DatabaseInstance,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
     const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
@@ -1033,7 +1099,7 @@ This properly handles positional hierarchy - subtrees move with their parents.`,
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   async execute(
     ctx: McpContext,
-    _db: unknown,
+    db: DatabaseInstance,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
     const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
@@ -1149,7 +1215,7 @@ registerTool({
   requiredPermissions: [MCP_PERMISSIONS.WRITE_WORLDBUILDING],
   async execute(
     ctx: McpContext,
-    _db: unknown,
+    db: DatabaseInstance,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
     const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_WORLDBUILDING);
@@ -1275,7 +1341,7 @@ The content replaces the entire document. Use get_document_content first to read
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   async execute(
     ctx: McpContext,
-    _db: unknown,
+    db: DatabaseInstance,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
     const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
@@ -1370,6 +1436,30 @@ The content replaces the entire document. Use get_document_content first to read
 
       const wordCount = textContent.split(/\s+/).filter((w) => w.length > 0).length;
 
+      // Record activity — for OAuth sessions use the user ID; for legacy API
+      // key sessions use the key name (or "MCP" if unset) as actor label.
+      if (ctx.type === 'oauth') {
+        await activityService.recordOrCoalesceEdit(db, {
+          projectId: result.project.projectId,
+          userId: ctx.userId,
+          entityId: elementId,
+          entityName: element.name,
+          wordsDelta: 0,
+          endWordCount: wordCount,
+          durationMs: 0,
+        });
+      } else {
+        await activityService.recordOrCoalesceEdit(db, {
+          projectId: result.project.projectId,
+          actorLabel: ctx.key.name || 'MCP',
+          entityId: elementId,
+          entityName: element.name,
+          wordsDelta: 0,
+          endWordCount: wordCount,
+          durationMs: 0,
+        });
+      }
+
       return {
         content: [
           {
@@ -1439,7 +1529,7 @@ registerTool({
   requiredPermissions: [MCP_PERMISSIONS.WRITE_WORLDBUILDING],
   async execute(
     ctx: McpContext,
-    _db: unknown,
+    db: DatabaseInstance,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
     const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_WORLDBUILDING);
@@ -1519,7 +1609,7 @@ registerTool({
   requiredPermissions: [MCP_PERMISSIONS.WRITE_WORLDBUILDING],
   async execute(
     ctx: McpContext,
-    _db: unknown,
+    db: DatabaseInstance,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
     const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_WORLDBUILDING);
@@ -1611,7 +1701,7 @@ registerTool({
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   async execute(
     ctx: McpContext,
-    _db: unknown,
+    db: DatabaseInstance,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
     const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
@@ -1742,7 +1832,7 @@ registerTool({
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   async execute(
     ctx: McpContext,
-    db: unknown,
+    db: DatabaseInstance,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
     const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);

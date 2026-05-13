@@ -27,12 +27,17 @@ class ActivityService {
   /**
    * Emit an event. Swallows errors so a failed log write never blocks the
    * underlying user action.
+   *
+   * Either `userId` or `actorLabel` must be provided. For human users pass
+   * `userId`; for non-user actors (e.g. MCP API keys) pass `actorLabel` with
+   * the key's display name and omit `userId`.
    */
   async record(
     db: DatabaseInstance,
     data: {
       projectId: string;
-      userId: string;
+      userId?: string | null;
+      actorLabel?: string | null;
       eventType: ActivityEventType;
       entityId?: string | null;
       entityName?: string | null;
@@ -43,7 +48,8 @@ class ActivityService {
       const row: InsertActivityEvent = {
         id: crypto.randomUUID(),
         projectId: data.projectId,
-        userId: data.userId,
+        userId: data.userId ?? null,
+        actorLabel: data.actorLabel ?? null,
         eventType: data.eventType,
         entityId: data.entityId ?? null,
         entityName: data.entityName ?? null,
@@ -62,11 +68,15 @@ class ActivityService {
 
   /**
    * Emit a `document_edit` event, coalescing with the most recent matching
-   * event for the same `(projectId, userId, entityId)` if it occurred within
-   * `windowMs` (default 5 min). On coalesce we accumulate `wordsDelta` and
-   * `durationMs`, replace `endWordCount` with the latest value, refresh
-   * `entityName` (in case the document was renamed), and bump `createdAt` so
-   * the event re-surfaces at the top of feeds. Otherwise we insert a new row.
+   * event for the same `(projectId, userId|actorLabel, entityId)` if it
+   * occurred within `windowMs` (default 5 min). On coalesce we accumulate
+   * `wordsDelta` and `durationMs`, replace `endWordCount` with the latest
+   * value, refresh `entityName` (in case the document was renamed), and bump
+   * `createdAt` so the event re-surfaces at the top of feeds. Otherwise we
+   * insert a new row.
+   *
+   * Either `userId` or `actorLabel` must be provided (same contract as
+   * {@link record}).
    *
    * Best-effort like {@link record}: failures are logged and swallowed.
    */
@@ -74,7 +84,8 @@ class ActivityService {
     db: DatabaseInstance,
     data: {
       projectId: string;
-      userId: string;
+      userId?: string | null;
+      actorLabel?: string | null;
       entityId: string;
       entityName?: string | null;
       wordsDelta: number;
@@ -87,8 +98,13 @@ class ActivityService {
     const now = Date.now();
     const windowStart = now - windowMs;
 
+    // Build actor filter: match on userId when set, otherwise on actorLabel.
+    const actorFilter = data.userId
+      ? eq(activityEvents.userId, data.userId)
+      : eq(activityEvents.actorLabel, data.actorLabel ?? '');
+
     try {
-      // Find the most recent document_edit event for this (project, user, entity)
+      // Find the most recent document_edit event for this (project, actor, entity)
       // within the coalesce window. We sort by createdAt DESC and take 1.
       const existing = await db
         .select()
@@ -96,7 +112,7 @@ class ActivityService {
         .where(
           and(
             eq(activityEvents.projectId, data.projectId),
-            eq(activityEvents.userId, data.userId),
+            actorFilter,
             eq(activityEvents.eventType, 'document_edit'),
             eq(activityEvents.entityId, data.entityId),
             gte(activityEvents.createdAt, windowStart)
@@ -133,7 +149,8 @@ class ActivityService {
       const row: InsertActivityEvent = {
         id: crypto.randomUUID(),
         projectId: data.projectId,
-        userId: data.userId,
+        userId: data.userId ?? null,
+        actorLabel: data.actorLabel ?? null,
         eventType: 'document_edit',
         entityId: data.entityId,
         entityName: data.entityName ?? null,

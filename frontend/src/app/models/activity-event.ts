@@ -28,9 +28,14 @@ export type ActivityEventType =
 export interface ProjectActivityEvent {
   id: string;
   projectId: string;
-  userId: string;
-  /** Resolved username; null only if the user account is gone. */
+  userId: string | null;
+  /** Resolved username; null for non-user actors or when the account is gone. */
   username: string | null;
+  /**
+   * Display label for non-user actors (e.g. MCP API key name or "MCP").
+   * Set when `userId` is null; null for human-user events.
+   */
+  actorLabel: string | null;
   eventType: ActivityEventType;
   /** Type-specific entity reference (snapshot id, element id, …). */
   entityId: string | null;

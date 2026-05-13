@@ -60,8 +60,8 @@ activityRoutes.get('/projects/:username/:slug', async (c) => {
   const before = parseBefore(c.req.query('before'));
   const events = await activityService.listForProject(db, project.id, limit, before);
 
-  // Resolve actor usernames in one batch (de-duped).
-  const userIds = Array.from(new Set(events.map((e) => e.userId)));
+  // Resolve actor usernames in one batch (de-duped). Skip null userIds (MCP actors).
+  const userIds = Array.from(new Set(events.map((e) => e.userId).filter((id): id is string => id != null)));
   const userMap = new Map<string, string>();
   await Promise.all(
     userIds.map(async (uid) => {
@@ -75,7 +75,8 @@ activityRoutes.get('/projects/:username/:slug', async (c) => {
       id: e.id,
       projectId: e.projectId,
       userId: e.userId,
-      username: userMap.get(e.userId) ?? null,
+      username: e.userId ? (userMap.get(e.userId) ?? null) : null,
+      actorLabel: e.actorLabel ?? null,
       eventType: e.eventType,
       entityId: e.entityId,
       entityName: e.entityName,
@@ -125,7 +126,7 @@ activityRoutes.get('/me', async (c) => {
   const before = parseBefore(c.req.query('before'));
   const events = await activityService.listForProjects(db, projectIds, limit, before);
 
-  const userIds = Array.from(new Set(events.map((e) => e.userId)));
+  const userIds = Array.from(new Set(events.map((e) => e.userId).filter((id): id is string => id != null)));
   const userMap = new Map<string, string>();
   await Promise.all(
     userIds.map(async (uid) => {
@@ -144,7 +145,8 @@ activityRoutes.get('/me', async (c) => {
         projectTitle: proj?.title ?? null,
         projectOwnerUsername: proj?.ownerUsername ?? null,
         userId: e.userId,
-        username: userMap.get(e.userId) ?? null,
+        username: e.userId ? (userMap.get(e.userId) ?? null) : null,
+        actorLabel: e.actorLabel ?? null,
         eventType: e.eventType,
         entityId: e.entityId,
         entityName: e.entityName,

@@ -109,7 +109,7 @@ export class WritingStatsWidgetComponent implements OnInit {
   }
 
   protected eventSummary(event: UserActivityEvent): string {
-    const who = event.username ?? 'Someone';
+    const who = event.username ?? event.actorLabel ?? 'Someone';
     const name = event.entityName ?? '';
     const onName = name ? ` on ${name}` : '';
     const ofName = name ? ` of ${name}` : '';
