@@ -1,10 +1,26 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
 import {
+  encodePresenceFrame,
+  PRESENCE_KEEPALIVE_PING,
+  PRESENCE_MSG_HELLO,
+  PRESENCE_MSG_LEAVE,
+  PRESENCE_MSG_SNAPSHOT,
+  PRESENCE_MSG_UPDATE,
+  type PresenceSession,
+  type PresenceUpdateFields,
+  readPresenceMessage,
+  writeHello,
+  writeUpdate,
+  Y_MESSAGE_PRESENCE,
+} from '@inkweld/presence';
+import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
+import type * as decoding from 'lib0/decoding';
+import type * as encoding from 'lib0/encoding';
 import { nanoid } from 'nanoid';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -27,8 +43,7 @@ import {
 } from './authenticated-websocket-provider';
 import {
   type IElementSyncProvider,
-  type LocalAwarenessFields,
-  type PresenceUser,
+  type LocalPresenceFields,
   type ProjectMeta,
   type SyncConnectionConfig,
   type SyncConnectionResult,
@@ -48,6 +63,8 @@ const DEFAULT_RECONNECTION_CONFIG: ReconnectionConfig = {
   baseDelayMs: 1000,
   maxDelayMs: 30000,
 };
+
+const PRESENCE_KEEPALIVE_INTERVAL_MS = 30_000;
 
 /**
  * Yjs-based implementation of the element sync provider.
@@ -90,6 +107,8 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   // Event listeners for cleanup
   private onlineHandler: (() => void) | null = null;
   private offlineHandler: (() => void) | null = null;
+  private presenceKeepaliveInterval: ReturnType<typeof setInterval> | null =
+    null;
 
   // State subjects
   private readonly syncStateSubject = new BehaviorSubject<DocumentSyncState>(
@@ -120,13 +139,14 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   private readonly lastConnectionErrorSubject = new BehaviorSubject<
     string | null
   >(null);
-  private readonly remotePresenceSubject = new BehaviorSubject<PresenceUser[]>(
-    []
-  );
+  private readonly remotePresenceSubject = new BehaviorSubject<
+    PresenceSession[]
+  >([]);
 
-  /** Pending awareness fields applied as soon as wsProvider is ready. */
-  private pendingAwareness: LocalAwarenessFields = {};
-  private awarenessChangeHandler: (() => void) | null = null;
+  /** Pending/local presence fields applied as soon as wsProvider is ready. */
+  private pendingPresence: LocalPresenceFields = {};
+  private localPresenceSession: PresenceSession | null = null;
+  private readonly remotePresenceSessions = new Map<string, PresenceSession>();
 
   // Flag to skip observer emission during local updates (prevents feedback loop)
   private isUpdatingProjectMeta = false;
@@ -159,7 +179,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   readonly errors$: Observable<string> = this.errorsSubject.asObservable();
   readonly lastConnectionError$: Observable<string | null> =
     this.lastConnectionErrorSubject.asObservable();
-  readonly remotePresence$: Observable<PresenceUser[]> =
+  readonly remotePresence$: Observable<PresenceSession[]> =
     this.remotePresenceSubject.asObservable();
 
   /**
@@ -177,11 +197,11 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       };
     }
 
-    // Disconnect any existing session first. Preserve queued awareness
-    // so pre-connect setLocalAwareness() calls still apply once ws is ready.
-    const pendingAwareness = this.pendingAwareness;
+    // Disconnect any existing session first. Preserve queued presence so
+    // pre-connect setLocalPresence() calls still apply once ws is ready.
+    const pendingPresence = this.pendingPresence;
     this.disconnect();
-    this.pendingAwareness = pendingAwareness;
+    this.pendingPresence = pendingPresence;
 
     // Document ID for server communication (unprefixed)
     this.docId = `${username}:${slug}:elements`;
@@ -245,7 +265,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
           this.doc,
           authToken,
           {
-            resyncInterval: 10000,
+            resyncInterval: 60000,
           }
         );
 
@@ -277,7 +297,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.setupWebSocketHandlers();
       this.setupNetworkHandlers();
       this.setupDocumentObserver();
-      this.setupAwarenessHandlers();
+      this.setupPresenceHandlers();
 
       // Don't wait for WebSocket sync - this is local-first
       // We already have data from IndexedDB, WebSocket syncs in background
@@ -315,6 +335,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.reconnectTimeout = null;
     }
     this.reconnectAttempts = 0;
+    this.stopPresenceKeepalive();
 
     // Remove network event listeners
     if (this.onlineHandler) {
@@ -352,15 +373,6 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
     if (this.wsProvider) {
       try {
-        const awareness = this.wsProvider.awareness;
-        if (awareness) {
-          if (this.awarenessChangeHandler) {
-            awareness.off('change', this.awarenessChangeHandler);
-            awareness.off('update', this.awarenessChangeHandler);
-          }
-          // Clear our local awareness state so other peers see us leave.
-          awareness.setLocalState(null);
-        }
         this.wsProvider.destroy();
       } catch (error) {
         this.logger.warn(
@@ -371,9 +383,10 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       }
       this.wsProvider = null;
     }
-    this.awarenessChangeHandler = null;
+    this.localPresenceSession = null;
+    this.remotePresenceSessions.clear();
     this.remotePresenceSubject.next([]);
-    this.pendingAwareness = {};
+    this.pendingPresence = {};
 
     this.docId = null;
     this.localDocId = null;
@@ -873,68 +886,170 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Awareness / Presence
+  // Presence
   // ─────────────────────────────────────────────────────────────────────────────
 
-  setLocalAwareness(fields: LocalAwarenessFields): void {
-    // Merge with anything queued before wsProvider was ready.
-    this.pendingAwareness = mergeAwarenessFields(this.pendingAwareness, fields);
-    this.applyPendingAwareness();
+  setLocalPresence(fields: LocalPresenceFields): void {
+    this.pendingPresence = mergePresenceFields(this.pendingPresence, fields);
+    this.flushPresence(fields);
   }
 
-  /**
-   * Apply queued local awareness fields to the underlying wsProvider, if it
-   * exists. Safe to call repeatedly; only fields actually present in the
-   * pending state are written.
-   */
-  private applyPendingAwareness(): void {
-    const ws = this.wsProvider;
-    if (!ws) return;
-    const fields = this.pendingAwareness;
-    if (fields.user !== undefined) {
-      ws.awareness.setLocalStateField('user', fields.user);
-    }
-    if (fields.location !== undefined) {
-      ws.awareness.setLocalStateField('location', fields.location);
-    }
-  }
+  private setupPresenceHandlers(): void {
+    const provider = this.wsProvider;
+    if (!provider) return;
 
-  private setupAwarenessHandlers(): void {
-    if (!this.wsProvider) return;
-    // Apply anything queued before connect().
-    this.applyPendingAwareness();
-    // Emit initial snapshot and then on every awareness change.
-    const handler = (): void => {
-      this.emitRemotePresence();
+    provider.messageHandlers[Y_MESSAGE_PRESENCE] = (
+      _encoder: encoding.Encoder,
+      decoder: decoding.Decoder
+    ): void => {
+      this.handlePresenceMessage(decoder);
     };
-    this.awarenessChangeHandler = handler;
-    this.wsProvider.awareness.on('change', handler);
-    this.wsProvider.awareness.on('update', handler);
-    this.emitRemotePresence();
+
+    provider.on('status', ({ status }: { status: string }) => {
+      if (status === 'connected') {
+        this.sendPresenceHello();
+        this.startPresenceKeepalive();
+      } else if (status === 'disconnected') {
+        this.stopPresenceKeepalive();
+        this.remotePresenceSessions.clear();
+        this.remotePresenceSubject.next([]);
+      }
+    });
+
+    this.sendPresenceHello();
+    this.startPresenceKeepalive();
   }
 
-  private emitRemotePresence(): void {
-    const ws = this.wsProvider;
-    if (!ws) {
-      this.remotePresenceSubject.next([]);
+  private startPresenceKeepalive(): void {
+    if (this.presenceKeepaliveInterval) return;
+    this.presenceKeepaliveInterval = setInterval(() => {
+      const provider = this.wsProvider;
+      const ws = provider?.ws;
+      if (!provider?.wsconnected || !ws || ws.readyState !== ws.OPEN) return;
+      ws.send(PRESENCE_KEEPALIVE_PING);
+    }, PRESENCE_KEEPALIVE_INTERVAL_MS);
+  }
+
+  private stopPresenceKeepalive(): void {
+    if (!this.presenceKeepaliveInterval) return;
+    clearInterval(this.presenceKeepaliveInterval);
+    this.presenceKeepaliveInterval = null;
+  }
+
+  private flushPresence(changedFields: LocalPresenceFields): void {
+    if (!this.localPresenceSession) {
+      this.sendPresenceHello();
       return;
     }
-    const myClientId = ws.awareness.clientID;
-    const states = ws.awareness.getStates();
-    const users: PresenceUser[] = [];
-    states.forEach((state, clientId) => {
-      if (clientId === myClientId) return;
-      const user = (state as { user?: { name?: string; color?: string } }).user;
-      if (!user?.name) return;
-      const location = (state as { location?: string | null }).location;
-      users.push({
-        clientId,
-        username: user.name,
-        color: user.color ?? '#9e9e9e',
-        location: typeof location === 'string' ? location : undefined,
-      });
-    });
-    this.remotePresenceSubject.next(users);
+
+    const update: PresenceUpdateFields = {};
+    if (changedFields.status !== undefined)
+      update.status = changedFields.status;
+    if (
+      changedFields.location !== undefined &&
+      changedFields.location !== null
+    ) {
+      update.location = changedFields.location;
+    }
+    if (changedFields.selection !== undefined) {
+      update.selection = changedFields.selection;
+    }
+    if (changedFields.lastActivityAt !== undefined) {
+      update.lastActivityAt = changedFields.lastActivityAt;
+    }
+
+    if (Object.keys(update).length === 0) return;
+
+    this.localPresenceSession = applyLocalPresenceFields(
+      this.localPresenceSession,
+      changedFields
+    );
+    this.sendPresenceFrame(
+      encodePresenceFrame(encoder =>
+        writeUpdate(encoder, this.localPresenceSession!.sessionId, update)
+      )
+    );
+  }
+
+  private sendPresenceHello(): void {
+    const provider = this.wsProvider;
+    const user = this.pendingPresence.user;
+    if (!provider?.wsconnected || !provider.ws || !user) return;
+
+    const now = Date.now();
+    const session: PresenceSession = {
+      sessionId: this.localPresenceSession?.sessionId ?? nanoid(),
+      user,
+      status: this.pendingPresence.status ?? 'active',
+      location: this.pendingPresence.location ?? { kind: 'elements' },
+      ...(this.pendingPresence.selection !== undefined &&
+        this.pendingPresence.selection !== null && {
+          selection: this.pendingPresence.selection,
+        }),
+      lastActivityAt: this.pendingPresence.lastActivityAt ?? now,
+    };
+    this.localPresenceSession = session;
+    this.sendPresenceFrame(
+      encodePresenceFrame(encoder => writeHello(encoder, session))
+    );
+  }
+
+  private sendPresenceFrame(frame: Uint8Array): void {
+    const provider = this.wsProvider;
+    const ws = provider?.ws;
+    if (!provider?.wsconnected || !ws || ws.readyState !== ws.OPEN) return;
+    // lib0 may return a Uint8Array whose backing buffer is larger than the
+    // frame (growing-buffer optimisation). Slice to get an exact ArrayBuffer
+    // so WebSocket.send() transmits only the frame bytes.
+    ws.send(
+      frame.buffer.slice(
+        frame.byteOffset,
+        frame.byteOffset + frame.byteLength
+      ) as ArrayBuffer
+    );
+  }
+
+  private handlePresenceMessage(decoder: decoding.Decoder): void {
+    const localUsername = this.localPresenceSession?.user.username;
+    try {
+      const message = readPresenceMessage(decoder);
+      switch (message.type) {
+        case PRESENCE_MSG_HELLO:
+          if (message.session.user.username !== localUsername) {
+            this.remotePresenceSessions.set(
+              message.session.sessionId,
+              message.session
+            );
+          }
+          break;
+        case PRESENCE_MSG_UPDATE: {
+          const existing = this.remotePresenceSessions.get(message.sessionId);
+          if (existing) {
+            const updated = applyRemotePresenceUpdate(existing, message.fields);
+            if (updated.user.username !== localUsername) {
+              this.remotePresenceSessions.set(message.sessionId, updated);
+            }
+          }
+          break;
+        }
+        case PRESENCE_MSG_LEAVE:
+          this.remotePresenceSessions.delete(message.sessionId);
+          break;
+        case PRESENCE_MSG_SNAPSHOT:
+          this.remotePresenceSessions.clear();
+          for (const session of message.sessions) {
+            if (session.user.username !== localUsername) {
+              this.remotePresenceSessions.set(session.sessionId, session);
+            }
+          }
+          break;
+      }
+      this.remotePresenceSubject.next(
+        Array.from(this.remotePresenceSessions.values())
+      );
+    } catch (error) {
+      this.logger.warn('YjsSync', 'Failed to decode presence message', error);
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1352,15 +1467,61 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 }
 
 /**
- * Merge two LocalAwarenessFields snapshots, with `incoming` overriding
- * `existing`.
+ * Merge two LocalPresenceFields snapshots, with `incoming` overriding
+ * `existing` while preserving explicit `selection: null` clears.
  */
-function mergeAwarenessFields(
-  existing: LocalAwarenessFields,
-  incoming: LocalAwarenessFields
-): LocalAwarenessFields {
-  const merged: LocalAwarenessFields = { ...existing };
+function mergePresenceFields(
+  existing: LocalPresenceFields,
+  incoming: LocalPresenceFields
+): LocalPresenceFields {
+  const merged: LocalPresenceFields = { ...existing };
   if (incoming.user !== undefined) merged.user = incoming.user;
+  if (incoming.status !== undefined) merged.status = incoming.status;
   if (incoming.location !== undefined) merged.location = incoming.location;
+  if (incoming.selection !== undefined) merged.selection = incoming.selection;
+  if (incoming.lastActivityAt !== undefined) {
+    merged.lastActivityAt = incoming.lastActivityAt;
+  }
   return merged;
+}
+
+function resolveSelectionPatch(
+  selection: PresenceSession['selection'] | null | undefined
+): Partial<Pick<PresenceSession, 'selection'>> {
+  if (selection === undefined) return {};
+  if (selection === null) return { selection: undefined };
+  return { selection };
+}
+
+function applyLocalPresenceFields(
+  session: PresenceSession,
+  fields: LocalPresenceFields
+): PresenceSession {
+  return {
+    ...session,
+    ...(fields.user !== undefined &&
+      fields.user !== null && { user: fields.user }),
+    ...(fields.status !== undefined && { status: fields.status }),
+    ...(fields.location !== undefined &&
+      fields.location !== null && { location: fields.location }),
+    ...resolveSelectionPatch(fields.selection),
+    ...(fields.lastActivityAt !== undefined && {
+      lastActivityAt: fields.lastActivityAt,
+    }),
+  };
+}
+
+function applyRemotePresenceUpdate(
+  session: PresenceSession,
+  fields: PresenceUpdateFields
+): PresenceSession {
+  return {
+    ...session,
+    ...(fields.status !== undefined && { status: fields.status }),
+    ...(fields.location !== undefined && { location: fields.location }),
+    ...resolveSelectionPatch(fields.selection),
+    ...(fields.lastActivityAt !== undefined && {
+      lastActivityAt: fields.lastActivityAt,
+    }),
+  };
 }

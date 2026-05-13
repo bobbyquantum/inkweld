@@ -1,0 +1,27 @@
+{
+  "name": "@inkweld/presence",
+  "version": "0.1.0",
+  "description": "Shared presence protocol (binary lib0 framing, types, encoders/decoders) multiplexed onto the Inkweld elements Yjs WebSocket.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./protocol": "./src/protocol/index.ts",
+    "./types": "./src/types/index.ts"
+  },
+  "//deps": "lib0 is a peerDependency (host MUST provide it). It is also a devDependency so this package's own typecheck/tests can resolve it. Mirrors the @inkweld/prosemirror policy. yjs is NOT required at runtime by this package — RelativePosition handling lives in the consumer.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "peerDependencies": {
+    "lib0": "^0.2.117"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.16",
+    "lib0": "^0.2.117",
+    "vitest": "^4.0.16"
+  }
+}

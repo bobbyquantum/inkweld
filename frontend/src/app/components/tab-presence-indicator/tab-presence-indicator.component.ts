@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
+import { type PresenceLocation, type PresenceSession } from '@inkweld/presence';
 import { PresenceService } from '@services/presence/presence.service';
 
 /**
@@ -31,7 +32,9 @@ export class TabPresenceIndicatorComponent {
    * currently focused on this location are shown. When omitted, all
    * remote users in the project are shown.
    */
-  readonly location = input<string | null | undefined>(undefined);
+  readonly location = input<PresenceLocation | string | null | undefined>(
+    undefined
+  );
 
   /** Maximum avatars to show before collapsing into a `+N` chip. */
   readonly maxDisplayed = input<number>(5);
@@ -51,7 +54,12 @@ export class TabPresenceIndicatorComponent {
   protected readonly overflowTooltip = computed(() =>
     this.visibleUsers()
       .slice(this.maxDisplayed())
-      .map(u => u.username)
+      .map(u => u.user.username)
       .join(', ')
   );
+
+  protected tooltipFor(user: PresenceSession): string {
+    const suffix = user.status === 'editing' ? 'editing' : user.status;
+    return `${user.user.username} (${suffix})`;
+  }
 }
