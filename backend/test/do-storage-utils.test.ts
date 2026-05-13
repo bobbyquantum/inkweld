@@ -4,7 +4,7 @@
  * These tests cover the pure storage-algorithm helpers extracted from
  * YjsProject so they can run without the Cloudflare Workers runtime.
  */
-import { describe, it, expect, mock, beforeEach } from 'bun:test';
+import { describe, it, expect } from 'bun:test';
 import * as Y from 'yjs';
 import {
   loadDocumentFromStorage,
@@ -23,14 +23,6 @@ import {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Build a real Y.Doc that records every update applied to it. */
-function makeDoc(): { doc: Y.Doc & YDocLike; updates: Uint8Array[] } {
-  const doc = new Y.Doc();
-  const updates: Uint8Array[] = [];
-  doc.on('update', (update: Uint8Array) => updates.push(update));
-  return { doc, updates };
-}
 
 /** Encode a trivial Yjs update that sets key=value in the root map. */
 function makeYjsUpdate(key: string, value: string): Uint8Array {
@@ -60,9 +52,18 @@ function makeStorage(initial: Record<string, number[]> = {}): {
     async put(key: string, value: unknown): Promise<void> {
       store.set(key, value as number[]);
     },
-    async transaction<T>(cb: (txn: { put: typeof storage.put; delete: (keys: string[]) => Promise<void> }) => Promise<T>): Promise<T> {
-      const txnPut = async (key: string, value: unknown) => { store.set(key, value as number[]); };
-      const txnDelete = async (keys: string[]) => { for (const k of keys) store.delete(k); };
+    async transaction<T>(
+      cb: (txn: {
+        put: (key: string, value: unknown) => Promise<void>;
+        delete: (keys: string[]) => Promise<void>;
+      }) => Promise<T>
+    ): Promise<T> {
+      const txnPut = async (key: string, value: unknown) => {
+        store.set(key, value as number[]);
+      };
+      const txnDelete = async (keys: string[]) => {
+        for (const k of keys) store.delete(k);
+      };
       return cb({ put: txnPut, delete: txnDelete });
     },
   };
@@ -76,9 +77,7 @@ function makeStorage(initial: Record<string, number[]> = {}): {
 
 describe('key helpers', () => {
   it('docStoragePrefix formats correctly', () => {
-    expect(docStoragePrefix('alice:my-project:elements')).toBe(
-      'doc:alice:my-project:elements:'
-    );
+    expect(docStoragePrefix('alice:my-project:elements')).toBe('doc:alice:my-project:elements:');
   });
 
   it('snapshotKey appends "snapshot"', () => {
@@ -212,17 +211,20 @@ describe('loadDocumentFromStorage', () => {
     expect([...result.keys()]).toContain(`${updateKeyPrefix(prefix)}200`);
   });
 
-  it('does not fail when storage throws — resolves with empty map', async () => {
+  it('rejects when storage throws (error handling is the caller responsibility)', async () => {
     const badStorage: DOStorageReader = {
-      async get() { throw new Error('storage error'); },
-      async list() { throw new Error('storage error'); },
+      async get() {
+        throw new Error('storage error');
+      },
+      async list() {
+        throw new Error('storage error');
+      },
     };
 
     const fakeDoc: YDocLike = { update: () => {} };
-    // Should not throw — errors are caught internally
     await expect(
       loadDocumentFromStorage('alice:proj:doc1', fakeDoc, badStorage)
-    ).resolves.not.toThrow();
+    ).rejects.toThrow('storage error');
   });
 });
 
@@ -253,8 +255,9 @@ describe('compactDocumentStorage', () => {
 
     // Snapshot should be written
     expect(store.has(snapshotKey(prefix))).toBe(true);
-    const written = store.get(snapshotKey(prefix))!;
-    expect(written.length).toBeGreaterThan(0);
+    const written = store.get(snapshotKey(prefix));
+    expect(written).toBeDefined();
+    expect(written!.length).toBeGreaterThan(0);
 
     // Update keys should be deleted
     expect(store.has(updateKey1)).toBe(false);
@@ -270,7 +273,9 @@ describe('compactDocumentStorage', () => {
 
     await compactDocumentStorage('alice:proj:doc1', sourceDoc, new Map(), storage);
 
-    const snapshotBytes = new Uint8Array(store.get(snapshotKey(prefix))!);
+    const storedBytes = store.get(snapshotKey(prefix));
+    expect(storedBytes).toBeDefined();
+    const snapshotBytes = new Uint8Array(storedBytes!);
     const roundtripDoc = new Y.Doc();
     Y.applyUpdate(roundtripDoc, snapshotBytes);
 
