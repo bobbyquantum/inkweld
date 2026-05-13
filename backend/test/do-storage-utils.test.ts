@@ -34,8 +34,10 @@ function makeYjsUpdate(key: string, value: string): Uint8Array {
 function makeStorage(initial: Record<string, number[]> = {}): {
   store: Map<string, number[]>;
   storage: DOStorageReader & DOStorageWriter;
+  deleteBatches: string[][];
 } {
   const store = new Map<string, number[]>(Object.entries(initial));
+  const deleteBatches: string[][] = [];
 
   const storage: DOStorageReader & DOStorageWriter = {
     async get<T>(key: string): Promise<T | undefined> {
@@ -57,17 +59,22 @@ function makeStorage(initial: Record<string, number[]> = {}): {
         delete: (keys: string[]) => Promise<void>;
       }) => Promise<T>
     ): Promise<T> {
+      const staged = new Map(store);
       const txnPut = async (key: string, value: unknown) => {
-        store.set(key, value as number[]);
+        staged.set(key, value as number[]);
       };
       const txnDelete = async (keys: string[]) => {
-        for (const k of keys) store.delete(k);
+        deleteBatches.push(keys);
+        for (const k of keys) staged.delete(k);
       };
-      return cb({ put: txnPut, delete: txnDelete });
+      const result = await cb({ put: txnPut, delete: txnDelete });
+      store.clear();
+      for (const [key, value] of staged) store.set(key, value);
+      return result;
     },
   };
 
-  return { store, storage };
+  return { store, storage, deleteBatches };
 }
 
 // ---------------------------------------------------------------------------
@@ -310,6 +317,23 @@ describe('compactDocumentStorage', () => {
 
     await compactDocumentStorage('alice:proj:doc1', doc, new Map(), storage);
 
+    expect(store.has(snapshotKey(prefix))).toBe(true);
+  });
+
+  it('deletes update keys in batches of 128 or fewer', async () => {
+    const doc = new Y.Doc();
+    const prefix = docStoragePrefix('alice:proj:doc1');
+    const entries = Array.from(
+      { length: 300 },
+      (_, index) => [`${updateKeyPrefix(prefix)}${index}`, [index]] as const
+    );
+    const { store, storage, deleteBatches } = makeStorage(Object.fromEntries(entries));
+    const updateKeys = new Map<string, number[]>(entries.map(([key, value]) => [key, value]));
+
+    await compactDocumentStorage('alice:proj:doc1', doc, updateKeys, storage);
+
+    expect(deleteBatches.map((batch) => batch.length)).toEqual([128, 128, 44]);
+    expect([...updateKeys.keys()].every((key) => !store.has(key))).toBe(true);
     expect(store.has(snapshotKey(prefix))).toBe(true);
   });
 });
