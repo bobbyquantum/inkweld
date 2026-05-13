@@ -3,15 +3,22 @@
     class="tab-presence"
     data-testid="tab-presence-indicator"
     [attr.data-location]="location()">
-    @for (user of displayed(); track user.clientId) {
+    @for (user of displayed(); track user.sessionId) {
       <div
         class="tab-presence__avatar"
-        [matTooltip]="user.username"
+        [class.tab-presence__avatar--editing]="user.status === 'editing'"
+        [class.tab-presence__avatar--active]="user.status === 'active'"
+        [class.tab-presence__avatar--idle]="user.status === 'idle'"
+        [matTooltip]="tooltipFor(user)"
         matTooltipPosition="below"
         data-testid="tab-presence-user"
-        [attr.data-username]="user.username"
-        [style.outlineColor]="user.color">
-        <app-user-avatar [username]="user.username" size="small" />
+        [attr.data-username]="user.user.username"
+        [attr.data-status]="user.status"
+        [style.outlineColor]="user.user.color">
+        <app-user-avatar [username]="user.user.username" size="small" />
+        <span class="tab-presence__badge" aria-hidden="true">{{
+          user.status === 'editing' ? '✎' : '…'
+        }}</span>
       </div>
     }
     @if (overflowCount() > 0) {
