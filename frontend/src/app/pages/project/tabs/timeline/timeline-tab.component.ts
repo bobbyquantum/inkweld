@@ -189,10 +189,10 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   private readonly presence = inject(PresenceService);
   private readonly ngZone = inject(NgZone);
 
-  /** Stable location key broadcast via awareness so peers see who is here. */
+  /** Stable location broadcast via presence so peers see who is here. */
   protected readonly presenceLocation = computed(() => {
     const id = this.elementId();
-    return id ? `timeline:${id}` : null;
+    return id ? { kind: 'timeline' as const, elementId: id } : null;
   });
 
   protected readonly wrapRef = viewChild<ElementRef<HTMLDivElement>>('wrap');
@@ -802,7 +802,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     this.scheduleMeasureViewport();
   }
 
-  /** Mirror the route's elementId into awareness so other peers see us here. */
+  /** Mirror the route's elementId into presence so other peers see us here. */
   private readonly presenceLocationEffect = effect(() => {
     this.presence.setActiveLocation(this.presenceLocation());
   });
@@ -921,6 +921,11 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     const config = this.config();
     const system = this.activeSystem();
     if (!config || !system) return;
+    this.broadcastTimelineSelection(
+      event.start,
+      event.end ?? event.start,
+      system
+    );
     const data: TimelineEventDialogData = {
       event,
       tracks: this.tracks(),
@@ -1108,6 +1113,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     (event.target as Element).setPointerCapture?.(event.pointerId);
     const startTick = timePointToAbsolute(ev.start, system);
     const endTick = ev.end ? timePointToAbsolute(ev.end, system) : startTick;
+    this.broadcastTimelineTicks(startTick, endTick);
     this.eventDrag = {
       pointerId: event.pointerId,
       eventId: ev.id,
@@ -1153,6 +1159,32 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
       eventId: drag.eventId,
       start: absoluteToTimePoint(newStart, system),
       end: drag.wasRanged ? absoluteToTimePoint(newEnd, system) : undefined,
+    });
+    this.broadcastTimelineTicks(newStart, newEnd);
+  }
+
+  private broadcastTimelineSelection(
+    start: TimePoint,
+    end: TimePoint,
+    system: TimeSystem
+  ): void {
+    try {
+      this.broadcastTimelineTicks(
+        timePointToAbsolute(start, system),
+        timePointToAbsolute(end, system)
+      );
+    } catch {
+      // Existing tests and imported legacy data can contain mismatched time
+      // points; presence must never block the core timeline interaction.
+    }
+  }
+
+  private broadcastTimelineTicks(start: bigint, end: bigint): void {
+    this.presence.setSelection({
+      kind: 'timeline',
+      elementId: this.elementId() ?? '',
+      start: Number(start),
+      end: Number(end),
     });
   }
 

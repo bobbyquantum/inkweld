@@ -101,7 +101,7 @@ function createMockSyncProvider(): IElementSyncProvider & {
       null
     ).asObservable(),
     remotePresence$: new BehaviorSubject([]).asObservable(),
-    setLocalAwareness: vi.fn(),
+    setLocalPresence: vi.fn(),
   };
 }
 
