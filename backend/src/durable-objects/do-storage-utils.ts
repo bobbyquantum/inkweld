@@ -31,15 +31,6 @@ export interface DOStorageWriter {
 }
 
 // ---------------------------------------------------------------------------
-// Minimal Y.Doc-like interface (subset of WSSharedDoc)
-// ---------------------------------------------------------------------------
-
-export interface YDocLike {
-  /** Placeholder — kept for back-compat; loadDocumentFromStorage accepts Y.Doc directly. */
-  _yjsDocBrand?: never;
-}
-
-// ---------------------------------------------------------------------------
 // Key helpers
 // ---------------------------------------------------------------------------
 
@@ -77,14 +68,20 @@ export async function loadDocumentFromStorage(
   const prefix = docStoragePrefix(documentId);
   const snap = snapshotKey(prefix);
 
-  // 1. Apply the compacted snapshot — single storage read, may be absent.
+  // 1. Read all persisted payloads before mutating the document. If storage.list()
+  // fails after the snapshot read, the caller can handle the error without a
+  // partially hydrated in-memory doc escaping into the DO cache.
   const snapshotRaw = await storage.get<number[]>(snap);
+
+  // 2. Read incremental updates written after the last compaction.
+  const updates = await storage.list<number[]>({ prefix: updateKeyPrefix(prefix) });
+
+  // 3. Apply the compacted snapshot — single storage read, may be absent.
   if (snapshotRaw) {
     Y.applyUpdate(sharedDoc, new Uint8Array(snapshotRaw));
   }
 
-  // 2. Apply incremental updates written after the last compaction.
-  const updates = await storage.list<number[]>({ prefix: updateKeyPrefix(prefix) });
+  // 4. Apply incremental updates written after the last compaction.
   for (const [, updateArray] of updates.entries()) {
     Y.applyUpdate(sharedDoc, new Uint8Array(updateArray));
   }

@@ -225,6 +225,28 @@ describe('loadDocumentFromStorage', () => {
       'storage error'
     );
   });
+
+  it('does not partially hydrate the document if listing updates fails after reading snapshot', async () => {
+    const snapshotDoc = new Y.Doc();
+    snapshotDoc.getMap('root').set('foo', 'bar');
+    const snapshotBytes = Array.from(Y.encodeStateAsUpdate(snapshotDoc));
+
+    const prefix = docStoragePrefix('alice:proj:doc1');
+    const badStorage: DOStorageReader = {
+      async get<T>(key: string): Promise<T | undefined> {
+        return (key === snapshotKey(prefix) ? snapshotBytes : undefined) as T | undefined;
+      },
+      async list() {
+        throw new Error('storage error');
+      },
+    };
+
+    const loadedDoc = new Y.Doc();
+    await expect(loadDocumentFromStorage('alice:proj:doc1', loadedDoc, badStorage)).rejects.toThrow(
+      'storage error'
+    );
+    expect(loadedDoc.getMap('root').get('foo')).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------

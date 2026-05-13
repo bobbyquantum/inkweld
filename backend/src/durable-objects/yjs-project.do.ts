@@ -1341,43 +1341,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
     // Presence and awareness frames do not need the Yjs document to be loaded.
     // Handle them directly so the meta-only rehydration path (no doc load) works correctly.
-    const firstByte = new Uint8Array(message)[0];
-    if (firstByte === Y_MESSAGE_PRESENCE || firstByte === Y_MESSAGE_AWARENESS) {
-      try {
-        const msgBytes = new Uint8Array(message);
-        const decoder = createDecoder(msgBytes);
-        const messageType = readVarUint(decoder);
-        if (messageType === Y_MESSAGE_AWARENESS) {
-          const sharedDoc = connInfo.sharedDoc;
-          if (sharedDoc) {
-            applyAwarenessUpdate(sharedDoc.awareness, readVarUint8Array(decoder), ws);
-          }
-          // If sharedDoc not yet loaded, the client will resend awareness in ~3s — safe to drop.
-          return;
-        }
-        if (messageType === Y_MESSAGE_PRESENCE) {
-          const documentId = connInfo.documentId;
-          if (!documentId || !this.isElementsDocumentId(documentId)) {
-            projDOLog.debug(
-              `Ignoring presence frame on non-elements doc ${documentId ?? '<unknown>'}`
-            );
-            return;
-          }
-          const projectKey = this.projectKeyForDocumentId(documentId);
-          if (!projectKey) return;
-          this.presence.handleMessage(
-            projectKey,
-            ws as unknown as PresenceSocket,
-            decoder,
-            msgBytes
-          );
-          return;
-        }
-      } catch (error) {
-        projDOLog.error('Error handling awareness/presence message:', error);
-      }
-      return;
-    }
+    if (this.handleAwarenessOrPresenceMessage(ws, connInfo, message)) return;
 
     const sharedDoc = connInfo.sharedDoc;
     if (!sharedDoc) {
@@ -1394,6 +1358,52 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     } catch (error) {
       projDOLog.error('Error handling WebSocket message:', error);
     }
+  }
+
+  private handleAwarenessOrPresenceMessage(
+    ws: WebSocket,
+    connInfo: ConnectionInfo,
+    message: ArrayBuffer
+  ): boolean {
+    const firstByte = new Uint8Array(message)[0];
+    if (firstByte !== Y_MESSAGE_PRESENCE && firstByte !== Y_MESSAGE_AWARENESS) return false;
+
+    try {
+      const msgBytes = new Uint8Array(message);
+      const decoder = createDecoder(msgBytes);
+      const messageType = readVarUint(decoder);
+      if (messageType === Y_MESSAGE_AWARENESS) {
+        const sharedDoc = connInfo.sharedDoc;
+        if (sharedDoc) {
+          applyAwarenessUpdate(sharedDoc.awareness, readVarUint8Array(decoder), ws);
+        }
+        // If sharedDoc not yet loaded, the client will resend awareness in ~3s — safe to drop.
+        return true;
+      }
+      if (messageType === Y_MESSAGE_PRESENCE) {
+        this.handlePresenceMessage(ws, connInfo, decoder, msgBytes);
+      }
+    } catch (error) {
+      projDOLog.error('Error handling awareness/presence message:', error);
+    }
+
+    return true;
+  }
+
+  private handlePresenceMessage(
+    ws: WebSocket,
+    connInfo: ConnectionInfo,
+    decoder: ReturnType<typeof createDecoder>,
+    msgBytes: Uint8Array
+  ): void {
+    const documentId = connInfo.documentId;
+    if (!documentId || !this.isElementsDocumentId(documentId)) {
+      projDOLog.debug(`Ignoring presence frame on non-elements doc ${documentId ?? '<unknown>'}`);
+      return;
+    }
+    const projectKey = this.projectKeyForDocumentId(documentId);
+    if (!projectKey) return;
+    this.presence.handleMessage(projectKey, ws as unknown as PresenceSocket, decoder, msgBytes);
   }
 
   /**
