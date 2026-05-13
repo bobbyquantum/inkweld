@@ -67,6 +67,7 @@ describe('CanvasTabComponent', () => {
   let mockCanvasRenderer: any;
   const mockPresenceService = {
     setActiveLocation: vi.fn(),
+    setSelection: vi.fn(),
     usersAtLocation: () => signal([]).asReadonly(),
     users: signal([]).asReadonly(),
   };
@@ -303,6 +304,7 @@ describe('CanvasTabComponent', () => {
   afterEach(() => {
     vi.useRealTimers();
     mockPresenceService.setActiveLocation.mockReset();
+    mockPresenceService.setSelection.mockReset();
   });
 
   it('should create', () => {
@@ -312,9 +314,10 @@ describe('CanvasTabComponent', () => {
   it('should load canvas config on init', () => {
     fixture.detectChanges();
     expect(mockCanvasService.loadConfig).toHaveBeenCalledWith('test-canvas');
-    expect(mockPresenceService.setActiveLocation).toHaveBeenCalledWith(
-      'canvas:test-canvas'
-    );
+    expect(mockPresenceService.setActiveLocation).toHaveBeenCalledWith({
+      kind: 'canvas',
+      elementId: 'test-canvas',
+    });
 
     fixture.destroy();
     expect(mockPresenceService.setActiveLocation).toHaveBeenCalledWith(null);
@@ -2717,6 +2720,81 @@ describe('CanvasTabComponent', () => {
           }
         ).batchDraw
       ).toHaveBeenCalled();
+    });
+  });
+
+  describe('Presence selection integration', () => {
+    it('selectKonvaNode reports canvas selection to presence service when elementId and nodeId are set', () => {
+      fixture.detectChanges();
+      component['elementId'].set('element-abc');
+
+      const mockNode = {
+        id: () => 'node-42',
+      } as unknown as import('konva/lib/Node').Node;
+      vi.spyOn(component['canvasSelection'], 'selectNode').mockImplementation(
+        () => {}
+      );
+
+      component['selectKonvaNode'](mockNode);
+
+      expect(mockPresenceService.setSelection).toHaveBeenCalledWith({
+        kind: 'canvas',
+        elementId: 'element-abc',
+        selectedIds: ['node-42'],
+      });
+    });
+
+    it('selectKonvaNode does not call setSelection when elementId is empty', () => {
+      fixture.detectChanges();
+      component['elementId'].set('');
+
+      const mockNode = {
+        id: () => 'node-99',
+      } as unknown as import('konva/lib/Node').Node;
+      vi.spyOn(component['canvasSelection'], 'selectNode').mockImplementation(
+        () => {}
+      );
+
+      component['selectKonvaNode'](mockNode);
+
+      expect(mockPresenceService.setSelection).not.toHaveBeenCalled();
+    });
+
+    it('selectNodesInRect reports single-select to presence and clears on deselect', () => {
+      fixture.detectChanges();
+      component['elementId'].set('element-xyz');
+
+      let capturedCallbacks: {
+        onSingleSelected?: (id: string) => void;
+        onCleared?: () => void;
+      } = {};
+      vi.spyOn(
+        component['canvasSelection'],
+        'selectNodesInRect'
+      ).mockImplementation(
+        (
+          _rect: unknown,
+          callbacks: {
+            onSingleSelected?: (id: string) => void;
+            onCleared?: () => void;
+          }
+        ) => {
+          capturedCallbacks = callbacks;
+        }
+      );
+
+      component['selectNodesInRect']({ x: 0, y: 0, width: 100, height: 100 });
+
+      capturedCallbacks.onSingleSelected?.('shape-1');
+      expect(mockPresenceService.setSelection).toHaveBeenCalledWith({
+        kind: 'canvas',
+        elementId: 'element-xyz',
+        selectedIds: ['shape-1'],
+      });
+
+      mockPresenceService.setSelection.mockClear();
+      capturedCallbacks.onCleared?.();
+      expect(mockPresenceService.setSelection).toHaveBeenCalledWith(null);
     });
   });
 });

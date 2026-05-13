@@ -274,7 +274,11 @@ describe('ProjectComponent', () => {
         { provide: ProjectSearchService, useValue: projectSearchService },
         {
           provide: StorageContextService,
-          useValue: { isLocalMode: signal(false) },
+          useValue: {
+            isLocalMode: signal(false),
+            prefixDbName: vi.fn((name: string) => name),
+            getActiveConfig: vi.fn(() => ({ id: 'test-config' })),
+          },
         },
         { provide: AutoSnapshotService, useValue: autoSnapshotService },
         { provide: MatDialog, useValue: { open: vi.fn() } },

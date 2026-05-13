@@ -113,7 +113,7 @@
 
         <!-- Tab Editor -->
         @if (tabs()[selectedTabIndex()]; as currentTab) {
-          <div class="tab-editor">
+          <div class="tab-editor" data-testid="active-tab-editor">
             <div class="tab-editor-header">
               <h4>{{ currentTab.label }}</h4>
             </div>

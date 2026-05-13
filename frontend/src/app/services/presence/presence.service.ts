@@ -6,16 +6,28 @@ import {
   type Signal,
   signal,
 } from '@angular/core';
+import {
+  type PresenceLocation,
+  type PresenceSelection,
+  type PresenceSession,
+  type PresenceStatus,
+} from '@inkweld/presence';
 import { generateUserColor } from '@services/presence/user-color';
 import { ElementSyncProviderFactory } from '@services/sync/element-sync-provider.factory';
-import {
-  type IElementSyncProvider,
-  type PresenceUser,
-} from '@services/sync/element-sync-provider.interface';
+import { type IElementSyncProvider } from '@services/sync/element-sync-provider.interface';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+
+function locationsEqual(
+  a: PresenceLocation | null | undefined,
+  b: PresenceLocation | null | undefined
+): boolean {
+  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+}
+
 /**
- * Central service that owns the local user's awareness state and exposes a
+ * Central service that owns the local user's presence state and exposes a
  * normalized list of remote users currently present in the project.
  *
  * Tabs (timeline, canvas, …) call {@link setActiveLocation} when they mount
@@ -34,28 +46,22 @@ export class PresenceService {
 
   private currentProvider: IElementSyncProvider | null = null;
   private subscription: { unsubscribe: () => void } | null = null;
-  private readonly remoteUsersSignal = signal<PresenceUser[]>([]);
+  private readonly remoteUsersSignal = signal<PresenceSession[]>([]);
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
+  private currentStatus: PresenceStatus = 'active';
 
-  readonly users: Signal<PresenceUser[]> = this.remoteUsersSignal.asReadonly();
+  readonly users: Signal<PresenceSession[]> =
+    this.remoteUsersSignal.asReadonly();
 
   constructor() {
-    // Whenever the current user changes, push our identity into awareness so
+    // Whenever the current user changes, push our identity into presence so
     // other peers see a stable username + color across reconnects.
     effect(() => {
-      const user = this.unifiedUser.currentUser();
-      const provider = this.ensureProvider();
-      if (!provider) return;
-      if (user?.username) {
-        provider.setLocalAwareness({
-          user: {
-            name: user.username,
-            color: generateUserColor(user.username),
-          },
-        });
-      } else {
-        provider.setLocalAwareness({ user: null });
-      }
+      this.unifiedUser.currentUser();
+      if (this.currentProvider) this.syncIdentity(this.currentProvider);
     });
+
+    this.installActivityListeners();
   }
 
   /**
@@ -63,9 +69,30 @@ export class PresenceService {
    * project. Use a stable string key per surface, e.g.
    * `timeline:<elementId>` or `canvas:<elementId>`.
    */
-  setActiveLocation(location: string | null): void {
+  setActiveLocation(location: PresenceLocation | string | null): void {
     const provider = this.ensureProvider();
-    provider?.setLocalAwareness({ location });
+    provider?.setLocalPresence({
+      location: this.normalizeLocation(location),
+      lastActivityAt: Date.now(),
+    });
+    this.markActive();
+  }
+
+  setSelection(selection: PresenceSelection | null): void {
+    const provider = this.ensureProvider();
+    provider?.setLocalPresence({ selection, lastActivityAt: Date.now() });
+    this.markActive();
+  }
+
+  markEditing(selection?: PresenceSelection): void {
+    const provider = this.ensureProvider();
+    this.currentStatus = 'editing';
+    provider?.setLocalPresence({
+      status: 'editing',
+      ...(selection !== undefined && { selection }),
+      lastActivityAt: Date.now(),
+    });
+    this.armIdleTimer();
   }
 
   /**
@@ -73,14 +100,75 @@ export class PresenceService {
    * `undefined` to disable filtering.
    */
   usersAtLocation(
-    location: Signal<string | null | undefined>
-  ): Signal<PresenceUser[]> {
+    location: Signal<PresenceLocation | string | null | undefined>
+  ): Signal<PresenceSession[]> {
     return computed(() => {
-      const target = location();
+      const target = this.normalizeLocation(location() ?? null);
       const all = this.users();
       if (!target) return all;
-      return all.filter(u => u.location === target);
+      return all.filter(u => locationsEqual(u.location, target));
     });
+  }
+
+  private markActive(): void {
+    const provider = this.ensureProvider();
+    if (!provider) return;
+    if (this.currentStatus !== 'active') {
+      this.currentStatus = 'active';
+      provider.setLocalPresence({
+        status: 'active',
+        lastActivityAt: Date.now(),
+      });
+    }
+    this.armIdleTimer();
+  }
+
+  private markIdle(): void {
+    const provider = this.ensureProvider();
+    if (!provider) return;
+    this.currentStatus = 'idle';
+    provider.setLocalPresence({ status: 'idle', lastActivityAt: Date.now() });
+  }
+
+  private armIdleTimer(): void {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.idleTimer = setTimeout(() => this.markIdle(), IDLE_TIMEOUT_MS);
+  }
+
+  private installActivityListeners(): void {
+    const onActivity = (): void => this.markActive();
+    globalThis.addEventListener?.('mousemove', onActivity, { passive: true });
+    globalThis.addEventListener?.('keydown', onActivity, { passive: true });
+    globalThis.addEventListener?.('pointerdown', onActivity, { passive: true });
+  }
+
+  private normalizeLocation(
+    location: PresenceLocation | string | null | undefined
+  ): PresenceLocation | null {
+    if (!location) return null;
+    if (typeof location !== 'string') return location;
+    const [kind, ...rest] = location.split(':');
+    const id = rest.join(':');
+    switch (kind) {
+      case 'timeline':
+        return { kind: 'timeline', elementId: id };
+      case 'canvas':
+        return { kind: 'canvas', elementId: id };
+      case 'document':
+        return { kind: 'document', documentId: id };
+      case 'worldbuilding':
+        return id
+          ? { kind: 'worldbuilding', schemaId: id }
+          : { kind: 'worldbuilding' };
+      case 'media':
+        return { kind: 'media' };
+      case 'settings':
+        return { kind: 'settings' };
+      case 'elements':
+        return { kind: 'elements' };
+      default:
+        return { kind: 'other', label: location };
+    }
   }
 
   /**
@@ -97,6 +185,26 @@ export class PresenceService {
     this.subscription = provider.remotePresence$.subscribe(users => {
       this.remoteUsersSignal.set(users);
     });
+    this.syncIdentity(provider);
     return provider;
+  }
+
+  private syncIdentity(provider: IElementSyncProvider): void {
+    const user = this.unifiedUser.currentUser();
+    if (user?.username) {
+      provider.setLocalPresence({
+        user: {
+          id: String(user.id ?? ''),
+          username: user.username,
+          color: generateUserColor(user.username),
+        },
+        status: this.currentStatus,
+        location: { kind: 'elements' },
+        lastActivityAt: Date.now(),
+      });
+      this.armIdleTimer();
+    } else {
+      provider.setLocalPresence({ user: null });
+    }
   }
 }

@@ -1,6 +1,8 @@
 import {
+  effect,
   inject,
   Injectable,
+  Injector,
   NgZone,
   type Signal,
   signal,
@@ -20,13 +22,16 @@ import {
   isMediaUrl,
 } from '@editor';
 import { DocumentsService } from '@inkweld/index';
-import { generateUserColor } from '@services/presence/user-color';
-import { Plugin } from 'prosemirror-state';
+import { type PresenceSession } from '@inkweld/presence';
+import { type Node as ProseMirrorModelNode } from 'prosemirror-model';
+import { Plugin, PluginKey } from 'prosemirror-state';
+import { Decoration, DecorationSet } from 'prosemirror-view';
 import { Observable, Subject } from 'rxjs';
 import { IndexeddbPersistence, storeState } from 'y-indexeddb';
 import {
-  yCursorPlugin,
+  absolutePositionToRelativePosition,
   ySyncPlugin,
+  ySyncPluginKey,
   yUndoPlugin,
   yXmlFragmentToProsemirrorJSON, // NOSONAR - replacement API modifies the Yjs document when encountering non-standard XmlElement("text") nodes created by importXmlString, making it unsafe for read-only use
 } from 'y-prosemirror';
@@ -45,6 +50,7 @@ import { SystemConfigService } from '../core/system-config.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import { LintApiService } from '../lint/lint-api.service';
 import { LocalStorageService } from '../local/local-storage.service';
+import { PresenceService } from '../presence/presence.service';
 import {
   createAuthenticatedWebsocketProvider,
   setupReauthentication,
@@ -59,6 +65,23 @@ import { ProjectStateService } from './project-state.service';
 const MAX_RECONNECT_ATTEMPTS = 5;
 const INITIAL_RECONNECT_DELAY = 1000;
 const MAX_RECONNECT_DELAY = 30000;
+
+type YjsProseMirrorMapping = Parameters<
+  typeof absolutePositionToRelativePosition
+>[2];
+
+/** Internal Yjs item node shape used for cursor position traversal. */
+interface YjsItemNode {
+  deleted: boolean;
+  content: { type: Y.AbstractType<unknown> };
+  right: YjsItemNode | null;
+}
+
+/** Internal Yjs type shape exposing private list-head and length fields. */
+interface YjsTypeInternal {
+  _first: YjsItemNode | null;
+  _length: number;
+}
 
 /**
  * Represents an active Yjs document connection
@@ -99,6 +122,7 @@ export class DocumentService {
   private readonly authTokenService = inject(AuthTokenService);
   private readonly setupService = inject(SetupService);
   private readonly ngZone = inject(NgZone);
+  private readonly injector = inject(Injector);
   private readonly systemConfigService = inject(SystemConfigService);
   private readonly projectStateService = inject(ProjectStateService);
   private readonly lintApiService = inject(LintApiService);
@@ -112,6 +136,7 @@ export class DocumentService {
   private readonly storageContext = inject(StorageContextService);
   private readonly versionCompatibility = inject(VersionCompatibilityService);
   private readonly commentService = inject(CommentService);
+  private readonly presenceService = inject(PresenceService);
 
   /** @internal Wrapped for testability — esbuild inlines local modules, so vi.mock can't intercept them */
   private createAuthWsProvider = createAuthenticatedWebsocketProvider; // NOSONAR - writable for test overrides
@@ -137,22 +162,7 @@ export class DocumentService {
   /** Track reconnect timeouts to cancel them on disconnect */
   private readonly reconnectTimeouts = new Map<string, number>();
 
-  constructor() {
-    // Ensure awareness is cleaned up when the browser tab/window closes
-    if (typeof globalThis.addEventListener === 'function') {
-      globalThis.addEventListener('beforeunload', () => {
-        this.connections.forEach((connection, documentId) => {
-          if (connection.provider) {
-            this.logger.debug(
-              'DocumentService',
-              `Cleaning up awareness for ${documentId} on page unload`
-            );
-            connection.provider.awareness.setLocalState(null);
-          }
-        });
-      });
-    }
-  }
+  constructor() {}
 
   /**
    * Gets reactive sync status signal for a document
@@ -286,10 +296,9 @@ export class DocumentService {
   }
 
   /**
-   * Gets all active document connections for presence awareness.
+   * Gets all active document connections.
    *
-   * Returns an array of connections that have active WebSocket providers,
-   * useful for tracking user presence across collaborative documents.
+   * Returns an array of connections that have active WebSocket providers.
    *
    * @returns Array of active document connections with their providers
    */
@@ -803,15 +812,15 @@ export class DocumentService {
       return;
     }
 
-    // Build core plugins - everything EXCEPT cursor plugin (which needs WebSocket awareness)
+    // Build core plugins - presence is added later once the live editor is connected.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
     const plugins: Plugin<any>[] = [
       ySyncPlugin(connection.type),
       yUndoPlugin(),
     ];
 
-    // Note: yCursorPlugin is NOT added here - it will be added dynamically
-    // when WebSocket connects via addCursorPluginToEditor
+    // Note: presence is NOT added here - it will be added dynamically when
+    // WebSocket connects via addPresencePluginToEditor.
 
     // Add the linting plugin
     if (this.systemConfigService.isAiLintingEnabled()) {
@@ -977,7 +986,7 @@ export class DocumentService {
 
   /**
    * Connects to WebSocket in background (non-blocking).
-   * When successful, updates the connection's provider and adds cursor plugin.
+   * When successful, updates the connection's provider and adds presence tracking.
    */
   private async connectWebSocketInBackground(
     websocketUrl: string | null,
@@ -1038,7 +1047,7 @@ export class DocumentService {
         ydoc,
         authToken,
         {
-          resyncInterval: 10000, // Attempt to resync every 10 seconds when offline
+          resyncInterval: 60000, // Attempt to resync every 60 seconds when offline
         }
       );
 
@@ -1061,8 +1070,15 @@ export class DocumentService {
         }
       );
 
-      // Add cursor plugin now that we have awareness
-      this.addCursorPluginToEditor(editor, provider);
+      // Add presence plugin now that the document editor is live. Presence is
+      // project-scoped and travels on the elements WebSocket, not this per-doc
+      // provider, so no Yjs awareness wiring is needed here.
+      this.addPresencePluginToEditor(
+        editor,
+        documentId,
+        connection.ydoc,
+        connection.type
+      );
     } catch (error) {
       this.logger.error(
         'DocumentService',
@@ -1075,19 +1091,6 @@ export class DocumentService {
 
     // Set up WebSocket-specific handlers now that provider is connected
     if (provider) {
-      // Set user information for awareness (collaborative cursors)
-      const currentUser = this.userService.currentUser();
-      if (currentUser?.username && provider.awareness.setLocalStateField) {
-        provider.awareness.setLocalStateField('user', {
-          name: currentUser.username,
-          color: generateUserColor(currentUser.username),
-        });
-        this.logger.debug(
-          'DocumentService',
-          `Set awareness for ${currentUser.username}, clientID: ${provider.awareness.clientID}`
-        );
-      }
-
       // Track unsynced changes by listening to Yjs document updates
       this.unsyncedChanges.set(documentId, false);
       const providerRef = provider;
@@ -1247,31 +1250,299 @@ export class DocumentService {
   }
 
   /**
-   * Dynamically adds the cursor plugin to an editor after WebSocket connects.
+   * Dynamically adds the presence plugin to an editor after WebSocket connects.
    */
-  private addCursorPluginToEditor(
+  private addPresencePluginToEditor(
     editor: Editor,
-    provider: WebsocketProvider
+    documentId: string,
+    ydoc: Y.Doc,
+    yXmlFragment: Y.XmlFragment
   ): void {
     const view = editor.view;
     if (!view) {
       this.logger.warn(
         'DocumentService',
-        'Cannot add cursor plugin - editor view not available'
+        'Cannot add presence plugin - editor view not available'
       );
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const cursorPlugin = yCursorPlugin(provider.awareness);
+    const remotePresencePluginKey = new PluginKey<DecorationSet>(
+      `remote-presence-${documentId}`
+    );
+    const presencePlugin = new Plugin({
+      key: remotePresencePluginKey,
+      state: {
+        init: () => DecorationSet.empty,
+        apply: (transaction, decorations, _oldState, newState) => {
+          const sessions = transaction.getMeta(remotePresencePluginKey) as
+            | PresenceSession[]
+            | undefined;
+          if (sessions) {
+            return this.createRemotePresenceDecorations(
+              sessions,
+              documentId,
+              ydoc,
+              yXmlFragment,
+              this.getYjsProseMirrorMapping(newState),
+              transaction.doc
+            );
+          }
+          return decorations.map(transaction.mapping, transaction.doc);
+        },
+      },
+      props: {
+        decorations: state => remotePresencePluginKey.getState(state),
+      },
+      view: () => {
+        this.presenceService.setActiveLocation({
+          kind: 'document',
+          documentId,
+        });
+        const remotePresenceEffect = effect(
+          () => {
+            const sessions = this.presenceService.users();
+            view.dispatch(
+              view.state.tr.setMeta(remotePresencePluginKey, sessions)
+            );
+          },
+          { injector: this.injector }
+        );
+        return {
+          update: updatedView => {
+            if (!updatedView.hasFocus()) return;
+            const selection = updatedView.state.selection;
+            const mapping = this.getYjsProseMirrorMapping(updatedView.state);
+            this.presenceService.markEditing({
+              kind: 'prosemirror',
+              documentId,
+              anchor: Y.encodeRelativePosition(
+                absolutePositionToRelativePosition(
+                  selection.anchor,
+                  yXmlFragment,
+                  mapping
+                ) as Y.RelativePosition
+              ),
+              head: Y.encodeRelativePosition(
+                absolutePositionToRelativePosition(
+                  selection.head,
+                  yXmlFragment,
+                  mapping
+                ) as Y.RelativePosition
+              ),
+            });
+          },
+          destroy: () => {
+            remotePresenceEffect.destroy();
+            this.presenceService.setActiveLocation(null);
+            this.presenceService.setSelection(null);
+          },
+        };
+      },
+    });
     const newState = view.state.reconfigure({
-      plugins: [...view.state.plugins, cursorPlugin],
+      plugins: [...view.state.plugins, presencePlugin],
     });
     view.updateState(newState);
     this.logger.debug(
       'DocumentService',
-      'Cursor plugin added after WebSocket connected'
+      'Presence plugin added after WebSocket connected'
     );
+  }
+
+  private createRemotePresenceDecorations(
+    sessions: PresenceSession[],
+    documentId: string,
+    ydoc: Y.Doc,
+    yXmlFragment: Y.XmlFragment,
+    yjsMapping: YjsProseMirrorMapping,
+    doc: ProseMirrorModelNode
+  ): DecorationSet {
+    const decorations: Decoration[] = [];
+    for (const session of sessions) {
+      const selection = session.selection;
+      if (
+        selection?.kind !== 'prosemirror' ||
+        selection.documentId !== documentId
+      ) {
+        continue;
+      }
+
+      const anchor = this.resolvePresencePosition(
+        selection.anchor,
+        ydoc,
+        yXmlFragment,
+        yjsMapping,
+        doc.content.size
+      );
+      const head = this.resolvePresencePosition(
+        selection.head,
+        ydoc,
+        yXmlFragment,
+        yjsMapping,
+        doc.content.size
+      );
+      if (anchor === null || head === null) continue;
+
+      const from = Math.min(anchor, head);
+      const to = Math.max(anchor, head);
+      if (from !== to) {
+        decorations.push(
+          Decoration.inline(from, to, {
+            class: 'ProseMirror-presence-selection',
+            style: `background-color: ${this.colorWithAlpha(session.user.color, 0.18)}`,
+          })
+        );
+      }
+
+      decorations.push(
+        Decoration.widget(head, () => this.createRemoteCursorElement(session), {
+          key: `presence-cursor-${session.sessionId}`,
+        })
+      );
+    }
+    return DecorationSet.create(doc, decorations);
+  }
+
+  private resolvePresencePosition(
+    encodedPosition: Uint8Array,
+    ydoc: Y.Doc,
+    yXmlFragment: Y.XmlFragment,
+    yjsMapping: YjsProseMirrorMapping,
+    docSize: number
+  ): number | null {
+    const absolute = this.relativePositionToAbsolutePosition(
+      Y.decodeRelativePosition(encodedPosition),
+      ydoc,
+      yXmlFragment,
+      yjsMapping
+    );
+    if (absolute === null) return null;
+    return Math.max(0, Math.min(absolute, docSize));
+  }
+
+  private getYjsProseMirrorMapping(
+    state: import('prosemirror-state').EditorState
+  ): YjsProseMirrorMapping {
+    const syncState = ySyncPluginKey.getState(state) as
+      | { binding?: { mapping?: YjsProseMirrorMapping } }
+      | undefined;
+    const emptyMapping: YjsProseMirrorMapping = new Map();
+    return syncState?.binding?.mapping ?? emptyMapping;
+  }
+
+  private yjsChildPositionOffset(
+    type: Y.AbstractType<unknown>,
+    index: number,
+    yjsMapping: YjsProseMirrorMapping
+  ): number {
+    let position = 0;
+    const internal = type as unknown as YjsTypeInternal;
+    let node: YjsItemNode | null = internal._first;
+    let i = 0;
+    while (i < internal._length && i < index && node !== null) {
+      if (!node.deleted) {
+        const childType = node.content.type;
+        i++;
+        position += this.yjsMappedNodeSize(childType, yjsMapping);
+      }
+      node = node.right;
+    }
+    return position;
+  }
+
+  private yjsParentPositionOffset(
+    type: Y.AbstractType<unknown>,
+    child: Y.AbstractType<unknown>,
+    yjsMapping: YjsProseMirrorMapping
+  ): number {
+    let position = 0;
+    let node: YjsItemNode | null = (type as unknown as YjsTypeInternal)._first;
+    while (node !== null) {
+      const childType = node.content.type;
+      if (childType === child) break;
+      if (!node.deleted) {
+        position += this.yjsMappedNodeSize(childType, yjsMapping);
+      }
+      node = node.right;
+    }
+    return position;
+  }
+
+  private relativePositionToAbsolutePosition(
+    relativePosition: Y.RelativePosition,
+    ydoc: Y.Doc,
+    yXmlFragment: Y.XmlFragment,
+    yjsMapping: YjsProseMirrorMapping
+  ): number | null {
+    const decoded = Y.createAbsolutePositionFromRelativePosition(
+      relativePosition,
+      ydoc
+    ) as { type: Y.AbstractType<unknown>; index: number } | null;
+    if (
+      decoded === null ||
+      (decoded.type !== yXmlFragment &&
+        !Y.isParentOf(yXmlFragment, decoded.type._item))
+    ) {
+      return null;
+    }
+
+    let type = decoded.type;
+    let position = 0;
+    if (type instanceof Y.XmlText) {
+      position = decoded.index;
+    } else if (type._item === null || !type._item.deleted) {
+      position =
+        this.yjsChildPositionOffset(type, decoded.index, yjsMapping) + 1;
+    }
+
+    while (type !== yXmlFragment && type._item !== null) {
+      const parent = type._item.parent as Y.AbstractType<unknown>;
+      if (parent._item === null || !parent._item.deleted) {
+        position +=
+          1 +
+          this.yjsParentPositionOffset(
+            parent,
+            type as Y.AbstractType<unknown>,
+            yjsMapping
+          );
+      }
+      type = parent;
+    }
+
+    return position - 1;
+  }
+
+  private yjsMappedNodeSize(
+    yjsType: Y.AbstractType<unknown>,
+    yjsMapping: YjsProseMirrorMapping
+  ): number {
+    if (yjsType instanceof Y.XmlText) return yjsType._length;
+    const mapped = yjsMapping.get(yjsType);
+    if (Array.isArray(mapped)) {
+      return mapped.reduce((size, node) => size + node.nodeSize, 0);
+    }
+    return mapped?.nodeSize ?? 0;
+  }
+
+  private createRemoteCursorElement(session: PresenceSession): HTMLElement {
+    const cursor = document.createElement('span');
+    cursor.className = 'ProseMirror-yjs-cursor';
+    cursor.style.borderColor = session.user.color;
+    cursor.dataset['presenceSessionId'] = session.sessionId;
+
+    const label = document.createElement('div');
+    label.textContent = session.user.username;
+    label.style.backgroundColor = session.user.color;
+    cursor.appendChild(label);
+
+    return cursor;
+  }
+
+  private colorWithAlpha(color: string, alpha: number): string {
+    const hex = /^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(color);
+    if (!hex) return color;
+    return `rgba(${Number.parseInt(hex[1], 16)}, ${Number.parseInt(hex[2], 16)}, ${Number.parseInt(hex[3], 16)}, ${alpha})`;
   }
 
   /**
@@ -1379,12 +1650,6 @@ export class DocumentService {
   ): void {
     if (connection.provider) {
       try {
-        const clientID = connection.provider.awareness.clientID;
-        this.logger.debug(
-          'DocumentService',
-          `Clearing awareness for clientID ${clientID} on disconnect`
-        );
-        connection.provider.awareness.setLocalState(null);
         connection.provider.disconnect();
         connection.provider.destroy();
       } catch (error) {
@@ -2064,7 +2329,7 @@ export class DocumentService {
         '',
         params.ydoc,
         params.authToken,
-        { resyncInterval: 10000 }
+        { resyncInterval: 60000 }
       );
 
       await new Promise<void>((resolve, reject) => {

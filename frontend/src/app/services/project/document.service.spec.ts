@@ -3,7 +3,9 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Editor } from '@bobbyquantum/ngx-editor';
 import { DocumentsService } from '@inkweld/api/documents.service';
+import { type PresenceSession } from '@inkweld/presence';
 import { generateUserColor } from '@services/presence/user-color';
+import { type Node as ProseMirrorDoc, Schema } from 'prosemirror-model';
 import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy } from 'vitest-mock-extended';
@@ -26,6 +28,19 @@ import { ProjectStateService } from './project-state.service';
 // (vi.mock can't intercept local source files bundled by esbuild)
 
 type ProviderStatus = 'connected' | 'disconnected' | 'connecting';
+
+const testSchema = new Schema({
+  nodes: {
+    doc: { content: 'paragraph+' },
+    paragraph: {
+      content: 'text*',
+      group: 'block',
+      parseDOM: [{ tag: 'p' }],
+      toDOM: () => ['p', 0],
+    },
+    text: { group: 'inline' },
+  },
+});
 
 describe('DocumentService', () => {
   let service: DocumentService;
@@ -690,7 +705,7 @@ describe('DocumentService', () => {
       service.disconnect(testDocumentId);
 
       expect(mediaObserver.disconnect).toHaveBeenCalledTimes(1);
-      expect(provider.awareness.setLocalState).toHaveBeenCalledWith(null);
+      expect(provider.awareness.setLocalState).not.toHaveBeenCalled();
       expect(provider.disconnect).toHaveBeenCalledTimes(1);
       expect(provider.destroy).toHaveBeenCalledTimes(1);
       expect(service.isConnected(testDocumentId)).toBe(false);
@@ -868,6 +883,306 @@ describe('DocumentService', () => {
 
       // Plugins should not have been re-added
       expect(mockEditor.view.state.plugins.length).toBe(pluginCountBefore);
+    });
+  });
+
+  describe('Presence Decorations', () => {
+    it('renders remote ProseMirror cursors and selections from relative positions', () => {
+      const ydoc = new Y.Doc();
+      const yXmlFragment = ydoc.getXmlFragment('prosemirror');
+      yXmlFragment.insert(
+        0,
+        Array.from('hello world').map(character => new Y.XmlText(character))
+      );
+      const doc = testSchema.node('doc', null, [
+        testSchema.node('paragraph', null, [testSchema.text('hello world')]),
+      ]);
+      const encodePosition = (index: number) =>
+        Y.encodeRelativePosition(
+          Y.createRelativePositionFromTypeIndex(yXmlFragment, index)
+        );
+      const session: PresenceSession = {
+        sessionId: 'session-1',
+        user: { id: 'user-2', username: 'peer', color: '#336699' },
+        status: 'editing',
+        location: { kind: 'document', documentId: testDocumentId },
+        selection: {
+          kind: 'prosemirror',
+          documentId: testDocumentId,
+          anchor: encodePosition(1),
+          head: encodePosition(5),
+        },
+        lastActivityAt: 1,
+      };
+      const privateService = service as unknown as {
+        createRemotePresenceDecorations: (
+          sessions: PresenceSession[],
+          documentId: string,
+          ydoc: Y.Doc,
+          yXmlFragment: Y.XmlFragment,
+          yjsMapping: Map<unknown, { nodeSize?: number }>,
+          doc: ProseMirrorDoc
+        ) => { find: (from: number, to: number) => unknown[] };
+        createRemoteCursorElement: (session: PresenceSession) => HTMLElement;
+      };
+
+      const decorations = privateService.createRemotePresenceDecorations(
+        [session],
+        testDocumentId,
+        ydoc,
+        yXmlFragment,
+        new Map(),
+        doc
+      );
+
+      expect(decorations.find(0, doc.content.size)).toHaveLength(2);
+      const cursor = privateService.createRemoteCursorElement(session);
+      expect(cursor.dataset['presenceSessionId']).toBe('session-1');
+      expect(cursor.textContent).toBe('peer');
+      expect(cursor.style.borderColor).toBe('rgb(51, 102, 153)');
+    });
+
+    it('skips sessions whose selection documentId does not match', () => {
+      const ydoc = new Y.Doc();
+      const yXmlFragment = ydoc.getXmlFragment('prosemirror');
+      const doc = testSchema.node('doc', null, [
+        testSchema.node('paragraph', null, [testSchema.text('hi')]),
+      ]);
+      const encodePosition = (index: number) =>
+        Y.encodeRelativePosition(
+          Y.createRelativePositionFromTypeIndex(yXmlFragment, index)
+        );
+      const session: PresenceSession = {
+        sessionId: 'session-other',
+        user: { id: 'u2', username: 'bob', color: '#ff0000' },
+        status: 'active',
+        location: { kind: 'document', documentId: 'other-doc' },
+        selection: {
+          kind: 'prosemirror',
+          documentId: 'other-doc',
+          anchor: encodePosition(0),
+          head: encodePosition(1),
+        },
+        lastActivityAt: 1,
+      };
+      const privateService = service as unknown as {
+        createRemotePresenceDecorations: (
+          sessions: PresenceSession[],
+          documentId: string,
+          ydoc: Y.Doc,
+          yXmlFragment: Y.XmlFragment,
+          yjsMapping: Map<unknown, unknown>,
+          doc: ProseMirrorDoc
+        ) => { find: (from: number, to: number) => unknown[] };
+      };
+
+      // documentId 'test-doc' doesn't match session's 'other-doc'
+      const decorations = privateService.createRemotePresenceDecorations(
+        [session],
+        testDocumentId,
+        ydoc,
+        yXmlFragment,
+        new Map(),
+        doc
+      );
+      expect(decorations.find(0, doc.content.size)).toHaveLength(0);
+    });
+
+    it('skips sessions with no selection', () => {
+      const ydoc = new Y.Doc();
+      const yXmlFragment = ydoc.getXmlFragment('prosemirror');
+      const doc = testSchema.node('doc', null, [
+        testSchema.node('paragraph', null, [testSchema.text('hi')]),
+      ]);
+      const session: PresenceSession = {
+        sessionId: 'session-nosel',
+        user: { id: 'u3', username: 'charlie', color: '#00ff00' },
+        status: 'active',
+        location: { kind: 'document', documentId: testDocumentId },
+        lastActivityAt: 1,
+      };
+      const privateService = service as unknown as {
+        createRemotePresenceDecorations: (
+          sessions: PresenceSession[],
+          documentId: string,
+          ydoc: Y.Doc,
+          yXmlFragment: Y.XmlFragment,
+          yjsMapping: Map<unknown, unknown>,
+          doc: ProseMirrorDoc
+        ) => { find: (from: number, to: number) => unknown[] };
+      };
+
+      const decorations = privateService.createRemotePresenceDecorations(
+        [session],
+        testDocumentId,
+        ydoc,
+        yXmlFragment,
+        new Map(),
+        doc
+      );
+      expect(decorations.find(0, doc.content.size)).toHaveLength(0);
+    });
+
+    it('renders only cursor widget (no selection decoration) when anchor equals head', () => {
+      const ydoc = new Y.Doc();
+      const yXmlFragment = ydoc.getXmlFragment('prosemirror');
+      yXmlFragment.insert(
+        0,
+        Array.from('hello').map(ch => new Y.XmlText(ch))
+      );
+      const doc = testSchema.node('doc', null, [
+        testSchema.node('paragraph', null, [testSchema.text('hello')]),
+      ]);
+      const encodePosition = (index: number) =>
+        Y.encodeRelativePosition(
+          Y.createRelativePositionFromTypeIndex(yXmlFragment, index)
+        );
+      const session: PresenceSession = {
+        sessionId: 'session-cursor',
+        user: { id: 'u4', username: 'dave', color: '#336699' },
+        status: 'editing',
+        location: { kind: 'document', documentId: testDocumentId },
+        selection: {
+          kind: 'prosemirror',
+          documentId: testDocumentId,
+          anchor: encodePosition(2),
+          head: encodePosition(2), // same position → collapsed selection
+        },
+        lastActivityAt: 1,
+      };
+      const privateService = service as unknown as {
+        createRemotePresenceDecorations: (
+          sessions: PresenceSession[],
+          documentId: string,
+          ydoc: Y.Doc,
+          yXmlFragment: Y.XmlFragment,
+          yjsMapping: Map<unknown, unknown>,
+          doc: ProseMirrorDoc
+        ) => { find: (from: number, to: number) => unknown[] };
+      };
+
+      const decorations = privateService.createRemotePresenceDecorations(
+        [session],
+        testDocumentId,
+        ydoc,
+        yXmlFragment,
+        new Map(),
+        doc
+      );
+      // Only the cursor widget, not the selection range decoration
+      expect(decorations.find(0, doc.content.size)).toHaveLength(1);
+    });
+
+    it('colorWithAlpha returns original color for non-hex input', () => {
+      const privateService = service as unknown as {
+        colorWithAlpha: (color: string, alpha: number) => string;
+      };
+      expect(privateService.colorWithAlpha('red', 0.5)).toBe('red');
+      expect(privateService.colorWithAlpha('rgb(1,2,3)', 0.5)).toBe(
+        'rgb(1,2,3)'
+      );
+    });
+
+    it('colorWithAlpha correctly converts hex to rgba', () => {
+      const privateService = service as unknown as {
+        colorWithAlpha: (color: string, alpha: number) => string;
+      };
+      expect(privateService.colorWithAlpha('#336699', 0.18)).toBe(
+        'rgba(51, 102, 153, 0.18)'
+      );
+    });
+
+    it('relativePositionToAbsolutePosition returns null for unresolvable position', () => {
+      // A relative position encoded against one doc cannot be resolved in another
+      const ydoc1 = new Y.Doc();
+      const yXmlFragment1 = ydoc1.getXmlFragment('prosemirror');
+      yXmlFragment1.insert(0, [new Y.XmlText('hello')]);
+
+      const ydoc2 = new Y.Doc(); // different doc — position won't resolve
+      const yXmlFragment2 = ydoc2.getXmlFragment('prosemirror');
+
+      const relPos = Y.createRelativePositionFromTypeIndex(yXmlFragment1, 0);
+      const encoded = Y.encodeRelativePosition(relPos);
+
+      const privateService = service as unknown as {
+        relativePositionToAbsolutePosition: (
+          relPos: Y.RelativePosition,
+          ydoc: Y.Doc,
+          yXmlFragment: Y.XmlFragment,
+          mapping: Map<unknown, unknown>
+        ) => number | null;
+      };
+
+      const result = privateService.relativePositionToAbsolutePosition(
+        Y.decodeRelativePosition(encoded),
+        ydoc2,
+        yXmlFragment2,
+        new Map()
+      );
+      expect(result).toBeNull();
+    });
+
+    it('yjsMappedNodeSize returns XmlText length for XmlText', () => {
+      const ydoc = new Y.Doc();
+      const xmlText = new Y.XmlText('hello');
+      ydoc.getXmlFragment('x').insert(0, [xmlText]);
+
+      const privateService = service as unknown as {
+        yjsMappedNodeSize: (
+          yjsType: Y.AbstractType<unknown>,
+          mapping: Map<unknown, unknown>
+        ) => number;
+      };
+
+      expect(
+        privateService.yjsMappedNodeSize(
+          xmlText as unknown as Y.AbstractType<unknown>,
+          new Map()
+        )
+      ).toBe(5);
+    });
+
+    it('yjsMappedNodeSize returns 0 for unmapped type', () => {
+      const ydoc = new Y.Doc();
+      const xmlEl = new Y.XmlElement('p');
+      ydoc.getXmlFragment('x').insert(0, [xmlEl]);
+
+      const privateService = service as unknown as {
+        yjsMappedNodeSize: (
+          yjsType: Y.AbstractType<unknown>,
+          mapping: Map<unknown, unknown>
+        ) => number;
+      };
+
+      expect(
+        privateService.yjsMappedNodeSize(
+          xmlEl as unknown as Y.AbstractType<unknown>,
+          new Map()
+        )
+      ).toBe(0);
+    });
+
+    it('yjsMappedNodeSize sums nodeSize for array-mapped type', () => {
+      const ydoc = new Y.Doc();
+      const xmlEl = new Y.XmlElement('p');
+      ydoc.getXmlFragment('x').insert(0, [xmlEl]);
+
+      const privateService = service as unknown as {
+        yjsMappedNodeSize: (
+          yjsType: Y.AbstractType<unknown>,
+          mapping: Map<unknown, unknown>
+        ) => number;
+      };
+
+      const mapping = new Map<unknown, unknown>([
+        [xmlEl, [{ nodeSize: 3 }, { nodeSize: 5 }]],
+      ]);
+      expect(
+        privateService.yjsMappedNodeSize(
+          xmlEl as unknown as Y.AbstractType<unknown>,
+          mapping
+        )
+      ).toBe(8);
     });
   });
 
@@ -1102,7 +1417,7 @@ describe('DocumentService', () => {
           '',
           expect.any(Y.Doc),
           'test-auth-token',
-          { resyncInterval: 10000 }
+          { resyncInterval: 60000 }
         );
         expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
         expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
@@ -1226,7 +1541,7 @@ describe('DocumentService', () => {
           '',
           expect.any(Y.Doc),
           'test-auth-token',
-          { resyncInterval: 10000 }
+          { resyncInterval: 60000 }
         );
         expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
         expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
@@ -1328,7 +1643,7 @@ describe('DocumentService', () => {
           '',
           expect.any(Y.Doc),
           'test-auth-token',
-          { resyncInterval: 10000 }
+          { resyncInterval: 60000 }
         );
         expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
         expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);

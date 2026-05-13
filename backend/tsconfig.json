@@ -18,7 +18,9 @@
     "paths": {
       "@/*": ["./src/*"],
       "@inkweld/prosemirror": ["../packages/inkweld-prosemirror/src/index"],
-      "@inkweld/prosemirror/*": ["../packages/inkweld-prosemirror/src/*/index"]
+      "@inkweld/prosemirror/*": ["../packages/inkweld-prosemirror/src/*/index"],
+      "@inkweld/presence": ["../packages/inkweld-presence/src/index"],
+      "@inkweld/presence/*": ["../packages/inkweld-presence/src/*/index"]
     }
   },
   "include": [
@@ -28,7 +30,8 @@
     "../packages/inkweld-prosemirror/src/xml/**/*",
     "../packages/inkweld-prosemirror/src/markdown/**/*",
     "../packages/inkweld-prosemirror/src/uri/**/*",
-    "../packages/inkweld-prosemirror/src/runtime/**/*"
+    "../packages/inkweld-prosemirror/src/runtime/**/*",
+    "../packages/inkweld-presence/src/**/*"
   ],
   "exclude": [
     "node_modules",

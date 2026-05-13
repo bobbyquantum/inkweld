@@ -17,8 +17,8 @@ import { LoggerService } from '../core/logger.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
 import {
   type IElementSyncProvider,
-  type LocalAwarenessFields,
-  type PresenceUser,
+  type LocalPresenceFields,
+  type PresenceSession,
   type ProjectMeta,
   type SyncConnectionConfig,
   type SyncConnectionResult,
@@ -113,14 +113,14 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
   /**
    * Local-only provider has no real-time peers, so presence is always empty.
    */
-  readonly remotePresence$: Observable<PresenceUser[]> = new BehaviorSubject<
-    PresenceUser[]
+  readonly remotePresence$: Observable<PresenceSession[]> = new BehaviorSubject<
+    PresenceSession[]
   >([]).asObservable();
 
   /**
    * No-op for local-only mode (no peers to broadcast to).
    */
-  setLocalAwareness(_fields: LocalAwarenessFields): void {
+  setLocalPresence(_fields: LocalPresenceFields): void {
     // Intentionally empty: no remote peers in local-only mode.
   }
 

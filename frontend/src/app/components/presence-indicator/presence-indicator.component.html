@@ -1,13 +1,18 @@
 @if (activeUsers().length > 0) {
   <div class="presence-container" data-testid="presence-indicator">
     <div class="presence-avatars">
-      @for (user of displayedUsers(); track user.clientId) {
+      @for (user of displayedUsers(); track user.sessionId) {
         <div
           class="presence-avatar"
-          [matTooltip]="user.username"
+          [class.presence-avatar--editing]="user.status === 'editing'"
+          [class.presence-avatar--idle]="user.status === 'idle'"
+          [matTooltip]="tooltipFor(user)"
           matTooltipPosition="below">
-          <app-user-avatar [username]="user.username" size="small">
+          <app-user-avatar [username]="user.user.username" size="small">
           </app-user-avatar>
+          <span class="presence-badge" aria-hidden="true">{{
+            user.status === 'editing' ? '✎' : '…'
+          }}</span>
         </div>
       }
       @if (overflowCount() > 0) {

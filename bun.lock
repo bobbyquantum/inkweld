@@ -13,6 +13,18 @@
         "prettier": "^3.8.1",
       },
     },
+    "packages/inkweld-presence": {
+      "name": "@inkweld/presence",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@vitest/coverage-v8": "^4.0.16",
+        "lib0": "^0.2.117",
+        "vitest": "^4.0.16",
+      },
+      "peerDependencies": {
+        "lib0": "^0.2.117",
+      },
+    },
     "packages/inkweld-prosemirror": {
       "name": "@inkweld/prosemirror",
       "version": "0.1.0",
@@ -82,6 +94,8 @@
     "@emnapi/runtime": ["@emnapi/runtime@1.10.0", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-ewvYlk86xUoGI0zQRNq/mC+16R1QeDlKQy21Ki3oSYXNgLb45GV1P6A0M+/s6nyCuNDqe5VpaY84BzXGwVbwFA=="],
 
     "@emnapi/wasi-threads": ["@emnapi/wasi-threads@1.2.1", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-uTII7OYF+/Mes/MrcIOYp5yOtSMLBWSIoLPpcgwipoiKbli6k322tcoFsxoIIxPDqW01SQGAgko4EzZi2BNv2w=="],
+
+    "@inkweld/presence": ["@inkweld/presence@workspace:packages/inkweld-presence"],
 
     "@inkweld/prosemirror": ["@inkweld/prosemirror@workspace:packages/inkweld-prosemirror"],
 

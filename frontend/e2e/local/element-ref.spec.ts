@@ -53,7 +53,7 @@ async function insertFirstElementRef(page: Page): Promise<Locator> {
     .locator('[data-testid="element-ref-result-item"]')
     .first();
   await expect(firstResult).toBeVisible();
-  await firstResult.click();
+  await firstResult.press('Enter');
   await expect(popup).not.toBeVisible();
 
   const elementRef = page.locator('.element-ref').first();
