@@ -79,7 +79,7 @@ async function runMigrations(database: BunDatabaseInstance): Promise<void> {
     // This happens when the database is already initialized
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes('already exists')) {
-      dbLogger.info('Database tables already exist, skipping migrations');
+      dbLogger.info(`Database tables already exist, skipping migrations (error: ${errorMessage})`);
       migrationsApplied = true;
       return;
     }
