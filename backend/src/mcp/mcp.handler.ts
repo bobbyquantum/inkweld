@@ -36,7 +36,11 @@ const SERVER_VERSION = '1.0.0';
 
 interface ResourceHandler {
   getResources: (ctx: McpContext, db: DatabaseInstance) => Promise<McpResource[]>;
-  readResource: (ctx: McpContext, db: DatabaseInstance, uri: string) => Promise<McpResourceContents | null>;
+  readResource: (
+    ctx: McpContext,
+    db: DatabaseInstance,
+    uri: string
+  ) => Promise<McpResourceContents | null>;
 }
 
 const resourceHandlers: ResourceHandler[] = [];
@@ -55,7 +59,11 @@ export function registerResourceHandler(handler: ResourceHandler): void {
 interface ToolHandler {
   tool: McpTool;
   requiredPermissions: string[];
-  execute: (ctx: McpContext, db: DatabaseInstance, args: Record<string, unknown>) => Promise<unknown>;
+  execute: (
+    ctx: McpContext,
+    db: DatabaseInstance,
+    args: Record<string, unknown>
+  ) => Promise<unknown>;
 }
 
 const toolRegistry = new Map<string, ToolHandler>();

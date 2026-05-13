@@ -61,7 +61,9 @@ activityRoutes.get('/projects/:username/:slug', async (c) => {
   const events = await activityService.listForProject(db, project.id, limit, before);
 
   // Resolve actor usernames in one batch (de-duped). Skip null userIds (MCP actors).
-  const userIds = Array.from(new Set(events.map((e) => e.userId).filter((id): id is string => id != null)));
+  const userIds = Array.from(
+    new Set(events.map((e) => e.userId).filter((id): id is string => id != null))
+  );
   const userMap = new Map<string, string>();
   await Promise.all(
     userIds.map(async (uid) => {
@@ -126,7 +128,9 @@ activityRoutes.get('/me', async (c) => {
   const before = parseBefore(c.req.query('before'));
   const events = await activityService.listForProjects(db, projectIds, limit, before);
 
-  const userIds = Array.from(new Set(events.map((e) => e.userId).filter((id): id is string => id != null)));
+  const userIds = Array.from(
+    new Set(events.map((e) => e.userId).filter((id): id is string => id != null))
+  );
   const userMap = new Map<string, string>();
   await Promise.all(
     userIds.map(async (uid) => {

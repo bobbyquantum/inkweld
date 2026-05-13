@@ -35,7 +35,7 @@ export interface ProjectActivityEvent {
    * Display label for non-user actors (e.g. MCP API key name or "MCP").
    * Set when `userId` is null; null for human-user events.
    */
-  actorLabel: string | null;
+  actorLabel?: string | null;
   eventType: ActivityEventType;
   /** Type-specific entity reference (snapshot id, element id, …). */
   entityId: string | null;
