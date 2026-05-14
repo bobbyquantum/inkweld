@@ -48,9 +48,7 @@ const mcpMutLog = logger.child('MCP-Mutation');
  * `actorLabel` (the key's display name, or "MCP" as a fallback).
  */
 function mcpActor(ctx: McpContext): { userId: string } | { actorLabel: string } {
-  return ctx.type === 'oauth'
-    ? { userId: ctx.userId }
-    : { actorLabel: ctx.key.name || 'MCP' };
+  return ctx.type === 'oauth' ? { userId: ctx.userId } : { actorLabel: ctx.key.name || 'MCP' };
 }
 import {
   insertElement,
@@ -1858,24 +1856,21 @@ registerTool({
       // Get userId from context (only available for OAuth auth)
       const userId = ctx.type === 'oauth' ? ctx.userId : 'mcp-api-key';
 
-      const snapshot = await documentSnapshotService.create(
-        db,
-        {
-          documentId: elementId,
-          projectId,
-          userId,
-          name,
-          description,
-          xmlContent,
-          worldbuildingData: worldbuildingData ?? undefined,
-          wordCount,
-          metadata: {
-            createdBy: 'mcp',
-            elementName: element.name,
-            elementType: element.type,
-          },
-        }
-      );
+      const snapshot = await documentSnapshotService.create(db, {
+        documentId: elementId,
+        projectId,
+        userId,
+        name,
+        description,
+        xmlContent,
+        worldbuildingData: worldbuildingData ?? undefined,
+        wordCount,
+        metadata: {
+          createdBy: 'mcp',
+          elementName: element.name,
+          elementType: element.type,
+        },
+      });
 
       return {
         content: [
