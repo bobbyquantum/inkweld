@@ -69,5 +69,6 @@ android {
 }
 
 dependencies {
+    implementation("com.google.android.material:material:1.12.0")
     implementation("com.google.androidbrowserhelper:androidbrowserhelper:2.5.0")
 }
