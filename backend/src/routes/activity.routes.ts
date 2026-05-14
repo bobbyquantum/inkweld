@@ -24,7 +24,7 @@ import { collaborationService } from '../services/collaboration.service';
 import { activityService } from '../services/activity.service';
 import { userService } from '../services/user.service';
 import { UnauthorizedError, ForbiddenError, NotFoundError } from '../errors';
-import { type AppContext } from '../types/context';
+import { type AppContext, type DatabaseInstance } from '../types/context';
 
 const activityRoutes = new OpenAPIHono<AppContext>();
 
@@ -40,6 +40,24 @@ function parseBefore(raw: string | undefined): number | undefined {
   if (!raw) return undefined;
   const n = Number.parseInt(raw, 10);
   return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+/** Batch-resolve userIds → usernames, ignoring null ids (e.g. MCP actors). */
+async function resolveUsernames(
+  db: DatabaseInstance,
+  events: { userId: string | null }[]
+): Promise<Map<string, string>> {
+  const userIds = Array.from(
+    new Set(events.map((e) => e.userId).filter((id): id is string => id != null))
+  );
+  const userMap = new Map<string, string>();
+  await Promise.all(
+    userIds.map(async (uid) => {
+      const u = await userService.findById(db, uid).catch(() => null);
+      if (u?.username) userMap.set(uid, u.username);
+    })
+  );
+  return userMap;
 }
 
 activityRoutes.get('/projects/:username/:slug', async (c) => {
@@ -60,22 +78,15 @@ activityRoutes.get('/projects/:username/:slug', async (c) => {
   const before = parseBefore(c.req.query('before'));
   const events = await activityService.listForProject(db, project.id, limit, before);
 
-  // Resolve actor usernames in one batch (de-duped).
-  const userIds = Array.from(new Set(events.map((e) => e.userId)));
-  const userMap = new Map<string, string>();
-  await Promise.all(
-    userIds.map(async (uid) => {
-      const u = await userService.findById(db, uid).catch(() => null);
-      if (u?.username) userMap.set(uid, u.username);
-    })
-  );
+  const userMap = await resolveUsernames(db, events);
 
   return c.json({
     events: events.map((e) => ({
       id: e.id,
       projectId: e.projectId,
       userId: e.userId,
-      username: userMap.get(e.userId) ?? null,
+      username: e.userId ? (userMap.get(e.userId) ?? null) : null,
+      actorLabel: e.actorLabel ?? null,
       eventType: e.eventType,
       entityId: e.entityId,
       entityName: e.entityName,
@@ -125,14 +136,7 @@ activityRoutes.get('/me', async (c) => {
   const before = parseBefore(c.req.query('before'));
   const events = await activityService.listForProjects(db, projectIds, limit, before);
 
-  const userIds = Array.from(new Set(events.map((e) => e.userId)));
-  const userMap = new Map<string, string>();
-  await Promise.all(
-    userIds.map(async (uid) => {
-      const u = await userService.findById(db, uid).catch(() => null);
-      if (u?.username) userMap.set(uid, u.username);
-    })
-  );
+  const userMap = await resolveUsernames(db, events);
 
   return c.json({
     events: events.map((e) => {
@@ -144,7 +148,8 @@ activityRoutes.get('/me', async (c) => {
         projectTitle: proj?.title ?? null,
         projectOwnerUsername: proj?.ownerUsername ?? null,
         userId: e.userId,
-        username: userMap.get(e.userId) ?? null,
+        username: e.userId ? (userMap.get(e.userId) ?? null) : null,
+        actorLabel: e.actorLabel ?? null,
         eventType: e.eventType,
         entityId: e.entityId,
         entityName: e.entityName,

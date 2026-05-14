@@ -176,6 +176,13 @@
       "when": 1778280193142,
       "tag": "0025_add-writing-sessions-and-activity-events",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1778370000000,
+      "tag": "0026_mcp-activity-actor",
+      "breakpoints": true
     }
   ]
 }
