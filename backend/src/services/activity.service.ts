@@ -13,6 +13,30 @@ const log = logger.child('Activity');
 /** Default coalesce window for repeat document_edit events: 5 minutes (ms). */
 export const DEFAULT_EDIT_COALESCE_WINDOW_MS = 5 * 60 * 1000;
 
+/** Build a new {@link InsertActivityEvent} row with a fresh id and timestamp. */
+function buildRow(fields: {
+  projectId: string;
+  userId?: string | null;
+  actorLabel?: string | null;
+  eventType: ActivityEventType;
+  entityId?: string | null;
+  entityName?: string | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt?: number;
+}): InsertActivityEvent {
+  return {
+    id: crypto.randomUUID(),
+    projectId: fields.projectId,
+    userId: fields.userId ?? null,
+    actorLabel: fields.actorLabel ?? null,
+    eventType: fields.eventType,
+    entityId: fields.entityId ?? null,
+    entityName: fields.entityName ?? null,
+    metadata: fields.metadata ?? null,
+    createdAt: fields.createdAt ?? Date.now(),
+  };
+}
+
 /**
  * Append-only log of meaningful project events. Events are emitted as a
  * side effect by the route handler that performs the underlying mutation;
@@ -27,12 +51,17 @@ class ActivityService {
   /**
    * Emit an event. Swallows errors so a failed log write never blocks the
    * underlying user action.
+   *
+   * Either `userId` or `actorLabel` must be provided. For human users pass
+   * `userId`; for non-user actors (e.g. MCP API keys) pass `actorLabel` with
+   * the key's display name and omit `userId`.
    */
   async record(
     db: DatabaseInstance,
     data: {
       projectId: string;
-      userId: string;
+      userId?: string | null;
+      actorLabel?: string | null;
       eventType: ActivityEventType;
       entityId?: string | null;
       entityName?: string | null;
@@ -40,17 +69,7 @@ class ActivityService {
     }
   ): Promise<void> {
     try {
-      const row: InsertActivityEvent = {
-        id: crypto.randomUUID(),
-        projectId: data.projectId,
-        userId: data.userId,
-        eventType: data.eventType,
-        entityId: data.entityId ?? null,
-        entityName: data.entityName ?? null,
-        metadata: data.metadata ?? null,
-        createdAt: Date.now(),
-      };
-      await db.insert(activityEvents).values(row);
+      await db.insert(activityEvents).values(buildRow(data));
     } catch (err) {
       // Best-effort: never let activity logging break a user action.
       log.error('Failed to record activity event', err, {
@@ -62,11 +81,15 @@ class ActivityService {
 
   /**
    * Emit a `document_edit` event, coalescing with the most recent matching
-   * event for the same `(projectId, userId, entityId)` if it occurred within
-   * `windowMs` (default 5 min). On coalesce we accumulate `wordsDelta` and
-   * `durationMs`, replace `endWordCount` with the latest value, refresh
-   * `entityName` (in case the document was renamed), and bump `createdAt` so
-   * the event re-surfaces at the top of feeds. Otherwise we insert a new row.
+   * event for the same `(projectId, userId|actorLabel, entityId)` if it
+   * occurred within `windowMs` (default 5 min). On coalesce we accumulate
+   * `wordsDelta` and `durationMs`, replace `endWordCount` with the latest
+   * value, refresh `entityName` (in case the document was renamed), and bump
+   * `createdAt` so the event re-surfaces at the top of feeds. Otherwise we
+   * insert a new row.
+   *
+   * Either `userId` or `actorLabel` must be provided (same contract as
+   * {@link record}).
    *
    * Best-effort like {@link record}: failures are logged and swallowed.
    */
@@ -74,7 +97,8 @@ class ActivityService {
     db: DatabaseInstance,
     data: {
       projectId: string;
-      userId: string;
+      userId?: string | null;
+      actorLabel?: string | null;
       entityId: string;
       entityName?: string | null;
       wordsDelta: number;
@@ -87,8 +111,13 @@ class ActivityService {
     const now = Date.now();
     const windowStart = now - windowMs;
 
+    // Build actor filter: match on userId when set, otherwise on actorLabel.
+    const actorFilter = data.userId
+      ? eq(activityEvents.userId, data.userId)
+      : eq(activityEvents.actorLabel, data.actorLabel ?? '');
+
     try {
-      // Find the most recent document_edit event for this (project, user, entity)
+      // Find the most recent document_edit event for this (project, actor, entity)
       // within the coalesce window. We sort by createdAt DESC and take 1.
       const existing = await db
         .select()
@@ -96,7 +125,7 @@ class ActivityService {
         .where(
           and(
             eq(activityEvents.projectId, data.projectId),
-            eq(activityEvents.userId, data.userId),
+            actorFilter,
             eq(activityEvents.eventType, 'document_edit'),
             eq(activityEvents.entityId, data.entityId),
             gte(activityEvents.createdAt, windowStart)
@@ -130,21 +159,22 @@ class ActivityService {
       }
 
       // No existing event in window — insert a fresh one.
-      const row: InsertActivityEvent = {
-        id: crypto.randomUUID(),
-        projectId: data.projectId,
-        userId: data.userId,
-        eventType: 'document_edit',
-        entityId: data.entityId,
-        entityName: data.entityName ?? null,
-        metadata: {
-          wordsDelta: data.wordsDelta,
-          endWordCount: data.endWordCount,
-          durationMs: data.durationMs,
-        },
-        createdAt: now,
-      };
-      await db.insert(activityEvents).values(row);
+      await db.insert(activityEvents).values(
+        buildRow({
+          projectId: data.projectId,
+          userId: data.userId,
+          actorLabel: data.actorLabel,
+          eventType: 'document_edit',
+          entityId: data.entityId,
+          entityName: data.entityName,
+          metadata: {
+            wordsDelta: data.wordsDelta,
+            endWordCount: data.endWordCount,
+            durationMs: data.durationMs,
+          },
+          createdAt: now,
+        })
+      );
     } catch (err) {
       log.error('Failed to record/coalesce document_edit event', err, {
         projectId: data.projectId,

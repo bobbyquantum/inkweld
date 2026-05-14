@@ -135,7 +135,7 @@ export class ActivityTabComponent {
   }
 
   protected describe(event: ProjectActivityEvent): string {
-    const who = event.username ?? 'Someone';
+    const who = event.username ?? event.actorLabel ?? 'Someone';
     const name = event.entityName ?? '';
     const ofName = name ? ` of ${name}` : '';
     const onName = name ? ` on ${name}` : '';

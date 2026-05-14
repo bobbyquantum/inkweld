@@ -37,6 +37,7 @@ export async function setupBunDatabase(dbPath: string): Promise<BunSQLiteDatabas
   db = drizzle(sqlite, { schema });
 
   await runMigrations(db);
+  applySchemaPatches(sqlite);
 
   // Seed default admin if configured
   await seedDefaultAdmin(db);
@@ -52,6 +53,24 @@ export function getBunDatabase(): BunSQLiteDatabase<typeof schema> {
 }
 
 export type BunDatabaseInstance = BunSQLiteDatabase<typeof schema>;
+
+/**
+ * Apply schema patches that Drizzle migrations may not have applied due to
+ * transaction rollback or version differences. These are idempotent checks.
+ */
+function applySchemaPatches(database: BunDatabase): void {
+  // Ensure actor_label column exists on activity_events (added in migration 0026).
+  // We check and add directly via the raw SQLite connection to guarantee it
+  // runs outside of any Drizzle transaction.
+  const cols: { name: string }[] = database.query('PRAGMA table_info(activity_events)').all() as {
+    name: string;
+  }[];
+  const hasActorLabel = cols.some((c) => c.name === 'actor_label');
+  if (!hasActorLabel) {
+    dbLogger.info('Applying schema patch: adding actor_label column to activity_events');
+    database.exec('ALTER TABLE activity_events ADD COLUMN actor_label TEXT');
+  }
+}
 
 async function runMigrations(database: BunDatabaseInstance): Promise<void> {
   if (migrationsApplied) {
@@ -79,7 +98,7 @@ async function runMigrations(database: BunDatabaseInstance): Promise<void> {
     // This happens when the database is already initialized
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes('already exists')) {
-      dbLogger.info('Database tables already exist, skipping migrations');
+      dbLogger.info(`Database tables already exist, skipping migrations (error: ${errorMessage})`);
       migrationsApplied = true;
       return;
     }
