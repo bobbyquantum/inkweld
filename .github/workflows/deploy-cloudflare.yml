@@ -49,6 +49,16 @@ jobs:
         run: |
           printf 'name = "inkweld-frontend-preview"\ncompatibility_date = "2025-01-01"\npages_build_output_dir = "dist/browser"\n' > frontend/wrangler.toml
 
+      # Generate preview environment file from secrets
+      - name: Generate preview environment file
+        working-directory: frontend
+        run: |
+          printf 'export const environment = {\n  production: true,\n  version: "0.1.0",\n  apiUrl: "%s",\n  wssUrl: "%s",\n};\n' \
+            "$PREVIEW_API_URL" "$PREVIEW_WSS_URL" > src/environments/environment.preview.ts
+        env:
+          PREVIEW_API_URL: ${{ secrets.PREVIEW_API_URL }}
+          PREVIEW_WSS_URL: ${{ secrets.PREVIEW_WSS_URL }}
+
       # Build frontend (preview config) + backend
       - name: Build frontend
         working-directory: frontend

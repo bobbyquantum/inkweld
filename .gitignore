@@ -13,6 +13,16 @@ backend/node_modules
 backend/wrangler.toml
 frontend/wrangler.toml
 
+# TWA / Bubblewrap (generated config and secrets)
+android/inkweld-release.keystore
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/captures/
+android/.externalNativeBuild/
+twa-manifest.json
+
 # TypeScript build info
 *.tsbuildinfo
 

@@ -656,6 +656,16 @@ const falaiModelsCacheByCategory: Record<
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+function getAppUrl(c: { env: unknown }): string {
+  return (
+    (c.env as Record<string, string>)?.['BASE_URL'] || process.env.BASE_URL || 'https://inkweld.app'
+  );
+}
+
+function getAppName(c: { env: unknown }): string {
+  return (c.env as Record<string, string>)?.['APP_NAME'] || process.env.APP_NAME || 'Inkweld';
+}
+
 // Get OpenRouter models
 const getOpenRouterModelsRoute = createRoute({
   method: 'get',
@@ -711,8 +721,8 @@ aiProvidersRoutes.openapi(getOpenRouterModelsRoute, async (c) => {
     const response = await fetch('https://openrouter.ai/api/v1/models', {
       headers: {
         Authorization: `Bearer ${apiKeyConfig.value}`,
-        'HTTP-Referer': 'https://inkweld.app',
-        'X-Title': 'Inkweld',
+        'HTTP-Referer': getAppUrl(c),
+        'X-Title': getAppName(c),
       },
     });
 
@@ -840,8 +850,8 @@ aiProvidersRoutes.openapi(getOpenRouterImageModelsRoute, async (c) => {
     // including FLUX, Gemini, GPT-5 Image, and other image generation models
     const response = await fetch('https://openrouter.ai/api/frontend/models', {
       headers: {
-        'HTTP-Referer': 'https://inkweld.app',
-        'X-Title': 'Inkweld',
+        'HTTP-Referer': getAppUrl(c),
+        'X-Title': getAppName(c),
       },
     });
 

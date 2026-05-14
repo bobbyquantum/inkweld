@@ -2,39 +2,41 @@
  * Cloudflare Pages Function: Dynamic MCP redirect
  *
  * Provides a friendly URL for the MCP endpoint:
- * - preview.inkweld.app/mcp → api.preview.inkweld.app/api/v1/ai/mcp
- * - inkweld.app/mcp → api.inkweld.app/api/v1/ai/mcp
+ *   /mcp → <api-backend-host>/api/v1/ai/mcp
  *
- * This allows users to configure their AI assistants with a simple URL
- * instead of remembering the full API path.
+ * The API host is determined from the frontend hostname:
+ *   - preview.<domain> → api.preview.<domain>
+ *   - <domain>         → api.<domain>
+ *   - localhost        → localhost:8333
+ *   - *.pages.dev      → corresponding *.workers.dev (fallback: api.<hostname>)
+ *
+ * Custom BACKEND_API_HOST env var can override auto-detection.
  */
-
 interface Env {
-  // Add any environment bindings here if needed
+  BACKEND_API_HOST?: string;
 }
 
 export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(context.request.url);
   const hostname = url.hostname;
 
-  // Determine the API backend URL based on the frontend hostname
   let apiHost: string;
 
-  if (hostname.includes('preview.inkweld.app') || hostname.includes('pages.dev')) {
-    // Preview/staging environment
-    apiHost = 'api.preview.inkweld.app';
-  } else if (hostname.includes('inkweld.app')) {
-    // Production environment
-    apiHost = 'api.inkweld.app';
+  if (context.env.BACKEND_API_HOST) {
+    apiHost = context.env.BACKEND_API_HOST;
+  } else if (hostname.includes('localhost')) {
+    apiHost = 'localhost:8333';
+  } else if (hostname.startsWith('preview.')) {
+    apiHost = `api.preview.${hostname.replace('preview.', '')}`;
+  } else if (hostname.includes('pages.dev')) {
+    apiHost = `api.${hostname}`;
   } else {
-    // Local development or unknown - assume same host with port 8333
-    apiHost = hostname.includes('localhost') ? 'localhost:8333' : `api.${hostname}`;
+    apiHost = `api.${hostname}`;
   }
 
-  // Build the redirect URL preserving any query parameters
   const protocol = hostname.includes('localhost') ? 'http' : 'https';
   const redirectUrl = new URL(`${protocol}://${apiHost}/api/v1/ai/mcp`);
-  redirectUrl.search = url.search; // Preserve query params
+  redirectUrl.search = url.search;
 
   return Response.redirect(redirectUrl.toString(), 302);
 };
