@@ -22,10 +22,12 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = project.findProperty("KEYSTORE_PATH")?.let { rootProject.file(it) }
-            storePassword = project.findProperty("KEYSTORE_PASSWORD") as? String
-            keyAlias = project.findProperty("KEY_ALIAS") as? String
-            keyPassword = project.findProperty("KEY_PASSWORD") as? String
+            storeFile = rootProject.file(
+                project.findProperty("KEYSTORE_PATH") as String? ?: "inkweld-release.keystore"
+            )
+            storePassword = project.findProperty("KEYSTORE_PASSWORD") as String?
+            keyAlias = project.findProperty("KEY_ALIAS") as String?
+            keyPassword = project.findProperty("KEY_PASSWORD") as String?
         }
     }
 
