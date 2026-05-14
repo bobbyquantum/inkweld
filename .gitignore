@@ -15,6 +15,7 @@ frontend/wrangler.toml
 
 # TWA / Bubblewrap (generated config and secrets)
 android/inkweld-release.keystore
+keystore.txt
 android/app/build/
 android/build/
 android/.gradle/

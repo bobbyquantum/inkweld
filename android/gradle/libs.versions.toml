@@ -1,0 +1,7 @@
+[versions]
+material = "1.12.0"
+androidbrowserhelper = "2.5.0"
+
+[libraries]
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidbrowserhelper = { group = "com.google.androidbrowserhelper", name = "androidbrowserhelper", version.ref = "androidbrowserhelper" }
