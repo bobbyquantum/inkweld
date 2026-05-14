@@ -42,7 +42,7 @@ jobs:
       - name: Write backend wrangler.toml
         env:
           BACKEND_WRANGLER_TOML: ${{ secrets.BACKEND_WRANGLER_TOML }}
-        run: echo "${BACKEND_WRANGLER_TOML}" > backend/wrangler.toml
+        run: printf '%s' "${BACKEND_WRANGLER_TOML}" > backend/wrangler.toml
 
       - name: Write frontend wrangler.toml
         run: |

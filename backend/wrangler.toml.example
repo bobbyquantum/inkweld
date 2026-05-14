@@ -65,6 +65,7 @@ PORT = "8333"
 DB_TYPE = "d1"
 BASE_URL = "http://localhost:8333"
 FRONTEND_URL = "http://localhost:4200"
+APP_NAME = "Inkweld"
 ALLOWED_ORIGINS = "http://localhost:4200,http://localhost:4400"
 USER_APPROVAL_REQUIRED = "false"
 GITHUB_ENABLED = "false"
@@ -106,6 +107,7 @@ PORT = "8333"
 DB_TYPE = "d1"
 BASE_URL = "https://api.preview.yourdomain.com"
 FRONTEND_URL = "https://preview.yourdomain.com"
+APP_NAME = "Inkweld"
 # Must match your frontend domain (e.g. "preview.inkweld.app").
 # IMMUTABLE after any user registers a passkey.
 WEBAUTHN_RP_ID = "your-preview-domain.com"
@@ -153,6 +155,7 @@ PORT = "8333"
 DB_TYPE = "d1"
 BASE_URL = "https://api.yourdomain.com"
 FRONTEND_URL = "https://yourdomain.com"
+APP_NAME = "Inkweld"
 # Must match your frontend domain (e.g. "app.inkweld.app").
 # IMMUTABLE after any user registers a passkey.
 WEBAUTHN_RP_ID = "your-production-domain.com"
