@@ -62,7 +62,9 @@ jobs:
           sed -i 's|applicationId = "app\.inkweld"|applicationId = "${{ github.event.inputs.package_name }}"|' app/build.gradle.kts
 
       - name: Decode keystore
-        run: mkdir -p android && echo "${{ secrets.TWA_KEYSTORE_BASE64 }}" | base64 -d > android/inkweld-release.keystore
+        env:
+          TWA_KEYSTORE_BASE64: ${{ secrets.TWA_KEYSTORE_BASE64 }}
+        run: mkdir -p android && printf '%s' "${TWA_KEYSTORE_BASE64}" | base64 -d > android/inkweld-release.keystore
 
       - name: Build
         working-directory: android

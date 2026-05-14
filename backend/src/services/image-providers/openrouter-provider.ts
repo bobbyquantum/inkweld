@@ -35,7 +35,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
   readonly name = 'OpenRouter';
 
   private configuredModels: ImageModelInfo[] = [];
-  private appUrl: string = process.env.BASE_URL || 'https://inkweld.app';
+  private appUrl: string = process.env.FRONTEND_URL || process.env.BASE_URL || 'https://inkweld.app';
   private appName: string = process.env.APP_NAME || 'Inkweld';
 
   constructor(config?: { apiKey?: string; enabled?: boolean; appUrl?: string; appName?: string }) {

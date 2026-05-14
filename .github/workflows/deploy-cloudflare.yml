@@ -39,27 +39,24 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # Write wrangler.toml files from secrets / inline
       - name: Write backend wrangler.toml
-        run: echo "$BACKEND_WRANGLER_TOML" > backend/wrangler.toml
         env:
           BACKEND_WRANGLER_TOML: ${{ secrets.BACKEND_WRANGLER_TOML }}
+        run: echo "${BACKEND_WRANGLER_TOML}" > backend/wrangler.toml
 
       - name: Write frontend wrangler.toml
         run: |
           printf 'name = "inkweld-frontend-preview"\ncompatibility_date = "2025-01-01"\npages_build_output_dir = "dist/browser"\n' > frontend/wrangler.toml
 
-      # Generate preview environment file from secrets
       - name: Generate preview environment file
         working-directory: frontend
-        run: |
-          printf 'export const environment = {\n  production: true,\n  version: "0.1.0",\n  apiUrl: "%s",\n  wssUrl: "%s",\n};\n' \
-            "$PREVIEW_API_URL" "$PREVIEW_WSS_URL" > src/environments/environment.preview.ts
         env:
           PREVIEW_API_URL: ${{ secrets.PREVIEW_API_URL }}
           PREVIEW_WSS_URL: ${{ secrets.PREVIEW_WSS_URL }}
+        run: |
+          printf 'export const environment = {\n  production: true,\n  version: "0.1.0",\n  apiUrl: "%s",\n  wssUrl: "%s",\n};\n' \
+            "${PREVIEW_API_URL}" "${PREVIEW_WSS_URL}" > src/environments/environment.preview.ts
 
-      # Build frontend (preview config) + backend
       - name: Build frontend
         working-directory: frontend
         run: bun run clean && bun run ng build --configuration=preview && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm
@@ -68,7 +65,6 @@ jobs:
         working-directory: backend
         run: bun run generate:frontend-imports && bun run build
 
-      # Deploy frontend to Cloudflare Pages
       - name: Deploy frontend to Cloudflare Pages
         uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
         with:
@@ -76,7 +72,6 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy frontend/dist/browser --project-name=inkweld-frontend-preview --branch=main
 
-      # Run database migrations then deploy backend Worker
       - name: Run database migrations
         uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
         with:
@@ -91,4 +86,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: backend
-          command: deploy --env preview --var BASE_URL:${{ vars.BASE_URL }} --var APP_NAME:${{ vars.APP_NAME }}
+          command: deploy --env preview --var BASE_URL:${{ vars.BASE_URL }} --var FRONTEND_URL:${{ vars.FRONTEND_URL }} --var APP_NAME:${{ vars.APP_NAME }}

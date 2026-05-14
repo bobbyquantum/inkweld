@@ -362,7 +362,11 @@ aiTextRoutes.openapi(optimizeImagePromptRoute, async (c) => {
   }
 
   const appUrl =
-    (c.env as Record<string, string>)?.BASE_URL || process.env.BASE_URL || 'https://inkweld.app';
+    (c.env as Record<string, string>)?.FRONTEND_URL ||
+    (c.env as Record<string, string>)?.BASE_URL ||
+    process.env.FRONTEND_URL ||
+    process.env.BASE_URL ||
+    'https://inkweld.app';
   const appName = (c.env as Record<string, string>)?.APP_NAME || process.env.APP_NAME || 'Inkweld';
 
   // Get the configured image prompt model and provider

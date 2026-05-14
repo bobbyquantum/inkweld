@@ -658,7 +658,11 @@ const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 function getAppUrl(c: { env: unknown }): string {
   return (
-    (c.env as Record<string, string>)?.['BASE_URL'] || process.env.BASE_URL || 'https://inkweld.app'
+    (c.env as Record<string, string>)?.['FRONTEND_URL'] ||
+    process.env.FRONTEND_URL ||
+    (c.env as Record<string, string>)?.['BASE_URL'] ||
+    process.env.BASE_URL ||
+    'https://inkweld.app'
   );
 }
 
