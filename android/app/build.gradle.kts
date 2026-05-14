@@ -48,12 +48,10 @@ android {
     productFlavors {
         create("preview") {
             dimension = "environment"
-            applicationIdSuffix = ".preview"
-            versionNameSuffix = "-preview"
             manifestPlaceholders["twaHost"] = "preview.inkweld.app"
-            manifestPlaceholders["twaAppName"] = "Inkweld Preview"
+            manifestPlaceholders["twaAppName"] = "Inkweld"
             resValue("string", "hostName", "preview.inkweld.app")
-            resValue("string", "twaAppName", "Inkweld Preview")
+            resValue("string", "twaAppName", "Inkweld")
         }
         create("prod") {
             dimension = "environment"
