@@ -113,7 +113,8 @@ function getFingerprint(ksPath: string, alias: string, pw: string): string | nul
     '-keypass', pw,
   ], { encoding: 'utf-8' });
   if (r.status !== 0) return null;
-  const m = r.output.match(/SHA256:\s*([A-F0-9:]+)/i);
+  const output = r.stdout || (Array.isArray(r.output) ? r.output.join('') : String(r.output));
+  const m = output.match(/SHA256:\s*([A-F0-9:]+)/i);
   return m ? m[1].replace(/:/g, '').toLowerCase() : null;
 }
 
