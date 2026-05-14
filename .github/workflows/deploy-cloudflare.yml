@@ -91,4 +91,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: backend
-          command: deploy --env preview
+          command: deploy --env preview --var BASE_URL:${{ vars.BASE_URL }} --var APP_NAME:${{ vars.APP_NAME }}
