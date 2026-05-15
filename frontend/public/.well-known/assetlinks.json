@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.inkweld",
+      "sha256_cert_fingerprints": [
+        "122b3832eeb2ae445a2320cdd6d0a4f93117b07e8868a383cec190a3598bd544"
+      ]
+    }
+  }
+]

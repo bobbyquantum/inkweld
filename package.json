@@ -76,6 +76,13 @@
     "cloudflare:prod:deploy": "npm run build:cloudflare && cd frontend && node ../scripts/cloudflare-deploy.js inkweld-frontend dist/browser && cd ../backend && bun run db:migrate:prod && bun run wrangler deploy --env production",
     "cloudflare:prod:migrate": "cd backend && bun run db:migrate:prod",
     "cloudflare:prod:logs": "cd backend && bun run wrangler tail --env production",
+    "twa:setup": "bun run scripts/twa-setup.ts",
+    "twa:update": "bunx bubblewrap update --manifest twa-manifest.json",
+    "twa:build:preview": "cd android && ./gradlew assemblePreviewRelease",
+    "twa:build:prod": "cd android && ./gradlew assembleProdRelease",
+    "twa:bundle:prod": "cd android && ./gradlew bundleProdRelease",
+    "twa:install:preview": "cd android && ./gradlew installPreviewRelease",
+    "twa:install:prod": "cd android && ./gradlew installProdRelease",
     "clean": "npm run clean:frontend && npm run clean:backend && npm run clean:docs",
     "clean:frontend": "cd frontend && bun run clean && rm -rf node_modules/.cache .angular",
     "clean:backend": "cd backend && rm -rf dist coverage",
@@ -84,6 +91,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "@bubblewrap/cli": "^1.24.1",
     "@commitlint/cli": "^21.0.0",
     "@commitlint/config-conventional": "^21.0.0",
     "concurrently": "^9.2.1",

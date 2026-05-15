@@ -7,10 +7,12 @@
  * Replace YOUR_SUBDOMAIN with your Cloudflare account subdomain.
  * Find it at: https://dash.cloudflare.com → Workers & Pages → Overview
  * It's shown as: <worker-name>.YOUR_SUBDOMAIN.workers.dev
+ *
+ * For custom domains (e.g., api.preview.yourdomain.com), update the URLs accordingly.
  */
 export const environment = {
   production: true,
   version: '0.1.0',
-  apiUrl: 'https://api.preview.inkweld.app',
-  wssUrl: 'wss://api.preview.inkweld.app',
+  apiUrl: 'https://inkweld-backend-preview.YOUR_SUBDOMAIN.workers.dev',
+  wssUrl: 'wss://inkweld-backend-preview.YOUR_SUBDOMAIN.workers.dev',
 };

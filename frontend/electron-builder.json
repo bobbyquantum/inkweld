@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "com.inkweld.app",
+  "appId": "app.inkweld",
   "productName": "Inkweld",
   "copyright": "Copyright © 2025 Inkweld",
   "directories": {

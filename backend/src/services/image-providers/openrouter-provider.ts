@@ -35,9 +35,14 @@ export class OpenRouterImageProvider extends BaseImageProvider {
   readonly name = 'OpenRouter';
 
   private configuredModels: ImageModelInfo[] = [];
+  private appUrl: string =
+    process.env.FRONTEND_URL || process.env.BASE_URL || 'https://inkweld.app';
+  private appName: string = process.env.APP_NAME || 'Inkweld';
 
-  constructor(config?: { apiKey?: string; enabled?: boolean }) {
+  constructor(config?: { apiKey?: string; enabled?: boolean; appUrl?: string; appName?: string }) {
     super(config);
+    if (config?.appUrl) this.appUrl = config.appUrl;
+    if (config?.appName) this.appName = config.appName;
   }
 
   override configure(config: {
@@ -45,11 +50,15 @@ export class OpenRouterImageProvider extends BaseImageProvider {
     endpoint?: string;
     enabled?: boolean;
     models?: ImageModelInfo[];
+    appUrl?: string;
+    appName?: string;
   }): void {
     super.configure(config);
     if (config.models && config.models.length > 0) {
       this.configuredModels = config.models;
     }
+    if (config.appUrl) this.appUrl = config.appUrl;
+    if (config.appName) this.appName = config.appName;
   }
 
   /**
@@ -100,8 +109,8 @@ export class OpenRouterImageProvider extends BaseImageProvider {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://inkweld.app',
-          'X-Title': 'Inkweld',
+          'HTTP-Referer': this.appUrl,
+          'X-Title': this.appName,
         },
         body: JSON.stringify(requestBody),
       });

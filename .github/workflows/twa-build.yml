@@ -1,0 +1,89 @@
+name: TWA Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Build target'
+        required: true
+        type: choice
+        options:
+          - preview
+          - prod
+      package_name:
+        description: 'Package name (default: app.inkweld)'
+        required: false
+        type: string
+        default: 'app.inkweld'
+      preview_host:
+        description: 'Preview host — no protocol (default: preview.inkweld.app)'
+        required: false
+        type: string
+        default: 'preview.inkweld.app'
+      prod_host:
+        description: 'Production host — no protocol (default: inkweld.app)'
+        required: false
+        type: string
+        default: 'inkweld.app'
+
+concurrency:
+  group: twa-build-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ github.event.inputs.environment }} TWA
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Java
+        uses: actions/setup-java@a3da27daac3c9f98b8f5dbfdb9f7c51a8e3ddfc6 # v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@3b9d0fb5f3efc08a39f7e3c5f9c6fc7f4f7f9a1b # v3
+        with:
+          packages: 'platforms;android-35 build-tools;35.0.0'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@8b12c2ca8e5b7e1f7e9f4f3e3b3b7e7e7e7e7e7e # v4
+
+      - name: Apply build config overrides
+        working-directory: android
+        run: |
+          sed -i "s|preview\.inkweld\.app|${{ github.event.inputs.preview_host }}|g" app/build.gradle.kts
+          sed -i "s|inkweld\.app|${{ github.event.inputs.prod_host }}|g" app/build.gradle.kts
+          sed -i 's|namespace = "app\.inkweld"|namespace = "${{ github.event.inputs.package_name }}"|' app/build.gradle.kts
+          sed -i 's|applicationId = "app\.inkweld"|applicationId = "${{ github.event.inputs.package_name }}"|' app/build.gradle.kts
+
+      - name: Decode keystore
+        env:
+          TWA_KEYSTORE_BASE64: ${{ secrets.TWA_KEYSTORE_BASE64 }}
+        run: mkdir -p android && printf '%s' "${TWA_KEYSTORE_BASE64}" | base64 -d > android/inkweld-release.keystore
+
+      - name: Build
+        working-directory: android
+        env:
+          ORG_GRADLE_PROJECT_KEYSTORE_PATH: inkweld-release.keystore
+          ORG_GRADLE_PROJECT_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
+          ORG_GRADLE_PROJECT_KEY_ALIAS: ${{ secrets.TWA_KEY_ALIAS }}
+          ORG_GRADLE_PROJECT_KEY_PASSWORD: ${{ secrets.TWA_KEY_PASSWORD }}
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+            ./gradlew bundleProdRelease
+          else
+            ./gradlew assemblePreviewRelease
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@e448a9b857ee2131e752b06002bf0e093c65e571 # v4
+        with:
+          name: inkweld-${{ github.event.inputs.environment }}-${{ github.run_number }}
+          path: |
+            android/app/build/outputs/bundle/${{ github.event.inputs.environment }}Release/*.aab
+            android/app/build/outputs/apk/${{ github.event.inputs.environment }}/release/*.apk

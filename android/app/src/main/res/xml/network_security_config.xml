@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network security configuration.
+  Explicitly disables cleartext (HTTP) traffic — the app only ever communicates
+  over HTTPS to its TWA host, so cleartext is never needed.
+  This resolves the SonarCloud "usesCleartextTraffic" security hotspot.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
