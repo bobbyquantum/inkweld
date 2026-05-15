@@ -4,7 +4,7 @@ import { rateLimit } from '../src/middleware/rate-limit';
 
 function createApp(options: { windowMs: number; max: number }) {
   const app = new Hono();
-  app.use('/test', rateLimit({ ...options, enabled: true }));
+  app.use('/test', rateLimit(options));
   app.post('/test', (c) => c.json({ ok: true }));
   return app;
 }
@@ -39,7 +39,7 @@ describe('rateLimit middleware', () => {
     const app = new Hono();
     app.use(
       '/test',
-      rateLimit({ windowMs: 60_000, max: 1, message: 'Custom throttle message', enabled: true })
+      rateLimit({ windowMs: 60_000, max: 1, message: 'Custom throttle message' })
     );
     app.post('/test', (c) => c.json({ ok: true }));
 
@@ -102,7 +102,6 @@ describe('rateLimit middleware', () => {
         windowMs: 60_000,
         max: 1,
         keyGenerator: (c) => c.req.header('x-user-id') || 'unknown',
-        enabled: true,
       })
     );
     app.post('/test', (c) => c.json({ ok: true }));
@@ -128,7 +127,7 @@ describe('rateLimit middleware', () => {
 
   it('does not rate-limit paths that are not matched', async () => {
     const app = new Hono();
-    app.use('/test', rateLimit({ windowMs: 60_000, max: 1, enabled: true }));
+    app.use('/test', rateLimit({ windowMs: 60_000, max: 1 }));
     app.post('/test', (c) => c.json({ ok: true }));
     app.post('/other', (c) => c.json({ ok: true }));
 

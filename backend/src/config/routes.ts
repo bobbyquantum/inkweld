@@ -57,26 +57,31 @@ export function registerCommonRoutes(app: any): void {
   // ── Rate limiting for auth endpoints ────────────────────────────────────
   // Applied on the parent app *before* sub-routers so they run for every
   // matching request regardless of how the sub-router dispatches internally.
+  //
+  // Gated behind either INKWELD_DISABLE_RATE_LIMIT (for Docker e2e compiled
+  // binaries where Bun --minify constant-folds process.env.NODE_ENV) or
+  // NODE_ENV=test (for local `bun test`). Bracket notation prevents the
+  // minifier from inlining the value at build time.
+  if (process.env['INKWELD_DISABLE_RATE_LIMIT'] !== 'true' && process.env['NODE_ENV'] !== 'test') {
+    // Password login — 5 attempts per minute per IP
+    app.use('/api/v1/auth/login', rateLimit({ windowMs: 60_000, max: 5 }));
 
-  // Password login — 5 attempts per minute per IP
-  app.use('/api/v1/auth/login', rateLimit({ windowMs: 60_000, max: 5 }));
+    // Registration — 3 attempts per minute per IP (prevents spam sign-ups)
+    app.use('/api/v1/auth/register', rateLimit({ windowMs: 60_000, max: 3 }));
 
-  // Registration — 3 attempts per minute per IP (prevents spam sign-ups)
-  app.use('/api/v1/auth/register', rateLimit({ windowMs: 60_000, max: 3 }));
+    // Password reset — 3 requests and 5 reset attempts per minute per IP
+    app.use('/api/v1/auth/forgot-password', rateLimit({ windowMs: 60_000, max: 3 }));
+    app.use('/api/v1/auth/reset-password', rateLimit({ windowMs: 60_000, max: 5 }));
 
-  // Password reset — 3 requests and 5 reset attempts per minute per IP
-  app.use('/api/v1/auth/forgot-password', rateLimit({ windowMs: 60_000, max: 3 }));
-  app.use('/api/v1/auth/reset-password', rateLimit({ windowMs: 60_000, max: 5 }));
+    // Passkey login — 10 attempts per minute per IP (2 WebAuthn calls per ceremony)
+    app.use('/api/v1/auth/passkeys/login/*', rateLimit({ windowMs: 60_000, max: 10 }));
 
-  // Passkey login — 10 attempts per minute per IP (2 WebAuthn calls per ceremony)
-  app.use('/api/v1/auth/passkeys/login/*', rateLimit({ windowMs: 60_000, max: 10 }));
+    // Passkey registration — 10 attempts per minute per IP
+    app.use('/api/v1/auth/passkeys/register/*', rateLimit({ windowMs: 60_000, max: 10 }));
 
-  // Passkey registration — 10 attempts per minute per IP (requires a session,
-  // but rate-limiting prevents session-reuse abuse)
-  app.use('/api/v1/auth/passkeys/register/*', rateLimit({ windowMs: 60_000, max: 10 }));
-
-  // Passkey recovery (magic-link) — 3 attempts per minute per IP
-  app.use('/api/v1/auth/passkey-recovery/*', rateLimit({ windowMs: 60_000, max: 3 }));
+    // Passkey recovery (magic-link) — 3 attempts per minute per IP
+    app.use('/api/v1/auth/passkey-recovery/*', rateLimit({ windowMs: 60_000, max: 3 }));
+  }
 
   // ── End rate limiting ──────────────────────────────────────────────────
 

@@ -66,6 +66,8 @@ export default async function globalSetup(): Promise<void> {
     '-e',
     'NODE_ENV=test',
     '-e',
+    'INKWELD_DISABLE_RATE_LIMIT=true',
+    '-e',
     'DB_TYPE=sqlite',
     '-e',
     'DB_PATH=/data/sqlite.db',

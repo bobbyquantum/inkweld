@@ -4,8 +4,10 @@
  * Tracks request counts per key (default: client IP) within a sliding
  * window. Returns 429 Too Many Requests when the limit is exceeded.
  *
- * Disabled by default when NODE_ENV=test so integration tests don't
- * trip over the limits. Unit tests can force-enable via `enabled: true`.
+ * To disable in test environments, set INKWELD_DISABLE_RATE_LIMIT=true.
+ * We use an explicit env var rather than NODE_ENV because Bun's
+ * --compile --minify may constant-fold process.env.NODE_ENV at build
+ * time, preventing runtime overrides in Docker e2e containers.
  */
 
 import type { Context, MiddlewareHandler } from 'hono';
@@ -19,8 +21,6 @@ interface RateLimitOptions {
   keyGenerator?: (c: Context) => string;
   /** Optional message in the 429 response body */
   message?: string;
-  /** Force-enable the limiter (default: enabled unless NODE_ENV=test) */
-  enabled?: boolean;
 }
 
 interface WindowEntry {
@@ -59,12 +59,7 @@ export function rateLimit(options: RateLimitOptions): MiddlewareHandler {
     max,
     keyGenerator,
     message = 'Too many requests, please try again later',
-    enabled = process.env.NODE_ENV !== 'test',
   } = options;
-
-  if (!enabled) {
-    return async (_c: Context, next) => next();
-  }
 
   const store = new Map<string, WindowEntry>();
 
