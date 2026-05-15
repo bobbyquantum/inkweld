@@ -46,7 +46,7 @@ jobs:
           java-version: '21'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@3b9d0fb5f3efc08a39f7e3c5f9c6fc7f4f7f9a1b # v3
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
         with:
           packages: 'platforms;android-35 build-tools;35.0.0'
 
