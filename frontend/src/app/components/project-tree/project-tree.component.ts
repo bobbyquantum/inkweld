@@ -618,7 +618,7 @@ export class ProjectTreeComponent implements OnDestroy {
       return;
     }
     // Suppress opening if the touch moved significantly (scroll swipe), not a tap
-    if (event instanceof TouchEvent && this.touchStartX !== null) {
+    if (event instanceof TouchEvent && this.touchStartX !== null && this.touchStartY !== null) {
       const ct = event.changedTouches[0];
       const dx = ct.clientX - this.touchStartX;
       const dy = ct.clientY - this.touchStartY;
