@@ -111,7 +111,7 @@
           draggedNode && node.expandable && targetParentFolderId() === node.id
         "
         (mousedown)="onNodeDown(node)"
-        (touchstart)="onNodeDown(node)"
+        (touchstart)="onNodeDown(node, $event)"
         [cdkContextMenuTriggerFor]="contextMenu"
         (contextmenu)="onContextMenuOpen(node, $event)"
         (cdkContextMenuClosed)="onContextMenuClose()"
@@ -124,7 +124,7 @@
         (touchend)="
           node.expandable
             ? toggleExpandedTouch(node, $event)
-            : onOpenDocument(node)
+            : onOpenDocument(node, $event)
         "
         (keyup.enter)="
           node.expandable ? toggleExpanded(node) : onOpenDocument(node)
