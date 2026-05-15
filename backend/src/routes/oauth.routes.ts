@@ -789,7 +789,7 @@ oauthRoutes.openapi(tokenRoute, async (c) => {
     c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || c.req.header('x-real-ip');
   const userAgent = c.req.header('user-agent');
   const issuer =
-    (c.env as Record<string, string>)?.BASE_URL || process.env.BASE_URL || 'https://inkweld.app';
+    (c.env as Record<string, string>)?.BASE_URL || process.env.BASE_URL || 'https://localhost:8333';
 
   try {
     if (body.grant_type === 'authorization_code') {

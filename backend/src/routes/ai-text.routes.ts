@@ -361,6 +361,14 @@ aiTextRoutes.openapi(optimizeImagePromptRoute, async (c) => {
     return c.json({ error: 'Text generation is not enabled' }, 503);
   }
 
+  const appUrl =
+    (c.env as Record<string, string>)?.FRONTEND_URL ||
+    (c.env as Record<string, string>)?.BASE_URL ||
+    process.env.FRONTEND_URL ||
+    process.env.BASE_URL ||
+    'https://inkweld.app';
+  const appName = (c.env as Record<string, string>)?.APP_NAME || process.env.APP_NAME || 'Inkweld';
+
   // Get the configured image prompt model and provider
   const configResults = await Promise.all([
     configService.get(db, 'AI_TEXT_IMAGE_PROMPT_MODEL'),
@@ -438,7 +446,14 @@ ${body.maxLength ? 'Maximum length: approximately ' + body.maxLength + ' charact
         optimizedPrompt = await callOpenAI(apiKey, model, systemPrompt, body.rawInput);
         break;
       case 'openrouter':
-        optimizedPrompt = await callOpenRouter(apiKey, model, systemPrompt, body.rawInput);
+        optimizedPrompt = await callOpenRouter(
+          apiKey,
+          model,
+          systemPrompt,
+          body.rawInput,
+          appUrl,
+          appName
+        );
         break;
       case 'anthropic':
         optimizedPrompt = await callAnthropic(apiKey, model, systemPrompt, body.rawInput);
@@ -506,15 +521,17 @@ async function callOpenRouter(
   apiKey: string,
   model: string,
   systemPrompt: string,
-  userInput: string
+  userInput: string,
+  appUrl?: string,
+  appName?: string
 ): Promise<string> {
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://inkweld.app',
-      'X-Title': 'Inkweld',
+      'HTTP-Referer': appUrl || 'https://inkweld.app',
+      'X-Title': appName || 'Inkweld',
     },
     body: JSON.stringify({
       model,
