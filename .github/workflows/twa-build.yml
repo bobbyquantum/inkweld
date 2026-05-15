@@ -81,7 +81,7 @@ jobs:
           fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@e448a9b857ee2131e752b06002bf0e093c65e571 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: inkweld-${{ github.event.inputs.environment }}-${{ github.run_number }}
           path: |
