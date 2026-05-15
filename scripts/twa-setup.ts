@@ -122,7 +122,9 @@ function getFingerprint(ksPath: string, alias: string, pw: string): string | nul
 // assetlinks.json
 // ============================================================================
 
-function generateAssetLinks(pkg: string, sha256: string) {
+function generateAssetLinks(pkg: string, _sha256: string) {
+  // Use a CI placeholder instead of the upload key fingerprint.
+  // The Play Console app signing fingerprint is substituted at deploy time.
   return JSON.stringify([{
     relation: [
       'delegate_permission/common.handle_all_urls',
@@ -131,7 +133,7 @@ function generateAssetLinks(pkg: string, sha256: string) {
     target: {
       namespace: 'android_app',
       package_name: pkg,
-      sha256_cert_fingerprints: [sha256],
+      sha256_cert_fingerprints: ['__TWA_SHA256_FINGERPRINT__'],
     },
   }], null, 2) + '\n';
 }
@@ -201,6 +203,19 @@ async function main() {
       process.exit(1);
     }
     success(`SHA256: ${fp}`);
+    warn('');
+    warn('NOTE: This fingerprint is from your LOCAL UPLOAD KEY.');
+    warn('When using Play App Signing, Google signs with its own key.');
+    warn('');
+    warn('After first upload to Play Console, go to:');
+    warn('  Release → Setup → App integrity → App signing');
+    warn('  → App signing key certificate → SHA-256 fingerprint');
+    warn('');
+    warn('Use THAT fingerprint in assetlinks.json for TWA verification.');
+    warn('Set it as the TWA_SHA256_FINGERPRINT GitHub var in your');
+    warn('preview/production environment. The CI substitutes it at build time.');
+    warn('(grab with xxd: echo "88:2D:...:E8" | tr -d ":" | xxd -r -p)');
+    warn('');
 
     // ====================================================================
     // Update android/app/build.gradle.kts hosts

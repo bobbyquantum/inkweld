@@ -57,6 +57,13 @@ jobs:
           printf 'export const environment = {\n  production: true,\n  version: "0.1.0",\n  apiUrl: "%s",\n  wssUrl: "%s",\n};\n' \
             "${PREVIEW_API_URL}" "${PREVIEW_WSS_URL}" > src/environments/environment.preview.ts
 
+      - name: Inject TWA signing fingerprint
+        working-directory: frontend
+        env:
+          TWA_SHA256_FINGERPRINT: ${{ vars.TWA_SHA256_FINGERPRINT }}
+        run: |
+          sed -i "s|__TWA_SHA256_FINGERPRINT__|${TWA_SHA256_FINGERPRINT}|g" public/.well-known/assetlinks.json
+
       - name: Build frontend
         working-directory: frontend
         run: bun run clean && bun run ng build --configuration=preview && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm
