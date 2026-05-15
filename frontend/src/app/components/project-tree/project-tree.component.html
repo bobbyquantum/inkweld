@@ -95,6 +95,7 @@
         [attr.aria-label]="node.name"
         cdkDrag
         [cdkDragData]="node"
+        [cdkDragStartDelay]="dragStartDelay()"
         (cdkDragStarted)="dragStarted(node)"
         (cdkDragEnded)="dragEnded()"
         (cdkDragMoved)="dragMove($event)"

@@ -107,6 +107,14 @@ export class ProjectTreeComponent implements OnDestroy {
       .some(tab => tab.systemType === 'home');
   });
 
+  /** Long-press delay before drag starts — 300ms on touch devices, 0 on desktop */
+  readonly dragStartDelay = computed(() => {
+    const isTouch =
+      globalThis.matchMedia?.('(pointer: coarse)').matches ??
+      (globalThis.navigator?.maxTouchPoints ?? 0) > 0;
+    return isTouch ? 300 : 0;
+  });
+
   /** IDs of external drop lists to connect to (publish plan when active) */
   readonly connectedDropLists = computed(() => {
     const tabs = this.projectStateService.openTabs();
