@@ -48,20 +48,17 @@ import statsRoutes from '../routes/stats.routes';
 import activityRoutes from '../routes/activity.routes';
 
 /**
- * Register common API routes that work in all runtime environments
- * Each app can then register its own specialized routes (WebSocket, etc.)
- * @param app - Hono or OpenAPIHono app instance
+ * Register per-endpoint rate-limit middleware on auth paths.
+ *
+ * Applied on the parent app *before* sub-routers so they run for every
+ * matching request regardless of how the sub-router dispatches internally.
+ *
+ * Gated behind either INKWELD_DISABLE_RATE_LIMIT (for Docker e2e compiled
+ * binaries where Bun --minify constant-folds process.env.NODE_ENV) or
+ * NODE_ENV=test (for local `bun test`). Bracket notation prevents the
+ * minifier from inlining the value at build time.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function registerCommonRoutes(app: any): void {
-  // ── Rate limiting for auth endpoints ────────────────────────────────────
-  // Applied on the parent app *before* sub-routers so they run for every
-  // matching request regardless of how the sub-router dispatches internally.
-  //
-  // Gated behind either INKWELD_DISABLE_RATE_LIMIT (for Docker e2e compiled
-  // binaries where Bun --minify constant-folds process.env.NODE_ENV) or
-  // NODE_ENV=test (for local `bun test`). Bracket notation prevents the
-  // minifier from inlining the value at build time.
+export function registerRateLimits(app: { use: (path: string, ...mw: unknown[]) => void }): void {
   if (process.env['INKWELD_DISABLE_RATE_LIMIT'] !== 'true' && process.env['NODE_ENV'] !== 'test') {
     // Password login — 5 attempts per minute per IP
     app.use('/api/v1/auth/login', rateLimit({ windowMs: 60_000, max: 5 }));
@@ -82,8 +79,17 @@ export function registerCommonRoutes(app: any): void {
     // Passkey recovery (magic-link) — 3 attempts per minute per IP
     app.use('/api/v1/auth/passkey-recovery/*', rateLimit({ windowMs: 60_000, max: 3 }));
   }
+}
 
-  // ── End rate limiting ──────────────────────────────────────────────────
+/**
+ * Register common API routes that work in all runtime environments
+ * Each app can then register its own specialized routes (WebSocket, etc.)
+ * @param app - Hono or OpenAPIHono app instance
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function registerCommonRoutes(app: any): void {
+  // Rate limiting for auth endpoints
+  registerRateLimits(app);
 
   // Authentication routes
   app.route('/api/v1/auth', authRoutes);
