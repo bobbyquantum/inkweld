@@ -972,14 +972,26 @@ describe('ProjectTreeComponent', () => {
     it('should suppress open after scroll swipe (touch moved > 10px)', () => {
       // Simulate touch start at (0,0)
       const touchStart = new TouchEvent('touchstart', {
-        touches: [new Touch({ identifier: 0, target: document.body, clientX: 0, clientY: 0 })],
+        touches: [
+          new Touch({
+            identifier: 0,
+            target: document.body,
+            clientX: 0,
+            clientY: 0,
+          }),
+        ],
       });
       component.onNodeDown(mockDto, touchStart);
 
       // Simulate touchend at (0, 20) — moved 20px vertically (scroll swipe)
       const touchEnd = new TouchEvent('touchend', {
         changedTouches: [
-          new Touch({ identifier: 0, target: document.body, clientX: 0, clientY: 20 }),
+          new Touch({
+            identifier: 0,
+            target: document.body,
+            clientX: 0,
+            clientY: 20,
+          }),
         ],
       });
 
@@ -993,14 +1005,26 @@ describe('ProjectTreeComponent', () => {
     it('should open document on genuine tap (touch moved < 10px)', () => {
       // Simulate touch start at (0,0)
       const touchStart = new TouchEvent('touchstart', {
-        touches: [new Touch({ identifier: 0, target: document.body, clientX: 0, clientY: 0 })],
+        touches: [
+          new Touch({
+            identifier: 0,
+            target: document.body,
+            clientX: 0,
+            clientY: 0,
+          }),
+        ],
       });
       component.onNodeDown(mockDto, touchStart);
 
       // Simulate touchend at (0, 5) — moved 5px (minor jitter, still a tap)
       const touchEnd = new TouchEvent('touchend', {
         changedTouches: [
-          new Touch({ identifier: 0, target: document.body, clientX: 0, clientY: 5 }),
+          new Touch({
+            identifier: 0,
+            target: document.body,
+            clientX: 0,
+            clientY: 5,
+          }),
         ],
       });
 
@@ -1013,7 +1037,14 @@ describe('ProjectTreeComponent', () => {
 
     it('dragEnded should clear touch tracking state', () => {
       const touchStart = new TouchEvent('touchstart', {
-        touches: [new Touch({ identifier: 0, target: document.body, clientX: 10, clientY: 20 })],
+        touches: [
+          new Touch({
+            identifier: 0,
+            target: document.body,
+            clientX: 10,
+            clientY: 20,
+          }),
+        ],
       });
       component.onNodeDown(mockDto, touchStart);
 
