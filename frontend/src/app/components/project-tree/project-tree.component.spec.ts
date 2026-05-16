@@ -954,10 +954,6 @@ describe('ProjectTreeComponent', () => {
   });
 
   describe('Drag and scroll open suppression', () => {
-    beforeEach(async () => {
-      await setupTestBed();
-    });
-
     it('should suppress open when a drag is in progress (draggedNode set)', () => {
       // Simulate drag started
       component.dragStarted(mockDto);
