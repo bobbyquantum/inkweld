@@ -19,6 +19,7 @@ import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -954,6 +955,32 @@ describe('ProjectTreeComponent', () => {
   });
 
   describe('Drag and scroll open suppression', () => {
+    // JSDOM may lack Touch. Stub it as a real global so `new Touch(...)` works.
+    // beforeEach re-stubs because the global afterEach in setup-vitest.ts calls
+    // vi.unstubAllGlobals(). With isolate:false, stubs must be re-created per-test.
+    beforeEach(() => {
+      vi.stubGlobal(
+        'Touch',
+        class {
+          identifier: number;
+          target: EventTarget;
+          clientX: number;
+          clientY: number;
+          constructor(init: {
+            identifier: number;
+            target: EventTarget;
+            clientX?: number;
+            clientY?: number;
+          }) {
+            this.identifier = init.identifier;
+            this.target = init.target;
+            this.clientX = init.clientX ?? 0;
+            this.clientY = init.clientY ?? 0;
+          }
+        }
+      );
+    });
+
     it('should suppress open when a drag is in progress (draggedNode set)', () => {
       // Simulate drag started
       component.dragStarted(mockDto);
