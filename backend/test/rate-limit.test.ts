@@ -37,10 +37,7 @@ describe('rateLimit middleware', () => {
 
   it('returns custom message in the 429 response', async () => {
     const app = new Hono();
-    app.use(
-      '/test',
-      rateLimit({ windowMs: 60_000, max: 1, message: 'Custom throttle message' })
-    );
+    app.use('/test', rateLimit({ windowMs: 60_000, max: 1, message: 'Custom throttle message' }));
     app.post('/test', (c) => c.json({ ok: true }));
 
     await app.request('/test', { method: 'POST' }); // 1
