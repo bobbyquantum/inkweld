@@ -952,4 +952,132 @@ describe('ProjectTreeComponent', () => {
       expect(emitted.length).toBe(1);
     });
   });
+
+  describe('Drag and scroll open suppression', () => {
+    // JSDOM may lack Touch. Stub it as a real global so `new Touch(...)` works.
+    // beforeEach re-stubs because the global afterEach in setup-vitest.ts calls
+    // vi.unstubAllGlobals(). With isolate:false, stubs must be re-created per-test.
+    beforeEach(() => {
+      vi.stubGlobal(
+        'Touch',
+        class {
+          identifier: number;
+          target: EventTarget;
+          clientX: number;
+          clientY: number;
+          constructor(init: {
+            identifier: number;
+            target: EventTarget;
+            clientX?: number;
+            clientY?: number;
+          }) {
+            this.identifier = init.identifier;
+            this.target = init.target;
+            this.clientX = init.clientX ?? 0;
+            this.clientY = init.clientY ?? 0;
+          }
+        }
+      );
+    });
+
+    it('should suppress open when a drag is in progress (draggedNode set)', () => {
+      // Simulate drag started
+      component.dragStarted(mockDto);
+
+      const emitted: unknown[] = [];
+      component.documentOpened.subscribe(e => emitted.push(e));
+      component.onOpenDocument(mockDto);
+
+      expect(emitted.length).toBe(0);
+    });
+
+    it('should suppress open after scroll swipe (touch moved > 10px)', () => {
+      // Simulate touch start at (0,0)
+      const touchStart = new TouchEvent('touchstart', {
+        touches: [
+          new Touch({
+            identifier: 0,
+            target: document.body,
+            clientX: 0,
+            clientY: 0,
+          }),
+        ],
+      });
+      component.onNodeDown(mockDto, touchStart);
+
+      // Simulate touchend at (0, 20) — moved 20px vertically (scroll swipe)
+      const touchEnd = new TouchEvent('touchend', {
+        changedTouches: [
+          new Touch({
+            identifier: 0,
+            target: document.body,
+            clientX: 0,
+            clientY: 20,
+          }),
+        ],
+      });
+
+      const emitted: unknown[] = [];
+      component.documentOpened.subscribe(e => emitted.push(e));
+      component.onOpenDocument(mockDto, touchEnd);
+
+      expect(emitted.length).toBe(0);
+    });
+
+    it('should open document on genuine tap (touch moved < 10px)', () => {
+      // Simulate touch start at (0,0)
+      const touchStart = new TouchEvent('touchstart', {
+        touches: [
+          new Touch({
+            identifier: 0,
+            target: document.body,
+            clientX: 0,
+            clientY: 0,
+          }),
+        ],
+      });
+      component.onNodeDown(mockDto, touchStart);
+
+      // Simulate touchend at (0, 5) — moved 5px (minor jitter, still a tap)
+      const touchEnd = new TouchEvent('touchend', {
+        changedTouches: [
+          new Touch({
+            identifier: 0,
+            target: document.body,
+            clientX: 0,
+            clientY: 5,
+          }),
+        ],
+      });
+
+      const emitted: unknown[] = [];
+      component.documentOpened.subscribe(e => emitted.push(e));
+      component.onOpenDocument(mockDto, touchEnd);
+
+      expect(emitted.length).toBe(1);
+    });
+
+    it('dragEnded should clear touch tracking state', () => {
+      const touchStart = new TouchEvent('touchstart', {
+        touches: [
+          new Touch({
+            identifier: 0,
+            target: document.body,
+            clientX: 10,
+            clientY: 20,
+          }),
+        ],
+      });
+      component.onNodeDown(mockDto, touchStart);
+
+      // After drag ends, touch coords should be cleared so next tap works
+      component.dragEnded();
+
+      const emitted: unknown[] = [];
+      component.documentOpened.subscribe(e => emitted.push(e));
+      component.onOpenDocument(mockDto);
+
+      expect(emitted.length).toBe(1);
+    });
+  });
 });
