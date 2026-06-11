@@ -113,8 +113,8 @@
     "yjs": "13.6.31"
   },
   "devDependencies": {
-    "@angular/build": "^21.2.3",
-    "@angular/cli": "^21.2.3",
+    "@angular/build": "^22.0.0",
+    "@angular/cli": "^22.0.0",
     "@angular/compiler-cli": "^21.2.5",
     "@eslint/js": "^10.0.0",
     "@playwright/test": "^1.57.0",
