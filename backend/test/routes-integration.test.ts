@@ -14,7 +14,9 @@ import {
   enablePasswordLoginForTests,
 } from './server-test-helper';
 
-const db = getDatabase();
+// Resolved in beforeAll: the DB is only initialized once startTestServer()
+// has run, and this file may be the first one bun loads.
+let db: ReturnType<typeof getDatabase>;
 let client: TestClient;
 let adminClient: TestClient;
 let testServer: { port: number; baseUrl: string };
@@ -24,6 +26,7 @@ const USER_ID = crypto.randomUUID();
 
 beforeAll(async () => {
   testServer = await startTestServer();
+  db = getDatabase();
   // Legacy password-flow tests: opt in to PASSWORD_LOGIN_ENABLED.
   await enablePasswordLoginForTests();
   client = new TestClient(testServer.baseUrl);
