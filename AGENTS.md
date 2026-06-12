@@ -221,7 +221,8 @@ src/
 # Install dependencies
 bun install
 
-# Start development servers (both frontend & backend)
+# Start development servers (both frontend & backend via root wrapper)
+# This runs: frontend on :4200 (bun run start) + backend on :8333 (bun run dev)
 npm run dev
 
 # Run tests

@@ -33,8 +33,11 @@
 docker run -d \
   --name inkweld \
   -p 8333:8333 \
-  -v inkweld_data:/data \
+  -e HOST=0.0.0.0 \
   -e SESSION_SECRET=$(openssl rand -hex 32) \
+  -e WEBAUTHN_RP_ID=your-domain.com \
+  -e ALLOWED_ORIGINS=https://your-domain.com \
+  -v inkweld_data:/data \
   ghcr.io/bobbyquantum/inkweld:latest
 ```
 
