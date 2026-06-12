@@ -1,4 +1,9 @@
-import { Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -18,6 +23,7 @@ import {
   selector: 'app-server-info-bubble',
   imports: [MatButtonModule, MatIconModule, MatMenuModule, MatTooltipModule],
   templateUrl: './server-info-bubble.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './server-info-bubble.component.scss',
 })
 export class ServerInfoBubbleComponent {

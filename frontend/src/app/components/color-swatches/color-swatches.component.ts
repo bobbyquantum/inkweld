@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   type ElementRef,
   EventEmitter,
@@ -20,6 +21,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   selector: 'app-color-swatches',
   templateUrl: './color-swatches.component.html',
   styleUrls: ['./color-swatches.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [FormsModule, MatIconModule, MatInputModule, MatTooltipModule],
 })
 export class ColorSwatchesComponent {

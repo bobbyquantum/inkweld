@@ -1,4 +1,9 @@
-import { Component, inject, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  type OnInit,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -18,6 +23,7 @@ import { AnnouncementService } from '@services/announcement/announcement.service
     AnnouncementCardComponent,
   ],
   templateUrl: './messages.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './messages.component.scss',
 })
 export class MessagesComponent implements OnInit {

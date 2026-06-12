@@ -11,6 +11,7 @@
  * - Replace all matches
  */
 import {
+  ChangeDetectionStrategy,
   Component,
   effect,
   type ElementRef,
@@ -37,6 +38,7 @@ import { FindInDocumentService } from '@services/core/find-in-document.service';
     MatTooltipModule,
   ],
   templateUrl: './find-in-document.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./find-in-document.component.scss'],
 })
 export class FindInDocumentComponent implements OnInit, OnDestroy {

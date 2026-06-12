@@ -9,6 +9,7 @@ import { TemplatePortal } from '@angular/cdk/portal';
 import { KeyValuePipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import {
+  ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   effect,
@@ -104,6 +105,7 @@ export interface RegistrationResult {
     MatProgressSpinnerModule,
   ],
   templateUrl: './registration-form.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './registration-form.component.scss',
 })
 export class RegistrationFormComponent implements OnInit, OnDestroy {

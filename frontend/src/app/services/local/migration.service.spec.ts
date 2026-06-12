@@ -1,4 +1,8 @@
-import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
+import {
+  HttpErrorResponse,
+  provideHttpClient,
+  withXhr,
+} from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AuthenticationService } from '@inkweld/api/authentication.service';
@@ -179,7 +183,7 @@ describe('MigrationService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         MigrationService,
         { provide: LocalProjectService, useValue: localProjectService },
         { provide: AuthenticationService, useValue: authServiceMock },

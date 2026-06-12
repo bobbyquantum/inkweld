@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -59,6 +60,7 @@ interface TemplateSchema {
   selector: 'app-templates-tab',
   templateUrl: './templates-tab.component.html',
   styleUrls: ['./templates-tab.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     MatButtonModule,
     MatFormFieldModule,

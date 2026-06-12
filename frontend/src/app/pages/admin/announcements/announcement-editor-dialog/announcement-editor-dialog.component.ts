@@ -1,5 +1,6 @@
 import {
   type AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   computed,
   type ElementRef,
@@ -62,6 +63,7 @@ interface AnnouncementFormValue {
   ],
   providers: [provideNativeDateAdapter()],
   templateUrl: './announcement-editor-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './announcement-editor-dialog.component.scss',
 })
 export class AnnouncementEditorDialogComponent

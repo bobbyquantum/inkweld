@@ -1,5 +1,12 @@
 import { KeyValuePipe } from '@angular/common';
-import { Component, effect, inject, type OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+  type OnInit,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -31,6 +38,7 @@ interface PasswordRequirement {
     RouterModule,
   ],
   templateUrl: './reset-password.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './reset-password.component.scss',
 })
 export class ResetPasswordComponent implements OnInit {

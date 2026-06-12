@@ -1,7 +1,11 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { Component, provideZonelessChangeDetection } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  provideZonelessChangeDetection,
+} from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogModule } from '@angular/material/dialog';
 import { By } from '@angular/platform-browser';
@@ -12,24 +16,28 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock child components
 @Component({
   selector: 'app-account-settings',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '<div>Account Settings</div>',
 })
 class MockAccountSettingsComponent {}
 
 @Component({
   selector: 'app-project-tree-settings',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '<div>Project Tree Settings</div>',
 })
 class MockProjectTreeSettingsComponent {}
 
 @Component({
   selector: 'app-project-settings',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '<div>Project Settings</div>',
 })
 class MockProjectSettingsComponent {}
 
 @Component({
   selector: 'app-authorized-apps',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '<div>Authorized Apps</div>',
 })
 class MockAuthorizedAppsComponent {}
@@ -116,7 +124,7 @@ describe('UserSettingsDialogComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideNoopAnimations(),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         { provide: BreakpointObserver, useValue: mockBreakpointObserver },
       ],

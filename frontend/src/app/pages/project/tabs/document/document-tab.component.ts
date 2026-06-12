@@ -1,4 +1,10 @@
-import { Component, computed, effect, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -19,6 +25,7 @@ import { DocumentSyncService } from '@services/sync/document-sync.service';
     MatButtonModule,
     MatProgressSpinnerModule,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   providers: [DocumentSyncService],
 })
 export class DocumentTabComponent {

@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import {
@@ -92,7 +92,7 @@ describe('MetaPanelComponent', () => {
       imports: [MetaPanelComponent],
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         { provide: SystemConfigService, useValue: systemConfigMock },
         { provide: RelationshipService, useValue: relationshipServiceMock },
         { provide: ProjectStateService, useValue: projectStateMock },

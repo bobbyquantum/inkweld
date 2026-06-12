@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
@@ -161,7 +161,7 @@ describe('WorldbuildingService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         WorldbuildingService,
         { provide: SetupService, useValue: setupService },
         {
@@ -820,7 +820,7 @@ describe('WorldbuildingService', () => {
       TestBed.configureTestingModule({
         providers: [
           provideZonelessChangeDetection(),
-          provideHttpClient(),
+          provideHttpClient(withXhr()),
           WorldbuildingService,
           { provide: SetupService, useValue: onlineSetupService },
           { provide: ElementSyncProviderFactory, useValue: mockFactory },

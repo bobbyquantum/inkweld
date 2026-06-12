@@ -1,5 +1,11 @@
 import { DatePipe } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -21,6 +27,7 @@ import type {
     MatTooltipModule,
   ],
   templateUrl: './announcement-card.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './announcement-card.component.scss',
 })
 export class AnnouncementCardComponent {

@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   type ElementRef,
@@ -60,6 +61,7 @@ const MAX_ZOOM = 5;
     MatTooltipModule,
   ],
   templateUrl: './image-viewer-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './image-viewer-dialog.component.scss',
 })
 export class ImageViewerDialogComponent {

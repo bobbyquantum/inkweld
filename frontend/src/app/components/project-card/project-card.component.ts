@@ -1,5 +1,6 @@
 import {
   type AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   computed,
   ElementRef,
@@ -39,6 +40,7 @@ const MOVE_THRESHOLD = 10;
     ProjectCoverComponent,
   ],
   templateUrl: './project-card.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './project-card.component.scss',
 })
 export class ProjectCardComponent implements AfterViewInit, OnDestroy {

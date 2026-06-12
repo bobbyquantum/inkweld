@@ -1,5 +1,6 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
+  ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   inject,
@@ -36,6 +37,7 @@ import { debounceTime } from 'rxjs/operators';
     WritingStatsWidgetComponent,
   ],
   templateUrl: './user-profile.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./user-profile.component.scss'],
 })
 export class UserProfileComponent implements OnInit, OnDestroy {

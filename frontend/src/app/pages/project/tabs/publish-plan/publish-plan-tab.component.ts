@@ -6,6 +6,7 @@ import {
 } from '@angular/cdk/drag-drop';
 import { CommonModule, DatePipe } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -74,6 +75,7 @@ type PlanSection =
   selector: 'app-publish-plan-tab',
   templateUrl: './publish-plan-tab.component.html',
   styleUrls: ['./publish-plan-tab.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     CommonModule,
     FormsModule,

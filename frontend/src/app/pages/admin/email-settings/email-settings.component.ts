@@ -1,4 +1,10 @@
-import { Component, inject, type OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  type OnInit,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -28,6 +34,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
     MatSnackBarModule,
   ],
   templateUrl: './email-settings.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './email-settings.component.scss',
 })
 export class AdminEmailSettingsComponent implements OnInit {

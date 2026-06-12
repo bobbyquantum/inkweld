@@ -1,6 +1,7 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import {
+  ChangeDetectionStrategy,
   Component,
   Input,
   provideZonelessChangeDetection,
@@ -19,6 +20,7 @@ import { AdminComponent } from './admin.component';
 // Mock UserMenuComponent to avoid UserAvatarComponent's HTTP calls
 @Component({
   selector: 'app-user-menu',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '',
 })
 class MockUserMenuComponent {
@@ -56,7 +58,7 @@ describe('AdminComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AdminComponent],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         provideZonelessChangeDetection(),
         provideRouter([

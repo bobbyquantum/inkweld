@@ -1,4 +1,11 @@
-import { Component, computed, inject, NgZone, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  NgZone,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -49,6 +56,7 @@ interface RelationshipTypeView {
   selector: 'app-relationships-tab',
   templateUrl: './relationships-tab.component.html',
   styleUrls: ['./relationships-tab.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     MatButtonModule,
     MatFormFieldModule,

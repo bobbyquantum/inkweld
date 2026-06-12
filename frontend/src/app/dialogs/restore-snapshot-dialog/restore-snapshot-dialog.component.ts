@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -24,6 +24,7 @@ export interface RestoreSnapshotDialogData {
   selector: 'app-restore-snapshot-dialog',
   imports: [MatDialogModule, MatButtonModule, MatIconModule],
   templateUrl: './restore-snapshot-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './restore-snapshot-dialog.component.scss',
 })
 export class RestoreSnapshotDialogComponent {

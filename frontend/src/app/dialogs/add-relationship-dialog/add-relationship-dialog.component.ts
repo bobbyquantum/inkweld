@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -75,6 +76,7 @@ export interface AddRelationshipDialogResult {
     MatSelectModule,
   ],
   templateUrl: './add-relationship-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './add-relationship-dialog.component.scss',
 })
 export class AddRelationshipDialogComponent implements OnInit {

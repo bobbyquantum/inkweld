@@ -1,4 +1,8 @@
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  provideZonelessChangeDetection,
+  signal,
+} from '@angular/core';
 import { Component, Input, type OnDestroy, type OnInit } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
@@ -14,6 +18,7 @@ import { FolderTabComponent } from './folder-tab.component';
 // Mock FolderElementEditorComponent
 @Component({
   selector: 'app-folder-element-editor',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '<div>Mock Folder Editor</div>',
 })
 class MockFolderElementEditorComponent implements OnInit, OnDestroy {
@@ -32,6 +37,7 @@ class MockFolderElementEditorComponent implements OnInit, OnDestroy {
 
 @Component({
   selector: 'app-document-breadcrumbs',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '',
 })
 class MockDocumentBreadcrumbsComponent {
