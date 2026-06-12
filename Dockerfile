@@ -16,6 +16,11 @@
 FROM oven/bun:1.3.14 AS frontend-builder
 WORKDIR /app
 
+# Angular CLI 22 requires Node ^22.22.3 || ^24.15.0 || >=26; the bun image's
+# `node` shim reports itself as Node 24.3.0 and fails the CLI's version check,
+# so overwrite it with a real Node binary for `ng build`.
+COPY --from=node:24-bookworm-slim /usr/local/bin/node /usr/local/bin/node
+
 # Check if we should skip building (pre-built frontend provided)
 ARG FRONTEND_PREBUILT=false
 
