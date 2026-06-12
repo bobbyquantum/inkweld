@@ -28,7 +28,17 @@
 
 ## Quick Start
 
-Coming soon, once first numbered release is added.
+```bash
+# Pull and run with Docker
+docker run -d \
+  --name inkweld \
+  -p 8333:8333 \
+  -v inkweld_data:/data \
+  -e SESSION_SECRET=$(openssl rand -hex 32) \
+  ghcr.io/bobbyquantum/inkweld:latest
+```
+
+Then open `http://localhost:8333` in your browser.
 
 📖 **[Full deployment guide →](DEPLOY.md)**
 
@@ -65,8 +75,8 @@ Coming soon, once first numbered release is added.
 **Priority:** 🔥 High | 🟡 Medium | 🟢 Nice to have
 
 ### Project Management
-|  |  | Feature | Notes |
-|--|--|---------|-------|
+| Status | Priority | Feature | Notes |
+|--------|----------|---------|-------|
 | ✅ | 🔥 | Home screen with project cards | Browse and manage all projects |
 | ✅ | 🔥 | Drag-and-drop project tree | Organize documents, folders, elements |
 | ✅ | 🔥 | Folder hierarchy | Unlimited nesting depth |
@@ -78,8 +88,8 @@ Coming soon, once first numbered release is added.
 | ✅ | 🟢 | Project duplication | Export & re-import with new name |
 
 ### Search & Navigation
-|  |  | Feature | Notes |
-|--|--|---------|-------|
+| Status | Priority | Feature | Notes |
+|--------|----------|---------|-------|
 | ✅ | 🔥 | Quick file open (Ctrl/Cmd + P) | |
 | ✅ | 🔥 | Find in document (Ctrl/Cmd + F) | |
 | ✅ | 🔥 | Mobile-responsive design | |
@@ -92,8 +102,8 @@ Coming soon, once first numbered release is added.
 | ✅ | 🟢 | Recent files list | Tracks last 10 files per project |
 
 ### Writing Tools
-|  |  | Feature | Notes |
-|--|--|---------|-------|
+| Status | Priority | Feature | Notes |
+|--------|----------|---------|-------|
 | ✅ | 🔥 | Full keyboard shortcut support | |
 | ✅ | 🔥 | Image insertion | |
 | ✅ | 🟡 | Zen mode (distraction-free) | |
@@ -102,8 +112,8 @@ Coming soon, once first numbered release is added.
 | ⬜ | 🟢 | Writing statistics | Daily/weekly word counts, session stats, goals |
 
 ### Worldbuilding
-|  |  | Feature | Notes |
-|--|--|---------|-------|
+| Status | Priority | Feature | Notes |
+|--------|----------|---------|-------|
 | ✅ | 🔥 | Custom element templates | |
 | ✅ | 🔥 | Relationships with backlinks | Bidirectional connections |
 | ✅ | 🔥 | Element references (@mentions) | |
@@ -116,8 +126,8 @@ Coming soon, once first numbered release is added.
 | ⬜ | 🟢 | Reference images panel | Side-by-side images while writing |
 
 ### Media Library
-|  |  | Feature | Notes |
-|--|--|---------|-------|
+| Status | Priority | Feature | Notes |
+|--------|----------|---------|-------|
 | ✅ | 🔥 | Local-first image storage | Saved to IndexedDB, syncs to server |
 | ✅ | 🔥 | Inline image embedding | Paste/drop images into documents |
 | ✅ | 🟡 | Cover images | Project and element covers |
@@ -127,8 +137,8 @@ Coming soon, once first numbered release is added.
 | ⬜ | 🟢 | Bulk image operations | Multi-select, batch delete |
 
 ### Collaboration
-|  |  | Feature | Notes |
-|--|--|---------|-------|
+| Status | Priority | Feature | Notes |
+|--------|----------|---------|-------|
 | ✅ | 🔥 | Real-time co-editing | Multiple users editing same document |
 | ✅ | 🔥 | CRDT conflict resolution | Yjs-based, no manual merge needed |
 | ✅ | 🔥 | Presence indicators | See who's viewing/editing |
@@ -140,8 +150,8 @@ Coming soon, once first numbered release is added.
 
 
 ### Relationship Charts
-|  |  | Feature | Notes |
-|--|--|---------|-------|
+| Status | Priority | Feature | Notes |
+|--------|----------|---------|-------|
 | ✅ | 🔥 | Relationship chart element | New element type for visualizing connections |
 | ✅ | 🔥 | Graph layout | Force-directed network visualization |
 | ✅ | 🟡 | Hierarchy layout | Tree-style parent/child visualization |
@@ -151,8 +161,8 @@ Coming soon, once first numbered release is added.
 
 ### Canvas
 
-|  |  | Feature | Notes |
-|--|--|---------|-------|
+| Status | Priority | Feature | Notes |
+|--------|----------|---------|-------|
 | ✅ | 🔥 | Canvas element type | Infinite freeform canvas with layers |
 | ✅ | 🔥 | Drawing tools | Freehand draw, line, shapes (rect, ellipse, arrow), text, pin |
 | ✅ | 🔥 | Image placement | Add and position images on the canvas |
@@ -164,16 +174,16 @@ Coming soon, once first numbered release is added.
 
 ### Interactive Maps
 
-|  |  | Feature | Notes |
-|--|--|---------|-------|
+| Status | Priority | Feature | Notes |
+|--------|----------|---------|-------|
 | ⬜ | 🔥 | Map background images | Load a map image as a non-editable canvas background |
 | ⬜ | 🔥 | Location pins | Clickable markers linked to worldbuilding elements |
 | ⬜ | 🔥 | Pin-to-element linking | Special relationship type connecting pins to elements |
 | ⬜ | 🟡 | Multiple map layers | Overlay different maps (political, terrain, etc.) |
 
 ### Timelines
-|  |  | Feature | Notes |
-|--|--|---------|-------|
+| Status | Priority | Feature | Notes |
+|--------|----------|---------|-------|
 | ✅ | 🔥 | Timeline element type | New element for chronological visualization |
 | ✅ | 🔥 | Time systems | Define custom calendars and date formats |
 | ✅ | 🔥 | Timeline fields on elements | Add dates to worldbuilding elements |
@@ -183,8 +193,8 @@ Coming soon, once first numbered release is added.
 | ✅ | 🟢 | Era/period grouping | Visual spans for ages, reigns, wars |
 
 ### Publishing
-|  |  | Feature | Notes |
-|--|--|---------|-------|
+| Status | Priority | Feature | Notes |
+|--------|----------|---------|-------|
 | ✅ | 🔥 | EPUB export | Industry-standard e-book format |
 | ✅ | 🔥 | PDF export (via Typst) | Print-ready documents |
 | ✅ | 🔥 | Markdown export | Plain text with formatting |
@@ -193,8 +203,8 @@ Coming soon, once first numbered release is added.
 | ✅ | 🟡 | Typography customization | Per-plan style editor with 6 presets and full per-section overrides (font, size, weight, alignment, color, indent, page breaks) |
 
 ### Auth & Security
-|  |  | Feature | Notes |
-|--|--|---------|-------|
+| Status | Priority | Feature | Notes |
+|--------|----------|---------|-------|
 | ✅ | 🔥 | Password auth | Strong client-side requirements. Disabled by default in v0.2+ (passwordless-first per NIST SP 800-63B Rev. 4) — set `PASSWORD_LOGIN_ENABLED=true` to opt in |
 | ✅ | 🔥 | Passkeys (WebAuthn) | Passwordless sign-in with device biometrics or hardware security keys |
 | ✅ | 🔥 | Magic-link passkey recovery | Email-based recovery to enrol a new passkey if the original device is lost (requires `EMAIL_RECOVERY_ENABLED=true` + SMTP) |
@@ -205,8 +215,8 @@ Coming soon, once first numbered release is added.
 | ⬜ | 🟡 | Two-factor auth | |
 
 ### DevOps & Admin
-|  |  | Feature | Notes |
-|--|--|---------|-------|
+| Status | Priority | Feature | Notes |
+|--------|----------|---------|-------|
 | ✅ | 🔥 | Docker with multi-stage builds | |
 | ✅ | 🔥 | Docker Compose | |
 | ✅ | 🔥 | CI/CD with automated testing | |
@@ -216,17 +226,17 @@ Coming soon, once first numbered release is added.
 | ⬜ | 🟢 | Monitoring setup | |
 
 ### Documentation
-|  |  | Item | Notes |
-|--|--|------|-------|
+| Status | Priority | Item | Notes |
+|--------|----------|------|-------|
 | ⬜ | 🟡 | Features marketing page | `/features` landing page for website |
 | ⬜ | 🟡 | Import/archive docs | User guide for importing projects |
 | ✅ | 🟢 | Desktop app docs | Electron app installation guide |
 
 ### Optional AI Features
-> All AI features require admin configuration and are disabled by default. See [AI Stance](#ai-stance).
+> All AI features require admin configuration and are disabled by default. See [AI Stance](#data-security--ai-stance).
 
-|  |  | Feature | Notes |
-|--|--|---------|-------|
+| Status | Priority | Feature | Notes |
+|--------|----------|---------|-------|
 | ✅ | 🟡 | AI image generation | OpenAI, OpenRouter, Fal.ai, Stable Diffusion |
 | ✅ | 🟡 | Image model profiles | Admin-configured presets per provider/model |
 | ✅ | 🟡 | Worldbuilding context for images | Include element data in generation prompts |
@@ -294,7 +304,7 @@ Frontend runs on `:4200`, backend on `:8333`.
 | Dev servers | `npm run dev` |
 | Run tests | `npm test` |
 | Build | `npm run build` |
-| Docker | `npm run compose:up:prod` |
+| Docker (local) | `npm run docker:prod` |
 
 📖 **[Developer docs →](docs/site/docs/getting-started.md)**
 
@@ -322,7 +332,7 @@ The main logo is not AI, this was hand-drawn in Inkscape as SVG.
 
 ## Contributing
 
-Check out the [Production Readiness Checklist](#status) for areas that need work.
+Check out the [Status](#status) and [Feature Roadmap](#feature-roadmap) for areas that need work.
 
 - 🐛 [Report bugs](https://github.com/bobbyquantum/inkweld/issues)
 - 💡 [Request features](https://github.com/bobbyquantum/inkweld/discussions)

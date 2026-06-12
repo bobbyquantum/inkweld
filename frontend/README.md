@@ -1,8 +1,8 @@
-# InkWeld Frontend
+# Inkweld Frontend
 
 ## Overview
 
-The InkWeld frontend is a modern, modular Angular 21 application designed to provide a rich, real-time collaborative writing experience. It serves as the client interface for the InkWeld platform, enabling users to create, edit, and manage writing projects with seamless integration of AI assistance and real-time collaboration.
+The Inkweld frontend is a modern, modular Angular 21 application designed to provide a rich, real-time collaborative writing experience. It serves as the client interface for the Inkweld platform, enabling users to create, edit, and manage writing projects with seamless integration of AI assistance and real-time collaboration.
 
 ## Key Features
 
@@ -29,7 +29,7 @@ graph TD
     App -->|Interceptors| Interceptors["HTTP Interceptors"]
     App -->|Theming| Themes["Themes"]
     App -->|Real-time| Yjs["Yjs Integration"]
-    ApiClient -->|REST/WS| Backend["InkWeld Server"]
+    ApiClient -->|REST/WS| Backend["Inkweld Server"]
 ```
 
 ## Directory Structure
@@ -68,13 +68,14 @@ graph TD
 ### Prerequisites
 
 - Node.js 22 or higher
-- Package manager (npm, yarn, or bun)
+- [Bun 1.3+](https://bun.sh/)
 
 ### Installation
 
+Install from the **repo root** (never `npm install` or `bun install` inside `frontend/` directly):
+
 ```bash
-npm install
-# or
+# From repo root
 bun install
 ```
 
@@ -104,9 +105,9 @@ Build artifacts will be output to the `dist/` directory.
 
 ```bash
 npm test
-# or
-bun test
 ```
+
+> **Note**: Always use `npm test` for frontend unit tests. `bun test` is incompatible with the Angular test setup.
 
 - End-to-end tests (Playwright):
 
@@ -166,4 +167,4 @@ bun run lint:fix
 
 ## License
 
-InkWeld is [MIT licensed](../LICENSE).
+Inkweld is [MIT licensed](../LICENSE).
