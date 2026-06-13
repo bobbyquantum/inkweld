@@ -514,51 +514,50 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     ]);
   }
 
-  public onShowMediaLibrary(): void {
-    const result = this.projectState.openSystemTab('media');
-    // Ensure the tab is selected
-    this.projectState.selectTab(result.index);
+  /**
+   * Resolve the username/slug for router navigation. Falls back to the
+   * route params when the project state hasn't finished loading yet, so
+   * sidebar navigation works immediately after entering a project.
+   */
+  private getProjectRouteIdentity(): { username: string; slug: string } | null {
     const project = this.projectState.project();
     if (project) {
-      void this.router.navigate(['/', project.username, project.slug, 'media']);
+      return { username: project.username, slug: project.slug };
     }
+    const params = this.route.snapshot.params;
+    const username = params['username'] as string | undefined;
+    const slug = params['slug'] as string | undefined;
+    return username && slug ? { username, slug } : null;
+  }
+
+  private navigateToSystemTab(
+    tab: 'media' | 'settings' | 'publish-plans' | 'activity'
+  ): void {
+    const result = this.projectState.openSystemTab(tab);
+    // Ensure the tab is selected
+    this.projectState.selectTab(result.index);
+    const identity = this.getProjectRouteIdentity();
+    if (identity) {
+      this.router
+        .navigate(['/', identity.username, identity.slug, tab])
+        .catch(() => {});
+    }
+  }
+
+  public onShowMediaLibrary(): void {
+    this.navigateToSystemTab('media');
   }
 
   public onShowSettings(): void {
-    const result = this.projectState.openSystemTab('settings');
-    // Ensure the tab is selected
-    this.projectState.selectTab(result.index);
-    const project = this.projectState.project();
-    if (project) {
-      void this.router.navigate([
-        '/',
-        project.username,
-        project.slug,
-        'settings',
-      ]);
-    }
+    this.navigateToSystemTab('settings');
   }
 
   public onShowPublishPlans(): void {
-    const result = this.projectState.openSystemTab('publish-plans');
-    this.projectState.selectTab(result.index);
-    const project = this.projectState.project();
-    if (project) {
-      this.router
-        .navigate(['/', project.username, project.slug, 'publish-plans'])
-        .catch(() => {});
-    }
+    this.navigateToSystemTab('publish-plans');
   }
 
   public onShowActivity(): void {
-    const result = this.projectState.openSystemTab('activity');
-    this.projectState.selectTab(result.index);
-    const project = this.projectState.project();
-    if (project) {
-      this.router
-        .navigate(['/', project.username, project.slug, 'activity'])
-        .catch(() => {});
-    }
+    this.navigateToSystemTab('activity');
   }
 
   openEditDialog() {

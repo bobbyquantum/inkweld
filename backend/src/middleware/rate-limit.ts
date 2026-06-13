@@ -63,26 +63,22 @@ export function rateLimit(options: RateLimitOptions): MiddlewareHandler {
 
   const store = new Map<string, WindowEntry>();
 
-  // Periodic cleanup of expired entries every 5 minutes
-  const cleanupInterval = setInterval(
-    () => {
-      const now = Date.now();
+  let lastCleanup = Date.now();
+  const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+
+  return async (c: Context, next) => {
+    const now = Date.now();
+
+    // Lazy cleanup of expired entries roughly every 5 minutes (triggered by requests)
+    if (now - lastCleanup > CLEANUP_INTERVAL_MS) {
+      lastCleanup = now;
       for (const [key, entry] of store) {
         entry.timestamps = entry.timestamps.filter((t) => now - t < windowMs);
         if (entry.timestamps.length === 0) store.delete(key);
       }
-    },
-    5 * 60 * 1000
-  );
+    }
 
-  // Allow the timer to not keep the process alive (Bun behaviour)
-  if (typeof cleanupInterval === 'object' && 'unref' in cleanupInterval) {
-    (cleanupInterval as unknown as { unref(): void }).unref();
-  }
-
-  return async (c: Context, next) => {
     const key = keyGenerator ? keyGenerator(c) : getClientIp(c);
-    const now = Date.now();
 
     let entry = store.get(key);
     if (!entry) {
