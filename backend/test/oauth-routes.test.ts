@@ -79,14 +79,18 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await db.delete(projectCollaborators).where(eq(projectCollaborators.userId, USER_ID));
-  await db.delete(mcpOAuthSessions).where(eq(mcpOAuthSessions.userId, USER_ID));
-  await db.delete(mcpOAuthCodes).where(eq(mcpOAuthCodes.userId, USER_ID));
-  await db.delete(mcpOAuthClients).where(eq(mcpOAuthClients.clientName, 'Route Test App'));
-  await db.delete(mcpOAuthClients).where(eq(mcpOAuthClients.clientName, 'Confidential Route App'));
-  await db.delete(mcpOAuthClients).where(eq(mcpOAuthClients.clientName, 'Minimal App'));
-  await db.delete(projects).where(eq(projects.userId, USER_ID));
-  await db.delete(users).where(eq(users.id, USER_ID));
+  // db stays unset if beforeAll failed before the server started; skip
+  // cleanup in that case so the original failure isn't masked.
+  if (db) {
+    await db.delete(projectCollaborators).where(eq(projectCollaborators.userId, USER_ID));
+    await db.delete(mcpOAuthSessions).where(eq(mcpOAuthSessions.userId, USER_ID));
+    await db.delete(mcpOAuthCodes).where(eq(mcpOAuthCodes.userId, USER_ID));
+    await db.delete(mcpOAuthClients).where(eq(mcpOAuthClients.clientName, 'Route Test App'));
+    await db.delete(mcpOAuthClients).where(eq(mcpOAuthClients.clientName, 'Confidential Route App'));
+    await db.delete(mcpOAuthClients).where(eq(mcpOAuthClients.clientName, 'Minimal App'));
+    await db.delete(projects).where(eq(projects.userId, USER_ID));
+    await db.delete(users).where(eq(users.id, USER_ID));
+  }
   await stopTestServer();
 });
 
