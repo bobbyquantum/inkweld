@@ -13,7 +13,6 @@ import {
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { ProjectSearchService } from '@services/core/project-search.service';
@@ -281,7 +280,6 @@ describe('ProjectComponent', () => {
           },
         },
         { provide: Router, useValue: router },
-        { provide: Title, useValue: { setTitle: vi.fn() } },
         { provide: ProjectExportService, useValue: exportService },
         { provide: UnifiedProjectService, useValue: projectService },
         { provide: DialogGatewayService, useValue: dialogGateway },

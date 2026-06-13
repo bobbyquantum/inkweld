@@ -20,7 +20,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Title } from '@angular/platform-browser';
 import {
   ActivatedRoute,
   Router,
@@ -31,7 +30,7 @@ import { ConnectionStatusComponent } from '@components/connection-status/connect
 import { PresenceIndicatorComponent } from '@components/presence-indicator/presence-indicator.component';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import { type Element, ElementType, type Project } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { LoggerService } from '@services/core/logger.service';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
@@ -93,7 +92,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly breakpointObserver = inject(BreakpointObserver);
   protected readonly snackBar = inject(MatSnackBar);
   protected readonly route = inject(ActivatedRoute);
-  protected readonly title = inject(Title);
   protected readonly router = inject(Router);
   protected readonly exportService = inject(ProjectExportService);
   protected readonly projectService = inject(UnifiedProjectService);
@@ -166,13 +164,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
         this.sidebarCollapsed.set(true);
       }
     }
-
-    effect(() => {
-      const project = this.projectState.project() as Project | null;
-      if (project) {
-        this.title.setTitle(`Inkweld \u2013 ${project.title}`);
-      }
-    });
 
     effect(() => {
       const tabs = this.projectState.openTabs();
