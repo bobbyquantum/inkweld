@@ -262,7 +262,12 @@ describe('ProjectComponent', () => {
         { provide: MatSnackBar, useValue: snackBar },
         {
           provide: ActivatedRoute,
-          useValue: { params: paramsSubject.asObservable() },
+          useValue: {
+            params: paramsSubject.asObservable(),
+            get snapshot() {
+              return { params: paramsSubject.value };
+            },
+          },
         },
         { provide: Router, useValue: router },
         { provide: Title, useValue: { setTitle: vi.fn() } },
@@ -469,6 +474,18 @@ describe('ProjectComponent', () => {
       component.onShowMediaLibrary();
       expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
       expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
+      expect(router.navigate).toHaveBeenCalledWith([
+        '/',
+        'testuser',
+        'test-project',
+        'media',
+      ]);
+    });
+
+    it('should navigate to media via route params before project state loads', () => {
+      projectSignal.set(undefined);
+      component.onShowMediaLibrary();
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
       expect(router.navigate).toHaveBeenCalledWith([
         '/',
         'testuser',
