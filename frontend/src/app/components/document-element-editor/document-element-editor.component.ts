@@ -1,6 +1,7 @@
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import {
   type AfterViewChecked,
+  ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   computed,
@@ -94,6 +95,7 @@ import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
     CommentPanelComponent,
   ],
   templateUrl: './document-element-editor.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: [
     './document-element-editor.component.scss',
     '../../components/lint/lint.css',

@@ -1,4 +1,10 @@
-import { Component, inject, Input, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  Input,
+  type OnInit,
+} from '@angular/core';
 import { MatCard, MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -15,6 +21,7 @@ import { AnnouncementService } from '@services/announcement/announcement.service
     MatCard,
   ],
   templateUrl: './announcement-feed.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './announcement-feed.component.scss',
 })
 export class AnnouncementFeedComponent implements OnInit {

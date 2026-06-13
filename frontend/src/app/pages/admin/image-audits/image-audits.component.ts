@@ -1,5 +1,11 @@
 import { DatePipe, NgClass } from '@angular/common';
-import { Component, inject, type OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  type OnInit,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -49,6 +55,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
     MatTooltipModule,
   ],
   templateUrl: './image-audits.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './image-audits.component.scss',
 })
 export class AdminImageAuditsComponent implements OnInit {

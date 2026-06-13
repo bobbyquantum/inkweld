@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpErrorResponse, type HttpResponse } from '@angular/common/http';
 import {
   HttpTestingController,
@@ -103,7 +103,7 @@ describe('ProjectService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         ProjectService,
         { provide: ProjectsService, useValue: api },

@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -27,6 +28,7 @@ import { FileSizePipe } from '../../../../pipes/file-size.pipe';
   selector: 'app-publish-plans-list-tab',
   templateUrl: './publish-plans-list-tab.component.html',
   styleUrls: ['./publish-plans-list-tab.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     MatButtonModule,
     MatIconModule,

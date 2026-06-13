@@ -1,5 +1,6 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -43,6 +44,7 @@ import { formatRelativeDate } from '../../utils/date-format';
     RouterLink,
   ],
   templateUrl: './writing-stats-widget.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './writing-stats-widget.component.scss',
 })
 export class WritingStatsWidgetComponent implements OnInit {

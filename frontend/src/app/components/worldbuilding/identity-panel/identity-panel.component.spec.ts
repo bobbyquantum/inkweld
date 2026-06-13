@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -45,7 +45,7 @@ describe('IdentityPanelComponent', () => {
     await TestBed.configureTestingModule({
       imports: [IdentityPanelComponent, NoopAnimationsModule],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         { provide: WorldbuildingService, useValue: worldbuildingService },
         { provide: LocalStorageService, useValue: localStorageService },

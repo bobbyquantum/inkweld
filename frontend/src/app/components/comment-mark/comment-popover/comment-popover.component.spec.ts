@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import type { CommentMarkAttrs } from '@components/comment-mark/comment-mark-schema';
@@ -58,7 +58,7 @@ describe('CommentPopoverComponent', () => {
     await TestBed.configureTestingModule({
       imports: [CommentPopoverComponent, NoopAnimationsModule],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         { provide: CommentService, useValue: mockCommentService },
         { provide: SetupService, useValue: { getServerUrl: () => '' } },
         {

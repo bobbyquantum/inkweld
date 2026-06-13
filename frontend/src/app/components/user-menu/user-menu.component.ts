@@ -1,4 +1,11 @@
-import { Component, computed, inject, Input, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  Input,
+  type OnInit,
+} from '@angular/core';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
@@ -33,6 +40,7 @@ import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
     RouterModule,
   ],
   templateUrl: './user-menu.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './user-menu.component.scss',
 })
 export class UserMenuComponent implements OnInit {

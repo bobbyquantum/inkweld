@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -14,6 +14,7 @@ import { FileSizePipe } from '../../pipes/file-size.pipe';
     FileSizePipe,
   ],
   templateUrl: './file-upload.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./file-upload.component.scss'],
 })
 export class FileUploadComponent {

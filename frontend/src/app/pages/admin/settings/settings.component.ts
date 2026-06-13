@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -42,6 +43,7 @@ import { AiKillSwitchDialogComponent } from './ai-kill-switch-dialog/ai-kill-swi
     MatTooltipModule,
   ],
   templateUrl: './settings.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './settings.component.scss',
 })
 export class AdminSettingsComponent implements OnInit {

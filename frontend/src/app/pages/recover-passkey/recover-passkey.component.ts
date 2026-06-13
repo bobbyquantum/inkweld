@@ -1,4 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -37,6 +42,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
     RouterModule,
   ],
   templateUrl: './recover-passkey.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './recover-passkey.component.scss',
 })
 export class RecoverPasskeyComponent {

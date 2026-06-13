@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   provideZonelessChangeDetection,
   signal,
@@ -45,16 +46,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SettingsTabComponent } from './settings-tab.component';
 
 // Mock child components to avoid their complex dependencies
-@Component({ selector: 'app-templates-tab', template: '' })
+@Component({
+  selector: 'app-templates-tab',
+  changeDetection: ChangeDetectionStrategy.Eager,
+  template: '',
+})
 class MockTemplatesTabComponent {}
 
 @Component({
   selector: 'app-relationships-tab',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '',
 })
 class MockRelationshipsTabComponent {}
 
-@Component({ selector: 'app-tags-tab', template: '' })
+@Component({
+  selector: 'app-tags-tab',
+  changeDetection: ChangeDetectionStrategy.Eager,
+  template: '',
+})
 class MockTagsTabComponent {}
 
 describe('SettingsTabComponent', () => {

@@ -1,4 +1,10 @@
-import { Component, Input, type TemplateRef, ViewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  type TemplateRef,
+  ViewChild,
+} from '@angular/core';
 
 /**
  * Tab panel component for use with AriaTabsComponent.
@@ -18,6 +24,7 @@ import { Component, Input, type TemplateRef, ViewChild } from '@angular/core';
  */
 @Component({
   selector: 'app-aria-tab-panel',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './aria-tab-panel.component.html',
 })
 export class AriaTabPanelComponent {

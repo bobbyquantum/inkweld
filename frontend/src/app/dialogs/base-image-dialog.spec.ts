@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -14,6 +14,7 @@ import { BaseImageDialogComponent } from './base-image-dialog';
 
 @Component({
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <input
       #fileInput

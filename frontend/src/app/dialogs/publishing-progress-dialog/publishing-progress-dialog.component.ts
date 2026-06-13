@@ -1,5 +1,11 @@
 import { AsyncPipe, DecimalPipe } from '@angular/common';
-import { Component, inject, type OnDestroy, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  type OnDestroy,
+  type OnInit,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -50,6 +56,7 @@ export interface PublishingProgressDialogResult {
   selector: 'app-publishing-progress-dialog',
   templateUrl: './publishing-progress-dialog.component.html',
   styleUrls: ['./publishing-progress-dialog.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     AsyncPipe,
     DecimalPipe,

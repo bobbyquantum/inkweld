@@ -1,4 +1,11 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import {
   type FormArray,
   FormBuilder,
@@ -100,6 +107,7 @@ interface ImageProfileForm {
     MatTooltipModule,
   ],
   templateUrl: './image-profile-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './image-profile-dialog.component.scss',
 })
 export class ImageProfileDialogComponent {

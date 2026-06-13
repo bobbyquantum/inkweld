@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
@@ -24,6 +25,7 @@ export type ProjectCoverVariant = 'card' | 'list' | 'small';
   selector: 'app-project-cover',
   imports: [],
   templateUrl: './project-cover.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./project-cover.component.scss'],
 })
 export class ProjectCoverComponent implements OnChanges, OnDestroy {

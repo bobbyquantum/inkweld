@@ -5,6 +5,7 @@ import {
   AccordionTrigger,
 } from '@angular/aria/accordion';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -64,6 +65,7 @@ interface RelationshipGroup {
     MatTooltipModule,
   ],
   templateUrl: './meta-panel.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './meta-panel.component.scss',
 })
 export class MetaPanelComponent {

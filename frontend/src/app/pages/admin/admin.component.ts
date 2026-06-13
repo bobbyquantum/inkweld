@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
@@ -20,6 +20,7 @@ import { UserMenuComponent } from '../../components/user-menu/user-menu.componen
     UserMenuComponent,
   ],
   templateUrl: './admin.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin.component.scss',
 })
 export class AdminComponent {

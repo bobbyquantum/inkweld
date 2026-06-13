@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -60,6 +61,7 @@ interface MediaItem extends MediaInfo {
   selector: 'app-media-selector-dialog',
   templateUrl: './media-selector-dialog.component.html',
   styleUrls: ['./media-selector-dialog.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     FormsModule,
     MatDialogModule,

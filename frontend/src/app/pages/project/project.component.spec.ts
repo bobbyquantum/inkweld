@@ -1,6 +1,7 @@
 import { BreakpointObserver, type BreakpointState } from '@angular/cdk/layout';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import {
+  ChangeDetectionStrategy,
   Component,
   EventEmitter,
   Input,
@@ -40,13 +41,18 @@ import { ProjectComponent } from './project.component';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
 // Mock child components to avoid their dependencies
-@Component({ selector: 'app-project-tree', template: '' })
+@Component({
+  selector: 'app-project-tree',
+  changeDetection: ChangeDetectionStrategy.Eager,
+  template: '',
+})
 class MockProjectTreeComponent {
   @Input() showCollapseButton?: boolean;
 }
 
 @Component({
   selector: 'app-user-menu',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '',
 })
 class MockUserMenuComponent {
@@ -55,6 +61,7 @@ class MockUserMenuComponent {
 
 @Component({
   selector: 'app-document-element-editor',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '',
 })
 class MockDocumentElementEditorComponent {
@@ -63,7 +70,11 @@ class MockDocumentElementEditorComponent {
   @Input() zenMode?: boolean;
 }
 
-@Component({ selector: 'app-tab-interface', template: '' })
+@Component({
+  selector: 'app-tab-interface',
+  changeDetection: ChangeDetectionStrategy.Eager,
+  template: '',
+})
 class MockTabInterfaceComponent {
   @Output() importRequested = new EventEmitter<void>();
 }
@@ -254,7 +265,7 @@ describe('ProjectComponent', () => {
       imports: [ProjectComponent],
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: DocumentService, useValue: documentService },
         { provide: RecentFilesService, useValue: recentFilesService },

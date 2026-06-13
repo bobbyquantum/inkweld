@@ -1,4 +1,9 @@
-import { Component, inject, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  type OnInit,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -41,6 +46,7 @@ export interface InsertImageDialogResult {
     ImageCropperComponent,
   ],
   templateUrl: './insert-image-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./insert-image-dialog.component.scss'],
 })
 export class InsertImageDialogComponent

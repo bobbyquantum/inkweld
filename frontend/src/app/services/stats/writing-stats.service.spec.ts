@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -27,7 +27,7 @@ describe('WritingStatsService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         { provide: SetupService, useValue: mockSetupService },
         WritingStatsService,
@@ -104,7 +104,7 @@ describe('WritingStatsService', () => {
       TestBed.configureTestingModule({
         providers: [
           provideZonelessChangeDetection(),
-          provideHttpClient(),
+          provideHttpClient(withXhr()),
           provideHttpClientTesting(),
           {
             provide: SetupService,

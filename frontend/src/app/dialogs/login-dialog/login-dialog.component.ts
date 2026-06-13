@@ -1,4 +1,10 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -26,6 +32,7 @@ import { UserService, UserServiceError } from '@services/user/user.service';
     OAuthProviderListComponent,
   ],
   templateUrl: './login-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './login-dialog.component.scss',
 })
 export class LoginDialogComponent {

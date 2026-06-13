@@ -1,4 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -25,6 +30,7 @@ import { firstValueFrom } from 'rxjs';
     ImageCropperComponent,
   ],
   templateUrl: './edit-avatar-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./edit-avatar-dialog.component.scss'],
 })
 export class EditAvatarDialogComponent {

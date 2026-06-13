@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -42,7 +42,7 @@ function createComponent() {
     ],
     providers: [
       provideZonelessChangeDetection(),
-      provideHttpClient(),
+      provideHttpClient(withXhr()),
       provideHttpClientTesting(),
       { provide: SetupService, useValue: mockSetupService },
     ],

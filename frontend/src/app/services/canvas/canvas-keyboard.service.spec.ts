@@ -1,4 +1,9 @@
-import { Component, DestroyRef, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  inject,
+} from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -10,6 +15,7 @@ import {
 @Component({
   selector: 'app-host',
   template: '',
+  changeDetection: ChangeDetectionStrategy.Eager,
   providers: [CanvasKeyboardService],
 })
 class HostComponent {

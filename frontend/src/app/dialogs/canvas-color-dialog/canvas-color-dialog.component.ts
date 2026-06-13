@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -30,6 +30,7 @@ export interface CanvasColorDialogResult {
   selector: 'app-canvas-color-dialog',
   templateUrl: './canvas-color-dialog.component.html',
   styleUrls: ['./canvas-color-dialog.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     MatDialogModule,
     MatButtonModule,

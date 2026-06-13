@@ -1,4 +1,9 @@
-import { Component, inject, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  type OnInit,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -53,6 +58,7 @@ export interface WorldbuildingImageDialogResult {
     ImageCropperComponent,
   ],
   templateUrl: './worldbuilding-image-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./worldbuilding-image-dialog.component.scss'],
 })
 export class WorldbuildingImageDialogComponent

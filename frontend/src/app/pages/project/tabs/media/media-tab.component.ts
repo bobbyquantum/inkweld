@@ -1,5 +1,6 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
@@ -93,6 +94,7 @@ export interface MediaItem extends MediaInfo {
   selector: 'app-media-tab',
   templateUrl: './media-tab.component.html',
   styleUrls: ['./media-tab.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     FormsModule,
     MatBadgeModule,

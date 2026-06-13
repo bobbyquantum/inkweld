@@ -1,5 +1,6 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
+  ChangeDetectionStrategy,
   Component,
   inject,
   Input,
@@ -48,6 +49,7 @@ type SettingsCategory = (typeof CATEGORIES)[number];
     ProjectSettingsComponent,
   ],
   templateUrl: './user-settings-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './user-settings-dialog.component.scss',
 })
 export class UserSettingsDialogComponent implements OnInit, OnDestroy {

@@ -1,4 +1,10 @@
-import { Component, inject, type OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  type OnInit,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -44,6 +50,7 @@ interface SystemFeaturesResponse {
     ThemeToggleComponent,
   ],
   templateUrl: './setup.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './setup.component.scss',
 })
 export class SetupComponent implements OnInit {

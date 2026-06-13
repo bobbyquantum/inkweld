@@ -40,6 +40,10 @@ export default tseslint.config(
         },
       ],
       'unused-imports/no-unused-imports': 'error',
+      // The v22 migration pinned ChangeDetectionStrategy.Eager on all existing
+      // components to keep pre-v22 behavior; migrating them to OnPush is
+      // tracked as future work.
+      '@angular-eslint/prefer-on-push-component-change-detection': 'off',
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -101,6 +105,7 @@ export default tseslint.config(
       ],
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
+      '@angular-eslint/prefer-on-push-component-change-detection': 'off',
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/member-ordering': 'off',
       '@typescript-eslint/consistent-type-imports': [

@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -33,6 +34,7 @@ import { ProjectStateService } from '../../../../services/project/project-state.
     MatIconModule,
     MatProgressSpinnerModule,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   providers: [DocumentSyncService],
 })
 export class WorldbuildingTabComponent implements OnInit, OnDestroy {

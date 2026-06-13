@@ -1,6 +1,12 @@
 import { TitleCasePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, type OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  type OnInit,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -33,6 +39,7 @@ import { firstValueFrom } from 'rxjs';
     MatTooltipModule,
   ],
   templateUrl: './authorized-apps.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './authorized-apps.component.scss',
 })
 export class AuthorizedAppsComponent implements OnInit {

@@ -1,5 +1,6 @@
 import {
   type AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   computed,
   type ElementRef,
@@ -104,6 +105,7 @@ const COLOR_OPTIONS = [
   selector: 'app-tag-edit-dialog',
   templateUrl: './tag-edit-dialog.component.html',
   styleUrls: ['./tag-edit-dialog.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     MatButtonModule,
     MatChipsModule,

@@ -1,4 +1,10 @@
-import { Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -24,6 +30,7 @@ import { type MediaSyncState } from '../../services/local/media-sync.service';
     MatProgressSpinnerModule,
   ],
   templateUrl: './connection-status.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./connection-status.component.scss'],
 })
 export class ConnectionStatusComponent {

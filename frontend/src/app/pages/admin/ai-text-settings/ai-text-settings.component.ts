@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -85,6 +86,7 @@ interface UnifiedModel {
     RouterModule,
   ],
   templateUrl: './ai-text-settings.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './ai-text-settings.component.scss',
 })
 export class AdminAiTextSettingsComponent implements OnInit {

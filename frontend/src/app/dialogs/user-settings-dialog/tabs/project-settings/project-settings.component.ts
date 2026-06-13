@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,6 +9,7 @@ import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
   selector: 'app-project-settings',
   imports: [FormsModule, MatCheckboxModule, MatFormFieldModule],
   templateUrl: './project-settings.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './project-settings.component.scss',
 })
 export class ProjectSettingsComponent {

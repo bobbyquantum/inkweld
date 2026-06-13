@@ -3,7 +3,7 @@
 // tests because we control both sides — disable the rule file-wide rather
 // than annotating every call site.
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -76,7 +76,7 @@ describe('PasskeyRecoveryService', () => {
     await TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         PasskeyRecoveryService,
         { provide: AuthenticationService, useValue: api },

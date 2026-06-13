@@ -1,6 +1,7 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import {
+  ChangeDetectionStrategy,
   Component,
   CUSTOM_ELEMENTS_SCHEMA,
   Input,
@@ -23,6 +24,7 @@ import { AdminUsersComponent } from './users.component';
 // Mock UserAvatarComponent to avoid HTTP calls
 @Component({
   selector: 'app-user-avatar',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '',
 })
 class MockUserAvatarComponent {
@@ -153,7 +155,7 @@ describe('AdminUsersComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AdminUsersComponent],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         provideZonelessChangeDetection(),
         { provide: AdminService, useValue: adminServiceMock },

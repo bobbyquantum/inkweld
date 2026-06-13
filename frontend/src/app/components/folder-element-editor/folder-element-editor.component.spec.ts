@@ -1,5 +1,9 @@
 import { type CdkDragDrop } from '@angular/cdk/drag-drop';
-import { Component, provideZonelessChangeDetection } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  provideZonelessChangeDetection,
+} from '@angular/core';
 import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
@@ -13,6 +17,7 @@ import { FolderElementEditorComponent } from './folder-element-editor.component'
 // Mock component for TreeNodeIcon
 @Component({
   selector: 'app-tree-node-icon',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '<div class="mock-icon"></div>',
 })
 class MockTreeNodeIconComponent {

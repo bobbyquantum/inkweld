@@ -1,4 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -22,6 +27,7 @@ import { PasswordResetService } from '@services/auth/password-reset.service';
     RouterModule,
   ],
   templateUrl: './forgot-password.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './forgot-password.component.scss',
 })
 export class ForgotPasswordComponent {

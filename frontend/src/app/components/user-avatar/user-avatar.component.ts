@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   inject,
@@ -20,6 +21,7 @@ import { type Subscription } from 'rxjs';
   selector: 'app-user-avatar',
   imports: [],
   templateUrl: './user-avatar.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./user-avatar.component.scss'],
 })
 export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {

@@ -1,4 +1,9 @@
-import { Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type PresenceSession } from '@inkweld/presence';
@@ -16,6 +21,7 @@ import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
   selector: 'app-presence-indicator',
   imports: [MatIconModule, MatTooltipModule, UserAvatarComponent],
   templateUrl: './presence-indicator.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./presence-indicator.component.scss'],
 })
 export class PresenceIndicatorComponent {

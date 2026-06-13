@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormArray, ReactiveFormsModule } from '@angular/forms';
@@ -152,7 +152,7 @@ describe('WorldbuildingEditorComponent', () => {
       imports: [WorldbuildingEditorComponent, ReactiveFormsModule],
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         { provide: WorldbuildingService, useValue: worldbuildingService },
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: DialogGatewayService, useValue: dialogGatewayMock },

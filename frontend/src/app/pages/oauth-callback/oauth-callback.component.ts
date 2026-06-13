@@ -1,5 +1,10 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, inject, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  type OnInit,
+} from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthTokenService } from '@services/auth/auth-token.service';
@@ -11,6 +16,7 @@ import { firstValueFrom } from 'rxjs';
   selector: 'app-oauth-callback',
   imports: [MatProgressSpinnerModule],
   templateUrl: './oauth-callback.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./oauth-callback.component.scss'],
 })
 export class OAuthCallbackComponent implements OnInit {

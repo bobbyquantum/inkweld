@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import {
   type AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   computed,
   type ElementRef,
@@ -164,6 +165,7 @@ export type EditRelationshipTypeDialogResult = Omit<
   selector: 'app-edit-relationship-type-dialog',
   templateUrl: './edit-relationship-type-dialog.component.html',
   styleUrls: ['./edit-relationship-type-dialog.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     CommonModule,
     FormsModule,

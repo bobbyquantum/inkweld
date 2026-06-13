@@ -1,5 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -66,6 +71,7 @@ export interface PublishCompleteDialogResult {
     MatProgressSpinnerModule,
   ],
   templateUrl: './publish-complete-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './publish-complete-dialog.component.scss',
 })
 export class PublishCompleteDialogComponent {

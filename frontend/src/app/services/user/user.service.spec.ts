@@ -4,6 +4,7 @@ import {
   HttpErrorResponse,
   HttpResponse,
   provideHttpClient,
+  withXhr,
 } from '@angular/common/http';
 import {
   HttpTestingController,
@@ -87,7 +88,7 @@ describe('UserService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         UserService,
         StorageService,

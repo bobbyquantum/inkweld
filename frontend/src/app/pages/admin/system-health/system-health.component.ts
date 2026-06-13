@@ -1,5 +1,11 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, inject, type OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  type OnInit,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -25,6 +31,7 @@ interface SystemStats {
     MatButtonModule,
   ],
   templateUrl: './system-health.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './system-health.component.scss',
 })
 export class AdminSystemHealthComponent implements OnInit {

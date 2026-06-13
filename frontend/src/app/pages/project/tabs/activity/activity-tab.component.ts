@@ -1,5 +1,12 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -31,6 +38,7 @@ import { formatRelativeDate } from '../../../../utils/date-format';
   selector: 'app-activity-tab',
   templateUrl: './activity-tab.component.html',
   styleUrls: ['./activity-tab.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     DatePipe,
     MatButtonModule,

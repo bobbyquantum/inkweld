@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
   inject,
@@ -19,6 +20,7 @@ import { type ExtendedCorrectionDto } from './correction-dto.extension';
   imports: [MatTooltipModule],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './lint-overlay.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./lint-overlay.component.scss'],
 })
 export class LintOverlayComponent implements OnInit, OnChanges {

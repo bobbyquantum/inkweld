@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Editor } from '@bobbyquantum/ngx-editor';
@@ -169,7 +169,7 @@ describe('DocumentService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         DocumentService,
         { provide: ProjectStateService, useValue: mockProjectStateService },
         { provide: DocumentsService, useValue: mockDocumentsService },

@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   provideZonelessChangeDetection,
   ViewChild,
@@ -12,6 +13,7 @@ import { type AriaTabConfig, AriaTabsComponent } from './aria-tabs.component';
 // Test host component to wrap AriaTabsComponent with projected content
 @Component({
   imports: [AriaTabsComponent, AriaTabPanelComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <app-aria-tabs
       [tabs]="tabs"

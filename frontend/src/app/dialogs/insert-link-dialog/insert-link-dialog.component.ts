@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import {
   type AbstractControl,
   FormControl,
@@ -65,6 +65,7 @@ function urlValidator(control: AbstractControl): ValidationErrors | null {
   selector: 'app-insert-link-dialog',
   templateUrl: './insert-link-dialog.component.html',
   styleUrls: ['./insert-link-dialog.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     MatDialogModule,
     MatButtonModule,

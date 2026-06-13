@@ -1,5 +1,6 @@
 import {
   type AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   type ElementRef,
   inject,
@@ -25,6 +26,7 @@ export interface RenameDialogData {
   selector: 'app-rename-dialog',
   templateUrl: './rename-dialog.component.html',
   styleUrls: ['./rename-dialog.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     MatDialogModule,
     MatButtonModule,

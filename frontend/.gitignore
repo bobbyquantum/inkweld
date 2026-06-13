@@ -70,3 +70,7 @@ debug-screenshot.png
 # during `bun install`). Required by the Typst WASM compiler, which rejects
 # the woff2 files shipped by @fontsource/* packages.
 /public/assets/fonts/
+
+# Repo-root CHANGELOG.md copied by scripts/copy-changelog.mjs during
+# `bun install` (Angular 22 forbids asset inputs outside the workspace root).
+/public/assets/CHANGELOG.md

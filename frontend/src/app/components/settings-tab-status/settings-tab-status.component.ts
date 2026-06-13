@@ -1,4 +1,9 @@
-import { Component, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  output,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -11,6 +16,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   selector: 'app-settings-tab-status',
   templateUrl: './settings-tab-status.component.html',
   styleUrls: ['./settings-tab-status.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [MatButtonModule, MatIconModule, MatProgressSpinnerModule],
 })
 export class SettingsTabStatusComponent {

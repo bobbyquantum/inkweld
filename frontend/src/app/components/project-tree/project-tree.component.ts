@@ -10,6 +10,7 @@ import {
 } from '@angular/cdk/drag-drop';
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -60,6 +61,7 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
   ],
   selector: 'app-project-tree',
   templateUrl: './project-tree.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./project-tree.component.scss'],
 })
 export class ProjectTreeComponent implements OnDestroy {

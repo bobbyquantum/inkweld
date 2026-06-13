@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   EventEmitter,
   inject,
@@ -22,6 +23,7 @@ import { environment } from '../../../environments/environment';
   selector: 'app-oauth-provider-list',
   imports: [MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './oauth-provider-list.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./oauth-provider-list.component.scss'],
 })
 export class OAuthProviderListComponent implements OnInit {

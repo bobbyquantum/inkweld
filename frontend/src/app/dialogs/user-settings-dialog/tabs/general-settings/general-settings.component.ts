@@ -1,4 +1,10 @@
-import { Component, inject, type OnDestroy, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  type OnDestroy,
+  type OnInit,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
@@ -9,6 +15,7 @@ import { type Subscription } from 'rxjs';
   selector: 'app-general-settings',
   imports: [MatFormFieldModule, MatSelectModule, FormsModule],
   templateUrl: './general-settings.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './general-settings.component.scss',
 })
 export class GeneralSettingsComponent implements OnInit, OnDestroy {

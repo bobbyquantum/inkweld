@@ -3,6 +3,7 @@ import {
   provideHttpClient,
   withInterceptorsFromDi,
   withNoXsrfProtection,
+  withXhr,
 } from '@angular/common/http';
 import {
   type ApplicationConfig,
@@ -22,7 +23,11 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideZonelessChangeDetection(),
     provideRouter(routes),
-    provideHttpClient(withNoXsrfProtection(), withInterceptorsFromDi()),
+    provideHttpClient(
+      withXhr(),
+      withNoXsrfProtection(),
+      withInterceptorsFromDi()
+    ),
     {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,

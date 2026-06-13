@@ -1,5 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, type OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  type OnInit,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,6 +26,7 @@ export interface SafeChangelogVersion extends Omit<
   selector: 'app-changelog',
   imports: [CommonModule, MatExpansionModule, MatIconModule, MatButtonModule],
   templateUrl: './changelog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './changelog.component.scss',
 })
 export class ChangelogComponent implements OnInit {
