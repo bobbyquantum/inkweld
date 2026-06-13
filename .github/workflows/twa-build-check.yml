@@ -1,0 +1,57 @@
+name: TWA Build Check
+
+on:
+  pull_request:
+    paths:
+      - "android/**"
+      - ".github/workflows/twa-build-check.yml"
+
+concurrency:
+  group: twa-build-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build TWA (preview release)
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+        with:
+          packages: 'platforms;android-36 build-tools;36.0.0'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
+
+      - name: Generate test keystore
+        working-directory: android
+        run: |
+          keytool -genkey \
+            -v \
+            -keystore test-keystore.jks \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 365 \
+            -alias test \
+            -dname "CN=Test" \
+            -storepass testpass \
+            -keypass testpass
+
+      - name: Build preview release
+        working-directory: android
+        env:
+          ORG_GRADLE_PROJECT_KEYSTORE_PATH: test-keystore.jks
+          ORG_GRADLE_PROJECT_KEYSTORE_PASSWORD: testpass
+          ORG_GRADLE_PROJECT_KEY_ALIAS: test
+          ORG_GRADLE_PROJECT_KEY_PASSWORD: testpass
+        run: ./gradlew assemblePreviewRelease
