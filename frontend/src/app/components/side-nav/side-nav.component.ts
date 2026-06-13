@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   EventEmitter,
   inject,
@@ -46,6 +47,7 @@ export interface UnifiedProjectItem {
     ProjectCoverComponent,
   ],
   templateUrl: './side-nav.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./side-nav.component.scss'],
 })
 export class SideNavComponent {

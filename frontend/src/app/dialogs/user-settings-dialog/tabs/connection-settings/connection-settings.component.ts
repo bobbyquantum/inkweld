@@ -1,4 +1,10 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -38,6 +44,7 @@ import {
     FormsModule,
   ],
   templateUrl: './connection-settings.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './connection-settings.component.scss',
 })
 export class ConnectionSettingsComponent {

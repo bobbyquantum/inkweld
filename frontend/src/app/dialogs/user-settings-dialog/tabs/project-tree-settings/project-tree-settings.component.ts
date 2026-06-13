@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -8,6 +8,7 @@ import { SettingsService } from '@services/core/settings.service';
   selector: 'app-project-tree-settings',
   imports: [FormsModule, MatCheckboxModule, MatFormFieldModule],
   templateUrl: './project-tree-settings.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './project-tree-settings.component.scss',
 })
 export class ProjectTreeSettingsComponent {

@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
@@ -140,7 +140,7 @@ describe('RelationshipsTabComponent', () => {
       imports: [RelationshipsTabComponent, NoopAnimationsModule],
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         { provide: RelationshipService, useValue: relationshipServiceMock },
         { provide: ProjectStateService, useValue: projectStateMock },
         { provide: DialogGatewayService, useValue: dialogGatewayMock },

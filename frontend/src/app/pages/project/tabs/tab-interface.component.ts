@@ -3,6 +3,7 @@ import { CdkDrag, type CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import {
   type AfterViewInit,
+  ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   effect,
@@ -60,6 +61,7 @@ const TAB_TYPE_ICONS: Partial<Record<AppTab['type'], string>> = {
   selector: 'app-tab-interface',
   templateUrl: './tab-interface.component.html',
   styleUrls: ['./tab-interface.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     Tabs,
     TabList,

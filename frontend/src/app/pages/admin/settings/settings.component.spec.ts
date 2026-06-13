@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -76,7 +76,7 @@ describe('AdminSettingsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AdminSettingsComponent],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         provideZonelessChangeDetection(),
         { provide: BASE_PATH, useValue: '' },

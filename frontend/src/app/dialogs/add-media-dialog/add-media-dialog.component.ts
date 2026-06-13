@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -20,6 +20,7 @@ export type AddMediaDialogResult = 'upload' | 'generate';
   selector: 'app-add-media-dialog',
   imports: [MatDialogModule, MatButtonModule, MatIconModule],
   templateUrl: './add-media-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./add-media-dialog.component.scss'],
 })
 export class AddMediaDialogComponent {

@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -80,7 +80,7 @@ describe('CoverSyncService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         CoverSyncService,
         { provide: LocalStorageService, useValue: mockLocalStorage },

@@ -1,4 +1,9 @@
-import { Component, inject, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  type OnInit,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,6 +23,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
     ThemeToggleComponent,
   ],
   templateUrl: './approval-pending.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './approval-pending.component.scss',
 })
 export class ApprovalPendingComponent implements OnInit {

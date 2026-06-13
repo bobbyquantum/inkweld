@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -59,6 +60,7 @@ interface ArchivePreview {
   selector: 'app-import-project-dialog',
   templateUrl: './import-project-dialog.component.html',
   styleUrl: './import-project-dialog.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     MatDialogModule,
     MatButtonModule,

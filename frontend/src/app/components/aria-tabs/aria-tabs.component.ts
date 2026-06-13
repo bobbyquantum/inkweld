@@ -2,6 +2,7 @@ import { Tab, TabList, Tabs } from '@angular/aria/tabs';
 import { CommonModule } from '@angular/common';
 import {
   type AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   ContentChildren,
   type ElementRef,
@@ -35,6 +36,7 @@ export interface AriaTabConfig {
   selector: 'app-aria-tabs',
   imports: [CommonModule, Tabs, TabList, Tab, MatIconModule, MatButtonModule],
   templateUrl: './aria-tabs.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './aria-tabs.component.scss',
 })
 export class AriaTabsComponent implements AfterViewInit, OnChanges {

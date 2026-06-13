@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -31,6 +31,7 @@ export interface CanvasTextDialogResult {
   selector: 'app-canvas-text-dialog',
   templateUrl: './canvas-text-dialog.component.html',
   styleUrls: ['./canvas-text-dialog.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     MatDialogModule,
     MatButtonModule,

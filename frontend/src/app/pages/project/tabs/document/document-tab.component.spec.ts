@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   Input,
   type OnDestroy,
@@ -21,6 +22,7 @@ import { DocumentTabComponent } from './document-tab.component';
 // Mock DocumentElementEditorComponent (with standalone: true)
 @Component({
   selector: 'app-document-element-editor',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '<div>Mock Document Editor</div>',
 })
 class MockDocumentElementEditorComponent implements OnInit, OnDestroy {
@@ -39,6 +41,7 @@ class MockDocumentElementEditorComponent implements OnInit, OnDestroy {
 // Mock DocumentBreadcrumbsComponent (standalone)
 @Component({
   selector: 'app-document-breadcrumbs',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '',
 })
 class MockDocumentBreadcrumbsComponent {

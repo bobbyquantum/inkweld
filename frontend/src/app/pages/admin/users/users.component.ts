@@ -1,5 +1,6 @@
 import { NgClass } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   type ElementRef,
@@ -55,6 +56,7 @@ const PAGE_SIZE = 20;
     UserAvatarComponent,
   ],
   templateUrl: './users.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './users.component.scss',
 })
 export class AdminUsersComponent implements OnInit, OnDestroy {

@@ -1,5 +1,6 @@
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -63,6 +64,7 @@ import { TimeSystemsSettingsComponent } from './time-systems-settings/time-syste
   selector: 'app-settings-tab',
   templateUrl: './settings-tab.component.html',
   styleUrls: ['./settings-tab.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     DatePipe,
     FormsModule,

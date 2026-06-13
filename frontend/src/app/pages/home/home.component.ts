@@ -1,5 +1,6 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -72,6 +73,7 @@ import { debounceTime, takeUntil } from 'rxjs/operators';
     ThemeToggleComponent,
   ],
   templateUrl: './home.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './home.component.scss',
 })
 export class HomeComponent implements OnInit, OnDestroy {

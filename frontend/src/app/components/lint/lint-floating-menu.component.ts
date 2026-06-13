@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   HostListener,
   Input,
@@ -20,6 +21,7 @@ import { pluginKey } from './lint-plugin';
   imports: [MatButtonModule, MatIconModule],
   templateUrl: './lint-floating-menu.component.html',
   styleUrls: ['./lint-floating-menu.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     '[style.top.px]': 'positionState().top',
     '[style.left.px]': 'positionState().left',

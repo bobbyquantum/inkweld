@@ -1,6 +1,7 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
 import {
   type AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -64,6 +65,7 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
   selector: 'app-project',
   templateUrl: './project.component.html',
   styleUrls: ['./project.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     MatButtonModule,
     MatSidenavModule,

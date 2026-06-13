@@ -1,4 +1,10 @@
-import { Component, inject, type OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  type OnInit,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -56,6 +62,7 @@ export interface SnapshotsDialogData {
     MatProgressSpinnerModule,
   ],
   templateUrl: './snapshots-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './snapshots-dialog.component.scss',
 })
 export class SnapshotsDialogComponent implements OnInit {

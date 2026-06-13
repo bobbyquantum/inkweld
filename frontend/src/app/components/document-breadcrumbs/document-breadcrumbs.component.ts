@@ -1,4 +1,10 @@
-import { Component, computed, inject, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+} from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type Element } from '@inkweld/index';
@@ -26,6 +32,7 @@ export interface BreadcrumbSegment {
   selector: 'app-document-breadcrumbs',
   imports: [MatIconModule, MatTooltipModule],
   templateUrl: './document-breadcrumbs.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './document-breadcrumbs.component.scss',
 })
 export class DocumentBreadcrumbsComponent {

@@ -1,5 +1,6 @@
 import {
   type AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   EventEmitter,
   inject,
@@ -28,6 +29,7 @@ type DevicePreset = 'phone' | 'tablet' | 'desktop';
   selector: 'app-publish-preview',
   templateUrl: './publish-preview.component.html',
   styleUrls: ['./publish-preview.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     MatButtonModule,
     MatIconModule,

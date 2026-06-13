@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   inject,
@@ -32,6 +33,7 @@ import { Subject } from 'rxjs';
     RegistrationFormComponent,
   ],
   templateUrl: './register-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './register-dialog.component.scss',
 })
 export class RegisterDialogComponent implements OnInit, OnDestroy {

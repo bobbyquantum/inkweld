@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   inject,
@@ -18,6 +19,7 @@ import { FolderElementEditorComponent } from '../../../../components/folder-elem
   selector: 'app-folder-tab',
   templateUrl: './folder-tab.component.html',
   styleUrls: ['./folder-tab.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [FolderElementEditorComponent, DocumentBreadcrumbsComponent],
 })
 export class FolderTabComponent implements OnInit, OnDestroy {

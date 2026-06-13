@@ -5,7 +5,7 @@ import {
   type CdkDragSortEvent,
   type CdkDropList,
 } from '@angular/cdk/drag-drop';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import {
   provideZonelessChangeDetection,
   signal,
@@ -143,7 +143,7 @@ describe('ProjectTreeComponent', () => {
         { provide: SettingsService, useValue: settingsService },
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: ProjectsService, useValue: projectServiceMock },
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         { provide: DialogGatewayService, useValue: dialogGatewayService },
         { provide: QuickOpenService, useValue: quickOpenService },
       ],
