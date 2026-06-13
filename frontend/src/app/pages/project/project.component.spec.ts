@@ -262,7 +262,12 @@ describe('ProjectComponent', () => {
         { provide: MatSnackBar, useValue: snackBar },
         {
           provide: ActivatedRoute,
-          useValue: { params: paramsSubject.asObservable() },
+          useValue: {
+            params: paramsSubject.asObservable(),
+            get snapshot() {
+              return { params: paramsSubject.value };
+            },
+          },
         },
         { provide: Router, useValue: router },
         { provide: Title, useValue: { setTitle: vi.fn() } },
@@ -477,6 +482,18 @@ describe('ProjectComponent', () => {
       ]);
     });
 
+    it('should navigate to media via route params before project state loads', () => {
+      projectSignal.set(undefined);
+      component.onShowMediaLibrary();
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
+      expect(router.navigate).toHaveBeenCalledWith([
+        '/',
+        'testuser',
+        'test-project',
+        'media',
+      ]);
+    });
+
     it('should show project settings', () => {
       component.onShowSettings();
       expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
@@ -488,6 +505,32 @@ describe('ProjectComponent', () => {
         'testuser',
         'test-project',
         'settings',
+      ]);
+    });
+
+    it('should show publish plans', () => {
+      component.onShowPublishPlans();
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+        'publish-plans'
+      );
+      expect(router.navigate).toHaveBeenCalledWith([
+        '/',
+        'testuser',
+        'test-project',
+        'publish-plans',
+      ]);
+    });
+
+    it('should show activity', () => {
+      component.onShowActivity();
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+        'activity'
+      );
+      expect(router.navigate).toHaveBeenCalledWith([
+        '/',
+        'testuser',
+        'test-project',
+        'activity',
       ]);
     });
   });
