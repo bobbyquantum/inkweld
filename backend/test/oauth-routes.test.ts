@@ -86,7 +86,9 @@ afterAll(async () => {
     await db.delete(mcpOAuthSessions).where(eq(mcpOAuthSessions.userId, USER_ID));
     await db.delete(mcpOAuthCodes).where(eq(mcpOAuthCodes.userId, USER_ID));
     await db.delete(mcpOAuthClients).where(eq(mcpOAuthClients.clientName, 'Route Test App'));
-    await db.delete(mcpOAuthClients).where(eq(mcpOAuthClients.clientName, 'Confidential Route App'));
+    await db
+      .delete(mcpOAuthClients)
+      .where(eq(mcpOAuthClients.clientName, 'Confidential Route App'));
     await db.delete(mcpOAuthClients).where(eq(mcpOAuthClients.clientName, 'Minimal App'));
     await db.delete(projects).where(eq(projects.userId, USER_ID));
     await db.delete(users).where(eq(users.id, USER_ID));
