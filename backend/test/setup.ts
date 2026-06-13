@@ -4,6 +4,7 @@
  */
 
 import { join } from 'node:path';
+import { setupBunDatabase } from '../src/db/bun-sqlite';
 
 // Set in-memory database for all tests
 if (!process.env.DB_DATABASE) {
@@ -22,3 +23,9 @@ if (!process.env.USER_APPROVAL_REQUIRED) {
 
 console.log(`[test setup] DB_DATABASE set to: ${process.env.DB_DATABASE}`);
 console.log(`[test setup] DRIZZLE_MIGRATIONS_DIR set to: ${process.env.DRIZZLE_MIGRATIONS_DIR}`);
+
+// Eagerly initialize the shared Bun SQLite database before test modules are
+// imported. Several integration tests call getDatabase() at module load time
+// (e.g. `const db = getDatabase();`), so the singleton must be ready before
+// those imports execute.
+await setupBunDatabase(process.env.DB_DATABASE);
