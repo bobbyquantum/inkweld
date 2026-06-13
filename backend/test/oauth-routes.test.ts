@@ -21,7 +21,9 @@ import {
   enablePasswordLoginForTests,
 } from './server-test-helper';
 
-let db!: ReturnType<typeof getDatabase>;
+// Resolved in beforeAll: the DB is only initialized once startTestServer()
+// has run, and this file may be the first one bun loads.
+let db: ReturnType<typeof getDatabase>;
 let client: TestClient;
 let unauthClient: TestClient;
 let testServer: { port: number; baseUrl: string };
