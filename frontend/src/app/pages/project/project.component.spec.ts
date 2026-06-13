@@ -507,6 +507,32 @@ describe('ProjectComponent', () => {
         'settings',
       ]);
     });
+
+    it('should show publish plans', () => {
+      component.onShowPublishPlans();
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+        'publish-plans'
+      );
+      expect(router.navigate).toHaveBeenCalledWith([
+        '/',
+        'testuser',
+        'test-project',
+        'publish-plans',
+      ]);
+    });
+
+    it('should show activity', () => {
+      component.onShowActivity();
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+        'activity'
+      );
+      expect(router.navigate).toHaveBeenCalledWith([
+        '/',
+        'testuser',
+        'test-project',
+        'activity',
+      ]);
+    });
   });
 
   describe('publish project', () => {
