@@ -117,13 +117,15 @@ The deployment supports the following environment variables:
 - `WEBAUTHN_RP_NAME` - Display name shown in browser passkey prompts (default: `Inkweld`)
 
 #### Authentication — Email Recovery
-- `EMAIL_RECOVERY_ENABLED` - Enable email-based account recovery (default: `false`). In passwordless mode this powers a magic-link flow; in password mode it powers the forgot-password flow. Requires SMTP settings below.
+- `EMAIL_RECOVERY_ENABLED` - Enable email-based account recovery (default: `false`). In passwordless mode this powers a magic-link flow; in password mode it powers the forgot-password flow. Requires `EMAIL_ENABLED=true` and the SMTP settings below.
+- `EMAIL_ENABLED` - Enable transactional email sending (default: `false`)
 - `EMAIL_FROM` - Sender address for recovery emails (e.g. `noreply@your-domain.com`)
-- `SMTP_HOST` - SMTP server hostname
-- `SMTP_PORT` - SMTP server port (default: `587`)
-- `SMTP_USER` - SMTP authentication username
-- `SMTP_PASS` - SMTP authentication password
-- `SMTP_SECURE` - Use TLS for SMTP connection (default: `false`; set `true` for port 465)
+- `EMAIL_FROM_NAME` - Sender display name (default: `Inkweld`)
+- `EMAIL_HOST` - SMTP server hostname
+- `EMAIL_PORT` - SMTP server port (default: `587`)
+- `EMAIL_ENCRYPTION` - SMTP encryption method: `starttls`, `tls`, or `none` (default: `starttls`)
+- `EMAIL_USERNAME` - SMTP authentication username
+- `EMAIL_PASSWORD` - SMTP authentication password
 
 #### Authentication — GitHub OAuth
 - `GITHUB_ENABLED` - Enable GitHub OAuth (default: `false`)
@@ -144,12 +146,15 @@ WEBAUTHN_RP_ID=your-domain.com
 WEBAUTHN_RP_NAME=Inkweld
 
 # Optional: email recovery
+# EMAIL_ENABLED=true
 # EMAIL_RECOVERY_ENABLED=true
 # EMAIL_FROM=noreply@your-domain.com
-# SMTP_HOST=smtp.your-provider.com
-# SMTP_PORT=587
-# SMTP_USER=your-smtp-user
-# SMTP_PASS=your-smtp-password
+# EMAIL_FROM_NAME=Inkweld
+# EMAIL_HOST=smtp.your-provider.com
+# EMAIL_PORT=587
+# EMAIL_ENCRYPTION=starttls
+# EMAIL_USERNAME=your-smtp-user
+# EMAIL_PASSWORD=your-smtp-password
 
 # Optional: GitHub OAuth
 # GITHUB_ENABLED=true
