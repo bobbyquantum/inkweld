@@ -13,7 +13,7 @@ Inkweld is a monorepo application with distinct frontend and backend services:
 %%{init: {'theme':'neutral'}}%%
 graph TB
     subgraph Browser["🌐 Browser Client"]
-        Angular["Angular 21 SPA"]
+        Angular["Angular SPA"]
         IndexedDB["IndexedDB<br/>(Offline Storage)"]
         Angular --> IndexedDB
     end
@@ -37,11 +37,11 @@ graph TB
     style Storage fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
 ```
 
-## Frontend (Angular 21)
+## Frontend
 
 ### Technology Stack
 
-- **Framework**: Angular 21 with standalone components
+- **Framework**: Angular with standalone components
 - **State Management**: Service-based with RxJS
 - **Offline Storage**: IndexedDB via y-indexeddb
 - **Real-Time**: Yjs + y-websocket provider

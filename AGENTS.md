@@ -8,7 +8,7 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 
 **Inkweld** is a collaborative creative writing platform built with:
 
-- **Frontend**: Angular 21 (standalone components, modern control flow)
+- **Frontend**: Angular (standalone components, modern control flow)
 - **Backend**: Hono running on Bun
 - **Database**: SQLite/D1 (Drizzle ORM) + LevelDB (per-project document storage)
 - **Real-time**: Yjs + WebSocket for collaborative editing
@@ -84,11 +84,11 @@ For more information, visit: <https://angular.dev/ai/mcp>
 
 ---
 
-## Frontend Architecture (Angular 21)
+## Frontend Architecture
 
 ### Technology Stack
 
-- **Framework**: Angular 21 with standalone components
+- **Framework**: Angular with standalone components
 - **Dependency Injection**: Use `inject()` syntax, **NOT constructor injection**
 - **Control Flow**: Use `@if`, `@for`, `@switch` directives (not `*ngIf`, `*ngFor`, `*ngSwitch`)
 - **Modules**: Everything is standalone - no NgModules

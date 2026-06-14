@@ -88,7 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Developer Experience
 
-- **Modern Tech Stack**: Angular 21 (frontend), Hono on Bun (backend)
+- **Modern Tech Stack**: Angular (frontend), Hono on Bun (backend)
 - **Comprehensive Testing**: Vitest for unit tests, Playwright for e2e tests (80% coverage enforced)
 - **API Documentation**: Auto-generated OpenAPI specification with interactive Swagger UI at `/api`
 - **Type Safety**: Full TypeScript implementation with strict mode
