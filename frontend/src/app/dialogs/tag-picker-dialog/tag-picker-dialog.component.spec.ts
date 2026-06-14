@@ -5,7 +5,6 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { type Element, ElementType } from '@inkweld/index';
 import { type TagDefinition } from '@models/tag.model';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -93,11 +92,7 @@ describe('TagPickerDialogComponent', () => {
     } as unknown as MatDialogRef<TagPickerDialogComponent>;
 
     TestBed.configureTestingModule({
-      imports: [
-        TagPickerDialogComponent,
-        MatDialogModule,
-        NoopAnimationsModule,
-      ],
+      imports: [TagPickerDialogComponent, MatDialogModule],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },

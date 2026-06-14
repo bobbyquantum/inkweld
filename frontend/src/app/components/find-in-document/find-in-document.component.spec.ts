@@ -1,5 +1,4 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FindInDocumentService } from '../../services/core/find-in-document.service';
@@ -45,7 +44,7 @@ describe('FindInDocumentComponent', () => {
       mockFindService = createMockFindService();
 
       await TestBed.configureTestingModule({
-        imports: [FindInDocumentComponent, NoopAnimationsModule],
+        imports: [FindInDocumentComponent],
         providers: [
           { provide: FindInDocumentService, useValue: mockFindService },
         ],
@@ -79,7 +78,7 @@ describe('FindInDocumentComponent', () => {
 
       await TestBed.resetTestingModule()
         .configureTestingModule({
-          imports: [FindInDocumentComponent, NoopAnimationsModule],
+          imports: [FindInDocumentComponent],
           providers: [
             { provide: FindInDocumentService, useValue: mockFindService },
           ],
@@ -102,7 +101,7 @@ describe('FindInDocumentComponent', () => {
       mockFindService = createMockFindService();
 
       await TestBed.configureTestingModule({
-        imports: [FindInDocumentComponent, NoopAnimationsModule],
+        imports: [FindInDocumentComponent],
         providers: [
           { provide: FindInDocumentService, useValue: mockFindService },
         ],
@@ -140,7 +139,7 @@ describe('FindInDocumentComponent', () => {
       mockFindService = createMockFindService();
 
       await TestBed.configureTestingModule({
-        imports: [FindInDocumentComponent, NoopAnimationsModule],
+        imports: [FindInDocumentComponent],
         providers: [
           { provide: FindInDocumentService, useValue: mockFindService },
         ],
@@ -174,7 +173,7 @@ describe('FindInDocumentComponent', () => {
       mockFindService = createMockFindService({ matchCount: 0 });
 
       await TestBed.configureTestingModule({
-        imports: [FindInDocumentComponent, NoopAnimationsModule],
+        imports: [FindInDocumentComponent],
         providers: [
           { provide: FindInDocumentService, useValue: mockFindService },
         ],
@@ -208,7 +207,7 @@ describe('FindInDocumentComponent', () => {
       mockFindService = createMockFindService({ matchCount: 5 });
 
       await TestBed.configureTestingModule({
-        imports: [FindInDocumentComponent, NoopAnimationsModule],
+        imports: [FindInDocumentComponent],
         providers: [
           { provide: FindInDocumentService, useValue: mockFindService },
         ],
@@ -245,7 +244,7 @@ describe('FindInDocumentComponent', () => {
       });
 
       await TestBed.configureTestingModule({
-        imports: [FindInDocumentComponent, NoopAnimationsModule],
+        imports: [FindInDocumentComponent],
         providers: [
           { provide: FindInDocumentService, useValue: mockFindService },
         ],
@@ -314,7 +313,7 @@ describe('FindInDocumentComponent', () => {
       mockFindService = createMockFindService();
 
       await TestBed.configureTestingModule({
-        imports: [FindInDocumentComponent, NoopAnimationsModule],
+        imports: [FindInDocumentComponent],
         providers: [
           { provide: FindInDocumentService, useValue: mockFindService },
         ],

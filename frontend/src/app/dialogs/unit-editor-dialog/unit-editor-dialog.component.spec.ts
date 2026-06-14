@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -31,7 +30,7 @@ const makeData = (overrides: Partial<UnitEditorData> = {}): UnitEditorData => ({
 async function createComponent(data: UnitEditorData = makeData()) {
   const closeSpy = vi.fn();
   await TestBed.configureTestingModule({
-    imports: [UnitEditorDialogComponent, NoopAnimationsModule],
+    imports: [UnitEditorDialogComponent],
     providers: [
       { provide: MAT_DIALOG_DATA, useValue: data },
       { provide: MatDialogRef, useValue: { close: closeSpy } },

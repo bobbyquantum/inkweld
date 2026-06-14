@@ -1,6 +1,5 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { type Element, ElementType } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -41,7 +40,7 @@ describe('DocumentBreadcrumbsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [DocumentBreadcrumbsComponent, NoopAnimationsModule],
+      imports: [DocumentBreadcrumbsComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: projectStateMock },

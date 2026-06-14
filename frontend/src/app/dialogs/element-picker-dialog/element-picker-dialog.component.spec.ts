@@ -1,6 +1,5 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { vi } from 'vitest';
 
 import { type Element } from '../../../api-client/model/element';
@@ -83,7 +82,7 @@ describe('ElementPickerDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ElementPickerDialogComponent, NoopAnimationsModule],
+      imports: [ElementPickerDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: defaultDialogData },
@@ -112,7 +111,7 @@ describe('ElementPickerDialogComponent', () => {
     // Recreate with filterType
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
-      imports: [ElementPickerDialogComponent, NoopAnimationsModule],
+      imports: [ElementPickerDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         {
@@ -134,7 +133,7 @@ describe('ElementPickerDialogComponent', () => {
   it('should exclude elements by ID when excludeIds is provided', async () => {
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
-      imports: [ElementPickerDialogComponent, NoopAnimationsModule],
+      imports: [ElementPickerDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         {
@@ -193,7 +192,7 @@ describe('ElementPickerDialogComponent', () => {
   it('should not allow selection beyond max limit', async () => {
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
-      imports: [ElementPickerDialogComponent, NoopAnimationsModule],
+      imports: [ElementPickerDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: { maxSelections: 2 } },

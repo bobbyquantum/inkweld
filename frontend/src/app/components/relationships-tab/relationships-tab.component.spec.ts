@@ -3,7 +3,6 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   type EditRelationshipTypeDialogData,
   type EditRelationshipTypeDialogResult,
@@ -137,7 +136,7 @@ describe('RelationshipsTabComponent', () => {
     mockDialogResult(validDialogResult);
 
     await TestBed.configureTestingModule({
-      imports: [RelationshipsTabComponent, NoopAnimationsModule],
+      imports: [RelationshipsTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

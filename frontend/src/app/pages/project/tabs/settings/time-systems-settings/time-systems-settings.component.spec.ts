@@ -1,6 +1,5 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { GREGORIAN_SYSTEM, type TimeSystem } from '@models/time-system';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
@@ -37,7 +36,7 @@ async function createComponent(
   };
 
   await TestBed.configureTestingModule({
-    imports: [TimeSystemsSettingsComponent, NoopAnimationsModule],
+    imports: [TimeSystemsSettingsComponent],
     providers: [
       { provide: TimeSystemLibraryService, useValue: libraryMock },
       { provide: DialogGatewayService, useValue: dialogsMock },
@@ -106,7 +105,7 @@ describe('TimeSystemsSettingsComponent', () => {
       openConfirmationDialog: vi.fn().mockResolvedValue(true),
     };
     await TestBed.configureTestingModule({
-      imports: [TimeSystemsSettingsComponent, NoopAnimationsModule],
+      imports: [TimeSystemsSettingsComponent],
       providers: [
         { provide: TimeSystemLibraryService, useValue: libraryMock },
         { provide: DialogGatewayService, useValue: dialogsMock },

@@ -1,7 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { GREGORIAN_SYSTEM, type TimeSystem } from '@models/time-system';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
 import { of } from 'rxjs';
@@ -31,7 +30,7 @@ async function createComponent(
   const dialogMock = { open: vi.fn().mockReturnValue(dialogRef) };
 
   await TestBed.configureTestingModule({
-    imports: [TimeSystemEditPageComponent, NoopAnimationsModule],
+    imports: [TimeSystemEditPageComponent],
     providers: [
       { provide: TimeSystemLibraryService, useValue: libraryMock },
       { provide: MatDialog, useValue: dialogMock },

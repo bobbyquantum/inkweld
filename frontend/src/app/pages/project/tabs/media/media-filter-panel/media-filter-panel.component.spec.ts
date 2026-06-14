@@ -3,7 +3,6 @@ import {
   provideZonelessChangeDetection,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -26,7 +25,7 @@ describe('MediaFilterPanelComponent', () => {
 
   function setup(filters: MediaFilterState = defaultFilters) {
     TestBed.configureTestingModule({
-      imports: [MediaFilterPanelComponent, NoopAnimationsModule],
+      imports: [MediaFilterPanelComponent],
       providers: [provideZonelessChangeDetection()],
     });
 

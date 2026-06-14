@@ -17,7 +17,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RelationshipsTabComponent } from '@components/relationships-tab/relationships-tab.component';
 import { TagsTabComponent } from '@components/tags-tab/tags-tab.component';
@@ -286,7 +285,6 @@ describe('SettingsTabComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
-        NoopAnimationsModule,
         FormsModule,
         MatButtonModule,
         MatCardModule,

@@ -5,7 +5,6 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   RelationshipCategory,
   type RelationshipTypeDefinition,
@@ -137,11 +136,7 @@ describe('AddRelationshipDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [
-        AddRelationshipDialogComponent,
-        MatDialogModule,
-        NoopAnimationsModule,
-      ],
+      imports: [AddRelationshipDialogComponent, MatDialogModule],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },
@@ -202,11 +197,7 @@ describe('AddRelationshipDialogComponent', () => {
       };
 
       await TestBed.configureTestingModule({
-        imports: [
-          AddRelationshipDialogComponent,
-          MatDialogModule,
-          NoopAnimationsModule,
-        ],
+        imports: [AddRelationshipDialogComponent, MatDialogModule],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MatDialogRef, useValue: mockDialogRef },

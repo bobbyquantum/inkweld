@@ -1,6 +1,5 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 
@@ -94,7 +93,7 @@ describe('WorldbuildingElementSelectorComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [WorldbuildingElementSelectorComponent, NoopAnimationsModule],
+      imports: [WorldbuildingElementSelectorComponent],
       providers: [
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: WorldbuildingService, useValue: mockWorldbuildingService },

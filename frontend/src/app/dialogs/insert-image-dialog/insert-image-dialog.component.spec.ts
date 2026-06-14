@@ -2,7 +2,6 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { type ImageCroppedEvent, type LoadedImage } from 'ngx-image-cropper';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
@@ -47,7 +46,7 @@ describe('InsertImageDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [InsertImageDialogComponent, NoopAnimationsModule],
+      imports: [InsertImageDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRefMock },
@@ -83,7 +82,7 @@ describe('InsertImageDialogComponent', () => {
 
       TestBed.resetTestingModule();
       await TestBed.configureTestingModule({
-        imports: [InsertImageDialogComponent, NoopAnimationsModule],
+        imports: [InsertImageDialogComponent],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MatDialogRef, useValue: dialogRefMock },

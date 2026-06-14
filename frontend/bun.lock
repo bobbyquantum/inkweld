@@ -5,7 +5,6 @@
     "": {
       "name": "inkweld-frontend",
       "dependencies": {
-        "@angular/animations": "^22.0.1",
         "@angular/aria": "^22.0.1",
         "@angular/cdk": "^22.0.1",
         "@angular/common": "^22.0.1",

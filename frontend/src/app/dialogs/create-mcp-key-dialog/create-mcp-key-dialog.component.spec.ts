@@ -2,7 +2,6 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
 import { McpPermission } from '@inkweld/index';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -56,7 +55,7 @@ describe('CreateMcpKeyDialogComponent', () => {
     snackBar = { open: vi.fn() } as unknown as MockedObject<MatSnackBar>;
 
     await TestBed.configureTestingModule({
-      imports: [CreateMcpKeyDialogComponent, NoopAnimationsModule],
+      imports: [CreateMcpKeyDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },

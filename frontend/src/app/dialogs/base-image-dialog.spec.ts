@@ -3,7 +3,6 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { type ImageCroppedEvent, type LoadedImage } from 'ngx-image-cropper';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -85,7 +84,7 @@ describe('BaseImageDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [TestImageDialogHost, NoopAnimationsModule],
+      imports: [TestImageDialogHost],
       providers: [
         { provide: MatDialogRef, useValue: dialogRefMock },
         { provide: MatSnackBar, useValue: snackBarMock },

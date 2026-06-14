@@ -1,6 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type Correction } from '../../../api-client/model/correction';
@@ -34,7 +33,7 @@ describe('LintOverlayComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [LintOverlayComponent, NoopAnimationsModule],
+      imports: [LintOverlayComponent],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
 

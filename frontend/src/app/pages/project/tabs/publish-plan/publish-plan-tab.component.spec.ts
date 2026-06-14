@@ -3,7 +3,6 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
 import { ElementType } from '@inkweld/index';
 import { BehaviorSubject, of, Subject } from 'rxjs';
@@ -93,7 +92,7 @@ describe('PublishPlanTabComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [PublishPlanTabComponent, NoopAnimationsModule],
+      imports: [PublishPlanTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },
@@ -1009,7 +1008,7 @@ describe('PublishPlanTabComponent', () => {
   });
 
   describe('showPublishDialog', () => {
-    it('should open dialog and handle close without navigation', async () => {
+    it('should open dialog and handle close without navigation', () => {
       const afterClosed$ = new Subject<undefined>();
       const mockDialogRef = {
         afterClosed: () => afterClosed$.asObservable(),
@@ -1023,7 +1022,6 @@ describe('PublishPlanTabComponent', () => {
       component['showPublishDialog'](mockFile, mockBlob);
       afterClosed$.next(undefined);
       afterClosed$.complete();
-      await fixture.whenStable();
 
       expect(mockDialog.open).toHaveBeenCalled();
     });
@@ -1040,7 +1038,7 @@ describe('PublishPlanTabComponent - no plan', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [PublishPlanTabComponent, NoopAnimationsModule],
+      imports: [PublishPlanTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },

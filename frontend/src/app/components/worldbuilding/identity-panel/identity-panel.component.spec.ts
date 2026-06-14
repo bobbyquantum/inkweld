@@ -5,7 +5,6 @@ import {
 } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { TagService } from '@services/tag/tag.service';
@@ -43,7 +42,7 @@ describe('IdentityPanelComponent', () => {
     } as unknown as MockedObject<DialogGatewayService>;
 
     await TestBed.configureTestingModule({
-      imports: [IdentityPanelComponent, NoopAnimationsModule],
+      imports: [IdentityPanelComponent],
       providers: [
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),
