@@ -6,6 +6,10 @@ android {
     namespace = "app.inkweld"
     compileSdk = 36
 
+    buildFeatures {
+        resValues = true
+    }
+
     defaultConfig {
         applicationId = "app.inkweld"
         minSdk = 23
