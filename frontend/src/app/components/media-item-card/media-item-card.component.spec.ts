@@ -1,5 +1,4 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MediaItemCardComponent } from './media-item-card.component';
@@ -10,7 +9,7 @@ describe('MediaItemCardComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MediaItemCardComponent, NoopAnimationsModule],
+      imports: [MediaItemCardComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(MediaItemCardComponent);

@@ -1,7 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RelationshipCategory } from '@models/element-ref.model';
 import { type ElementTypeSchema } from '@models/schema-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -41,7 +40,7 @@ function createComponent(data: EditRelationshipTypeDialogData): {
   const dialogRefMock = { close: vi.fn() };
 
   TestBed.configureTestingModule({
-    imports: [EditRelationshipTypeDialogComponent, NoopAnimationsModule],
+    imports: [EditRelationshipTypeDialogComponent],
     providers: [
       provideZonelessChangeDetection(),
       { provide: MatDialogRef, useValue: dialogRefMock },

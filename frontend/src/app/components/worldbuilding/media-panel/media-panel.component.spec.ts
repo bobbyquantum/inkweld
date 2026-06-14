@@ -1,6 +1,5 @@
 import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { MediaTagService } from '@services/media-tag/media-tag.service';
@@ -36,7 +35,7 @@ describe('MediaPanelComponent', () => {
     } as unknown as MockedObject<DialogGatewayService>;
 
     await TestBed.configureTestingModule({
-      imports: [MediaPanelComponent, NoopAnimationsModule],
+      imports: [MediaPanelComponent],
       providers: [
         { provide: MediaTagService, useValue: mediaTagService },
         { provide: LocalStorageService, useValue: localStorageService },

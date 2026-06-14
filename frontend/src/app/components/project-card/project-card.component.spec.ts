@@ -1,6 +1,5 @@
 import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   type ProjectSyncStatus,
   SyncQueueService,
@@ -38,7 +37,7 @@ describe('ProjectCardComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ProjectCardComponent, NoopAnimationsModule],
+      imports: [ProjectCardComponent],
       providers: [
         { provide: SyncQueueService, useValue: mockSyncQueueService },
       ],

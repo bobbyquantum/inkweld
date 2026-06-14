@@ -10,7 +10,6 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { type ElementSearchResult } from '@models/element-ref.model';
 
 import { ElementType } from '../../../../api-client';
@@ -73,7 +72,6 @@ describe('ElementRefPopupComponent', () => {
         MatIconModule,
         MatInputModule,
         MatListModule,
-        NoopAnimationsModule,
       ],
       providers: [
         { provide: ElementRefService, useValue: mockElementRefService },

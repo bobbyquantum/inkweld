@@ -1,5 +1,4 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -28,7 +27,7 @@ function setupComponent(initial?: PublishStyles): {
 describe('PublishStyleEditorComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PublishStyleEditorComponent, NoopAnimationsModule],
+      imports: [PublishStyleEditorComponent],
     }).compileComponents();
   });
 

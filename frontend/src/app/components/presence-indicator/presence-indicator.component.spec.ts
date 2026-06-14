@@ -1,7 +1,6 @@
 import { signal } from '@angular/core';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { type PresenceSession } from '@inkweld/presence';
 import { PresenceService } from '@services/presence/presence.service';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -27,7 +26,7 @@ describe('PresenceIndicatorComponent', () => {
     users = signal<PresenceSession[]>([]);
 
     await TestBed.configureTestingModule({
-      imports: [PresenceIndicatorComponent, NoopAnimationsModule],
+      imports: [PresenceIndicatorComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: PresenceService, useValue: { users: users.asReadonly() } },

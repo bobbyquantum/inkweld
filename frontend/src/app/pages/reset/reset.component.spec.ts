@@ -1,5 +1,4 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -40,7 +39,7 @@ describe('ResetComponent', () => {
     });
 
     await TestBed.configureTestingModule({
-      imports: [ResetComponent, NoopAnimationsModule],
+      imports: [ResetComponent],
     }).compileComponents();
 
     router = TestBed.inject(Router);

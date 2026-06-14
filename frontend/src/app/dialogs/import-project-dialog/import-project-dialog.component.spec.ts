@@ -3,7 +3,6 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   beforeEach,
   describe,
@@ -101,7 +100,7 @@ describe('ImportProjectDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ImportProjectDialogComponent, NoopAnimationsModule],
+      imports: [ImportProjectDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

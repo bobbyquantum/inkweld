@@ -5,7 +5,6 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -23,7 +22,7 @@ describe('AddMediaDialogComponent', () => {
     } as unknown as MatDialogRef<AddMediaDialogComponent>;
 
     TestBed.configureTestingModule({
-      imports: [AddMediaDialogComponent, MatDialogModule, NoopAnimationsModule],
+      imports: [AddMediaDialogComponent, MatDialogModule],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },

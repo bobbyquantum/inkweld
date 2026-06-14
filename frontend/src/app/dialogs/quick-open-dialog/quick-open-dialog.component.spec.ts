@@ -1,6 +1,5 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -107,7 +106,7 @@ describe('QuickOpenDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [QuickOpenDialogComponent, NoopAnimationsModule],
+      imports: [QuickOpenDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: QuickOpenService, useValue: mockQuickOpenService },

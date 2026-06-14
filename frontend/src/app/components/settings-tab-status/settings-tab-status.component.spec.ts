@@ -1,5 +1,4 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SettingsTabStatusComponent } from './settings-tab-status.component';
@@ -10,7 +9,7 @@ describe('SettingsTabStatusComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SettingsTabStatusComponent, NoopAnimationsModule],
+      imports: [SettingsTabStatusComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SettingsTabStatusComponent);

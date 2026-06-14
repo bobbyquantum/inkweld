@@ -1,6 +1,5 @@
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import type { CommentMarkAttrs } from '@components/comment-mark/comment-mark-schema';
 import { LoggerService } from '@services/core/logger.service';
 import { SetupService } from '@services/core/setup.service';
@@ -64,7 +63,7 @@ describe('CommentPanelComponent', () => {
     mockCommentService = createMockCommentService();
 
     await TestBed.configureTestingModule({
-      imports: [CommentPanelComponent, NoopAnimationsModule],
+      imports: [CommentPanelComponent],
       providers: [
         provideHttpClient(withXhr()),
         { provide: CommentService, useValue: mockCommentService },

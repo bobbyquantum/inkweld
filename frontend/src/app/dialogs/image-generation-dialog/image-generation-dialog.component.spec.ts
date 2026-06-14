@@ -3,7 +3,6 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
@@ -148,7 +147,7 @@ describe('ImageGenerationDialogComponent', () => {
     } as unknown as MockedObject<MatSnackBar>;
 
     await TestBed.configureTestingModule({
-      imports: [ImageGenerationDialogComponent, NoopAnimationsModule],
+      imports: [ImageGenerationDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },
@@ -384,7 +383,7 @@ describe('ImageGenerationDialogComponent', () => {
     beforeEach(async () => {
       TestBed.resetTestingModule();
       await TestBed.configureTestingModule({
-        imports: [ImageGenerationDialogComponent, NoopAnimationsModule],
+        imports: [ImageGenerationDialogComponent],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MatDialogRef, useValue: dialogRef },
@@ -1004,7 +1003,7 @@ describe('ImageGenerationDialogComponent', () => {
       };
 
       await TestBed.configureTestingModule({
-        imports: [ImageGenerationDialogComponent, NoopAnimationsModule],
+        imports: [ImageGenerationDialogComponent],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MatDialogRef, useValue: dialogRef },
