@@ -8,7 +8,7 @@
 
 | Layer     | Tech                         | Runtime   | Port |
 | --------- | ---------------------------- | --------- | ---- |
-| Frontend  | Angular 21 (standalone)      | Node.js   | 4200 |
+| Frontend  | Angular (standalone)         | Node.js   | 4200 |
 | Backend   | Hono + Drizzle ORM           | Bun       | 8333 |
 | Real-time | Yjs + ProseMirror            | WebSocket | —    |
 | Storage   | SQLite + per-project LevelDB | —         | —    |

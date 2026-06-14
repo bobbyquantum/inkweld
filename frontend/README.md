@@ -1,13 +1,13 @@
-# InkWeld Frontend
+# Inkweld Frontend
 
 ## Overview
 
-The InkWeld frontend is a modern, modular Angular 21 application designed to provide a rich, real-time collaborative writing experience. It serves as the client interface for the InkWeld platform, enabling users to create, edit, and manage writing projects with seamless integration of AI assistance and real-time collaboration.
+The Inkweld frontend is a modern, modular Angular application designed to provide a rich, real-time collaborative writing experience. It serves as the client interface for the Inkweld platform, enabling users to create, edit, and manage writing projects with seamless integration of AI assistance and real-time collaboration.
 
 ## Key Features
 
 - Real-time collaborative editing using Yjs and ProseMirror
-- Modular architecture with standalone Angular 21 components
+- Modular architecture with standalone Angular components
 - Modern dependency injection using `inject()` syntax
 - Comprehensive testing with Vitest and Playwright
 - Theming and customization support
@@ -20,7 +20,7 @@ The InkWeld frontend is a modern, modular Angular 21 application designed to pro
 
 ```mermaid
 graph TD
-    User["User (Browser)"] -->|HTTP/WebSocket| App["Angular 21 App"]
+    User["User (Browser)"] -->|HTTP/WebSocket| App["Angular App"]
     App -->|API| ApiClient["API Client Services"]
     App -->|State Mgmt| Services["App Services"]
     App -->|Routing| Pages["Pages & Components"]
@@ -29,7 +29,7 @@ graph TD
     App -->|Interceptors| Interceptors["HTTP Interceptors"]
     App -->|Theming| Themes["Themes"]
     App -->|Real-time| Yjs["Yjs Integration"]
-    ApiClient -->|REST/WS| Backend["InkWeld Server"]
+    ApiClient -->|REST/WS| Backend["Inkweld Server"]
 ```
 
 ## Directory Structure
@@ -55,7 +55,7 @@ graph TD
 
 ## Technology Stack
 
-- **Framework:** Angular 21 (standalone components, `inject()` DI, control flow directives)
+- **Framework:** Angular (standalone components, `inject()` DI, control flow directives)
 - **State Management:** Service-based with RxJS
 - **Real-time Collaboration:** Yjs, y-websocket, y-prosemirror
 - **Testing:** Vitest (unit tests), Playwright (end-to-end tests)
@@ -68,13 +68,14 @@ graph TD
 ### Prerequisites
 
 - Node.js 22 or higher
-- Package manager (npm, yarn, or bun)
+- [Bun 1.3+](https://bun.sh/)
 
 ### Installation
 
+Install from the **repo root** (never `npm install` or `bun install` inside `frontend/` directly):
+
 ```bash
-npm install
-# or
+# From repo root
 bun install
 ```
 
@@ -104,9 +105,9 @@ Build artifacts will be output to the `dist/` directory.
 
 ```bash
 npm test
-# or
-bun test
 ```
+
+> **Note**: Always use `npm test` for frontend unit tests. `bun test` is incompatible with the Angular test setup.
 
 - End-to-end tests (Playwright):
 
@@ -141,13 +142,13 @@ bun run lint:fix
 - `test` - Run unit tests with Vitest
 - `lint` / `lint:fix` - Linting commands
 - `analyze` - Bundle analysis
-- `upgrade-angular` - Upgrade Angular dependencies to v21
+- `upgrade-angular` - Upgrade Angular dependencies
 - `fix-angular-control-flow` - Migrate to Angular control flow directives
 - `e2e` - Run Playwright end-to-end tests
 
 ## Unique Technical Features
 
-- Full adoption of Angular 21 standalone APIs and `inject()` for dependency injection
+- Full adoption of Angular standalone APIs and `inject()` for dependency injection
 - Modern Angular control flow directives (`@if`, `@for`, `@switch`)
 - Real-time collaborative editing with Yjs and ProseMirror
 - Strict linting and formatting rules to maintain code quality
@@ -166,4 +167,4 @@ bun run lint:fix
 
 ## License
 
-InkWeld is [MIT licensed](../LICENSE).
+Inkweld is [MIT licensed](../LICENSE).

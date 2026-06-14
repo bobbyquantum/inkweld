@@ -1,16 +1,18 @@
 # Inkweld Backend (Hono)
 
-This is the new Hono-based backend for Inkweld, designed to be easier to deploy and not tied to any specific cloud provider.
+The Inkweld backend is a lightweight Hono API server designed to be easy to deploy and independent of any specific cloud provider.
 
 ## Features
 
-- Built with [Hono](https://hono.dev/) - A lightweight, fast web framework
-- Runs on Bun runtime (also compatible with Node.js, Deno, Cloudflare Workers)
+- Built with [Hono](https://hono.dev/) — a lightweight, fast web framework
+- Runs on Bun runtime (also compatible with Node.js and Cloudflare Workers)
 - Drizzle ORM for database operations (SQLite/D1)
+- Passkeys (WebAuthn) — passwordless sign-in, passwordless-first by default
 - Session-based authentication with signed cookies
-- Zod for request validation
+- Zod + OpenAPI for request/response validation and auto-generated API docs
 - WebSocket support for real-time collaboration (Yjs)
 - LevelDB for per-project document storage
+- MCP (Model Context Protocol) endpoint with OAuth 2.1 + PKCE
 
 ## Getting Started
 
@@ -21,8 +23,10 @@ This is the new Hono-based backend for Inkweld, designed to be easier to deploy 
 
 ### Installation
 
+Install from the **repo root** (never `bun install` inside `backend/` directly):
+
 ```bash
-cd backend
+# From repo root
 bun install
 ```
 
