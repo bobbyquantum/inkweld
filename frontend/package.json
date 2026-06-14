@@ -93,7 +93,7 @@
     "@simplewebauthn/browser": "^13.3.0",
     "angular-split": "20.0.0",
     "cytoscape": "^3.33.1",
-    "cytoscape-dagre": "^3.0.0",
+    "cytoscape-dagre": "^4.0.0",
     "cytoscape-fcose": "^2.2.0",
     "fracticons": "^1.0.0",
     "konva": "^10.2.0",
