@@ -8,7 +8,7 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 
 **Inkweld** is a collaborative creative writing platform built with:
 
-- **Frontend**: Angular 21 (standalone components, modern control flow)
+- **Frontend**: Angular (standalone components, modern control flow)
 - **Backend**: Hono running on Bun
 - **Database**: SQLite/D1 (Drizzle ORM) + LevelDB (per-project document storage)
 - **Real-time**: Yjs + WebSocket for collaborative editing
@@ -84,11 +84,11 @@ For more information, visit: <https://angular.dev/ai/mcp>
 
 ---
 
-## Frontend Architecture (Angular 21)
+## Frontend Architecture
 
 ### Technology Stack
 
-- **Framework**: Angular 21 with standalone components
+- **Framework**: Angular with standalone components
 - **Dependency Injection**: Use `inject()` syntax, **NOT constructor injection**
 - **Control Flow**: Use `@if`, `@for`, `@switch` directives (not `*ngIf`, `*ngFor`, `*ngSwitch`)
 - **Modules**: Everything is standalone - no NgModules
@@ -154,12 +154,16 @@ src/app/
 
 ```
 src/
-├── auth/            # Authentication module
-├── user/            # User management
-├── project/         # Project & document management
-├── mcp/             # Model Context Protocol (AI integration)
-├── common/          # Shared utilities
-└── config/          # Configuration
+├── config/          # Environment and route registration
+├── db/              # Drizzle schema and database setup
+├── durable-objects/ # Cloudflare Workers Durable Objects
+├── middleware/      # Auth, session, CSRF, error handling
+├── mcp/             # Model Context Protocol integration
+├── routes/          # API route handlers
+├── schemas/         # Zod/OpenAPI request/response schemas
+├── services/        # Business logic
+├── types/           # Shared TypeScript types
+└── utils/           # Utility functions
 ```
 
 ### Backend Best Practices
@@ -217,7 +221,8 @@ src/
 # Install dependencies
 bun install
 
-# Start development servers (both frontend & backend)
+# Start development servers (both frontend & backend via root wrapper)
+# This runs: frontend on :4200 (bun run start) + backend on :8333 (bun run dev)
 npm run dev
 
 # Run tests
@@ -293,11 +298,11 @@ export class MyComponent {
 ### Backend Type Imports
 
 ```typescript
-// ✅ Correct - use import type
-import type { Request, Response } from 'express';
+// ✅ Correct - use import type for Hono types
+import type { Context } from 'hono';
 
 // ❌ Wrong - regular import
-import { Request, Response } from 'express';
+import { Context } from 'hono';
 ```
 
 ---
@@ -473,7 +478,7 @@ cd backend && bun run generate:openapi && bun run generate:angular-client
 
 ### Before Submitting Changes
 
-1. ✅ All tests pass (`npm test` in both frontend and backend)
+1. ✅ All tests pass (`npm test` for frontend, `bun test` for backend)
 2. ✅ Linting passes (`npm run lint`)
 3. ✅ Code is properly formatted
 4. ✅ New features have test coverage

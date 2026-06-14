@@ -64,6 +64,9 @@ $env:GITHUB_REPOSITORY_OWNER = "bobbyquantum"
 ```bash
 # Set required environment variables
 export GITHUB_REPOSITORY_OWNER=bobbyquantum
+export SESSION_SECRET="$(openssl rand -hex 32)"
+export WEBAUTHN_RP_ID=your-domain.com
+export ALLOWED_ORIGINS=https://your-domain.com
 export IMAGE_TAG=latest  # optional, defaults to latest
 export PORT=8333         # optional, defaults to 8333
 
@@ -81,8 +84,11 @@ docker build -t inkweld:latest .
 docker run -d \
   --name inkweld \
   -p 8333:8333 \
-  -v inkweld_data:/data \
+  -e HOST=0.0.0.0 \
   -e SESSION_SECRET=your-secret-key-at-least-32-characters \
+  -e WEBAUTHN_RP_ID=your-domain.com \
+  -e ALLOWED_ORIGINS=https://your-domain.com \
+  -v inkweld_data:/data \
   inkweld:latest
 ```
 
@@ -92,14 +98,36 @@ docker run -d \
 
 The deployment supports the following environment variables:
 
-- `GITHUB_REPOSITORY_OWNER` - **Required**: Your GitHub username/organization
+#### Deployment
+- `GITHUB_REPOSITORY_OWNER` - **Required** (Compose deploys): Your GitHub username/organization
 - `IMAGE_TAG` - Image tag to deploy (default: `latest`)
 - `PORT` - Port to expose the application on (default: `8333`)
-- `LOG_LEVEL` - Logging level: `debug`, `info`, `warn`, `error`, or `none` (default: `info` in production, `debug` in development)
+
+#### Application
+- `SESSION_SECRET` - **Required**: Secret used to sign session cookies (must be at least 32 characters). Generate with: `openssl rand -hex 32`
+- `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins (e.g. `https://your-domain.com`)
 - `SERVE_FRONTEND` - Serve embedded frontend (default: `true`). Set to `false` for API-only mode
-- `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins
-- `SESSION_SECRET` - Secret used to sign session cookies (must be 32+ characters)
+- `LOG_LEVEL` - Logging level: `debug`, `info`, `warn`, `error`, or `none` (default: `info` in production, `debug` in development)
 - `USER_APPROVAL_REQUIRED` - Require admin approval for new registrations (default: `false`)
+
+#### Authentication — Passkeys (WebAuthn)
+- `PASSKEYS_ENABLED` - Enable passkey sign-in (default: `true`)
+- `PASSWORD_LOGIN_ENABLED` - Enable username/password sign-in (default: `false`; passwordless-first per NIST SP 800-63B Rev. 4)
+- `WEBAUTHN_RP_ID` - **Required in production**: Domain only, no protocol or port (e.g. `inkweld.yourcompany.com`). Defaults to `localhost`. **Cannot be changed after users register passkeys.**
+- `WEBAUTHN_RP_NAME` - Display name shown in browser passkey prompts (default: `Inkweld`)
+
+#### Authentication — Email Recovery
+- `EMAIL_RECOVERY_ENABLED` - Enable email-based account recovery (default: `false`). In passwordless mode this powers a magic-link flow; in password mode it powers the forgot-password flow. Requires `EMAIL_ENABLED=true` and the SMTP settings below.
+- `EMAIL_ENABLED` - Enable transactional email sending (default: `false`)
+- `EMAIL_FROM` - Sender address for recovery emails (e.g. `noreply@your-domain.com`)
+- `EMAIL_FROM_NAME` - Sender display name (default: `Inkweld`)
+- `EMAIL_HOST` - SMTP server hostname
+- `EMAIL_PORT` - SMTP server port (default: `587`)
+- `EMAIL_ENCRYPTION` - SMTP encryption method: `starttls`, `tls`, or `none` (default: `starttls`)
+- `EMAIL_USERNAME` - SMTP authentication username
+- `EMAIL_PASSWORD` - SMTP authentication password
+
+#### Authentication — GitHub OAuth
 - `GITHUB_ENABLED` - Enable GitHub OAuth (default: `false`)
 - `GITHUB_CLIENT_ID` - GitHub OAuth client ID
 - `GITHUB_CLIENT_SECRET` - GitHub OAuth client secret
@@ -109,14 +137,29 @@ The deployment supports the following environment variables:
 Create a `.env` file:
 
 ```env
-GITHUB_REPOSITORY_OWNER=bobbyquantum
+GITHUB_REPOSITORY_OWNER=your-github-username
 IMAGE_TAG=latest
 PORT=8333
 ALLOWED_ORIGINS=https://your-domain.com
-SESSION_SECRET=a-long-random-string
-GITHUB_ENABLED=true
-GITHUB_CLIENT_ID=your-github-client-id
-GITHUB_CLIENT_SECRET=your-github-client-secret
+SESSION_SECRET=<run: openssl rand -hex 32>
+WEBAUTHN_RP_ID=your-domain.com
+WEBAUTHN_RP_NAME=Inkweld
+
+# Optional: email recovery
+# EMAIL_ENABLED=true
+# EMAIL_RECOVERY_ENABLED=true
+# EMAIL_FROM=noreply@your-domain.com
+# EMAIL_FROM_NAME=Inkweld
+# EMAIL_HOST=smtp.your-provider.com
+# EMAIL_PORT=587
+# EMAIL_ENCRYPTION=starttls
+# EMAIL_USERNAME=your-smtp-user
+# EMAIL_PASSWORD=your-smtp-password
+
+# Optional: GitHub OAuth
+# GITHUB_ENABLED=true
+# GITHUB_CLIENT_ID=your-github-client-id
+# GITHUB_CLIENT_SECRET=your-github-client-secret
 ```
 
 Then deploy:
@@ -180,10 +223,13 @@ Use `bun run logs:dev` / `bun run logs:prod` to stream Worker logs, and `bun run
 ## Security Considerations
 
 1. Always use specific image tags in production instead of `latest`
-2. Set up proper environment variables for authentication
-3. Use HTTPS in production with a reverse proxy
-4. Regularly update to the latest image versions
-5. Monitor logs for any security issues
+2. Set `SESSION_SECRET` to a strong random value (at least 32 characters) — generate with `openssl rand -hex 32`
+3. Set `WEBAUTHN_RP_ID` to your domain before any users register passkeys — **this value cannot be changed afterwards**
+4. Set `ALLOWED_ORIGINS` to your exact domain(s) to prevent CSRF and WebAuthn origin mismatches
+5. Use HTTPS in production with a reverse proxy (nginx, Caddy, Cloudflare Tunnel, etc.)
+6. Always use specific image tags in production (not `latest`) to control upgrade timing
+7. Regularly update to the latest image versions for security patches
+8. Monitor logs for any security issues
 
 ## Troubleshooting
 
