@@ -9,7 +9,6 @@ import {
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogModule } from '@angular/material/dialog';
 import { By } from '@angular/platform-browser';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -123,7 +122,6 @@ describe('UserSettingsDialogComponent', () => {
       imports: [TestWrapperComponent],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         { provide: BreakpointObserver, useValue: mockBreakpointObserver },

@@ -12,7 +12,6 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { ElementType } from '../../../../api-client';
 import {
@@ -43,7 +42,6 @@ describe('ElementRefContextMenuComponent', () => {
         MatIconModule,
         MatInputModule,
         MatMenuModule,
-        NoopAnimationsModule,
       ],
     }).compileComponents();
   });

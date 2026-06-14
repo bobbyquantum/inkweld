@@ -1,6 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { vi } from 'vitest';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
@@ -13,7 +12,7 @@ describe('ConnectionStatusComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ConnectionStatusComponent, NoopAnimationsModule],
+      imports: [ConnectionStatusComponent],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
 

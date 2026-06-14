@@ -1,7 +1,6 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import {
   createDefaultPublishPlan,
@@ -52,7 +51,7 @@ describe('PublishPlansListTabComponent', () => {
     vi.clearAllMocks();
 
     await TestBed.configureTestingModule({
-      imports: [PublishPlansListTabComponent, NoopAnimationsModule],
+      imports: [PublishPlansListTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },

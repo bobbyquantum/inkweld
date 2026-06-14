@@ -1,5 +1,4 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ChangelogService } from '@services/core/changelog.service';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,7 +18,7 @@ describe('ChangelogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ChangelogComponent, NoopAnimationsModule],
+      imports: [ChangelogComponent],
       providers: [
         { provide: ChangelogService, useValue: mockChangelogService },
       ],

@@ -1,7 +1,6 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { vi } from 'vitest';
 
@@ -42,7 +41,7 @@ describe('WorldbuildingImageDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [WorldbuildingImageDialogComponent, NoopAnimationsModule],
+      imports: [WorldbuildingImageDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: defaultDialogData },
@@ -70,7 +69,7 @@ describe('WorldbuildingImageDialogComponent', () => {
     // Recreate with current image
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
-      imports: [WorldbuildingImageDialogComponent, NoopAnimationsModule],
+      imports: [WorldbuildingImageDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         {

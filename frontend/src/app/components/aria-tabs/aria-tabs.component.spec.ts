@@ -5,7 +5,6 @@ import {
   ViewChild,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { AriaTabPanelComponent } from './aria-tab-panel.component';
 import { type AriaTabConfig, AriaTabsComponent } from './aria-tabs.component';
@@ -59,7 +58,7 @@ describe('AriaTabsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AriaTabsComponent, NoopAnimationsModule],
+      imports: [AriaTabsComponent],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
 
@@ -485,7 +484,7 @@ describe('AriaTabsComponent with host', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TestHostComponent, NoopAnimationsModule],
+      imports: [TestHostComponent],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
 

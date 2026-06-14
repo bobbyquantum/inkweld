@@ -1,7 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { TagService } from '../../services/tag/tag.service';
@@ -24,7 +23,7 @@ describe('TagEditorDialogComponent', () => {
     dialogRefMock = { close: vi.fn() };
 
     await TestBed.configureTestingModule({
-      imports: [TagEditorDialogComponent, NoopAnimationsModule],
+      imports: [TagEditorDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRefMock },

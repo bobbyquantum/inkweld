@@ -5,7 +5,6 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   PublishingPhase,
   type PublishingProgress,
@@ -54,11 +53,7 @@ describe('PublishingProgressDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [
-        PublishingProgressDialogComponent,
-        MatDialogModule,
-        NoopAnimationsModule,
-      ],
+      imports: [PublishingProgressDialogComponent, MatDialogModule],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRefMock },

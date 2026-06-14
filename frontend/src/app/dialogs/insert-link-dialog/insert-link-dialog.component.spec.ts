@@ -4,7 +4,6 @@ import {
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import {
@@ -20,7 +19,7 @@ function createFixture(data: InsertLinkDialogData): {
   const closeSpy = vi.fn();
 
   TestBed.configureTestingModule({
-    imports: [InsertLinkDialogComponent, NoopAnimationsModule],
+    imports: [InsertLinkDialogComponent],
     schemas: [NO_ERRORS_SCHEMA],
     providers: [
       provideZonelessChangeDetection(),
@@ -254,7 +253,7 @@ describe('InsertLinkDialogComponent', () => {
       const closeSpy = vi.fn();
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
-        imports: [InsertLinkDialogComponent, NoopAnimationsModule],
+        imports: [InsertLinkDialogComponent],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MAT_DIALOG_DATA, useValue: { selectedText: 'hi' } },
@@ -282,7 +281,7 @@ describe('InsertLinkDialogComponent', () => {
       const closeSpy = vi.fn();
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
-        imports: [InsertLinkDialogComponent, NoopAnimationsModule],
+        imports: [InsertLinkDialogComponent],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MAT_DIALOG_DATA, useValue: {} },
