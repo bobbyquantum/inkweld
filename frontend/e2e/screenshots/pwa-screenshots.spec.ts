@@ -77,7 +77,9 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await expect(page.locator('.covers-grid')).toBeVisible();
-    await expect(page.locator('[data-testid="project-card"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="project-card"]').first()
+    ).toBeVisible();
     await page.waitForLoadState('networkidle');
 
     await test.step('light', async () => {
@@ -498,9 +500,11 @@ test.describe('PWA Screenshots', () => {
       const tree = page.locator('app-project-tree');
       if (!(await tree.isVisible().catch(() => false))) {
         await expect(
-          page.locator(
-            'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
-          )
+          page
+            .locator(
+              'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
+            )
+            .first()
         ).toBeVisible();
         await page.click(
           'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'

@@ -84,7 +84,7 @@ test.describe('Admin Kill Switch Screenshots', () => {
     await navigateToAdminSettingsViaMenu(adminPage);
 
     await expect(
-      adminPage.locator('.settings-container, .loading-container')
+      adminPage.locator('.settings-container, .loading-container').first()
     ).toBeVisible();
 
     const loadingSpinner = adminPage.locator('mat-spinner');
