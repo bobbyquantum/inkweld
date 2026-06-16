@@ -6,12 +6,13 @@
  * This script wraps wrangler pages deploy to always use --branch main,
  * ensuring manual deployments from any branch go live immediately.
  *
- * Usage: node scripts/cloudflare-deploy.js <project-name> <dist-path> [--dry-run]
+ * Usage: node scripts/cloudflare-deploy.js <project-name> <dist-path> [--dry-run] [--retries N]
  *
  * Examples:
  *   node scripts/cloudflare-deploy.js inkweld-frontend dist/browser
  *   node scripts/cloudflare-deploy.js inkweld-frontend-preview dist/browser
  *   node scripts/cloudflare-deploy.js inkweld-frontend dist/browser --dry-run
+ *   node scripts/cloudflare-deploy.js inkweld-frontend-preview dist/browser --retries 3
  */
 
 const { execSync, spawnSync } = require("child_process");
@@ -41,19 +42,63 @@ function getCurrentBranch() {
   }
 }
 
-function main() {
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function deployWithRetry(wranglerArgs, maxRetries = 3, baseDelay = 5000) {
+  const maxAttempts = maxRetries + 1; // 1 initial attempt + maxRetries retries
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    log(colors.green, `\n🚀 Deploying (attempt ${attempt}/${maxAttempts}): wrangler ${wranglerArgs.join(" ")}\n`);
+
+    const result = spawnSync("npx", ["wrangler", ...wranglerArgs], {
+      stdio: "inherit",
+      shell: true,
+      cwd: process.cwd(),
+    });
+
+    if (result.status === 0) {
+      log(colors.green, "\n✅ Pages deployment complete");
+      return true;
+    }
+
+    if (attempt < maxAttempts) {
+      const delay = baseDelay * Math.pow(2, attempt - 1); // exponential backoff
+      log(colors.yellow, `\n⚠️  Deployment failed (exit code: ${result.status || 1}). Retrying in ${delay / 1000}s...`);
+      await sleep(delay);
+    } else {
+      log(colors.red, `\n❌ Deployment failed after ${maxAttempts} attempt(s)`);
+      return false;
+    }
+  }
+  return false;
+}
+
+async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
-  const filteredArgs = args.filter((arg) => arg !== "--dry-run");
+  const retriesIndex = args.indexOf("--retries");
+  let maxRetries = 3; // default
+
+  if (retriesIndex !== -1 && args[retriesIndex + 1]) {
+    maxRetries = parseInt(args[retriesIndex + 1], 10) || 3;
+  }
+
+  const retriesValue = retriesIndex !== -1 ? args[retriesIndex + 1] : null;
+  const filteredArgs = args.filter((arg) => arg !== "--dry-run" && arg !== "--retries" && arg !== retriesValue);
 
   if (filteredArgs.length < 2) {
     log(
       colors.red,
-      "Usage: node scripts/cloudflare-deploy.js <project-name> <dist-path> [--dry-run]",
+      "Usage: node scripts/cloudflare-deploy.js <project-name> <dist-path> [--dry-run] [--retries N]",
     );
     log(
       colors.red,
       "Example: node scripts/cloudflare-deploy.js inkweld-frontend dist/browser",
+    );
+    log(
+      colors.red,
+      "Example: node scripts/cloudflare-deploy.js inkweld-frontend-preview dist/browser --retries 3",
     );
     process.exit(1);
   }
@@ -69,6 +114,7 @@ function main() {
     colors.reset,
     `   Branch:  ${colors.bold}${currentBranch}${colors.reset}`,
   );
+  log(colors.reset, `   Retries: ${colors.bold}${maxRetries}${colors.reset}`);
   if (dryRun) {
     log(colors.yellow, `   Mode:    ${colors.bold}DRY RUN${colors.reset}`);
   }
@@ -100,30 +146,19 @@ function main() {
     "main",
   ];
 
-  log(
-    colors.green,
-    `\n🚀 Deploying with: wrangler ${wranglerArgs.join(" ")}\n`,
-  );
-
   if (dryRun) {
     log(colors.yellow, "🔍 Dry run mode - skipping actual deployment");
     log(colors.green, "\n✅ Dry run complete");
     return;
   }
 
-  // Run wrangler via npx to ensure we use the project's version
-  const result = spawnSync("npx", ["wrangler", ...wranglerArgs], {
-    stdio: "inherit",
-    shell: true,
-    cwd: process.cwd(),
-  });
-
-  if (result.status !== 0) {
-    log(colors.red, "\n❌ Deployment failed");
-    process.exit(result.status || 1);
+  const success = await deployWithRetry(wranglerArgs, maxRetries);
+  if (!success) {
+    process.exit(1);
   }
-
-  log(colors.green, "\n✅ Pages deployment complete");
 }
 
-main();
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
