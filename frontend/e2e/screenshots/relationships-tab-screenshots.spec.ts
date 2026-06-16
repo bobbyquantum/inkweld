@@ -10,8 +10,9 @@
  * differs (e.g. characters created vary by scenario).
  */
 
-import type { Page } from '@playwright/test';
 import { join } from 'node:path';
+
+import type { Page } from '@playwright/test';
 
 import { createProjectWithTwoSteps } from '../common/test-helpers';
 import { expect, test } from './fixtures';
