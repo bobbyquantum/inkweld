@@ -556,9 +556,7 @@ test.describe('Relationships Tab Screenshots', () => {
       await openCharacterAndShowRelationships(page, 'Elena Blackwood');
       await page.waitForTimeout(500);
 
-      await expect(
-        page.locator('.relationships-panel').first()
-      ).toBeVisible();
+      await expect(page.locator('.relationships-panel').first()).toBeVisible();
 
       await captureCharacterPanelArtifacts(page, 'light');
     });
@@ -577,9 +575,7 @@ test.describe('Relationships Tab Screenshots', () => {
       await openCharacterAndShowRelationships(page, 'Elena Blackwood');
       await page.waitForTimeout(500);
 
-      await expect(
-        page.locator('.relationships-panel').first()
-      ).toBeVisible();
+      await expect(page.locator('.relationships-panel').first()).toBeVisible();
 
       await captureCharacterPanelArtifacts(page, 'dark');
     });
@@ -739,9 +735,7 @@ test.describe('Relationships Tab Screenshots', () => {
           fullPage: false,
         });
 
-        await expect(
-          page.locator('.meta-panel').first()
-        ).toBeVisible();
+        await expect(page.locator('.meta-panel').first()).toBeVisible();
       });
     }
   });
