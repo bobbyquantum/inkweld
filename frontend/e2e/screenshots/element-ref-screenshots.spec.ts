@@ -517,7 +517,7 @@ test.describe('Element Reference Screenshots', () => {
     await page.keyboard.type('lyra');
     await page.waitForTimeout(500);
 
-      await page.screenshot({
+    await page.screenshot({
       path: join(screenshotsDir, 'element-ref-feature.png'),
       fullPage: false,
     });

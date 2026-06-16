@@ -556,9 +556,7 @@ test.describe('Relationships Tab Screenshots', () => {
       await openCharacterAndShowRelationships(page, 'Elena Blackwood');
       await page.waitForTimeout(500);
 
-      await expect(
-        page.locator('.relationships-panel')
-      ).toBeVisible();
+      await expect(page.locator('.relationships-panel')).toBeVisible();
 
       await captureCharacterPanelArtifacts(page, 'light');
     });
@@ -577,9 +575,7 @@ test.describe('Relationships Tab Screenshots', () => {
       await openCharacterAndShowRelationships(page, 'Elena Blackwood');
       await page.waitForTimeout(500);
 
-      await expect(
-        page.locator('.relationships-panel')
-      ).toBeVisible();
+      await expect(page.locator('.relationships-panel')).toBeVisible();
 
       await captureCharacterPanelArtifacts(page, 'dark');
     });
@@ -680,9 +676,7 @@ test.describe('Relationships Tab Screenshots', () => {
           parentChildScenario.childOverviewFile
         );
 
-        await expect(
-          page.locator('.relationships-panel')
-        ).toBeVisible();
+        await expect(page.locator('.relationships-panel')).toBeVisible();
       });
     }
 

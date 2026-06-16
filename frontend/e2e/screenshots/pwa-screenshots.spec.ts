@@ -280,7 +280,9 @@ test.describe('PWA Screenshots', () => {
 
     // Open settings → tags
     await page.click('[data-testid="sidebar-settings-button"]');
-    await expect(page.locator('[data-testid="settings-tab-content"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="settings-tab-content"]')
+    ).toBeVisible();
     await page.click('[data-testid="nav-tags"]');
     await expect(page.locator('[data-testid="new-tag-button"]')).toBeVisible();
 
@@ -310,7 +312,9 @@ test.describe('PWA Screenshots', () => {
       });
     }
 
-    await expect(page.locator('[data-testid="settings-tab-content"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="settings-tab-content"]')
+    ).toBeVisible();
   });
 
   test('capture new document naming dialog - light & dark', async ({
@@ -385,7 +389,9 @@ test.describe('PWA Screenshots', () => {
       .first();
     await expandButton.click();
     await page.click('text="The Moonveil Accord"');
-    await expect(page.locator('[data-testid="tab-The Moonveil Accord"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="tab-The Moonveil Accord"]')
+    ).toBeVisible();
 
     const docTab = page.locator('[data-testid="tab-The Moonveil Accord"]');
     const tabBar = page.locator('.tab-bar-container');
@@ -491,9 +497,11 @@ test.describe('PWA Screenshots', () => {
       // if it's already open from a prior visit / reload).
       const tree = page.locator('app-project-tree');
       if (!(await tree.isVisible().catch(() => false))) {
-        await expect(page.locator(
-          'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
-        )).toBeVisible();
+        await expect(
+          page.locator(
+            'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
+          )
+        ).toBeVisible();
         await page.click(
           'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
         );
@@ -812,7 +820,9 @@ test.describe('PWA Screenshots', () => {
         await page.click('[data-testid="template-worldbuilding-demo"]');
         await page.click('[data-testid="next-button"]');
 
-        await expect(page.locator('[data-testid="project-title-input"]')).toBeVisible();
+        await expect(
+          page.locator('[data-testid="project-title-input"]')
+        ).toBeVisible();
         await page.fill(
           '[data-testid="project-title-input"]',
           'My Fantasy Novel'
@@ -825,7 +835,9 @@ test.describe('PWA Screenshots', () => {
       });
     }
 
-    await expect(page.locator('[data-testid="project-title-input"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="project-title-input"]')
+    ).toBeVisible();
   });
 
   // =====================
@@ -845,8 +857,12 @@ test.describe('PWA Screenshots', () => {
         await page.goto('/', { waitUntil: 'domcontentloaded' });
 
         await expect(page.locator('[data-testid="setup-card"]')).toBeVisible();
-        await expect(page.locator('[data-testid="local-mode-button"]')).toBeVisible();
-        await expect(page.locator('[data-testid="server-mode-button"]')).toBeVisible();
+        await expect(
+          page.locator('[data-testid="local-mode-button"]')
+        ).toBeVisible();
+        await expect(
+          page.locator('[data-testid="server-mode-button"]')
+        ).toBeVisible();
 
         // Mode selection screenshot
         await page.screenshot({
@@ -856,7 +872,9 @@ test.describe('PWA Screenshots', () => {
 
         // Click local/offline mode button
         await page.click('[data-testid="local-mode-button"]');
-        await expect(page.locator('[data-testid="local-username-input"]')).toBeVisible();
+        await expect(
+          page.locator('[data-testid="local-username-input"]')
+        ).toBeVisible();
 
         await page.fill('[data-testid="local-username-input"]', 'writer');
         await page.fill(
@@ -871,7 +889,9 @@ test.describe('PWA Screenshots', () => {
       });
     }
 
-    await expect(page.locator('[data-testid="local-username-input"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="local-username-input"]')
+    ).toBeVisible();
   });
 
   test('capture setup server connection - light & dark', async ({
@@ -889,7 +909,9 @@ test.describe('PWA Screenshots', () => {
         await expect(page.locator('[data-testid="setup-card"]')).toBeVisible();
 
         await page.click('[data-testid="server-mode-button"]');
-        await expect(page.locator('[data-testid="server-url-input"]')).toBeVisible();
+        await expect(
+          page.locator('[data-testid="server-url-input"]')
+        ).toBeVisible();
 
         await page.fill(
           '[data-testid="server-url-input"]',
@@ -903,6 +925,8 @@ test.describe('PWA Screenshots', () => {
       });
     }
 
-    await expect(page.locator('[data-testid="server-url-input"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="server-url-input"]')
+    ).toBeVisible();
   });
 });

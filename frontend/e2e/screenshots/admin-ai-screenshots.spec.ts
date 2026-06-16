@@ -86,7 +86,7 @@ test.describe('Admin AI Settings Screenshots', () => {
 
   test('AI settings screenshots — light mode', async ({ adminPage }) => {
     await applyColorScheme(adminPage, 'light');
-    await expect(adminPage.locator('.settings-card')).toBeVisible();
+    await expect(adminPage.locator('.settings-card').first()).toBeVisible();
 
     await test.step('settings page overview', async () => {
       await adminPage.screenshot({
@@ -159,7 +159,7 @@ test.describe('Admin AI Settings Screenshots', () => {
 
   test('AI settings screenshots — dark mode', async ({ adminPage }) => {
     await applyColorScheme(adminPage, 'dark');
-    await expect(adminPage.locator('.settings-card')).toBeVisible();
+    await expect(adminPage.locator('.settings-card').first()).toBeVisible();
 
     await adminPage.screenshot({
       path: path.join(SCREENSHOTS_DIR, 'admin-ai-settings-dark.png'),
@@ -231,13 +231,13 @@ test.describe('Image Model Profiles Screenshots', () => {
 
   test('image profiles screenshots — light mode', async ({ adminPage }) => {
     await applyColorScheme(adminPage, 'light');
-    await expect(adminPage.locator('.settings-card')).toBeVisible();
+    await expect(adminPage.locator('.settings-card').first()).toBeVisible();
     await captureProfileScreenshots(adminPage, 'light');
   });
 
   test('image profiles screenshots — dark mode', async ({ adminPage }) => {
     await applyColorScheme(adminPage, 'dark');
-    await expect(adminPage.locator('.settings-card')).toBeVisible();
+    await expect(adminPage.locator('.settings-card').first()).toBeVisible();
     await captureProfileScreenshots(adminPage, 'dark');
   });
 });
