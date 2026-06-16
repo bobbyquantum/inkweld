@@ -83,16 +83,16 @@
     @if (form.controls.ranged.value) {
       <div class="section-label">End</div>
       @if (isGregorian()) {
-          <mat-form-field appearance="outline">
-        <mat-label>Date</mat-label>
-        <input
-          matInput
-          id="timeline-event-end-date"
-          type="date"
-          [value]="endDateValue()"
-          (change)="onEndDateChange($any($event.target).value)"
-          data-testid="timeline-event-end-date" />
-      </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Date</mat-label>
+          <input
+            matInput
+            id="timeline-event-end-date"
+            type="date"
+            [value]="endDateValue()"
+            (change)="onEndDateChange($any($event.target).value)"
+            data-testid="timeline-event-end-date" />
+        </mat-form-field>
       }
       <div class="units-row" [formGroup]="form">
         <ng-container formArrayName="endUnits">
@@ -111,20 +111,20 @@
             } @else {
               <mat-form-field appearance="outline" class="unit-field">
                 <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
-              <input
-                matInput
-                [attr.id]="'timeline-event-end-unit-' + i"
-                type="number"
-                step="1"
-                [formControlName]="i"
-                [attr.data-testid]="'timeline-event-end-unit-' + i" />
-            </mat-form-field>
+                <input
+                  matInput
+                  [attr.id]="'timeline-event-end-unit-' + i"
+                  type="number"
+                  step="1"
+                  [formControlName]="i"
+                  [attr.data-testid]="'timeline-event-end-unit-' + i" />
+              </mat-form-field>
           }
         }
       </ng-container>
     </div>
-    <input
-      type="hidden"
+      <input
+        type="hidden"
         data-testid="timeline-event-end"
         [value]="combinedEnd()" />
       @if (form.hasError('endBeforeStart')) {
