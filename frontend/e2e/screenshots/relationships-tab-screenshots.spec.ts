@@ -13,9 +13,8 @@
 import type { Page } from '@playwright/test';
 import { join } from 'node:path';
 
-import { expect, test } from './fixtures';
-
 import { createProjectWithTwoSteps } from '../common/test-helpers';
+import { expect, test } from './fixtures';
 import {
   captureElementScreenshot,
   ensureDirectory,
