@@ -21,12 +21,12 @@
     "test:coverage": "vitest run --coverage"
   },
   "peerDependencies": {
-    "prosemirror-model": "1.25.8",
+    "prosemirror-model": "1.25.9",
     "yjs": "13.6.31"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.16",
-    "prosemirror-model": "1.25.8",
+    "prosemirror-model": "1.25.9",
     "vitest": "^4.0.16",
     "yjs": "13.6.31"
   }
