@@ -178,7 +178,7 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@maxim_mazurok/gapi.client.androidpublisher-v3": ["@maxim_mazurok/gapi.client.androidpublisher-v3@0.3.20260611", "", { "dependencies": { "@types/gapi.client": "*", "@types/gapi.client.discovery-v1": "*" } }, "sha512-442VDujuFd/CWowLe1aC+UrSXEOUO8zYEZmi4WltwLySRYPAjPXIcqAyTgSjQyCXZf5oh0UEwkWXgrP8DC3Phw=="],
+    "@maxim_mazurok/gapi.client.androidpublisher-v3": ["@maxim_mazurok/gapi.client.androidpublisher-v3@0.3.20260613", "", { "dependencies": { "@types/gapi.client": "*", "@types/gapi.client.discovery-v1": "*" } }, "sha512-7ZndwSZYY4AtBX/fSih1/9+KlW7vCkskXPOgA+FDoqF0Ka/ezNorcFYXEhDVOuPtPpOSTAgSC3WDPFiHAiDk4w=="],
 
     "@maxim_mazurok/gapi.client.discovery-v1": ["@maxim_mazurok/gapi.client.discovery-v1@0.6.20200806", "", { "dependencies": { "@types/gapi.client": "*", "@types/gapi.client.discovery-v1": "*" } }, "sha512-QN6aGmIbLXcJW0SEf8tz9UWCpQTBMy2u4xSuZ04YofzMGknhWwMeUecySLntCZYAEstHzDoSgwxCf5Gb8GqIRQ=="],
 
