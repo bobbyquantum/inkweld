@@ -46,7 +46,7 @@
     "esbuild": "^0.28.0",
     "hono": "^4.11.3",
     "nanoid": "^5.1.6",
-    "nodemailer": "^8.0.1",
+    "nodemailer": "^9.0.0",
     "openai": "^6.15.0",
     "reflect-metadata": "^0.2.2",
     "sharp": "^0.35.0",
