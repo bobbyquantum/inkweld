@@ -239,6 +239,10 @@ test.describe('Relationships Tab Screenshots', () => {
       'Relationship Types Demo'
     );
     await captureRelationshipTypesArtifacts(page, 'light');
+
+    await expect(
+      page.locator('[data-testid="relationship-type-card"]').first()
+    ).toBeVisible();
   });
 
   test('relationship types settings — dark mode', async ({
@@ -251,6 +255,10 @@ test.describe('Relationships Tab Screenshots', () => {
       'Relationship Types Demo Dark'
     );
     await captureRelationshipTypesArtifacts(page, 'dark');
+
+    await expect(
+      page.locator('[data-testid="relationship-type-card"]').first()
+    ).toBeVisible();
   });
 
   // -------- Character Relationships Panel --------
@@ -548,6 +556,10 @@ test.describe('Relationships Tab Screenshots', () => {
       await openCharacterAndShowRelationships(page, 'Elena Blackwood');
       await page.waitForTimeout(500);
 
+      await expect(
+        page.locator('.relationships-panel')
+      ).toBeVisible();
+
       await captureCharacterPanelArtifacts(page, 'light');
     });
 
@@ -564,6 +576,10 @@ test.describe('Relationships Tab Screenshots', () => {
       );
       await openCharacterAndShowRelationships(page, 'Elena Blackwood');
       await page.waitForTimeout(500);
+
+      await expect(
+        page.locator('.relationships-panel')
+      ).toBeVisible();
 
       await captureCharacterPanelArtifacts(page, 'dark');
     });
@@ -587,6 +603,8 @@ test.describe('Relationships Tab Screenshots', () => {
           16
         );
       }
+
+      await expect(relationshipsPanel).toBeVisible();
     });
 
     for (const parentChildScenario of [
@@ -661,6 +679,10 @@ test.describe('Relationships Tab Screenshots', () => {
           parentChildScenario.childPanelFile,
           parentChildScenario.childOverviewFile
         );
+
+        await expect(
+          page.locator('.relationships-panel')
+        ).toBeVisible();
       });
     }
 
@@ -716,6 +738,8 @@ test.describe('Relationships Tab Screenshots', () => {
           path: join(screenshotsDir, multipleScenario.overviewFile),
           fullPage: false,
         });
+
+        await expect(page.locator('.meta-panel')).toBeVisible();
       });
     }
   });

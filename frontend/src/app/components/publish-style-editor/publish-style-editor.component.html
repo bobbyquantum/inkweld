@@ -73,6 +73,7 @@
           <mat-label>Margin top (in)</mat-label>
           <input
             matInput
+            id="page-margin-top"
             type="number"
             min="0"
             step="0.05"
@@ -88,6 +89,7 @@
           <mat-label>Margin bottom (in)</mat-label>
           <input
             matInput
+            id="page-margin-bottom"
             type="number"
             min="0"
             step="0.05"
@@ -103,6 +105,7 @@
           <mat-label>Margin inside (in)</mat-label>
           <input
             matInput
+            id="page-margin-inside"
             type="number"
             min="0"
             step="0.05"
@@ -118,6 +121,7 @@
           <mat-label>Margin outside (in)</mat-label>
           <input
             matInput
+            id="page-margin-outside"
             type="number"
             min="0"
             step="0.05"
@@ -264,6 +268,7 @@
       <mat-label>Size (pt)</mat-label>
       <input
         matInput
+        [attr.id]="controlsId ? 'font-size-' + controlsId : null"
         type="number"
         min="1"
         step="0.5"
@@ -299,6 +304,7 @@
       <mat-label>Line height</mat-label>
       <input
         matInput
+        [attr.id]="controlsId ? 'line-height-' + controlsId : null"
         type="number"
         min="0.5"
         step="0.05"
@@ -322,6 +328,7 @@
       <mat-label>Color</mat-label>
       <input
         matInput
+        [attr.id]="controlsId ? 'color-' + controlsId : null"
         type="text"
         placeholder="#111111"
         [value]="text.color ?? ''"
@@ -332,6 +339,9 @@
       <mat-label>First-line indent (em)</mat-label>
       <input
         matInput
+        [attr.id]="
+          controlsId ? 'first-line-indent-' + controlsId : null
+        "
         type="number"
         min="0"
         step="0.1"

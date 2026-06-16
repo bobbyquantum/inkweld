@@ -5,6 +5,7 @@
     <input
       #searchInput
       type="text"
+      id="quick-open-search-input"
       class="search-input"
       [value]="searchQuery()"
       (input)="onSearchChange($any($event.target).value)"

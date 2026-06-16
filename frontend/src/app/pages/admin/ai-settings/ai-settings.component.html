@@ -274,7 +274,8 @@
                     matInput
                     [value]="newSize().name"
                     (input)="updateNewSizeName($any($event.target).value)"
-                    placeholder="e.g., HD Landscape" />
+                    placeholder="e.g., HD Landscape"
+                    id="ai-settings-size-name-input" />
                 </mat-form-field>
               </div>
               <div class="size-form-row dimensions-row">
@@ -286,7 +287,8 @@
                     min="256"
                     max="4096"
                     [value]="newSize().width"
-                    (input)="updateNewSizeWidth(+$any($event.target).value)" />
+                    (input)="updateNewSizeWidth(+$any($event.target).value)"
+                    id="ai-settings-size-width-input" />
                 </mat-form-field>
                 <span class="dimension-separator">×</span>
                 <mat-form-field appearance="outline">
@@ -297,7 +299,8 @@
                     min="256"
                     max="4096"
                     [value]="newSize().height"
-                    (input)="updateNewSizeHeight(+$any($event.target).value)" />
+                    (input)="updateNewSizeHeight(+$any($event.target).value)"
+                    id="ai-settings-size-height-input" />
                 </mat-form-field>
               </div>
               <div class="size-form-row">
@@ -309,7 +312,8 @@
                     (input)="
                       updateNewSizeDescription($any($event.target).value)
                     "
-                    placeholder="e.g., Standard HD for wallpapers" />
+                    placeholder="e.g., Standard HD for wallpapers"
+                    id="ai-settings-size-description-input" />
                 </mat-form-field>
               </div>
               <div class="size-form-actions">

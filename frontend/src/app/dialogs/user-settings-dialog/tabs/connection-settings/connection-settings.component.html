@@ -84,6 +84,7 @@
         <mat-label>Server URL</mat-label>
         <input
           matInput
+          id="connection-server-url-input"
           [(ngModel)]="newServerUrl"
           placeholder="https://inkweld.example.com"
           [disabled]="isConnecting() || showAuthForm()"
@@ -146,6 +147,7 @@
             <mat-label>Username</mat-label>
             <input
               matInput
+              id="connection-auth-username-input"
               [value]="username()"
               (input)="username.set($any($event.target).value)"
               [disabled]="isAuthenticating()"
@@ -158,6 +160,7 @@
             <mat-label>Password</mat-label>
             <input
               matInput
+              id="connection-auth-password-input"
               [value]="password()"
               (input)="password.set($any($event.target).value)"
               [disabled]="isAuthenticating()"
@@ -171,6 +174,7 @@
               <mat-label>Confirm Password</mat-label>
               <input
                 matInput
+                id="connection-auth-confirm-password-input"
                 [value]="confirmPassword()"
                 (input)="confirmPassword.set($any($event.target).value)"
                 [disabled]="isAuthenticating()"

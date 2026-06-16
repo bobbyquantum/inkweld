@@ -109,6 +109,7 @@
           <!-- Plan name on mobile -->
           <div class="mobile-plan-header">
             <input
+              id="publish-plan-name-input-mobile"
               class="plan-name-input"
               [value]="plan.name"
               (input)="updateName($event)"
@@ -224,6 +225,7 @@
         <mat-label>Book Title</mat-label>
         <input
           matInput
+          id="publish-plan-title-input"
           [value]="plan.metadata.title"
           (input)="updateMetadata('title', $event)"
           data-testid="book-title-input" />
@@ -233,6 +235,7 @@
         <mat-label>Author</mat-label>
         <input
           matInput
+          id="publish-plan-author-input"
           [value]="plan.metadata.author"
           (input)="updateMetadata('author', $event)"
           data-testid="author-input" />
@@ -242,6 +245,7 @@
         <mat-label>Language</mat-label>
         <input
           matInput
+          id="publish-plan-language-input"
           [value]="plan.metadata.language"
           (input)="updateMetadata('language', $event)" />
         <mat-hint>e.g., en, es, fr</mat-hint>
@@ -357,6 +361,7 @@
             <mat-label>Cover Image</mat-label>
             <input
               matInput
+              id="publish-plan-cover-image-input"
               [value]="plan.options.coverImage ?? projectCoverImage() ?? ''"
               (input)="updateOption('coverImage', $event)"
               placeholder="Uses project cover by default" />

@@ -27,6 +27,7 @@
         <mat-label>Template Name</mat-label>
         <input
           matInput
+          id="template-name"
           formControlName="name"
           data-testid="template-name-input"
           placeholder="e.g., Character" />
@@ -124,6 +125,7 @@
                 <mat-label>Tab Label</mat-label>
                 <input
                   matInput
+                  id="tab-label"
                   data-testid="tab-label-input"
                   [value]="currentTab.label"
                   (input)="
@@ -208,6 +210,7 @@
                             <mat-label>Field Key</mat-label>
                             <input
                               matInput
+                              [attr.id]="'field-key-' + field.id"
                               data-testid="field-key-input"
                               [value]="field.key"
                               (input)="
@@ -224,6 +227,7 @@
                             <mat-label>Field Label</mat-label>
                             <input
                               matInput
+                              [attr.id]="'field-label-' + field.id"
                               data-testid="field-label-input"
                               [value]="field.label"
                               (input)="
@@ -264,6 +268,7 @@
                             <mat-label>Placeholder</mat-label>
                             <input
                               matInput
+                              [attr.id]="'field-placeholder-' + field.id"
                               [value]="field.placeholder || ''"
                               (input)="
                                 updateField(selectedTabIndex(), j, {

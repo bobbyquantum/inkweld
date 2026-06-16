@@ -13,6 +13,7 @@
       <input
         matInput
         formControlName="name"
+        id="image-profile-name-input"
         data-testid="profile-name-input"
         placeholder="e.g., GPT Image 1 High Quality" />
       <mat-hint>A user-friendly name for this profile</mat-hint>
@@ -91,6 +92,7 @@
           <input
             matInput
             formControlName="modelId"
+            id="image-profile-model-input"
             [matAutocomplete]="modelAuto"
             (input)="onModelSearchInput($event)"
             (focus)="loadModelsForProvider()"
@@ -145,6 +147,7 @@
           <input
             matInput
             formControlName="modelId"
+            id="image-profile-model-id-input"
             placeholder="e.g., stable-diffusion-xl-base-1.0" />
           <mat-hint
             >Enter the model identifier from your Stable Diffusion API</mat-hint
@@ -210,6 +213,7 @@
               <input
                 matInput
                 [formControl]="$any(size)"
+                [attr.id]="'image-profile-size-input-' + $index"
                 placeholder="e.g., 1024x1024" />
             </mat-form-field>
             <button
@@ -247,7 +251,7 @@
 
     <mat-form-field appearance="outline" class="narrow-field">
       <mat-label>Sort Order</mat-label>
-      <input matInput type="number" formControlName="sortOrder" />
+      <input matInput type="number" formControlName="sortOrder" id="image-profile-sort-order-input" />
       <mat-hint>Lower numbers appear first</mat-hint>
     </mat-form-field>
 

@@ -216,6 +216,7 @@
                   [ngModel]="passwordMinLength()"
                   (change)="savePasswordMinLength($any($event.target).value)"
                   [disabled]="isSaving()"
+                  id="admin-password-min-length-input"
                   data-testid="password-min-length-input" />
               </mat-form-field>
             </div>
@@ -315,6 +316,7 @@
             [ngModel]="siteUrl()"
             (change)="saveSiteUrl($any($event.target).value)"
             [disabled]="isSaving()"
+            id="admin-site-url-input"
             data-testid="site-url-input" />
           <mat-hint
             >Used in password reset emails and welcome notifications</mat-hint
