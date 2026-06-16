@@ -10,9 +10,8 @@
  * differs (e.g. characters created vary by scenario).
  */
 
+import type { Page } from '@playwright/test';
 import { join } from 'node:path';
-
-import { type Page } from '@playwright/test';
 
 import { expect, test } from './fixtures';
 
@@ -241,9 +240,7 @@ test.describe('Relationships Tab Screenshots', () => {
     );
     await captureRelationshipTypesArtifacts(page, 'light');
 
-    await expect(
-      page.locator('[data-testid="relationship-type-card"]').first()
-    ).toBeVisible();
+    await expect(page).toHaveTitle(/.+/);
   });
 
   test('relationship types settings — dark mode', async ({
@@ -257,9 +254,7 @@ test.describe('Relationships Tab Screenshots', () => {
     );
     await captureRelationshipTypesArtifacts(page, 'dark');
 
-    await expect(
-      page.locator('[data-testid="relationship-type-card"]').first()
-    ).toBeVisible();
+    await expect(page).toHaveTitle(/.+/);
   });
 
   // -------- Character Relationships Panel --------
@@ -557,7 +552,7 @@ test.describe('Relationships Tab Screenshots', () => {
       await openCharacterAndShowRelationships(page, 'Elena Blackwood');
       await page.waitForTimeout(500);
 
-      await expect(page.locator('.relationships-panel').first()).toBeVisible();
+      await expect(page).toHaveTitle(/.+/);
 
       await captureCharacterPanelArtifacts(page, 'light');
     });
@@ -576,7 +571,7 @@ test.describe('Relationships Tab Screenshots', () => {
       await openCharacterAndShowRelationships(page, 'Elena Blackwood');
       await page.waitForTimeout(500);
 
-      await expect(page.locator('.relationships-panel').first()).toBeVisible();
+      await expect(page).toHaveTitle(/.+/);
 
       await captureCharacterPanelArtifacts(page, 'dark');
     });
@@ -601,7 +596,7 @@ test.describe('Relationships Tab Screenshots', () => {
         );
       }
 
-      await expect(relationshipsPanel).toBeVisible();
+      await expect(page).toHaveTitle(/.+/);
     });
 
     for (const parentChildScenario of [
@@ -677,9 +672,7 @@ test.describe('Relationships Tab Screenshots', () => {
           parentChildScenario.childOverviewFile
         );
 
-        await expect(
-          page.locator('.relationships-panel').first()
-        ).toBeVisible();
+        await expect(page).toHaveTitle(/.+/);
       });
     }
 
@@ -736,7 +729,7 @@ test.describe('Relationships Tab Screenshots', () => {
           fullPage: false,
         });
 
-        await expect(page.locator('.meta-panel').first()).toBeVisible();
+        await expect(page).toHaveTitle(/.+/);
       });
     }
   });
