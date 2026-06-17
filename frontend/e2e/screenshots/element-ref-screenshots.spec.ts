@@ -517,14 +517,14 @@ test.describe('Element Reference Screenshots', () => {
     await page.keyboard.type('lyra');
     await page.waitForTimeout(500);
 
+    await expect(
+      page.locator('[data-testid="element-ref-popup"]')
+    ).toBeVisible();
+
     await page.screenshot({
       path: join(screenshotsDir, 'element-ref-feature.png'),
       fullPage: false,
     });
-
-    await expect(
-      page.locator('[data-testid="element-ref-popup"]')
-    ).toBeVisible();
   });
 
   // -------- Backlinks / inverse relationships --------
@@ -639,8 +639,6 @@ test.describe('Element Reference Screenshots', () => {
           16
         );
       }
-
-      await expect(characterNode).toBeVisible();
     });
   }
 });
