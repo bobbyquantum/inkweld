@@ -59,8 +59,7 @@ describe('ElectronService', () => {
     });
 
     it('should do nothing for windowMinimize', async () => {
-      await service.windowMinimize();
-      // No error should be thrown
+      expect(await service.windowMinimize()).toBeUndefined();
     });
 
     it('should return false for windowMaximize', async () => {
@@ -69,8 +68,7 @@ describe('ElectronService', () => {
     });
 
     it('should do nothing for windowClose', async () => {
-      await service.windowClose();
-      // No error should be thrown
+      expect(await service.windowClose()).toBeUndefined();
     });
 
     it('should return false for windowIsMaximized', async () => {

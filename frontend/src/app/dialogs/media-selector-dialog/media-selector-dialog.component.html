@@ -41,6 +41,7 @@
       <mat-icon matPrefix>search</mat-icon>
       <input
         matInput
+        id="media-selector-search-input"
         placeholder="Search media..."
         [ngModel]="searchQuery()"
         (ngModelChange)="searchQuery.set($event)" />

@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
 
-import { test } from './fixtures';
+import { expect, test } from './fixtures';
 
 /**
  * Base directory for generated screenshots.
@@ -25,9 +25,7 @@ const MOBILE_VIEWPORT = { width: 375, height: 667 } as const;
 async function gotoAbout(page: Page): Promise<void> {
   await page.goto('/about');
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForSelector('[data-testid="version-card"]', {
-    state: 'visible',
-  });
+  await expect(page.getByTestId('version-card')).toBeVisible();
   // Brief settle for icon fonts / layout
   await page.waitForTimeout(300);
 }
@@ -52,9 +50,7 @@ test.describe('About Page Screenshots', () => {
 
     await test.step('libraries card focused', async () => {
       // Already on /about with desktop viewport from previous step.
-      await page.waitForSelector('[data-testid="libraries-card"]', {
-        state: 'visible',
-      });
+      await expect(page.getByTestId('libraries-card')).toBeVisible();
       const librariesCard = page.locator('[data-testid="libraries-card"]');
       await librariesCard.screenshot({
         path: join(SCREENSHOTS_DIR, 'about-libraries-card-light.png'),
@@ -69,6 +65,8 @@ test.describe('About Page Screenshots', () => {
         fullPage: true,
       });
     });
+
+    await expect(page.getByTestId('libraries-card')).toBeVisible();
   });
 
   // Mirror of the light flow but with dark color scheme emulated.
@@ -85,9 +83,7 @@ test.describe('About Page Screenshots', () => {
     });
 
     await test.step('libraries card focused', async () => {
-      await page.waitForSelector('[data-testid="libraries-card"]', {
-        state: 'visible',
-      });
+      await expect(page.getByTestId('libraries-card')).toBeVisible();
       const librariesCard = page.locator('[data-testid="libraries-card"]');
       await librariesCard.screenshot({
         path: join(SCREENSHOTS_DIR, 'about-libraries-card-dark.png'),
@@ -102,5 +98,7 @@ test.describe('About Page Screenshots', () => {
         fullPage: true,
       });
     });
+
+    await expect(page.getByTestId('libraries-card')).toBeVisible();
   });
 });

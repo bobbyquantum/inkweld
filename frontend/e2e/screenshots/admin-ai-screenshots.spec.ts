@@ -11,7 +11,7 @@
 import type { Page } from '@playwright/test';
 import path from 'path';
 
-import { test } from './fixtures';
+import { expect, test } from './fixtures';
 
 const SCREENSHOTS_DIR = path.join(
   __dirname,
@@ -86,6 +86,7 @@ test.describe('Admin AI Settings Screenshots', () => {
 
   test('AI settings screenshots — light mode', async ({ adminPage }) => {
     await applyColorScheme(adminPage, 'light');
+    await expect(adminPage.locator('.settings-card').first()).toBeVisible();
 
     await test.step('settings page overview', async () => {
       await adminPage.screenshot({
@@ -158,6 +159,7 @@ test.describe('Admin AI Settings Screenshots', () => {
 
   test('AI settings screenshots — dark mode', async ({ adminPage }) => {
     await applyColorScheme(adminPage, 'dark');
+    await expect(adminPage.locator('.settings-card').first()).toBeVisible();
 
     await adminPage.screenshot({
       path: path.join(SCREENSHOTS_DIR, 'admin-ai-settings-dark.png'),
@@ -229,11 +231,13 @@ test.describe('Image Model Profiles Screenshots', () => {
 
   test('image profiles screenshots — light mode', async ({ adminPage }) => {
     await applyColorScheme(adminPage, 'light');
+    await expect(adminPage.locator('.settings-card').first()).toBeVisible();
     await captureProfileScreenshots(adminPage, 'light');
   });
 
   test('image profiles screenshots — dark mode', async ({ adminPage }) => {
     await applyColorScheme(adminPage, 'dark');
+    await expect(adminPage.locator('.settings-card').first()).toBeVisible();
     await captureProfileScreenshots(adminPage, 'dark');
   });
 });
@@ -268,6 +272,7 @@ test.describe('Image Generation Dialog Screenshots', () => {
 
     if (await openImageGenerationDialog(authenticatedPage)) {
       const dialog = authenticatedPage.locator('mat-dialog-container');
+      await expect(dialog).toBeVisible();
       await dialog.screenshot({
         path: path.join(SCREENSHOTS_DIR, 'image-generation-dialog-light.png'),
       });
@@ -279,6 +284,7 @@ test.describe('Image Generation Dialog Screenshots', () => {
 
     if (await openImageGenerationDialog(authenticatedPage)) {
       const dialog = authenticatedPage.locator('mat-dialog-container');
+      await expect(dialog).toBeVisible();
       await dialog.screenshot({
         path: path.join(SCREENSHOTS_DIR, 'image-generation-dialog-dark.png'),
       });

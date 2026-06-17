@@ -48,6 +48,7 @@
             <mat-label>SMTP Host</mat-label>
             <input
               matInput
+              id="smtp-host"
               [ngModel]="host()"
               (ngModelChange)="host.set($event)"
               placeholder="smtp.example.com"
@@ -59,6 +60,7 @@
               <mat-label>Port</mat-label>
               <input
                 matInput
+                id="smtp-port"
                 [ngModel]="port()"
                 (ngModelChange)="port.set($event)"
                 placeholder="587"
@@ -82,6 +84,7 @@
             <mat-label>Username</mat-label>
             <input
               matInput
+              id="smtp-username"
               [ngModel]="username()"
               (ngModelChange)="username.set($event)"
               placeholder="user@example.com"
@@ -92,6 +95,7 @@
             <mat-label>Password</mat-label>
             <input
               matInput
+              id="smtp-password"
               type="password"
               [ngModel]="password()"
               (ngModelChange)="password.set($event)"
@@ -108,6 +112,7 @@
             <mat-label>From Address</mat-label>
             <input
               matInput
+              id="email-from"
               [ngModel]="fromAddress()"
               (ngModelChange)="fromAddress.set($event)"
               placeholder="noreply@example.com"
@@ -118,6 +123,7 @@
             <mat-label>From Name</mat-label>
             <input
               matInput
+              id="email-from-name"
               [ngModel]="fromName()"
               (ngModelChange)="fromName.set($event)"
               placeholder="Inkweld"

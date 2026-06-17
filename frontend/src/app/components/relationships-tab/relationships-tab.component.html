@@ -21,6 +21,7 @@
         <mat-label>Search relationship types</mat-label>
         <input
           matInput
+          id="relationship-types-search-input"
           type="text"
           [value]="searchQuery()"
           (input)="searchQuery.set($any($event.target).value)"

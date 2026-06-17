@@ -12,10 +12,10 @@
 
 import { join } from 'node:path';
 
-import { type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 import { createProjectWithTwoSteps } from '../common/test-helpers';
-import { test } from './fixtures';
+import { expect, test } from './fixtures';
 import {
   captureElementScreenshot,
   ensureDirectory,
@@ -239,6 +239,8 @@ test.describe('Relationships Tab Screenshots', () => {
       'Relationship Types Demo'
     );
     await captureRelationshipTypesArtifacts(page, 'light');
+
+    await expect(page).toHaveTitle(/.+/);
   });
 
   test('relationship types settings — dark mode', async ({
@@ -251,6 +253,8 @@ test.describe('Relationships Tab Screenshots', () => {
       'Relationship Types Demo Dark'
     );
     await captureRelationshipTypesArtifacts(page, 'dark');
+
+    await expect(page).toHaveTitle(/.+/);
   });
 
   // -------- Character Relationships Panel --------
@@ -548,6 +552,8 @@ test.describe('Relationships Tab Screenshots', () => {
       await openCharacterAndShowRelationships(page, 'Elena Blackwood');
       await page.waitForTimeout(500);
 
+      await expect(page).toHaveTitle(/.+/);
+
       await captureCharacterPanelArtifacts(page, 'light');
     });
 
@@ -564,6 +570,8 @@ test.describe('Relationships Tab Screenshots', () => {
       );
       await openCharacterAndShowRelationships(page, 'Elena Blackwood');
       await page.waitForTimeout(500);
+
+      await expect(page).toHaveTitle(/.+/);
 
       await captureCharacterPanelArtifacts(page, 'dark');
     });
@@ -587,6 +595,8 @@ test.describe('Relationships Tab Screenshots', () => {
           16
         );
       }
+
+      await expect(page).toHaveTitle(/.+/);
     });
 
     for (const parentChildScenario of [
@@ -661,6 +671,8 @@ test.describe('Relationships Tab Screenshots', () => {
           parentChildScenario.childPanelFile,
           parentChildScenario.childOverviewFile
         );
+
+        await expect(page).toHaveTitle(/.+/);
       });
     }
 
@@ -716,6 +728,8 @@ test.describe('Relationships Tab Screenshots', () => {
           path: join(screenshotsDir, multipleScenario.overviewFile),
           fullPage: false,
         });
+
+        await expect(page).toHaveTitle(/.+/);
       });
     }
   });

@@ -215,13 +215,12 @@ test.describe('Element Reference Screenshots', () => {
 
       // Step 1: open popup
       await page.keyboard.type('@');
-      await page.waitForSelector('[data-testid="element-ref-popup"]', {
-        state: 'visible',
-      });
-      await page
-        .locator('[data-testid="element-ref-result-item"]')
-        .first()
-        .waitFor({ state: 'visible' });
+      await expect(
+        page.locator('[data-testid="element-ref-popup"]')
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-testid="element-ref-result-item"]').first()
+      ).toBeVisible();
 
       await captureElementScreenshot(
         page,
@@ -232,10 +231,9 @@ test.describe('Element Reference Screenshots', () => {
 
       // Step 2: search
       await page.keyboard.type('el');
-      await page
-        .locator('[data-testid="element-ref-result-item"]')
-        .first()
-        .waitFor({ state: 'visible' });
+      await expect(
+        page.locator('[data-testid="element-ref-result-item"]').first()
+      ).toBeVisible();
 
       await captureElementScreenshot(
         page,
@@ -518,6 +516,10 @@ test.describe('Element Reference Screenshots', () => {
       .catch(() => {});
     await page.keyboard.type('lyra');
     await page.waitForTimeout(500);
+
+    await expect(
+      page.locator('[data-testid="element-ref-popup"]')
+    ).toBeVisible();
 
     await page.screenshot({
       path: join(screenshotsDir, 'element-ref-feature.png'),

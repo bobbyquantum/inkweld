@@ -8,7 +8,7 @@
 import type { Page } from '@playwright/test';
 import path from 'path';
 
-import { test } from './fixtures';
+import { expect, test } from './fixtures';
 
 const SCREENSHOTS_DIR = path.join(
   __dirname,
@@ -83,10 +83,9 @@ test.describe('Admin Kill Switch Screenshots', () => {
     await enableKillSwitchMock(adminPage);
     await navigateToAdminSettingsViaMenu(adminPage);
 
-    await adminPage.waitForSelector(
-      '.settings-container, .loading-container',
-      {}
-    );
+    await expect(
+      adminPage.locator('.settings-container, .loading-container').first()
+    ).toBeVisible();
 
     const loadingSpinner = adminPage.locator('mat-spinner');
     if (await loadingSpinner.isVisible()) {
@@ -115,6 +114,10 @@ test.describe('Admin Kill Switch Screenshots', () => {
         });
       }
     });
+
+    await expect(
+      adminPage.locator('.settings-container').first()
+    ).toBeVisible();
   });
 
   test('Admin kill switch screenshots — dark mode', async ({ adminPage }) => {
@@ -135,5 +138,9 @@ test.describe('Admin Kill Switch Screenshots', () => {
         });
       }
     });
+
+    await expect(
+      adminPage.locator('.settings-container').first()
+    ).toBeVisible();
   });
 });

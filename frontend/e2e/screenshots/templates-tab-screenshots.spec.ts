@@ -17,7 +17,7 @@ import { type Page } from '@playwright/test';
 import { join } from 'path';
 
 import { createProjectWithTwoSteps } from '../common/test-helpers';
-import { test } from './fixtures';
+import { expect, test } from './fixtures';
 import {
   captureElementScreenshot,
   ensureDirectory,
@@ -146,12 +146,14 @@ test.describe.skip('Templates Tab Screenshots', () => {
 
   test('templates screenshots — light mode', async ({ offlinePage: page }) => {
     await setupProjectAndTemplatesTab(page, 'tpl-light', 'Templates Demo');
+    await expect(page.locator('.templates-tab-container')).toBeVisible();
     await captureAllTemplateScreenshots(page, screenshotsDir, 'light');
   });
 
   test('templates screenshots — dark mode', async ({ offlinePage: page }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await setupProjectAndTemplatesTab(page, 'tpl-dark', 'Templates Demo');
+    await expect(page.locator('.templates-tab-container')).toBeVisible();
     await captureAllTemplateScreenshots(page, screenshotsDir, 'dark');
   });
 });

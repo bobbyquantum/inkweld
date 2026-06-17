@@ -321,6 +321,7 @@
               <mat-label>{{ field.label }}</mat-label>
               <input
                 matInput
+                [attr.id]="'field-' + field.key"
                 [formControl]="getControl(field.key)"
                 [placeholder]="field.placeholder || ''" />
               @if (field.description) {
@@ -349,6 +350,7 @@
               <input
                 matInput
                 type="number"
+                [attr.id]="'field-' + field.key"
                 [formControl]="getControl(field.key)"
                 [placeholder]="field.placeholder || ''" />
               @if (field.description) {
@@ -362,6 +364,7 @@
               <mat-label>{{ field.label }}</mat-label>
               <input
                 matInput
+                [attr.id]="'field-' + field.key"
                 type="text"
                 [formControl]="getControl(field.key)"
                 [placeholder]="field.placeholder || ''" />
@@ -434,6 +437,7 @@
                   <mat-form-field appearance="outline">
                     <input
                       matInput
+                      [attr.id]="'field-' + field.key + '-' + $index"
                       [formControl]="$any(control)"
                       [placeholder]="field.placeholder || 'Add item'" />
                   </mat-form-field>

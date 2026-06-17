@@ -10,7 +10,7 @@ import { type Page } from '@playwright/test';
 import { join } from 'path';
 
 import { dismissToastIfPresent } from '../common/test-helpers';
-import { test } from './fixtures';
+import { expect, test } from './fixtures';
 import {
   captureElementScreenshot,
   ensureDirectory,
@@ -73,9 +73,7 @@ test.describe('Canvas Tab Screenshots', () => {
     await page.getByTestId('create-element-button').click();
 
     // Wait for the canvas tab to open
-    await page.waitForSelector('[data-testid="canvas-container"]', {
-      state: 'visible',
-    });
+    await expect(page.getByTestId('canvas-container')).toBeVisible();
 
     // Add a second layer so the sidebar looks more interesting
     await page
@@ -177,6 +175,8 @@ test.describe('Canvas Tab Screenshots', () => {
         8
       );
     });
+
+    await expect(page.getByTestId('canvas-container')).toBeVisible();
   });
 
   test('canvas screenshots — dark mode', async ({ offlinePage: page }) => {
@@ -212,5 +212,7 @@ test.describe('Canvas Tab Screenshots', () => {
         8
       );
     });
+
+    await expect(page.getByTestId('canvas-container')).toBeVisible();
   });
 });

@@ -10,7 +10,8 @@
         matInput
         [(ngModel)]="searchQuery"
         (ngModelChange)="searchQuery.set($event)"
-        placeholder="e.g., character, location, map..." />
+        placeholder="e.g., character, location, map..."
+        id="new-element-type-search-input" />
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
 
@@ -152,6 +153,7 @@
         <input
           matInput
           [formControl]="$any(form.controls.name)"
+          id="new-element-name-input"
           data-testid="element-name-input"
           required
           [placeholder]="
