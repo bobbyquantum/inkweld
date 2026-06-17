@@ -23,6 +23,7 @@
           matInput
           type="text"
           id="tags-tab-search-input"
+          aria-label="Search tags"
           [value]="searchQuery()"
           (input)="searchQuery.set($any($event.target).value)"
           placeholder="Search by name..." />

@@ -555,14 +555,14 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
 
       // Filter out profiles from disabled providers
       const status = this.status();
-      const enabledProviders = new Set(
+      const enabledProviders = new Set<string>(
         status?.providers
           .filter(p => p.enabled && p.available)
           .map(p => p.type) ?? []
       );
 
       const profiles = allProfiles.filter(p =>
-        enabledProviders.has(p.provider as unknown as ImageProviderType)
+        enabledProviders.has(p.provider)
       );
 
       if (profiles.length < allProfiles.length) {

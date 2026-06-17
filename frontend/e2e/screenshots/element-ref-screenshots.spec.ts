@@ -582,11 +582,9 @@ test.describe('Element Reference Screenshots', () => {
       await characterNode.click();
       await page.waitForTimeout(500);
 
-      await page
-        .waitForSelector('[data-testid="worldbuilding-editor"]', {
-          state: 'visible',
-        })
-        .catch(() => {});
+      await expect(
+        page.locator('[data-testid="worldbuilding-editor"]')
+      ).toBeVisible();
 
       const metaPanelToggle = page.locator('[data-testid="meta-panel-toggle"]');
       if (await metaPanelToggle.isVisible().catch(() => false)) {

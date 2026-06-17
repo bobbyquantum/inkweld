@@ -8,6 +8,7 @@
       <input
         matInput
         id="timeline-event-title"
+        aria-label="Title"
         formControlName="title"
         data-testid="timeline-event-title"
         cdkFocusInitial />
@@ -34,6 +35,7 @@
         <input
           matInput
           id="timeline-event-start-date"
+          aria-label="Start date"
           type="date"
           [value]="startDateValue()"
           (change)="onStartDateChange($any($event.target).value)"
@@ -88,6 +90,7 @@
           <input
             matInput
             id="timeline-event-end-date"
+            aria-label="End date"
             type="date"
             [value]="endDateValue()"
             (change)="onEndDateChange($any($event.target).value)"
@@ -138,6 +141,8 @@
       <mat-label>Description</mat-label>
       <textarea
         matInput
+        id="timeline-event-description"
+        aria-label="Description"
         rows="3"
         formControlName="description"
         data-testid="timeline-event-description"></textarea>

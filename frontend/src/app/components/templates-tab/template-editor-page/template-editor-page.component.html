@@ -28,6 +28,7 @@
         <input
           matInput
           id="template-name"
+          aria-label="Template Name"
           formControlName="name"
           data-testid="template-name-input"
           placeholder="e.g., Character" />
@@ -52,6 +53,8 @@
         <mat-label>Description</mat-label>
         <textarea
           matInput
+          id="template-description"
+          aria-label="Description"
           formControlName="description"
           data-testid="template-description-input"
           placeholder="Describe this template..."
@@ -126,6 +129,7 @@
                 <input
                   matInput
                   id="tab-label"
+                  aria-label="Tab Label"
                   data-testid="tab-label-input"
                   [value]="currentTab.label"
                   (input)="
@@ -284,6 +288,8 @@
                             <mat-label>Description</mat-label>
                             <textarea
                               matInput
+                              [attr.id]="'field-description-' + field.id"
+                              aria-label="Description"
                               [value]="field.description || ''"
                               (input)="
                                 updateField(selectedTabIndex(), j, {

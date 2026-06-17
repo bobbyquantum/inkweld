@@ -4,6 +4,7 @@ import {
   CanvasColorDialogComponent,
   type CanvasColorDialogData,
 } from '@dialogs/canvas-color-dialog/canvas-color-dialog.component';
+import { type CanvasObject } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import Konva from 'konva';
@@ -31,9 +32,7 @@ export class CanvasColorService {
     const obj = config.objects.find(o => o.id === objectId);
     if (!obj) return;
 
-    const data = this.buildDialogData(
-      obj as unknown as { type: string } & Record<string, unknown>
-    );
+    const data = this.buildDialogData(obj);
     if (!data) return;
 
     const dialogRef = this.dialog.open(CanvasColorDialogComponent, {
@@ -47,9 +46,7 @@ export class CanvasColorService {
     });
   }
 
-  private buildDialogData(
-    obj: { type: string } & Record<string, unknown>
-  ): CanvasColorDialogData | null {
+  private buildDialogData(obj: CanvasObject): CanvasColorDialogData | null {
     let showFill = false;
     let showStroke = false;
     let fill: string | undefined;
@@ -57,22 +54,22 @@ export class CanvasColorService {
 
     if (obj.type === 'text') {
       showFill = true;
-      fill = obj['fill'] as string | undefined;
+      fill = obj.fill;
     } else if (obj.type === 'path') {
       showStroke = true;
-      stroke = obj['stroke'] as string | undefined;
-      if (obj['closed']) {
+      stroke = obj.stroke;
+      if (obj.closed) {
         showFill = true;
-        fill = obj['fill'] as string | undefined;
+        fill = obj.fill;
       }
     } else if (obj.type === 'shape') {
       showFill = true;
       showStroke = true;
-      fill = obj['fill'] as string | undefined;
-      stroke = obj['stroke'] as string | undefined;
+      fill = obj.fill;
+      stroke = obj.stroke;
     } else if (obj.type === 'pin') {
       showFill = true;
-      fill = obj['color'] as string | undefined;
+      fill = obj.color;
     } else {
       return null; // images have no user-editable colour
     }
