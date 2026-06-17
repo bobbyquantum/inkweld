@@ -72,8 +72,7 @@
             <input
               matInput
               formControlName="title"
-              required
-              id="edit-project-title-input" />
+              required />
             @if (form.get('title')?.hasError('required')) {
               <mat-error>Title is required</mat-error>
             }
@@ -133,7 +132,6 @@
           type="file"
           accept="image/jpeg,image/jpg,image/png"
           style="display: none"
-          id="edit-project-cover-file-input"
           (change)="onCoverImageSelected($event)" />
       </div>
     </div>
