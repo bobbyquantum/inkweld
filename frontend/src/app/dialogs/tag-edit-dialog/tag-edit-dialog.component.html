@@ -38,6 +38,7 @@
     <input
       matInput
       id="tag-edit-name-input"
+      aria-label="Name"
       #nameInput
       (input)="name.set($any($event.target).value)"
       data-testid="tag-name-input"
@@ -50,6 +51,7 @@
     <input
       matInput
       id="tag-edit-description-input"
+      aria-label="Description"
       #descriptionInput
       (input)="description.set($any($event.target).value)"
       placeholder="Optional description" />

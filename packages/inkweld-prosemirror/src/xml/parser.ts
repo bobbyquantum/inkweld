@@ -44,7 +44,7 @@ import { NODE_TAG_ALIASES, TAG_TO_MARK } from './tags';
  * Y.XmlText — kept generic so we don't pin the parser to a particular
  * yjs version's exported types.
  */
-export type YxmlNode = YModule.XmlElement | YModule.XmlText;
+export type YxmlNode = YModule.XmlElement<any> | YModule.XmlText;
 
 /** Accumulated inline marks: `{ markName: markAttrs }`. */
 export type MarkMap = Record<string, Record<string, unknown>>;
@@ -59,7 +59,7 @@ interface TextRun {
 /** A fully-constructed structural Y.XmlElement (no inline marks). */
 interface ElementChild {
   kind: 'element';
-  element: YModule.XmlElement;
+  element: YModule.XmlElement<any>;
 }
 
 type IntermediateChild = TextRun | ElementChild;
@@ -338,9 +338,9 @@ function parseRegularElement(
   const selfClosing = xml[cursor] === '/' && xml[cursor + 1] === '>';
   if (selfClosing) {
     cursor += 2;
-    const yElement = new Y.XmlElement(tagName);
+    const yElement = new Y.XmlElement<any>(tagName);
     for (const [key, value] of Object.entries(attrs)) {
-      yElement.setAttribute(key, parseAttrValue(value) as string);
+      yElement.setAttribute(key, parseAttrValue(value));
     }
     return { children: [{ kind: 'element', element: yElement }], pos: cursor };
   }
@@ -353,9 +353,9 @@ function parseRegularElement(
   // previous Durable Object parser.)
   const { children, cursor: afterChildren } = parseChildren(Y, xml, cursor, rawTagName, marks);
 
-  const yElement = new Y.XmlElement(tagName);
+  const yElement = new Y.XmlElement<any>(tagName);
   for (const [key, value] of Object.entries(attrs)) {
-    yElement.setAttribute(key, parseAttrValue(value) as string);
+    yElement.setAttribute(key, parseAttrValue(value));
   }
   const finalChildren = materialize(Y, children);
   if (finalChildren.length > 0) {

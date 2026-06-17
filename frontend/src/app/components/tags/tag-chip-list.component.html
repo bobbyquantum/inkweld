@@ -24,6 +24,7 @@
       @if (!readonly()) {
         <input
           placeholder="Add tag..."
+          aria-label="Add tag"
           #tagInput
           [matAutocomplete]="auto"
           [matChipInputFor]="chipGrid"

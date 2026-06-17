@@ -14,6 +14,7 @@
       (input)="searchText.set($any($event.target).value)"
       placeholder="Type to filter..."
       id="tag-picker-search-input"
+      aria-label="Search elements and tags"
       data-testid="tag-picker-search" />
     <mat-icon matPrefix>search</mat-icon>
     @if (searchText()) {

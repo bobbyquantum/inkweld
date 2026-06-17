@@ -39,6 +39,15 @@ import { filter, Subject, type Subscription, takeUntil } from 'rxjs';
 import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
 import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
 
+type SystemRoute =
+  | 'media'
+  | 'templates-list'
+  | 'relationships-list'
+  | 'tags-list'
+  | 'settings'
+  | 'publish-plans'
+  | 'activity';
+
 const SYSTEM_TAB_ICONS: Partial<
   Record<Exclude<AppTab['systemType'], undefined>, string>
 > = {
@@ -414,7 +423,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private parseRouteInfo(): {
-    systemRoute: string | null;
+    systemRoute: SystemRoute | null;
     publishPlanId: string | null;
     tabId: string | null;
   } {
@@ -423,7 +432,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
 
     if (project) {
       const projectBaseUrl = `/${project.username}/${project.slug}`;
-      const systemRoutes = [
+      const systemRoutes: SystemRoute[] = [
         'media',
         'templates-list',
         'relationships-list',
@@ -476,7 +485,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private findOrCreateTab(
-    systemRoute: string | null,
+    systemRoute: SystemRoute | null,
     publishPlanId: string | null,
     tabId: string | null
   ): number {
@@ -492,7 +501,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     return -1;
   }
 
-  private findOrCreateSystemTab(systemRoute: string): number {
+  private findOrCreateSystemTab(systemRoute: SystemRoute): number {
     let tabIndex = this.projectState
       .openTabs()
       .findIndex(
@@ -500,15 +509,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
       );
 
     if (tabIndex === -1) {
-      this.projectState.openSystemTab(
-        systemRoute as
-          | 'media'
-          | 'templates-list'
-          | 'relationships-list'
-          | 'tags-list'
-          | 'publish-plans'
-          | 'activity'
-      );
+      this.projectState.openSystemTab(systemRoute);
       tabIndex = this.projectState
         .openTabs()
         .findIndex(

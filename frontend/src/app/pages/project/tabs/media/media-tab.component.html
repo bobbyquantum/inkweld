@@ -8,6 +8,7 @@
     <input
       matInput
       id="media-tab-search-input"
+      aria-label="Search media, elements, or tags"
       placeholder="Search media, elements, or tags..."
       [ngModel]="searchQuery()"
       (ngModelChange)="searchQuery.set($event)"

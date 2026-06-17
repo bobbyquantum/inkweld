@@ -19,6 +19,7 @@
         #searchInput
         type="text"
         id="find-in-doc-search-input"
+        aria-label="Find in document"
         class="find-input"
         placeholder="Find in document..."
         [ngModel]="findService.query()"
@@ -88,6 +89,7 @@
           #replaceInput
           type="text"
           id="find-in-doc-replace-input"
+          aria-label="Replace with"
           class="replace-input"
           placeholder="Replace with..."
           [ngModel]="findService.replacementText()"

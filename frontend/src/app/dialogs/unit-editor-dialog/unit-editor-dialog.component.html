@@ -7,6 +7,7 @@
     <input
       matInput
       id="unit-editor-name"
+      aria-label="Name"
       [ngModel]="name()"
       (ngModelChange)="name.set($event)"
       data-testid="unit-editor-name"
@@ -19,6 +20,7 @@
       <input
         matInput
         id="unit-editor-subdivision"
+        aria-label="{{ subdivisionLabel() }}"
         type="number"
         min="1"
         step="1"

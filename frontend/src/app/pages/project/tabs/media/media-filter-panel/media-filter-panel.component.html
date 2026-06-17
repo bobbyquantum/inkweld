@@ -114,6 +114,7 @@
         <input
           matInput
           id="filter-date-from-input"
+          aria-label="From date"
           [matDatepicker]="fromPicker"
           [ngModel]="filters().dateFrom"
           (dateChange)="setDateFrom($event.value)"
@@ -127,6 +128,7 @@
         <input
           matInput
           id="filter-date-to-input"
+          aria-label="To date"
           [matDatepicker]="toPicker"
           [ngModel]="filters().dateTo"
           (dateChange)="setDateTo($event.value)"

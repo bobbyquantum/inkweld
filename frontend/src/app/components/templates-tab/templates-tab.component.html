@@ -28,6 +28,7 @@
             matInput
             type="text"
             id="templates-tab-search-input"
+            aria-label="Search templates"
             [value]="searchQuery()"
             (input)="searchQuery.set($any($event.target).value)"
             placeholder="Search by name..." />

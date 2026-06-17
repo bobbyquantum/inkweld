@@ -8,6 +8,7 @@
       <input
         matInput
         id="timeline-era-name"
+        aria-label="Name"
         formControlName="name"
         data-testid="timeline-era-name"
         cdkFocusInitial />
@@ -20,6 +21,7 @@
         <input
           matInput
           id="timeline-era-start-date"
+          aria-label="Start date"
           type="date"
           [value]="startDateValue()"
           (change)="onStartDateChange($event)"
@@ -63,6 +65,7 @@
         <input
           matInput
           id="timeline-era-end-date"
+          aria-label="End date"
           type="date"
           [value]="endDateValue()"
           (change)="onEndDateChange($event)"
@@ -110,6 +113,7 @@
       <input
         matInput
         id="timeline-era-color"
+        aria-label="Color"
         formControlName="color"
         placeholder="e.g. var(--sys-tertiary-container) or #8b5cf6"
         data-testid="timeline-era-color" />

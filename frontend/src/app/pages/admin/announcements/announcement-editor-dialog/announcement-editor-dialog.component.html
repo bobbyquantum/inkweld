@@ -12,6 +12,7 @@
         #titleInput
         matInput
         id="announcement-editor-title-input"
+        aria-label="Title"
         (input)="onTitleInput($event)"
         placeholder="Announcement title"
         data-testid="announcement-title-input" />
@@ -25,6 +26,8 @@
       <textarea
         #contentInput
         matInput
+        id="announcement-editor-content-input"
+        aria-label="Content"
         (input)="onContentInput($event)"
         placeholder="Write your announcement content here..."
         rows="6"

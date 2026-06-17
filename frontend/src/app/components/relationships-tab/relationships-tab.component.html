@@ -22,6 +22,7 @@
         <input
           matInput
           id="relationship-types-search-input"
+          aria-label="Search relationship types"
           type="text"
           [value]="searchQuery()"
           (input)="searchQuery.set($any($event.target).value)"

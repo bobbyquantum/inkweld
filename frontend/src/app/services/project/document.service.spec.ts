@@ -764,6 +764,7 @@ describe('DocumentService', () => {
       expect(service.isConnected(testDocumentId)).toBe(false);
     });
 
+    // Skip: integration-level websocket lifecycle test that depends on real provider timing
     it.skip('should connect websocket in the background and react to status changes', async () => {
       const ydoc = new Y.Doc();
       const connection = {
