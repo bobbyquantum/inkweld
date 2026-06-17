@@ -19,6 +19,7 @@
           placeholder="e.g. Click here"
           autocomplete="off"
           spellcheck="true"
+          id="insert-link-text-input"
           data-testid="link-text-input" />
         @if (linkTextControl.hasError('required') && linkTextControl.touched) {
           <mat-error>Link text is required</mat-error>
@@ -35,6 +36,7 @@
         placeholder="https://example.com"
         autocomplete="off"
         spellcheck="false"
+        id="insert-link-url-input"
         data-testid="link-url-input" />
       <mat-icon matSuffix>link</mat-icon>
       @if (hrefControl.hasError('required') && hrefControl.touched) {

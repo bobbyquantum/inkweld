@@ -18,6 +18,7 @@
       <input
         #searchInput
         type="text"
+        id="find-in-doc-search-input"
         class="find-input"
         placeholder="Find in document..."
         [ngModel]="findService.query()"
@@ -86,6 +87,7 @@
         <input
           #replaceInput
           type="text"
+          id="find-in-doc-replace-input"
           class="replace-input"
           placeholder="Replace with..."
           [ngModel]="findService.replacementText()"

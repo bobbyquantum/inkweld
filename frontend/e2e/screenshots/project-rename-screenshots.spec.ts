@@ -11,7 +11,7 @@ import { type Page } from '@playwright/test';
 import { join } from 'path';
 
 import { createProjectWithTwoSteps } from '../common/test-helpers';
-import { test } from './fixtures';
+import { expect, test } from './fixtures';
 import {
   captureElementScreenshot,
   ensureDirectory,
@@ -25,24 +25,20 @@ async function setupProjectAndSettings(
 ) {
   await page.goto('/');
 
-  await page.waitForSelector('.empty-state', { state: 'visible' });
+  await expect(page.locator('.empty-state')).toBeVisible();
 
   await createProjectWithTwoSteps(page, projectTitle, projectSlug);
   await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
 
   // Navigate to Settings tab
   await page.goto(`/demouser/${projectSlug}/settings`);
-  await page.waitForSelector('[data-testid="settings-tab-content"]', {
-    state: 'visible',
-  });
+  await expect(page.getByTestId('settings-tab-content')).toBeVisible();
 
   // Click on the Danger Zone section in sidenav
   await page.getByTestId('nav-danger').click();
 
   // Wait for danger zone content
-  await page.waitForSelector('[data-testid="rename-project-card"]', {
-    state: 'visible',
-  });
+  await expect(page.getByTestId('rename-project-card')).toBeVisible();
   await page.waitForTimeout(500);
 }
 
@@ -65,9 +61,7 @@ async function captureAllRenameScreenshots(
 
   await test.step('rename form expanded (empty)', async () => {
     await page.click('[data-testid="rename-project-button"]');
-    await page.waitForSelector('[data-testid="new-slug-input"]', {
-      state: 'visible',
-    });
+    await expect(page.getByTestId('new-slug-input')).toBeVisible();
     await page.waitForTimeout(300);
 
     await captureElementScreenshot(
@@ -130,6 +124,7 @@ test.describe('Project Rename Feature Screenshots', () => {
   }) => {
     await setupProjectAndSettings(page, 'rename-light', 'Rename Demo');
     await captureAllRenameScreenshots(page, screenshotsDir, 'light');
+    await expect(page.getByTestId('delete-project-card')).toBeVisible();
   });
 
   test('project rename screenshots — dark mode', async ({
@@ -139,5 +134,6 @@ test.describe('Project Rename Feature Screenshots', () => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await page.waitForTimeout(300);
     await captureAllRenameScreenshots(page, screenshotsDir, 'dark');
+    await expect(page.getByTestId('delete-project-card')).toBeVisible();
   });
 });

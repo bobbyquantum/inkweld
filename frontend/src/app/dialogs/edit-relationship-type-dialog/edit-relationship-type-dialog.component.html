@@ -50,6 +50,7 @@
       <mat-label>Name (forward label)</mat-label>
       <input
         matInput
+        id="rel-type-name-input"
         #nameInput
         (input)="name.set($any($event.target).value)"
         data-testid="rel-name-input"
@@ -61,6 +62,7 @@
       <mat-label>Inverse label</mat-label>
       <input
         matInput
+        id="rel-type-inverse-label-input"
         #inverseInput
         (input)="inverseLabel.set($any($event.target).value)"
         data-testid="rel-inverse-input"
@@ -150,6 +152,7 @@
       <mat-label>Max relationships (blank = unlimited)</mat-label>
       <input
         matInput
+        id="rel-type-source-max-count-input"
         type="number"
         min="1"
         [value]="maxCountDisplay(sourceMaxCount())"
@@ -191,6 +194,7 @@
       <mat-label>Max relationships (blank = unlimited)</mat-label>
       <input
         matInput
+        id="rel-type-target-max-count-input"
         type="number"
         min="1"
         [value]="maxCountDisplay(targetMaxCount())"

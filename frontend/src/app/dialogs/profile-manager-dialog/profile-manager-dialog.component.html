@@ -126,6 +126,7 @@
           <mat-label>Server URL</mat-label>
           <input
             matInput
+            id="new-server-url"
             [ngModel]="newServerUrl()"
             (ngModelChange)="newServerUrl.set($event)"
             placeholder="https://inkweld.example.com"
@@ -147,6 +148,7 @@
           <mat-label>Display Name (optional)</mat-label>
           <input
             matInput
+            id="new-server-name"
             [ngModel]="newServerName()"
             (ngModelChange)="newServerName.set($event)"
             placeholder="My Inkweld Server"
@@ -198,6 +200,7 @@
           <mat-label>Username</mat-label>
           <input
             matInput
+            id="local-username"
             [ngModel]="localUsername()"
             (ngModelChange)="localUsername.set($event)"
             placeholder="myusername"
@@ -215,6 +218,7 @@
           <mat-label>Display Name (optional)</mat-label>
           <input
             matInput
+            id="local-display-name"
             [ngModel]="localDisplayName()"
             (ngModelChange)="localDisplayName.set($event)"
             placeholder="My Name"
@@ -278,6 +282,7 @@
                 <mat-label>Username</mat-label>
                 <input
                   matInput
+                  id="migration-username"
                   [ngModel]="username()"
                   (ngModelChange)="username.set($event)"
                   [disabled]="isAuthenticating()"
@@ -289,6 +294,7 @@
                 <mat-label>Password</mat-label>
                 <input
                   matInput
+                  id="migration-password"
                   [ngModel]="password()"
                   (ngModelChange)="password.set($event)"
                   [disabled]="isAuthenticating()"
@@ -458,6 +464,7 @@
                         </mat-icon>
                         <input
                           matInput
+                          [attr.id]="'rename-slug-' + project.slug"
                           class="slug-rename-input"
                           [value]="getProjectSlug(project)"
                           (input)="

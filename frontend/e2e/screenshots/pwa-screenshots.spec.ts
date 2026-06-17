@@ -8,7 +8,7 @@ import {
   storeRealEpubInIndexedDB,
   storeRealMediaInIndexedDB,
 } from '../common/test-helpers';
-import { test } from './fixtures';
+import { expect, test } from './fixtures';
 import { applyColorScheme, applyColorSchemeAndReload } from './theme-helpers';
 
 /**
@@ -76,10 +76,10 @@ test.describe('PWA Screenshots', () => {
   }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
-    await page.waitForSelector('.covers-grid', { state: 'visible' });
-    await page.waitForSelector('[data-testid="project-card"]', {
-      state: 'visible',
-    });
+    await expect(page.locator('.covers-grid')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="project-card"]').first()
+    ).toBeVisible();
     await page.waitForLoadState('networkidle');
 
     await test.step('light', async () => {
@@ -97,6 +97,8 @@ test.describe('PWA Screenshots', () => {
         fullPage: true,
       });
     });
+
+    await expect(page.locator('.covers-grid')).toBeVisible();
   });
 
   test('capture project bookshelf - mobile light & dark', async ({
@@ -107,9 +109,9 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.reload({ waitUntil: 'domcontentloaded' });
 
-    await page.waitForSelector('.covers-grid', { state: 'visible' });
+    await expect(page.locator('.covers-grid')).toBeVisible();
     const projectCards = page.locator('[data-testid="project-card"]');
-    await projectCards.first().waitFor({ state: 'visible' });
+    await expect(projectCards.first()).toBeVisible();
 
     await test.step('light', async () => {
       await applyColorScheme(page, 'light');
@@ -126,6 +128,8 @@ test.describe('PWA Screenshots', () => {
         fullPage: true,
       });
     });
+
+    await expect(page.locator('.covers-grid')).toBeVisible();
   });
 
   test('capture project home - desktop light & dark', async ({
@@ -134,7 +138,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await expect(page.locator('.empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -145,7 +149,7 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.waitForURL(/\/demouser\/my-novel/);
-    await page.waitForSelector('.home-tab-content', { state: 'visible' });
+    await expect(page.locator('.home-tab-content')).toBeVisible();
 
     await test.step('light', async () => {
       await applyColorScheme(page, 'light');
@@ -162,6 +166,8 @@ test.describe('PWA Screenshots', () => {
         fullPage: true,
       });
     });
+
+    await expect(page.locator('.home-tab-content')).toBeVisible();
   });
 
   test('capture element type chooser dialog - light & dark', async ({
@@ -170,7 +176,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await expect(page.locator('.empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -181,11 +187,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.waitForURL(/\/demouser\/my-novel/);
-    await page.waitForSelector('app-project-tree', { state: 'visible' });
+    await expect(page.locator('app-project-tree')).toBeVisible();
 
     // Click the "Create" button at the bottom of the tree
     await page.click('[data-testid="create-new-element"]');
-    await page.waitForSelector('mat-dialog-container', { state: 'visible' });
+    await expect(page.locator('mat-dialog-container')).toBeVisible();
 
     const dialog = page.locator('mat-dialog-container');
 
@@ -202,6 +208,8 @@ test.describe('PWA Screenshots', () => {
         path: join(SCREENSHOTS_DIR, 'element-type-chooser-dark.png'),
       });
     });
+
+    await expect(page.locator('mat-dialog-container')).toBeVisible();
   });
 
   test('capture folder context menu - light & dark', async ({
@@ -210,7 +218,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await expect(page.locator('.empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -221,7 +229,7 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.waitForURL(/\/demouser\/my-novel/);
-    await page.waitForSelector('app-project-tree', { state: 'visible' });
+    await expect(page.locator('app-project-tree')).toBeVisible();
 
     const folder = page.locator('[data-testid="element-Chronicles"]');
     const menu = page.locator('.context-menu');
@@ -233,7 +241,7 @@ test.describe('PWA Screenshots', () => {
         // Open context menu (re-open each iteration since the previous one
         // was dismissed at the end of the prior step)
         await folder.click({ button: 'right' });
-        await menu.waitFor({ state: 'visible' });
+        await expect(menu).toBeVisible();
 
         await captureBoundingBoxScreenshot(
           page,
@@ -249,6 +257,8 @@ test.describe('PWA Screenshots', () => {
         });
       });
     }
+
+    await expect(page.locator('app-project-tree')).toBeVisible();
   });
 
   test('capture tags tab and tag edit dialog - light & dark', async ({
@@ -257,7 +267,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await expect(page.locator('.empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -268,17 +278,15 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.waitForURL(/\/demouser\/my-novel/);
-    await page.waitForSelector('app-project-tree', { state: 'visible' });
+    await expect(page.locator('app-project-tree')).toBeVisible();
 
     // Open settings → tags
     await page.click('[data-testid="sidebar-settings-button"]');
-    await page.waitForSelector('[data-testid="settings-tab-content"]', {
-      state: 'visible',
-    });
+    await expect(
+      page.locator('[data-testid="settings-tab-content"]')
+    ).toBeVisible();
     await page.click('[data-testid="nav-tags"]');
-    await page.waitForSelector('[data-testid="new-tag-button"]', {
-      state: 'visible',
-    });
+    await expect(page.locator('[data-testid="new-tag-button"]')).toBeVisible();
 
     const settingsContent = page.locator(
       '[data-testid="settings-tab-content"]'
@@ -295,7 +303,7 @@ test.describe('PWA Screenshots', () => {
 
       await test.step(`tag edit dialog ${scheme}`, async () => {
         await page.click('[data-testid="new-tag-button"]');
-        await dialog.waitFor({ state: 'visible' });
+        await expect(dialog).toBeVisible();
         await dialog.screenshot({
           path: join(SCREENSHOTS_DIR, `tag-edit-dialog-${scheme}.png`),
         });
@@ -305,6 +313,10 @@ test.describe('PWA Screenshots', () => {
         await dialog.waitFor({ state: 'hidden' });
       });
     }
+
+    await expect(
+      page.locator('[data-testid="settings-tab-content"]')
+    ).toBeVisible();
   });
 
   test('capture new document naming dialog - light & dark', async ({
@@ -313,7 +325,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await expect(page.locator('.empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -324,15 +336,15 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.waitForURL(/\/demouser\/my-novel/);
-    await page.waitForSelector('app-project-tree', { state: 'visible' });
+    await expect(page.locator('app-project-tree')).toBeVisible();
 
     // Open create dialog and proceed to naming step
     await page.click('[data-testid="create-new-element"]');
-    await page.waitForSelector('mat-dialog-container', { state: 'visible' });
+    await expect(page.locator('mat-dialog-container')).toBeVisible();
     await page.click('[data-testid="element-type-item"]');
 
     const nameInput = page.getByTestId('element-name-input');
-    await nameInput.waitFor({ state: 'visible' });
+    await expect(nameInput).toBeVisible();
     await nameInput.fill('Chapter 1: The Beginning');
 
     const dialog = page.locator('mat-dialog-container');
@@ -350,6 +362,8 @@ test.describe('PWA Screenshots', () => {
         path: join(SCREENSHOTS_DIR, 'new-document-dialog-dark.png'),
       });
     });
+
+    await expect(page.locator('mat-dialog-container')).toBeVisible();
   });
 
   test('capture tab context menu - light & dark', async ({
@@ -358,7 +372,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await expect(page.locator('.empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -369,7 +383,7 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.waitForURL(/\/demouser\/my-novel/);
-    await page.waitForSelector('app-project-tree', { state: 'visible' });
+    await expect(page.locator('app-project-tree')).toBeVisible();
 
     // Expand Chronicles folder and open document to create a tab
     const expandButton = page
@@ -377,9 +391,9 @@ test.describe('PWA Screenshots', () => {
       .first();
     await expandButton.click();
     await page.click('text="The Moonveil Accord"');
-    await page.waitForSelector('[data-testid="tab-The Moonveil Accord"]', {
-      state: 'visible',
-    });
+    await expect(
+      page.locator('[data-testid="tab-The Moonveil Accord"]')
+    ).toBeVisible();
 
     const docTab = page.locator('[data-testid="tab-The Moonveil Accord"]');
     const tabBar = page.locator('.tab-bar-container');
@@ -390,7 +404,7 @@ test.describe('PWA Screenshots', () => {
         await applyColorScheme(page, scheme);
 
         await docTab.click({ button: 'right' });
-        await menu.waitFor({ state: 'visible' });
+        await expect(menu).toBeVisible();
 
         await captureBoundingBoxScreenshot(
           page,
@@ -405,6 +419,8 @@ test.describe('PWA Screenshots', () => {
         });
       });
     }
+
+    await expect(page.locator('app-project-tree')).toBeVisible();
   });
 
   test('capture project editor - desktop light & dark', async ({
@@ -413,7 +429,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await expect(page.locator('.empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -424,7 +440,7 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.waitForURL(/\/demouser\/my-novel/);
-    await page.waitForSelector('app-project-tree', { state: 'visible' });
+    await expect(page.locator('app-project-tree')).toBeVisible();
 
     const openMoonveilDoc = async () => {
       // Expand Chronicles folder and open the document
@@ -433,7 +449,7 @@ test.describe('PWA Screenshots', () => {
         .first();
       await expandButton.click();
       await page.click('text="The Moonveil Accord"');
-      await page.locator('.ProseMirror').first().waitFor({ state: 'visible' });
+      await expect(page.locator('.ProseMirror').first()).toBeVisible();
     };
 
     await openMoonveilDoc();
@@ -456,6 +472,8 @@ test.describe('PWA Screenshots', () => {
         fullPage: true,
       });
     });
+
+    await expect(page.locator('.ProseMirror').first()).toBeVisible();
   });
 
   test('capture project editor - mobile light & dark', async ({
@@ -464,7 +482,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 375, height: 667 });
 
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await expect(page.locator('.empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -481,14 +499,17 @@ test.describe('PWA Screenshots', () => {
       // if it's already open from a prior visit / reload).
       const tree = page.locator('app-project-tree');
       if (!(await tree.isVisible().catch(() => false))) {
-        await page.waitForSelector(
-          'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))',
-          { state: 'visible' }
-        );
+        await expect(
+          page
+            .locator(
+              'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
+            )
+            .first()
+        ).toBeVisible();
         await page.click(
           'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
         );
-        await tree.waitFor({ state: 'visible' });
+        await expect(tree).toBeVisible();
       }
 
       // Expand Chronicles folder and open the document. Scope the
@@ -502,7 +523,7 @@ test.describe('PWA Screenshots', () => {
       await tree.locator('text="The Moonveil Accord"').first().click();
 
       const editor = page.locator('.ProseMirror').first();
-      await editor.waitFor({ state: 'visible' });
+      await expect(editor).toBeVisible();
 
       // Triple-click to select text and trigger inline formatting menu
       await editor.click({ clickCount: 3 });
@@ -532,6 +553,8 @@ test.describe('PWA Screenshots', () => {
         fullPage: true,
       });
     });
+
+    await expect(page.locator('.ProseMirror').first()).toBeVisible();
   });
 
   // ============================================
@@ -546,7 +569,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
 
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await expect(page.locator('.empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -596,7 +619,7 @@ test.describe('PWA Screenshots', () => {
 
     await page.goto(`/demouser/media-showcase/media`);
     await page.waitForLoadState('networkidle');
-    await page.waitForSelector('.media-grid', { state: 'visible' });
+    await expect(page.locator('.media-grid')).toBeVisible();
 
     await test.step('light', async () => {
       await applyColorScheme(page, 'light');
@@ -613,6 +636,8 @@ test.describe('PWA Screenshots', () => {
         fullPage: true,
       });
     });
+
+    await expect(page.locator('.media-grid')).toBeVisible();
   });
 
   test('capture media tab - filtered by inline images', async ({
@@ -621,7 +646,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
 
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await expect(page.locator('.empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(page, 'Filtered Media', 'filtered-media');
     await page.waitForURL(/\/demouser\/filtered-media/);
@@ -659,13 +684,11 @@ test.describe('PWA Screenshots', () => {
 
     await page.goto(`/demouser/filtered-media/media`);
     await page.waitForLoadState('networkidle');
-    await page.waitForSelector('.media-grid', { state: 'visible' });
+    await expect(page.locator('.media-grid')).toBeVisible();
 
     // Open the filter panel, then click "Inline Images" category
     await page.click('[data-testid="media-filter-button"]');
-    await page.waitForSelector('[data-testid="filter-panel"]', {
-      state: 'visible',
-    });
+    await expect(page.locator('[data-testid="filter-panel"]')).toBeVisible();
     await page.click(
       '[data-testid="filter-category"]:has-text("Inline Images")'
     );
@@ -674,32 +697,36 @@ test.describe('PWA Screenshots', () => {
       path: join(SCREENSHOTS_DIR, 'media-tab-filtered-light.png'),
       fullPage: true,
     });
+
+    await expect(page.locator('[data-testid="filter-panel"]')).toBeVisible();
   });
 
   test('capture media tab - empty state', async ({ offlinePage: page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await expect(page.locator('.empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(page, 'Empty Media', 'empty-media');
     await page.waitForURL(/\/demouser\/empty-media/);
 
     await page.goto(`/demouser/empty-media/media`);
     await page.waitForLoadState('networkidle');
-    await page.waitForSelector('.empty-card', { state: 'visible' });
+    await expect(page.locator('.empty-card')).toBeVisible();
 
     await page.screenshot({
       path: join(SCREENSHOTS_DIR, 'media-tab-empty-light.png'),
       fullPage: true,
     });
+
+    await expect(page.locator('.empty-card')).toBeVisible();
   });
 
   test('capture media tab - mobile view', async ({ offlinePage: page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
 
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await expect(page.locator('.empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(page, 'Mobile Media', 'mobile-media');
     await page.waitForURL(/\/demouser\/mobile-media/);
@@ -730,12 +757,14 @@ test.describe('PWA Screenshots', () => {
 
     await page.goto(`/demouser/mobile-media/media`);
     await page.waitForLoadState('networkidle');
-    await page.waitForSelector('.media-grid', { state: 'visible' });
+    await expect(page.locator('.media-grid')).toBeVisible();
 
     await page.screenshot({
       path: join(SCREENSHOTS_DIR, 'media-tab-mobile-light.png'),
       fullPage: true,
     });
+
+    await expect(page.locator('.media-grid')).toBeVisible();
   });
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -747,9 +776,9 @@ test.describe('PWA Screenshots', () => {
   }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
-    await page.waitForSelector('.covers-grid', { state: 'visible' });
+    await expect(page.locator('.covers-grid')).toBeVisible();
     const headerSection = page.locator('.header-section');
-    await headerSection.waitFor({ state: 'visible' });
+    await expect(headerSection).toBeVisible();
 
     await test.step('light', async () => {
       await applyColorScheme(page, 'light');
@@ -764,6 +793,8 @@ test.describe('PWA Screenshots', () => {
         path: join(SCREENSHOTS_DIR, 'create-button-nav-dark.png'),
       });
     });
+
+    await expect(page.locator('.header-section')).toBeVisible();
   });
 
   test('capture create project flow - templates & details (light & dark)', async ({
@@ -777,11 +808,11 @@ test.describe('PWA Screenshots', () => {
 
         // Navigate fresh to the create-project page each iteration
         await page.goto('/');
-        await page.waitForSelector('.covers-grid', { state: 'visible' });
+        await expect(page.locator('.covers-grid')).toBeVisible();
         await page.click('.create-btn');
         await page.getByTestId('create-new-project-menu-item').click();
         await page.waitForURL(/\/create-project/);
-        await page.waitForSelector('.template-grid', { state: 'visible' });
+        await expect(page.locator('.template-grid')).toBeVisible();
 
         // Step 1: template selection screenshot
         await page.screenshot({
@@ -793,9 +824,9 @@ test.describe('PWA Screenshots', () => {
         await page.click('[data-testid="template-worldbuilding-demo"]');
         await page.click('[data-testid="next-button"]');
 
-        await page.waitForSelector('[data-testid="project-title-input"]', {
-          state: 'visible',
-        });
+        await expect(
+          page.locator('[data-testid="project-title-input"]')
+        ).toBeVisible();
         await page.fill(
           '[data-testid="project-title-input"]',
           'My Fantasy Novel'
@@ -807,6 +838,10 @@ test.describe('PWA Screenshots', () => {
         });
       });
     }
+
+    await expect(
+      page.locator('[data-testid="project-title-input"]')
+    ).toBeVisible();
   });
 
   // =====================
@@ -825,15 +860,13 @@ test.describe('PWA Screenshots', () => {
         // Navigate fresh each iteration to reset to mode selection
         await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-        await page.waitForSelector('[data-testid="setup-card"]', {
-          state: 'visible',
-        });
-        await page.waitForSelector('[data-testid="local-mode-button"]', {
-          state: 'visible',
-        });
-        await page.waitForSelector('[data-testid="server-mode-button"]', {
-          state: 'visible',
-        });
+        await expect(page.locator('[data-testid="setup-card"]')).toBeVisible();
+        await expect(
+          page.locator('[data-testid="local-mode-button"]')
+        ).toBeVisible();
+        await expect(
+          page.locator('[data-testid="server-mode-button"]')
+        ).toBeVisible();
 
         // Mode selection screenshot
         await page.screenshot({
@@ -843,9 +876,9 @@ test.describe('PWA Screenshots', () => {
 
         // Click local/offline mode button
         await page.click('[data-testid="local-mode-button"]');
-        await page.waitForSelector('[data-testid="local-username-input"]', {
-          state: 'visible',
-        });
+        await expect(
+          page.locator('[data-testid="local-username-input"]')
+        ).toBeVisible();
 
         await page.fill('[data-testid="local-username-input"]', 'writer');
         await page.fill(
@@ -859,6 +892,10 @@ test.describe('PWA Screenshots', () => {
         });
       });
     }
+
+    await expect(
+      page.locator('[data-testid="local-username-input"]')
+    ).toBeVisible();
   });
 
   test('capture setup server connection - light & dark', async ({
@@ -873,14 +910,12 @@ test.describe('PWA Screenshots', () => {
         // Navigate fresh each iteration to reset to mode selection
         await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-        await page.waitForSelector('[data-testid="setup-card"]', {
-          state: 'visible',
-        });
+        await expect(page.locator('[data-testid="setup-card"]')).toBeVisible();
 
         await page.click('[data-testid="server-mode-button"]');
-        await page.waitForSelector('[data-testid="server-url-input"]', {
-          state: 'visible',
-        });
+        await expect(
+          page.locator('[data-testid="server-url-input"]')
+        ).toBeVisible();
 
         await page.fill(
           '[data-testid="server-url-input"]',
@@ -893,5 +928,9 @@ test.describe('PWA Screenshots', () => {
         });
       });
     }
+
+    await expect(
+      page.locator('[data-testid="server-url-input"]')
+    ).toBeVisible();
   });
 });

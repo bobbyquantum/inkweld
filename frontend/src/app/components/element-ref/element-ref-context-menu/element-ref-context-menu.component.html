@@ -52,6 +52,7 @@
         <input
           #editInput
           type="text"
+          id="element-ref-edit-text-input"
           class="edit-input"
           [value]="editText()"
           (input)="editText.set($any($event.target).value)"

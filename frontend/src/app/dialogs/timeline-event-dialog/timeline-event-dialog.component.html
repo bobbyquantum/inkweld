@@ -7,6 +7,7 @@
       <mat-label>Title</mat-label>
       <input
         matInput
+        id="timeline-event-title"
         formControlName="title"
         data-testid="timeline-event-title"
         cdkFocusInitial />
@@ -32,6 +33,7 @@
         <mat-label>Date</mat-label>
         <input
           matInput
+          id="timeline-event-start-date"
           type="date"
           [value]="startDateValue()"
           (change)="onStartDateChange($any($event.target).value)"
@@ -58,6 +60,7 @@
               <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
               <input
                 matInput
+                [attr.id]="'timeline-event-start-unit-' + i"
                 type="number"
                 step="1"
                 [formControlName]="i"
@@ -84,6 +87,7 @@
           <mat-label>Date</mat-label>
           <input
             matInput
+            id="timeline-event-end-date"
             type="date"
             [value]="endDateValue()"
             (change)="onEndDateChange($any($event.target).value)"
@@ -109,6 +113,7 @@
                 <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
                 <input
                   matInput
+                  [attr.id]="'timeline-event-end-unit-' + i"
                   type="number"
                   step="1"
                   [formControlName]="i"

@@ -11,6 +11,7 @@
       <input
         #titleInput
         matInput
+        id="announcement-editor-title-input"
         (input)="onTitleInput($event)"
         placeholder="Announcement title"
         data-testid="announcement-title-input" />
@@ -67,6 +68,7 @@
         <mat-label>Expires At (optional)</mat-label>
         <input
           matInput
+          id="announcement-editor-expires-input"
           [matDatepicker]="picker"
           formControlName="expiresAt"
           placeholder="Choose a date" />

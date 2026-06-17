@@ -22,6 +22,7 @@
         <input
           matInput
           type="text"
+          id="tags-tab-search-input"
           [value]="searchQuery()"
           (input)="searchQuery.set($any($event.target).value)"
           placeholder="Search by name..." />

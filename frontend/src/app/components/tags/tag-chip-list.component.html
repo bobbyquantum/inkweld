@@ -30,7 +30,8 @@
           [matChipInputSeparatorKeyCodes]="separatorKeyCodes"
           (matChipInputTokenEnd)="addTagFromInput($event)"
           [ngModel]="tagInputValue()"
-          (ngModelChange)="tagInputValue.set($event)" />
+          (ngModelChange)="tagInputValue.set($event)"
+          id="tag-chip-input" />
       }
     </mat-chip-grid>
     <mat-autocomplete

@@ -13,6 +13,7 @@
       [value]="searchText()"
       (input)="searchText.set($any($event.target).value)"
       placeholder="Type to filter..."
+      id="element-picker-search-input"
       data-testid="element-picker-search" />
     <mat-icon matPrefix>search</mat-icon>
     @if (searchText()) {

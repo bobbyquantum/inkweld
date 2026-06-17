@@ -13,7 +13,7 @@ import {
   createProjectWithTwoSteps,
   dismissToastIfPresent,
 } from '../common/test-helpers';
-import { test } from './fixtures';
+import { expect, test } from './fixtures';
 import {
   captureElementScreenshot,
   ensureDirectory,
@@ -71,6 +71,7 @@ test.describe('Relationship Chart Screenshots', () => {
     offlinePage: page,
   }) => {
     await setupProjectAndChart(page, 'chart-light', 'Chart Demo');
+    await expect(page.locator('[data-testid="chart-container"]')).toBeVisible();
 
     await test.step('overview', async () => {
       const chartContainer = page.locator('[data-testid="chart-container"]');
@@ -98,6 +99,7 @@ test.describe('Relationship Chart Screenshots', () => {
   }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await setupProjectAndChart(page, 'chart-dark', 'Chart Demo');
+    await expect(page.locator('[data-testid="chart-container"]')).toBeVisible();
 
     await test.step('overview', async () => {
       const chartContainer = page.locator('[data-testid="chart-container"]');

@@ -13,7 +13,7 @@ import {
   createProjectWithTwoSteps,
   pressShortcut,
 } from '../common/test-helpers';
-import { test } from './fixtures';
+import { expect, test } from './fixtures';
 import {
   captureElementScreenshot,
   ensureDirectory,
@@ -78,6 +78,7 @@ test.describe('Quick Open Screenshots', () => {
   test('Quick Open screenshots — light mode', async ({ offlinePage: page }) => {
     await page.setViewportSize(DESKTOP_VIEWPORT);
     await setupProjectWithDocuments(page, 'quick-open-demo-light', 'My Novel');
+    await expect(page.locator('[data-testid="project-tree"]')).toBeVisible();
 
     await test.step('dialog with recent files', async () => {
       await openQuickOpen(page);
@@ -107,6 +108,7 @@ test.describe('Quick Open Screenshots', () => {
     await page.setViewportSize(DESKTOP_VIEWPORT);
     await page.emulateMedia({ colorScheme: 'dark' });
     await setupProjectWithDocuments(page, 'quick-open-demo-dark', 'My Novel');
+    await expect(page.locator('[data-testid="project-tree"]')).toBeVisible();
 
     await test.step('dialog with recent files', async () => {
       await openQuickOpen(page);

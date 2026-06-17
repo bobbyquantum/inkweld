@@ -16,7 +16,7 @@ import {
   storeRealEpubInIndexedDB,
   storeRealMediaInIndexedDB,
 } from '../common/test-helpers';
-import { test } from './fixtures';
+import { expect, test } from './fixtures';
 import {
   captureElementScreenshot,
   ensureDirectory,
@@ -165,12 +165,14 @@ test.describe('Media Tab Screenshots', () => {
   }) => {
     await page.setViewportSize(DESKTOP_VIEWPORT);
     await setupMediaTab(page, 'media-light', 'Media Demo');
+    await expect(page.getByTestId('media-grid')).toBeVisible();
     await capturePopulatedMediaScreenshots(page, 'light');
   });
 
   test('media tab empty state — light mode', async ({ offlinePage: page }) => {
     await page.setViewportSize(DESKTOP_VIEWPORT);
     await setupEmptyMediaProject(page, 'empty-media-light', 'Empty Media');
+    await expect(page.getByTestId('empty-card')).toBeVisible();
     await page.screenshot({
       path: join(screenshotsDir, 'media-empty-light.png'),
       fullPage: false,
@@ -183,6 +185,7 @@ test.describe('Media Tab Screenshots', () => {
     await page.setViewportSize(DESKTOP_VIEWPORT);
     await page.emulateMedia({ colorScheme: 'dark' });
     await setupMediaTab(page, 'media-dark', 'Media Demo Dark');
+    await expect(page.getByTestId('media-grid')).toBeVisible();
     await capturePopulatedMediaScreenshots(page, 'dark');
   });
 
@@ -190,6 +193,7 @@ test.describe('Media Tab Screenshots', () => {
     await page.setViewportSize(DESKTOP_VIEWPORT);
     await page.emulateMedia({ colorScheme: 'dark' });
     await setupEmptyMediaProject(page, 'empty-media-dark', 'Empty Media Dark');
+    await expect(page.getByTestId('empty-card')).toBeVisible();
     await page.screenshot({
       path: join(screenshotsDir, 'media-empty-dark.png'),
       fullPage: false,

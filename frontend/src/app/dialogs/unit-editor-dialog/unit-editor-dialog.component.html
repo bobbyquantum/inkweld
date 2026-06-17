@@ -6,6 +6,7 @@
     <mat-label>Name</mat-label>
     <input
       matInput
+      id="unit-editor-name"
       [ngModel]="name()"
       (ngModelChange)="name.set($event)"
       data-testid="unit-editor-name"
@@ -17,6 +18,7 @@
       <mat-label>{{ subdivisionLabel() }}</mat-label>
       <input
         matInput
+        id="unit-editor-subdivision"
         type="number"
         min="1"
         step="1"
@@ -65,6 +67,7 @@
           <mat-label>Value</mat-label>
           <input
             matInput
+            [attr.id]="'unit-editor-override-value-' + idx"
             type="number"
             [(ngModel)]="row.value"
             (ngModelChange)="onValueChange(row.id, $event)"
@@ -77,6 +80,7 @@
           <mat-label>Name</mat-label>
           <input
             matInput
+            [attr.id]="'unit-editor-override-name-' + idx"
             [(ngModel)]="row.alias"
             (ngModelChange)="onAliasChange(row.id, $event)"
             [attr.data-testid]="'unit-editor-override-name-' + idx" />
@@ -89,6 +93,7 @@
             <mat-label>{{ subdivisionOverrideLabel() }}</mat-label>
             <input
               matInput
+              [attr.id]="'unit-editor-override-subdivision-' + idx"
               type="number"
               min="1"
               step="1"

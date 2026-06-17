@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
 
-import { test } from './fixtures';
+import { expect, test } from './fixtures';
 
 const SCREENSHOTS_DIR = join(
   process.cwd(),
@@ -58,6 +58,8 @@ test.describe('Setup Flow Screenshots', () => {
   }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.emulateMedia({ colorScheme: 'light' });
+    await gotoSetup(page);
+    await expect(page.locator('[data-testid="setup-card"]')).toBeVisible();
 
     await test.step('mode selection', async () => {
       await captureModeSelection(
@@ -79,6 +81,8 @@ test.describe('Setup Flow Screenshots', () => {
   }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.emulateMedia({ colorScheme: 'dark' });
+    await gotoSetup(page);
+    await expect(page.locator('[data-testid="setup-card"]')).toBeVisible();
 
     await test.step('mode selection', async () => {
       await captureModeSelection(
