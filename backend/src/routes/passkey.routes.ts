@@ -19,6 +19,7 @@ import { errorResponse, MessageResponseSchema } from '../schemas/common.schemas'
 import type { AppContext } from '../types/context';
 import type { UserPasskey } from '../db/schema';
 import type { User } from '../db/schema/users';
+import type { RegistrationResponseJSON } from '@simplewebauthn/server';
 
 const passkeyRoutes = new OpenAPIHono<AppContext>();
 
@@ -110,7 +111,7 @@ passkeyRoutes.openapi(registerStartRoute, async (c) => {
   const user = await resolveRegistrationUser(c);
   if (!user) return c.json({ error: 'Not authenticated' }, 401);
   const options = await passkeyService.startRegistration(db, user, rpFromContext(c));
-  return c.json(options as unknown as Record<string, unknown>, 200);
+  return c.json(options, 200);
 });
 
 const registerFinishRoute = createRoute({
@@ -142,10 +143,11 @@ passkeyRoutes.openapi(registerFinishRoute, async (c) => {
   const user = await resolveRegistrationUser(c);
   if (!user) return c.json({ error: 'Not authenticated' }, 401);
   const { response, name } = c.req.valid('json');
+  const registrationResponse = response as unknown as RegistrationResponseJSON;
   const result = await passkeyService.finishRegistration(
     db,
     user,
-    response as unknown as import('@simplewebauthn/server').VerifyRegistrationResponseOpts['response'],
+    registrationResponse,
     rpFromContext(c),
     name
   );
@@ -178,7 +180,7 @@ const loginStartRoute = createRoute({
 passkeyRoutes.openapi(loginStartRoute, async (c) => {
   const db = c.get('db');
   const options = await passkeyService.startAuthentication(db, rpFromContext(c));
-  return c.json(options as unknown as Record<string, unknown>, 200);
+  return c.json(options, 200);
 });
 
 const loginFinishRoute = createRoute({

@@ -134,9 +134,9 @@ passkeyRecoveryRoutes.openapi(startRoute, async (c) => {
     return c.json({ error: result.error }, 400);
   }
 
-  // PasskeyOptionsSchema is a passthrough record; cast through unknown to
-  // satisfy the OpenAPI response type without enumerating the WebAuthn spec.
-  return c.json(result.options as unknown as Record<string, unknown>, 200);
+  // PasskeyOptionsSchema is a passthrough record; the response type is left
+  // generic so the WebAuthn options object can be returned as-is.
+  return c.json(result.options, 200);
 });
 
 // ---------------------------------------------------------------------------

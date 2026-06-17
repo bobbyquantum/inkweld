@@ -335,6 +335,8 @@
               <mat-label>{{ field.label }}</mat-label>
               <textarea
                 matInput
+                [attr.id]="'field-' + field.key + '-textarea'"
+                [attr.aria-label]="field.label"
                 [formControl]="getControl(field.key)"
                 [placeholder]="field.placeholder || ''"
                 [rows]="field.rows || 3"></textarea>

@@ -1153,13 +1153,13 @@ export class DocumentService {
               MAX_RECONNECT_DELAY
             );
 
-            reconnectTimeout = setTimeout(() => {
+            reconnectTimeout = window.setTimeout(() => {
               if (!this.connections.has(documentId)) {
                 return;
               }
               providerRef.connect();
               reconnectAttempts++;
-            }, delay) as unknown as number;
+            }, delay);
 
             this.reconnectTimeouts.set(documentId, reconnectTimeout);
           } else {

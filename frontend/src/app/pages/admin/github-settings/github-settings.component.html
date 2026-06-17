@@ -109,6 +109,7 @@
                   <input
                     matInput
                     id="github-client-id-input"
+                    aria-label="Client ID"
                     [ngModel]="clientId()"
                     (ngModelChange)="clientId.set($event)"
                     placeholder="Ov23li..."
@@ -121,6 +122,7 @@
                     matInput
                     type="password"
                     id="github-client-secret-input"
+                    aria-label="Client Secret"
                     [ngModel]="clientSecret()"
                     (ngModelChange)="clientSecret.set($event)"
                     [placeholder]="
@@ -139,6 +141,7 @@
                   <input
                     matInput
                     id="github-callback-url-input"
+                    aria-label="Callback URL"
                     [ngModel]="callbackUrl()"
                     (ngModelChange)="callbackUrl.set($event)"
                     [placeholder]="defaultCallbackUrl"
