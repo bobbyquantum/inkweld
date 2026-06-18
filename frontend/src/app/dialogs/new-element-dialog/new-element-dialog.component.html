@@ -180,7 +180,7 @@
                                 ? 'e.g., Act 1, Characters, Research'
                                 : 'e.g., Chapter 1, Prologue'
           "
-          aria-label="Element name" />
+          aria-label="{{ getSelectedOption()?.label || 'Element' }} Name" />
         @if (form.controls.name.errors?.['required']) {
           <mat-error>Name is required</mat-error>
         }

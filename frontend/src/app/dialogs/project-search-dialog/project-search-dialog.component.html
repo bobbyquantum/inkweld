@@ -112,7 +112,7 @@
               (change)="setRelatedToElement($any($event.target).value)"
               data-testid="filter-related-to"
               id="project-search-related-to-select"
-              aria-label="Related to element">
+              aria-label="Related to">
               <option value="">Any element</option>
               @for (el of relatedElements(); track el.id) {
                 <option [value]="el.id">{{ el.name }}</option>
