@@ -132,7 +132,8 @@
             placeholder="https://inkweld.example.com"
             [disabled]="isConnecting()"
             type="url"
-            data-testid="new-server-url-input" />
+            data-testid="new-server-url-input"
+            aria-label="Server URL" />
           @if (connectionError()) {
             <mat-error>{{ connectionError() }}</mat-error>
           }
@@ -154,7 +155,8 @@
             placeholder="My Inkweld Server"
             [disabled]="isConnecting()"
             type="text"
-            data-testid="new-server-name-input" />
+            data-testid="new-server-name-input"
+            aria-label="Display name" />
           <mat-hint>A friendly name to identify this server</mat-hint>
         </mat-form-field>
 
@@ -205,7 +207,8 @@
             (ngModelChange)="localUsername.set($event)"
             placeholder="myusername"
             type="text"
-            data-testid="local-username-input" />
+            data-testid="local-username-input"
+            aria-label="Username" />
           @if (localError()) {
             <mat-error>{{ localError() }}</mat-error>
           }
@@ -223,7 +226,8 @@
             (ngModelChange)="localDisplayName.set($event)"
             placeholder="My Name"
             type="text"
-            data-testid="local-displayname-input" />
+            data-testid="local-displayname-input"
+            aria-label="Display name" />
           <mat-hint>Your display name (defaults to username)</mat-hint>
         </mat-form-field>
 
@@ -287,7 +291,8 @@
                   (ngModelChange)="username.set($event)"
                   [disabled]="isAuthenticating()"
                   type="text"
-                  data-testid="migration-username-input" />
+                  data-testid="migration-username-input"
+                  aria-label="Username" />
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="full-width">
@@ -299,7 +304,8 @@
                   (ngModelChange)="password.set($event)"
                   [disabled]="isAuthenticating()"
                   type="password"
-                  data-testid="migration-password-input" />
+                  data-testid="migration-password-input"
+                  aria-label="Password" />
               </mat-form-field>
             }
 

@@ -52,7 +52,8 @@
               [ngModel]="host()"
               (ngModelChange)="host.set($event)"
               placeholder="smtp.example.com"
-              data-testid="smtp-host-input" />
+              data-testid="smtp-host-input"
+              aria-label="SMTP host" />
           </mat-form-field>
 
           <div class="form-row">
@@ -64,7 +65,8 @@
                 [ngModel]="port()"
                 (ngModelChange)="port.set($event)"
                 placeholder="587"
-                data-testid="smtp-port-input" />
+                data-testid="smtp-port-input"
+                aria-label="SMTP port" />
             </mat-form-field>
 
             <mat-form-field appearance="outline">
@@ -88,7 +90,8 @@
               [ngModel]="username()"
               (ngModelChange)="username.set($event)"
               placeholder="user@example.com"
-              data-testid="smtp-username-input" />
+              data-testid="smtp-username-input"
+              aria-label="SMTP username" />
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="full-width">
@@ -100,7 +103,8 @@
               [ngModel]="password()"
               (ngModelChange)="password.set($event)"
               placeholder="Leave blank to keep current"
-              data-testid="smtp-password-input" />
+              data-testid="smtp-password-input"
+              aria-label="SMTP password" />
             <mat-hint>Leave blank to keep the current password</mat-hint>
           </mat-form-field>
         </div>
@@ -116,7 +120,8 @@
               [ngModel]="fromAddress()"
               (ngModelChange)="fromAddress.set($event)"
               placeholder="noreply@example.com"
-              data-testid="email-from-input" />
+              data-testid="email-from-input"
+              aria-label="From address" />
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="full-width">
@@ -127,7 +132,8 @@
               [ngModel]="fromName()"
               (ngModelChange)="fromName.set($event)"
               placeholder="Inkweld"
-              data-testid="email-from-name-input" />
+              data-testid="email-from-name-input"
+              aria-label="From name" />
           </mat-form-field>
         </div>
 

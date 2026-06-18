@@ -46,7 +46,8 @@
         [value]="searchQuery()"
         (input)="onSearchInput($event)"
         placeholder="Search prompt text..."
-        data-testid="audit-search-input" />
+        data-testid="audit-search-input"
+        aria-label="Search prompts" />
       @if (searchQuery()) {
         <button matSuffix mat-icon-button (click)="clearSearch()">
           <mat-icon>close</mat-icon>

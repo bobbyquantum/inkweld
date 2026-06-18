@@ -89,7 +89,8 @@
           placeholder="https://inkweld.example.com"
           [disabled]="isConnecting() || showAuthForm()"
           type="url"
-          data-testid="server-url-input" />
+          data-testid="server-url-input"
+          aria-label="Server URL" />
         @if (connectionError()) {
           <mat-error>{{ connectionError() }}</mat-error>
         }

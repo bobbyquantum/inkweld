@@ -12,7 +12,8 @@
       placeholder="Search in project…"
       autocomplete="off"
       spellcheck="false"
-      data-testid="project-search-input" />
+      data-testid="project-search-input"
+      aria-label="Search in project" />
     @if (searchQuery()) {
       <button
         mat-icon-button
@@ -109,7 +110,9 @@
               class="relationship-select"
               [value]="relatedToElementId()"
               (change)="setRelatedToElement($any($event.target).value)"
-              data-testid="filter-related-to">
+              data-testid="filter-related-to"
+              id="project-search-related-to-select"
+              aria-label="Related to element">
               <option value="">Any element</option>
               @for (el of relatedElements(); track el.id) {
                 <option [value]="el.id">{{ el.name }}</option>
