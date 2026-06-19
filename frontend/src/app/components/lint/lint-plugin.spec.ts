@@ -167,17 +167,6 @@ describe('LintPlugin', () => {
     vi.useRealTimers();
   });
 
-  it('should handle click events on lint errors', () => {
-    // Skip this test for now as it has complex ProseMirror binding issues
-    // that would require significant mocking to resolve
-
-    // Mark test as passing until we can properly fix the binding issue
-    expect(true).toBe(true);
-
-    // The actual implementation of handleClick was tested manually
-    // and works correctly in the real application
-  });
-
   it('should ignore stale lint results', async () => {
     // First lint response
     const lintResponse1 = createMockLintResponse();

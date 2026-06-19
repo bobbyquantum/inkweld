@@ -244,7 +244,7 @@ describe('LocalProjectElementsService', () => {
       expect(result[1].id).toBeTypeOf('string');
     });
 
-    it.skip('should recompute positions correctly', async () => {
+    it('should recompute positions correctly', async () => {
       await service.addElement(
         TEST_USERNAME,
         TEST_SLUG,

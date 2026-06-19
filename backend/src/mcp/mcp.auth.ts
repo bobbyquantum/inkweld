@@ -11,7 +11,7 @@ import type { Context, Next } from 'hono';
 import { sign } from 'hono/jwt';
 import type { AppContext } from '../types/context';
 import type { DurableObjectNamespace } from '../types/cloudflare';
-import { mcpKeyService, parsePermissions } from '../services/mcp-key.service';
+import { mcpKeyService, parsePermissions, type McpPermission } from '../services/mcp-key.service';
 import { mcpOAuthService, type CloudflareEnv } from '../services/mcp-oauth.service';
 import { projectService } from '../services/project.service';
 import { config } from '../config/env';
@@ -316,7 +316,7 @@ export function requirePermission(c: Context<AppContext>, ...permissions: string
   if (!mcpContext) return false;
 
   if (mcpContext.type === 'legacy') {
-    return permissions.some((p) => mcpContext.permissions.includes(p as never));
+    return permissions.some((p) => mcpContext.permissions.includes(p as McpPermission));
   } else {
     // OAuth: check if any grant has the permission
     return mcpContext.grants.some((grant) =>

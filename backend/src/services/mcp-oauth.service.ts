@@ -13,6 +13,7 @@
 
 import { eq, and, not, isNull, or, lt } from 'drizzle-orm';
 import { sign, verify } from 'hono/jwt';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { DatabaseInstance } from '../types/context';
 import type { D1DatabaseInstance } from '../db/d1';
 import {
@@ -1175,7 +1176,7 @@ export class OAuthError extends Error {
   constructor(
     public readonly code: string,
     message: string,
-    public readonly statusCode: number = 400
+    public readonly statusCode: ContentfulStatusCode = 400
   ) {
     super(message);
     this.name = 'OAuthError';

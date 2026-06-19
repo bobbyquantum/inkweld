@@ -404,7 +404,7 @@ if (!File.prototype.arrayBuffer) {
 if (!Blob.prototype.text) {
   Object.defineProperty(Blob.prototype, 'text', {
     value: function () {
-      return new Promise((resolve, reject) => {
+      return new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = reject;

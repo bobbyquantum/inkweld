@@ -1374,7 +1374,7 @@ describe('DocumentService', () => {
         await service.syncDocumentToServer(testDocumentId);
 
         // Verify no WebSocket connection was attempted (the function returns early)
-        expect(true).toBe(true);
+        expect(mockCreateAuthWsProvider).not.toHaveBeenCalled();
       });
 
       it('should skip sync when auth token is not available', async () => {
@@ -1492,8 +1492,8 @@ describe('DocumentService', () => {
           'worldbuilding:user:project:element123'
         );
 
-        // Verify function completed without error
-        expect(true).toBe(true);
+        // Verify no WebSocket connection was attempted (the function returns early)
+        expect(mockCreateAuthWsProvider).not.toHaveBeenCalled();
       });
 
       it('should skip sync when auth token is not available', async () => {

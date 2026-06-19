@@ -30,8 +30,10 @@ interface ElementSnapshot {
 /** Convert a non-null value to a string without producing '[object Object]'. */
 export function coerceToString(value: NonNullable<unknown>): string {
   if (typeof value === 'string') return value;
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return String(value);
+  }
+  return JSON.stringify(value) ?? '';
 }
 
 interface WSSharedDoc {

@@ -174,6 +174,8 @@ test.describe('Offline to Server Migration', () => {
     // (Opening projects is tested in other e2e tests)
   });
 
+  // Skipped: incomplete — requires cross-context auth coordination and the
+  // migration service's duplicate-detection path is not yet implemented (see TODO below).
   test.skip('should handle duplicate projects during migration', async ({
     offlinePage,
     authenticatedPage,
