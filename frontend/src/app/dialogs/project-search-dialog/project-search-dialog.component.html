@@ -104,15 +104,16 @@
       <!-- Relationship Filter -->
       @if (hasRelationships()) {
         <div class="filter-section">
-          <span class="filter-label">Related to</span>
+          <label class="filter-label" for="project-search-related-to-select"
+            >Related to</label
+          >
           <div class="filter-chips">
             <select
               class="relationship-select"
               [value]="relatedToElementId()"
               (change)="setRelatedToElement($any($event.target).value)"
               data-testid="filter-related-to"
-              id="project-search-related-to-select"
-              aria-label="Related to">
+              id="project-search-related-to-select">
               <option value="">Any element</option>
               @for (el of relatedElements(); track el.id) {
                 <option [value]="el.id">{{ el.name }}</option>
