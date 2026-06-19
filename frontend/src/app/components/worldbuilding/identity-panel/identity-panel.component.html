@@ -106,7 +106,9 @@
               placeholder="Brief description (shown in tooltips)"
               rows="4"
               cdkTextareaAutosize
-              [readonly]="!canWrite()"></textarea>
+              [readonly]="!canWrite()"
+              id="identity-panel-description-input"
+              aria-label="Description"></textarea>
             <mat-hint>Used for tooltips and previews</mat-hint>
           </mat-form-field>
         </div>

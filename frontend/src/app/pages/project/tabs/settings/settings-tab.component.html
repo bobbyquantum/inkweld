@@ -680,7 +680,8 @@
                     id="settings-invite-username-input"
                     [(ngModel)]="inviteUsername"
                     placeholder="Enter username to invite"
-                    data-testid="invite-username-input" />
+                    data-testid="invite-username-input"
+                    aria-label="Username" />
                   <mat-icon matSuffix>person</mat-icon>
                 </mat-form-field>
 
@@ -1030,7 +1031,8 @@
                 placeholder="my-new-project-name"
                 data-testid="new-slug-input"
                 [pattern]="'^[a-z0-9-]+$'"
-                (keyup.enter)="renameProject()" />
+                (keyup.enter)="renameProject()"
+                aria-label="New project slug" />
               <mat-hint>Lowercase letters, numbers, and hyphens only</mat-hint>
             </mat-form-field>
 

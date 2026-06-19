@@ -50,7 +50,8 @@
             readonly
             id="publish-share-url-input"
             [value]="shareUrl || ''"
-            class="share-url-input" />
+            class="share-url-input"
+            aria-label="Share URL" />
           <button
             mat-icon-button
             (click)="copyShareLink()"

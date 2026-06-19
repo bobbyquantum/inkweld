@@ -99,7 +99,8 @@
         id="import-project-slug-input"
         [formControl]="slugControl"
         data-testid="import-slug-input"
-        placeholder="my-project" />
+        placeholder="my-project"
+        aria-label="Project slug" />
       @if (slugControl.hasError('required')) {
         <mat-error>Slug is required</mat-error>
       } @else if (slugControl.hasError('minlength')) {

@@ -228,7 +228,8 @@
           id="publish-plan-title-input"
           [value]="plan.metadata.title"
           (input)="updateMetadata('title', $event)"
-          data-testid="book-title-input" />
+          data-testid="book-title-input"
+          aria-label="Book title" />
       </mat-form-field>
 
       <mat-form-field appearance="outline">
@@ -238,7 +239,8 @@
           id="publish-plan-author-input"
           [value]="plan.metadata.author"
           (input)="updateMetadata('author', $event)"
-          data-testid="author-input" />
+          data-testid="author-input"
+          aria-label="Author" />
       </mat-form-field>
 
       <mat-form-field appearance="outline">
@@ -247,7 +249,8 @@
           matInput
           id="publish-plan-language-input"
           [value]="plan.metadata.language"
-          (input)="updateMetadata('language', $event)" />
+          (input)="updateMetadata('language', $event)"
+          aria-label="Language" />
         <mat-hint>e.g., en, es, fr</mat-hint>
       </mat-form-field>
 
@@ -257,7 +260,9 @@
           matInput
           [value]="plan.metadata.description ?? ''"
           (input)="updateMetadata('description', $event)"
-          rows="3"></textarea>
+          rows="3"
+          id="publish-plan-description-input"
+          aria-label="Description"></textarea>
       </mat-form-field>
     </div>
   }
@@ -364,7 +369,8 @@
               id="publish-plan-cover-image-input"
               [value]="plan.options.coverImage ?? projectCoverImage() ?? ''"
               (input)="updateOption('coverImage', $event)"
-              placeholder="Uses project cover by default" />
+              placeholder="Uses project cover by default"
+              aria-label="Cover image URL" />
             <mat-hint>Leave blank to use the project cover image</mat-hint>
           </mat-form-field>
           @if (projectState.project(); as proj) {

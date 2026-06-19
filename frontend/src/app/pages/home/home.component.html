@@ -38,7 +38,8 @@
                   matInput
                   id="home-mobile-search-input"
                   placeholder="Search projects"
-                  [formControl]="searchControl" />
+                  [formControl]="searchControl"
+                  aria-label="Search projects" />
                 <mat-icon matPrefix>search</mat-icon>
                 @if (searchControl.value) {
                   <button
@@ -85,7 +86,8 @@
                     matInput
                     id="home-desktop-search-input"
                     placeholder="Search projects"
-                    [formControl]="searchControl" />
+                    [formControl]="searchControl"
+                    aria-label="Search projects" />
                   <mat-icon matPrefix>search</mat-icon>
                   @if (searchControl.value) {
                     <button

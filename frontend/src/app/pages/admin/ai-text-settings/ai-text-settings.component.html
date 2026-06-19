@@ -137,7 +137,8 @@
                     placeholder="Search models..."
                     [value]="lintModelSearch()"
                     (input)="lintModelSearch.set($any($event.target).value)"
-                    (keydown)="$event.stopPropagation()" />
+                    (keydown)="$event.stopPropagation()"
+                    aria-label="Search lint models" />
                   @if (lintModelSearch()) {
                     <button
                       type="button"
@@ -178,7 +179,9 @@
                 rows="6"
                 [value]="lintPrompt()"
                 (input)="lintPrompt.set($any($event.target).value)"
-                placeholder="You are an expert editor helping to improve creative writing..."></textarea>
+                placeholder="You are an expert editor helping to improve creative writing..."
+                id="ai-text-lint-prompt-input"
+                aria-label="Custom lint prompt"></textarea>
             </mat-form-field>
             <div class="action-row">
               <button
@@ -230,7 +233,8 @@
                     (input)="
                       imagePromptModelSearch.set($any($event.target).value)
                     "
-                    (keydown)="$event.stopPropagation()" />
+                    (keydown)="$event.stopPropagation()"
+                    aria-label="Search image prompt models" />
                   @if (imagePromptModelSearch()) {
                     <button
                       type="button"
@@ -271,7 +275,9 @@
                 rows="8"
                 [value]="imagePromptTemplate()"
                 (input)="imagePromptTemplate.set($any($event.target).value)"
-                placeholder="You are an expert at creating prompts for AI image generation..."></textarea>
+                placeholder="You are an expert at creating prompts for AI image generation..."
+                id="ai-text-optimization-template-input"
+                aria-label="Custom optimization template"></textarea>
             </mat-form-field>
             <div class="action-row">
               <button

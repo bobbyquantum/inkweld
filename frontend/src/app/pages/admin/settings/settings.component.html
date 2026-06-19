@@ -217,7 +217,8 @@
                   (change)="savePasswordMinLength($any($event.target).value)"
                   [disabled]="isSaving()"
                   id="admin-password-min-length-input"
-                  data-testid="password-min-length-input" />
+                  data-testid="password-min-length-input"
+                  aria-label="Minimum password length" />
               </mat-form-field>
             </div>
 
@@ -317,7 +318,8 @@
             (change)="saveSiteUrl($any($event.target).value)"
             [disabled]="isSaving()"
             id="admin-site-url-input"
-            data-testid="site-url-input" />
+            data-testid="site-url-input"
+            aria-label="Site URL" />
           <mat-hint
             >Used in password reset emails and welcome notifications</mat-hint
           >

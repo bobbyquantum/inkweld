@@ -69,7 +69,12 @@
         <form [formGroup]="form">
           <mat-form-field appearance="outline">
             <mat-label>Title</mat-label>
-            <input matInput formControlName="title" required />
+            <input
+              matInput
+              formControlName="title"
+              required
+              id="edit-project-title-input"
+              aria-label="Title" />
             @if (form.get('title')?.hasError('required')) {
               <mat-error>Title is required</mat-error>
             }
@@ -80,7 +85,9 @@
             <textarea
               matInput
               formControlName="description"
-              rows="4"></textarea>
+              rows="4"
+              id="edit-project-description-input"
+              aria-label="Description"></textarea>
           </mat-form-field>
 
           <div class="cover-image-controls">
@@ -129,7 +136,9 @@
           type="file"
           accept="image/jpeg,image/jpg,image/png"
           style="display: none"
-          (change)="onCoverImageSelected($event)" />
+          (change)="onCoverImageSelected($event)"
+          id="edit-project-cover-image-input"
+          aria-label="Cover image file" />
       </div>
     </div>
   }

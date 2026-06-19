@@ -15,7 +15,8 @@
         formControlName="name"
         id="image-profile-name-input"
         data-testid="profile-name-input"
-        placeholder="e.g., GPT Image 1 High Quality" />
+        placeholder="e.g., GPT Image 1 High Quality"
+        aria-label="Profile name" />
       <mat-hint>A user-friendly name for this profile</mat-hint>
       @if (form.get('name')?.hasError('required')) {
         <mat-error>Name is required</mat-error>
@@ -29,7 +30,9 @@
         formControlName="description"
         data-testid="profile-description-input"
         rows="2"
-        placeholder="Optional description of this profile"></textarea>
+        placeholder="Optional description of this profile"
+        id="image-profile-description-input"
+        aria-label="Description"></textarea>
     </mat-form-field>
 
     <div class="row">
@@ -96,7 +99,8 @@
             [matAutocomplete]="modelAuto"
             (input)="onModelSearchInput($event)"
             (focus)="loadModelsForProvider()"
-            placeholder="Search for a model..." />
+            placeholder="Search for a model..."
+            aria-label="Model" />
           <mat-autocomplete
             #modelAuto="matAutocomplete"
             (optionSelected)="selectModel($event.option.value)">
@@ -148,7 +152,8 @@
             matInput
             formControlName="modelId"
             id="image-profile-model-id-input"
-            placeholder="e.g., stable-diffusion-xl-base-1.0" />
+            placeholder="e.g., stable-diffusion-xl-base-1.0"
+            aria-label="Model ID" />
           <mat-hint
             >Enter the model identifier from your Stable Diffusion API</mat-hint
           >
@@ -255,7 +260,8 @@
         matInput
         type="number"
         formControlName="sortOrder"
-        id="image-profile-sort-order-input" />
+        id="image-profile-sort-order-input"
+        aria-label="Sort order" />
       <mat-hint>Lower numbers appear first</mat-hint>
     </mat-form-field>
 
@@ -274,7 +280,9 @@
             matInput
             formControlName="modelConfigJson"
             rows="6"
-            placeholder='{"quality": "hd", "style": "vivid"}'></textarea>
+            placeholder='{"quality": "hd", "style": "vivid"}'
+            id="image-profile-model-config-input"
+            aria-label="Model configuration JSON"></textarea>
           <mat-hint>Provider-specific configuration options as JSON</mat-hint>
         </mat-form-field>
       }

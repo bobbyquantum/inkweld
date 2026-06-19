@@ -275,7 +275,8 @@
                     [value]="newSize().name"
                     (input)="updateNewSizeName($any($event.target).value)"
                     placeholder="e.g., HD Landscape"
-                    id="ai-settings-size-name-input" />
+                    id="ai-settings-size-name-input"
+                    aria-label="Size name" />
                 </mat-form-field>
               </div>
               <div class="size-form-row dimensions-row">
@@ -288,7 +289,8 @@
                     max="4096"
                     [value]="newSize().width"
                     (input)="updateNewSizeWidth(+$any($event.target).value)"
-                    id="ai-settings-size-width-input" />
+                    id="ai-settings-size-width-input"
+                    aria-label="Width in pixels" />
                 </mat-form-field>
                 <span class="dimension-separator">×</span>
                 <mat-form-field appearance="outline">
@@ -300,7 +302,8 @@
                     max="4096"
                     [value]="newSize().height"
                     (input)="updateNewSizeHeight(+$any($event.target).value)"
-                    id="ai-settings-size-height-input" />
+                    id="ai-settings-size-height-input"
+                    aria-label="Height in pixels" />
                 </mat-form-field>
               </div>
               <div class="size-form-row">
@@ -313,7 +316,8 @@
                       updateNewSizeDescription($any($event.target).value)
                     "
                     placeholder="e.g., Standard HD for wallpapers"
-                    id="ai-settings-size-description-input" />
+                    id="ai-settings-size-description-input"
+                    aria-label="Description" />
                 </mat-form-field>
               </div>
               <div class="size-form-actions">

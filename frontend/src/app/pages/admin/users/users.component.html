@@ -99,7 +99,8 @@
                 placeholder="Search by username or email..."
                 [value]="searchQuery()"
                 (input)="onSearchInput($event)"
-                data-testid="user-search-input" />
+                data-testid="user-search-input"
+                aria-label="Search users" />
               <mat-icon matPrefix>search</mat-icon>
               @if (searchQuery()) {
                 <button

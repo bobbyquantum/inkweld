@@ -11,7 +11,8 @@
       (input)="onSearchChange($any($event.target).value)"
       placeholder="Search files by name..."
       autocomplete="off"
-      data-testid="quick-open-search" />
+      data-testid="quick-open-search"
+      aria-label="Search files" />
     @if (searchQuery()) {
       <button
         mat-icon-button

@@ -8,7 +8,8 @@
       id="account-settings-display-name-input"
       [(ngModel)]="displayName"
       placeholder="Enter your display name"
-      data-testid="account-display-name-input" />
+      data-testid="account-display-name-input"
+      aria-label="Display name" />
     <mat-hint>Shown instead of your username in the UI.</mat-hint>
   </mat-form-field>
 
@@ -21,7 +22,8 @@
         id="account-settings-email-input"
         [(ngModel)]="email"
         placeholder="Enter your email address"
-        data-testid="account-email-input" />
+        data-testid="account-email-input"
+        aria-label="Email address" />
       <mat-hint>Used for password resets and notifications.</mat-hint>
     </mat-form-field>
   }

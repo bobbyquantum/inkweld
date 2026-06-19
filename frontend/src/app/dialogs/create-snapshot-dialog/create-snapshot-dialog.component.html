@@ -17,7 +17,8 @@
         formControlName="name"
         placeholder="Leave blank for auto date-time"
         maxlength="100"
-        data-testid="snapshot-name-input" />
+        data-testid="snapshot-name-input"
+        aria-label="Snapshot name" />
       <mat-hint>If left blank, uses current date-time</mat-hint>
       @if (form.get('name')?.hasError('maxlength')) {
         <mat-error>Name cannot exceed 100 characters</mat-error>
@@ -32,7 +33,9 @@
         placeholder="Add notes about this snapshot..."
         rows="3"
         maxlength="500"
-        data-testid="snapshot-description-input"></textarea>
+        data-testid="snapshot-description-input"
+        id="snapshot-description-input"
+        aria-label="Description"></textarea>
       @if (form.get('description')?.hasError('maxlength')) {
         <mat-error>Description cannot exceed 500 characters</mat-error>
       }
