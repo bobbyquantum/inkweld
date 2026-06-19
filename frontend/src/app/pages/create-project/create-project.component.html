@@ -93,7 +93,8 @@
                 title="Project Title"
                 placeholder="Title"
                 required
-                data-testid="project-title-input" />
+                data-testid="project-title-input"
+                aria-label="Project title" />
               @if (
                 projectForm.get('title')?.hasError('required') &&
                 projectForm.get('title')?.touched
@@ -111,7 +112,8 @@
                 title="Project Slug"
                 placeholder="project-slug"
                 required
-                data-testid="project-slug-input" />
+                data-testid="project-slug-input"
+                aria-label="Project slug" />
               @if (
                 projectForm.get('slug')?.hasError('required') &&
                 projectForm.get('slug')?.touched
@@ -136,7 +138,9 @@
                 placeholder="Project Description"
                 formControlName="description"
                 rows="4"
-                data-testid="project-description-input"></textarea>
+                data-testid="project-description-input"
+                id="create-project-description-input"
+                aria-label="Project description"></textarea>
             </mat-form-field>
 
             @if (projectUrl) {

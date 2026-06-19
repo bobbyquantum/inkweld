@@ -103,7 +103,8 @@
                   placeholder="http://localhost:8333"
                   type="url"
                   required
-                  data-testid="server-url-input" />
+                  data-testid="server-url-input"
+                  aria-label="Server URL" />
                 <mat-icon matSuffix>link</mat-icon>
               </mat-form-field>
               <p class="field-hint">
@@ -125,7 +126,8 @@
                   id="setup-local-username-input"
                   [(ngModel)]="userName"
                   placeholder="local"
-                  data-testid="local-username-input" />
+                  data-testid="local-username-input"
+                  aria-label="Username" />
                 <mat-icon matSuffix>person</mat-icon>
               </mat-form-field>
               <p class="field-hint">
@@ -142,7 +144,8 @@
                   id="setup-local-display-name-input"
                   [(ngModel)]="displayName"
                   placeholder="Local User"
-                  data-testid="local-displayname-input" />
+                  data-testid="local-displayname-input"
+                  aria-label="Display name" />
                 <mat-icon matSuffix>badge</mat-icon>
               </mat-form-field>
               <p class="field-hint">

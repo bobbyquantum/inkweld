@@ -11,7 +11,8 @@
         [(ngModel)]="searchQuery"
         (ngModelChange)="searchQuery.set($event)"
         placeholder="e.g., character, location, map..."
-        id="new-element-type-search-input" />
+        id="new-element-type-search-input"
+        aria-label="Search element types" />
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
 
@@ -178,7 +179,8 @@
                               : getSelectedOption()?.type === 'FOLDER'
                                 ? 'e.g., Act 1, Characters, Research'
                                 : 'e.g., Chapter 1, Prologue'
-          " />
+          "
+          aria-label="{{ getSelectedOption()?.label || 'Element' }} Name" />
         @if (form.controls.name.errors?.['required']) {
           <mat-error>Name is required</mat-error>
         }

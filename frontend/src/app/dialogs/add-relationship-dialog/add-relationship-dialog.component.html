@@ -66,7 +66,8 @@
             [formControl]="elementSearchControl"
             [matAutocomplete]="elementAuto"
             placeholder="Type to search..."
-            data-testid="element-search-input" />
+            data-testid="element-search-input"
+            aria-label="Search elements" />
           <mat-icon matSuffix>search</mat-icon>
           <mat-autocomplete
             #elementAuto="matAutocomplete"
@@ -101,7 +102,9 @@
           (input)="note.set($any($event.target).value)"
           placeholder="Add context about this relationship..."
           rows="2"
-          data-testid="relationship-note-input"></textarea>
+          data-testid="relationship-note-input"
+          id="relationship-note-input"
+          aria-label="Note"></textarea>
       </mat-form-field>
     </div>
   }

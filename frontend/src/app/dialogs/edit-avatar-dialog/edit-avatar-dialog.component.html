@@ -18,7 +18,8 @@
       id="edit-avatar-file-input"
       #fileInput
       (change)="fileChangeEvent($event)"
-      style="display: none" />
+      style="display: none"
+      aria-label="Choose avatar image" />
   </div>
   @if (imageChangedEvent) {
     <div class="cropper-container">

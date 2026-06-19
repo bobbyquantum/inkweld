@@ -183,7 +183,9 @@
                 (input)="prompt.set($any($event.target).value)"
                 rows="6"
                 data-testid="image-gen-prompt-input"
-                placeholder="Describe the image you want to generate..."></textarea>
+                placeholder="Describe the image you want to generate..."
+                id="image-gen-prompt-input"
+                aria-label="Prompt"></textarea>
               <mat-hint
                 >Be descriptive for better results. The auto-generated prompt is
                 based on your selected elements.</mat-hint
@@ -201,7 +203,9 @@
                   [value]="negativePrompt()"
                   (input)="negativePrompt.set($any($event.target).value)"
                   rows="2"
-                  placeholder="Things to avoid in the image..."></textarea>
+                  placeholder="Things to avoid in the image..."
+                  id="image-gen-negative-prompt-input"
+                  aria-label="Negative prompt"></textarea>
                 <mat-hint>Describe what you don't want to see</mat-hint>
               </mat-form-field>
             </div>
