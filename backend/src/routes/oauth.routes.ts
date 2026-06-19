@@ -450,7 +450,7 @@ const registerClientHandler = async (c: Context<AppContext>) => {
     return c.json(response, 201);
   } catch (error) {
     if (error instanceof OAuthError) {
-      return c.json(error.toJSON(), error.statusCode as 400);
+      return c.json(error.toJSON(), error.statusCode);
     }
     throw error;
   }
@@ -601,7 +601,7 @@ oauthRoutes.openapi(getAuthorizationInfoRoute, async (c) => {
     });
   } catch (error) {
     if (error instanceof OAuthError) {
-      return c.json(error.toJSON(), error.statusCode as 400);
+      return c.json(error.toJSON(), error.statusCode);
     }
     throw error;
   }
@@ -698,7 +698,7 @@ oauthRoutes.openapi(submitConsentRoute, async (c) => {
     return c.json({ redirectUri });
   } catch (error) {
     if (error instanceof OAuthError) {
-      return c.json(error.toJSON(), error.statusCode as 400);
+      return c.json(error.toJSON(), error.statusCode);
     }
     throw error;
   }
@@ -870,7 +870,7 @@ oauthRoutes.openapi(tokenRoute, async (c) => {
         clientId: body.client_id,
         grantType: body.grant_type,
       });
-      return c.json(error.toJSON(), error.statusCode as 400);
+      return c.json(error.toJSON(), error.statusCode);
     }
     throw error;
   }

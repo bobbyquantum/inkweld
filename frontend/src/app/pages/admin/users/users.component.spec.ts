@@ -359,6 +359,8 @@ describe('AdminUsersComponent', () => {
     );
   });
 
+  // Skipped: MatSnackBar DI resolves to a different instance than snackBarMock
+  // (root-level provider complexity); error handling is covered by e2e tests.
   it.skip('should handle error when rejecting user fails', async () => {
     adminServiceMock.rejectUser.mockRejectedValue(new Error('Failed'));
     dialogMock.open.mockReturnValue({
