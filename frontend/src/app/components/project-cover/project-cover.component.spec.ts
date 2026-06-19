@@ -390,11 +390,8 @@ describe('ProjectCoverComponent', () => {
       setProjectAndTriggerChanges(mockProject);
       await fixture.whenStable();
 
-      fixture.destroy();
-
-      // Verify component state is reset (via ngOnDestroy setting isLoading = false)
-      // We can't directly check private members, but we can verify no errors occur
-      expect(true).toBe(true);
+      // Verify ngOnDestroy runs without error (resets isLoading = false)
+      expect(() => fixture.destroy()).not.toThrow();
     });
   });
 });

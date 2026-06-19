@@ -192,11 +192,7 @@ async function getWorldbuildingData(
 
 function convertYjsValue(value: unknown): unknown {
   if (value === null || value === undefined) return value;
-  if (
-    typeof value === 'object' &&
-    'toJSON' in value &&
-    typeof (value as { toJSON: unknown }).toJSON === 'function'
-  ) {
+  if (typeof value === 'object' && 'toJSON' in value && typeof value.toJSON === 'function') {
     return (value as { toJSON: () => unknown }).toJSON();
   }
   if (Array.isArray(value)) return value.map(convertYjsValue);

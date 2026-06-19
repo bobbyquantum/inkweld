@@ -516,6 +516,9 @@ describe('HomeTabComponent', () => {
     ]);
   });
 
+  // Skipped: cover image loading moved to ProjectCoverComponent; these tests
+  // reference HomeTab properties (coverImageUrl/coverImageLoading/showCoverPlaceholder)
+  // that no longer exist. Cover behaviour is covered by project-cover.component.spec.ts.
   describe.skip('cover image', () => {
     it('should load cover image when project is set', async () => {
       const mockBlob = new Blob(['test'], { type: 'image/png' });

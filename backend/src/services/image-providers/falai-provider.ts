@@ -253,7 +253,7 @@ export class FalAiImageProvider extends BaseImageProvider {
           sizeMode: (m as FalAiModelInfo).sizeMode || defaultModel?.sizeMode || 'dimensions',
           resolutions: (m as FalAiModelInfo).resolutions || defaultModel?.resolutions,
           aspectRatios: (m as FalAiModelInfo).aspectRatios || defaultModel?.aspectRatios,
-        } as FalAiModelInfo;
+        };
       });
     }
   }
@@ -275,7 +275,7 @@ export class FalAiImageProvider extends BaseImageProvider {
             'dimensions',
           resolutions: (m as FalAiModelInfo).resolutions || defaultModel?.resolutions,
           aspectRatios: (m as FalAiModelInfo).aspectRatios || defaultModel?.aspectRatios,
-        } as FalAiModelInfo;
+        };
       });
     }
   }
