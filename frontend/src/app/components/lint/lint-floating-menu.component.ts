@@ -113,18 +113,14 @@ export class LintFloatingMenuComponent implements OnInit, OnDestroy {
       this.activeSuggestion = null;
 
       for (const suggestion of pluginState.suggestions) {
-        if (
-          suggestion.startPos <= cursorPos &&
-          cursorPos <= suggestion.endPos
-        ) {
+        const from = suggestion.from ?? suggestion.startPos;
+        const to = suggestion.to ?? suggestion.endPos;
+        if (from <= cursorPos && cursorPos <= to) {
           this.activeSuggestion = suggestion;
 
           // Force the floating menu to appear by creating a selection
           setTimeout(() => {
-            this.forceFloatingMenuToAppear(
-              suggestion.startPos,
-              suggestion.endPos
-            );
+            this.forceFloatingMenuToAppear(from, to);
           }, 10);
 
           break;
@@ -154,11 +150,13 @@ export class LintFloatingMenuComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const { startPos, endPos } = this.activeSuggestion;
+    const { from, to, startPos, endPos } = this.activeSuggestion;
+    const fromPos = from ?? startPos;
+    const toPos = to ?? endPos;
 
     // Get selection coordinates (these are viewport-relative)
-    const start = view.coordsAtPos(startPos);
-    const end = view.coordsAtPos(endPos);
+    const start = view.coordsAtPos(fromPos);
+    const end = view.coordsAtPos(toPos);
 
     // Calculate selection bounds
     const selectionTop = Math.min(start.top, end.top);

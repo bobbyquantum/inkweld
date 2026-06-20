@@ -63,12 +63,18 @@ describe('LintStorageService', () => {
 
   it('should generate a unique ID for a correction', () => {
     const id = (service as any).getCorrectionId(mockCorrection);
-    expect(id).toBe('0-5-test suggestion');
+    expect(id).toBe('0-5-original text-test suggestion');
   });
 
-  it('should generate a unique ID for an extended correction with text', () => {
-    const id = (service as any).getCorrectionId(mockExtendedCorrection);
-    expect(id).toBe('0-5-test suggestion-original text');
+  it('should generate a stable ID regardless of the extended `text` field', () => {
+    // The raw API correction (no `text`) and the extended correction (with
+    // `text`, as produced by the plugin) must yield the SAME id, otherwise a
+    // rejection recorded from the UI would never match a fresh lint result and
+    // rejected suggestions would reappear on the next lint pass.
+    const idRaw = (service as any).getCorrectionId(mockCorrection);
+    const idExtended = (service as any).getCorrectionId(mockExtendedCorrection);
+    expect(idRaw).toBe(idExtended);
+    expect(idRaw).toBe('0-5-original text-test suggestion');
   });
 
   it('should reject a suggestion and save it to localStorage', () => {

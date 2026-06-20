@@ -5,6 +5,7 @@ import {
   inject,
   Input,
   type OnChanges,
+  type OnDestroy,
   type OnInit,
   ViewEncapsulation,
 } from '@angular/core';
@@ -23,7 +24,7 @@ import { type ExtendedCorrectionDto } from './correction-dto.extension';
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./lint-overlay.component.scss'],
 })
-export class LintOverlayComponent implements OnInit, OnChanges {
+export class LintOverlayComponent implements OnInit, OnChanges, OnDestroy {
   private readonly elementRef = inject(ElementRef);
 
   @Input() recommendations: ExtendedCorrectionDto[] = [];
@@ -31,16 +32,23 @@ export class LintOverlayComponent implements OnInit, OnChanges {
 
   tipContent = '';
 
+  private readonly handleAcceptBound = (event: Event): void => {
+    this.handleAccept(event as CustomEvent<ExtendedCorrectionDto>);
+  };
+
+  private readonly handleRejectBound = (event: Event): void => {
+    this.handleReject(event as CustomEvent<ExtendedCorrectionDto>);
+  };
+
   constructor() {
     // Listen for custom events for accept/reject actions
-    document.addEventListener('lint-accept', (event: Event) => {
-      const customEvent = event as CustomEvent<ExtendedCorrectionDto>;
-      this.handleAccept(customEvent);
-    });
-    document.addEventListener('lint-reject', (event: Event) => {
-      const customEvent = event as CustomEvent<ExtendedCorrectionDto>;
-      this.handleReject(customEvent);
-    });
+    document.addEventListener('lint-accept', this.handleAcceptBound);
+    document.addEventListener('lint-reject', this.handleRejectBound);
+  }
+
+  ngOnDestroy(): void {
+    document.removeEventListener('lint-accept', this.handleAcceptBound);
+    document.removeEventListener('lint-reject', this.handleRejectBound);
   }
 
   ngOnInit(): void {

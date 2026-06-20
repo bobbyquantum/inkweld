@@ -36,24 +36,23 @@ export class LintStorageService {
   }
 
   /**
-   * Generate a unique identifier for a correction
+   * Generate a stable identifier for a correction.
+   *
+   * The id must be identical whether computed for a raw API `Correction` (used
+   * when filtering fresh lint results) or for an `ExtendedCorrectionDto` (used
+   * when the user rejects a suggestion from the UI). Only fields present on the
+   * raw API correction are used — never `text`/`from`/`to`, which are only
+   * added later by the plugin — otherwise rejections would not stick across
+   * subsequent lint passes.
    */
   private getCorrectionId(
     correction: Correction | ExtendedCorrectionDto
   ): string {
-    // Support both Correction (API) and ExtendedCorrectionDto (with text property)
-    const extended = correction as ExtendedCorrectionDto;
-    const suggestion = correction.correctedText || '';
     const startPos = correction.startPos ?? 0;
     const endPos = correction.endPos ?? 0;
-    const uniqueKey = `${startPos}-${endPos}-${suggestion}`;
-
-    // For ExtendedCorrectionDto with text property
-    if (extended.text) {
-      return `${uniqueKey}-${extended.text}`.toLowerCase();
-    }
-
-    return uniqueKey.toLowerCase();
+    const originalText = correction.originalText || '';
+    const suggestion = correction.correctedText || '';
+    return `${startPos}-${endPos}-${originalText}-${suggestion}`.toLowerCase();
   }
 
   /**
