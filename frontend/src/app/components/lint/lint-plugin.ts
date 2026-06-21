@@ -517,6 +517,10 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
         void lintDocument(doc);
       });
 
+      // Lint the existing document content on load (not just on edits),
+      // debounced like edits so the initial render settles first.
+      textUpdates.next(editorView.state.doc);
+
       return {
         update(viewArg, prevState) {
           if (viewArg.state.doc !== prevState.doc) {

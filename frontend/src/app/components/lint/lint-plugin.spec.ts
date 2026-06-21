@@ -139,6 +139,29 @@ describe('LintPlugin', () => {
     expect(pluginState?.reqId).toBe(0);
   });
 
+  it('should lint the existing document on load (not just on edits)', async () => {
+    vi.useFakeTimers();
+
+    // Creating an EditorView invokes the plugin's view() once, which now seeds
+    // an initial lint cycle for the current document content.
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const localView = new EditorView(el, {
+      state: editorState,
+      dispatchTransaction: tr =>
+        localView.updateState(localView.state.apply(tr)),
+    });
+
+    // No edits made — just the initial load. Advance past the debounce.
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(mockLintApiService.run).toHaveBeenCalledTimes(1);
+
+    localView.destroy();
+    el.remove();
+    vi.useRealTimers();
+  });
+
   it('should call the lint service when document changes', async () => {
     // Use fake timers to control the debounce timing
     vi.useFakeTimers();
