@@ -1021,11 +1021,30 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   ) {
     // Subscribe to document updates and send to this WebSocket
     const unsubscribe = sharedDoc.notify((message: Uint8Array) => {
-      if (ws.readyState === WebSocket.OPEN) {
+      if (ws.readyState !== WebSocket.OPEN) {
+        // Socket is CLOSING/CLOSED. Unsubscribe immediately so the dead
+        // socket stops receiving notifications — otherwise every doc
+        // update will invoke this callback, no-op, forever, keeping the
+        // DO awake and accrueing GB-s.
         try {
-          ws.send(message);
-        } catch (error) {
-          projDOLog.error(`Error sending to WebSocket for ${documentId}:`, error);
+          unsubscribe();
+        } catch {
+          /* already unsubscribed */
+        }
+        return;
+      }
+      try {
+        ws.send(message);
+      } catch (error) {
+        // Send failed (socket died mid-flight). Unsubscribe so we don't
+        // keep trying to send to a dead socket, which would otherwise
+        // throw on every subsequent update and risk triggering
+        // webSocketError → rehydrate → loadDocumentFromStorage loop.
+        projDOLog.error(`Error sending to WebSocket for ${documentId}:`, error);
+        try {
+          unsubscribe();
+        } catch {
+          /* already unsubscribed */
         }
       }
     });
@@ -1110,8 +1129,19 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * Returns `null` if the WebSocket has no attachment (which would only
    * happen for a connection accepted before this code shipped, or a
    * malformed handshake — in either case the caller should drop it).
+   *
+   * @param skipDocLoad When true, do NOT call getOrCreateDocument / load
+   *   the full update history from storage. Used by the close/error path:
+   *   teardown only needs the attachment metadata (documentId, userId, word
+   *   counts for session finalization). Loading the document during close
+   *   is pure waste — the client is already gone — and each load reads
+   *   every update row, which amplified into a sustained read storm when
+   *   combined with the dead-socket broadcast loop.
    */
-  private async rehydrateConnection(ws: WebSocket): Promise<ConnectionInfo | null> {
+  private async rehydrateConnection(
+    ws: WebSocket,
+    skipDocLoad = false
+  ): Promise<ConnectionInfo | null> {
     const existing = this.connections.get(ws);
     if (existing) return existing;
 
@@ -1130,7 +1160,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     // re-attach it to the document so outbound broadcasts resume.
     // Awareness state is in-memory only and is rebuilt lazily as clients
     // resend their awareness updates (every ~3s via y-protocols).
-    if (connInfo.authenticated) {
+    //
+    // In the close/error path we skip this: the document load reads every
+    // persisted update row and is only useful when we expect the client to
+    // keep exchanging messages. On close/error the client is gone, so
+    // loading is pure waste + read-amplification.
+    if (connInfo.authenticated && !skipDocLoad) {
       await this.rehydrateAuthenticatedConnection(ws, connInfo);
     }
 
@@ -1187,10 +1222,17 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     // Cloudflare wakes the DO for a single WS event. Other sockets remain
     // attached but unregistered as listeners, so restore them before the
     // waking socket's update broadcasts.
+    //
+    // CRITICAL: skip sockets that are not OPEN. getWebSockets() returns
+    // sockets in CLOSING/CLOSED states too, and re-subscribing a dead
+    // socket to sharedDoc.notify() causes ws.send() to throw, which fires
+    // webSocketError, which rehydrates again, which reloads the full
+    // document history from storage, which broadcasts to dead sockets
+    // again... a self-perpetuating loop that exhausts row-read quota.
     for (const peerWs of this.state.getWebSockets()) {
-      if (peerWs !== wakingWs) {
-        this.rehydrateAuthenticatedPeer(peerWs, documentId, sharedDoc);
-      }
+      if (peerWs === wakingWs) continue;
+      if (peerWs.readyState !== WebSocket.OPEN) continue;
+      this.rehydrateAuthenticatedPeer(peerWs, documentId, sharedDoc);
     }
   }
 
@@ -1204,6 +1246,11 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       this.registerPeerIfDetached(peerWs, existing, documentId, sharedDoc);
       return;
     }
+
+    // Belt-and-suspenders: even if the caller didn't filter, never
+    // re-subscribe a non-OPEN socket — sends to it will throw and
+    // trigger the wake/error loop.
+    if (peerWs.readyState !== WebSocket.OPEN) return;
 
     const attachment = peerWs.deserializeAttachment() as WSAttachment | null;
     if (attachment?.documentId !== documentId || !attachment.authenticated) return;
@@ -1407,8 +1454,14 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       if (result && result.wordsDelta !== 0 && projectId && userId && elementId) {
         // Best-effort element name lookup so the activity feed can show
         // "edited <document name>" instead of just "edited a document".
+        //
+        // Skip when the doc was not loaded (close/error path with
+        // skipDocLoad): getOrCreateDocument would read the full elements
+        // history from storage, which is exactly the amplification we're
+        // avoiding. entityName stays null — the activity event still
+        // records, just without the friendly name.
         let entityName: string | null = null;
-        if (projectOwner && projectSlug) {
+        if (projectOwner && projectSlug && connInfo.sharedDoc) {
           try {
             const elementsDoc = await this.getOrCreateDocument(
               `${projectOwner}:${projectSlug}:elements/`
@@ -1673,7 +1726,13 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   async webSocketClose(ws: WebSocket) {
     // Rehydrate so the cleanup path can find the connection even if the
     // DO hibernated between the upgrade and the close event.
-    await this.rehydrateConnection(ws);
+    //
+    // skipDocLoad: the client is already gone. Loading the full update
+    // history from storage here is pure waste and was a major contributor
+    // to the sustained row-read storm — every close event re-read every
+    // update row for the document, only to throw the doc away moments
+    // later during cleanup.
+    await this.rehydrateConnection(ws, /* skipDocLoad */ true);
 
     // Finalize the writing session BEFORE cleanup so we read the final word
     // count while the doc is still in connInfo. Fire-and-forget.
@@ -1702,7 +1761,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    */
   async webSocketError(ws: WebSocket) {
     projDOLog.error(`WebSocket error for project ${this.projectId}`);
-    await this.rehydrateConnection(ws);
+    // skipDocLoad: same rationale as webSocketClose — the client is gone
+    // (or about to be), loading the doc only amplifies storage reads.
+    await this.rehydrateConnection(ws, /* skipDocLoad */ true);
     const connInfo = this.connections.get(ws);
     if (connInfo) {
       projDOLog.error(`Error was for document: ${connInfo.documentId}`);
