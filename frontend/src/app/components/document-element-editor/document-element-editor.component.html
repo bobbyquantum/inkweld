@@ -30,7 +30,7 @@
                 class="editor-content">
               </ngx-editor>
               <!-- Custom floating menus positioned relative to viewport -->
-              @if (isCursorInLintSuggestion()) {
+              @if (cursorInLintSuggestion()) {
                 <app-lint-floating-menu
                   [editor]="editor"></app-lint-floating-menu>
               } @else {

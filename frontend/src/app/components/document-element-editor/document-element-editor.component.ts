@@ -51,7 +51,7 @@ import { TagService } from '@services/tag/tag.service';
 import type { MarkType, ResolvedPos } from 'prosemirror-model';
 import type { EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, type Subscription } from 'rxjs';
 
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
@@ -193,6 +193,15 @@ export class DocumentElementEditorComponent
   };
   protected editorKey = 0; // Increments when switching tabs to force ngx-editor recreation
   private readonly cdr = inject(ChangeDetectorRef);
+
+  /**
+   * Whether the cursor is currently inside a lint suggestion. Signal-backed
+   * so the template re-evaluates in zoneless change detection when the editor
+   * selection changes (ProseMirror events don't trigger Angular CD on their
+   * own in zoneless mode).
+   */
+  protected readonly cursorInLintSuggestion = signal(false);
+  private lintSuggestionSubscription: Subscription | null = null;
 
   readonly syncState = computed(() => {
     return this.documentService.getSyncStatusSignal(this.documentIdSignal())();
@@ -433,6 +442,17 @@ export class DocumentElementEditorComponent
             // Set read-only mode for viewers who can't write
             this.updateEditableState();
 
+            // Subscribe to editor updates so the lint-suggestion cursor signal
+            // stays current in zoneless change detection.
+            if (this.lintSuggestionSubscription) {
+              this.lintSuggestionSubscription.unsubscribe();
+            }
+            this.lintSuggestionSubscription = this.editor.update.subscribe(
+              () => {
+                this.updateCursorInLintSuggestion();
+              }
+            );
+
             // Force change detection to update the view
             this.cdr.detectChanges();
 
@@ -508,6 +528,12 @@ export class DocumentElementEditorComponent
 
     // Clear active document ID for comment service
     this.commentService.setActiveDocumentId(null);
+
+    // Unsubscribe from editor updates (lint suggestion cursor tracking)
+    if (this.lintSuggestionSubscription) {
+      this.lintSuggestionSubscription.unsubscribe();
+      this.lintSuggestionSubscription = null;
+    }
 
     // Destroy editor FIRST before disconnecting
     // This prevents awareness cleanup from trying to update a destroyed editor
@@ -675,8 +701,13 @@ export class DocumentElementEditorComponent
     document.addEventListener('lint-reject', this.lintRejectListener);
   }
 
-  // Check if the cursor is currently inside a lint suggestion
-  isCursorInLintSuggestion(): boolean {
+  // Recompute whether the cursor is inside a lint suggestion and update the
+  // signal so the template re-renders in zoneless CD.
+  private updateCursorInLintSuggestion(): void {
+    this.cursorInLintSuggestion.set(this.computeCursorInLintSuggestion());
+  }
+
+  private computeCursorInLintSuggestion(): boolean {
     if (!this.editor?.view) {
       return false;
     }

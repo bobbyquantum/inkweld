@@ -216,7 +216,7 @@ describe('DocumentElementEditorComponent', () => {
   describe('isCursorInLintSuggestion', () => {
     it('should return false when editor is not initialized', () => {
       // Don't call ngOnInit so editor remains undefined
-      expect(component.isCursorInLintSuggestion()).toBe(false);
+      expect((component as any).computeCursorInLintSuggestion()).toBe(false);
     });
 
     it('should return false when no lint suggestions exist', () => {
@@ -224,7 +224,7 @@ describe('DocumentElementEditorComponent', () => {
       fixture.detectChanges();
       component.ngOnInit();
 
-      expect(component.isCursorInLintSuggestion()).toBe(false);
+      expect((component as any).computeCursorInLintSuggestion()).toBe(false);
     });
   });
 

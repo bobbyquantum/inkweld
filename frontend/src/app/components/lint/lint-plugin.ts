@@ -5,6 +5,7 @@ import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
 import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 import { debounceTime, Subject, type Subscription } from 'rxjs';
 
+import { type Correction } from '../../../api-client/model/correction';
 import { type ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintStorageService } from './lint-storage.service';
 
@@ -223,16 +224,50 @@ function isLintMeta(meta: unknown): meta is LintMeta {
 }
 
 /**
+ * Normalize a correction from either camelCase (generated model) or snake_case
+ * (raw backend JSON) field names. The OpenAPI `typescript-angular` generator
+ * produces camelCase TS interfaces but does NOT transform the runtime JSON,
+ * so the backend's snake_case response fields arrive un-converted.
+ */
+function normalizeCorrection(raw: Correction): {
+  startPos: number;
+  endPos: number;
+  originalText: string;
+  correctedText: string;
+  errorType: string;
+  recommendation: string;
+} {
+  const r: Record<string, unknown> = raw as unknown as Record<string, unknown>;
+  const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
+  const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+  return {
+    startPos: num(r['startPos'] ?? r['start_pos']),
+    endPos: num(r['endPos'] ?? r['end_pos']),
+    originalText: str(r['originalText'] ?? r['original_text']),
+    correctedText: str(r['correctedText'] ?? r['corrected_text']),
+    errorType: str(r['errorType'] ?? r['error_type']),
+    recommendation: str(r['recommendation']),
+  };
+}
+
+/**
  * Create a ProseMirror plugin for linting paragraphs.
  *
  * Lints each top-level textblock independently (the backend `lintParagraph`
  * endpoint accepts a single paragraph, capped at 4096 chars) and maps each
  * returned correction onto the correct ProseMirror document position.
  *
- * @param lintApi The API service for linting
+ * @param lintApi  The API service for linting
+ * @param enabled  Optional predicate evaluated before each lint cycle. The
+ *                 plugin is always created, so it can start linting as soon as
+ *                 the feature flag flips on (e.g. after /config/features
+ *                 resolves) without needing to recreate the editor.
  * @returns A ProseMirror plugin
  */
-export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
+export function createLintPlugin(
+  lintApi: LintApiService,
+  enabled: () => boolean = () => true
+): Plugin<LintState> {
   const textUpdates = new Subject<Node>();
   let subscription: Subscription | null = null;
   const lintStorage = new LintStorageService();
@@ -267,6 +302,9 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
    */
   async function lintDocument(doc: Node): Promise<void> {
     if (!view) return;
+    // Skip the API call when the feature is disabled (e.g. config not loaded
+    // yet). The plugin still runs so it can start linting once enabled.
+    if (!enabled()) return;
 
     const myReqId = ++reqCounter;
 
@@ -300,9 +338,10 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
     results.forEach((res, idx) => {
       if (!res?.corrections) return;
       const { map } = blocks[idx];
-      for (const correction of res.corrections) {
-        const from = charOffsetToDocPos(map, correction.startPos ?? 0);
-        const to = charOffsetToDocPos(map, correction.endPos ?? 0);
+      for (const rawCorrection of res.corrections) {
+        const correction = normalizeCorrection(rawCorrection);
+        const from = charOffsetToDocPos(map, correction.startPos);
+        const to = charOffsetToDocPos(map, correction.endPos);
         if (from === null || to === null) continue;
 
         let start = from;

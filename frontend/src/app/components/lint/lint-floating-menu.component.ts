@@ -10,7 +10,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { type Editor } from '@bobbyquantum/ngx-editor';
-import { TextSelection } from 'prosemirror-state';
+import { type EditorState, TextSelection } from 'prosemirror-state';
 import { type Subscription } from 'rxjs';
 
 import { type ExtendedCorrectionDto } from './correction-dto.extension';
@@ -92,44 +92,79 @@ export class LintFloatingMenuComponent implements OnInit, OnDestroy {
 
     // Subscribe to selection changes to check if cursor is inside a lint suggestion
     this.subscription = this.editor.update.subscribe(({ state }) => {
-      const { selection } = state;
-      const cursorPos = selection.from;
-
-      // Skip if cursor hasn't moved
-      if (cursorPos === this.lastCursorPos) {
-        return;
-      }
-
-      this.lastCursorPos = cursorPos;
-
-      // Get the lint plugin state
-      const pluginState = pluginKey.getState(state);
-      if (!pluginState?.suggestions || pluginState.suggestions.length === 0) {
-        this.activeSuggestion = null;
-        return;
-      }
-
-      // Check if cursor is inside any suggestion
-      this.activeSuggestion = null;
-
-      for (const suggestion of pluginState.suggestions) {
-        const from = suggestion.from ?? suggestion.startPos;
-        const to = suggestion.to ?? suggestion.endPos;
-        if (from <= cursorPos && cursorPos <= to) {
-          this.activeSuggestion = suggestion;
-
-          // Force the floating menu to appear by creating a selection
-          setTimeout(() => {
-            this.forceFloatingMenuToAppear(from, to);
-          }, 10);
-
-          break;
-        }
-      }
-
-      // Update position after finding suggestion
-      this.updatePosition();
+      this.checkCursorInSuggestion(state);
     });
+
+    // The component may be rendered after the cursor is already inside a
+    // suggestion (the editor template gates it on a signal that flips on the
+    // first matching editor.update). Check the current state immediately so the
+    // menu appears without requiring an additional cursor move. Only set
+    // activeSuggestion if a match is found (don't clear it — that would clobber
+    // a value set before this component's first render).
+    if (this.editor.view) {
+      this.checkInitialCursorInSuggestion(this.editor.view.state);
+    }
+  }
+
+  private checkInitialCursorInSuggestion(state: EditorState): void {
+    const cursorPos = state.selection.from;
+    this.lastCursorPos = cursorPos;
+    const pluginState = pluginKey.getState(state);
+    if (!pluginState?.suggestions || pluginState.suggestions.length === 0) {
+      return;
+    }
+    for (const suggestion of pluginState.suggestions) {
+      const from = suggestion.from ?? suggestion.startPos;
+      const to = suggestion.to ?? suggestion.endPos;
+      if (from <= cursorPos && cursorPos <= to) {
+        this.activeSuggestion = suggestion;
+        setTimeout(() => {
+          this.forceFloatingMenuToAppear(from, to);
+        }, 10);
+        break;
+      }
+    }
+    this.updatePosition();
+  }
+
+  private checkCursorInSuggestion(state: EditorState): void {
+    const { selection } = state;
+    const cursorPos = selection.from;
+
+    // Skip if cursor hasn't moved
+    if (cursorPos === this.lastCursorPos) {
+      return;
+    }
+
+    this.lastCursorPos = cursorPos;
+
+    // Get the lint plugin state
+    const pluginState = pluginKey.getState(state);
+    if (!pluginState?.suggestions || pluginState.suggestions.length === 0) {
+      this.activeSuggestion = null;
+      return;
+    }
+
+    // Check if cursor is inside any suggestion
+    this.activeSuggestion = null;
+
+    for (const suggestion of pluginState.suggestions) {
+      const from = suggestion.from ?? suggestion.startPos;
+      const to = suggestion.to ?? suggestion.endPos;
+      if (from <= cursorPos && cursorPos <= to) {
+        this.activeSuggestion = suggestion;
+
+        // Force the floating menu to appear by creating a selection
+        setTimeout(() => {
+          this.forceFloatingMenuToAppear(from, to);
+        }, 10);
+
+        break;
+      }
+    }
+
+    // Update position after finding suggestion
+    this.updatePosition();
   }
 
   ngOnDestroy(): void {

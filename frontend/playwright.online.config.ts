@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 import {
+  TEST_API_KEYS,
   TEST_PASSWORDS,
   TEST_SESSION_SECRETS,
 } from './e2e/common/test-credentials';
@@ -107,6 +108,9 @@ export default (async () => {
           AI_KILL_SWITCH: 'false',
           // Enable AI image generation for e2e testing
           AI_IMAGE_ENABLED: 'true',
+          // Fake OpenAI key so /config/features reports aiLinting: true. The
+          // actual model call is faked per-test via page.route interception.
+          OPENAI_API_KEY: TEST_API_KEYS.FAKE_OPENAI,
           // Default admin for e2e tests
           DEFAULT_ADMIN_USERNAME: 'e2e-admin',
           DEFAULT_ADMIN_PASSWORD: TEST_PASSWORDS.ADMIN,

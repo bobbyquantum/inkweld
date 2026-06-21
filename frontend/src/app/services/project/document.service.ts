@@ -822,11 +822,14 @@ export class DocumentService {
     // Note: presence is NOT added here - it will be added dynamically when
     // WebSocket connects via addPresencePluginToEditor.
 
-    // Add the linting plugin
-    if (this.systemConfigService.isAiLintingEnabled()) {
-      const lintPlugin = createLintPlugin(this.lintApiService);
-      plugins.push(lintPlugin);
-    }
+    // Add the linting plugin. Always created so it can start linting as soon as
+    // the aiLinting feature flag resolves (e.g. after /config/features loads),
+    // without needing to recreate the editor. The plugin gates API calls on the
+    // flag itself, avoiding a race where the editor is set up before config.
+    const lintPlugin = createLintPlugin(this.lintApiService, () =>
+      this.systemConfigService.isAiLintingEnabled()
+    );
+    plugins.push(lintPlugin);
 
     // Add keyboard shortcuts plugin for formatting commands
     const keyboardShortcutsPlugin = createKeyboardShortcutsPlugin(
