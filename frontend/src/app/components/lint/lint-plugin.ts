@@ -174,6 +174,26 @@ function charOffsetToDocPos(
   return entry.pos + (offset - entry.charStart);
 }
 
+/**
+ * Whether the document range `[from, to)` contains only text nodes.
+ *
+ * The lint API returns char offsets into the paragraph's `textContent`, which
+ * excludes inline non-text nodes (images, element references, etc.). If a
+ * correction's mapped range spans such a node, accepting it would replace the
+ * embedded content with plain text, so those corrections must be skipped.
+ */
+function rangeIsPureText(doc: Node, from: number, to: number): boolean {
+  let pure = true;
+  doc.nodesBetween(from, to, node => {
+    if (node.isInline && !node.isText) {
+      pure = false;
+      return false;
+    }
+    return true;
+  });
+  return pure;
+}
+
 /** Plugin metadata used to push new decorations into the plugin state. */
 interface LintDecorationsMeta {
   type: 'decorations';
@@ -251,7 +271,8 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
     const myReqId = ++reqCounter;
 
     // Collect lintable textblocks up front so we don't read stale doc state
-    // after awaiting the API calls.
+    // after awaiting the API calls. (An empty result clears existing
+    // decorations — see the dispatch below.)
     const blocks: { text: string; map: OffsetMapEntry[] }[] = [];
     doc.forEach((block, offset) => {
       if (!block.isTextblock) return;
@@ -261,8 +282,6 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
       if (map.length === 0) return;
       blocks.push({ text, map });
     });
-
-    if (blocks.length === 0) return;
 
     const results = await Promise.all(
       blocks.map(b => lintApi.run(b.text).catch(() => null))
@@ -291,6 +310,16 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
         if (start < 0) start = 0;
         if (end > docSize) end = docSize;
         if (start >= end) continue;
+
+        // Skip corrections whose mapped range spans inline non-text nodes
+        // (images, element references, …) — accepting them would delete the
+        // embedded content.
+        if (!rangeIsPureText(doc, start, end)) {
+          lintDebugWarn(
+            '[LintPlugin] Correction spans non-text node, skipping'
+          );
+          continue;
+        }
 
         allSuggestions.push({
           ...correction,
@@ -412,16 +441,47 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
           };
         }
 
-        // If content changed, keep current reqId to track state
+        // If content changed, kick off a fresh (debounced) lint cycle and keep
+        // current reqId to track state.
         if (tr.docChanged) {
           textUpdates.next(newState.doc);
         }
 
-        // Map decorations through document changes
+        // Map both decorations and suggestion ranges through the change so UI
+        // actions (accept/reject, cursor hit-testing) target current positions
+        // instead of stale ones until the next lint cycle lands.
+        if (!tr.docChanged) {
+          return {
+            decos: prev.decos.map(tr.mapping, tr.doc),
+            reqId: prev.reqId,
+            suggestions: prev.suggestions,
+          };
+        }
+
+        const mappedSuggestions = prev.suggestions
+          .map((s): ExtendedCorrectionDto | null => {
+            const fromRaw = s.from ?? s.startPos;
+            const toRaw = s.to ?? s.endPos;
+            if (
+              typeof fromRaw !== 'number' ||
+              typeof toRaw !== 'number' ||
+              !Number.isFinite(fromRaw) ||
+              !Number.isFinite(toRaw)
+            ) {
+              return null;
+            }
+            const mappedFrom = tr.mapping.map(fromRaw, -1);
+            const mappedTo = tr.mapping.map(toRaw, 1);
+            if (mappedFrom >= mappedTo) return null;
+            return { ...s, from: mappedFrom, to: mappedTo };
+          })
+          .filter((s): s is ExtendedCorrectionDto => s !== null);
+
+        const result = createDecorations(newState.doc, mappedSuggestions);
         return {
-          decos: prev.decos.map(tr.mapping, tr.doc),
+          decos: result.decos,
           reqId: prev.reqId,
-          suggestions: prev.suggestions,
+          suggestions: result.suggestions,
         };
       },
     },
@@ -471,6 +531,9 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
           }
           document.removeEventListener('lint-accept', handleAcceptEvent);
           document.removeEventListener('lint-reject', handleRejectEvent);
+          // Release the storage service's document listener too, otherwise it
+          // accumulates across plugin re-creations.
+          lintStorage.destroy();
           view = null;
         },
       };

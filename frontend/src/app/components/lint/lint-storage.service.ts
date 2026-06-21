@@ -38,21 +38,24 @@ export class LintStorageService {
   /**
    * Generate a stable identifier for a correction.
    *
-   * The id must be identical whether computed for a raw API `Correction` (used
-   * when filtering fresh lint results) or for an `ExtendedCorrectionDto` (used
-   * when the user rejects a suggestion from the UI). Only fields present on the
-   * raw API correction are used — never `text`/`from`/`to`, which are only
-   * added later by the plugin — otherwise rejections would not stick across
-   * subsequent lint passes.
+   * The id must be identical whether computed while filtering fresh lint
+   * results or when the user rejects a suggestion from the UI. Because the
+   * plugin maps corrections to document positions before filtering, both code
+   * paths see `from`/`to` (ProseMirror document positions), so those are used
+   * to disambiguate identical errors that appear in different paragraphs —
+   * rejecting one "teh" must not suppress an unrelated "teh" elsewhere. The
+   * `text` field is never used: it is only present on the extended DTO and
+   * would otherwise make rejections not stick across lint passes.
    */
   private getCorrectionId(
     correction: Correction | ExtendedCorrectionDto
   ): string {
-    const startPos = correction.startPos ?? 0;
-    const endPos = correction.endPos ?? 0;
+    const extended = correction as ExtendedCorrectionDto;
+    const from = extended.from ?? correction.startPos ?? 0;
+    const to = extended.to ?? correction.endPos ?? 0;
     const originalText = correction.originalText || '';
     const suggestion = correction.correctedText || '';
-    return `${startPos}-${endPos}-${originalText}-${suggestion}`.toLowerCase();
+    return `${from}-${to}-${originalText}-${suggestion}`.toLowerCase();
   }
 
   /**
@@ -94,13 +97,29 @@ export class LintStorageService {
   /**
    * Listen for custom events for accepting and rejecting suggestions
    */
+  private readonly handleCorrectionRejectBound = (event: Event): void => {
+    const customEvent = event as CustomEvent<ExtendedCorrectionDto>;
+    if (customEvent.detail) {
+      this.rejectSuggestion(customEvent.detail);
+    }
+  };
+
   private listenForEvents(): void {
-    document.addEventListener('lint-correction-reject', (event: Event) => {
-      const customEvent = event as CustomEvent<ExtendedCorrectionDto>;
-      if (customEvent.detail) {
-        this.rejectSuggestion(customEvent.detail);
-      }
-    });
+    document.addEventListener(
+      'lint-correction-reject',
+      this.handleCorrectionRejectBound
+    );
+  }
+
+  /**
+   * Remove document listeners so the service can be torn down by its owner
+   * (e.g. the ProseMirror lint plugin on destroy) without leaking listeners.
+   */
+  public destroy(): void {
+    document.removeEventListener(
+      'lint-correction-reject',
+      this.handleCorrectionRejectBound
+    );
   }
 
   /**

@@ -441,6 +441,238 @@ describe('LintPlugin', () => {
     vi.useRealTimers();
   });
 
+  it('should remap suggestion ranges through document edits', () => {
+    const correction: ExtendedCorrectionDto = {
+      startPos: 10,
+      endPos: 14,
+      originalText: 'test',
+      correctedText: 'test sentence',
+      errorType: 'grammar',
+      recommendation: 'fix',
+      from: 11,
+      to: 15,
+      text: 'test',
+    };
+
+    // Apply one suggestion at 11..15
+    let state = editorState.apply(
+      editorState.tr.setMeta(pluginKey, {
+        type: 'decorations',
+        corrections: [correction],
+        reqId: 1,
+      })
+    );
+    editorView.updateState(state);
+    let ps = pluginKey.getState(state);
+    expect(ps?.suggestions.length).toBe(1);
+    expect(ps?.suggestions[0].from).toBe(11);
+    expect(ps?.suggestions[0].to).toBe(15);
+
+    // Insert 4 chars at the start of the document -> ranges shift by +4
+    state = state.apply(state.tr.insertText('XXXX', 1, 1));
+    editorView.updateState(state);
+
+    ps = pluginKey.getState(state);
+    expect(ps?.suggestions.length).toBe(1);
+    expect(ps?.suggestions[0].from).toBe(15);
+    expect(ps?.suggestions[0].to).toBe(19);
+  });
+
+  it('should skip corrections whose range spans inline non-text nodes', async () => {
+    vi.useFakeTimers();
+
+    // Schema with an inline image atom node
+    const imgSchema = new Schema({
+      nodes: {
+        doc: { content: 'paragraph+' },
+        paragraph: {
+          content: '(text | image)*',
+          group: 'block',
+          parseDOM: [{ tag: 'p' }],
+          toDOM() {
+            return ['p', 0];
+          },
+        },
+        text: { group: 'inline' },
+        image: {
+          inline: true,
+          atom: true,
+          group: 'inline',
+          draggable: true,
+          toDOM() {
+            return ['img', { src: 'x' }];
+          },
+          parseDOM: [
+            {
+              tag: 'img',
+              getAttrs: () => ({}),
+            },
+          ],
+        },
+      },
+      marks: {},
+    });
+
+    // "ab" + image + "cd" : textContent is "abcd" (image contributes nothing)
+    const doc = imgSchema.nodeFromJSON({
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'ab' },
+            { type: 'image' },
+            { type: 'text', text: 'cd' },
+          ],
+        },
+      ],
+    });
+
+    // LLM returns a correction spanning the whole "abcd" (0..4), which maps to
+    // a range containing the image -> must be skipped.
+    mockLintApiService.run.mockResolvedValue({
+      originalParagraph: 'abcd',
+      corrections: [
+        {
+          startPos: 0,
+          endPos: 4,
+          originalText: 'abcd',
+          correctedText: 'xyz',
+          errorType: 'grammar',
+          recommendation: 'rewrite',
+        },
+      ],
+      styleRecommendations: [],
+      source: LintResponseSource.Openai,
+    });
+
+    const localState = EditorState.create({
+      doc,
+      schema: imgSchema,
+      plugins: [plugin],
+    });
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const localView = new EditorView(el, {
+      state: localState,
+      dispatchTransaction: tr =>
+        localView.updateState(localView.state.apply(tr)),
+    });
+
+    const emptyState = EditorState.create({
+      doc: imgSchema.nodeFromJSON({
+        type: 'doc',
+        content: [{ type: 'paragraph' }],
+      }),
+      schema: imgSchema,
+      plugins: [plugin],
+    });
+    const viewHandler = plugin.spec.view!(localView);
+    if (!viewHandler.update) {
+      throw new Error('Plugin view handler update method is not defined');
+    }
+    viewHandler.update(localView, emptyState);
+
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(mockLintApiService.run).toHaveBeenCalledTimes(1);
+    const ps = pluginKey.getState(localView.state);
+    expect(ps?.suggestions.length).toBe(0);
+    expect(ps?.decos.find().length).toBe(0);
+
+    localView.destroy();
+    el.remove();
+    vi.useRealTimers();
+  });
+
+  it('should clear stale suggestions when the document has no lintable text', async () => {
+    vi.useFakeTimers();
+
+    // First, populate suggestions on a non-empty doc.
+    mockLintApiService.run.mockResolvedValue({
+      originalParagraph: 'Hello teh.',
+      corrections: [
+        {
+          startPos: 6,
+          endPos: 9,
+          originalText: 'teh',
+          correctedText: 'the',
+          errorType: 'spelling',
+          recommendation: 'fix',
+        },
+      ],
+      styleRecommendations: [],
+      source: LintResponseSource.Openai,
+    });
+
+    const populated = testSchema.nodeFromJSON({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Hello teh.' }] },
+      ],
+    });
+    const empty = testSchema.nodeFromJSON({
+      type: 'doc',
+      content: [{ type: 'paragraph' }],
+    });
+
+    const localState = EditorState.create({
+      doc: populated,
+      schema: testSchema,
+      plugins: [plugin],
+    });
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const localView = new EditorView(el, {
+      state: localState,
+      dispatchTransaction: tr =>
+        localView.updateState(localView.state.apply(tr)),
+    });
+
+    const viewHandler = plugin.spec.view!(localView);
+    if (!viewHandler.update) {
+      throw new Error('Plugin view handler update method is not defined');
+    }
+    viewHandler.update(
+      localView,
+      EditorState.create({
+        doc: empty,
+        schema: testSchema,
+        plugins: [plugin],
+      })
+    );
+    await vi.advanceTimersByTimeAsync(600);
+    expect(pluginKey.getState(localView.state)?.suggestions.length).toBe(1);
+
+    // Now move to an empty doc and trigger another lint cycle.
+    localView.updateState(
+      EditorState.create({
+        doc: empty,
+        schema: testSchema,
+        plugins: [plugin],
+      })
+    );
+    viewHandler.update(
+      localView,
+      EditorState.create({
+        doc: populated,
+        schema: testSchema,
+        plugins: [plugin],
+      })
+    );
+    await vi.advanceTimersByTimeAsync(600);
+
+    // Empty doc -> no lintable blocks -> decorations cleared.
+    expect(mockLintApiService.run).toHaveBeenCalledTimes(1);
+    const ps = pluginKey.getState(localView.state);
+    expect(ps?.suggestions.length).toBe(0);
+    expect(ps?.decos.find().length).toBe(0);
+
+    localView.destroy();
+    el.remove();
+    vi.useRealTimers();
+  });
+
   describe('preserveWhitespace', () => {
     it('should preserve leading whitespace', () => {
       expect(preserveWhitespace('  hello', 'world')).toBe('  world');

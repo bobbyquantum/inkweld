@@ -77,6 +77,39 @@ describe('LintStorageService', () => {
     expect(idRaw).toBe('0-5-original text-test suggestion');
   });
 
+  it('should disambiguate identical errors in different paragraphs by from/to', () => {
+    // Same paragraph-relative startPos/endPos and text, but different document
+    // positions (different paragraphs) -> different ids, so rejecting one does
+    // not suppress the other.
+    const para1: ExtendedCorrectionDto = {
+      ...mockCorrection,
+      from: 11,
+      to: 15,
+    };
+    const para2: ExtendedCorrectionDto = {
+      ...mockCorrection,
+      from: 42,
+      to: 46,
+    };
+    const id1 = (service as any).getCorrectionId(para1);
+    const id2 = (service as any).getCorrectionId(para2);
+    expect(id1).not.toBe(id2);
+    expect(id1).toBe('11-15-original text-test suggestion');
+    expect(id2).toBe('42-46-original text-test suggestion');
+  });
+
+  it('should stop listening for lint-correction-reject after destroy()', () => {
+    const rejectSpy = vi.spyOn(service, 'rejectSuggestion');
+    service.destroy();
+    rejectSpy.mockClear();
+
+    document.dispatchEvent(
+      new CustomEvent('lint-correction-reject', { detail: mockCorrection })
+    );
+
+    expect(rejectSpy).not.toHaveBeenCalled();
+  });
+
   it('should reject a suggestion and save it to localStorage', () => {
     const id = (service as any).getCorrectionId(mockCorrection);
     expect(service.isSuggestionRejected(mockCorrection)).toBe(false);
