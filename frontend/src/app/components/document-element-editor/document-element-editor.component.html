@@ -13,9 +13,11 @@
           [editor]="editor"
           [disabled]="!projectState.canWrite()"
           [commentPanelOpen]="commentPanelOpen()"
+          [lintPanelOpen]="lintPanelOpen()"
           (insertImageClick)="openInsertImageDialog()"
           (insertLinkClick)="openInsertLinkDialog()"
-          (toggleComments)="toggleCommentPanel()">
+          (toggleComments)="toggleCommentPanel()"
+          (toggleLint)="toggleLintPanel()">
         </app-editor-toolbar>
       }
       <div
@@ -29,18 +31,13 @@
                 [placeholder]="'Type here...'"
                 class="editor-content">
               </ngx-editor>
-              <!-- Custom floating menus positioned relative to viewport -->
-              @if (cursorInLintSuggestion()) {
-                <app-lint-floating-menu
-                  [editor]="editor"></app-lint-floating-menu>
-              } @else {
-                <app-editor-floating-menu
-                  [editor]="editor"
-                  (addComment)="addComment()"
-                  (insertLink)="
-                    openInsertLinkDialog()
-                  "></app-editor-floating-menu>
-              }
+              <!-- Custom floating menu for formatting + comments -->
+              <app-editor-floating-menu
+                [editor]="editor"
+                (addComment)="addComment()"
+                (insertLink)="
+                  openInsertLinkDialog()
+                "></app-editor-floating-menu>
             }
           </div>
         </div>
@@ -110,6 +107,27 @@
           (commentUpdated)="onCommentUpdated($event)"
           (threadHovered)="onCommentHover($event)">
         </app-comment-panel>
+      </div>
+    }
+
+    <!-- Lint Panel - shown when user toggles lint review -->
+    @if (!zenMode && lintPanelOpen()) {
+      <div class="lint-panel-container">
+        <app-lint-panel
+          [username]="projectState.project()?.username ?? ''"
+          [slug]="projectState.project()?.slug ?? ''"
+          [docId]="bareElementId()"
+          [editorView]="editor?.view ?? null"
+          [isOpen]="lintPanelOpen()"
+          [canWrite]="projectState.canWrite()"
+          [suggestionPositions]="lintSuggestionPositions()"
+          [editorScrollTop]="editorScrollTop()"
+          [editorContentHeight]="editorContentHeight()"
+          (closed)="lintPanelOpen.set(false)"
+          (suggestionAccepted)="onSuggestionAccepted($event)"
+          (suggestionRejected)="onSuggestionRejected($event)"
+          (suggestionHovered)="onLintHover($event)">
+        </app-lint-panel>
       </div>
     }
   </div>

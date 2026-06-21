@@ -554,5 +554,14 @@
       data-testid="toolbar-comments">
       <mat-icon>comment</mat-icon>
     </button>
+    <button
+      ngToolbarWidget
+      value="lint"
+      [attr.aria-pressed]="lintPanelOpen"
+      matTooltip="Lint Review"
+      (click)="toggleLint.emit()"
+      data-testid="toolbar-lint">
+      <mat-icon>spellcheck</mat-icon>
+    </button>
   </div>
 </div>

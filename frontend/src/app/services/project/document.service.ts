@@ -15,7 +15,6 @@ import {
   createFindPlugin,
   createImagePastePlugin,
   createKeyboardShortcutsPlugin,
-  createLintPlugin,
   ElementRefService,
   extractMediaId,
   generateMediaId,
@@ -48,7 +47,6 @@ import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { SystemConfigService } from '../core/system-config.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
-import { LintApiService } from '../lint/lint-api.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { PresenceService } from '../presence/presence.service';
 import {
@@ -125,14 +123,13 @@ export class DocumentService {
   private readonly injector = inject(Injector);
   private readonly systemConfigService = inject(SystemConfigService);
   private readonly projectStateService = inject(ProjectStateService);
-  private readonly lintApiService = inject(LintApiService);
+  private readonly localStorage = inject(LocalStorageService);
   private readonly elementRefService = inject(ElementRefService);
   private readonly findInDocumentService = inject(FindInDocumentService);
   private readonly insertImageService = inject(InsertImageService);
   private readonly insertLinkService = inject(InsertLinkService);
   private readonly logger = inject(LoggerService);
   private readonly userService = inject(UnifiedUserService);
-  private readonly localStorage = inject(LocalStorageService);
   private readonly storageContext = inject(StorageContextService);
   private readonly versionCompatibility = inject(VersionCompatibilityService);
   private readonly commentService = inject(CommentService);
@@ -821,15 +818,6 @@ export class DocumentService {
 
     // Note: presence is NOT added here - it will be added dynamically when
     // WebSocket connects via addPresencePluginToEditor.
-
-    // Add the linting plugin. Always created so it can start linting as soon as
-    // the aiLinting feature flag resolves (e.g. after /config/features loads),
-    // without needing to recreate the editor. The plugin gates API calls on the
-    // flag itself, avoiding a race where the editor is set up before config.
-    const lintPlugin = createLintPlugin(this.lintApiService, () =>
-      this.systemConfigService.isAiLintingEnabled()
-    );
-    plugins.push(lintPlugin);
 
     // Add keyboard shortcuts plugin for formatting commands
     const keyboardShortcutsPlugin = createKeyboardShortcutsPlugin(

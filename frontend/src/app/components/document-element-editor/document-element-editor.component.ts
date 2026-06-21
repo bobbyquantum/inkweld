@@ -51,7 +51,7 @@ import { TagService } from '@services/tag/tag.service';
 import type { MarkType, ResolvedPos } from 'prosemirror-model';
 import type { EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
-import { firstValueFrom, type Subscription } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
@@ -71,8 +71,7 @@ import {
 } from '../element-ref';
 import { FindInDocumentComponent } from '../find-in-document';
 import { createMediaUrl } from '../image-paste';
-import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
-import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
+import { LintPanelComponent } from '../lint-panel/lint-panel.component';
 
 @Component({
   selector: 'app-document-element-editor',
@@ -84,7 +83,7 @@ import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
     MatSelectModule,
     MatOptionModule,
     DragDropModule,
-    LintFloatingMenuComponent,
+    LintPanelComponent,
     ElementRefPopupComponent,
     ElementRefContextMenuComponent,
     ElementRefTooltipComponent,
@@ -96,10 +95,7 @@ import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
   ],
   templateUrl: './document-element-editor.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
-  styleUrls: [
-    './document-element-editor.component.scss',
-    '../../components/lint/lint.css',
-  ],
+  styleUrls: ['./document-element-editor.component.scss'],
 })
 export class DocumentElementEditorComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewChecked
@@ -185,23 +181,12 @@ export class DocumentElementEditorComponent
   private collaborationSetup = false;
   private destroyed = false; // Track if component is destroyed to prevent stale async operations
   private editorScrollCleanup: (() => void) | null = null;
-  private readonly lintAcceptListener: EventListener = (_event: Event) => {
-    // Suggestion accepted - could add analytics here
-  };
-  private readonly lintRejectListener: EventListener = (_event: Event) => {
-    // Suggestion rejected - could add analytics here
-  };
   protected editorKey = 0; // Increments when switching tabs to force ngx-editor recreation
   private readonly cdr = inject(ChangeDetectorRef);
 
-  /**
-   * Whether the cursor is currently inside a lint suggestion. Signal-backed
-   * so the template re-evaluates in zoneless change detection when the editor
-   * selection changes (ProseMirror events don't trigger Angular CD on their
-   * own in zoneless mode).
-   */
-  protected readonly cursorInLintSuggestion = signal(false);
-  private lintSuggestionSubscription: Subscription | null = null;
+  /** Lint panel state */
+  lintPanelOpen = signal(false);
+  lintSuggestionPositions = signal<Record<string, number>>({});
 
   readonly syncState = computed(() => {
     return this.documentService.getSyncStatusSignal(this.documentIdSignal())();
@@ -377,9 +362,6 @@ export class DocumentElementEditorComponent
         'ngOnInit - waiting for valid documentId from routing'
       );
     }
-
-    // Add custom styles for lint plugin
-    this.addLintStyles();
   }
 
   ngAfterViewChecked(): void {
@@ -441,17 +423,6 @@ export class DocumentElementEditorComponent
 
             // Set read-only mode for viewers who can't write
             this.updateEditableState();
-
-            // Subscribe to editor updates so the lint-suggestion cursor signal
-            // stays current in zoneless change detection.
-            if (this.lintSuggestionSubscription) {
-              this.lintSuggestionSubscription.unsubscribe();
-            }
-            this.lintSuggestionSubscription = this.editor.update.subscribe(
-              () => {
-                this.updateCursorInLintSuggestion();
-              }
-            );
 
             // Force change detection to update the view
             this.cdr.detectChanges();
@@ -529,12 +500,6 @@ export class DocumentElementEditorComponent
     // Clear active document ID for comment service
     this.commentService.setActiveDocumentId(null);
 
-    // Unsubscribe from editor updates (lint suggestion cursor tracking)
-    if (this.lintSuggestionSubscription) {
-      this.lintSuggestionSubscription.unsubscribe();
-      this.lintSuggestionSubscription = null;
-    }
-
     // Destroy editor FIRST before disconnecting
     // This prevents awareness cleanup from trying to update a destroyed editor
     this.editor?.destroy();
@@ -543,24 +508,6 @@ export class DocumentElementEditorComponent
     // but the editor is already destroyed so it won't crash
     if (!this.zenMode && this.documentId !== 'invalid' && this.documentId) {
       this.documentService.disconnect(this.documentId);
-    }
-
-    if (typeof document !== 'undefined') {
-      document.removeEventListener('lint-accept', this.lintAcceptListener);
-      document.removeEventListener('lint-reject', this.lintRejectListener);
-    }
-
-    // Remove our custom style element if it exists
-    if (
-      typeof document !== 'undefined' &&
-      document.getElementById('inkweld-lint-styles')
-    ) {
-      try {
-        const styleElement = document.getElementById('inkweld-lint-styles');
-        styleElement?.remove();
-      } catch {
-        // Ignore errors when removing lint styles
-      }
     }
   }
 
@@ -585,153 +532,6 @@ export class DocumentElementEditorComponent
     } else {
       return false;
     }
-  }
-
-  /**
-   * Add global styles for the lint plugin decorations
-   * This ensures the CSS is properly applied to the editor instance
-   */
-  private addLintStyles(): void {
-    // Check if we're running in a browser environment
-    if (
-      globalThis.window === undefined ||
-      typeof document === 'undefined' ||
-      !document.head
-    ) {
-      return;
-    }
-
-    // Check if style already exists to avoid duplicates
-    const styleId = 'inkweld-lint-styles';
-    if (document.getElementById(styleId)) {
-      return;
-    }
-
-    // Create a style element and add lint CSS
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `
-      .lint-error {
-        background-color: rgba(255, 220, 0, 0.2) !important;
-        border-bottom: 1px dashed #ffd700 !important;
-        text-decoration: none !important;
-        cursor: pointer;
-        position: relative;
-      }
-
-      .lint-error:hover {
-        background-color: rgba(255, 220, 0, 0.3) !important;
-      }
-
-      .ProseMirror .lint-error {
-        background-color: rgba(255, 220, 0, 0.2) !important;
-        border-bottom: 1px dashed #ffd700 !important;
-        text-decoration: none !important;
-      }
-
-      /* Custom tooltip styles */
-      .lint-tooltip {
-        position: absolute;
-        z-index: 1000;
-        background-color: rgba(33, 33, 33, 0.95);
-        color: white;
-        border-radius: 4px;
-        padding: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        max-width: 300px;
-        white-space: pre-line;
-        font-size: 14px;
-        line-height: 1.4;
-        display: none;
-      }
-
-      .lint-error:hover .lint-tooltip {
-        display: block;
-      }
-
-      .lint-tooltip-title {
-        font-weight: bold;
-        margin-bottom: 4px;
-      }
-
-      .lint-tooltip-reason {
-        font-style: italic;
-        color: #e0e0e0;
-        margin-bottom: 8px;
-      }
-
-      /* Styles for accept/reject buttons */
-      .lint-action-buttons {
-        display: flex;
-        margin-top: 8px;
-        justify-content: flex-end;
-      }
-
-      .lint-action-button {
-        cursor: pointer !important;
-        margin-left: 8px !important;
-        padding: 4px 8px !important;
-        border: none !important;
-        border-radius: 3px !important;
-        font-size: 12px !important;
-        display: flex !important;
-        align-items: center !important;
-      }
-
-      .lint-accept-button {
-        background-color: #4caf50 !important;
-        color: white !important;
-      }
-
-      .lint-reject-button {
-        background-color: #f44336 !important;
-        color: white !important;
-      }
-
-      .lint-action-button-icon {
-        margin-right: 4px !important;
-      }
-    `;
-
-    // Add to document head
-    document.head.appendChild(style);
-
-    // Add event handlers for accept/reject buttons (can be used for analytics later)
-    document.addEventListener('lint-accept', this.lintAcceptListener);
-    document.addEventListener('lint-reject', this.lintRejectListener);
-  }
-
-  // Recompute whether the cursor is inside a lint suggestion and update the
-  // signal so the template re-renders in zoneless CD.
-  private updateCursorInLintSuggestion(): void {
-    this.cursorInLintSuggestion.set(this.computeCursorInLintSuggestion());
-  }
-
-  private computeCursorInLintSuggestion(): boolean {
-    if (!this.editor?.view) {
-      return false;
-    }
-
-    const state = this.editor.view.state;
-    const { selection } = state;
-    const cursorPos = selection.from;
-
-    // Get the lint plugin state
-    const pluginState = lintPluginKey.getState(state);
-    if (!pluginState?.suggestions || pluginState.suggestions.length === 0) {
-      return false;
-    }
-
-    // Check if cursor is inside any suggestion
-    for (const suggestion of pluginState.suggestions) {
-      const from = suggestion.from ?? suggestion.startPos;
-      const to = suggestion.to ?? suggestion.endPos;
-      if (from <= cursorPos && cursorPos <= to) {
-        return true;
-      }
-    }
-
-    return false;
   }
 
   /**
@@ -1197,6 +997,7 @@ export class DocumentElementEditorComponent
     const handler = () => {
       this.editorScrollTop.set(scrollContainer.scrollTop);
       this.computeCommentPositions();
+      this.computeLintPositions();
     };
     scrollContainer.addEventListener('scroll', handler, { passive: true });
     this.editorScrollCleanup = () =>
@@ -1221,5 +1022,88 @@ export class DocumentElementEditorComponent
         .querySelectorAll(`[data-comment-id="${CSS.escape(commentId)}"]`)
         .forEach(el => el.classList.add('comment-highlight--sidebar-hover'));
     }
+  }
+
+  // ─── Lint Panel ───────────────────────────────────────────────────────
+
+  toggleLintPanel(): void {
+    this.lintPanelOpen.set(!this.lintPanelOpen());
+    if (this.lintPanelOpen() && this.editor?.view) {
+      this.computeLintPositions();
+      this.setupEditorScrollListener();
+    } else if (!this.lintPanelOpen() && !this.commentPanelOpen()) {
+      this.teardownEditorScrollListener();
+    }
+  }
+
+  private refreshLintPanel(): void {
+    if (this.lintPanelOpen() && this.editor?.view) {
+      this.computeLintPositions();
+    }
+  }
+
+  /** Compute Y offsets of each lint mark relative to the editor content top */
+  private computeLintPositions(): void {
+    if (!this.editor?.view) return;
+    const view = this.editor.view;
+
+    const scrollContainer = view.dom.closest('.NgxEditor__Content') as
+      | HTMLElement
+      | undefined;
+    if (!scrollContainer) return;
+
+    const scrollTop = scrollContainer.scrollTop;
+    const containerRect = scrollContainer.getBoundingClientRect();
+
+    const lintType = view.state.schema.marks['lint_error'];
+    const positions: Record<string, number> = {};
+    const seen = new Set<string>();
+
+    if (lintType) {
+      view.state.doc.descendants((node, pos) => {
+        for (const mark of node.marks) {
+          if (
+            mark.type === lintType &&
+            typeof mark.attrs['id'] === 'string' &&
+            !seen.has(mark.attrs['id'])
+          ) {
+            seen.add(mark.attrs['id']);
+            try {
+              const coords = view.coordsAtPos(pos);
+              positions[mark.attrs['id']] =
+                coords.top - containerRect.top + scrollTop;
+            } catch {
+              // Position may be invalid if mark is in a deleted node
+            }
+          }
+        }
+        return false;
+      });
+    }
+
+    this.lintSuggestionPositions.set(positions);
+    this.editorContentHeight.set(scrollContainer.scrollHeight);
+    this.editorScrollTop.set(scrollTop);
+  }
+
+  /** Highlight lint marks in the editor when hovering a sidebar suggestion */
+  onLintHover(suggestionId: string | null): void {
+    document
+      .querySelectorAll('.lint-highlight--sidebar-hover')
+      .forEach(el => el.classList.remove('lint-highlight--sidebar-hover'));
+
+    if (suggestionId) {
+      document
+        .querySelectorAll(`[data-lint-id="${CSS.escape(suggestionId)}"]`)
+        .forEach(el => el.classList.add('lint-highlight--sidebar-hover'));
+    }
+  }
+
+  onSuggestionAccepted(_id: string): void {
+    this.refreshLintPanel();
+  }
+
+  onSuggestionRejected(_id: string): void {
+    this.refreshLintPanel();
   }
 }

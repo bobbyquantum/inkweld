@@ -213,21 +213,6 @@ describe('DocumentElementEditorComponent', () => {
     });
   });
 
-  describe('isCursorInLintSuggestion', () => {
-    it('should return false when editor is not initialized', () => {
-      // Don't call ngOnInit so editor remains undefined
-      expect((component as any).computeCursorInLintSuggestion()).toBe(false);
-    });
-
-    it('should return false when no lint suggestions exist', () => {
-      component.documentId = 'testuser:test-project:doc-1';
-      fixture.detectChanges();
-      component.ngOnInit();
-
-      expect((component as any).computeCursorInLintSuggestion()).toBe(false);
-    });
-  });
-
   describe('openInsertLinkDialog', () => {
     it('should do nothing when editor view is unavailable', async () => {
       // editor is not initialized — view is undefined

@@ -30,6 +30,12 @@ export {
 export { secureLinkMarkSpec } from './secure-link-spec';
 
 export {
+  LINT_ERROR_MARK_NAME,
+  type LintErrorMarkAttrs,
+  lintErrorMarkSpec,
+} from './lint-error-mark-spec';
+
+export {
   type CreateExtendedSchemaInput,
   type ExtendedSchemaSpec,
   createExtendedSchemaSpec,

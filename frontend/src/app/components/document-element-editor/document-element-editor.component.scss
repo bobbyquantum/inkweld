@@ -712,3 +712,44 @@
   background-color: rgba(255, 179, 0, 0.3) !important;
   border-bottom-color: rgba(255, 179, 0, 0.5) !important;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lint Highlight Styles
+// ─────────────────────────────────────────────────────────────────────────────
+
+::ng-deep .lint-highlight {
+  background-color: rgba(239, 68, 68, 0.15);
+  border-bottom: 2px wavy rgba(239, 68, 68, 0.6);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border-radius: 2px;
+}
+
+::ng-deep .lint-highlight:hover {
+  background-color: rgba(239, 68, 68, 0.25);
+}
+
+::ng-deep .lint-highlight--warning {
+  background-color: rgba(245, 158, 11, 0.15);
+  border-bottom-color: rgba(245, 158, 11, 0.6);
+}
+
+::ng-deep .lint-highlight--suggestion {
+  background-color: rgba(59, 130, 246, 0.12);
+  border-bottom-color: rgba(59, 130, 246, 0.5);
+  border-bottom-style: dashed;
+}
+
+::ng-deep .lint-highlight--sidebar-hover {
+  background-color: rgba(239, 68, 68, 0.3) !important;
+  border-bottom-color: rgba(239, 68, 68, 0.8) !important;
+}
+
+:host-context(.dark-theme) ::ng-deep .lint-highlight {
+  background-color: rgba(239, 68, 68, 0.12);
+  border-bottom-color: rgba(239, 68, 68, 0.4);
+}
+
+:host-context(.dark-theme) ::ng-deep .lint-highlight--sidebar-hover {
+  background-color: rgba(239, 68, 68, 0.25) !important;
+}

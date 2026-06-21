@@ -30,4 +30,3 @@ export {
   generateMediaId,
   isMediaUrl,
 } from '@components/image-paste/image-paste-plugin';
-export { createLintPlugin } from '@components/lint/lint-plugin';
