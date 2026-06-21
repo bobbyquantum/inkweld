@@ -119,9 +119,9 @@ class ImageAuditService {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    // Get total count by fetching all matching IDs
-    const allIds = await db.select().from(imageGenerationAudits).where(whereClause);
-    const total = allIds.length;
+    // Get total count using Drizzle's $count so we run SELECT count(*) rather
+    // than materialising every matching row (and all its columns) in memory.
+    const total = await db.$count(imageGenerationAudits, whereClause);
 
     // Get paginated results with user info
     const auditsWithUsers = await db
