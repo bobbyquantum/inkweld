@@ -18,7 +18,7 @@
     font-style: $style;
     font-weight: $weight;
     font-display: swap;
-    src: url('/assets/fonts/#{$slug}-latin-#{$weight}-#{if($style == italic, italic, normal)}.woff2')
+    src: url('/assets/fonts/#{$slug}-latin-#{$weight}-#{$style}.woff2')
       format('woff2');
   }
 }
