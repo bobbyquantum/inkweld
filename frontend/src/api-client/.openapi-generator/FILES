@@ -156,6 +156,8 @@ model/o-auth-session-details.ts
 model/open-router-model-pricing.ts
 model/open-router-model.ts
 model/open-router-models-response.ts
+model/openai-compatible-models-response-models-inner.ts
+model/openai-compatible-models-response.ts
 model/optimize-image-prompt-request.ts
 model/optimize-image-prompt-response.ts
 model/paginated-image-audits.ts

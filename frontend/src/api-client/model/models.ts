@@ -117,6 +117,8 @@ export * from './o-auth-session-details-grants-inner';
 export * from './open-router-model';
 export * from './open-router-model-pricing';
 export * from './open-router-models-response';
+export * from './openai-compatible-models-response';
+export * from './openai-compatible-models-response-models-inner';
 export * from './optimize-image-prompt-request';
 export * from './optimize-image-prompt-response';
 export * from './paginated-image-audits';
