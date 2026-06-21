@@ -277,7 +277,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
     doc.forEach((block, offset) => {
       if (!block.isTextblock) return;
       const text = block.textContent;
-      if (!text || !text.trim() || text.length > 4096) return;
+      if (!text?.trim() || text.length > 4096) return;
       const map = buildParagraphOffsetMap(block, offset);
       if (map.length === 0) return;
       blocks.push({ text, map });
