@@ -173,9 +173,11 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
 
   if (!aiKillSwitch) {
     // Kill switch is OFF, check actual AI availability
-    // Check if OpenAI API key is configured (for AI linting)
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    hasOpenAI = !!openaiApiKey && openaiApiKey.trim().length > 0;
+    // Check if an OpenAI (or OpenAI-compatible) API key is configured in the
+    // database via the admin UI. Fall back to the env var for legacy setups.
+    const openaiKeyConfig = await configService.get(db, 'AI_OPENAI_API_KEY');
+    const openaiApiKey = openaiKeyConfig.value || process.env.OPENAI_API_KEY || '';
+    hasOpenAI = openaiApiKey.trim().length > 0;
 
     // Check if ANY image generation provider is available
     // This properly checks OpenAI, OpenRouter, Fal.ai, and Stable Diffusion

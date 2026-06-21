@@ -1,7 +1,8 @@
-import OpenAI from 'openai';
 import { createHash } from 'crypto';
-import { config } from '../config/env';
+import { configService } from './config.service';
 import { logger } from './logger.service';
+import type { DatabaseInstance } from '../types/context';
+import type { ConfigKey } from '../db/schema/config';
 
 const lintLog = logger.child('OpenAI-Lint');
 
@@ -31,27 +32,45 @@ interface LintResponseDto {
   source: 'openai' | 'languagetool';
 }
 
-export class OpenAILintService {
-  private readonly openai: OpenAI | null = null;
-  private readonly isEnabled: boolean;
-  private readonly cache = new Map<string, CacheEntry<LintResponseDto>>();
-  private readonly CACHE_TTL = 300000; // 5 minutes
-  private readonly MODEL = 'gpt-4-turbo-preview';
+interface LintConfig {
+  apiKey: string;
+  endpoint: string;
+  model: string;
+  customPrompt: string;
+}
 
-  constructor() {
-    const apiKey = config.openai.apiKey;
-    if (apiKey) {
-      this.openai = new OpenAI({ apiKey });
-      this.isEnabled = true;
-      lintLog.info('OpenAI lint service initialized');
-    } else {
-      lintLog.warn('OPENAI_API_KEY not configured. AI linting disabled.');
-      this.isEnabled = false;
-    }
+const DEFAULT_MODEL = 'gpt-4o-mini';
+const CACHE_TTL = 300000; // 5 minutes
+
+export class OpenAILintService {
+  private readonly cache = new Map<string, CacheEntry<LintResponseDto>>();
+
+  /**
+   * Read the lint configuration (API key, endpoint, model, custom prompt)
+   * from the database, falling back to env vars for legacy setups.
+   */
+  private async getConfig(db: DatabaseInstance): Promise<LintConfig> {
+    const [keyCfg, endpointCfg, modelCfg, promptCfg] = await Promise.all([
+      configService.get(db, 'AI_OPENAI_API_KEY' as ConfigKey),
+      configService.get(db, 'AI_OPENAI_ENDPOINT' as ConfigKey),
+      configService.get(db, 'AI_TEXT_LINT_MODEL' as ConfigKey),
+      configService.get(db, 'AI_TEXT_LINT_PROMPT' as ConfigKey),
+    ]);
+
+    return {
+      apiKey: keyCfg.value || process.env.OPENAI_API_KEY || '',
+      endpoint: endpointCfg.value || process.env.OPENAI_API_BASE || '',
+      model: modelCfg.value || process.env.AI_TEXT_LINT_MODEL || DEFAULT_MODEL,
+      customPrompt: promptCfg.value || '',
+    };
   }
 
-  public isAiEnabled(): boolean {
-    return this.isEnabled;
+  /**
+   * Whether linting is available (an OpenAI-compatible API key is configured).
+   */
+  public async isAiEnabled(db: DatabaseInstance): Promise<boolean> {
+    const cfg = await this.getConfig(db);
+    return cfg.apiKey.trim().length > 0;
   }
 
   private generateCacheKey(paragraph: string, style: string, level: string): string {
@@ -61,7 +80,7 @@ export class OpenAILintService {
   private cacheSet(key: string, value: LintResponseDto): void {
     this.cache.set(key, {
       value,
-      expiry: Date.now() + this.CACHE_TTL,
+      expiry: Date.now() + CACHE_TTL,
     });
     this.cleanCache();
   }
@@ -85,7 +104,11 @@ export class OpenAILintService {
     }
   }
 
-  private createSystemMessage(style: string, level: string): string {
+  private createSystemMessage(style: string, level: string, customPrompt: string): string {
+    if (customPrompt) {
+      return `${customPrompt}\n\nApply a ${level} level of scrutiny. Return ONLY JSON with this format:\n{\n  "original_paragraph": "the original text",\n  "corrections": [\n    {\n      "start_pos": 0,\n      "end_pos": 4,\n      "original_text": "text with error",\n      "corrected_text": "corrected text",\n      "error_type": "grammar",\n      "recommendation": "explanation of the correction"\n    }\n  ],\n  "style_recommendations": [\n    { "suggestion": "recommendation text", "reason": "reason for recommendation" }\n  ]\n}`;
+    }
+
     return `You are a professional writing assistant specializing in ${style} style.
 Your task is to analyze the provided paragraph and identify:
 1. Grammar, spelling, and punctuation errors
@@ -114,13 +137,21 @@ The JSON must follow this format:
 }`;
   }
 
+  /**
+   * Lint a paragraph by calling the configured OpenAI-compatible endpoint.
+   */
   public async processText(
+    db: DatabaseInstance,
     paragraph: string,
     style: string,
     level: string
   ): Promise<LintResponseDto> {
-    if (!this.isEnabled || !this.openai) {
-      throw new Error('AI linting features are not available. Please configure OPENAI_API_KEY.');
+    const cfg = await this.getConfig(db);
+
+    if (!cfg.apiKey.trim()) {
+      throw new Error(
+        'AI linting features are not available. Please configure an OpenAI-compatible API key.'
+      );
     }
 
     const cacheKey = this.generateCacheKey(paragraph, style, level);
@@ -130,15 +161,23 @@ The JSON must follow this format:
       return cached;
     }
 
-    const systemMsg = this.createSystemMessage(style, level);
+    const systemMsg = this.createSystemMessage(style, level, cfg.customPrompt);
+    const endpoint = cfg.endpoint
+      ? `${cfg.endpoint.replace(/\/+$/, '')}/chat/completions`
+      : 'https://api.openai.com/v1/chat/completions';
 
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      const res = await this.openai.chat.completions.create(
-        {
-          model: this.MODEL,
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${cfg.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: cfg.model,
           messages: [
             { role: 'system', content: systemMsg },
             { role: 'user', content: paragraph },
@@ -147,39 +186,47 @@ The JSON must follow this format:
           temperature: 0.3,
           max_tokens: 512,
           stream: false,
-        },
-        {
-          signal: controller.signal,
-        }
-      );
+        }),
+        signal: controller.signal,
+      });
 
       clearTimeout(timeoutId);
 
-      if (res.choices && res.choices.length > 0) {
-        const content = res.choices[0].message.content;
-        if (!content) {
-          throw new Error('Empty response from OpenAI');
-        }
-
-        const parsedResponse = JSON.parse(content) as LintResponseDto;
-        parsedResponse.source = 'openai';
-
-        this.cacheSet(cacheKey, parsedResponse);
-        return parsedResponse;
-      } else {
-        throw new Error('No choices returned from OpenAI');
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`OpenAI-compatible API error (${res.status}): ${errorText}`);
       }
+
+      const data = (await res.json()) as {
+        choices: Array<{ message: { content: string } }>;
+      };
+
+      if (!data.choices || data.choices.length === 0) {
+        throw new Error('No choices returned from lint API');
+      }
+
+      const content = data.choices[0].message.content;
+      if (!content) {
+        throw new Error('Empty response from lint API');
+      }
+
+      const parsedResponse = JSON.parse(content) as LintResponseDto;
+      parsedResponse.source = 'openai';
+
+      this.cacheSet(cacheKey, parsedResponse);
+      return parsedResponse;
     } catch (error: unknown) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- OpenAI error structure is complex
-      const err = error as any;
-      if (err.name === 'AbortError') {
-        throw new Error('Linting service timed out after 15 seconds', { cause: error });
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Linting service timed out after 15 seconds', {
+          cause: error,
+        });
       }
-      lintLog.error(`Error calling OpenAI: ${err.message || 'Unknown error'}`);
-      throw new Error('Failed to process text with OpenAI', { cause: error });
+      const errMessage = error instanceof Error ? error.message : 'Unknown error';
+      lintLog.error(`Error calling lint API: ${errMessage}`);
+      throw new Error('Failed to process text with lint API', { cause: error });
     }
   }
 }
 
-// Singleton instance
+// Singleton instance (stateless — reads config from db per request)
 export const openAILintService = new OpenAILintService();

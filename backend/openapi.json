@@ -2307,6 +2307,43 @@
           "name"
         ]
       },
+      "OpenaiCompatibleModelsResponse": {
+        "type": "object",
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Model ID"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Model display name"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          },
+          "cached": {
+            "type": "boolean",
+            "description": "Whether from cache"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "description": "ISO timestamp of last update"
+          }
+        },
+        "required": [
+          "models",
+          "cached"
+        ]
+      },
       "ImageModelsResponse": {
         "type": "object",
         "properties": {
@@ -8699,6 +8736,58 @@
           },
           "502": {
             "description": "Failed to fetch from OpenRouter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/providers/openai/models": {
+      "get": {
+        "tags": [
+          "AI Providers"
+        ],
+        "summary": "Get OpenAI-compatible models",
+        "description": "Fetch available models from the configured OpenAI-compatible endpoint (OpenAI API, Ollama, LM Studio, etc.). Results are cached for 1 hour.",
+        "operationId": "getOpenaiCompatibleModels",
+        "responses": {
+          "200": {
+            "description": "List of available models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenaiCompatibleModelsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "OpenAI-compatible API key not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Failed to fetch from endpoint",
             "content": {
               "application/json": {
                 "schema": {
