@@ -53,6 +53,7 @@ import type { EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { firstValueFrom } from 'rxjs';
 
+import { AutoReviewPanelComponent } from '../auto-review-panel/auto-review-panel.component';
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
 import {
@@ -71,7 +72,6 @@ import {
 } from '../element-ref';
 import { FindInDocumentComponent } from '../find-in-document';
 import { createMediaUrl } from '../image-paste';
-import { LintPanelComponent } from '../lint-panel/lint-panel.component';
 
 @Component({
   selector: 'app-document-element-editor',
@@ -83,7 +83,7 @@ import { LintPanelComponent } from '../lint-panel/lint-panel.component';
     MatSelectModule,
     MatOptionModule,
     DragDropModule,
-    LintPanelComponent,
+    AutoReviewPanelComponent,
     ElementRefPopupComponent,
     ElementRefContextMenuComponent,
     ElementRefTooltipComponent,
@@ -185,8 +185,8 @@ export class DocumentElementEditorComponent
   private readonly cdr = inject(ChangeDetectorRef);
 
   /** Lint panel state */
-  lintPanelOpen = signal(false);
-  lintSuggestionPositions = signal<Record<string, number>>({});
+  autoReviewPanelOpen = signal(false);
+  autoReviewSuggestionPositions = signal<Record<string, number>>({});
 
   readonly syncState = computed(() => {
     return this.documentService.getSyncStatusSignal(this.documentIdSignal())();
@@ -997,7 +997,7 @@ export class DocumentElementEditorComponent
     const handler = () => {
       this.editorScrollTop.set(scrollContainer.scrollTop);
       this.computeCommentPositions();
-      this.computeLintPositions();
+      this.computeAutoReviewPositions();
     };
     scrollContainer.addEventListener('scroll', handler, { passive: true });
     this.editorScrollCleanup = () =>
@@ -1026,24 +1026,24 @@ export class DocumentElementEditorComponent
 
   // ─── Lint Panel ───────────────────────────────────────────────────────
 
-  toggleLintPanel(): void {
-    this.lintPanelOpen.set(!this.lintPanelOpen());
-    if (this.lintPanelOpen() && this.editor?.view) {
-      this.computeLintPositions();
+  toggleAutoReviewPanel(): void {
+    this.autoReviewPanelOpen.set(!this.autoReviewPanelOpen());
+    if (this.autoReviewPanelOpen() && this.editor?.view) {
+      this.computeAutoReviewPositions();
       this.setupEditorScrollListener();
-    } else if (!this.lintPanelOpen() && !this.commentPanelOpen()) {
+    } else if (!this.autoReviewPanelOpen() && !this.commentPanelOpen()) {
       this.teardownEditorScrollListener();
     }
   }
 
-  private refreshLintPanel(): void {
-    if (this.lintPanelOpen() && this.editor?.view) {
-      this.computeLintPositions();
+  private refreshAutoReviewPanel(): void {
+    if (this.autoReviewPanelOpen() && this.editor?.view) {
+      this.computeAutoReviewPositions();
     }
   }
 
   /** Compute Y offsets of each lint mark relative to the editor content top */
-  private computeLintPositions(): void {
+  private computeAutoReviewPositions(): void {
     if (!this.editor?.view) return;
     const view = this.editor.view;
 
@@ -1055,7 +1055,7 @@ export class DocumentElementEditorComponent
     const scrollTop = scrollContainer.scrollTop;
     const containerRect = scrollContainer.getBoundingClientRect();
 
-    const lintType = view.state.schema.marks['lint_error'];
+    const lintType = view.state.schema.marks['auto_review'];
     const positions: Record<string, number> = {};
     const seen = new Set<string>();
 
@@ -1081,29 +1081,33 @@ export class DocumentElementEditorComponent
       });
     }
 
-    this.lintSuggestionPositions.set(positions);
+    this.autoReviewSuggestionPositions.set(positions);
     this.editorContentHeight.set(scrollContainer.scrollHeight);
     this.editorScrollTop.set(scrollTop);
   }
 
   /** Highlight lint marks in the editor when hovering a sidebar suggestion */
-  onLintHover(suggestionId: string | null): void {
+  onAutoReviewHover(suggestionId: string | null): void {
     document
-      .querySelectorAll('.lint-highlight--sidebar-hover')
-      .forEach(el => el.classList.remove('lint-highlight--sidebar-hover'));
+      .querySelectorAll('.auto-review-highlight--sidebar-hover')
+      .forEach(el =>
+        el.classList.remove('auto-review-highlight--sidebar-hover')
+      );
 
     if (suggestionId) {
       document
         .querySelectorAll(`[data-lint-id="${CSS.escape(suggestionId)}"]`)
-        .forEach(el => el.classList.add('lint-highlight--sidebar-hover'));
+        .forEach(el =>
+          el.classList.add('auto-review-highlight--sidebar-hover')
+        );
     }
   }
 
-  onSuggestionAccepted(_id: string): void {
-    this.refreshLintPanel();
+  onAutoReviewSuggestionAccepted(_id: string): void {
+    this.refreshAutoReviewPanel();
   }
 
-  onSuggestionRejected(_id: string): void {
-    this.refreshLintPanel();
+  onAutoReviewSuggestionRejected(_id: string): void {
+    this.refreshAutoReviewPanel();
   }
 }

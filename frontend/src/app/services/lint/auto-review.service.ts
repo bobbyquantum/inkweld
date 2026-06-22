@@ -1,49 +1,42 @@
-import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal, type WritableSignal } from '@angular/core';
 import {
-  LINT_ERROR_MARK_NAME,
-  type LintErrorMarkAttrs,
+  type AutoReviewRequest,
+  AutoReviewRequestLevel,
+  AutoReviewService,
+  type AutoReviewSuggestion,
+  AutoReviewSuggestionSeverity,
+} from '@inkweld/index';
+import {
+  AUTO_REVIEW_MARK_NAME,
+  type AutoReviewMarkAttrs,
 } from '@inkweld/prosemirror/schema';
 import type { Node } from 'prosemirror-model';
 import type { EditorView } from 'prosemirror-view';
 import { firstValueFrom } from 'rxjs';
 
-export interface LintSuggestion {
-  id: string;
-  message: string;
-  suggestion: string;
-  category: string;
-  severity: 'error' | 'warning' | 'suggestion';
-  paragraphStart: number;
-  paragraphEnd: number;
-  originalText: string;
-}
-
-export interface LintReviewResult {
-  suggestions: LintSuggestion[];
-  clearedMarks: number;
-}
+export type { AutoReviewSuggestion };
 
 /**
- * Service for server-side lint review: triggers a review endpoint that
- * reads the Yjs doc, calls the LLM, and inserts `lint_error` marks that
+ * Service for server-side auto-review: triggers a review endpoint that
+ * reads the Yjs doc, calls the LLM, and inserts `auto_review` marks that
  * sync to all clients. Also provides mark-scanning helpers for the
  * sidebar panel.
  */
 @Injectable({
   providedIn: 'root',
 })
-export class LintReviewApiService {
-  private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/v1/projects';
+export class AutoReviewApiService {
+  private readonly autoReviewService = inject(AutoReviewService);
 
   /** Suggestions currently visible in the document (scanned from marks). */
-  readonly activeSuggestions: WritableSignal<LintSuggestion[]> = signal([]);
+  readonly activeSuggestions: WritableSignal<AutoReviewSuggestion[]> = signal(
+    []
+  );
   /** Whether a review is currently in progress. */
   readonly reviewing: WritableSignal<boolean> = signal(false);
 
   /**
-   * Trigger a server-side lint review for the given document.
+   * Trigger a server-side auto-review for the given document.
    * The server inserts marks into the Yjs doc; clients receive them
    * via the normal Yjs sync.
    */
@@ -53,13 +46,30 @@ export class LintReviewApiService {
     docId: string,
     style = 'general',
     level: 'low' | 'medium' | 'high' = 'medium'
-  ): Promise<LintReviewResult> {
+  ): Promise<{ suggestions: AutoReviewSuggestion[]; clearedMarks: number }> {
     this.reviewing.set(true);
     try {
-      const url = `${this.baseUrl}/${username}/${slug}/docs/${docId}/lint/review`;
-      return await firstValueFrom(
-        this.http.post<LintReviewResult>(url, { style, level })
+      const request: AutoReviewRequest = {
+        style,
+        level:
+          level === 'low'
+            ? AutoReviewRequestLevel.Low
+            : level === 'high'
+              ? AutoReviewRequestLevel.High
+              : AutoReviewRequestLevel.Medium,
+      };
+      const result = await firstValueFrom(
+        this.autoReviewService.reviewDocumentAutoReview(
+          username,
+          slug,
+          docId,
+          request
+        )
       );
+      return {
+        suggestions: result.suggestions ?? [],
+        clearedMarks: result.clearedMarks ?? 0,
+      };
     } finally {
       this.reviewing.set(false);
     }
@@ -73,9 +83,11 @@ export class LintReviewApiService {
     suggestionId: string,
     replacement: string
   ): Promise<boolean> {
-    const url = `${this.baseUrl}/${username}/${slug}/docs/${docId}/lint/accept`;
     const result = await firstValueFrom(
-      this.http.post<{ success: boolean }>(url, { suggestionId, replacement })
+      this.autoReviewService.acceptAutoReviewSuggestion(username, slug, docId, {
+        suggestionId,
+        replacement,
+      })
     );
     return result.success;
   }
@@ -87,39 +99,41 @@ export class LintReviewApiService {
     docId: string,
     suggestionId: string
   ): Promise<boolean> {
-    const url = `${this.baseUrl}/${username}/${slug}/docs/${docId}/lint/reject`;
     const result = await firstValueFrom(
-      this.http.post<{ success: boolean }>(url, { suggestionId })
+      this.autoReviewService.rejectAutoReviewSuggestion(username, slug, docId, {
+        suggestionId,
+      })
     );
     return result.success;
   }
 
-  /** Clear all lint marks from the document. */
+  /** Clear all auto-review marks from the document. */
   async clearAllMarks(
     username: string,
     slug: string,
     docId: string
   ): Promise<void> {
-    const url = `${this.baseUrl}/${username}/${slug}/docs/${docId}/lint/clear`;
-    await firstValueFrom(this.http.post<{ success: boolean }>(url, {}));
+    await firstValueFrom(
+      this.autoReviewService.clearAutoReviewMarks(username, slug, docId)
+    );
   }
 
   /**
-   * Scan the editor document for `lint_error` marks and build a
+   * Scan the editor document for `auto_review` marks and build a
    * list of suggestions for the sidebar.
    */
-  scanDocumentMarks(view: EditorView): LintSuggestion[] {
+  scanDocumentMarks(view: EditorView): AutoReviewSuggestion[] {
     const state = view.state;
-    const lintType = state.schema.marks[LINT_ERROR_MARK_NAME];
-    if (!lintType) return [];
+    const markType = state.schema.marks[AUTO_REVIEW_MARK_NAME];
+    if (!markType) return [];
 
-    const suggestions: LintSuggestion[] = [];
+    const suggestions: AutoReviewSuggestion[] = [];
     const seen = new Set<string>();
 
     state.doc.descendants((node: Node, pos: number) => {
       for (const mark of node.marks) {
-        if (mark.type === lintType) {
-          const attrs = mark.attrs as LintErrorMarkAttrs;
+        if (mark.type === markType) {
+          const attrs = mark.attrs as AutoReviewMarkAttrs;
           if (attrs.id && !seen.has(attrs.id)) {
             seen.add(attrs.id);
             suggestions.push({
@@ -127,7 +141,12 @@ export class LintReviewApiService {
               message: attrs.message,
               suggestion: attrs.suggestion,
               category: attrs.category,
-              severity: attrs.severity,
+              severity:
+                attrs.severity === 'error'
+                  ? AutoReviewSuggestionSeverity.Error
+                  : attrs.severity === 'warning'
+                    ? AutoReviewSuggestionSeverity.Warning
+                    : AutoReviewSuggestionSeverity.Suggestion,
               paragraphStart: pos,
               paragraphEnd: pos + node.nodeSize,
               originalText: node.textContent.slice(0, 100),

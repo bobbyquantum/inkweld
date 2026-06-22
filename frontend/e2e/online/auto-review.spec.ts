@@ -1,15 +1,15 @@
 /**
- * AI Lint Review E2E Tests — Online Mode
+ * AI Auto-Review E2E Tests — Online Mode
  *
- * Tests the new server-side mark-based lint architecture:
- * - Open the lint panel sidebar via the toolbar
- * - Click "Review" to trigger the server-side lint endpoint
- * - Suggestions appear as lint_error marks (highlighted in the editor)
+ * Tests the new server-side mark-based Auto-Review architecture:
+ * - Open the Auto-Review panel sidebar via the toolbar
+ * - Click "Review" to trigger the server-side Auto-Review endpoint
+ * - Suggestions appear as Auto-Review_error marks (highlighted in the editor)
  * - Accept a suggestion replaces the text + removes the mark
  * - Reject a suggestion removes the mark (keeps text)
  *
- * The backend lint endpoint is faked via page.route so no real LLM call is
- * made. The fake response triggers the backend to insert lint_error marks
+ * The backend Auto-Review endpoint is faked via page.route so no real LLM call is
+ * made. The fake response triggers the backend to insert Auto-Review_error marks
  * into the Yjs doc, which sync to the editor via the normal Yjs sync.
  */
 
@@ -58,10 +58,10 @@ async function createProjectAndOpenEditor(
 }
 
 /**
- * Intercept the lint review endpoint and return a canned result.
+ * Intercept the Auto-Review review endpoint and return a canned result.
  * The backend would normally insert marks into the Yjs doc, but since
  * we're faking the HTTP response, the marks won't be inserted. Instead,
- * we directly insert lint_error marks via a client-side script after
+ * we directly insert Auto-Review_error marks via a client-side script after
  * the review call returns, simulating what the server would have done.
  *
  * Returns a cleanup function.
@@ -93,10 +93,10 @@ async function interceptReview(
     });
   };
 
-  await page.route('**/api/v1/projects/**/lint/review', handler);
+  await page.route('**/api/v1/projects/**/auto-review/review', handler);
 
   return async () => {
-    await page.unroute('**/api/v1/projects/**/lint/review', handler);
+    await page.unroute('**/api/v1/projects/**/auto-review/review', handler);
   };
 }
 
@@ -112,12 +112,12 @@ async function interceptAccept(page: Page): Promise<() => Promise<void>> {
     });
   };
 
-  await page.route('**/api/v1/projects/**/lint/accept', handler);
-  await page.route('**/api/v1/projects/**/lint/reject', handler);
+  await page.route('**/api/v1/projects/**/auto-review/accept', handler);
+  await page.route('**/api/v1/projects/**/auto-review/reject', handler);
 
   return async () => {
-    await page.unroute('**/api/v1/projects/**/lint/accept', handler);
-    await page.unroute('**/api/v1/projects/**/lint/reject', handler);
+    await page.unroute('**/api/v1/projects/**/auto-review/accept', handler);
+    await page.unroute('**/api/v1/projects/**/auto-review/reject', handler);
   };
 }
 
@@ -125,13 +125,13 @@ async function interceptAccept(page: Page): Promise<() => Promise<void>> {
 // Tests
 // ---------------------------------------------------------------------------
 
-test.describe('AI Lint Review — Online Mode', () => {
+test.describe('AI Auto-Review — Online Mode', () => {
   test.describe.configure({ timeout: 90_000 });
 
   test('review button triggers panel and suggestions appear', async ({
     authenticatedPage: page,
   }) => {
-    const slug = `lint-${Date.now()}`;
+    const slug = `Auto-Review-${Date.now()}`;
     const flagged = 'teh';
     const correction = 'the';
 
@@ -145,28 +145,28 @@ test.describe('AI Lint Review — Online Mode', () => {
     await expect(editor).toBeVisible();
     await editor.fill(`This is ${flagged} test sentence.`);
 
-    // Open the lint panel via the toolbar.
-    await page.getByTestId('toolbar-lint').click();
-    await expect(page.getByTestId('lint-panel')).toBeVisible();
+    // Open the Auto-Review panel via the toolbar.
+    await page.getByTestId('toolbar-auto-review').click();
+    await expect(page.getByTestId('auto-review-panel')).toBeVisible();
 
     // Click the review button.
-    await page.getByTestId('lint-review-btn').click();
+    await page.getByTestId('auto-review-btn').click();
 
     // The panel should show loading state, then the suggestion.
     // Since we faked the HTTP response (marks aren't actually inserted into
     // the Yjs doc by the fake), we check that the review call was made and
     // the loading state appeared. The actual mark insertion is tested in
     // backend unit tests.
-    await expect(page.getByTestId('lint-panel')).toBeVisible();
+    await expect(page.getByTestId('auto-review-panel')).toBeVisible();
 
     await unrouteReview();
     await unrouteAccept();
   });
 
-  test('lint panel shows empty state when no suggestions', async ({
+  test('Auto-Review panel shows empty state when no suggestions', async ({
     authenticatedPage: page,
   }) => {
-    const slug = `lint-empty-${Date.now()}`;
+    const slug = `Auto-Review-empty-${Date.now()}`;
 
     await createProjectAndOpenEditor(page, slug);
 
@@ -174,25 +174,27 @@ test.describe('AI Lint Review — Online Mode', () => {
     await expect(editor).toBeVisible();
     await editor.fill('A clean sentence with no errors.');
 
-    // Open the lint panel.
-    await page.getByTestId('toolbar-lint').click();
-    await expect(page.getByTestId('lint-panel')).toBeVisible();
+    // Open the Auto-Review panel.
+    await page.getByTestId('toolbar-auto-review').click();
+    await expect(page.getByTestId('auto-review-panel')).toBeVisible();
 
     // Should show the empty state.
-    await expect(page.getByTestId('lint-panel-empty')).toBeVisible();
+    await expect(page.getByTestId('auto-review-panel-empty')).toBeVisible();
   });
 
-  test('lint panel can be closed', async ({ authenticatedPage: page }) => {
-    const slug = `lint-close-${Date.now()}`;
+  test('Auto-Review panel can be closed', async ({
+    authenticatedPage: page,
+  }) => {
+    const slug = `Auto-Review-close-${Date.now()}`;
 
     await createProjectAndOpenEditor(page, slug);
 
-    // Open the lint panel.
-    await page.getByTestId('toolbar-lint').click();
-    await expect(page.getByTestId('lint-panel')).toBeVisible();
+    // Open the Auto-Review panel.
+    await page.getByTestId('toolbar-auto-review').click();
+    await expect(page.getByTestId('auto-review-panel')).toBeVisible();
 
     // Close it.
-    await page.getByTestId('lint-panel-close').click();
-    await expect(page.getByTestId('lint-panel')).not.toBeVisible();
+    await page.getByTestId('auto-review-panel-close').click();
+    await expect(page.getByTestId('auto-review-panel')).not.toBeVisible();
   });
 });

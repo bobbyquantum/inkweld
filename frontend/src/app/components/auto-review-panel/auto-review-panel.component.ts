@@ -13,17 +13,17 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
-  LintReviewApiService,
-  type LintSuggestion,
-} from '@services/lint/lint-review-api.service';
+  AutoReviewApiService,
+  type AutoReviewSuggestion,
+} from '@services/lint/auto-review.service';
 import type { EditorView } from 'prosemirror-view';
 
-interface PositionedSuggestion extends LintSuggestion {
+interface PositionedSuggestion extends AutoReviewSuggestion {
   displayTop: number;
 }
 
 @Component({
-  selector: 'app-lint-panel',
+  selector: 'app-auto-review-panel',
   standalone: true,
   imports: [
     MatButtonModule,
@@ -33,11 +33,11 @@ interface PositionedSuggestion extends LintSuggestion {
     MatMenuModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './lint-panel.component.html',
-  styleUrls: ['./lint-panel.component.scss'],
+  templateUrl: './auto-review-panel.component.html',
+  styleUrls: ['./auto-review-panel.component.scss'],
 })
-export class LintPanelComponent {
-  private readonly lintReviewApi = inject(LintReviewApiService);
+export class AutoReviewPanelComponent {
+  private readonly autoReviewApi = inject(AutoReviewApiService);
 
   /** Project coordinates */
   username = input.required<string>();
@@ -64,13 +64,13 @@ export class LintPanelComponent {
   expandedSuggestionId = signal<string | null>(null);
 
   /** Suggestions scanned from the editor document marks. */
-  readonly suggestions = computed<LintSuggestion[]>(() => {
+  readonly suggestions = computed<AutoReviewSuggestion[]>(() => {
     const view = this.editorView();
     if (!view) return [];
-    return this.lintReviewApi.scanDocumentMarks(view);
+    return this.autoReviewApi.scanDocumentMarks(view);
   });
 
-  readonly reviewing = computed(() => this.lintReviewApi.reviewing());
+  readonly reviewing = computed(() => this.autoReviewApi.reviewing());
 
   positionedSuggestions = computed<PositionedSuggestion[]>(() => {
     const suggestions = this.suggestions();
@@ -117,7 +117,7 @@ export class LintPanelComponent {
     }
   }
 
-  onSuggestionClick(suggestion: LintSuggestion): void {
+  onSuggestionClick(suggestion: AutoReviewSuggestion): void {
     const current = this.expandedSuggestionId();
     this.expandedSuggestionId.set(
       current === suggestion.id ? null : suggestion.id
@@ -129,16 +129,19 @@ export class LintPanelComponent {
     const slug = this.slug();
     const docId = this.docId();
     if (!username || !slug || !docId) return;
-    await this.lintReviewApi.reviewDocument(username, slug, docId);
+    await this.autoReviewApi.reviewDocument(username, slug, docId);
   }
 
-  async onAccept(suggestion: LintSuggestion, event: Event): Promise<void> {
+  async onAccept(
+    suggestion: AutoReviewSuggestion,
+    event: Event
+  ): Promise<void> {
     event.stopPropagation();
     const username = this.username();
     const slug = this.slug();
     const docId = this.docId();
     if (!username || !slug || !docId) return;
-    await this.lintReviewApi.acceptSuggestion(
+    await this.autoReviewApi.acceptSuggestion(
       username,
       slug,
       docId,
@@ -149,13 +152,16 @@ export class LintPanelComponent {
     this.suggestionAccepted.emit(suggestion.id);
   }
 
-  async onReject(suggestion: LintSuggestion, event: Event): Promise<void> {
+  async onReject(
+    suggestion: AutoReviewSuggestion,
+    event: Event
+  ): Promise<void> {
     event.stopPropagation();
     const username = this.username();
     const slug = this.slug();
     const docId = this.docId();
     if (!username || !slug || !docId) return;
-    await this.lintReviewApi.rejectSuggestion(
+    await this.autoReviewApi.rejectSuggestion(
       username,
       slug,
       docId,
@@ -170,7 +176,7 @@ export class LintPanelComponent {
     const slug = this.slug();
     const docId = this.docId();
     if (!username || !slug || !docId) return;
-    await this.lintReviewApi.clearAllMarks(username, slug, docId);
+    await this.autoReviewApi.clearAllMarks(username, slug, docId);
   }
 
   onClose(): void {
@@ -181,7 +187,7 @@ export class LintPanelComponent {
     this.suggestionHovered.emit(id);
   }
 
-  getPreview(suggestion: LintSuggestion): string {
+  getPreview(suggestion: AutoReviewSuggestion): string {
     return suggestion.originalText.length > 60
       ? suggestion.originalText.slice(0, 57) + '…'
       : suggestion.originalText;

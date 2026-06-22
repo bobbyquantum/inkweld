@@ -1,14 +1,14 @@
 /**
- * Server-side lint review service.
+ * Server-side auto-review service.
  *
  * Loads a Yjs document, extracts paragraph text with position mapping,
  * calls the OpenAI-compatible LLM for corrections, and surgically
- * applies `lint_error` marks back onto the Y.XmlText nodes via
+ * applies `auto_review` marks back onto the Y.XmlText nodes via
  * `Y.XmlText.format()`. Because mutations happen on the live Y.Doc,
  * the existing `doc.on('update')` listener auto-broadcasts to all
  * connected clients — no extra sync code needed.
  *
- * Re-running a review clears all existing `lint_error` marks first.
+ * Re-running a review clears all existing `auto_review` marks first.
  */
 
 import type * as YModule from 'yjs';
@@ -17,10 +17,10 @@ import { yjsService } from './yjs.service';
 import { logger } from './logger.service';
 import type { DatabaseInstance } from '../types/context';
 
-/** ProseMirror/Yjs mark name for lint errors — must match `LINT_ERROR_MARK_NAME` in @inkweld/prosemirror/schema. */
-const LINT_ERROR_MARK_NAME = 'lint_error';
+/** ProseMirror/Yjs mark name for lint errors — must match `AUTO_REVIEW_MARK_NAME` in @inkweld/prosemirror/schema. */
+const AUTO_REVIEW_MARK_NAME = 'auto_review';
 
-const lintDocLog = logger.child('LintDoc');
+const autoReviewLog = logger.child('AutoReviewDoc');
 
 export interface LintSuggestion {
   id: string;
@@ -141,7 +141,7 @@ function getTextLengthBefore(delta: DeltaOp[], targetOp: DeltaOp): number {
 }
 
 /**
- * Remove all `lint_error` marks from every XmlText in the fragment.
+ * Remove all `auto_review` marks from every XmlText in the fragment.
  * Returns the count of marks removed (approximate — based on delta scan).
  */
 function clearLintMarks(Y: typeof YModule, fragment: YModule.XmlFragment): number {
@@ -171,9 +171,9 @@ function clearMarksFromText(Y: typeof YModule, text: YModule.XmlText): number {
 
   for (const op of delta) {
     const len = op.insert?.length ?? 0;
-    if (op.attributes?.[LINT_ERROR_MARK_NAME]) {
+    if (op.attributes?.[AUTO_REVIEW_MARK_NAME]) {
       // Remove the mark from this run.
-      text.format(offset, len, { [LINT_ERROR_MARK_NAME]: null });
+      text.format(offset, len, { [AUTO_REVIEW_MARK_NAME]: null });
       cleared++;
     }
     offset += len;
@@ -182,7 +182,7 @@ function clearMarksFromText(Y: typeof YModule, text: YModule.XmlText): number {
 }
 
 /**
- * Apply a single suggestion as a `lint_error` mark on the Y.XmlText.
+ * Apply a single suggestion as a `auto_review` mark on the Y.XmlText.
  * Uses `format()` to surgically add the mark without disturbing
  * surrounding text or CRDT object identity.
  */
@@ -213,7 +213,7 @@ function applySuggestionMark(
     // Single XmlText — one format call.
     const length = endEntry.offset - startEntry.offset + 1;
     startEntry.textNode.format(startEntry.offset, length, {
-      [LINT_ERROR_MARK_NAME]: markAttrs,
+      [AUTO_REVIEW_MARK_NAME]: markAttrs,
     });
     return true;
   }
@@ -229,7 +229,7 @@ function applySuggestionMark(
     if (entry.textNode !== currentText) {
       if (currentText) {
         currentText.format(currentStart, currentEnd - currentStart + 1, {
-          [LINT_ERROR_MARK_NAME]: markAttrs,
+          [AUTO_REVIEW_MARK_NAME]: markAttrs,
         });
       }
       currentText = entry.textNode;
@@ -241,15 +241,15 @@ function applySuggestionMark(
   }
   if (currentText) {
     currentText.format(currentStart, currentEnd - currentStart + 1, {
-      [LINT_ERROR_MARK_NAME]: markAttrs,
+      [AUTO_REVIEW_MARK_NAME]: markAttrs,
     });
   }
   return true;
 }
 
-export class LintDocumentService {
+export class AutoReviewService {
   /**
-   * Run a lint review on a document: clear existing lint marks,
+   * Run a auto-review on a document: clear existing auto-review marks,
    * call the LLM per paragraph, apply new marks.
    */
   async reviewDocument(
@@ -261,7 +261,7 @@ export class LintDocumentService {
     const Y = await import('yjs');
 
     if (!(await openAILintService.isAiEnabled(db))) {
-      throw new Error('AI linting is not configured');
+      throw new Error('AI auto-review is not configured');
     }
 
     const sharedDoc = await yjsService.getDocument(documentId);
@@ -269,7 +269,7 @@ export class LintDocumentService {
 
     // Extract paragraphs before mutation.
     const paragraphs = extractParagraphs(Y, fragment);
-    lintDocLog.info(`Reviewing ${paragraphs.length} paragraphs for ${documentId}`);
+    autoReviewLog.info(`Reviewing ${paragraphs.length} paragraphs for ${documentId}`);
 
     // Collect all suggestions first (don't mutate while reading).
     const allSuggestions: LintSuggestion[] = [];
@@ -317,7 +317,7 @@ export class LintDocumentService {
           });
         }
       } catch (err) {
-        lintDocLog.warn(`Failed to lint paragraph ${pIdx}: ${err}`);
+        autoReviewLog.warn(`Failed to lint paragraph ${pIdx}: ${err}`);
       }
     }
 
@@ -335,7 +335,7 @@ export class LintDocumentService {
       }
     });
 
-    lintDocLog.info(
+    autoReviewLog.info(
       `Review complete: ${applied}/${allSuggestions.length} marks applied, ${cleared} cleared`
     );
 
@@ -346,7 +346,7 @@ export class LintDocumentService {
   }
 
   /**
-   * Clear all lint_error marks from a document (used by "dismiss all").
+   * Clear all auto_review marks from a document (used by "dismiss all").
    */
   async clearAllMarks(documentId: string): Promise<number> {
     const Y = await import('yjs');
@@ -381,7 +381,7 @@ export class LintDocumentService {
   }
 
   /**
-   * Reject a suggestion: remove just this lint_error mark (keep text).
+   * Reject a suggestion: remove just this auto_review mark (keep text).
    */
   async rejectSuggestion(documentId: string, suggestionId: string): Promise<boolean> {
     const Y = await import('yjs');
@@ -396,7 +396,7 @@ export class LintDocumentService {
   }
 
   /**
-   * Walk the fragment, find the lint_error mark with matching id,
+   * Walk the fragment, find the auto_review mark with matching id,
    * replace its text content with `replacement` and strip the mark.
    */
   private findAndReplaceMark(
@@ -450,7 +450,7 @@ export class LintDocumentService {
 }
 
 /**
- * Replace the text covered by a lint_error mark with the given id and
+ * Replace the text covered by a auto_review mark with the given id and
  * remove the mark. Returns true if the mark was found and replaced.
  */
 function replaceInText(
@@ -464,17 +464,17 @@ function replaceInText(
 
   for (const op of delta) {
     const len = op.insert?.length ?? 0;
-    const lintMark = op.attributes?.[LINT_ERROR_MARK_NAME];
+    const lintMark = op.attributes?.[AUTO_REVIEW_MARK_NAME];
     if (lintMark && lintMark.id === suggestionId) {
       // Replace text in this run.
       text.delete(offset, len);
       if (replacement) {
         text.insert(offset, replacement, {
           ...op.attributes,
-          [LINT_ERROR_MARK_NAME]: null,
+          [AUTO_REVIEW_MARK_NAME]: null,
         });
       } else {
-        text.format(offset, 0, { [LINT_ERROR_MARK_NAME]: null });
+        text.format(offset, 0, { [AUTO_REVIEW_MARK_NAME]: null });
       }
       return true;
     }
@@ -483,16 +483,16 @@ function replaceInText(
   return false;
 }
 
-/** Remove a lint_error mark with the given id from a single XmlText. */
+/** Remove a auto_review mark with the given id from a single XmlText. */
 function removeFromText(_Y: typeof YModule, text: YModule.XmlText, suggestionId: string): boolean {
   const delta = text.toDelta() as DeltaOp[];
   let offset = 0;
 
   for (const op of delta) {
     const len = op.insert?.length ?? 0;
-    const lintMark = op.attributes?.[LINT_ERROR_MARK_NAME];
+    const lintMark = op.attributes?.[AUTO_REVIEW_MARK_NAME];
     if (lintMark && lintMark.id === suggestionId) {
-      text.format(offset, len, { [LINT_ERROR_MARK_NAME]: null });
+      text.format(offset, len, { [AUTO_REVIEW_MARK_NAME]: null });
       return true;
     }
     offset += len;
@@ -500,4 +500,4 @@ function removeFromText(_Y: typeof YModule, text: YModule.XmlText, suggestionId:
   return false;
 }
 
-export const lintDocumentService = new LintDocumentService();
+export const autoReviewService = new AutoReviewService();

@@ -556,11 +556,11 @@
     </button>
     <button
       ngToolbarWidget
-      value="lint"
-      [attr.aria-pressed]="lintPanelOpen"
-      matTooltip="Lint Review"
-      (click)="toggleLint.emit()"
-      data-testid="toolbar-lint">
+      value="auto-review"
+      [attr.aria-pressed]="autoReviewPanelOpen"
+      matTooltip="Auto-Review"
+      (click)="toggleAutoReview.emit()"
+      data-testid="toolbar-auto-review">
       <mat-icon>spellcheck</mat-icon>
     </button>
   </div>

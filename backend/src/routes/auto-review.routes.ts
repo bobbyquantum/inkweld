@@ -1,8 +1,8 @@
 /**
- * Lint review routes — server-side document linting via Yjs mark insertion.
+ * Auto-review routes — server-side document linting via Yjs mark insertion.
  *
  * These endpoints load the Yjs document, run the OpenAI-compatible LLM
- * on each paragraph, and surgically apply `lint_error` marks back onto
+ * on each paragraph, and surgically apply `auto_review` marks back onto
  * the Y.XmlText nodes. Changes sync to all connected clients via the
  * existing Yjs update listener.
  */
@@ -10,14 +10,14 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
-import { lintDocumentService } from '../services/lint-document.service';
+import { autoReviewService } from '../services/auto-review.service';
 import { openAILintService } from '../services/openai-lint.service';
 import { requireAuth } from '../middleware/auth';
 import { logger } from '../services/logger.service';
 import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
 
-const lintReviewLog = logger.child('LintReview');
+const lintReviewLog = logger.child('AutoReview');
 const lintReviewRoutes = new OpenAPIHono<AppContext>();
 
 lintReviewRoutes.use('*', requireAuth);
@@ -35,7 +35,7 @@ const ReviewRequestSchema = z
       .default('medium')
       .openapi({ example: 'medium', description: 'Level of linting strictness' }),
   })
-  .openapi('LintReviewRequest');
+  .openapi('AutoReviewRequest');
 
 const SuggestionSchema = z
   .object({
@@ -54,37 +54,37 @@ const SuggestionSchema = z
     paragraphEnd: z.number().openapi({ description: 'End offset in paragraph' }),
     originalText: z.string().openapi({ description: 'Original text with the issue' }),
   })
-  .openapi('LintSuggestion');
+  .openapi('AutoReviewSuggestion');
 
 const ReviewResponseSchema = z
   .object({
     suggestions: z.array(SuggestionSchema).openapi({ description: 'Lint suggestions' }),
     clearedMarks: z.number().openapi({ description: 'Number of existing marks that were cleared' }),
   })
-  .openapi('LintReviewResponse');
+  .openapi('AutoReviewResponse');
 
 const SimpleResultSchema = z
   .object({
     success: z.boolean().openapi({ description: 'Whether the operation succeeded' }),
   })
-  .openapi('LintSimpleResult');
+  .openapi('AutoReviewResult');
 
 const ErrorSchema = z
   .object({
     error: z.string().openapi({ example: 'An error occurred', description: 'Error message' }),
   })
-  .openapi('LintReviewError');
+  .openapi('AutoReviewError');
 
 const DocParamsSchema = ProjectPathParamsSchema.extend({
   docId: z.string().openapi({ description: 'Document element ID' }),
 });
 
-// POST /:username/:slug/docs/:docId/lint/review — run a lint review
+// POST /:username/:slug/docs/:docId/auto-review/review — run a auto-review
 const reviewRoute = createRoute({
   method: 'post',
-  path: '/:username/:slug/docs/:docId/lint/review',
-  operationId: 'reviewDocumentLint',
-  tags: ['Linting'],
+  path: '/:username/:slug/docs/:docId/auto-review/review',
+  operationId: 'reviewDocumentAutoReview',
+  tags: ['Auto-Review'],
   request: {
     params: DocParamsSchema,
     body: {
@@ -98,7 +98,7 @@ const reviewRoute = createRoute({
   responses: {
     200: {
       content: { 'application/json': { schema: ReviewResponseSchema } },
-      description: 'Lint review results',
+      description: 'Auto-review results',
     },
     401: {
       content: { 'application/json': { schema: ErrorSchema } },
@@ -114,7 +114,7 @@ const reviewRoute = createRoute({
     },
     503: {
       content: { 'application/json': { schema: ErrorSchema } },
-      description: 'AI linting not configured',
+      description: 'AI auto-review not configured',
     },
   },
 });
@@ -137,7 +137,7 @@ lintReviewRoutes.openapi(reviewRoute, async (c: any) => {
 
   if (!(await openAILintService.isAiEnabled(db))) {
     return c.json(
-      { error: 'AI linting is not configured. Set an OpenAI-compatible API key.' },
+      { error: 'AI auto-review is not configured. Set an OpenAI-compatible API key.' },
       503
     );
   }
@@ -147,7 +147,7 @@ lintReviewRoutes.openapi(reviewRoute, async (c: any) => {
     const { style, level } = ReviewRequestSchema.parse(body);
     const documentId = `${username}:${slug}:${docId}/`;
 
-    const result = await lintDocumentService.reviewDocument(db, documentId, style, level);
+    const result = await autoReviewService.reviewDocument(db, documentId, style, level);
     return c.json(result, 200);
   } catch (error: unknown) {
     lintReviewLog.error('Error in review endpoint', error);
@@ -156,12 +156,12 @@ lintReviewRoutes.openapi(reviewRoute, async (c: any) => {
   }
 });
 
-// POST /:username/:slug/docs/:docId/lint/accept — accept a suggestion
+// POST /:username/:slug/docs/:docId/auto-review/accept — accept a suggestion
 const acceptRoute = createRoute({
   method: 'post',
-  path: '/:username/:slug/docs/:docId/lint/accept',
-  operationId: 'acceptLintSuggestion',
-  tags: ['Linting'],
+  path: '/:username/:slug/docs/:docId/auto-review/accept',
+  operationId: 'acceptAutoReviewSuggestion',
+  tags: ['Auto-Review'],
   request: {
     params: DocParamsSchema,
     body: {
@@ -210,11 +210,7 @@ lintReviewRoutes.openapi(acceptRoute, async (c: any) => {
       replacement: string;
     };
     const documentId = `${username}:${slug}:${docId}/`;
-    const success = await lintDocumentService.acceptSuggestion(
-      documentId,
-      suggestionId,
-      replacement
-    );
+    const success = await autoReviewService.acceptSuggestion(documentId, suggestionId, replacement);
     return c.json({ success }, success ? 200 : 404);
   } catch (error: unknown) {
     lintReviewLog.error('Error accepting suggestion', error);
@@ -222,12 +218,12 @@ lintReviewRoutes.openapi(acceptRoute, async (c: any) => {
   }
 });
 
-// POST /:username/:slug/docs/:docId/lint/reject — reject a suggestion
+// POST /:username/:slug/docs/:docId/auto-review/reject — reject a suggestion
 const rejectRoute = createRoute({
   method: 'post',
-  path: '/:username/:slug/docs/:docId/lint/reject',
-  operationId: 'rejectLintSuggestion',
-  tags: ['Linting'],
+  path: '/:username/:slug/docs/:docId/auto-review/reject',
+  operationId: 'rejectAutoReviewSuggestion',
+  tags: ['Auto-Review'],
   request: {
     params: DocParamsSchema,
     body: {
@@ -272,7 +268,7 @@ lintReviewRoutes.openapi(rejectRoute, async (c: any) => {
     const body = await c.req.json();
     const { suggestionId } = body as { suggestionId: string };
     const documentId = `${username}:${slug}:${docId}/`;
-    const success = await lintDocumentService.rejectSuggestion(documentId, suggestionId);
+    const success = await autoReviewService.rejectSuggestion(documentId, suggestionId);
     return c.json({ success }, success ? 200 : 404);
   } catch (error: unknown) {
     lintReviewLog.error('Error rejecting suggestion', error);
@@ -280,12 +276,12 @@ lintReviewRoutes.openapi(rejectRoute, async (c: any) => {
   }
 });
 
-// POST /:username/:slug/docs/:docId/lint/clear — clear all lint marks
+// POST /:username/:slug/docs/:docId/auto-review/clear — clear all auto-review marks
 const clearRoute = createRoute({
   method: 'post',
-  path: '/:username/:slug/docs/:docId/lint/clear',
-  operationId: 'clearLintMarks',
-  tags: ['Linting'],
+  path: '/:username/:slug/docs/:docId/auto-review/clear',
+  operationId: 'clearAutoReviewMarks',
+  tags: ['Auto-Review'],
   request: {
     params: DocParamsSchema,
   },
@@ -314,7 +310,7 @@ lintReviewRoutes.openapi(clearRoute, async (c: any) => {
   }
 
   const documentId = `${username}:${slug}:${docId}/`;
-  await lintDocumentService.clearAllMarks(documentId);
+  await autoReviewService.clearAllMarks(documentId);
   return c.json({ success: true }, 200);
 });
 

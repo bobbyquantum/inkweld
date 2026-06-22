@@ -130,7 +130,7 @@ describe('Lint Review Routes', () => {
 
   it('should return 404 for non-existent project on review', async () => {
     const { response } = await ownerClient.request(
-      '/api/v1/projects/nonexistent/no-such-project/docs/doc-1/lint/review',
+      '/api/v1/projects/nonexistent/no-such-project/docs/doc-1/auto-review/review',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -158,7 +158,7 @@ describe('Lint Review Routes', () => {
     } as never);
 
     const { response, json } = await ownerClient.request(
-      `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/doc-1/lint/review`,
+      `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/doc-1/auto-review/review`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -173,7 +173,7 @@ describe('Lint Review Routes', () => {
 
   it('should clear all lint marks', async () => {
     const { response, json } = await ownerClient.request(
-      `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/doc-1/lint/clear`,
+      `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/doc-1/auto-review/clear`,
       {
         method: 'POST',
       }
@@ -185,7 +185,7 @@ describe('Lint Review Routes', () => {
 
   it('should accept a suggestion', async () => {
     const { response } = await ownerClient.request(
-      `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/doc-1/lint/accept`,
+      `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/doc-1/auto-review/accept`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -201,7 +201,7 @@ describe('Lint Review Routes', () => {
 
   it('should reject a suggestion', async () => {
     const { response } = await ownerClient.request(
-      `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/doc-1/lint/reject`,
+      `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/doc-1/auto-review/reject`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -214,7 +214,7 @@ describe('Lint Review Routes', () => {
   it('should require authentication', async () => {
     const anonClient = new TestClient(baseUrl);
     const { response } = await anonClient.request(
-      `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/doc-1/lint/review`,
+      `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/doc-1/auto-review/review`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

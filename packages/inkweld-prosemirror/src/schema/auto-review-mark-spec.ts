@@ -1,5 +1,5 @@
 /**
- * Lint error mark specification.
+ * Auto-Review mark specification.
  *
  * Inline mark for highlighting text ranges that have an AI-generated
  * grammar/style suggestion. The mark stores the suggestion metadata
@@ -7,13 +7,13 @@
  * document so it syncs to all collaborators via Yjs and survives
  * reloads.
  *
- * Multiple lint error marks may overlap on the same text range
+ * Multiple auto-review marks may overlap on the same text range
  * (`excludes: ''`), and the mark spans across inline content boundaries.
  */
 
 import { type Mark, type MarkSpec } from 'prosemirror-model';
 
-export interface LintErrorMarkAttrs {
+export interface AutoReviewMarkAttrs {
   /** Stable unique id for this suggestion (used by the sidebar + accept/reject). */
   id: string;
   /** Human-readable description of the issue. */
@@ -26,9 +26,9 @@ export interface LintErrorMarkAttrs {
   severity: 'error' | 'warning' | 'suggestion';
 }
 
-export const LINT_ERROR_MARK_NAME = 'lint_error';
+export const AUTO_REVIEW_MARK_NAME = 'auto_review';
 
-export const lintErrorMarkSpec: MarkSpec = {
+export const autoReviewMarkSpec: MarkSpec = {
   attrs: {
     id: { default: '' },
     message: { default: '' },
@@ -37,21 +37,21 @@ export const lintErrorMarkSpec: MarkSpec = {
     severity: { default: 'suggestion' },
   },
 
-  // Allow multiple lint error marks to coexist on the same text.
+  // Allow multiple auto-review marks to coexist on the same text.
   excludes: '',
   spanning: true,
 
   parseDOM: [
     {
-      tag: 'span[data-lint-id]',
-      getAttrs(dom: HTMLElement): LintErrorMarkAttrs {
+      tag: 'span[data-auto-review-id]',
+      getAttrs(dom: HTMLElement): AutoReviewMarkAttrs {
         return {
-          id: dom.dataset['lintId'] || '',
-          message: dom.dataset['lintMessage'] || '',
-          suggestion: dom.dataset['lintSuggestion'] || '',
-          category: dom.dataset['lintCategory'] || 'grammar',
+          id: dom.dataset['autoReviewId'] || '',
+          message: dom.dataset['autoReviewMessage'] || '',
+          suggestion: dom.dataset['autoReviewSuggestion'] || '',
+          category: dom.dataset['autoReviewCategory'] || 'grammar',
           severity:
-            (dom.dataset['lintSeverity'] as LintErrorMarkAttrs['severity']) ||
+            (dom.dataset['autoReviewSeverity'] as AutoReviewMarkAttrs['severity']) ||
             'suggestion',
         };
       },
@@ -59,21 +59,21 @@ export const lintErrorMarkSpec: MarkSpec = {
   ],
 
   toDOM(mark: Mark) {
-    const attrs = mark.attrs as LintErrorMarkAttrs;
+    const attrs = mark.attrs as AutoReviewMarkAttrs;
     const classes = [
-      'lint-highlight',
-      `lint-highlight--${attrs.severity}`,
+      'auto-review-highlight',
+      `auto-review-highlight--${attrs.severity}`,
     ]
       .filter(Boolean)
       .join(' ');
 
     const domAttrs: Record<string, string> = {
       class: classes,
-      'data-lint-id': attrs.id || '',
-      'data-lint-message': attrs.message || '',
-      'data-lint-suggestion': attrs.suggestion || '',
-      'data-lint-category': attrs.category || 'grammar',
-      'data-lint-severity': attrs.severity || 'suggestion',
+      'data-auto-review-id': attrs.id || '',
+      'data-auto-review-message': attrs.message || '',
+      'data-auto-review-suggestion': attrs.suggestion || '',
+      'data-auto-review-category': attrs.category || 'grammar',
+      'data-auto-review-severity': attrs.severity || 'suggestion',
     };
 
     return ['span', domAttrs, 0];

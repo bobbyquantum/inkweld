@@ -1,16 +1,18 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { LintPanelComponent } from './lint-panel.component';
-import { LintReviewApiService } from '@services/lint/lint-review-api.service';
+import { AutoReviewSuggestionSeverity } from '@inkweld/index';
+import { AutoReviewPanelComponent } from './auto-review-panel.component';
+import {
+  AutoReviewApiService,
+  type AutoReviewSuggestion,
+} from '@services/lint/auto-review.service';
 
-describe('LintPanelComponent', () => {
-  let component: LintPanelComponent;
-  let mockLintReviewApi: Partial<LintReviewApiService>;
+describe('AutoReviewPanelComponent', () => {
+  let component: AutoReviewPanelComponent;
+  let mockAutoReviewApi: Partial<AutoReviewApiService>;
 
   beforeEach(async () => {
-    mockLintReviewApi = {
+    mockAutoReviewApi = {
       reviewing: signal(false),
       scanDocumentMarks: vi.fn().mockReturnValue([]),
       reviewDocument: vi
@@ -22,16 +24,14 @@ describe('LintPanelComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [LintPanelComponent],
+      imports: [AutoReviewPanelComponent],
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: LintReviewApiService, useValue: mockLintReviewApi },
+        { provide: AutoReviewApiService, useValue: mockAutoReviewApi },
       ],
     }).compileComponents();
 
-    const fixture = TestBed.createComponent(LintPanelComponent);
+    const fixture = TestBed.createComponent(AutoReviewPanelComponent);
     component = fixture.componentInstance;
     fixture.componentRef.setInput('username', 'testuser');
     fixture.componentRef.setInput('slug', 'test-slug');
@@ -45,8 +45,6 @@ describe('LintPanelComponent', () => {
   });
 
   it('should show empty state when no suggestions', () => {
-    const nativeEl = TestBed.createComponent(LintPanelComponent).nativeElement;
-    // The component renders; the signal-based computed returns [] by default
     expect(component.suggestions()).toEqual([]);
   });
 
@@ -69,7 +67,7 @@ describe('LintPanelComponent', () => {
       message: 'msg',
       suggestion: 'sug',
       category: 'grammar',
-      severity: 'suggestion',
+      severity: AutoReviewSuggestionSeverity.Suggestion,
       paragraphStart: 0,
       paragraphEnd: 10,
       originalText: longText,
@@ -84,7 +82,7 @@ describe('LintPanelComponent', () => {
       message: 'msg',
       suggestion: 'sug',
       category: 'grammar',
-      severity: 'suggestion',
+      severity: AutoReviewSuggestionSeverity.Suggestion,
       paragraphStart: 0,
       paragraphEnd: 10,
       originalText: 'short text',
@@ -93,12 +91,12 @@ describe('LintPanelComponent', () => {
   });
 
   it('should toggle expanded suggestion on click', () => {
-    const suggestion = {
+    const suggestion: AutoReviewSuggestion = {
       id: 'sug-1',
       message: 'fix',
       suggestion: 'fixed',
       category: 'grammar',
-      severity: 'suggestion' as const,
+      severity: AutoReviewSuggestionSeverity.Suggestion,
       paragraphStart: 0,
       paragraphEnd: 5,
       originalText: 'test',
@@ -111,7 +109,7 @@ describe('LintPanelComponent', () => {
 
   it('should call reviewDocument on review', async () => {
     await component.onReview();
-    expect(mockLintReviewApi.reviewDocument).toHaveBeenCalledWith(
+    expect(mockAutoReviewApi.reviewDocument).toHaveBeenCalledWith(
       'testuser',
       'test-slug',
       'doc-1'
@@ -119,19 +117,19 @@ describe('LintPanelComponent', () => {
   });
 
   it('should call acceptSuggestion on accept', async () => {
-    const suggestion = {
+    const suggestion: AutoReviewSuggestion = {
       id: 'sug-1',
       message: 'fix',
       suggestion: 'fixed',
       category: 'grammar',
-      severity: 'suggestion' as const,
+      severity: AutoReviewSuggestionSeverity.Suggestion,
       paragraphStart: 0,
       paragraphEnd: 5,
       originalText: 'test',
     };
     const event = { stopPropagation: vi.fn() } as unknown as Event;
     await component.onAccept(suggestion, event);
-    expect(mockLintReviewApi.acceptSuggestion).toHaveBeenCalledWith(
+    expect(mockAutoReviewApi.acceptSuggestion).toHaveBeenCalledWith(
       'testuser',
       'test-slug',
       'doc-1',
@@ -141,19 +139,19 @@ describe('LintPanelComponent', () => {
   });
 
   it('should call rejectSuggestion on reject', async () => {
-    const suggestion = {
+    const suggestion: AutoReviewSuggestion = {
       id: 'sug-1',
       message: 'fix',
       suggestion: 'fixed',
       category: 'grammar',
-      severity: 'suggestion' as const,
+      severity: AutoReviewSuggestionSeverity.Suggestion,
       paragraphStart: 0,
       paragraphEnd: 5,
       originalText: 'test',
     };
     const event = { stopPropagation: vi.fn() } as unknown as Event;
     await component.onReject(suggestion, event);
-    expect(mockLintReviewApi.rejectSuggestion).toHaveBeenCalledWith(
+    expect(mockAutoReviewApi.rejectSuggestion).toHaveBeenCalledWith(
       'testuser',
       'test-slug',
       'doc-1',
@@ -163,7 +161,7 @@ describe('LintPanelComponent', () => {
 
   it('should call clearAllMarks on clear all', async () => {
     await component.onClearAll();
-    expect(mockLintReviewApi.clearAllMarks).toHaveBeenCalledWith(
+    expect(mockAutoReviewApi.clearAllMarks).toHaveBeenCalledWith(
       'testuser',
       'test-slug',
       'doc-1'

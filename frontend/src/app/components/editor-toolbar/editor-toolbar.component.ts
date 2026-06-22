@@ -95,8 +95,8 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
   /** Whether the comment panel is currently open */
   @Input() commentPanelOpen = false;
 
-  /** Whether the lint panel is currently open */
-  @Input() lintPanelOpen = false;
+  /** Whether the auto-review panel is currently open */
+  @Input() autoReviewPanelOpen = false;
 
   /** Emitted when the insert image button is clicked */
   @Output() insertImageClick = new EventEmitter<void>();
@@ -107,8 +107,8 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
   /** Emitted when the comment toggle button is clicked */
   @Output() toggleComments = new EventEmitter<void>();
 
-  /** Emitted when the lint panel toggle button is clicked */
-  @Output() toggleLint = new EventEmitter<void>();
+  /** Emitted when the auto-review panel toggle button is clicked */
+  @Output() toggleAutoReview = new EventEmitter<void>();
 
   /** Reference to the toolbar host element */
   @ViewChild('toolbarEl', { static: true }) toolbarEl!: ElementRef<HTMLElement>;

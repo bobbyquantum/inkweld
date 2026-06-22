@@ -13,11 +13,11 @@
           [editor]="editor"
           [disabled]="!projectState.canWrite()"
           [commentPanelOpen]="commentPanelOpen()"
-          [lintPanelOpen]="lintPanelOpen()"
+          [autoReviewPanelOpen]="autoReviewPanelOpen()"
           (insertImageClick)="openInsertImageDialog()"
           (insertLinkClick)="openInsertLinkDialog()"
           (toggleComments)="toggleCommentPanel()"
-          (toggleLint)="toggleLintPanel()">
+          (toggleLint)="toggleAutoReviewPanel()">
         </app-editor-toolbar>
       }
       <div
@@ -111,23 +111,23 @@
     }
 
     <!-- Lint Panel - shown when user toggles lint review -->
-    @if (!zenMode && lintPanelOpen()) {
-      <div class="lint-panel-container">
-        <app-lint-panel
+    @if (!zenMode && autoReviewPanelOpen()) {
+      <div class="auto-review-panel-container">
+        <app-auto-review-panel
           [username]="projectState.project()?.username ?? ''"
           [slug]="projectState.project()?.slug ?? ''"
           [docId]="bareElementId()"
           [editorView]="editor?.view ?? null"
-          [isOpen]="lintPanelOpen()"
+          [isOpen]="autoReviewPanelOpen()"
           [canWrite]="projectState.canWrite()"
-          [suggestionPositions]="lintSuggestionPositions()"
+          [suggestionPositions]="autoReviewSuggestionPositions()"
           [editorScrollTop]="editorScrollTop()"
           [editorContentHeight]="editorContentHeight()"
-          (closed)="lintPanelOpen.set(false)"
-          (suggestionAccepted)="onSuggestionAccepted($event)"
-          (suggestionRejected)="onSuggestionRejected($event)"
-          (suggestionHovered)="onLintHover($event)">
-        </app-lint-panel>
+          (closed)="autoReviewPanelOpen.set(false)"
+          (suggestionAccepted)="onAutoReviewSuggestionAccepted($event)"
+          (suggestionRejected)="onAutoReviewSuggestionRejected($event)"
+          (suggestionHovered)="onAutoReviewHover($event)">
+        </app-auto-review-panel>
       </div>
     }
   </div>

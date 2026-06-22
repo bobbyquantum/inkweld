@@ -1,5 +1,5 @@
 /**
- * Unit tests for LintDocumentService — server-side lint review via Yjs marks.
+ * Unit tests for AutoReviewService — server-side lint review via Yjs marks.
  *
  * Bypasses LevelDB by mocking yjsService.getDocument() to return an in-memory
  * Y.Doc. Mocks openAILintService.processText() to return deterministic
@@ -13,10 +13,10 @@ import type { DatabaseInstance } from '../src/types/context';
 // Import the service (uses dynamic `await import('yjs')` internally, but
 // Bun's module cache returns the same singleton as `import * as Y` above).
 const { yjsService } = await import('../src/services/yjs.service');
-const { lintDocumentService } = await import('../src/services/lint-document.service');
+const { autoReviewService } = await import('../src/services/auto-review.service');
 const { openAILintService } = await import('../src/services/openai-lint.service');
 
-const LINT_MARK = 'lint_error';
+const LINT_MARK = 'auto_review';
 
 /** Build a Y.Doc with a prosemirror fragment containing a single paragraph. */
 function makeDocWithParagraph(text: string): Y.Doc {
@@ -43,7 +43,7 @@ function makeDocWithTwoParagraphs(text1: string, text2: string): Y.Doc {
   return ydoc;
 }
 
-/** Read all lint_error marks from a fragment's text nodes. */
+/** Read all auto_review marks from a fragment's text nodes. */
 function readLintMarks(fragment: Y.XmlFragment): Array<{
   id: string;
   message: string;
@@ -81,7 +81,7 @@ function readLintMarks(fragment: Y.XmlFragment): Array<{
 
 const fakeDb = {} as DatabaseInstance;
 
-describe('LintDocumentService', () => {
+describe('AutoReviewService', () => {
   let getDocumentSpy: ReturnType<typeof spyOn>;
   let processTextSpy: ReturnType<typeof spyOn>;
   let isAiEnabledSpy: ReturnType<typeof spyOn>;
@@ -97,7 +97,7 @@ describe('LintDocumentService', () => {
   });
 
   describe('reviewDocument', () => {
-    it('should apply lint_error marks for each correction', async () => {
+    it('should apply auto_review marks for each correction', async () => {
       const ydoc = makeDocWithParagraph('This are a test.');
       const fragment = ydoc.getXmlFragment('prosemirror');
 
@@ -125,7 +125,7 @@ describe('LintDocumentService', () => {
         source: 'openai',
       } as never);
 
-      const result = await lintDocumentService.reviewDocument(
+      const result = await autoReviewService.reviewDocument(
         fakeDb,
         'test:doc',
         'general',
@@ -176,7 +176,7 @@ describe('LintDocumentService', () => {
         source: 'openai',
       } as never);
 
-      const result = await lintDocumentService.reviewDocument(
+      const result = await autoReviewService.reviewDocument(
         fakeDb,
         'test:doc',
         'general',
@@ -227,7 +227,7 @@ describe('LintDocumentService', () => {
         }
       );
 
-      const result = await lintDocumentService.reviewDocument(
+      const result = await autoReviewService.reviewDocument(
         fakeDb,
         'test:doc',
         'general',
@@ -265,7 +265,7 @@ describe('LintDocumentService', () => {
         source: 'openai',
       } as never);
 
-      const result = await lintDocumentService.reviewDocument(
+      const result = await autoReviewService.reviewDocument(
         fakeDb,
         'test:doc',
         'general',
@@ -275,7 +275,7 @@ describe('LintDocumentService', () => {
       expect(result.suggestions).toHaveLength(0);
     });
 
-    it('should throw when AI linting is not configured', async () => {
+    it('should throw when AI auto-review is not configured', async () => {
       isAiEnabledSpy.mockResolvedValue(false);
       getDocumentSpy = spyOn(yjsService, 'getDocument').mockResolvedValue({
         name: 'test:doc',
@@ -286,13 +286,13 @@ describe('LintDocumentService', () => {
       });
 
       await expect(
-        lintDocumentService.reviewDocument(fakeDb, 'test:doc', 'general', 'medium')
-      ).rejects.toThrow('AI linting is not configured');
+        autoReviewService.reviewDocument(fakeDb, 'test:doc', 'general', 'medium')
+      ).rejects.toThrow('AI auto-review is not configured');
     });
   });
 
   describe('clearAllMarks', () => {
-    it('should remove all lint_error marks', async () => {
+    it('should remove all auto_review marks', async () => {
       const ydoc = makeDocWithParagraph('Test text here.');
       const fragment = ydoc.getXmlFragment('prosemirror');
       const ytext = (fragment.get(0) as Y.XmlElement).get(0) as Y.XmlText;
@@ -316,7 +316,7 @@ describe('LintDocumentService', () => {
         wsUserIds: new Map(),
       });
 
-      const cleared = await lintDocumentService.clearAllMarks('test:doc');
+      const cleared = await autoReviewService.clearAllMarks('test:doc');
       expect(cleared).toBe(1);
       expect(readLintMarks(fragment)).toHaveLength(0);
     });
@@ -345,7 +345,7 @@ describe('LintDocumentService', () => {
         wsUserIds: new Map(),
       });
 
-      const success = await lintDocumentService.rejectSuggestion('test:doc', 'sug-1');
+      const success = await autoReviewService.rejectSuggestion('test:doc', 'sug-1');
       expect(success).toBe(true);
       expect(readLintMarks(fragment)).toHaveLength(0);
     });
@@ -361,7 +361,7 @@ describe('LintDocumentService', () => {
         wsUserIds: new Map(),
       });
 
-      const success = await lintDocumentService.rejectSuggestion('test:doc', 'nonexistent');
+      const success = await autoReviewService.rejectSuggestion('test:doc', 'nonexistent');
       expect(success).toBe(false);
     });
   });
@@ -389,7 +389,7 @@ describe('LintDocumentService', () => {
         wsUserIds: new Map(),
       });
 
-      const success = await lintDocumentService.acceptSuggestion(
+      const success = await autoReviewService.acceptSuggestion(
         'test:doc',
         'sug-1',
         'These'
@@ -414,7 +414,7 @@ describe('LintDocumentService', () => {
         wsUserIds: new Map(),
       });
 
-      const success = await lintDocumentService.acceptSuggestion(
+      const success = await autoReviewService.acceptSuggestion(
         'test:doc',
         'nonexistent',
         'replacement'
