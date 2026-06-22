@@ -182,9 +182,7 @@ test.describe('AI Lint Review — Online Mode', () => {
     await expect(page.getByTestId('lint-panel-empty')).toBeVisible();
   });
 
-  test('lint panel can be closed', async ({
-    authenticatedPage: page,
-  }) => {
+  test('lint panel can be closed', async ({ authenticatedPage: page }) => {
     const slug = `lint-close-${Date.now()}`;
 
     await createProjectAndOpenEditor(page, slug);
