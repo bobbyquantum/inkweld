@@ -18,8 +18,10 @@
         <mat-spinner diameter="18"></mat-spinner>
         <span>Syncing…</span>
       } @else {
-        <mat-icon>sync</mat-icon>
-        <span>Sync Project</span>
+        <ng-container>
+          <mat-icon>sync</mat-icon>
+          <span>Sync Project</span>
+        </ng-container>
       }
     </button>
   </div>
