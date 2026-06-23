@@ -168,7 +168,26 @@ The JSON must follow this format:
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const body: Record<string, unknown> = {
+        model: cfg.model,
+        messages: [
+          { role: 'system', content: systemMsg },
+          { role: 'user', content: paragraph },
+        ],
+        temperature: 0.3,
+        max_tokens: 2048,
+        stream: false,
+      };
+
+      // response_format: { type: 'json_object' } is OpenAI-specific and not
+      // supported by all OpenAI-compatible servers (e.g. Ollama). Only send it
+      // when the endpoint looks like OpenAI (no custom endpoint configured, or
+      // the endpoint contains "openai.com").
+      if (!cfg.endpoint || cfg.endpoint.includes('openai.com')) {
+        body['response_format'] = { type: 'json_object' };
+      }
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -176,17 +195,7 @@ The JSON must follow this format:
           Authorization: `Bearer ${cfg.apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: cfg.model,
-          messages: [
-            { role: 'system', content: systemMsg },
-            { role: 'user', content: paragraph },
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.3,
-          max_tokens: 512,
-          stream: false,
-        }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
 
