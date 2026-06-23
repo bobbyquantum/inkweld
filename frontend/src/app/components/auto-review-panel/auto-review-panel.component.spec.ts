@@ -1,11 +1,12 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AutoReviewSuggestionSeverity } from '@inkweld/index';
-import { AutoReviewPanelComponent } from './auto-review-panel.component';
 import {
   AutoReviewApiService,
   type AutoReviewSuggestion,
 } from '@services/lint/auto-review.service';
+
+import { AutoReviewPanelComponent } from './auto-review-panel.component';
 
 describe('AutoReviewPanelComponent', () => {
   let component: AutoReviewPanelComponent;

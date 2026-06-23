@@ -200,32 +200,30 @@ describe('AutoReviewService', () => {
       });
 
       let callCount = 0;
-      processTextSpy = spyOn(openAILintService, 'processText').mockImplementation(
-        async () => {
-          callCount++;
-          // Paragraphs are in reverse insert order: 'Second paragraph.' is
-          // paragraph 0, 'First paragraph.' is paragraph 1.
-          const text = callCount === 1 ? 'Second paragraph.' : 'First paragraph.';
-          return {
-            original_paragraph: text,
-            corrections:
-              callCount === 2
-                ? [
-                    {
-                      start_pos: 0,
-                      end_pos: 5,
-                      original_text: 'First',
-                      corrected_text: 'Firstly',
-                      error_type: 'style',
-                      recommendation: 'Better transition',
-                    },
-                  ]
-                : [],
-            style_recommendations: [],
-            source: 'openai',
-          } as never;
-        }
-      );
+      processTextSpy = spyOn(openAILintService, 'processText').mockImplementation(async () => {
+        callCount++;
+        // Paragraphs are in reverse insert order: 'Second paragraph.' is
+        // paragraph 0, 'First paragraph.' is paragraph 1.
+        const text = callCount === 1 ? 'Second paragraph.' : 'First paragraph.';
+        return {
+          original_paragraph: text,
+          corrections:
+            callCount === 2
+              ? [
+                  {
+                    start_pos: 0,
+                    end_pos: 5,
+                    original_text: 'First',
+                    corrected_text: 'Firstly',
+                    error_type: 'style',
+                    recommendation: 'Better transition',
+                  },
+                ]
+              : [],
+          style_recommendations: [],
+          source: 'openai',
+        } as never;
+      });
 
       const result = await autoReviewService.reviewDocument(
         fakeDb,
@@ -389,11 +387,7 @@ describe('AutoReviewService', () => {
         wsUserIds: new Map(),
       });
 
-      const success = await autoReviewService.acceptSuggestion(
-        'test:doc',
-        'sug-1',
-        'These'
-      );
+      const success = await autoReviewService.acceptSuggestion('test:doc', 'sug-1', 'These');
       expect(success).toBe(true);
 
       // Check that the text was replaced

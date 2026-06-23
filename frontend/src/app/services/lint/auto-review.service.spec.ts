@@ -1,8 +1,9 @@
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AutoReviewService } from '@inkweld/index';
-import { AutoReviewApiService } from './auto-review.service';
 import { AUTO_REVIEW_MARK_NAME } from '@inkweld/prosemirror/schema';
+
+import { AutoReviewApiService } from './auto-review.service';
 
 // Minimal prosemirror mocks for scanDocumentMarks
 // Use the same object reference so `mark.type === markType` passes
