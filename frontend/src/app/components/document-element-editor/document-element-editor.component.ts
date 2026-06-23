@@ -336,14 +336,13 @@ export class DocumentElementEditorComponent
       }
     });
 
-    // When a review finishes (reviewing goes false), re-scan marks and
-    // recompute positions so the panel shows the new suggestions.
+    // When a review finishes (reviewing goes false), tick the doc version so
+    // the panel re-scans marks. Use rAF so Yjs sync has applied the marks.
     effect(() => {
       const isReviewing = this.autoReviewApi.reviewing();
-      if (!isReviewing && this.autoReviewPanelOpen() && this.editor?.view) {
-        // Use rAF so the Yjs sync has a chance to apply the mark updates
-        // before we scan the doc.
+      if (!isReviewing && this.autoReviewPanelOpen()) {
         requestAnimationFrame(() => {
+          this.autoReviewApi.tickDocVersion();
           this.refreshAutoReviewPanel();
         });
       }
@@ -443,6 +442,7 @@ export class DocumentElementEditorComponent
             // Subscribe to editor updates so the auto-review panel re-scans
             // marks when the Yjs doc changes (e.g. server inserts review marks).
             this.editorUpdateSub = this.editor.update.subscribe(() => {
+              this.autoReviewApi.tickDocVersion();
               if (this.autoReviewPanelOpen()) {
                 this.refreshAutoReviewPanel();
               }

@@ -63,13 +63,11 @@ export class AutoReviewPanelComponent {
 
   expandedSuggestionId = signal<string | null>(null);
 
-  /** Bumped on every editor doc change so the computed re-scans marks. */
-  private readonly docVersion = signal(0);
-
-  /** Suggestions scanned from the editor document marks. */
+  /** Suggestions scanned from the editor document marks. Re-evaluates when
+   *  the shared service's docVersion bumps (editor update / Yjs sync). */
   readonly suggestions = computed<AutoReviewSuggestion[]>(() => {
     const view = this.editorView();
-    this.docVersion(); // dependency — re-evaluates when bumped
+    this.autoReviewApi.docVersion(); // dependency
     if (!view) return [];
     return this.autoReviewApi.scanDocumentMarks(view);
   });
@@ -195,10 +193,5 @@ export class AutoReviewPanelComponent {
     return suggestion.originalText.length > 60
       ? suggestion.originalText.slice(0, 57) + '…'
       : suggestion.originalText;
-  }
-
-  /** Called by the parent editor component when the doc changes (Yjs sync). */
-  refresh(): void {
-    this.docVersion.update(v => v + 1);
   }
 }

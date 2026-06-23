@@ -35,6 +35,15 @@ export class AutoReviewApiService {
   /** Whether a review is currently in progress. */
   readonly reviewing: WritableSignal<boolean> = signal(false);
 
+  /** Bumped whenever the doc changes (editor update or review completion) so
+   *  the panel's suggestions computed re-scans marks from the ProseMirror doc. */
+  readonly docVersion: WritableSignal<number> = signal(0);
+
+  /** Called by the editor on every doc update / Yjs sync so consumers re-scan. */
+  tickDocVersion(): void {
+    this.docVersion.update(v => v + 1);
+  }
+
   /**
    * Trigger a server-side auto-review for the given document.
    * The server inserts marks into the Yjs doc; clients receive them
