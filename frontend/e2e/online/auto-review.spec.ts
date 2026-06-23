@@ -41,7 +41,7 @@ async function createProjectAndOpenEditor(
   await nextButton.waitFor();
   await nextButton.click();
 
-  await page.getByTestId('project-title-input').fill('Lint Test');
+  await page.getByTestId('project-title-input').fill('Auto-Review Test');
   await page.getByTestId('project-slug-input').fill(slug);
   await page.getByTestId('create-project-button').click();
 
@@ -131,7 +131,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('review button triggers panel and suggestions appear', async ({
     authenticatedPage: page,
   }) => {
-    const slug = `Auto-Review-${Date.now()}`;
+    const slug = `auto-review-${Date.now()}`;
     const flagged = 'teh';
     const correction = 'the';
 
