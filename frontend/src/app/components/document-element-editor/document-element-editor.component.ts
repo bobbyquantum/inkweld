@@ -51,7 +51,7 @@ import { TagService } from '@services/tag/tag.service';
 import type { MarkType, ResolvedPos } from 'prosemirror-model';
 import type { EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, type Subscription } from 'rxjs';
 
 import { AutoReviewPanelComponent } from '../auto-review-panel/auto-review-panel.component';
 import { AutoReviewApiService } from '@services/lint/auto-review.service';
