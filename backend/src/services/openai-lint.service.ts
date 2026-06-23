@@ -12,6 +12,7 @@ interface CacheEntry<T> {
 }
 
 interface CorrectionDto {
+  paragraph_index: number;
   start_pos: number;
   end_pos: number;
   original_text: string;
@@ -27,6 +28,12 @@ interface StyleRecommendationDto {
 
 interface LintResponseDto {
   original_paragraph: string;
+  corrections: CorrectionDto[];
+  style_recommendations: StyleRecommendationDto[];
+  source: 'openai' | 'languagetool';
+}
+
+interface DocumentLintResponseDto {
   corrections: CorrectionDto[];
   style_recommendations: StyleRecommendationDto[];
   source: 'openai' | 'languagetool';
@@ -233,6 +240,130 @@ The JSON must follow this format:
       lintLog.error(`Error calling lint API: ${errMessage}`);
       throw new Error('Failed to process text with lint API', { cause: error });
     }
+  }
+
+  /**
+   * Lint an entire document in one LLM call. Each paragraph is prefixed with
+   * its index so the LLM can reference it in corrections. This gives the model
+   * full document context for more coherent suggestions.
+   */
+  public async processDocument(
+    db: DatabaseInstance,
+    paragraphs: string[],
+    style: string,
+    level: string
+  ): Promise<DocumentLintResponseDto> {
+    const cfg = await this.getConfig(db);
+
+    if (!cfg.apiKey.trim()) {
+      throw new Error(
+        'AI auto-review is not available. Please configure an OpenAI-compatible API key.'
+      );
+    }
+
+    const systemMsg = this.createDocumentSystemMessage(style, level, cfg.customPrompt);
+    const userMsg = paragraphs.map((text, i) => `[P${i}] ${text}`).join('\n\n');
+
+    const endpoint = cfg.endpoint
+      ? `${cfg.endpoint.replace(/\/+$/, '')}/chat/completions`
+      : 'https://api.openai.com/v1/chat/completions';
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
+
+      const body: Record<string, unknown> = {
+        model: cfg.model,
+        messages: [
+          { role: 'system', content: systemMsg },
+          { role: 'user', content: userMsg },
+        ],
+        temperature: 0.3,
+        stream: false,
+      };
+
+      if (!cfg.endpoint || cfg.endpoint.includes('openai.com')) {
+        body['response_format'] = { type: 'json_object' };
+      }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${cfg.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`OpenAI-compatible API error (${res.status}): ${errorText}`);
+      }
+
+      const data = (await res.json()) as {
+        choices: Array<{ message: { content: string } }>;
+      };
+
+      if (!data.choices || data.choices.length === 0) {
+        throw new Error('No choices returned from lint API');
+      }
+
+      const content = data.choices[0].message.content;
+      if (!content) {
+        throw new Error('Empty response from lint API');
+      }
+
+      const parsed = JSON.parse(content) as DocumentLintResponseDto;
+      parsed.source = 'openai';
+      return parsed;
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Linting service timed out after 120 seconds', {
+          cause: error,
+        });
+      }
+      const errMessage = error instanceof Error ? error.message : 'Unknown error';
+      lintLog.error(`Error calling lint API: ${errMessage}`);
+      throw new Error('Failed to process document with lint API', { cause: error });
+    }
+  }
+
+  private createDocumentSystemMessage(style: string, level: string, customPrompt: string): string {
+    const base = customPrompt
+      ? customPrompt
+      : `You are a professional writing assistant specializing in ${style} style.
+Your task is to analyze the provided document and identify:
+1. Grammar, spelling, and punctuation errors
+2. Style inconsistencies with ${style} writing
+3. Potential improvements to enhance the ${style} style`;
+
+    return `${base}
+
+Apply a ${level} level of scrutiny (low: only critical errors, medium: typical errors, high: comprehensive analysis).
+
+The document is provided as numbered paragraphs prefixed with [P0], [P1], etc.
+The start_pos and end_pos refer to character offsets within that specific paragraph.
+
+Return ONLY JSON with no additional text in this format:
+{
+  "corrections": [
+    {
+      "paragraph_index": 0,
+      "start_pos": 0,
+      "end_pos": 4,
+      "original_text": "text with error",
+      "corrected_text": "corrected text",
+      "error_type": "grammar",
+      "recommendation": "explanation of the correction"
+    }
+  ],
+  "style_recommendations": [
+    { "suggestion": "recommendation text", "reason": "reason for recommendation" }
+  ]
+}`;
   }
 }
 

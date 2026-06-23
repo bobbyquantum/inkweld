@@ -29,7 +29,7 @@ describe('Lint Review Routes', () => {
   let baseUrl: string;
   let isAiEnabledSpy: ReturnType<typeof spyOn>;
   let getDocumentSpy: ReturnType<typeof spyOn>;
-  let processTextSpy: ReturnType<typeof spyOn>;
+  let processDocSpy: ReturnType<typeof spyOn>;
 
   beforeAll(async () => {
     const server = await startTestServer();
@@ -87,8 +87,7 @@ describe('Lint Review Routes', () => {
 
     // Mock OpenAILintService to avoid real LLM calls
     isAiEnabledSpy = spyOn(openAILintService, 'isAiEnabled').mockResolvedValue(true);
-    processTextSpy = spyOn(openAILintService, 'processText').mockResolvedValue({
-      original_paragraph: 'test',
+    processDocSpy = spyOn(openAILintService, 'processDocument').mockResolvedValue({
       corrections: [],
       style_recommendations: [],
       source: 'openai',
@@ -118,7 +117,7 @@ describe('Lint Review Routes', () => {
   afterAll(async () => {
     isAiEnabledSpy?.mockRestore();
     getDocumentSpy?.mockRestore();
-    processTextSpy?.mockRestore();
+    processDocSpy?.mockRestore();
 
     const db = getDatabase();
     await db.delete(projects).where(eq(projects.slug, projectSlug));
@@ -141,10 +140,10 @@ describe('Lint Review Routes', () => {
   });
 
   it('should run a lint review and return suggestions', async () => {
-    processTextSpy.mockResolvedValueOnce({
-      original_paragraph: 'This is a test.',
+    processDocSpy.mockResolvedValueOnce({
       corrections: [
         {
+          paragraph_index: 0,
           start_pos: 0,
           end_pos: 4,
           original_text: 'This',

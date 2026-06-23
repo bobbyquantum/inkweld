@@ -114,6 +114,7 @@
     @if (!zenMode && autoReviewPanelOpen()) {
       <div class="auto-review-panel-container">
         <app-auto-review-panel
+          #autoReviewPanel
           [username]="projectState.project()?.username ?? ''"
           [slug]="projectState.project()?.slug ?? ''"
           [docId]="bareElementId()"

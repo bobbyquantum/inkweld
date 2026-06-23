@@ -54,6 +54,7 @@ import type { EditorView } from 'prosemirror-view';
 import { firstValueFrom } from 'rxjs';
 
 import { AutoReviewPanelComponent } from '../auto-review-panel/auto-review-panel.component';
+import { AutoReviewApiService } from '@services/lint/auto-review.service';
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
 import {
@@ -181,12 +182,14 @@ export class DocumentElementEditorComponent
   private collaborationSetup = false;
   private destroyed = false; // Track if component is destroyed to prevent stale async operations
   private editorScrollCleanup: (() => void) | null = null;
+  private editorUpdateSub: Subscription | null = null;
   protected editorKey = 0; // Increments when switching tabs to force ngx-editor recreation
   private readonly cdr = inject(ChangeDetectorRef);
 
   /** Lint panel state */
   autoReviewPanelOpen = signal(false);
   autoReviewSuggestionPositions = signal<Record<string, number>>({});
+  private readonly autoReviewApi = inject(AutoReviewApiService);
 
   readonly syncState = computed(() => {
     return this.documentService.getSyncStatusSignal(this.documentIdSignal())();
@@ -332,6 +335,19 @@ export class DocumentElementEditorComponent
         void this.addComment();
       }
     });
+
+    // When a review finishes (reviewing goes false), re-scan marks and
+    // recompute positions so the panel shows the new suggestions.
+    effect(() => {
+      const isReviewing = this.autoReviewApi.reviewing();
+      if (!isReviewing && this.autoReviewPanelOpen() && this.editor?.view) {
+        // Use rAF so the Yjs sync has a chance to apply the mark updates
+        // before we scan the doc.
+        requestAnimationFrame(() => {
+          this.refreshAutoReviewPanel();
+        });
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -424,6 +440,14 @@ export class DocumentElementEditorComponent
             // Set read-only mode for viewers who can't write
             this.updateEditableState();
 
+            // Subscribe to editor updates so the auto-review panel re-scans
+            // marks when the Yjs doc changes (e.g. server inserts review marks).
+            this.editorUpdateSub = this.editor.update.subscribe(() => {
+              if (this.autoReviewPanelOpen()) {
+                this.refreshAutoReviewPanel();
+              }
+            });
+
             // Force change detection to update the view
             this.cdr.detectChanges();
 
@@ -493,6 +517,10 @@ export class DocumentElementEditorComponent
 
     // Clean up scroll listener
     this.teardownEditorScrollListener();
+
+    // Clean up editor update subscription
+    this.editorUpdateSub?.unsubscribe();
+    this.editorUpdateSub = null;
 
     // Clear find service editor reference
     this.findService.setEditor(null);

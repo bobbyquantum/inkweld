@@ -269,56 +269,57 @@ export class AutoReviewService {
 
     // Extract paragraphs before mutation.
     const paragraphs = extractParagraphs(Y, fragment);
+    const paragraphTexts = paragraphs.map((p) => p.text).filter((t) => t.trim());
     autoReviewLog.info(`Reviewing ${paragraphs.length} paragraphs for ${documentId}`);
 
-    // Collect all suggestions first (don't mutate while reading).
+    // Single LLM call with the full document for coherent context.
     const allSuggestions: LintSuggestion[] = [];
 
-    for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
-      const para = paragraphs[pIdx];
-      if (!para.text.trim()) continue;
+    try {
+      const result = await openAILintService.processDocument(
+        db,
+        paragraphs.map((p) => p.text),
+        style,
+        level
+      );
 
-      try {
-        const result = await openAILintService.processText(db, para.text, style, level);
-        for (const correction of result.corrections) {
-          // Use original_text to locate within the paragraph as a fallback
-          // when start_pos/end_pos don't match (LLMs are unreliable on
-          // exact offsets).
-          let start = correction.start_pos;
-          let end = correction.end_pos;
+      for (const correction of result.corrections) {
+        const pIdx = correction.paragraph_index;
+        const para = paragraphs[pIdx];
+        if (!para || !para.text.trim()) continue;
 
-          // Validate / fix offsets via substring match.
-          if (
-            start < 0 ||
-            end > para.text.length ||
-            start >= end ||
-            para.text.substring(start, end) !== correction.original_text
-          ) {
-            // Try to find original_text as a substring.
-            const found = para.text.indexOf(correction.original_text);
-            if (found >= 0) {
-              start = found;
-              end = found + correction.original_text.length;
-            } else {
-              // Skip — can't safely place the mark.
-              continue;
-            }
+        let start = correction.start_pos;
+        let end = correction.end_pos;
+
+        // Validate / fix offsets via substring match.
+        if (
+          start < 0 ||
+          end > para.text.length ||
+          start >= end ||
+          para.text.substring(start, end) !== correction.original_text
+        ) {
+          const found = para.text.indexOf(correction.original_text);
+          if (found >= 0) {
+            start = found;
+            end = found + correction.original_text.length;
+          } else {
+            continue;
           }
-
-          allSuggestions.push({
-            id: `${pIdx}-${start}-${crypto.randomUUID()}`,
-            message: correction.recommendation,
-            suggestion: correction.corrected_text,
-            category: correction.error_type,
-            severity: 'suggestion',
-            paragraphStart: start,
-            paragraphEnd: end,
-            originalText: correction.original_text,
-          });
         }
-      } catch (err) {
-        autoReviewLog.warn(`Failed to lint paragraph ${pIdx}: ${err}`);
+
+        allSuggestions.push({
+          id: `${pIdx}-${start}-${crypto.randomUUID()}`,
+          message: correction.recommendation,
+          suggestion: correction.corrected_text,
+          category: correction.error_type,
+          severity: 'suggestion',
+          paragraphStart: start,
+          paragraphEnd: end,
+          originalText: correction.original_text,
+        });
       }
+    } catch (err) {
+      autoReviewLog.warn(`Failed to review document: ${err}`);
     }
 
     // Now mutate: clear old marks + apply new ones in a single transaction.

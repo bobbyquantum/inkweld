@@ -2,7 +2,7 @@
  * Unit tests for AutoReviewService — server-side lint review via Yjs marks.
  *
  * Bypasses LevelDB by mocking yjsService.getDocument() to return an in-memory
- * Y.Doc. Mocks openAILintService.processText() to return deterministic
+ * Y.Doc. Mocks openAILintService.processDocument() to return deterministic
  * corrections without calling the LLM.
  */
 
@@ -83,7 +83,7 @@ const fakeDb = {} as DatabaseInstance;
 
 describe('AutoReviewService', () => {
   let getDocumentSpy: ReturnType<typeof spyOn>;
-  let processTextSpy: ReturnType<typeof spyOn>;
+  let processDocSpy: ReturnType<typeof spyOn>;
   let isAiEnabledSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
@@ -92,7 +92,7 @@ describe('AutoReviewService', () => {
 
   afterEach(() => {
     getDocumentSpy?.mockRestore();
-    processTextSpy?.mockRestore();
+    processDocSpy?.mockRestore();
     isAiEnabledSpy.mockRestore();
   });
 
@@ -109,10 +109,10 @@ describe('AutoReviewService', () => {
         wsUserIds: new Map(),
       });
 
-      processTextSpy = spyOn(openAILintService, 'processText').mockResolvedValue({
-        original_paragraph: 'This are a test.',
+      processDocSpy = spyOn(openAILintService, 'processDocument').mockResolvedValue({
         corrections: [
           {
+            paragraph_index: 0,
             start_pos: 0,
             end_pos: 4,
             original_text: 'This',
@@ -169,8 +169,7 @@ describe('AutoReviewService', () => {
         wsUserIds: new Map(),
       });
 
-      processTextSpy = spyOn(openAILintService, 'processText').mockResolvedValue({
-        original_paragraph: 'This are a test.',
+      processDocSpy = spyOn(openAILintService, 'processDocument').mockResolvedValue({
         corrections: [],
         style_recommendations: [],
         source: 'openai',
@@ -199,33 +198,23 @@ describe('AutoReviewService', () => {
         wsUserIds: new Map(),
       });
 
-      let callCount = 0;
-      processTextSpy = spyOn(openAILintService, 'processText').mockImplementation(
-        async () => {
-          callCount++;
-          // Paragraphs are in reverse insert order: 'Second paragraph.' is
-          // paragraph 0, 'First paragraph.' is paragraph 1.
-          const text = callCount === 1 ? 'Second paragraph.' : 'First paragraph.';
-          return {
-            original_paragraph: text,
-            corrections:
-              callCount === 2
-                ? [
-                    {
-                      start_pos: 0,
-                      end_pos: 5,
-                      original_text: 'First',
-                      corrected_text: 'Firstly',
-                      error_type: 'style',
-                      recommendation: 'Better transition',
-                    },
-                  ]
-                : [],
-            style_recommendations: [],
-            source: 'openai',
-          } as never;
-        }
-      );
+      // Paragraphs are in reverse insert order: 'Second paragraph.' is
+      // paragraph 0, 'First paragraph.' is paragraph 1.
+      processDocSpy = spyOn(openAILintService, 'processDocument').mockResolvedValue({
+        corrections: [
+          {
+            paragraph_index: 1,
+            start_pos: 0,
+            end_pos: 5,
+            original_text: 'First',
+            corrected_text: 'Firstly',
+            error_type: 'style',
+            recommendation: 'Better transition',
+          },
+        ],
+        style_recommendations: [],
+        source: 'openai',
+      } as never);
 
       const result = await autoReviewService.reviewDocument(
         fakeDb,
@@ -234,7 +223,7 @@ describe('AutoReviewService', () => {
         'medium'
       );
 
-      expect(processTextSpy).toHaveBeenCalledTimes(2);
+      expect(processDocSpy).toHaveBeenCalledTimes(1);
       expect(result.suggestions).toHaveLength(1);
     });
 
@@ -249,10 +238,10 @@ describe('AutoReviewService', () => {
         wsUserIds: new Map(),
       });
 
-      processTextSpy = spyOn(openAILintService, 'processText').mockResolvedValue({
-        original_paragraph: 'Hello world.',
+      processDocSpy = spyOn(openAILintService, 'processDocument').mockResolvedValue({
         corrections: [
           {
+            paragraph_index: 0,
             start_pos: 0,
             end_pos: 5,
             original_text: 'NONEXISTENT',
