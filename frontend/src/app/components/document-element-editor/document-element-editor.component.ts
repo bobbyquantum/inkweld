@@ -35,6 +35,7 @@ import {
 import { type InsertLinkDialogResult } from '@dialogs/insert-link-dialog/insert-link-dialog.component';
 import { type SnapshotsDialogData } from '@dialogs/snapshots-dialog/snapshots-dialog.component';
 import { type TagEditorDialogData } from '@dialogs/tag-editor-dialog/tag-editor-dialog.component';
+import { type AutoReviewMarkAttrs } from '@inkweld/prosemirror/schema';
 import { type ResolvedTag } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { FindInDocumentService } from '@services/core/find-in-document.service';
@@ -42,6 +43,10 @@ import { InsertImageService } from '@services/core/insert-image.service';
 import { InsertLinkService } from '@services/core/insert-link.service';
 import { LoggerService } from '@services/core/logger.service';
 import { SettingsService } from '@services/core/settings.service';
+import {
+  AutoReviewApiService,
+  type AutoReviewClickEvent,
+} from '@services/lint/auto-review.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { CommentService } from '@services/project/comment.service';
 import { DocumentService } from '@services/project/document.service';
@@ -54,7 +59,6 @@ import type { EditorView } from 'prosemirror-view';
 import { firstValueFrom, type Subscription } from 'rxjs';
 
 import { AutoReviewPanelComponent } from '../auto-review-panel/auto-review-panel.component';
-import { AutoReviewApiService } from '@services/lint/auto-review.service';
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
 import {
@@ -186,10 +190,14 @@ export class DocumentElementEditorComponent
   protected editorKey = 0; // Increments when switching tabs to force ngx-editor recreation
   private readonly cdr = inject(ChangeDetectorRef);
 
-  /** Lint panel state */
+  /** Auto-Review panel state */
   autoReviewPanelOpen = signal(false);
   autoReviewSuggestionPositions = signal<Record<string, number>>({});
   private readonly autoReviewApi = inject(AutoReviewApiService);
+
+  /** Auto-Review popover (click on highlighted text in editor body) */
+  autoReviewPopoverAttrs = signal<AutoReviewMarkAttrs | null>(null);
+  autoReviewPopoverPosition = signal<{ x: number; y: number }>({ x: 0, y: 0 });
 
   readonly syncState = computed(() => {
     return this.documentService.getSyncStatusSignal(this.documentIdSignal())();
@@ -345,6 +353,17 @@ export class DocumentElementEditorComponent
           this.autoReviewApi.tickDocVersion();
           this.refreshAutoReviewPanel();
         });
+      }
+    });
+
+    // Watch for auto-review click events from the ProseMirror plugin
+    effect(() => {
+      const event: AutoReviewClickEvent | null =
+        this.autoReviewApi.clickEvent();
+      if (event) {
+        this.autoReviewPopoverAttrs.set(event.attrs);
+        this.autoReviewPopoverPosition.set(event.coords);
+        this.autoReviewApi.clickEvent.set(null);
       }
     });
   }
@@ -1066,6 +1085,7 @@ export class DocumentElementEditorComponent
 
   private refreshAutoReviewPanel(): void {
     if (this.autoReviewPanelOpen() && this.editor?.view) {
+      this.autoReviewApi.tickDocVersion();
       this.computeAutoReviewPositions();
     }
   }
@@ -1114,7 +1134,7 @@ export class DocumentElementEditorComponent
     this.editorScrollTop.set(scrollTop);
   }
 
-  /** Highlight lint marks in the editor when hovering a sidebar suggestion */
+  /** Highlight auto-review marks in the editor when hovering a sidebar suggestion */
   onAutoReviewHover(suggestionId: string | null): void {
     document
       .querySelectorAll('.auto-review-highlight--sidebar-hover')
@@ -1124,7 +1144,7 @@ export class DocumentElementEditorComponent
 
     if (suggestionId) {
       document
-        .querySelectorAll(`[data-lint-id="${CSS.escape(suggestionId)}"]`)
+        .querySelectorAll(`[data-auto-review-id="${CSS.escape(suggestionId)}"]`)
         .forEach(el =>
           el.classList.add('auto-review-highlight--sidebar-hover')
         );
@@ -1132,10 +1152,49 @@ export class DocumentElementEditorComponent
   }
 
   onAutoReviewSuggestionAccepted(_id: string): void {
+    this.autoReviewApi.tickDocVersion();
     this.refreshAutoReviewPanel();
   }
 
   onAutoReviewSuggestionRejected(_id: string): void {
+    this.autoReviewApi.tickDocVersion();
+    this.refreshAutoReviewPanel();
+  }
+
+  closeAutoReviewPopover(): void {
+    this.autoReviewPopoverAttrs.set(null);
+  }
+
+  async onPopoverAccept(): Promise<void> {
+    const attrs = this.autoReviewPopoverAttrs();
+    if (!attrs) return;
+    const project = this.projectState.project();
+    if (!project) return;
+    await this.autoReviewApi.acceptSuggestion(
+      project.username,
+      project.slug,
+      this.bareElementId(),
+      attrs.id,
+      attrs.suggestion
+    );
+    this.autoReviewApi.tickDocVersion();
+    this.autoReviewPopoverAttrs.set(null);
+    this.refreshAutoReviewPanel();
+  }
+
+  async onPopoverReject(): Promise<void> {
+    const attrs = this.autoReviewPopoverAttrs();
+    if (!attrs) return;
+    const project = this.projectState.project();
+    if (!project) return;
+    await this.autoReviewApi.rejectSuggestion(
+      project.username,
+      project.slug,
+      this.bareElementId(),
+      attrs.id
+    );
+    this.autoReviewApi.tickDocVersion();
+    this.autoReviewPopoverAttrs.set(null);
     this.refreshAutoReviewPanel();
   }
 }

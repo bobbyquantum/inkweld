@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { type Editor } from '@bobbyquantum/ngx-editor';
 import {
+  createAutoReviewPlugin,
   createCommentPlugin,
   createElementRefPlugin,
   createFindPlugin,
@@ -47,6 +48,7 @@ import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { SystemConfigService } from '../core/system-config.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
+import { AutoReviewApiService } from '../lint/auto-review.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { PresenceService } from '../presence/presence.service';
 import {
@@ -133,6 +135,7 @@ export class DocumentService {
   private readonly storageContext = inject(StorageContextService);
   private readonly versionCompatibility = inject(VersionCompatibilityService);
   private readonly commentService = inject(CommentService);
+  private readonly autoReviewApi = inject(AutoReviewApiService);
   private readonly presenceService = inject(PresenceService);
 
   /** @internal Wrapped for testability — esbuild inlines local modules, so vi.mock can't intercept them */
@@ -926,6 +929,14 @@ export class DocumentService {
       },
     });
     plugins.push(commentPlugin);
+
+    // Add auto-review plugin for click-to-accept/reject on highlighted text
+    const autoReviewPlugin = createAutoReviewPlugin({
+      onSuggestionClick: (attrs, coords) => {
+        this.autoReviewApi.clickEvent.set({ attrs, coords });
+      },
+    });
+    plugins.push(autoReviewPlugin);
 
     // Reconfigure state with new plugins - this triggers ySyncPlugin's init()
     // which binds Yjs content to ProseMirror

@@ -16,6 +16,11 @@ import { firstValueFrom } from 'rxjs';
 
 export type { AutoReviewSuggestion };
 
+export interface AutoReviewClickEvent {
+  attrs: AutoReviewMarkAttrs;
+  coords: { x: number; y: number };
+}
+
 /**
  * Service for server-side auto-review: triggers a review endpoint that
  * reads the Yjs doc, calls the LLM, and inserts `auto_review` marks that
@@ -34,6 +39,10 @@ export class AutoReviewApiService {
   );
   /** Whether a review is currently in progress. */
   readonly reviewing: WritableSignal<boolean> = signal(false);
+
+  /** Click event from the ProseMirror plugin (click on highlighted text). */
+  readonly clickEvent: WritableSignal<AutoReviewClickEvent | null> =
+    signal(null);
 
   /** Bumped whenever the doc changes (editor update or review completion) so
    *  the panel's suggestions computed re-scans marks from the ProseMirror doc. */

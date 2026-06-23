@@ -8,6 +8,7 @@
  * has a stable, non-component import path.
  */
 
+export { createAutoReviewPlugin } from '@components/auto-review-panel/auto-review-plugin';
 export { createCommentPlugin } from '@components/comment-mark/comment-plugin';
 export { createKeyboardShortcutsPlugin } from '@components/editor-shortcuts/editor-shortcuts-plugin';
 export { ElementRefService } from '@components/element-ref/element-ref.service';
