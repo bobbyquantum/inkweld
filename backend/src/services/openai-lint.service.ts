@@ -177,7 +177,6 @@ The JSON must follow this format:
           { role: 'user', content: paragraph },
         ],
         temperature: 0.3,
-        max_tokens: 2048,
         stream: false,
       };
 
