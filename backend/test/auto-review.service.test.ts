@@ -378,11 +378,7 @@ describe('AutoReviewService', () => {
         wsUserIds: new Map(),
       });
 
-      const success = await autoReviewService.acceptSuggestion(
-        'test:doc',
-        'sug-1',
-        'These'
-      );
+      const success = await autoReviewService.acceptSuggestion('test:doc', 'sug-1', 'These');
       expect(success).toBe(true);
 
       // Check that the text was replaced
