@@ -15,6 +15,8 @@ import type { DatabaseInstance } from '../src/types/context';
 const { yjsService } = await import('../src/services/yjs.service');
 const { autoReviewService } = await import('../src/services/auto-review.service');
 const { openAILintService } = await import('../src/services/openai-lint.service');
+const { projectService } = await import('../src/services/project.service');
+const { autoReviewRejectionService } = await import('../src/services/auto-review-rejection.service');
 
 const LINT_MARK = 'auto_review';
 
@@ -85,15 +87,23 @@ describe('AutoReviewService', () => {
   let getDocumentSpy: ReturnType<typeof spyOn>;
   let processDocSpy: ReturnType<typeof spyOn>;
   let isAiEnabledSpy: ReturnType<typeof spyOn>;
+  let findByUsernameSpy: ReturnType<typeof spyOn>;
+  let getRejectionsSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
     isAiEnabledSpy = spyOn(openAILintService, 'isAiEnabled').mockResolvedValue(true);
+    findByUsernameSpy = spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
+      id: 'test-project-id',
+    } as never);
+    getRejectionsSpy = spyOn(autoReviewRejectionService, 'getRejections').mockResolvedValue([]);
   });
 
   afterEach(() => {
     getDocumentSpy?.mockRestore();
     processDocSpy?.mockRestore();
     isAiEnabledSpy.mockRestore();
+    findByUsernameSpy.mockRestore();
+    getRejectionsSpy.mockRestore();
   });
 
   describe('reviewDocument', () => {

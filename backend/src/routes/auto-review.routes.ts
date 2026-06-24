@@ -11,6 +11,7 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
 import { autoReviewService } from '../services/auto-review.service';
+import { autoReviewRejectionService } from '../services/auto-review-rejection.service';
 import { openAILintService } from '../services/openai-lint.service';
 import { requireAuth } from '../middleware/auth';
 import { logger } from '../services/logger.service';
@@ -210,7 +211,20 @@ lintReviewRoutes.openapi(acceptRoute, async (c: any) => {
       replacement: string;
     };
     const documentId = `${username}:${slug}:${docId}/`;
+
+    // Read mark info before accepting (the mark is removed on accept).
+    const info = await autoReviewService.getSuggestionInfo(documentId, suggestionId);
+
     const success = await autoReviewService.acceptSuggestion(documentId, suggestionId, replacement);
+    if (success && info) {
+      // Delete matching rejections since the issue is now resolved.
+      await autoReviewRejectionService.deleteMatchingRejections(
+        db,
+        project.id,
+        docId,
+        info.originalText
+      );
+    }
     return c.json({ success }, success ? 200 : 404);
   } catch (error: unknown) {
     lintReviewLog.error('Error accepting suggestion', error);
@@ -268,7 +282,27 @@ lintReviewRoutes.openapi(rejectRoute, async (c: any) => {
     const body = await c.req.json();
     const { suggestionId } = body as { suggestionId: string };
     const documentId = `${username}:${slug}:${docId}/`;
+
+    // Read mark info before rejecting (the mark is removed on reject).
+    const info = await autoReviewService.getSuggestionInfo(documentId, suggestionId);
+
     const success = await autoReviewService.rejectSuggestion(documentId, suggestionId);
+    if (success && info) {
+      // Store the rejection so the LLM doesn't repeat this suggestion.
+      const user = c.get('user');
+      await autoReviewRejectionService.addRejection(db, {
+        projectId: project.id,
+        documentId,
+        elementId: docId,
+        rejection: {
+          originalText: info.originalText,
+          suggestionText: info.suggestion,
+          category: info.category,
+          message: info.message,
+        },
+        userId: user?.id ?? '',
+      });
+    }
     return c.json({ success }, success ? 200 : 404);
   } catch (error: unknown) {
     lintReviewLog.error('Error rejecting suggestion', error);

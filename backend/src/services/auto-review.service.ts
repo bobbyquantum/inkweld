@@ -15,6 +15,8 @@ import type * as YModule from 'yjs';
 import { openAILintService } from './openai-lint.service';
 import { yjsService } from './yjs.service';
 import { logger } from './logger.service';
+import { autoReviewRejectionService, type RejectionContext } from './auto-review-rejection.service';
+import { projectService } from './project.service';
 import type { DatabaseInstance } from '../types/context';
 
 /** ProseMirror/Yjs mark name for lint errors — must match `AUTO_REVIEW_MARK_NAME` in @inkweld/prosemirror/schema. */
@@ -247,6 +249,42 @@ function applySuggestionMark(
   return true;
 }
 
+export interface ElementRefInfo {
+  elementId: string;
+  elementType: string;
+  displayText: string;
+  originalName: string;
+}
+
+/**
+ * Walk a Y.XmlFragment collecting all elementRef nodes (inline references
+ * to characters, locations, worldbuilding entries, etc.). These are passed
+ * to the LLM as context so it doesn't flag proper nouns as errors and can
+ * check consistency with referenced elements.
+ */
+function extractElementRefs(Y: typeof YModule, fragment: YModule.XmlFragment): ElementRefInfo[] {
+  const refs: ElementRefInfo[] = [];
+  const walk = (node: YModule.XmlElement | YModule.XmlFragment) => {
+    for (let i = 0; i < node.length; i++) {
+      const child = node.get(i);
+      if (child instanceof Y.XmlElement) {
+        if (child.nodeName === 'elementRef') {
+          const attrs = child.getAttributes();
+          refs.push({
+            elementId: String(attrs.elementId ?? ''),
+            elementType: String(attrs.elementType ?? ''),
+            displayText: String(attrs.displayText ?? ''),
+            originalName: String(attrs.originalName ?? ''),
+          });
+        }
+        walk(child);
+      }
+    }
+  };
+  walk(fragment);
+  return refs;
+}
+
 export class AutoReviewService {
   /**
    * Run a auto-review on a document: clear existing auto-review marks,
@@ -269,8 +307,24 @@ export class AutoReviewService {
 
     // Extract paragraphs before mutation.
     const paragraphs = extractParagraphs(Y, fragment);
-    const paragraphTexts = paragraphs.map((p) => p.text).filter((t) => t.trim());
     autoReviewLog.info(`Reviewing ${paragraphs.length} paragraphs for ${documentId}`);
+
+    // Extract element references for LLM context (characters, locations, etc.)
+    const elementRefs = extractElementRefs(Y, fragment);
+
+    // Fetch previously rejected suggestions for this document so the LLM
+    // doesn't repeat them.
+    const parts = documentId.split(':');
+    const [username, projectSlug] = parts;
+    const bareElementId = parts[2]?.replace(/\/$/, '') ?? '';
+    const project = await projectService.findByUsernameAndSlug(db, username, projectSlug);
+    let rejections: RejectionContext[] = [];
+    if (project) {
+      rejections = await autoReviewRejectionService.getRejections(db, project.id, bareElementId);
+      if (rejections.length > 0) {
+        autoReviewLog.info(`Found ${rejections.length} prior rejections for ${documentId}`);
+      }
+    }
 
     // Single LLM call with the full document for coherent context.
     const allSuggestions: LintSuggestion[] = [];
@@ -280,7 +334,8 @@ export class AutoReviewService {
         db,
         paragraphs.map((p) => p.text),
         style,
-        level
+        level,
+        { rejections, elementRefs }
       );
 
       for (const correction of result.corrections) {
@@ -397,6 +452,60 @@ export class AutoReviewService {
   }
 
   /**
+   * Read the mark attrs + covered text for a suggestion by ID. Used by the
+   * reject route to store the rejection with full metadata.
+   */
+  async getSuggestionInfo(
+    documentId: string,
+    suggestionId: string
+  ): Promise<{
+    message: string;
+    suggestion: string;
+    category: string;
+    originalText: string;
+  } | null> {
+    const Y = await import('yjs');
+    const sharedDoc = await yjsService.getDocument(documentId);
+    const fragment = sharedDoc.doc.getXmlFragment('prosemirror');
+    return this.findMarkInfo(Y, fragment, suggestionId);
+  }
+
+  /**
+   * Walk the fragment, find the auto_review mark with matching id, and
+   * return its attrs + the covered text.
+   */
+  private findMarkInfo(
+    Y: typeof YModule,
+    fragment: YModule.XmlFragment,
+    suggestionId: string
+  ): {
+    message: string;
+    suggestion: string;
+    category: string;
+    originalText: string;
+  } | null {
+    const visited = new Set<YModule.XmlText>();
+    const walk = (
+      node: YModule.XmlElement | YModule.XmlFragment
+    ): { message: string; suggestion: string; category: string; originalText: string } | null => {
+      for (let i = 0; i < node.length; i++) {
+        const child = node.get(i);
+        if (child instanceof Y.XmlText) {
+          if (visited.has(child)) continue;
+          visited.add(child);
+          const info = readMarkInfoFromText(child, suggestionId);
+          if (info) return info;
+        } else if (child instanceof Y.XmlElement) {
+          const info = walk(child);
+          if (info) return info;
+        }
+      }
+      return null;
+    };
+    return walk(fragment);
+  }
+
+  /**
    * Walk the fragment, find the auto_review mark with matching id,
    * replace its text content with `replacement` and strip the mark.
    */
@@ -499,6 +608,26 @@ function removeFromText(_Y: typeof YModule, text: YModule.XmlText, suggestionId:
     offset += len;
   }
   return false;
+}
+
+/** Read mark attrs + covered text for a suggestion by ID (no mutation). */
+function readMarkInfoFromText(
+  text: YModule.XmlText,
+  suggestionId: string
+): { message: string; suggestion: string; category: string; originalText: string } | null {
+  const delta = text.toDelta() as DeltaOp[];
+  for (const op of delta) {
+    const lintMark = op.attributes?.[AUTO_REVIEW_MARK_NAME];
+    if (lintMark && lintMark.id === suggestionId) {
+      return {
+        message: String(lintMark.message ?? ''),
+        suggestion: String(lintMark.suggestion ?? ''),
+        category: String(lintMark.category ?? ''),
+        originalText: op.insert ?? '',
+      };
+    }
+  }
+  return null;
 }
 
 export const autoReviewService = new AutoReviewService();

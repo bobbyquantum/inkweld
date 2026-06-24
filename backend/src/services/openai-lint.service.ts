@@ -3,6 +3,19 @@ import { configService } from './config.service';
 import { logger } from './logger.service';
 import type { DatabaseInstance } from '../types/context';
 import type { ConfigKey } from '../db/schema/config';
+import type { RejectionContext } from './auto-review-rejection.service';
+
+export interface ElementRefContext {
+  elementId: string;
+  elementType: string;
+  displayText: string;
+  originalName: string;
+}
+
+export interface ReviewContext {
+  rejections: RejectionContext[];
+  elementRefs: ElementRefContext[];
+}
 
 const lintLog = logger.child('OpenAI-Lint');
 
@@ -251,7 +264,8 @@ The JSON must follow this format:
     db: DatabaseInstance,
     paragraphs: string[],
     style: string,
-    level: string
+    level: string,
+    context?: ReviewContext
   ): Promise<DocumentLintResponseDto> {
     const cfg = await this.getConfig(db);
 
@@ -261,7 +275,7 @@ The JSON must follow this format:
       );
     }
 
-    const systemMsg = this.createDocumentSystemMessage(style, level, cfg.customPrompt);
+    const systemMsg = this.createDocumentSystemMessage(style, level, cfg.customPrompt, context);
     const userMsg = paragraphs.map((text, i) => `[P${i}] ${text}`).join('\n\n');
 
     const endpoint = cfg.endpoint
@@ -331,7 +345,12 @@ The JSON must follow this format:
     }
   }
 
-  private createDocumentSystemMessage(style: string, level: string, customPrompt: string): string {
+  private createDocumentSystemMessage(
+    style: string,
+    level: string,
+    customPrompt: string,
+    context?: ReviewContext
+  ): string {
     const base = customPrompt
       ? customPrompt
       : `You are a professional writing assistant specializing in ${style} style.
@@ -340,7 +359,7 @@ Your task is to analyze the provided document and identify:
 2. Style inconsistencies with ${style} writing
 3. Potential improvements to enhance the ${style} style`;
 
-    return `${base}
+    let msg = `${base}
 
 Apply a ${level} level of scrutiny (low: only critical errors, medium: typical errors, high: comprehensive analysis).
 
@@ -364,6 +383,24 @@ Return ONLY JSON with no additional text in this format:
     { "suggestion": "recommendation text", "reason": "reason for recommendation" }
   ]
 }`;
+
+    // Add previously rejected suggestions so the LLM doesn't repeat them.
+    if (context?.rejections && context.rejections.length > 0) {
+      const rejectionList = context.rejections
+        .map((r) => `- "${r.originalText}" → "${r.suggestionText}" (${r.category}: ${r.message})`)
+        .join('\n');
+      msg += `\n\nThe following suggestions were previously rejected by the author. Do NOT repeat these exact suggestions — the author has already decided they are wrong or intentional:\n${rejectionList}`;
+    }
+
+    // Add referenced element context (characters, locations, etc.)
+    if (context?.elementRefs && context.elementRefs.length > 0) {
+      const refList = context.elementRefs
+        .map((r) => `- ${r.elementType}: "${r.displayText}" (original name: "${r.originalName}")`)
+        .join('\n');
+      msg += `\n\nThe following elements are referenced in the document using @mentions. These are proper nouns (character names, locations, etc.) — do NOT flag them as spelling errors:\n${refList}`;
+    }
+
+    return msg;
   }
 }
 

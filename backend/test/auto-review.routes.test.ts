@@ -21,6 +21,8 @@ import {
 import { TEST_PASSWORDS } from './test-credentials';
 import { openAILintService } from '../src/services/openai-lint.service';
 import { yjsService } from '../src/services/yjs.service';
+import { projectService } from '../src/services/project.service';
+import { autoReviewRejectionService } from '../src/services/auto-review-rejection.service';
 
 describe('Lint Review Routes', () => {
   let ownerClient: TestClient;
@@ -30,6 +32,7 @@ describe('Lint Review Routes', () => {
   let isAiEnabledSpy: ReturnType<typeof spyOn>;
   let getDocumentSpy: ReturnType<typeof spyOn>;
   let processDocSpy: ReturnType<typeof spyOn>;
+  let getRejectionsSpy: ReturnType<typeof spyOn>;
 
   beforeAll(async () => {
     const server = await startTestServer();
@@ -92,6 +95,7 @@ describe('Lint Review Routes', () => {
       style_recommendations: [],
       source: 'openai',
     } as never);
+    getRejectionsSpy = spyOn(autoReviewRejectionService, 'getRejections').mockResolvedValue([]);
 
     // Mock yjsService.getDocument to return an in-memory Y.Doc
     getDocumentSpy = spyOn(yjsService, 'getDocument').mockImplementation(
@@ -118,6 +122,7 @@ describe('Lint Review Routes', () => {
     isAiEnabledSpy?.mockRestore();
     getDocumentSpy?.mockRestore();
     processDocSpy?.mockRestore();
+    getRejectionsSpy?.mockRestore();
 
     const db = getDatabase();
     await db.delete(projects).where(eq(projects.slug, projectSlug));
