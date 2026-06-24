@@ -19,6 +19,13 @@
 // Pin the comments toggle to the right edge of the toolbar, out of flex flow.
 .toolbar-comments-anchor {
   position: absolute;
+  right: 48px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.toolbar-autoreview-anchor {
+  position: absolute;
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
