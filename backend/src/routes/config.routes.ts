@@ -41,9 +41,9 @@ const SystemFeaturesSchema = z
       description:
         'Whether the AI kill switch is locked by environment variable and cannot be changed in admin UI.',
     }),
-    aiLinting: z
+    aiAutoReview: z
       .boolean()
-      .openapi({ example: true, description: 'Whether AI-powered linting is available' }),
+      .openapi({ example: true, description: 'Whether AI-powered auto-review is available' }),
     aiImageGeneration: z
       .boolean()
       .openapi({ example: true, description: 'Whether AI-powered image generation is available' }),
@@ -173,11 +173,13 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
 
   if (!aiKillSwitch) {
     // Kill switch is OFF, check actual AI availability
+    // Check if AI text features are enabled
+    const aiTextEnabled = await configService.getBoolean(db, 'AI_TEXT_ENABLED');
     // Check if an OpenAI (or OpenAI-compatible) API key is configured in the
     // database via the admin UI. Fall back to the env var for legacy setups.
     const openaiKeyConfig = await configService.get(db, 'AI_OPENAI_API_KEY');
     const openaiApiKey = openaiKeyConfig.value || process.env.OPENAI_API_KEY || '';
-    hasOpenAI = openaiApiKey.trim().length > 0;
+    hasOpenAI = aiTextEnabled && openaiApiKey.trim().length > 0;
 
     // Check if ANY image generation provider is available
     // This properly checks OpenAI, OpenRouter, Fal.ai, and Stable Diffusion
@@ -214,7 +216,7 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
   return c.json({
     aiKillSwitch,
     aiKillSwitchLockedByEnv: lockedByEnv,
-    aiLinting: hasOpenAI,
+    aiAutoReview: hasOpenAI,
     aiImageGeneration: hasImageGeneration,
     appMode,
     defaultServerName,

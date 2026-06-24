@@ -43,6 +43,7 @@ import { InsertImageService } from '@services/core/insert-image.service';
 import { InsertLinkService } from '@services/core/insert-link.service';
 import { LoggerService } from '@services/core/logger.service';
 import { SettingsService } from '@services/core/settings.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import {
   AutoReviewApiService,
   type AutoReviewClickEvent,
@@ -194,6 +195,7 @@ export class DocumentElementEditorComponent
   autoReviewPanelOpen = signal(false);
   autoReviewSuggestionPositions = signal<Record<string, number>>({});
   private readonly autoReviewApi = inject(AutoReviewApiService);
+  private readonly systemConfig = inject(SystemConfigService);
 
   /** Auto-Review popover (click on highlighted text in editor body) */
   autoReviewPopoverAttrs = signal<AutoReviewMarkAttrs | null>(null);
@@ -1075,6 +1077,7 @@ export class DocumentElementEditorComponent
   // ─── Lint Panel ───────────────────────────────────────────────────────
 
   toggleAutoReviewPanel(): void {
+    if (!this.systemConfig.isAiAutoReviewEnabled()) return;
     this.autoReviewPanelOpen.set(!this.autoReviewPanelOpen());
     if (this.autoReviewPanelOpen() && this.editor?.view) {
       this.autoReviewApi.tickDocVersion();

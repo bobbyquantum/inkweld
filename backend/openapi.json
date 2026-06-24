@@ -1157,10 +1157,10 @@
             "example": false,
             "description": "Whether the AI kill switch is locked by environment variable and cannot be changed in admin UI."
           },
-          "aiLinting": {
+          "aiAutoReview": {
             "type": "boolean",
             "example": true,
-            "description": "Whether AI-powered linting is available"
+            "description": "Whether AI-powered auto-review is available"
           },
           "aiImageGeneration": {
             "type": "boolean",
@@ -1254,7 +1254,7 @@
         "required": [
           "aiKillSwitch",
           "aiKillSwitchLockedByEnv",
-          "aiLinting",
+          "aiAutoReview",
           "aiImageGeneration",
           "appMode",
           "userApprovalRequired",

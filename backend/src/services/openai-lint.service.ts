@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import { configService } from './config.service';
+import { config as envConfig } from '../config/env';
 import { logger } from './logger.service';
 import type { DatabaseInstance } from '../types/context';
 import type { ConfigKey } from '../db/schema/config';
@@ -86,9 +87,21 @@ export class OpenAILintService {
   }
 
   /**
-   * Whether linting is available (an OpenAI-compatible API key is configured).
+   * Whether linting is available (kill switch off + an OpenAI-compatible
+   * API key is configured).
    */
   public async isAiEnabled(db: DatabaseInstance): Promise<boolean> {
+    // Check the AI kill switch first (env var or DB)
+    const killSwitch = await configService.getBoolean(db, 'AI_KILL_SWITCH');
+    const killSwitchOn = envConfig.aiKillSwitch.lockedByEnv
+      ? envConfig.aiKillSwitch.enabled
+      : killSwitch;
+    if (killSwitchOn) return false;
+
+    // Check the AI text feature toggle
+    const textEnabled = await configService.getBoolean(db, 'AI_TEXT_ENABLED');
+    if (!textEnabled) return false;
+
     const cfg = await this.getConfig(db);
     return cfg.apiKey.trim().length > 0;
   }

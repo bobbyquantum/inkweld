@@ -25,6 +25,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type Editor } from '@bobbyquantum/ngx-editor';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { toggleMark } from 'prosemirror-commands';
 import { redo, undo } from 'prosemirror-history';
 import { type MarkType, type NodeType } from 'prosemirror-model';
@@ -152,6 +153,7 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
   private resizeObserver?: ResizeObserver;
 
   private readonly ngZone = inject(NgZone);
+  private readonly systemConfig = inject(SystemConfigService);
 
   /**
    * Priority order: groups listed last overflow first.

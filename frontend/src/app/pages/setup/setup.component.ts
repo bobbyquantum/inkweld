@@ -28,7 +28,7 @@ type AppMode = 'ONLINE' | 'LOCAL' | 'BOTH';
 interface SystemFeaturesResponse {
   appMode?: string;
   defaultServerName?: string | null;
-  aiLinting?: boolean;
+  aiAutoReview?: boolean;
   aiImageGeneration?: boolean;
   captcha?: {
     enabled?: boolean;

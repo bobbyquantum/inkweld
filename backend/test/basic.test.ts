@@ -60,13 +60,13 @@ describe('Config', () => {
       const data = await json();
 
       // Check all required properties exist
-      expect(data).toHaveProperty('aiLinting');
+      expect(data).toHaveProperty('aiAutoReview');
       expect(data).toHaveProperty('aiImageGeneration');
       expect(data).toHaveProperty('appMode');
       expect(data).toHaveProperty('userApprovalRequired');
 
       // Check types
-      expect(typeof data.aiLinting).toBe('boolean');
+      expect(typeof data.aiAutoReview).toBe('boolean');
       expect(typeof data.aiImageGeneration).toBe('boolean');
       expect(typeof data.userApprovalRequired).toBe('boolean');
 
@@ -80,7 +80,7 @@ describe('Config', () => {
       const data = await json();
 
       // Without OPENAI_API_KEY in test env, should be false
-      expect(data.aiLinting).toBe(false);
+      expect(data.aiAutoReview).toBe(false);
       expect(data.aiImageGeneration).toBe(false);
     });
 

@@ -555,17 +555,19 @@
       <mat-icon>comment</mat-icon>
     </button>
   </div>
-  <div
-    class="toolbar-group toolbar-autoreview-anchor"
-    data-toolbar-fixed="auto-review">
-    <button
-      ngToolbarWidget
-      value="auto-review"
-      [attr.aria-pressed]="autoReviewPanelOpen"
-      matTooltip="Auto-Review"
-      (click)="toggleAutoReview.emit()"
-      data-testid="toolbar-auto-review">
-      <mat-icon>spellcheck</mat-icon>
-    </button>
-  </div>
+  @if (systemConfig.isAiAutoReviewEnabled()) {
+    <div
+      class="toolbar-group toolbar-autoreview-anchor"
+      data-toolbar-fixed="auto-review">
+      <button
+        ngToolbarWidget
+        value="auto-review"
+        [attr.aria-pressed]="autoReviewPanelOpen"
+        matTooltip="Auto-Review"
+        (click)="toggleAutoReview.emit()"
+        data-testid="toolbar-auto-review">
+        <mat-icon>spellcheck</mat-icon>
+      </button>
+    </div>
+  }
 </div>
