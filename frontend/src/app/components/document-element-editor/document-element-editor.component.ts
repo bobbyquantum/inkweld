@@ -345,14 +345,15 @@ export class DocumentElementEditorComponent
     });
 
     // When a review finishes (reviewing goes false), tick the doc version so
-    // the panel re-scans marks. Use rAF so Yjs sync has applied the marks.
+    // the panel re-scans marks. Use a 500ms delay so Yjs sync has time to
+    // apply the mark updates from the server before we scan the doc.
     effect(() => {
       const isReviewing = this.autoReviewApi.reviewing();
       if (!isReviewing && this.autoReviewPanelOpen()) {
-        requestAnimationFrame(() => {
+        setTimeout(() => {
           this.autoReviewApi.tickDocVersion();
           this.refreshAutoReviewPanel();
-        });
+        }, 500);
       }
     });
 
@@ -1076,6 +1077,7 @@ export class DocumentElementEditorComponent
   toggleAutoReviewPanel(): void {
     this.autoReviewPanelOpen.set(!this.autoReviewPanelOpen());
     if (this.autoReviewPanelOpen() && this.editor?.view) {
+      this.autoReviewApi.tickDocVersion();
       this.computeAutoReviewPositions();
       this.setupEditorScrollListener();
     } else if (!this.autoReviewPanelOpen() && !this.commentPanelOpen()) {

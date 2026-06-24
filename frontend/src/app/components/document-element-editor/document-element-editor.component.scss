@@ -761,7 +761,8 @@
 .auto-review-popover {
   position: fixed;
   z-index: 1000;
-  background: var(--mat-sys-surface);
+  background: var(--sys-surface-container-high);
+  border: 1px solid var(--sys-outline-variant);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   padding: 12px;
