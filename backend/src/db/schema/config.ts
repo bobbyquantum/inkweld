@@ -194,11 +194,11 @@ export const CONFIG_KEYS = {
     envVar: 'AI_KILL_SWITCH',
     type: 'boolean' as const,
   },
-  AI_LINT_ENABLED: {
+  AI_AUTO_REVIEW_ENABLED: {
     category: 'ai' as ConfigCategory,
     description: 'Enable AI-powered writing lint/suggestions',
     encrypted: false,
-    envVar: 'AI_LINT_ENABLED',
+    envVar: 'AI_AUTO_REVIEW_ENABLED',
     type: 'boolean' as const,
   },
   AI_IMAGE_ENABLED: {

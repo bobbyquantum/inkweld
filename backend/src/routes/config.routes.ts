@@ -175,11 +175,13 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     // Kill switch is OFF, check actual AI availability
     // Check if AI text features are enabled
     const aiTextEnabled = await configService.getBoolean(db, 'AI_TEXT_ENABLED');
+    // Check if auto-review is specifically enabled
+    const aiAutoReviewEnabled = await configService.getBoolean(db, 'AI_AUTO_REVIEW_ENABLED');
     // Check if an OpenAI (or OpenAI-compatible) API key is configured in the
     // database via the admin UI. Fall back to the env var for legacy setups.
     const openaiKeyConfig = await configService.get(db, 'AI_OPENAI_API_KEY');
     const openaiApiKey = openaiKeyConfig.value || process.env.OPENAI_API_KEY || '';
-    hasOpenAI = aiTextEnabled && openaiApiKey.trim().length > 0;
+    hasOpenAI = aiTextEnabled && aiAutoReviewEnabled && openaiApiKey.trim().length > 0;
 
     // Check if ANY image generation provider is available
     // This properly checks OpenAI, OpenRouter, Fal.ai, and Stable Diffusion

@@ -102,6 +102,10 @@ export class OpenAILintService {
     const textEnabled = await configService.getBoolean(db, 'AI_TEXT_ENABLED');
     if (!textEnabled) return false;
 
+    // Check the auto-review specific toggle
+    const autoReviewEnabled = await configService.getBoolean(db, 'AI_AUTO_REVIEW_ENABLED');
+    if (!autoReviewEnabled) return false;
+
     const cfg = await this.getConfig(db);
     return cfg.apiKey.trim().length > 0;
   }
