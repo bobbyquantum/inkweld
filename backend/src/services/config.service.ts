@@ -143,7 +143,7 @@ class ConfigService {
         // deliberate trust decision because it broadens the attack surface
         // beyond the device-bound passkey credential.
         return 'false';
-      case 'AI_AUTO_REVIEW_ENABLED':
+      case 'AI_LINT_ENABLED':
         return envConfig.openai.enabled ? 'true' : 'false';
       case 'AI_IMAGE_ENABLED':
         return envConfig.openai.enabled ? 'true' : 'false';
@@ -329,7 +329,7 @@ class ConfigService {
    */
   async isFeatureEnabled(
     db: DatabaseInstance,
-    feature: 'userApproval' | 'localUsers' | 'github' | 'aiAutoReview' | 'aiImage'
+    feature: 'userApproval' | 'localUsers' | 'github' | 'aiLint' | 'aiImage'
   ): Promise<boolean> {
     switch (feature) {
       case 'userApproval':
@@ -338,8 +338,8 @@ class ConfigService {
         return this.getBoolean(db, 'LOCAL_USERS_ENABLED');
       case 'github':
         return this.getBoolean(db, 'GITHUB_ENABLED');
-      case 'aiAutoReview':
-        return this.getBoolean(db, 'AI_AUTO_REVIEW_ENABLED');
+      case 'aiLint':
+        return this.getBoolean(db, 'AI_LINT_ENABLED');
       case 'aiImage':
         return this.getBoolean(db, 'AI_IMAGE_ENABLED');
     }

@@ -144,7 +144,7 @@ describe('ConfigService', () => {
       // Should have AI keys
       expect(result).toHaveProperty('AI_KILL_SWITCH');
       expect(result).toHaveProperty('AI_IMAGE_ENABLED');
-      expect(result).toHaveProperty('AI_AUTO_REVIEW_ENABLED');
+      expect(result).toHaveProperty('AI_LINT_ENABLED');
 
       // Should NOT have auth keys
       expect(result).not.toHaveProperty('USER_APPROVAL_REQUIRED');
@@ -235,8 +235,8 @@ describe('ConfigService', () => {
     });
 
     it('should check aiAutoReview feature', async () => {
-      await configService.set(db, 'AI_AUTO_REVIEW_ENABLED', 'true');
-      const result = await configService.isFeatureEnabled(db, 'aiAutoReview');
+      await configService.set(db, 'AI_LINT_ENABLED', 'true');
+      const result = await configService.isFeatureEnabled(db, 'aiLint');
       expect(result).toBe(true);
     });
 
