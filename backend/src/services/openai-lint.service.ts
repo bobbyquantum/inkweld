@@ -71,24 +71,49 @@ export class OpenAILintService {
    * from the database, falling back to env vars for legacy setups.
    */
   private async getConfig(db: DatabaseInstance): Promise<LintConfig> {
-    const [keyCfg, endpointCfg, modelCfg, promptCfg] = await Promise.all([
-      configService.get(db, 'AI_OPENAI_API_KEY' as ConfigKey),
-      configService.get(db, 'AI_OPENAI_ENDPOINT' as ConfigKey),
+    const [providerCfg, modelCfg, promptCfg] = await Promise.all([
+      configService.get(db, 'AI_TEXT_DEFAULT_PROVIDER' as ConfigKey),
       configService.get(db, 'AI_TEXT_LINT_MODEL' as ConfigKey),
       configService.get(db, 'AI_TEXT_LINT_PROMPT' as ConfigKey),
     ]);
 
+    const provider = providerCfg.value || 'openai';
+
+    // Resolve the API key + endpoint based on the configured provider.
+    let apiKey: string;
+    let endpoint: string;
+
+    if (provider === 'openrouter') {
+      const keyCfg = await configService.get(db, 'AI_OPENROUTER_API_KEY' as ConfigKey);
+      apiKey = keyCfg.value || process.env.AI_OPENROUTER_API_KEY || '';
+      endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+    } else if (provider === 'anthropic') {
+      const keyCfg = await configService.get(db, 'AI_ANTHROPIC_API_KEY' as ConfigKey);
+      apiKey = keyCfg.value || process.env.AI_ANTHROPIC_API_KEY || '';
+      // Anthropic uses a different API format, but its OpenAI-compatible
+      // endpoint is at /v1/messages. For now route through OpenAI-compat.
+      endpoint = 'https://api.anthropic.com/v1/chat/completions';
+    } else {
+      // Default: OpenAI-compatible (OpenAI, Ollama, LM Studio, etc.)
+      const [keyCfg, endpointCfg] = await Promise.all([
+        configService.get(db, 'AI_OPENAI_API_KEY' as ConfigKey),
+        configService.get(db, 'AI_OPENAI_ENDPOINT' as ConfigKey),
+      ]);
+      apiKey = keyCfg.value || process.env.OPENAI_API_KEY || '';
+      endpoint = endpointCfg.value || process.env.OPENAI_API_BASE || '';
+    }
+
     return {
-      apiKey: keyCfg.value || process.env.OPENAI_API_KEY || '',
-      endpoint: endpointCfg.value || process.env.OPENAI_API_BASE || '',
+      apiKey,
+      endpoint,
       model: modelCfg.value || process.env.AI_TEXT_LINT_MODEL || DEFAULT_MODEL,
       customPrompt: promptCfg.value || '',
     };
   }
 
   /**
-   * Whether linting is available (kill switch off + an OpenAI-compatible
-   * API key is configured).
+   * Whether auto-review is available: kill switch OFF, AI text enabled,
+   * and the configured provider has an API key.
    */
   public async isAiEnabled(db: DatabaseInstance): Promise<boolean> {
     // Check the AI kill switch first (env var or DB)
@@ -102,6 +127,7 @@ export class OpenAILintService {
     const textEnabled = await configService.getBoolean(db, 'AI_TEXT_ENABLED');
     if (!textEnabled) return false;
 
+    // Check that the configured provider has an API key
     const cfg = await this.getConfig(db);
     return cfg.apiKey.trim().length > 0;
   }
