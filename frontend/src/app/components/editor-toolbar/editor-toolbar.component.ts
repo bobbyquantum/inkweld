@@ -153,7 +153,7 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
   private resizeObserver?: ResizeObserver;
 
   private readonly ngZone = inject(NgZone);
-  private readonly systemConfig = inject(SystemConfigService);
+  protected readonly systemConfig = inject(SystemConfigService);
 
   /**
    * Priority order: groups listed last overflow first.
