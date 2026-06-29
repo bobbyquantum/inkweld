@@ -1,10 +1,11 @@
+import { provideHttpClient } from '@angular/common/http';
 import {
   NO_ERRORS_SCHEMA,
   provideZonelessChangeDetection,
   signal,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { type Element, type Project } from '@inkweld/index';
+import { Configuration, type Element, type Project } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
@@ -70,6 +71,8 @@ describe('DocumentElementEditorComponent', () => {
       schemas: [NO_ERRORS_SCHEMA],
       providers: [
         provideZonelessChangeDetection(),
+        provideHttpClient(),
+        { provide: Configuration, useValue: { basePath: '' } },
         { provide: DocumentService, useValue: documentServiceMock },
         { provide: ProjectStateService, useValue: projectStateServiceMock },
         { provide: SettingsService, useValue: settingsServiceMock },

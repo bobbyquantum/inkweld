@@ -135,6 +135,10 @@ describe('AutoReviewPanelComponent', () => {
     // Initially idle: no suggestions.
     expect(component.totalCount()).toBe(0);
 
+    // Set a mock editorView so the suggestions computed can scan.
+    fixture.componentRef.setInput('editorView', {});
+    fixture.detectChanges();
+
     // Run a review that returns no suggestions → reviewed but no items.
     await component.onReview();
     expect(component.hasReviewed()).toBe(true);
