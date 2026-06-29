@@ -11,6 +11,9 @@ import { AutoReviewPanelComponent } from './auto-review-panel.component';
 describe('AutoReviewPanelComponent', () => {
   let component: AutoReviewPanelComponent;
   let mockAutoReviewApi: Partial<AutoReviewApiService>;
+  let fixture: ReturnType<
+    typeof TestBed.createComponent<AutoReviewPanelComponent>
+  >;
 
   beforeEach(async () => {
     mockAutoReviewApi = {
@@ -33,7 +36,7 @@ describe('AutoReviewPanelComponent', () => {
       ],
     }).compileComponents();
 
-    const fixture = TestBed.createComponent(AutoReviewPanelComponent);
+    fixture = TestBed.createComponent(AutoReviewPanelComponent);
     component = fixture.componentInstance;
     fixture.componentRef.setInput('username', 'testuser');
     fixture.componentRef.setInput('slug', 'test-slug');
