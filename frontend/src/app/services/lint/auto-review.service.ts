@@ -6,12 +6,12 @@ import {
   AutoReviewService,
   type AutoReviewSuggestion,
   AutoReviewSuggestionSeverity,
-  Configuration,
 } from '@inkweld/index';
 import {
   AUTO_REVIEW_MARK_NAME,
   type AutoReviewMarkAttrs,
 } from '@inkweld/prosemirror/schema';
+import { SetupService } from '@services/core/setup.service';
 import type { Node } from 'prosemirror-model';
 import type { EditorView } from 'prosemirror-view';
 import { firstValueFrom } from 'rxjs';
@@ -35,7 +35,14 @@ export interface AutoReviewClickEvent {
 export class AutoReviewApiService {
   private readonly autoReviewService = inject(AutoReviewService);
   private readonly http = inject(HttpClient);
-  private readonly config = inject(Configuration);
+  private readonly setupService = inject(SetupService);
+
+  /** Build the full backend URL for the rejection endpoints. Uses
+   *  SetupService.getServerUrl() — the same source as the generated API
+   *  client's Configuration.basePath — so it works in server mode. */
+  private get basePath(): string {
+    return this.setupService.getServerUrl() ?? '';
+  }
 
   /** Suggestions currently visible in the document (scanned from marks). */
   readonly activeSuggestions: WritableSignal<AutoReviewSuggestion[]> = signal(
@@ -147,7 +154,7 @@ export class AutoReviewApiService {
     docId: string
   ): Promise<number> {
     try {
-      const base = this.config.basePath;
+      const base = this.basePath;
       const result = await firstValueFrom(
         this.http.get<{ count: number }>(
           `${base}/api/v1/projects/${username}/${slug}/docs/${docId}/auto-review/rejections`
@@ -167,7 +174,7 @@ export class AutoReviewApiService {
     docId: string
   ): Promise<boolean> {
     try {
-      const base = this.config.basePath;
+      const base = this.basePath;
       await firstValueFrom(
         this.http.delete<{ success: boolean }>(
           `${base}/api/v1/projects/${username}/${slug}/docs/${docId}/auto-review/rejections`

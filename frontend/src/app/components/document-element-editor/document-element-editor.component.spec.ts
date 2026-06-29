@@ -5,7 +5,7 @@ import {
   signal,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { Configuration, type Element, type Project } from '@inkweld/index';
+import { type Element, type Project } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
@@ -72,10 +72,6 @@ describe('DocumentElementEditorComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(),
-        {
-          provide: Configuration,
-          useValue: new Configuration({ basePath: '' }),
-        },
         { provide: DocumentService, useValue: documentServiceMock },
         { provide: ProjectStateService, useValue: projectStateServiceMock },
         { provide: SettingsService, useValue: settingsServiceMock },
