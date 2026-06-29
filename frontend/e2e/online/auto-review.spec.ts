@@ -454,11 +454,9 @@ test.describe('AI Auto-Review — Online Mode', () => {
       1
     );
 
-    // Re-run the review. The backend reports clearedMarks in the response
-    // and applies marks again. The count should still be 1 (or possibly
-    // different if the doc text changed), and the highlight should still
-    // be present.
-    await page.getByTestId('auto-review-btn').click();
+    // Re-run the review via the header re-review button (not the idle
+    // form's Start Review button, which isn't visible during active review).
+    await page.getByTestId('auto-review-rereview-btn').click();
 
     await expect
       .poll(
