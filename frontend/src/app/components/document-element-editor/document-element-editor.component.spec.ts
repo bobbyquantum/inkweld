@@ -72,7 +72,10 @@ describe('DocumentElementEditorComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(),
-        { provide: Configuration, useValue: { basePath: '' } },
+        {
+          provide: Configuration,
+          useValue: new Configuration({ basePath: '' }),
+        },
         { provide: DocumentService, useValue: documentServiceMock },
         { provide: ProjectStateService, useValue: projectStateServiceMock },
         { provide: SettingsService, useValue: settingsServiceMock },
