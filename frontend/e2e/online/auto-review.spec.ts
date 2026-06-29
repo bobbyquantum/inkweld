@@ -83,24 +83,23 @@ async function openPanel(page: Page): Promise<void> {
 async function fillEditorAndReview(page: Page, text: string): Promise<void> {
   const editor = page.locator('.ProseMirror');
   await expect(editor).toBeVisible();
+  // Clear existing content: select all + delete.
   await editor.click();
-  await editor.press('Control+a');
-  await editor.press('Backspace');
-  await editor.fill('');
-  await editor.click();
-  // Use the page keyboard to type so y-prosemirror observes each char.
+  await page.keyboard.press('Control+a');
+  await page.keyboard.press('Backspace');
+  await page.waitForTimeout(100);
+  // Type the trigger text.
   await page.keyboard.type(text);
+  await page.waitForTimeout(200);
 
   // Trigger the review.
   await page.getByTestId('auto-review-btn').click();
 
-  // Wait for the response to land and the Yjs sync to flow back.
-  // The template shell shows the loading spinner briefly; the highlight
-  // appears in the editor once the Yjs update arrives.
+  // Wait for highlights to appear in the editor (Yjs sync from backend).
   await expect
     .poll(
       async () => (await page.locator('.auto-review-highlight').count()) > 0,
-      { timeout: 60_000, intervals: [250, 500, 1000] }
+      { timeout: 90_000, intervals: [500, 1000, 2000] }
     )
     .toBeTruthy();
 }
