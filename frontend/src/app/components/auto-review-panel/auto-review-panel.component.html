@@ -5,28 +5,27 @@
       Auto-Review
     </h3>
     <div class="auto-review-panel__header-actions">
-      @if (canWrite()) {
+      @if (hasReviewed() && canWrite()) {
         <button
           mat-icon-button
-          matTooltip="Run review"
+          matTooltip="Re-review"
           [disabled]="reviewing()"
-          (click)="onReview()"
-          data-testid="auto-review-btn">
+          (click)="onRereview()"
+          data-testid="auto-review-rereview-btn">
           @if (reviewing()) {
             <mat-spinner diameter="18"></mat-spinner>
           } @else {
-            <mat-icon>refresh</mat-icon>
+            <mat-icon>autorenew</mat-icon>
           }
         </button>
-        @if (suggestions().length > 0) {
-          <button
-            mat-icon-button
-            matTooltip="Clear all"
-            (click)="onClearAll()"
-            data-testid="auto-review-clear-btn">
-            <mat-icon>clear_all</mat-icon>
-          </button>
-        }
+        <button
+          mat-icon-button
+          matTooltip="Dismiss review"
+          [disabled]="reviewing()"
+          (click)="onClearAll()"
+          data-testid="auto-review-dismiss-header-btn">
+          <mat-icon>clear_all</mat-icon>
+        </button>
       }
       <button
         mat-icon-button
@@ -38,109 +37,216 @@
     </div>
   </div>
 
-  @if (reviewing()) {
-    <div
-      class="auto-review-panel__loading"
-      data-testid="auto-review-panel-loading">
-      <mat-spinner diameter="24"></mat-spinner>
-      <p>Reviewing document…</p>
-    </div>
-  } @else if (suggestions().length === 0) {
-    <div class="auto-review-panel__empty" data-testid="auto-review-panel-empty">
-      <mat-icon>check_circle_outline</mat-icon>
-      <p>No suggestions</p>
-      @if (canWrite()) {
-        <p class="auto-review-panel__hint">
-          Click the review button to run a review.
-        </p>
-      }
-    </div>
-  } @else {
-    <div class="auto-review-panel__gutter">
+  <div class="auto-review-panel__body">
+    @if (reviewing()) {
       <div
-        class="auto-review-panel__gutter-inner"
-        [style.transform]="'translateY(-' + editorScrollTop() + 'px)'"
-        [style.height.px]="editorContentHeight()">
-        @for (s of positionedSuggestions(); track s.id) {
+        class="auto-review-panel__loading"
+        data-testid="auto-review-panel-loading">
+        <mat-spinner diameter="24"></mat-spinner>
+        <p>Reviewing document…</p>
+      </div>
+    } @else if (!hasReviewed() && totalCount() === 0) {
+      <!-- Idle: no review has been run yet. Show the review "form" with
+           a Start Review button. Placeholder for future form fields. -->
+      <div class="auto-review-panel__form" data-testid="auto-review-panel-form">
+        <p class="auto-review-panel__form-description">
+          Run an AI review of this document to surface grammar, spelling, and
+          style suggestions.
+        </p>
+        @if (canWrite()) {
+          <button
+            mat-flat-button
+            class="auto-review-panel__review-btn"
+            (click)="onReview()"
+            data-testid="auto-review-btn">
+            <mat-icon>spellcheck</mat-icon>
+            Start Review
+          </button>
+        } @else {
+          <p class="auto-review-panel__readonly-hint">
+            You need write access to run a review.
+          </p>
+        }
+        @if (rejectionCount() > 0) {
           <div
-            class="auto-review-panel__suggestion"
-            [class.auto-review-panel__suggestion--expanded]="
-              expandedSuggestionId() === s.id
-            "
-            [style.top.px]="s.displayTop"
-            tabindex="0"
-            role="button"
-            (click)="onSuggestionClick(s)"
-            (keydown.enter)="onSuggestionClick(s)"
-            (keydown.space)="onSuggestionClick(s)"
-            (mouseenter)="onHover(s.id)"
-            (mouseleave)="onHover(null)"
-            data-testid="auto-review-panel-suggestion">
-            <div class="auto-review-panel__suggestion-header">
-              <mat-icon
-                class="auto-review-panel__severity-icon"
-                [class.auto-review-panel__severity-icon--error]="
-                  s.severity === 'error'
-                "
-                [class.auto-review-panel__severity-icon--warning]="
-                  s.severity === 'warning'
-                "
-                [class.auto-review-panel__severity-icon--suggestion]="
-                  s.severity === 'suggestion'
-                ">
-                {{ getSeverityIcon(s.severity) }}
-              </mat-icon>
-              <span class="auto-review-panel__suggestion-category">{{
-                s.category
-              }}</span>
-            </div>
-            @if (expandedSuggestionId() === s.id) {
-              <div class="auto-review-panel__suggestion-body">
-                <p class="auto-review-panel__suggestion-message">
-                  {{ s.message }}
-                </p>
-                @if (s.suggestion) {
-                  <div class="auto-review-panel__suggestion-diff">
-                    <span class="auto-review-panel__original">{{
-                      s.originalText
-                    }}</span>
-                    <mat-icon class="auto-review-panel__arrow"
-                      >arrow_forward</mat-icon
-                    >
-                    <span class="auto-review-panel__corrected">{{
-                      s.suggestion
-                    }}</span>
-                  </div>
+            class="auto-review-panel__rejections"
+            data-testid="auto-review-rejections-info">
+            <mat-icon class="auto-review-panel__rejections-icon"
+              >block</mat-icon
+            >
+            <span class="auto-review-panel__rejections-text">
+              {{ rejectionCount() }} rejected suggestion{{
+                rejectionCount() > 1 ? 's' : ''
+              }}
+              on record
+            </span>
+            @if (canWrite()) {
+              <button
+                mat-stroked-button
+                class="auto-review-panel__reset-rejections-btn"
+                [disabled]="clearingRejections()"
+                (click)="onClearRejections()"
+                data-testid="auto-review-reset-rejections-btn">
+                @if (clearingRejections()) {
+                  <mat-spinner diameter="14"></mat-spinner>
+                } @else {
+                  <mat-icon>delete_outline</mat-icon>
                 }
-                @if (canWrite()) {
-                  <div class="auto-review-panel__actions">
-                    <button
-                      mat-stroked-button
-                      class="auto-review-panel__accept-btn"
-                      (click)="onAccept(s, $event)"
-                      data-testid="auto-review-accept-btn">
-                      <mat-icon>check</mat-icon>
-                      Accept
-                    </button>
-                    <button
-                      mat-stroked-button
-                      class="auto-review-panel__reject-btn"
-                      (click)="onReject(s, $event)"
-                      data-testid="auto-review-reject-btn">
-                      <mat-icon>close</mat-icon>
-                      Reject
-                    </button>
-                  </div>
-                }
-              </div>
-            } @else {
-              <div class="auto-review-panel__suggestion-preview">
-                {{ getPreview(s) }}
-              </div>
+                Reset
+              </button>
             }
           </div>
         }
       </div>
-    </div>
-  }
+    } @else if (hasReviewed() && totalCount() === 0) {
+      <!-- Review ran but produced no suggestions (and nothing resolved). -->
+      <div
+        class="auto-review-panel__empty"
+        data-testid="auto-review-panel-empty">
+        <mat-icon>check_circle_outline</mat-icon>
+        <p>No suggestions</p>
+        @if (canWrite()) {
+          <button
+            mat-stroked-button
+            class="auto-review-panel__run-again-btn"
+            (click)="onReview()"
+            data-testid="auto-review-run-again-btn">
+            <mat-icon>refresh</mat-icon>
+            Run Again
+          </button>
+        }
+      </div>
+    } @else {
+      <!-- Active review: active + resolved suggestions in the gutter,
+           positioned next to their corresponding text in the editor. -->
+      <div class="auto-review-panel__gutter" (wheel)="onWheel($event)">
+        <div
+          class="auto-review-panel__gutter-inner"
+          [style.transform]="'translateY(-' + editorScrollTop() + 'px)'"
+          [style.height.px]="editorContentHeight()">
+          @for (s of positionedSuggestions(); track s.id) {
+            <div
+              class="auto-review-panel__suggestion"
+              [class.auto-review-panel__suggestion--expanded]="
+                expandedSuggestionId() === s.id
+              "
+              [class.auto-review-panel__suggestion--resolved]="
+                s.resolved !== null
+              "
+              [class.auto-review-panel__suggestion--accepted]="
+                s.resolved === 'accepted'
+              "
+              [class.auto-review-panel__suggestion--rejected]="
+                s.resolved === 'rejected'
+              "
+              [style.top.px]="s.displayTop"
+              tabindex="0"
+              role="button"
+              (click)="onSuggestionClick(s)"
+              (keydown.enter)="onSuggestionClick(s)"
+              (keydown.space)="onSuggestionClick(s)"
+              (mouseenter)="onHover(s.id)"
+              (mouseleave)="onHover(null)"
+              data-testid="auto-review-panel-suggestion">
+              <div class="auto-review-panel__suggestion-header">
+                <mat-icon
+                  class="auto-review-panel__severity-icon"
+                  [class.auto-review-panel__severity-icon--error]="
+                    s.severity === 'error'
+                  "
+                  [class.auto-review-panel__severity-icon--warning]="
+                    s.severity === 'warning'
+                  "
+                  [class.auto-review-panel__severity-icon--suggestion]="
+                    s.severity === 'suggestion'
+                  ">
+                  @if (s.resolved === 'accepted') {
+                    check_circle
+                  } @else if (s.resolved === 'rejected') {
+                    cancel
+                  } @else {
+                    {{ getSeverityIcon(s.severity) }}
+                  }
+                </mat-icon>
+                <span class="auto-review-panel__suggestion-category">{{
+                  s.category
+                }}</span>
+                @if (s.resolved) {
+                  <span class="auto-review-panel__resolved-badge">
+                    {{ s.resolved === 'accepted' ? 'Accepted' : 'Rejected' }}
+                  </span>
+                }
+              </div>
+              @if (expandedSuggestionId() === s.id) {
+                <div class="auto-review-panel__suggestion-body">
+                  <p class="auto-review-panel__suggestion-message">
+                    {{ s.message }}
+                  </p>
+                  @if (s.suggestion) {
+                    <div class="auto-review-panel__suggestion-diff">
+                      <span class="auto-review-panel__original">{{
+                        s.originalText
+                      }}</span>
+                      <mat-icon class="auto-review-panel__arrow"
+                        >arrow_forward</mat-icon
+                      >
+                      <span class="auto-review-panel__corrected">{{
+                        s.suggestion
+                      }}</span>
+                    </div>
+                  }
+                  @if (canWrite()) {
+                    <div class="auto-review-panel__actions">
+                      @if (s.resolved === null) {
+                        <button
+                          mat-stroked-button
+                          class="auto-review-panel__accept-btn"
+                          [disabled]="processingId() === s.id"
+                          (click)="onAccept(s, $event)"
+                          data-testid="auto-review-accept-btn">
+                          @if (processingId() === s.id) {
+                            <mat-spinner diameter="16"></mat-spinner>
+                          } @else {
+                            <mat-icon>check</mat-icon>
+                          }
+                          Accept
+                        </button>
+                        <button
+                          mat-stroked-button
+                          class="auto-review-panel__reject-btn"
+                          [disabled]="processingId() === s.id"
+                          (click)="onReject(s, $event)"
+                          data-testid="auto-review-reject-btn">
+                          <mat-icon>close</mat-icon>
+                          Reject
+                        </button>
+                      } @else {
+                        <button
+                          mat-stroked-button
+                          class="auto-review-panel__undo-btn"
+                          [disabled]="processingId() === s.id"
+                          (click)="onUndo(s, $event)"
+                          data-testid="auto-review-undo-btn">
+                          @if (processingId() === s.id) {
+                            <mat-spinner diameter="16"></mat-spinner>
+                          } @else {
+                            <mat-icon>undo</mat-icon>
+                          }
+                          Undo
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="auto-review-panel__suggestion-preview">
+                  {{ getPreview(s) }}
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
 </div>

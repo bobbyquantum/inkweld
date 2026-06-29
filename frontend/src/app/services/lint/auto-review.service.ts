@@ -1,3 +1,4 @@
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal, type WritableSignal } from '@angular/core';
 import {
   type AutoReviewRequest,
@@ -5,6 +6,7 @@ import {
   AutoReviewService,
   type AutoReviewSuggestion,
   AutoReviewSuggestionSeverity,
+  Configuration,
 } from '@inkweld/index';
 import {
   AUTO_REVIEW_MARK_NAME,
@@ -32,6 +34,8 @@ export interface AutoReviewClickEvent {
 })
 export class AutoReviewApiService {
   private readonly autoReviewService = inject(AutoReviewService);
+  private readonly http = inject(HttpClient);
+  private readonly config = inject(Configuration);
 
   /** Suggestions currently visible in the document (scanned from marks). */
   readonly activeSuggestions: WritableSignal<AutoReviewSuggestion[]> = signal(
@@ -136,6 +140,46 @@ export class AutoReviewApiService {
     );
   }
 
+  /** Get the count of rejected suggestions for a document. */
+  async getRejectionCount(
+    username: string,
+    slug: string,
+    docId: string
+  ): Promise<number> {
+    try {
+      const base = this.config.basePath;
+      const result = await firstValueFrom(
+        this.http.get<{ count: number }>(
+          `${base}/api/v1/projects/${username}/${slug}/docs/${docId}/auto-review/rejections`
+        )
+      );
+      return result.count ?? 0;
+    } catch (err) {
+      console.warn('[AutoReview] Failed to load rejection count:', err);
+      return 0;
+    }
+  }
+
+  /** Delete all rejected suggestions for a document (reset). */
+  async clearRejections(
+    username: string,
+    slug: string,
+    docId: string
+  ): Promise<boolean> {
+    try {
+      const base = this.config.basePath;
+      await firstValueFrom(
+        this.http.delete<{ success: boolean }>(
+          `${base}/api/v1/projects/${username}/${slug}/docs/${docId}/auto-review/rejections`
+        )
+      );
+      return true;
+    } catch (err) {
+      console.warn('[AutoReview] Failed to clear rejections:', err);
+      return false;
+    }
+  }
+
   /**
    * Scan the editor document for `auto_review` marks and build a
    * list of suggestions for the sidebar.
@@ -172,7 +216,10 @@ export class AutoReviewApiService {
           }
         }
       }
-      return false;
+      // Descend into all nodes so we visit inline text nodes that carry
+      // the `auto_review` mark (marks live on text leaves inside
+      // paragraphs, not on the block nodes themselves).
+      return true;
     });
 
     return suggestions;

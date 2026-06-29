@@ -1130,7 +1130,9 @@ export class DocumentElementEditorComponent
             }
           }
         }
-        return false;
+        // Descend into children so we visit inline text nodes where
+        // auto_review marks actually live (same fix as scanDocumentMarks).
+        return true;
       });
     }
 
@@ -1168,6 +1170,17 @@ export class DocumentElementEditorComponent
 
   closeAutoReviewPopover(): void {
     this.autoReviewPopoverAttrs.set(null);
+  }
+
+  /** Relay a wheel scroll from the side panel to the editor content area
+   *  so scrolling over the panel scrolls the editor (and the gutter items
+   *  move in sync). Works for both auto-review and comment panels. */
+  onPanelWheel(deltaY: number): void {
+    const scrollContainer = this.editor?.view?.dom?.closest(
+      '.NgxEditor__Content'
+    ) as HTMLElement | undefined;
+    if (!scrollContainer) return;
+    scrollContainer.scrollTop += deltaY;
   }
 
   async onPopoverAccept(): Promise<void> {

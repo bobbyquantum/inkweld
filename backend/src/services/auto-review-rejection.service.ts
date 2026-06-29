@@ -96,6 +96,45 @@ export class AutoReviewRejectionService {
         )
       );
   }
+
+  /**
+   * Count rejections for a document element.
+   */
+  async countRejections(
+    db: DatabaseInstance,
+    projectId: string,
+    elementId: string
+  ): Promise<number> {
+    const rows = await db
+      .select({ id: autoReviewRejections.id })
+      .from(autoReviewRejections)
+      .where(
+        and(
+          eq(autoReviewRejections.projectId, projectId),
+          eq(autoReviewRejections.elementId, elementId)
+        )
+      );
+    return rows.length;
+  }
+
+  /**
+   * Delete all rejections for a document element (reset).
+   */
+  async deleteAllRejections(
+    db: DatabaseInstance,
+    projectId: string,
+    elementId: string
+  ): Promise<void> {
+    await db
+      .delete(autoReviewRejections)
+      .where(
+        and(
+          eq(autoReviewRejections.projectId, projectId),
+          eq(autoReviewRejections.elementId, elementId)
+        )
+      );
+    rejectionLog.info(`Cleared all rejections for element ${elementId}`);
+  }
 }
 
 export const autoReviewRejectionService = new AutoReviewRejectionService();

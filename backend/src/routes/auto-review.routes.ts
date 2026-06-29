@@ -348,4 +348,74 @@ lintReviewRoutes.openapi(clearRoute, async (c: any) => {
   return c.json({ success: true }, 200);
 });
 
+// GET /:username/:slug/docs/:docId/auto-review/rejections — get rejection count
+const rejectionsRoute = createRoute({
+  method: 'get',
+  path: '/:username/:slug/docs/:docId/auto-review/rejections',
+  operationId: 'getAutoReviewRejections',
+  tags: ['Auto-Review'],
+  request: { params: DocParamsSchema },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            count: z.number().openapi({ description: 'Number of rejected suggestions' }),
+          }),
+        },
+      },
+      description: 'Rejection count',
+    },
+  },
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+lintReviewRoutes.openapi(rejectionsRoute, async (c: any) => {
+  const db = c.get('db');
+  const username = c.req.param('username');
+  const slug = c.req.param('slug');
+  const docId = c.req.param('docId');
+
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
+  if (!project) return c.json({ error: 'Project not found' }, 404);
+
+  const count = await autoReviewRejectionService.countRejections(db, project.id, docId);
+  return c.json({ count }, 200);
+});
+
+// DELETE /:username/:slug/docs/:docId/auto-review/rejections — reset rejections
+const deleteRejectionsRoute = createRoute({
+  method: 'delete',
+  path: '/:username/:slug/docs/:docId/auto-review/rejections',
+  operationId: 'deleteAutoReviewRejections',
+  tags: ['Auto-Review'],
+  request: { params: DocParamsSchema },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: SimpleResultSchema } },
+      description: 'Rejections cleared',
+    },
+  },
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+lintReviewRoutes.openapi(deleteRejectionsRoute, async (c: any) => {
+  const db = c.get('db');
+  const username = c.req.param('username');
+  const slug = c.req.param('slug');
+  const docId = c.req.param('docId');
+
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
+  if (!project) return c.json({ error: 'Project not found' }, 404);
+
+  const user = c.get('user');
+  if (user && project.userId !== user.id) {
+    const access = await collaborationService.checkAccess(db, project.id, user.id);
+    if (!access.canWrite) return c.json({ error: 'Unauthorized' }, 403);
+  }
+
+  await autoReviewRejectionService.deleteAllRejections(db, project.id, docId);
+  return c.json({ success: true }, 200);
+});
+
 export default lintReviewRoutes;

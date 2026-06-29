@@ -118,6 +118,48 @@ describe('AutoReviewPanelComponent', () => {
     );
   });
 
+  it('should set hasReviewed true after a review runs', async () => {
+    expect(component.hasReviewed()).toBe(false);
+    await component.onReview();
+    expect(component.hasReviewed()).toBe(true);
+  });
+
+  it('should reset hasReviewed when the review is cleared', async () => {
+    await component.onReview();
+    expect(component.hasReviewed()).toBe(true);
+    await component.onClearAll();
+    expect(component.hasReviewed()).toBe(false);
+  });
+
+  it('should show totalCount of active + resolved suggestions', async () => {
+    // Initially idle: no suggestions.
+    expect(component.totalCount()).toBe(0);
+
+    // Run a review that returns no suggestions → reviewed but no items.
+    await component.onReview();
+    expect(component.hasReviewed()).toBe(true);
+    expect(component.totalCount()).toBe(0);
+
+    // Simulate marks appearing in the doc (e.g. via Yjs sync). The
+    // computed re-evaluates suggestions against the mocked scan.
+    (
+      mockAutoReviewApi.scanDocumentMarks as ReturnType<typeof vi.fn>
+    ).mockReturnValue([
+      {
+        id: 'sug-1',
+        message: 'fix',
+        suggestion: 'fixed',
+        category: 'grammar',
+        severity: AutoReviewSuggestionSeverity.Suggestion,
+        paragraphStart: 0,
+        paragraphEnd: 4,
+        originalText: 'test',
+      },
+    ] satisfies AutoReviewSuggestion[]);
+    (mockAutoReviewApi.docVersion as ReturnType<typeof signal>).set(1);
+    expect(component.totalCount()).toBe(1);
+  });
+
   it('should call acceptSuggestion on accept', async () => {
     const suggestion: AutoReviewSuggestion = {
       id: 'sug-1',

@@ -105,7 +105,8 @@
           (commentResolved)="onCommentResolved($event)"
           (commentDeleted)="onCommentDeleted($event)"
           (commentUpdated)="onCommentUpdated($event)"
-          (threadHovered)="onCommentHover($event)">
+          (threadHovered)="onCommentHover($event)"
+          (scrollEditor)="onPanelWheel($event)">
         </app-comment-panel>
       </div>
     }
@@ -118,7 +119,7 @@
           [username]="projectState.project()?.username ?? ''"
           [slug]="projectState.project()?.slug ?? ''"
           [docId]="bareElementId()"
-          [editorView]="editor?.view ?? null"
+          [editorView]="editor.view"
           [isOpen]="autoReviewPanelOpen()"
           [canWrite]="projectState.canWrite()"
           [suggestionPositions]="autoReviewSuggestionPositions()"
@@ -127,7 +128,9 @@
           (closed)="autoReviewPanelOpen.set(false)"
           (suggestionAccepted)="onAutoReviewSuggestionAccepted($event)"
           (suggestionRejected)="onAutoReviewSuggestionRejected($event)"
-          (suggestionHovered)="onAutoReviewHover($event)">
+          (suggestionHovered)="onAutoReviewHover($event)"
+          (reviewCleared)="closeAutoReviewPopover()"
+          (scrollEditor)="onPanelWheel($event)">
         </app-auto-review-panel>
       </div>
     }

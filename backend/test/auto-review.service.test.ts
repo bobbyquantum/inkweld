@@ -16,7 +16,8 @@ const { yjsService } = await import('../src/services/yjs.service');
 const { autoReviewService } = await import('../src/services/auto-review.service');
 const { openAILintService } = await import('../src/services/openai-lint.service');
 const { projectService } = await import('../src/services/project.service');
-const { autoReviewRejectionService } = await import('../src/services/auto-review-rejection.service');
+const { autoReviewRejectionService } =
+  await import('../src/services/auto-review-rejection.service');
 
 const LINT_MARK = 'auto_review';
 
@@ -45,6 +46,55 @@ function makeDocWithTwoParagraphs(text1: string, text2: string): Y.Doc {
   return ydoc;
 }
 
+/** Build a Y.Doc with a bullet list containing two list items, each with
+ *  a paragraph. The LLM should see each list item as a separate paragraph. */
+function makeDocWithBulletList(item1Text: string, item2Text: string): Y.Doc {
+  const ydoc = new Y.Doc();
+  const fragment = ydoc.getXmlFragment('prosemirror');
+  const bulletList = new Y.XmlElement('bulletList');
+  for (const text of [item1Text, item2Text]) {
+    const listItem = new Y.XmlElement('listItem');
+    const para = new Y.XmlElement('paragraph');
+    const ytext = new Y.XmlText();
+    ytext.insert(0, text);
+    para.insert(0, [ytext]);
+    listItem.insert(0, [para]);
+    bulletList.insert(bulletList.length, [listItem]);
+  }
+  fragment.insert(0, [bulletList]);
+  return ydoc;
+}
+
+/** Build a Y.Doc with a paragraph containing text + an elementRef chip.
+ *  The chip is inserted between `beforeText` and `afterText`. */
+function makeDocWithElementRef(
+  beforeText: string,
+  chipDisplayText: string,
+  afterText: string
+): Y.Doc {
+  const ydoc = new Y.Doc();
+  const fragment = ydoc.getXmlFragment('prosemirror');
+  const para = new Y.XmlElement('paragraph');
+
+  const before = new Y.XmlText();
+  before.insert(0, beforeText);
+
+  const chip = new Y.XmlElement('elementRef');
+  chip.setAttribute('elementId', 'char-001');
+  chip.setAttribute('elementType', 'character');
+  chip.setAttribute('displayText', chipDisplayText);
+  chip.setAttribute('originalName', chipDisplayText);
+
+  const after = new Y.XmlText();
+  after.insert(0, afterText);
+
+  para.insert(0, [before]);
+  para.insert(1, [chip]);
+  para.insert(2, [after]);
+  fragment.insert(0, [para]);
+  return ydoc;
+}
+
 /** Read all auto_review marks from a fragment's text nodes. */
 function readLintMarks(fragment: Y.XmlFragment): Array<{
   id: string;
@@ -64,8 +114,14 @@ function readLintMarks(fragment: Y.XmlFragment): Array<{
             attributes?: Record<string, Record<string, unknown>>;
           }>;
           for (const op of delta) {
-            if (op.attributes?.[LINT_MARK]) {
-              const attrs = op.attributes[LINT_MARK];
+            // Check both bare key (backend-written) and hashed key
+            // (y-prosemirror-written) to fully detect remaining marks.
+            const attrs =
+              op.attributes?.[LINT_MARK] ??
+              Object.entries(op.attributes ?? {}).find(([k]) =>
+                k.startsWith(`${LINT_MARK}--`)
+              )?.[1];
+            if (attrs) {
               marks.push({
                 id: attrs.id as string,
                 message: attrs.message as string,
@@ -237,6 +293,33 @@ describe('AutoReviewService', () => {
       expect(result.suggestions).toHaveLength(1);
     });
 
+    it('should extract bullet list items as separate paragraphs', async () => {
+      const ydoc = makeDocWithBulletList('This are item one.', 'Item two is fine.');
+
+      getDocumentSpy = spyOn(yjsService, 'getDocument').mockResolvedValue({
+        name: 'test:doc',
+        doc: ydoc,
+        awareness: {} as never,
+        conns: new Map(),
+        wsUserIds: new Map(),
+      });
+
+      let capturedParagraphs: string[] = [];
+      processDocSpy = spyOn(openAILintService, 'processDocument').mockImplementation(
+        async (_db: unknown, paragraphs: string[]) => {
+          capturedParagraphs = paragraphs;
+          return { corrections: [], style_recommendations: [], source: 'openai' } as never;
+        }
+      );
+
+      await autoReviewService.reviewDocument(fakeDb, 'test:doc', 'general', 'medium');
+
+      // Each list item should be a separate paragraph, not merged.
+      expect(capturedParagraphs).toHaveLength(2);
+      expect(capturedParagraphs[0]).toBe('This are item one.');
+      expect(capturedParagraphs[1]).toBe('Item two is fine.');
+    });
+
     it('should skip corrections with unmatchable original_text', async () => {
       const ydoc = makeDocWithParagraph('Hello world.');
 
@@ -272,6 +355,120 @@ describe('AutoReviewService', () => {
       );
 
       expect(result.suggestions).toHaveLength(0);
+    });
+
+    it('should include elementRef display text in the paragraph sent to the LLM', async () => {
+      // Paragraph: "at [Elara] fights the dragon" where [Elara] is a chip.
+      const ydoc = makeDocWithElementRef('at ', 'Elara', ' fights the dragon');
+
+      getDocumentSpy = spyOn(yjsService, 'getDocument').mockResolvedValue({
+        name: 'test:doc',
+        doc: ydoc,
+        awareness: {} as never,
+        conns: new Map(),
+        wsUserIds: new Map(),
+      });
+
+      let capturedParagraphs: string[] = [];
+      processDocSpy = spyOn(openAILintService, 'processDocument').mockImplementation(
+        async (_db: unknown, paragraphs: string[]) => {
+          capturedParagraphs = paragraphs;
+          return { corrections: [], style_recommendations: [], source: 'openai' } as never;
+        }
+      );
+
+      await autoReviewService.reviewDocument(fakeDb, 'test:doc', 'general', 'medium');
+
+      // The LLM should see "at Elara fights the dragon" (with the chip text).
+      expect(capturedParagraphs).toHaveLength(1);
+      expect(capturedParagraphs[0]).toContain('Elara');
+      expect(capturedParagraphs[0]).toBe('at Elara fights the dragon');
+    });
+
+    it('should skip corrections that overlap an elementRef chip', async () => {
+      // Paragraph: "at [Elara] fights" — the LLM might suggest replacing
+      // "Elara" (positions 3-7 in "at Elara fights") but those positions
+      // map to an elementRef chip and must be skipped.
+      const ydoc = makeDocWithElementRef('at ', 'Elara', ' fights');
+
+      getDocumentSpy = spyOn(yjsService, 'getDocument').mockResolvedValue({
+        name: 'test:doc',
+        doc: ydoc,
+        awareness: {} as never,
+        conns: new Map(),
+        wsUserIds: new Map(),
+      });
+
+      processDocSpy = spyOn(openAILintService, 'processDocument').mockResolvedValue({
+        corrections: [
+          {
+            paragraph_index: 0,
+            start_pos: 3,
+            end_pos: 8,
+            original_text: 'Elara',
+            corrected_text: 'the hero',
+            error_type: 'grammar',
+            recommendation: 'missing character reference',
+          },
+        ],
+        style_recommendations: [],
+        source: 'openai',
+      } as never);
+
+      const result = await autoReviewService.reviewDocument(
+        fakeDb,
+        'test:doc',
+        'general',
+        'medium'
+      );
+
+      // The correction overlaps the chip → skipped, no marks applied.
+      expect(result.suggestions).toHaveLength(0);
+      const fragment = ydoc.getXmlFragment('prosemirror');
+      expect(readLintMarks(fragment)).toHaveLength(0);
+    });
+
+    it('should apply marks for corrections that do NOT overlap elementRef chips', async () => {
+      // Paragraph: "This are [Elara] fights" — the correction targets
+      // "This are" (positions 0-7), which is before the chip.
+      const ydoc = makeDocWithElementRef('This are ', 'Elara', ' fights');
+
+      getDocumentSpy = spyOn(yjsService, 'getDocument').mockResolvedValue({
+        name: 'test:doc',
+        doc: ydoc,
+        awareness: {} as never,
+        conns: new Map(),
+        wsUserIds: new Map(),
+      });
+
+      processDocSpy = spyOn(openAILintService, 'processDocument').mockResolvedValue({
+        corrections: [
+          {
+            paragraph_index: 0,
+            start_pos: 0,
+            end_pos: 8,
+            original_text: 'This are',
+            corrected_text: 'This is',
+            error_type: 'grammar',
+            recommendation: 'Subject-verb agreement',
+          },
+        ],
+        style_recommendations: [],
+        source: 'openai',
+      } as never);
+
+      const result = await autoReviewService.reviewDocument(
+        fakeDb,
+        'test:doc',
+        'general',
+        'medium'
+      );
+
+      expect(result.suggestions).toHaveLength(1);
+      const fragment = ydoc.getXmlFragment('prosemirror');
+      const marks = readLintMarks(fragment);
+      expect(marks).toHaveLength(1);
+      expect(marks[0].text).toBe('This are');
     });
 
     it('should throw when AI auto-review is not configured', async () => {
@@ -415,6 +612,129 @@ describe('AutoReviewService', () => {
         'replacement'
       );
       expect(success).toBe(false);
+    });
+
+    it('should accept a suggestion stored under a y-prosemirror hashed key', async () => {
+      // y-prosemirror stores "overlapping" marks (excludes: '') under a
+      // hashed key like `auto_review--<base64>` instead of the bare mark
+      // name. The backend must find marks under either key.
+      const ydoc = makeDocWithParagraph('This are bad.');
+      const fragment = ydoc.getXmlFragment('prosemirror');
+      const ytext = (fragment.get(0) as Y.XmlElement).get(0) as Y.XmlText;
+      const hashedKey = `${LINT_MARK}--dGVzdGlu`;
+      ytext.format(0, 4, {
+        [hashedKey]: {
+          id: 'sug-hashed',
+          message: 'fix subject',
+          suggestion: 'These',
+          category: 'grammar',
+          severity: 'suggestion',
+        },
+      });
+
+      getDocumentSpy = spyOn(yjsService, 'getDocument').mockResolvedValue({
+        name: 'test:doc',
+        doc: ydoc,
+        awareness: {} as never,
+        conns: new Map(),
+        wsUserIds: new Map(),
+      });
+
+      const success = await autoReviewService.acceptSuggestion('test:doc', 'sug-hashed', 'These');
+      expect(success).toBe(true);
+
+      const text = (fragment.get(0) as Y.XmlElement).get(0) as Y.XmlText;
+      expect(text.toString()).toBe('These are bad.');
+      expect(readLintMarks(fragment)).toHaveLength(0);
+    });
+  });
+
+  describe('hashed key handling (y-prosemirror compatibility)', () => {
+    it('should clear marks stored under hashed keys', async () => {
+      const ydoc = makeDocWithParagraph('This are bad.');
+      const fragment = ydoc.getXmlFragment('prosemirror');
+      const ytext = (fragment.get(0) as Y.XmlElement).get(0) as Y.XmlText;
+      const hashedKey = `${LINT_MARK}--dGVzdGlu`;
+      ytext.format(0, 4, {
+        [hashedKey]: {
+          id: 'sug-1',
+          message: 'fix',
+          suggestion: 'These',
+          category: 'grammar',
+          severity: 'suggestion',
+        },
+      });
+
+      getDocumentSpy = spyOn(yjsService, 'getDocument').mockResolvedValue({
+        name: 'test:doc',
+        doc: ydoc,
+        awareness: {} as never,
+        conns: new Map(),
+        wsUserIds: new Map(),
+      });
+
+      const cleared = await autoReviewService.clearAllMarks('test:doc');
+      expect(cleared).toBeGreaterThan(0);
+      expect(readLintMarks(fragment)).toHaveLength(0);
+    });
+
+    it('should reject (remove) marks stored under hashed keys', async () => {
+      const ydoc = makeDocWithParagraph('This are bad.');
+      const fragment = ydoc.getXmlFragment('prosemirror');
+      const ytext = (fragment.get(0) as Y.XmlElement).get(0) as Y.XmlText;
+      const hashedKey = `${LINT_MARK}--dGVzdGlu`;
+      ytext.format(0, 4, {
+        [hashedKey]: {
+          id: 'sug-reject',
+          message: 'fix',
+          suggestion: 'These',
+          category: 'grammar',
+          severity: 'suggestion',
+        },
+      });
+
+      getDocumentSpy = spyOn(yjsService, 'getDocument').mockResolvedValue({
+        name: 'test:doc',
+        doc: ydoc,
+        awareness: {} as never,
+        conns: new Map(),
+        wsUserIds: new Map(),
+      });
+
+      const success = await autoReviewService.rejectSuggestion('test:doc', 'sug-reject');
+      expect(success).toBe(true);
+      expect(readLintMarks(fragment)).toHaveLength(0);
+    });
+
+    it('should read suggestion info from hashed-key marks', async () => {
+      const ydoc = makeDocWithParagraph('This are bad.');
+      const fragment = ydoc.getXmlFragment('prosemirror');
+      const ytext = (fragment.get(0) as Y.XmlElement).get(0) as Y.XmlText;
+      const hashedKey = `${LINT_MARK}--dGVzdGlu`;
+      ytext.format(0, 4, {
+        [hashedKey]: {
+          id: 'sug-info',
+          message: 'fix subject',
+          suggestion: 'These',
+          category: 'grammar',
+          severity: 'suggestion',
+        },
+      });
+
+      getDocumentSpy = spyOn(yjsService, 'getDocument').mockResolvedValue({
+        name: 'test:doc',
+        doc: ydoc,
+        awareness: {} as never,
+        conns: new Map(),
+        wsUserIds: new Map(),
+      });
+
+      const info = await autoReviewService.getSuggestionInfo('test:doc', 'sug-info');
+      expect(info).not.toBeNull();
+      expect(info?.message).toBe('fix subject');
+      expect(info?.suggestion).toBe('These');
+      expect(info?.category).toBe('grammar');
+      expect(info?.originalText).toBe('This');
     });
   });
 });
