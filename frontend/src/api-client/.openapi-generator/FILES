@@ -13,6 +13,7 @@ api/ai-text-generation.service.ts
 api/announcements.service.ts
 api/api.ts
 api/authentication.service.ts
+api/auto-review.service.ts
 api/collaboration.service.ts
 api/comments.service.ts
 api/configuration.service.ts
@@ -36,6 +37,7 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
+model/accept-auto-review-suggestion-request.ts
 model/add-comment-message-request.ts
 model/add-o-auth-grant-request.ts
 model/admin-create-announcement-request.ts
@@ -49,6 +51,11 @@ model/admin-set-user-admin-request.ts
 model/admin-update-announcement-request.ts
 model/authorization-info-projects-inner.ts
 model/authorization-info.ts
+model/auto-review-error.ts
+model/auto-review-request.ts
+model/auto-review-response.ts
+model/auto-review-result.ts
+model/auto-review-suggestion.ts
 model/check-tombstones-request.ts
 model/check-tombstones-response.ts
 model/client-registration-request.ts
@@ -156,6 +163,8 @@ model/o-auth-session-details.ts
 model/open-router-model-pricing.ts
 model/open-router-model.ts
 model/open-router-models-response.ts
+model/openai-compatible-models-response-models-inner.ts
+model/openai-compatible-models-response.ts
 model/optimize-image-prompt-request.ts
 model/optimize-image-prompt-response.ts
 model/paginated-image-audits.ts
@@ -190,6 +199,7 @@ model/published-file.ts
 model/ready-response.ts
 model/register-request.ts
 model/register-response.ts
+model/reject-auto-review-suggestion-request.ts
 model/reset-password-request.ts
 model/restore-response.ts
 model/set-image-enabled-request.ts

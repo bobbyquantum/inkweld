@@ -1,7 +1,22 @@
-import OpenAI from 'openai';
 import { createHash } from 'crypto';
-import { config } from '../config/env';
+import { configService } from './config.service';
+import { config as envConfig } from '../config/env';
 import { logger } from './logger.service';
+import type { DatabaseInstance } from '../types/context';
+import type { ConfigKey } from '../db/schema/config';
+import type { RejectionContext } from './auto-review-rejection.service';
+
+export interface ElementRefContext {
+  elementId: string;
+  elementType: string;
+  displayText: string;
+  originalName: string;
+}
+
+export interface ReviewContext {
+  rejections: RejectionContext[];
+  elementRefs: ElementRefContext[];
+}
 
 const lintLog = logger.child('OpenAI-Lint');
 
@@ -11,6 +26,7 @@ interface CacheEntry<T> {
 }
 
 interface CorrectionDto {
+  paragraph_index: number;
   start_pos: number;
   end_pos: number;
   original_text: string;
@@ -31,27 +47,89 @@ interface LintResponseDto {
   source: 'openai' | 'languagetool';
 }
 
-export class OpenAILintService {
-  private readonly openai: OpenAI | null = null;
-  private readonly isEnabled: boolean;
-  private readonly cache = new Map<string, CacheEntry<LintResponseDto>>();
-  private readonly CACHE_TTL = 300000; // 5 minutes
-  private readonly MODEL = 'gpt-4-turbo-preview';
+interface DocumentLintResponseDto {
+  corrections: CorrectionDto[];
+  style_recommendations: StyleRecommendationDto[];
+  source: 'openai' | 'languagetool';
+}
 
-  constructor() {
-    const apiKey = config.openai.apiKey;
-    if (apiKey) {
-      this.openai = new OpenAI({ apiKey });
-      this.isEnabled = true;
-      lintLog.info('OpenAI lint service initialized');
+interface LintConfig {
+  apiKey: string;
+  endpoint: string;
+  model: string;
+  customPrompt: string;
+}
+
+const DEFAULT_MODEL = 'gpt-4o-mini';
+const CACHE_TTL = 300000; // 5 minutes
+
+export class OpenAILintService {
+  private readonly cache = new Map<string, CacheEntry<LintResponseDto>>();
+
+  /**
+   * Read the lint configuration (API key, endpoint, model, custom prompt)
+   * from the database, falling back to env vars for legacy setups.
+   */
+  private async getConfig(db: DatabaseInstance): Promise<LintConfig> {
+    const [providerCfg, modelCfg, promptCfg] = await Promise.all([
+      configService.get(db, 'AI_TEXT_DEFAULT_PROVIDER' as ConfigKey),
+      configService.get(db, 'AI_TEXT_LINT_MODEL' as ConfigKey),
+      configService.get(db, 'AI_TEXT_LINT_PROMPT' as ConfigKey),
+    ]);
+
+    const provider = providerCfg.value || 'openai';
+
+    // Resolve the API key + endpoint based on the configured provider.
+    let apiKey: string;
+    let endpoint: string;
+
+    if (provider === 'openrouter') {
+      const keyCfg = await configService.get(db, 'AI_OPENROUTER_API_KEY' as ConfigKey);
+      apiKey = keyCfg.value || process.env.AI_OPENROUTER_API_KEY || '';
+      endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+    } else if (provider === 'anthropic') {
+      const keyCfg = await configService.get(db, 'AI_ANTHROPIC_API_KEY' as ConfigKey);
+      apiKey = keyCfg.value || process.env.AI_ANTHROPIC_API_KEY || '';
+      // Anthropic uses a different API format, but its OpenAI-compatible
+      // endpoint is at /v1/messages. For now route through OpenAI-compat.
+      endpoint = 'https://api.anthropic.com/v1/chat/completions';
     } else {
-      lintLog.warn('OPENAI_API_KEY not configured. AI linting disabled.');
-      this.isEnabled = false;
+      // Default: OpenAI-compatible (OpenAI, Ollama, LM Studio, etc.)
+      const [keyCfg, endpointCfg] = await Promise.all([
+        configService.get(db, 'AI_OPENAI_API_KEY' as ConfigKey),
+        configService.get(db, 'AI_OPENAI_ENDPOINT' as ConfigKey),
+      ]);
+      apiKey = keyCfg.value || process.env.OPENAI_API_KEY || '';
+      endpoint = endpointCfg.value || process.env.OPENAI_API_BASE || '';
     }
+
+    return {
+      apiKey,
+      endpoint,
+      model: modelCfg.value || process.env.AI_TEXT_LINT_MODEL || DEFAULT_MODEL,
+      customPrompt: promptCfg.value || '',
+    };
   }
 
-  public isAiEnabled(): boolean {
-    return this.isEnabled;
+  /**
+   * Whether auto-review is available: kill switch OFF, AI text enabled,
+   * and the configured provider has an API key.
+   */
+  public async isAiEnabled(db: DatabaseInstance): Promise<boolean> {
+    // Check the AI kill switch first (env var or DB)
+    const killSwitch = await configService.getBoolean(db, 'AI_KILL_SWITCH');
+    const killSwitchOn = envConfig.aiKillSwitch.lockedByEnv
+      ? envConfig.aiKillSwitch.enabled
+      : killSwitch;
+    if (killSwitchOn) return false;
+
+    // Check the AI text feature toggle
+    const textEnabled = await configService.getBoolean(db, 'AI_TEXT_ENABLED');
+    if (!textEnabled) return false;
+
+    // Check that the configured provider has an API key
+    const cfg = await this.getConfig(db);
+    return cfg.apiKey.trim().length > 0;
   }
 
   private generateCacheKey(paragraph: string, style: string, level: string): string {
@@ -61,7 +139,7 @@ export class OpenAILintService {
   private cacheSet(key: string, value: LintResponseDto): void {
     this.cache.set(key, {
       value,
-      expiry: Date.now() + this.CACHE_TTL,
+      expiry: Date.now() + CACHE_TTL,
     });
     this.cleanCache();
   }
@@ -85,7 +163,11 @@ export class OpenAILintService {
     }
   }
 
-  private createSystemMessage(style: string, level: string): string {
+  private createSystemMessage(style: string, level: string, customPrompt: string): string {
+    if (customPrompt) {
+      return `${customPrompt}\n\nApply a ${level} level of scrutiny. Return ONLY JSON with this format:\n{\n  "original_paragraph": "the original text",\n  "corrections": [\n    {\n      "start_pos": 0,\n      "end_pos": 4,\n      "original_text": "text with error",\n      "corrected_text": "corrected text",\n      "error_type": "grammar",\n      "recommendation": "explanation of the correction"\n    }\n  ],\n  "style_recommendations": [\n    { "suggestion": "recommendation text", "reason": "reason for recommendation" }\n  ]\n}`;
+    }
+
     return `You are a professional writing assistant specializing in ${style} style.
 Your task is to analyze the provided paragraph and identify:
 1. Grammar, spelling, and punctuation errors
@@ -114,13 +196,21 @@ The JSON must follow this format:
 }`;
   }
 
+  /**
+   * Lint a paragraph by calling the configured OpenAI-compatible endpoint.
+   */
   public async processText(
+    db: DatabaseInstance,
     paragraph: string,
     style: string,
     level: string
   ): Promise<LintResponseDto> {
-    if (!this.isEnabled || !this.openai) {
-      throw new Error('AI linting features are not available. Please configure OPENAI_API_KEY.');
+    const cfg = await this.getConfig(db);
+
+    if (!cfg.apiKey.trim()) {
+      throw new Error(
+        'AI linting features are not available. Please configure an OpenAI-compatible API key.'
+      );
     }
 
     const cacheKey = this.generateCacheKey(paragraph, style, level);
@@ -130,56 +220,228 @@ The JSON must follow this format:
       return cached;
     }
 
-    const systemMsg = this.createSystemMessage(style, level);
+    const systemMsg = this.createSystemMessage(style, level, cfg.customPrompt);
+    const endpoint = cfg.endpoint
+      ? `${cfg.endpoint.replace(/\/+$/, '')}/chat/completions`
+      : 'https://api.openai.com/v1/chat/completions';
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      const res = await this.openai.chat.completions.create(
-        {
-          model: this.MODEL,
-          messages: [
-            { role: 'system', content: systemMsg },
-            { role: 'user', content: paragraph },
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.3,
-          max_tokens: 512,
-          stream: false,
+      const body: Record<string, unknown> = {
+        model: cfg.model,
+        messages: [
+          { role: 'system', content: systemMsg },
+          { role: 'user', content: paragraph },
+        ],
+        temperature: 0.3,
+        stream: false,
+      };
+
+      // response_format: { type: 'json_object' } is OpenAI-specific and not
+      // supported by all OpenAI-compatible servers (e.g. Ollama). Only send it
+      // when the endpoint looks like OpenAI (no custom endpoint configured, or
+      // the endpoint contains "openai.com").
+      if (!cfg.endpoint || cfg.endpoint.includes('openai.com')) {
+        body['response_format'] = { type: 'json_object' };
+      }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${cfg.apiKey}`,
+          'Content-Type': 'application/json',
         },
-        {
-          signal: controller.signal,
-        }
-      );
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
 
       clearTimeout(timeoutId);
 
-      if (res.choices && res.choices.length > 0) {
-        const content = res.choices[0].message.content;
-        if (!content) {
-          throw new Error('Empty response from OpenAI');
-        }
-
-        const parsedResponse = JSON.parse(content) as LintResponseDto;
-        parsedResponse.source = 'openai';
-
-        this.cacheSet(cacheKey, parsedResponse);
-        return parsedResponse;
-      } else {
-        throw new Error('No choices returned from OpenAI');
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`OpenAI-compatible API error (${res.status}): ${errorText}`);
       }
+
+      const data = (await res.json()) as {
+        choices: Array<{ message: { content: string } }>;
+      };
+
+      if (!data.choices || data.choices.length === 0) {
+        throw new Error('No choices returned from lint API');
+      }
+
+      const content = data.choices[0].message.content;
+      if (!content) {
+        throw new Error('Empty response from lint API');
+      }
+
+      const parsedResponse = JSON.parse(content) as LintResponseDto;
+      parsedResponse.source = 'openai';
+
+      this.cacheSet(cacheKey, parsedResponse);
+      return parsedResponse;
     } catch (error: unknown) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- OpenAI error structure is complex
-      const err = error as any;
-      if (err.name === 'AbortError') {
-        throw new Error('Linting service timed out after 15 seconds', { cause: error });
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Linting service timed out after 15 seconds', {
+          cause: error,
+        });
       }
-      lintLog.error(`Error calling OpenAI: ${err.message || 'Unknown error'}`);
-      throw new Error('Failed to process text with OpenAI', { cause: error });
+      const errMessage = error instanceof Error ? error.message : 'Unknown error';
+      lintLog.error(`Error calling lint API: ${errMessage}`);
+      throw new Error('Failed to process text with lint API', { cause: error });
     }
+  }
+
+  /**
+   * Lint an entire document in one LLM call. Each paragraph is prefixed with
+   * its index so the LLM can reference it in corrections. This gives the model
+   * full document context for more coherent suggestions.
+   */
+  public async processDocument(
+    db: DatabaseInstance,
+    paragraphs: string[],
+    style: string,
+    level: string,
+    context?: ReviewContext
+  ): Promise<DocumentLintResponseDto> {
+    const cfg = await this.getConfig(db);
+
+    if (!cfg.apiKey.trim()) {
+      throw new Error(
+        'AI auto-review is not available. Please configure an OpenAI-compatible API key.'
+      );
+    }
+
+    const systemMsg = this.createDocumentSystemMessage(style, level, cfg.customPrompt, context);
+    const userMsg = paragraphs.map((text, i) => `[P${i}] ${text}`).join('\n\n');
+
+    const endpoint = cfg.endpoint
+      ? `${cfg.endpoint.replace(/\/+$/, '')}/chat/completions`
+      : 'https://api.openai.com/v1/chat/completions';
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
+
+      const body: Record<string, unknown> = {
+        model: cfg.model,
+        messages: [
+          { role: 'system', content: systemMsg },
+          { role: 'user', content: userMsg },
+        ],
+        temperature: 0.3,
+        stream: false,
+      };
+
+      if (!cfg.endpoint || cfg.endpoint.includes('openai.com')) {
+        body['response_format'] = { type: 'json_object' };
+      }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${cfg.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`OpenAI-compatible API error (${res.status}): ${errorText}`);
+      }
+
+      const data = (await res.json()) as {
+        choices: Array<{ message: { content: string } }>;
+      };
+
+      if (!data.choices || data.choices.length === 0) {
+        throw new Error('No choices returned from lint API');
+      }
+
+      const content = data.choices[0].message.content;
+      if (!content) {
+        throw new Error('Empty response from lint API');
+      }
+
+      const parsed = JSON.parse(content) as DocumentLintResponseDto;
+      parsed.source = 'openai';
+      return parsed;
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Linting service timed out after 120 seconds', {
+          cause: error,
+        });
+      }
+      const errMessage = error instanceof Error ? error.message : 'Unknown error';
+      lintLog.error(`Error calling lint API: ${errMessage}`);
+      throw new Error('Failed to process document with lint API', { cause: error });
+    }
+  }
+
+  private createDocumentSystemMessage(
+    style: string,
+    level: string,
+    customPrompt: string,
+    context?: ReviewContext
+  ): string {
+    const base = customPrompt
+      ? customPrompt
+      : `You are a professional writing assistant specializing in ${style} style.
+Your task is to analyze the provided document and identify:
+1. Grammar, spelling, and punctuation errors
+2. Style inconsistencies with ${style} writing
+3. Potential improvements to enhance the ${style} style`;
+
+    let msg = `${base}
+
+Apply a ${level} level of scrutiny (low: only critical errors, medium: typical errors, high: comprehensive analysis).
+
+The document is provided as numbered paragraphs prefixed with [P0], [P1], etc.
+The start_pos and end_pos refer to character offsets within that specific paragraph.
+
+Return ONLY JSON with no additional text in this format:
+{
+  "corrections": [
+    {
+      "paragraph_index": 0,
+      "start_pos": 0,
+      "end_pos": 4,
+      "original_text": "text with error",
+      "corrected_text": "corrected text",
+      "error_type": "grammar",
+      "recommendation": "explanation of the correction"
+    }
+  ],
+  "style_recommendations": [
+    { "suggestion": "recommendation text", "reason": "reason for recommendation" }
+  ]
+}`;
+
+    // Add previously rejected suggestions so the LLM doesn't repeat them.
+    if (context?.rejections && context.rejections.length > 0) {
+      const rejectionList = context.rejections
+        .map((r) => `- "${r.originalText}" → "${r.suggestionText}" (${r.category}: ${r.message})`)
+        .join('\n');
+      msg += `\n\nThe following suggestions were previously rejected by the author. Do NOT repeat these exact suggestions — the author has already decided they are wrong or intentional:\n${rejectionList}`;
+    }
+
+    // Add referenced element context (characters, locations, etc.)
+    if (context?.elementRefs && context.elementRefs.length > 0) {
+      const refList = context.elementRefs
+        .map((r) => `- ${r.elementType}: "${r.displayText}" (original name: "${r.originalName}")`)
+        .join('\n');
+      msg += `\n\nThe following elements are referenced in the document using @mentions. These are proper nouns (character names, locations, etc.) — do NOT flag them as spelling errors:\n${refList}`;
+    }
+
+    return msg;
   }
 }
 
-// Singleton instance
+// Singleton instance (stateless — reads config from db per request)
 export const openAILintService = new OpenAILintService();

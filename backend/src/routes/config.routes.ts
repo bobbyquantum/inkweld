@@ -3,6 +3,7 @@ import { config } from '../config/env';
 import { PROTOCOL_VERSION, MIN_CLIENT_VERSION } from '../config/protocol';
 import { imageGenerationService } from '../services/image-generation.service';
 import { configService } from '../services/config.service';
+import type { ConfigKey } from '../db/schema/config';
 import { getPasswordPolicy } from '../services/password-validation.service';
 import type { AppContext } from '../types/context';
 
@@ -41,9 +42,9 @@ const SystemFeaturesSchema = z
       description:
         'Whether the AI kill switch is locked by environment variable and cannot be changed in admin UI.',
     }),
-    aiLinting: z
+    aiAutoReview: z
       .boolean()
-      .openapi({ example: true, description: 'Whether AI-powered linting is available' }),
+      .openapi({ example: true, description: 'Whether AI-powered auto-review is available' }),
     aiImageGeneration: z
       .boolean()
       .openapi({ example: true, description: 'Whether AI-powered image generation is available' }),
@@ -173,9 +174,24 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
 
   if (!aiKillSwitch) {
     // Kill switch is OFF, check actual AI availability
-    // Check if OpenAI API key is configured (for AI linting)
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    hasOpenAI = !!openaiApiKey && openaiApiKey.trim().length > 0;
+    const aiTextEnabled = await configService.getBoolean(db, 'AI_TEXT_ENABLED');
+    if (aiTextEnabled) {
+      // Check if the configured default provider has an API key
+      const providerCfg = await configService.get(db, 'AI_TEXT_DEFAULT_PROVIDER' as ConfigKey);
+      const provider = providerCfg.value || 'openai';
+      let providerKey: string;
+      if (provider === 'openrouter') {
+        const keyCfg = await configService.get(db, 'AI_OPENROUTER_API_KEY' as ConfigKey);
+        providerKey = keyCfg.value || process.env.AI_OPENROUTER_API_KEY || '';
+      } else if (provider === 'anthropic') {
+        const keyCfg = await configService.get(db, 'AI_ANTHROPIC_API_KEY' as ConfigKey);
+        providerKey = keyCfg.value || process.env.AI_ANTHROPIC_API_KEY || '';
+      } else {
+        const keyCfg = await configService.get(db, 'AI_OPENAI_API_KEY' as ConfigKey);
+        providerKey = keyCfg.value || process.env.OPENAI_API_KEY || '';
+      }
+      hasOpenAI = providerKey.trim().length > 0;
+    }
 
     // Check if ANY image generation provider is available
     // This properly checks OpenAI, OpenRouter, Fal.ai, and Stable Diffusion
@@ -212,7 +228,7 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
   return c.json({
     aiKillSwitch,
     aiKillSwitchLockedByEnv: lockedByEnv,
-    aiLinting: hasOpenAI,
+    aiAutoReview: hasOpenAI,
     aiImageGeneration: hasImageGeneration,
     appMode,
     defaultServerName,

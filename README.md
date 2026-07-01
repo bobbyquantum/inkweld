@@ -245,7 +245,7 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🟡 | Worldbuilding context for images | Include element data in generation prompts |
 | ✅ | 🟡 | Reference images | Use existing images as style/composition reference |
 | ✅ | 🟡 | Prompt optimization | AI-powered prompt rewriting for better results |
-| 🔨 | 🟡 | AI grammar/lint suggestions | Implemented but currently broken — needs fixing |
+| ✅ | 🟡 | AI grammar/lint suggestions | Per-paragraph grammar/style suggestions with accept/reject (OpenAI) |
 | ⬜ | 🟢 | AI writing assistance | Suggestions, continuations, rephrasing |
 
 ---

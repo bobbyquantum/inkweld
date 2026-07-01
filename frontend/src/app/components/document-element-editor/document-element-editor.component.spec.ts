@@ -1,3 +1,4 @@
+import { provideHttpClient } from '@angular/common/http';
 import {
   NO_ERRORS_SCHEMA,
   provideZonelessChangeDetection,
@@ -70,6 +71,7 @@ describe('DocumentElementEditorComponent', () => {
       schemas: [NO_ERRORS_SCHEMA],
       providers: [
         provideZonelessChangeDetection(),
+        provideHttpClient(),
         { provide: DocumentService, useValue: documentServiceMock },
         { provide: ProjectStateService, useValue: projectStateServiceMock },
         { provide: SettingsService, useValue: settingsServiceMock },
@@ -210,21 +212,6 @@ describe('DocumentElementEditorComponent', () => {
       component.ngOnDestroy();
 
       expect(documentServiceMock.disconnect).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('isCursorInLintSuggestion', () => {
-    it('should return false when editor is not initialized', () => {
-      // Don't call ngOnInit so editor remains undefined
-      expect(component.isCursorInLintSuggestion()).toBe(false);
-    });
-
-    it('should return false when no lint suggestions exist', () => {
-      component.documentId = 'testuser:test-project:doc-1';
-      fixture.detectChanges();
-      component.ngOnInit();
-
-      expect(component.isCursorInLintSuggestion()).toBe(false);
     });
   });
 

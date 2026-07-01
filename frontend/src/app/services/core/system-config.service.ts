@@ -36,7 +36,7 @@ const DEFAULT_PASSWORD_POLICY: SystemFeaturesPasswordPolicy = {
 const LOCAL_DEFAULTS: SystemFeatures = {
   aiKillSwitch: true, // Kill switch ON = AI disabled in local mode
   aiKillSwitchLockedByEnv: false,
-  aiLinting: false,
+  aiAutoReview: false,
   aiImageGeneration: false,
   userApprovalRequired: false, // No approval needed in local mode
   appMode: SystemFeaturesAppMode.Local,
@@ -55,7 +55,7 @@ const LOCAL_DEFAULTS: SystemFeatures = {
 const SERVER_UNAVAILABLE_DEFAULTS: SystemFeatures = {
   aiKillSwitch: true, // Assume kill switch ON when server unavailable
   aiKillSwitchLockedByEnv: false,
-  aiLinting: false,
+  aiAutoReview: false,
   aiImageGeneration: false,
   userApprovalRequired: true, // Keep strict in server mode
   appMode: SystemFeaturesAppMode.Local, // Treat as local when server is down
@@ -81,7 +81,7 @@ export class SystemConfigService {
   private readonly systemFeaturesSignal = signal<SystemFeatures>({
     aiKillSwitch: true, // Default to ON (AI disabled) for safety
     aiKillSwitchLockedByEnv: false,
-    aiLinting: false,
+    aiAutoReview: false,
     aiImageGeneration: false,
     userApprovalRequired: true,
     appMode: SystemFeaturesAppMode.Both,
@@ -112,8 +112,8 @@ export class SystemConfigService {
     () => this.systemFeaturesSignal().aiKillSwitchLockedByEnv ?? false
   );
 
-  public readonly isAiLintingEnabled = computed(
-    () => this.systemFeaturesSignal().aiLinting ?? false
+  public readonly isAiAutoReviewEnabled = computed(
+    () => this.systemFeaturesSignal().aiAutoReview ?? false
   );
   public readonly isAiImageGenerationEnabled = computed(
     () => this.systemFeaturesSignal().aiImageGeneration ?? false

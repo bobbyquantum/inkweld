@@ -35,6 +35,7 @@ import {
 import { type InsertLinkDialogResult } from '@dialogs/insert-link-dialog/insert-link-dialog.component';
 import { type SnapshotsDialogData } from '@dialogs/snapshots-dialog/snapshots-dialog.component';
 import { type TagEditorDialogData } from '@dialogs/tag-editor-dialog/tag-editor-dialog.component';
+import { type AutoReviewMarkAttrs } from '@inkweld/prosemirror/schema';
 import { type ResolvedTag } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { FindInDocumentService } from '@services/core/find-in-document.service';
@@ -42,6 +43,11 @@ import { InsertImageService } from '@services/core/insert-image.service';
 import { InsertLinkService } from '@services/core/insert-link.service';
 import { LoggerService } from '@services/core/logger.service';
 import { SettingsService } from '@services/core/settings.service';
+import { SystemConfigService } from '@services/core/system-config.service';
+import {
+  AutoReviewApiService,
+  type AutoReviewClickEvent,
+} from '@services/lint/auto-review.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { CommentService } from '@services/project/comment.service';
 import { DocumentService } from '@services/project/document.service';
@@ -51,8 +57,9 @@ import { TagService } from '@services/tag/tag.service';
 import type { MarkType, ResolvedPos } from 'prosemirror-model';
 import type { EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, type Subscription } from 'rxjs';
 
+import { AutoReviewPanelComponent } from '../auto-review-panel/auto-review-panel.component';
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
 import {
@@ -71,8 +78,6 @@ import {
 } from '../element-ref';
 import { FindInDocumentComponent } from '../find-in-document';
 import { createMediaUrl } from '../image-paste';
-import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
-import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
 
 @Component({
   selector: 'app-document-element-editor',
@@ -84,7 +89,7 @@ import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
     MatSelectModule,
     MatOptionModule,
     DragDropModule,
-    LintFloatingMenuComponent,
+    AutoReviewPanelComponent,
     ElementRefPopupComponent,
     ElementRefContextMenuComponent,
     ElementRefTooltipComponent,
@@ -96,10 +101,7 @@ import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
   ],
   templateUrl: './document-element-editor.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
-  styleUrls: [
-    './document-element-editor.component.scss',
-    '../../components/lint/lint.css',
-  ],
+  styleUrls: ['./document-element-editor.component.scss'],
 })
 export class DocumentElementEditorComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewChecked
@@ -185,14 +187,19 @@ export class DocumentElementEditorComponent
   private collaborationSetup = false;
   private destroyed = false; // Track if component is destroyed to prevent stale async operations
   private editorScrollCleanup: (() => void) | null = null;
-  private readonly lintAcceptListener: EventListener = (_event: Event) => {
-    // Suggestion accepted - could add analytics here
-  };
-  private readonly lintRejectListener: EventListener = (_event: Event) => {
-    // Suggestion rejected - could add analytics here
-  };
+  private editorUpdateSub: Subscription | null = null;
   protected editorKey = 0; // Increments when switching tabs to force ngx-editor recreation
   private readonly cdr = inject(ChangeDetectorRef);
+
+  /** Auto-Review panel state */
+  autoReviewPanelOpen = signal(false);
+  autoReviewSuggestionPositions = signal<Record<string, number>>({});
+  private readonly autoReviewApi = inject(AutoReviewApiService);
+  private readonly systemConfig = inject(SystemConfigService);
+
+  /** Auto-Review popover (click on highlighted text in editor body) */
+  autoReviewPopoverAttrs = signal<AutoReviewMarkAttrs | null>(null);
+  autoReviewPopoverPosition = signal<{ x: number; y: number }>({ x: 0, y: 0 });
 
   readonly syncState = computed(() => {
     return this.documentService.getSyncStatusSignal(this.documentIdSignal())();
@@ -338,6 +345,30 @@ export class DocumentElementEditorComponent
         void this.addComment();
       }
     });
+
+    // When a review finishes (reviewing goes false), tick the doc version so
+    // the panel re-scans marks. Use a 500ms delay so Yjs sync has time to
+    // apply the mark updates from the server before we scan the doc.
+    effect(() => {
+      const isReviewing = this.autoReviewApi.reviewing();
+      if (!isReviewing && this.autoReviewPanelOpen()) {
+        setTimeout(() => {
+          this.autoReviewApi.tickDocVersion();
+          this.refreshAutoReviewPanel();
+        }, 500);
+      }
+    });
+
+    // Watch for auto-review click events from the ProseMirror plugin
+    effect(() => {
+      const event: AutoReviewClickEvent | null =
+        this.autoReviewApi.clickEvent();
+      if (event) {
+        this.autoReviewPopoverAttrs.set(event.attrs);
+        this.autoReviewPopoverPosition.set(event.coords);
+        this.autoReviewApi.clickEvent.set(null);
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -368,9 +399,6 @@ export class DocumentElementEditorComponent
         'ngOnInit - waiting for valid documentId from routing'
       );
     }
-
-    // Add custom styles for lint plugin
-    this.addLintStyles();
   }
 
   ngAfterViewChecked(): void {
@@ -432,6 +460,15 @@ export class DocumentElementEditorComponent
 
             // Set read-only mode for viewers who can't write
             this.updateEditableState();
+
+            // Subscribe to editor updates so the auto-review panel re-scans
+            // marks when the Yjs doc changes (e.g. server inserts review marks).
+            this.editorUpdateSub = this.editor.update.subscribe(() => {
+              this.autoReviewApi.tickDocVersion();
+              if (this.autoReviewPanelOpen()) {
+                this.refreshAutoReviewPanel();
+              }
+            });
 
             // Force change detection to update the view
             this.cdr.detectChanges();
@@ -503,6 +540,10 @@ export class DocumentElementEditorComponent
     // Clean up scroll listener
     this.teardownEditorScrollListener();
 
+    // Clean up editor update subscription
+    this.editorUpdateSub?.unsubscribe();
+    this.editorUpdateSub = null;
+
     // Clear find service editor reference
     this.findService.setEditor(null);
 
@@ -517,24 +558,6 @@ export class DocumentElementEditorComponent
     // but the editor is already destroyed so it won't crash
     if (!this.zenMode && this.documentId !== 'invalid' && this.documentId) {
       this.documentService.disconnect(this.documentId);
-    }
-
-    if (typeof document !== 'undefined') {
-      document.removeEventListener('lint-accept', this.lintAcceptListener);
-      document.removeEventListener('lint-reject', this.lintRejectListener);
-    }
-
-    // Remove our custom style element if it exists
-    if (
-      typeof document !== 'undefined' &&
-      document.getElementById('inkweld-lint-styles')
-    ) {
-      try {
-        const styleElement = document.getElementById('inkweld-lint-styles');
-        styleElement?.remove();
-      } catch {
-        // Ignore errors when removing lint styles
-      }
     }
   }
 
@@ -559,146 +582,6 @@ export class DocumentElementEditorComponent
     } else {
       return false;
     }
-  }
-
-  /**
-   * Add global styles for the lint plugin decorations
-   * This ensures the CSS is properly applied to the editor instance
-   */
-  private addLintStyles(): void {
-    // Check if we're running in a browser environment
-    if (
-      globalThis.window === undefined ||
-      typeof document === 'undefined' ||
-      !document.head
-    ) {
-      return;
-    }
-
-    // Check if style already exists to avoid duplicates
-    const styleId = 'inkweld-lint-styles';
-    if (document.getElementById(styleId)) {
-      return;
-    }
-
-    // Create a style element and add lint CSS
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `
-      .lint-error {
-        background-color: rgba(255, 220, 0, 0.2) !important;
-        border-bottom: 1px dashed #ffd700 !important;
-        text-decoration: none !important;
-        cursor: pointer;
-        position: relative;
-      }
-
-      .lint-error:hover {
-        background-color: rgba(255, 220, 0, 0.3) !important;
-      }
-
-      .ProseMirror .lint-error {
-        background-color: rgba(255, 220, 0, 0.2) !important;
-        border-bottom: 1px dashed #ffd700 !important;
-        text-decoration: none !important;
-      }
-
-      /* Custom tooltip styles */
-      .lint-tooltip {
-        position: absolute;
-        z-index: 1000;
-        background-color: rgba(33, 33, 33, 0.95);
-        color: white;
-        border-radius: 4px;
-        padding: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        max-width: 300px;
-        white-space: pre-line;
-        font-size: 14px;
-        line-height: 1.4;
-        display: none;
-      }
-
-      .lint-error:hover .lint-tooltip {
-        display: block;
-      }
-
-      .lint-tooltip-title {
-        font-weight: bold;
-        margin-bottom: 4px;
-      }
-
-      .lint-tooltip-reason {
-        font-style: italic;
-        color: #e0e0e0;
-        margin-bottom: 8px;
-      }
-
-      /* Styles for accept/reject buttons */
-      .lint-action-buttons {
-        display: flex;
-        margin-top: 8px;
-        justify-content: flex-end;
-      }
-
-      .lint-action-button {
-        cursor: pointer !important;
-        margin-left: 8px !important;
-        padding: 4px 8px !important;
-        border: none !important;
-        border-radius: 3px !important;
-        font-size: 12px !important;
-        display: flex !important;
-        align-items: center !important;
-      }
-
-      .lint-accept-button {
-        background-color: #4caf50 !important;
-        color: white !important;
-      }
-
-      .lint-reject-button {
-        background-color: #f44336 !important;
-        color: white !important;
-      }
-
-      .lint-action-button-icon {
-        margin-right: 4px !important;
-      }
-    `;
-
-    // Add to document head
-    document.head.appendChild(style);
-
-    // Add event handlers for accept/reject buttons (can be used for analytics later)
-    document.addEventListener('lint-accept', this.lintAcceptListener);
-    document.addEventListener('lint-reject', this.lintRejectListener);
-  }
-
-  // Check if the cursor is currently inside a lint suggestion
-  isCursorInLintSuggestion(): boolean {
-    if (!this.editor?.view) {
-      return false;
-    }
-
-    const state = this.editor.view.state;
-    const { selection } = state;
-    const cursorPos = selection.from;
-
-    // Get the lint plugin state
-    const pluginState = lintPluginKey.getState(state);
-    if (!pluginState?.suggestions || pluginState.suggestions.length === 0) {
-      return false;
-    }
-
-    // Check if cursor is inside any suggestion
-    for (const suggestion of pluginState.suggestions) {
-      if (suggestion.startPos <= cursorPos && cursorPos <= suggestion.endPos) {
-        return true;
-      }
-    }
-
-    return false;
   }
 
   /**
@@ -1164,6 +1047,7 @@ export class DocumentElementEditorComponent
     const handler = () => {
       this.editorScrollTop.set(scrollContainer.scrollTop);
       this.computeCommentPositions();
+      this.computeAutoReviewPositions();
     };
     scrollContainer.addEventListener('scroll', handler, { passive: true });
     this.editorScrollCleanup = () =>
@@ -1188,5 +1072,147 @@ export class DocumentElementEditorComponent
         .querySelectorAll(`[data-comment-id="${CSS.escape(commentId)}"]`)
         .forEach(el => el.classList.add('comment-highlight--sidebar-hover'));
     }
+  }
+
+  // ─── Lint Panel ───────────────────────────────────────────────────────
+
+  toggleAutoReviewPanel(): void {
+    if (!this.systemConfig.isAiAutoReviewEnabled()) return;
+    this.autoReviewPanelOpen.set(!this.autoReviewPanelOpen());
+    if (this.autoReviewPanelOpen() && this.editor?.view) {
+      this.autoReviewApi.tickDocVersion();
+      this.computeAutoReviewPositions();
+      this.setupEditorScrollListener();
+    } else if (!this.autoReviewPanelOpen() && !this.commentPanelOpen()) {
+      this.teardownEditorScrollListener();
+    }
+  }
+
+  private refreshAutoReviewPanel(): void {
+    if (this.autoReviewPanelOpen() && this.editor?.view) {
+      this.autoReviewApi.tickDocVersion();
+      this.computeAutoReviewPositions();
+    }
+  }
+
+  /** Compute Y offsets of each lint mark relative to the editor content top */
+  private computeAutoReviewPositions(): void {
+    if (!this.editor?.view) return;
+    const view = this.editor.view;
+
+    const scrollContainer = view.dom.closest('.NgxEditor__Content') as
+      | HTMLElement
+      | undefined;
+    if (!scrollContainer) return;
+
+    const scrollTop = scrollContainer.scrollTop;
+    const containerRect = scrollContainer.getBoundingClientRect();
+
+    const lintType = view.state.schema.marks['auto_review'];
+    const positions: Record<string, number> = {};
+    const seen = new Set<string>();
+
+    if (lintType) {
+      view.state.doc.descendants((node, pos) => {
+        for (const mark of node.marks) {
+          if (
+            mark.type === lintType &&
+            typeof mark.attrs['id'] === 'string' &&
+            !seen.has(mark.attrs['id'])
+          ) {
+            seen.add(mark.attrs['id']);
+            try {
+              const coords = view.coordsAtPos(pos);
+              positions[mark.attrs['id']] =
+                coords.top - containerRect.top + scrollTop;
+            } catch {
+              // Position may be invalid if mark is in a deleted node
+            }
+          }
+        }
+        // Descend into children so we visit inline text nodes where
+        // auto_review marks actually live (same fix as scanDocumentMarks).
+        return true;
+      });
+    }
+
+    this.autoReviewSuggestionPositions.set(positions);
+    this.editorContentHeight.set(scrollContainer.scrollHeight);
+    this.editorScrollTop.set(scrollTop);
+  }
+
+  /** Highlight auto-review marks in the editor when hovering a sidebar suggestion */
+  onAutoReviewHover(suggestionId: string | null): void {
+    document
+      .querySelectorAll('.auto-review-highlight--sidebar-hover')
+      .forEach(el =>
+        el.classList.remove('auto-review-highlight--sidebar-hover')
+      );
+
+    if (suggestionId) {
+      document
+        .querySelectorAll(`[data-auto-review-id="${CSS.escape(suggestionId)}"]`)
+        .forEach(el =>
+          el.classList.add('auto-review-highlight--sidebar-hover')
+        );
+    }
+  }
+
+  onAutoReviewSuggestionAccepted(_id: string): void {
+    this.autoReviewApi.tickDocVersion();
+    this.refreshAutoReviewPanel();
+  }
+
+  onAutoReviewSuggestionRejected(_id: string): void {
+    this.autoReviewApi.tickDocVersion();
+    this.refreshAutoReviewPanel();
+  }
+
+  closeAutoReviewPopover(): void {
+    this.autoReviewPopoverAttrs.set(null);
+  }
+
+  /** Relay a wheel scroll from the side panel to the editor content area
+   *  so scrolling over the panel scrolls the editor (and the gutter items
+   *  move in sync). Works for both auto-review and comment panels. */
+  onPanelWheel(deltaY: number): void {
+    const scrollContainer = this.editor?.view?.dom?.closest(
+      '.NgxEditor__Content'
+    ) as HTMLElement | undefined;
+    if (!scrollContainer) return;
+    scrollContainer.scrollTop += deltaY;
+  }
+
+  async onPopoverAccept(): Promise<void> {
+    const attrs = this.autoReviewPopoverAttrs();
+    if (!attrs) return;
+    const project = this.projectState.project();
+    if (!project) return;
+    await this.autoReviewApi.acceptSuggestion(
+      project.username,
+      project.slug,
+      this.bareElementId(),
+      attrs.id,
+      attrs.suggestion
+    );
+    this.autoReviewApi.tickDocVersion();
+    this.autoReviewPopoverAttrs.set(null);
+    this.refreshAutoReviewPanel();
+  }
+
+  async onPopoverReject(): Promise<void> {
+    const attrs = this.autoReviewPopoverAttrs();
+    if (!attrs) return;
+    const project = this.projectState.project();
+    if (!project) return;
+    await this.autoReviewApi.rejectSuggestion(
+      project.username,
+      project.slug,
+      this.bareElementId(),
+      attrs.id
+    );
+    this.autoReviewApi.tickDocVersion();
+    this.autoReviewPopoverAttrs.set(null);
+    this.refreshAutoReviewPanel();
   }
 }

@@ -647,6 +647,130 @@
           "error"
         ]
       },
+      "AutoReviewResponse": {
+        "type": "object",
+        "properties": {
+          "suggestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutoReviewSuggestion"
+            },
+            "description": "Lint suggestions"
+          },
+          "clearedMarks": {
+            "type": "number",
+            "description": "Number of existing marks that were cleared"
+          }
+        },
+        "required": [
+          "suggestions",
+          "clearedMarks"
+        ]
+      },
+      "AutoReviewSuggestion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "0-5-abc123",
+            "description": "Unique suggestion ID"
+          },
+          "message": {
+            "type": "string",
+            "example": "Consider using active voice",
+            "description": "Explanation"
+          },
+          "suggestion": {
+            "type": "string",
+            "example": "The cat sat",
+            "description": "Suggested replacement"
+          },
+          "category": {
+            "type": "string",
+            "example": "grammar",
+            "description": "Error category"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning",
+              "suggestion"
+            ],
+            "example": "suggestion",
+            "description": "Severity level"
+          },
+          "paragraphStart": {
+            "type": "number",
+            "description": "Start offset in paragraph"
+          },
+          "paragraphEnd": {
+            "type": "number",
+            "description": "End offset in paragraph"
+          },
+          "originalText": {
+            "type": "string",
+            "description": "Original text with the issue"
+          }
+        },
+        "required": [
+          "id",
+          "message",
+          "suggestion",
+          "category",
+          "severity",
+          "paragraphStart",
+          "paragraphEnd",
+          "originalText"
+        ]
+      },
+      "AutoReviewError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "An error occurred",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "AutoReviewRequest": {
+        "type": "object",
+        "properties": {
+          "style": {
+            "type": "string",
+            "default": "general",
+            "example": "academic",
+            "description": "The writing style to check against"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "default": "medium",
+            "example": "medium",
+            "description": "Level of linting strictness"
+          }
+        }
+      },
+      "AutoReviewResult": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the operation succeeded"
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
       "Element": {
         "type": "object",
         "properties": {
@@ -1033,10 +1157,10 @@
             "example": false,
             "description": "Whether the AI kill switch is locked by environment variable and cannot be changed in admin UI."
           },
-          "aiLinting": {
+          "aiAutoReview": {
             "type": "boolean",
             "example": true,
-            "description": "Whether AI-powered linting is available"
+            "description": "Whether AI-powered auto-review is available"
           },
           "aiImageGeneration": {
             "type": "boolean",
@@ -1130,7 +1254,7 @@
         "required": [
           "aiKillSwitch",
           "aiKillSwitchLockedByEnv",
-          "aiLinting",
+          "aiAutoReview",
           "aiImageGeneration",
           "appMode",
           "userApprovalRequired",
@@ -2305,6 +2429,43 @@
         "required": [
           "id",
           "name"
+        ]
+      },
+      "OpenaiCompatibleModelsResponse": {
+        "type": "object",
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Model ID"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Model display name"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          },
+          "cached": {
+            "type": "boolean",
+            "description": "Whether from cache"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "description": "ISO timestamp of last update"
+          }
+        },
+        "required": [
+          "models",
+          "cached"
         ]
       },
       "ImageModelsResponse": {
@@ -6781,6 +6942,332 @@
         }
       }
     },
+    "/api/v1/projects/{username}/{slug}/docs/{docId}/auto-review/review": {
+      "post": {
+        "operationId": "reviewDocumentAutoReview",
+        "tags": [
+          "Auto-Review"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Document element ID"
+            },
+            "required": true,
+            "description": "Document element ID",
+            "name": "docId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutoReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Auto-review results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoReviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoReviewError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No write access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoReviewError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoReviewError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "AI auto-review not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoReviewError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/docs/{docId}/auto-review/accept": {
+      "post": {
+        "operationId": "acceptAutoReviewSuggestion",
+        "tags": [
+          "Auto-Review"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Document element ID"
+            },
+            "required": true,
+            "description": "Document element ID",
+            "name": "docId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "suggestionId": {
+                    "type": "string",
+                    "description": "Suggestion ID to accept"
+                  },
+                  "replacement": {
+                    "type": "string",
+                    "description": "Replacement text"
+                  }
+                },
+                "required": [
+                  "suggestionId",
+                  "replacement"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Suggestion accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoReviewResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Suggestion not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoReviewError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/docs/{docId}/auto-review/reject": {
+      "post": {
+        "operationId": "rejectAutoReviewSuggestion",
+        "tags": [
+          "Auto-Review"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Document element ID"
+            },
+            "required": true,
+            "description": "Document element ID",
+            "name": "docId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "suggestionId": {
+                    "type": "string",
+                    "description": "Suggestion ID to reject"
+                  }
+                },
+                "required": [
+                  "suggestionId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Suggestion rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoReviewResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Suggestion not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoReviewError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/docs/{docId}/auto-review/clear": {
+      "post": {
+        "operationId": "clearAutoReviewMarks",
+        "tags": [
+          "Auto-Review"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Document element ID"
+            },
+            "required": true,
+            "description": "Document element ID",
+            "name": "docId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Marks cleared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoReviewResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/{username}/{slug}/elements": {
       "get": {
         "operationId": "listProjectElements",
@@ -8699,6 +9186,58 @@
           },
           "502": {
             "description": "Failed to fetch from OpenRouter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/providers/openai/models": {
+      "get": {
+        "tags": [
+          "AI Providers"
+        ],
+        "summary": "Get OpenAI-compatible models",
+        "description": "Fetch available models from the configured OpenAI-compatible endpoint (OpenAI API, Ollama, LM Studio, etc.). Results are cached for 1 hour.",
+        "operationId": "getOpenaiCompatibleModels",
+        "responses": {
+          "200": {
+            "description": "List of available models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenaiCompatibleModelsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "OpenAI-compatible API key not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Failed to fetch from endpoint",
             "content": {
               "application/json": {
                 "schema": {

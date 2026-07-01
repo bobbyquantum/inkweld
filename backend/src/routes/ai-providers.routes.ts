@@ -114,8 +114,9 @@ interface ProviderDef {
 const PROVIDER_DEFINITIONS: ProviderDef[] = [
   {
     id: 'openai',
-    name: 'OpenAI',
-    description: 'GPT models for text and image generation (or OpenAI-compatible API)',
+    name: 'OpenAI Compatible',
+    description:
+      'GPT models for text and image generation, or any OpenAI-compatible API (Ollama, LM Studio, etc.)',
     supportsImages: true,
     supportsText: true,
     apiKeyConfigKey: 'AI_OPENAI_API_KEY',
@@ -796,6 +797,157 @@ aiProvidersRoutes.openapi(getOpenRouterModelsRoute, async (c) => {
   } catch (err) {
     providerLog.error(' Error fetching models:', err);
     return c.json({ error: 'Failed to fetch models from OpenRouter' }, 502);
+  }
+});
+
+// ============================================================================
+// OpenAI-Compatible Models Fetching
+// ============================================================================
+
+// Cache for OpenAI-compatible models
+let openaiCompatibleModelsCache: {
+  models: Array<{ id: string; name: string }>;
+  timestamp: number;
+} | null = null;
+
+// Get OpenAI-compatible models (supports custom endpoints like Ollama, LM Studio)
+const getOpenaiCompatibleModelsRoute = createRoute({
+  method: 'get',
+  path: '/openai/models',
+  tags: ['AI Providers'],
+  summary: 'Get OpenAI-compatible models',
+  description:
+    'Fetch available models from the configured OpenAI-compatible endpoint (OpenAI API, Ollama, LM Studio, etc.). Results are cached for 1 hour.',
+  operationId: 'getOpenaiCompatibleModels',
+  responses: {
+    200: {
+      description: 'List of available models',
+      content: {
+        'application/json': {
+          schema: z
+            .object({
+              models: z.array(
+                z.object({
+                  id: z.string().openapi({ description: 'Model ID' }),
+                  name: z.string().openapi({ description: 'Model display name' }),
+                })
+              ),
+              cached: z.boolean().openapi({ description: 'Whether from cache' }),
+              lastUpdated: z
+                .string()
+                .optional()
+                .openapi({ description: 'ISO timestamp of last update' }),
+            })
+            .openapi('OpenaiCompatibleModelsResponse'),
+        },
+      },
+    },
+    400: {
+      description: 'OpenAI-compatible API key not configured',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+    502: {
+      description: 'Failed to fetch from endpoint',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+  },
+});
+
+aiProvidersRoutes.openapi(getOpenaiCompatibleModelsRoute, async (c) => {
+  const db = c.get('db');
+
+  // Check cache
+  if (
+    openaiCompatibleModelsCache &&
+    Date.now() - openaiCompatibleModelsCache.timestamp < CACHE_TTL_MS
+  ) {
+    return c.json(
+      {
+        models: openaiCompatibleModelsCache.models,
+        cached: true,
+        lastUpdated: new Date(openaiCompatibleModelsCache.timestamp).toISOString(),
+      },
+      200
+    );
+  }
+
+  // Get API key and endpoint from DB (fall back to env)
+  const [keyCfg, endpointCfg] = await Promise.all([
+    configService.get(db, 'AI_OPENAI_API_KEY'),
+    configService.get(db, 'AI_OPENAI_ENDPOINT'),
+  ]);
+  const apiKey = keyCfg.value || process.env.OPENAI_API_KEY || '';
+  const endpoint = endpointCfg.value || process.env.OPENAI_API_BASE || 'https://api.openai.com';
+
+  if (!apiKey.trim()) {
+    return c.json({ error: 'OpenAI-compatible API key not configured' }, 400);
+  }
+
+  try {
+    const modelsUrl = `${endpoint.replace(/\/+$/, '')}/models`;
+    const response = await fetch(modelsUrl, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      providerLog.error('Failed to fetch OpenAI-compatible models', {
+        status: response.status,
+        error: errorText,
+      });
+      return c.json({ error: `OpenAI-compatible API error: ${response.status}` }, 502);
+    }
+
+    const data = (await response.json()) as {
+      data?: Array<{ id: string; object?: string; owned_by?: string }>;
+      // Ollama returns { models: [...] } with a different shape
+      models?: Array<{ name: string; model?: string }>;
+    };
+
+    // Normalize both OpenAI and Ollama response formats
+    let models: Array<{ id: string; name: string }>;
+    if (data.data && Array.isArray(data.data)) {
+      // OpenAI format: { data: [{ id: "gpt-4o", ... }] }
+      models = data.data.map((m) => ({
+        id: m.id,
+        name: m.id,
+      }));
+    } else if (data.models && Array.isArray(data.models)) {
+      // Ollama format: { models: [{ name: "llama3:latest", ... }] }
+      models = data.models.map((m) => ({
+        id: m.name,
+        name: m.name,
+      }));
+    } else {
+      models = [];
+    }
+
+    models.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Update cache
+    openaiCompatibleModelsCache = {
+      models,
+      timestamp: Date.now(),
+    };
+
+    return c.json(
+      {
+        models,
+        cached: false,
+        lastUpdated: new Date().toISOString(),
+      },
+      200
+    );
+  } catch (err) {
+    providerLog.error('Error fetching OpenAI-compatible models:', err);
+    return c.json({ error: 'Failed to fetch models from OpenAI-compatible endpoint' }, 502);
   }
 });
 

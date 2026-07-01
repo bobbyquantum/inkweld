@@ -234,7 +234,7 @@ describe('ConfigService', () => {
       expect(result).toBe(true);
     });
 
-    it('should check aiLint feature', async () => {
+    it('should check aiAutoReview feature', async () => {
       await configService.set(db, 'AI_LINT_ENABLED', 'true');
       const result = await configService.isFeatureEnabled(db, 'aiLint');
       expect(result).toBe(true);
