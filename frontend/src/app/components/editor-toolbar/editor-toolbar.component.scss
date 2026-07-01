@@ -25,11 +25,19 @@
 }
 
 // Pin the comments toggle to the right edge of the toolbar, out of flex flow.
+// When the auto-review toggle is also rendered, the comments anchor shifts
+// left to make room (see `.has-autoreview-toggle` below).
 .toolbar-comments-anchor {
   position: absolute;
-  right: 48px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
+}
+
+// When both the comments + auto-review toggles are visible, shift the
+// comments anchor left so the auto-review toggle sits at the far right.
+.editor-toolbar.has-autoreview-toggle .toolbar-comments-anchor {
+  right: 48px;
 }
 
 .toolbar-autoreview-anchor {

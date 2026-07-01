@@ -45,7 +45,7 @@ beforeAll(async () => {
     enabled: true,
   });
 
-const p = await projectService.create(db, {
+  const p = await projectService.create(db, {
     slug: 'arrej-proj',
     title: 'AR Rej Proj',
     userId: USER_ID,
@@ -54,18 +54,14 @@ const p = await projectService.create(db, {
 });
 
 afterAll(async () => {
-  await db
-    .delete(autoReviewRejections)
-    .where(eq(autoReviewRejections.projectId, PROJECT_ID));
+  await db.delete(autoReviewRejections).where(eq(autoReviewRejections.projectId, PROJECT_ID));
   await db.delete(projects).where(eq(projects.id, PROJECT_ID));
   await db.delete(users).where(eq(users.id, USER_ID));
   await stopTestServer();
 });
 
 beforeEach(async () => {
-  await db
-    .delete(autoReviewRejections)
-    .where(eq(autoReviewRejections.projectId, PROJECT_ID));
+  await db.delete(autoReviewRejections).where(eq(autoReviewRejections.projectId, PROJECT_ID));
 });
 
 describe('AutoReviewRejectionService', () => {
@@ -79,11 +75,7 @@ describe('AutoReviewRejectionService', () => {
         userId: USER_ID,
       });
 
-      const rows = await autoReviewRejectionService.getRejections(
-        db,
-        PROJECT_ID,
-        ELEMENT_ID
-      );
+      const rows = await autoReviewRejectionService.getRejections(db, PROJECT_ID, ELEMENT_ID);
 
       expect(rows).toHaveLength(1);
       expect(rows[0]).toEqual({
@@ -110,11 +102,7 @@ describe('AutoReviewRejectionService', () => {
         userId: USER_ID,
       });
 
-      const rows = await autoReviewRejectionService.getRejections(
-        db,
-        PROJECT_ID,
-        ELEMENT_ID
-      );
+      const rows = await autoReviewRejectionService.getRejections(db, PROJECT_ID, ELEMENT_ID);
 
       expect(rows).toHaveLength(1);
       expect(rows[0].originalText).toBe('This are wrong.');
@@ -135,11 +123,7 @@ describe('AutoReviewRejectionService', () => {
         rejectedAt: Math.floor(Date.now() / 1000),
       });
 
-      const rows = await autoReviewRejectionService.getRejections(
-        db,
-        PROJECT_ID,
-        ELEMENT_ID
-      );
+      const rows = await autoReviewRejectionService.getRejections(db, PROJECT_ID, ELEMENT_ID);
 
       expect(rows).toHaveLength(1);
       expect(rows[0].category).toBe('');
@@ -171,11 +155,7 @@ describe('AutoReviewRejectionService', () => {
         'This are wrong.'
       );
 
-      const rows = await autoReviewRejectionService.getRejections(
-        db,
-        PROJECT_ID,
-        ELEMENT_ID
-      );
+      const rows = await autoReviewRejectionService.getRejections(db, PROJECT_ID, ELEMENT_ID);
       expect(rows).toHaveLength(1);
       expect(rows[0].originalText).toBe('Keep me.');
     });
@@ -196,11 +176,7 @@ describe('AutoReviewRejectionService', () => {
         'Nothing matches.'
       );
 
-      const count = await autoReviewRejectionService.countRejections(
-        db,
-        PROJECT_ID,
-        ELEMENT_ID
-      );
+      const count = await autoReviewRejectionService.countRejections(db, PROJECT_ID, ELEMENT_ID);
       expect(count).toBe(1);
     });
   });
@@ -222,11 +198,7 @@ describe('AutoReviewRejectionService', () => {
         userId: USER_ID,
       });
 
-      const count = await autoReviewRejectionService.countRejections(
-        db,
-        PROJECT_ID,
-        ELEMENT_ID
-      );
+      const count = await autoReviewRejectionService.countRejections(db, PROJECT_ID, ELEMENT_ID);
       expect(count).toBe(2);
     });
 
@@ -257,17 +229,9 @@ describe('AutoReviewRejectionService', () => {
         userId: USER_ID,
       });
 
-      await autoReviewRejectionService.deleteAllRejections(
-        db,
-        PROJECT_ID,
-        ELEMENT_ID
-      );
+      await autoReviewRejectionService.deleteAllRejections(db, PROJECT_ID, ELEMENT_ID);
 
-      const count = await autoReviewRejectionService.countRejections(
-        db,
-        PROJECT_ID,
-        ELEMENT_ID
-      );
+      const count = await autoReviewRejectionService.countRejections(db, PROJECT_ID, ELEMENT_ID);
       expect(count).toBe(0);
     });
   });

@@ -224,15 +224,11 @@ test.describe('AI Auto-Review — Online Mode', () => {
     await createProjectAndOpenEditor(page, slug);
     await openPanel(page);
 
-    // Intercept the backend → /review call so we can catch the loading
-    // state before it resolves.
+    // Intercept the backend → /review call so we can verify it was made.
     let reviewRequested = false;
     await page.route('**/api/v1/projects/**/auto-review/review', route => {
       reviewRequested = true;
-      // Block briefly so the loading state stays visible long enough.
-      setTimeout(() => {
-        void route.continue();
-      }, 200);
+      return route.continue();
     });
 
     // Mark the editor with a trigger phrase the mock LLM recognises.
