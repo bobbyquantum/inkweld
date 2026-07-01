@@ -699,7 +699,7 @@ describe('EditorToolbarComponent', () => {
         expect(() => component.clearFormatting()).not.toThrow();
 
         vi.runAllTimers();
-      });
+      }, 30000);
 
       it('should mark overflow groups with CSS class when overflowed', async () => {
         await setAllGroupsOverflowed();

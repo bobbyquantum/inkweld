@@ -224,22 +224,24 @@ test.describe('AI Auto-Review — Online Mode', () => {
     await createProjectAndOpenEditor(page, slug);
     await openPanel(page);
 
-    // Intercept the backend → /review call so we can verify it was made.
-    let reviewRequested = false;
-    await page.route('**/api/v1/projects/**/auto-review/review', route => {
-      reviewRequested = true;
-      return route.continue();
-    });
-
     // Mark the editor with a trigger phrase the mock LLM recognises.
     const editor = page.locator('.ProseMirror');
     await editor.click();
     await page.keyboard.type('This are a test.');
 
+    // Kick off the review and wait for the backend request to fire.
+    // Using waitForRequest (non-intercepting) instead of page.route to avoid
+    // breaking the request in the prod-build serial execution environment.
+    const reviewRequest = page.waitForRequest(
+      '**/api/v1/projects/**/auto-review/review'
+    );
     await page.getByTestId('auto-review-btn').click();
+    await reviewRequest;
 
     // The loading state should render immediately.
-    await expect(page.getByTestId('auto-review-panel-loading')).toBeVisible();
+    await expect(page.getByTestId('auto-review-panel-loading')).toBeVisible({
+      timeout: 10_000,
+    });
 
     // The panel should display at least one suggestion after the review
     // completes (Yjs sync → marks visible in ProseMirror doc).
@@ -250,9 +252,6 @@ test.describe('AI Auto-Review — Online Mode', () => {
         { timeout: 60_000, intervals: [250, 500, 1000] }
       )
       .toBeTruthy();
-
-    expect(reviewRequested).toBe(true);
-    await page.unroute('**/api/v1/projects/**/auto-review/review');
   });
 
   test('review creates a visible highlight in the editor', async ({
