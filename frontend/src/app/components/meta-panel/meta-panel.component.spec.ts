@@ -77,12 +77,12 @@ describe('MetaPanelComponent', () => {
     // Mock SystemConfigService to prevent real API calls
     const systemConfigMock = {
       systemFeatures: signal({
-        aiLinting: false,
+        aiAutoReview: false,
         aiImageGeneration: false,
         userApprovalRequired: false,
         appMode: 'local',
       }),
-      isAiLintingEnabled: signal(false),
+      isAiAutoReviewEnabled: signal(false),
       isAiImageGenerationEnabled: signal(false),
       isUserApprovalRequired: signal(false),
       isConfigLoaded: signal(true),

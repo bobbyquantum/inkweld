@@ -47,7 +47,7 @@ describe('ResetPasswordComponent', () => {
     systemFeatures: signal({
       aiKillSwitch: true,
       aiKillSwitchLockedByEnv: false,
-      aiLinting: false,
+      aiAutoReview: false,
       aiImageGeneration: false,
       userApprovalRequired: true,
       appMode: 'BOTH',

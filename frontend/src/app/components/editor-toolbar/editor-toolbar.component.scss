@@ -6,14 +6,22 @@
   align-items: center;
   flex-wrap: nowrap; // overflow JS handles collapse; no multi-line wrapping
   padding: 4px 8px;
-  // Reserve space on the right for the absolutely-positioned comments +
-  // auto-review toggles so they can never be pushed off-screen by flex siblings.
-  padding-right: 96px;
+  // Reserve space on the right for the absolutely-positioned comments toggle
+  // so flex siblings can never be pushed underneath it. When the auto-review
+  // toggle is also visible (see `.has-autoreview-toggle` below) we reserve an
+  // extra slot for it.
+  padding-right: 52px;
   gap: 4px;
   background-color: var(--sys-surface-container-lowest);
   border-bottom: 1px solid var(--sys-outline-variant);
   min-height: 49px;
   overflow: hidden; // prevent visual wrapping before JS recalculates
+}
+
+// When the AI auto-review toolbar toggle is rendered, reserve its 44px slot
+// on the right of the toolbar so flex siblings don't slide underneath it.
+.editor-toolbar.has-autoreview-toggle {
+  padding-right: 96px;
 }
 
 // Pin the comments toggle to the right edge of the toolbar, out of flex flow.

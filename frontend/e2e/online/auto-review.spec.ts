@@ -113,7 +113,11 @@ async function fillEditorAndReview(page: Page, text: string): Promise<void> {
 let aiConfigured = false;
 
 test.describe('AI Auto-Review — Online Mode', () => {
-  test.describe.configure({ timeout: 120_000 });
+  // Serial mode: each auto-review test creates a project, types text, calls
+  // the mock LLM, and waits for Yjs sync. Running 16+ tests in parallel
+  // overwhelms the single-threaded backend's Yjs processing, causing 60s
+  // timeouts. Serial execution adds ~2m total but eliminates sync contention.
+  test.describe.configure({ timeout: 120_000, mode: 'serial' });
 
   test.beforeAll(async () => {
     const apiUrl = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
@@ -131,6 +135,10 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('auto-review panel opens and closes via toolbar', async ({
     authenticatedPage: page,
   }) => {
+    // The toolbar button is gated on the AI auto-review feature flag, which
+    // is off in configs that don't configure an OpenAI provider (Docker,
+    // Wrangler). Skip there; the Online config (mock LLM) exercises this.
+    if (!aiConfigured) test.skip('AI not configured in CI');
     const slug = `auto-review-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
 
@@ -146,6 +154,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('auto-review panel can be closed via close button', async ({
     authenticatedPage: page,
   }) => {
+    if (!aiConfigured) test.skip('AI not configured in CI');
     const slug = `auto-review-close-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
 
@@ -159,6 +168,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('auto-review panel shows the review form before any review runs', async ({
     authenticatedPage: page,
   }) => {
+    if (!aiConfigured) test.skip('AI not configured in CI');
     const slug = `auto-review-form-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
 

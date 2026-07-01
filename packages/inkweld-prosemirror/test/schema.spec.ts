@@ -10,8 +10,11 @@ import { describe, expect, it } from 'vitest';
 import { Schema, type DOMOutputSpec, type Mark, type MarkSpec, type Node, type NodeSpec } from 'prosemirror-model';
 
 import {
+  AUTO_REVIEW_MARK_NAME,
   COMMENT_MARK_NAME,
   ELEMENT_REF_NODE_NAME,
+  type AutoReviewMarkAttrs,
+  autoReviewMarkSpec,
   commentMarkSpec,
   createExtendedSchemaSpec,
   elementRefNodeSpec,
@@ -363,6 +366,180 @@ describe('createExtendedSchemaSpec', () => {
     expect(schema.nodes['elementRef']).toBeDefined();
     expect(schema.marks['comment']).toBeDefined();
     expect(schema.marks['link']).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// autoReviewMarkSpec
+// ---------------------------------------------------------------------------
+describe('autoReviewMarkSpec', () => {
+  const attrs: AutoReviewMarkAttrs = {
+    id: 'sug-1',
+    message: 'Subject-verb disagreement',
+    suggestion: 'This is',
+    category: 'grammar',
+    severity: 'error',
+  };
+
+  /**
+   * Minimal fake element exposing only the `dataset` map that the
+   * auto-review `parseDOM.getAttrs` reads. The package test suite runs
+   * under the `node` environment (no DOM), so we avoid `document`.
+   */
+  function fakeElement(
+    dataset: Record<string, string> = {}
+  ): HTMLElement {
+    return { dataset } as unknown as HTMLElement;
+  }
+
+  it('declares the auto_review mark name', () => {
+    expect(AUTO_REVIEW_MARK_NAME).toBe('auto_review');
+  });
+
+  it('declares attrs with sensible defaults', () => {
+    expect(autoReviewMarkSpec.attrs).toEqual({
+      id: { default: '' },
+      message: { default: '' },
+      suggestion: { default: '' },
+      category: { default: 'grammar' },
+      severity: { default: 'suggestion' },
+    });
+  });
+
+  it('allows multiple marks to coexist on the same range (excludes: "")', () => {
+    expect(autoReviewMarkSpec.excludes).toBe('');
+    expect(autoReviewMarkSpec.spanning).toBe(true);
+  });
+
+  it('registers a parseDOM rule matching the data-auto-review-id tag', () => {
+    expect(autoReviewMarkSpec.parseDOM).toBeDefined();
+    expect(autoReviewMarkSpec.parseDOM!.length).toBeGreaterThan(0);
+    expect(autoReviewMarkSpec.parseDOM![0].tag).toBe(
+      'span[data-auto-review-id]'
+    );
+  });
+
+  it('parseDOM.getAttrs maps dataset attributes onto AutoReviewMarkAttrs', () => {
+    const el = fakeElement({
+      autoReviewId: 'sug-1',
+      autoReviewMessage: 'msg',
+      autoReviewSuggestion: 'This is',
+      autoReviewCategory: 'grammar',
+      autoReviewSeverity: 'error',
+    });
+
+    const getAttrs = autoReviewMarkSpec.parseDOM![0]
+      .getAttrs as (dom: HTMLElement) => AutoReviewMarkAttrs;
+    expect(getAttrs(el)).toEqual({
+      id: 'sug-1',
+      message: 'msg',
+      suggestion: 'This is',
+      category: 'grammar',
+      severity: 'error',
+    });
+  });
+
+  it('parseDOM.getAttrs falls back to defaults for missing dataset attrs', () => {
+    const el = fakeElement({ autoReviewId: 'sug-1' });
+
+    const getAttrs = autoReviewMarkSpec.parseDOM![0]
+      .getAttrs as (dom: HTMLElement) => AutoReviewMarkAttrs;
+    expect(getAttrs(el)).toEqual({
+      id: 'sug-1',
+      message: '',
+      suggestion: '',
+      category: 'grammar',
+      severity: 'suggestion',
+    });
+  });
+
+  it('toDOM renders a span with severity class + data-* attributes', () => {
+    const schema = new Schema({
+      nodes: { doc: { content: 'text*' }, text: { inline: true } },
+      marks: { [AUTO_REVIEW_MARK_NAME]: autoReviewMarkSpec },
+    });
+    const markType = schema.marks[AUTO_REVIEW_MARK_NAME];
+    const mark = markType.create(attrs);
+
+    const [tag, domAttrs, inline] = autoReviewMarkSpec.toDOM!(mark, true) as [
+      string,
+      Record<string, string>,
+      number,
+    ];
+
+    expect(tag).toBe('span');
+    expect(domAttrs['class']).toContain('auto-review-highlight');
+    expect(domAttrs['class']).toContain('auto-review-highlight--error');
+    expect(domAttrs['data-auto-review-id']).toBe('sug-1');
+    expect(domAttrs['data-auto-review-message']).toBe(
+      'Subject-verb disagreement'
+    );
+    expect(domAttrs['data-auto-review-suggestion']).toBe('This is');
+    expect(domAttrs['data-auto-review-category']).toBe('grammar');
+    expect(domAttrs['data-auto-review-severity']).toBe('error');
+    expect(inline).toBe(0);
+  });
+
+  it('toDOM falls back to default category/severity when attrs are empty', () => {
+    const schema = new Schema({
+      nodes: { doc: { content: 'text*' }, text: { inline: true } },
+      marks: { [AUTO_REVIEW_MARK_NAME]: autoReviewMarkSpec },
+    });
+    const markType = schema.marks[AUTO_REVIEW_MARK_NAME];
+    const mark = markType.create({
+      id: '',
+      message: '',
+      suggestion: '',
+      category: '',
+      severity: 'suggestion' as AutoReviewMarkAttrs['severity'],
+    });
+
+    const [, domAttrs] = autoReviewMarkSpec.toDOM!(mark, true) as [
+      string,
+      Record<string, string>,
+      number,
+    ];
+    expect(domAttrs['data-auto-review-category']).toBe('grammar');
+    expect(domAttrs['data-auto-review-severity']).toBe('suggestion');
+  });
+
+  it('round-trips through a real Schema (parseDOM ← toDOM)', () => {
+    const schema = new Schema({
+      nodes: { doc: { content: 'text*' }, text: { inline: true } },
+      marks: { [AUTO_REVIEW_MARK_NAME]: autoReviewMarkSpec },
+    });
+    const markType = schema.marks[AUTO_REVIEW_MARK_NAME];
+    const mark = markType.create(attrs);
+
+    const [, domAttrs] = autoReviewMarkSpec.toDOM!(mark, true) as [
+      string,
+      Record<string, string>,
+      number,
+    ];
+
+    // Build a fake element whose dataset mirrors toDOM's data-* attributes,
+    // using the camelCase keys the parseDOM getAttrs reads.
+    const dataset: Record<string, string> = {
+      autoReviewId: domAttrs['data-auto-review-id'],
+      autoReviewMessage: domAttrs['data-auto-review-message'],
+      autoReviewSuggestion: domAttrs['data-auto-review-suggestion'],
+      autoReviewCategory: domAttrs['data-auto-review-category'],
+      autoReviewSeverity: domAttrs['data-auto-review-severity'],
+    };
+    const domNode = fakeElement(dataset);
+
+    const getAttrs = autoReviewMarkSpec.parseDOM![0]
+      .getAttrs as (dom: HTMLElement) => AutoReviewMarkAttrs;
+    const parsed = getAttrs(domNode);
+    expect(parsed).toEqual(attrs);
+  });
+
+  it('is composed into the extended schema by createExtendedSchemaSpec', () => {
+    const out = createExtendedSchemaSpec({ baseNodes, baseMarks });
+    expect(out.marks[AUTO_REVIEW_MARK_NAME]).toBe(autoReviewMarkSpec);
+
+    const schema = new Schema(out);
+    expect(schema.marks[AUTO_REVIEW_MARK_NAME]).toBeDefined();
   });
 });
 
