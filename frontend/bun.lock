@@ -38,7 +38,7 @@
         "konva": "^10.2.0",
         "marked": "^18.0.0",
         "material-icons": "1.13.14",
-        "material-symbols": "0.45.2",
+        "material-symbols": "0.45.5",
         "nanoid": "5.1.15",
         "ngx-image-cropper": "9.1.6",
         "prosemirror-history": "1.5.0",
@@ -1453,7 +1453,7 @@
 
     "material-icons": ["material-icons@1.13.14", "", {}, "sha512-kZOfc7xCC0rAT8Q3DQixYAeT+tBqZnxkseQtp2bxBxz7q5pMAC+wmit7vJn1g/l7wRU+HEPq23gER4iPjGs5Cg=="],
 
-    "material-symbols": ["material-symbols@0.45.2", "", {}, "sha512-TxcmySpXFc+03tgyl0Z6J1Yvn5/eY9b9vnizJu5Xg3RrrL5jFLp3KlZKq5k2ttKj3SqH/omofH7BwZMO/zk1mw=="],
+    "material-symbols": ["material-symbols@0.45.5", "", {}, "sha512-uQPo0keNsShmo7wstLHBwIdlqlsNonHGuaAp7CE731v4GQrhd4C3p2PkJpavxazc5+mB0LtHmJQlSuv9yIYsKg=="],
 
     "math-intrinsics": ["math-intrinsics@1.1.0", "", {}, "sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g=="],
 
