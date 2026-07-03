@@ -68,44 +68,33 @@ interface DeltaOp {
  * `''`, like `auto_review`) under a hashed attribute key
  * `auto_review--<8charhash>` instead of the bare mark name. Marks written
  * directly by the backend via `Y.XmlText.format()` use the bare key
- * `auto_review`. This helper finds the mark attrs under either key so
- * lookups work regardless of who wrote the mark.
+ * `auto_review`. This helper finds the mark key + attrs under either form
+ * so lookups work regardless of who wrote the mark.
  *
- * @returns the mark attrs object, or `undefined` if no auto_review mark
- *          is present on this delta op.
+ * @returns `{ key, attrs }` or `undefined` if no auto_review mark is
+ *          present on this delta op.
  */
-function getAutoReviewMarkAttrs(op: DeltaOp): Record<string, unknown> | undefined {
-  const attrs = op.attributes;
-  if (!attrs) return undefined;
-  // Bare key (backend-written).
-  if (attrs[AUTO_REVIEW_MARK_NAME]) {
-    return attrs[AUTO_REVIEW_MARK_NAME];
-  }
-  // Hashed key (y-prosemirror-written): auto_review--<8chars>
-  for (const key of Object.keys(attrs)) {
-    if (key.startsWith(`${AUTO_REVIEW_MARK_NAME}--`)) {
-      return attrs[key];
-    }
-  }
-  return undefined;
-}
-
-/** Same as getAutoReviewMarkAttrs but also returns the attribute key, so
- *  callers that need to remove the mark know which key to null out. */
 function getAutoReviewMarkKeyAndAttrs(
   op: DeltaOp
 ): { key: string; attrs: Record<string, unknown> } | undefined {
   const attrs = op.attributes;
   if (!attrs) return undefined;
+  // Bare key (backend-written).
   if (attrs[AUTO_REVIEW_MARK_NAME]) {
     return { key: AUTO_REVIEW_MARK_NAME, attrs: attrs[AUTO_REVIEW_MARK_NAME] };
   }
+  // Hashed key (y-prosemirror-written): auto_review--<8chars>
   for (const key of Object.keys(attrs)) {
     if (key.startsWith(`${AUTO_REVIEW_MARK_NAME}--`)) {
       return { key, attrs: attrs[key] };
     }
   }
   return undefined;
+}
+
+/** Convenience wrapper — returns just the attrs (or undefined). */
+function getAutoReviewMarkAttrs(op: DeltaOp): Record<string, unknown> | undefined {
+  return getAutoReviewMarkKeyAndAttrs(op)?.attrs;
 }
 
 /**

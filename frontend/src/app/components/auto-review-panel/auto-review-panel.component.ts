@@ -200,26 +200,23 @@ export class AutoReviewPanelComponent {
     });
   }
 
+  private static readonly SEVERITY_META: Record<
+    string,
+    { icon: string; label: string }
+  > = {
+    error: { icon: 'error', label: 'Error' },
+    warning: { icon: 'warning', label: 'Warning' },
+    suggestion: { icon: 'info', label: 'Suggestion' },
+  };
+
   getSeverityIcon(severity: string): string {
-    switch (severity) {
-      case 'error':
-        return 'error';
-      case 'warning':
-        return 'warning';
-      default:
-        return 'info';
-    }
+    return AutoReviewPanelComponent.SEVERITY_META[severity]?.icon ?? 'info';
   }
 
   getSeverityLabel(severity: string): string {
-    switch (severity) {
-      case 'error':
-        return 'Error';
-      case 'warning':
-        return 'Warning';
-      default:
-        return 'Suggestion';
-    }
+    return (
+      AutoReviewPanelComponent.SEVERITY_META[severity]?.label ?? 'Suggestion'
+    );
   }
 
   onSuggestionClick(suggestion: AutoReviewSuggestion): void {

@@ -225,13 +225,19 @@ test.describe('AI Auto-Review — Online Mode', () => {
     await openPanel(page);
 
     // Mark the editor with a trigger phrase the mock LLM recognises.
+    // Clear existing content first — the README doc has initial text that
+    // would shift the trigger phrase to a non-zero paragraph index, causing
+    // the mock LLM (which only fires for paragraph_index 0) to produce no
+    // corrections.
     const editor = page.locator('.ProseMirror');
     await editor.click();
+    await page.keyboard.press('Control+a');
+    await page.keyboard.press('Backspace');
+    await page.waitForTimeout(100);
     await page.keyboard.type('This are a test.');
+    await page.waitForTimeout(200);
 
     // Kick off the review and wait for the backend request to fire.
-    // Using waitForRequest (non-intercepting) instead of page.route to avoid
-    // breaking the request in the prod-build serial execution environment.
     const reviewRequest = page.waitForRequest(
       '**/api/v1/projects/**/auto-review/review'
     );
