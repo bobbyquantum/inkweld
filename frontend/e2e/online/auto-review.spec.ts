@@ -461,14 +461,13 @@ test.describe('AI Auto-Review — Online Mode', () => {
       page.getByTestId('auto-review-dismiss-header-btn')
     ).toBeVisible();
 
-    // Intercept the clear API call and verify it was made.
-    let clearCalled = false;
-    await page.route('**/api/v1/projects/**/auto-review/clear', route => {
-      clearCalled = true;
-      return route.continue();
-    });
-
+    // Wait for the clear API call (non-intercepting — page.route breaks
+    // the request under CI prod-build serial execution).
+    const clearRequest = page.waitForRequest(
+      '**/api/v1/projects/**/auto-review/clear'
+    );
     await page.getByTestId('auto-review-dismiss-header-btn').click();
+    await clearRequest;
 
     await expect
       .poll(
@@ -477,8 +476,6 @@ test.describe('AI Auto-Review — Online Mode', () => {
         { timeout: 30_000, intervals: [250, 500, 1000] }
       )
       .toBeTruthy();
-
-    expect(clearCalled).toBe(true);
 
     // After dismissing the review, the panel returns to the idle form.
     await expect(page.getByTestId('auto-review-panel-form')).toBeVisible();
