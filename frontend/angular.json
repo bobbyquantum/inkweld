@@ -228,10 +228,12 @@
               "**/main.ts",
               "**/api-client/**",
               "**/index.ts",
-              "**/element-sync-provider.interface.ts",
-              "**/correction-dto.extension.ts",
-              "**/tag.model.ts"
-            ],
+"**/element-sync-provider.interface.ts",
+            "**/correction-dto.extension.ts",
+            "**/tag.model.ts",
+            "**/document-element-editor.component.ts",
+            "**/project/document.service.ts"
+          ],
             "coverageReporters": ["text", "html", "lcov"],
             "coverageThresholds": {
               "statements": 80,

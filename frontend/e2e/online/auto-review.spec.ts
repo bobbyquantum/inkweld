@@ -324,10 +324,14 @@ test.describe('AI Auto-Review — Online Mode', () => {
     const editor = page.locator('.ProseMirror');
     await expect(editor).toContainText('This is a test.');
 
-    // The suggestion should also be gone from the panel.
-    await expect(page.getByTestId('auto-review-panel-suggestion')).toHaveCount(
-      0
-    );
+    // The active suggestion should be gone from the panel.
+    // (The accepted item may remain in the panel as a "resolved" entry with
+    // an undo button — exclude those via the :not() selector.)
+    await expect(
+      page.locator(
+        '[data-testid="auto-review-panel-suggestion"]:not(.auto-review-panel__suggestion--accepted)'
+      )
+    ).toHaveCount(0);
   });
 
   test('rejecting a suggestion from the panel removes the mark but keeps the text', async ({
@@ -357,10 +361,14 @@ test.describe('AI Auto-Review — Online Mode', () => {
     const editor = page.locator('.ProseMirror');
     await expect(editor).toContainText('This are a test.');
 
-    // The suggestion should be gone from the panel.
-    await expect(page.getByTestId('auto-review-panel-suggestion')).toHaveCount(
-      0
-    );
+    // The active suggestion should be gone from the panel.
+    // (The rejected item may remain as a "resolved" entry with an undo
+    // button — exclude those.)
+    await expect(
+      page.locator(
+        '[data-testid="auto-review-panel-suggestion"]:not(.auto-review-panel__suggestion--rejected)'
+      )
+    ).toHaveCount(0);
   });
 
   test('clicking highlighted text opens the editor popover with accept/reject', async ({
