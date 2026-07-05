@@ -23,6 +23,38 @@ const lintReviewRoutes = new OpenAPIHono<AppContext>();
 
 lintReviewRoutes.use('*', requireAuth);
 
+/**
+ * Resolve the project from the URL path params and enforce write access for
+ * the authenticated user. Returns a discriminated union: handlers branch on
+ * `error` (returning the prepared Hono response) or use `project` to proceed.
+ * Extracted to remove the repeated lookup+auth boilerplate that SonarCloud
+ * flagged as copy-paste across the review/accept/reject/clear/delete handlers.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function loadProjectContext(c: any, requireWrite = true) {
+  const db = c.get('db');
+  const username = c.req.param('username');
+  const slug = c.req.param('slug');
+  const docId = c.req.param('docId');
+
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
+  if (!project) {
+    return { error: c.json({ error: 'Project not found' }, 404) as Response };
+  }
+
+  if (requireWrite) {
+    const user = c.get('user');
+    if (user && project.userId !== user.id) {
+      const access = await collaborationService.checkAccess(db, project.id, user.id);
+      if (!access.canWrite) {
+        return { error: c.json({ error: 'Unauthorized' }, 403) as Response };
+      }
+    }
+  }
+
+  return { project, db, username, slug, docId };
+}
+
 // Schemas
 
 const ReviewRequestSchema = z
@@ -122,19 +154,9 @@ const reviewRoute = createRoute({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 lintReviewRoutes.openapi(reviewRoute, async (c: any) => {
-  const db = c.get('db');
-  const username = c.req.param('username');
-  const slug = c.req.param('slug');
-  const docId = c.req.param('docId');
-
-  const project = await projectService.findByUsernameAndSlug(db, username, slug);
-  if (!project) return c.json({ error: 'Project not found' }, 404);
-
-  const user = c.get('user');
-  if (user && project.userId !== user.id) {
-    const access = await collaborationService.checkAccess(db, project.id, user.id);
-    if (!access.canWrite) return c.json({ error: 'Unauthorized' }, 403);
-  }
+  const ctx = await loadProjectContext(c);
+  if ('error' in ctx) return ctx.error;
+  const { db, username, slug, docId } = ctx;
 
   if (!(await openAILintService.isAiEnabled(db))) {
     return c.json(
@@ -190,19 +212,9 @@ const acceptRoute = createRoute({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 lintReviewRoutes.openapi(acceptRoute, async (c: any) => {
-  const db = c.get('db');
-  const username = c.req.param('username');
-  const slug = c.req.param('slug');
-  const docId = c.req.param('docId');
-
-  const project = await projectService.findByUsernameAndSlug(db, username, slug);
-  if (!project) return c.json({ error: 'Project not found' }, 404);
-
-  const user = c.get('user');
-  if (user && project.userId !== user.id) {
-    const access = await collaborationService.checkAccess(db, project.id, user.id);
-    if (!access.canWrite) return c.json({ error: 'Unauthorized' }, 403);
-  }
+  const ctx = await loadProjectContext(c);
+  if ('error' in ctx) return ctx.error;
+  const { db, project, username, slug, docId } = ctx;
 
   try {
     const body = await c.req.json();
@@ -264,19 +276,9 @@ const rejectRoute = createRoute({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 lintReviewRoutes.openapi(rejectRoute, async (c: any) => {
-  const db = c.get('db');
-  const username = c.req.param('username');
-  const slug = c.req.param('slug');
-  const docId = c.req.param('docId');
-
-  const project = await projectService.findByUsernameAndSlug(db, username, slug);
-  if (!project) return c.json({ error: 'Project not found' }, 404);
-
-  const user = c.get('user');
-  if (user && project.userId !== user.id) {
-    const access = await collaborationService.checkAccess(db, project.id, user.id);
-    if (!access.canWrite) return c.json({ error: 'Unauthorized' }, 403);
-  }
+  const ctx = await loadProjectContext(c);
+  if ('error' in ctx) return ctx.error;
+  const { db, project, username, slug, docId } = ctx;
 
   try {
     const body = await c.req.json();
@@ -329,19 +331,9 @@ const clearRoute = createRoute({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 lintReviewRoutes.openapi(clearRoute, async (c: any) => {
-  const db = c.get('db');
-  const username = c.req.param('username');
-  const slug = c.req.param('slug');
-  const docId = c.req.param('docId');
-
-  const project = await projectService.findByUsernameAndSlug(db, username, slug);
-  if (!project) return c.json({ error: 'Project not found' }, 404);
-
-  const user = c.get('user');
-  if (user && project.userId !== user.id) {
-    const access = await collaborationService.checkAccess(db, project.id, user.id);
-    if (!access.canWrite) return c.json({ error: 'Unauthorized' }, 403);
-  }
+  const ctx = await loadProjectContext(c);
+  if ('error' in ctx) return ctx.error;
+  const { username, slug, docId } = ctx;
 
   const documentId = `${username}:${slug}:${docId}/`;
   await autoReviewService.clearAllMarks(documentId);
@@ -371,13 +363,9 @@ const rejectionsRoute = createRoute({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 lintReviewRoutes.openapi(rejectionsRoute, async (c: any) => {
-  const db = c.get('db');
-  const username = c.req.param('username');
-  const slug = c.req.param('slug');
-  const docId = c.req.param('docId');
-
-  const project = await projectService.findByUsernameAndSlug(db, username, slug);
-  if (!project) return c.json({ error: 'Project not found' }, 404);
+  const ctx = await loadProjectContext(c, false);
+  if ('error' in ctx) return ctx.error;
+  const { db, project, docId } = ctx;
 
   const count = await autoReviewRejectionService.countRejections(db, project.id, docId);
   return c.json({ count }, 200);
@@ -400,19 +388,9 @@ const deleteRejectionsRoute = createRoute({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 lintReviewRoutes.openapi(deleteRejectionsRoute, async (c: any) => {
-  const db = c.get('db');
-  const username = c.req.param('username');
-  const slug = c.req.param('slug');
-  const docId = c.req.param('docId');
-
-  const project = await projectService.findByUsernameAndSlug(db, username, slug);
-  if (!project) return c.json({ error: 'Project not found' }, 404);
-
-  const user = c.get('user');
-  if (user && project.userId !== user.id) {
-    const access = await collaborationService.checkAccess(db, project.id, user.id);
-    if (!access.canWrite) return c.json({ error: 'Unauthorized' }, 403);
-  }
+  const ctx = await loadProjectContext(c);
+  if ('error' in ctx) return ctx.error;
+  const { db, project, docId } = ctx;
 
   await autoReviewRejectionService.deleteAllRejections(db, project.id, docId);
   return c.json({ success: true }, 200);

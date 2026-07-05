@@ -197,43 +197,32 @@ The JSON must follow this format:
   }
 
   /**
-   * Lint a paragraph by calling the configured OpenAI-compatible endpoint.
+   * Shared helper: call the configured OpenAI-compatible chat-completions
+   * endpoint with a system+user message pair and return the parsed JSON
+   * content. Handles abort/timeout, non-2xx responses, and empty payloads so
+   * the two public methods (`processText`, `processDocument`) can stay thin.
    */
-  public async processText(
-    db: DatabaseInstance,
-    paragraph: string,
-    style: string,
-    level: string
-  ): Promise<LintResponseDto> {
-    const cfg = await this.getConfig(db);
-
-    if (!cfg.apiKey.trim()) {
-      throw new Error(
-        'AI linting features are not available. Please configure an OpenAI-compatible API key.'
-      );
-    }
-
-    const cacheKey = this.generateCacheKey(paragraph, style, level);
-    const cached = this.cacheGet(cacheKey);
-    if (cached) {
-      lintLog.debug('Returning cached lint results');
-      return cached;
-    }
-
-    const systemMsg = this.createSystemMessage(style, level, cfg.customPrompt);
+  private async callChatCompletions<T extends { source: 'openai' | 'languagetool' }>(
+    cfg: LintConfig,
+    systemMsg: string,
+    userMsg: string,
+    timeoutMs: number,
+    timeoutLabel: string,
+    errorLabel: string
+  ): Promise<T> {
     const endpoint = cfg.endpoint
       ? `${cfg.endpoint.replace(/\/+$/, '')}/chat/completions`
       : 'https://api.openai.com/v1/chat/completions';
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       const body: Record<string, unknown> = {
         model: cfg.model,
         messages: [
           { role: 'system', content: systemMsg },
-          { role: 'user', content: paragraph },
+          { role: 'user', content: userMsg },
         ],
         temperature: 0.3,
         stream: false,
@@ -277,21 +266,57 @@ The JSON must follow this format:
         throw new Error('Empty response from lint API');
       }
 
-      const parsedResponse = JSON.parse(content) as LintResponseDto;
-      parsedResponse.source = 'openai';
-
-      this.cacheSet(cacheKey, parsedResponse);
-      return parsedResponse;
+      const parsed = JSON.parse(content) as T;
+      parsed.source = 'openai';
+      return parsed;
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('Linting service timed out after 15 seconds', {
+        throw new Error(`Linting service timed out after ${timeoutLabel}`, {
           cause: error,
         });
       }
       const errMessage = error instanceof Error ? error.message : 'Unknown error';
       lintLog.error(`Error calling lint API: ${errMessage}`);
-      throw new Error('Failed to process text with lint API', { cause: error });
+      throw new Error(errorLabel, { cause: error });
     }
+  }
+
+  /**
+   * Lint a paragraph by calling the configured OpenAI-compatible endpoint.
+   */
+  public async processText(
+    db: DatabaseInstance,
+    paragraph: string,
+    style: string,
+    level: string
+  ): Promise<LintResponseDto> {
+    const cfg = await this.getConfig(db);
+
+    if (!cfg.apiKey.trim()) {
+      throw new Error(
+        'AI linting features are not available. Please configure an OpenAI-compatible API key.'
+      );
+    }
+
+    const cacheKey = this.generateCacheKey(paragraph, style, level);
+    const cached = this.cacheGet(cacheKey);
+    if (cached) {
+      lintLog.debug('Returning cached lint results');
+      return cached;
+    }
+
+    const systemMsg = this.createSystemMessage(style, level, cfg.customPrompt);
+    const parsedResponse = await this.callChatCompletions<LintResponseDto>(
+      cfg,
+      systemMsg,
+      paragraph,
+      30000,
+      '15 seconds',
+      'Failed to process text with lint API'
+    );
+
+    this.cacheSet(cacheKey, parsedResponse);
+    return parsedResponse;
   }
 
   /**
@@ -317,71 +342,14 @@ The JSON must follow this format:
     const systemMsg = this.createDocumentSystemMessage(style, level, cfg.customPrompt, context);
     const userMsg = paragraphs.map((text, i) => `[P${i}] ${text}`).join('\n\n');
 
-    const endpoint = cfg.endpoint
-      ? `${cfg.endpoint.replace(/\/+$/, '')}/chat/completions`
-      : 'https://api.openai.com/v1/chat/completions';
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000);
-
-      const body: Record<string, unknown> = {
-        model: cfg.model,
-        messages: [
-          { role: 'system', content: systemMsg },
-          { role: 'user', content: userMsg },
-        ],
-        temperature: 0.3,
-        stream: false,
-      };
-
-      if (!cfg.endpoint || cfg.endpoint.includes('openai.com')) {
-        body['response_format'] = { type: 'json_object' };
-      }
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${cfg.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`OpenAI-compatible API error (${res.status}): ${errorText}`);
-      }
-
-      const data = (await res.json()) as {
-        choices: Array<{ message: { content: string } }>;
-      };
-
-      if (!data.choices || data.choices.length === 0) {
-        throw new Error('No choices returned from lint API');
-      }
-
-      const content = data.choices[0].message.content;
-      if (!content) {
-        throw new Error('Empty response from lint API');
-      }
-
-      const parsed = JSON.parse(content) as DocumentLintResponseDto;
-      parsed.source = 'openai';
-      return parsed;
-    } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('Linting service timed out after 120 seconds', {
-          cause: error,
-        });
-      }
-      const errMessage = error instanceof Error ? error.message : 'Unknown error';
-      lintLog.error(`Error calling lint API: ${errMessage}`);
-      throw new Error('Failed to process document with lint API', { cause: error });
-    }
+    return this.callChatCompletions<DocumentLintResponseDto>(
+      cfg,
+      systemMsg,
+      userMsg,
+      120000,
+      '120 seconds',
+      'Failed to process document with lint API'
+    );
   }
 
   private createDocumentSystemMessage(

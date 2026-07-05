@@ -246,6 +246,36 @@ function getTextLengthBefore(delta: DeltaOp[], targetOp: DeltaOp): number {
 }
 
 /**
+ * Walk every `Y.XmlText` in the fragment once (de-duplicated via a
+ * visited-set) and call `fn` on each. Returns the first non-null `fn`
+ * result, or `null` if none matched. Extracted to deduplicate the
+ * near-identical find/info/replace/remove walks that SonarCloud flagged.
+ */
+function walkXmlTexts<T>(
+  Y: typeof YModule,
+  fragment: YModule.XmlFragment,
+  fn: (text: YModule.XmlText) => T | null
+): T | null {
+  const visited = new Set<YModule.XmlText>();
+  const walk = (node: YModule.XmlElement | YModule.XmlFragment): T | null => {
+    for (let i = 0; i < node.length; i++) {
+      const child = node.get(i);
+      if (child instanceof Y.XmlText) {
+        if (visited.has(child)) continue;
+        visited.add(child);
+        const result = fn(child);
+        if (result !== null) return result;
+      } else if (child instanceof Y.XmlElement) {
+        const result = walk(child);
+        if (result !== null) return result;
+      }
+    }
+    return null;
+  };
+  return walk(fragment);
+}
+
+/**
  * Remove all `auto_review` marks from every XmlText in the fragment.
  * Returns the count of marks removed (approximate — based on delta scan).
  */
@@ -631,25 +661,7 @@ export class AutoReviewService {
     category: string;
     originalText: string;
   } | null {
-    const visited = new Set<YModule.XmlText>();
-    const walk = (
-      node: YModule.XmlElement | YModule.XmlFragment
-    ): { message: string; suggestion: string; category: string; originalText: string } | null => {
-      for (let i = 0; i < node.length; i++) {
-        const child = node.get(i);
-        if (child instanceof Y.XmlText) {
-          if (visited.has(child)) continue;
-          visited.add(child);
-          const info = readMarkInfoFromText(child, suggestionId);
-          if (info) return info;
-        } else if (child instanceof Y.XmlElement) {
-          const info = walk(child);
-          if (info) return info;
-        }
-      }
-      return null;
-    };
-    return walk(fragment);
+    return walkXmlTexts(Y, fragment, (text) => readMarkInfoFromText(text, suggestionId));
   }
 
   /**
@@ -662,23 +674,9 @@ export class AutoReviewService {
     suggestionId: string,
     replacement: string
   ): boolean {
-    const visited = new Set<YModule.XmlText>();
-
-    const walk = (node: YModule.XmlElement | YModule.XmlFragment): boolean => {
-      for (let i = 0; i < node.length; i++) {
-        const child = node.get(i);
-        if (child instanceof Y.XmlText) {
-          if (visited.has(child)) continue;
-          visited.add(child);
-          if (replaceInText(Y, child, suggestionId, replacement)) return true;
-        } else if (child instanceof Y.XmlElement) {
-          if (walk(child)) return true;
-        }
-      }
-      return false;
-    };
-
-    return walk(fragment);
+    return (
+      walkXmlTexts(Y, fragment, (text) => replaceInText(text, suggestionId, replacement)) !== null
+    );
   }
 
   private findAndRemoveMark(
@@ -686,36 +684,37 @@ export class AutoReviewService {
     fragment: YModule.XmlFragment,
     suggestionId: string
   ): boolean {
-    const visited = new Set<YModule.XmlText>();
-
-    const walk = (node: YModule.XmlElement | YModule.XmlFragment): boolean => {
-      for (let i = 0; i < node.length; i++) {
-        const child = node.get(i);
-        if (child instanceof Y.XmlText) {
-          if (visited.has(child)) continue;
-          visited.add(child);
-          if (removeFromText(Y, child, suggestionId)) return true;
-        } else if (child instanceof Y.XmlElement) {
-          if (walk(child)) return true;
-        }
-      }
-      return false;
-    };
-
-    return walk(fragment);
+    return walkXmlTexts(Y, fragment, (text) => removeFromText(text, suggestionId)) !== null;
   }
 }
 
 /**
+ * Build a `null`-valued map for every auto_review attribute key on `attrs`
+ * (both the bare key written by the backend and any hashed keys written by
+ * y-prosemirror). Used to strip marks via `Y.XmlText.format()`/`insert()`.
+ */
+function buildAutoReviewNullMap(attrs: Record<string, unknown> | undefined): Record<string, null> {
+  const nullMap: Record<string, null> = {};
+  if (attrs) {
+    for (const key of Object.keys(attrs)) {
+      if (key === AUTO_REVIEW_MARK_NAME || key.startsWith(`${AUTO_REVIEW_MARK_NAME}--`)) {
+        nullMap[key] = null;
+      }
+    }
+  }
+  return nullMap;
+}
+
+/**
  * Replace the text covered by a auto_review mark with the given id and
- * remove the mark. Returns true if the mark was found and replaced.
+ * remove the mark. Returns `true` if the mark was found and replaced,
+ * `null` otherwise (so callers can short-circuit the shared walk helper).
  */
 function replaceInText(
-  _Y: typeof YModule,
   text: YModule.XmlText,
   suggestionId: string,
   replacement: string
-): boolean {
+): true | null {
   const delta = text.toDelta() as DeltaOp[];
   let offset = 0;
 
@@ -723,16 +722,7 @@ function replaceInText(
     const len = op.insert?.length ?? 0;
     const markInfo = getAutoReviewMarkKeyAndAttrs(op);
     if (markInfo && markInfo.attrs.id === suggestionId) {
-      // Build a null-map for ALL auto_review keys on this op so both the
-      // bare and hashed variants are stripped after the replacement.
-      const nullMap: Record<string, null> = {};
-      if (op.attributes) {
-        for (const key of Object.keys(op.attributes)) {
-          if (key === AUTO_REVIEW_MARK_NAME || key.startsWith(`${AUTO_REVIEW_MARK_NAME}--`)) {
-            nullMap[key] = null;
-          }
-        }
-      }
+      const nullMap = buildAutoReviewNullMap(op.attributes);
       text.delete(offset, len);
       if (replacement) {
         text.insert(offset, replacement, { ...op.attributes, ...nullMap });
@@ -743,11 +733,11 @@ function replaceInText(
     }
     offset += len;
   }
-  return false;
+  return null;
 }
 
 /** Remove a auto_review mark with the given id from a single XmlText. */
-function removeFromText(_Y: typeof YModule, text: YModule.XmlText, suggestionId: string): boolean {
+function removeFromText(text: YModule.XmlText, suggestionId: string): true | null {
   const delta = text.toDelta() as DeltaOp[];
   let offset = 0;
 
@@ -755,21 +745,13 @@ function removeFromText(_Y: typeof YModule, text: YModule.XmlText, suggestionId:
     const len = op.insert?.length ?? 0;
     const markInfo = getAutoReviewMarkKeyAndAttrs(op);
     if (markInfo && markInfo.attrs.id === suggestionId) {
-      // Strip ALL auto_review keys (bare + hashed) from this run.
-      const nullMap: Record<string, null> = {};
-      if (op.attributes) {
-        for (const key of Object.keys(op.attributes)) {
-          if (key === AUTO_REVIEW_MARK_NAME || key.startsWith(`${AUTO_REVIEW_MARK_NAME}--`)) {
-            nullMap[key] = null;
-          }
-        }
-      }
+      const nullMap = buildAutoReviewNullMap(op.attributes);
       text.format(offset, len, nullMap);
       return true;
     }
     offset += len;
   }
-  return false;
+  return null;
 }
 
 /** Read mark attrs + covered text for a suggestion by ID (no mutation). */
