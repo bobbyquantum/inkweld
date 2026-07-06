@@ -53,7 +53,7 @@ async function createProjectAndOpenEditor(
 
   await page.goto('/create-project');
 
-  const nextButton = page.getByRole('button', { name: /next/i });
+  const nextButton = page.getByTestId('next-button');
   await nextButton.waitFor();
   await nextButton.click();
 
@@ -64,10 +64,7 @@ async function createProjectAndOpenEditor(
   await expect(page).toHaveURL(new RegExp(slug));
   await expect(page.getByTestId('project-tree')).toBeVisible();
 
-  await page
-    .getByTestId('element-README')
-    .click()
-    .catch(() => page.locator('[role="treeitem"]').first().click());
+  await page.getByTestId('element-README').click();
 
   const editor = page.getByTestId('document-editor');
   await expect(editor).toBeVisible();
@@ -544,10 +541,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
       await page.reload({ waitUntil: 'networkidle' });
 
       // Re-navigate to the README document since reload resets state.
-      await page
-        .getByTestId('element-README')
-        .click()
-        .catch(() => page.locator('[role="treeitem"]').first().click());
+      await page.getByTestId('element-README').click();
 
       await expect(page.getByTestId('document-editor')).toBeVisible();
       await expect(page.locator('.ProseMirror')).toBeVisible();
