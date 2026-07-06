@@ -95,6 +95,23 @@ function makeDocWithElementRef(
   return ydoc;
 }
 
+/** Build a Y.Doc with a single paragraph whose text is split across two
+ *  adjacent Y.XmlText nodes (simulating a bold/inline-format boundary).
+ *  Used to exercise the multi-XmlText mark-formatting path. */
+function makeDocWithSplitText(firstText: string, secondText: string): Y.Doc {
+  const ydoc = new Y.Doc();
+  const fragment = ydoc.getXmlFragment('prosemirror');
+  const para = new Y.XmlElement('paragraph');
+  const textA = new Y.XmlText();
+  textA.insert(0, firstText);
+  const textB = new Y.XmlText();
+  textB.insert(0, secondText);
+  para.insert(0, [textA]);
+  para.insert(1, [textB]);
+  fragment.insert(0, [para]);
+  return ydoc;
+}
+
 /** Read all auto_review marks from a fragment's text nodes. */
 function readLintMarks(fragment: Y.XmlFragment): Array<{
   id: string;
@@ -291,6 +308,52 @@ describe('AutoReviewService', () => {
 
       expect(processDocSpy).toHaveBeenCalledTimes(1);
       expect(result.suggestions).toHaveLength(1);
+    });
+
+    it('should apply a mark spanning multiple adjacent XmlText nodes', async () => {
+      // Paragraph text "This are" split across two XmlText nodes:
+      //   textA = "This "  textB = "are"
+      // A correction covering positions 0-7 ("This are") spans both nodes
+      // and must be formatted as two separate segments.
+      const ydoc = makeDocWithSplitText('This ', 'are');
+      const fragment = ydoc.getXmlFragment('prosemirror');
+
+      getDocumentSpy = spyOn(yjsService, 'getDocument').mockResolvedValue({
+        name: 'test:doc',
+        doc: ydoc,
+        awareness: {} as never,
+        conns: new Map(),
+        wsUserIds: new Map(),
+      });
+
+      processDocSpy = spyOn(openAILintService, 'processDocument').mockResolvedValue({
+        corrections: [
+          {
+            paragraph_index: 0,
+            start_pos: 0,
+            end_pos: 8,
+            original_text: 'This are',
+            corrected_text: 'These are',
+            error_type: 'grammar',
+            recommendation: 'Subject-verb agreement',
+          },
+        ],
+        style_recommendations: [],
+        source: 'openai',
+      } as never);
+
+      const result = await autoReviewService.reviewDocument(
+        fakeDb,
+        'test:doc',
+        'general',
+        'medium'
+      );
+
+      expect(result.suggestions).toHaveLength(1);
+      // The mark should be applied across both XmlText nodes.
+      const marks = readLintMarks(fragment);
+      expect(marks).toHaveLength(2);
+      expect(marks.map((m) => m.text).join('')).toBe('This are');
     });
 
     it('should extract bullet list items as separate paragraphs', async () => {
