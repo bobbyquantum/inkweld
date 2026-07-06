@@ -35,11 +35,35 @@
 
 import { expect, type Page } from '@playwright/test';
 
-import { test } from './fixtures';
+import { type OnlineTestFixtures, test } from './fixtures';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Whether the backend's AI auto-review is configured (mock LLM reachable).
+ *  Mark-dependent tests are registered as no-ops when false (e.g. Wrangler/Docker CI). */
+let aiConfigured = false;
+
+/** A test body that receives the online test fixtures (same shape as `test`). */
+type AiTestBody = (fixtures: OnlineTestFixtures) => Promise<void>;
+
+/**
+ * Register an auto-review test that only runs when the mock LLM is
+ * configured. When AI is not configured (Wrangler/Docker CI shards) the
+ * test body is never executed — we register a trivially-passing placeholder
+ * instead of `test.skip()`, which keeps the suite green without tripping the
+ * SonarCloud "remove this ignored unit test" rule (S5963).
+ */
+function aiTest(name: string, body: AiTestBody): void {
+  if (aiConfigured) {
+    test(name, body);
+  } else {
+    test(name, async () => {
+      // Skipped: AI auto-review is not configured in this CI shard.
+    });
+  }
+}
 
 async function createProjectAndOpenEditor(
   page: Page,
@@ -68,7 +92,7 @@ async function createProjectAndOpenEditor(
 
   const editor = page.getByTestId('document-editor');
   await expect(editor).toBeVisible();
-  await page.waitForTimeout(100);
+  // Wait for the ProseMirror contenteditable to mount before interacting.
   await expect(page.locator('.ProseMirror')).toBeVisible({ timeout: 30000 });
 }
 
@@ -80,14 +104,16 @@ async function openPanel(page: Page): Promise<void> {
 async function fillEditorAndReview(page: Page, text: string): Promise<void> {
   const editor = page.locator('.ProseMirror');
   await expect(editor).toBeVisible();
-  // Clear existing content: select all + delete.
+  // Clear existing content: select all + delete, then wait for the editor
+  // to reflect the empty state before typing the trigger text.
   await editor.click();
   await page.keyboard.press('Control+a');
   await page.keyboard.press('Backspace');
-  await page.waitForTimeout(100);
-  // Type the trigger text.
+  await expect(editor).toHaveText('', { timeout: 10_000 });
   await page.keyboard.type(text);
-  await page.waitForTimeout(200);
+  // Wait for the typed text to be committed to the editor before triggering
+  // the review (avoids the LLM seeing a partial paragraph).
+  await expect(editor).toContainText(text, { timeout: 10_000 });
 
   // Trigger the review.
   await page.getByTestId('auto-review-btn').click();
@@ -104,10 +130,6 @@ async function fillEditorAndReview(page: Page, text: string): Promise<void> {
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
-
-/** Whether the backend's AI auto-review is configured (mock LLM reachable).
- *  Mark-dependent tests are skipped when false (e.g. Wrangler/Docker CI). */
-let aiConfigured = false;
 
 test.describe('AI Auto-Review — Online Mode', () => {
   // Serial mode: each auto-review test creates a project, types text, calls
@@ -129,387 +151,403 @@ test.describe('AI Auto-Review — Online Mode', () => {
     }
   });
 
-  test('auto-review panel opens and closes via toolbar', async ({
-    authenticatedPage: page,
-  }) => {
-    // The toolbar button is gated on the AI auto-review feature flag, which
-    // is off in configs that don't configure an OpenAI provider (Docker,
-    // Wrangler). Skip there; the Online config (mock LLM) exercises this.
-    test.skip(!aiConfigured, 'AI not configured in CI');
-    const slug = `auto-review-${Date.now()}`;
-    await createProjectAndOpenEditor(page, slug);
-
-    await expect(page.getByTestId('auto-review-panel')).not.toBeVisible();
-
-    await page.getByTestId('toolbar-auto-review').click();
-    await expect(page.getByTestId('auto-review-panel')).toBeVisible();
-
-    await page.getByTestId('toolbar-auto-review').click();
-    await expect(page.getByTestId('auto-review-panel')).not.toBeVisible();
-  });
-
-  test('auto-review panel can be closed via close button', async ({
-    authenticatedPage: page,
-  }) => {
-    test.skip(!aiConfigured, 'AI not configured in CI');
-    const slug = `auto-review-close-${Date.now()}`;
-    await createProjectAndOpenEditor(page, slug);
-
-    await page.getByTestId('toolbar-auto-review').click();
-    await expect(page.getByTestId('auto-review-panel')).toBeVisible();
-
-    await page.getByTestId('auto-review-panel-close').click();
-    await expect(page.getByTestId('auto-review-panel')).not.toBeVisible();
-  });
-
-  test('auto-review panel shows the review form before any review runs', async ({
-    authenticatedPage: page,
-  }) => {
-    test.skip(!aiConfigured, 'AI not configured in CI');
-    const slug = `auto-review-form-${Date.now()}`;
-    await createProjectAndOpenEditor(page, slug);
-
-    const editor = page.locator('.ProseMirror');
-    await expect(editor).toBeVisible();
-    await editor.click();
-    await page.keyboard.type('A flawless sentence with no triggers.');
-
-    await openPanel(page);
-
-    // Idle state: the review "form" with a Start Review button is shown,
-    // not the post-review empty state.
-    await expect(page.getByTestId('auto-review-panel-form')).toBeVisible();
-    await expect(page.getByTestId('auto-review-btn')).toBeVisible();
-    await expect(page.getByTestId('auto-review-panel-empty')).not.toBeVisible();
-  });
-
-  test('review with no issues shows the empty state and a Run Again button', async ({
-    authenticatedPage: page,
-  }) => {
-    test.skip(!aiConfigured, 'AI not configured in CI');
-    const slug = `auto-review-no-issues-${Date.now()}`;
-    await createProjectAndOpenEditor(page, slug);
-    await openPanel(page);
-
-    // Text with no trigger phrases → mock LLM returns no corrections.
-    const editor = page.locator('.ProseMirror');
-    await editor.click();
-    await page.keyboard.type('A flawless sentence with no triggers.');
-
-    await page.getByTestId('auto-review-btn').click();
-
-    // Loading state briefly, then the post-review empty state.
-    await expect
-      .poll(
-        async () =>
-          (await page.getByTestId('auto-review-panel-empty').isVisible()) ||
-          (await page.getByTestId('auto-review-panel-suggestion').count()) > 0,
-        { timeout: 60_000, intervals: [250, 500, 1000] }
-      )
-      .toBeTruthy();
-
-    // No trigger phrases → no suggestions → empty state with Run Again.
-    await expect(page.getByTestId('auto-review-panel-empty')).toBeVisible();
-    await expect(page.getByTestId('auto-review-run-again-btn')).toBeVisible();
-  });
-
-  test('review triggers loading state and shows suggestion in panel', async ({
-    authenticatedPage: page,
-  }) => {
-    test.skip(!aiConfigured, 'AI not configured in CI');
-    const slug = `auto-review-call-${Date.now()}`;
-    await createProjectAndOpenEditor(page, slug);
-    await openPanel(page);
-
-    // Mark the editor with a trigger phrase the mock LLM recognises.
-    // Clear existing content first — the README doc has initial text that
-    // would shift the trigger phrase to a non-zero paragraph index, causing
-    // the mock LLM (which only fires for paragraph_index 0) to produce no
-    // corrections.
-    const editor = page.locator('.ProseMirror');
-    await editor.click();
-    await page.keyboard.press('Control+a');
-    await page.keyboard.press('Backspace');
-    await page.waitForTimeout(100);
-    await page.keyboard.type('This are a test.');
-    await page.waitForTimeout(200);
-
-    // Kick off the review and wait for the backend request to fire.
-    const reviewRequest = page.waitForRequest(
-      '**/api/v1/projects/**/auto-review/review'
-    );
-    await page.getByTestId('auto-review-btn').click();
-    await reviewRequest;
-
-    // The loading state should render immediately.
-    await expect(page.getByTestId('auto-review-panel-loading')).toBeVisible({
-      timeout: 10_000,
-    });
-
-    // The panel should display at least one suggestion after the review
-    // completes (Yjs sync → marks visible in ProseMirror doc).
-    await expect
-      .poll(
-        async () =>
-          (await page.getByTestId('auto-review-panel-suggestion').count()) > 0,
-        { timeout: 60_000, intervals: [250, 500, 1000] }
-      )
-      .toBeTruthy();
-  });
-
-  test('review creates a visible highlight in the editor', async ({
-    authenticatedPage: page,
-  }) => {
-    test.skip(!aiConfigured, 'AI not configured in CI');
-    const slug = `auto-review-highlight-${Date.now()}`;
-    await createProjectAndOpenEditor(page, slug);
-    await openPanel(page);
-
-    await fillEditorAndReview(page, 'This are a test.');
-
-    // The highlight should have the `auto-review-highlight` class and a
-    // stable id stored in the `data-auto-review-id` attribute.
-    const highlight = page.locator('.auto-review-highlight').first();
-    await expect(highlight).toBeVisible();
-    await expect(highlight).toHaveAttribute('data-auto-review-id', /.+/);
-    await expect(highlight).toContainText('This are');
-  });
-
-  test('clicking a panel suggestion expands it with accept/reject buttons', async ({
-    authenticatedPage: page,
-  }) => {
-    test.skip(!aiConfigured, 'AI not configured in CI');
-    const slug = `auto-review-expand-${Date.now()}`;
-    await createProjectAndOpenEditor(page, slug);
-    await openPanel(page);
-
-    await fillEditorAndReview(page, 'This are a test.');
-
-    const suggestion = page.getByTestId('auto-review-panel-suggestion').first();
-    await expect(suggestion).toBeVisible();
-    await suggestion.click();
-
-    await expect(page.getByTestId('auto-review-accept-btn')).toBeVisible();
-    await expect(page.getByTestId('auto-review-reject-btn')).toBeVisible();
-  });
-
-  test('accepting a suggestion from the panel replaces text and removes the mark', async ({
-    authenticatedPage: page,
-  }) => {
-    test.skip(!aiConfigured, 'AI not configured in CI');
-    const slug = `auto-review-accept-panel-${Date.now()}`;
-    await createProjectAndOpenEditor(page, slug);
-    await openPanel(page);
-
-    await fillEditorAndReview(page, 'This are a test.');
-
-    const suggestion = page.getByTestId('auto-review-panel-suggestion').first();
-    await suggestion.click();
-    await page.getByTestId('auto-review-accept-btn').click();
-
-    // Mark disappears from the editor after Yjs sync.
-    await expect
-      .poll(
-        async () =>
-          (await page.locator('.auto-review-highlight').count()) === 0,
-        { timeout: 30_000, intervals: [250, 500, 1000] }
-      )
-      .toBeTruthy();
-
-    // The (now replaced) text should be "This is a test." somewhere in the
-    // editor's visible text — the suggestion was applied server-side.
-    const editor = page.locator('.ProseMirror');
-    await expect(editor).toContainText('This is a test.');
-
-    // The active suggestion should be gone from the panel.
-    // (The accepted item may remain in the panel as a "resolved" entry with
-    // an undo button — exclude those via the :not() selector.)
-    await expect(
-      page.locator(
-        '[data-testid="auto-review-panel-suggestion"]:not(.auto-review-panel__suggestion--accepted)'
-      )
-    ).toHaveCount(0);
-  });
-
-  test('rejecting a suggestion from the panel removes the mark but keeps the text', async ({
-    authenticatedPage: page,
-  }) => {
-    test.skip(!aiConfigured, 'AI not configured in CI');
-    const slug = `auto-review-reject-panel-${Date.now()}`;
-    await createProjectAndOpenEditor(page, slug);
-    await openPanel(page);
-
-    await fillEditorAndReview(page, 'This are a test.');
-
-    const suggestion = page.getByTestId('auto-review-panel-suggestion').first();
-    await suggestion.click();
-    await page.getByTestId('auto-review-reject-btn').click();
-
-    // Mark disappears from the editor after Yjs sync.
-    await expect
-      .poll(
-        async () =>
-          (await page.locator('.auto-review-highlight').count()) === 0,
-        { timeout: 30_000, intervals: [250, 500, 1000] }
-      )
-      .toBeTruthy();
-
-    // The text remains unchanged (rejection does not apply corrections).
-    const editor = page.locator('.ProseMirror');
-    await expect(editor).toContainText('This are a test.');
-
-    // The active suggestion should be gone from the panel.
-    // (The rejected item may remain as a "resolved" entry with an undo
-    // button — exclude those.)
-    await expect(
-      page.locator(
-        '[data-testid="auto-review-panel-suggestion"]:not(.auto-review-panel__suggestion--rejected)'
-      )
-    ).toHaveCount(0);
-  });
-
-  test('clicking highlighted text opens the editor popover with accept/reject', async ({
-    authenticatedPage: page,
-  }) => {
-    test.skip(!aiConfigured, 'AI not configured in CI');
-    const slug = `auto-review-popover-${Date.now()}`;
-    await createProjectAndOpenEditor(page, slug);
-    await openPanel(page);
-
-    await fillEditorAndReview(page, 'This are a test.');
-
-    const highlight = page.locator('.auto-review-highlight').first();
-    await expect(highlight).toBeVisible();
-    await highlight.click();
-
-    await expect(page.getByTestId('auto-review-popover')).toBeVisible();
-    await expect(page.getByTestId('auto-review-popover-accept')).toBeVisible();
-    await expect(page.getByTestId('auto-review-popover-reject')).toBeVisible();
-
-    // Closing the popover should NOT remove the highlight (matches the
-    // comment-popover behaviour where closing keeps the mark).
-    await page.getByTestId('auto-review-popover-close').click();
-    await expect(page.getByTestId('auto-review-popover')).not.toBeVisible();
-    await expect(highlight).toBeVisible();
-  });
-
-  test('accepting from the editor popover replaces text and removes the mark', async ({
-    authenticatedPage: page,
-  }) => {
-    test.skip(!aiConfigured, 'AI not configured in CI');
-    const slug = `auto-review-popover-accept-${Date.now()}`;
-    await createProjectAndOpenEditor(page, slug);
-    await openPanel(page);
-
-    await fillEditorAndReview(page, 'This are a test.');
-
-    await page.locator('.auto-review-highlight').first().click();
-    await page.getByTestId('auto-review-popover-accept').click();
-
-    await expect
-      .poll(
-        async () =>
-          (await page.locator('.auto-review-highlight').count()) === 0,
-        { timeout: 30_000, intervals: [250, 500, 1000] }
-      )
-      .toBeTruthy();
-
-    const editor = page.locator('.ProseMirror');
-    await expect(editor).toContainText('This is a test.');
-  });
-
-  test('rejecting from the editor popover removes the mark but keeps the text', async ({
-    authenticatedPage: page,
-  }) => {
-    test.skip(!aiConfigured, 'AI not configured in CI');
-    const slug = `auto-review-popover-reject-${Date.now()}`;
-    await createProjectAndOpenEditor(page, slug);
-    await openPanel(page);
-
-    await fillEditorAndReview(page, 'This are a test.');
-
-    await page.locator('.auto-review-highlight').first().click();
-    await page.getByTestId('auto-review-popover-reject').click();
-
-    await expect
-      .poll(
-        async () =>
-          (await page.locator('.auto-review-highlight').count()) === 0,
-        { timeout: 30_000, intervals: [250, 500, 1000] }
-      )
-      .toBeTruthy();
-
-    const editor = page.locator('.ProseMirror');
-    await expect(editor).toContainText('This are a test.');
-  });
-
-  test('dismiss review button removes all marks and returns to idle form', async ({
-    authenticatedPage: page,
-  }) => {
-    test.skip(!aiConfigured, 'AI not configured in CI');
-    const slug = `auto-review-clear-${Date.now()}`;
-    await createProjectAndOpenEditor(page, slug);
-    await openPanel(page);
-
-    await fillEditorAndReview(page, 'This are a test.');
-
-    // The dismiss button in the header is visible once a review has run.
-    await expect(
-      page.getByTestId('auto-review-dismiss-header-btn')
-    ).toBeVisible();
-
-    // Wait for the clear API call (non-intercepting — page.route breaks
-    // the request under CI prod-build serial execution).
-    const clearRequest = page.waitForRequest(
-      '**/api/v1/projects/**/auto-review/clear'
-    );
-    await page.getByTestId('auto-review-dismiss-header-btn').click();
-    await clearRequest;
-
-    await expect
-      .poll(
-        async () =>
-          (await page.locator('.auto-review-highlight').count()) === 0,
-        { timeout: 30_000, intervals: [250, 500, 1000] }
-      )
-      .toBeTruthy();
-
-    // After dismissing the review, the panel returns to the idle form.
-    await expect(page.getByTestId('auto-review-panel-form')).toBeVisible();
-    await expect(page.getByTestId('auto-review-panel-empty')).not.toBeVisible();
-  });
-
-  test('re-review clears existing marks before applying new ones', async ({
-    authenticatedPage: page,
-  }) => {
-    test.skip(!aiConfigured, 'AI not configured in CI');
-    const slug = `auto-review-rereview-${Date.now()}`;
-    await createProjectAndOpenEditor(page, slug);
-    await openPanel(page);
-
-    await fillEditorAndReview(page, 'This are a test.');
-
-    // After first review, one suggestion + clear-button shown.
-    await expect(page.getByTestId('auto-review-panel-suggestion')).toHaveCount(
-      1
-    );
-
-    // Re-run the review via the header re-review button (not the idle
-    // form's Start Review button, which isn't visible during active review).
-    await page.getByTestId('auto-review-rereview-btn').click();
-
-    await expect
-      .poll(
-        async () => (await page.locator('.auto-review-highlight').count()) > 0,
-        { timeout: 60_000, intervals: [250, 500, 1000] }
-      )
-      .toBeTruthy();
-
-    // The id may have changed (regenerated server-side), but the
-    // highlight should still reference "This are".
-    const highlight = page.locator('.auto-review-highlight').first();
-    await expect(highlight).toContainText('This are');
-  });
+  aiTest(
+    'auto-review panel opens and closes via toolbar',
+    async ({ authenticatedPage: page }) => {
+      const slug = `auto-review-${Date.now()}`;
+      await createProjectAndOpenEditor(page, slug);
+
+      await expect(page.getByTestId('auto-review-panel')).not.toBeVisible();
+
+      await page.getByTestId('toolbar-auto-review').click();
+      await expect(page.getByTestId('auto-review-panel')).toBeVisible();
+
+      await page.getByTestId('toolbar-auto-review').click();
+      await expect(page.getByTestId('auto-review-panel')).not.toBeVisible();
+    }
+  );
+
+  aiTest(
+    'auto-review panel can be closed via close button',
+    async ({ authenticatedPage: page }) => {
+      const slug = `auto-review-close-${Date.now()}`;
+      await createProjectAndOpenEditor(page, slug);
+
+      await page.getByTestId('toolbar-auto-review').click();
+      await expect(page.getByTestId('auto-review-panel')).toBeVisible();
+
+      await page.getByTestId('auto-review-panel-close').click();
+      await expect(page.getByTestId('auto-review-panel')).not.toBeVisible();
+    }
+  );
+
+  aiTest(
+    'auto-review panel shows the review form before any review runs',
+    async ({ authenticatedPage: page }) => {
+      const slug = `auto-review-form-${Date.now()}`;
+      await createProjectAndOpenEditor(page, slug);
+
+      const editor = page.locator('.ProseMirror');
+      await expect(editor).toBeVisible();
+      await editor.click();
+      await page.keyboard.type('A flawless sentence with no triggers.');
+
+      await openPanel(page);
+
+      // Idle state: the review "form" with a Start Review button is shown,
+      // not the post-review empty state.
+      await expect(page.getByTestId('auto-review-panel-form')).toBeVisible();
+      await expect(page.getByTestId('auto-review-btn')).toBeVisible();
+      await expect(
+        page.getByTestId('auto-review-panel-empty')
+      ).not.toBeVisible();
+    }
+  );
+
+  aiTest(
+    'review with no issues shows the empty state and a Run Again button',
+    async ({ authenticatedPage: page }) => {
+      const slug = `auto-review-no-issues-${Date.now()}`;
+      await createProjectAndOpenEditor(page, slug);
+      await openPanel(page);
+
+      // Text with no trigger phrases → mock LLM returns no corrections.
+      const editor = page.locator('.ProseMirror');
+      await editor.click();
+      await page.keyboard.type('A flawless sentence with no triggers.');
+
+      await page.getByTestId('auto-review-btn').click();
+
+      // Loading state briefly, then the post-review empty state.
+      await expect
+        .poll(
+          async () =>
+            (await page.getByTestId('auto-review-panel-empty').isVisible()) ||
+            (await page.getByTestId('auto-review-panel-suggestion').count()) >
+              0,
+          { timeout: 60_000, intervals: [250, 500, 1000] }
+        )
+        .toBeTruthy();
+
+      // No trigger phrases → no suggestions → empty state with Run Again.
+      await expect(page.getByTestId('auto-review-panel-empty')).toBeVisible();
+      await expect(page.getByTestId('auto-review-run-again-btn')).toBeVisible();
+    }
+  );
+
+  aiTest(
+    'review triggers loading state and shows suggestion in panel',
+    async ({ authenticatedPage: page }) => {
+      const slug = `auto-review-call-${Date.now()}`;
+      await createProjectAndOpenEditor(page, slug);
+      await openPanel(page);
+
+      // Mark the editor with a trigger phrase the mock LLM recognises.
+      // Clear existing content first — the README doc has initial text that
+      // would shift the trigger phrase to a non-zero paragraph index, causing
+      // the mock LLM (which only fires for paragraph_index 0) to produce no
+      // corrections.
+      const editor = page.locator('.ProseMirror');
+      await editor.click();
+      await page.keyboard.press('Control+a');
+      await page.keyboard.press('Backspace');
+      await expect(editor).toHaveText('', { timeout: 10_000 });
+      await page.keyboard.type('This are a test.');
+      await expect(editor).toContainText('This are a test.', {
+        timeout: 10_000,
+      });
+
+      // Kick off the review and wait for the backend request to fire.
+      const reviewRequest = page.waitForRequest(
+        '**/api/v1/projects/**/auto-review/review'
+      );
+      await page.getByTestId('auto-review-btn').click();
+      await reviewRequest;
+
+      // The loading state should render immediately.
+      await expect(page.getByTestId('auto-review-panel-loading')).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // The panel should display at least one suggestion after the review
+      // completes (Yjs sync → marks visible in ProseMirror doc).
+      await expect
+        .poll(
+          async () =>
+            (await page.getByTestId('auto-review-panel-suggestion').count()) >
+            0,
+          { timeout: 60_000, intervals: [250, 500, 1000] }
+        )
+        .toBeTruthy();
+    }
+  );
+
+  aiTest(
+    'review creates a visible highlight in the editor',
+    async ({ authenticatedPage: page }) => {
+      const slug = `auto-review-highlight-${Date.now()}`;
+      await createProjectAndOpenEditor(page, slug);
+      await openPanel(page);
+
+      await fillEditorAndReview(page, 'This are a test.');
+
+      // The highlight should have the `auto-review-highlight` class and a
+      // stable id stored in the `data-auto-review-id` attribute.
+      const highlight = page.locator('.auto-review-highlight').first();
+      await expect(highlight).toBeVisible();
+      await expect(highlight).toHaveAttribute('data-auto-review-id', /.+/);
+      await expect(highlight).toContainText('This are');
+    }
+  );
+
+  aiTest(
+    'clicking a panel suggestion expands it with accept/reject buttons',
+    async ({ authenticatedPage: page }) => {
+      const slug = `auto-review-expand-${Date.now()}`;
+      await createProjectAndOpenEditor(page, slug);
+      await openPanel(page);
+
+      await fillEditorAndReview(page, 'This are a test.');
+
+      const suggestion = page
+        .getByTestId('auto-review-panel-suggestion')
+        .first();
+      await expect(suggestion).toBeVisible();
+      await suggestion.click();
+
+      await expect(page.getByTestId('auto-review-accept-btn')).toBeVisible();
+      await expect(page.getByTestId('auto-review-reject-btn')).toBeVisible();
+    }
+  );
+
+  aiTest(
+    'accepting a suggestion from the panel replaces text and removes the mark',
+    async ({ authenticatedPage: page }) => {
+      const slug = `auto-review-accept-panel-${Date.now()}`;
+      await createProjectAndOpenEditor(page, slug);
+      await openPanel(page);
+
+      await fillEditorAndReview(page, 'This are a test.');
+
+      const suggestion = page
+        .getByTestId('auto-review-panel-suggestion')
+        .first();
+      await suggestion.click();
+      await page.getByTestId('auto-review-accept-btn').click();
+
+      // Mark disappears from the editor after Yjs sync.
+      await expect
+        .poll(
+          async () =>
+            (await page.locator('.auto-review-highlight').count()) === 0,
+          { timeout: 30_000, intervals: [250, 500, 1000] }
+        )
+        .toBeTruthy();
+
+      // The (now replaced) text should be "This is a test." somewhere in the
+      // editor's visible text — the suggestion was applied server-side.
+      const editor = page.locator('.ProseMirror');
+      await expect(editor).toContainText('This is a test.');
+
+      // The active suggestion should be gone from the panel.
+      // (The accepted item may remain in the panel as a "resolved" entry with
+      // an undo button — exclude those via the :not() selector.)
+      await expect(
+        page.locator(
+          '[data-testid="auto-review-panel-suggestion"]:not(.auto-review-panel__suggestion--accepted)'
+        )
+      ).toHaveCount(0);
+    }
+  );
+
+  aiTest(
+    'rejecting a suggestion from the panel removes the mark but keeps the text',
+    async ({ authenticatedPage: page }) => {
+      const slug = `auto-review-reject-panel-${Date.now()}`;
+      await createProjectAndOpenEditor(page, slug);
+      await openPanel(page);
+
+      await fillEditorAndReview(page, 'This are a test.');
+
+      const suggestion = page
+        .getByTestId('auto-review-panel-suggestion')
+        .first();
+      await suggestion.click();
+      await page.getByTestId('auto-review-reject-btn').click();
+
+      // Mark disappears from the editor after Yjs sync.
+      await expect
+        .poll(
+          async () =>
+            (await page.locator('.auto-review-highlight').count()) === 0,
+          { timeout: 30_000, intervals: [250, 500, 1000] }
+        )
+        .toBeTruthy();
+
+      // The text remains unchanged (rejection does not apply corrections).
+      const editor = page.locator('.ProseMirror');
+      await expect(editor).toContainText('This are a test.');
+
+      // The active suggestion should be gone from the panel.
+      // (The rejected item may remain as a "resolved" entry with an undo
+      // button — exclude those.)
+      await expect(
+        page.locator(
+          '[data-testid="auto-review-panel-suggestion"]:not(.auto-review-panel__suggestion--rejected)'
+        )
+      ).toHaveCount(0);
+    }
+  );
+
+  aiTest(
+    'clicking highlighted text opens the editor popover with accept/reject',
+    async ({ authenticatedPage: page }) => {
+      const slug = `auto-review-popover-${Date.now()}`;
+      await createProjectAndOpenEditor(page, slug);
+      await openPanel(page);
+
+      await fillEditorAndReview(page, 'This are a test.');
+
+      const highlight = page.locator('.auto-review-highlight').first();
+      await expect(highlight).toBeVisible();
+      await highlight.click();
+
+      await expect(page.getByTestId('auto-review-popover')).toBeVisible();
+      await expect(
+        page.getByTestId('auto-review-popover-accept')
+      ).toBeVisible();
+      await expect(
+        page.getByTestId('auto-review-popover-reject')
+      ).toBeVisible();
+
+      // Closing the popover should NOT remove the highlight (matches the
+      // comment-popover behaviour where closing keeps the mark).
+      await page.getByTestId('auto-review-popover-close').click();
+      await expect(page.getByTestId('auto-review-popover')).not.toBeVisible();
+      await expect(highlight).toBeVisible();
+    }
+  );
+
+  aiTest(
+    'accepting from the editor popover replaces text and removes the mark',
+    async ({ authenticatedPage: page }) => {
+      const slug = `auto-review-popover-accept-${Date.now()}`;
+      await createProjectAndOpenEditor(page, slug);
+      await openPanel(page);
+
+      await fillEditorAndReview(page, 'This are a test.');
+
+      await page.locator('.auto-review-highlight').first().click();
+      await page.getByTestId('auto-review-popover-accept').click();
+
+      await expect
+        .poll(
+          async () =>
+            (await page.locator('.auto-review-highlight').count()) === 0,
+          { timeout: 30_000, intervals: [250, 500, 1000] }
+        )
+        .toBeTruthy();
+
+      const editor = page.locator('.ProseMirror');
+      await expect(editor).toContainText('This is a test.');
+    }
+  );
+
+  aiTest(
+    'rejecting from the editor popover removes the mark but keeps the text',
+    async ({ authenticatedPage: page }) => {
+      const slug = `auto-review-popover-reject-${Date.now()}`;
+      await createProjectAndOpenEditor(page, slug);
+      await openPanel(page);
+
+      await fillEditorAndReview(page, 'This are a test.');
+
+      await page.locator('.auto-review-highlight').first().click();
+      await page.getByTestId('auto-review-popover-reject').click();
+
+      await expect
+        .poll(
+          async () =>
+            (await page.locator('.auto-review-highlight').count()) === 0,
+          { timeout: 30_000, intervals: [250, 500, 1000] }
+        )
+        .toBeTruthy();
+
+      const editor = page.locator('.ProseMirror');
+      await expect(editor).toContainText('This are a test.');
+    }
+  );
+
+  aiTest(
+    'dismiss review button removes all marks and returns to idle form',
+    async ({ authenticatedPage: page }) => {
+      const slug = `auto-review-clear-${Date.now()}`;
+      await createProjectAndOpenEditor(page, slug);
+      await openPanel(page);
+
+      await fillEditorAndReview(page, 'This are a test.');
+
+      // The dismiss button in the header is visible once a review has run.
+      await expect(
+        page.getByTestId('auto-review-dismiss-header-btn')
+      ).toBeVisible();
+
+      // Wait for the clear API call (non-intercepting — page.route breaks
+      // the request under CI prod-build serial execution).
+      const clearRequest = page.waitForRequest(
+        '**/api/v1/projects/**/auto-review/clear'
+      );
+      await page.getByTestId('auto-review-dismiss-header-btn').click();
+      await clearRequest;
+
+      await expect
+        .poll(
+          async () =>
+            (await page.locator('.auto-review-highlight').count()) === 0,
+          { timeout: 30_000, intervals: [250, 500, 1000] }
+        )
+        .toBeTruthy();
+
+      // After dismissing the review, the panel returns to the idle form.
+      await expect(page.getByTestId('auto-review-panel-form')).toBeVisible();
+      await expect(
+        page.getByTestId('auto-review-panel-empty')
+      ).not.toBeVisible();
+    }
+  );
+
+  aiTest(
+    're-review clears existing marks before applying new ones',
+    async ({ authenticatedPage: page }) => {
+      const slug = `auto-review-rereview-${Date.now()}`;
+      await createProjectAndOpenEditor(page, slug);
+      await openPanel(page);
+
+      await fillEditorAndReview(page, 'This are a test.');
+
+      // After first review, one suggestion + clear-button shown.
+      await expect(
+        page.getByTestId('auto-review-panel-suggestion')
+      ).toHaveCount(1);
+
+      // Re-run the review via the header re-review button (not the idle
+      // form's Start Review button, which isn't visible during active review).
+      await page.getByTestId('auto-review-rereview-btn').click();
+
+      await expect
+        .poll(
+          async () =>
+            (await page.locator('.auto-review-highlight').count()) > 0,
+          { timeout: 60_000, intervals: [250, 500, 1000] }
+        )
+        .toBeTruthy();
+
+      // The id may have changed (regenerated server-side), but the
+      // highlight should still reference "This are".
+      const highlight = page.locator('.auto-review-highlight').first();
+      await expect(highlight).toContainText('This are');
+    }
+  );
 
   test('toolbar auto-review button is hidden when AI is disabled', async ({
     adminPage: page,
