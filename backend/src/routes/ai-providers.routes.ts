@@ -9,6 +9,7 @@ import { requireAuth, requireAdmin } from '../middleware/auth';
 import { configService } from '../services/config.service';
 import { imageGenerationService } from '../services/image-generation.service';
 import { logger } from '../services/logger.service';
+import { stripTrailingSlashes } from '../utils/string-utils';
 import type { AppContext } from '../types/context';
 
 const providerLog = logger.child('AIProviders');
@@ -888,7 +889,7 @@ aiProvidersRoutes.openapi(getOpenaiCompatibleModelsRoute, async (c) => {
   }
 
   try {
-    const modelsUrl = `${endpoint.replace(/\/+$/, '')}/models`;
+    const modelsUrl = `${stripTrailingSlashes(endpoint)}/models`;
     const response = await fetch(modelsUrl, {
       headers: {
         Authorization: `Bearer ${apiKey}`,

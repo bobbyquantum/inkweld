@@ -80,12 +80,7 @@ export class AutoReviewApiService {
     try {
       const request: AutoReviewRequest = {
         style,
-        level:
-          level === 'low'
-            ? AutoReviewRequestLevel.Low
-            : level === 'high'
-              ? AutoReviewRequestLevel.High
-              : AutoReviewRequestLevel.Medium,
+        level: toRequestLevel(level),
       };
       const result = await firstValueFrom(
         this.autoReviewService.reviewDocumentAutoReview(
@@ -210,12 +205,7 @@ export class AutoReviewApiService {
               message: attrs.message,
               suggestion: attrs.suggestion,
               category: attrs.category,
-              severity:
-                attrs.severity === 'error'
-                  ? AutoReviewSuggestionSeverity.Error
-                  : attrs.severity === 'warning'
-                    ? AutoReviewSuggestionSeverity.Warning
-                    : AutoReviewSuggestionSeverity.Suggestion,
+              severity: toSuggestionSeverity(attrs.severity),
               paragraphStart: pos,
               paragraphEnd: pos + node.nodeSize,
               originalText: node.textContent.slice(0, 100),
@@ -230,5 +220,34 @@ export class AutoReviewApiService {
     });
 
     return suggestions;
+  }
+}
+
+/** Map the public `reviewDocument` level to the generated API enum. */
+function toRequestLevel(
+  level: 'low' | 'medium' | 'high'
+): AutoReviewRequestLevel {
+  switch (level) {
+    case 'low':
+      return AutoReviewRequestLevel.Low;
+    case 'high':
+      return AutoReviewRequestLevel.High;
+    default:
+      return AutoReviewRequestLevel.Medium;
+  }
+}
+
+/** Map a mark's severity string to the panel's enum. Falls back to
+ *  `Suggestion` for any unrecognised value. */
+function toSuggestionSeverity(
+  severity: string | undefined
+): AutoReviewSuggestionSeverity {
+  switch (severity) {
+    case 'error':
+      return AutoReviewSuggestionSeverity.Error;
+    case 'warning':
+      return AutoReviewSuggestionSeverity.Warning;
+    default:
+      return AutoReviewSuggestionSeverity.Suggestion;
   }
 }

@@ -172,8 +172,13 @@
     left: 8px;
     right: 8px;
     background: var(--mat-sys-surface-variant);
+    border: none;
     border-radius: 6px;
     padding: 6px 8px;
+    width: auto;
+    text-align: left;
+    font: inherit;
+    color: inherit;
     cursor: pointer;
     transition: background 0.15s ease;
     overflow: hidden;

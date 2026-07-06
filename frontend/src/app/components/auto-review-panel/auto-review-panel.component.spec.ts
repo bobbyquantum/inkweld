@@ -77,7 +77,7 @@ describe('AutoReviewPanelComponent', () => {
       paragraphEnd: 10,
       originalText: longText,
     });
-    expect(preview.length).toBe(58);
+    expect(preview).toHaveLength(58);
     expect(preview.endsWith('…')).toBe(true);
   });
 
@@ -109,7 +109,7 @@ describe('AutoReviewPanelComponent', () => {
     component.onSuggestionClick(suggestion);
     expect(component.expandedSuggestionId()).toBe('sug-1');
     component.onSuggestionClick(suggestion);
-    expect(component.expandedSuggestionId()).toBe(null);
+    expect(component.expandedSuggestionId()).toBeNull();
   });
 
   it('should call reviewDocument on review', async () => {

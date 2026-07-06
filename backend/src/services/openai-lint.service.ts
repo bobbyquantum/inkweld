@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 import { configService } from './config.service';
 import { config as envConfig } from '../config/env';
 import { logger } from './logger.service';
+import { stripTrailingSlashes } from '../utils/string-utils';
 import type { DatabaseInstance } from '../types/context';
 import type { ConfigKey } from '../db/schema/config';
 import type { RejectionContext } from './auto-review-rejection.service';
@@ -211,7 +212,7 @@ The JSON must follow this format:
     errorLabel: string
   ): Promise<T> {
     const endpoint = cfg.endpoint
-      ? `${cfg.endpoint.replace(/\/+$/, '')}/chat/completions`
+      ? `${stripTrailingSlashes(cfg.endpoint)}/chat/completions`
       : 'https://api.openai.com/v1/chat/completions';
 
     try {
@@ -358,9 +359,9 @@ The JSON must follow this format:
     customPrompt: string,
     context?: ReviewContext
   ): string {
-    const base = customPrompt
-      ? customPrompt
-      : `You are a professional writing assistant specializing in ${style} style.
+    const base =
+      customPrompt ||
+      `You are a professional writing assistant specializing in ${style} style.
 Your task is to analyze the provided document and identify:
 1. Grammar, spelling, and punctuation errors
 2. Style inconsistencies with ${style} writing

@@ -125,7 +125,8 @@
           [style.transform]="'translateY(-' + editorScrollTop() + 'px)'"
           [style.height.px]="editorContentHeight()">
           @for (s of positionedSuggestions(); track s.id) {
-            <div
+            <button
+              type="button"
               class="auto-review-panel__suggestion"
               [class.auto-review-panel__suggestion--expanded]="
                 expandedSuggestionId() === s.id
@@ -140,11 +141,7 @@
                 s.resolved === 'rejected'
               "
               [style.top.px]="s.displayTop"
-              tabindex="0"
-              role="button"
               (click)="onSuggestionClick(s)"
-              (keydown.enter)="onSuggestionClick(s)"
-              (keydown.space)="onSuggestionClick(s)"
               (mouseenter)="onHover(s.id)"
               (mouseleave)="onHover(null)"
               data-testid="auto-review-panel-suggestion">
@@ -243,7 +240,7 @@
                   {{ getPreview(s) }}
                 </div>
               }
-            </div>
+            </button>
           }
         </div>
       </div>

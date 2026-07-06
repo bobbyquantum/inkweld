@@ -135,7 +135,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
     // The toolbar button is gated on the AI auto-review feature flag, which
     // is off in configs that don't configure an OpenAI provider (Docker,
     // Wrangler). Skip there; the Online config (mock LLM) exercises this.
-    if (!aiConfigured) test.skip('AI not configured in CI');
+    test.skip(!aiConfigured, 'AI not configured in CI');
     const slug = `auto-review-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
 
@@ -151,7 +151,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('auto-review panel can be closed via close button', async ({
     authenticatedPage: page,
   }) => {
-    if (!aiConfigured) test.skip('AI not configured in CI');
+    test.skip(!aiConfigured, 'AI not configured in CI');
     const slug = `auto-review-close-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
 
@@ -165,7 +165,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('auto-review panel shows the review form before any review runs', async ({
     authenticatedPage: page,
   }) => {
-    if (!aiConfigured) test.skip('AI not configured in CI');
+    test.skip(!aiConfigured, 'AI not configured in CI');
     const slug = `auto-review-form-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
 
@@ -186,7 +186,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('review with no issues shows the empty state and a Run Again button', async ({
     authenticatedPage: page,
   }) => {
-    if (!aiConfigured) test.skip('AI not configured in CI');
+    test.skip(!aiConfigured, 'AI not configured in CI');
     const slug = `auto-review-no-issues-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
     await openPanel(page);
@@ -216,7 +216,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('review triggers loading state and shows suggestion in panel', async ({
     authenticatedPage: page,
   }) => {
-    if (!aiConfigured) test.skip('AI not configured in CI');
+    test.skip(!aiConfigured, 'AI not configured in CI');
     const slug = `auto-review-call-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
     await openPanel(page);
@@ -260,7 +260,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('review creates a visible highlight in the editor', async ({
     authenticatedPage: page,
   }) => {
-    if (!aiConfigured) test.skip('AI not configured in CI');
+    test.skip(!aiConfigured, 'AI not configured in CI');
     const slug = `auto-review-highlight-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
     await openPanel(page);
@@ -278,7 +278,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('clicking a panel suggestion expands it with accept/reject buttons', async ({
     authenticatedPage: page,
   }) => {
-    if (!aiConfigured) test.skip('AI not configured in CI');
+    test.skip(!aiConfigured, 'AI not configured in CI');
     const slug = `auto-review-expand-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
     await openPanel(page);
@@ -296,7 +296,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('accepting a suggestion from the panel replaces text and removes the mark', async ({
     authenticatedPage: page,
   }) => {
-    if (!aiConfigured) test.skip('AI not configured in CI');
+    test.skip(!aiConfigured, 'AI not configured in CI');
     const slug = `auto-review-accept-panel-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
     await openPanel(page);
@@ -334,7 +334,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('rejecting a suggestion from the panel removes the mark but keeps the text', async ({
     authenticatedPage: page,
   }) => {
-    if (!aiConfigured) test.skip('AI not configured in CI');
+    test.skip(!aiConfigured, 'AI not configured in CI');
     const slug = `auto-review-reject-panel-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
     await openPanel(page);
@@ -371,7 +371,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('clicking highlighted text opens the editor popover with accept/reject', async ({
     authenticatedPage: page,
   }) => {
-    if (!aiConfigured) test.skip('AI not configured in CI');
+    test.skip(!aiConfigured, 'AI not configured in CI');
     const slug = `auto-review-popover-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
     await openPanel(page);
@@ -396,7 +396,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('accepting from the editor popover replaces text and removes the mark', async ({
     authenticatedPage: page,
   }) => {
-    if (!aiConfigured) test.skip('AI not configured in CI');
+    test.skip(!aiConfigured, 'AI not configured in CI');
     const slug = `auto-review-popover-accept-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
     await openPanel(page);
@@ -421,7 +421,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('rejecting from the editor popover removes the mark but keeps the text', async ({
     authenticatedPage: page,
   }) => {
-    if (!aiConfigured) test.skip('AI not configured in CI');
+    test.skip(!aiConfigured, 'AI not configured in CI');
     const slug = `auto-review-popover-reject-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
     await openPanel(page);
@@ -446,7 +446,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('dismiss review button removes all marks and returns to idle form', async ({
     authenticatedPage: page,
   }) => {
-    if (!aiConfigured) test.skip('AI not configured in CI');
+    test.skip(!aiConfigured, 'AI not configured in CI');
     const slug = `auto-review-clear-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
     await openPanel(page);
@@ -482,7 +482,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
   test('re-review clears existing marks before applying new ones', async ({
     authenticatedPage: page,
   }) => {
-    if (!aiConfigured) test.skip('AI not configured in CI');
+    test.skip(!aiConfigured, 'AI not configured in CI');
     const slug = `auto-review-rereview-${Date.now()}`;
     await createProjectAndOpenEditor(page, slug);
     await openPanel(page);

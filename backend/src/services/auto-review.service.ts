@@ -196,43 +196,54 @@ function collectInlineContent(
   }
 }
 
+/** Append a text segment's delta ops to `text` + `offsetMap`. */
+function appendTextSegment(
+  node: YModule.XmlText,
+  textacc: { text: string; offsetMap: ParagraphInfo['offsetMap'] }
+): void {
+  const delta = node.toDelta() as DeltaOp[];
+  for (const op of delta) {
+    if (!op.insert) continue;
+    for (let i = 0; i < op.insert.length; i++) {
+      textacc.offsetMap.push({
+        textNode: node,
+        offset: i + getTextLengthBefore(delta, op),
+        elementRef: false,
+      });
+    }
+    textacc.text += op.insert;
+  }
+}
+
+/** Append an elementRef chip's display text as non-markable positions. */
+function appendElementRefSegment(
+  displayText: string,
+  textacc: { text: string; offsetMap: ParagraphInfo['offsetMap'] }
+): void {
+  for (const _char of displayText) {
+    textacc.offsetMap.push({ elementRef: true });
+  }
+  textacc.text += displayText;
+}
+
 function collectParagraphFromSegments(
   _Y: typeof YModule,
   segments: Array<
     { type: 'text'; node: YModule.XmlText } | { type: 'elementRef'; displayText: string }
   >
 ): ParagraphInfo | null {
-  let text = '';
-  const offsetMap: ParagraphInfo['offsetMap'] = [];
+  const acc = { text: '', offsetMap: [] as ParagraphInfo['offsetMap'] };
 
   for (const seg of segments) {
     if (seg.type === 'text') {
-      const delta = seg.node.toDelta() as DeltaOp[];
-      for (const op of delta) {
-        if (!op.insert) continue;
-        for (let i = 0; i < op.insert.length; i++) {
-          offsetMap.push({
-            textNode: seg.node,
-            offset: i + getTextLengthBefore(delta, op),
-            elementRef: false,
-          });
-        }
-        text += op.insert;
-      }
+      appendTextSegment(seg.node, acc);
     } else {
-      // elementRef chip — include displayText in the flat text so the LLM
-      // sees it, but mark these positions as non-markable so we don't try
-      // to apply auto_review marks on XmlElement content.
-      const displayText = seg.displayText;
-      for (let i = 0; i < displayText.length; i++) {
-        offsetMap.push({ elementRef: true });
-      }
-      text += displayText;
+      appendElementRefSegment(seg.displayText, acc);
     }
   }
 
-  if (!text.trim()) return null;
-  return { text, offsetMap };
+  if (!acc.text.trim()) return null;
+  return { text: acc.text, offsetMap: acc.offsetMap };
 }
 
 /** Get cumulative text length in delta before the given op. */
@@ -376,15 +387,31 @@ function applySuggestionMark(
     return true;
   }
 
-  // Spans multiple XmlText nodes — format each segment.
-  // Group by textNode.
+  // Spans multiple XmlText nodes — format each segment, grouped by textNode.
+  return formatMultiNodeMark(Y, paragraph, start, end, markAttrs);
+}
+
+/**
+ * Format a mark that spans multiple `Y.XmlText` nodes: iterate the offset
+ * map from `start`..`end`, grouping consecutive positions that share the
+ * same text node, and emit one `format()` call per group.
+ */
+function formatMultiNodeMark(
+  _Y: typeof YModule,
+  paragraph: ParagraphInfo,
+  start: number,
+  end: number,
+  markAttrs: Record<string, unknown>
+): boolean {
   let currentText: YModule.XmlText | null = null;
   let currentStart = 0;
   let currentEnd = 0;
 
   for (let i = start; i < end; i++) {
     const entry = paragraph.offsetMap[i];
-    if (entry.textNode !== currentText) {
+    if (entry.textNode === currentText) {
+      currentEnd = entry.offset;
+    } else {
       if (currentText) {
         currentText.format(currentStart, currentEnd - currentStart + 1, {
           [AUTO_REVIEW_MARK_NAME]: markAttrs,
@@ -392,8 +419,6 @@ function applySuggestionMark(
       }
       currentText = entry.textNode;
       currentStart = entry.offset;
-      currentEnd = entry.offset;
-    } else {
       currentEnd = entry.offset;
     }
   }
@@ -497,7 +522,7 @@ export class AutoReviewService {
       for (const correction of result.corrections) {
         const pIdx = correction.paragraph_index;
         const para = paragraphs[pIdx];
-        if (!para || !para.text.trim()) continue;
+        if (!para?.text.trim()) continue;
 
         let start = correction.start_pos;
         let end = correction.end_pos;
@@ -721,7 +746,7 @@ function replaceInText(
   for (const op of delta) {
     const len = op.insert?.length ?? 0;
     const markInfo = getAutoReviewMarkKeyAndAttrs(op);
-    if (markInfo && markInfo.attrs.id === suggestionId) {
+    if (markInfo?.attrs.id === suggestionId) {
       const nullMap = buildAutoReviewNullMap(op.attributes);
       text.delete(offset, len);
       if (replacement) {
@@ -744,7 +769,7 @@ function removeFromText(text: YModule.XmlText, suggestionId: string): true | nul
   for (const op of delta) {
     const len = op.insert?.length ?? 0;
     const markInfo = getAutoReviewMarkKeyAndAttrs(op);
-    if (markInfo && markInfo.attrs.id === suggestionId) {
+    if (markInfo?.attrs.id === suggestionId) {
       const nullMap = buildAutoReviewNullMap(op.attributes);
       text.format(offset, len, nullMap);
       return true;
@@ -762,16 +787,22 @@ function readMarkInfoFromText(
   const delta = text.toDelta() as DeltaOp[];
   for (const op of delta) {
     const lintMark = getAutoReviewMarkAttrs(op);
-    if (lintMark && lintMark.id === suggestionId) {
+    if (lintMark?.id === suggestionId) {
       return {
-        message: String(lintMark.message ?? ''),
-        suggestion: String(lintMark.suggestion ?? ''),
-        category: String(lintMark.category ?? ''),
-        originalText: op.insert ?? '',
+        message: asString(lintMark.message),
+        suggestion: asString(lintMark.suggestion),
+        category: asString(lintMark.category),
+        originalText: asString(op.insert),
       };
     }
   }
   return null;
+}
+
+/** Coerce an unknown mark attribute to a string without risking the
+ *  "[object Object]" fallback that `String(obj)` would produce. */
+function asString(value: unknown): string {
+  return typeof value === 'string' ? value : '';
 }
 
 export const autoReviewService = new AutoReviewService();
