@@ -35,7 +35,7 @@
 
 import { expect, type Page } from '@playwright/test';
 
-import { type OnlineTestFixtures, test } from './fixtures';
+import { test } from './fixtures';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -46,8 +46,8 @@ import { type OnlineTestFixtures, test } from './fixtures';
  *  registration time) so the flag is populated before test bodies run. */
 let aiConfigured = false;
 
-/** A test body that receives the online test fixtures (same shape as `test`). */
-type AiTestBody = (fixtures: OnlineTestFixtures) => Promise<void>;
+/** A test body that receives a single Page fixture. */
+type AiTestBody = (page: Page) => Promise<void>;
 
 /**
  * Register an auto-review test that only runs when the mock LLM is configured.
@@ -62,14 +62,14 @@ type AiTestBody = (fixtures: OnlineTestFixtures) => Promise<void>;
  * unit test" rule (S5963) or the "add at least one assertion" rule (S2699).
  */
 function aiTest(name: string, body: AiTestBody): void {
-  test(name, async ({ ...fixtures }) => {
+  test(name, async ({ authenticatedPage: page }) => {
     if (!aiConfigured) {
       // AI auto-review is not configured in this CI shard (Wrangler/Docker).
       // Assert the flag so the test has an assertion (SonarCloud S2699).
       expect(aiConfigured).toBe(false);
       return;
     }
-    await body(fixtures);
+    await body(page);
   });
 }
 
@@ -159,39 +159,33 @@ test.describe('AI Auto-Review — Online Mode', () => {
     }
   });
 
-  aiTest(
-    'auto-review panel opens and closes via toolbar',
-    async ({ authenticatedPage: page }) => {
-      const slug = `auto-review-${Date.now()}`;
-      await createProjectAndOpenEditor(page, slug);
+  aiTest('auto-review panel opens and closes via toolbar', async page => {
+    const slug = `auto-review-${Date.now()}`;
+    await createProjectAndOpenEditor(page, slug);
 
-      await expect(page.getByTestId('auto-review-panel')).not.toBeVisible();
+    await expect(page.getByTestId('auto-review-panel')).not.toBeVisible();
 
-      await page.getByTestId('toolbar-auto-review').click();
-      await expect(page.getByTestId('auto-review-panel')).toBeVisible();
+    await page.getByTestId('toolbar-auto-review').click();
+    await expect(page.getByTestId('auto-review-panel')).toBeVisible();
 
-      await page.getByTestId('toolbar-auto-review').click();
-      await expect(page.getByTestId('auto-review-panel')).not.toBeVisible();
-    }
-  );
+    await page.getByTestId('toolbar-auto-review').click();
+    await expect(page.getByTestId('auto-review-panel')).not.toBeVisible();
+  });
 
-  aiTest(
-    'auto-review panel can be closed via close button',
-    async ({ authenticatedPage: page }) => {
-      const slug = `auto-review-close-${Date.now()}`;
-      await createProjectAndOpenEditor(page, slug);
+  aiTest('auto-review panel can be closed via close button', async page => {
+    const slug = `auto-review-close-${Date.now()}`;
+    await createProjectAndOpenEditor(page, slug);
 
-      await page.getByTestId('toolbar-auto-review').click();
-      await expect(page.getByTestId('auto-review-panel')).toBeVisible();
+    await page.getByTestId('toolbar-auto-review').click();
+    await expect(page.getByTestId('auto-review-panel')).toBeVisible();
 
-      await page.getByTestId('auto-review-panel-close').click();
-      await expect(page.getByTestId('auto-review-panel')).not.toBeVisible();
-    }
-  );
+    await page.getByTestId('auto-review-panel-close').click();
+    await expect(page.getByTestId('auto-review-panel')).not.toBeVisible();
+  });
 
   aiTest(
     'auto-review panel shows the review form before any review runs',
-    async ({ authenticatedPage: page }) => {
+    async page => {
       const slug = `auto-review-form-${Date.now()}`;
       await createProjectAndOpenEditor(page, slug);
 
@@ -214,7 +208,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
 
   aiTest(
     'review with no issues shows the empty state and a Run Again button',
-    async ({ authenticatedPage: page }) => {
+    async page => {
       const slug = `auto-review-no-issues-${Date.now()}`;
       await createProjectAndOpenEditor(page, slug);
       await openPanel(page);
@@ -245,7 +239,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
 
   aiTest(
     'review triggers loading state and shows suggestion in panel',
-    async ({ authenticatedPage: page }) => {
+    async page => {
       const slug = `auto-review-call-${Date.now()}`;
       await createProjectAndOpenEditor(page, slug);
       await openPanel(page);
@@ -290,27 +284,24 @@ test.describe('AI Auto-Review — Online Mode', () => {
     }
   );
 
-  aiTest(
-    'review creates a visible highlight in the editor',
-    async ({ authenticatedPage: page }) => {
-      const slug = `auto-review-highlight-${Date.now()}`;
-      await createProjectAndOpenEditor(page, slug);
-      await openPanel(page);
+  aiTest('review creates a visible highlight in the editor', async page => {
+    const slug = `auto-review-highlight-${Date.now()}`;
+    await createProjectAndOpenEditor(page, slug);
+    await openPanel(page);
 
-      await fillEditorAndReview(page, 'This are a test.');
+    await fillEditorAndReview(page, 'This are a test.');
 
-      // The highlight should have the `auto-review-highlight` class and a
-      // stable id stored in the `data-auto-review-id` attribute.
-      const highlight = page.locator('.auto-review-highlight').first();
-      await expect(highlight).toBeVisible();
-      await expect(highlight).toHaveAttribute('data-auto-review-id', /.+/);
-      await expect(highlight).toContainText('This are');
-    }
-  );
+    // The highlight should have the `auto-review-highlight` class and a
+    // stable id stored in the `data-auto-review-id` attribute.
+    const highlight = page.locator('.auto-review-highlight').first();
+    await expect(highlight).toBeVisible();
+    await expect(highlight).toHaveAttribute('data-auto-review-id', /.+/);
+    await expect(highlight).toContainText('This are');
+  });
 
   aiTest(
     'clicking a panel suggestion expands it with accept/reject buttons',
-    async ({ authenticatedPage: page }) => {
+    async page => {
       const slug = `auto-review-expand-${Date.now()}`;
       await createProjectAndOpenEditor(page, slug);
       await openPanel(page);
@@ -330,7 +321,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
 
   aiTest(
     'accepting a suggestion from the panel replaces text and removes the mark',
-    async ({ authenticatedPage: page }) => {
+    async page => {
       const slug = `auto-review-accept-panel-${Date.now()}`;
       await createProjectAndOpenEditor(page, slug);
       await openPanel(page);
@@ -370,7 +361,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
 
   aiTest(
     'rejecting a suggestion from the panel removes the mark but keeps the text',
-    async ({ authenticatedPage: page }) => {
+    async page => {
       const slug = `auto-review-reject-panel-${Date.now()}`;
       await createProjectAndOpenEditor(page, slug);
       await openPanel(page);
@@ -409,7 +400,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
 
   aiTest(
     'clicking highlighted text opens the editor popover with accept/reject',
-    async ({ authenticatedPage: page }) => {
+    async page => {
       const slug = `auto-review-popover-${Date.now()}`;
       await createProjectAndOpenEditor(page, slug);
       await openPanel(page);
@@ -438,7 +429,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
 
   aiTest(
     'accepting from the editor popover replaces text and removes the mark',
-    async ({ authenticatedPage: page }) => {
+    async page => {
       const slug = `auto-review-popover-accept-${Date.now()}`;
       await createProjectAndOpenEditor(page, slug);
       await openPanel(page);
@@ -463,7 +454,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
 
   aiTest(
     'rejecting from the editor popover removes the mark but keeps the text',
-    async ({ authenticatedPage: page }) => {
+    async page => {
       const slug = `auto-review-popover-reject-${Date.now()}`;
       await createProjectAndOpenEditor(page, slug);
       await openPanel(page);
@@ -488,7 +479,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
 
   aiTest(
     'dismiss review button removes all marks and returns to idle form',
-    async ({ authenticatedPage: page }) => {
+    async page => {
       const slug = `auto-review-clear-${Date.now()}`;
       await createProjectAndOpenEditor(page, slug);
       await openPanel(page);
@@ -526,7 +517,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
 
   aiTest(
     're-review clears existing marks before applying new ones',
-    async ({ authenticatedPage: page }) => {
+    async page => {
       const slug = `auto-review-rereview-${Date.now()}`;
       await createProjectAndOpenEditor(page, slug);
       await openPanel(page);
