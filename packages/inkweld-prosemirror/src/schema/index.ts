@@ -30,6 +30,12 @@ export {
 export { secureLinkMarkSpec } from './secure-link-spec';
 
 export {
+  AUTO_REVIEW_MARK_NAME,
+  type AutoReviewMarkAttrs,
+  autoReviewMarkSpec,
+} from './auto-review-mark-spec';
+
+export {
   type CreateExtendedSchemaInput,
   type ExtendedSchemaSpec,
   createExtendedSchemaSpec,

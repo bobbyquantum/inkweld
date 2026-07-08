@@ -30,7 +30,7 @@
       </p>
     </div>
   } @else {
-    <div class="comment-panel__gutter">
+    <div class="comment-panel__gutter" (wheel)="onWheel($event)">
       <div
         class="comment-panel__gutter-inner"
         [style.transform]="'translateY(-' + editorScrollTop() + 'px)'"

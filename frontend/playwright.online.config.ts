@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 import {
+  TEST_API_KEYS,
   TEST_PASSWORDS,
   TEST_SESSION_SECRETS,
 } from './e2e/common/test-credentials';
@@ -107,6 +108,15 @@ export default (async () => {
           AI_KILL_SWITCH: 'false',
           // Enable AI image generation for e2e testing
           AI_IMAGE_ENABLED: 'true',
+          // Enable AI text features (auto-review) so the toolbar button
+          // shows up and the /review endpoint doesn't 503. The actual LLM
+          // call is faked via the mock LLM server started in globalSetup
+          // and pointed at by the AI_OPENAI_ENDPOINT config key.
+          AI_TEXT_ENABLED: 'true',
+          // Fake OpenAI key so /config/features reports aiAutoReview: true.
+          // The actual model call is intercepted by the mock LLM server
+          // (see e2e/common/mock-llm-server.ts + online-setup.ts).
+          OPENAI_API_KEY: TEST_API_KEYS.FAKE_OPENAI,
           // Default admin for e2e tests
           DEFAULT_ADMIN_USERNAME: 'e2e-admin',
           DEFAULT_ADMIN_PASSWORD: TEST_PASSWORDS.ADMIN,

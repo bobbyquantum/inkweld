@@ -154,6 +154,12 @@ export class AdminAiTextSettingsComponent implements OnInit {
   // Dynamic OpenRouter models (fetched from OpenRouter API)
   private readonly dynamicOpenrouterModels = signal<OpenRouterModel[]>([]);
 
+  // Dynamic OpenAI-compatible models (fetched from configured endpoint —
+  // OpenAI API, Ollama, LM Studio, etc.)
+  private readonly dynamicOpenaiModels = signal<
+    Array<{ id: string; name: string }>
+  >([]);
+
   // Track if models have been modified
   readonly openaiModelsModified = signal(false);
   readonly openrouterModelsModified = signal(false);
@@ -257,9 +263,18 @@ export class AdminAiTextSettingsComponent implements OnInit {
     const models: { id: string; name: string; provider: string }[] = [];
 
     if (this.openaiConfig().hasApiKey) {
-      this.openaiModels().forEach(m =>
-        models.push({ id: m.id, name: m.name, provider: 'OpenAI' })
-      );
+      // Use dynamic models from the configured endpoint (Ollama, LM Studio,
+      // OpenAI API) when available, falling back to the static stored list.
+      const dynamicModels = this.dynamicOpenaiModels();
+      if (dynamicModels.length > 0) {
+        dynamicModels.forEach(m =>
+          models.push({ id: m.id, name: m.name, provider: 'OpenAI Compatible' })
+        );
+      } else {
+        this.openaiModels().forEach(m =>
+          models.push({ id: m.id, name: m.name, provider: 'OpenAI Compatible' })
+        );
+      }
     }
 
     if (this.openrouterConfig().hasApiKey) {
@@ -417,6 +432,9 @@ export class AdminAiTextSettingsComponent implements OnInit {
 
     // Also try to fetch dynamic OpenRouter models
     await this.fetchOpenRouterModels();
+
+    // Fetch dynamic OpenAI-compatible models (Ollama, LM Studio, etc.)
+    await this.fetchOpenaiCompatibleModels();
   }
 
   /** Fetch dynamic models from OpenRouter API */
@@ -429,6 +447,19 @@ export class AdminAiTextSettingsComponent implements OnInit {
     } catch (err) {
       // This will fail if OpenRouter key not configured - that's OK
       console.debug('OpenRouter models not available:', err);
+    }
+  }
+
+  /** Fetch dynamic models from the configured OpenAI-compatible endpoint */
+  private async fetchOpenaiCompatibleModels(): Promise<void> {
+    try {
+      const response = await firstValueFrom(
+        this.providersService.getOpenaiCompatibleModels()
+      );
+      this.dynamicOpenaiModels.set(response.models || []);
+    } catch (err) {
+      // This will fail if the endpoint/key isn't configured - that's OK
+      console.debug('OpenAI-compatible models not available:', err);
     }
   }
 

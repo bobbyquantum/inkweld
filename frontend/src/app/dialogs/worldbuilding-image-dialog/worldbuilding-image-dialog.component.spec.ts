@@ -240,16 +240,28 @@ describe('WorldbuildingImageDialogComponent', () => {
       component.croppedBlob = mockBlob;
       component.croppedImage = 'object:url';
 
-      component.applyCroppedImage();
+      // Stub the async FileReader-based conversion so the close() call is
+      // deterministic instead of racing a 100ms macrotask (flaky under load).
+      const spy = vi
+        .spyOn(
+          component as unknown as {
+            blobToBase64: (b: Blob) => Promise<string>;
+          },
+          'blobToBase64'
+        )
+        .mockResolvedValue('data:image/png;base64,AAAA');
 
-      // Wait for async base64 conversion
-      await new Promise(resolve => setTimeout(resolve, 100));
+      component.applyCroppedImage();
+      // Flush the microtask queue so the .then() runs.
+      await Promise.resolve();
+      await Promise.resolve();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({
           imageBlob: mockBlob,
         })
       );
+      spy.mockRestore();
     });
   });
 

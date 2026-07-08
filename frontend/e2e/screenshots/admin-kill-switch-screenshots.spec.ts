@@ -24,7 +24,7 @@ async function enableKillSwitchMock(page: Page): Promise<void> {
       body: JSON.stringify({
         aiKillSwitch: true,
         aiKillSwitchLockedByEnv: false,
-        aiLinting: false,
+        aiAutoReview: false,
         aiImageGeneration: false,
         captcha: { enabled: false },
         appMode: 'BOTH',

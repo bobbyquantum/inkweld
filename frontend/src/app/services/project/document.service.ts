@@ -10,12 +10,12 @@ import {
 } from '@angular/core';
 import { type Editor } from '@bobbyquantum/ngx-editor';
 import {
+  createAutoReviewPlugin,
   createCommentPlugin,
   createElementRefPlugin,
   createFindPlugin,
   createImagePastePlugin,
   createKeyboardShortcutsPlugin,
-  createLintPlugin,
   ElementRefService,
   extractMediaId,
   generateMediaId,
@@ -48,7 +48,7 @@ import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { SystemConfigService } from '../core/system-config.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
-import { LintApiService } from '../lint/lint-api.service';
+import { AutoReviewApiService } from '../lint/auto-review.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { PresenceService } from '../presence/presence.service';
 import {
@@ -125,17 +125,17 @@ export class DocumentService {
   private readonly injector = inject(Injector);
   private readonly systemConfigService = inject(SystemConfigService);
   private readonly projectStateService = inject(ProjectStateService);
-  private readonly lintApiService = inject(LintApiService);
+  private readonly localStorage = inject(LocalStorageService);
   private readonly elementRefService = inject(ElementRefService);
   private readonly findInDocumentService = inject(FindInDocumentService);
   private readonly insertImageService = inject(InsertImageService);
   private readonly insertLinkService = inject(InsertLinkService);
   private readonly logger = inject(LoggerService);
   private readonly userService = inject(UnifiedUserService);
-  private readonly localStorage = inject(LocalStorageService);
   private readonly storageContext = inject(StorageContextService);
   private readonly versionCompatibility = inject(VersionCompatibilityService);
   private readonly commentService = inject(CommentService);
+  private readonly autoReviewApi = inject(AutoReviewApiService);
   private readonly presenceService = inject(PresenceService);
 
   /** @internal Wrapped for testability — esbuild inlines local modules, so vi.mock can't intercept them */
@@ -822,12 +822,6 @@ export class DocumentService {
     // Note: presence is NOT added here - it will be added dynamically when
     // WebSocket connects via addPresencePluginToEditor.
 
-    // Add the linting plugin
-    if (this.systemConfigService.isAiLintingEnabled()) {
-      const lintPlugin = createLintPlugin(this.lintApiService);
-      plugins.push(lintPlugin);
-    }
-
     // Add keyboard shortcuts plugin for formatting commands
     const keyboardShortcutsPlugin = createKeyboardShortcutsPlugin(
       view.state.schema,
@@ -935,6 +929,14 @@ export class DocumentService {
       },
     });
     plugins.push(commentPlugin);
+
+    // Add auto-review plugin for click-to-accept/reject on highlighted text
+    const autoReviewPlugin = createAutoReviewPlugin({
+      onSuggestionClick: (attrs, coords) => {
+        this.autoReviewApi.clickEvent.set({ attrs, coords });
+      },
+    });
+    plugins.push(autoReviewPlugin);
 
     // Reconfigure state with new plugins - this triggers ySyncPlugin's init()
     // which binds Yjs content to ProseMirror

@@ -34,7 +34,7 @@ export async function handleSystemFeatures(route: Route): Promise<void> {
     body: JSON.stringify({
       aiKillSwitch: false,
       aiKillSwitchLockedByEnv: false,
-      aiLinting: true,
+      aiAutoReview: true,
       aiImageGeneration: true,
       captcha: { enabled: false },
       appMode: 'BOTH',

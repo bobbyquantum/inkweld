@@ -20,9 +20,9 @@ export interface SystemFeatures {
      */
     aiKillSwitchLockedByEnv: boolean;
     /**
-     * Whether AI-powered linting is available
+     * Whether AI-powered auto-review is available
      */
-    aiLinting: boolean;
+    aiAutoReview: boolean;
     /**
      * Whether AI-powered image generation is available
      */
