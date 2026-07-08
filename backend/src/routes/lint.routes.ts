@@ -99,10 +99,12 @@ const statusRoute = createRoute({
   },
 });
 
-lintRoutes.openapi(statusRoute, (c) => {
+lintRoutes.openapi(statusRoute, async (c) => {
+  const db = c.get('db');
+  const enabled = await openAILintService.isAiEnabled(db);
   return c.json({
-    enabled: openAILintService.isAiEnabled(),
-    service: openAILintService.isAiEnabled() ? 'openai' : 'none',
+    enabled,
+    service: enabled ? 'openai' : 'none',
   });
 });
 
@@ -159,19 +161,22 @@ const lintRoute = createRoute({
 
 lintRoutes.openapi(lintRoute, async (c) => {
   try {
+    const db = c.get('db');
     const body = await c.req.json();
     const validatedBody = LintRequestSchema.parse(body);
 
-    if (!openAILintService.isAiEnabled()) {
+    if (!(await openAILintService.isAiEnabled(db))) {
       return c.json(
         {
-          error: 'AI linting features are not available. Please configure OPENAI_API_KEY.',
+          error:
+            'AI linting features are not available. Please configure an OpenAI-compatible API key.',
         },
         503
       );
     }
 
     const result = await openAILintService.processText(
+      db,
       validatedBody.paragraph,
       validatedBody.style,
       validatedBody.level

@@ -712,3 +712,111 @@
   background-color: rgba(255, 179, 0, 0.3) !important;
   border-bottom-color: rgba(255, 179, 0, 0.5) !important;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auto-Review Highlight Styles
+// ─────────────────────────────────────────────────────────────────────────────
+
+::ng-deep .auto-review-highlight {
+  background-color: rgba(239, 68, 68, 0.15);
+  border-bottom: 2px wavy rgba(239, 68, 68, 0.6);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border-radius: 2px;
+}
+
+::ng-deep .auto-review-highlight:hover {
+  background-color: rgba(239, 68, 68, 0.25);
+}
+
+::ng-deep .auto-review-highlight--warning {
+  background-color: rgba(245, 158, 11, 0.15);
+  border-bottom-color: rgba(245, 158, 11, 0.6);
+}
+
+::ng-deep .auto-review-highlight--suggestion {
+  background-color: rgba(59, 130, 246, 0.12);
+  border-bottom-color: rgba(59, 130, 246, 0.5);
+  border-bottom-style: dashed;
+}
+
+::ng-deep .auto-review-highlight--sidebar-hover {
+  background-color: rgba(239, 68, 68, 0.3) !important;
+  border-bottom-color: rgba(239, 68, 68, 0.8) !important;
+}
+
+:host-context(.dark-theme) ::ng-deep .auto-review-highlight {
+  background-color: rgba(239, 68, 68, 0.12);
+  border-bottom-color: rgba(239, 68, 68, 0.4);
+}
+
+:host-context(.dark-theme) ::ng-deep .auto-review-highlight--sidebar-hover {
+  background-color: rgba(239, 68, 68, 0.25) !important;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auto-Review Popover (click on highlighted text in editor body)
+// ─────────────────────────────────────────────────────────────────────────────
+
+.auto-review-popover {
+  position: fixed;
+  z-index: 1000;
+  background: var(--sys-surface-container-high);
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  padding: 12px;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &__message {
+    font-size: 13px;
+    color: var(--mat-sys-on-surface);
+  }
+
+  &__diff {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    flex-wrap: wrap;
+  }
+
+  &__original {
+    text-decoration: line-through;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  &__arrow {
+    font-size: 14px !important;
+    width: 14px !important;
+    height: 14px !important;
+    opacity: 0.6;
+  }
+
+  &__corrected {
+    color: var(--mat-sys-primary);
+    font-weight: 500;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 4px;
+  }
+
+  &__accept {
+    color: #16a34a;
+  }
+
+  &__reject {
+    color: #ef4444;
+  }
+
+  &__close {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+  }
+}

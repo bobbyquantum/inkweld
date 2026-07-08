@@ -17,6 +17,7 @@ import snapshotRoutes from '../routes/snapshot.routes';
 import documentRoutes from '../routes/document.routes';
 import elementRoutes from '../routes/element.routes';
 import lintRoutes from '../routes/lint.routes';
+import autoReviewRoutes from '../routes/auto-review.routes';
 import aiImageRoutes from '../routes/ai-image.routes';
 import { aiTextRoutes } from '../routes/ai-text.routes';
 import { aiProvidersRoutes } from '../routes/ai-providers.routes';
@@ -105,6 +106,7 @@ export function registerCommonRoutes(app: any): void {
   // Project routes (projects, documents, elements, images)
   app.route('/api/v1/projects', projectRoutes);
   app.route('/api/v1/projects', documentRoutes);
+  app.route('/api/v1/projects', autoReviewRoutes);
   app.route('/api/v1/projects', elementRoutes);
   app.route('/api/v1/projects', imageRoutes);
 

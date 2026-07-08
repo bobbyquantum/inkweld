@@ -399,10 +399,10 @@ describe('AdminAiTextSettingsComponent', () => {
       await flushPromises();
 
       const availableModels = component.availableModels();
-      // Only OpenAI is enabled, so only OpenAI models should be available
+      // Only OpenAI is enabled, so only OpenAI Compatible models should be available
       expect(
         availableModels.some(
-          (m: { provider: string }) => m.provider === 'OpenAI'
+          (m: { provider: string }) => m.provider === 'OpenAI Compatible'
         )
       ).toBe(true);
     });
@@ -467,11 +467,13 @@ describe('AdminAiTextSettingsComponent', () => {
       await component.loadConfig();
       await flushPromises();
 
-      component.lintModelSearch.set('OpenAI');
+      component.lintModelSearch.set('OpenAI Compatible');
 
       const filtered = component.filteredLintModels();
       expect(filtered.length).toBeGreaterThan(0);
-      expect(filtered.every(m => m.provider === 'OpenAI')).toBe(true);
+      expect(filtered.every(m => m.provider === 'OpenAI Compatible')).toBe(
+        true
+      );
     });
 
     it('should handle whitespace in search term', async () => {

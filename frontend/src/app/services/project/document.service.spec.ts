@@ -17,7 +17,6 @@ import { DocumentSyncState } from '../../models/document-sync-state';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { SetupService } from '../core/setup.service';
 import { SystemConfigService } from '../core/system-config.service';
-import { LintApiService } from '../lint/lint-api.service';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
@@ -46,7 +45,6 @@ describe('DocumentService', () => {
   let service: DocumentService;
   let mockProjectStateService: DeepMockProxy<ProjectStateService>;
   let mockDocumentsService: DeepMockProxy<DocumentsService>;
-  let mockLintApiService: Partial<LintApiService>;
   let mockYDoc: DeepMockProxy<Y.Doc>;
   let mockWebSocketProvider: DeepMockProxy<WebsocketProvider>;
   let _mockIndexedDbProvider: DeepMockProxy<IndexeddbPersistence>;
@@ -126,16 +124,6 @@ describe('DocumentService', () => {
         .mockReturnValue(of('<html>Rendered</html>')),
     } as unknown as DeepMockProxy<DocumentsService>;
 
-    // Mock LintApiService
-    mockLintApiService = {
-      run: vi.fn().mockResolvedValue({
-        original_paragraph: 'test',
-        corrections: [],
-        style_recommendations: [],
-        source: 'openai',
-      }),
-    };
-
     // Mock SetupService
     mockSetupService = {
       getWebSocketUrl: vi.fn().mockReturnValue('ws://localhost:8333'),
@@ -173,7 +161,6 @@ describe('DocumentService', () => {
         DocumentService,
         { provide: ProjectStateService, useValue: mockProjectStateService },
         { provide: DocumentsService, useValue: mockDocumentsService },
-        { provide: LintApiService, useValue: mockLintApiService },
         { provide: SetupService, useValue: mockSetupService },
         { provide: SystemConfigService, useValue: mockSystemConfigService },
         { provide: UnifiedUserService, useValue: mockUnifiedUserService },

@@ -4,6 +4,7 @@
   class="editor-toolbar"
   [class.disabled]="disabled"
   [class.readonly]="disabled"
+  [class.has-autoreview-toggle]="systemConfig.isAiAutoReviewEnabled()"
   data-testid="editor-toolbar">
   <!-- =====================================================================
        MAIN ROW — groups use CSS to hide when overflowed so their widths
@@ -555,4 +556,19 @@
       <mat-icon>comment</mat-icon>
     </button>
   </div>
+  @if (systemConfig.isAiAutoReviewEnabled()) {
+    <div
+      class="toolbar-group toolbar-autoreview-anchor"
+      data-toolbar-fixed="auto-review">
+      <button
+        ngToolbarWidget
+        value="auto-review"
+        [attr.aria-pressed]="autoReviewPanelOpen"
+        matTooltip="Auto-Review"
+        (click)="toggleAutoReview.emit()"
+        data-testid="toolbar-auto-review">
+        <mat-icon>spellcheck</mat-icon>
+      </button>
+    </div>
+  }
 </div>

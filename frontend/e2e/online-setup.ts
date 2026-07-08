@@ -5,12 +5,22 @@
  * 1. Backend server is healthy and accessible
  * 2. Admin user is properly seeded
  * 3. Authentication works correctly
+ * 4. Mock OpenAI-compatible LLM server is running (for auto-review e2e)
+ *
+ * The mock LLM server keeps the Node event loop alive in the main test
+ * runner process for the duration of the suite; it is closed by the
+ * returned teardown function when all tests finish.
  *
  * This helps diagnose CI failures where the admin user may not exist.
  */
 
 import { request } from '@playwright/test';
 
+import {
+  type MockLlmServer,
+  startMockLlmServer,
+  waitForMockLlm,
+} from './common/mock-llm-server';
 import { TEST_API_KEYS, TEST_PASSWORDS } from './common/test-credentials';
 
 const API_BASE_URL = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
@@ -21,9 +31,34 @@ const DEFAULT_ADMIN = {
   password: TEST_PASSWORDS.ADMIN,
 };
 
-export default async function globalSetup(): Promise<void> {
+/**
+ * Default async global setup. Starts the mock LLM server before any test
+ * runs and configures the backend to route `processDocument` calls at it
+ * via the `AI_OPENAI_ENDPOINT` config key. Returns a teardown function
+ * that Playwright invokes after all tests finish to close the mock server.
+ */
+export default async function globalSetup(): Promise<
+  (() => Promise<void>) | undefined
+> {
   console.log('\n🔧 Online E2E Global Setup');
   console.log('==========================\n');
+
+  // ---------------------------------------------------------------------------
+  // Step 0: Start the mock OpenAI-compatible LLM server (in this same process).
+  // It stays alive for the test suite because the http server keeps the Node
+  // event loop busy. The returned teardown function closes it at the end.
+  // ---------------------------------------------------------------------------
+  console.log('0️⃣  Starting mock LLM server...');
+  let mockLlm: MockLlmServer | undefined;
+  try {
+    mockLlm = await startMockLlmServer();
+    await waitForMockLlm(mockLlm);
+    console.log(`   ✅ Mock LLM listening at ${mockLlm.url}\n`);
+  } catch (err) {
+    console.log(
+      `   ⚠️  Could not start mock LLM server: ${String(err)}. Auto-review tests will be skipped gracefully.`
+    );
+  }
 
   // Create a request context for API calls
   const context = await request.newContext({
@@ -101,6 +136,31 @@ export default async function globalSetup(): Promise<void> {
           console.log(
             `   ⚠️  Could not set API key: ${keyResponse.status()}\n`
           );
+        }
+
+        // Point the OpenAI provider at the mock LLM server so /review
+        // calls land on our canned responses instead of the real OpenAI
+        // endpoint. Skipped if the mock server failed to start.
+        if (mockLlm) {
+          const endpointResponse = await context.put(
+            '/api/v1/ai/providers/openai/endpoint',
+            {
+              headers: {
+                Authorization: `Bearer ${loginData.token}`,
+                'Content-Type': 'application/json',
+              },
+              data: { endpoint: mockLlm.url },
+            }
+          );
+          if (endpointResponse.ok()) {
+            console.log(
+              `   ✅ Pointed AI_OPENAI_ENDPOINT at mock LLM (${mockLlm.url})\n`
+            );
+          } else {
+            console.log(
+              `   ⚠️  Could not set AI_OPENAI_ENDPOINT: ${endpointResponse.status()}\n`
+            );
+          }
         }
 
         // Create a test image profile
@@ -208,4 +268,16 @@ export default async function globalSetup(): Promise<void> {
   } finally {
     await context.dispose();
   }
+
+  // Teardown: close the mock LLM server so the test runner process can
+  // exit cleanly. Returned to Playwright which invokes it after all tests.
+  return async () => {
+    if (mockLlm) {
+      console.log('\n🧹 Online E2E Global Teardown');
+      console.log('==============================');
+      await mockLlm.close();
+      console.log('   ✅ Mock LLM server closed');
+      console.log('==============================\n');
+    }
+  };
 }

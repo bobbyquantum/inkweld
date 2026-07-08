@@ -86,6 +86,10 @@ export class CommentPanelComponent {
   /** Emitted on thread hover (commentId or null for leave) */
   threadHovered = output<string | null>();
 
+  /** Emitted when the user scrolls (wheel) over the panel gutter.
+   *  The editor listens and scrolls its content to match. */
+  scrollEditor = output<number>();
+
   loading = signal(false);
   threads = signal<CommentThreadResponse[]>([]);
   expandedThreadId = signal<string | null>(null);
@@ -345,5 +349,14 @@ export class CommentPanelComponent {
 
   formatDate(date: string): string {
     return formatRelativeDate(date);
+  }
+
+  /**
+   * Relay wheel scroll events over the gutter to the editor so the user
+   * can scroll the editor content by scrolling over the side panel.
+   */
+  onWheel(event: WheelEvent): void {
+    event.preventDefault();
+    this.scrollEditor.emit(event.deltaY);
   }
 }

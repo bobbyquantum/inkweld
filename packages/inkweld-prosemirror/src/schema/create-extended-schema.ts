@@ -34,6 +34,10 @@ import {
   elementRefNodeSpec,
 } from './element-ref-spec';
 import { secureLinkMarkSpec } from './secure-link-spec';
+import {
+  autoReviewMarkSpec,
+  AUTO_REVIEW_MARK_NAME,
+} from './auto-review-mark-spec';
 
 export interface CreateExtendedSchemaInput {
   /** Base node specs (e.g. ngx-editor's `nodes`). */
@@ -68,6 +72,7 @@ export function createExtendedSchemaSpec({
       ...baseMarks,
       link: secureLinkMarkSpec,
       [COMMENT_MARK_NAME]: commentMarkSpec,
+      [AUTO_REVIEW_MARK_NAME]: autoReviewMarkSpec,
     },
   };
 }

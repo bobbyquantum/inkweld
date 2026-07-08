@@ -13,9 +13,11 @@
           [editor]="editor"
           [disabled]="!projectState.canWrite()"
           [commentPanelOpen]="commentPanelOpen()"
+          [autoReviewPanelOpen]="autoReviewPanelOpen()"
           (insertImageClick)="openInsertImageDialog()"
           (insertLinkClick)="openInsertLinkDialog()"
-          (toggleComments)="toggleCommentPanel()">
+          (toggleComments)="toggleCommentPanel()"
+          (toggleAutoReview)="toggleAutoReviewPanel()">
         </app-editor-toolbar>
       }
       <div
@@ -29,18 +31,13 @@
                 [placeholder]="'Type here...'"
                 class="editor-content">
               </ngx-editor>
-              <!-- Custom floating menus positioned relative to viewport -->
-              @if (isCursorInLintSuggestion()) {
-                <app-lint-floating-menu
-                  [editor]="editor"></app-lint-floating-menu>
-              } @else {
-                <app-editor-floating-menu
-                  [editor]="editor"
-                  (addComment)="addComment()"
-                  (insertLink)="
-                    openInsertLinkDialog()
-                  "></app-editor-floating-menu>
-              }
+              <!-- Custom floating menu for formatting + comments -->
+              <app-editor-floating-menu
+                [editor]="editor"
+                (addComment)="addComment()"
+                (insertLink)="
+                  openInsertLinkDialog()
+                "></app-editor-floating-menu>
             }
           </div>
         </div>
@@ -108,8 +105,33 @@
           (commentResolved)="onCommentResolved($event)"
           (commentDeleted)="onCommentDeleted($event)"
           (commentUpdated)="onCommentUpdated($event)"
-          (threadHovered)="onCommentHover($event)">
+          (threadHovered)="onCommentHover($event)"
+          (scrollEditor)="onPanelWheel($event)">
         </app-comment-panel>
+      </div>
+    }
+
+    <!-- Lint Panel - shown when user toggles lint review -->
+    @if (!zenMode && autoReviewPanelOpen()) {
+      <div class="auto-review-panel-container">
+        <app-auto-review-panel
+          #autoReviewPanel
+          [username]="projectState.project()?.username ?? ''"
+          [slug]="projectState.project()?.slug ?? ''"
+          [docId]="bareElementId()"
+          [editorView]="editor.view"
+          [isOpen]="autoReviewPanelOpen()"
+          [canWrite]="projectState.canWrite()"
+          [suggestionPositions]="autoReviewSuggestionPositions()"
+          [editorScrollTop]="editorScrollTop()"
+          [editorContentHeight]="editorContentHeight()"
+          (closed)="autoReviewPanelOpen.set(false)"
+          (suggestionAccepted)="onAutoReviewSuggestionAccepted($event)"
+          (suggestionRejected)="onAutoReviewSuggestionRejected($event)"
+          (suggestionHovered)="onAutoReviewHover($event)"
+          (reviewCleared)="closeAutoReviewPopover()"
+          (scrollEditor)="onPanelWheel($event)">
+        </app-auto-review-panel>
       </div>
     }
   </div>
@@ -146,5 +168,50 @@
       (deleted)="onCommentDeleted($event)"
       (updated)="onCommentUpdated($event)">
     </app-comment-popover>
+  }
+
+  <!-- Auto-Review Popover (click on auto-review-highlighted text) -->
+  @if (autoReviewPopoverAttrs()) {
+    <div
+      class="auto-review-popover"
+      [style.left.px]="autoReviewPopoverPosition().x"
+      [style.top.px]="autoReviewPopoverPosition().y + 12"
+      data-testid="auto-review-popover">
+      <div class="auto-review-popover__message">
+        {{ autoReviewPopoverAttrs()!.message }}
+      </div>
+      @if (autoReviewPopoverAttrs()!.suggestion) {
+        <div class="auto-review-popover__diff">
+          <span class="auto-review-popover__corrected">{{
+            autoReviewPopoverAttrs()!.suggestion
+          }}</span>
+        </div>
+      }
+      <div class="auto-review-popover__actions">
+        <button
+          mat-stroked-button
+          class="auto-review-popover__accept"
+          (click)="onPopoverAccept()"
+          data-testid="auto-review-popover-accept">
+          <mat-icon>check</mat-icon>
+          Accept
+        </button>
+        <button
+          mat-stroked-button
+          class="auto-review-popover__reject"
+          (click)="onPopoverReject()"
+          data-testid="auto-review-popover-reject">
+          <mat-icon>close</mat-icon>
+          Reject
+        </button>
+      </div>
+      <button
+        mat-icon-button
+        class="auto-review-popover__close"
+        (click)="closeAutoReviewPopover()"
+        data-testid="auto-review-popover-close">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
   }
 }

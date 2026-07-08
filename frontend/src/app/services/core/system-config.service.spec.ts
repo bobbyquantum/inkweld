@@ -21,7 +21,7 @@ describe('SystemConfigService', () => {
   const mockSystemFeatures: SystemFeatures = {
     aiKillSwitch: false,
     aiKillSwitchLockedByEnv: false,
-    aiLinting: true,
+    aiAutoReview: true,
     aiImageGeneration: true,
     appMode: SystemFeaturesAppMode.Both,
     userApprovalRequired: false,
@@ -94,7 +94,7 @@ describe('SystemConfigService', () => {
       // Check the signals are functions
       expect(typeof service.systemFeatures).toBe('function');
       expect(typeof service.isConfigLoaded).toBe('function');
-      expect(typeof service.isAiLintingEnabled).toBe('function');
+      expect(typeof service.isAiAutoReviewEnabled).toBe('function');
       expect(typeof service.isAiImageGenerationEnabled).toBe('function');
     });
   });
@@ -128,7 +128,7 @@ describe('SystemConfigService', () => {
       expect(offlineService.systemFeatures()).toEqual({
         aiKillSwitch: true,
         aiKillSwitchLockedByEnv: false,
-        aiLinting: false,
+        aiAutoReview: false,
         aiImageGeneration: false,
         appMode: 'LOCAL',
         userApprovalRequired: false,
@@ -179,7 +179,7 @@ describe('SystemConfigService', () => {
           expect(errorService.systemFeatures()).toEqual({
             aiKillSwitch: true,
             aiKillSwitchLockedByEnv: false,
-            aiLinting: false,
+            aiAutoReview: false,
             aiImageGeneration: false,
             appMode: 'LOCAL', // Changed from BOTH - treat as offline when server down
             userApprovalRequired: true,
@@ -225,7 +225,7 @@ describe('SystemConfigService', () => {
       const newFeatures: SystemFeatures = {
         aiKillSwitch: false,
         aiKillSwitchLockedByEnv: false,
-        aiLinting: false,
+        aiAutoReview: false,
         appMode: SystemFeaturesAppMode.Both,
         userApprovalRequired: false,
         aiImageGeneration: true,
@@ -333,10 +333,10 @@ describe('SystemConfigService', () => {
       expect(service.isAiKillSwitchLockedByEnv()).toBe(false);
     });
 
-    it('should compute isAiLintingEnabled correctly', () => {
+    it('should compute isAiAutoReviewEnabled correctly', () => {
       TestBed.resetTestingModule();
       (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
-        of({ aiLinting: true, aiImageGeneration: false })
+        of({ aiAutoReview: true, aiImageGeneration: false })
       );
 
       TestBed.configureTestingModule({
@@ -352,13 +352,13 @@ describe('SystemConfigService', () => {
 
       return new Promise<void>(resolve => {
         setTimeout(() => {
-          expect(testService.isAiLintingEnabled()).toBe(true);
+          expect(testService.isAiAutoReviewEnabled()).toBe(true);
           resolve();
         }, 10);
       });
     });
 
-    it('should compute isAiLintingEnabled as false when undefined', () => {
+    it('should compute isAiAutoReviewEnabled as false when undefined', () => {
       TestBed.resetTestingModule();
       (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
         of({
@@ -379,7 +379,7 @@ describe('SystemConfigService', () => {
 
       return new Promise<void>(resolve => {
         setTimeout(() => {
-          expect(testService.isAiLintingEnabled()).toBe(false);
+          expect(testService.isAiAutoReviewEnabled()).toBe(false);
           resolve();
         }, 10);
       });
@@ -388,7 +388,7 @@ describe('SystemConfigService', () => {
     it('should compute isAiImageGenerationEnabled correctly', () => {
       TestBed.resetTestingModule();
       (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
-        of({ aiLinting: false, aiImageGeneration: true })
+        of({ aiAutoReview: false, aiImageGeneration: true })
       );
 
       TestBed.configureTestingModule({
@@ -413,7 +413,7 @@ describe('SystemConfigService', () => {
     it('should compute isAiImageGenerationEnabled as false when undefined', () => {
       TestBed.resetTestingModule();
       (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
-        of({ aiLinting: false } as SystemFeatures)
+        of({ aiAutoReview: false } as SystemFeatures)
       );
 
       TestBed.configureTestingModule({
@@ -454,7 +454,7 @@ describe('SystemConfigService', () => {
 
       return new Promise<void>(resolve => {
         setTimeout(() => {
-          expect(testService.isAiLintingEnabled()).toBe(false);
+          expect(testService.isAiAutoReviewEnabled()).toBe(false);
           expect(testService.isAiImageGenerationEnabled()).toBe(false);
           resolve();
         }, 10);
@@ -465,7 +465,7 @@ describe('SystemConfigService', () => {
       TestBed.resetTestingModule();
       (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
         of({
-          aiLinting: false,
+          aiAutoReview: false,
           userApprovalRequired: true,
         } as SystemFeatures)
       );
@@ -493,7 +493,7 @@ describe('SystemConfigService', () => {
       TestBed.resetTestingModule();
       (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
         of({
-          aiLinting: false,
+          aiAutoReview: false,
         } as SystemFeatures)
       );
 
@@ -519,8 +519,8 @@ describe('SystemConfigService', () => {
 
   describe('Signal Reactivity', () => {
     it('should update computed properties when system features change', () => {
-      const initialFeatures = { aiLinting: false, aiImageGeneration: false };
-      const updatedFeatures = { aiLinting: true, aiImageGeneration: true };
+      const initialFeatures = { aiAutoReview: false, aiImageGeneration: false };
+      const updatedFeatures = { aiAutoReview: true, aiImageGeneration: true };
 
       TestBed.resetTestingModule();
       (mockConfigService.getSystemFeatures as Mock).mockReturnValueOnce(
@@ -540,7 +540,7 @@ describe('SystemConfigService', () => {
 
       return new Promise<void>(resolve => {
         setTimeout(() => {
-          expect(testService.isAiLintingEnabled()).toBe(false);
+          expect(testService.isAiAutoReviewEnabled()).toBe(false);
           expect(testService.isAiImageGenerationEnabled()).toBe(false);
 
           // Update features
@@ -551,7 +551,7 @@ describe('SystemConfigService', () => {
           testService.refreshSystemFeatures();
 
           setTimeout(() => {
-            expect(testService.isAiLintingEnabled()).toBe(true);
+            expect(testService.isAiAutoReviewEnabled()).toBe(true);
             expect(testService.isAiImageGenerationEnabled()).toBe(true);
             resolve();
           }, 10);
@@ -563,7 +563,7 @@ describe('SystemConfigService', () => {
       // These should be readonly signals
       expect(typeof service.systemFeatures).toBe('function');
       expect(typeof service.isConfigLoaded).toBe('function');
-      expect(typeof service.isAiLintingEnabled).toBe('function');
+      expect(typeof service.isAiAutoReviewEnabled).toBe('function');
       expect(typeof service.isAiImageGenerationEnabled).toBe('function');
     });
   });
@@ -594,7 +594,7 @@ describe('SystemConfigService', () => {
           expect(testService.systemFeatures()).toEqual({
             aiKillSwitch: true,
             aiKillSwitchLockedByEnv: false,
-            aiLinting: false,
+            aiAutoReview: false,
             aiImageGeneration: false,
             appMode: 'LOCAL', // Treat as offline when server down
             userApprovalRequired: true,
@@ -640,7 +640,7 @@ describe('SystemConfigService', () => {
             expect(service.systemFeatures()).toEqual({
               aiKillSwitch: true,
               aiKillSwitchLockedByEnv: false,
-              aiLinting: false,
+              aiAutoReview: false,
               aiImageGeneration: false,
               appMode: 'LOCAL', // Treat as offline when server down
               userApprovalRequired: true,
