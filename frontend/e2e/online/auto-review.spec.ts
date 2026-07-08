@@ -62,7 +62,7 @@ type AiTestBody = (fixtures: OnlineTestFixtures) => Promise<void>;
  * unit test" rule (S5963) or the "add at least one assertion" rule (S2699).
  */
 function aiTest(name: string, body: AiTestBody): void {
-  test(name, async fixtures => {
+  test(name, async ({ ...fixtures }) => {
     if (!aiConfigured) {
       // AI auto-review is not configured in this CI shard (Wrangler/Docker).
       // Assert the flag so the test has an assertion (SonarCloud S2699).
