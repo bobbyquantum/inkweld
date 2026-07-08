@@ -122,7 +122,9 @@ describe('PublishPlanTabComponent', () => {
     fixture = TestBed.createComponent(PublishPlanTabComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
-  }, 10000);
+    // The component is a heavy standalone (Material modules + drag-drop);
+    // under full-suite parallel load the 10s default hookTimeout is too tight.
+  }, 30000);
 
   it('should create', () => {
     expect(component).toBeTruthy();

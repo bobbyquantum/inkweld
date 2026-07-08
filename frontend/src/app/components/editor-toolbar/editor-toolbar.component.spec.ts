@@ -661,6 +661,12 @@ describe('EditorToolbarComponent', () => {
         await fixture.whenStable();
       }
 
+      // The "call all overflow menu actions" test enables fake timers; restore
+      // real timers afterwards so subsequent tests' whenStable() can resolve.
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
       it('should render overflow button when groups overflow', async () => {
         await setAllGroupsOverflowed();
         const btn = fixture.nativeElement.querySelector(
@@ -670,8 +676,12 @@ describe('EditorToolbarComponent', () => {
       });
 
       it('should be able to call all overflow menu actions without throwing', async () => {
-        vi.useFakeTimers();
+        // Await Angular stability BEFORE enabling fake timers — otherwise
+        // whenStable() deadlocks because it relies on rAF/setTimeout which
+        // fake timers freeze. Enable fake timers only to flush the queued
+        // rAF/setTimeout callbacks the toolbar methods schedule.
         await setAllGroupsOverflowed();
+        vi.useFakeTimers();
 
         // All overflow actions must not throw
         expect(() => component.undo()).not.toThrow();
@@ -699,7 +709,7 @@ describe('EditorToolbarComponent', () => {
         expect(() => component.clearFormatting()).not.toThrow();
 
         vi.runAllTimers();
-      }, 30000);
+      });
 
       it('should mark overflow groups with CSS class when overflowed', async () => {
         await setAllGroupsOverflowed();
