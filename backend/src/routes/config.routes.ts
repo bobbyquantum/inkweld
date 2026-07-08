@@ -3,7 +3,6 @@ import { config } from '../config/env';
 import { PROTOCOL_VERSION, MIN_CLIENT_VERSION } from '../config/protocol';
 import { imageGenerationService } from '../services/image-generation.service';
 import { configService } from '../services/config.service';
-import type { ConfigKey } from '../db/schema/config';
 import { getPasswordPolicy } from '../services/password-validation.service';
 import type { AppContext } from '../types/context';
 
@@ -177,17 +176,17 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     const aiTextEnabled = await configService.getBoolean(db, 'AI_TEXT_ENABLED');
     if (aiTextEnabled) {
       // Check if the configured default provider has an API key
-      const providerCfg = await configService.get(db, 'AI_TEXT_DEFAULT_PROVIDER' as ConfigKey);
+      const providerCfg = await configService.get(db, 'AI_TEXT_DEFAULT_PROVIDER');
       const provider = providerCfg.value || 'openai';
       let providerKey: string;
       if (provider === 'openrouter') {
-        const keyCfg = await configService.get(db, 'AI_OPENROUTER_API_KEY' as ConfigKey);
+        const keyCfg = await configService.get(db, 'AI_OPENROUTER_API_KEY');
         providerKey = keyCfg.value || process.env.AI_OPENROUTER_API_KEY || '';
       } else if (provider === 'anthropic') {
-        const keyCfg = await configService.get(db, 'AI_ANTHROPIC_API_KEY' as ConfigKey);
+        const keyCfg = await configService.get(db, 'AI_ANTHROPIC_API_KEY');
         providerKey = keyCfg.value || process.env.AI_ANTHROPIC_API_KEY || '';
       } else {
-        const keyCfg = await configService.get(db, 'AI_OPENAI_API_KEY' as ConfigKey);
+        const keyCfg = await configService.get(db, 'AI_OPENAI_API_KEY');
         providerKey = keyCfg.value || process.env.OPENAI_API_KEY || '';
       }
       hasOpenAI = providerKey.trim().length > 0;

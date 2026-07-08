@@ -5,7 +5,7 @@
       Auto-Review
     </h3>
     <div class="auto-review-panel__header-actions">
-      @if (hasReviewed() && canWrite()) {
+      @if ((hasReviewed() || totalCount() > 0) && canWrite()) {
         <button
           mat-icon-button
           matTooltip="Re-review"

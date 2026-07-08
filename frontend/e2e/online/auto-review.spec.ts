@@ -35,6 +35,7 @@
 
 import { expect, type Page } from '@playwright/test';
 
+import { TEST_PASSWORDS } from '../common/test-credentials';
 import { test } from './fixtures';
 
 // ---------------------------------------------------------------------------
@@ -558,7 +559,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
     const apiUrl = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
     const loginResponse = await page.request.post(
       `${apiUrl}/api/v1/auth/login`,
-      { data: { username: 'e2e-admin', password: 'E2eAdminPassword123!' } }
+      { data: { username: 'e2e-admin', password: TEST_PASSWORDS.ADMIN } }
     );
     const { token } = (await loginResponse.json()) as {
       token: string;

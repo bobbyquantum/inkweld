@@ -8,6 +8,7 @@
  */
 
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import type { Context } from 'hono';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
 import { autoReviewService } from '../services/auto-review.service';
@@ -30,8 +31,7 @@ lintReviewRoutes.use('*', requireAuth);
  * Extracted to remove the repeated lookup+auth boilerplate that SonarCloud
  * flagged as copy-paste across the review/accept/reject/clear/delete handlers.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function loadProjectContext(c: any, requireWrite = true) {
+async function loadProjectContext(c: Context<AppContext>, requireWrite = true) {
   const db = c.get('db');
   const username = c.req.param('username');
   const slug = c.req.param('slug');
@@ -152,8 +152,7 @@ const reviewRoute = createRoute({
   },
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-lintReviewRoutes.openapi(reviewRoute, async (c: any) => {
+lintReviewRoutes.openapi(reviewRoute, async (c) => {
   const ctx = await loadProjectContext(c);
   if ('error' in ctx) return ctx.error;
   const { db, username, slug, docId } = ctx;
@@ -203,15 +202,26 @@ const acceptRoute = createRoute({
       content: { 'application/json': { schema: SimpleResultSchema } },
       description: 'Suggestion accepted',
     },
+    401: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Not authenticated',
+    },
+    403: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'No write access',
+    },
     404: {
       content: { 'application/json': { schema: ErrorSchema } },
       description: 'Suggestion not found',
     },
+    500: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Internal server error',
+    },
   },
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-lintReviewRoutes.openapi(acceptRoute, async (c: any) => {
+lintReviewRoutes.openapi(acceptRoute, async (c) => {
   const ctx = await loadProjectContext(c);
   if ('error' in ctx) return ctx.error;
   const { db, project, username, slug, docId } = ctx;
@@ -267,15 +277,26 @@ const rejectRoute = createRoute({
       content: { 'application/json': { schema: SimpleResultSchema } },
       description: 'Suggestion rejected',
     },
+    401: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Not authenticated',
+    },
+    403: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'No write access',
+    },
     404: {
       content: { 'application/json': { schema: ErrorSchema } },
       description: 'Suggestion not found',
     },
+    500: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Internal server error',
+    },
   },
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-lintReviewRoutes.openapi(rejectRoute, async (c: any) => {
+lintReviewRoutes.openapi(rejectRoute, async (c) => {
   const ctx = await loadProjectContext(c);
   if ('error' in ctx) return ctx.error;
   const { db, project, username, slug, docId } = ctx;
@@ -326,18 +347,38 @@ const clearRoute = createRoute({
       content: { 'application/json': { schema: SimpleResultSchema } },
       description: 'Marks cleared',
     },
+    401: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Not authenticated',
+    },
+    403: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'No write access',
+    },
+    404: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Project not found',
+    },
+    500: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Internal server error',
+    },
   },
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-lintReviewRoutes.openapi(clearRoute, async (c: any) => {
+lintReviewRoutes.openapi(clearRoute, async (c) => {
   const ctx = await loadProjectContext(c);
   if ('error' in ctx) return ctx.error;
   const { username, slug, docId } = ctx;
 
-  const documentId = `${username}:${slug}:${docId}/`;
-  await autoReviewService.clearAllMarks(documentId);
-  return c.json({ success: true }, 200);
+  try {
+    const documentId = `${username}:${slug}:${docId}/`;
+    await autoReviewService.clearAllMarks(documentId);
+    return c.json({ success: true }, 200);
+  } catch (error: unknown) {
+    lintReviewLog.error('Error clearing marks', error);
+    return c.json({ success: false }, 500);
+  }
 });
 
 // GET /:username/:slug/docs/:docId/auto-review/rejections — get rejection count
@@ -358,17 +399,33 @@ const rejectionsRoute = createRoute({
       },
       description: 'Rejection count',
     },
+    401: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Not authenticated',
+    },
+    404: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Project not found',
+    },
+    500: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Internal server error',
+    },
   },
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-lintReviewRoutes.openapi(rejectionsRoute, async (c: any) => {
+lintReviewRoutes.openapi(rejectionsRoute, async (c) => {
   const ctx = await loadProjectContext(c, false);
   if ('error' in ctx) return ctx.error;
   const { db, project, docId } = ctx;
 
-  const count = await autoReviewRejectionService.countRejections(db, project.id, docId);
-  return c.json({ count }, 200);
+  try {
+    const count = await autoReviewRejectionService.countRejections(db, project.id, docId);
+    return c.json({ count }, 200);
+  } catch (error: unknown) {
+    lintReviewLog.error('Error fetching rejection count', error);
+    return c.json({ error: 'Failed to fetch rejections' }, 500);
+  }
 });
 
 // DELETE /:username/:slug/docs/:docId/auto-review/rejections — reset rejections
@@ -383,17 +440,37 @@ const deleteRejectionsRoute = createRoute({
       content: { 'application/json': { schema: SimpleResultSchema } },
       description: 'Rejections cleared',
     },
+    401: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Not authenticated',
+    },
+    403: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'No write access',
+    },
+    404: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Project not found',
+    },
+    500: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Internal server error',
+    },
   },
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-lintReviewRoutes.openapi(deleteRejectionsRoute, async (c: any) => {
+lintReviewRoutes.openapi(deleteRejectionsRoute, async (c) => {
   const ctx = await loadProjectContext(c);
   if ('error' in ctx) return ctx.error;
   const { db, project, docId } = ctx;
 
-  await autoReviewRejectionService.deleteAllRejections(db, project.id, docId);
-  return c.json({ success: true }, 200);
+  try {
+    await autoReviewRejectionService.deleteAllRejections(db, project.id, docId);
+    return c.json({ success: true }, 200);
+  } catch (error: unknown) {
+    lintReviewLog.error('Error deleting rejections', error);
+    return c.json({ success: false }, 500);
+  }
 });
 
 export default lintReviewRoutes;

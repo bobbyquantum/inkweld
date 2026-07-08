@@ -94,6 +94,9 @@ export class AutoReviewApiService {
         suggestions: result.suggestions ?? [],
         clearedMarks: result.clearedMarks ?? 0,
       };
+    } catch (err) {
+      console.warn('[AutoReview] Failed to review document:', err);
+      throw err;
     } finally {
       this.reviewing.set(false);
     }
@@ -107,13 +110,23 @@ export class AutoReviewApiService {
     suggestionId: string,
     replacement: string
   ): Promise<boolean> {
-    const result = await firstValueFrom(
-      this.autoReviewService.acceptAutoReviewSuggestion(username, slug, docId, {
-        suggestionId,
-        replacement,
-      })
-    );
-    return result.success;
+    try {
+      const result = await firstValueFrom(
+        this.autoReviewService.acceptAutoReviewSuggestion(
+          username,
+          slug,
+          docId,
+          {
+            suggestionId,
+            replacement,
+          }
+        )
+      );
+      return result.success;
+    } catch (err) {
+      console.warn('[AutoReview] Failed to accept suggestion:', err);
+      throw err;
+    }
   }
 
   /** Reject a suggestion (remove mark, keep text, server-side). */
@@ -123,12 +136,22 @@ export class AutoReviewApiService {
     docId: string,
     suggestionId: string
   ): Promise<boolean> {
-    const result = await firstValueFrom(
-      this.autoReviewService.rejectAutoReviewSuggestion(username, slug, docId, {
-        suggestionId,
-      })
-    );
-    return result.success;
+    try {
+      const result = await firstValueFrom(
+        this.autoReviewService.rejectAutoReviewSuggestion(
+          username,
+          slug,
+          docId,
+          {
+            suggestionId,
+          }
+        )
+      );
+      return result.success;
+    } catch (err) {
+      console.warn('[AutoReview] Failed to reject suggestion:', err);
+      throw err;
+    }
   }
 
   /** Clear all auto-review marks from the document. */
@@ -137,9 +160,14 @@ export class AutoReviewApiService {
     slug: string,
     docId: string
   ): Promise<void> {
-    await firstValueFrom(
-      this.autoReviewService.clearAutoReviewMarks(username, slug, docId)
-    );
+    try {
+      await firstValueFrom(
+        this.autoReviewService.clearAutoReviewMarks(username, slug, docId)
+      );
+    } catch (err) {
+      console.warn('[AutoReview] Failed to clear all marks:', err);
+      throw err;
+    }
   }
 
   /** Get the count of rejected suggestions for a document. */
@@ -152,7 +180,7 @@ export class AutoReviewApiService {
       const base = this.basePath;
       const result = await firstValueFrom(
         this.http.get<{ count: number }>(
-          `${base}/api/v1/projects/${username}/${slug}/docs/${docId}/auto-review/rejections`
+          `${base}/api/v1/projects/${encodeURIComponent(username)}/${encodeURIComponent(slug)}/docs/${encodeURIComponent(docId)}/auto-review/rejections`
         )
       );
       return result.count ?? 0;
@@ -172,7 +200,7 @@ export class AutoReviewApiService {
       const base = this.basePath;
       await firstValueFrom(
         this.http.delete<{ success: boolean }>(
-          `${base}/api/v1/projects/${username}/${slug}/docs/${docId}/auto-review/rejections`
+          `${base}/api/v1/projects/${encodeURIComponent(username)}/${encodeURIComponent(slug)}/docs/${encodeURIComponent(docId)}/auto-review/rejections`
         )
       );
       return true;

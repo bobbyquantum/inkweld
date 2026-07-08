@@ -321,6 +321,11 @@ aiProvidersRoutes.openapi(setKeyRoute, async (c) => {
 
   // Invalidate cached provider configuration so changes take effect immediately
   imageGenerationService.invalidateConfiguration();
+  // Invalidate the model-list caches for the affected provider so the
+  // dropdown refreshes immediately instead of serving stale results for
+  // up to an hour after a key/endpoint rotation.
+  if (providerId === 'openai') openaiCompatibleModelsCache = null;
+  if (providerId === 'openrouter') openRouterModelsCache = null;
 
   return c.json({ success: true }, 200);
 });
@@ -376,6 +381,8 @@ aiProvidersRoutes.openapi(deleteKeyRoute, async (c) => {
 
   // Invalidate cached provider configuration so changes take effect immediately
   imageGenerationService.invalidateConfiguration();
+  if (providerId === 'openai') openaiCompatibleModelsCache = null;
+  if (providerId === 'openrouter') openRouterModelsCache = null;
 
   return c.json({ success: true }, 200);
 });
@@ -441,6 +448,7 @@ aiProvidersRoutes.openapi(setEndpointRoute, async (c) => {
 
   // Invalidate cached provider configuration so changes take effect immediately
   imageGenerationService.invalidateConfiguration();
+  if (providerId === 'openai') openaiCompatibleModelsCache = null;
 
   return c.json({ success: true }, 200);
 });
@@ -882,7 +890,7 @@ aiProvidersRoutes.openapi(getOpenaiCompatibleModelsRoute, async (c) => {
     configService.get(db, 'AI_OPENAI_ENDPOINT'),
   ]);
   const apiKey = keyCfg.value || process.env.OPENAI_API_KEY || '';
-  const endpoint = endpointCfg.value || process.env.OPENAI_API_BASE || 'https://api.openai.com';
+  const endpoint = endpointCfg.value || process.env.OPENAI_API_BASE || 'https://api.openai.com/v1';
 
   if (!apiKey.trim()) {
     return c.json({ error: 'OpenAI-compatible API key not configured' }, 400);

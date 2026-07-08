@@ -409,6 +409,10 @@ function formatMultiNodeMark(
 
   for (let i = start; i < end; i++) {
     const entry = paragraph.offsetMap[i];
+    // The caller (applySuggestionMark) guarantees the start..end range
+    // contains no elementRef entries, but TypeScript can't see through
+    // that cross-function guard. Narrow explicitly before reading textNode.
+    if (entry.elementRef) continue;
     if (entry.textNode === currentText) {
       currentEnd = entry.offset;
     } else {

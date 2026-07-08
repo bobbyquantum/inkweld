@@ -349,13 +349,16 @@ export class DocumentElementEditorComponent
     // When a review finishes (reviewing goes false), tick the doc version so
     // the panel re-scans marks. Use a 500ms delay so Yjs sync has time to
     // apply the mark updates from the server before we scan the doc.
-    effect(() => {
+    effect(onCleanup => {
       const isReviewing = this.autoReviewApi.reviewing();
       if (!isReviewing && this.autoReviewPanelOpen()) {
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           this.autoReviewApi.tickDocVersion();
           this.refreshAutoReviewPanel();
         }, 500);
+        // Cancel the pending refresh if the signal changes again or the
+        // effect is torn down, keeping the refresh single-shot.
+        onCleanup(() => clearTimeout(timeoutId));
       }
     });
 

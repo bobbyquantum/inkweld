@@ -12,6 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   AutoReviewApiService,
@@ -42,6 +43,7 @@ interface PositionedSuggestion extends AutoReviewSuggestion {
 })
 export class AutoReviewPanelComponent {
   private readonly autoReviewApi = inject(AutoReviewApiService);
+  private readonly snackBar = inject(MatSnackBar);
 
   /** Project coordinates */
   username = input.required<string>();
@@ -226,14 +228,25 @@ export class AutoReviewPanelComponent {
     );
   }
 
+  /** Surface an API failure to the user via a snackbar. */
+  private showApiError(action: string): void {
+    this.snackBar.open(`Failed to ${action}. Please try again.`, 'Dismiss', {
+      duration: 5000,
+    });
+  }
+
   async onReview(): Promise<void> {
     const username = this.username();
     const slug = this.slug();
     const docId = this.docId();
     if (!username || !slug || !docId) return;
-    await this.autoReviewApi.reviewDocument(username, slug, docId);
-    this.hasReviewed.set(true);
-    this.resolvedStore.set(new Map());
+    try {
+      await this.autoReviewApi.reviewDocument(username, slug, docId);
+      this.hasReviewed.set(true);
+      this.resolvedStore.set(new Map());
+    } catch {
+      this.showApiError('run review');
+    }
   }
 
   /** Load the rejection count for this document (called on idle state). */
@@ -300,6 +313,8 @@ export class AutoReviewPanelComponent {
       });
       this.resolvedStore.set(store);
       this.suggestionAccepted.emit(suggestion.id);
+    } catch {
+      this.showApiError('accept suggestion');
     } finally {
       this.processingId.set(null);
     }
@@ -338,22 +353,21 @@ export class AutoReviewPanelComponent {
       });
       this.resolvedStore.set(store);
       this.suggestionRejected.emit(suggestion.id);
+    } catch {
+      this.showApiError('reject suggestion');
     } finally {
       this.processingId.set(null);
     }
   }
 
-  async onUndo(suggestion: AutoReviewSuggestion, event: Event): Promise<void> {
+  onUndo(suggestion: AutoReviewSuggestion, event: Event): void {
     event.stopPropagation();
     if (this.processingId() === suggestion.id) return;
     this.processingId.set(suggestion.id);
     try {
-      const username = this.username();
-      const slug = this.slug();
-      const docId = this.docId();
-      if (!username || !slug || !docId) return;
-      // Re-run the review to restore the mark.
-      await this.autoReviewApi.reviewDocument(username, slug, docId);
+      // Restore the dismissed suggestion locally without re-running the
+      // full review (which would clear all marks and regenerate every
+      // suggestion with new ids, reshuffling unrelated entries).
       const store = new Map(this.resolvedStore());
       store.delete(suggestion.id);
       this.resolvedStore.set(store);
@@ -367,11 +381,15 @@ export class AutoReviewPanelComponent {
     const slug = this.slug();
     const docId = this.docId();
     if (!username || !slug || !docId) return;
-    await this.autoReviewApi.clearAllMarks(username, slug, docId);
-    this.hasReviewed.set(false);
-    this.expandedSuggestionId.set(null);
-    this.resolvedStore.set(new Map());
-    this.reviewCleared.emit();
+    try {
+      await this.autoReviewApi.clearAllMarks(username, slug, docId);
+      this.hasReviewed.set(false);
+      this.expandedSuggestionId.set(null);
+      this.resolvedStore.set(new Map());
+      this.reviewCleared.emit();
+    } catch {
+      this.showApiError('dismiss review');
+    }
   }
 
   /** Dismiss + re-review in one action (common workflow). */
@@ -380,12 +398,16 @@ export class AutoReviewPanelComponent {
     const slug = this.slug();
     const docId = this.docId();
     if (!username || !slug || !docId) return;
-    await this.autoReviewApi.clearAllMarks(username, slug, docId);
-    this.resolvedStore.set(new Map());
-    this.expandedSuggestionId.set(null);
-    this.reviewCleared.emit();
-    await this.autoReviewApi.reviewDocument(username, slug, docId);
-    this.hasReviewed.set(true);
+    try {
+      await this.autoReviewApi.clearAllMarks(username, slug, docId);
+      this.resolvedStore.set(new Map());
+      this.expandedSuggestionId.set(null);
+      this.reviewCleared.emit();
+      await this.autoReviewApi.reviewDocument(username, slug, docId);
+      this.hasReviewed.set(true);
+    } catch {
+      this.showApiError('re-review');
+    }
   }
 
   onClose(): void {

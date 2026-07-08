@@ -4,7 +4,6 @@ import { config as envConfig } from '../config/env';
 import { logger } from './logger.service';
 import { stripTrailingSlashes } from '../utils/string-utils';
 import type { DatabaseInstance } from '../types/context';
-import type { ConfigKey } from '../db/schema/config';
 import type { RejectionContext } from './auto-review-rejection.service';
 
 export interface ElementRefContext {
@@ -73,9 +72,9 @@ export class OpenAILintService {
    */
   private async getConfig(db: DatabaseInstance): Promise<LintConfig> {
     const [providerCfg, modelCfg, promptCfg] = await Promise.all([
-      configService.get(db, 'AI_TEXT_DEFAULT_PROVIDER' as ConfigKey),
-      configService.get(db, 'AI_TEXT_LINT_MODEL' as ConfigKey),
-      configService.get(db, 'AI_TEXT_LINT_PROMPT' as ConfigKey),
+      configService.get(db, 'AI_TEXT_DEFAULT_PROVIDER'),
+      configService.get(db, 'AI_TEXT_LINT_MODEL'),
+      configService.get(db, 'AI_TEXT_LINT_PROMPT'),
     ]);
 
     const provider = providerCfg.value || 'openai';
@@ -85,20 +84,20 @@ export class OpenAILintService {
     let endpoint: string;
 
     if (provider === 'openrouter') {
-      const keyCfg = await configService.get(db, 'AI_OPENROUTER_API_KEY' as ConfigKey);
+      const keyCfg = await configService.get(db, 'AI_OPENROUTER_API_KEY');
       apiKey = keyCfg.value || process.env.AI_OPENROUTER_API_KEY || '';
-      endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+      endpoint = 'https://openrouter.ai/api/v1';
     } else if (provider === 'anthropic') {
-      const keyCfg = await configService.get(db, 'AI_ANTHROPIC_API_KEY' as ConfigKey);
+      const keyCfg = await configService.get(db, 'AI_ANTHROPIC_API_KEY');
       apiKey = keyCfg.value || process.env.AI_ANTHROPIC_API_KEY || '';
-      // Anthropic uses a different API format, but its OpenAI-compatible
-      // endpoint is at /v1/messages. For now route through OpenAI-compat.
-      endpoint = 'https://api.anthropic.com/v1/chat/completions';
+      // Anthropic offers an OpenAI-compatible endpoint at /v1/chat/completions.
+      // Store only the base URL; callChatCompletions appends /chat/completions.
+      endpoint = 'https://api.anthropic.com/v1';
     } else {
       // Default: OpenAI-compatible (OpenAI, Ollama, LM Studio, etc.)
       const [keyCfg, endpointCfg] = await Promise.all([
-        configService.get(db, 'AI_OPENAI_API_KEY' as ConfigKey),
-        configService.get(db, 'AI_OPENAI_ENDPOINT' as ConfigKey),
+        configService.get(db, 'AI_OPENAI_API_KEY'),
+        configService.get(db, 'AI_OPENAI_ENDPOINT'),
       ]);
       apiKey = keyCfg.value || process.env.OPENAI_API_KEY || '';
       endpoint = endpointCfg.value || process.env.OPENAI_API_BASE || '';
