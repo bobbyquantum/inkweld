@@ -57,7 +57,7 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260103.0",
+    "@cloudflare/workers-types": "^5.0.0",
     "@eslint/js": "^10.0.0",
     "@openapitools/openapi-generator-cli": "^2.27.0",
     "@types/better-sqlite3": "^7.6.13",
