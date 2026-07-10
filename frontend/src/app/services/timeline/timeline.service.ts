@@ -393,96 +393,109 @@ export class TimelineService {
     const system = this.getActiveSystem();
     if (!system) return null;
 
-    const worldbuildingElements = this.projectState
-      .elements()
-      .filter(e => e.type === ElementType.Worldbuilding);
+    try {
+      const worldbuildingElements = this.projectState
+        .elements()
+        .filter(e => e.type === ElementType.Worldbuilding);
 
-    const summary = { created: 0, updated: 0, removed: 0, skipped: 0 };
-    const keyOf = (elementId: string, fieldKey: string) =>
-      `${elementId}::${fieldKey}`;
-    const autoByKey = new Map<string, TimelineEvent>();
-    for (const ev of config.events) {
-      if (ev.source === 'auto' && ev.linkedElementId && ev.sourceFieldKey) {
-        autoByKey.set(keyOf(ev.linkedElementId, ev.sourceFieldKey), ev);
+      const summary = { created: 0, updated: 0, removed: 0, skipped: 0 };
+      const keyOf = (elementId: string, fieldKey: string) =>
+        `${elementId}::${fieldKey}`;
+      const autoByKey = new Map<string, TimelineEvent>();
+      for (const ev of config.events) {
+        if (ev.source === 'auto' && ev.linkedElementId && ev.sourceFieldKey) {
+          autoByKey.set(keyOf(ev.linkedElementId, ev.sourceFieldKey), ev);
+        }
       }
-    }
-    const seenKeys = new Set<string>();
-    const generatedEvents: TimelineEvent[] = [];
+      const seenKeys = new Set<string>();
+      const generatedEvents: TimelineEvent[] = [];
 
-    for (const element of worldbuildingElements) {
-      const schema = await this.worldbuilding.getSchemaForElement(
-        element.id,
-        username,
-        slug
+      for (const element of worldbuildingElements) {
+        const schema = await this.worldbuilding.getSchemaForElement(
+          element.id,
+          username,
+          slug
+        );
+        if (!schema) continue;
+        const dateFields = collectDateFields(schema);
+        if (dateFields.length === 0) continue;
+
+        const data = await this.worldbuilding.getWorldbuildingData(
+          element.id,
+          username,
+          slug
+        );
+        if (!data) continue;
+
+        for (const field of dateFields) {
+          const raw = readNestedValue(data, field.key);
+          if (raw === null || raw === undefined || raw === '') {
+            continue;
+          }
+          if (typeof raw !== 'string') {
+            summary.skipped++;
+            continue;
+          }
+          const point = parseTimePoint(raw, system);
+          if (!point) {
+            summary.skipped++;
+            continue;
+          }
+          const normalized = normalizeTimePoint(point, system) ?? point;
+          const key = keyOf(element.id, field.key);
+          seenKeys.add(key);
+          const existing = autoByKey.get(key);
+          const title = `${element.name}: ${field.label}`;
+          if (existing) {
+            generatedEvents.push({
+              ...existing,
+              start: normalized,
+              title,
+            });
+            summary.updated++;
+          } else {
+            generatedEvents.push({
+              id: nanoid(),
+              trackId: config.tracks[0]?.id ?? '',
+              start: normalized,
+              title,
+              linkedElementId: element.id,
+              source: 'auto' as const,
+              sourceFieldKey: field.key,
+            });
+            summary.created++;
+          }
+        }
+      }
+
+      for (const [key, _ev] of autoByKey) {
+        if (!seenKeys.has(key)) {
+          summary.removed++;
+        }
+      }
+
+      const currentConfig = this.activeConfigSignal();
+      if (!currentConfig) return summary;
+
+      const manualEvents = currentConfig.events.filter(
+        ev =>
+          !(ev.source === 'auto' && ev.linkedElementId && ev.sourceFieldKey)
       );
-      if (!schema) continue;
-      const dateFields = collectDateFields(schema);
-      if (dateFields.length === 0) continue;
 
-      const data = await this.worldbuilding.getWorldbuildingData(
-        element.id,
-        username,
-        slug
+      this.saveConfig({
+        ...currentConfig,
+        events: [...manualEvents, ...generatedEvents],
+      });
+
+      return summary;
+    } catch (err) {
+      this.logger.error(
+        'Timeline',
+        'Auto-build from elements failed',
+        err
       );
-      if (!data) continue;
-
-      for (const field of dateFields) {
-        const raw = readNestedValue(data, field.key);
-        if (raw === null || raw === undefined || raw === '') {
-          continue;
-        }
-        if (typeof raw !== 'string') {
-          summary.skipped++;
-          continue;
-        }
-        const point = parseTimePoint(raw, system);
-        if (!point) {
-          summary.skipped++;
-          continue;
-        }
-        const normalized = normalizeTimePoint(point, system) ?? point;
-        const key = keyOf(element.id, field.key);
-        seenKeys.add(key);
-        const existing = autoByKey.get(key);
-        const title = `${element.name}: ${field.label}`;
-        if (existing) {
-          generatedEvents.push({
-            ...existing,
-            start: normalized,
-            title,
-          });
-          summary.updated++;
-        } else {
-          generatedEvents.push({
-            id: nanoid(),
-            trackId: config.tracks[0]?.id ?? '',
-            start: normalized,
-            title,
-            linkedElementId: element.id,
-            source: 'auto' as const,
-            sourceFieldKey: field.key,
-          });
-          summary.created++;
-        }
-      }
+      return null;
     }
-
-    for (const [key, _ev] of autoByKey) {
-      if (!seenKeys.has(key)) {
-        summary.removed++;
-      }
-    }
-
-    const manualEvents = config.events.filter(
-      ev => !(ev.source === 'auto' && ev.linkedElementId && ev.sourceFieldKey)
-    );
-
-    this.saveConfig({
-      ...config,
-      events: [...manualEvents, ...generatedEvents],
-    });
-
-    return summary;
   }
 }
 
@@ -494,13 +507,23 @@ export class TimelineService {
 function collectDateFields(schema: ElementTypeSchema): FieldSchema[] {
   const out: FieldSchema[] = [];
   for (const tab of schema.tabs) {
-    for (const field of tab.fields) {
-      if (field.type === FieldType.DATE) {
-        out.push(field);
-      }
-    }
+    collectDateFieldsFromFields(tab.fields, out);
   }
   return out;
+}
+
+function collectDateFieldsFromFields(
+  fields: FieldSchema[],
+  out: FieldSchema[]
+): void {
+  for (const field of fields) {
+    if (field.type === FieldType.DATE) {
+      out.push(field);
+    }
+    if (field.isNested && field.nestedFields) {
+      collectDateFieldsFromFields(field.nestedFields, out);
+    }
+  }
 }
 
 /**

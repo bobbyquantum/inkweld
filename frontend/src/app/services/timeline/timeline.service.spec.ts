@@ -814,5 +814,167 @@ describe('TimelineService', () => {
       });
       expect(service.activeConfig()?.events ?? []).toHaveLength(0);
     });
+
+    it('handles nested date fields inside isNested field groups', async () => {
+      const schemaWithNestedDate: ElementTypeSchema = {
+        id: 'schema-nested',
+        name: 'Nested',
+        icon: 'person',
+        description: '',
+        version: 1,
+        tabs: [
+          {
+            key: 'bio',
+            label: 'Biography',
+            fields: [
+              {
+                key: 'appearance',
+                label: 'Appearance',
+                type: FieldType.TEXT,
+                isNested: true,
+                nestedFields: [
+                  {
+                    key: 'appearance.born',
+                    label: 'Born',
+                    type: FieldType.DATE,
+                    isNested: true,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const timelineEl = makeTimelineElement();
+      const charEl = makeWorldbuildingElement(
+        'char-nested',
+        'NestedChar',
+        'schema-nested'
+      );
+      mockElements.set([timelineEl, charEl]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+
+      mockWorldbuilding.getSchemaForElement.mockResolvedValue(
+        schemaWithNestedDate
+      );
+      mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
+        appearance: { born: '1500-7-3' },
+      });
+
+      const result = await service.autoBuildFromElements('user', 'slug');
+
+      expect(result).toEqual({
+        created: 1,
+        updated: 0,
+        removed: 0,
+        skipped: 0,
+      });
+      const events = service.activeConfig()?.events ?? [];
+      expect(events).toHaveLength(1);
+      expect(events[0].sourceFieldKey).toBe('appearance.born');
+      expect(events[0].start.units).toEqual(['1500', '7', '3']);
+    });
+
+    it('returns null and logs error when getSchemaForElement throws', async () => {
+      const timelineEl = makeTimelineElement();
+      const charEl = makeWorldbuildingElement('char-err', 'Err', 'schema-char');
+      mockElements.set([timelineEl, charEl]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+
+      mockWorldbuilding.getSchemaForElement.mockRejectedValue(
+        new Error('Yjs connection lost')
+      );
+
+      const result = await service.autoBuildFromElements('user', 'slug');
+
+      expect(result).toBeNull();
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('returns null and logs error when getWorldbuildingData throws', async () => {
+      const timelineEl = makeTimelineElement();
+      const charEl = makeWorldbuildingElement('char-2', 'Err2', 'schema-char');
+      mockElements.set([timelineEl, charEl]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+
+      mockWorldbuilding.getSchemaForElement.mockResolvedValue(
+        schemaWithDateField
+      );
+      mockWorldbuilding.getWorldbuildingData.mockRejectedValue(
+        new Error('Data read failed')
+      );
+
+      const result = await service.autoBuildFromElements('user', 'slug');
+
+      expect(result).toBeNull();
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('preserves concurrent manual events added during async fetch', async () => {
+      const timelineEl = makeTimelineElement();
+      const charEl = makeWorldbuildingElement('char-1', 'Alice', 'schema-char');
+      mockElements.set([timelineEl, charEl]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+
+      mockWorldbuilding.getSchemaForElement.mockResolvedValue(
+        schemaWithDateField
+      );
+      mockWorldbuilding.getWorldbuildingData.mockImplementation(
+        async () => {
+          // Simulate a collaborator adding a manual event during the async gap
+          const config = service.activeConfig()!;
+          service.addEvent({
+            trackId: config.tracks[0].id,
+            title: 'Concurrent Manual',
+            start: { systemId: GREGORIAN_SYSTEM.id, units: ['2000', '1', '1'] },
+          });
+          return { birthDate: '1999-3-15' };
+        }
+      );
+
+      const result = await service.autoBuildFromElements('user', 'slug');
+
+      expect(result).toEqual({
+        created: 1,
+        updated: 0,
+        removed: 0,
+        skipped: 0,
+      });
+      const events = service.activeConfig()?.events ?? [];
+      expect(events).toHaveLength(2);
+      expect(
+        events.some(e => e.title === 'Concurrent Manual')
+      ).toBe(true);
+      expect(events.some(e => e.source === 'auto')).toBe(true);
+    });
+
+    it('skips non-string date values', async () => {
+      const timelineEl = makeTimelineElement();
+      const charEl = makeWorldbuildingElement('char-3', 'Num', 'schema-char');
+      mockElements.set([timelineEl, charEl]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+
+      mockWorldbuilding.getSchemaForElement.mockResolvedValue(
+        schemaWithDateField
+      );
+      mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
+        birthDate: 12345,
+      });
+
+      const result = await service.autoBuildFromElements('user', 'slug');
+
+      expect(result).toEqual({
+        created: 0,
+        updated: 0,
+        removed: 0,
+        skipped: 1,
+      });
+    });
   });
 });
