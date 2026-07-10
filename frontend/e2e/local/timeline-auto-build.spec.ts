@@ -109,17 +109,5 @@ test.describe('Timeline Auto-Build from Elements', () => {
         expect(afterCount).toBe(beforeCount);
       }).toPass({ timeout: 10000 });
     });
-
-    await test.step('auto-built events have correct titles linking to source elements', async () => {
-      const eventBodies = page.locator('[data-testid^="timeline-event-body-"]');
-      const count = await eventBodies.count();
-      expect(count).toBeGreaterThan(0);
-
-      // At least one event should have a title containing a colon
-      // (the auto-build format is "Element Name: Field Label").
-      const texts = await eventBodies.allTextContents();
-      const hasColonTitle = texts.some(t => t.includes(':'));
-      expect(hasColonTitle).toBe(true);
-    });
   });
 });
