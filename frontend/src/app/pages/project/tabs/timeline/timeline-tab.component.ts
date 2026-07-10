@@ -54,6 +54,7 @@ import {
   TIMELINE_CONFIG_META_KEY,
   TimelineService,
 } from '@services/timeline/timeline.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -188,6 +189,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   private readonly dialogs = inject(DialogGatewayService);
   private readonly presence = inject(PresenceService);
   private readonly ngZone = inject(NgZone);
+  private readonly worldbuilding = inject(WorldbuildingService);
 
   /** Stable location broadcast via presence so peers see who is here. */
   protected readonly presenceLocation = computed(() => {
@@ -974,6 +976,25 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     if (result?.kind !== 'save') return;
     const { id: _id, ...rest } = result.era;
     this.timelineService.addEra(rest);
+    this.fitContents();
+  }
+
+  protected async onAutoBuild(): Promise<void> {
+    const system = this.activeSystem();
+    if (!system) return;
+    const params = this.route.snapshot.paramMap;
+    const username = params.get('username');
+    const slug = params.get('slug');
+    if (!username || !slug) return;
+    const result = await this.timelineService.autoBuildFromElements(
+      username,
+      slug
+    );
+    if (!result) return;
+    this.logger.info(
+      'Timeline',
+      `Auto-build: ${result.created} created, ${result.updated} updated, ${result.removed} removed, ${result.skipped} skipped`
+    );
     this.fitContents();
   }
 

@@ -21,6 +21,16 @@
     Add era
   </button>
 
+  <button
+    mat-stroked-button
+    (click)="onAutoBuild()"
+    [disabled]="!hasActiveSystem()"
+    matTooltip="Generate events from worldbuilding element date fields"
+    data-testid="timeline-auto-build">
+    <mat-icon>auto_awesome</mat-icon>
+    Auto-build from elements
+  </button>
+
   <span class="spacer"></span>
 
   <app-tab-presence-indicator [location]="presenceLocation()" />
