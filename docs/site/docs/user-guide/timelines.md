@@ -6,7 +6,7 @@ description: Create chronological timelines and auto-build events from worldbuil
 
 # Timelines
 
-Timelines let you visualise the chronological flow of your story world. Each timeline is an element in the project tree,anchored to a **time system** (e.g. Gregorian, Relative Years, or a custom fantasy calendar).
+Timelines let you visualise the chronological flow of your story world. Each timeline is an element in the project tree, anchored to a **time system** (e.g. Gregorian, Relative Years, or a custom fantasy calendar).
 
 ## Creating a Timeline
 
