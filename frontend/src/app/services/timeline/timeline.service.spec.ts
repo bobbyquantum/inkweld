@@ -14,8 +14,10 @@ import {
   type TimelineEra,
   type TimelineEvent,
 } from '../../models/timeline.model';
+import { FieldType, type ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import { TimeSystemLibraryService } from './time-system-library.service';
 import { TIMELINE_CONFIG_META_KEY, TimelineService } from './timeline.service';
 
@@ -66,6 +68,11 @@ describe('TimelineService', () => {
     error: vi.fn(),
   };
 
+  const mockWorldbuilding = {
+    getSchemaForElement: vi.fn(),
+    getWorldbuildingData: vi.fn(),
+  };
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
@@ -73,6 +80,7 @@ describe('TimelineService', () => {
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: TimeSystemLibraryService, useValue: mockLibrary },
         { provide: LoggerService, useValue: mockLogger },
+        { provide: WorldbuildingService, useValue: mockWorldbuilding },
       ],
     });
     service = TestBed.inject(TimelineService);
@@ -561,6 +569,250 @@ describe('TimelineService', () => {
       expect(mockProjectState.updateElementMetadata.mock.calls.length).toBe(
         writesBefore
       );
+    });
+  });
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Auto-build from elements
+  // ───────────────────────────────────────────────────────────────────────
+
+  describe('autoBuildFromElements', () => {
+    const schemaWithDateField: ElementTypeSchema = {
+      id: 'schema-char',
+      name: 'Character',
+      icon: 'person',
+      description: '',
+      version: 1,
+      tabs: [
+        {
+          key: 'bio',
+          label: 'Biography',
+          fields: [
+            {
+              key: 'birthDate',
+              label: 'Birth Date',
+              type: FieldType.DATE,
+            },
+          ],
+        },
+      ],
+    };
+
+    const schemaNoDate: ElementTypeSchema = {
+      id: 'schema-place',
+      name: 'Place',
+      icon: 'place',
+      description: '',
+      version: 1,
+      tabs: [
+        {
+          key: 'geo',
+          label: 'Geography',
+          fields: [{ key: 'climate', label: 'Climate', type: FieldType.TEXT }],
+        },
+      ],
+    };
+
+    function makeWorldbuildingElement(
+      id: string,
+      name: string,
+      schemaId: string
+    ): Element {
+      return {
+        id,
+        name,
+        type: ElementType.Worldbuilding,
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+        schemaId,
+      };
+    }
+
+    beforeEach(() => {
+      mockWorldbuilding.getSchemaForElement.mockReset();
+      mockWorldbuilding.getWorldbuildingData.mockReset();
+    });
+
+    it('returns null when no time system is active', async () => {
+      mockElements.set([makeTimelineElement()]);
+      service.loadConfig('timeline-1');
+      const result = await service.autoBuildFromElements('user', 'slug');
+      expect(result).toBeNull();
+    });
+
+    it('creates events for elements with date field values', async () => {
+      const timelineEl = makeTimelineElement();
+      const charEl = makeWorldbuildingElement('char-1', 'Alice', 'schema-char');
+      mockElements.set([timelineEl, charEl]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+
+      mockWorldbuilding.getSchemaForElement.mockResolvedValue(
+        schemaWithDateField
+      );
+      mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
+        birthDate: '1999-3-15',
+      });
+
+      const result = await service.autoBuildFromElements('user', 'slug');
+
+      expect(result).toEqual({
+        created: 1,
+        updated: 0,
+        removed: 0,
+        skipped: 0,
+      });
+      const events = service.activeConfig()?.events ?? [];
+      expect(events).toHaveLength(1);
+      expect(events[0].source).toBe('auto');
+      expect(events[0].linkedElementId).toBe('char-1');
+      expect(events[0].sourceFieldKey).toBe('birthDate');
+      expect(events[0].start.units).toEqual(['1999', '3', '15']);
+      expect(events[0].title).toBe('Alice: Birth Date');
+    });
+
+    it('skips elements with no date fields', async () => {
+      const timelineEl = makeTimelineElement();
+      const placeEl = makeWorldbuildingElement(
+        'place-1',
+        'Rivendell',
+        'schema-place'
+      );
+      mockElements.set([timelineEl, placeEl]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+
+      mockWorldbuilding.getSchemaForElement.mockResolvedValue(schemaNoDate);
+      mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
+        climate: 'temperate',
+      });
+
+      const result = await service.autoBuildFromElements('user', 'slug');
+
+      expect(result).toEqual({
+        created: 0,
+        updated: 0,
+        removed: 0,
+        skipped: 0,
+      });
+      expect(service.activeConfig()?.events ?? []).toHaveLength(0);
+    });
+
+    it('skips empty or unparseable date values', async () => {
+      const timelineEl = makeTimelineElement();
+      const charEl = makeWorldbuildingElement('char-1', 'Bob', 'schema-char');
+      mockElements.set([timelineEl, charEl]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+
+      mockWorldbuilding.getSchemaForElement.mockResolvedValue(
+        schemaWithDateField
+      );
+      mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
+        birthDate: '',
+      });
+
+      const result = await service.autoBuildFromElements('user', 'slug');
+
+      expect(result).toEqual({
+        created: 0,
+        updated: 0,
+        removed: 0,
+        skipped: 0,
+      });
+
+      // Now test an unparseable value
+      mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
+        birthDate: 'not-a-date',
+      });
+      const result2 = await service.autoBuildFromElements('user', 'slug');
+      expect(result2).toEqual({
+        created: 0,
+        updated: 0,
+        removed: 0,
+        skipped: 1,
+      });
+    });
+
+    it('updates existing auto events in place and preserves manual events', async () => {
+      const timelineEl = makeTimelineElement();
+      const charEl = makeWorldbuildingElement('char-1', 'Alice', 'schema-char');
+      mockElements.set([timelineEl, charEl]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+
+      // First run — creates 1 auto event + 1 manual event
+      mockWorldbuilding.getSchemaForElement.mockResolvedValue(
+        schemaWithDateField
+      );
+      mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
+        birthDate: '1999-3-15',
+      });
+      await service.autoBuildFromElements('user', 'slug');
+      const trackId = service.activeConfig()!.tracks[0].id;
+      service.addEvent({
+        trackId,
+        title: 'Manual Event',
+        start: { systemId: GREGORIAN_SYSTEM.id, units: ['2000', '1', '1'] },
+      });
+
+      expect(service.activeConfig()?.events).toHaveLength(2);
+
+      // Second run — updates the auto event, preserves manual
+      mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
+        birthDate: '2001-6-20',
+      });
+      const result = await service.autoBuildFromElements('user', 'slug');
+
+      expect(result).toEqual({
+        created: 0,
+        updated: 1,
+        removed: 0,
+        skipped: 0,
+      });
+      const events = service.activeConfig()?.events ?? [];
+      expect(events).toHaveLength(2);
+      const autoEv = events.find(e => e.source === 'auto');
+      const manualEv = events.find(e => e.source !== 'auto');
+      expect(autoEv?.start.units).toEqual(['2001', '6', '20']);
+      expect(autoEv?.title).toBe('Alice: Birth Date');
+      expect(manualEv?.title).toBe('Manual Event');
+    });
+
+    it('removes stale auto events whose date value was cleared', async () => {
+      const timelineEl = makeTimelineElement();
+      const charEl = makeWorldbuildingElement('char-1', 'Alice', 'schema-char');
+      mockElements.set([timelineEl, charEl]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+
+      // First run — creates 1 auto event
+      mockWorldbuilding.getSchemaForElement.mockResolvedValue(
+        schemaWithDateField
+      );
+      mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
+        birthDate: '1999-3-15',
+      });
+      await service.autoBuildFromElements('user', 'slug');
+      expect(service.activeConfig()?.events).toHaveLength(1);
+
+      // Second run — date cleared, auto event should be removed
+      mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
+        birthDate: '',
+      });
+      const result = await service.autoBuildFromElements('user', 'slug');
+
+      expect(result).toEqual({
+        created: 0,
+        updated: 0,
+        removed: 1,
+        skipped: 0,
+      });
+      expect(service.activeConfig()?.events ?? []).toHaveLength(0);
     });
   });
 });
