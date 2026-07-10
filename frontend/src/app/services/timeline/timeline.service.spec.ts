@@ -3,18 +3,18 @@ import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { FieldType, type ElementTypeSchema } from '../../models/schema-types';
-import {
-  createDefaultTimelineConfig,
-  type TimelineEra,
-  type TimelineEvent,
-} from '../../models/timeline.model';
+import { type ElementTypeSchema, FieldType } from '../../models/schema-types';
 import {
   GREGORIAN_SYSTEM,
   RELATIVE_YEARS_SYSTEM,
   TIME_SYSTEM_TEMPLATES,
   type TimeSystem,
 } from '../../models/time-system';
+import {
+  createDefaultTimelineConfig,
+  type TimelineEra,
+  type TimelineEvent,
+} from '../../models/timeline.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';

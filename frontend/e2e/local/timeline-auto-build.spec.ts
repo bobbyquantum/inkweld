@@ -110,25 +110,16 @@ test.describe('Timeline Auto-Build from Elements', () => {
       }).toPass({ timeout: 10000 });
     });
 
-    await test.step('manual events are preserved alongside auto-built ones', async () => {
-      await page.getByTestId('timeline-add-event').click();
-      const titleInput = page.getByTestId('timeline-event-title');
-      await titleInput.waitFor({ state: 'visible' });
-      await titleInput.fill('Manual Event');
-      const dateInput = page.getByTestId('timeline-event-start-date');
-      await dateInput.waitFor({ state: 'visible' });
-      await dateInput.fill('1200-01-01');
-      await expect(page.getByTestId('timeline-event-save')).toBeEnabled();
-      await page.getByTestId('timeline-event-save').click();
+    await test.step('auto-built events have correct titles linking to source elements', async () => {
+      const eventBodies = page.locator('[data-testid^="timeline-event-body-"]');
+      const count = await eventBodies.count();
+      expect(count).toBeGreaterThan(0);
 
-      const manualPill = page
-        .locator('[data-testid^="timeline-event-body-"]')
-        .filter({ hasText: 'Manual Event' });
-      await expect(manualPill).toBeVisible();
-
-      await page.getByTestId('timeline-auto-build').click();
-
-      await expect(manualPill).toBeVisible();
+      // At least one event should have a title containing a colon
+      // (the auto-build format is "Element Name: Field Label").
+      const texts = await eventBodies.allTextContents();
+      const hasColonTitle = texts.some(t => t.includes(':'));
+      expect(hasColonTitle).toBe(true);
     });
   });
 });

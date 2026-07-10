@@ -9,11 +9,7 @@
 
 import { effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { ElementType } from '@inkweld/index';
-import {
-  type ElementTypeSchema,
-  FieldType,
-  type FieldSchema,
-} from '@models/schema-types';
+import { type ElementTypeSchema, type FieldSchema } from '@models/schema-types';
 import {
   normalizeTimePoint,
   parseTimePoint,
@@ -511,7 +507,7 @@ function collectDateFieldsFromFields(
   out: FieldSchema[]
 ): void {
   for (const field of fields) {
-    if (field.type === FieldType.DATE || field.type === 'date') {
+    if (field.type === 'date') {
       out.push(field);
     }
     if (field.isNested && field.nestedFields) {
