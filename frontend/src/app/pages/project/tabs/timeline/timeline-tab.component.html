@@ -24,7 +24,7 @@
   <button
     mat-stroked-button
     (click)="onAutoBuild()"
-    [disabled]="!hasActiveSystem()"
+    [disabled]="!hasActiveSystem() || autoBuilding()"
     matTooltip="Generate events from worldbuilding element date fields"
     data-testid="timeline-auto-build">
     <mat-icon>auto_awesome</mat-icon>

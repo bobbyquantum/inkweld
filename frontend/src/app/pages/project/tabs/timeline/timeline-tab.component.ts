@@ -979,23 +979,36 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     this.fitContents();
   }
 
+  protected readonly autoBuilding = signal(false);
+
   protected async onAutoBuild(): Promise<void> {
-    const system = this.activeSystem();
-    if (!system) return;
-    const params = this.route.snapshot.paramMap;
-    const username = params.get('username');
-    const slug = params.get('slug');
-    if (!username || !slug) return;
-    const result = await this.timelineService.autoBuildFromElements(
-      username,
-      slug
-    );
-    if (!result) return;
-    this.logger.info(
-      'Timeline',
-      `Auto-build: ${result.created} created, ${result.updated} updated, ${result.removed} removed, ${result.skipped} skipped`
-    );
-    this.fitContents();
+    if (this.autoBuilding()) return;
+    this.autoBuilding.set(true);
+    try {
+      const system = this.activeSystem();
+      if (!system) return;
+      const params = this.route.snapshot.paramMap;
+      const username = params.get('username');
+      const slug = params.get('slug');
+      if (!username || !slug) return;
+      const result = await this.timelineService.autoBuildFromElements(
+        username,
+        slug
+      );
+      if (!result) return;
+      this.logger.info(
+        'Timeline',
+        `Auto-build: ${result.created} created,` +
+          ` ${result.updated} updated,` +
+          ` ${result.removed} removed,` +
+          ` ${result.skipped} skipped`
+      );
+      this.fitContents();
+    } catch (err) {
+      this.logger.error('Timeline', 'Auto-build failed', err);
+    } finally {
+      this.autoBuilding.set(false);
+    }
   }
 
   protected async onEraClick(era: TimelineEra): Promise<void> {
