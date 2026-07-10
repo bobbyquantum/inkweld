@@ -8,16 +8,15 @@
  */
 
 import { effect, inject, Injectable, signal, untracked } from '@angular/core';
-import { type Element, ElementType } from '@inkweld/index';
+import { ElementType } from '@inkweld/index';
 import {
+  type ElementTypeSchema,
   FieldType,
   type FieldSchema,
-  type ElementTypeSchema,
 } from '@models/schema-types';
 import {
   normalizeTimePoint,
   parseTimePoint,
-  type TimePoint,
   type TimeSystem,
 } from '@models/time-system';
 import {
@@ -478,8 +477,7 @@ export class TimelineService {
       if (!currentConfig) return summary;
 
       const manualEvents = currentConfig.events.filter(
-        ev =>
-          !(ev.source === 'auto' && ev.linkedElementId && ev.sourceFieldKey)
+        ev => !(ev.source === 'auto' && ev.linkedElementId && ev.sourceFieldKey)
       );
 
       this.saveConfig({
@@ -489,11 +487,7 @@ export class TimelineService {
 
       return summary;
     } catch (err) {
-      this.logger.error(
-        'Timeline',
-        'Auto-build from elements failed',
-        err
-      );
+      this.logger.error('Timeline', 'Auto-build from elements failed', err);
       return null;
     }
   }
@@ -517,7 +511,7 @@ function collectDateFieldsFromFields(
   out: FieldSchema[]
 ): void {
   for (const field of fields) {
-    if (field.type === FieldType.DATE) {
+    if (field.type === FieldType.DATE || field.type === 'date') {
       out.push(field);
     }
     if (field.isNested && field.nestedFields) {

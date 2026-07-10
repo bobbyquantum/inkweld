@@ -3,18 +3,18 @@ import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { FieldType, type ElementTypeSchema } from '../../models/schema-types';
+import {
+  createDefaultTimelineConfig,
+  type TimelineEra,
+  type TimelineEvent,
+} from '../../models/timeline.model';
 import {
   GREGORIAN_SYSTEM,
   RELATIVE_YEARS_SYSTEM,
   TIME_SYSTEM_TEMPLATES,
   type TimeSystem,
 } from '../../models/time-system';
-import {
-  createDefaultTimelineConfig,
-  type TimelineEra,
-  type TimelineEvent,
-} from '../../models/timeline.model';
-import { FieldType, type ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
@@ -924,18 +924,16 @@ describe('TimelineService', () => {
       mockWorldbuilding.getSchemaForElement.mockResolvedValue(
         schemaWithDateField
       );
-      mockWorldbuilding.getWorldbuildingData.mockImplementation(
-        async () => {
-          // Simulate a collaborator adding a manual event during the async gap
-          const config = service.activeConfig()!;
-          service.addEvent({
-            trackId: config.tracks[0].id,
-            title: 'Concurrent Manual',
-            start: { systemId: GREGORIAN_SYSTEM.id, units: ['2000', '1', '1'] },
-          });
-          return { birthDate: '1999-3-15' };
-        }
-      );
+      mockWorldbuilding.getWorldbuildingData.mockImplementation(() => {
+        // Simulate a collaborator adding a manual event during the async gap
+        const config = service.activeConfig()!;
+        service.addEvent({
+          trackId: config.tracks[0].id,
+          title: 'Concurrent Manual',
+          start: { systemId: GREGORIAN_SYSTEM.id, units: ['2000', '1', '1'] },
+        });
+        return Promise.resolve({ birthDate: '1999-3-15' });
+      });
 
       const result = await service.autoBuildFromElements('user', 'slug');
 
@@ -947,9 +945,7 @@ describe('TimelineService', () => {
       });
       const events = service.activeConfig()?.events ?? [];
       expect(events).toHaveLength(2);
-      expect(
-        events.some(e => e.title === 'Concurrent Manual')
-      ).toBe(true);
+      expect(events.some(e => e.title === 'Concurrent Manual')).toBe(true);
       expect(events.some(e => e.source === 'auto')).toBe(true);
     });
 

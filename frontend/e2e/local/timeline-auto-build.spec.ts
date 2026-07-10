@@ -22,9 +22,7 @@ async function createTimelineAndCommit(page: Page): Promise<string> {
   await nameInput.fill('Auto Build Timeline');
   await page.getByTestId('create-element-button').click();
 
-  await expect(
-    page.getByTestId('element-Auto Build Timeline')
-  ).toBeVisible();
+  await expect(page.getByTestId('element-Auto Build Timeline')).toBeVisible();
 
   await expect(page.getByTestId('timeline-setup')).toBeVisible();
 
@@ -117,7 +115,9 @@ test.describe('Timeline Auto-Build from Elements', () => {
       const titleInput = page.getByTestId('timeline-event-title');
       await titleInput.waitFor({ state: 'visible' });
       await titleInput.fill('Manual Event');
-      await page.getByTestId('timeline-event-start-date').fill('1200-01-01');
+      const dateInput = page.getByTestId('timeline-event-start-date');
+      await dateInput.waitFor({ state: 'visible' });
+      await dateInput.fill('1200-01-01');
       await expect(page.getByTestId('timeline-event-save')).toBeEnabled();
       await page.getByTestId('timeline-event-save').click();
 
