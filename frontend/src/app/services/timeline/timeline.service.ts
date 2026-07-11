@@ -396,12 +396,7 @@ export class TimelineService {
       const summary = { created: 0, updated: 0, removed: 0, skipped: 0 };
       const keyOf = (elementId: string, fieldKey: string) =>
         `${elementId}::${fieldKey}`;
-      const autoByKey = new Map<string, TimelineEvent>();
-      for (const ev of config.events) {
-        if (ev.source === 'auto' && ev.linkedElementId && ev.sourceFieldKey) {
-          autoByKey.set(keyOf(ev.linkedElementId, ev.sourceFieldKey), ev);
-        }
-      }
+      const autoByKey = buildAutoEventIndex(config.events, keyOf);
       const seenKeys = new Set<string>();
       const generatedEvents: TimelineEvent[] = [];
 
@@ -422,59 +417,26 @@ export class TimelineService {
         );
         if (!data) continue;
 
-        for (const field of dateFields) {
-          const raw = readNestedValue(data, field.key);
-          if (raw === null || raw === undefined || raw === '') {
-            continue;
-          }
-          if (typeof raw !== 'string') {
-            summary.skipped++;
-            continue;
-          }
-          const point = parseTimePoint(raw, system);
-          if (!point) {
-            summary.skipped++;
-            continue;
-          }
-          const normalized = normalizeTimePoint(point, system) ?? point;
-          const key = keyOf(element.id, field.key);
-          seenKeys.add(key);
-          const existing = autoByKey.get(key);
-          const title = `${element.name}: ${field.label}`;
-          if (existing) {
-            generatedEvents.push({
-              ...existing,
-              start: normalized,
-              title,
-            });
-            summary.updated++;
-          } else {
-            generatedEvents.push({
-              id: nanoid(),
-              trackId: config.tracks[0]?.id ?? '',
-              start: normalized,
-              title,
-              linkedElementId: element.id,
-              source: 'auto' as const,
-              sourceFieldKey: field.key,
-            });
-            summary.created++;
-          }
-        }
+        processDateFields(
+          element,
+          dateFields,
+          data,
+          system,
+          config,
+          autoByKey,
+          keyOf,
+          seenKeys,
+          generatedEvents,
+          summary
+        );
       }
 
-      for (const [key, _ev] of autoByKey) {
-        if (!seenKeys.has(key)) {
-          summary.removed++;
-        }
-      }
+      countStaleRemovals(autoByKey, seenKeys, summary);
 
       const currentConfig = this.activeConfigSignal();
       if (!currentConfig) return summary;
 
-      const manualEvents = currentConfig.events.filter(
-        ev => !(ev.source === 'auto' && ev.linkedElementId && ev.sourceFieldKey)
-      );
+      const manualEvents = currentConfig.events.filter(isManualEvent);
 
       this.saveConfig({
         ...currentConfig,
@@ -529,4 +491,91 @@ function readNestedValue(data: Record<string, unknown>, key: string): unknown {
     current = (current as Record<string, unknown>)[part] ?? null;
   }
   return current;
+}
+
+function isAutoEvent(ev: TimelineEvent): boolean {
+  return ev.source === 'auto' && !!ev.linkedElementId && !!ev.sourceFieldKey;
+}
+
+function isManualEvent(ev: TimelineEvent): boolean {
+  return !isAutoEvent(ev);
+}
+
+function buildAutoEventIndex(
+  events: readonly TimelineEvent[],
+  keyOf: (elementId: string, fieldKey: string) => string
+): Map<string, TimelineEvent> {
+  const map = new Map<string, TimelineEvent>();
+  for (const ev of events) {
+    if (isAutoEvent(ev)) {
+      map.set(keyOf(ev.linkedElementId!, ev.sourceFieldKey!), ev);
+    }
+  }
+  return map;
+}
+
+function countStaleRemovals(
+  autoByKey: ReadonlyMap<string, TimelineEvent>,
+  seenKeys: ReadonlySet<string>,
+  summary: { removed: number }
+): void {
+  for (const key of autoByKey.keys()) {
+    if (!seenKeys.has(key)) {
+      summary.removed++;
+    }
+  }
+}
+
+interface AutoBuildSummary {
+  created: number;
+  updated: number;
+  removed: number;
+  skipped: number;
+}
+
+function processDateFields(
+  element: { id: string; name: string },
+  dateFields: readonly FieldSchema[],
+  data: Record<string, unknown>,
+  system: TimeSystem,
+  config: TimelineConfig,
+  autoByKey: ReadonlyMap<string, TimelineEvent>,
+  keyOf: (elementId: string, fieldKey: string) => string,
+  seenKeys: Set<string>,
+  generatedEvents: TimelineEvent[],
+  summary: AutoBuildSummary
+): void {
+  for (const field of dateFields) {
+    const raw = readNestedValue(data, field.key);
+    if (raw === null || raw === undefined || raw === '') continue;
+    if (typeof raw !== 'string') {
+      summary.skipped++;
+      continue;
+    }
+    const point = parseTimePoint(raw, system);
+    if (!point) {
+      summary.skipped++;
+      continue;
+    }
+    const normalized = normalizeTimePoint(point, system) ?? point;
+    const key = keyOf(element.id, field.key);
+    seenKeys.add(key);
+    const existing = autoByKey.get(key);
+    const title = `${element.name}: ${field.label}`;
+    if (existing) {
+      generatedEvents.push({ ...existing, start: normalized, title });
+      summary.updated++;
+    } else {
+      generatedEvents.push({
+        id: nanoid(),
+        trackId: config.tracks[0]?.id ?? '',
+        start: normalized,
+        title,
+        linkedElementId: element.id,
+        source: 'auto' as const,
+        sourceFieldKey: field.key,
+      });
+      summary.created++;
+    }
+  }
 }
