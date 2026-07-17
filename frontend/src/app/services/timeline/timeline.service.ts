@@ -426,12 +426,7 @@ export class TimelineService {
         );
         if (!data) continue;
 
-        processDateFields(
-          element,
-          dateFields,
-          data,
-          ctx
-        );
+        processDateFields(element, dateFields, data, ctx);
       }
 
       countStaleRemovals(autoByKey, seenKeys, summary);
@@ -552,8 +547,15 @@ function processDateFields(
   data: Record<string, unknown>,
   ctx: AutoBuildContext
 ): void {
-  const { system, config, autoByKey, keyOf, seenKeys, generatedEvents, summary } =
-    ctx;
+  const {
+    system,
+    config,
+    autoByKey,
+    keyOf,
+    seenKeys,
+    generatedEvents,
+    summary,
+  } = ctx;
   for (const field of dateFields) {
     const raw = readNestedValue(data, field.key);
     if (raw === null || raw === undefined || raw === '') continue;
