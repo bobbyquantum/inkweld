@@ -12,7 +12,7 @@
       data-testid="canvas-text-input"
       placeholder="Enter text"></textarea>
     @if (form.text().touched() && form.text().invalid()) {
-      @for (error of form.text().errors(); track error) {
+      @for (error of form.text().errors(); track error.message) {
         <mat-error>{{ error.message }}</mat-error>
       }
     }

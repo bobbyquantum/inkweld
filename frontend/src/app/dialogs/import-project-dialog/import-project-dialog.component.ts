@@ -4,6 +4,7 @@ import {
   computed,
   effect,
   inject,
+  onCleanup,
   signal,
 } from '@angular/core';
 import {
@@ -142,17 +143,18 @@ export class ImportProjectDialogComponent {
       const slug = this.form.slug().value();
       const staticallyValid =
         slug.length >= 3 && slug.length <= 50 && SLUG_PATTERN.test(slug);
+      // Clear stale validation result immediately on any slug change
+      this.validationResult.set(null);
+      if (this.slugTaken()) {
+        this.slugTaken.set(false);
+      }
       if (!staticallyValid) {
-        this.validationResult.set(null);
-        if (this.slugTaken()) {
-          this.slugTaken.set(false);
-        }
         return;
       }
       const timer = setTimeout(() => {
         this.validateSlugAvailability(slug);
       }, 300);
-      return () => clearTimeout(timer);
+      onCleanup(() => clearTimeout(timer));
     });
   }
 

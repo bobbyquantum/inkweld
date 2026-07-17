@@ -20,7 +20,7 @@
         aria-label="Snapshot name" />
       <mat-hint>If left blank, uses current date-time</mat-hint>
       @if (form.name().touched() && form.name().invalid()) {
-        @for (error of form.name().errors(); track error) {
+        @for (error of form.name().errors(); track error.message) {
           <mat-error>{{ error.message }}</mat-error>
         }
       }
@@ -37,7 +37,7 @@
         id="snapshot-description-input"
         aria-label="Description"></textarea>
       @if (form.description().touched() && form.description().invalid()) {
-        @for (error of form.description().errors(); track error) {
+        @for (error of form.description().errors(); track error.message) {
           <mat-error>{{ error.message }}</mat-error>
         }
       }

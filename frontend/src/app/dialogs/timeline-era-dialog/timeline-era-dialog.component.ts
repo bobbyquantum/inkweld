@@ -159,8 +159,12 @@ export class TimelineEraDialogComponent {
   });
 
   constructor() {
-    this.startDateSignal.set(this.unitsToIsoDate('start'));
-    this.endDateSignal.set(this.unitsToIsoDate('end'));
+    // Derive ISO date strings reactively from model() so unit edits
+    // recompute the date fields instead of reading stale data/defaults
+    effect(() => {
+      this.startDateSignal.set(this.unitsToIsoDateFromModel('start'));
+      this.endDateSignal.set(this.unitsToIsoDateFromModel('end'));
+    });
   }
 
   protected onStartDateChange(event: Event): void {
@@ -182,6 +186,21 @@ export class TimelineEraDialogComponent {
         : (this.data.era?.end ?? this.data.defaultEnd);
     if (source?.units.length !== 3) return '';
     const [y, m, d] = source.units.map(Number);
+    if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
+      return '';
+    }
+    const yy = String(y).padStart(4, '0');
+    const mm = String(Math.max(1, m)).padStart(2, '0');
+    const dd = String(Math.max(1, d)).padStart(2, '0');
+    return `${yy}-${mm}-${dd}`;
+  }
+
+  private unitsToIsoDateFromModel(which: 'start' | 'end'): string {
+    if (!this.isGregorian()) return '';
+    const units =
+      which === 'start' ? this.model().startUnits : this.model().endUnits;
+    if (units.length !== 3) return '';
+    const [y, m, d] = units.map(Number);
     if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
       return '';
     }

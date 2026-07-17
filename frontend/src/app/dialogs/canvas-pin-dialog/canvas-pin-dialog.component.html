@@ -15,7 +15,7 @@
       data-testid="canvas-pin-label-input"
       placeholder="Enter pin label" />
     @if (form.label().touched() && form.label().invalid()) {
-      @for (error of form.label().errors(); track error) {
+      @for (error of form.label().errors(); track error.message) {
         <mat-error>{{ error.message }}</mat-error>
       }
     }

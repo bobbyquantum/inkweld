@@ -75,7 +75,7 @@
               id="edit-project-title-input"
               aria-label="Title" />
             @if (form.title().touched() && form.title().invalid()) {
-              @for (error of form.title().errors(); track error) {
+              @for (error of form.title().errors(); track error.message) {
                 <mat-error>{{ error.message }}</mat-error>
               }
             }

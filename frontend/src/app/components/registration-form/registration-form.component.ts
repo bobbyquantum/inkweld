@@ -339,12 +339,20 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       this.form.username().value();
       // Only reset to unknown if we are not in the middle of an async check
       this.usernameAvailability = 'unknown';
+      // Clear server validation flag when user edits the field
+      if (this.usernameServerInvalid()) {
+        this.usernameServerInvalid.set(false);
+      }
     });
 
     // Update password requirements when password changes
     effect(() => {
       const password = this.form.password().value();
       this.updatePasswordRequirements(password);
+      // Clear server validation flag when user edits the field
+      if (this.passwordServerInvalid()) {
+        this.passwordServerInvalid.set(false);
+      }
     });
 
     // Clear general server errors when user modifies any field
@@ -559,6 +567,10 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     if (takenErr) {
       return 'Username already taken. Please choose another.';
     }
+    // Return server validation error if flag is set
+    if (this.usernameServerInvalid()) {
+      return this.serverValidationErrors['username']?.[0] ?? '';
+    }
     return '';
   }
 
@@ -581,6 +593,10 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     }
     if (errors.some(e => e.kind === 'special')) {
       return 'Password must contain at least one special character (@$!%*?&)';
+    }
+    // Return server validation error if flag is set
+    if (this.passwordServerInvalid()) {
+      return this.serverValidationErrors['password']?.[0] ?? '';
     }
     return '';
   }
