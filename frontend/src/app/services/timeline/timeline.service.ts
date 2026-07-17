@@ -399,6 +399,15 @@ export class TimelineService {
       const autoByKey = buildAutoEventIndex(config.events, keyOf);
       const seenKeys = new Set<string>();
       const generatedEvents: TimelineEvent[] = [];
+      const ctx: AutoBuildContext = {
+        system,
+        config,
+        autoByKey,
+        keyOf,
+        seenKeys,
+        generatedEvents,
+        summary,
+      };
 
       for (const element of worldbuildingElements) {
         const schema = await this.worldbuilding.getSchemaForElement(
@@ -421,13 +430,7 @@ export class TimelineService {
           element,
           dateFields,
           data,
-          system,
-          config,
-          autoByKey,
-          keyOf,
-          seenKeys,
-          generatedEvents,
-          summary
+          ctx
         );
       }
 
@@ -533,18 +536,24 @@ interface AutoBuildSummary {
   skipped: number;
 }
 
+interface AutoBuildContext {
+  system: TimeSystem;
+  config: TimelineConfig;
+  autoByKey: ReadonlyMap<string, TimelineEvent>;
+  keyOf: (elementId: string, fieldKey: string) => string;
+  seenKeys: Set<string>;
+  generatedEvents: TimelineEvent[];
+  summary: AutoBuildSummary;
+}
+
 function processDateFields(
   element: { id: string; name: string },
   dateFields: readonly FieldSchema[],
   data: Record<string, unknown>,
-  system: TimeSystem,
-  config: TimelineConfig,
-  autoByKey: ReadonlyMap<string, TimelineEvent>,
-  keyOf: (elementId: string, fieldKey: string) => string,
-  seenKeys: Set<string>,
-  generatedEvents: TimelineEvent[],
-  summary: AutoBuildSummary
+  ctx: AutoBuildContext
 ): void {
+  const { system, config, autoByKey, keyOf, seenKeys, generatedEvents, summary } =
+    ctx;
   for (const field of dateFields) {
     const raw = readNestedValue(data, field.key);
     if (raw === null || raw === undefined || raw === '') continue;
