@@ -38,15 +38,15 @@
                   matInput
                   id="home-mobile-search-input"
                   placeholder="Search projects"
-                  [formControl]="searchControl"
+                  [formField]="searchForm.search"
                   aria-label="Search projects" />
                 <mat-icon matPrefix>search</mat-icon>
-                @if (searchControl.value) {
+                @if (searchForm.search().value()) {
                   <button
                     matSuffix
                     mat-icon-button
                     aria-label="Clear"
-                    (click)="searchControl.setValue('')">
+                    (click)="searchForm.search().value.set('')">
                     <mat-icon>close</mat-icon>
                   </button>
                 }
@@ -86,15 +86,15 @@
                     matInput
                     id="home-desktop-search-input"
                     placeholder="Search projects"
-                    [formControl]="searchControl"
+                    [formField]="searchForm.search"
                     aria-label="Search projects" />
                   <mat-icon matPrefix>search</mat-icon>
-                  @if (searchControl.value) {
+                  @if (searchForm.search().value()) {
                     <button
                       matSuffix
                       mat-icon-button
                       aria-label="Clear"
-                      (click)="searchControl.setValue('')">
+                      (click)="searchForm.search().value.set('')">
                       <mat-icon>close</mat-icon>
                     </button>
                   }
@@ -332,7 +332,7 @@
             <!-- Collaborated Projects Section -->
 
             <!-- All Projects Section (owned + shared) -->
-            @if (allProjects().length === 0 && !searchControl.value) {
+            @if (allProjects().length === 0 && !searchForm.search().value()) {
               <div class="empty-state" data-testid="empty-state">
                 <h2>Create Your First Project</h2>
                 <p>Get started by creating a new project or importing one</p>
@@ -351,7 +351,9 @@
                   </button>
                 </div>
               </div>
-            } @else if (allProjects().length === 0 && searchControl.value) {
+            } @else if (
+              allProjects().length === 0 && searchForm.search().value()
+            ) {
               <div class="empty-search-results">
                 <mat-icon>search_off</mat-icon>
                 <h3>No projects found</h3>

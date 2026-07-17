@@ -8,13 +8,13 @@
     </p>
   }
 
-  <form [formGroup]="form" (ngSubmit)="onConfirm()">
+  <form (ngSubmit)="onConfirm()">
     @if (!hasSelection) {
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Link text</mat-label>
         <input
           matInput
-          formControlName="linkText"
+          [formField]="form.linkText"
           cdkFocusInitial
           placeholder="e.g. Click here"
           autocomplete="off"
@@ -22,8 +22,10 @@
           id="insert-link-text-input"
           aria-label="Link text"
           data-testid="link-text-input" />
-        @if (linkTextControl.hasError('required') && linkTextControl.touched) {
-          <mat-error>Link text is required</mat-error>
+        @if (form.linkText().touched() && form.linkText().invalid()) {
+          @for (error of form.linkText().errors(); track error) {
+            <mat-error>{{ error.message }}</mat-error>
+          }
         }
       </mat-form-field>
     }
@@ -32,7 +34,7 @@
       <mat-label>URL</mat-label>
       <input
         matInput
-        formControlName="href"
+        [formField]="form.href"
         [attr.cdkFocusInitial]="hasSelection ? '' : null"
         placeholder="https://example.com"
         autocomplete="off"
@@ -41,14 +43,14 @@
         aria-label="URL"
         data-testid="link-url-input" />
       <mat-icon matSuffix>link</mat-icon>
-      @if (hrefControl.hasError('required') && hrefControl.touched) {
-        <mat-error>A URL is required</mat-error>
-      } @else if (hrefControl.hasError('invalidUrl') && hrefControl.touched) {
-        <mat-error>Enter a valid URL (e.g. https://example.com)</mat-error>
+      @if (form.href().touched() && form.href().invalid()) {
+        @for (error of form.href().errors(); track error) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
       }
     </mat-form-field>
 
-    <mat-checkbox formControlName="openInNewTab" data-testid="link-new-tab">
+    <mat-checkbox [formField]="form.openInNewTab" data-testid="link-new-tab">
       Open in new tab
     </mat-checkbox>
   </form>
@@ -72,7 +74,7 @@
   <button
     mat-flat-button
     color="primary"
-    [disabled]="!form.valid"
+    [disabled]="form().invalid()"
     (click)="onConfirm()"
     data-testid="link-confirm-button">
     {{ isEditing ? 'Update' : 'Insert' }}

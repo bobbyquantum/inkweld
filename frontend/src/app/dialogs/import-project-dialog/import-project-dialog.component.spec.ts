@@ -125,8 +125,8 @@ describe('ImportProjectDialogComponent', () => {
       expect(component.step()).toBe('file-select');
     });
 
-    it('should initialize slug control', () => {
-      expect(component.slugControl).toBeDefined();
+    it('should initialize slug form field', () => {
+      expect(component.form.slug).toBeDefined();
     });
   });
 
@@ -169,7 +169,6 @@ describe('ImportProjectDialogComponent', () => {
 
       component.onDrop(event);
 
-      // Wait for async processing
       await vi.waitFor(() => {
         expect(importService.previewArchive).toHaveBeenCalledWith(file);
       });
@@ -255,7 +254,6 @@ describe('ImportProjectDialogComponent', () => {
 
   describe('slug validation', () => {
     beforeEach(async () => {
-      // First navigate to configure step
       const file = new File(['test'], 'test.zip', { type: 'application/zip' });
       const input = { files: [file] } as unknown as HTMLInputElement;
       const event = { target: input } as unknown as Event;
@@ -264,28 +262,38 @@ describe('ImportProjectDialogComponent', () => {
     });
 
     it('should validate slug format', () => {
-      component.slugControl.setValue('INVALID');
+      component.form.slug().value.set('INVALID');
 
-      expect(component.slugControl.invalid).toBe(true);
+      expect(component.form.slug().invalid()).toBe(true);
     });
 
     it('should require minimum length', () => {
-      component.slugControl.setValue('ab');
+      component.form.slug().value.set('ab');
 
-      expect(component.slugControl.hasError('minlength')).toBe(true);
+      expect(
+        component.form
+          .slug()
+          .errors()
+          .some(e => e.kind === 'minLength')
+      ).toBe(true);
     });
 
     it('should require maximum length', () => {
-      component.slugControl.setValue('a'.repeat(51));
+      component.form.slug().value.set('a'.repeat(51));
 
-      expect(component.slugControl.hasError('maxlength')).toBe(true);
+      expect(
+        component.form
+          .slug()
+          .errors()
+          .some(e => e.kind === 'maxLength')
+      ).toBe(true);
     });
 
     it('should validate slug availability on change', async () => {
       vi.useFakeTimers();
       try {
-        component.slugControl.setValue('valid-slug');
-        await vi.advanceTimersByTimeAsync(350); // Wait for debounce
+        component.form.slug().value.set('valid-slug');
+        await vi.advanceTimersByTimeAsync(350);
 
         expect(importService.validateSlug).toHaveBeenCalledWith(
           'valid-slug',
@@ -305,10 +313,15 @@ describe('ImportProjectDialogComponent', () => {
           error: 'Slug already exists',
         });
 
-        component.slugControl.setValue('taken-slug');
+        component.form.slug().value.set('taken-slug');
         await vi.advanceTimersByTimeAsync(350);
 
-        expect(component.slugControl.hasError('slugTaken')).toBe(true);
+        expect(
+          component.form
+            .slug()
+            .errors()
+            .some(e => e.kind === 'slugTaken')
+        ).toBe(true);
       } finally {
         vi.useRealTimers();
       }
@@ -325,13 +338,13 @@ describe('ImportProjectDialogComponent', () => {
     });
 
     it('should return false when slug is invalid', () => {
-      component.slugControl.setValue('');
+      component.form.slug().value.set('');
 
       expect(component.canImport()).toBe(false);
     });
 
     it('should return false when validating', () => {
-      component.slugControl.setValue('valid-slug');
+      component.form.slug().value.set('valid-slug');
       component.isValidating.set(true);
 
       expect(component.canImport()).toBe(false);
@@ -345,7 +358,7 @@ describe('ImportProjectDialogComponent', () => {
           available: false,
           error: 'Already exists',
         });
-        component.slugControl.setValue('taken-slug');
+        component.form.slug().value.set('taken-slug');
         await vi.advanceTimersByTimeAsync(350);
 
         expect(component.canImport()).toBe(false);
@@ -361,7 +374,7 @@ describe('ImportProjectDialogComponent', () => {
           valid: true,
           available: true,
         });
-        component.slugControl.setValue('valid-slug');
+        component.form.slug().value.set('valid-slug');
         await vi.advanceTimersByTimeAsync(350);
 
         expect(component.canImport()).toBe(true);
@@ -385,7 +398,7 @@ describe('ImportProjectDialogComponent', () => {
         valid: true,
         available: true,
       });
-      component.slugControl.setValue('my-project');
+      component.form.slug().value.set('my-project');
       component.validationResult.set({ available: true });
 
       await component.onStartImport();
@@ -398,7 +411,7 @@ describe('ImportProjectDialogComponent', () => {
         valid: true,
         available: true,
       });
-      component.slugControl.setValue('my-project');
+      component.form.slug().value.set('my-project');
       component.validationResult.set({ available: true });
 
       const importPromise = component.onStartImport();
@@ -412,7 +425,7 @@ describe('ImportProjectDialogComponent', () => {
         valid: true,
         available: true,
       });
-      component.slugControl.setValue('my-project');
+      component.form.slug().value.set('my-project');
       component.validationResult.set({ available: true });
 
       await component.onStartImport();
@@ -427,7 +440,7 @@ describe('ImportProjectDialogComponent', () => {
         valid: true,
         available: true,
       });
-      component.slugControl.setValue('my-project');
+      component.form.slug().value.set('my-project');
       component.validationResult.set({ available: true });
 
       await component.onStartImport();
@@ -437,7 +450,7 @@ describe('ImportProjectDialogComponent', () => {
     });
 
     it('should not start import if canImport is false', async () => {
-      component.slugControl.setValue('');
+      component.form.slug().value.set('');
 
       await component.onStartImport();
 
@@ -495,7 +508,7 @@ describe('ImportProjectDialogComponent', () => {
         valid: true,
         available: true,
       });
-      component.slugControl.setValue('my-project');
+      component.form.slug().value.set('my-project');
       component.validationResult.set({ available: true });
 
       await component.onStartImport();
@@ -520,7 +533,7 @@ describe('ImportProjectDialogComponent', () => {
         valid: true,
         available: true,
       });
-      component.slugControl.setValue('my-project');
+      component.form.slug().value.set('my-project');
       component.validationResult.set({ available: true });
 
       await component.onStartImport();
@@ -547,7 +560,6 @@ describe('ImportProjectDialogComponent', () => {
       const invalidDate = 'not a date';
       const result = component.formatDate(invalidDate);
 
-      // Either returns the original string or 'Invalid Date' depending on locale
       expect(typeof result).toBe('string');
     });
   });

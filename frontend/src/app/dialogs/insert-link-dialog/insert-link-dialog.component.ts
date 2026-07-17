@@ -1,12 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import {
-  type AbstractControl,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  type ValidationErrors,
-  Validators,
-} from '@angular/forms';
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
+import { FormField, form, required, validate } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import {
@@ -44,21 +42,10 @@ export interface InsertLinkDialogResult {
 /** Safe protocol allow-list for link URLs */
 const ALLOWED_PROTOCOLS = new Set(['http', 'https', 'mailto', 'tel']);
 
-/** Validates that the value looks like a safe URL (blocks javascript: etc.) */
-function urlValidator(control: AbstractControl): ValidationErrors | null {
-  const value = String(control.value ?? '').trim();
-  if (!value) return null; // required handles empty
-
-  // Allow root-relative paths (/foo) and same-page anchors (#section)
-  const isRelative = /^\/(?!\/)/.test(value) || value.startsWith('#');
-  if (isRelative) return null;
-
-  // Require an explicit protocol from the allow-list
-  const protocolMatch = /^([a-zA-Z][a-zA-Z\d+\-.]*):/u.exec(value);
-  const isAllowedProtocol =
-    !!protocolMatch && ALLOWED_PROTOCOLS.has(protocolMatch[1].toLowerCase());
-
-  return isAllowedProtocol ? null : { invalidUrl: true };
+interface InsertLinkFormValue {
+  linkText: string;
+  href: string;
+  openInNewTab: boolean;
 }
 
 @Component({
@@ -67,13 +54,13 @@ function urlValidator(control: AbstractControl): ValidationErrors | null {
   styleUrls: ['./insert-link-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    FormField,
     MatDialogModule,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
     MatCheckboxModule,
-    ReactiveFormsModule,
   ],
 })
 export class InsertLinkDialogComponent {
@@ -91,25 +78,47 @@ export class InsertLinkDialogComponent {
    */
   protected readonly hasSelection = !!this.data.selectedText;
 
-  protected readonly form = new FormGroup({
-    linkText: new FormControl(
-      '',
-      // Only required when there's no pre-existing selection
-      this.hasSelection ? [] : [Validators.required]
-    ),
-    href: new FormControl(this.data.existingHref ?? 'https://', [
-      Validators.required,
-      urlValidator,
-    ]),
-    openInNewTab: new FormControl(true),
+  readonly model = signal<InsertLinkFormValue>({
+    linkText: '',
+    href: this.data.existingHref ?? 'https://',
+    openInNewTab: true,
   });
 
-  get hrefControl(): FormControl {
-    return this.form.controls.href;
+  readonly form = form(this.model, schemaPath => {
+    // Only required when there's no pre-existing selection
+    if (!this.hasSelection) {
+      required(schemaPath.linkText, { message: 'Link text is required' });
+    }
+    required(schemaPath.href, { message: 'A URL is required' });
+    validate(schemaPath.href, ({ value }) => {
+      const v = String(value() ?? '').trim();
+      if (!v) return null; // required handles empty
+
+      // Allow root-relative paths (/foo) and same-page anchors (#section)
+      const isRelative = /^\/(?!\/)/.test(v) || v.startsWith('#');
+      if (isRelative) return null;
+
+      // Require an explicit protocol from the allow-list
+      const protocolMatch = /^([a-zA-Z][a-zA-Z\d+\-.]*):/u.exec(v);
+      const isAllowedProtocol =
+        !!protocolMatch &&
+        ALLOWED_PROTOCOLS.has(protocolMatch[1].toLowerCase());
+
+      return isAllowedProtocol
+        ? null
+        : {
+            kind: 'invalidUrl',
+            message: 'Enter a valid URL (e.g. https://example.com)',
+          };
+    });
+  });
+
+  get hrefControl() {
+    return this.form.href();
   }
 
-  get linkTextControl(): FormControl {
-    return this.form.controls.linkText;
+  get linkTextControl() {
+    return this.form.linkText();
   }
 
   onCancel(): void {
@@ -117,15 +126,15 @@ export class InsertLinkDialogComponent {
   }
 
   onConfirm(): void {
-    if (this.form.valid) {
-      const href = String(this.hrefControl.value ?? '').trim();
+    if (this.form().valid()) {
+      const href = String(this.model().href ?? '').trim();
       const linkText = this.hasSelection
         ? undefined
-        : String(this.linkTextControl.value ?? '').trim();
+        : String(this.model().linkText ?? '').trim();
 
       this.dialogRef.close({
         href,
-        openInNewTab: this.form.controls.openInNewTab.value ?? true,
+        openInNewTab: this.model().openInNewTab ?? true,
         linkText,
       });
     }

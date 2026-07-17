@@ -10,7 +10,6 @@ import { KeyValuePipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   effect,
   ElementRef,
@@ -26,14 +25,14 @@ import {
   ViewContainerRef,
 } from '@angular/core';
 import {
-  type AbstractControl,
-  FormBuilder,
-  FormsModule,
-  ReactiveFormsModule,
-  type ValidationErrors,
-  type ValidatorFn,
-  Validators,
-} from '@angular/forms';
+  FormField,
+  applyWhen,
+  email,
+  form,
+  minLength,
+  required,
+  validate,
+} from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -49,8 +48,7 @@ import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
-import { firstValueFrom, Subject, takeUntil } from 'rxjs';
-import { startWith } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
 
 /**
  * Result of a successful registration
@@ -68,6 +66,14 @@ export interface RegistrationResult {
    */
   enrolmentToken?: string;
   requiresApproval: boolean;
+}
+
+interface RegistrationFormValue {
+  username: string;
+  displayName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
 }
 
 /**
@@ -94,8 +100,7 @@ export interface RegistrationResult {
 @Component({
   selector: 'app-registration-form',
   imports: [
-    FormsModule,
-    ReactiveFormsModule,
+    FormField,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
@@ -114,12 +119,10 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   private readonly authTokenService = inject(AuthTokenService);
   private readonly userService = inject(UserService);
   private readonly snackBar = inject(MatSnackBar);
-  private readonly fb = inject(FormBuilder).nonNullable;
   private readonly setupService = inject(SetupService);
   private readonly overlay = inject(Overlay);
   private readonly overlayPositionBuilder = inject(OverlayPositionBuilder);
   private readonly viewContainerRef = inject(ViewContainerRef);
-  private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly systemConfig = inject(SystemConfigService);
 
   readonly isRequireEmail = this.systemConfig.isRequireEmailEnabled;
@@ -193,35 +196,81 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   @ViewChild('passwordTooltipTemplate', { static: false })
   passwordTooltipTemplate?: TemplateRef<unknown>;
 
-  // Form interface
-  readonly registerForm = this.fb.group(
-    {
-      username: this.fb.control('', {
-        validators: [Validators.required, Validators.minLength(3)],
-      }),
-      displayName: this.fb.control(''),
-      email: this.fb.control('', {
-        validators: [Validators.email],
-      }),
-      password: this.fb.control('', {
-        validators: [Validators.required, this.createPasswordValidator()],
-      }),
-      confirmPassword: this.fb.control('', {
-        validators: [
-          Validators.required,
-          this.createConfirmPasswordValidator(),
-        ],
-      }),
-    },
-    {
-      validators: [this.passwordMatchValidator],
-    }
-  );
+  readonly model = signal<RegistrationFormValue>({
+    username: '',
+    displayName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+
+  /** Set by the async username availability check when the username is taken. */
+  private readonly usernameTaken = signal(false);
+  /** Set when a server validation error has been applied to a field. */
+  private readonly usernameServerInvalid = signal(false);
+  private readonly passwordServerInvalid = signal(false);
+
+  readonly form = form(this.model, schemaPath => {
+    required(schemaPath.username, { message: 'Username is required' });
+    minLength(schemaPath.username, 3, {
+      message: 'Username must be at least 3 characters',
+    });
+    validate(schemaPath.username, () =>
+      this.usernameTaken()
+        ? {
+            kind: 'usernameTaken',
+            message: 'Username already taken. Please choose another.',
+          }
+        : null
+    );
+    validate(schemaPath.username, () =>
+      this.usernameServerInvalid()
+        ? { kind: 'serverValidation', message: 'Username already taken' }
+        : null
+    );
+    email(schemaPath.email, { message: 'Please enter a valid email address' });
+    required(schemaPath.email, {
+      message: 'Email address is required',
+      when: () => this.isRequireEmail(),
+    });
+
+    // Password validators only apply when password login is enabled.
+    // In passwordless mode the fields are hidden and the form must be
+    // submittable with empty password values.
+    applyWhen(
+      schemaPath.password,
+      () => this.isPasswordLoginEnabled(),
+      passwordPath => {
+        required(passwordPath, { message: 'Password is required' });
+        validate(passwordPath, () => this.passwordValidatorErrors());
+        validate(passwordPath, () =>
+          this.passwordServerInvalid()
+            ? { kind: 'serverValidation', message: 'Password is too weak' }
+            : null
+        );
+      }
+    );
+
+    applyWhen(
+      schemaPath.confirmPassword,
+      () => this.isPasswordLoginEnabled(),
+      confirmPath => {
+        required(confirmPath, {
+          message: 'Please confirm your password',
+        });
+        validate(confirmPath, ({ value, valueOf }) => {
+          const confirm = value();
+          if (!confirm) return null;
+          const password = valueOf(schemaPath.password);
+          return password && confirm !== password
+            ? { kind: 'passwordMismatch', message: 'Passwords do not match' }
+            : null;
+        });
+      }
+    );
+  });
 
   readonly isRegistering = signal(false);
-  // Signal-backed form validity for zoneless Angular CD — registerForm.statusChanges
-  // does not automatically trigger CD in zoneless mode.
-  readonly registerFormValid = signal(false);
   usernameSuggestions: string[] | undefined = [];
   usernameAvailability: 'available' | 'unavailable' | 'unknown' = 'unknown';
   serverValidationErrors: { [key: string]: string[] } = {};
@@ -261,8 +310,6 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     },
   };
 
-  private readonly destroy$ = new Subject<void>();
-
   constructor() {
     // Sync password requirement enabled flags when policy signal changes
     effect(() => {
@@ -275,33 +322,59 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       this.passwordRequirements['number'].enabled = p.requireNumber;
       this.passwordRequirements['special'].enabled = p.requireSymbol;
       // Re-validate if password has a value
-      const password = this.registerForm.get('password')?.value;
+      const password = this.model().password;
       if (password) {
         this.updatePasswordRequirements(password);
-        this.registerForm.get('password')?.updateValueAndValidity();
+      }
+    });
+
+    // Emit validity changes whenever form validity or registering state changes
+    effect(() => {
+      const isValid = this.form().valid();
+      this.validityChange.emit(isValid);
+    });
+
+    // Reset username availability state when the username changes
+    effect(() => {
+      this.form.username().value();
+      // Only reset to unknown if we are not in the middle of an async check
+      this.usernameAvailability = 'unknown';
+    });
+
+    // Update password requirements when password changes
+    effect(() => {
+      const password = this.form.password().value();
+      this.updatePasswordRequirements(password);
+    });
+
+    // Clear general server errors when user modifies any field
+    effect(() => {
+      this.model();
+      if (this.serverValidationErrors['general']) {
+        delete this.serverValidationErrors['general'];
       }
     });
   }
 
   get usernameControl() {
-    return this.registerForm.get('username');
+    return this.form.username;
   }
 
   get passwordControl() {
-    return this.registerForm.get('password');
+    return this.form.password;
   }
 
   get confirmPasswordControl() {
-    return this.registerForm.get('confirmPassword');
+    return this.form.confirmPassword;
   }
 
   get emailControl() {
-    return this.registerForm.get('email');
+    return this.form.email;
   }
 
   /** Check if the form is valid */
   get isValid(): boolean {
-    return this.registerForm.valid;
+    return this.form().valid();
   }
 
   /** Check if form is currently submitting */
@@ -310,58 +383,6 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Listen for value changes to reset validation states
-    this.registerForm
-      .get('username')
-      ?.valueChanges.pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.usernameAvailability = 'unknown';
-      });
-
-    // Listen for password changes to update requirements status
-    // and re-validate confirmPassword for match checking
-    this.registerForm
-      .get('password')
-      ?.valueChanges.pipe(takeUntil(this.destroy$))
-      .subscribe((password: string) => {
-        this.updatePasswordRequirements(password);
-        // Trigger confirmPassword validation when password changes
-        this.registerForm.get('confirmPassword')?.updateValueAndValidity();
-      });
-
-    // Emit validity changes
-    this.registerForm.statusChanges
-      .pipe(startWith(this.registerForm.status), takeUntil(this.destroy$))
-      .subscribe(() => {
-        const isValid = this.registerForm.valid;
-        this.validityChange.emit(isValid);
-        this.registerFormValid.set(isValid);
-      });
-
-    // Reactive Forms' valueChanges/statusChanges fire synchronously when
-    // setValue/patchValue is called, but in zoneless mode there is a window
-    // between an async validator (e.g. the username availability HTTP call
-    // that calls setErrors(null)) resolving and the next CD pass during
-    // which a click could see a stale [disabled] binding. Mirror the
-    // signal on every value change as well — cheap, idempotent.
-    this.registerForm.valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.registerFormValid.set(this.registerForm.valid);
-      });
-
-    // Clear general server errors when user modifies any field
-    this.registerForm.valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        if (this.serverValidationErrors['general']) {
-          delete this.serverValidationErrors['general'];
-        }
-      });
-
-    // Set email as required if REQUIRE_EMAIL is enabled
-    this.updateEmailRequiredValidator();
-
     // Strip password validators in passwordless mode so the form can submit
     // with empty password fields. Done once in ngOnInit (rather than reactively
     // via effect) because the flag is fixed for the lifetime of the dialog —
@@ -369,44 +390,13 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     // user re-opens the dialog, which is the safer UX (no surprise field
     // appearing/disappearing mid-flow).
     if (!this.isPasswordLoginEnabled()) {
-      this.passwordControl?.clearValidators();
-      this.passwordControl?.updateValueAndValidity();
-      this.confirmPasswordControl?.clearValidators();
-      this.confirmPasswordControl?.updateValueAndValidity();
-      // The cross-field passwordMatchValidator returns null when both are
-      // empty, so the form-level validator stays satisfied automatically.
+      // Clear password values so any leftover text doesn't submit.
+      this.model.update(m => ({ ...m, password: '', confirmPassword: '' }));
     }
-  }
-
-  /**
-   * Update the email field's required validator based on the REQUIRE_EMAIL config.
-   */
-  private updateEmailRequiredValidator(): void {
-    const emailControl = this.emailControl;
-    if (!emailControl) return;
-
-    if (this.isRequireEmail()) {
-      emailControl.setValidators([Validators.required, Validators.email]);
-    } else {
-      emailControl.setValidators([Validators.email]);
-    }
-    emailControl.updateValueAndValidity();
   }
 
   ngOnDestroy(): void {
     this.hidePasswordTooltip();
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
-  // Custom validator to check if passwords match
-  passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
-    const password = control.get('password')?.value as string;
-    const confirmPassword = control.get('confirmPassword')?.value as string;
-
-    return password && confirmPassword && password !== confirmPassword
-      ? { passwordMismatch: true }
-      : null;
   }
 
   isPasswordValid(): boolean {
@@ -416,7 +406,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   }
 
   selectSuggestion(suggestion: string): void {
-    this.registerForm.get('username')?.setValue(suggestion);
+    this.form.username().value.set(suggestion);
     this.usernameSuggestions = [];
     void this.checkUsernameAvailability();
   }
@@ -502,12 +492,12 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const username = this.registerForm.get('username')?.value as string;
+    const username = this.model().username;
 
     if (!username || username.length < 3) {
       this.usernameAvailability = 'unknown';
       this.usernameSuggestions = [];
-      this.changeDetectorRef.detectChanges();
+      this.usernameTaken.set(false);
       return;
     }
 
@@ -517,7 +507,6 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       if (!baseUrl) {
         // No server URL available, can't check
         this.usernameAvailability = 'unknown';
-        this.changeDetectorRef.detectChanges();
         return;
       }
       const checkUrl = `${baseUrl}/api/v1/users/check-username?username=${encodeURIComponent(
@@ -531,17 +520,13 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       if (response.available) {
         this.usernameAvailability = 'available';
         this.usernameSuggestions = [];
-        this.registerForm.get('username')?.setErrors(null);
+        this.usernameTaken.set(false);
       } else {
         this.usernameAvailability = 'unavailable';
         this.usernameSuggestions = response.suggestions || [];
         // Set error on the form control to trigger Material's error state
-        this.registerForm.get('username')?.setErrors({ usernameTaken: true });
+        this.usernameTaken.set(true);
       }
-      // setErrors() emits statusChanges but in zoneless mode the signal
-      // mirror may not flush before the next user interaction; sync it now.
-      this.registerFormValid.set(this.registerForm.valid);
-      this.changeDetectorRef.detectChanges();
     } catch (error: unknown) {
       this.usernameAvailability = 'unknown';
       this.usernameSuggestions = [];
@@ -556,69 +541,67 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
           duration: 3000,
         });
       }
-      this.changeDetectorRef.detectChanges();
     }
   }
 
   // Error message getters
   getUsernameErrorMessage(): string {
-    const control = this.usernameControl;
-    if (control?.hasError('required')) {
+    const errors = this.form.username().errors();
+    const requiredErr = errors.find(e => e.kind === 'required');
+    if (requiredErr) {
       return 'Username is required';
     }
-    if (control?.hasError('minlength')) {
+    const minLengthErr = errors.find(e => e.kind === 'minLength');
+    if (minLengthErr) {
       return 'Username must be at least 3 characters';
     }
-    if (control?.hasError('usernameTaken')) {
+    const takenErr = errors.find(e => e.kind === 'usernameTaken');
+    if (takenErr) {
       return 'Username already taken. Please choose another.';
     }
     return '';
   }
 
   getPasswordErrorMessage(): string {
-    const control = this.passwordControl;
-    if (control?.hasError('required')) {
+    const errors = this.form.password().errors();
+    if (errors.some(e => e.kind === 'required')) {
       return 'Password is required';
     }
-    if (control?.hasError('minlength')) {
+    if (errors.some(e => e.kind === 'minLength')) {
       return 'Password must be at least 8 characters';
     }
-    if (control?.hasError('uppercase')) {
+    if (errors.some(e => e.kind === 'uppercase')) {
       return 'Password must contain at least one uppercase letter';
     }
-    if (control?.hasError('lowercase')) {
+    if (errors.some(e => e.kind === 'lowercase')) {
       return 'Password must contain at least one lowercase letter';
     }
-    if (control?.hasError('number')) {
+    if (errors.some(e => e.kind === 'number')) {
       return 'Password must contain at least one number';
     }
-    if (control?.hasError('special')) {
+    if (errors.some(e => e.kind === 'special')) {
       return 'Password must contain at least one special character (@$!%*?&)';
     }
     return '';
   }
 
   getConfirmPasswordErrorMessage(): string {
-    const control = this.confirmPasswordControl;
-    if (control?.hasError('required')) {
+    const errors = this.form.confirmPassword().errors();
+    if (errors.some(e => e.kind === 'required')) {
       return 'Please confirm your password';
     }
-    // Check control-level error first, then form-level for backwards compatibility
-    if (
-      control?.hasError('passwordMismatch') ||
-      this.registerForm.hasError('passwordMismatch')
-    ) {
+    if (errors.some(e => e.kind === 'passwordMismatch')) {
       return 'Passwords do not match';
     }
     return '';
   }
 
   getEmailErrorMessage(): string {
-    const control = this.emailControl;
-    if (control?.hasError('required')) {
+    const errors = this.form.email().errors();
+    if (errors.some(e => e.kind === 'required')) {
       return 'Email address is required';
     }
-    if (control?.hasError('email')) {
+    if (errors.some(e => e.kind === 'email')) {
       return 'Please enter a valid email address';
     }
     return '';
@@ -634,13 +617,19 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   async submit(): Promise<void> {
     // Clear any previous server validation errors
     this.serverValidationErrors = {};
+    this.usernameServerInvalid.set(false);
+    this.passwordServerInvalid.set(false);
 
     // Mark all fields as touched to trigger validation display
-    this.registerForm.markAllAsTouched();
+    this.form().markAsTouched();
 
     // Check form validity before proceeding
-    if (this.registerForm.invalid) {
-      if (this.registerForm.hasError('passwordMismatch')) {
+    if (this.form().invalid()) {
+      const mismatch = this.form
+        .confirmPassword()
+        .errors()
+        .some(e => e.kind === 'passwordMismatch');
+      if (mismatch) {
         this.snackBar.open('Passwords do not match', 'Close', {
           duration: 3000,
         });
@@ -648,13 +637,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const formValues = this.registerForm.value as {
-      username: string;
-      password: string;
-      confirmPassword: string;
-      displayName: string;
-      email: string;
-    };
+    const formValues = this.model();
 
     const credentials: {
       username: string;
@@ -729,7 +712,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
    * Get the current form values
    */
   getFormValues(): { username: string; password: string } {
-    const values = this.registerForm.value;
+    const values = this.model();
     return {
       username: values.username ?? '',
       password: values.password ?? '',
@@ -740,10 +723,19 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
    * Reset the form to its initial state
    */
   reset(): void {
-    this.registerForm.reset();
+    this.model.set({
+      username: '',
+      displayName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    });
     this.usernameAvailability = 'unknown';
     this.usernameSuggestions = [];
     this.serverValidationErrors = {};
+    this.usernameTaken.set(false);
+    this.usernameServerInvalid.set(false);
+    this.passwordServerInvalid.set(false);
   }
 
   /**
@@ -760,7 +752,6 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
    */
   setError(error: string): void {
     this.serverValidationErrors = { general: [error] };
-    this.changeDetectorRef.detectChanges();
   }
 
   private handleRegistrationError(error: unknown): Error {
@@ -786,7 +777,6 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
         if ('error' in errorBody && typeof errorBody['error'] === 'string') {
           const message = errorBody['error'];
           this.serverValidationErrors = { general: [message] };
-          this.changeDetectorRef.detectChanges();
           return new Error(message);
         }
       }
@@ -797,64 +787,47 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     );
   }
 
-  private createPasswordValidator(): ValidatorFn {
-    return (control: AbstractControl): ValidationErrors | null => {
-      const password = control.value as string;
-      if (!password) {
-        return null;
-      }
-
-      const p = this.policy();
-      const errors: ValidationErrors = {};
-
-      if (password.length < p.minLength) {
-        errors['minLength'] = true;
-      }
-      if (p.requireUppercase && !/[A-Z]/.test(password)) {
-        errors['uppercase'] = true;
-      }
-      if (p.requireLowercase && !/[a-z]/.test(password)) {
-        errors['lowercase'] = true;
-      }
-      if (p.requireNumber && !/\d/.test(password)) {
-        errors['number'] = true;
-      }
-      if (p.requireSymbol && !/[@$!%*?&]/.test(password)) {
-        errors['special'] = true;
-      }
-
-      return Object.keys(errors).length === 0 ? null : errors;
-    };
-  }
-
-  private createConfirmPasswordValidator(): ValidatorFn {
-    return (control: AbstractControl): ValidationErrors | null => {
-      const confirmPassword = control.value as string;
-      if (!confirmPassword) {
-        return null; // Required validator handles empty case
-      }
-
-      // Get the password value from the parent group
-      const password = control.parent?.get('password')?.value as
-        | string
-        | undefined;
-
-      if (password && confirmPassword !== password) {
-        return { passwordMismatch: true };
-      }
-
+  private passwordValidatorErrors(): { kind: string; message: string } | null {
+    const password = this.model().password;
+    if (!password) {
       return null;
-    };
+    }
+
+    const p = this.policy();
+
+    if (password.length < p.minLength) {
+      return { kind: 'minLength', message: 'Password is too short' };
+    }
+    if (p.requireUppercase && !/[A-Z]/.test(password)) {
+      return {
+        kind: 'uppercase',
+        message: 'Password must contain at least one uppercase letter',
+      };
+    }
+    if (p.requireLowercase && !/[a-z]/.test(password)) {
+      return {
+        kind: 'lowercase',
+        message: 'Password must contain at least one lowercase letter',
+      };
+    }
+    if (p.requireNumber && !/\d/.test(password)) {
+      return {
+        kind: 'number',
+        message: 'Password must contain at least one number',
+      };
+    }
+    if (p.requireSymbol && !/[@$!%*?&]/.test(password)) {
+      return {
+        kind: 'special',
+        message:
+          'Password must contain at least one special character (@$!%*?&)',
+      };
+    }
+
+    return null;
   }
 
   private updatePasswordRequirements(password: string): void {
-    const oldState = Object.fromEntries(
-      Object.entries(this.passwordRequirements).map(([key, req]) => [
-        key,
-        req.met,
-      ])
-    );
-
     const p = this.policy();
     this.passwordRequirements['minLength'].met = password.length >= p.minLength;
     this.passwordRequirements['uppercase'].met = /[A-Z]/.test(password);
@@ -866,19 +839,6 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     this.passwordRequirements['lowercase'].enabled = p.requireLowercase;
     this.passwordRequirements['number'].enabled = p.requireNumber;
     this.passwordRequirements['special'].enabled = p.requireSymbol;
-
-    const newState = Object.fromEntries(
-      Object.entries(this.passwordRequirements).map(([key, req]) => [
-        key,
-        req.met,
-      ])
-    );
-
-    const hasChanged = JSON.stringify(oldState) !== JSON.stringify(newState);
-    if (hasChanged) {
-      // Trigger change detection for the overlay
-      this.changeDetectorRef.detectChanges();
-    }
   }
 
   // Handle server-side validation errors
@@ -886,13 +846,13 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     this.serverValidationErrors = errors;
 
     // Apply server errors to form controls
-    Object.keys(errors).forEach(field => {
-      const control = this.registerForm.get(field);
-      if (control) {
-        // Set the server-side error on the control
-        control.setErrors({ serverValidation: true });
-        control.markAsTouched();
-      }
-    });
+    if (errors['username']) {
+      this.usernameServerInvalid.set(true);
+      this.form.username().markAsTouched();
+    }
+    if (errors['password']) {
+      this.passwordServerInvalid.set(true);
+      this.form.password().markAsTouched();
+    }
   }
 }

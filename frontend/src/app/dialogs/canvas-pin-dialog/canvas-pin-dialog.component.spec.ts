@@ -57,7 +57,7 @@ describe('CanvasPinDialogComponent', () => {
   });
 
   it('should initialize label control with provided label', () => {
-    expect(component['labelControl'].value).toBe('Test Pin');
+    expect(component['form'].label().value()).toBe('Test Pin');
   });
 
   it('should initialize selected color', () => {
@@ -70,7 +70,7 @@ describe('CanvasPinDialogComponent', () => {
   });
 
   it('should close with result on confirm when valid', () => {
-    component['labelControl'].setValue('My Pin');
+    component['form'].label().value.set('My Pin');
     component['selectedColor'] = '#1E88E5';
     component['onConfirm']();
     expect(mockDialogRef.close).toHaveBeenCalledWith({
@@ -81,8 +81,7 @@ describe('CanvasPinDialogComponent', () => {
   });
 
   it('should not close on confirm when label is empty', () => {
-    component['labelControl'].setValue('');
-    component['labelControl'].markAsTouched();
+    component['form'].label().value.set('');
     component['onConfirm']();
     expect(mockDialogRef.close).not.toHaveBeenCalled();
   });
@@ -111,7 +110,7 @@ describe('CanvasPinDialogComponent', () => {
   });
 
   it('should include linkedElementId in confirm result', () => {
-    component['labelControl'].setValue('Map Pin');
+    component['form'].label().value.set('Map Pin');
     component['selectedColor'] = '#E53935';
     component['linkedElementId'].set('el-456');
 

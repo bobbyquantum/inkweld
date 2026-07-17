@@ -49,7 +49,7 @@ describe('CanvasTextDialogComponent', () => {
   });
 
   it('should initialize text control with provided text', () => {
-    expect(component['textControl'].value).toBe('Hello');
+    expect(component['form'].text().value()).toBe('Hello');
   });
 
   it('should initialize selected color', () => {
@@ -62,7 +62,7 @@ describe('CanvasTextDialogComponent', () => {
   });
 
   it('should close with result on confirm when valid', () => {
-    component['textControl'].setValue('New text');
+    component['form'].text().value.set('New text');
     component['selectedColor'] = '#FF0000';
     component['onConfirm']();
     expect(mockDialogRef.close).toHaveBeenCalledWith({
@@ -72,8 +72,7 @@ describe('CanvasTextDialogComponent', () => {
   });
 
   it('should not close on confirm when text is empty', () => {
-    component['textControl'].setValue('');
-    component['textControl'].markAsTouched();
+    component['form'].text().value.set('');
     component['onConfirm']();
     expect(mockDialogRef.close).not.toHaveBeenCalled();
   });

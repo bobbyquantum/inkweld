@@ -9,13 +9,15 @@
       matInput
       id="canvas-pin-label-input"
       aria-label="Label"
-      [formControl]="labelControl"
+      [formField]="form.label"
       cdkFocusInitial
       (keyup.enter)="onConfirm()"
       data-testid="canvas-pin-label-input"
       placeholder="Enter pin label" />
-    @if (labelControl.hasError('required') && labelControl.touched) {
-      <mat-error>Label is required</mat-error>
+    @if (form.label().touched() && form.label().invalid()) {
+      @for (error of form.label().errors(); track error) {
+        <mat-error>{{ error.message }}</mat-error>
+      }
     }
   </mat-form-field>
 
@@ -56,7 +58,7 @@
     <div class="pin-preview" [style.background]="selectedColor">
       <mat-icon>place</mat-icon>
     </div>
-    <span class="preview-label">{{ labelControl.value || 'Pin' }}</span>
+    <span class="preview-label">{{ form.label().value() || 'Pin' }}</span>
     @if (linkedElementName()) {
       <mat-icon class="preview-link-icon" matTooltip="Linked to element"
         >link</mat-icon
@@ -69,7 +71,7 @@
   <button
     mat-button
     color="primary"
-    [disabled]="!labelControl.valid"
+    [disabled]="form().invalid()"
     data-testid="canvas-pin-confirm"
     (click)="onConfirm()">
     {{ data.confirmLabel || 'Place Pin' }}

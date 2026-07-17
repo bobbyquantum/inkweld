@@ -77,7 +77,7 @@
 
       <!-- Step 2: Project Details -->
       @if (step() === 2) {
-        <form [formGroup]="projectForm" (ngSubmit)="onSubmit()">
+        <form (ngSubmit)="onSubmit()">
           <mat-card-content>
             <div class="step-header">
               <h2>Project Details</h2>
@@ -89,17 +89,17 @@
               <input
                 matInput
                 id="project-title-input"
-                formControlName="title"
+                [formField]="projectForm.title"
                 title="Project Title"
                 placeholder="Title"
-                required
                 data-testid="project-title-input"
                 aria-label="Project title" />
               @if (
-                projectForm.get('title')?.hasError('required') &&
-                projectForm.get('title')?.touched
+                projectForm.title().touched() && projectForm.title().invalid()
               ) {
-                <mat-error>Title is required</mat-error>
+                @for (error of projectForm.title().errors(); track error) {
+                  <mat-error>{{ error.message }}</mat-error>
+                }
               }
             </mat-form-field>
 
@@ -108,25 +108,17 @@
               <input
                 matInput
                 id="project-slug-input"
-                formControlName="slug"
+                [formField]="projectForm.slug"
                 title="Project Slug"
                 placeholder="project-slug"
-                required
                 data-testid="project-slug-input"
                 aria-label="Project slug" />
               @if (
-                projectForm.get('slug')?.hasError('required') &&
-                projectForm.get('slug')?.touched
+                projectForm.slug().touched() && projectForm.slug().invalid()
               ) {
-                <mat-error>Slug is required</mat-error>
-              }
-              @if (
-                projectForm.get('slug')?.hasError('pattern') &&
-                projectForm.get('slug')?.touched
-              ) {
-                <mat-error>
-                  Slug can only contain lowercase letters, numbers, and hyphens
-                </mat-error>
+                @for (error of projectForm.slug().errors(); track error) {
+                  <mat-error>{{ error.message }}</mat-error>
+                }
               }
             </mat-form-field>
 
@@ -136,7 +128,7 @@
                 matInput
                 title="Project Description"
                 placeholder="Project Description"
-                formControlName="description"
+                [formField]="projectForm.description"
                 rows="4"
                 data-testid="project-description-input"
                 id="create-project-description-input"
@@ -169,7 +161,7 @@
               mat-raised-button
               color="primary"
               type="submit"
-              [disabled]="projectForm.invalid || isSaving()"
+              [disabled]="projectForm().invalid() || isSaving()"
               data-testid="create-project-button">
               Create Project
             </button>

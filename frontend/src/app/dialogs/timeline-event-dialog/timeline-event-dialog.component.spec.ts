@@ -37,6 +37,28 @@ async function createComponent(data: TimelineEventDialogData = baseData) {
   return { fixture, closeSpy, component: fixture.componentInstance };
 }
 
+function setStartUnit(
+  component: TimelineEventDialogComponent,
+  index: number,
+  value: string
+): void {
+  component.model.update(m => ({
+    ...m,
+    startUnits: m.startUnits.map((v, i) => (i === index ? value : v)),
+  }));
+}
+
+function setEndUnit(
+  component: TimelineEventDialogComponent,
+  index: number,
+  value: string
+): void {
+  component.model.update(m => ({
+    ...m,
+    endUnits: m.endUnits.map((v, i) => (i === index ? value : v)),
+  }));
+}
+
 describe('TimelineEventDialogComponent', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
@@ -72,10 +94,7 @@ describe('TimelineEventDialogComponent', () => {
       },
     };
     const { component } = await createComponent(data);
-    const form = (
-      component as unknown as { form: { value: { title: string } } }
-    ).form;
-    expect(form.value.title).toBe('Test Event');
+    expect(component.model().title).toBe('Test Event');
   });
 
   it('initializes defaultTrackId when provided', async () => {
@@ -84,12 +103,7 @@ describe('TimelineEventDialogComponent', () => {
       defaultTrackId: 'track-1',
     };
     const { component } = await createComponent(data);
-    const form = (
-      component as unknown as {
-        form: { controls: { trackId: { value: string } } };
-      }
-    ).form;
-    expect(form.controls.trackId.value).toBe('track-1');
+    expect(component.model().trackId).toBe('track-1');
   });
 
   it('isGregorian() returns true for Gregorian system', async () => {
@@ -176,24 +190,11 @@ describe('TimelineEventDialogComponent', () => {
         system: GREGORIAN_SYSTEM,
       };
       const { component, closeSpy } = await createComponent(data);
-      const form = (
-        component as unknown as {
-          form: {
-            controls: {
-              title: { setValue: (v: string) => void };
-              trackId: { setValue: (v: string) => void };
-              startUnits: {
-                controls: Array<{ setValue: (v: string) => void }>;
-              };
-            };
-          };
-        }
-      ).form;
-      form.controls.title.setValue('My Event');
-      form.controls.trackId.setValue('track-1');
-      form.controls.startUnits.controls[0].setValue('2024');
-      form.controls.startUnits.controls[1].setValue('6');
-      form.controls.startUnits.controls[2].setValue('15');
+      component.form.title().value.set('My Event');
+      component.form.trackId().value.set('track-1');
+      setStartUnit(component, 0, '2024');
+      setStartUnit(component, 1, '6');
+      setStartUnit(component, 2, '15');
       (component as unknown as { onSave: () => void }).onSave();
       expect(closeSpy).toHaveBeenCalledWith(
         expect.objectContaining({ kind: 'save' })
@@ -219,30 +220,15 @@ describe('TimelineEventDialogComponent', () => {
 
   it('saves ranged event with end date', async () => {
     const { component, closeSpy } = await createComponent();
-    const form = (
-      component as unknown as {
-        form: {
-          controls: {
-            title: { setValue: (v: string) => void };
-            trackId: { setValue: (v: string) => void };
-            ranged: { setValue: (v: boolean) => void };
-            startUnits: {
-              controls: Array<{ setValue: (v: string) => void }>;
-            };
-            endUnits: { controls: Array<{ setValue: (v: string) => void }> };
-          };
-        };
-      }
-    ).form;
-    form.controls.title.setValue('Ranged Event');
-    form.controls.trackId.setValue('track-1');
-    form.controls.ranged.setValue(true);
-    form.controls.startUnits.controls[0].setValue('2020');
-    form.controls.startUnits.controls[1].setValue('1');
-    form.controls.startUnits.controls[2].setValue('1');
-    form.controls.endUnits.controls[0].setValue('2025');
-    form.controls.endUnits.controls[1].setValue('6');
-    form.controls.endUnits.controls[2].setValue('15');
+    component.form.title().value.set('Ranged Event');
+    component.form.trackId().value.set('track-1');
+    component.form.ranged().value.set(true);
+    setStartUnit(component, 0, '2020');
+    setStartUnit(component, 1, '1');
+    setStartUnit(component, 2, '1');
+    setEndUnit(component, 0, '2025');
+    setEndUnit(component, 1, '6');
+    setEndUnit(component, 2, '15');
     (component as unknown as { onSave: () => void }).onSave();
     expect(closeSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -283,10 +269,9 @@ describe('TimelineEventDialogComponent', () => {
     const { component } = await createComponent();
     const changeHandler = component as unknown as {
       onStartDateChange: (v: string) => void;
-      startUnits: () => { getRawValue: () => string[] };
     };
     changeHandler.onStartDateChange('2023-04-15');
-    const values = changeHandler.startUnits().getRawValue();
+    const values = component.model().startUnits;
     expect(values[0]).toBe('2023');
     expect(values[1]).toBe('4');
     expect(values[2]).toBe('15');
@@ -296,10 +281,9 @@ describe('TimelineEventDialogComponent', () => {
     const { component } = await createComponent();
     const changeHandler = component as unknown as {
       onEndDateChange: (v: string) => void;
-      endUnits: () => { getRawValue: () => string[] };
     };
     changeHandler.onEndDateChange('2024-11-20');
-    const values = changeHandler.endUnits().getRawValue();
+    const values = component.model().endUnits;
     expect(values[0]).toBe('2024');
     expect(values[1]).toBe('11');
     expect(values[2]).toBe('20');
@@ -309,11 +293,10 @@ describe('TimelineEventDialogComponent', () => {
     const { component } = await createComponent();
     const changeHandler = component as unknown as {
       onStartDateChange: (v: string) => void;
-      startUnits: () => { getRawValue: () => string[] };
     };
-    const before = changeHandler.startUnits().getRawValue();
+    const before = component.model().startUnits;
     changeHandler.onStartDateChange('not-a-date');
-    const after = changeHandler.startUnits().getRawValue();
+    const after = component.model().startUnits;
     expect(after).toEqual(before);
   });
 
@@ -321,34 +304,23 @@ describe('TimelineEventDialogComponent', () => {
 
   it('marks form invalid when end is before start', async () => {
     const { component } = await createComponent();
-    const form = (
-      component as unknown as {
-        form: {
-          controls: {
-            title: { setValue: (v: string) => void };
-            trackId: { setValue: (v: string) => void };
-            ranged: { setValue: (v: boolean) => void };
-            startUnits: {
-              controls: Array<{ setValue: (v: string) => void }>;
-            };
-            endUnits: { controls: Array<{ setValue: (v: string) => void }> };
-          };
-          updateValueAndValidity: () => void;
-          hasError: (e: string) => boolean;
-        };
-      }
-    ).form;
-    form.controls.title.setValue('Test');
-    form.controls.trackId.setValue('track-1');
-    form.controls.ranged.setValue(true);
-    form.controls.startUnits.controls[0].setValue('2025');
-    form.controls.startUnits.controls[1].setValue('6');
-    form.controls.startUnits.controls[2].setValue('1');
-    form.controls.endUnits.controls[0].setValue('2020');
-    form.controls.endUnits.controls[1].setValue('1');
-    form.controls.endUnits.controls[2].setValue('1');
-    form.updateValueAndValidity();
-    expect(form.hasError('endBeforeStart')).toBe(true);
+    component.form.title().value.set('Test');
+    component.form.trackId().value.set('track-1');
+    component.form.ranged().value.set(true);
+    setStartUnit(component, 0, '2025');
+    setStartUnit(component, 1, '6');
+    setStartUnit(component, 2, '1');
+    setEndUnit(component, 0, '2020');
+    setEndUnit(component, 1, '1');
+    setEndUnit(component, 2, '1');
+    const hasRootError = component
+      .form()
+      .errors()
+      .some(e => e.kind === 'endBeforeStart');
+    const hasEndError = component.form.endUnits
+      .errors()
+      .some(e => e.kind === 'endBeforeStart');
+    expect(hasRootError || hasEndError).toBe(true);
   });
 
   // ─── Dropdown input mode ───────────────────────────────────────────────────
@@ -391,13 +363,7 @@ describe('TimelineEventDialogComponent', () => {
       },
     };
     const { component } = await createComponent(data);
-    const startVals = (
-      component as unknown as {
-        startUnits: () => { getRawValue: () => string[] };
-      }
-    )
-      .startUnits()
-      .getRawValue();
+    const startVals = component.model().startUnits;
     expect(startVals).toEqual(['1', '1', '1']);
   });
 
@@ -430,26 +396,12 @@ describe('TimelineEventDialogComponent', () => {
 
   it('saves event with trimmed description', async () => {
     const { component, closeSpy } = await createComponent();
-    const form = (
-      component as unknown as {
-        form: {
-          controls: {
-            title: { setValue: (v: string) => void };
-            trackId: { setValue: (v: string) => void };
-            description: { setValue: (v: string) => void };
-            startUnits: {
-              controls: Array<{ setValue: (v: string) => void }>;
-            };
-          };
-        };
-      }
-    ).form;
-    form.controls.title.setValue('Desc Event');
-    form.controls.trackId.setValue('track-1');
-    form.controls.description.setValue('  Some description  ');
-    form.controls.startUnits.controls[0].setValue('2024');
-    form.controls.startUnits.controls[1].setValue('1');
-    form.controls.startUnits.controls[2].setValue('1');
+    component.form.title().value.set('Desc Event');
+    component.form.trackId().value.set('track-1');
+    component.form.description().value.set('  Some description  ');
+    setStartUnit(component, 0, '2024');
+    setStartUnit(component, 1, '1');
+    setStartUnit(component, 2, '1');
     (component as unknown as { onSave: () => void }).onSave();
     expect(closeSpy).toHaveBeenCalledWith(
       expect.objectContaining({

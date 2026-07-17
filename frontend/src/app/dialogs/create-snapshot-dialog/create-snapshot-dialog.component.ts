@@ -1,15 +1,10 @@
 import {
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   inject,
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  type FormControl,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { form, FormField, maxLength } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -35,9 +30,9 @@ export interface CreateSnapshotDialogResult {
   description?: string;
 }
 
-interface CreateSnapshotForm {
-  name: FormControl<string>;
-  description: FormControl<string>;
+interface CreateSnapshotFormValue {
+  name: string;
+  description: string;
 }
 
 /**
@@ -47,7 +42,7 @@ interface CreateSnapshotForm {
 @Component({
   selector: 'app-create-snapshot-dialog',
   imports: [
-    ReactiveFormsModule,
+    FormField,
     MatDialogModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -62,14 +57,19 @@ export class CreateSnapshotDialogComponent {
     MatDialogRef<CreateSnapshotDialogComponent>
   );
   data = inject<CreateSnapshotDialogData>(MAT_DIALOG_DATA);
-  private readonly fb = inject(FormBuilder).nonNullable;
-  private readonly cdr = inject(ChangeDetectorRef);
 
-  form = this.fb.group<CreateSnapshotForm>({
-    name: this.fb.control('', { validators: [Validators.maxLength(100)] }),
-    description: this.fb.control('', {
-      validators: [Validators.maxLength(500)],
-    }),
+  readonly model = signal<CreateSnapshotFormValue>({
+    name: '',
+    description: '',
+  });
+
+  readonly form = form(this.model, schemaPath => {
+    maxLength(schemaPath.name, 100, {
+      message: 'Name cannot exceed 100 characters',
+    });
+    maxLength(schemaPath.description, 500, {
+      message: 'Description cannot exceed 500 characters',
+    });
   });
 
   /**
@@ -77,11 +77,8 @@ export class CreateSnapshotDialogComponent {
    * If name is left blank, auto-generates an ISO date-time name
    */
   onSubmit() {
-    // Force change detection to ensure form values are updated from inputs
-    this.cdr.detectChanges();
-
-    if (this.form.valid) {
-      const { name, description } = this.form.getRawValue();
+    if (this.form().valid()) {
+      const { name, description } = this.model();
       const trimmedName = name.trim();
 
       const result: CreateSnapshotDialogResult = {

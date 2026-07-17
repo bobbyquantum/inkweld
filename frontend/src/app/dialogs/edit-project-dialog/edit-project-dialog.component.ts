@@ -1,6 +1,5 @@
 import {
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   computed,
   type ElementRef,
@@ -9,12 +8,7 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import {
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { form, FormField, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -43,13 +37,18 @@ import {
   type LoadedImage,
 } from 'ngx-image-cropper';
 
+interface EditProjectFormValue {
+  title: string;
+  description: string;
+}
+
 @Component({
   selector: 'app-edit-project-dialog',
   templateUrl: './edit-project-dialog.component.html',
   styleUrls: ['./edit-project-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
-    ReactiveFormsModule,
+    FormField,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
@@ -69,7 +68,6 @@ export class EditProjectDialogComponent implements OnInit {
   private readonly dialogData = inject<Project>(MAT_DIALOG_DATA);
   private readonly snackBar = inject(MatSnackBar);
   private readonly sanitizer = inject(DomSanitizer);
-  private readonly cdr = inject(ChangeDetectorRef);
   private readonly systemConfig = inject(SystemConfigService);
   private readonly projectState = inject(ProjectStateService);
   private readonly localStorage = inject(LocalStorageService);
@@ -85,9 +83,13 @@ export class EditProjectDialogComponent implements OnInit {
     )
   );
 
-  form = new FormGroup({
-    title: new FormControl('', Validators.required),
-    description: new FormControl(''),
+  readonly model = signal<EditProjectFormValue>({
+    title: '',
+    description: '',
+  });
+
+  readonly form = form(this.model, schemaPath => {
+    required(schemaPath.title, { message: 'Title is required' });
   });
 
   readonly isSaving = signal(false);
@@ -117,9 +119,9 @@ export class EditProjectDialogComponent implements OnInit {
   ngOnInit(): void {
     this.project = this.dialogData;
 
-    this.form.patchValue({
+    this.model.set({
       title: this.project.title,
-      description: this.project.description,
+      description: this.project.description ?? '',
     });
 
     // Get coverMediaId from project state (stored in Yjs)
@@ -303,9 +305,8 @@ export class EditProjectDialogComponent implements OnInit {
       this.pendingFileName = filename;
       this.imageBase64 = base64;
 
-      // Show the cropper and trigger change detection
+      // Show the cropper
       this.showCropper = true;
-      this.cdr.detectChanges();
     }
   }
 
@@ -335,9 +336,8 @@ export class EditProjectDialogComponent implements OnInit {
       // However, it also accepts the full data URL, so we pass it directly
       this.imageBase64 = result.imageData;
 
-      // Show the cropper and trigger change detection
+      // Show the cropper
       this.showCropper = true;
-      this.cdr.detectChanges();
     }
   }
 
@@ -402,16 +402,11 @@ export class EditProjectDialogComponent implements OnInit {
   }
 
   async onSave(): Promise<void> {
-    if (this.form.invalid) return;
+    if (this.form().invalid()) return;
 
     this.isSaving.set(true);
     try {
-      interface FormValues {
-        title: string;
-        description: string;
-      }
-
-      const formValues = this.form.value as FormValues;
+      const formValues = this.model();
       const updatedProject: Project = {
         ...this.project,
         title: formValues.title,

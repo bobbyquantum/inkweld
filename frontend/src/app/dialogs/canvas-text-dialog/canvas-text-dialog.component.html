@@ -6,13 +6,15 @@
       matInput
       id="canvas-text-input"
       aria-label="Text"
-      [formControl]="textControl"
+      [formField]="form.text"
       cdkFocusInitial
       rows="3"
       data-testid="canvas-text-input"
       placeholder="Enter text"></textarea>
-    @if (textControl.hasError('required') && textControl.touched) {
-      <mat-error>Text is required</mat-error>
+    @if (form.text().touched() && form.text().invalid()) {
+      @for (error of form.text().errors(); track error) {
+        <mat-error>{{ error.message }}</mat-error>
+      }
     }
   </mat-form-field>
 
@@ -28,7 +30,7 @@
   <button
     mat-button
     color="primary"
-    [disabled]="!textControl.valid"
+    [disabled]="form().invalid()"
     data-testid="canvas-text-confirm"
     (click)="onConfirm()">
     {{ data.confirmLabel || 'Add' }}

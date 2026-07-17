@@ -6,14 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import {
-  type FormArray,
-  FormBuilder,
-  type FormControl,
-  FormsModule,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { applyEach, form, FormField, required } from '@angular/forms/signals';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -59,7 +52,7 @@ interface ExtendedImageModelInfo extends ImageModelInfo {
   supportsImageInput?: boolean;
 }
 
-interface FormValues {
+interface ImageProfileFormValue {
   name: string;
   description: string;
   provider: string;
@@ -74,26 +67,10 @@ interface FormValues {
   modelConfigJson: string;
 }
 
-interface ImageProfileForm {
-  name: FormControl<string>;
-  description: FormControl<string>;
-  provider: FormControl<string>;
-  modelId: FormControl<string>;
-  enabled: FormControl<boolean>;
-  supportsImageInput: FormControl<boolean>;
-  supportsCustomResolutions: FormControl<boolean>;
-  usesAspectRatioOnly: FormControl<boolean>;
-  supportedSizes: FormArray<FormControl<string>>;
-  defaultSize: FormControl<string>;
-  sortOrder: FormControl<number>;
-  modelConfigJson: FormControl<string>;
-}
-
 @Component({
   selector: 'app-image-profile-dialog',
   imports: [
-    FormsModule,
-    ReactiveFormsModule,
+    FormField,
     MatAutocompleteModule,
     MatButtonModule,
     MatCheckboxModule,
@@ -114,42 +91,39 @@ export class ImageProfileDialogComponent {
   private readonly dialogRef = inject(
     MatDialogRef<ImageProfileDialogComponent>
   );
-  private readonly fb = inject(FormBuilder).nonNullable;
   private readonly aiImageService = inject(AIImageGenerationService);
   private readonly aiProvidersService = inject(AIProvidersService);
   readonly data = inject<ImageProfileDialogData>(MAT_DIALOG_DATA);
 
-  readonly form = this.fb.group<ImageProfileForm>({
-    name: this.fb.control(this.data.profile?.name ?? '', {
-      validators: [Validators.required, Validators.minLength(2)],
-    }),
-    description: this.fb.control(this.data.profile?.description ?? ''),
-    provider: this.fb.control(this.data.profile?.provider ?? '', {
-      validators: [Validators.required],
-    }),
-    modelId: this.fb.control(this.data.profile?.modelId ?? '', {
-      validators: [Validators.required],
-    }),
-    enabled: this.fb.control(this.data.profile?.enabled ?? true),
-    supportsImageInput: this.fb.control(
-      this.data.profile?.supportsImageInput ?? false
+  readonly model = signal<ImageProfileFormValue>({
+    name: this.data.profile?.name ?? '',
+    description: this.data.profile?.description ?? '',
+    provider: this.data.profile?.provider ?? '',
+    modelId: this.data.profile?.modelId ?? '',
+    enabled: this.data.profile?.enabled ?? true,
+    supportsImageInput: this.data.profile?.supportsImageInput ?? false,
+    supportsCustomResolutions:
+      this.data.profile?.supportsCustomResolutions ?? false,
+    usesAspectRatioOnly: Boolean(
+      this.data.profile?.usesAspectRatioOnly ?? false
     ),
-    supportsCustomResolutions: this.fb.control(
-      this.data.profile?.supportsCustomResolutions ?? false
-    ),
-    usesAspectRatioOnly: this.fb.control<boolean>(
-      Boolean(this.data.profile?.usesAspectRatioOnly ?? false)
-    ),
-    supportedSizes: this.fb.array(
-      (this.data.profile?.supportedSizes ?? []).map(s => this.fb.control(s))
-    ),
-    defaultSize: this.fb.control(this.data.profile?.defaultSize ?? ''),
-    sortOrder: this.fb.control(this.data.profile?.sortOrder ?? 0),
-    modelConfigJson: this.fb.control(
-      this.data.profile?.modelConfig
-        ? JSON.stringify(this.data.profile.modelConfig, null, 2)
-        : ''
-    ),
+    supportedSizes: this.data.profile?.supportedSizes
+      ? [...this.data.profile.supportedSizes]
+      : [],
+    defaultSize: this.data.profile?.defaultSize ?? '',
+    sortOrder: this.data.profile?.sortOrder ?? 0,
+    modelConfigJson: this.data.profile?.modelConfig
+      ? JSON.stringify(this.data.profile.modelConfig, null, 2)
+      : '',
+  });
+
+  readonly form = form(this.model, schemaPath => {
+    required(schemaPath.name, { message: 'Name is required' });
+    required(schemaPath.provider, { message: 'Provider is required' });
+    required(schemaPath.modelId, { message: 'Model ID is required' });
+    applyEach(schemaPath.supportedSizes, item => {
+      required(item, { message: 'Size is required' });
+    });
   });
 
   readonly showModelConfig = signal(false);
@@ -250,33 +224,33 @@ export class ImageProfileDialogComponent {
 
   /** Check if current provider is OpenAI (uses hardcoded dropdown) */
   isOpenAiProvider(): boolean {
-    return this.form?.get('provider')?.value === 'openai';
+    return this.model().provider === 'openai';
   }
 
   /** Check if current provider is OpenRouter (uses aspect ratio only) */
   isOpenRouterProvider(): boolean {
-    return this.form?.get('provider')?.value === 'openrouter';
+    return this.model().provider === 'openrouter';
   }
 
   /** Check if current provider is Fal.ai (needs category selection first) */
   isFalaiProvider(): boolean {
-    return this.form?.get('provider')?.value === 'falai';
+    return this.model().provider === 'falai';
   }
 
   /** Check if current provider is Workers AI */
   isWorkersAiProvider(): boolean {
-    return this.form?.get('provider')?.value === 'workersai';
+    return this.model().provider === 'workersai';
   }
 
   /** Check if current provider supports model browsing via API */
   canBrowseModels(): boolean {
-    const provider = this.form?.get('provider')?.value;
+    const provider = this.model().provider;
     return !!provider && this.browsableProviders.includes(provider);
   }
 
   /** Check if provider requires manual model ID entry */
   isManualModelEntry(): boolean {
-    const provider = this.form?.get('provider')?.value;
+    const provider = this.model().provider;
     return provider === 'stable-diffusion';
   }
 
@@ -304,18 +278,22 @@ export class ImageProfileDialogComponent {
     return this.data.mode === 'edit';
   }
 
-  get sizesArray(): FormArray<FormControl<string>> {
-    return this.form.controls.supportedSizes;
+  get sizesArray(): string[] {
+    return this.model().supportedSizes;
   }
 
   addSize(): void {
-    this.sizesArray.push(
-      this.fb.control('', { validators: [Validators.required] })
-    );
+    this.model.update(m => ({
+      ...m,
+      supportedSizes: [...m.supportedSizes, ''],
+    }));
   }
 
   removeSize(index: number): void {
-    this.sizesArray.removeAt(index);
+    this.model.update(m => ({
+      ...m,
+      supportedSizes: m.supportedSizes.filter((_, i) => i !== index),
+    }));
   }
 
   toggleModelConfig(): void {
@@ -324,7 +302,7 @@ export class ImageProfileDialogComponent {
 
   /** Load available models for the selected provider from dynamic API */
   async loadModelsForProvider(): Promise<void> {
-    const provider = this.form.get('provider')?.value;
+    const provider = this.model().provider;
     if (!provider || !this.browsableProviders.includes(provider)) {
       this.availableModels.set([]);
       return;
@@ -420,57 +398,46 @@ export class ImageProfileDialogComponent {
     // Reset models and category when provider changes
     this.availableModels.set([]);
     this.selectedFalaiCategory.set('text-to-image');
-    this.form.patchValue({ modelId: '' });
+    this.model.update(m => ({ ...m, modelId: '' }));
 
     // For OpenAI, set available models immediately (hardcoded)
     // All OpenAI image models support image input
     if (this.isOpenAiProvider()) {
       this.availableModels.set(this.openaiModels);
-      this.form.patchValue({
+      this.model.update(m => ({
+        ...m,
         usesAspectRatioOnly: false,
         supportsImageInput: true,
-      });
+      }));
     } else if (this.isOpenRouterProvider()) {
       // OpenRouter uses aspect ratio only - auto-configure
-      this.form.patchValue({
+      this.model.update(m => ({
+        ...m,
         usesAspectRatioOnly: true,
         supportsCustomResolutions: false,
-      });
-
-      // Pre-populate with OpenRouter aspect ratios
-      while (this.sizesArray.length) {
-        this.sizesArray.removeAt(0);
-      }
-      this.openrouterAspectRatios.forEach(ratio => {
-        this.sizesArray.push(this.fb.control(ratio, Validators.required));
-      });
-      this.form.patchValue({ defaultSize: '1:1' });
+        supportedSizes: [...this.openrouterAspectRatios],
+        defaultSize: '1:1',
+      }));
 
       void this.loadModelsForProvider();
     } else if (this.isWorkersAiProvider()) {
       // Workers AI uses pixel dimensions, not aspect ratios
-      this.form.patchValue({
+      this.model.update(m => ({
+        ...m,
         usesAspectRatioOnly: false,
         supportsCustomResolutions: true,
-      });
-
-      // Pre-populate with FLUX.2 supported sizes for Workers AI
-      while (this.sizesArray.length) {
-        this.sizesArray.removeAt(0);
-      }
-      [
-        '512x512',
-        '1024x1024',
-        '1024x768',
-        '768x1024',
-        '1280x768',
-        '768x1280',
-        '1536x1024',
-        '1024x1536',
-      ].forEach(size => {
-        this.sizesArray.push(this.fb.control(size, Validators.required));
-      });
-      this.form.patchValue({ defaultSize: '1024x1024' });
+        supportedSizes: [
+          '512x512',
+          '1024x1024',
+          '1024x768',
+          '768x1024',
+          '1280x768',
+          '768x1280',
+          '1536x1024',
+          '1024x1536',
+        ],
+        defaultSize: '1024x1024',
+      }));
 
       void this.loadModelsForProvider();
     } else if (this.canBrowseModels() && !this.isFalaiProvider()) {
@@ -482,15 +449,16 @@ export class ImageProfileDialogComponent {
   /** Handle Fal.ai category change */
   onFalaiCategoryChange(category: FalaiCategory): void {
     this.selectedFalaiCategory.set(category);
-    this.form.patchValue({ modelId: '' });
+    this.model.update(m => ({ ...m, modelId: '' }));
     this.availableModels.set([]);
 
     // Auto-set supportsImageInput based on category
     const categoryConfig = this.falaiCategories.find(c => c.value === category);
     if (categoryConfig) {
-      this.form.patchValue({
+      this.model.update(m => ({
+        ...m,
         supportsImageInput: categoryConfig.supportsImageInput,
-      });
+      }));
     }
 
     // Load models for the selected category
@@ -499,22 +467,19 @@ export class ImageProfileDialogComponent {
 
   /** Handle model selection from autocomplete or dropdown */
   selectModel(model: ExtendedImageModelInfo): void {
-    this.form.patchValue({
+    this.model.update(m => ({
+      ...m,
       modelId: model.id,
       supportsImageInput: model.supportsImageInput ?? false,
-    });
+    }));
 
     // Auto-fill supported sizes if available
     if (model.supportedSizes?.length) {
-      // Clear and repopulate sizes
-      while (this.sizesArray.length) {
-        this.sizesArray.removeAt(0);
-      }
-      model.supportedSizes.forEach(size => {
-        this.sizesArray.push(this.fb.control(size, Validators.required));
-      });
-      // Set first size as default
-      this.form.patchValue({ defaultSize: model.supportedSizes[0] });
+      this.model.update(m => ({
+        ...m,
+        supportedSizes: [...model.supportedSizes!],
+        defaultSize: model.supportedSizes[0],
+      }));
     }
   }
 
@@ -533,11 +498,11 @@ export class ImageProfileDialogComponent {
   }
 
   onSubmit(): void {
-    if (!this.form.valid) {
+    if (this.form().invalid()) {
       return;
     }
 
-    const values = this.form.value as FormValues;
+    const values = this.model();
 
     let modelConfig: Record<string, unknown> | undefined;
     if (values.modelConfigJson?.trim()) {
