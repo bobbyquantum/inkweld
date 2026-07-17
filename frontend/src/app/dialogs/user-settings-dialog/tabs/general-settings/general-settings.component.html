@@ -7,3 +7,17 @@
     <mat-option value="dark-theme">Dark</mat-option>
   </mat-select>
 </mat-form-field>
+
+<!-- Language Selection -->
+<mat-form-field appearance="outline">
+  <mat-label>Language</mat-label>
+  <mat-select
+    [(ngModel)]="selectedLang"
+    (selectionChange)="onLangChange()"
+    [disabled]="!isMultiLang"
+    matTooltip="More languages coming soon">
+    @for (lang of availableLangs; track lang) {
+      <mat-option [value]="lang.id">{{ lang.label }}</mat-option>
+    }
+  </mat-select>
+</mat-form-field>

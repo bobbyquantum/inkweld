@@ -1,7 +1,7 @@
 <div class="login-dialog" data-testid="login-dialog">
   <div class="dialog-header">
     <img src="logo.png" alt="Inkweld Logo" class="logo-image" />
-    <h2 mat-dialog-title>Login to Inkweld</h2>
+    <h2 mat-dialog-title>{{ 'login.title' | transloco }}</h2>
   </div>
 
   <mat-dialog-content>
@@ -29,9 +29,9 @@
           class="passkey-button">
           <mat-icon>fingerprint</mat-icon>
           @if (!isPasskeyLoggingIn()) {
-            <span>Sign in with passkey</span>
+            <span>{{ 'login.signInWithPasskey' | transloco }}</span>
           } @else {
-            <span>Waiting for passkey...</span>
+            <span>{{ 'login.waitingForPasskey' | transloco }}</span>
           }
         </button>
         @if (isPasskeyLoggingIn()) {
@@ -40,7 +40,7 @@
             class="passkey-cancel-link"
             (click)="cancelPasskeyLogin()"
             data-testid="passkey-cancel-link">
-            Cancel
+            {{ 'cancel' | transloco }}
           </button>
         }
       </div>
@@ -61,7 +61,7 @@
           (click)="goToPasskeyRecovery()"
           (keydown.enter)="goToPasskeyRecovery()"
           data-testid="lost-passkey-link">
-          Lost your passkey?
+          {{ 'login.lostPasskey' | transloco }}
         </a>
       }
     }
@@ -69,7 +69,7 @@
     @if (isPasswordLoginEnabled()) {
       <form (ngSubmit)="onLogin()" data-testid="login-form">
         <mat-form-field appearance="outline">
-          <mat-label>Username</mat-label>
+          <mat-label>{{ 'login.username' | transloco }}</mat-label>
           <input
             matInput
             id="login-username-input"
@@ -79,11 +79,11 @@
             name="username"
             required
             data-testid="username-input"
-            aria-label="Username" />
+            [attr.aria-label]="'login.username' | transloco" />
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Password</mat-label>
+          <mat-label>{{ 'login.password' | transloco }}</mat-label>
           <input
             matInput
             id="login-password-input"
@@ -93,7 +93,7 @@
             name="password"
             required
             data-testid="password-input"
-            aria-label="Password" />
+            [attr.aria-label]="'login.password' | transloco" />
         </mat-form-field>
 
         <!-- Custom error message with icon -->
@@ -112,10 +112,10 @@
           data-testid="login-button"
           class="login-button">
           @if (!isLoggingIn()) {
-            <span>Login</span>
+            <span>{{ 'login.login' | transloco }}</span>
           }
           @if (isLoggingIn()) {
-            <span>Logging in...</span>
+            <span>{{ 'login.loggingIn' | transloco }}</span>
           }
         </button>
 
@@ -127,7 +127,7 @@
             (click)="goToForgotPassword()"
             (keydown.enter)="goToForgotPassword()"
             data-testid="forgot-password-link">
-            Forgot password?
+            {{ 'login.forgotPassword' | transloco }}
           </a>
         }
       </form>
@@ -150,9 +150,9 @@
             class="passkey-button">
             <mat-icon>fingerprint</mat-icon>
             @if (!isPasskeyLoggingIn()) {
-              <span>Sign in with passkey</span>
+              <span>{{ 'login.signInWithPasskey' | transloco }}</span>
             } @else {
-              <span>Waiting for passkey...</span>
+              <span>{{ 'login.waitingForPasskey' | transloco }}</span>
             }
           </button>
           @if (isPasskeyLoggingIn()) {
@@ -161,7 +161,7 @@
               class="passkey-cancel-link"
               (click)="cancelPasskeyLogin()"
               data-testid="passkey-cancel-link">
-              Cancel
+              {{ 'cancel' | transloco }}
             </button>
           }
         </div>
@@ -190,7 +190,7 @@
       (click)="onRegisterClick()"
       data-testid="register-link"
       class="register-button">
-      Don't have an account? Register here
+      {{ 'login.noAccountRegister' | transloco }}
     </button>
   </mat-dialog-content>
 </div>

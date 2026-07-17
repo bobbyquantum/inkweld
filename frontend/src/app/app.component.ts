@@ -10,8 +10,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterOutlet } from '@angular/router';
+import { TranslocoModule } from '@jsverse/transloco';
 
 import { ThemeService } from '../themes/theme.service';
+import { LocaleService } from './services/core/locale.service';
 import { SetupService } from './services/core/setup.service';
 import { UpdateService } from './services/core/update.service';
 import { VersionCompatibilityService } from './services/core/version-compatibility.service';
@@ -26,6 +28,7 @@ import { UnifiedUserService } from './services/user/unified-user.service';
     MatProgressSpinnerModule,
     MatToolbarModule,
     MatButtonModule,
+    TranslocoModule,
   ],
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -35,6 +38,7 @@ export class AppComponent implements OnInit {
   protected readonly offlineMode = signal(false);
   protected readonly themeService = inject(ThemeService);
   protected readonly setupService = inject(SetupService);
+  private readonly localeService = inject(LocaleService);
   protected readonly updateService = inject(UpdateService);
   protected readonly versionCompatibility = inject(VersionCompatibilityService);
   protected readonly viewportService = inject(ViewportService);
@@ -57,6 +61,7 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.themeService.initTheme();
+    this.localeService.init();
     this.updateService.initialize();
     void this.initializeApp();
   }

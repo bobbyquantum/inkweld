@@ -39,6 +39,7 @@ import {
   type CollaboratedProject,
   type PendingInvitation,
 } from '@inkweld/model/models';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { StorageContextService } from '@services/core/storage-context.service';
@@ -65,6 +66,7 @@ import { debounceTime, takeUntil } from 'rxjs/operators';
     MatTooltipModule,
     ReactiveFormsModule,
     RouterModule,
+    TranslocoModule,
     AnnouncementFeedComponent,
     ProjectCardComponent,
     ServerInfoBubbleComponent,
@@ -84,6 +86,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   protected breakpointObserver = inject(BreakpointObserver);
   private readonly collaborationApiService = inject(CollaborationApiService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly setupService = inject(SetupService);
   readonly syncQueueService = inject(SyncQueueService);
@@ -134,16 +137,23 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   /** Tooltip for Sync All button */
   protected syncAllTooltip = computed(() => {
-    if (!this.isServerMode()) return 'Only available in online mode';
-    if (!navigator.onLine) return 'Cannot sync while offline';
-    if (this.syncQueueService.isSyncing()) return 'Sync in progress...';
+    if (!this.isServerMode())
+      return this.transloco.translate('home.tooltips.onlineOnly');
+    if (!navigator.onLine)
+      return this.transloco.translate('home.tooltips.offline');
+    if (this.syncQueueService.isSyncing())
+      return this.transloco.translate('home.tooltips.syncInProgress');
     const hasProjects =
       this.projectService.projects().length > 0 ||
       this.collaboratedProjects().length > 0;
-    if (!hasProjects) return 'No projects to sync';
+    if (!hasProjects)
+      return this.transloco.translate('home.tooltips.noProjectsToSync');
     const activatedCount = this.getActivatedProjects().length;
-    if (activatedCount === 0) return 'No activated projects to sync';
-    return `Sync ${activatedCount} activated project(s)`;
+    if (activatedCount === 0)
+      return this.transloco.translate('home.tooltips.noActivatedProjects');
+    return this.transloco.translate('home.tooltips.syncCount', {
+      count: activatedCount,
+    });
   });
 
   // Computed state - unified project list combining owned and shared projects
@@ -331,9 +341,13 @@ export class HomeComponent implements OnInit, OnDestroy {
     const activated = this.getActivatedProjects();
 
     if (activated.length === 0) {
-      this.snackBar.open('No activated projects to sync', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('home.snackbar.noActivatedToSync'),
+        this.transloco.translate('dismiss'),
+        {
+          duration: 3000,
+        }
+      );
       return;
     }
 
@@ -404,10 +418,12 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       data: {
-        title: 'Activate Project',
-        message: `Activate "${project.title}" on this device? This will download all project data.`,
-        confirmText: 'Activate',
-        cancelText: 'Cancel',
+        title: this.transloco.translate('home.dialogs.activateTitle'),
+        message: this.transloco.translate('home.dialogs.activateMessage', {
+          title: project.title,
+        }),
+        confirmText: this.transloco.translate('home.dialogs.activate'),
+        cancelText: this.transloco.translate('cancel'),
       } satisfies ConfirmationDialogData,
     });
 
@@ -428,10 +444,12 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       data: {
-        title: 'Deactivate Project',
-        message: `Deactivate "${project.title}"? All local data for this project will be removed from this device. You can reactivate it anytime.`,
-        confirmText: 'Deactivate',
-        cancelText: 'Cancel',
+        title: this.transloco.translate('home.dialogs.deactivateTitle'),
+        message: this.transloco.translate('home.dialogs.deactivateMessage', {
+          title: project.title,
+        }),
+        confirmText: this.transloco.translate('home.dialogs.deactivate'),
+        cancelText: this.transloco.translate('cancel'),
       } satisfies ConfirmationDialogData,
     });
 
@@ -451,14 +469,20 @@ export class HomeComponent implements OnInit, OnDestroy {
       await this.activationService.activate(projectKey);
       this.syncQueueService.syncAllProjects([project]).catch(() => {});
       this.snackBar.open(
-        `"${project.title}" activated — syncing now`,
-        'Dismiss',
+        this.transloco.translate('home.snackbar.activatedSyncing', {
+          title: project.title,
+        }),
+        this.transloco.translate('dismiss'),
         { duration: 3000 }
       );
     } catch {
-      this.snackBar.open('Failed to activate project', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('home.snackbar.activateFailed'),
+        this.transloco.translate('dismiss'),
+        {
+          duration: 3000,
+        }
+      );
     }
   }
 
@@ -470,13 +494,21 @@ export class HomeComponent implements OnInit, OnDestroy {
     try {
       await this.activationService.deactivate(projectKey);
       await this.purgeProjectLocalData(project);
-      this.snackBar.open(`"${project.title}" deactivated`, 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('home.snackbar.deactivated', {
+          title: project.title,
+        }),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
     } catch {
-      this.snackBar.open('Failed to deactivate project', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('home.snackbar.deactivateFailed'),
+        this.transloco.translate('dismiss'),
+        {
+          duration: 3000,
+        }
+      );
     }
   }
 
@@ -519,7 +551,11 @@ export class HomeComponent implements OnInit, OnDestroy {
    */
   cancelSync(): void {
     this.syncQueueService.cancelSync();
-    this.snackBar.open('Sync cancelled', 'Dismiss', { duration: 3000 });
+    this.snackBar.open(
+      this.transloco.translate('home.snackbar.syncCancelled'),
+      this.transloco.translate('dismiss'),
+      { duration: 3000 }
+    );
   }
 
   selectProject(project: Project) {
@@ -541,9 +577,13 @@ export class HomeComponent implements OnInit, OnDestroy {
       .then(result => {
         if (result?.success && result.slug) {
           this.snackBar
-            .open('Project imported successfully!', 'View', {
-              duration: 5000,
-            })
+            .open(
+              this.transloco.translate('home.snackbar.projectImported'),
+              this.transloco.translate('home.snackbar.view'),
+              {
+                duration: 5000,
+              }
+            )
             .onAction()
             .subscribe(() => {
               const username = user?.username ?? 'offline';
@@ -646,15 +686,21 @@ export class HomeComponent implements OnInit, OnDestroy {
       );
       this.collaboratedProjects.set(collaborated);
       this.snackBar.open(
-        `You are now a collaborator on "${invitation.projectTitle}"`,
-        'Close',
+        this.transloco.translate('home.snackbar.nowCollaborator', {
+          title: invitation.projectTitle,
+        }),
+        this.transloco.translate('close'),
         { duration: 3000 }
       );
     } catch (error) {
       console.error('Failed to accept invitation:', error);
-      this.snackBar.open('Failed to accept invitation', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('home.snackbar.acceptInvitationFailed'),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
     }
   }
 
@@ -670,12 +716,20 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.pendingInvitations.update(invitations =>
         invitations.filter(i => i.projectId !== invitation.projectId)
       );
-      this.snackBar.open('Invitation declined', 'Close', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('home.snackbar.invitationDeclined'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
     } catch (error) {
       console.error('Failed to decline invitation:', error);
-      this.snackBar.open('Failed to decline invitation', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('home.snackbar.declineInvitationFailed'),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
     }
   }
 

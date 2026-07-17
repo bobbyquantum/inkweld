@@ -495,7 +495,110 @@ cd backend && bun run generate:openapi && bun run generate:angular-client
 
 ---
 
-## Resources
+## Internationalization (i18n)
+
+The frontend uses **Transloco** (`@jsverse/transloco` 8.x) for runtime internationalization with JSON translation files. English is the current source language; the infrastructure is ready to add more locales without rework.
+
+### Architecture
+
+- **Library**: `@jsverse/transloco` — signal-based, standalone-friendly, runtime JSON loading
+- **File layout**: Per-locale folders, per-scope files:
+  ```
+  frontend/public/assets/i18n/
+    en/common.json    # Shared strings (Cancel, Close, error fallbacks)
+    en/app.json       # App shell scope
+    en/login.json     # Login dialog scope
+    en/home.json      # Home page scope
+  ```
+- **Loader**: `frontend/src/app/transloco-loader.ts` — HTTP loader that merges all scope files into a single translation map at load time
+- **Config**: `frontend/src/app/app.config.ts` — `provideTransloco()` with `autoPrefixKeys: false` (full dot-notation paths)
+- **Locale service**: `frontend/src/app/services/core/locale.service.ts` — handles `setActiveLang` + `localStorage` persistence
+- **Error translation**: `frontend/src/app/services/core/error-translation.service.ts` — maps typed error codes (`PasskeyError`, `UserServiceError`) to translation keys; unmapped errors fall back to a generic localized message
+- **Test provider**: `frontend/src/testing/transloco-test-provider.ts` — `TranslocoTestingModule` with inlined English translations for synchronous test loading
+
+### How to add a new translated string
+
+1. **Add the key to the JSON file** for the appropriate scope (e.g. `en/login.json`):
+   ```json
+   {
+     "myNewField": "My New Field"
+   }
+   ```
+2. **In templates**, use the `| transloco` pipe:
+   ```html
+   <mat-label>{{ 'login.myNewField' | transloco }}</mat-label>
+   ```
+3. **In TypeScript**, inject `TranslocoService` and call `translate()`:
+   ```typescript
+   private readonly transloco = inject(TranslocoService);
+   this.transloco.translate('login.myNewField');
+   // With params:
+   this.transloco.translate('login.welcomeBack', { username: 'Alice' });
+   ```
+4. **Never hardcode user-facing English strings** — always use translation keys.
+
+### Key naming conventions
+
+- **Scope-specific keys**: Use the scope as a prefix — `login.title`, `home.syncAll`, `app.updateNow`
+- **Common/shared keys**: Flat at the root — `cancel`, `close`, `dismiss`, `retry`
+- **Nested keys**: Use dot notation for grouping — `home.tooltips.onlineOnly`, `login.errors.loginFailed`
+- **Params**: Use `{{paramName}}` interpolation — `"welcomeBack": "Welcome back, {{username}}!"`
+
+### Error code mapping
+
+The `ErrorTranslationService` maps typed error codes to translation keys:
+
+| Error class | Code | Translation key | Behavior |
+|---|---|---|---|
+| `PasskeyError` | `CANCELLED` | — | Silent (no message shown) |
+| `PasskeyError` | `PENDING_APPROVAL` | — | Redirect to `/approval-pending` |
+| `PasskeyError` | `VERIFICATION_FAILED` | `login.errors.verificationFailed` | Show message |
+| `PasskeyError` | `NETWORK_ERROR` | `login.errors.networkError` | Show message |
+| `PasskeyError` | `UNSUPPORTED` | `login.errors.unsupported` | Show message |
+| `PasskeyError` | `ACCOUNT_DISABLED` | `login.errors.accountDisabled` | Show message |
+| `UserServiceError` | `LOGIN_FAILED` | `login.errors.loginFailed` | Show message |
+| `UserServiceError` | `ACCOUNT_PENDING` | — | Redirect to `/approval-pending` |
+| Any unknown error | — | `errors.unknown` | Generic fallback |
+
+**To add a new error code mapping**: Add the code to the lookup map in `error-translation.service.ts` and add the corresponding key to the appropriate JSON file.
+
+### How to add a new locale
+
+1. **Create translation files**: Copy `frontend/public/assets/i18n/en/` → `frontend/public/assets/i18n/<lang>/` and translate all JSON files
+2. **Register locale data**: Add `import locale<Lang> from '@angular/common/locales/<lang>'` and `registerLocaleData(locale<Lang>)` in `app.config.ts`
+3. **Add to available langs**: Add `{ id: '<lang>', label: '<Language Name>' }` to the `availableLangs` array in `provideTransloco()` config
+4. **Update the loader**: Add the new locale's scope files to the `SCOPES` merger in `transloco-loader.ts` (already covers all scopes)
+5. **Update the test provider**: Add the new locale's translations to `transloco-test-provider.ts`
+6. **The language switcher** in General Settings will automatically become enabled when `availableLangs.length > 1`
+
+### Testing with Transloco
+
+In unit tests, add `translocoTestProvider()` to the `imports` array of `TestBed.configureTestingModule()`:
+
+```typescript
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
+TestBed.configureTestingModule({
+  imports: [MyComponent, translocoTestProvider()],
+  providers: [/* ... */],
+});
+```
+
+The test provider uses `TranslocoTestingModule.forRoot()` with `preloadLangs: true` for synchronous loading. Translations are inlined in the provider file to avoid JSON import resolution issues in the test build.
+
+### Current translation coverage (pilot)
+
+Only the following components are translated:
+- `AppComponent` (app shell)
+- `LoginDialogComponent`
+- `HomeComponent`
+- `GeneralSettingsComponent` (language switcher only)
+
+All other components still use hardcoded English strings. To extend coverage, follow the patterns above.
+
+---
+
+
 
 - **Getting Started**: [docs/site/docs/getting-started.md](docs/site/docs/getting-started.md)
 - **CI/CD Pipeline**: [docs/site/docs/admin-guide/ci-cd.md](docs/site/docs/admin-guide/ci-cd.md)

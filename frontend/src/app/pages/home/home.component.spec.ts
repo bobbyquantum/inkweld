@@ -44,6 +44,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { HomeComponent } from './home.component';
 
 describe('HomeComponent', () => {
@@ -248,7 +249,7 @@ describe('HomeComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [HomeComponent],
+      imports: [HomeComponent, translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([

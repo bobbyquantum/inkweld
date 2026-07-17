@@ -8,10 +8,12 @@
           mat-raised-button
           color="primary"
           (click)="updateService.applyUpdate()">
-          Update Now
+          {{ 'app.updateNow' | transloco }}
         </button>
       } @else {
-        <button mat-button (click)="refreshPage()">Refresh</button>
+        <button mat-button (click)="refreshPage()">
+          {{ 'refresh' | transloco }}
+        </button>
       }
     </div>
   </mat-toolbar>
@@ -20,16 +22,13 @@
 <!-- Authentication Error Bar -->
 @if (shouldShowErrorBar()) {
   <mat-toolbar class="auth-error-bar" color="warn">
-    <span
-      >Your session has expired. Please re-authenticate or continue
-      offline.</span
-    >
+    <span>{{ 'app.sessionExpiredMessage' | transloco }}</span>
     <div class="auth-error-actions">
       <button mat-button (click)="handleReAuthenticate()">
-        Re-authenticate
+        {{ 'app.reAuthenticate' | transloco }}
       </button>
       <button mat-button (click)="handleContinueOffline()">
-        Continue Offline
+        {{ 'app.continueOffline' | transloco }}
       </button>
     </div>
   </mat-toolbar>

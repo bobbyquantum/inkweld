@@ -84,6 +84,7 @@
     "@fontsource/source-code-pro": "^5.2.7",
     "@fontsource/source-sans-3": "^5.2.9",
     "@fontsource/source-serif-4": "^5.2.9",
+    "@jsverse/transloco": "^8.4.0",
     "@myriaddreamin/typst-ts-renderer": "^0.7.0-rc2",
     "@myriaddreamin/typst-ts-web-compiler": "^0.7.0-rc2",
     "@myriaddreamin/typst.angular": "^0.7.0-rc2",
