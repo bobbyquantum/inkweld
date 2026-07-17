@@ -97,20 +97,14 @@
       <input
         matInput
         id="import-project-slug-input"
-        [formControl]="slugControl"
+        [formField]="form.slug"
         data-testid="import-slug-input"
         placeholder="my-project"
         aria-label="Project slug" />
-      @if (slugControl.hasError('required')) {
-        <mat-error>Slug is required</mat-error>
-      } @else if (slugControl.hasError('minlength')) {
-        <mat-error>Slug must be at least 3 characters</mat-error>
-      } @else if (slugControl.hasError('maxlength')) {
-        <mat-error>Slug cannot exceed 50 characters</mat-error>
-      } @else if (slugControl.hasError('pattern')) {
-        <mat-error>Use lowercase letters, numbers, and hyphens only</mat-error>
-      } @else if (slugControl.hasError('slugTaken')) {
-        <mat-error>This slug is already taken</mat-error>
+      @if (form.slug().touched() && form.slug().invalid()) {
+        @for (error of form.slug().errors(); track error) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
       }
       @if (isValidating()) {
         <mat-hint>Checking availability...</mat-hint>

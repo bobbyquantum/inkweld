@@ -1,20 +1,11 @@
 import {
-  type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
-  computed,
-  type ElementRef,
   inject,
   type OnInit,
   signal,
-  viewChild,
 } from '@angular/core';
-import {
-  FormBuilder,
-  type FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { form, FormField, maxLength, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { provideNativeDateAdapter } from '@angular/material/core';
@@ -40,9 +31,14 @@ export interface AnnouncementEditorDialogData {
   announcement?: Announcement;
 }
 
+type AnnouncementType = 'announcement' | 'update' | 'maintenance';
+type AnnouncementPriority = 'low' | 'normal' | 'high';
+
 interface AnnouncementFormValue {
-  type: 'announcement' | 'update' | 'maintenance';
-  priority: 'low' | 'normal' | 'high';
+  title: string;
+  content: string;
+  type: AnnouncementType;
+  priority: AnnouncementPriority;
   isPublic: boolean;
   expiresAt: Date | null;
 }
@@ -50,7 +46,7 @@ interface AnnouncementFormValue {
 @Component({
   selector: 'app-announcement-editor-dialog',
   imports: [
-    ReactiveFormsModule,
+    FormField,
     MatButtonModule,
     MatCheckboxModule,
     MatDatepickerModule,
@@ -66,10 +62,7 @@ interface AnnouncementFormValue {
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './announcement-editor-dialog.component.scss',
 })
-export class AnnouncementEditorDialogComponent
-  implements OnInit, AfterViewInit
-{
-  private readonly fb = inject(FormBuilder);
+export class AnnouncementEditorDialogComponent implements OnInit {
   private readonly dialogRef = inject(
     MatDialogRef<AnnouncementEditorDialogComponent>
   );
@@ -77,32 +70,6 @@ export class AnnouncementEditorDialogComponent
   private readonly announcementService = inject(AnnouncementService);
   private readonly snackBar = inject(MatSnackBar);
 
-  // Refs used to seed the DOM value in edit mode without using [value]
-  // (which would re-write during every CD cycle and clobber user input).
-  readonly titleInputRef =
-    viewChild<ElementRef<HTMLInputElement>>('titleInput');
-  readonly contentInputRef =
-    viewChild<ElementRef<HTMLTextAreaElement>>('contentInput');
-
-  // Title/content as signals with (input) handlers — the canonical
-  // zoneless Angular pattern. Plain [(ngModel)] doesn't trigger CD on
-  // typing in zoneless mode, so [disabled] bindings never update.
-  readonly titleStr = signal('');
-  readonly contentStr = signal('');
-
-  readonly isFormValid = computed(() => {
-    const t = this.titleStr();
-    const c = this.contentStr();
-    return (
-      t.trim().length > 0 &&
-      t.length <= 200 &&
-      c.trim().length > 0 &&
-      c.length <= 10000
-    );
-  });
-
-  // FormGroup for mat-select, mat-checkbox, mat-datepicker fields only.
-  form!: FormGroup;
   isSubmitting = false;
 
   readonly isEditMode = this.data.mode === 'edit';
@@ -122,66 +89,56 @@ export class AnnouncementEditorDialogComponent
     { value: 'high', label: 'High' },
   ];
 
-  onTitleInput(event: Event): void {
-    this.titleStr.set((event.target as HTMLInputElement).value);
-  }
+  readonly model = signal<AnnouncementFormValue>({
+    title: '',
+    content: '',
+    type: 'announcement',
+    priority: 'normal',
+    isPublic: true,
+    expiresAt: null,
+  });
 
-  onContentInput(event: Event): void {
-    this.contentStr.set((event.target as HTMLTextAreaElement).value);
-  }
+  readonly form = form(this.model, schemaPath => {
+    required(schemaPath.title, { message: 'Title is required' });
+    maxLength(schemaPath.title, 200, {
+      message: 'Title must be 200 characters or less',
+    });
+    required(schemaPath.content, { message: 'Content is required' });
+    maxLength(schemaPath.content, 10000, {
+      message: 'Content must be 10,000 characters or less',
+    });
+    required(schemaPath.type, { message: 'Type is required' });
+    required(schemaPath.priority, { message: 'Priority is required' });
+  });
 
   ngOnInit(): void {
-    // Only seed in edit mode. In create mode, signals stay at their
-    // initial '' value (set in field initializer above). We avoid
-    // unconditionally re-setting here because Playwright's fill() in e2e
-    // tests can fire input events *before* ngOnInit runs (the dialog
-    // template is rendered very early), and re-seeding to '' would
-    // clobber the user-typed values.
     const announcement = this.data.announcement;
     if (this.isEditMode && announcement) {
-      this.titleStr.set(announcement.title);
-      this.contentStr.set(announcement.content);
-    }
-
-    this.form = this.fb.group({
-      type: [announcement?.type || 'announcement', Validators.required],
-      priority: [announcement?.priority || 'normal', Validators.required],
-      isPublic: [announcement?.isPublic ?? true],
-      expiresAt: [
-        announcement?.expiresAt ? new Date(announcement.expiresAt) : null,
-      ],
-    });
-  }
-
-  ngAfterViewInit(): void {
-    // Seed DOM input values once in edit mode. We avoid [value]/[(ngModel)]
-    // bindings because they re-write on every CD cycle and can clobber user
-    // edits during interactions with other form controls (mat-checkbox,
-    // mat-select) in zoneless mode. Defer to a microtask so the write
-    // doesn't happen during the same CD cycle that just finished
-    // (avoids ExpressionChangedAfterItHasBeenCheckedError in tests).
-    if (this.isEditMode) {
-      queueMicrotask(() => {
-        const titleEl = this.titleInputRef()?.nativeElement;
-        const contentEl = this.contentInputRef()?.nativeElement;
-        if (titleEl) titleEl.value = this.titleStr();
-        if (contentEl) contentEl.value = this.contentStr();
+      this.model.set({
+        title: announcement.title,
+        content: announcement.content,
+        type: announcement.type,
+        priority: announcement.priority,
+        isPublic: announcement.isPublic,
+        expiresAt: announcement.expiresAt
+          ? new Date(announcement.expiresAt)
+          : null,
       });
     }
   }
 
   async submit(): Promise<void> {
-    if (!this.isFormValid() || this.isSubmitting) {
+    if (this.form().invalid() || this.isSubmitting) {
       return;
     }
 
     this.isSubmitting = true;
 
     try {
-      const formValue = this.form.value as AnnouncementFormValue;
+      const formValue = this.model();
       const data = {
-        title: this.titleStr(),
-        content: this.contentStr(),
+        title: formValue.title,
+        content: formValue.content,
         type: formValue.type,
         priority: formValue.priority,
         isPublic: formValue.isPublic,

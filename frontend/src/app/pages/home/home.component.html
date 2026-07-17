@@ -34,19 +34,19 @@
                 class="custom-search-field"
                 hideRequiredMarker="true"
                 subscriptSizing="dynamic">
-                <input
-                  matInput
-                  id="home-mobile-search-input"
-                  [placeholder]="'home.searchProjects' | transloco"
-                  [formControl]="searchControl"
-                  [attr.aria-label]="'home.searchProjects' | transloco" />
+                  <input
+                    matInput
+                    id="home-mobile-search-input"
+                    [placeholder]="'home.searchProjects' | transloco"
+                    [formField]="searchForm.search"
+                    [attr.aria-label]="'home.searchProjects' | transloco" />
                 <mat-icon matPrefix>search</mat-icon>
-                @if (searchControl.value) {
+                @if (searchForm.search().value()) {
                   <button
                     matSuffix
                     mat-icon-button
                     [attr.aria-label]="'clear' | transloco"
-                    (click)="searchControl.setValue('')">
+                    (click)="searchForm.search().value.set('')">
                     <mat-icon>close</mat-icon>
                   </button>
                 }
@@ -82,19 +82,19 @@
                   class="custom-search-field"
                   hideRequiredMarker="true"
                   subscriptSizing="dynamic">
-                  <input
-                    matInput
-                    id="home-desktop-search-input"
-                    [placeholder]="'home.searchProjects' | transloco"
-                    [formControl]="searchControl"
-                    [attr.aria-label]="'home.searchProjects' | transloco" />
+                    <input
+                      matInput
+                      id="home-desktop-search-input"
+                      [placeholder]="'home.searchProjects' | transloco"
+                      [formField]="searchForm.search"
+                      [attr.aria-label]="'home.searchProjects' | transloco" />
                   <mat-icon matPrefix>search</mat-icon>
-                  @if (searchControl.value) {
+                  @if (searchForm.search().value()) {
                     <button
                       matSuffix
                       mat-icon-button
                       [attr.aria-label]="'clear' | transloco"
-                      (click)="searchControl.setValue('')">
+                      (click)="searchForm.search().value.set('')">
                       <mat-icon>close</mat-icon>
                     </button>
                   }
@@ -333,7 +333,7 @@
             <!-- Collaborated Projects Section -->
 
             <!-- All Projects Section (owned + shared) -->
-            @if (allProjects().length === 0 && !searchControl.value) {
+            @if (allProjects().length === 0 && !searchForm.search().value()) {
               <div class="empty-state" data-testid="empty-state">
                 <h2>{{ 'home.createFirstProject' | transloco }}</h2>
                 <p>{{ 'home.getStarted' | transloco }}</p>
@@ -352,7 +352,9 @@
                   </button>
                 </div>
               </div>
-            } @else if (allProjects().length === 0 && searchControl.value) {
+            } @else if (
+              allProjects().length === 0 && searchForm.search().value()
+            ) {
               <div class="empty-search-results">
                 <mat-icon>search_off</mat-icon>
                 <h3>{{ 'home.noProjectsFound' | transloco }}</h3>

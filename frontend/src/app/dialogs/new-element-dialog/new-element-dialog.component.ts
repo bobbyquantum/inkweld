@@ -6,13 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  type FormControl,
-  FormsModule,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormField, form, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import {
@@ -53,9 +47,9 @@ interface ElementTypeOption {
   category: 'document' | 'worldbuilding' | 'visualization';
 }
 
-interface NewElementForm {
-  name: FormControl<string>;
-  type: FormControl<ElementType>;
+interface NewElementFormValue {
+  name: string;
+  type: ElementType;
 }
 
 @Component({
@@ -64,8 +58,7 @@ interface NewElementForm {
   styleUrls: ['./new-element-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    ReactiveFormsModule,
-    FormsModule,
+    FormField,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
@@ -82,7 +75,6 @@ export class NewElementDialogComponent {
   );
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly projectState = inject(ProjectStateService);
-  private readonly fb = inject(FormBuilder).nonNullable;
   private readonly data = inject<NewElementDialogData | null>(MAT_DIALOG_DATA, {
     optional: true,
   });
@@ -171,11 +163,14 @@ export class NewElementDialogComponent {
   // Track selected schema ID for worldbuilding types
   selectedSchemaId = signal<string | undefined>(undefined);
 
-  readonly form = this.fb.group<NewElementForm>({
-    name: this.fb.control('', { validators: [Validators.required] }),
-    type: this.fb.control(ElementType.Item, {
-      validators: [Validators.required],
-    }),
+  readonly model = signal<NewElementFormValue>({
+    name: '',
+    type: ElementType.Item,
+  });
+
+  readonly form = form(this.model, schemaPath => {
+    required(schemaPath.name, { message: 'Name is required' });
+    required(schemaPath.type, { message: 'Type is required' });
   });
 
   constructor() {
@@ -190,7 +185,8 @@ export class NewElementDialogComponent {
     // If dialog data specifies skipping type selection, go directly to step 2
     if (this.data?.skipTypeSelection && this.data?.preselectedType) {
       this.selectedType.set(this.data.preselectedType);
-      this.form.controls.type.setValue(this.data.preselectedType);
+      this.selectedSchemaId.set(this.data.preselectedSchemaId);
+      this.model.update(m => ({ ...m, type: this.data!.preselectedType! }));
       this.currentStep.set(2);
     }
   }
@@ -247,21 +243,23 @@ export class NewElementDialogComponent {
   };
 
   onCreate = (): void => {
-    if (this.form.valid) {
-      const result: NewElementDialogResult = {
-        name: this.form.controls.name.value,
-        type: this.form.controls.type.value,
-        schemaId: this.selectedSchemaId(),
-      };
-      this.dialogRef.close(result);
+    if (this.form().invalid()) {
+      return;
     }
+    const value = this.model();
+    const result: NewElementDialogResult = {
+      name: value.name,
+      type: value.type,
+      schemaId: this.selectedSchemaId(),
+    };
+    this.dialogRef.close(result);
   };
 
   // Step 1: Select type and optionally schema ID for worldbuilding
   selectType(option: ElementTypeOption): void {
     this.selectedType.set(option.type);
     this.selectedSchemaId.set(option.schemaId);
-    this.form.controls.type.setValue(option.type);
+    this.model.update(m => ({ ...m, type: option.type }));
     this.nextStep();
   }
 
@@ -279,7 +277,7 @@ export class NewElementDialogComponent {
       // Focus on name input after view updates
       setTimeout(() => {
         const nameInput = document.querySelector<HTMLInputElement>(
-          'input[formControlName="name"]'
+          'input[data-testid="element-name-input"]'
         );
         nameInput?.focus();
       }, 100);
