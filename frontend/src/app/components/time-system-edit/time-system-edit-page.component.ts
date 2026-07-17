@@ -2,20 +2,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  DestroyRef,
   effect,
   inject,
   input,
   output,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { form, FormField, maxLength, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -42,6 +35,12 @@ interface UnitDraft {
   subdivisionOverrides: Record<string, number>;
 }
 
+interface TimeSystemFormValue {
+  name: string;
+  format: string;
+  parseSeparator: string;
+}
+
 /**
  * Inline editor for a {@link TimeSystem}.
  *
@@ -58,7 +57,7 @@ interface UnitDraft {
   selector: 'app-time-system-edit-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    ReactiveFormsModule,
+    FormField,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,
@@ -71,7 +70,6 @@ interface UnitDraft {
 export class TimeSystemEditPageComponent {
   private readonly library = inject(TimeSystemLibraryService);
   private readonly dialog = inject(MatDialog);
-  private readonly destroyRef = inject(DestroyRef);
 
   /**
    * System ID to edit. When absent the editor starts in "create" mode.
@@ -90,26 +88,26 @@ export class TimeSystemEditPageComponent {
   /** Local draft of the units list. Mutated through `onEditUnit` etc. */
   protected readonly units = signal<UnitDraft[]>([]);
 
-  protected readonly form = new FormGroup({
-    name: new FormControl<string>('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.minLength(1)],
-    }),
-    format: new FormControl<string>('{u0}-{u1}-{u2}', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    parseSeparator: new FormControl<string>('-', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(3)],
-    }),
+  readonly model = signal<TimeSystemFormValue>({
+    name: '',
+    format: '{u0}-{u1}-{u2}',
+    parseSeparator: '-',
   });
 
-  // Driver tick so previewText recomputes on form changes.
-  private readonly formTickSignal = signal(0);
+  readonly form = form(this.model, schemaPath => {
+    required(schemaPath.name, { message: 'System name is required' });
+    required(schemaPath.format, { message: 'Display format is required' });
+    required(schemaPath.parseSeparator, {
+      message: 'Parse separator is required',
+    });
+    maxLength(schemaPath.parseSeparator, 3, {
+      message: 'Parse separator must be at most 3 characters',
+    });
+  });
 
   protected readonly previewText = computed(() => {
-    this.formTickSignal();
+    // Touch form signals so the computed re-evaluates on changes.
+    this.model();
     const list = this.units();
     if (list.length === 0) return '(define at least one unit)';
     const parts: string[] = [list[0].name || 'unit 1'];
@@ -122,9 +120,10 @@ export class TimeSystemEditPageComponent {
   });
 
   protected readonly canSave = computed(() => {
-    this.formTickSignal();
-    if (this.form.invalid) return false;
-    if (!this.form.controls.name.value.trim()) return false;
+    // Track form state via the form's signals.
+    if (this.form().invalid()) return false;
+    const raw = this.model();
+    if (!raw.name.trim()) return false;
     const list = this.units();
     if (list.length === 0) return false;
     return list.every(u => {
@@ -139,10 +138,6 @@ export class TimeSystemEditPageComponent {
   });
 
   constructor() {
-    this.form.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.formTickSignal.update(n => n + 1));
-
     // React to the systemId input to load or initialise.
     effect(() => {
       const id = this.systemId();
@@ -158,7 +153,7 @@ export class TimeSystemEditPageComponent {
 
   private initialiseBlank(): void {
     this.loadError.set(null);
-    this.form.reset({
+    this.model.set({
       name: '',
       format: '{u0}-{u1}-{u2}',
       parseSeparator: '-',
@@ -192,7 +187,6 @@ export class TimeSystemEditPageComponent {
         subdivisionOverrides: {},
       },
     ]);
-    this.formTickSignal.update(n => n + 1);
   }
 
   private loadFromLibrary(id: string): void {
@@ -202,23 +196,21 @@ export class TimeSystemEditPageComponent {
       return;
     }
     this.loadError.set(null);
-    this.form.reset({
+    this.model.set({
       name: system.name,
       format: system.format,
       parseSeparator: system.parseSeparator,
     });
     this.units.set(systemToDrafts(system));
-    this.formTickSignal.update(n => n + 1);
   }
 
   protected loadTemplate(tpl: TimeSystem): void {
-    this.form.reset({
+    this.model.set({
       name: tpl.name,
       format: tpl.format,
       parseSeparator: tpl.parseSeparator,
     });
     this.units.set(systemToDrafts(tpl));
-    this.formTickSignal.update(n => n + 1);
   }
 
   // ─── Unit list operations ─────────────────────────────────────────────
@@ -254,7 +246,6 @@ export class TimeSystemEditPageComponent {
       subdivisionOverrides: {},
     };
     this.units.update(list => [...list, next]);
-    this.formTickSignal.update(n => n + 1);
     // Open the editor immediately so the user can fill in the new unit.
     this.onEditUnit(this.units().length - 1);
   }
@@ -267,7 +258,6 @@ export class TimeSystemEditPageComponent {
       if (next.length > 0) next[0] = { ...next[0], subdivision: null };
       return next;
     });
-    this.formTickSignal.update(n => n + 1);
   }
 
   protected onMoveUnit(i: number, delta: number): void {
@@ -290,7 +280,6 @@ export class TimeSystemEditPageComponent {
       }
       return next;
     });
-    this.formTickSignal.update(n => n + 1);
   }
 
   protected onEditUnit(i: number): void {
@@ -336,7 +325,6 @@ export class TimeSystemEditPageComponent {
         };
         return next;
       });
-      this.formTickSignal.update(n => n + 1);
     });
   }
 
@@ -348,7 +336,7 @@ export class TimeSystemEditPageComponent {
 
   protected onSave(): void {
     if (!this.canSave()) return;
-    const raw = this.form.getRawValue();
+    const raw = this.model();
     const list = this.units();
     const id = this.systemId();
     const aliasesResult = buildOptionalAliasArray(list);

@@ -7,15 +7,14 @@ import {
   signal,
 } from '@angular/core';
 import {
-  FormField,
   form,
+  FormField,
   maxLength,
   minLength,
   pattern,
   required,
   validate,
 } from '@angular/forms/signals';
-
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,

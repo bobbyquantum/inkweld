@@ -1,6 +1,6 @@
 <h2 mat-dialog-title>Create Snapshot</h2>
 
-<form (ngSubmit)="onSubmit()">
+<form (submit)="$event.preventDefault(); onSubmit()">
   <mat-dialog-content>
     @if (data.wordCount !== undefined) {
       <p class="word-count-info">

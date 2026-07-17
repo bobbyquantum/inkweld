@@ -1,5 +1,5 @@
 <form
-  (ngSubmit)="submit()"
+  (submit)="$event.preventDefault(); submit()"
   class="registration-form"
   [class.compact]="compact"
   data-testid="registration-form">

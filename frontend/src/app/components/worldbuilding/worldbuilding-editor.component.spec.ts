@@ -435,18 +435,14 @@ describe('WorldbuildingEditorComponent', () => {
     it('should clean up observers on destroy', () => {
       const mockUnsubscribe = vi.fn();
       component['unsubscribeObserver'] = mockUnsubscribe;
-      const mockFormUnsubscribe = vi.fn();
-      component['formSubscription'] = mockFormUnsubscribe;
 
       component.ngOnDestroy();
 
       expect(mockUnsubscribe).toHaveBeenCalled();
-      expect(mockFormUnsubscribe).toHaveBeenCalled();
     });
 
     it('should handle destroy when no observers exist', () => {
       component['unsubscribeObserver'] = null;
-      component['formSubscription'] = null;
 
       // Should not throw
       expect(() => component.ngOnDestroy()).not.toThrow();

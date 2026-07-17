@@ -25,10 +25,10 @@ import {
   ViewContainerRef,
 } from '@angular/core';
 import {
-  FormField,
   applyWhen,
   email,
   form,
+  FormField,
   minLength,
   required,
   validate,

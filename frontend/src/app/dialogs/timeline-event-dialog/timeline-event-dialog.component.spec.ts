@@ -313,14 +313,15 @@ describe('TimelineEventDialogComponent', () => {
     setEndUnit(component, 0, '2020');
     setEndUnit(component, 1, '1');
     setEndUnit(component, 2, '1');
-    const hasRootError = component
+    // validateTree with `fieldTree: ctx.fieldTree.endUnits` routes the
+    // cross-field error onto the endUnits subtree, so it surfaces via the
+    // root's `errorSummary` (which aggregates the field and its descendants)
+    // rather than `errors()` (direct errors only).
+    const hasError = component
       .form()
-      .errors()
+      .errorSummary()
       .some(e => e.kind === 'endBeforeStart');
-    const hasEndError = component.form.endUnits
-      .errors()
-      .some(e => e.kind === 'endBeforeStart');
-    expect(hasRootError || hasEndError).toBe(true);
+    expect(hasError).toBe(true);
   });
 
   // ─── Dropdown input mode ───────────────────────────────────────────────────

@@ -128,7 +128,7 @@
     New {{ getSelectedOption()?.label }}
   </h2>
 
-  <form (ngSubmit)="onCreate()">
+  <form (submit)="$event.preventDefault(); onCreate()">
     <mat-dialog-content class="name-content">
       <!-- Show selected type info -->
       <div class="selected-type-info">

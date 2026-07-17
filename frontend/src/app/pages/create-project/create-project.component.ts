@@ -5,8 +5,9 @@ import {
   inject,
   type OnInit,
   signal,
+  untracked,
 } from '@angular/core';
-import { FormField, form, pattern, required } from '@angular/forms/signals';
+import { form, FormField, pattern, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -85,7 +86,7 @@ export class CreateProjectComponent implements OnInit {
     });
   });
 
-  projectUrl = '';
+  readonly projectUrl = signal('');
   baseUrl: string;
   username = '';
   readonly isSaving = signal(false);
@@ -101,7 +102,11 @@ export class CreateProjectComponent implements OnInit {
       if (title) {
         const slug = this.generateSlug(title);
         this.projectForm.slug().value.set(slug);
-        this.updateProjectUrl();
+        // `updateProjectUrl` is invoked by the slug-tracking effect below;
+        // calling it here would add `slug` to this effect's dependencies and
+        // cause it to re-fire (and overwrite the user's manual slug edits)
+        // on every slug change. Use `untracked` to avoid that.
+        untracked(() => this.updateProjectUrl());
       }
     });
 
@@ -129,7 +134,7 @@ export class CreateProjectComponent implements OnInit {
       slug: '',
       description: '',
     });
-    this.projectUrl = '';
+    this.projectUrl.set('');
 
     // Load available templates
     void this.loadTemplates();
@@ -145,9 +150,9 @@ export class CreateProjectComponent implements OnInit {
   updateProjectUrl = (): void => {
     const slug = this.model().slug;
     if (this.username && slug) {
-      this.projectUrl = `${this.baseUrl}/${this.username}/${slug}`;
+      this.projectUrl.set(`${this.baseUrl}/${this.username}/${slug}`);
     } else {
-      this.projectUrl = '';
+      this.projectUrl.set('');
     }
   };
 
@@ -188,7 +193,11 @@ export class CreateProjectComponent implements OnInit {
     }
   }
 
-  async onSubmit(): Promise<void> {
+  async onSubmit(event?: Event): Promise<void> {
+    // Signal-forms `[formField]` does not register a ControlContainer, so
+    // the native `<form>` would submit via GET and reload the page. Prevent
+    // the default submission and handle the action in-component.
+    event?.preventDefault();
     if (this.projectForm().invalid()) {
       return;
     }

@@ -170,7 +170,7 @@ describe('CreateProjectComponent', () => {
     component.updateProjectUrl();
     fixture.detectChanges();
 
-    expect(component.projectUrl).toBe(`${baseUrl}/${username}/${slug}`);
+    expect(component.projectUrl()).toBe(`${baseUrl}/${username}/${slug}`);
   });
 
   it('should validate required fields', () => {

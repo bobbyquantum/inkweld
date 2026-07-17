@@ -8,8 +8,8 @@ import {
 } from '@angular/core';
 import {
   applyEach,
-  FormField,
   form,
+  FormField,
   required,
   validate,
   validateTree,
@@ -168,11 +168,13 @@ export class TimelineEventDialogComponent {
 
     // Keep the Gregorian date picker in sync when numeric unit fields are edited.
     effect(() => {
-      this.model().startUnits;
+      // Read startUnits so the effect tracks the model signal.
+      void this.model().startUnits;
       this.startDateSignal.set(this.unitsToIsoDate('start'));
     });
     effect(() => {
-      this.model().endUnits;
+      // Read endUnits so the effect tracks the model signal.
+      void this.model().endUnits;
       this.endDateSignal.set(this.unitsToIsoDate('end'));
     });
   }
