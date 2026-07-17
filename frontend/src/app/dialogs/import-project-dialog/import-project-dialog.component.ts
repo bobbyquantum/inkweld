@@ -4,7 +4,6 @@ import {
   computed,
   effect,
   inject,
-  onCleanup,
   signal,
 } from '@angular/core';
 import {
@@ -154,7 +153,7 @@ export class ImportProjectDialogComponent {
       const timer = setTimeout(() => {
         this.validateSlugAvailability(slug);
       }, 300);
-      onCleanup(() => clearTimeout(timer));
+      return () => clearTimeout(timer);
     });
   }
 
