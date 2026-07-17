@@ -211,21 +211,6 @@ export class TimelineEraDialogComponent {
     return `${yy}-${mm}-${dd}`;
   }
 
-  private unitsToIsoDateFromModel(which: 'start' | 'end'): string {
-    if (!this.isGregorian()) return '';
-    const units =
-      which === 'start' ? this.model().startUnits : this.model().endUnits;
-    if (units.length !== 3) return '';
-    const [y, m, d] = units.map(Number);
-    if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
-      return '';
-    }
-    const yy = String(y).padStart(4, '0');
-    const mm = String(Math.max(1, m)).padStart(2, '0');
-    const dd = String(Math.max(1, d)).padStart(2, '0');
-    return `${yy}-${mm}-${dd}`;
-  }
-
   private applyIsoDateTo(iso: string, which: 'start' | 'end'): void {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
     if (!m) return;
