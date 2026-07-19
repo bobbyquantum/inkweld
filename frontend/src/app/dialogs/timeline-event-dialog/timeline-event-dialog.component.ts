@@ -168,14 +168,13 @@ export class TimelineEventDialogComponent {
 
     // Keep the Gregorian date picker in sync when numeric unit fields are edited.
     effect(() => {
-      // Read startUnits so the effect tracks the model signal.
-      void this.model().startUnits;
-      this.startDateSignal.set(this.unitsToIsoDate('start'));
+      // Destructure so the effect tracks the model's startUnits field.
+      const { startUnits } = this.model();
+      this.startDateSignal.set(this.unitsToIsoDateFromUnits(startUnits));
     });
     effect(() => {
-      // Read endUnits so the effect tracks the model signal.
-      void this.model().endUnits;
-      this.endDateSignal.set(this.unitsToIsoDate('end'));
+      const { endUnits } = this.model();
+      this.endDateSignal.set(this.unitsToIsoDateFromUnits(endUnits));
     });
   }
 
@@ -215,6 +214,10 @@ export class TimelineEventDialogComponent {
     if (!this.isGregorian()) return '';
     const u =
       which === 'start' ? this.model().startUnits : this.model().endUnits;
+    return this.unitsToIsoDateFromUnits(u);
+  }
+
+  private unitsToIsoDateFromUnits(u: string[]): string {
     if (u?.length !== 3) return '';
     const [y, m, d] = u.map(Number);
     if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {

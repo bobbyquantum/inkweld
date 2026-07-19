@@ -249,14 +249,14 @@ describe('TimelineEraDialogComponent', () => {
   it('startUnits returns the form start units array', async () => {
     const { component } = await createComponent();
     const startUnits = component.model().startUnits;
-    expect(startUnits.length).toBe(3);
+    expect(startUnits).toHaveLength(3);
     expect(startUnits[0]).toBe('2000');
   });
 
   it('endUnits returns the form end units array', async () => {
     const { component } = await createComponent();
     const endUnits = component.model().endUnits;
-    expect(endUnits.length).toBe(3);
+    expect(endUnits).toHaveLength(3);
     expect(endUnits[0]).toBe('2000');
   });
 

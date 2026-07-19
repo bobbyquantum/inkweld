@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import {
   form,
@@ -138,22 +139,28 @@ export class ImportProjectDialogComponent {
       this.importStatus.set(progress.message);
     });
 
-    effect(() => {
+    effect(onCleanup => {
       const slug = this.form.slug().value();
       const staticallyValid =
         slug.length >= 3 && slug.length <= 50 && SLUG_PATTERN.test(slug);
-      // Clear stale validation result immediately on any slug change
+      // Clear stale validation result immediately on any slug change.
+      // Use untracked for slugTaken so this effect doesn't re-fire when
+      // validateSlugAvailability sets slugTaken(true) — otherwise the
+      // effect would immediately reset it to false and defeat the
+      // slugTaken validator below.
       this.validationResult.set(null);
-      if (this.slugTaken()) {
-        this.slugTaken.set(false);
-      }
+      untracked(() => {
+        if (this.slugTaken()) {
+          this.slugTaken.set(false);
+        }
+      });
       if (!staticallyValid) {
         return;
       }
       const timer = setTimeout(() => {
         this.validateSlugAvailability(slug);
       }, 300);
-      return () => clearTimeout(timer);
+      onCleanup(() => clearTimeout(timer));
     });
   }
 

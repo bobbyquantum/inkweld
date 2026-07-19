@@ -555,16 +555,13 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   // Error message getters
   getUsernameErrorMessage(): string {
     const errors = this.form.username().errors();
-    const requiredErr = errors.find(e => e.kind === 'required');
-    if (requiredErr) {
+    if (errors.some(e => e.kind === 'required')) {
       return 'Username is required';
     }
-    const minLengthErr = errors.find(e => e.kind === 'minLength');
-    if (minLengthErr) {
+    if (errors.some(e => e.kind === 'minLength')) {
       return 'Username must be at least 3 characters';
     }
-    const takenErr = errors.find(e => e.kind === 'usernameTaken');
-    if (takenErr) {
+    if (errors.some(e => e.kind === 'usernameTaken')) {
       return 'Username already taken. Please choose another.';
     }
     // Return server validation error if flag is set
