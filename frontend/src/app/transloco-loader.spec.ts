@@ -34,6 +34,11 @@ describe('TranslocoHttpLoader', () => {
     syncAll: 'Sync All',
   };
 
+  const mockSettings = {
+    language: 'Language',
+    moreLanguages: 'More languages coming soon',
+  };
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -46,6 +51,7 @@ describe('TranslocoHttpLoader', () => {
 
   afterEach(() => {
     httpMock.verify();
+    TestBed.resetTestingModule();
   });
 
   it('should be created', () => {
@@ -60,10 +66,11 @@ describe('TranslocoHttpLoader', () => {
           app: mockApp,
           login: mockLogin,
           home: mockHome,
+          settings: mockSettings,
         });
       });
 
-      // Expect 4 HTTP requests (common + 3 scopes)
+      // Expect 5 HTTP requests (common + 4 scopes)
       const commonReq = httpMock.expectOne('/assets/i18n/en/common.json');
       expect(commonReq.request.method).toBe('GET');
       commonReq.flush(mockCommon);
@@ -79,6 +86,10 @@ describe('TranslocoHttpLoader', () => {
       const homeReq = httpMock.expectOne('/assets/i18n/en/home.json');
       expect(homeReq.request.method).toBe('GET');
       homeReq.flush(mockHome);
+
+      const settingsReq = httpMock.expectOne('/assets/i18n/en/settings.json');
+      expect(settingsReq.request.method).toBe('GET');
+      settingsReq.flush(mockSettings);
     });
 
     it('should handle different language', () => {
@@ -88,6 +99,7 @@ describe('TranslocoHttpLoader', () => {
           app: mockApp,
           login: mockLogin,
           home: mockHome,
+          settings: mockSettings,
         });
       });
 
@@ -95,6 +107,7 @@ describe('TranslocoHttpLoader', () => {
       httpMock.expectOne('/assets/i18n/fr/app.json').flush(mockApp);
       httpMock.expectOne('/assets/i18n/fr/login.json').flush(mockLogin);
       httpMock.expectOne('/assets/i18n/fr/home.json').flush(mockHome);
+      httpMock.expectOne('/assets/i18n/fr/settings.json').flush(mockSettings);
     });
 
     it('should merge scopes into common translations', () => {
@@ -107,12 +120,14 @@ describe('TranslocoHttpLoader', () => {
         expect(translation['app']).toEqual(mockApp);
         expect(translation['login']).toEqual(mockLogin);
         expect(translation['home']).toEqual(mockHome);
+        expect(translation['settings']).toEqual(mockSettings);
       });
 
       httpMock.expectOne('/assets/i18n/en/common.json').flush(mockCommon);
       httpMock.expectOne('/assets/i18n/en/app.json').flush(mockApp);
       httpMock.expectOne('/assets/i18n/en/login.json').flush(mockLogin);
       httpMock.expectOne('/assets/i18n/en/home.json').flush(mockHome);
+      httpMock.expectOne('/assets/i18n/en/settings.json').flush(mockSettings);
     });
 
     it('should handle empty scope translations', () => {
@@ -124,6 +139,7 @@ describe('TranslocoHttpLoader', () => {
           app: mockApp,
           login: emptyScope,
           home: mockHome,
+          settings: mockSettings,
         });
       });
 
@@ -131,6 +147,7 @@ describe('TranslocoHttpLoader', () => {
       httpMock.expectOne('/assets/i18n/en/app.json').flush(mockApp);
       httpMock.expectOne('/assets/i18n/en/login.json').flush(emptyScope);
       httpMock.expectOne('/assets/i18n/en/home.json').flush(mockHome);
+      httpMock.expectOne('/assets/i18n/en/settings.json').flush(mockSettings);
     });
   });
 });
