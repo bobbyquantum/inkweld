@@ -509,6 +509,7 @@ The frontend uses **Transloco** (`@jsverse/transloco` 8.x) for runtime internati
     en/app.json       # App shell scope
     en/login.json     # Login dialog scope
     en/home.json      # Home page scope
+    en/settings.json  # User settings dialog scope
   ```
 - **Loader**: `frontend/src/app/transloco-loader.ts` — HTTP loader that merges all scope files into a single translation map at load time
 - **Config**: `frontend/src/app/app.config.ts` — `provideTransloco()` with `autoPrefixKeys: false` (full dot-notation paths)

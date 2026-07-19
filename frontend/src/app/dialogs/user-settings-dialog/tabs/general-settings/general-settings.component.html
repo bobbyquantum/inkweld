@@ -10,13 +10,13 @@
 
 <!-- Language Selection -->
 <mat-form-field appearance="outline">
-  <mat-label>Language</mat-label>
+  <mat-label>{{ 'settings.language' | transloco }}</mat-label>
   <mat-select
     [(ngModel)]="selectedLang"
     (selectionChange)="onLangChange()"
     [disabled]="!isMultiLang"
-    matTooltip="More languages coming soon">
-    @for (lang of availableLangs; track lang) {
+    [matTooltip]="'settings.moreLanguages' | transloco">
+    @for (lang of availableLangs; track lang.id) {
       <mat-option [value]="lang.id">{{ lang.label }}</mat-option>
     }
   </mat-select>

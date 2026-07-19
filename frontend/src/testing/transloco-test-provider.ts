@@ -103,6 +103,10 @@ const enTranslations = {
       deactivate: 'Deactivate',
     },
   },
+  settings: {
+    language: 'Language',
+    moreLanguages: 'More languages coming soon',
+  },
 };
 
 export function translocoTestProvider() {

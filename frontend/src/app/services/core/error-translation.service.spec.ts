@@ -1,17 +1,13 @@
 import { TestBed } from '@angular/core/testing';
-import { TranslocoService } from '@jsverse/transloco';
-import { describe, expect, it, vi } from 'vitest';
+import { PasskeyError } from '@services/auth/passkey.service';
+import { UserServiceError } from '@services/user/user.service';
+import { describe, expect, it } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ErrorTranslationService } from './error-translation.service';
-import { PasskeyError } from '@services/auth/passkey.service';
-import { UserServiceError } from '@services/user/user.service';
-
-const { spyOn } = vi;
 
 describe('ErrorTranslationService', () => {
   let service: ErrorTranslationService;
-  let transloco: TranslocoService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -20,7 +16,6 @@ describe('ErrorTranslationService', () => {
     });
 
     service = TestBed.inject(ErrorTranslationService);
-    transloco = TestBed.inject(TranslocoService);
   });
 
   it('should be created', () => {
