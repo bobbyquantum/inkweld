@@ -4,12 +4,12 @@
   [class.compact]="compact"
   data-testid="registration-form">
   @if (
-    serverValidationErrors['general'] &&
-    serverValidationErrors['general'].length > 0
+    serverValidationErrors()['general'] &&
+    serverValidationErrors()['general'].length > 0
   ) {
     <div class="server-error-banner" data-testid="registration-error-banner">
       <mat-icon class="server-error-icon">error_outline</mat-icon>
-      <span>{{ serverValidationErrors['general'][0] }}</span>
+      <span>{{ serverValidationErrors()['general'][0] }}</span>
     </div>
   }
   <mat-form-field appearance="outline">
@@ -22,7 +22,7 @@
       (blur)="checkUsernameAvailability()"
       aria-label="Username"
       [attr.data-testid]="testIdPrefix + 'username-input'" />
-    @switch (usernameAvailability) {
+    @switch (usernameAvailability()) {
       @case ('available') {
         <mat-icon
           matSuffix
@@ -44,23 +44,25 @@
     }
   </mat-form-field>
 
-  @if (usernameSuggestions && usernameSuggestions.length > 0) {
-    <div class="username-suggestions" data-testid="username-suggestions">
-      <span class="suggestions-label">Available alternatives:</span>
-      <div class="suggestions-buttons">
-        @for (suggestion of usernameSuggestions; track suggestion) {
-          <button
-            mat-stroked-button
-            color="primary"
-            type="button"
-            (click)="selectSuggestion(suggestion)"
-            class="suggestion-button"
-            data-testid="suggestion-button">
-            {{ suggestion }}
-          </button>
-        }
+  @if (usernameSuggestions(); as suggestions) {
+    @if (suggestions && suggestions.length > 0) {
+      <div class="username-suggestions" data-testid="username-suggestions">
+        <span class="suggestions-label">Available alternatives:</span>
+        <div class="suggestions-buttons">
+          @for (suggestion of suggestions; track suggestion) {
+            <button
+              mat-stroked-button
+              color="primary"
+              type="button"
+              (click)="selectSuggestion(suggestion)"
+              class="suggestion-button"
+              data-testid="suggestion-button">
+              {{ suggestion }}
+            </button>
+          }
+        </div>
       </div>
-    </div>
+    }
   }
 
   <mat-form-field appearance="outline">
@@ -114,13 +116,13 @@
     </mat-form-field>
 
     @if (
-      serverValidationErrors['password'] &&
-      serverValidationErrors['password'].length > 0
+      serverValidationErrors()['password'] &&
+      serverValidationErrors()['password'].length > 0
     ) {
       <div class="password-validation-errors">
         <div class="validation-error-heading">Password requirements:</div>
         <ul class="validation-error-list">
-          @for (error of serverValidationErrors['password']; track error) {
+          @for (error of serverValidationErrors()['password']; track error) {
             <li class="validation-error-item">
               <mat-icon class="validation-error-icon">error_outline</mat-icon>
               <span>{{ error }}</span>

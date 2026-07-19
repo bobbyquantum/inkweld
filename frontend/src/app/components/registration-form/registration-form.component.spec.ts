@@ -258,10 +258,10 @@ describe('RegistrationFormComponent', () => {
 
   describe('username suggestions', () => {
     it('should select suggestion and update form', () => {
-      component.usernameSuggestions = ['user123', 'user456'];
+      component.usernameSuggestions.set(['user123', 'user456']);
       component.selectSuggestion('user123');
       expect(component.model().username).toBe('user123');
-      expect(component.usernameSuggestions).toEqual([]);
+      expect(component.usernameSuggestions()).toEqual([]);
     });
   });
 
@@ -479,8 +479,8 @@ describe('RegistrationFormComponent', () => {
 
       await component.checkUsernameAvailability();
 
-      expect(component.usernameAvailability).toBe('available');
-      expect(component.usernameSuggestions).toEqual([]);
+      expect(component.usernameAvailability()).toBe('available');
+      expect(component.usernameSuggestions()).toEqual([]);
     });
 
     it('should handle unavailable username with suggestions', async () => {
@@ -494,8 +494,8 @@ describe('RegistrationFormComponent', () => {
 
       await component.checkUsernameAvailability();
 
-      expect(component.usernameAvailability).toBe('unavailable');
-      expect(component.usernameSuggestions).toEqual(['taken1', 'taken2']);
+      expect(component.usernameAvailability()).toBe('unavailable');
+      expect(component.usernameSuggestions()).toEqual(['taken1', 'taken2']);
       expect(component['usernameTaken']()).toBe(true);
     });
 
@@ -520,7 +520,7 @@ describe('RegistrationFormComponent', () => {
       await component.checkUsernameAvailability();
 
       expect(getSpy).not.toHaveBeenCalled();
-      expect(component.usernameAvailability).toBe('unknown');
+      expect(component.usernameAvailability()).toBe('unknown');
     });
 
     it('should use setupService URL when serverUrl input is not provided', async () => {
@@ -557,14 +557,14 @@ describe('RegistrationFormComponent', () => {
     it('should reset form', () => {
       component.form.username().value.set('testuser');
       component.form.password().value.set('Password123!');
-      component.usernameAvailability = 'available';
-      component.usernameSuggestions = ['test1', 'test2'];
+      component.usernameAvailability.set('available');
+      component.usernameSuggestions.set(['test1', 'test2']);
 
       component.reset();
 
       expect(component.model().username).toBe('');
-      expect(component.usernameAvailability).toBe('unknown');
-      expect(component.usernameSuggestions).toEqual([]);
+      expect(component.usernameAvailability()).toBe('unknown');
+      expect(component.usernameSuggestions()).toEqual([]);
     });
 
     it('should set loading state', () => {
@@ -577,7 +577,7 @@ describe('RegistrationFormComponent', () => {
 
     it('should set error message', () => {
       component.setError('Custom error message');
-      expect(component.serverValidationErrors).toEqual({
+      expect(component.serverValidationErrors()).toEqual({
         general: ['Custom error message'],
       });
     });
@@ -638,7 +638,7 @@ describe('RegistrationFormComponent', () => {
 
       await component.submit();
 
-      expect(component.serverValidationErrors).toEqual({
+      expect(component.serverValidationErrors()).toEqual({
         username: ['Username already taken'],
         password: ['Password is too weak'],
       });

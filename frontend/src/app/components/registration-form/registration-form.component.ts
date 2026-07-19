@@ -271,9 +271,11 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   });
 
   readonly isRegistering = signal(false);
-  usernameSuggestions: string[] | undefined = [];
-  usernameAvailability: 'available' | 'unavailable' | 'unknown' = 'unknown';
-  serverValidationErrors: { [key: string]: string[] } = {};
+  usernameSuggestions = signal<string[] | undefined>([]);
+  readonly usernameAvailability = signal<
+    'available' | 'unavailable' | 'unknown'
+  >('unknown');
+  serverValidationErrors = signal<{ [key: string]: string[] }>({});
 
   // Password focus state for showing requirements callout
   isPasswordFocused = false;
@@ -338,7 +340,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     effect(() => {
       this.form.username().value();
       // Only reset to unknown if we are not in the middle of an async check
-      this.usernameAvailability = 'unknown';
+      this.usernameAvailability.set('unknown');
       // Clear server validation flag when user edits the field
       if (this.usernameServerInvalid()) {
         this.usernameServerInvalid.set(false);
@@ -358,8 +360,10 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     // Clear general server errors when user modifies any field
     effect(() => {
       this.model();
-      if (this.serverValidationErrors['general']) {
-        delete this.serverValidationErrors['general'];
+      const errors = this.serverValidationErrors();
+      if (errors['general']) {
+        const { general: _general, ...rest } = errors;
+        this.serverValidationErrors.set(rest);
       }
     });
   }
@@ -415,7 +419,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
 
   selectSuggestion(suggestion: string): void {
     this.form.username().value.set(suggestion);
-    this.usernameSuggestions = [];
+    this.usernameSuggestions.set([]);
     void this.checkUsernameAvailability();
   }
 
@@ -503,8 +507,8 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     const username = this.model().username;
 
     if (!username || username.length < 3) {
-      this.usernameAvailability = 'unknown';
-      this.usernameSuggestions = [];
+      this.usernameAvailability.set('unknown');
+      this.usernameSuggestions.set([]);
       this.usernameTaken.set(false);
       return;
     }
@@ -514,7 +518,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       const baseUrl = this.serverUrl || this.setupService.getServerUrl() || '';
       if (!baseUrl) {
         // No server URL available, can't check
-        this.usernameAvailability = 'unknown';
+        this.usernameAvailability.set('unknown');
         return;
       }
       const checkUrl = `${baseUrl}/api/v1/users/check-username?username=${encodeURIComponent(
@@ -526,18 +530,18 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       );
 
       if (response.available) {
-        this.usernameAvailability = 'available';
-        this.usernameSuggestions = [];
+        this.usernameAvailability.set('available');
+        this.usernameSuggestions.set([]);
         this.usernameTaken.set(false);
       } else {
-        this.usernameAvailability = 'unavailable';
-        this.usernameSuggestions = response.suggestions || [];
+        this.usernameAvailability.set('unavailable');
+        this.usernameSuggestions.set(response.suggestions || []);
         // Set error on the form control to trigger Material's error state
         this.usernameTaken.set(true);
       }
     } catch (error: unknown) {
-      this.usernameAvailability = 'unknown';
-      this.usernameSuggestions = [];
+      this.usernameAvailability.set('unknown');
+      this.usernameSuggestions.set([]);
       if (error instanceof HttpErrorResponse) {
         this.snackBar.open(
           `Error checking username: ${error.message}`,
@@ -566,7 +570,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     }
     // Return server validation error if flag is set
     if (this.usernameServerInvalid()) {
-      return this.serverValidationErrors['username']?.[0] ?? '';
+      return this.serverValidationErrors()['username']?.[0] ?? '';
     }
     return '';
   }
@@ -593,7 +597,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     }
     // Return server validation error if flag is set
     if (this.passwordServerInvalid()) {
-      return this.serverValidationErrors['password']?.[0] ?? '';
+      return this.serverValidationErrors()['password']?.[0] ?? '';
     }
     return '';
   }
@@ -629,7 +633,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
    */
   async submit(): Promise<void> {
     // Clear any previous server validation errors
-    this.serverValidationErrors = {};
+    this.serverValidationErrors.set({});
     this.usernameServerInvalid.set(false);
     this.passwordServerInvalid.set(false);
 
@@ -743,9 +747,9 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       password: '',
       confirmPassword: '',
     });
-    this.usernameAvailability = 'unknown';
-    this.usernameSuggestions = [];
-    this.serverValidationErrors = {};
+    this.usernameAvailability.set('unknown');
+    this.usernameSuggestions.set([]);
+    this.serverValidationErrors.set({});
     this.usernameTaken.set(false);
     this.usernameServerInvalid.set(false);
     this.passwordServerInvalid.set(false);
@@ -764,7 +768,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
    * Useful when parent handles registration in externalSubmit mode.
    */
   setError(error: string): void {
-    this.serverValidationErrors = { general: [error] };
+    this.serverValidationErrors.set({ general: [error] });
   }
 
   private handleRegistrationError(error: unknown): Error {
@@ -789,7 +793,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
         const errorBody = error.error as Record<string, unknown>;
         if ('error' in errorBody && typeof errorBody['error'] === 'string') {
           const message = errorBody['error'];
-          this.serverValidationErrors = { general: [message] };
+          this.serverValidationErrors.set({ general: [message] });
           return new Error(message);
         }
       }
@@ -856,7 +860,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
 
   // Handle server-side validation errors
   private handleValidationErrors(errors: { [key: string]: string[] }): void {
-    this.serverValidationErrors = errors;
+    this.serverValidationErrors.set(errors);
 
     // Apply server errors to form controls
     if (errors['username']) {
