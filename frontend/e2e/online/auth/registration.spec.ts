@@ -273,6 +273,11 @@ test.describe('User Registration', () => {
     const firstSuggestion = page.getByTestId('suggestion-button').first();
     await firstSuggestion.click();
 
+    // Wait for the suggestions to disappear (selectSuggestion clears them),
+    // which proves Angular change detection has flushed the signal updates
+    // to the DOM before we read the input value.
+    await expect(page.getByTestId('username-suggestions')).toBeHidden();
+
     // Username field should now contain the suggestion (a variation of the original)
     const usernameValue = await page.getByTestId('username-input').inputValue();
     expect(usernameValue).not.toBe(existingUsername);
