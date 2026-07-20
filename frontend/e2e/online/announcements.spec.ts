@@ -75,6 +75,11 @@ async function fillAndSubmitAnnouncementForm(
     .first()
     .click();
 
+  // Wait for the listbox overlay to close so the mat-select has finished
+  // writing the value back to the signal-forms model and Angular has
+  // flushed change detection before we check the submit button state.
+  await expect(priorityListbox).toBeHidden();
+
   await expect(
     page.locator('[data-testid="announcement-submit-btn"]')
   ).toBeEnabled();
