@@ -73,8 +73,12 @@ async function setupWorldbuildingAtMobile(
   await expect(page.locator('mat-dialog-container')).toBeHidden();
   await expect(page.getByTestId(`element-${elementName}`)).toBeVisible();
 
-  // Open the worldbuilding element at desktop size
+  // Open the worldbuilding element at desktop size. Wait for the router
+  // navigation to the worldbuilding route to complete before asserting the
+  // editor is visible — under CI load the editor can take longer than the
+  // default expect timeout to render after the click.
   await page.getByTestId(`element-${elementName}`).click();
+  await page.waitForURL(/\/worldbuilding\//);
   await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
 
   // Resize to mobile viewport first — accordion mode shows the image placeholder
