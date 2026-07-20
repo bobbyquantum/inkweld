@@ -88,7 +88,7 @@
             }
           </mat-select>
           @if (form.modelId().touched() && form.modelId().invalid()) {
-            @for (error of form.modelId().errors(); track error) {
+            @for (error of form.modelId().errors(); track error.message) {
               <mat-error>{{ error.message }}</mat-error>
             }
           }
@@ -230,6 +230,17 @@
                 [formField]="form.supportedSizes[$index]"
                 [attr.id]="'image-profile-size-input-' + $index"
                 placeholder="e.g., 1024x1024" />
+              @if (
+                form.supportedSizes[$index]().touched() &&
+                form.supportedSizes[$index]().invalid()
+              ) {
+                @for (
+                  error of form.supportedSizes[$index]().errors();
+                  track error.message
+                ) {
+                  <mat-error>{{ error.message }}</mat-error>
+                }
+              }
             </mat-form-field>
             <button
               mat-icon-button

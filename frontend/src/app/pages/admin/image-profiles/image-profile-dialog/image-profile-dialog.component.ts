@@ -144,6 +144,7 @@ export class ImageProfileDialogComponent {
       supportsQuality: true,
       supportsStyle: false,
       maxImages: 10,
+      supportsImageInput: true,
     },
     {
       id: 'gpt-image-1-mini',
@@ -154,6 +155,7 @@ export class ImageProfileDialogComponent {
       supportsQuality: true,
       supportsStyle: false,
       maxImages: 10,
+      supportsImageInput: true,
     },
     {
       id: 'gpt-image-1.5',
@@ -164,6 +166,7 @@ export class ImageProfileDialogComponent {
       supportsQuality: true,
       supportsStyle: false,
       maxImages: 10,
+      supportsImageInput: true,
     },
   ];
 
@@ -287,10 +290,16 @@ export class ImageProfileDialogComponent {
   }
 
   removeSize(index: number): void {
-    this.model.update(m => ({
-      ...m,
-      supportedSizes: m.supportedSizes.filter((_, i) => i !== index),
-    }));
+    this.model.update(m => {
+      const removed = m.supportedSizes[index];
+      const nextSizes = m.supportedSizes.filter((_, i) => i !== index);
+      // If the removed size was the current default, clear or reset it.
+      const defaultSize =
+        removed && m.defaultSize === removed
+          ? (nextSizes[0] ?? '')
+          : m.defaultSize;
+      return { ...m, supportedSizes: nextSizes, defaultSize };
+    });
   }
 
   toggleModelConfig(): void {
@@ -395,7 +404,19 @@ export class ImageProfileDialogComponent {
     // Reset models and category when provider changes
     this.availableModels.set([]);
     this.selectedFalaiCategory.set('text-to-image');
-    this.model.update(m => ({ ...m, modelId: '' }));
+
+    // Atomically clear all provider-specific state before applying the new
+    // provider's configuration, so stale sizes/flags don't leak across
+    // provider switches.
+    this.model.update(m => ({
+      ...m,
+      modelId: '',
+      supportedSizes: [],
+      defaultSize: '',
+      supportsImageInput: false,
+      supportsCustomResolutions: false,
+      usesAspectRatioOnly: false,
+    }));
 
     // For OpenAI, set available models immediately (hardcoded)
     // All OpenAI image models support image input
@@ -496,6 +517,9 @@ export class ImageProfileDialogComponent {
 
   onSubmit(): void {
     if (this.form().invalid()) {
+      // Mark all fields touched so validation errors are visible when the
+      // user tries to save an invalid form (e.g. OpenAI model not selected).
+      this.form().markAsTouched();
       return;
     }
 
@@ -514,10 +538,10 @@ export class ImageProfileDialogComponent {
     }
 
     const result: CreateImageModelProfileRequest = {
-      name: values.name,
-      description: values.description || undefined,
+      name: values.name.trim(),
+      description: values.description?.trim() || undefined,
       provider: values.provider as CreateImageModelProfileRequestProvider,
-      modelId: values.modelId,
+      modelId: values.modelId.trim(),
       enabled: values.enabled,
       supportsImageInput: values.supportsImageInput,
       supportsCustomResolutions: values.supportsCustomResolutions,

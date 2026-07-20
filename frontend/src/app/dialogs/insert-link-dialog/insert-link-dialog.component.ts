@@ -100,16 +100,39 @@ export class InsertLinkDialogComponent {
 
       // Require an explicit protocol from the allow-list
       const protocolMatch = /^([a-zA-Z][a-zA-Z\d+\-.]*):/u.exec(v);
-      const isAllowedProtocol =
-        !!protocolMatch &&
-        ALLOWED_PROTOCOLS.has(protocolMatch[1].toLowerCase());
+      const protocol = protocolMatch?.[1]?.toLowerCase();
+      const isAllowedProtocol = !!protocol && ALLOWED_PROTOCOLS.has(protocol);
 
-      return isAllowedProtocol
-        ? null
-        : {
+      if (!isAllowedProtocol) {
+        return {
+          kind: 'invalidUrl',
+          message: 'Enter a valid URL (e.g. https://example.com)',
+        };
+      }
+
+      // Validate the destination after the protocol:
+      // - http/https require a non-empty hostname (e.g. https://example.com)
+      // - mailto/tel require non-empty content after the colon
+      const rest = v.slice(protocolMatch![0].length);
+      if (protocol === 'http' || protocol === 'https') {
+        // Require at least one non-empty host segment after //.
+        if (!/^\/\/[^\s/]+/.test(rest)) {
+          return {
             kind: 'invalidUrl',
             message: 'Enter a valid URL (e.g. https://example.com)',
           };
+        }
+      } else {
+        // mailto:/tel: — require non-empty content after the colon.
+        if (!rest) {
+          return {
+            kind: 'invalidUrl',
+            message: 'Enter a valid destination (e.g. mailto:user@example.com)',
+          };
+        }
+      }
+
+      return null;
     });
   });
 
