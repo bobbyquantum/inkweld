@@ -5,13 +5,7 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import {
-  form,
-  FormField,
-  maxLength,
-  required,
-  validate,
-} from '@angular/forms/signals';
+import { form, FormField, maxLength, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { provideNativeDateAdapter } from '@angular/material/core';
@@ -106,20 +100,10 @@ export class AnnouncementEditorDialogComponent implements OnInit {
 
   readonly form = form(this.model, schemaPath => {
     required(schemaPath.title, { message: 'Title is required' });
-    validate(schemaPath.title, ({ value }) =>
-      String(value() ?? '').trim().length === 0
-        ? { kind: 'required', message: 'Title is required' }
-        : null
-    );
     maxLength(schemaPath.title, 200, {
       message: 'Title must be 200 characters or less',
     });
     required(schemaPath.content, { message: 'Content is required' });
-    validate(schemaPath.content, ({ value }) =>
-      String(value() ?? '').trim().length === 0
-        ? { kind: 'required', message: 'Content is required' }
-        : null
-    );
     maxLength(schemaPath.content, 10000, {
       message: 'Content must be 10,000 characters or less',
     });

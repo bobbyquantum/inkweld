@@ -122,14 +122,12 @@ export class InsertLinkDialogComponent {
             message: 'Enter a valid URL (e.g. https://example.com)',
           };
         }
-      } else {
+      } else if (!rest) {
         // mailto:/tel: — require non-empty content after the colon.
-        if (!rest) {
-          return {
-            kind: 'invalidUrl',
-            message: 'Enter a valid destination (e.g. mailto:user@example.com)',
-          };
-        }
+        return {
+          kind: 'invalidUrl',
+          message: 'Enter a valid destination (e.g. mailto:user@example.com)',
+        };
       }
 
       return null;
