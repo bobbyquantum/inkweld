@@ -960,7 +960,7 @@ ${content}
   }
 
   private countWords(html: string): number {
-    const text = html.replaceAll(/<[^>]+>/g, ' ');
+    const text = html.replaceAll(/<[^<>]+>/g, ' ');
     return text.split(/\s+/).filter(Boolean).length;
   }
 

@@ -1150,9 +1150,9 @@ function extractTextFromXmlString(xmlString: string): string {
     // Replace paragraph/heading/blockquote boundaries with newlines
     .replaceAll(/<\/(paragraph|heading|blockquote|listItem)>/gi, '\n')
     // Remove all other closing tags
-    .replaceAll(/<\/[^>]+>/g, '')
+    .replaceAll(/<\/[^<>]+>/g, '')
     // Remove all opening tags
-    .replaceAll(/<[^>]+>/g, '')
+    .replaceAll(/<[^<>]+>/g, '')
     // Decode common HTML entities
     .replaceAll('&amp;', '&')
     .replaceAll('&lt;', '<')

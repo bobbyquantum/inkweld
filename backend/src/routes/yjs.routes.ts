@@ -66,9 +66,14 @@ function projectKeyForDocumentId(documentId: string): string | null {
  */
 function isElementsDocumentId(documentId: string): boolean {
   // Tolerate the documented trailing-slash quirk between FE/BE/MCP — see
-  // AGENTS.md "Yjs Document ID Trailing Slash" note.
-  const stripped = documentId.replace(/\/+$/, '');
-  return stripped.endsWith(':elements');
+  // AGENTS.md "Yjs Document ID Trailing Slash" note. Strip trailing slashes
+  // without a regex to keep this linear-time and sidestep the super-linear
+  // backtracking linter warning on /\/+$/.
+  let end = documentId.length;
+  while (end > 0 && documentId.charCodeAt(end - 1) === 0x2f /* '/' */) {
+    end--;
+  }
+  return documentId.slice(0, end).endsWith(':elements');
 }
 
 /** Cast a raw Bun ServerWebSocket to the PresenceSocket structural type. */

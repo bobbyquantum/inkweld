@@ -55,11 +55,19 @@ export function xmlToMarkdown(xml: string, options: XmlToMarkdownOptions = {}): 
   const joined = blocks.join('\n\n').replaceAll(/\n{3,}/g, '\n\n');
   const head = joined.replace(/^\n+/, '');
   // Preserve a trailing `  \n` (hard break) by keeping a single newline
-  // after at least two spaces; otherwise drop trailing newlines.
-  return head.replace(/(\n+)$/, (_match, nls: string) => {
-    const before = head.slice(0, head.length - nls.length);
-    return before.endsWith('  ') ? '\n' : '';
-  });
+  // after at least two spaces; otherwise drop trailing newlines. We avoid
+  // a regex here because /(\n+)$/ triggers a super-linear-backtracking
+  // linter warning; a plain trailing-newline scan is linear-time.
+  let end = head.length;
+  while (end > 0 && head.charCodeAt(end - 1) === 0x0a /* '\n' */) {
+    end--;
+  }
+  const trailingNewlines = head.length - end;
+  if (trailingNewlines > 0) {
+    const before = head.slice(0, end);
+    return before + (before.endsWith('  ') ? '\n' : '');
+  }
+  return head;
 }
 
 interface RenderContext {
