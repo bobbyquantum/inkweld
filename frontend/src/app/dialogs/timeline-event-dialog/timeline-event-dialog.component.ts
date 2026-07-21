@@ -33,6 +33,7 @@ import {
   unitInputModeFor,
 } from '@models/time-system';
 import type { TimelineEvent, TimelineTrack } from '@models/timeline.model';
+
 import {
   INT_RE,
   timePointToAbsoluteValue,
