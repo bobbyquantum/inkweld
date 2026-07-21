@@ -1180,7 +1180,7 @@ export function extractTextFromXmlString(xmlString: string): string {
     const nameStart = i + (isClosing ? 2 : 1);
     let nameEnd = nameStart;
     while (nameEnd < len) {
-      const c = xmlString.charCodeAt(nameEnd);
+      const c = xmlString.codePointAt(nameEnd);
       if (
         c === 0x09 /* \t */ ||
         c === 0x0a /* \n */ ||

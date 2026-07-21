@@ -70,7 +70,7 @@ function isElementsDocumentId(documentId: string): boolean {
   // without a regex to keep this linear-time and sidestep the super-linear
   // backtracking linter warning on /\/+$/.
   let end = documentId.length;
-  while (end > 0 && documentId.charCodeAt(end - 1) === 0x2f /* '/' */) {
+  while (end > 0 && documentId.codePointAt(end - 1) === 0x2f /* '/' */) {
     end--;
   }
   return documentId.slice(0, end).endsWith(':elements');

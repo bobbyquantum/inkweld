@@ -59,7 +59,7 @@ export function xmlToMarkdown(xml: string, options: XmlToMarkdownOptions = {}): 
   // a regex here because /(\n+)$/ triggers a super-linear-backtracking
   // linter warning; a plain trailing-newline scan is linear-time.
   let end = head.length;
-  while (end > 0 && head.charCodeAt(end - 1) === 0x0a /* '\n' */) {
+  while (end > 0 && head.codePointAt(end - 1) === 0x0a /* '\n' */) {
     end--;
   }
   const trailingNewlines = head.length - end;
