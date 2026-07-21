@@ -1,7 +1,6 @@
 import { type CdkDragDrop } from '@angular/cdk/drag-drop';
 import { provideZonelessChangeDetection, type QueryList } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { ReactiveFormsModule } from '@angular/forms';
 import { type MatExpansionPanel } from '@angular/material/expansion';
 import {
   type ElementTypeSchema,
@@ -55,7 +54,7 @@ describe('TemplateEditorPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TemplateEditorPageComponent, ReactiveFormsModule],
+      imports: [TemplateEditorPageComponent],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
 
@@ -70,11 +69,9 @@ describe('TemplateEditorPageComponent', () => {
   });
 
   it('should initialize with provided schema data', () => {
-    expect(component.basicForm.get('name')?.value).toBe('Character');
-    expect(component.basicForm.get('description')?.value).toBe(
-      'Character schema'
-    );
-    expect(component.basicForm.get('icon')?.value).toBe('person');
+    expect(component.model().name).toBe('Character');
+    expect(component.model().description).toBe('Character schema');
+    expect(component.model().icon).toBe('person');
   });
 
   it('should include date as an available field type', () => {
@@ -290,19 +287,27 @@ describe('TemplateEditorPageComponent', () => {
 
   describe('form validation', () => {
     it('should require template name', () => {
-      const nameControl = component.basicForm.get('name');
-      nameControl?.setValue('');
-      nameControl?.markAsTouched();
+      component.basicForm.name().value.set('');
+      component.basicForm.name().markAsTouched();
 
-      expect(nameControl?.hasError('required')).toBe(true);
+      expect(
+        component.basicForm
+          .name()
+          .errors()
+          .some(e => e.kind === 'required')
+      ).toBe(true);
     });
 
     it('should require template icon', () => {
-      const iconControl = component.basicForm.get('icon');
-      iconControl?.setValue('');
-      iconControl?.markAsTouched();
+      component.basicForm.icon().value.set('');
+      component.basicForm.icon().markAsTouched();
 
-      expect(iconControl?.hasError('required')).toBe(true);
+      expect(
+        component.basicForm
+          .icon()
+          .errors()
+          .some(e => e.kind === 'required')
+      ).toBe(true);
     });
   });
 
@@ -320,7 +325,7 @@ describe('TemplateEditorPageComponent', () => {
       const emitted: (ElementTypeSchema | null)[] = [];
       component.done.subscribe(v => emitted.push(v));
 
-      component.basicForm.patchValue({
+      component.model.set({
         name: 'Updated Character',
         description: 'Updated description',
         icon: 'star',
@@ -341,7 +346,11 @@ describe('TemplateEditorPageComponent', () => {
       const emitted: (ElementTypeSchema | null)[] = [];
       component.done.subscribe(v => emitted.push(v));
 
-      component.basicForm.patchValue({ name: '' });
+      component.model.set({
+        name: '',
+        icon: 'person',
+        description: '',
+      });
 
       component.save();
 

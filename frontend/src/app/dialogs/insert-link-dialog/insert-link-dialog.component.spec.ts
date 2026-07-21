@@ -60,21 +60,21 @@ describe('InsertLinkDialogComponent', () => {
     });
 
     it('should be invalid when linkText and href are empty', () => {
-      component.linkTextControl.setValue('');
-      component.hrefControl.setValue('');
-      expect(component['form'].valid).toBe(false);
+      component['form'].linkText().value.set('');
+      component['form'].href().value.set('');
+      expect(component['form']().invalid()).toBe(true);
     });
 
     it('should be valid with linkText and a https URL', () => {
-      component.linkTextControl.setValue('My link');
-      component.hrefControl.setValue('https://example.com');
-      expect(component['form'].valid).toBe(true);
+      component['form'].linkText().value.set('My link');
+      component['form'].href().value.set('https://example.com');
+      expect(component['form']().valid()).toBe(true);
     });
 
     it('should close with result on confirm when valid', () => {
-      component.linkTextControl.setValue('Click me');
-      component.hrefControl.setValue('https://example.com');
-      component['form'].controls.openInNewTab.setValue(false);
+      component['form'].linkText().value.set('Click me');
+      component['form'].href().value.set('https://example.com');
+      component.model.update(m => ({ ...m, openInNewTab: false }));
       component.onConfirm();
       expect(closeSpy).toHaveBeenCalledWith({
         href: 'https://example.com',
@@ -84,8 +84,8 @@ describe('InsertLinkDialogComponent', () => {
     });
 
     it('should trim whitespace from href and linkText on confirm', () => {
-      component.linkTextControl.setValue('  My link  ');
-      component.hrefControl.setValue('  https://example.com  ');
+      component['form'].linkText().value.set('  My link  ');
+      component['form'].href().value.set('  https://example.com  ');
       component.onConfirm();
       expect(closeSpy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -96,8 +96,8 @@ describe('InsertLinkDialogComponent', () => {
     });
 
     it('should not close when form is invalid', () => {
-      component.linkTextControl.setValue('');
-      component.hrefControl.setValue('');
+      component['form'].linkText().value.set('');
+      component['form'].href().value.set('');
       component.onConfirm();
       expect(closeSpy).not.toHaveBeenCalled();
     });
@@ -125,12 +125,12 @@ describe('InsertLinkDialogComponent', () => {
     });
 
     it('should be valid with only a href when selection exists', () => {
-      component.hrefControl.setValue('https://example.com');
-      expect(component['form'].valid).toBe(true);
+      component['form'].href().value.set('https://example.com');
+      expect(component['form']().valid()).toBe(true);
     });
 
     it('should close with undefined linkText on confirm', () => {
-      component.hrefControl.setValue('https://example.com');
+      component['form'].href().value.set('https://example.com');
       component.onConfirm();
       expect(closeSpy).toHaveBeenCalledWith(
         expect.objectContaining({ linkText: undefined })
@@ -156,7 +156,7 @@ describe('InsertLinkDialogComponent', () => {
     });
 
     it('should pre-fill the href field with the existing href', () => {
-      expect(component.hrefControl.value).toBe('https://old.com');
+      expect(component['form'].href().value()).toBe('https://old.com');
     });
 
     it('should close with empty href on remove', () => {
@@ -165,7 +165,7 @@ describe('InsertLinkDialogComponent', () => {
     });
 
     it('should close with updated href on confirm', () => {
-      component.hrefControl.setValue('https://new.com');
+      component['form'].href().value.set('https://new.com');
       component.onConfirm();
       expect(closeSpy).toHaveBeenCalledWith(
         expect.objectContaining({ href: 'https://new.com' })
@@ -181,70 +181,105 @@ describe('InsertLinkDialogComponent', () => {
     });
 
     it('should accept https URLs', () => {
-      component.hrefControl.setValue('https://example.com');
-      expect(component.hrefControl.errors).toBeNull();
+      component['form'].href().value.set('https://example.com');
+      expect(component['form'].href().errors()).toEqual([]);
     });
 
     it('should accept http URLs', () => {
-      component.hrefControl.setValue('http://example.com');
-      expect(component.hrefControl.errors).toBeNull();
+      component['form'].href().value.set('http://example.com');
+      expect(component['form'].href().errors()).toEqual([]);
     });
 
     it('should accept mailto: links', () => {
-      component.hrefControl.setValue('mailto:user@example.com');
-      expect(component.hrefControl.errors).toBeNull();
+      component['form'].href().value.set('mailto:user@example.com');
+      expect(component['form'].href().errors()).toEqual([]);
     });
 
     it('should accept tel: links', () => {
-      component.hrefControl.setValue('tel:+1234567890');
-      expect(component.hrefControl.errors).toBeNull();
+      component['form'].href().value.set('tel:+1234567890');
+      expect(component['form'].href().errors()).toEqual([]);
     });
 
     it('should accept root-relative paths', () => {
-      component.hrefControl.setValue('/about');
-      expect(component.hrefControl.errors).toBeNull();
+      component['form'].href().value.set('/about');
+      expect(component['form'].href().errors()).toEqual([]);
     });
 
     it('should accept same-page anchors', () => {
-      component.hrefControl.setValue('#section-1');
-      expect(component.hrefControl.errors).toBeNull();
+      component['form'].href().value.set('#section-1');
+      expect(component['form'].href().errors()).toEqual([]);
     });
 
     it('should reject javascript: URLs', () => {
-      component.hrefControl.setValue('javascript:alert(1)');
-      expect(component.hrefControl.errors).toMatchObject({ invalidUrl: true });
+      component['form'].href().value.set('javascript:alert(1)');
+      expect(
+        component['form']
+          .href()
+          .errors()
+          .some(e => e.kind === 'invalidUrl')
+      ).toBe(true);
     });
 
     it('should reject vbscript: URLs', () => {
-      component.hrefControl.setValue('vbscript:msgbox(1)');
-      expect(component.hrefControl.errors).toMatchObject({ invalidUrl: true });
+      component['form'].href().value.set('vbscript:msgbox(1)');
+      expect(
+        component['form']
+          .href()
+          .errors()
+          .some(e => e.kind === 'invalidUrl')
+      ).toBe(true);
     });
 
     it('should reject data: URLs', () => {
-      component.hrefControl.setValue('data:text/html,<h1>xss</h1>');
-      expect(component.hrefControl.errors).toMatchObject({ invalidUrl: true });
+      component['form'].href().value.set('data:text/html,<h1>xss</h1>');
+      expect(
+        component['form']
+          .href()
+          .errors()
+          .some(e => e.kind === 'invalidUrl')
+      ).toBe(true);
     });
 
     it('should reject protocol-relative URLs (//example.com)', () => {
-      component.hrefControl.setValue('//example.com');
-      expect(component.hrefControl.errors).toMatchObject({ invalidUrl: true });
+      component['form'].href().value.set('//example.com');
+      expect(
+        component['form']
+          .href()
+          .errors()
+          .some(e => e.kind === 'invalidUrl')
+      ).toBe(true);
     });
 
     it('should reject bare hostnames without protocol', () => {
-      component.hrefControl.setValue('example.com');
-      expect(component.hrefControl.errors).toMatchObject({ invalidUrl: true });
+      component['form'].href().value.set('example.com');
+      expect(
+        component['form']
+          .href()
+          .errors()
+          .some(e => e.kind === 'invalidUrl')
+      ).toBe(true);
     });
 
     it('should be required — reject empty string', () => {
-      component.hrefControl.setValue('');
-      expect(component.hrefControl.errors).toMatchObject({ required: true });
+      component['form'].href().value.set('');
+      expect(
+        component['form']
+          .href()
+          .errors()
+          .some(e => e.kind === 'required')
+      ).toBe(true);
     });
 
     it('urlValidator should return null for empty/whitespace-only value (no protocol check needed)', () => {
       // urlValidator trims the value; whitespace-only is treated as empty and
       // returns null (no invalidUrl error) — the required validator handles emptiness
-      component.hrefControl.setValue('   ');
-      expect(component.hrefControl.errors).toBeNull();
+      component['form'].href().value.set('   ');
+      expect(
+        component['form']
+          .href()
+          .errors()
+          .some(e => e.kind === 'invalidUrl')
+      ).toBe(false);
     });
   });
 
@@ -254,6 +289,7 @@ describe('InsertLinkDialogComponent', () => {
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
         imports: [InsertLinkDialogComponent],
+        schemas: [NO_ERRORS_SCHEMA],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MAT_DIALOG_DATA, useValue: { selectedText: 'hi' } },
@@ -264,12 +300,31 @@ describe('InsertLinkDialogComponent', () => {
       const comp = fixture.componentInstance;
       fixture.detectChanges();
 
-      // Force href to null to exercise the `?? ''` branch
-      comp.hrefControl.setValue(null);
-      // Override required validator so the form is valid
-      comp.hrefControl.clearValidators();
-      comp.hrefControl.updateValueAndValidity();
-      comp['form'].controls.openInNewTab.setValue(null);
+      // Stub form as valid and model to return null href/openInNewTab,
+      // exercising the `?? ''` / `?? true` null-coalescing branches in onConfirm.
+      const fakeState = {
+        valid: () => true,
+        invalid: () => false,
+        errors: () => [],
+        pending: () => false,
+        touched: () => false,
+        dirty: () => false,
+        disabled: () => false,
+        readonly: () => false,
+        value: () => ({ linkText: '', href: null, openInNewTab: null }),
+      };
+      Object.defineProperty(comp, 'form', {
+        value: () => fakeState,
+        configurable: true,
+      });
+      Object.defineProperty(comp, 'model', {
+        value: () => ({
+          linkText: '',
+          href: null as unknown as string,
+          openInNewTab: null as unknown as boolean,
+        }),
+        configurable: true,
+      });
       comp.onConfirm();
 
       expect(closeSpy).toHaveBeenCalledWith(
@@ -282,6 +337,7 @@ describe('InsertLinkDialogComponent', () => {
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
         imports: [InsertLinkDialogComponent],
+        schemas: [NO_ERRORS_SCHEMA],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MAT_DIALOG_DATA, useValue: {} },
@@ -292,11 +348,33 @@ describe('InsertLinkDialogComponent', () => {
       const comp = fixture.componentInstance;
       fixture.detectChanges();
 
-      comp.hrefControl.setValue('https://example.com');
-      // Force linkText to null to exercise the `?? ''` branch
-      comp.linkTextControl.setValue(null);
-      comp.linkTextControl.clearValidators();
-      comp.linkTextControl.updateValueAndValidity();
+      const fakeState = {
+        valid: () => true,
+        invalid: () => false,
+        errors: () => [],
+        pending: () => false,
+        touched: () => false,
+        dirty: () => false,
+        disabled: () => false,
+        readonly: () => false,
+        value: () => ({
+          linkText: null,
+          href: 'https://example.com',
+          openInNewTab: true,
+        }),
+      };
+      Object.defineProperty(comp, 'form', {
+        value: () => fakeState,
+        configurable: true,
+      });
+      Object.defineProperty(comp, 'model', {
+        value: () => ({
+          linkText: null as unknown as string,
+          href: 'https://example.com',
+          openInNewTab: true,
+        }),
+        configurable: true,
+      });
       comp.onConfirm();
 
       expect(closeSpy).toHaveBeenCalledWith(

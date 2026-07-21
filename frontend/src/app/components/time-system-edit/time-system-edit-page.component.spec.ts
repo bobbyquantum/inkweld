@@ -112,12 +112,7 @@ describe('TimeSystemEditPageComponent', () => {
   it('loads system from library in edit mode', async () => {
     const existing = { ...GREGORIAN_SYSTEM, id: 'load-me', isBuiltIn: false };
     const { component } = await createComponent('load-me', [existing]);
-    const form = (
-      component as unknown as {
-        form: { controls: { name: { value: string } } };
-      }
-    ).form;
-    expect(form.controls.name.value).toBe(GREGORIAN_SYSTEM.name);
+    expect(component.model().name).toBe(GREGORIAN_SYSTEM.name);
   });
 
   describe('loadTemplate()', () => {
@@ -126,12 +121,7 @@ describe('TimeSystemEditPageComponent', () => {
       (
         component as unknown as { loadTemplate: (tpl: TimeSystem) => void }
       ).loadTemplate(GREGORIAN_SYSTEM);
-      const form = (
-        component as unknown as {
-          form: { controls: { name: { value: string } } };
-        }
-      ).form;
-      expect(form.controls.name.value).toBe(GREGORIAN_SYSTEM.name);
+      expect(component.model().name).toBe(GREGORIAN_SYSTEM.name);
     });
   });
 
@@ -181,12 +171,7 @@ describe('TimeSystemEditPageComponent', () => {
   describe('canSave()', () => {
     it('returns false when form is invalid (empty name)', async () => {
       const { component } = await createComponent(null);
-      const form = (
-        component as unknown as {
-          form: { controls: { name: { setValue: (v: string) => void } } };
-        }
-      ).form;
-      form.controls.name.setValue('');
+      component.form.name().value.set('');
       expect(
         (component as unknown as { canSave: () => boolean }).canSave()
       ).toBe(false);
@@ -194,12 +179,7 @@ describe('TimeSystemEditPageComponent', () => {
 
     it('returns true with valid form and units', async () => {
       const { component } = await createComponent(null);
-      const form = (
-        component as unknown as {
-          form: { controls: { name: { setValue: (v: string) => void } } };
-        }
-      ).form;
-      form.controls.name.setValue('My Calendar');
+      component.form.name().value.set('My Calendar');
       expect(
         (component as unknown as { canSave: () => boolean }).canSave()
       ).toBe(true);
@@ -221,12 +201,7 @@ describe('TimeSystemEditPageComponent', () => {
       const { component, libraryMock } = await createComponent(null);
       const doneSpy = vi.fn();
       component.done.subscribe(doneSpy);
-      const form = (
-        component as unknown as {
-          form: { controls: { name: { setValue: (v: string) => void } } };
-        }
-      ).form;
-      form.controls.name.setValue('New Calendar');
+      component.form.name().value.set('New Calendar');
       (component as unknown as { onSave: () => void }).onSave();
       expect(libraryMock.addCustomSystem).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'New Calendar' })
@@ -245,12 +220,7 @@ describe('TimeSystemEditPageComponent', () => {
       ]);
       const doneSpy = vi.fn();
       component.done.subscribe(doneSpy);
-      const form = (
-        component as unknown as {
-          form: { controls: { name: { setValue: (v: string) => void } } };
-        }
-      ).form;
-      form.controls.name.setValue('Updated Calendar');
+      component.form.name().value.set('Updated Calendar');
       (component as unknown as { onSave: () => void }).onSave();
       expect(libraryMock.updateSystem).toHaveBeenCalledWith(
         'sys-to-save',
@@ -261,12 +231,7 @@ describe('TimeSystemEditPageComponent', () => {
 
     it('does not save when canSave() is false', async () => {
       const { component, libraryMock } = await createComponent(null);
-      const form = (
-        component as unknown as {
-          form: { controls: { name: { setValue: (v: string) => void } } };
-        }
-      ).form;
-      form.controls.name.setValue('');
+      component.form.name().value.set('');
       (component as unknown as { onSave: () => void }).onSave();
       expect(libraryMock.addCustomSystem).not.toHaveBeenCalled();
     });

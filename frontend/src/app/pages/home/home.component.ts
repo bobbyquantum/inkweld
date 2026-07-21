@@ -8,7 +8,7 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { debounce, form, FormField } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
@@ -50,11 +50,16 @@ import { CoverSyncService } from '@services/sync/cover-sync.service';
 import { SyncQueueService } from '@services/sync/sync-queue.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { firstValueFrom, Subject } from 'rxjs';
-import { debounceTime, takeUntil } from 'rxjs/operators';
+import { takeUntil } from 'rxjs/operators';
+
+interface HomeSearchFormValue {
+  search: string;
+}
 
 @Component({
   selector: 'app-home',
   imports: [
+    FormField,
     MatButtonModule,
     MatCardModule,
     MatIconModule,
@@ -64,7 +69,6 @@ import { debounceTime, takeUntil } from 'rxjs/operators';
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    ReactiveFormsModule,
     RouterModule,
     TranslocoModule,
     AnnouncementFeedComponent,
@@ -101,10 +105,15 @@ export class HomeComponent implements OnInit, OnDestroy {
   loadError = false;
   selectedProject: Project | null = null;
   isMobile = signal(false);
-  searchControl = new FormControl('');
   sideNavOpen = signal(true); // Open by default on desktop
   mobileSearchActive = signal(false); // Track mobile search mode
   isInitializing = signal(true); // Track if we're still initializing user state
+
+  readonly searchModel = signal<HomeSearchFormValue>({ search: '' });
+
+  readonly searchForm = form(this.searchModel, schemaPath => {
+    debounce(schemaPath.search, 300);
+  });
 
   // Collaboration state
   pendingInvitations = signal<PendingInvitation[]>([]);
@@ -220,22 +229,15 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
   });
 
-  // Private state
-  private readonly searchTerm = signal('');
+  // Private state - debounced search term derived from the signal form field
+  private readonly searchTerm = computed(() =>
+    this.searchForm.search().value()
+  );
 
   ngOnInit() {
     void this.loadProjects();
     this.setupBreakpointObserver();
-    this.setupSearchObserver();
     this.activationService.initialize().catch(() => {});
-  }
-
-  setupSearchObserver() {
-    this.searchControl.valueChanges
-      .pipe(debounceTime(300), takeUntil(this.destroy$))
-      .subscribe(value => {
-        this.searchTerm.set(value || '');
-      });
   }
 
   async loadProjects() {
@@ -317,7 +319,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.mobileSearchActive.set(!this.mobileSearchActive());
     // Clear search when closing
     if (!this.mobileSearchActive()) {
-      this.searchControl.setValue('');
+      this.searchForm.search().value.set('');
     }
   }
 

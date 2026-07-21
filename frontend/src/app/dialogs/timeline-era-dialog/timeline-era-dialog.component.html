@@ -2,14 +2,14 @@
   {{ data.era ? 'Edit era' : 'Add era' }}
 </h2>
 <mat-dialog-content class="content">
-  <form [formGroup]="form" class="form">
+  <form class="form">
     <mat-form-field appearance="outline">
       <mat-label>Name</mat-label>
       <input
         matInput
         id="timeline-era-name"
         aria-label="Name"
-        formControlName="name"
+        [formField]="form.name"
         data-testid="timeline-era-name"
         cdkFocusInitial />
     </mat-form-field>
@@ -29,33 +29,31 @@
       </mat-form-field>
     }
     <div class="units-row">
-      <ng-container formArrayName="startUnits">
-        @for (_ of startUnits().controls; let i = $index; track i) {
-          @if (inputModeFor(i) === 'dropdown') {
-            <mat-form-field appearance="outline" class="unit-field">
-              <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
-              <mat-select
-                [formControlName]="i"
-                [attr.data-testid]="'timeline-era-start-unit-' + i">
-                @for (opt of optionsFor(i); track opt.value) {
-                  <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          } @else {
-            <mat-form-field appearance="outline" class="unit-field">
-              <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
-              <input
-                matInput
-                [attr.id]="'timeline-era-start-unit-' + i"
-                type="number"
-                step="1"
-                [formControlName]="i"
-                [attr.data-testid]="'timeline-era-start-unit-' + i" />
-            </mat-form-field>
-          }
+      @for (item of form.startUnits; let i = $index; track item) {
+        @if (inputModeFor(i) === 'dropdown') {
+          <mat-form-field appearance="outline" class="unit-field">
+            <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
+            <mat-select
+              [formField]="item"
+              [attr.data-testid]="'timeline-era-start-unit-' + i">
+              @for (opt of optionsFor(i); track opt.value) {
+                <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        } @else {
+          <mat-form-field appearance="outline" class="unit-field">
+            <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
+            <input
+              matInput
+              [attr.id]="'timeline-era-start-unit-' + i"
+              type="number"
+              step="1"
+              [formField]="item"
+              [attr.data-testid]="'timeline-era-start-unit-' + i" />
+          </mat-form-field>
         }
-      </ng-container>
+      }
     </div>
 
     <div class="section-label">End</div>
@@ -73,36 +71,38 @@
       </mat-form-field>
     }
     <div class="units-row">
-      <ng-container formArrayName="endUnits">
-        @for (_ of endUnits().controls; let i = $index; track i) {
-          @if (inputModeFor(i) === 'dropdown') {
-            <mat-form-field appearance="outline" class="unit-field">
-              <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
-              <mat-select
-                [formControlName]="i"
-                [attr.data-testid]="'timeline-era-end-unit-' + i">
-                @for (opt of optionsFor(i); track opt.value) {
-                  <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          } @else {
-            <mat-form-field appearance="outline" class="unit-field">
-              <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
-              <input
-                matInput
-                [attr.id]="'timeline-era-end-unit-' + i"
-                type="number"
-                step="1"
-                [formControlName]="i"
-                [attr.data-testid]="'timeline-era-end-unit-' + i" />
-            </mat-form-field>
-          }
+      @for (item of form.endUnits; let i = $index; track item) {
+        @if (inputModeFor(i) === 'dropdown') {
+          <mat-form-field appearance="outline" class="unit-field">
+            <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
+            <mat-select
+              [formField]="item"
+              [attr.data-testid]="'timeline-era-end-unit-' + i">
+              @for (opt of optionsFor(i); track opt.value) {
+                <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        } @else {
+          <mat-form-field appearance="outline" class="unit-field">
+            <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
+            <input
+              matInput
+              [attr.id]="'timeline-era-end-unit-' + i"
+              type="number"
+              step="1"
+              [formField]="item"
+              [attr.data-testid]="'timeline-era-end-unit-' + i" />
+          </mat-form-field>
         }
-      </ng-container>
+      }
     </div>
 
-    @if (form.hasError('endBeforeStart')) {
+    @if (
+      form()
+        .errors()
+        .some(e => e.kind === 'endBeforeStart')
+    ) {
       <div class="field-error" data-testid="timeline-era-range-error">
         End must be at or after start
       </div>
@@ -114,7 +114,7 @@
         matInput
         id="timeline-era-color"
         aria-label="Color"
-        formControlName="color"
+        [formField]="form.color"
         placeholder="e.g. var(--sys-tertiary-container) or #8b5cf6"
         data-testid="timeline-era-color" />
     </mat-form-field>
@@ -136,7 +136,7 @@
     mat-button
     color="primary"
     data-testid="timeline-era-save"
-    [disabled]="form.invalid"
+    [disabled]="form().invalid()"
     (click)="onSave()">
     Save
   </button>

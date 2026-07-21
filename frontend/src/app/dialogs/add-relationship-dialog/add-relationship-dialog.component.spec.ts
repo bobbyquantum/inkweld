@@ -243,7 +243,7 @@ describe('AddRelationshipDialogComponent', () => {
 
     it('should filter elements by search text', () => {
       component.onTypeSelected('references');
-      component.elementSearchControl.setValue('Alpha');
+      component.form.elementSearch().value.set('Alpha');
       fixture.detectChanges();
 
       const filtered = component.filteredElements();
@@ -282,7 +282,7 @@ describe('AddRelationshipDialogComponent', () => {
     it('should close dialog with result when submitting', () => {
       component.onTypeSelected('references');
       component.selectedElement.set(mockElements[1]);
-      component.note.set('Test note');
+      component.form.note().value.set('Test note');
 
       component.submit();
 
@@ -353,12 +353,12 @@ describe('AddRelationshipDialogComponent', () => {
     it('should clear element selection and search', () => {
       component.onTypeSelected('references');
       component.selectedElement.set(mockElements[1]);
-      component.elementSearchControl.setValue('test');
+      component.form.elementSearch().value.set('test');
 
       component.clearSelectedElement();
 
       expect(component.selectedElement()).toBeNull();
-      expect(component.elementSearchControl.value).toBe('');
+      expect(component.form.elementSearch().value()).toBe('');
     });
   });
 });

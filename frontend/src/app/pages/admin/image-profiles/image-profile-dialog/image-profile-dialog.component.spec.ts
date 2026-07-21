@@ -1,21 +1,10 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   type AdminImageModelProfile,
   AdminImageModelProfileProvider,
@@ -43,6 +32,7 @@ describe('ImageProfileDialogComponent', () => {
   let mockAiProvidersService: {
     getOpenRouterImageModels: ReturnType<typeof vi.fn>;
     getFalaiModels: ReturnType<typeof vi.fn>;
+    getWorkersAiImageModels: ReturnType<typeof vi.fn>;
   };
 
   const mockProviders: AdminListImageProviders200ResponseInner[] = [
@@ -101,25 +91,13 @@ describe('ImageProfileDialogComponent', () => {
       getFalaiModels: vi
         .fn()
         .mockReturnValue(of({ models: mockImageModels, cached: false })),
+      getWorkersAiImageModels: vi
+        .fn()
+        .mockReturnValue(of({ models: mockImageModels, cached: false })),
     };
 
     await TestBed.configureTestingModule({
-      imports: [
-        ImageProfileDialogComponent,
-        FormsModule,
-        ReactiveFormsModule,
-        MatAutocompleteModule,
-        MatButtonModule,
-        MatCheckboxModule,
-        MatDialogModule,
-        MatFormFieldModule,
-        MatIconModule,
-        MatInputModule,
-        MatProgressSpinnerModule,
-        MatSelectModule,
-        MatSlideToggleModule,
-        MatTooltipModule,
-      ],
+      imports: [ImageProfileDialogComponent, MatDialogModule],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MAT_DIALOG_DATA, useValue: data },
@@ -151,26 +129,24 @@ describe('ImageProfileDialogComponent', () => {
     });
 
     it('should have empty form fields', () => {
-      expect(component.form.get('name')?.value).toBe('');
-      expect(component.form.get('provider')?.value).toBe('');
-      expect(component.form.get('modelId')?.value).toBe('');
-      expect(component.form.get('enabled')?.value).toBe(true);
+      expect(component.model().name).toBe('');
+      expect(component.model().provider).toBe('');
+      expect(component.model().modelId).toBe('');
+      expect(component.model().enabled).toBe(true);
     });
 
     it('should require name and provider', () => {
-      expect(component.form.valid).toBe(false);
+      expect(component.form().valid()).toBe(false);
 
-      component.form.patchValue({
-        name: 'Test Profile',
-        provider: 'openai',
-        modelId: 'gpt-image-1',
-      });
+      component.form.name().value.set('Test Profile');
+      component.form.provider().value.set('openai');
+      component.form.modelId().value.set('gpt-image-1');
 
-      expect(component.form.valid).toBe(true);
+      expect(component.form().valid()).toBe(true);
     });
 
     it('should submit form with values', () => {
-      component.form.patchValue({
+      component.model.set({
         name: 'Test Profile',
         description: 'A test profile',
         provider: 'openai',
@@ -178,6 +154,11 @@ describe('ImageProfileDialogComponent', () => {
         enabled: true,
         supportsImageInput: false,
         supportsCustomResolutions: false,
+        usesAspectRatioOnly: false,
+        supportedSizes: [],
+        defaultSize: '',
+        sortOrder: 0,
+        modelConfigJson: '',
       });
 
       component.onSubmit();
@@ -237,22 +218,18 @@ describe('ImageProfileDialogComponent', () => {
     });
 
     it('should populate form with existing values', () => {
-      expect(component.form.get('name')?.value).toBe(
-        'GPT Image 1 High Quality'
-      );
-      expect(component.form.get('description')?.value).toBe(
-        'High-quality images'
-      );
-      expect(component.form.get('provider')?.value).toBe('openai');
-      expect(component.form.get('modelId')?.value).toBe('gpt-image-1');
-      expect(component.form.get('enabled')?.value).toBe(true);
-      expect(component.form.get('sortOrder')?.value).toBe(5);
+      expect(component.model().name).toBe('GPT Image 1 High Quality');
+      expect(component.model().description).toBe('High-quality images');
+      expect(component.model().provider).toBe('openai');
+      expect(component.model().modelId).toBe('gpt-image-1');
+      expect(component.model().enabled).toBe(true);
+      expect(component.model().sortOrder).toBe(5);
     });
 
     it('should populate sizes array', () => {
       expect(component.sizesArray.length).toBe(2);
-      expect(component.sizesArray.at(0).value).toBe('1024x1024');
-      expect(component.sizesArray.at(1).value).toBe('1792x1024');
+      expect(component.sizesArray[0]).toBe('1024x1024');
+      expect(component.sizesArray[1]).toBe('1792x1024');
     });
 
     it('should show model config when profile has config', () => {
@@ -316,22 +293,22 @@ describe('ImageProfileDialogComponent', () => {
     });
 
     it('should not allow browsing for non-browsable providers', () => {
-      component.form.patchValue({ provider: 'openai' });
+      component.form.provider().value.set('openai');
       expect(component.canBrowseModels()).toBe(false);
     });
 
     it('should allow browsing for OpenRouter', () => {
-      component.form.patchValue({ provider: 'openrouter' });
+      component.form.provider().value.set('openrouter');
       expect(component.canBrowseModels()).toBe(true);
     });
 
     it('should allow browsing for Fal.ai', () => {
-      component.form.patchValue({ provider: 'falai' });
+      component.form.provider().value.set('falai');
       expect(component.canBrowseModels()).toBe(true);
     });
 
     it('should load models when provider is browsable', async () => {
-      component.form.patchValue({ provider: 'openrouter' });
+      component.form.provider().value.set('openrouter');
       await component.loadModelsForProvider();
 
       expect(
@@ -341,7 +318,7 @@ describe('ImageProfileDialogComponent', () => {
     });
 
     it('should not load models when provider is not browsable', async () => {
-      component.form.patchValue({ provider: 'openai' });
+      component.form.provider().value.set('openai');
       await component.loadModelsForProvider();
 
       expect(
@@ -355,7 +332,7 @@ describe('ImageProfileDialogComponent', () => {
       mockAiProvidersService.getOpenRouterImageModels.mockReturnValue(
         throwError(() => new Error('API Error'))
       );
-      component.form.patchValue({ provider: 'openrouter' });
+      component.form.provider().value.set('openrouter');
       await component.loadModelsForProvider();
 
       expect(component.availableModels().length).toBe(0);
@@ -363,7 +340,7 @@ describe('ImageProfileDialogComponent', () => {
     });
 
     it('should filter models by search term', async () => {
-      component.form.patchValue({ provider: 'openrouter' });
+      component.form.provider().value.set('openrouter');
       await component.loadModelsForProvider();
 
       component.modelSearchTerm.set('flux');
@@ -375,7 +352,7 @@ describe('ImageProfileDialogComponent', () => {
     });
 
     it('should filter models by ID', async () => {
-      component.form.patchValue({ provider: 'openrouter' });
+      component.form.provider().value.set('openrouter');
       await component.loadModelsForProvider();
 
       component.modelSearchTerm.set('stability');
@@ -386,18 +363,16 @@ describe('ImageProfileDialogComponent', () => {
     });
 
     it('should select model and populate form', async () => {
-      component.form.patchValue({ provider: 'openrouter' });
+      component.form.provider().value.set('openrouter');
       await component.loadModelsForProvider();
 
       const model = mockModels[0];
       component.selectModel(model);
 
-      expect(component.form.get('modelId')?.value).toBe(
-        'black-forest-labs/flux-pro'
-      );
+      expect(component.model().modelId).toBe('black-forest-labs/flux-pro');
       expect(component.sizesArray.length).toBe(2);
-      expect(component.sizesArray.at(0).value).toBe('1024x1024');
-      expect(component.form.get('defaultSize')?.value).toBe('1024x1024');
+      expect(component.sizesArray[0]).toBe('1024x1024');
+      expect(component.model().defaultSize).toBe('1024x1024');
     });
 
     it('should display model name correctly', () => {
@@ -412,21 +387,21 @@ describe('ImageProfileDialogComponent', () => {
 
     it('should call loadModelsForProvider on provider change for browsable providers', () => {
       // Set provider to openrouter (a browsable provider)
-      component.form.patchValue({ provider: 'openrouter' });
+      component.form.provider().value.set('openrouter');
       const loadSpy = vi.spyOn(component, 'loadModelsForProvider');
       component.onProviderChange();
       expect(loadSpy).toHaveBeenCalled();
     });
 
     it('should not call loadModelsForProvider for OpenAI (uses hardcoded models)', () => {
-      component.form.patchValue({ provider: 'openai' });
+      component.form.provider().value.set('openai');
       const loadSpy = vi.spyOn(component, 'loadModelsForProvider');
       component.onProviderChange();
       expect(loadSpy).not.toHaveBeenCalled();
     });
 
     it('should not call loadModelsForProvider immediately for Fal.ai (waits for category)', () => {
-      component.form.patchValue({ provider: 'falai' });
+      component.form.provider().value.set('falai');
       const loadSpy = vi.spyOn(component, 'loadModelsForProvider');
       component.onProviderChange();
       expect(loadSpy).not.toHaveBeenCalled();

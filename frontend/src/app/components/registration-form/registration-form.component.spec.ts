@@ -94,57 +94,81 @@ describe('RegistrationFormComponent', () => {
 
   describe('form initialization', () => {
     it('should have empty form controls initially', () => {
-      expect(component.registerForm.get('username')?.value).toBe('');
-      expect(component.registerForm.get('password')?.value).toBe('');
-      expect(component.registerForm.get('confirmPassword')?.value).toBe('');
+      expect(component.model().username).toBe('');
+      expect(component.model().password).toBe('');
+      expect(component.model().confirmPassword).toBe('');
     });
 
     it('should have form controls with validators', () => {
-      const usernameControl = component.registerForm.get('username');
-      const passwordControl = component.registerForm.get('password');
-      const confirmPasswordControl =
-        component.registerForm.get('confirmPassword');
+      const usernameErrors = component.form.username().errors();
+      const passwordErrors = component.form.password().errors();
+      const confirmPasswordErrors = component.form.confirmPassword().errors();
 
-      expect(usernameControl?.hasError('required')).toBe(true);
-      expect(passwordControl?.hasError('required')).toBe(true);
-      expect(confirmPasswordControl?.hasError('required')).toBe(true);
+      expect(usernameErrors.some(e => e.kind === 'required')).toBe(true);
+      expect(passwordErrors.some(e => e.kind === 'required')).toBe(true);
+      expect(confirmPasswordErrors.some(e => e.kind === 'required')).toBe(true);
     });
 
     it('should have optional display name and email controls', () => {
-      expect(component.registerForm.get('displayName')?.value).toBe('');
-      expect(component.registerForm.get('email')?.value).toBe('');
+      expect(component.model().displayName).toBe('');
+      expect(component.model().email).toBe('');
       // Not required by default
-      expect(component.registerForm.get('displayName')?.valid).toBe(true);
-      expect(component.registerForm.get('email')?.valid).toBe(true);
+      expect(component.form.displayName().valid()).toBe(true);
+      expect(component.form.email().valid()).toBe(true);
     });
 
-    it('should require email when requireEmail is enabled', () => {
+    it('should require email when requireEmail is enabled', async () => {
       systemConfigService.isRequireEmailEnabled.mockReturnValue(true);
-      // Trigger the private validator update via ngOnInit re-entry
-      component.ngOnInit();
-      const emailControl = component.registerForm.get('email');
-      expect(emailControl?.hasError('required')).toBe(true);
+      // Trigger the validator update via re-creation (config is read in schema)
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [RegistrationFormComponent],
+        providers: [
+          provideZonelessChangeDetection(),
+          provideHttpClient(withXhr()),
+          provideHttpClientTesting(),
+          { provide: AuthenticationService, useValue: authService },
+          { provide: UserService, useValue: userService },
+          { provide: MatSnackBar, useValue: snackBar },
+          { provide: SetupService, useValue: setupService },
+          { provide: SystemConfigService, useValue: systemConfigService },
+        ],
+      }).compileComponents();
+      fixture = TestBed.createComponent(RegistrationFormComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      const emailErrors = component.form.email().errors();
+      expect(emailErrors.some(e => e.kind === 'required')).toBe(true);
     });
 
     it('should validate email format', () => {
-      const emailControl = component.registerForm.get('email');
-      emailControl?.setValue('not-an-email');
-      expect(emailControl?.hasError('email')).toBe(true);
-      emailControl?.setValue('valid@example.com');
-      expect(emailControl?.valid).toBe(true);
+      component.form.email().value.set('not-an-email');
+      expect(
+        component.form
+          .email()
+          .errors()
+          .some(e => e.kind === 'email')
+      ).toBe(true);
+      component.form.email().value.set('valid@example.com');
+      expect(component.form.email().valid()).toBe(true);
     });
   });
 
   describe('password validation', () => {
     it('should validate password minimum length', () => {
-      component.registerForm.get('password')?.setValue('short');
+      component.form.password().value.set('short');
       expect(
-        component.registerForm.get('password')?.hasError('minLength')
+        component.form
+          .password()
+          .errors()
+          .some(e => e.kind === 'minLength')
       ).toBe(true);
     });
 
-    it('should update password requirements on password change', () => {
-      component.registerForm.get('password')?.setValue('Test123!@');
+    it('should update password requirements on password change', async () => {
+      component.form.password().value.set('Test123!@');
+      await fixture.whenStable();
       expect(component.passwordRequirements['minLength'].met).toBe(true);
       expect(component.passwordRequirements['uppercase'].met).toBe(true);
       expect(component.passwordRequirements['lowercase'].met).toBe(true);
@@ -153,68 +177,79 @@ describe('RegistrationFormComponent', () => {
     });
 
     it('should not meet requirements for weak password', () => {
-      component.registerForm.get('password')?.setValue('weak');
+      component.form.password().value.set('weak');
       expect(component.passwordRequirements['minLength'].met).toBe(false);
       expect(component.passwordRequirements['uppercase'].met).toBe(false);
       expect(component.passwordRequirements['number'].met).toBe(false);
       expect(component.passwordRequirements['special'].met).toBe(false);
     });
 
-    it('should return true for isPasswordValid when all requirements are met', () => {
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
+    it('should return true for isPasswordValid when all requirements are met', async () => {
+      component.form.password().value.set(VALID_PASSWORD);
+      await fixture.whenStable();
       expect(component.isPasswordValid()).toBe(true);
     });
 
     it('should return false for isPasswordValid when requirements are not met', () => {
-      component.registerForm.get('password')?.setValue('weak');
+      component.form.password().value.set('weak');
       expect(component.isPasswordValid()).toBe(false);
     });
   });
 
   describe('password match validation', () => {
     it('should show error when passwords do not match', () => {
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('confirmPassword')?.setValue('DifferentPass!');
-      expect(component.registerForm.hasError('passwordMismatch')).toBe(true);
+      component.form.password().value.set(VALID_PASSWORD);
+      component.form.confirmPassword().value.set('DifferentPass!');
+      expect(
+        component.form
+          .confirmPassword()
+          .errors()
+          .some(e => e.kind === 'passwordMismatch')
+      ).toBe(true);
     });
 
     it('should not show error when passwords match', () => {
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('confirmPassword')?.setValue(VALID_PASSWORD);
-      expect(component.registerForm.hasError('passwordMismatch')).toBe(false);
+      component.form.password().value.set(VALID_PASSWORD);
+      component.form.confirmPassword().value.set(VALID_PASSWORD);
+      expect(
+        component.form
+          .confirmPassword()
+          .errors()
+          .some(e => e.kind === 'passwordMismatch')
+      ).toBe(false);
     });
   });
 
   describe('error message getters', () => {
     it('should return username required error', () => {
-      component.registerForm.get('username')?.markAsTouched();
+      component.form.username().markAsTouched();
       expect(component.getUsernameErrorMessage()).toBe('Username is required');
     });
 
     it('should return username minlength error', () => {
-      component.registerForm.get('username')?.setValue('ab');
-      component.registerForm.get('username')?.markAsTouched();
+      component.form.username().value.set('ab');
+      component.form.username().markAsTouched();
       expect(component.getUsernameErrorMessage()).toBe(
         'Username must be at least 3 characters'
       );
     });
 
     it('should return password required error', () => {
-      component.registerForm.get('password')?.markAsTouched();
+      component.form.password().markAsTouched();
       expect(component.getPasswordErrorMessage()).toBe('Password is required');
     });
 
     it('should return confirm password required error', () => {
-      component.registerForm.get('confirmPassword')?.markAsTouched();
+      component.form.confirmPassword().markAsTouched();
       expect(component.getConfirmPasswordErrorMessage()).toBe(
         'Please confirm your password'
       );
     });
 
     it('should return password mismatch error', () => {
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('confirmPassword')?.setValue('Different123!');
-      component.registerForm.get('confirmPassword')?.markAsTouched();
+      component.form.password().value.set(VALID_PASSWORD);
+      component.form.confirmPassword().value.set('Different123!');
+      component.form.confirmPassword().markAsTouched();
       expect(component.getConfirmPasswordErrorMessage()).toBe(
         'Passwords do not match'
       );
@@ -223,10 +258,10 @@ describe('RegistrationFormComponent', () => {
 
   describe('username suggestions', () => {
     it('should select suggestion and update form', () => {
-      component.usernameSuggestions = ['user123', 'user456'];
+      component.usernameSuggestions.set(['user123', 'user456']);
       component.selectSuggestion('user123');
-      expect(component.registerForm.get('username')?.value).toBe('user123');
-      expect(component.usernameSuggestions).toEqual([]);
+      expect(component.model().username).toBe('user123');
+      expect(component.usernameSuggestions()).toEqual([]);
     });
   });
 
@@ -237,9 +272,13 @@ describe('RegistrationFormComponent', () => {
     });
 
     it('should call authService.registerUser with correct data', async () => {
-      component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('confirmPassword')?.setValue(VALID_PASSWORD);
+      component.model.set({
+        username: 'testuser',
+        displayName: '',
+        email: '',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+      });
 
       const mockUser: User = {
         id: '1',
@@ -268,11 +307,13 @@ describe('RegistrationFormComponent', () => {
     });
 
     it('should include name and email when provided', async () => {
-      component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('confirmPassword')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('displayName')?.setValue('Test User');
-      component.registerForm.get('email')?.setValue('test@example.com');
+      component.model.set({
+        username: 'testuser',
+        displayName: 'Test User',
+        email: 'test@example.com',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+      });
 
       const mockUser: User = {
         id: '1',
@@ -308,9 +349,13 @@ describe('RegistrationFormComponent', () => {
       const registeredSpy = vi.fn();
       component.registered.subscribe(registeredSpy);
 
-      component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('confirmPassword')?.setValue(VALID_PASSWORD);
+      component.model.set({
+        username: 'testuser',
+        displayName: '',
+        email: '',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+      });
 
       const mockUser: User = {
         id: '1',
@@ -343,9 +388,13 @@ describe('RegistrationFormComponent', () => {
       const errorSpy = vi.fn();
       component.registrationError.subscribe(errorSpy);
 
-      component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('confirmPassword')?.setValue(VALID_PASSWORD);
+      component.model.set({
+        username: 'testuser',
+        displayName: '',
+        email: '',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+      });
 
       const errorResponse = new HttpErrorResponse({
         status: 500,
@@ -363,9 +412,13 @@ describe('RegistrationFormComponent', () => {
     });
 
     it('should set isRegistering to true during registration', async () => {
-      component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('confirmPassword')?.setValue(VALID_PASSWORD);
+      component.model.set({
+        username: 'testuser',
+        displayName: '',
+        email: '',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+      });
 
       const mockUser: User = {
         id: '1',
@@ -398,9 +451,13 @@ describe('RegistrationFormComponent', () => {
       component.submitRequest.subscribe(submitRequestSpy);
       component.externalSubmit = true;
 
-      component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('confirmPassword')?.setValue(VALID_PASSWORD);
+      component.model.set({
+        username: 'testuser',
+        displayName: '',
+        email: '',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+      });
 
       await component.submit();
 
@@ -416,20 +473,20 @@ describe('RegistrationFormComponent', () => {
     it('should check username availability successfully', async () => {
       // Provide server URL for the check
       component.serverUrl = 'https://test-server.example.com';
-      component.registerForm.get('username')?.setValue('newuser');
+      component.form.username().value.set('newuser');
       const httpClient = TestBed.inject(HttpClient);
       vi.spyOn(httpClient, 'get').mockReturnValue(of({ available: true }));
 
       await component.checkUsernameAvailability();
 
-      expect(component.usernameAvailability).toBe('available');
-      expect(component.usernameSuggestions).toEqual([]);
+      expect(component.usernameAvailability()).toBe('available');
+      expect(component.usernameSuggestions()).toEqual([]);
     });
 
     it('should handle unavailable username with suggestions', async () => {
       // Provide server URL for the check
       component.serverUrl = 'https://test-server.example.com';
-      component.registerForm.get('username')?.setValue('taken');
+      component.form.username().value.set('taken');
       const httpClient = TestBed.inject(HttpClient);
       vi.spyOn(httpClient, 'get').mockReturnValue(
         of({ available: false, suggestions: ['taken1', 'taken2'] })
@@ -437,16 +494,14 @@ describe('RegistrationFormComponent', () => {
 
       await component.checkUsernameAvailability();
 
-      expect(component.usernameAvailability).toBe('unavailable');
-      expect(component.usernameSuggestions).toEqual(['taken1', 'taken2']);
-      expect(
-        component.registerForm.get('username')?.hasError('usernameTaken')
-      ).toBe(true);
+      expect(component.usernameAvailability()).toBe('unavailable');
+      expect(component.usernameSuggestions()).toEqual(['taken1', 'taken2']);
+      expect(component['usernameTaken']()).toBe(true);
     });
 
     it('should skip check when skipUsernameCheck is true', async () => {
       component.skipUsernameCheck = true;
-      component.registerForm.get('username')?.setValue('testuser');
+      component.form.username().value.set('testuser');
       const httpClient = TestBed.inject(HttpClient);
       const getSpy = vi.spyOn(httpClient, 'get');
 
@@ -458,14 +513,14 @@ describe('RegistrationFormComponent', () => {
     it('should skip check when no server URL is available', async () => {
       // No serverUrl set and setupService returns empty string
       component.serverUrl = undefined;
-      component.registerForm.get('username')?.setValue('testuser');
+      component.form.username().value.set('testuser');
       const httpClient = TestBed.inject(HttpClient);
       const getSpy = vi.spyOn(httpClient, 'get');
 
       await component.checkUsernameAvailability();
 
       expect(getSpy).not.toHaveBeenCalled();
-      expect(component.usernameAvailability).toBe('unknown');
+      expect(component.usernameAvailability()).toBe('unknown');
     });
 
     it('should use setupService URL when serverUrl input is not provided', async () => {
@@ -474,7 +529,7 @@ describe('RegistrationFormComponent', () => {
         'https://configured-server.example.com'
       );
       component.serverUrl = undefined;
-      component.registerForm.get('username')?.setValue('testuser');
+      component.form.username().value.set('testuser');
       const httpClient = TestBed.inject(HttpClient);
       vi.spyOn(httpClient, 'get').mockReturnValue(of({ available: true }));
 
@@ -488,8 +543,8 @@ describe('RegistrationFormComponent', () => {
 
   describe('helper methods', () => {
     it('should get form values', () => {
-      component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue('Password123!');
+      component.form.username().value.set('testuser');
+      component.form.password().value.set('Password123!');
 
       const values = component.getFormValues();
 
@@ -500,16 +555,16 @@ describe('RegistrationFormComponent', () => {
     });
 
     it('should reset form', () => {
-      component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue('Password123!');
-      component.usernameAvailability = 'available';
-      component.usernameSuggestions = ['test1', 'test2'];
+      component.form.username().value.set('testuser');
+      component.form.password().value.set('Password123!');
+      component.usernameAvailability.set('available');
+      component.usernameSuggestions.set(['test1', 'test2']);
 
       component.reset();
 
-      expect(component.registerForm.get('username')?.value).toBe('');
-      expect(component.usernameAvailability).toBe('unknown');
-      expect(component.usernameSuggestions).toEqual([]);
+      expect(component.model().username).toBe('');
+      expect(component.usernameAvailability()).toBe('unknown');
+      expect(component.usernameSuggestions()).toEqual([]);
     });
 
     it('should set loading state', () => {
@@ -522,7 +577,7 @@ describe('RegistrationFormComponent', () => {
 
     it('should set error message', () => {
       component.setError('Custom error message');
-      expect(component.serverValidationErrors).toEqual({
+      expect(component.serverValidationErrors()).toEqual({
         general: ['Custom error message'],
       });
     });
@@ -530,9 +585,13 @@ describe('RegistrationFormComponent', () => {
     it('should return isValid correctly', () => {
       expect(component.isValid).toBe(false);
 
-      component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('confirmPassword')?.setValue(VALID_PASSWORD);
+      component.model.set({
+        username: 'testuser',
+        displayName: '',
+        email: '',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+      });
 
       expect(component.isValid).toBe(true);
     });
@@ -568,23 +627,23 @@ describe('RegistrationFormComponent', () => {
 
       authService.registerUser.mockReturnValue(throwError(() => httpError));
 
-      component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('confirmPassword')?.setValue(VALID_PASSWORD);
+      component.model.set({
+        username: 'testuser',
+        displayName: '',
+        email: '',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+      });
       fixture.detectChanges();
 
       await component.submit();
 
-      expect(component.serverValidationErrors).toEqual({
+      expect(component.serverValidationErrors()).toEqual({
         username: ['Username already taken'],
         password: ['Password is too weak'],
       });
-      expect(
-        component.registerForm.get('username')?.hasError('serverValidation')
-      ).toBe(true);
-      expect(
-        component.registerForm.get('password')?.hasError('serverValidation')
-      ).toBe(true);
+      expect(component['usernameServerInvalid']()).toBe(true);
+      expect(component['passwordServerInvalid']()).toBe(true);
     });
 
     it('should handle HttpErrorResponse without validation errors', async () => {
@@ -595,9 +654,13 @@ describe('RegistrationFormComponent', () => {
 
       authService.registerUser.mockReturnValue(throwError(() => httpError));
 
-      component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('confirmPassword')?.setValue(VALID_PASSWORD);
+      component.model.set({
+        username: 'testuser',
+        displayName: '',
+        email: '',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+      });
       fixture.detectChanges();
 
       await component.submit();
@@ -610,9 +673,13 @@ describe('RegistrationFormComponent', () => {
         throwError(() => new Error('Network error'))
       );
 
-      component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('confirmPassword')?.setValue(VALID_PASSWORD);
+      component.model.set({
+        username: 'testuser',
+        displayName: '',
+        email: '',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+      });
       fixture.detectChanges();
 
       await component.submit();
@@ -625,9 +692,13 @@ describe('RegistrationFormComponent', () => {
         throwError(() => 'string error')
       );
 
-      component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue(VALID_PASSWORD);
-      component.registerForm.get('confirmPassword')?.setValue(VALID_PASSWORD);
+      component.model.set({
+        username: 'testuser',
+        displayName: '',
+        email: '',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+      });
       fixture.detectChanges();
 
       await component.submit();
@@ -636,53 +707,27 @@ describe('RegistrationFormComponent', () => {
     });
   });
 
-  describe('password requirement updates', () => {
-    it('should detect changes when requirements state changes', () => {
-      const detectChangesSpy = vi.spyOn(
-        component['changeDetectorRef'],
-        'detectChanges'
-      );
-
-      // Initially set a password that meets no requirements
-      component.registerForm.get('password')?.setValue('a');
-      const callCountAfterFirst = detectChangesSpy.mock.calls.length;
-
-      // Set a password that meets more requirements - should trigger change detection
-      component.registerForm.get('password')?.setValue('Aa1@longer');
-
-      expect(detectChangesSpy.mock.calls.length).toBeGreaterThan(
-        callCountAfterFirst
-      );
-    });
-
-    it('should not trigger change detection when requirements stay the same', () => {
-      // Set a password that meets all requirements
-      component.registerForm.get('password')?.setValue('Aa1@longer');
-      const initialCalls = vi.spyOn(
-        component['changeDetectorRef'],
-        'detectChanges'
-      ).mock.calls.length;
-
-      // Set another password that still meets all requirements
-      component.registerForm.get('password')?.setValue('Bb2$evenlong');
-
-      // The key is that the requirements state didn't change - verify final state
-      expect(component.passwordRequirements['minLength'].met).toBe(true);
-      expect(component.passwordRequirements['uppercase'].met).toBe(true);
-      expect(component.passwordRequirements['lowercase'].met).toBe(true);
-      expect(component.passwordRequirements['number'].met).toBe(true);
-      expect(component.passwordRequirements['special'].met).toBe(true);
-
-      // Verify initialCalls was captured (it should be 0 at spy creation)
-      expect(initialCalls).toBe(0);
-    });
-  });
-
   describe('passwordless mode', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       systemConfigService.isPasswordLoginEnabled.mockReturnValue(false);
-      // Re-run init so password validators are stripped per the new flag.
-      component.ngOnInit();
+      // Re-create component so the passwordless flag is read at construction.
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [RegistrationFormComponent],
+        providers: [
+          provideZonelessChangeDetection(),
+          provideHttpClient(withXhr()),
+          provideHttpClientTesting(),
+          { provide: AuthenticationService, useValue: authService },
+          { provide: UserService, useValue: userService },
+          { provide: MatSnackBar, useValue: snackBar },
+          { provide: SetupService, useValue: setupService },
+          { provide: SystemConfigService, useValue: systemConfigService },
+        ],
+      }).compileComponents();
+      fixture = TestBed.createComponent(RegistrationFormComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
     });
 
     it('exposes isPasswordLoginEnabled signal returning false', () => {
@@ -690,11 +735,11 @@ describe('RegistrationFormComponent', () => {
     });
 
     it('clears password validators so the form can submit empty', () => {
-      component.registerForm.get('username')?.setValue('newuser');
+      component.form.username().value.set('newuser');
       // No password / confirmPassword set
-      expect(component.registerForm.get('password')?.valid).toBe(true);
-      expect(component.registerForm.get('confirmPassword')?.valid).toBe(true);
-      expect(component.registerForm.valid).toBe(true);
+      expect(component.form.password().valid()).toBe(true);
+      expect(component.form.confirmPassword().valid()).toBe(true);
+      expect(component.form().valid()).toBe(true);
     });
 
     it('omits password from credentials on submit', async () => {
@@ -702,10 +747,10 @@ describe('RegistrationFormComponent', () => {
       component.submitRequest.subscribe(submitRequestSpy);
       component.externalSubmit = true;
 
-      component.registerForm.get('username')?.setValue('newuser');
+      component.form.username().value.set('newuser');
       // Even if leftover text is in the password field, do not include it
       // when the flag is off — password login is disabled server-side.
-      component.registerForm.get('password')?.setValue('');
+      component.form.password().value.set('');
 
       await component.submit();
 
@@ -718,10 +763,10 @@ describe('RegistrationFormComponent', () => {
       component.submitRequest.subscribe(submitRequestSpy);
       component.externalSubmit = true;
 
-      component.registerForm.get('username')?.setValue('newuser');
+      component.form.username().value.set('newuser');
       // A stale password value: the gate checks the *flag* first, so this
       // should still be omitted even though formValues.password is truthy.
-      component.registerForm.get('password')?.setValue('LeftoverPass1!');
+      component.form.password().value.set('LeftoverPass1!');
 
       await component.submit();
 
@@ -735,9 +780,9 @@ describe('RegistrationFormComponent', () => {
       component.submitRequest.subscribe(submitRequestSpy);
       component.externalSubmit = true;
 
-      component.registerForm.get('username')?.setValue('newuser');
-      component.registerForm.get('displayName')?.setValue('New User');
-      component.registerForm.get('email')?.setValue('new@example.com');
+      component.form.username().value.set('newuser');
+      component.form.displayName().value.set('New User');
+      component.form.email().value.set('new@example.com');
 
       await component.submit();
 

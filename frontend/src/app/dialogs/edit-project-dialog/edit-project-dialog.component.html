@@ -66,17 +66,18 @@
 
       <!-- Right column: Form -->
       <div class="form-column">
-        <form [formGroup]="form">
+        <form (submit)="$event.preventDefault(); onSave()">
           <mat-form-field appearance="outline">
             <mat-label>Title</mat-label>
             <input
               matInput
-              formControlName="title"
-              required
+              [formField]="form.title"
               id="edit-project-title-input"
               aria-label="Title" />
-            @if (form.get('title')?.hasError('required')) {
-              <mat-error>Title is required</mat-error>
+            @if (form.title().touched() && form.title().invalid()) {
+              @for (error of form.title().errors(); track error.message) {
+                <mat-error>{{ error.message }}</mat-error>
+              }
             }
           </mat-form-field>
 
@@ -84,7 +85,7 @@
             <mat-label>Description</mat-label>
             <textarea
               matInput
-              formControlName="description"
+              [formField]="form.description"
               rows="4"
               id="edit-project-description-input"
               aria-label="Description"></textarea>
@@ -159,7 +160,7 @@
     <button
       mat-raised-button
       color="primary"
-      [disabled]="form.invalid || isSaving()"
+      [disabled]="form().invalid() || isSaving()"
       (click)="onSave()">
       Save
     </button>

@@ -40,14 +40,14 @@
       </div>
     }
 
-    <form [formGroup]="form" class="form" autocomplete="off">
+    <form class="form" autocomplete="off">
       <mat-form-field appearance="outline">
         <mat-label>System name</mat-label>
         <input
           matInput
           id="time-system-name-input"
           aria-label="System name"
-          formControlName="name"
+          [formField]="form.name"
           data-testid="time-system-edit-name" />
       </mat-form-field>
 
@@ -144,7 +144,7 @@
           matInput
           id="time-system-format-input"
           aria-label="Display format"
-          formControlName="format"
+          [formField]="form.format"
           data-testid="time-system-edit-format" />
       </mat-form-field>
 
@@ -154,8 +154,7 @@
           matInput
           id="time-system-separator-input"
           aria-label="Parse separator"
-          maxlength="3"
-          formControlName="parseSeparator"
+          [formField]="form.parseSeparator"
           data-testid="time-system-edit-separator" />
       </mat-form-field>
 

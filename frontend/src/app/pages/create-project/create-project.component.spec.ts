@@ -5,7 +5,6 @@ import {
   signal,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -100,7 +99,6 @@ describe('CreateProjectComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         CreateProjectComponent,
-        ReactiveFormsModule,
         MatButtonModule,
         MatIconModule,
         MatFormFieldModule,
@@ -141,9 +139,9 @@ describe('CreateProjectComponent', () => {
   });
 
   it('should initialize form with default values', () => {
-    expect(component.projectForm.get('title')?.value).toBe('');
-    expect(component.projectForm.get('slug')?.value).toBe('');
-    expect(component.projectForm.get('description')?.value).toBe('');
+    expect(component.model().title).toBe('');
+    expect(component.model().slug).toBe('');
+    expect(component.model().description).toBe('');
   });
 
   it('should generate slug from title', () => {
@@ -155,12 +153,11 @@ describe('CreateProjectComponent', () => {
 
   it('should update slug when title changes', () => {
     const title = 'My Test Project';
-    const slugControl = component.projectForm.get('slug');
 
-    component.projectForm.patchValue({ title });
+    component.projectForm.title().value.set(title);
     fixture.detectChanges();
 
-    expect(slugControl?.value).toBe('my-test-project');
+    expect(component.projectForm.slug().value()).toBe('my-test-project');
   });
 
   it('should update project URL when slug changes', () => {
@@ -169,35 +166,34 @@ describe('CreateProjectComponent', () => {
     const slug = 'test-project';
 
     component.username = username; // Set the username directly
-    component.projectForm.patchValue({ slug });
+    component.projectForm.slug().value.set(slug);
     component.updateProjectUrl();
     fixture.detectChanges();
 
-    expect(component.projectUrl).toBe(`${baseUrl}/${username}/${slug}`);
+    expect(component.projectUrl()).toBe(`${baseUrl}/${username}/${slug}`);
   });
 
   it('should validate required fields', () => {
-    expect(component.projectForm.valid).toBeFalsy();
+    expect(component.projectForm().valid()).toBeFalsy();
 
-    component.projectForm.patchValue({
+    component.model.set({
       title: 'Test Project',
       slug: 'test-project',
+      description: '',
     });
 
-    expect(component.projectForm.valid).toBeTruthy();
+    expect(component.projectForm().valid()).toBeTruthy();
   });
 
   it('should validate slug format', () => {
-    const slugControl = component.projectForm.get('slug');
+    component.projectForm.slug().value.set('invalid slug');
+    expect(component.projectForm.slug().valid()).toBeFalsy();
 
-    slugControl?.setValue('invalid slug');
-    expect(slugControl?.valid).toBeFalsy();
+    component.projectForm.slug().value.set('valid-slug');
+    expect(component.projectForm.slug().valid()).toBeTruthy();
 
-    slugControl?.setValue('valid-slug');
-    expect(slugControl?.valid).toBeTruthy();
-
-    slugControl?.setValue('123-valid-slug');
-    expect(slugControl?.valid).toBeTruthy();
+    component.projectForm.slug().value.set('123-valid-slug');
+    expect(component.projectForm.slug().valid()).toBeTruthy();
   });
 
   it('should navigate back when cancel is clicked', () => {
@@ -212,7 +208,7 @@ describe('CreateProjectComponent', () => {
   });
 
   it('should create project successfully', async () => {
-    component.projectForm.patchValue({
+    component.model.set({
       title: 'Test Project',
       slug: 'test-project',
       description: 'Test Description',
@@ -236,7 +232,7 @@ describe('CreateProjectComponent', () => {
   });
 
   it('should handle project creation failure', async () => {
-    component.projectForm.patchValue({
+    component.model.set({
       title: 'Test Project',
       slug: 'test-project',
       description: 'Test Description',
@@ -256,7 +252,7 @@ describe('CreateProjectComponent', () => {
   });
 
   it('should redirect to home if project response is incomplete', async () => {
-    component.projectForm.patchValue({
+    component.model.set({
       title: 'Test Project',
       slug: 'test-project',
       description: 'Test Description',

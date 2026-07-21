@@ -1,5 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
+import { form, FormField, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -27,18 +32,22 @@ export interface CanvasTextDialogResult {
   color: string;
 }
 
+interface CanvasTextFormValue {
+  text: string;
+}
+
 @Component({
   selector: 'app-canvas-text-dialog',
   templateUrl: './canvas-text-dialog.component.html',
   styleUrls: ['./canvas-text-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    FormField,
     MatDialogModule,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
-    ReactiveFormsModule,
     ColorSwatchesComponent,
   ],
 })
@@ -46,10 +55,11 @@ export class CanvasTextDialogComponent {
   protected readonly data = inject<CanvasTextDialogData>(MAT_DIALOG_DATA);
   private readonly dialogRef = inject(MatDialogRef<CanvasTextDialogComponent>);
 
-  readonly textControl = new FormControl(this.data.text, [
-    Validators.required,
-    Validators.minLength(1),
-  ]);
+  readonly model = signal<CanvasTextFormValue>({ text: this.data.text });
+
+  readonly form = form(this.model, schemaPath => {
+    required(schemaPath.text, { message: 'Text is required' });
+  });
 
   protected selectedColor = this.data.color;
 
@@ -62,9 +72,9 @@ export class CanvasTextDialogComponent {
   }
 
   onConfirm(): void {
-    if (this.textControl.valid) {
+    if (this.form().valid()) {
       const result: CanvasTextDialogResult = {
-        text: this.textControl.value!,
+        text: this.model().text,
         color: this.selectedColor,
       };
       this.dialogRef.close(result);

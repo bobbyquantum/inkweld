@@ -17,13 +17,7 @@ import {
   ViewChildren,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-  FormBuilder,
-  type FormControl,
-  type FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { form, FormField, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import {
@@ -41,10 +35,10 @@ import {
   type TabSchema,
 } from '@models/schema-types';
 
-interface BasicForm {
-  name: FormControl<string>;
-  icon: FormControl<string>;
-  description: FormControl<string>;
+interface BasicFormValue {
+  name: string;
+  icon: string;
+  description: string;
 }
 
 /**
@@ -60,7 +54,7 @@ interface BasicForm {
   styleUrls: ['./template-editor-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    ReactiveFormsModule,
+    FormField,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
@@ -73,7 +67,6 @@ interface BasicForm {
   ],
 })
 export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
-  private readonly fb = inject(FormBuilder).nonNullable;
   private readonly destroyRef = inject(DestroyRef);
 
   /** The schema to edit. Required — pass a blank schema to create a new one. */
@@ -118,25 +111,25 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     'star',
   ];
 
+  readonly model = signal<BasicFormValue>({
+    name: '',
+    icon: '',
+    description: '',
+  });
+
   // Form for basic schema metadata — initialised in ngOnInit from the schema input
-  readonly basicForm: FormGroup<BasicForm>;
+  readonly basicForm = form(this.model, schemaPath => {
+    required(schemaPath.name, { message: 'Name is required' });
+    required(schemaPath.icon, { message: 'Icon is required' });
+  });
 
   // Tabs as a reactive array
   readonly tabs = signal<TabSchema[]>([]);
 
-  constructor() {
-    // Initialise with empty defaults; ngOnInit will populate from the schema input.
-    this.basicForm = this.fb.group<BasicForm>({
-      name: this.fb.control('', { validators: [Validators.required] }),
-      icon: this.fb.control('', { validators: [Validators.required] }),
-      description: this.fb.control(''),
-    });
-  }
-
   ngOnInit(): void {
     const schema = this.schema();
 
-    this.basicForm.setValue({
+    this.model.set({
       name: schema.name,
       icon: schema.icon,
       description: schema.description || '',
@@ -272,8 +265,8 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
 
   /** Save the updated schema */
   save(): void {
-    if (this.basicForm.invalid) {
-      this.basicForm.markAllAsTouched();
+    if (this.basicForm().invalid()) {
+      this.basicForm().markAsTouched();
       return;
     }
 
@@ -285,11 +278,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
 
     this.validationError.set(null);
 
-    const formValue = this.basicForm.value as {
-      name: string;
-      icon: string;
-      description: string;
-    };
+    const formValue = this.model();
 
     const updatedSchema: ElementTypeSchema = {
       ...this.schema(),

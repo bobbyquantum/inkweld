@@ -20,6 +20,7 @@ import {
   FormGroup,
   ReactiveFormsModule,
 } from '@angular/forms';
+import { compatForm } from '@angular/forms/signals/compat';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -30,7 +31,6 @@ import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type ResolvedTag } from '@models/tag.model';
-import { debounceTime } from 'rxjs';
 
 import {
   type Element as ApiElement,
@@ -93,7 +93,31 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);
-  form: WritableSignal<FormGroup> = signal(new FormGroup({}));
+
+  /**
+   * Signal holding the underlying reactive `FormGroup`. The structure is
+   * built dynamically at runtime from the resolved `ElementTypeSchema` —
+   * field keys and types are not known at compile time, so we keep the
+   * reactive-forms `FormGroup` as the source of truth and expose it to
+   * signal-forms via {@link formTree} (a `compatForm` tree).
+   *
+   * Exposed as a public readonly field so legacy callers (and tests) that
+   * treat `form()` as a `FormGroup` accessor keep working: invoking the
+   * signal returns the current `FormGroup` instance.
+   */
+  readonly form: WritableSignal<FormGroup> = signal(new FormGroup({}));
+
+  /**
+   * Signal-forms compatibility view over {@link form}.
+   *
+   * This exposes signal-based state (validity, errors, touched/dirty) for
+   * the dynamically-built reactive form, integrating it with the Angular 22
+   * signal-forms APIs while preserving the runtime-driven `FormGroup`
+   * structure. The template still binds `[formControl]` to the underlying
+   * `FormControl` instances returned by {@link getControl}; `compatForm`
+   * wires their state into the signal-forms reactivity graph.
+   */
+  readonly formTree = compatForm(this.form);
 
   /** Computed element name from project state */
   elementName = computed(() => {
@@ -139,7 +163,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   private unsubscribeObserver: (() => void) | null = null;
   private readonly resizeCleanup: (() => void) | null = null;
-  private formSubscription: (() => void) | null = null;
   private isUpdatingFromRemote = false;
   private loadSequence = 0;
 
@@ -195,14 +218,25 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         }
       }
     });
+
+    // Auto-save on form changes (debounced). The compatForm exposes the
+    // reactive form's value as a signal, so we can react to edits without
+    // a `valueChanges` subscription. A trailing debounce avoids saving on
+    // every keystroke, matching the previous reactive-forms behaviour.
+    effect(onCleanup => {
+      // Track the form value signal via the compatForm tree.
+      this.formTree().value();
+      if (this.isUpdatingFromRemote) return;
+      const timer = setTimeout(() => {
+        untracked(() => void this.saveData());
+      }, 500);
+      onCleanup(() => clearTimeout(timer));
+    });
   }
 
   ngOnDestroy(): void {
     if (this.unsubscribeObserver) {
       this.unsubscribeObserver();
-    }
-    if (this.formSubscription) {
-      this.formSubscription();
     }
     if (this.resizeCleanup) {
       this.resizeCleanup();
@@ -322,9 +356,10 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     });
 
     this.form.set(new FormGroup(formGroup));
-    this.setupFormSubscription();
     // Note: Read-only state is applied AFTER data loading in loadElementData()
-    // to avoid issues with disabled forms not displaying values correctly
+    // to avoid issues with disabled forms not displaying values correctly.
+    // Auto-save is wired via the constructor effect that watches
+    // `this.formTree().value()` (the compatForm's value signal).
   }
 
   private createControlForField(field: FieldSchema): AbstractControl | null {
@@ -347,20 +382,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         );
         return null;
     }
-  }
-
-  private setupFormSubscription(): void {
-    if (this.formSubscription) {
-      this.formSubscription();
-    }
-    const subscription = this.form()
-      .valueChanges.pipe(debounceTime(500))
-      .subscribe(() => {
-        if (!this.isUpdatingFromRemote) {
-          void this.saveData();
-        }
-      });
-    this.formSubscription = () => subscription.unsubscribe();
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

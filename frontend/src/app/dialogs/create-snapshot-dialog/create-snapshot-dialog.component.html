@@ -1,6 +1,6 @@
 <h2 mat-dialog-title>Create Snapshot</h2>
 
-<form [formGroup]="form" (ngSubmit)="onSubmit()">
+<form (submit)="$event.preventDefault(); onSubmit()">
   <mat-dialog-content>
     @if (data.wordCount !== undefined) {
       <p class="word-count-info">
@@ -14,14 +14,15 @@
       <input
         matInput
         id="create-snapshot-name-input"
-        formControlName="name"
+        [formField]="form.name"
         placeholder="Leave blank for auto date-time"
-        maxlength="100"
         data-testid="snapshot-name-input"
         aria-label="Snapshot name" />
       <mat-hint>If left blank, uses current date-time</mat-hint>
-      @if (form.get('name')?.hasError('maxlength')) {
-        <mat-error>Name cannot exceed 100 characters</mat-error>
+      @if (form.name().touched() && form.name().invalid()) {
+        @for (error of form.name().errors(); track error.message) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
       }
     </mat-form-field>
 
@@ -29,15 +30,16 @@
       <mat-label>Description (Optional)</mat-label>
       <textarea
         matInput
-        formControlName="description"
+        [formField]="form.description"
         placeholder="Add notes about this snapshot..."
         rows="3"
-        maxlength="500"
         data-testid="snapshot-description-input"
         id="snapshot-description-input"
         aria-label="Description"></textarea>
-      @if (form.get('description')?.hasError('maxlength')) {
-        <mat-error>Description cannot exceed 500 characters</mat-error>
+      @if (form.description().touched() && form.description().invalid()) {
+        @for (error of form.description().errors(); track error.message) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
       }
     </mat-form-field>
   </mat-dialog-content>
@@ -53,7 +55,7 @@
     <button
       mat-raised-button
       color="primary"
-      [disabled]="form.invalid"
+      [disabled]="form().invalid()"
       data-testid="create-snapshot-submit-btn"
       type="submit">
       Create Snapshot

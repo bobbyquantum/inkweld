@@ -8,8 +8,8 @@
       <mat-label>Search element types...</mat-label>
       <input
         matInput
-        [(ngModel)]="searchQuery"
-        (ngModelChange)="searchQuery.set($event)"
+        [value]="searchQuery()"
+        (input)="searchQuery.set($event.target.value)"
         placeholder="e.g., character, location, map..."
         id="new-element-type-search-input"
         aria-label="Search element types" />
@@ -128,7 +128,7 @@
     New {{ getSelectedOption()?.label }}
   </h2>
 
-  <form [formGroup]="form" (ngSubmit)="onCreate()">
+  <form (submit)="$event.preventDefault(); onCreate()">
     <mat-dialog-content class="name-content">
       <!-- Show selected type info -->
       <div class="selected-type-info">
@@ -153,10 +153,9 @@
         <mat-label>{{ getSelectedOption()?.label }} Name</mat-label>
         <input
           matInput
-          [formControl]="$any(form.controls.name)"
+          [formField]="form.name"
           id="new-element-name-input"
           data-testid="element-name-input"
-          required
           [placeholder]="
             getSelectedOption()?.schemaId?.includes('character')
               ? 'e.g., Aragorn, Hermione Granger'
@@ -181,8 +180,10 @@
                                 : 'e.g., Chapter 1, Prologue'
           "
           aria-label="{{ getSelectedOption()?.label || 'Element' }} Name" />
-        @if (form.controls.name.errors?.['required']) {
-          <mat-error>Name is required</mat-error>
+        @if (form.name().touched() && form.name().invalid()) {
+          @for (error of form.name().errors(); track error) {
+            <mat-error>{{ error.message }}</mat-error>
+          }
         }
       </mat-form-field>
 
@@ -197,7 +198,7 @@
         color="primary"
         type="submit"
         data-testid="create-element-button"
-        [disabled]="!form.valid">
+        [disabled]="form().invalid()">
         Create {{ getSelectedOption()?.label }}
       </button>
     </mat-dialog-actions>

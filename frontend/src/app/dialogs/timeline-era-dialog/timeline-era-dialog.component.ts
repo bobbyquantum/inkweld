@@ -2,20 +2,18 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  DestroyRef,
+  effect,
   inject,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
-  type AbstractControl,
-  FormArray,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  type ValidationErrors,
-  Validators,
-} from '@angular/forms';
+  applyEach,
+  form,
+  FormField,
+  required,
+  validate,
+  validateTree,
+} from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -35,6 +33,12 @@ import {
 } from '@models/time-system';
 import type { TimelineEra } from '@models/timeline.model';
 
+import {
+  INT_RE,
+  timePointToAbsoluteValue,
+  unitsToTimePoint,
+} from '../timeline-units';
+
 export interface TimelineEraDialogData {
   /** Existing era for editing, or `null` to create a new one. */
   era: TimelineEra | null;
@@ -48,19 +52,18 @@ export interface TimelineEraDialogData {
 export type TimelineEraDialogResult =
   { kind: 'save'; era: TimelineEra } | { kind: 'delete'; eraId: string };
 
-const INT_RE = /^-?\d+$/;
-
-function integerValidator(control: AbstractControl): ValidationErrors | null {
-  const v = String(control.value ?? '').trim();
-  if (v.length === 0) return { required: true };
-  return INT_RE.test(v) ? null : { integer: true };
+interface TimelineEraFormValue {
+  name: string;
+  startUnits: string[];
+  endUnits: string[];
+  color: string;
 }
 
 @Component({
   selector: 'app-timeline-era-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    ReactiveFormsModule,
+    FormField,
     MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -94,66 +97,59 @@ export class TimelineEraDialogComponent {
     return unitDropdownOptions(this.data.system, i);
   }
 
-  protected readonly form: FormGroup<{
-    name: FormControl<string>;
-    startUnits: FormArray<FormControl<string>>;
-    endUnits: FormArray<FormControl<string>>;
-    color: FormControl<string>;
-  }>;
-
   private readonly startDateSignal = signal('');
   private readonly endDateSignal = signal('');
   protected readonly startDateValue = this.startDateSignal.asReadonly();
   protected readonly endDateValue = this.endDateSignal.asReadonly();
-  private readonly destroyRef = inject(DestroyRef);
 
-  constructor() {
+  private readonly seed = (point: TimePoint | undefined): string[] => {
     const n = this.data.system.unitLabels.length;
-    const seed = (point: TimePoint | undefined): string[] => {
-      if (point?.systemId === this.data.system.id) {
-        return point.units.slice(0, n).map(String);
+    if (point?.systemId === this.data.system.id) {
+      return point.units.slice(0, n).map(String);
+    }
+    return Array.from({ length: n }, (_, i) => {
+      const mode = unitInputModeFor(this.data.system, i);
+      if (mode === 'dropdown') {
+        const options = unitDropdownOptions(this.data.system, i);
+        return options[0]?.value ?? '0';
       }
-      return Array.from({ length: n }, (_, i) => {
-        const mode = unitInputModeFor(this.data.system, i);
-        if (mode === 'dropdown') {
-          const options = unitDropdownOptions(this.data.system, i);
-          return options[0]?.value ?? '0';
-        }
-        const min = this.data.system.unitAllowZero?.[i] ? 0 : 1;
-        return String(min);
-      });
-    };
-    const startSeed = seed(this.data.era?.start ?? this.data.defaultStart);
-    const endSeed = seed(this.data.era?.end ?? this.data.defaultEnd);
-
-    const buildUnitArray = (seeds: string[]): FormArray<FormControl<string>> =>
-      new FormArray<FormControl<string>>(
-        seeds.map(
-          v =>
-            new FormControl<string>(v, {
-              nonNullable: true,
-              validators: [integerValidator],
-            })
-        )
-      );
-
-    this.form = new FormGroup({
-      name: new FormControl<string>(this.data.era?.name ?? '', {
-        nonNullable: true,
-        validators: [Validators.required, Validators.minLength(1)],
-      }),
-      startUnits: buildUnitArray(startSeed),
-      endUnits: buildUnitArray(endSeed),
-      color: new FormControl<string>(
-        this.data.era?.color ?? this.data.defaultColor ?? '',
-        { nonNullable: true, validators: [Validators.required] }
-      ),
+      const min = this.data.system.unitAllowZero?.[i] ? 0 : 1;
+      return String(min);
     });
+  };
 
-    this.form.addValidators(group => {
-      const g = group as typeof this.form;
-      const start = this.pointFromUnits(g.controls.startUnits.getRawValue());
-      const end = this.pointFromUnits(g.controls.endUnits.getRawValue());
+  readonly model = signal<TimelineEraFormValue>({
+    name: this.data.era?.name ?? '',
+    startUnits: this.seed(this.data.era?.start ?? this.data.defaultStart),
+    endUnits: this.seed(this.data.era?.end ?? this.data.defaultEnd),
+    color: this.data.era?.color ?? this.data.defaultColor ?? '',
+  });
+
+  readonly form = form(this.model, schemaPath => {
+    required(schemaPath.name, { message: 'Name is required' });
+    required(schemaPath.color, { message: 'Color is required' });
+    applyEach(schemaPath.startUnits, item => {
+      validate(item, ({ value }) => {
+        const v = String(value() ?? '').trim();
+        if (v.length === 0) return { kind: 'required', message: 'Required' };
+        return INT_RE.test(v)
+          ? null
+          : { kind: 'integer', message: 'Must be a whole number' };
+      });
+    });
+    applyEach(schemaPath.endUnits, item => {
+      validate(item, ({ value }) => {
+        const v = String(value() ?? '').trim();
+        if (v.length === 0) return { kind: 'required', message: 'Required' };
+        return INT_RE.test(v)
+          ? null
+          : { kind: 'integer', message: 'Must be a whole number' };
+      });
+    });
+    validateTree(schemaPath, ({ value }) => {
+      const v = value();
+      const start = unitsToTimePoint(v.startUnits, this.data.system);
+      const end = unitsToTimePoint(v.endUnits, this.data.system);
       if (!start || !end) return null;
       if (
         !isValidTimePointFor(start, this.data.system) ||
@@ -161,29 +157,20 @@ export class TimelineEraDialogComponent {
       ) {
         return null;
       }
-      return this.toAbsolute(end) < this.toAbsolute(start)
-        ? { endBeforeStart: true }
+      return timePointToAbsoluteValue(end, this.data.system) <
+        timePointToAbsoluteValue(start, this.data.system)
+        ? { kind: 'endBeforeStart', message: 'End must be at or after start' }
         : null;
     });
-    this.form.updateValueAndValidity();
+  });
 
-    this.startDateSignal.set(this.unitsToIsoDate('start'));
-    this.endDateSignal.set(this.unitsToIsoDate('end'));
-
-    // Keep the Gregorian date picker in sync when numeric unit fields are edited.
-    this.form.controls.startUnits.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.startDateSignal.set(this.unitsToIsoDate('start')));
-    this.form.controls.endUnits.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.endDateSignal.set(this.unitsToIsoDate('end')));
-  }
-
-  protected startUnits(): FormArray<FormControl<string>> {
-    return this.form.controls.startUnits;
-  }
-  protected endUnits(): FormArray<FormControl<string>> {
-    return this.form.controls.endUnits;
+  constructor() {
+    // Derive ISO date strings reactively from model() so unit edits
+    // recompute the date fields instead of reading stale data/defaults
+    effect(() => {
+      this.startDateSignal.set(this.unitsToIsoDateFromModel('start'));
+      this.endDateSignal.set(this.unitsToIsoDateFromModel('end'));
+    });
   }
 
   protected onStartDateChange(event: Event): void {
@@ -214,35 +201,33 @@ export class TimelineEraDialogComponent {
     return `${yy}-${mm}-${dd}`;
   }
 
+  private unitsToIsoDateFromModel(which: 'start' | 'end'): string {
+    if (!this.isGregorian()) return '';
+    const units =
+      which === 'start' ? this.model().startUnits : this.model().endUnits;
+    if (units.length !== 3) return '';
+    const [y, m, d] = units.map(Number);
+    if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
+      return '';
+    }
+    const yy = String(y).padStart(4, '0');
+    const mm = String(Math.max(1, m)).padStart(2, '0');
+    const dd = String(Math.max(1, d)).padStart(2, '0');
+    return `${yy}-${mm}-${dd}`;
+  }
+
   private applyIsoDateTo(iso: string, which: 'start' | 'end'): void {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
     if (!m) return;
     const units = [m[1], String(Number(m[2])), String(Number(m[3]))];
-    const arr = which === 'start' ? this.startUnits() : this.endUnits();
-    units.forEach((val, i) => arr.at(i)?.setValue(val));
-  }
-
-  private pointFromUnits(units: string[]): TimePoint | null {
-    if (units.some(u => !INT_RE.test(String(u).trim()))) return null;
-    return {
-      systemId: this.data.system.id,
-      units: units.map(u => String(u).trim()),
-    };
-  }
-
-  private toAbsolute(point: TimePoint): bigint {
-    const system = this.data.system;
-    const n = system.unitLabels.length;
-    const weights: bigint[] = new Array<bigint>(n);
-    weights[n - 1] = 1n;
-    for (let i = n - 2; i >= 0; i--) {
-      weights[i] = weights[i + 1] * BigInt(system.subdivisions[i]);
-    }
-    let total = 0n;
-    for (let i = 0; i < n; i++) {
-      total += BigInt(point.units[i]) * weights[i];
-    }
-    return total;
+    const key = which === 'start' ? 'startUnits' : 'endUnits';
+    this.model.update(mv => {
+      const arr = [...mv[key]];
+      units.forEach((val, i) => {
+        if (i < arr.length) arr[i] = val;
+      });
+      return { ...mv, [key]: arr };
+    });
   }
 
   protected onCancel(): void {
@@ -255,22 +240,16 @@ export class TimelineEraDialogComponent {
   }
 
   protected onSave(): void {
-    if (this.form.invalid) return;
-    const raw = this.form.getRawValue();
+    if (this.form().invalid()) return;
+    const raw = this.model();
     const trimmedName = raw.name.trim();
     const trimmedColor = raw.color.trim();
 
-    if (trimmedName === '') {
-      this.form.controls.name.setErrors({ whitespace: true });
-      return;
-    }
-    if (trimmedColor === '') {
-      this.form.controls.color.setErrors({ whitespace: true });
-      return;
-    }
+    if (trimmedName === '') return;
+    if (trimmedColor === '') return;
 
-    const start = this.pointFromUnits(raw.startUnits);
-    const end = this.pointFromUnits(raw.endUnits);
+    const start = unitsToTimePoint(raw.startUnits, this.data.system);
+    const end = unitsToTimePoint(raw.endUnits, this.data.system);
     if (!start || !end) return;
     if (
       !isValidTimePointFor(start, this.data.system) ||

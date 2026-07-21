@@ -7,19 +7,21 @@
 </h2>
 
 <mat-dialog-content data-testid="profile-dialog-content">
-  <form [formGroup]="form" class="profile-form">
+  <div class="profile-form">
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Name</mat-label>
       <input
         matInput
-        formControlName="name"
+        [formField]="form.name"
         id="image-profile-name-input"
         data-testid="profile-name-input"
         placeholder="e.g., GPT Image 1 High Quality"
         aria-label="Profile name" />
       <mat-hint>A user-friendly name for this profile</mat-hint>
-      @if (form.get('name')?.hasError('required')) {
-        <mat-error>Name is required</mat-error>
+      @if (form.name().touched() && form.name().invalid()) {
+        @for (error of form.name().errors(); track error) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
       }
     </mat-form-field>
 
@@ -27,7 +29,7 @@
       <mat-label>Description</mat-label>
       <textarea
         matInput
-        formControlName="description"
+        [formField]="form.description"
         data-testid="profile-description-input"
         rows="2"
         placeholder="Optional description of this profile"
@@ -39,15 +41,17 @@
       <mat-form-field appearance="outline">
         <mat-label>Provider</mat-label>
         <mat-select
-          formControlName="provider"
+          [formField]="form.provider"
           data-testid="profile-provider-select"
           (selectionChange)="onProviderChange()">
           @for (provider of data.providers; track provider.id) {
             <mat-option [value]="provider.id">{{ provider.name }}</mat-option>
           }
         </mat-select>
-        @if (form.get('provider')?.hasError('required')) {
-          <mat-error>Provider is required</mat-error>
+        @if (form.provider().touched() && form.provider().invalid()) {
+          @for (error of form.provider().errors(); track error) {
+            <mat-error>{{ error.message }}</mat-error>
+          }
         }
       </mat-form-field>
 
@@ -83,8 +87,10 @@
               </mat-option>
             }
           </mat-select>
-          @if (form.get('modelId')?.hasError('required')) {
-            <mat-error>Model is required</mat-error>
+          @if (form.modelId().touched() && form.modelId().invalid()) {
+            @for (error of form.modelId().errors(); track error.message) {
+              <mat-error>{{ error.message }}</mat-error>
+            }
           }
           <mat-hint>Select an OpenAI image model</mat-hint>
         </mat-form-field>
@@ -94,7 +100,7 @@
           <mat-label>Model</mat-label>
           <input
             matInput
-            formControlName="modelId"
+            [formField]="form.modelId"
             id="image-profile-model-input"
             [matAutocomplete]="modelAuto"
             (input)="onModelSearchInput($event)"
@@ -139,8 +145,10 @@
             matTooltip="Refresh models">
             <mat-icon>refresh</mat-icon>
           </button>
-          @if (form.get('modelId')?.hasError('required')) {
-            <mat-error>Model ID is required</mat-error>
+          @if (form.modelId().touched() && form.modelId().invalid()) {
+            @for (error of form.modelId().errors(); track error) {
+              <mat-error>{{ error.message }}</mat-error>
+            }
           }
           <mat-hint>Search and select from available models</mat-hint>
         </mat-form-field>
@@ -150,15 +158,17 @@
           <mat-label>Model ID</mat-label>
           <input
             matInput
-            formControlName="modelId"
+            [formField]="form.modelId"
             id="image-profile-model-id-input"
             placeholder="e.g., stable-diffusion-xl-base-1.0"
             aria-label="Model ID" />
           <mat-hint
             >Enter the model identifier from your Stable Diffusion API</mat-hint
           >
-          @if (form.get('modelId')?.hasError('required')) {
-            <mat-error>Model ID is required</mat-error>
+          @if (form.modelId().touched() && form.modelId().invalid()) {
+            @for (error of form.modelId().errors(); track error) {
+              <mat-error>{{ error.message }}</mat-error>
+            }
           }
         </mat-form-field>
       }
@@ -166,7 +176,7 @@
 
     <div class="toggles-row">
       <mat-slide-toggle
-        formControlName="enabled"
+        [formField]="form.enabled"
         data-testid="profile-enabled-toggle">
         Enabled
       </mat-slide-toggle>
@@ -174,7 +184,7 @@
       <!-- Hide for OpenRouter (auto-detected from API) and OpenAI (all models support it) -->
       @if (!isOpenRouterProvider() && !isOpenAiProvider()) {
         <mat-slide-toggle
-          formControlName="supportsImageInput"
+          [formField]="form.supportsImageInput"
           data-testid="profile-image-input-toggle">
           Supports Image Input
         </mat-slide-toggle>
@@ -183,14 +193,14 @@
       <!-- Hide these options for OpenRouter - all OpenRouter models use aspect ratio only -->
       @if (!isOpenRouterProvider()) {
         <mat-slide-toggle
-          formControlName="supportsCustomResolutions"
+          [formField]="form.supportsCustomResolutions"
           data-testid="profile-custom-resolutions-toggle"
           matTooltip="Allow users to specify arbitrary width/height values">
           Custom Resolutions
         </mat-slide-toggle>
 
         <mat-slide-toggle
-          formControlName="usesAspectRatioOnly"
+          [formField]="form.usesAspectRatioOnly"
           data-testid="profile-aspect-ratio-only-toggle"
           matTooltip="Model only accepts aspect ratio (e.g., 16:9), not pixel dimensions. Enable for Gemini 3 Pro Image and similar models.">
           Aspect Ratio Only
@@ -212,14 +222,25 @@
           </button>
         </div>
 
-        @for (size of sizesArray.controls; track $index) {
+        @for (size of sizesArray; track $index) {
           <div class="size-row">
             <mat-form-field appearance="outline">
               <input
                 matInput
-                [formControl]="$any(size)"
+                [formField]="form.supportedSizes[$index]"
                 [attr.id]="'image-profile-size-input-' + $index"
                 placeholder="e.g., 1024x1024" />
+              @if (
+                form.supportedSizes[$index]().touched() &&
+                form.supportedSizes[$index]().invalid()
+              ) {
+                @for (
+                  error of form.supportedSizes[$index]().errors();
+                  track error.message
+                ) {
+                  <mat-error>{{ error.message }}</mat-error>
+                }
+              }
             </mat-form-field>
             <button
               mat-icon-button
@@ -234,10 +255,10 @@
         @if (sizesArray.length > 0) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Default Size</mat-label>
-            <mat-select formControlName="defaultSize">
+            <mat-select [formField]="form.defaultSize">
               <mat-option value="">None</mat-option>
-              @for (size of sizesArray.controls; track $index) {
-                <mat-option [value]="size.value">{{ size.value }}</mat-option>
+              @for (size of sizesArray; track $index) {
+                <mat-option [value]="size">{{ size }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
@@ -259,7 +280,7 @@
       <input
         matInput
         type="number"
-        formControlName="sortOrder"
+        [formField]="form.sortOrder"
         id="image-profile-sort-order-input"
         aria-label="Sort order" />
       <mat-hint>Lower numbers appear first</mat-hint>
@@ -278,7 +299,7 @@
           <mat-label>Model Configuration (JSON)</mat-label>
           <textarea
             matInput
-            formControlName="modelConfigJson"
+            [formField]="form.modelConfigJson"
             rows="6"
             placeholder='{"quality": "hd", "style": "vivid"}'
             id="image-profile-model-config-input"
@@ -287,7 +308,7 @@
         </mat-form-field>
       }
     </div>
-  </form>
+  </div>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
@@ -297,7 +318,7 @@
   <button
     mat-raised-button
     color="primary"
-    [disabled]="!form.valid"
+    [disabled]="form().invalid()"
     (click)="onSubmit()"
     data-testid="profile-dialog-submit">
     @if (isEditMode) {

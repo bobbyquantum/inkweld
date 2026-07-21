@@ -4,7 +4,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { form, FormField, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -47,19 +47,23 @@ export interface CanvasPinDialogResult {
   linkedElementId?: string;
 }
 
+interface CanvasPinFormValue {
+  label: string;
+}
+
 @Component({
   selector: 'app-canvas-pin-dialog',
   templateUrl: './canvas-pin-dialog.component.html',
   styleUrls: ['./canvas-pin-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    FormField,
     MatDialogModule,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
     MatTooltipModule,
-    ReactiveFormsModule,
     ColorSwatchesComponent,
   ],
 })
@@ -68,10 +72,11 @@ export class CanvasPinDialogComponent {
   private readonly dialogRef = inject(MatDialogRef<CanvasPinDialogComponent>);
   private readonly dialog = inject(MatDialog);
 
-  readonly labelControl = new FormControl(this.data.label, [
-    Validators.required,
-    Validators.minLength(1),
-  ]);
+  readonly model = signal<CanvasPinFormValue>({ label: this.data.label });
+
+  readonly form = form(this.model, schemaPath => {
+    required(schemaPath.label, { message: 'Label is required' });
+  });
 
   protected selectedColor = this.data.color;
 
@@ -126,9 +131,9 @@ export class CanvasPinDialogComponent {
   }
 
   onConfirm(): void {
-    if (this.labelControl.valid) {
+    if (this.form().valid()) {
       const result: CanvasPinDialogResult = {
-        label: this.labelControl.value!,
+        label: this.model().label,
         color: this.selectedColor,
         linkedElementId: this.linkedElementId(),
       };

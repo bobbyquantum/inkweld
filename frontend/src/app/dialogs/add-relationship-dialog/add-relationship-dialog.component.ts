@@ -6,7 +6,7 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { form, FormField } from '@angular/forms/signals';
 import {
   MatAutocompleteModule,
   type MatAutocompleteSelectedEvent,
@@ -52,6 +52,11 @@ export interface AddRelationshipDialogResult {
   note?: string;
 }
 
+interface AddRelationshipFormValue {
+  elementSearch: string;
+  note: string;
+}
+
 /**
  * Dialog for adding a new relationship to an element.
  *
@@ -64,8 +69,7 @@ export interface AddRelationshipDialogResult {
 @Component({
   selector: 'app-add-relationship-dialog',
   imports: [
-    FormsModule,
-    ReactiveFormsModule,
+    FormField,
     MatAutocompleteModule,
     MatButtonModule,
     MatDialogModule,
@@ -87,20 +91,18 @@ export class AddRelationshipDialogComponent implements OnInit {
   private readonly projectState = inject(ProjectStateService);
   private readonly relationshipService = inject(RelationshipService);
 
-  /** Form control for element search */
-  elementSearchControl = new FormControl('');
+  readonly model = signal<AddRelationshipFormValue>({
+    elementSearch: '',
+    note: '',
+  });
+
+  readonly form = form(this.model, () => {});
 
   /** Selected relationship type */
   selectedTypeId = signal<string | null>(null);
 
   /** Selected target element */
   selectedElement = signal<Element | null>(null);
-
-  /** Optional note */
-  note = signal('');
-
-  /** Search query for filtering elements */
-  searchQuery = signal('');
 
   /** All available relationship types */
   availableTypes = computed(() => {
@@ -136,7 +138,7 @@ export class AddRelationshipDialogComponent implements OnInit {
   /** Filtered elements based on search and type constraints */
   filteredElements = computed(() => {
     const elements = this.allElements();
-    const query = this.searchQuery().toLowerCase();
+    const query = this.form.elementSearch().value().toLowerCase();
     const selectedType = this.selectedType();
     const sourceId = this.data.sourceElementId;
 
@@ -173,13 +175,6 @@ export class AddRelationshipDialogComponent implements OnInit {
     if (this.data.preselectedTypeId) {
       this.selectedTypeId.set(this.data.preselectedTypeId);
     }
-
-    // Subscribe to search input changes
-    this.elementSearchControl.valueChanges.subscribe(value => {
-      if (typeof value === 'string') {
-        this.searchQuery.set(value);
-      }
-    });
   }
 
   /**
@@ -224,7 +219,7 @@ export class AddRelationshipDialogComponent implements OnInit {
     this.selectedTypeId.set(typeId);
     // Clear selected element when type changes (constraints may have changed)
     this.selectedElement.set(null);
-    this.elementSearchControl.setValue('');
+    this.form.elementSearch().value.set('');
   }
 
   /**
@@ -247,7 +242,7 @@ export class AddRelationshipDialogComponent implements OnInit {
    */
   clearSelectedElement(): void {
     this.selectedElement.set(null);
-    this.elementSearchControl.setValue('');
+    this.form.elementSearch().value.set('');
   }
 
   /**
@@ -262,7 +257,7 @@ export class AddRelationshipDialogComponent implements OnInit {
     const result: AddRelationshipDialogResult = {
       relationshipTypeId: typeId,
       targetElementId: element.id,
-      note: this.note() || undefined,
+      note: this.form.note().value() || undefined,
     };
 
     this.dialogRef.close(result);

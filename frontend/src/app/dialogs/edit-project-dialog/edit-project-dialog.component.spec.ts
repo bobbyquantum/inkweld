@@ -2,7 +2,6 @@ import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { type ProjectsService } from '@inkweld/api/projects.service';
@@ -119,10 +118,9 @@ describe('EditProjectDialogComponent', () => {
     } as any;
 
     await TestBed.configureTestingModule({
-      imports: [EditProjectDialogComponent, ReactiveFormsModule],
+      imports: [EditProjectDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
-        FormBuilder,
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         { provide: MatDialogRef, useValue: dialogRef },
@@ -141,9 +139,9 @@ describe('EditProjectDialogComponent', () => {
 
     // Manually initialize to avoid async timing issues in ngOnInit
     component.project = mockProject;
-    component.form.patchValue({
+    component.model.set({
       title: mockProject.title,
-      description: mockProject.description,
+      description: mockProject.description ?? '',
     });
 
     // Call loadCoverImage manually so tests can control timing
@@ -169,10 +167,8 @@ describe('EditProjectDialogComponent', () => {
   });
 
   it('should initialize form with project data', () => {
-    expect(component.form.get('title')?.value).toBe(mockProject.title);
-    expect(component.form.get('description')?.value).toBe(
-      mockProject.description
-    );
+    expect(component.form.title().value()).toBe(mockProject.title);
+    expect(component.form.description().value()).toBe(mockProject.description);
   });
 
   describe('onCancel', () => {
@@ -487,7 +483,7 @@ describe('EditProjectDialogComponent', () => {
 
   describe('onSave functionality', () => {
     it('should not save if form is invalid', async () => {
-      component.form.get('title')?.setValue('');
+      component.form.title().value.set('');
       await component.onSave();
       expect(projectService.updateProject).not.toHaveBeenCalled();
       expect(dialogRef.close).not.toHaveBeenCalled();
@@ -496,7 +492,10 @@ describe('EditProjectDialogComponent', () => {
     it('should show error if project slug is missing', async () => {
       const projectWithoutSlug = { ...mockProject, slug: undefined } as any;
       component.project = projectWithoutSlug;
-      component.form.patchValue({ title: 'Valid Title' });
+      component.model.set({
+        title: 'Valid Title',
+        description: '',
+      });
 
       await component.onSave();
 
@@ -512,7 +511,7 @@ describe('EditProjectDialogComponent', () => {
     it('should call updateProject on save', async () => {
       const updatedTitle = 'Updated Title';
       const updatedDescription = 'Updated Description';
-      component.form.patchValue({
+      component.model.set({
         title: updatedTitle,
         description: updatedDescription,
       });
@@ -532,7 +531,7 @@ describe('EditProjectDialogComponent', () => {
 
     it('should call uploadProjectCover if a new cover image was selected', async () => {
       component.coverImage = mockCoverFile; // Simulate selecting a new file
-      component.form.patchValue({ title: 'Valid Title' });
+      component.model.set({ title: 'Valid Title', description: '' });
 
       await component.onSave();
 
@@ -553,7 +552,7 @@ describe('EditProjectDialogComponent', () => {
     it('should NOT call uploadProjectCover if no new cover image was selected', async () => {
       // Initial state after load (coverImage is a Blob, not a File)
       component.coverImage = mockCoverBlob;
-      component.form.patchValue({ title: 'Valid Title' });
+      component.model.set({ title: 'Valid Title', description: '' });
 
       await component.onSave();
 
@@ -564,7 +563,7 @@ describe('EditProjectDialogComponent', () => {
 
     it('should succeed even if cover upload to server fails (offline-first)', async () => {
       component.coverImage = mockCoverFile; // Simulate selecting a new file
-      component.form.patchValue({ title: 'Valid Title' });
+      component.model.set({ title: 'Valid Title', description: '' });
       const uploadError = new Error('Upload failed');
       projectService.uploadProjectCover.mockRejectedValue(uploadError);
 
@@ -596,7 +595,7 @@ describe('EditProjectDialogComponent', () => {
     it('should handle error during project update', async () => {
       const updateError = new Error('Update failed');
       unifiedProjectService.updateProject.mockRejectedValue(updateError);
-      component.form.patchValue({ title: 'Valid Title' });
+      component.model.set({ title: 'Valid Title', description: '' });
 
       await component.onSave();
 
