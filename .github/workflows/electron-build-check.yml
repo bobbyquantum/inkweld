@@ -188,10 +188,27 @@ jobs:
     steps:
       - name: Check build results
         run: |
-          if [[ "${{ needs.build-windows.result }}" == "success" && "${{ needs.build-macos.result }}" == "success" && "${{ needs.build-linux.result }}" == "success" ]]; then
+          win="${{ needs.build-windows.result }}"
+          mac="${{ needs.build-macos.result }}"
+          linux="${{ needs.build-linux.result }}"
+
+          # Treat concurrency-cancelled jobs as non-failures. With
+          # concurrency.cancel-in-progress: true, superseded runs have their
+          # platform jobs cancelled mid-flight — that's intentional and not a
+          # real build failure, so the aggregate status should not turn red.
+          cancelled=0
+          for r in "$win" "$mac" "$linux"; do
+            if [[ "$r" == "cancelled" ]]; then
+              cancelled=$((cancelled + 1))
+            fi
+          done
+
+          if [[ "$win" == "success" && "$mac" == "success" && "$linux" == "success" ]]; then
             echo "✅ All Electron builds completed successfully for Windows, macOS, and Linux"
-          elif [[ "${{ needs.build-windows.result }}" == "skipped" && "${{ needs.build-macos.result }}" == "skipped" && "${{ needs.build-linux.result }}" == "skipped" ]]; then
+          elif [[ "$win" == "skipped" && "$mac" == "skipped" && "$linux" == "skipped" ]]; then
             echo "⏭️ Electron builds skipped (no relevant changes)"
+          elif [[ "$cancelled" -gt 0 && "$win" != "failure" && "$mac" != "failure" && "$linux" != "failure" ]]; then
+            echo "⏭️ Electron builds cancelled by concurrency (superseded by a newer run) — not a real failure"
           else
             echo "❌ Some Electron builds failed"
             exit 1

@@ -19,6 +19,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoginDialogComponent } from './login-dialog.component';
 
 describe('LoginDialogComponent', () => {
@@ -79,7 +80,7 @@ describe('LoginDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [LoginDialogComponent],
+      imports: [LoginDialogComponent, translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),
@@ -373,7 +374,9 @@ describe('LoginDialogComponent', () => {
 
       await component.onPasskeyLogin();
 
-      expect(component.passkeyError()).toBe('Account is disabled');
+      expect(component.passkeyError()).toBe(
+        'Your account has been disabled. Please contact an administrator.'
+      );
       expect(router.navigate).not.toHaveBeenCalled();
       expect(dialogRef.close).not.toHaveBeenCalled();
     });
@@ -385,7 +388,9 @@ describe('LoginDialogComponent', () => {
 
       await component.onPasskeyLogin();
 
-      expect(component.passkeyError()).toBe('Server unreachable');
+      expect(component.passkeyError()).toBe(
+        'Network error. Please check your connection and try again.'
+      );
       expect(dialogRef.close).not.toHaveBeenCalled();
     });
 

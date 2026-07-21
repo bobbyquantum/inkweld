@@ -15,7 +15,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasskeyError, PasskeyService } from '@services/auth/passkey.service';
+import { ErrorTranslationService } from '@services/core/error-translation.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService, UserServiceError } from '@services/user/user.service';
 
@@ -30,6 +32,7 @@ import { UserService, UserServiceError } from '@services/user/user.service';
     MatIconModule,
     MatDividerModule,
     OAuthProviderListComponent,
+    TranslocoModule,
   ],
   templateUrl: './login-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -40,6 +43,8 @@ export class LoginDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   private readonly userService = inject(UserService);
   private readonly router = inject(Router);
+  private readonly transloco = inject(TranslocoService);
+  private readonly errorTranslation = inject(ErrorTranslationService);
   readonly systemConfig = inject(SystemConfigService);
   private readonly passkeyService = inject(PasskeyService);
 
@@ -119,7 +124,7 @@ export class LoginDialogComponent {
 
     // Validate form before submission
     if (!this.isFormValid()) {
-      this.passwordError.set('Please enter both username and password.');
+      this.passwordError.set(this.transloco.translate('login.enterBothFields'));
       return;
     }
 
@@ -128,9 +133,15 @@ export class LoginDialogComponent {
 
     try {
       await this.userService.login(this.username, this.password);
-      this.snackBar.open(`Welcome back, ${this.username}!`, 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('login.welcomeBack', {
+          username: this.username,
+        }),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
       this.dialogRef.close(true); // Close with success result
 
       // Check for OAuth return URL (set by authGuard when redirecting from protected routes)
@@ -156,14 +167,19 @@ export class LoginDialogComponent {
           // Track the username/password that failed
           this.lastAttemptedUsername = this.username;
           this.lastAttemptedPassword = this.password;
-          this.passwordError.set('Invalid username or password');
+          this.passwordError.set(
+            this.transloco.translate('login.errors.loginFailed')
+          );
           return;
         }
-        // Other known errors
-        this.passwordError.set(error.message);
+        // Other known errors — use the error-translation service
+        const result = this.errorTranslation.translate(error);
+        this.passwordError.set(result.message);
       } else {
         // Unknown error
-        this.passwordError.set('Login failed. Please try again.');
+        this.passwordError.set(
+          this.transloco.translate('login.loginFailedGeneric')
+        );
       }
     } finally {
       this.isLoggingIn.set(false);
@@ -189,9 +205,15 @@ export class LoginDialogComponent {
       // Sync the UserService cache so the rest of the app picks up the
       // freshly-authenticated user without an extra round trip.
       await this.userService.setCurrentUser(user);
-      this.snackBar.open(`Welcome back, ${user.username}!`, 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('login.welcomeBack', {
+          username: user.username,
+        }),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
       this.dialogRef.close(true);
 
       const oauthReturnUrl = sessionStorage.getItem('oauth_return_url');
@@ -210,10 +232,13 @@ export class LoginDialogComponent {
 
   private handlePasskeyLoginError(error: unknown): void {
     if (!(error instanceof PasskeyError)) {
-      this.passkeyError.set('Passkey login failed. Please try again.');
+      this.passkeyError.set(
+        this.transloco.translate('login.passkeyLoginFailed')
+      );
       return;
     }
-    if (error.code === 'CANCELLED') {
+    const result = this.errorTranslation.translate(error);
+    if (result.silent) {
       // User cancelled the prompt - silent.
       return;
     }
@@ -223,19 +248,12 @@ export class LoginDialogComponent {
     // staring at red error text inside the login dialog. They've
     // proved possession of the passkey — the only thing missing is
     // admin approval, and the pending page tells them that clearly.
-    if (error.code === 'PENDING_APPROVAL') {
+    if (result.shouldRedirect) {
       this.dialogRef.close(false);
       void this.router.navigate(['/approval-pending']);
       return;
     }
-    if (error.code === 'ACCOUNT_DISABLED') {
-      // No dedicated page for disabled accounts; surface the message
-      // in the dialog so the user can contact an admin. (Closing
-      // silently would imply success.)
-      this.passkeyError.set(error.message);
-      return;
-    }
-    this.passkeyError.set(error.message);
+    this.passkeyError.set(result.message);
   }
 
   /**

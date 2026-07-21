@@ -1,0 +1,24 @@
+{
+  "title": "Login to Inkweld",
+  "signInWithPasskey": "Sign in with passkey",
+  "waitingForPasskey": "Waiting for passkey...",
+  "lostPasskey": "Lost your passkey?",
+  "username": "Username",
+  "password": "Password",
+  "login": "Login",
+  "loggingIn": "Logging in...",
+  "forgotPassword": "Forgot password?",
+  "noAccountRegister": "Don't have an account? Register here",
+  "enterBothFields": "Please enter both username and password.",
+  "welcomeBack": "Welcome back, {{username}}!",
+  "invalidCredentials": "Invalid username or password",
+  "loginFailedGeneric": "Login failed. Please try again.",
+  "passkeyLoginFailed": "Passkey login failed. Please try again.",
+  "errors": {
+    "loginFailed": "Invalid username or password",
+    "verificationFailed": "Passkey verification failed. Please try again.",
+    "networkError": "Network error. Please check your connection and try again.",
+    "unsupported": "Passkeys are not supported by this browser.",
+    "accountDisabled": "Your account has been disabled. Please contact an administrator."
+  }
+}
