@@ -1,7 +1,7 @@
 import {
+  timePointToAbsolute,
   type TimePoint,
   type TimeSystem,
-  timePointToAbsolute,
 } from '@models/time-system';
 
 const INT_RE = /^-?\d+$/;
