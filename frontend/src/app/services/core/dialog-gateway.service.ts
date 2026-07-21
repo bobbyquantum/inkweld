@@ -166,10 +166,7 @@ export class DialogGatewayService {
 
   openUserSettingsDialog(
     selectedCategory?:
-      | 'account'
-      | 'authorized-apps'
-      | 'project-tree'
-      | 'project'
+      'account' | 'authorized-apps' | 'project-tree' | 'project'
   ): Promise<void> {
     const dialogRef = this.dialog.open(UserSettingsDialogComponent, {
       width: '800px',

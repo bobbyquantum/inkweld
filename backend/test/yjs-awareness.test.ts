@@ -217,8 +217,7 @@ describe('YjsService awareness lifecycle', () => {
     service.handleDisconnect(wsA, doc);
 
     const state = doc.awareness.getStates().get(sharedClientId) as
-      | { user?: { name?: string } }
-      | undefined;
+      { user?: { name?: string } } | undefined;
     expect(state).toBeDefined();
     expect(state?.user?.name).toBe('Alice (reconnected)');
   });

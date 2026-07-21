@@ -166,10 +166,7 @@ export interface McpToolResult {
 }
 
 export type McpToolResultContent =
-  | McpTextContent
-  | McpImageContent
-  | McpResourceContent
-  | McpResourceLinkContent;
+  McpTextContent | McpImageContent | McpResourceContent | McpResourceLinkContent;
 
 export interface McpTextContent {
   type: 'text';

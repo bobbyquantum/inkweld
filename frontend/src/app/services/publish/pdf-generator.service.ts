@@ -81,11 +81,7 @@ interface CoverImageData {
 
 // ProseMirror node type for conversion
 type ProseMirrorNode =
-  | string
-  | { [key: string]: unknown }
-  | ProseMirrorNode[]
-  | null
-  | undefined;
+  string | { [key: string]: unknown } | ProseMirrorNode[] | null | undefined;
 
 /**
  * URLs of bundled font files preloaded into the Typst WASM compiler.
@@ -855,8 +851,7 @@ export class PdfGeneratorService {
 
   private extractElementRefTypstText(node: ProseMirrorNode): string {
     const attrs = (node as Record<string, unknown>)['attrs'] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     const displayText = attrs?.['displayText'];
     return typeof displayText === 'string' && displayText
       ? this.escapeTypst(displayText)

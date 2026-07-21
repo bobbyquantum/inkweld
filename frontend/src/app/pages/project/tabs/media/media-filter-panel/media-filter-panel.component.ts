@@ -16,12 +16,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 export type MediaCategory =
-  | 'all'
-  | 'cover'
-  | 'generated'
-  | 'inline'
-  | 'published'
-  | 'other';
+  'all' | 'cover' | 'generated' | 'inline' | 'published' | 'other';
 
 export interface MediaFilterState {
   category: MediaCategory;

@@ -51,8 +51,7 @@ export function createCommentPlugin(
       },
       apply(tr, value): CommentPluginState {
         const meta = tr.getMeta(commentPluginKey) as
-          | Partial<CommentPluginState>
-          | undefined;
+          Partial<CommentPluginState> | undefined;
         if (meta !== undefined) {
           return { ...value, ...meta };
         }

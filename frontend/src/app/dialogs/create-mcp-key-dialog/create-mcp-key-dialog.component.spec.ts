@@ -80,8 +80,7 @@ describe('CreateMcpKeyDialogComponent', () => {
     it('should return undefined for "never"', () => {
       (component as any).keyExpiration = 'never';
       const result = (component as any).getExpirationTimestamp() as
-        | number
-        | undefined;
+        number | undefined;
       expect(result).toBeUndefined();
     });
 

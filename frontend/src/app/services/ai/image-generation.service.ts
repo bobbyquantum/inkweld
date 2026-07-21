@@ -36,19 +36,13 @@ interface StreamErrorEvent {
 }
 
 type StreamEvent =
-  | StreamPartialImageEvent
-  | StreamCompletedEvent
-  | StreamErrorEvent;
+  StreamPartialImageEvent | StreamCompletedEvent | StreamErrorEvent;
 
 /**
  * Status of an image generation job
  */
 export type GenerationJobStatus =
-  | 'pending'
-  | 'generating'
-  | 'saving'
-  | 'completed'
-  | 'failed';
+  'pending' | 'generating' | 'saving' | 'completed' | 'failed';
 
 /**
  * Represents an active or completed image generation job

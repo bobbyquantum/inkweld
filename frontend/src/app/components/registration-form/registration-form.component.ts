@@ -836,8 +836,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
 
       // Get the password value from the parent group
       const password = control.parent?.get('password')?.value as
-        | string
-        | undefined;
+        string | undefined;
 
       if (password && confirmPassword !== password) {
         return { passwordMismatch: true };

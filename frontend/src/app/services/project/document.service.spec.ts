@@ -1209,8 +1209,7 @@ describe('DocumentService', () => {
 
     it('should extract message from Error instances in connection-error handler', async () => {
       let connectionErrorHandler:
-        | ((error: Error | string | Event) => void)
-        | undefined;
+        ((error: Error | string | Event) => void) | undefined;
       mockWebSocketProvider.on.mockImplementation(
         (event: string, callback: any) => {
           if (event === 'connection-error') connectionErrorHandler = callback;
@@ -1233,8 +1232,7 @@ describe('DocumentService', () => {
 
     it('should extract type from Event instances in connection-error handler', async () => {
       let connectionErrorHandler:
-        | ((error: Error | string | Event) => void)
-        | undefined;
+        ((error: Error | string | Event) => void) | undefined;
       mockWebSocketProvider.on.mockImplementation(
         (event: string, callback: any) => {
           if (event === 'connection-error') connectionErrorHandler = callback;

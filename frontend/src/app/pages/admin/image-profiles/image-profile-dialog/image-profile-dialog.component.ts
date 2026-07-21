@@ -49,10 +49,7 @@ export interface ImageProfileDialogData {
 
 /** Fal.ai category types - must match backend enum */
 type FalaiCategory =
-  | 'text-to-image'
-  | 'image-to-image'
-  | 'image-to-video'
-  | 'text-to-video';
+  'text-to-image' | 'image-to-image' | 'image-to-video' | 'text-to-video';
 
 /** Extended model info with optional supportsImageInput for internal use */
 interface ExtendedImageModelInfo extends ImageModelInfo {

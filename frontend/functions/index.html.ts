@@ -13,7 +13,7 @@ interface Env {
   ASSETS: Fetcher;
 }
 
-export const onRequest: PagesFunction<Env> = async (context) => {
+export const onRequest: PagesFunction<Env> = async context => {
   // Fetch the root path from ASSETS — serves index.html content without
   // the built-in 308 canonicalization redirect.
   const url = new URL(context.request.url);
