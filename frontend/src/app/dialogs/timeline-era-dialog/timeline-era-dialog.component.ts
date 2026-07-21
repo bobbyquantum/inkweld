@@ -32,6 +32,11 @@ import {
   unitInputModeFor,
 } from '@models/time-system';
 import type { TimelineEra } from '@models/timeline.model';
+import {
+  INT_RE,
+  timePointToAbsoluteValue,
+  unitsToTimePoint,
+} from '../timeline-units';
 
 export interface TimelineEraDialogData {
   /** Existing era for editing, or `null` to create a new one. */
@@ -45,8 +50,6 @@ export interface TimelineEraDialogData {
 
 export type TimelineEraDialogResult =
   { kind: 'save'; era: TimelineEra } | { kind: 'delete'; eraId: string };
-
-const INT_RE = /^-?\d+$/;
 
 interface TimelineEraFormValue {
   name: string;
@@ -144,8 +147,8 @@ export class TimelineEraDialogComponent {
     });
     validateTree(schemaPath, ({ value }) => {
       const v = value();
-      const start = this.pointFromUnits(v.startUnits);
-      const end = this.pointFromUnits(v.endUnits);
+      const start = unitsToTimePoint(v.startUnits, this.data.system);
+      const end = unitsToTimePoint(v.endUnits, this.data.system);
       if (!start || !end) return null;
       if (
         !isValidTimePointFor(start, this.data.system) ||
@@ -153,7 +156,8 @@ export class TimelineEraDialogComponent {
       ) {
         return null;
       }
-      return this.toAbsolute(end) < this.toAbsolute(start)
+      return timePointToAbsoluteValue(end, this.data.system) <
+        timePointToAbsoluteValue(start, this.data.system)
         ? { kind: 'endBeforeStart', message: 'End must be at or after start' }
         : null;
     });
@@ -225,29 +229,6 @@ export class TimelineEraDialogComponent {
     });
   }
 
-  private pointFromUnits(units: string[]): TimePoint | null {
-    if (units.some(u => !INT_RE.test(String(u).trim()))) return null;
-    return {
-      systemId: this.data.system.id,
-      units: units.map(u => String(u).trim()),
-    };
-  }
-
-  private toAbsolute(point: TimePoint): bigint {
-    const system = this.data.system;
-    const n = system.unitLabels.length;
-    const weights: bigint[] = new Array<bigint>(n);
-    weights[n - 1] = 1n;
-    for (let i = n - 2; i >= 0; i--) {
-      weights[i] = weights[i + 1] * BigInt(system.subdivisions[i]);
-    }
-    let total = 0n;
-    for (let i = 0; i < n; i++) {
-      total += BigInt(point.units[i]) * weights[i];
-    }
-    return total;
-  }
-
   protected onCancel(): void {
     this.dialogRef.close();
   }
@@ -266,8 +247,8 @@ export class TimelineEraDialogComponent {
     if (trimmedName === '') return;
     if (trimmedColor === '') return;
 
-    const start = this.pointFromUnits(raw.startUnits);
-    const end = this.pointFromUnits(raw.endUnits);
+    const start = unitsToTimePoint(raw.startUnits, this.data.system);
+    const end = unitsToTimePoint(raw.endUnits, this.data.system);
     if (!start || !end) return;
     if (
       !isValidTimePointFor(start, this.data.system) ||

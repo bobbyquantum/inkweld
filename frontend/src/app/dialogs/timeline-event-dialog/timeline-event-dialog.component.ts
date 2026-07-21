@@ -33,6 +33,11 @@ import {
   unitInputModeFor,
 } from '@models/time-system';
 import type { TimelineEvent, TimelineTrack } from '@models/timeline.model';
+import {
+  INT_RE,
+  timePointToAbsoluteValue,
+  unitsToTimePoint,
+} from '../timeline-units';
 
 export interface TimelineEventDialogData {
   /** Existing event for editing, or `null` to create a new one. */
@@ -45,8 +50,6 @@ export interface TimelineEventDialogData {
 
 export type TimelineEventDialogResult =
   { kind: 'save'; event: TimelineEvent } | { kind: 'delete'; eventId: string };
-
-const INT_RE = /^-?\d+$/;
 
 interface TimelineEventFormValue {
   title: string;
@@ -141,8 +144,14 @@ export class TimelineEventDialogComponent {
     // Cross-field validator: end >= start when ranged.
     validateTree(schemaPath, ctx => {
       if (!ctx.valueOf(schemaPath.ranged)) return null;
-      const start = this.pointFromUnits(ctx.valueOf(schemaPath.startUnits));
-      const end = this.pointFromUnits(ctx.valueOf(schemaPath.endUnits));
+      const start = unitsToTimePoint(
+        ctx.valueOf(schemaPath.startUnits),
+        this.data.system
+      );
+      const end = unitsToTimePoint(
+        ctx.valueOf(schemaPath.endUnits),
+        this.data.system
+      );
       if (!start || !end) return null;
       if (
         !isValidTimePointFor(start, this.data.system) ||
@@ -150,8 +159,8 @@ export class TimelineEventDialogComponent {
       ) {
         return null;
       }
-      const sAbs = this.toAbsolute(start);
-      const eAbs = this.toAbsolute(end);
+      const sAbs = timePointToAbsoluteValue(start, this.data.system);
+      const eAbs = timePointToAbsoluteValue(end, this.data.system);
       return eAbs < sAbs
         ? {
             kind: 'endBeforeStart',
@@ -237,29 +246,6 @@ export class TimelineEventDialogComponent {
     this.model.update(m2 => ({ ...m2, [key]: units }));
   }
 
-  private pointFromUnits(units: string[]): TimePoint | null {
-    if (units.some(u => !INT_RE.test(String(u).trim()))) return null;
-    return {
-      systemId: this.data.system.id,
-      units: units.map(u => String(u).trim()),
-    };
-  }
-
-  private toAbsolute(point: TimePoint): bigint {
-    const system = this.data.system;
-    const n = system.unitLabels.length;
-    const weights: bigint[] = new Array<bigint>(n);
-    weights[n - 1] = 1n;
-    for (let i = n - 2; i >= 0; i--) {
-      weights[i] = weights[i + 1] * BigInt(system.subdivisions[i]);
-    }
-    let total = 0n;
-    for (let i = 0; i < n; i++) {
-      total += BigInt(point.units[i]) * weights[i];
-    }
-    return total;
-  }
-
   protected onCancel(): void {
     this.dialogRef.close();
   }
@@ -280,11 +266,11 @@ export class TimelineEventDialogComponent {
       return;
     }
 
-    const start = this.pointFromUnits(raw.startUnits);
+    const start = unitsToTimePoint(raw.startUnits, this.data.system);
     if (!start || !isValidTimePointFor(start, this.data.system)) return;
     let end: TimePoint | undefined;
     if (raw.ranged) {
-      const parsed = this.pointFromUnits(raw.endUnits);
+      const parsed = unitsToTimePoint(raw.endUnits, this.data.system);
       if (!parsed || !isValidTimePointFor(parsed, this.data.system)) return;
       end = parsed;
     }
