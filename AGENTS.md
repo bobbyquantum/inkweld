@@ -503,7 +503,7 @@ The frontend uses **Transloco** (`@jsverse/transloco` 8.x) for runtime internati
 
 - **Library**: `@jsverse/transloco` — signal-based, standalone-friendly, runtime JSON loading
 - **File layout**: Per-locale folders, per-scope files:
-  ```
+  ```text
   frontend/public/assets/i18n/
     en/common.json    # Shared strings (Cancel, Close, error fallbacks)
     en/app.json       # App shell scope
