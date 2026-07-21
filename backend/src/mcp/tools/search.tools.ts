@@ -1140,30 +1140,104 @@ function extractTextFromXmlFragment(fragment: any): string {
 }
 
 /**
- * Extract plain text from a ProseMirror XML string (for Cloudflare Workers)
- * Parses simple ProseMirror XML structure to extract text content
+ * Block-level element names whose closing tag should produce a newline when
+ * extracting plain text from ProseMirror XML.
  */
-function extractTextFromXmlString(xmlString: string): string {
-  // Simple text extraction - strip all XML tags and decode entities
-  // ProseMirror uses a simple XML format: <doc><paragraph>text</paragraph></doc>
-  const text = xmlString
-    // Replace paragraph/heading/blockquote boundaries with newlines
-    .replaceAll(/<\/(paragraph|heading|blockquote|listItem)>/gi, '\n')
-    // Remove all other closing tags
-    .replaceAll(/<\/[^<>]+>/g, '')
-    // Remove all opening tags
-    .replaceAll(/<[^<>]+>/g, '')
-    // Decode common HTML entities
+const BLOCK_CLOSE_TAGS = new Set(['paragraph', 'heading', 'blockquote', 'listitem']);
+
+/**
+ * Extract plain text from a ProseMirror XML string (for Cloudflare Workers).
+ *
+ * ProseMirror uses a simple XML format: `<doc><paragraph>text</paragraph></doc>`.
+ * We strip every tag and decode a handful of common entities, inserting a
+ * newline at the close of block-level elements so search text roughly
+ * preserves paragraph boundaries.
+ *
+ * This is a single-pass linear-time scanner. We can't use a generic regex
+ * such as `/<[^<>]+>/g` to strip tags because attribute values may legally
+ * contain `>` (e.g. `<link title="a > b">`); such a regex would stop at the
+ * `>` inside the quotes and leave a tag fragment in the output. Instead we
+ * walk the string and skip over quoted attribute values when scanning for
+ * the end of each tag.
+ */
+export function extractTextFromXmlString(xmlString: string): string {
+  let out = '';
+  let i = 0;
+  const len = xmlString.length;
+
+  while (i < len) {
+    const ch = xmlString[i];
+
+    if (ch !== '<') {
+      out += ch;
+      i++;
+      continue;
+    }
+
+    // We're at the start of a tag. Find its end, honoring quoted attribute
+    // values so a `>` inside quotes doesn't terminate the tag early.
+    const isClosing = xmlString[i + 1] === '/';
+    const nameStart = i + (isClosing ? 2 : 1);
+    let nameEnd = nameStart;
+    while (nameEnd < len) {
+      const c = xmlString.charCodeAt(nameEnd);
+      if (
+        c === 0x09 /* \t */ ||
+        c === 0x0a /* \n */ ||
+        c === 0x0d /* \r */ ||
+        c === 0x20 /* space */ ||
+        c === 0x2f /* / */ ||
+        c === 0x3e /* > */
+      ) {
+        break;
+      }
+      nameEnd++;
+    }
+    const tagName = xmlString.slice(nameStart, nameEnd).toLowerCase();
+
+    let j = nameEnd;
+    let tagClosed = false;
+    while (j < len) {
+      const c = xmlString[j];
+      if (c === '"' || c === "'") {
+        // Skip the quoted attribute value verbatim.
+        const quote = c;
+        j++;
+        while (j < len && xmlString[j] !== quote) {
+          j++;
+        }
+        j++; // consume closing quote (safe if at end — we'll exit below)
+        continue;
+      }
+      if (c === '>') {
+        tagClosed = true;
+        break;
+      }
+      j++;
+    }
+
+    if (!tagClosed) {
+      // Unterminated tag — emit nothing and stop.
+      break;
+    }
+
+    if (isClosing && BLOCK_CLOSE_TAGS.has(tagName)) {
+      out += '\n';
+    }
+    i = j + 1;
+  }
+
+  // Decode common HTML entities.
+  out = out
     .replaceAll('&amp;', '&')
     .replaceAll('&lt;', '<')
     .replaceAll('&gt;', '>')
     .replaceAll('&quot;', '"')
-    .replaceAll('&#39;', "'")
-    // Clean up multiple newlines
-    .replaceAll(/\n{3,}/g, '\n\n')
-    .trim();
+    .replaceAll('&#39;', "'");
 
-  return text;
+  // Collapse 3+ newlines to 2. {3,} is a fixed repetition on a single
+  // character class — no backtracking risk.
+  return out.replaceAll(/\n{3,}/g, '\n\n').trim();
 }
 
 // ============================================
