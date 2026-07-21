@@ -42,70 +42,44 @@ describe('ErrorTranslationService', () => {
         expect(result.silent).toBe(false);
       });
 
-      it('should return silent result for NO_CREDENTIAL code', () => {
-        const error = new PasskeyError('NO_CREDENTIAL', 'No credential');
-        const result = service.translate(error);
-
-        expect(result.message).toBe('Something went wrong. Please try again.');
-        expect(result.shouldRedirect).toBe(false);
-        expect(result.silent).toBe(false);
-      });
-
-      it('should translate VERIFICATION_FAILED error', () => {
-        const error = new PasskeyError(
+      it.each([
+        [
+          'NO_CREDENTIAL',
+          'No credential',
+          'Something went wrong. Please try again.',
+        ],
+        [
           'VERIFICATION_FAILED',
-          'Verification failed'
-        );
-        const result = service.translate(error);
+          'Verification failed',
+          'Passkey verification failed. Please try again.',
+        ],
+        [
+          'NETWORK_ERROR',
+          'Network error',
+          'Network error. Please check your connection and try again.',
+        ],
+        [
+          'UNSUPPORTED',
+          'Unsupported',
+          'Passkeys are not supported by this browser.',
+        ],
+        [
+          'ACCOUNT_DISABLED',
+          'Account disabled',
+          'Your account has been disabled. Please contact an administrator.',
+        ],
+        ['UNKNOWN', 'Unknown error', 'Something went wrong. Please try again.'],
+      ] as const)(
+        'should translate %s error to localized message',
+        (code, rawMessage, expectedMessage) => {
+          const error = new PasskeyError(code, rawMessage);
+          const result = service.translate(error);
 
-        expect(result.message).toBe(
-          'Passkey verification failed. Please try again.'
-        );
-        expect(result.shouldRedirect).toBe(false);
-        expect(result.silent).toBe(false);
-      });
-
-      it('should translate NETWORK_ERROR error', () => {
-        const error = new PasskeyError('NETWORK_ERROR', 'Network error');
-        const result = service.translate(error);
-
-        expect(result.message).toBe(
-          'Network error. Please check your connection and try again.'
-        );
-        expect(result.shouldRedirect).toBe(false);
-        expect(result.silent).toBe(false);
-      });
-
-      it('should translate UNSUPPORTED error', () => {
-        const error = new PasskeyError('UNSUPPORTED', 'Unsupported');
-        const result = service.translate(error);
-
-        expect(result.message).toBe(
-          'Passkeys are not supported by this browser.'
-        );
-        expect(result.shouldRedirect).toBe(false);
-        expect(result.silent).toBe(false);
-      });
-
-      it('should translate ACCOUNT_DISABLED error', () => {
-        const error = new PasskeyError('ACCOUNT_DISABLED', 'Account disabled');
-        const result = service.translate(error);
-
-        expect(result.message).toBe(
-          'Your account has been disabled. Please contact an administrator.'
-        );
-        expect(result.shouldRedirect).toBe(false);
-        expect(result.silent).toBe(false);
-      });
-
-      it('should fall back to unknown error for UNKNOWN code', () => {
-        const error = new PasskeyError('UNKNOWN', 'Unknown error');
-        const result = service.translate(error);
-
-        expect(result.message).toBe('Something went wrong. Please try again.');
-        expect(result.shouldRedirect).toBe(false);
-        expect(result.silent).toBe(false);
-      });
+          expect(result.message).toBe(expectedMessage);
+          expect(result.shouldRedirect).toBe(false);
+          expect(result.silent).toBe(false);
+        }
+      );
     });
 
     describe('UserServiceError', () => {
