@@ -1,8 +1,4 @@
-import {
-  timePointToAbsolute,
-  type TimePoint,
-  type TimeSystem,
-} from '@models/time-system';
+import { type TimePoint, type TimeSystem } from '@models/time-system';
 
 const INT_RE = /^-?\d+$/;
 
@@ -25,6 +21,6 @@ export function unitsToTimePoint(
  * Re-export of {@link timePointToAbsolute} from `@models/time-system` so the
  * timeline dialogs can import both helpers from a single module.
  */
-export { timePointToAbsolute as timePointToAbsoluteValue };
+export { timePointToAbsolute as timePointToAbsoluteValue } from '@models/time-system';
 
 export { INT_RE };
