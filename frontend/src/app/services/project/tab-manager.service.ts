@@ -580,7 +580,10 @@ export class TabManagerService {
    */
   findSystemTabIndex(
     systemType:
-      'project-files' | 'templates-list' | 'relationships-list' | 'tags-list'
+      | 'project-files'
+      | 'templates-list'
+      | 'relationships-list'
+      | 'tags-list'
   ): number {
     const tabs = this.openTabs();
     const index = tabs.findIndex(t => t.systemType === systemType);

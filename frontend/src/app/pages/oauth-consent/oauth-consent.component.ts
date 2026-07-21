@@ -124,7 +124,8 @@ export class OAuthConsentComponent implements OnInit {
       const responseType = params['response_type'] as string | undefined;
       const codeChallenge = params['code_challenge'] as string | undefined;
       const codeChallengeMethod = params['code_challenge_method'] as
-        string | undefined;
+        | string
+        | undefined;
       const scope = params['scope'] as string | undefined;
       const state = params['state'] as string | undefined;
 

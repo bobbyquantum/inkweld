@@ -329,7 +329,8 @@ export class ProjectRenameMigrationService {
 
           getRequest.onsuccess = () => {
             const cachedProject = getRequest.result as
-              { slug: string } | undefined;
+              | { slug: string }
+              | undefined;
             if (cachedProject) {
               // Update the slug in the cached project
               cachedProject.slug = newSlug;

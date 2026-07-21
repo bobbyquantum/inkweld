@@ -163,7 +163,9 @@ describe('ElectronService', () => {
       const options = {
         title: 'Open',
         properties: ['openFile'] as (
-          'openFile' | 'openDirectory' | 'multiSelections'
+          | 'openFile'
+          | 'openDirectory'
+          | 'multiSelections'
         )[],
       };
       mockElectronAPI.showOpenDialog.mockResolvedValue({

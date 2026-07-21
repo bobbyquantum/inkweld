@@ -1014,7 +1014,8 @@ export class DocumentElementEditorComponent
     const view = this.editor.view;
 
     const scrollContainer = view.dom.closest('.NgxEditor__Content') as
-      HTMLElement | undefined;
+      | HTMLElement
+      | undefined;
     if (!scrollContainer) return;
 
     const scrollTop = scrollContainer.scrollTop;
@@ -1103,7 +1104,8 @@ export class DocumentElementEditorComponent
     const view = this.editor.view;
 
     const scrollContainer = view.dom.closest('.NgxEditor__Content') as
-      HTMLElement | undefined;
+      | HTMLElement
+      | undefined;
     if (!scrollContainer) return;
 
     const scrollTop = scrollContainer.scrollTop;

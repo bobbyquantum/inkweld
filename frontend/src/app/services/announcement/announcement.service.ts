@@ -306,7 +306,8 @@ export class AnnouncementService {
         content: data.content,
         type: data.type as AdminCreateAnnouncementRequestType | undefined,
         priority: data.priority as
-          AdminCreateAnnouncementRequestPriority | undefined,
+          | AdminCreateAnnouncementRequestPriority
+          | undefined,
         isPublic: data.isPublic,
         publishedAt: data.publishedAt,
         expiresAt: data.expiresAt,
@@ -352,7 +353,8 @@ export class AnnouncementService {
         content: data.content,
         type: data.type as AdminUpdateAnnouncementRequestType | undefined,
         priority: data.priority as
-          AdminUpdateAnnouncementRequestPriority | undefined,
+          | AdminUpdateAnnouncementRequestPriority
+          | undefined,
         isPublic: data.isPublic,
         publishedAt: data.publishedAt,
         expiresAt: data.expiresAt,

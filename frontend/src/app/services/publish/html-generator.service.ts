@@ -64,7 +64,11 @@ export interface HtmlResult {
 }
 
 type ProseMirrorNode =
-  string | { [key: string]: unknown } | ProseMirrorNode[] | null | undefined;
+  | string
+  | { [key: string]: unknown }
+  | ProseMirrorNode[]
+  | null
+  | undefined;
 
 /**
  * HTML Generator Service

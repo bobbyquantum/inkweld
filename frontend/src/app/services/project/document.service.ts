@@ -1278,7 +1278,8 @@ export class DocumentService {
         init: () => DecorationSet.empty,
         apply: (transaction, decorations, _oldState, newState) => {
           const sessions = transaction.getMeta(remotePresencePluginKey) as
-            PresenceSession[] | undefined;
+            | PresenceSession[]
+            | undefined;
           if (sessions) {
             return this.createRemotePresenceDecorations(
               sessions,
@@ -1426,7 +1427,8 @@ export class DocumentService {
     state: import('prosemirror-state').EditorState
   ): YjsProseMirrorMapping {
     const syncState = ySyncPluginKey.getState(state) as
-      { binding?: { mapping?: YjsProseMirrorMapping } } | undefined;
+      | { binding?: { mapping?: YjsProseMirrorMapping } }
+      | undefined;
     const emptyMapping: YjsProseMirrorMapping = new Map();
     return syncState?.binding?.mapping ?? emptyMapping;
   }

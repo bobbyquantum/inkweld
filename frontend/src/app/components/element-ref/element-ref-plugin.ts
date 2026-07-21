@@ -137,7 +137,8 @@ export function createElementRefPlugin(
       ): ElementRefPluginState {
         // Check for plugin actions in transaction meta
         const action = tr.getMeta(elementRefPluginKey) as
-          PluginAction | undefined;
+          | PluginAction
+          | undefined;
 
         if (action) {
           return applyAction(action, state, newState);
