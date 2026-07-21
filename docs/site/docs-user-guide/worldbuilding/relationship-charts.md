@@ -50,13 +50,13 @@ The sidebar contains all chart configuration options. Collapse it with the close
 
 Choose how nodes are arranged:
 
-| Layout | Icon | Best For |
-|--------|------|----------|
-| **Force** | Scatter | Organic graphs where clusters form naturally |
-| **Tree** | Account Tree | Hierarchical relationships (org charts, family trees) |
-| **Circular** | Ring | Evenly-spaced arrangements, good for small groups |
-| **Grid** | Grid View | Dense graphs, comparing many elements |
-| **Rings** | Target | Centrality-based, most connected nodes at center |
+| Layout       | Icon         | Best For                                              |
+| ------------ | ------------ | ----------------------------------------------------- |
+| **Force**    | Scatter      | Organic graphs where clusters form naturally          |
+| **Tree**     | Account Tree | Hierarchical relationships (org charts, family trees) |
+| **Circular** | Ring         | Evenly-spaced arrangements, good for small groups     |
+| **Grid**     | Grid View    | Dense graphs, comparing many elements                 |
+| **Rings**    | Target       | Centrality-based, most connected nodes at center      |
 
 ### Mode
 
@@ -99,6 +99,10 @@ Each node represents an element:
 - **Images** appear on nodes that have a cover image set
 - **Drag** any node to reposition it
 
+Node colors are derived from the element's schema — all Characters share one color, all Locations another, and so on. This makes it easy to spot clusters of related element types at a glance.
+
+When an element has an identity image (set via the worldbuilding editor), the node displays that image as a circular thumbnail instead of the default colored circle. This is especially useful for character-heavy charts where faces help identify nodes quickly.
+
 ### Edges
 
 Lines between nodes represent relationships:
@@ -107,6 +111,15 @@ Lines between nodes represent relationships:
 - **Labels** show the relationship name
 - **Hover** over an edge to see full details in a tooltip
 
+### Collapsed Sidebar
+
+When you collapse the sidebar (via the close button in its header), a thin **strip** remains on the left edge. The strip provides quick access to:
+
+- **Expand** the sidebar back to full width
+- **Download** the chart as an image
+
+This gives the graph maximum canvas space while keeping essential controls reachable.
+
 ## Exporting
 
 Export your chart as an image for use outside Inkweld:
@@ -114,14 +127,27 @@ Export your chart as an image for use outside Inkweld:
 1. Click the **download** button (in the sidebar header or collapsed strip)
 2. Choose **Export as PNG** for a standard image or **Export as High-Res PNG** for a 3× resolution version
 
+## When to Use Charts
+
+Relationship charts shine in several scenarios:
+
+- **Family trees** — curated mode with only familial relationship types filtered on
+- **Faction maps** — see who belongs to which organization and how groups interact
+- **Location networks** — map spatial relationships (Located In, Adjacent To) between places
+- **Plot webs** — visualize how characters, items, and events interconnect across your story
+- **Consistency checks** — spot orphaned elements or unexpected connections at a glance
+
 ## Tips
 
 - **Start with "All" mode** to see the big picture, then switch to curated mode to focus on specific clusters
 - **Use relationship type filters** to isolate categories — e.g., show only familial relationships to see a family tree
+- **Set identity images** on key elements so nodes show recognizable thumbnails
 - **The demo project** includes a pre-built "Character Web" chart you can explore right away
 - Charts are **lightweight** — they read from your existing elements and relationships, so there's no data duplication
 - The sidebar collapsed/expanded state **persists** across sessions
+- **Export high-res PNGs** for sharing or including in reference documents
 
 ---
 
 **Previous:** [Relationships](./relationships) — Define connections between elements.
+**Next:** [Canvas](./canvas) — Freeform infinite canvas for maps and diagrams.

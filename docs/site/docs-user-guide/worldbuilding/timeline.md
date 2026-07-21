@@ -86,6 +86,17 @@ The pill appears on the chosen track at the right horizontal position. A single�
 
 Edits persist as you go — there's no explicit save step.
 
+## Linking Events to Elements
+
+Each event can be **linked to a worldbuilding element** — a character, location, or any other element in your project. When linked:
+
+- The event pill shows the element's association visually
+- The connection appears in the element's context, tying your chronology to your worldbuilding
+
+To link an event, open the event editor dialog and select an element from the linked-element picker. This is especially powerful for character arcs: link each beat of a character's journey to their element, and the timeline becomes a living part of their profile.
+
+The demo project's _Moonveil Chronicle_ timeline links events to characters like Elara and locations like Cloudspire Academy — open it to see linked events in action.
+
 ## Eras
 
 Eras are coloured bands spanning a range of time across all tracks. Use them to mark off big chunks of history ("The First Age", "Pre‑war era", "Dreamtime") so a reader can see context at a glance.
@@ -120,3 +131,4 @@ Era labels appear in the top band, so you can always see which era contains the 
 ---
 
 **Previous:** [Canvas](./canvas) — Freeform infinite canvas for maps and diagrams.
+**Next:** [Real-Time Collaboration](../collaboration/real-time) — Write together with co-authors simultaneously.

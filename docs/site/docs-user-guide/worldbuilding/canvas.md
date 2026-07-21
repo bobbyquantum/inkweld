@@ -26,11 +26,11 @@ The canvas opens immediately in its own project tab.
 
 ## The Interface
 
-| Area | Purpose |
-|------|---------|
+| Area               | Purpose                                            |
+| ------------------ | -------------------------------------------------- |
 | **Sidebar** (left) | Layers panel and objects list for the active layer |
-| **Toolbar** (top) | Tool selection, zoom controls, and export |
-| **Stage** (center) | The infinite drawing surface |
+| **Toolbar** (top)  | Tool selection, zoom controls, and export          |
+| **Stage** (center) | The infinite drawing surface                       |
 
 The sidebar can be collapsed to give the stage more room. Click the **collapse** button in the sidebar header, or use the **expand** button on the left strip to bring it back.
 
@@ -45,13 +45,13 @@ Layers let you organize objects independently, similar to illustration software.
 
 ### Managing Layers
 
-| Action | How |
-|--------|-----|
-| **Add a layer** | Click the **+** button in the Layers header |
-| **Select a layer** | Click its row in the layers list |
-| **Rename a layer** | Click **⋮** → **Rename** |
-| **Duplicate a layer** | Click **⋮** → **Duplicate** |
-| **Delete a layer** | Click **⋮** → **Delete** (requires at least 2 layers) |
+| Action                | How                                                   |
+| --------------------- | ----------------------------------------------------- |
+| **Add a layer**       | Click the **+** button in the Layers header           |
+| **Select a layer**    | Click its row in the layers list                      |
+| **Rename a layer**    | Click **⋮** → **Rename**                              |
+| **Duplicate a layer** | Click **⋮** → **Duplicate**                           |
+| **Delete a layer**    | Click **⋮** → **Delete** (requires at least 2 layers) |
 
 ### Layer Visibility & Lock
 
@@ -71,34 +71,34 @@ Objects on hidden layers are not exported.
 
 ### Navigation Tools
 
-| Tool | Shortcut | Description |
-|------|----------|-------------|
-| **Select** | `V` | Click to select and move objects |
-| **Rectangle Select** | `R` | Drag to select multiple objects |
-| **Pan** | `H` | Click and drag to scroll the canvas |
+| Tool                 | Shortcut | Description                         |
+| -------------------- | -------- | ----------------------------------- |
+| **Select**           | `V`      | Click to select and move objects    |
+| **Rectangle Select** | `R`      | Drag to select multiple objects     |
+| **Pan**              | `H`      | Click and drag to scroll the canvas |
 
 ### Creation Tools
 
 Creation tools are enabled when a layer is active. Objects are added to whichever layer is currently selected.
 
-| Tool | Shortcut | Description |
-|------|----------|-------------|
-| **Pin** | `P` | Drop a location marker on the canvas |
-| **Image** | — | Open the media library to place an image |
-| **Text** | `T` | Click on the canvas to add a text label |
-| **Freehand Draw** | `D` | Draw freely with the pointer |
-| **Line** | `L` | Click and drag to draw a straight line |
-| **Shape** | `S` | Draw a shape — click the arrow to pick Rectangle, Ellipse, Arrow, or Line |
+| Tool              | Shortcut | Description                                                               |
+| ----------------- | -------- | ------------------------------------------------------------------------- |
+| **Pin**           | `P`      | Drop a location marker on the canvas                                      |
+| **Image**         | —        | Open the media library to place an image                                  |
+| **Text**          | `T`      | Click on the canvas to add a text label                                   |
+| **Freehand Draw** | `D`      | Draw freely with the pointer                                              |
+| **Line**          | `L`      | Click and drag to draw a straight line                                    |
+| **Shape**         | `S`      | Draw a shape — click the arrow to pick Rectangle, Ellipse, Arrow, or Line |
 
 ### Other Controls
 
-| Control | Description |
-|---------|-------------|
-| **Palette** | Edit the fill and stroke colors of the selected object |
-| **Zoom In / Out** | Step the zoom level up or down |
-| **Fit All** | Zoom to show all objects on the canvas |
-| **Export** | Export the canvas as PNG or SVG |
-| **Zoom label** | Shows the current zoom percentage |
+| Control           | Description                                            |
+| ----------------- | ------------------------------------------------------ |
+| **Palette**       | Edit the fill and stroke colors of the selected object |
+| **Zoom In / Out** | Step the zoom level up or down                         |
+| **Fit All**       | Zoom to show all objects on the canvas                 |
+| **Export**        | Export the canvas as PNG or SVG                        |
+| **Zoom label**    | Shows the current zoom percentage                      |
 
 ## Objects Panel
 
@@ -106,18 +106,40 @@ The **Objects** section in the sidebar lists all objects on the active layer. Cl
 
 When a layer has no objects, a hint tells you how to add your first one.
 
+## Working with Images
+
+The **Image** tool opens your project's media library so you can place reference art, maps, or textures directly on the canvas. Once placed, images can be moved, resized, and sent to different layers like any other object.
+
+Common uses:
+
+- Drop a hand-drawn map as a background layer, then annotate on a layer above
+- Place character portraits next to location sketches
+- Add reference images for architecture, terrain, or props
+
+Images placed on the canvas are references to your media library — they don't duplicate the file.
+
+## Pins
+
+The **Pin** tool (`P`) drops a location marker on the canvas. Pins are useful for:
+
+- Marking points of interest on a map
+- Annotating specific areas with a visual indicator
+- Creating a numbered set of landmarks for reference
+
+Pins render as small teardrop markers and can be repositioned by dragging.
+
 ## Context Menu
 
 Right-click anywhere on the canvas (or on a selected object) to open the context menu:
 
-| Action | Description |
-|--------|-------------|
-| **Cut** | Remove the selected object and copy it to the clipboard |
-| **Copy** | Copy the selected object |
-| **Paste** | Place a copy of the clipboard object |
-| **Duplicate** | Duplicate the selected object in place |
-| **Delete** | Remove the selected object |
-| **Send to Layer** | Move the selected object to a different layer |
+| Action            | Description                                             |
+| ----------------- | ------------------------------------------------------- |
+| **Cut**           | Remove the selected object and copy it to the clipboard |
+| **Copy**          | Copy the selected object                                |
+| **Paste**         | Place a copy of the clipboard object                    |
+| **Duplicate**     | Duplicate the selected object in place                  |
+| **Delete**        | Remove the selected object                              |
+| **Send to Layer** | Move the selected object to a different layer           |
 
 Standard keyboard shortcuts also work: `Ctrl+C` / `Cmd+C` to copy, `Ctrl+X` / `Cmd+X` to cut, `Ctrl+V` / `Cmd+V` to paste, `Ctrl+D` / `Cmd+D` to duplicate, and `Delete` to remove.
 
@@ -144,4 +166,5 @@ Only visible layers are included in the export.
 
 ---
 
-**Previous:** [Relationships](./relationships) — Define connections between elements.
+**Previous:** [Relationship Charts](./relationship-charts) — Visualize connections as interactive graphs.
+**Next:** [Timeline](./timeline) — Plot events, eras, and arcs against flexible time systems.

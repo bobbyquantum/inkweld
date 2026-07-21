@@ -1,16 +1,14 @@
 /**
  * Templates Tab Screenshot Tests
  *
- * Captures screenshots of the template management feature.
- * Consolidated 10 → 2 tests (one per color scheme); each captures
- * overview, grid, header/create button, template editor page, clone menu, and
- * card details via test.step.
+ * Captures screenshots of the template management feature (embedded in
+ * Project Settings → Element Templates). Consolidated 10 → 2 tests (one
+ * per color scheme); each captures overview, grid, header/create button,
+ * template editor page, clone menu, and card details via test.step.
  *
- * NOTE: This entire suite is `describe.skip` because schemas are not
- * available in local/offline mode after project creation from a template.
- * The schema sync provider doesn't populate schemas in time for the
- * templates tab to display them. This is a pre-existing issue unrelated
- * to the sidenav redesign / consolidation work.
+ * Uses the worldbuilding-demo project template which ships with pre-built
+ * schemas (Character, Location) so the templates tab has content to display
+ * in offline/local mode.
  */
 
 import { type Page } from '@playwright/test';
@@ -33,7 +31,13 @@ async function setupProjectAndTemplatesTab(
 
   await page.waitForSelector('.empty-state', { state: 'visible' });
 
-  await createProjectWithTwoSteps(page, projectTitle, projectSlug);
+  await createProjectWithTwoSteps(
+    page,
+    projectTitle,
+    projectSlug,
+    undefined,
+    'worldbuilding-demo'
+  );
   await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
 
   await page.goto(`/demouser/${projectSlug}/settings`);
@@ -137,7 +141,7 @@ async function captureAllTemplateScreenshots(
   });
 }
 
-test.describe.skip('Templates Tab Screenshots', () => {
+test.describe('Templates Tab Screenshots', () => {
   const screenshotsDir = getScreenshotsDir();
 
   test.beforeAll(async () => {
