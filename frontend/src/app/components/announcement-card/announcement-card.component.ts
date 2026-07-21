@@ -32,8 +32,7 @@ import type {
 })
 export class AnnouncementCardComponent {
   @Input({ required: true }) announcement!:
-    | Announcement
-    | AnnouncementWithReadStatus;
+    Announcement | AnnouncementWithReadStatus;
   @Input() showReadStatus = false;
   @Input() compact = false;
 

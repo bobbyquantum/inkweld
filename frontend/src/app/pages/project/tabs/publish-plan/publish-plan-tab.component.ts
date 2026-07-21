@@ -65,11 +65,7 @@ import { firstValueFrom, type Subscription } from 'rxjs';
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 
 type PlanSection =
-  | 'metadata'
-  | 'contents'
-  | 'formatting'
-  | 'publish'
-  | 'preview';
+  'metadata' | 'contents' | 'formatting' | 'publish' | 'preview';
 
 @Component({
   selector: 'app-publish-plan-tab',

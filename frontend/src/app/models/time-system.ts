@@ -111,8 +111,7 @@ export interface TimeSystem {
    * `unitLabels.length` and every override value MUST be a positive integer.
    */
   unitSubdivisionOverrides?: readonly (
-    | Readonly<Record<string, number>>
-    | undefined
+    Readonly<Record<string, number>> | undefined
   )[];
 }
 
@@ -166,8 +165,7 @@ export function assertValidTimeSystem(system: TimeSystem): void {
 
 function assertSubdivisionOverrideValues(
   overrides:
-    | readonly (Readonly<Record<string, number>> | undefined)[]
-    | undefined
+    readonly (Readonly<Record<string, number>> | undefined)[] | undefined
 ): void {
   if (!overrides) return;
   for (const entry of overrides) {

@@ -184,11 +184,7 @@ export interface CanvasPin extends CanvasObjectBase {
 
 /** Any object that can be placed on the canvas */
 export type CanvasObject =
-  | CanvasImage
-  | CanvasText
-  | CanvasPath
-  | CanvasShape
-  | CanvasPin;
+  CanvasImage | CanvasText | CanvasPath | CanvasShape | CanvasPin;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Canvas Configuration (persisted to Yjs metadata)

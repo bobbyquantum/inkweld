@@ -53,11 +53,7 @@ export interface MarkdownResult {
 }
 
 type ProseMirrorNode =
-  | string
-  | { [key: string]: unknown }
-  | ProseMirrorNode[]
-  | null
-  | undefined;
+  string | { [key: string]: unknown } | ProseMirrorNode[] | null | undefined;
 
 interface ProseMirrorMark {
   type: string;
@@ -556,8 +552,7 @@ export class MarkdownGeneratorService {
       case 'elementref':
       case 'elementRef': {
         const attrs = (node as Record<string, unknown>)['attrs'] as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         const display = this.safeStringAttr(attrs, 'displayText');
         // Render as plain text — publish output should not include
         // `inkweld://` URIs because they only resolve inside the app.
@@ -570,8 +565,7 @@ export class MarkdownGeneratorService {
 
   private renderCodeBlockXml(node: ProseMirrorNode, inner: string): string {
     const attrs = (node as Record<string, unknown>)['attrs'] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     const lang = this.safeStringAttr(attrs, 'lang');
     const langAttr = lang ? ` lang="${this.escapeXmlAttr(lang)}"` : '';
     return `<code_block${langAttr}>${inner}</code_block>`;
@@ -579,8 +573,7 @@ export class MarkdownGeneratorService {
 
   private renderImageXml(node: ProseMirrorNode): string {
     const attrs = (node as Record<string, unknown>)['attrs'] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     const src = this.safeStringAttr(attrs, 'src');
     const alt = this.safeStringAttr(attrs, 'alt');
     const title = this.safeStringAttr(attrs, 'title');

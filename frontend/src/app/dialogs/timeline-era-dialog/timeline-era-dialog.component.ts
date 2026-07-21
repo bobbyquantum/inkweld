@@ -44,8 +44,7 @@ export interface TimelineEraDialogData {
 }
 
 export type TimelineEraDialogResult =
-  | { kind: 'save'; era: TimelineEra }
-  | { kind: 'delete'; eraId: string };
+  { kind: 'save'; era: TimelineEra } | { kind: 'delete'; eraId: string };
 
 const INT_RE = /^-?\d+$/;
 

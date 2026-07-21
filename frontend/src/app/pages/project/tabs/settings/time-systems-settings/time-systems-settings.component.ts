@@ -19,8 +19,7 @@ import { TimeSystemLibraryService } from '@services/timeline/time-system-library
  * `systemId` is `null` for "design new" and a string for "edit existing".
  */
 type EditingState =
-  | { mode: 'list' }
-  | { mode: 'edit'; systemId: string | null };
+  { mode: 'list' } | { mode: 'edit'; systemId: string | null };
 
 /**
  * Time Systems Settings Section

@@ -44,8 +44,7 @@ export interface TimelineEventDialogData {
 }
 
 export type TimelineEventDialogResult =
-  | { kind: 'save'; event: TimelineEvent }
-  | { kind: 'delete'; eventId: string };
+  { kind: 'save'; event: TimelineEvent } | { kind: 'delete'; eventId: string };
 
 const INT_RE = /^-?\d+$/;
 
