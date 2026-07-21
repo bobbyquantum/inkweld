@@ -1473,7 +1473,7 @@ ${content}
    * Count words in HTML content
    */
   private countWords(html: string): number {
-    const text = html.replaceAll(/<[^>]*>/g, ' ');
+    const text = html.replaceAll(/<[^<>]*>/g, ' ');
     const words = text.split(/\s+/).filter(w => w.length > 0);
     return words.length;
   }

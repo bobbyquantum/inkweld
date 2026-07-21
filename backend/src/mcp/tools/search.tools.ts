@@ -1140,30 +1140,117 @@ function extractTextFromXmlFragment(fragment: any): string {
 }
 
 /**
- * Extract plain text from a ProseMirror XML string (for Cloudflare Workers)
- * Parses simple ProseMirror XML structure to extract text content
+ * Block-level element names whose closing tag should produce a newline when
+ * extracting plain text from ProseMirror XML.
  */
-function extractTextFromXmlString(xmlString: string): string {
-  // Simple text extraction - strip all XML tags and decode entities
-  // ProseMirror uses a simple XML format: <doc><paragraph>text</paragraph></doc>
-  const text = xmlString
-    // Replace paragraph/heading/blockquote boundaries with newlines
-    .replaceAll(/<\/(paragraph|heading|blockquote|listItem)>/gi, '\n')
-    // Remove all other closing tags
-    .replaceAll(/<\/[^>]+>/g, '')
-    // Remove all opening tags
-    .replaceAll(/<[^>]+>/g, '')
-    // Decode common HTML entities
+const BLOCK_CLOSE_TAGS = new Set(['paragraph', 'heading', 'blockquote', 'listitem']);
+
+/**
+ * Characters that terminate an XML tag name (whitespace, `/`, or `>`).
+ * Used by {@link scanTagName} to find the end of the tag name.
+ */
+const TAG_NAME_TERMINATORS = new Set([0x09, 0x0a, 0x0d, 0x20, 0x2f, 0x3e]);
+
+/**
+ * Find the end index of the tag name starting at `start` in `xmlString`.
+ * Returns the index of the first whitespace, `/`, or `>` character at or
+ * after `start`, or `xmlString.length` if none is found.
+ */
+function scanTagName(xmlString: string, start: number): number {
+  const len = xmlString.length;
+  let end = start;
+  while (end < len && !TAG_NAME_TERMINATORS.has(xmlString.codePointAt(end) as number)) {
+    end++;
+  }
+  return end;
+}
+
+/**
+ * Find the index of the closing `>` of a tag whose name ended at `nameEnd`.
+ *
+ * Honors quoted attribute values (both `"` and `'`) so a `>` inside quotes
+ * doesn't terminate the tag early. Returns `-1` if the tag is never closed.
+ */
+function scanTagEnd(xmlString: string, nameEnd: number): number {
+  const len = xmlString.length;
+  let j = nameEnd;
+  while (j < len) {
+    const c = xmlString[j];
+    if (c === '"' || c === "'") {
+      // Skip the quoted attribute value verbatim.
+      const quote = c;
+      j++;
+      while (j < len && xmlString[j] !== quote) {
+        j++;
+      }
+      j++; // consume closing quote (safe if at end — we'll exit below)
+      continue;
+    }
+    if (c === '>') {
+      return j;
+    }
+    j++;
+  }
+  return -1;
+}
+
+/**
+ * Extract plain text from a ProseMirror XML string (for Cloudflare Workers).
+ *
+ * ProseMirror uses a simple XML format: `<doc><paragraph>text</paragraph></doc>`.
+ * We strip every tag and decode a handful of common entities, inserting a
+ * newline at the close of block-level elements so search text roughly
+ * preserves paragraph boundaries.
+ *
+ * This is a single-pass linear-time scanner. We can't use a generic regex
+ * such as `/<[^<>]+>/g` to strip tags because attribute values may legally
+ * contain `>` (e.g. `<link title="a > b">`); such a regex would stop at the
+ * `>` inside the quotes and leave a tag fragment in the output. Instead we
+ * walk the string and skip over quoted attribute values when scanning for
+ * the end of each tag.
+ */
+export function extractTextFromXmlString(xmlString: string): string {
+  let out = '';
+  let i = 0;
+  const len = xmlString.length;
+
+  while (i < len) {
+    if (xmlString[i] !== '<') {
+      out += xmlString[i];
+      i++;
+      continue;
+    }
+
+    // We're at the start of a tag. Find its name and end, honoring quoted
+    // attribute values so a `>` inside quotes doesn't terminate the tag early.
+    const isClosing = xmlString[i + 1] === '/';
+    const nameStart = i + (isClosing ? 2 : 1);
+    const nameEnd = scanTagName(xmlString, nameStart);
+    const tagName = xmlString.slice(nameStart, nameEnd).toLowerCase();
+    const tagEnd = scanTagEnd(xmlString, nameEnd);
+
+    if (tagEnd === -1) {
+      // Unterminated tag — emit nothing and stop.
+      break;
+    }
+
+    if (isClosing && BLOCK_CLOSE_TAGS.has(tagName)) {
+      out += '\n';
+    }
+    i = tagEnd + 1;
+  }
+
+  // Decode common HTML entities.
+  out = out
     .replaceAll('&amp;', '&')
     .replaceAll('&lt;', '<')
     .replaceAll('&gt;', '>')
     .replaceAll('&quot;', '"')
-    .replaceAll('&#39;', "'")
-    // Clean up multiple newlines
-    .replaceAll(/\n{3,}/g, '\n\n')
-    .trim();
+    .replaceAll('&#39;', "'");
 
-  return text;
+  // Collapse 3+ newlines to 2. {3,} is a fixed repetition on a single
+  // character class — no backtracking risk.
+  return out.replaceAll(/\n{3,}/g, '\n\n').trim();
 }
 
 // ============================================

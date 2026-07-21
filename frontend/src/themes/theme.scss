@@ -4,6 +4,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 @use 'bundled-fonts';
+@use '@angular/cdk' as cdk;
 
 *,
 *::before,
@@ -180,8 +181,7 @@ $dark-theme: mat.define-theme(
   )
 );
 
-@import '@angular/cdk/overlay-prebuilt.css';
-
+@include cdk.overlay();
 // ─────────────────────────────────────────────────────────────────────────────
 // Mobile Keyboard Viewport Handling
 // ─────────────────────────────────────────────────────────────────────────────
