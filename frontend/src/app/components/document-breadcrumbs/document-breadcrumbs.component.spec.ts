@@ -1,8 +1,11 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { type Element, ElementType } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DocumentBreadcrumbsComponent } from './document-breadcrumbs.component';
 
@@ -43,13 +46,22 @@ describe('DocumentBreadcrumbsComponent', () => {
       imports: [DocumentBreadcrumbsComponent],
       providers: [
         provideZonelessChangeDetection(),
+        provideRouter([{ path: '**', children: [] }]),
         { provide: ProjectStateService, useValue: projectStateMock },
         { provide: SettingsService, useValue: settingsMock },
+        {
+          provide: WorldbuildingService,
+          useValue: { getSchemaById: vi.fn().mockReturnValue(null) },
+        },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(DocumentBreadcrumbsComponent);
     component = fixture.componentInstance;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('returns empty segments when element id is missing', () => {
@@ -84,6 +96,20 @@ describe('DocumentBreadcrumbsComponent', () => {
     expect(component.fullPath()).toBe('Part One › Chapter Two › Scene 3');
   });
 
+  it('exposes parentId and nextBranchId for each segment', () => {
+    elementsSignal.set([
+      makeElement('root', 'Part One', null, ElementType.Folder),
+      makeElement('mid', 'Chapter Two', 'root', ElementType.Folder),
+      makeElement('leaf', 'Scene 3', 'mid'),
+    ]);
+    fixture.componentRef.setInput('elementId', 'leaf');
+    fixture.detectChanges();
+
+    const segs = component.segments();
+    expect(segs.map(s => s.parentId)).toEqual([null, 'root', 'mid']);
+    expect(segs.map(s => s.nextBranchId)).toEqual(['mid', 'leaf', null]);
+  });
+
   it('falls back to "Untitled" for elements without a name', () => {
     elementsSignal.set([
       makeElement('root', 'Folder', null, ElementType.Folder),
@@ -108,7 +134,7 @@ describe('DocumentBreadcrumbsComponent', () => {
     expect(names.length).toBe(2);
   });
 
-  it('renders non-interactive segments and a separator only between them when path > 1', () => {
+  it('renders the current segment as a non-interactive span', () => {
     elementsSignal.set([
       makeElement('root', 'Folder', null, ElementType.Folder),
       makeElement('leaf', 'Doc', 'root'),
@@ -120,15 +146,50 @@ describe('DocumentBreadcrumbsComponent', () => {
       '[data-testid="document-breadcrumbs"]'
     );
     expect(nav).toBeTruthy();
+    const currentSpan = nav.querySelector('.breadcrumb-segment.current');
+    expect(currentSpan).toBeTruthy();
+    expect(currentSpan.tagName.toLowerCase()).toBe('span');
+    expect(currentSpan.getAttribute('aria-current')).toBe('page');
+  });
+
+  it('renders non-current segments as clickable buttons with flyout menus', () => {
+    elementsSignal.set([
+      makeElement('root', 'Folder', null, ElementType.Folder),
+      makeElement('leaf', 'Doc', 'root'),
+    ]);
+    fixture.componentRef.setInput('elementId', 'leaf');
+    fixture.detectChanges();
+
+    const nav = fixture.nativeElement.querySelector(
+      '[data-testid="document-breadcrumbs"]'
+    );
+    const buttons = nav.querySelectorAll('.breadcrumb-segment-button');
+    expect(buttons.length).toBe(1);
+    expect(buttons[0].tagName.toLowerCase()).toBe('button');
+    expect(buttons[0].getAttribute('aria-haspopup')).toBe('menu');
+    expect(buttons[0].getAttribute('data-testid')).toBe(
+      'breadcrumb-segment-root'
+    );
+    // A breadcrumb menu component is rendered alongside each button
+    const menuComponent = nav.querySelector('app-breadcrumb-menu');
+    expect(menuComponent).toBeTruthy();
+  });
+
+  it('renders separators only between segments when path > 1', () => {
+    elementsSignal.set([
+      makeElement('root', 'Folder', null, ElementType.Folder),
+      makeElement('leaf', 'Doc', 'root'),
+    ]);
+    fixture.componentRef.setInput('elementId', 'leaf');
+    fixture.detectChanges();
+
+    const nav = fixture.nativeElement.querySelector(
+      '[data-testid="document-breadcrumbs"]'
+    );
     const segments = nav.querySelectorAll('.breadcrumb-segment');
     expect(segments.length).toBe(2);
     const separators = nav.querySelectorAll('.breadcrumb-separator');
     expect(separators.length).toBe(1);
-    // All segments are plain spans (no interactive controls)
-    expect(segments[0].tagName.toLowerCase()).toBe('span');
-    expect(segments[1].tagName.toLowerCase()).toBe('span');
-    expect(segments[1].classList.contains('current')).toBe(true);
-    expect(nav.querySelector('button')).toBeNull();
   });
 
   it('hides the breadcrumb entirely for top-level elements', () => {

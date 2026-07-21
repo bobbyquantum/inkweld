@@ -37,7 +37,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { type ProjectElement } from '../../models/project-element';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { LoggerService } from '../../services/core/logger.service';
-import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
+import { ElementNavigationService } from '../../services/project/element-navigation.service';
 import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
 
 /**
@@ -68,6 +68,7 @@ export class ProjectTreeComponent implements OnDestroy {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly logger = inject(LoggerService);
   private readonly projectSearchService = inject(ProjectSearchService);
+  private readonly elementNavigation = inject(ElementNavigationService);
   @ViewChild('treeContainer', { static: true })
   treeContainer!: ElementRef<HTMLElement>;
   @ViewChild(CdkDropList) dropList!: CdkDropList<ProjectElement>;
@@ -649,33 +650,8 @@ export class ProjectTreeComponent implements OnDestroy {
       expandable: node.expandable || false,
       metadata: {},
     };
-    this.projectStateService.openDocument(dto);
     this.documentOpened.emit(dto);
-    // Navigate to document, folder, or worldbuilding route
-    const project = this.projectStateService.project();
-    if (project?.username && project?.slug) {
-      let typeRoute: string;
-      if (dto.type === ElementType.Folder) {
-        typeRoute = 'folder';
-      } else if (dto.type === ElementType.RelationshipChart) {
-        typeRoute = 'relationship-chart';
-      } else if (dto.type === ElementType.Canvas) {
-        typeRoute = 'canvas';
-      } else if (dto.type === ElementType.Timeline) {
-        typeRoute = 'timeline';
-      } else if (isWorldbuildingType(dto.type)) {
-        typeRoute = 'worldbuilding';
-      } else {
-        typeRoute = 'document';
-      }
-      void this.router.navigate([
-        '/',
-        project.username,
-        project.slug,
-        typeRoute,
-        dto.id,
-      ]);
-    }
+    this.elementNavigation.openElement(dto);
   }
 
   /**

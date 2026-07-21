@@ -33,6 +33,23 @@
   }
 }
 
+// Clickable segment: looks like plain text until hover/focus, then surfaces
+// as a button so the flyout is discoverable without being noisy.
+.breadcrumb-segment-button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--sys-surface-container-high);
+    color: var(--sys-on-surface);
+    outline: none;
+  }
+}
+
 .breadcrumb-separator {
   flex-shrink: 0;
   font-size: 16px;
