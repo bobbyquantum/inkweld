@@ -23,18 +23,16 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
+import { TimelineAutoBuildDialogComponent } from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.component';
+import {
+  type AutoBuildDialogData,
+  type AutoBuildDialogResult,
+} from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.models';
 import {
   TimelineEraDialogComponent,
   type TimelineEraDialogData,
   type TimelineEraDialogResult,
 } from '@dialogs/timeline-era-dialog/timeline-era-dialog.component';
-import {
-  TimelineAutoBuildDialogComponent,
-} from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.component';
-import {
-  type AutoBuildDialogData,
-  type AutoBuildDialogResult,
-} from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.models';
 import {
   TimelineEventDialogComponent,
   type TimelineEventDialogData,

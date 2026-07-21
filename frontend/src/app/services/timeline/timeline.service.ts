@@ -8,6 +8,7 @@
  */
 
 import { effect, inject, Injectable, signal, untracked } from '@angular/core';
+import { type AutoBuildCandidate } from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.models';
 import { ElementType } from '@inkweld/index';
 import { type ElementTypeSchema, type FieldSchema } from '@models/schema-types';
 import {
@@ -24,9 +25,6 @@ import {
   type TimelineEvent,
   type TimelineTrack,
 } from '@models/timeline.model';
-import {
-  type AutoBuildCandidate,
-} from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.models';
 import { LoggerService } from '@services/core/logger.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';

@@ -5,13 +5,14 @@ import {
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCheckboxModule } from '@angular/material/checkbox';
+
 import {
   type AutoBuildCandidate,
   type AutoBuildDialogData,
@@ -23,21 +24,13 @@ import {
   templateUrl: './timeline-auto-build-dialog.component.html',
   styleUrls: ['./timeline-auto-build-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    MatButtonModule,
-    MatDialogModule,
-    MatIconModule,
-    MatCheckboxModule,
-  ],
+  imports: [MatButtonModule, MatDialogModule, MatIconModule, MatCheckboxModule],
 })
 export class TimelineAutoBuildDialogComponent {
   readonly data = inject<AutoBuildDialogData>(MAT_DIALOG_DATA);
   private readonly dialogRef =
     inject<
-      MatDialogRef<
-        TimelineAutoBuildDialogComponent,
-        AutoBuildDialogResult
-      >
+      MatDialogRef<TimelineAutoBuildDialogComponent, AutoBuildDialogResult>
     >(MatDialogRef);
 
   private readonly selectedKeys = signal<Set<string>>(
@@ -69,9 +62,7 @@ export class TimelineAutoBuildDialogComponent {
   }
 
   selectAll(): void {
-    this.selectedKeys.set(
-      new Set(this.candidates.map(c => candidateKey(c)))
-    );
+    this.selectedKeys.set(new Set(this.candidates.map(c => candidateKey(c))));
   }
 
   selectNone(): void {

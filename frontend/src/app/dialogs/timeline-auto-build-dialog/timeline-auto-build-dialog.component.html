@@ -10,27 +10,43 @@
       <mat-icon>calendar_blank</mat-icon>
       <p>No worldbuilding elements with date fields found.</p>
       <p class="muted">
-        Add date-type fields to your element templates and fill in values to
-        use auto-build.
+        Add date-type fields to your element templates and fill in values to use
+        auto-build.
       </p>
     </div>
   } @else {
     <div class="select-actions">
-      <button mat-button (click)="selectAll()" data-testid="auto-build-select-all">
+      <button
+        mat-button
+        (click)="selectAll()"
+        data-testid="auto-build-select-all">
         Select all
       </button>
-      <button mat-button (click)="selectNone()" data-testid="auto-build-select-none">
+      <button
+        mat-button
+        (click)="selectNone()"
+        data-testid="auto-build-select-none">
         Select none
       </button>
     </div>
 
     <div class="candidate-list" data-testid="auto-build-candidate-list">
-      @for (candidate of candidates; track candidate.elementId + '::' + candidate.fieldKey) {
-        <div class="candidate-row" [class.already-on-timeline]="candidate.alreadyOnTimeline">
+      @for (
+        candidate of candidates;
+        track candidate.elementId + '::' + candidate.fieldKey
+      ) {
+        <div
+          class="candidate-row"
+          [class.already-on-timeline]="candidate.alreadyOnTimeline">
           <mat-checkbox
             [checked]="isSelected(candidate)"
             (change)="toggle(candidate)"
-            [attr.data-testid]="'auto-build-candidate-' + candidate.elementId + '-' + candidate.fieldKey">
+            [attr.data-testid]="
+              'auto-build-candidate-' +
+              candidate.elementId +
+              '-' +
+              candidate.fieldKey
+            ">
             <div class="candidate-info">
               <span class="candidate-name">{{ candidate.elementName }}</span>
               <span class="candidate-field">{{ candidate.fieldLabel }}</span>

@@ -69,9 +69,9 @@ test.describe('Timeline Auto-Build from Elements', () => {
     await test.step('clicking auto-build opens selection dialog', async () => {
       await page.getByTestId('timeline-auto-build').click();
 
-      await expect(
-        page.getByTestId('auto-build-candidate-list')
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.getByTestId('auto-build-candidate-list')).toBeVisible({
+        timeout: 10000,
+      });
       const candidates = page.locator('[data-testid^="auto-build-candidate-"]');
       const count = await candidates.count();
       expect(count).toBeGreaterThan(0);
@@ -107,17 +107,21 @@ test.describe('Timeline Auto-Build from Elements', () => {
     });
 
     await test.step('re-running auto-build is idempotent (no duplicates)', async () => {
+      const beforeCount = await page
+        .locator('[data-testid^="timeline-event-body-"]')
+        .count();
+
       await page.getByTestId('timeline-auto-build').click();
-      await expect(
-        page.getByTestId('auto-build-candidate-list')
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.getByTestId('auto-build-candidate-list')).toBeVisible({
+        timeout: 10000,
+      });
+
+      // Re-check all candidates (already-on-timeline ones are unchecked by default)
+      await page.getByTestId('auto-build-select-all').click();
       await page.getByTestId('auto-build-confirm').click();
 
       await expect(async () => {
         const afterCount = await page
-          .locator('[data-testid^="timeline-event-body-"]')
-          .count();
-        const beforeCount = await page
           .locator('[data-testid^="timeline-event-body-"]')
           .count();
         expect(afterCount).toBe(beforeCount);

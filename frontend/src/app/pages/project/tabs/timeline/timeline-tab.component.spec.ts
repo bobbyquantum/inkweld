@@ -1368,11 +1368,7 @@ describe('TimelineTabComponent', () => {
     function setupDialogResult(selected: typeof mockCandidates | null) {
       mockDialog.open.mockReturnValue({
         afterClosed: () =>
-          of(
-            selected === null
-              ? undefined
-              : { kind: 'build', selected }
-          ),
+          of(selected === null ? undefined : { kind: 'build', selected }),
       });
     }
 
@@ -1388,9 +1384,10 @@ describe('TimelineTabComponent', () => {
       setupDialogResult(mockCandidates);
       fixture.detectChanges();
       await component['onAutoBuild']();
-      expect(
-        mockTimelineService.scanAutoBuildCandidates
-      ).toHaveBeenCalledWith('testuser', 'test-slug');
+      expect(mockTimelineService.scanAutoBuildCandidates).toHaveBeenCalledWith(
+        'testuser',
+        'test-slug'
+      );
       expect(mockTimelineService.applyAutoBuild).toHaveBeenCalledWith(
         mockCandidates
       );
@@ -1448,18 +1445,16 @@ describe('TimelineTabComponent', () => {
       const firstCall = component['onAutoBuild']();
       expect(component['autoBuilding']()).toBe(true);
       await component['onAutoBuild']();
-      expect(
-        mockTimelineService.scanAutoBuildCandidates
-      ).toHaveBeenCalledTimes(1);
+      expect(mockTimelineService.scanAutoBuildCandidates).toHaveBeenCalledTimes(
+        1
+      );
       resolveFn(mockCandidates);
       await firstCall;
       expect(component['autoBuilding']()).toBe(false);
     });
 
     it('resets autoBuilding after null scan result', async () => {
-      mockTimelineService.scanAutoBuildCandidates.mockResolvedValueOnce(
-        null
-      );
+      mockTimelineService.scanAutoBuildCandidates.mockResolvedValueOnce(null);
       fixture.detectChanges();
       await component['onAutoBuild']();
       expect(component['autoBuilding']()).toBe(false);

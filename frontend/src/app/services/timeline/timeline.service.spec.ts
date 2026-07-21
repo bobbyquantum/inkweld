@@ -1,5 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { type AutoBuildCandidate } from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.models';
 import { type Element, ElementType } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -15,7 +16,6 @@ import {
   type TimelineEra,
   type TimelineEvent,
 } from '../../models/timeline.model';
-import { type AutoBuildCandidate } from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.models';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
@@ -892,11 +892,14 @@ describe('TimelineService', () => {
       service.setTimeSystem(GREGORIAN_SYSTEM.id);
 
       const result = service.applyAutoBuild([
-        makeCandidate('char-1', 'Alice', 'birthDate', 'Birth Date', '1999-3-15', [
-          '1999',
-          '3',
-          '15',
-        ]),
+        makeCandidate(
+          'char-1',
+          'Alice',
+          'birthDate',
+          'Birth Date',
+          '1999-3-15',
+          ['1999', '3', '15']
+        ),
       ]);
 
       expect(result).toEqual({ created: 1, updated: 0, removed: 0 });
@@ -914,18 +917,24 @@ describe('TimelineService', () => {
       service.setTimeSystem(GREGORIAN_SYSTEM.id);
 
       service.applyAutoBuild([
-        makeCandidate('char-1', 'Alice', 'birthDate', 'Birth Date', '1999-3-15', [
-          '1999',
-          '3',
-          '15',
-        ]),
+        makeCandidate(
+          'char-1',
+          'Alice',
+          'birthDate',
+          'Birth Date',
+          '1999-3-15',
+          ['1999', '3', '15']
+        ),
       ]);
       service.applyAutoBuild([
-        makeCandidate('char-1', 'Alice', 'birthDate', 'Birth Date', '2001-6-20', [
-          '2001',
-          '6',
-          '20',
-        ]),
+        makeCandidate(
+          'char-1',
+          'Alice',
+          'birthDate',
+          'Birth Date',
+          '2001-6-20',
+          ['2001', '6', '20']
+        ),
       ]);
 
       const events = service.activeConfig()?.events ?? [];
@@ -945,11 +954,14 @@ describe('TimelineService', () => {
         start: { systemId: GREGORIAN_SYSTEM.id, units: ['2000', '1', '1'] },
       });
       service.applyAutoBuild([
-        makeCandidate('char-1', 'Alice', 'birthDate', 'Birth Date', '1999-3-15', [
-          '1999',
-          '3',
-          '15',
-        ]),
+        makeCandidate(
+          'char-1',
+          'Alice',
+          'birthDate',
+          'Birth Date',
+          '1999-3-15',
+          ['1999', '3', '15']
+        ),
       ]);
 
       const events = service.activeConfig()?.events ?? [];
@@ -964,11 +976,14 @@ describe('TimelineService', () => {
       service.setTimeSystem(GREGORIAN_SYSTEM.id);
 
       service.applyAutoBuild([
-        makeCandidate('char-1', 'Alice', 'birthDate', 'Birth Date', '1999-3-15', [
-          '1999',
-          '3',
-          '15',
-        ]),
+        makeCandidate(
+          'char-1',
+          'Alice',
+          'birthDate',
+          'Birth Date',
+          '1999-3-15',
+          ['1999', '3', '15']
+        ),
       ]);
       expect(service.activeConfig()?.events).toHaveLength(1);
 
