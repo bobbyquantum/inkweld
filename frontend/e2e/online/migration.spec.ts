@@ -481,9 +481,24 @@ test.describe('Offline to Server Migration', () => {
     await offlinePage.goto('/');
 
     // Verify project A exists on server (wait for project list to load)
-    await expect(
-      offlinePage.getByRole('button', { name: /Open project Project A/i })
-    ).toBeVisible();
+    // The migration is asynchronous and the home-page project list can take
+    // a few seconds (and sometimes a reload) to surface the new server
+    // project. Poll-with-reload up to ~30s before giving up.
+    const projectAButton = offlinePage.getByRole('button', {
+      name: /Open project Project A/i,
+    });
+    await expect
+      .poll(
+        async () => {
+          if (await projectAButton.isVisible().catch(() => false)) return true;
+          await offlinePage.reload();
+          await offlinePage.waitForLoadState('networkidle');
+          return projectAButton.isVisible({ timeout: 5000 }).catch(() => false);
+        },
+        { timeout: 30_000, intervals: [0] }
+      )
+      .toBe(true);
+    await expect(projectAButton).toBeVisible();
 
     // ════════════════════════════════════════════════════════════════════════
     // PHASE 2: Create project B on server (to test rename conflict)
