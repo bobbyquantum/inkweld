@@ -12,10 +12,11 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { ProjectsService } from '@inkweld/api/projects.service';
-import { type Element, ElementType } from '@inkweld/index';
+import { type Element } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
+import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -52,6 +53,7 @@ export class HomeTabComponent {
   protected readonly router = inject(Router);
   private readonly logger = inject(LoggerService);
   private readonly transloco = inject(TranslocoService);
+  private readonly elementNavigation = inject(ElementNavigationService);
 
   protected readonly hasCover = computed(() => {
     const project = this.projectState.project();
@@ -75,38 +77,14 @@ export class HomeTabComponent {
   }
 
   onPinnedElementClick(element: Element): void {
-    this.projectState.openDocument(element);
-    const project = this.projectState.project();
-    if (project) {
-      const typeRoute =
-        element.type === ElementType.Folder ? 'folder' : 'document';
-      void this.router.navigate([
-        '/',
-        project.username,
-        project.slug,
-        typeRoute,
-        element.id,
-      ]);
-    }
+    this.elementNavigation.openElement(element);
   }
 
   private openElementById(documentId: string): void {
     const elements = this.projectState.elements();
     const element = elements.find(e => e.id === documentId);
     if (element) {
-      this.projectState.openDocument(element);
-      const project = this.projectState.project();
-      if (project) {
-        const typeRoute =
-          element.type === ElementType.Folder ? 'folder' : 'document';
-        void this.router.navigate([
-          '/',
-          project.username,
-          project.slug,
-          typeRoute,
-          element.id,
-        ]);
-      }
+      this.elementNavigation.openElement(element);
     }
   }
 
