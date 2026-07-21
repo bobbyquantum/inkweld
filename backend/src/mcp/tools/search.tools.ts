@@ -1146,6 +1146,55 @@ function extractTextFromXmlFragment(fragment: any): string {
 const BLOCK_CLOSE_TAGS = new Set(['paragraph', 'heading', 'blockquote', 'listitem']);
 
 /**
+ * Characters that terminate an XML tag name (whitespace, `/`, or `>`).
+ * Used by {@link scanTagName} to find the end of the tag name.
+ */
+const TAG_NAME_TERMINATORS = new Set([0x09, 0x0a, 0x0d, 0x20, 0x2f, 0x3e]);
+
+/**
+ * Find the end index of the tag name starting at `start` in `xmlString`.
+ * Returns the index of the first whitespace, `/`, or `>` character at or
+ * after `start`, or `xmlString.length` if none is found.
+ */
+function scanTagName(xmlString: string, start: number): number {
+  const len = xmlString.length;
+  let end = start;
+  while (end < len && !TAG_NAME_TERMINATORS.has(xmlString.codePointAt(end) as number)) {
+    end++;
+  }
+  return end;
+}
+
+/**
+ * Find the index of the closing `>` of a tag whose name ended at `nameEnd`.
+ *
+ * Honors quoted attribute values (both `"` and `'`) so a `>` inside quotes
+ * doesn't terminate the tag early. Returns `-1` if the tag is never closed.
+ */
+function scanTagEnd(xmlString: string, nameEnd: number): number {
+  const len = xmlString.length;
+  let j = nameEnd;
+  while (j < len) {
+    const c = xmlString[j];
+    if (c === '"' || c === "'") {
+      // Skip the quoted attribute value verbatim.
+      const quote = c;
+      j++;
+      while (j < len && xmlString[j] !== quote) {
+        j++;
+      }
+      j++; // consume closing quote (safe if at end — we'll exit below)
+      continue;
+    }
+    if (c === '>') {
+      return j;
+    }
+    j++;
+  }
+  return -1;
+}
+
+/**
  * Extract plain text from a ProseMirror XML string (for Cloudflare Workers).
  *
  * ProseMirror uses a simple XML format: `<doc><paragraph>text</paragraph></doc>`.
@@ -1166,57 +1215,21 @@ export function extractTextFromXmlString(xmlString: string): string {
   const len = xmlString.length;
 
   while (i < len) {
-    const ch = xmlString[i];
-
-    if (ch !== '<') {
-      out += ch;
+    if (xmlString[i] !== '<') {
+      out += xmlString[i];
       i++;
       continue;
     }
 
-    // We're at the start of a tag. Find its end, honoring quoted attribute
-    // values so a `>` inside quotes doesn't terminate the tag early.
+    // We're at the start of a tag. Find its name and end, honoring quoted
+    // attribute values so a `>` inside quotes doesn't terminate the tag early.
     const isClosing = xmlString[i + 1] === '/';
     const nameStart = i + (isClosing ? 2 : 1);
-    let nameEnd = nameStart;
-    while (nameEnd < len) {
-      const c = xmlString.codePointAt(nameEnd);
-      if (
-        c === 0x09 /* \t */ ||
-        c === 0x0a /* \n */ ||
-        c === 0x0d /* \r */ ||
-        c === 0x20 /* space */ ||
-        c === 0x2f /* / */ ||
-        c === 0x3e /* > */
-      ) {
-        break;
-      }
-      nameEnd++;
-    }
+    const nameEnd = scanTagName(xmlString, nameStart);
     const tagName = xmlString.slice(nameStart, nameEnd).toLowerCase();
+    const tagEnd = scanTagEnd(xmlString, nameEnd);
 
-    let j = nameEnd;
-    let tagClosed = false;
-    while (j < len) {
-      const c = xmlString[j];
-      if (c === '"' || c === "'") {
-        // Skip the quoted attribute value verbatim.
-        const quote = c;
-        j++;
-        while (j < len && xmlString[j] !== quote) {
-          j++;
-        }
-        j++; // consume closing quote (safe if at end — we'll exit below)
-        continue;
-      }
-      if (c === '>') {
-        tagClosed = true;
-        break;
-      }
-      j++;
-    }
-
-    if (!tagClosed) {
+    if (tagEnd === -1) {
       // Unterminated tag — emit nothing and stop.
       break;
     }
@@ -1224,7 +1237,7 @@ export function extractTextFromXmlString(xmlString: string): string {
     if (isClosing && BLOCK_CLOSE_TAGS.has(tagName)) {
       out += '\n';
     }
-    i = j + 1;
+    i = tagEnd + 1;
   }
 
   // Decode common HTML entities.
