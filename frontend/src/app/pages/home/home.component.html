@@ -34,12 +34,12 @@
                 class="custom-search-field"
                 hideRequiredMarker="true"
                 subscriptSizing="dynamic">
-                  <input
-                    matInput
-                    id="home-mobile-search-input"
-                    [placeholder]="'home.searchProjects' | transloco"
-                    [formField]="searchForm.search"
-                    [attr.aria-label]="'home.searchProjects' | transloco" />
+                <input
+                  matInput
+                  id="home-mobile-search-input"
+                  [placeholder]="'home.searchProjects' | transloco"
+                  [formField]="searchForm.search"
+                  [attr.aria-label]="'home.searchProjects' | transloco" />
                 <mat-icon matPrefix>search</mat-icon>
                 @if (searchForm.search().value()) {
                   <button
@@ -82,12 +82,12 @@
                   class="custom-search-field"
                   hideRequiredMarker="true"
                   subscriptSizing="dynamic">
-                    <input
-                      matInput
-                      id="home-desktop-search-input"
-                      [placeholder]="'home.searchProjects' | transloco"
-                      [formField]="searchForm.search"
-                      [attr.aria-label]="'home.searchProjects' | transloco" />
+                  <input
+                    matInput
+                    id="home-desktop-search-input"
+                    [placeholder]="'home.searchProjects' | transloco"
+                    [formField]="searchForm.search"
+                    [attr.aria-label]="'home.searchProjects' | transloco" />
                   <mat-icon matPrefix>search</mat-icon>
                   @if (searchForm.search().value()) {
                     <button
