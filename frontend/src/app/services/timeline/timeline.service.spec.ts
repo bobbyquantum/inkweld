@@ -15,6 +15,7 @@ import {
   type TimelineEra,
   type TimelineEvent,
 } from '../../models/timeline.model';
+import { type AutoBuildCandidate } from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.models';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
@@ -576,7 +577,7 @@ describe('TimelineService', () => {
   // Auto-build from elements
   // ───────────────────────────────────────────────────────────────────────
 
-  describe('autoBuildFromElements', () => {
+  describe('scanAutoBuildCandidates', () => {
     const schemaWithDateField: ElementTypeSchema = {
       id: 'schema-char',
       name: 'Character',
@@ -640,11 +641,11 @@ describe('TimelineService', () => {
     it('returns null when no time system is active', async () => {
       mockElements.set([makeTimelineElement()]);
       service.loadConfig('timeline-1');
-      const result = await service.autoBuildFromElements('user', 'slug');
+      const result = await service.scanAutoBuildCandidates('user', 'slug');
       expect(result).toBeNull();
     });
 
-    it('creates events for elements with date field values', async () => {
+    it('returns candidates for elements with date field values', async () => {
       const timelineEl = makeTimelineElement();
       const charEl = makeWorldbuildingElement('char-1', 'Alice', 'schema-char');
       mockElements.set([timelineEl, charEl]);
@@ -658,21 +659,16 @@ describe('TimelineService', () => {
         birthDate: '1999-3-15',
       });
 
-      const result = await service.autoBuildFromElements('user', 'slug');
+      const candidates = await service.scanAutoBuildCandidates('user', 'slug');
 
-      expect(result).toEqual({
-        created: 1,
-        updated: 0,
-        removed: 0,
-        skipped: 0,
-      });
-      const events = service.activeConfig()?.events ?? [];
-      expect(events).toHaveLength(1);
-      expect(events[0].source).toBe('auto');
-      expect(events[0].linkedElementId).toBe('char-1');
-      expect(events[0].sourceFieldKey).toBe('birthDate');
-      expect(events[0].start.units).toEqual(['1999', '3', '15']);
-      expect(events[0].title).toBe('Alice: Birth Date');
+      expect(candidates).toHaveLength(1);
+      expect(candidates![0].elementId).toBe('char-1');
+      expect(candidates![0].elementName).toBe('Alice');
+      expect(candidates![0].fieldKey).toBe('birthDate');
+      expect(candidates![0].fieldLabel).toBe('Birth Date');
+      expect(candidates![0].rawValue).toBe('1999-3-15');
+      expect(candidates![0].timePoint.units).toEqual(['1999', '3', '15']);
+      expect(candidates![0].alreadyOnTimeline).toBe(false);
     });
 
     it('skips elements with no date fields', async () => {
@@ -691,15 +687,8 @@ describe('TimelineService', () => {
         climate: 'temperate',
       });
 
-      const result = await service.autoBuildFromElements('user', 'slug');
-
-      expect(result).toEqual({
-        created: 0,
-        updated: 0,
-        removed: 0,
-        skipped: 0,
-      });
-      expect(service.activeConfig()?.events ?? []).toHaveLength(0);
+      const candidates = await service.scanAutoBuildCandidates('user', 'slug');
+      expect(candidates).toEqual([]);
     });
 
     it('skips empty or unparseable date values', async () => {
@@ -716,106 +705,41 @@ describe('TimelineService', () => {
         birthDate: '',
       });
 
-      const result = await service.autoBuildFromElements('user', 'slug');
+      const candidates = await service.scanAutoBuildCandidates('user', 'slug');
+      expect(candidates).toEqual([]);
 
-      expect(result).toEqual({
-        created: 0,
-        updated: 0,
-        removed: 0,
-        skipped: 0,
-      });
-
-      // Now test an unparseable value
       mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
         birthDate: 'not-a-date',
       });
-      const result2 = await service.autoBuildFromElements('user', 'slug');
-      expect(result2).toEqual({
-        created: 0,
-        updated: 0,
-        removed: 0,
-        skipped: 1,
-      });
+      const candidates2 = await service.scanAutoBuildCandidates('user', 'slug');
+      expect(candidates2).toEqual([]);
     });
 
-    it('updates existing auto events in place and preserves manual events', async () => {
+    it('marks candidates already on the timeline', async () => {
       const timelineEl = makeTimelineElement();
       const charEl = makeWorldbuildingElement('char-1', 'Alice', 'schema-char');
       mockElements.set([timelineEl, charEl]);
       service.loadConfig('timeline-1');
       service.setTimeSystem(GREGORIAN_SYSTEM.id);
 
-      // First run — creates 1 auto event + 1 manual event
       mockWorldbuilding.getSchemaForElement.mockResolvedValue(
         schemaWithDateField
       );
       mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
         birthDate: '1999-3-15',
       });
-      await service.autoBuildFromElements('user', 'slug');
-      const trackId = service.activeConfig()!.tracks[0].id;
-      service.addEvent({
-        trackId,
-        title: 'Manual Event',
-        start: { systemId: GREGORIAN_SYSTEM.id, units: ['2000', '1', '1'] },
-      });
 
-      expect(service.activeConfig()?.events).toHaveLength(2);
+      // First scan + build to create the auto event
+      const candidates1 = await service.scanAutoBuildCandidates('user', 'slug');
+      service.applyAutoBuild(candidates1!);
 
-      // Second run — updates the auto event, preserves manual
-      mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
-        birthDate: '2001-6-20',
-      });
-      const result = await service.autoBuildFromElements('user', 'slug');
-
-      expect(result).toEqual({
-        created: 0,
-        updated: 1,
-        removed: 0,
-        skipped: 0,
-      });
-      const events = service.activeConfig()?.events ?? [];
-      expect(events).toHaveLength(2);
-      const autoEv = events.find(e => e.source === 'auto');
-      const manualEv = events.find(e => e.source !== 'auto');
-      expect(autoEv?.start.units).toEqual(['2001', '6', '20']);
-      expect(autoEv?.title).toBe('Alice: Birth Date');
-      expect(manualEv?.title).toBe('Manual Event');
+      // Second scan should mark it as already on timeline
+      const candidates2 = await service.scanAutoBuildCandidates('user', 'slug');
+      expect(candidates2).toHaveLength(1);
+      expect(candidates2![0].alreadyOnTimeline).toBe(true);
     });
 
-    it('removes stale auto events whose date value was cleared', async () => {
-      const timelineEl = makeTimelineElement();
-      const charEl = makeWorldbuildingElement('char-1', 'Alice', 'schema-char');
-      mockElements.set([timelineEl, charEl]);
-      service.loadConfig('timeline-1');
-      service.setTimeSystem(GREGORIAN_SYSTEM.id);
-
-      // First run — creates 1 auto event
-      mockWorldbuilding.getSchemaForElement.mockResolvedValue(
-        schemaWithDateField
-      );
-      mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
-        birthDate: '1999-3-15',
-      });
-      await service.autoBuildFromElements('user', 'slug');
-      expect(service.activeConfig()?.events).toHaveLength(1);
-
-      // Second run — date cleared, auto event should be removed
-      mockWorldbuilding.getWorldbuildingData.mockResolvedValue({
-        birthDate: '',
-      });
-      const result = await service.autoBuildFromElements('user', 'slug');
-
-      expect(result).toEqual({
-        created: 0,
-        updated: 0,
-        removed: 1,
-        skipped: 0,
-      });
-      expect(service.activeConfig()?.events ?? []).toHaveLength(0);
-    });
-
-    it('handles nested date fields inside isNested field groups', async () => {
+    it('handles nested date fields', async () => {
       const schemaWithNestedDate: ElementTypeSchema = {
         id: 'schema-nested',
         name: 'Nested',
@@ -863,18 +787,11 @@ describe('TimelineService', () => {
         appearance: { born: '1500-7-3' },
       });
 
-      const result = await service.autoBuildFromElements('user', 'slug');
+      const candidates = await service.scanAutoBuildCandidates('user', 'slug');
 
-      expect(result).toEqual({
-        created: 1,
-        updated: 0,
-        removed: 0,
-        skipped: 0,
-      });
-      const events = service.activeConfig()?.events ?? [];
-      expect(events).toHaveLength(1);
-      expect(events[0].sourceFieldKey).toBe('appearance.born');
-      expect(events[0].start.units).toEqual(['1500', '7', '3']);
+      expect(candidates).toHaveLength(1);
+      expect(candidates![0].fieldKey).toBe('appearance.born');
+      expect(candidates![0].timePoint.units).toEqual(['1500', '7', '3']);
     });
 
     it('returns null and logs error when getSchemaForElement throws', async () => {
@@ -888,8 +805,7 @@ describe('TimelineService', () => {
         new Error('Yjs connection lost')
       );
 
-      const result = await service.autoBuildFromElements('user', 'slug');
-
+      const result = await service.scanAutoBuildCandidates('user', 'slug');
       expect(result).toBeNull();
       expect(mockLogger.error).toHaveBeenCalled();
     });
@@ -908,45 +824,9 @@ describe('TimelineService', () => {
         new Error('Data read failed')
       );
 
-      const result = await service.autoBuildFromElements('user', 'slug');
-
+      const result = await service.scanAutoBuildCandidates('user', 'slug');
       expect(result).toBeNull();
       expect(mockLogger.error).toHaveBeenCalled();
-    });
-
-    it('preserves concurrent manual events added during async fetch', async () => {
-      const timelineEl = makeTimelineElement();
-      const charEl = makeWorldbuildingElement('char-1', 'Alice', 'schema-char');
-      mockElements.set([timelineEl, charEl]);
-      service.loadConfig('timeline-1');
-      service.setTimeSystem(GREGORIAN_SYSTEM.id);
-
-      mockWorldbuilding.getSchemaForElement.mockResolvedValue(
-        schemaWithDateField
-      );
-      mockWorldbuilding.getWorldbuildingData.mockImplementation(() => {
-        // Simulate a collaborator adding a manual event during the async gap
-        const config = service.activeConfig()!;
-        service.addEvent({
-          trackId: config.tracks[0].id,
-          title: 'Concurrent Manual',
-          start: { systemId: GREGORIAN_SYSTEM.id, units: ['2000', '1', '1'] },
-        });
-        return Promise.resolve({ birthDate: '1999-3-15' });
-      });
-
-      const result = await service.autoBuildFromElements('user', 'slug');
-
-      expect(result).toEqual({
-        created: 1,
-        updated: 0,
-        removed: 0,
-        skipped: 0,
-      });
-      const events = service.activeConfig()?.events ?? [];
-      expect(events).toHaveLength(2);
-      expect(events.some(e => e.title === 'Concurrent Manual')).toBe(true);
-      expect(events.some(e => e.source === 'auto')).toBe(true);
     });
 
     it('skips non-string date values', async () => {
@@ -963,14 +843,150 @@ describe('TimelineService', () => {
         birthDate: 12345,
       });
 
-      const result = await service.autoBuildFromElements('user', 'slug');
+      const candidates = await service.scanAutoBuildCandidates('user', 'slug');
+      expect(candidates).toEqual([]);
+    });
+  });
 
-      expect(result).toEqual({
-        created: 0,
-        updated: 0,
-        removed: 0,
-        skipped: 1,
+  describe('applyAutoBuild', () => {
+    function makeCandidate(
+      elementId: string,
+      elementName: string,
+      fieldKey: string,
+      fieldLabel: string,
+      rawValue: string,
+      units: string[]
+    ): AutoBuildCandidate {
+      return {
+        elementId,
+        elementName,
+        fieldKey,
+        fieldLabel,
+        rawValue,
+        timePoint: { systemId: GREGORIAN_SYSTEM.id, units },
+        alreadyOnTimeline: false,
+      };
+    }
+
+    it('returns null when no config is active', () => {
+      const result = service.applyAutoBuild([]);
+      expect(result).toBeNull();
+    });
+
+    it('returns null when no time system is active', () => {
+      mockElements.set([makeTimelineElement()]);
+      service.loadConfig('timeline-1');
+      const result = service.applyAutoBuild([
+        makeCandidate('e1', 'Alice', 'birth', 'Birth', '2000-1-1', [
+          '2000',
+          '1',
+          '1',
+        ]),
+      ]);
+      expect(result).toBeNull();
+    });
+
+    it('creates events from selected candidates', () => {
+      mockElements.set([makeTimelineElement()]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+
+      const result = service.applyAutoBuild([
+        makeCandidate('char-1', 'Alice', 'birthDate', 'Birth Date', '1999-3-15', [
+          '1999',
+          '3',
+          '15',
+        ]),
+      ]);
+
+      expect(result).toEqual({ created: 1, updated: 0, removed: 0 });
+      const events = service.activeConfig()?.events ?? [];
+      expect(events).toHaveLength(1);
+      expect(events[0].source).toBe('auto');
+      expect(events[0].linkedElementId).toBe('char-1');
+      expect(events[0].sourceFieldKey).toBe('birthDate');
+      expect(events[0].title).toBe('Alice: Birth Date');
+    });
+
+    it('updates existing auto events when re-applied', () => {
+      mockElements.set([makeTimelineElement()]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+
+      service.applyAutoBuild([
+        makeCandidate('char-1', 'Alice', 'birthDate', 'Birth Date', '1999-3-15', [
+          '1999',
+          '3',
+          '15',
+        ]),
+      ]);
+      service.applyAutoBuild([
+        makeCandidate('char-1', 'Alice', 'birthDate', 'Birth Date', '2001-6-20', [
+          '2001',
+          '6',
+          '20',
+        ]),
+      ]);
+
+      const events = service.activeConfig()?.events ?? [];
+      expect(events).toHaveLength(1);
+      expect(events[0].start.units).toEqual(['2001', '6', '20']);
+    });
+
+    it('preserves manual events', () => {
+      mockElements.set([makeTimelineElement()]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+      const trackId = service.activeConfig()!.tracks[0].id;
+
+      service.addEvent({
+        trackId,
+        title: 'Manual Event',
+        start: { systemId: GREGORIAN_SYSTEM.id, units: ['2000', '1', '1'] },
       });
+      service.applyAutoBuild([
+        makeCandidate('char-1', 'Alice', 'birthDate', 'Birth Date', '1999-3-15', [
+          '1999',
+          '3',
+          '15',
+        ]),
+      ]);
+
+      const events = service.activeConfig()?.events ?? [];
+      expect(events).toHaveLength(2);
+      expect(events.some(e => e.title === 'Manual Event')).toBe(true);
+      expect(events.some(e => e.source === 'auto')).toBe(true);
+    });
+
+    it('removes stale auto events not in selection', () => {
+      mockElements.set([makeTimelineElement()]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+
+      service.applyAutoBuild([
+        makeCandidate('char-1', 'Alice', 'birthDate', 'Birth Date', '1999-3-15', [
+          '1999',
+          '3',
+          '15',
+        ]),
+      ]);
+      expect(service.activeConfig()?.events).toHaveLength(1);
+
+      const result = service.applyAutoBuild([]);
+      expect(result).toEqual({ created: 0, updated: 0, removed: 1 });
+      expect(service.activeConfig()?.events).toHaveLength(0);
+    });
+
+    it('returns null and logs error on failure', () => {
+      mockElements.set([makeTimelineElement()]);
+      service.loadConfig('timeline-1');
+      service.setTimeSystem(GREGORIAN_SYSTEM.id);
+
+      // Pass invalid data to trigger an error
+      const result = service.applyAutoBuild(
+        null as unknown as readonly AutoBuildCandidate[]
+      );
+      expect(result).toBeNull();
     });
   });
 });

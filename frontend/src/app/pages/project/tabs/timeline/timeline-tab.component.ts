@@ -29,6 +29,13 @@ import {
   type TimelineEraDialogResult,
 } from '@dialogs/timeline-era-dialog/timeline-era-dialog.component';
 import {
+  TimelineAutoBuildDialogComponent,
+} from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.component';
+import {
+  type AutoBuildDialogData,
+  type AutoBuildDialogResult,
+} from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.models';
+import {
   TimelineEventDialogComponent,
   type TimelineEventDialogData,
   type TimelineEventDialogResult,
@@ -991,17 +998,34 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
       const username = params.get('username');
       const slug = params.get('slug');
       if (!username || !slug) return;
-      const result = await this.timelineService.autoBuildFromElements(
+
+      const candidates = await this.timelineService.scanAutoBuildCandidates(
         username,
         slug
       );
-      if (!result) return;
+      if (!candidates) return;
+
+      const dialogData: AutoBuildDialogData = {
+        candidates,
+        systemName: system.name,
+      };
+      const ref = this.dialog.open<
+        TimelineAutoBuildDialogComponent,
+        AutoBuildDialogData,
+        AutoBuildDialogResult
+      >(TimelineAutoBuildDialogComponent, { data: dialogData });
+      const result = await firstValueFrom(ref.afterClosed());
+      if (!result || result.kind !== 'build' || result.selected.length === 0) {
+        return;
+      }
+
+      const buildResult = this.timelineService.applyAutoBuild(result.selected);
+      if (!buildResult) return;
       this.logger.info(
         'Timeline',
-        `Auto-build: ${result.created} created,` +
-          ` ${result.updated} updated,` +
-          ` ${result.removed} removed,` +
-          ` ${result.skipped} skipped`
+        `Auto-build: ${buildResult.created} created,` +
+          ` ${buildResult.updated} updated,` +
+          ` ${buildResult.removed} removed`
       );
       this.fitContents();
     } catch (err) {

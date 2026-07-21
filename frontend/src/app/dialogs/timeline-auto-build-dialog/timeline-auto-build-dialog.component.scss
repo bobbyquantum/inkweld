@@ -1,0 +1,93 @@
+.content {
+  min-width: 420px;
+  max-width: 560px;
+}
+
+.dialog-hint {
+  color: var(--sys-on-surface-variant, #666);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--sys-on-surface-variant, #999);
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 8px;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 4px 0;
+  }
+
+  .muted {
+    font-size: 13px;
+    opacity: 0.7;
+  }
+}
+
+.select-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.candidate-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.candidate-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--sys-outline-variant, #e0e0e0);
+
+  &.already-on-timeline {
+    opacity: 0.6;
+  }
+
+  mat-checkbox {
+    flex: 1;
+
+    ::ng-deep .mdc-label {
+      width: 100%;
+    }
+  }
+}
+
+.candidate-info {
+  display: flex;
+  flex-direction: column;
+  margin-left: 4px;
+
+  .candidate-name {
+    font-weight: 500;
+  }
+
+  .candidate-field {
+    font-size: 13px;
+    color: var(--sys-on-surface-variant, #666);
+  }
+}
+
+.candidate-date {
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--sys-on-surface-variant, #666);
+  white-space: nowrap;
+}
+
+.on-timeline-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: var(--sys-primary, #6750a4);
+}

@@ -23,39 +23,31 @@ Timelines let you visualise the chronological flow of your story world. Each tim
 
 ## Auto-Build from Elements
 
-The **Auto-build from elements** button scans every worldbuilding element in your project, reads each schema field of type `date`, and generates a timeline event for each populated date value.
-
-![Timeline toolbar with Auto-build button](/img/generated/timeline-auto-build-toolbar.png)
-
-After clicking Auto-build, events appear on the timeline linked to their source elements:
-
-![Timeline with auto-built events](/img/generated/timeline-auto-build-events.png)
+The **Auto-build from elements** button scans every worldbuilding element in your project for date-type schema fields with populated values, then presents a selection dialog where you choose which ones to add as timeline events.
 
 ### How to Use
 
 1. Ensure your worldbuilding elements have **date fields** with values filled in (e.g. a Character with a `dateOfBirth` field set to `1198-5-12`).
 2. Open your timeline and make sure a time system is committed.
 3. Click **Auto-build from elements** in the toolbar.
-4. Events are generated and the timeline fits to show them.
+4. A dialog appears listing all candidate elements with date fields. Each row shows the element name, the field label, and the raw date value.
+5. Candidates are pre-checked by default (except those already on the timeline). Uncheck any you don't want to add.
+6. Click **Add N events** to generate the selected events on the timeline.
 
 ### What Gets Generated
 
-- One event per populated date field on each worldbuilding element.
+- One event per selected date field.
 - The event title follows the format `Element Name: Field Label` (e.g. `Elara Nightwhisper: Date of Birth`).
 - Each event is linked back to its source element via `linkedElementId`.
 - Events are placed on the first track.
 
 ### Idempotent Re-runs
 
-Auto-build is designed to be run repeatedly without creating duplicates:
+When you re-open the auto-build dialog, candidates already on the timeline are shown with a checkmark icon and unchecked by default. You can:
 
-- **Existing auto-built events are updated in place** when the source date value changes.
-- **Manually-authored events are always preserved.**
-- **Stale auto-built events are removed** when the source date field is cleared or the element is deleted.
-
-### Date Format Compatibility
-
-The date field value (from the worldbuilding editor's date picker, typically `YYYY-MM-DD`) is parsed using the timeline's active time system. For the Gregorian system, `YYYY-MM-DD` maps directly to Year-Month-Day. For other systems, the value must match that system's `parseSeparator` and unit count.
+- **Update** existing auto events by re-checking them (the date value is re-parsed from the element).
+- **Remove** auto events by leaving them unchecked — unchecked auto events are removed from the timeline when you confirm.
+- **Preserve** manually-authored events (they are never touched by auto-build).
 
 ### Limitations
 
