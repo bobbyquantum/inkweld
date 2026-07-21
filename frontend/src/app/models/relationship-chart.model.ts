@@ -24,11 +24,7 @@ import { type ElementType } from '../../api-client';
  * - 'concentric': Nodes placed on concentric circles by degree — hubs at center.
  */
 export type ChartLayout =
-  | 'force'
-  | 'hierarchical'
-  | 'circular'
-  | 'grid'
-  | 'concentric';
+  'force' | 'hierarchical' | 'circular' | 'grid' | 'concentric';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Chart Filters

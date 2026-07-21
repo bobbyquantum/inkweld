@@ -55,12 +55,7 @@ type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
  * in reverse priority order (last groups overflow first).
  */
 export type ToolbarGroupName =
-  | 'formatting'
-  | 'heading'
-  | 'alignment'
-  | 'lists'
-  | 'insert'
-  | 'history';
+  'formatting' | 'heading' | 'alignment' | 'lists' | 'insert' | 'history';
 
 /**
  * Custom Angular Material toolbar for ngx-editor / ProseMirror.

@@ -39,8 +39,7 @@ export function createAutoReviewPlugin(
       },
       apply(tr, value): AutoReviewPluginState {
         const meta = tr.getMeta(autoReviewPluginKey) as
-          | Partial<AutoReviewPluginState>
-          | undefined;
+          Partial<AutoReviewPluginState> | undefined;
         if (meta !== undefined) {
           return { ...value, ...meta };
         }

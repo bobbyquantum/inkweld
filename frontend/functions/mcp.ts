@@ -16,7 +16,7 @@ interface Env {
   BACKEND_API_HOST?: string;
 }
 
-export const onRequest: PagesFunction<Env> = async (context) => {
+export const onRequest: PagesFunction<Env> = async context => {
   const url = new URL(context.request.url);
   const hostname = url.hostname;
 

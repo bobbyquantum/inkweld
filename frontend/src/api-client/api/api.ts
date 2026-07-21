@@ -56,4 +56,34 @@ export * from './snapshots.service';
 import { SnapshotsService } from './snapshots.service';
 export * from './users.service';
 import { UsersService } from './users.service';
-export const APIS = [AIImageGenerationService, AIProvidersService, AITextGenerationService, AdminService, AdminConfigService, AdminImageAuditsService, AdminImageProfilesService, AnnouncementsService, AuthenticationService, AutoReviewService, CollaborationService, CommentsService, ConfigurationService, DocumentsService, ElementsService, HealthService, ImageProfilesService, ImagesService, LintingService, MCPService, MCPKeysService, MediaService, OAuthService, PasskeysService, ProjectsService, PublishedFilesService, ShareService, SnapshotsService, UsersService];
+export const APIS = [
+  AIImageGenerationService,
+  AIProvidersService,
+  AITextGenerationService,
+  AdminService,
+  AdminConfigService,
+  AdminImageAuditsService,
+  AdminImageProfilesService,
+  AnnouncementsService,
+  AuthenticationService,
+  AutoReviewService,
+  CollaborationService,
+  CommentsService,
+  ConfigurationService,
+  DocumentsService,
+  ElementsService,
+  HealthService,
+  ImageProfilesService,
+  ImagesService,
+  LintingService,
+  MCPService,
+  MCPKeysService,
+  MediaService,
+  OAuthService,
+  PasskeysService,
+  ProjectsService,
+  PublishedFilesService,
+  ShareService,
+  SnapshotsService,
+  UsersService,
+];

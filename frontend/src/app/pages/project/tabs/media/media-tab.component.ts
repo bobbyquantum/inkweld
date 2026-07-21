@@ -70,11 +70,7 @@ import {
 } from './media-filter-panel/media-filter-panel.component';
 
 export type MediaCategory =
-  | 'cover'
-  | 'generated'
-  | 'inline'
-  | 'published'
-  | 'other';
+  'cover' | 'generated' | 'inline' | 'published' | 'other';
 
 /**
  * Media item with additional display properties

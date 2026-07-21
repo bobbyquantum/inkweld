@@ -22,12 +22,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // File operations
   writeFile: (filePath: string, data: string | Buffer) =>
     ipcRenderer.invoke('write-file', filePath, data),
-  readFile: (filePath: string) =>
-    ipcRenderer.invoke('read-file', filePath),
+  readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
 
   // Deep link handler
   onDeepLink: (callback: (path: string) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, path: string) => callback(path);
+    const handler = (_event: Electron.IpcRendererEvent, path: string) =>
+      callback(path);
     ipcRenderer.on('deep-link', handler);
     return () => ipcRenderer.removeListener('deep-link', handler);
   },
@@ -44,10 +44,19 @@ export interface ElectronAPI {
   windowIsMaximized: () => Promise<boolean>;
   getAppVersion: () => Promise<string>;
   getPlatform: () => Promise<NodeJS.Platform>;
-  showSaveDialog: (options: Electron.SaveDialogOptions) => Promise<Electron.SaveDialogReturnValue>;
-  showOpenDialog: (options: Electron.OpenDialogOptions) => Promise<Electron.OpenDialogReturnValue>;
-  writeFile: (filePath: string, data: string | Buffer) => Promise<{ success: boolean; error?: string }>;
-  readFile: (filePath: string) => Promise<{ success: boolean; data?: Buffer; error?: string }>;
+  showSaveDialog: (
+    options: Electron.SaveDialogOptions
+  ) => Promise<Electron.SaveDialogReturnValue>;
+  showOpenDialog: (
+    options: Electron.OpenDialogOptions
+  ) => Promise<Electron.OpenDialogReturnValue>;
+  writeFile: (
+    filePath: string,
+    data: string | Buffer
+  ) => Promise<{ success: boolean; error?: string }>;
+  readFile: (
+    filePath: string
+  ) => Promise<{ success: boolean; data?: Buffer; error?: string }>;
   onDeepLink: (callback: (path: string) => void) => () => void;
   isElectron: boolean;
 }

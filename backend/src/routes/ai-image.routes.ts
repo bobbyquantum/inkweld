@@ -485,8 +485,7 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
       style,
       negativePrompt: validatedBody.negativePrompt,
       worldbuildingContext: validatedBody.worldbuildingContext as
-        | WorldbuildingContext[]
-        | undefined,
+        WorldbuildingContext[] | undefined,
       referenceImages,
       options: profileConfig || undefined,
       usesAspectRatioOnly: profile.usesAspectRatioOnly,
@@ -717,8 +716,7 @@ aiImageRoutes.post('/generate-stream', async (c) => {
     );
 
     const worldbuildingContext = validatedBody.worldbuildingContext as
-      | WorldbuildingContext[]
-      | undefined;
+      WorldbuildingContext[] | undefined;
 
     const resolvedRequest: ResolvedImageRequest = {
       prompt: validatedBody.prompt,

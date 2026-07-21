@@ -1,4 +1,12 @@
-import { app, BrowserWindow, ipcMain, shell, dialog, protocol, net } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  shell,
+  dialog,
+  protocol,
+  net,
+} from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { pathToFileURL } from 'url';
@@ -43,7 +51,7 @@ app.on('open-url', (event, url) => {
 // Parse deep link and navigate the app
 function handleDeepLink(url: string): void {
   console.log('Deep link received:', url);
-  
+
   if (!mainWindow) {
     // App not ready yet, store for later
     deepLinkUrl = url;
@@ -56,10 +64,10 @@ function handleDeepLink(url: string): void {
     const parsed = new URL(url);
     const route = parsed.pathname.replace(/^\/+/, ''); // Remove leading slashes
     const fullPath = parsed.host ? `${parsed.host}/${route}` : route;
-    
+
     // Send to renderer to handle navigation
     mainWindow.webContents.send('deep-link', fullPath);
-    
+
     // Bring window to front
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
@@ -100,7 +108,7 @@ function createWindow(): void {
   // Show window when ready to prevent visual flash
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
-    
+
     // Handle any deep link that was received before window was ready
     if (deepLinkUrl) {
       handleDeepLink(deepLinkUrl);
@@ -181,14 +189,17 @@ ipcMain.handle('show-open-dialog', async (_event, options) => {
   return result;
 });
 
-ipcMain.handle('write-file', async (_event, filePath: string, data: string | Buffer) => {
-  try {
-    fs.writeFileSync(filePath, data);
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: (error as Error).message };
+ipcMain.handle(
+  'write-file',
+  async (_event, filePath: string, data: string | Buffer) => {
+    try {
+      fs.writeFileSync(filePath, data);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   }
-});
+);
 
 ipcMain.handle('read-file', async (_event, filePath: string) => {
   try {
@@ -215,7 +226,7 @@ app.whenReady().then(() => {
   // Register custom app:// protocol to serve files from the Angular dist folder
   // This allows absolute paths like /logo.png to work correctly
   if (!isDev) {
-    protocol.handle('app', (request) => {
+    protocol.handle('app', request => {
       // Get the path from the URL (remove app://./)
       let urlPath = request.url.slice('app://./'.length);
 
@@ -269,7 +280,7 @@ app.on('second-instance', (_event, commandLine) => {
   }
 
   // Look for inkweld:// URL in command line args (Windows/Linux)
-  const url = commandLine.find((arg) => arg.startsWith('inkweld://'));
+  const url = commandLine.find(arg => arg.startsWith('inkweld://'));
   if (url) {
     handleDeepLink(url);
   }

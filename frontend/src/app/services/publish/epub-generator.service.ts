@@ -684,13 +684,11 @@ export class EpubGeneratorService {
   }
 
   private renderElementRefNode(node: ProseMirrorNode): string | null {
-    if (
-      !(
-        typeof node === 'object' &&
-        'type' in node &&
-        node.type === 'elementRef'
-      )
-    ) {
+    if (!(
+      typeof node === 'object' &&
+      'type' in node &&
+      node.type === 'elementRef'
+    )) {
       return null;
     }
 
@@ -701,14 +699,12 @@ export class EpubGeneratorService {
   }
 
   private renderMarkedTextNode(node: ProseMirrorNode): string | null {
-    if (
-      !(
-        typeof node === 'object' &&
-        'type' in node &&
-        node.type === 'text' &&
-        'text' in node
-      )
-    ) {
+    if (!(
+      typeof node === 'object' &&
+      'type' in node &&
+      node.type === 'text' &&
+      'text' in node
+    )) {
       return null;
     }
 

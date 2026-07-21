@@ -1669,9 +1669,7 @@ registerTool({
 
     const elementId = typeof args.elementId === 'string' ? args.elementId : '';
     const action = (typeof args.action === 'string' ? args.action : 'add') as
-      | 'add'
-      | 'remove'
-      | 'set';
+      'add' | 'remove' | 'set';
     const tags = (args.tags as string[]) ?? [];
 
     if (!elementId) {

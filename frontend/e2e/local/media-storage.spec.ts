@@ -115,8 +115,7 @@ async function checkSyncStateInIndexedDB(
             const getRequest = store.get(key);
             getRequest.onsuccess = () => {
               const result = getRequest.result as
-                | { pendingUploads?: string[] }
-                | undefined;
+                { pendingUploads?: string[] } | undefined;
               resolve({
                 exists: !!result,
                 pendingUploads: result?.pendingUploads,
@@ -285,8 +284,7 @@ test.describe('Local Media Storage', () => {
             const getRequest = store.get('test-key');
             getRequest.onsuccess = () => {
               const record = getRequest.result as
-                | { id: string; blob: Blob }
-                | undefined;
+                { id: string; blob: Blob } | undefined;
               resolve(!!record && !!record.blob && record.blob instanceof Blob);
             };
             getRequest.onerror = () => resolve(false);

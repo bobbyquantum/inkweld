@@ -17,9 +17,7 @@ export interface User {
 
 // Union type that accepts any of the three database types
 export type DatabaseInstance =
-  | BunDatabaseInstance
-  | BetterSqliteDatabaseInstance
-  | D1DatabaseInstance;
+  BunDatabaseInstance | BetterSqliteDatabaseInstance | D1DatabaseInstance;
 
 export type AppContext = {
   Variables: {

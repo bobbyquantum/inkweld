@@ -991,8 +991,7 @@ export class UnifiedSnapshotService {
       description: server.description ?? undefined,
       xmlContent: server.xmlContent ?? '',
       worldbuildingData: server.worldbuildingData as
-        | Record<string, unknown>
-        | undefined,
+        Record<string, unknown> | undefined,
       wordCount: server.wordCount ?? undefined,
       metadata: server.metadata as Record<string, unknown> | undefined,
       createdAt: server.createdAt,

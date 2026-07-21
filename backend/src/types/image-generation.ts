@@ -6,11 +6,7 @@
  * Supported image generation provider types
  */
 export type ImageProviderType =
-  | 'openai'
-  | 'openrouter'
-  | 'stable-diffusion'
-  | 'falai'
-  | 'workersai';
+  'openai' | 'openrouter' | 'stable-diffusion' | 'falai' | 'workersai';
 
 /**
  * Image sizes supported across providers.
@@ -478,9 +474,7 @@ export interface ImageStreamErrorEvent {
  * Union type for all streaming image generation events.
  */
 export type ImageStreamEvent =
-  | ImageStreamPartialEvent
-  | ImageStreamCompletedEvent
-  | ImageStreamErrorEvent;
+  ImageStreamPartialEvent | ImageStreamCompletedEvent | ImageStreamErrorEvent;
 
 /**
  * Interface for image generation providers
