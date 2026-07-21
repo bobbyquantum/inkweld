@@ -32,6 +32,11 @@ const sidebars: SidebarsConfig = {
     'configuration',
     {
       type: 'category',
+      label: 'User Guide',
+      items: ['user-guide/timelines'],
+    },
+    {
+      type: 'category',
       label: 'Admin Guide',
       items: [
         'admin-guide/overview',

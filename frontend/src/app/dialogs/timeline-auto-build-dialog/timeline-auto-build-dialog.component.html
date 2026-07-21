@@ -1,0 +1,81 @@
+<h2 mat-dialog-title>Auto-build from elements</h2>
+<mat-dialog-content class="content">
+  <p class="dialog-hint">
+    Select worldbuilding elements with date fields to add as events to your
+    timeline. Elements already on the timeline are unchecked by default.
+  </p>
+
+  @if (candidates.length === 0) {
+    <div class="empty-state" data-testid="auto-build-empty">
+      <mat-icon>calendar_blank</mat-icon>
+      <p>No worldbuilding elements with date fields found.</p>
+      <p class="muted">
+        Add date-type fields to your element templates and fill in values to use
+        auto-build.
+      </p>
+    </div>
+  } @else {
+    <div class="select-actions">
+      <button
+        mat-button
+        (click)="selectAll()"
+        data-testid="auto-build-select-all">
+        Select all
+      </button>
+      <button
+        mat-button
+        (click)="selectNone()"
+        data-testid="auto-build-select-none">
+        Select none
+      </button>
+    </div>
+
+    <div class="candidate-list" data-testid="auto-build-candidate-list">
+      @for (
+        candidate of candidates;
+        track candidate.elementId + '::' + candidate.fieldKey
+      ) {
+        <div
+          class="candidate-row"
+          [class.already-on-timeline]="candidate.alreadyOnTimeline">
+          <mat-checkbox
+            [checked]="isSelected(candidate)"
+            (change)="toggle(candidate)"
+            [attr.data-testid]="
+              'auto-build-candidate-' +
+              candidate.elementId +
+              '-' +
+              candidate.fieldKey
+            ">
+            <div class="candidate-info">
+              <span class="candidate-name">{{ candidate.elementName }}</span>
+              <span class="candidate-field">{{ candidate.fieldLabel }}</span>
+            </div>
+          </mat-checkbox>
+          <span class="candidate-date" data-testid="auto-build-date">
+            {{ candidate.rawValue }}
+          </span>
+          @if (candidate.alreadyOnTimeline) {
+            <mat-icon class="on-timeline-icon" matTooltip="Already on timeline">
+              check_circle
+            </mat-icon>
+          }
+        </div>
+      }
+    </div>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" data-testid="auto-build-cancel">
+    Cancel
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    [disabled]="selectedCount() === 0 || candidates.length === 0"
+    (click)="onBuild()"
+    data-testid="auto-build-confirm">
+    <mat-icon>auto_awesome</mat-icon>
+    Add {{ selectedCount() }} {{ selectedCount() === 1 ? 'event' : 'events' }}
+  </button>
+</mat-dialog-actions>

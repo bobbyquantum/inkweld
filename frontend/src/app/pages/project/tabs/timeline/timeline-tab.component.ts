@@ -23,6 +23,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
+import { TimelineAutoBuildDialogComponent } from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.component';
+import {
+  type AutoBuildDialogData,
+  type AutoBuildDialogResult,
+} from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.models';
 import {
   TimelineEraDialogComponent,
   type TimelineEraDialogData,
@@ -54,6 +59,7 @@ import {
   TIMELINE_CONFIG_META_KEY,
   TimelineService,
 } from '@services/timeline/timeline.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -188,6 +194,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   private readonly dialogs = inject(DialogGatewayService);
   private readonly presence = inject(PresenceService);
   private readonly ngZone = inject(NgZone);
+  private readonly worldbuilding = inject(WorldbuildingService);
 
   /** Stable location broadcast via presence so peers see who is here. */
   protected readonly presenceLocation = computed(() => {
@@ -975,6 +982,55 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     const { id: _id, ...rest } = result.era;
     this.timelineService.addEra(rest);
     this.fitContents();
+  }
+
+  protected readonly autoBuilding = signal(false);
+
+  protected async onAutoBuild(): Promise<void> {
+    if (this.autoBuilding()) return;
+    this.autoBuilding.set(true);
+    try {
+      const system = this.activeSystem();
+      if (!system) return;
+      const params = this.route.snapshot.paramMap;
+      const username = params.get('username');
+      const slug = params.get('slug');
+      if (!username || !slug) return;
+
+      const candidates = await this.timelineService.scanAutoBuildCandidates(
+        username,
+        slug
+      );
+      if (!candidates) return;
+
+      const dialogData: AutoBuildDialogData = {
+        candidates,
+        systemName: system.name,
+      };
+      const ref = this.dialog.open<
+        TimelineAutoBuildDialogComponent,
+        AutoBuildDialogData,
+        AutoBuildDialogResult
+      >(TimelineAutoBuildDialogComponent, { data: dialogData });
+      const result = await firstValueFrom(ref.afterClosed());
+      if (!result || result.kind !== 'build' || result.selected.length === 0) {
+        return;
+      }
+
+      const buildResult = this.timelineService.applyAutoBuild(result.selected);
+      if (!buildResult) return;
+      this.logger.info(
+        'Timeline',
+        `Auto-build: ${buildResult.created} created,` +
+          ` ${buildResult.updated} updated,` +
+          ` ${buildResult.removed} removed`
+      );
+      this.fitContents();
+    } catch (err) {
+      this.logger.error('Timeline', 'Auto-build failed', err);
+    } finally {
+      this.autoBuilding.set(false);
+    }
   }
 
   protected async onEraClick(era: TimelineEra): Promise<void> {

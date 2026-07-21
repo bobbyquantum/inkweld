@@ -190,7 +190,7 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🔥 | Timeline element type | New element for chronological visualization |
 | ✅ | 🔥 | Time systems | Define custom calendars and date formats |
 | ✅ | 🔥 | Timeline fields on elements | Add dates to worldbuilding elements |
-| ⬜ | 🔥 | Auto-build from elements | Generate timeline from element date fields |
+| ✅ | 🔥 | Auto-build from elements | Generate timeline from element date fields |
 | ✅ | 🟡 | Events system | Add events directly to timeline with element references |
 | ✅ | 🟡 | Multiple timelines | Parallel timelines for different storylines/regions |
 | ✅ | 🟢 | Era/period grouping | Visual spans for ages, reigns, wars |
