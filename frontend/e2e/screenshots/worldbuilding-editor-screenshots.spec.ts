@@ -85,7 +85,7 @@ test.describe('Worldbuilding Editor Screenshots', () => {
   ): Promise<void> {
     await test.step('editor overview (sidenav + identity)', async () => {
       await page.getByTestId('nav-identity').click();
-      await page.waitForTimeout(300);
+      await expect(page.locator('app-identity-panel')).toBeVisible();
 
       const container = page.locator('.worldbuilding-editor-container');
       await captureElementScreenshot(
@@ -98,8 +98,6 @@ test.describe('Worldbuilding Editor Screenshots', () => {
 
     await test.step('schema tab fields (Basic Info)', async () => {
       await page.getByTestId('nav-basic').click();
-      await page.waitForTimeout(300);
-
       await expect(page.getByTestId('field-fullName')).toBeVisible();
 
       const container = page.locator('.worldbuilding-editor-container');
@@ -113,7 +111,7 @@ test.describe('Worldbuilding Editor Screenshots', () => {
 
     await test.step('relationships section', async () => {
       await page.getByTestId('nav-relationships').click();
-      await page.waitForTimeout(300);
+      await expect(page.locator('app-meta-panel')).toBeVisible();
 
       const container = page.locator('.worldbuilding-editor-container');
       await captureElementScreenshot(
@@ -129,7 +127,7 @@ test.describe('Worldbuilding Editor Screenshots', () => {
 
     await test.step('media section', async () => {
       await page.getByTestId('nav-media').click();
-      await page.waitForTimeout(300);
+      await expect(page.locator('app-media-panel')).toBeVisible();
 
       const container = page.locator('.worldbuilding-editor-container');
       await captureElementScreenshot(
