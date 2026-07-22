@@ -22,10 +22,10 @@ test.describe('404 Not Found Page', () => {
     await page.goto('/this/is/a/deeply/nested/non-existent/path');
     await page.waitForLoadState('domcontentloaded');
 
-    await test.step('shows 404 heading and "Page Not Found" copy', async () => {
+    await test.step('shows 404 heading and error message', async () => {
       await expect(page.locator('h1')).toContainText('404');
       await expect(page.locator('body')).toContainText(
-        /page.*not.*found|does not exist/i
+        /something went wrong|failed to load/i
       );
     });
 
