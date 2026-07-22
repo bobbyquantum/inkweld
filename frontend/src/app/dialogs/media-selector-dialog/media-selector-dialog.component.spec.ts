@@ -5,6 +5,10 @@ import {
   LocalStorageService,
   type MediaInfo,
 } from '@services/local/local-storage.service';
+import {
+  MediaSyncService,
+  type MediaSyncState,
+} from '@services/local/media-sync.service';
 import { type MockedObject, vi } from 'vitest';
 
 import {
@@ -24,6 +28,7 @@ describe('MediaSelectorDialogComponent', () => {
   let fixture: ComponentFixture<MediaSelectorDialogComponent>;
   let dialogRef: MockedObject<MatDialogRef<MediaSelectorDialogComponent>>;
   let localStorageService: MockedObject<LocalStorageService>;
+  let mediaSyncService: MockedObject<MediaSyncService>;
 
   const mockMediaItems: MediaInfo[] = [
     {
@@ -68,6 +73,19 @@ describe('MediaSelectorDialogComponent', () => {
         .mockResolvedValue(new Blob(['test'], { type: 'image/png' })),
     } as unknown as MockedObject<LocalStorageService>;
 
+    mediaSyncService = {
+      checkSyncStatus: vi.fn().mockResolvedValue({
+        isSyncing: false,
+        lastChecked: null,
+        needsDownload: 0,
+        needsUpload: 0,
+        items: [],
+        downloadProgress: 0,
+      } satisfies MediaSyncState),
+      downloadFromServer: vi.fn().mockResolvedValue(undefined),
+      downloadAllFromServer: vi.fn().mockResolvedValue(undefined),
+    } as unknown as MockedObject<MediaSyncService>;
+
     // Mock URL.createObjectURL
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test-url');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
@@ -79,6 +97,7 @@ describe('MediaSelectorDialogComponent', () => {
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockDialogData },
         { provide: LocalStorageService, useValue: localStorageService },
+        { provide: MediaSyncService, useValue: mediaSyncService },
       ],
     }).compileComponents();
 
@@ -111,6 +130,7 @@ describe('MediaSelectorDialogComponent', () => {
           useValue: { username: 'test', slug: 'proj' },
         },
         { provide: LocalStorageService, useValue: localStorageService },
+        { provide: MediaSyncService, useValue: mediaSyncService },
       ],
     }).compileComponents();
 
@@ -153,6 +173,7 @@ describe('MediaSelectorDialogComponent', () => {
           useValue: { username: 'test', slug: 'proj', filterType: 'all' },
         },
         { provide: LocalStorageService, useValue: localStorageService },
+        { provide: MediaSyncService, useValue: mediaSyncService },
       ],
     }).compileComponents();
 
@@ -297,6 +318,7 @@ describe('MediaSelectorDialogComponent', () => {
             } satisfies MediaSelectorDialogData,
           },
           { provide: LocalStorageService, useValue: localStorageService },
+          { provide: MediaSyncService, useValue: mediaSyncService },
         ],
       }).compileComponents();
 
@@ -370,6 +392,100 @@ describe('MediaSelectorDialogComponent', () => {
 
       multiComponent.selectItem(items[1]);
       expect(multiComponent.selectedCount()).toBe(2);
+    });
+  });
+
+  describe('server-only items', () => {
+    it('needsDownload returns true for server-only items', () => {
+      const item = {
+        ...mockMediaItems[0],
+        syncStatus: 'server-only' as const,
+      };
+      expect(component.needsDownload(item)).toBe(true);
+    });
+
+    it('needsDownload returns false for local items', () => {
+      expect(component.needsDownload(mockMediaItems[0] as never)).toBe(false);
+    });
+
+    it('isDownloading returns false for items not being downloaded', () => {
+      expect(component.isDownloading(mockMediaItems[0] as never)).toBe(false);
+    });
+
+    it('downloadItem tracks downloading state and calls mediaSync', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      const serverItem = {
+        ...mockMediaItems[0],
+        filename: 'remote.png',
+        syncStatus: 'server-only' as const,
+      };
+
+      mediaSyncService.downloadFromServer.mockClear();
+      // Stub listMedia to return the item as downloaded after the reload
+      localStorageService.listMedia.mockResolvedValueOnce([serverItem]);
+
+      const downloadPromise = component.downloadItem(serverItem);
+      // While downloading, the flag should be set
+      expect(component.isDownloading(serverItem)).toBe(true);
+
+      await downloadPromise;
+      // After download completes, the flag should be cleared
+      expect(component.isDownloading(serverItem)).toBe(false);
+      expect(mediaSyncService.downloadFromServer).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'remote.png'
+      );
+    });
+
+    it('selectItem on a server-only item triggers download instead of selecting', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      const serverItem = {
+        ...mockMediaItems[0],
+        filename: 'remote.png',
+        syncStatus: 'server-only' as const,
+      };
+
+      mediaSyncService.downloadFromServer.mockClear();
+      localStorageService.listMedia.mockResolvedValueOnce([serverItem]);
+
+      const beforeSelection = component.selectedItem();
+      component.selectItem(serverItem);
+
+      // Should not select the item
+      expect(component.selectedItem()).toBe(beforeSelection);
+      // Should start downloading it (selectItem delegates to downloadItem)
+      await flushPromises();
+      expect(mediaSyncService.downloadFromServer).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'remote.png'
+      );
+    });
+
+    it('selectItem on a downloading item does not select it', () => {
+      const downloadingItem = {
+        ...mockMediaItems[0],
+        filename: 'remote.png',
+        syncStatus: 'server-only' as const,
+      };
+
+      // Manually mark as downloading
+      component['downloadingItemIds'].update(ids => {
+        const next = new Set(ids);
+        next.add(downloadingItem.mediaId);
+        return next;
+      });
+
+      const beforeSelection = component.selectedItem();
+      component.selectItem(downloadingItem);
+      expect(component.selectedItem()).toBe(beforeSelection);
     });
   });
 });
