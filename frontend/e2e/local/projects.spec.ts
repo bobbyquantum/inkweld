@@ -114,7 +114,7 @@ test.describe('Local Project Workflows', () => {
     await test.step('cancel via back button returns to home', async () => {
       await gotoProjectDetailsForm(page);
       await page.getByTestId('project-title-input').fill('Cancelled Project');
-      await page.getByLabel('Go back to home').click();
+      await page.getByLabel('Back').click();
       await expect(page).toHaveURL('/');
     });
   });
