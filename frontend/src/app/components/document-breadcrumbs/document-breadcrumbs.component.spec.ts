@@ -97,7 +97,7 @@ describe('DocumentBreadcrumbsComponent', () => {
     expect(component.fullPath()).toBe('Part One › Chapter Two › Scene 3');
   });
 
-  it('exposes parentId and nextBranchId for each segment', () => {
+  it('exposes nextBranchId for each segment', () => {
     elementsSignal.set([
       makeElement('root', 'Part One', null, ElementType.Folder),
       makeElement('mid', 'Chapter Two', 'root', ElementType.Folder),
@@ -107,7 +107,6 @@ describe('DocumentBreadcrumbsComponent', () => {
     fixture.detectChanges();
 
     const segs = component.segments();
-    expect(segs.map(s => s.parentId)).toEqual([null, 'root', 'mid']);
     expect(segs.map(s => s.nextBranchId)).toEqual(['mid', 'leaf', null]);
   });
 

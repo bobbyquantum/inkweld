@@ -61,7 +61,45 @@ interface MenuRow {
   ],
   template: `
     <mat-menu #menu="matMenu" class="breadcrumb-flyout-menu">
-      @if (rows().length === 0) {
+      @for (row of rows(); track row.element.id) {
+        @if (row.isFolder) {
+          <button
+            mat-menu-item
+            [matMenuTriggerFor]="childMenu.menu"
+            [class.current-branch]="row.isCurrentBranch"
+            [attr.data-testid]="'breadcrumb-flyout-row-' + row.element.id"
+            [attr.aria-haspopup]="true">
+            <app-tree-node-icon
+              [isExpandable]="true"
+              [isExpanded]="false"
+              [type]="row.element.type"
+              [schemaId]="row.element.schemaId"
+              [metadata]="row.element.metadata" />
+            <span>{{ row.element.name || 'Untitled' }}</span>
+            <mat-icon class="breadcrumb-flyout-chevron" matMenuIcon>
+              chevron_right
+            </mat-icon>
+          </button>
+          <app-breadcrumb-menu
+            #childMenu="appBreadcrumbMenu"
+            [parentId]="row.element.id"
+            [currentBranchId]="nextBranchIdFor(row.element.id)"
+            [visited]="visitedWithCurrentParent()" />
+        } @else {
+          <button
+            mat-menu-item
+            (click)="openElement(row.element)"
+            [class.current-branch]="row.isCurrentBranch"
+            [attr.data-testid]="'breadcrumb-flyout-row-' + row.element.id">
+            <app-tree-node-icon
+              [isExpandable]="false"
+              [type]="row.element.type"
+              [schemaId]="row.element.schemaId"
+              [metadata]="row.element.metadata" />
+            <span>{{ row.element.name || 'Untitled' }}</span>
+          </button>
+        }
+      } @empty {
         <div class="breadcrumb-flyout-empty" mat-menu-item disabled>
           <app-tree-node-icon
             [isExpandable]="true"
@@ -69,46 +107,6 @@ interface MenuRow {
             [type]="ElementType.Folder" />
           <span>Empty folder</span>
         </div>
-      } @else {
-        @for (row of rows(); track row.element.id) {
-          @if (row.isFolder) {
-            <button
-              mat-menu-item
-              [matMenuTriggerFor]="childMenu.menu"
-              [class.current-branch]="row.isCurrentBranch"
-              [attr.data-testid]="'breadcrumb-flyout-row-' + row.element.id"
-              [attr.aria-haspopup]="true">
-              <app-tree-node-icon
-                [isExpandable]="true"
-                [isExpanded]="false"
-                [type]="row.element.type"
-                [schemaId]="row.element.schemaId"
-                [metadata]="row.element.metadata" />
-              <span>{{ row.element.name || 'Untitled' }}</span>
-              <mat-icon class="breadcrumb-flyout-chevron" matMenuIcon>
-                chevron_right
-              </mat-icon>
-            </button>
-            <app-breadcrumb-menu
-              #childMenu="appBreadcrumbMenu"
-              [parentId]="row.element.id"
-              [currentBranchId]="nextBranchIdFor(row.element.id)"
-              [visited]="visitedWith(row.element.id)" />
-          } @else {
-            <button
-              mat-menu-item
-              (click)="openElement(row.element)"
-              [class.current-branch]="row.isCurrentBranch"
-              [attr.data-testid]="'breadcrumb-flyout-row-' + row.element.id">
-              <app-tree-node-icon
-                [isExpandable]="false"
-                [type]="row.element.type"
-                [schemaId]="row.element.schemaId"
-                [metadata]="row.element.metadata" />
-              <span>{{ row.element.name || 'Untitled' }}</span>
-            </button>
-          }
-        }
       }
     </mat-menu>
   `,
@@ -213,12 +211,14 @@ export class BreadcrumbMenuComponent {
   }
 
   /**
-   * Returns a new visited set with `id` added, for passing to nested menus.
-   * Immutable so Angular change detection sees a fresh reference.
+   * Returns a new visited set with this level's own `parentId` added, for
+   * passing to nested menus. Immutable so Angular change detection sees a
+   * fresh reference.
    */
-  visitedWith(id: string): ReadonlySet<string> {
+  visitedWithCurrentParent(): ReadonlySet<string> {
     const next = new Set(this.visited());
-    next.add(id);
+    const parent = this.parentId();
+    if (parent !== null) next.add(parent);
     return next;
   }
 }

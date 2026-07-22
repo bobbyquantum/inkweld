@@ -181,16 +181,28 @@ describe('BreadcrumbMenuComponent', () => {
     });
   });
 
-  describe('visitedWith', () => {
-    it('returns a new set with the id added, leaving the input set untouched', () => {
-      const original = new Set(['x']);
+  describe('visitedWithCurrentParent', () => {
+    it('returns a new set with the current parentId added', () => {
+      const original = new Set<string>(['x']);
       fixture.componentRef.setInput('visited', original);
+      fixture.componentRef.setInput('parentId', 'root');
       fixture.detectChanges();
 
-      const next = component.visitedWith('y');
-      expect(next.has('y')).toBe(true);
+      const next = component.visitedWithCurrentParent();
+      expect(next.has('root')).toBe(true);
       expect(next.has('x')).toBe(true);
-      expect(original.has('y')).toBe(false);
+      expect(original.has('root')).toBe(false);
+    });
+
+    it('does not add anything when parentId is null', () => {
+      const original = new Set<string>(['x']);
+      fixture.componentRef.setInput('visited', original);
+      fixture.componentRef.setInput('parentId', null);
+      fixture.detectChanges();
+
+      const next = component.visitedWithCurrentParent();
+      expect(next.has('x')).toBe(true);
+      expect(next.size).toBe(1);
     });
   });
 });

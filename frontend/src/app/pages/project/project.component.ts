@@ -38,7 +38,6 @@ import { ProjectActivationService } from '@services/local/project-activation.ser
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
 import { DocumentService } from '@services/project/document.service';
-import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
@@ -108,7 +107,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly mediaAutoSync = inject(MediaAutoSyncService);
   private readonly activationService = inject(ProjectActivationService);
   private readonly logger = inject(LoggerService);
-  private readonly elementNavigation = inject(ElementNavigationService);
 
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
 
@@ -381,8 +379,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     return element.type === ElementType.Folder ? 'folder' : 'description';
   }
 
-  onDocumentOpened = (element: Element) => {
-    this.elementNavigation.openElement(element);
+  onDocumentOpened = (_element: Element) => {
+    // The tree already opens the element + navigates before emitting
+    // documentOpened, so we only handle the mobile sidenav close here.
     if (this.isMobile()) {
       void this.sidenav.close();
     }

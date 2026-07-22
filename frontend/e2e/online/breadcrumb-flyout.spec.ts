@@ -73,24 +73,20 @@ test.describe('Breadcrumb quick-nav flyout', () => {
 
     // 6) Click the folder segment in the breadcrumb — should open the flyout
     //    listing the folder's children (Scene A and Scene B).
-    const segmentButton = breadcrumbs
-      .locator('.breadcrumb-segment-button')
-      .first();
-    await expect(segmentButton).toContainText(folderName);
+    const segmentButton = breadcrumbs.getByRole('button', { name: folderName });
+    await expect(segmentButton).toBeVisible();
     await segmentButton.click();
 
-    // The flyout renders in a cdk-overlay-pane. Wait for the menu items.
-    // Material menu items have the .mat-mdc-menu-item class.
+    // The flyout renders in a cdk-overlay-pane.
     const flyout = page.locator('.cdk-overlay-pane').last();
     await expect(flyout).toBeVisible();
 
-    // Both sibling documents should be listed in the flyout.
-    // Use getByText with exact match to avoid matching substrings.
-    await expect(flyout.getByText(docA, { exact: true })).toBeVisible();
-    await expect(flyout.getByText(docB, { exact: true })).toBeVisible();
+    // Both child documents should be listed as menu items in the flyout.
+    await expect(flyout.getByRole('menuitem', { name: docA })).toBeVisible();
+    await expect(flyout.getByRole('menuitem', { name: docB })).toBeVisible();
 
     // 7) Click "Scene B" in the flyout — should navigate to Scene B.
-    await flyout.getByText(docB, { exact: true }).click();
+    await flyout.getByRole('menuitem', { name: docB }).click();
 
     // The breadcrumb should now show Scene B as the current document.
     await expect(breadcrumbs).toContainText(docB);

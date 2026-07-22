@@ -24,12 +24,6 @@ export interface BreadcrumbSegment {
   /** True when this segment represents the currently-open document/element (last segment). */
   isCurrent: boolean;
   /**
-   * Parent id of this segment's element. The flyout for this segment lists
-   * the children of `parentId` (i.e. this segment's siblings). `null` for the
-   * root segment, which lists all top-level elements.
-   */
-  parentId: string | null;
-  /**
    * Id of the next segment along the chain (the child of this segment on the
    * path to the current element). Passed as `currentBranchId` to the flyout
    * so the "you are here" row is highlighted. `null` for the last segment.
@@ -42,9 +36,9 @@ export interface BreadcrumbSegment {
  * currently-open document or element, e.g. "Part One › Chapter Two › Scene 3".
  *
  * Every segment except the last (current) is clickable: clicking it opens a
- * Material flyout listing that segment's siblings (children of its parent),
- * with folders expanding into nested submenus. Lets you jump anywhere in the
- * tree without back-tracking. The current/last segment stays static.
+ * Material flyout listing that segment's children, with folders expanding
+ * into nested submenus. Lets you jump anywhere in the tree without
+ * back-tracking. The current/last segment stays static.
  *
  * Visibility is gated on the `showBreadcrumbs` user setting and only renders
  * when the element has at least one ancestor.
@@ -95,7 +89,6 @@ export class DocumentBreadcrumbsComponent {
       id: el.id,
       name: el.name || 'Untitled',
       isCurrent: index === chain.length - 1,
-      parentId: el.parentId,
       nextBranchId: index < chain.length - 1 ? chain[index + 1].id : null,
     }));
   });
