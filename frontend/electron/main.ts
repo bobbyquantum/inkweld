@@ -10,23 +10,8 @@ import {
 import * as path from 'path';
 import * as fs from 'fs';
 import { pathToFileURL } from 'url';
-import { homedir } from 'os';
 
 let mainWindow: BrowserWindow | null = null;
-
-const ALLOWED_BASE_DIRS = [
-  homedir(),
-  app.getPath('documents'),
-  app.getPath('downloads'),
-  app.getPath('desktop'),
-  app.getPath('userData'),
-];
-
-function isPathAllowed(resolvedPath: string): boolean {
-  return ALLOWED_BASE_DIRS.some(
-    base => resolvedPath === base || resolvedPath.startsWith(base + path.sep)
-  );
-}
 
 // Determine if we're in development mode
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -205,29 +190,31 @@ ipcMain.handle('show-open-dialog', async (_event, options) => {
 });
 
 ipcMain.handle(
-  'write-file',
-  async (_event, filePath: string, data: string | Buffer) => {
+  'save-file-with-dialog',
+  async (_event, data: string | Buffer, options) => {
+    if (!mainWindow) return { saved: false };
     try {
-      const safePath = path.resolve(filePath);
-      if (!isPathAllowed(safePath)) {
-        return { success: false, error: 'Access denied: path not allowed' };
+      const result = await dialog.showSaveDialog(mainWindow, options);
+      if (result.canceled || !result.filePath) {
+        return { saved: false };
       }
-      fs.writeFileSync(safePath, data);
-      return { success: true };
+      fs.writeFileSync(result.filePath, data);
+      return { saved: true, filePath: result.filePath };
     } catch (error) {
-      return { success: false, error: (error as Error).message };
+      return { saved: false, error: (error as Error).message };
     }
   }
 );
 
-ipcMain.handle('read-file', async (_event, filePath: string) => {
+ipcMain.handle('open-and-read-file', async (_event, options) => {
+  if (!mainWindow) return { success: false };
   try {
-    const safePath = path.resolve(filePath);
-    if (!isPathAllowed(safePath)) {
-      return { success: false, error: 'Access denied: path not allowed' };
+    const result = await dialog.showOpenDialog(mainWindow, options);
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false };
     }
-    const data = fs.readFileSync(safePath);
-    return { success: true, data };
+    const data = fs.readFileSync(result.filePaths[0]);
+    return { success: true, data, filePath: result.filePaths[0] };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }

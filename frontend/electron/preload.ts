@@ -19,10 +19,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke('show-open-dialog', options),
 
-  // File operations
-  writeFile: (filePath: string, data: string | Buffer) =>
-    ipcRenderer.invoke('write-file', filePath, data),
-  readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
+  // File operations (dialog + file I/O combined in main process)
+  saveFileWithDialog: (data: string | Buffer, options: Electron.SaveDialogOptions) =>
+    ipcRenderer.invoke('save-file-with-dialog', data, options),
+  openAndReadFile: (options: Electron.OpenDialogOptions) =>
+    ipcRenderer.invoke('open-and-read-file', options),
 
   // Deep link handler
   onDeepLink: (callback: (path: string) => void) => {
@@ -50,13 +51,13 @@ export interface ElectronAPI {
   showOpenDialog: (
     options: Electron.OpenDialogOptions
   ) => Promise<Electron.OpenDialogReturnValue>;
-  writeFile: (
-    filePath: string,
-    data: string | Buffer
-  ) => Promise<{ success: boolean; error?: string }>;
-  readFile: (
-    filePath: string
-  ) => Promise<{ success: boolean; data?: Buffer; error?: string }>;
+  saveFileWithDialog: (
+    data: string | Buffer,
+    options: Electron.SaveDialogOptions
+  ) => Promise<{ saved: boolean; filePath?: string; error?: string }>;
+  openAndReadFile: (
+    options: Electron.OpenDialogOptions
+  ) => Promise<{ success: boolean; data?: Buffer; filePath?: string; error?: string }>;
   onDeepLink: (callback: (path: string) => void) => () => void;
   isElectron: boolean;
 }
