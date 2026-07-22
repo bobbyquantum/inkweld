@@ -22,10 +22,9 @@ const ALLOWED_BASE_DIRS = [
   app.getPath('userData'),
 ];
 
-function isPathAllowed(filePath: string): boolean {
-  const resolved = path.resolve(filePath);
+function isPathAllowed(resolvedPath: string): boolean {
   return ALLOWED_BASE_DIRS.some(
-    base => resolved === base || resolved.startsWith(base + path.sep)
+    base => resolvedPath === base || resolvedPath.startsWith(base + path.sep)
   );
 }
 
@@ -209,10 +208,11 @@ ipcMain.handle(
   'write-file',
   async (_event, filePath: string, data: string | Buffer) => {
     try {
-      if (!isPathAllowed(filePath)) {
+      const safePath = path.resolve(filePath);
+      if (!isPathAllowed(safePath)) {
         return { success: false, error: 'Access denied: path not allowed' };
       }
-      fs.writeFileSync(path.resolve(filePath), data);
+      fs.writeFileSync(safePath, data);
       return { success: true };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -222,10 +222,11 @@ ipcMain.handle(
 
 ipcMain.handle('read-file', async (_event, filePath: string) => {
   try {
-    if (!isPathAllowed(filePath)) {
+    const safePath = path.resolve(filePath);
+    if (!isPathAllowed(safePath)) {
       return { success: false, error: 'Access denied: path not allowed' };
     }
-    const data = fs.readFileSync(path.resolve(filePath));
+    const data = fs.readFileSync(safePath);
     return { success: true, data };
   } catch (error) {
     return { success: false, error: (error as Error).message };
