@@ -77,7 +77,7 @@ export class OAuthCallbackComponent implements OnInit {
     }
   }
 
-  private getErrorMessage(error: string): string {
+  private getErrorMessage(_error: string): string {
     // All error cases map to the same generic message
     return this.transloco.translate('errors.unknown');
   }
