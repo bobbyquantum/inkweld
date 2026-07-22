@@ -70,6 +70,7 @@ test.describe('Relationship Chart Screenshots', () => {
   test('relationship chart screenshots — light mode', async ({
     offlinePage: page,
   }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await setupProjectAndChart(page, 'chart-light', 'Chart Demo');
     await expect(page.locator('[data-testid="chart-container"]')).toBeVisible();
 
@@ -97,6 +98,7 @@ test.describe('Relationship Chart Screenshots', () => {
   test('relationship chart screenshots — dark mode', async ({
     offlinePage: page,
   }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.emulateMedia({ colorScheme: 'dark' });
     await setupProjectAndChart(page, 'chart-dark', 'Chart Demo');
     await expect(page.locator('[data-testid="chart-container"]')).toBeVisible();

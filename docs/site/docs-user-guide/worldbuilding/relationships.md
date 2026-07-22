@@ -173,4 +173,5 @@ To change a relationship's type or target:
 
 ---
 
-**Next:** [Real-Time Collaboration](../collaboration/real-time) - Write together with co-authors simultaneously.
+**Previous:** [Element References](./element-references) — Link elements with @mentions.
+**Next:** [Relationship Charts](./relationship-charts) — Visualize connections as interactive graphs.
