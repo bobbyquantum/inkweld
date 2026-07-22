@@ -53,5 +53,12 @@
     "deactivateTitle": "Deactivate Project",
     "deactivateMessage": "Deactivate \"{{title}}\"? All local data for this project will be removed from this device. You can reactivate it anytime.",
     "deactivate": "Deactivate"
+  },
+  "writingStats": {
+    "title": "Writing Stats",
+    "activeDays": "active days",
+    "projects": "projects",
+    "bestDay": "best day",
+    "recentActivity": "Recent Activity"
   }
 }
