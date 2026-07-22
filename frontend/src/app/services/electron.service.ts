@@ -24,9 +24,7 @@ export interface ElectronAPI {
     data: string | ArrayBuffer,
     options: SaveDialogOptions
   ) => Promise<{ saved: boolean; filePath?: string; error?: string }>;
-  openAndReadFile: (
-    options: OpenDialogOptions
-  ) => Promise<{
+  openAndReadFile: (options: OpenDialogOptions) => Promise<{
     success: boolean;
     data?: ArrayBuffer;
     filePath?: string;
