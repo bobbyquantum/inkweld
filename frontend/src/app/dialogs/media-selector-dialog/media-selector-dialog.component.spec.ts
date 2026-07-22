@@ -5,6 +5,10 @@ import {
   LocalStorageService,
   type MediaInfo,
 } from '@services/local/local-storage.service';
+import {
+  MediaSyncService,
+  type MediaSyncState,
+} from '@services/local/media-sync.service';
 import { type MockedObject, vi } from 'vitest';
 
 import {
@@ -24,6 +28,7 @@ describe('MediaSelectorDialogComponent', () => {
   let fixture: ComponentFixture<MediaSelectorDialogComponent>;
   let dialogRef: MockedObject<MatDialogRef<MediaSelectorDialogComponent>>;
   let localStorageService: MockedObject<LocalStorageService>;
+  let mediaSyncService: MockedObject<MediaSyncService>;
 
   const mockMediaItems: MediaInfo[] = [
     {
@@ -68,6 +73,19 @@ describe('MediaSelectorDialogComponent', () => {
         .mockResolvedValue(new Blob(['test'], { type: 'image/png' })),
     } as unknown as MockedObject<LocalStorageService>;
 
+    mediaSyncService = {
+      checkSyncStatus: vi.fn().mockResolvedValue({
+        isSyncing: false,
+        lastChecked: null,
+        needsDownload: 0,
+        needsUpload: 0,
+        items: [],
+        downloadProgress: 0,
+      } satisfies MediaSyncState),
+      downloadFromServer: vi.fn().mockResolvedValue(undefined),
+      downloadAllFromServer: vi.fn().mockResolvedValue(undefined),
+    } as unknown as MockedObject<MediaSyncService>;
+
     // Mock URL.createObjectURL
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test-url');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
@@ -79,6 +97,7 @@ describe('MediaSelectorDialogComponent', () => {
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockDialogData },
         { provide: LocalStorageService, useValue: localStorageService },
+        { provide: MediaSyncService, useValue: mediaSyncService },
       ],
     }).compileComponents();
 
@@ -111,6 +130,7 @@ describe('MediaSelectorDialogComponent', () => {
           useValue: { username: 'test', slug: 'proj' },
         },
         { provide: LocalStorageService, useValue: localStorageService },
+        { provide: MediaSyncService, useValue: mediaSyncService },
       ],
     }).compileComponents();
 
@@ -153,6 +173,7 @@ describe('MediaSelectorDialogComponent', () => {
           useValue: { username: 'test', slug: 'proj', filterType: 'all' },
         },
         { provide: LocalStorageService, useValue: localStorageService },
+        { provide: MediaSyncService, useValue: mediaSyncService },
       ],
     }).compileComponents();
 
@@ -297,6 +318,7 @@ describe('MediaSelectorDialogComponent', () => {
             } satisfies MediaSelectorDialogData,
           },
           { provide: LocalStorageService, useValue: localStorageService },
+          { provide: MediaSyncService, useValue: mediaSyncService },
         ],
       }).compileComponents();
 
@@ -370,6 +392,392 @@ describe('MediaSelectorDialogComponent', () => {
 
       multiComponent.selectItem(items[1]);
       expect(multiComponent.selectedCount()).toBe(2);
+    });
+  });
+
+  describe('server-only items', () => {
+    it('needsDownload returns true for server-only items', () => {
+      const item = {
+        ...mockMediaItems[0],
+        syncStatus: 'server-only' as const,
+      };
+      expect(component.needsDownload(item)).toBe(true);
+    });
+
+    it('needsDownload returns false for local items', () => {
+      expect(component.needsDownload(mockMediaItems[0] as never)).toBe(false);
+    });
+
+    it('isDownloading returns false for items not being downloaded', () => {
+      expect(component.isDownloading(mockMediaItems[0] as never)).toBe(false);
+    });
+
+    it('downloadItem tracks downloading state and calls mediaSync', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      const serverItem = {
+        ...mockMediaItems[0],
+        filename: 'remote.png',
+        syncStatus: 'server-only' as const,
+      };
+
+      mediaSyncService.downloadFromServer.mockClear();
+      // Stub listMedia to return the item as downloaded after the reload
+      localStorageService.listMedia.mockResolvedValueOnce([serverItem]);
+
+      const downloadPromise = component.downloadItem(serverItem);
+      // While downloading, the flag should be set
+      expect(component.isDownloading(serverItem)).toBe(true);
+
+      await downloadPromise;
+      // After download completes, the flag should be cleared
+      expect(component.isDownloading(serverItem)).toBe(false);
+      expect(mediaSyncService.downloadFromServer).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'remote.png'
+      );
+    });
+
+    it('selectItem on a server-only item triggers download instead of selecting', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      const serverItem = {
+        ...mockMediaItems[0],
+        filename: 'remote.png',
+        syncStatus: 'server-only' as const,
+      };
+
+      mediaSyncService.downloadFromServer.mockClear();
+      localStorageService.listMedia.mockResolvedValueOnce([serverItem]);
+
+      const beforeSelection = component.selectedItem();
+      component.selectItem(serverItem);
+
+      // Should not select the item
+      expect(component.selectedItem()).toBe(beforeSelection);
+      // Should start downloading it (selectItem delegates to downloadItem)
+      await flushPromises();
+      expect(mediaSyncService.downloadFromServer).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'remote.png'
+      );
+    });
+
+    it('selectItem on a downloading item does not select it', () => {
+      const downloadingItem = {
+        ...mockMediaItems[0],
+        filename: 'remote.png',
+        syncStatus: 'server-only' as const,
+      };
+
+      // Manually mark as downloading
+      component['downloadingItemIds'].update(ids => {
+        const next = new Set(ids);
+        next.add(downloadingItem.mediaId);
+        return next;
+      });
+
+      const beforeSelection = component.selectedItem();
+      component.selectItem(downloadingItem);
+      expect(component.selectedItem()).toBe(beforeSelection);
+    });
+
+    it('downloadItem does nothing when item has no filename', async () => {
+      const noFilenameItem = {
+        ...mockMediaItems[0],
+        filename: undefined,
+        syncStatus: 'server-only' as const,
+      };
+
+      mediaSyncService.downloadFromServer.mockClear();
+      await component.downloadItem(noFilenameItem);
+      expect(mediaSyncService.downloadFromServer).not.toHaveBeenCalled();
+    });
+
+    it('downloadItem does nothing when already downloading', async () => {
+      const item = {
+        ...mockMediaItems[0],
+        filename: 'remote.png',
+        syncStatus: 'server-only' as const,
+      };
+
+      // Mark as already downloading
+      component['downloadingItemIds'].update(ids => {
+        const next = new Set(ids);
+        next.add(item.mediaId);
+        return next;
+      });
+
+      mediaSyncService.downloadFromServer.mockClear();
+      await component.downloadItem(item);
+      expect(mediaSyncService.downloadFromServer).not.toHaveBeenCalled();
+    });
+
+    it('downloadItem sets error message on download failure', async () => {
+      const item = {
+        ...mockMediaItems[0],
+        filename: 'broken.png',
+        syncStatus: 'server-only' as const,
+      };
+
+      mediaSyncService.downloadFromServer.mockRejectedValueOnce(
+        new Error('Network error')
+      );
+      // Stub listMedia so the reload in downloadItem doesn't hang
+      localStorageService.listMedia.mockResolvedValue([item]);
+
+      const beforeError = component.error();
+      await component.downloadItem(item);
+
+      expect(component.error()).toContain('broken.png');
+      expect(component.error()).not.toBe(beforeError);
+      // Flag should be cleared even on failure
+      expect(component.isDownloading(item)).toBe(false);
+    });
+  });
+
+  describe('checkServerMedia with server-only items', () => {
+    it('should add server-only items as placeholders and auto-download', async () => {
+      // Set up checkSyncStatus to return server-only items
+      const serverItems = [
+        {
+          mediaId: 'server-1',
+          filename: 'server-img.png',
+          size: 500,
+          mimeType: 'image/png',
+          status: 'server-only' as const,
+          server: {
+            filename: 'server-img.png',
+            size: 500,
+            mimeType: 'image/png',
+            uploadedAt: '2024-01-04T00:00:00Z',
+          },
+        },
+        {
+          mediaId: 'server-2',
+          filename: 'server-img2.jpg',
+          size: 600,
+          mimeType: 'image/jpeg',
+          status: 'server-only' as const,
+          server: {
+            filename: 'server-img2.jpg',
+            size: 600,
+            mimeType: 'image/jpeg',
+            uploadedAt: '2024-01-05T00:00:00Z',
+          },
+        },
+      ];
+
+      // After the first checkServerMedia call (which triggers auto-download),
+      // loadMedia runs again and calls checkServerMedia. Break the cycle by
+      // returning empty items on subsequent calls.
+      let syncCallCount = 0;
+      mediaSyncService.checkSyncStatus.mockImplementation(() => {
+        syncCallCount++;
+        if (syncCallCount <= 1) {
+          return Promise.resolve({
+            isSyncing: false,
+            lastChecked: null,
+            needsDownload: serverItems.length,
+            needsUpload: 0,
+            items: serverItems,
+            downloadProgress: 0,
+          });
+        }
+        return Promise.resolve({
+          isSyncing: false,
+          lastChecked: null,
+          needsDownload: 0,
+          needsUpload: 0,
+          items: [],
+          downloadProgress: 0,
+        });
+      });
+      mediaSyncService.downloadAllFromServer.mockClear();
+      mediaSyncService.downloadAllFromServer.mockResolvedValue(undefined);
+
+      // Clear local items so only server items remain
+      localStorageService.listMedia.mockResolvedValue([]);
+
+      // Call checkServerMedia directly with an empty local items array.
+      // Set projectKey first since ngOnInit hasn't run yet.
+      component['projectKey'] = 'testuser/test-project';
+      await component['checkServerMedia']([]);
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      // Should auto-download since no local items exist
+      expect(mediaSyncService.downloadAllFromServer).toHaveBeenCalledWith(
+        'testuser/test-project'
+      );
+      // After auto-download completes, serverItemsCount is reset to 0
+      expect(component.serverItemsCount()).toBe(0);
+      // Downloading flags should be cleared after completion
+      expect(component.downloadingItemIds().size).toBe(0);
+    });
+
+    it('should not auto-download when local items exist', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      const serverItems = [
+        {
+          mediaId: 'media-1', // Same as local — should be skipped
+          filename: 'image1.png',
+          size: 1024,
+          mimeType: 'image/png',
+          status: 'server-only' as const,
+          server: {
+            filename: 'image1.png',
+            size: 1024,
+            mimeType: 'image/png',
+            uploadedAt: '2024-01-01T00:00:00Z',
+          },
+        },
+        {
+          mediaId: 'server-extra',
+          filename: 'extra.png',
+          size: 300,
+          mimeType: 'image/png',
+          status: 'server-only' as const,
+          server: {
+            filename: 'extra.png',
+            size: 300,
+            mimeType: 'image/png',
+            uploadedAt: '2024-01-06T00:00:00Z',
+          },
+        },
+      ];
+
+      mediaSyncService.checkSyncStatus.mockResolvedValue({
+        isSyncing: false,
+        lastChecked: null,
+        needsDownload: serverItems.length,
+        needsUpload: 0,
+        items: serverItems,
+        downloadProgress: 0,
+      });
+      mediaSyncService.downloadAllFromServer.mockClear();
+      mediaSyncService.downloadAllFromServer.mockResolvedValue(undefined);
+
+      // Call checkServerMedia with a local item — should NOT auto-download
+      const localItem = { ...mockMediaItems[0] };
+      await component['checkServerMedia']([localItem]);
+      await flushPromises();
+      await flushPromises();
+
+      // Should not auto-download because local items exist
+      expect(mediaSyncService.downloadAllFromServer).not.toHaveBeenCalled();
+
+      // Should skip server items that exist locally
+      const items = component.mediaItems();
+      const serverOnly = items.filter(i => i.syncStatus === 'server-only');
+      expect(serverOnly).toHaveLength(1);
+      expect(serverOnly[0].mediaId).toBe('server-extra');
+    });
+  });
+
+  describe('syncFromServer', () => {
+    it('should sync all media and reset state', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      mediaSyncService.downloadAllFromServer.mockClear();
+      localStorageService.listMedia.mockResolvedValueOnce([mockMediaItems[0]]);
+
+      await component.syncFromServer();
+
+      expect(mediaSyncService.downloadAllFromServer).toHaveBeenCalledWith(
+        'testuser/test-project'
+      );
+      expect(component.isSyncing()).toBe(false);
+      expect(component.serverItemsCount()).toBe(0);
+    });
+
+    it('should set error on sync failure', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      mediaSyncService.downloadAllFromServer.mockRejectedValueOnce(
+        new Error('Sync failed')
+      );
+
+      await component.syncFromServer();
+
+      expect(component.error()).toBe('Failed to sync media from server');
+      expect(component.isSyncing()).toBe(false);
+    });
+  });
+
+  describe('clearSearch', () => {
+    it('should reset the search query', () => {
+      component.searchQuery.set('test query');
+      expect(component.searchQuery()).toBe('test query');
+
+      component.clearSearch();
+      expect(component.searchQuery()).toBe('');
+    });
+  });
+
+  describe('filteredItems', () => {
+    it('should return all items when no search query', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      component.searchQuery.set('');
+      expect(component.filteredItems()).toHaveLength(
+        component.mediaItems().length
+      );
+    });
+
+    it('should filter items by filename', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      component.searchQuery.set('image1');
+      const filtered = component.filteredItems();
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].filename).toBe('image1.png');
+    });
+
+    it('should filter items by mediaId', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      component.searchQuery.set('media-2');
+      const filtered = component.filteredItems();
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].mediaId).toBe('media-2');
+    });
+
+    it('should return empty when no match', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      component.searchQuery.set('nonexistent');
+      expect(component.filteredItems()).toHaveLength(0);
     });
   });
 });
