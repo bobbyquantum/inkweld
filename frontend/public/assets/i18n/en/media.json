@@ -1,4 +1,10 @@
 {
+  "alt": {
+    "reference": "{{name}} reference",
+    "generatingPreview": "Generating preview...",
+    "selectedPreview": "Selected preview",
+    "generatedResult": "Generated result {{index}}"
+  },
   "tab": {
     "searchAria": "Search media, elements, or tags",
     "searchPlaceholder": "Search media, elements, or tags...",
