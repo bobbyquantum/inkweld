@@ -1,16 +1,15 @@
 <form
-  [formGroup]="registerForm"
-  (ngSubmit)="submit()"
+  (submit)="$event.preventDefault(); submit()"
   class="registration-form"
   [class.compact]="compact"
   data-testid="registration-form">
   @if (
-    serverValidationErrors['general'] &&
-    serverValidationErrors['general'].length > 0
+    serverValidationErrors()['general'] &&
+    serverValidationErrors()['general'].length > 0
   ) {
     <div class="server-error-banner" data-testid="registration-error-banner">
       <mat-icon class="server-error-icon">error_outline</mat-icon>
-      <span>{{ serverValidationErrors['general'][0] }}</span>
+      <span>{{ serverValidationErrors()['general'][0] }}</span>
     </div>
   }
   <mat-form-field appearance="outline">
@@ -19,12 +18,11 @@
       matInput
       id="registration-username-input"
       type="text"
-      formControlName="username"
-      required
+      [formField]="form.username"
       (blur)="checkUsernameAvailability()"
       aria-label="Username"
       [attr.data-testid]="testIdPrefix + 'username-input'" />
-    @switch (usernameAvailability) {
+    @switch (usernameAvailability()) {
       @case ('available') {
         <mat-icon
           matSuffix
@@ -39,28 +37,32 @@
         >
       }
     }
-    <mat-error data-testid="username-error">{{
-      getUsernameErrorMessage()
-    }}</mat-error>
+    @if (form.username().touched() && form.username().invalid()) {
+      <mat-error data-testid="username-error">{{
+        getUsernameErrorMessage()
+      }}</mat-error>
+    }
   </mat-form-field>
 
-  @if (usernameSuggestions && usernameSuggestions.length > 0) {
-    <div class="username-suggestions" data-testid="username-suggestions">
-      <span class="suggestions-label">Available alternatives:</span>
-      <div class="suggestions-buttons">
-        @for (suggestion of usernameSuggestions; track suggestion) {
-          <button
-            mat-stroked-button
-            color="primary"
-            type="button"
-            (click)="selectSuggestion(suggestion)"
-            class="suggestion-button"
-            data-testid="suggestion-button">
-            {{ suggestion }}
-          </button>
-        }
+  @if (usernameSuggestions(); as suggestions) {
+    @if (suggestions && suggestions.length > 0) {
+      <div class="username-suggestions" data-testid="username-suggestions">
+        <span class="suggestions-label">Available alternatives:</span>
+        <div class="suggestions-buttons">
+          @for (suggestion of suggestions; track suggestion) {
+            <button
+              mat-stroked-button
+              color="primary"
+              type="button"
+              (click)="selectSuggestion(suggestion)"
+              class="suggestion-button"
+              data-testid="suggestion-button">
+              {{ suggestion }}
+            </button>
+          }
+        </div>
       </div>
-    </div>
+    }
   }
 
   <mat-form-field appearance="outline">
@@ -69,7 +71,7 @@
       matInput
       id="registration-display-name-input"
       type="text"
-      formControlName="displayName"
+      [formField]="form.displayName"
       aria-label="Display Name"
       [attr.data-testid]="testIdPrefix + 'display-name-input'" />
     <mat-hint>Optional. Shown instead of username.</mat-hint>
@@ -81,8 +83,7 @@
       matInput
       id="registration-email-input"
       type="email"
-      formControlName="email"
-      [required]="isRequireEmail()"
+      [formField]="form.email"
       aria-label="Email Address"
       [attr.data-testid]="testIdPrefix + 'email-input'" />
     @if (isRequireEmail()) {
@@ -90,7 +91,9 @@
     } @else {
       <mat-hint>Optional. Used for password resets.</mat-hint>
     }
-    <mat-error>{{ getEmailErrorMessage() }}</mat-error>
+    @if (form.email().touched() && form.email().invalid()) {
+      <mat-error>{{ getEmailErrorMessage() }}</mat-error>
+    }
   </mat-form-field>
 
   @if (isPasswordLoginEnabled()) {
@@ -101,24 +104,25 @@
         matInput
         id="registration-password-input"
         type="password"
-        formControlName="password"
-        required
+        [formField]="form.password"
         (focus)="onPasswordFocus()"
         (blur)="onPasswordBlur()"
         (input)="onPasswordInput($event)"
         aria-label="Password"
         [attr.data-testid]="testIdPrefix + 'password-input'" />
-      <mat-error>{{ getPasswordErrorMessage() }}</mat-error>
+      @if (form.password().touched() && form.password().invalid()) {
+        <mat-error>{{ getPasswordErrorMessage() }}</mat-error>
+      }
     </mat-form-field>
 
     @if (
-      serverValidationErrors['password'] &&
-      serverValidationErrors['password'].length > 0
+      serverValidationErrors()['password'] &&
+      serverValidationErrors()['password'].length > 0
     ) {
       <div class="password-validation-errors">
         <div class="validation-error-heading">Password requirements:</div>
         <ul class="validation-error-list">
-          @for (error of serverValidationErrors['password']; track error) {
+          @for (error of serverValidationErrors()['password']; track error) {
             <li class="validation-error-item">
               <mat-icon class="validation-error-icon">error_outline</mat-icon>
               <span>{{ error }}</span>
@@ -134,11 +138,14 @@
         matInput
         id="registration-confirm-password-input"
         type="password"
-        formControlName="confirmPassword"
-        required
+        [formField]="form.confirmPassword"
         aria-label="Confirm Password"
         [attr.data-testid]="testIdPrefix + 'confirm-password-input'" />
-      <mat-error>{{ getConfirmPasswordErrorMessage() }}</mat-error>
+      @if (
+        form.confirmPassword().touched() && form.confirmPassword().invalid()
+      ) {
+        <mat-error>{{ getConfirmPasswordErrorMessage() }}</mat-error>
+      }
     </mat-form-field>
   } @else {
     <!--
@@ -163,7 +170,7 @@
       mat-raised-button
       color="primary"
       type="submit"
-      [disabled]="!registerFormValid() || isRegistering()"
+      [disabled]="form().invalid() || isRegistering()"
       class="submit-button"
       [attr.data-testid]="testIdPrefix + 'register-button'">
       @if (!isRegistering()) {

@@ -22,24 +22,28 @@
   <!-- Basic Information Section -->
   <section class="section">
     <h3>Basic Information</h3>
-    <form [formGroup]="basicForm">
+    <form>
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Template Name</mat-label>
         <input
           matInput
           id="template-name"
           aria-label="Template Name"
-          formControlName="name"
+          [formField]="basicForm.name"
           data-testid="template-name-input"
           placeholder="e.g., Character" />
-        @if (basicForm.get('name')?.hasError('required')) {
-          <mat-error>Name is required</mat-error>
+        @if (basicForm.name().touched() && basicForm.name().invalid()) {
+          @for (error of basicForm.name().errors(); track error) {
+            <mat-error>{{ error.message }}</mat-error>
+          }
         }
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Icon</mat-label>
-        <mat-select formControlName="icon" data-testid="template-icon-input">
+        <mat-select
+          [formField]="basicForm.icon"
+          data-testid="template-icon-input">
           @for (icon of availableIcons; track icon) {
             <mat-option [value]="icon">
               <mat-icon>{{ icon }}</mat-icon>
@@ -55,7 +59,7 @@
           matInput
           id="template-description"
           aria-label="Description"
-          formControlName="description"
+          [formField]="basicForm.description"
           data-testid="template-description-input"
           placeholder="Describe this template..."
           rows="3"></textarea>
@@ -340,7 +344,7 @@
       type="button"
       (click)="save()"
       data-testid="save-template-button"
-      [disabled]="basicForm.invalid || isSaving()">
+      [disabled]="basicForm().invalid() || isSaving()">
       @if (isSaving()) {
         <span>Saving...</span>
       } @else {

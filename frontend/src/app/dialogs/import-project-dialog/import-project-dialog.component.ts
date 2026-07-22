@@ -4,16 +4,18 @@ import {
   computed,
   effect,
   inject,
-  type OnDestroy,
-  type OnInit,
   signal,
+  untracked,
 } from '@angular/core';
 import {
-  FormControl,
-  ReactiveFormsModule,
-  type ValidatorFn,
-  Validators,
-} from '@angular/forms';
+  form,
+  FormField,
+  maxLength,
+  minLength,
+  pattern,
+  required,
+  validate,
+} from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -24,7 +26,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 
 import {
   type ArchiveManifest,
@@ -56,22 +57,28 @@ interface ArchivePreview {
   };
 }
 
+interface ImportProjectFormValue {
+  slug: string;
+}
+
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 @Component({
   selector: 'app-import-project-dialog',
   templateUrl: './import-project-dialog.component.html',
   styleUrl: './import-project-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    FormField,
     MatDialogModule,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
     MatProgressBarModule,
-    ReactiveFormsModule,
   ],
 })
-export class ImportProjectDialogComponent implements OnInit, OnDestroy {
+export class ImportProjectDialogComponent {
   protected readonly data = inject<ImportProjectDialogData | null>(
     MAT_DIALOG_DATA,
     { optional: true }
@@ -80,7 +87,6 @@ export class ImportProjectDialogComponent implements OnInit, OnDestroy {
     MatDialogRef<ImportProjectDialogComponent, ImportProjectDialogResult>
   );
   private readonly importService = inject(ProjectImportService);
-  private readonly destroy$ = new Subject<void>();
 
   readonly step = signal<DialogStep>('file-select');
   readonly isDragOver = signal(false);
@@ -104,53 +110,58 @@ export class ImportProjectDialogComponent implements OnInit, OnDestroy {
   readonly importError = signal<string | null>(null);
   readonly importedSlug = signal<string | null>(null);
 
-  slugControl!: FormControl<string>;
+  readonly slugTaken = signal(false);
+
+  readonly model = signal<ImportProjectFormValue>({ slug: '' });
+
+  readonly form = form(this.model, schemaPath => {
+    required(schemaPath.slug, { message: 'Slug is required' });
+    minLength(schemaPath.slug, 3, {
+      message: 'Slug must be at least 3 characters',
+    });
+    maxLength(schemaPath.slug, 50, {
+      message: 'Slug cannot exceed 50 characters',
+    });
+    pattern(schemaPath.slug, SLUG_PATTERN, {
+      message: 'Use lowercase letters, numbers, and hyphens only',
+    });
+    validate(schemaPath.slug, () =>
+      this.slugTaken()
+        ? { kind: 'slugTaken', message: 'This slug is already taken' }
+        : null
+    );
+  });
 
   constructor() {
-    // Track import progress from the service
     effect(() => {
       const progress = this.importService.progress();
       this.importProgress.set(progress.progress);
       this.importStatus.set(progress.message);
     });
-  }
 
-  ngOnInit(): void {
-    this.initSlugControl('');
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
-  private initSlugControl(initialValue: string): void {
-    const slugValidator: ValidatorFn = control => {
-      const value = control.value as string;
-      if (!value) return null;
-      const pattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-      return pattern.test(value) ? null : { pattern: true };
-    };
-
-    this.slugControl = new FormControl(initialValue, {
-      nonNullable: true,
-      validators: [
-        Validators.required,
-        Validators.minLength(3),
-        Validators.maxLength(50),
-        slugValidator,
-      ],
-    });
-
-    this.slugControl.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
-      .subscribe(slug => {
-        if (this.slugControl.valid) {
-          this.validateSlugAvailability(slug);
-        } else {
-          this.validationResult.set(null);
+    effect(onCleanup => {
+      const slug = this.form.slug().value();
+      const staticallyValid =
+        slug.length >= 3 && slug.length <= 50 && SLUG_PATTERN.test(slug);
+      // Clear stale validation result immediately on any slug change.
+      // Use untracked for slugTaken so this effect doesn't re-fire when
+      // validateSlugAvailability sets slugTaken(true) — otherwise the
+      // effect would immediately reset it to false and defeat the
+      // slugTaken validator below.
+      this.validationResult.set(null);
+      untracked(() => {
+        if (this.slugTaken()) {
+          this.slugTaken.set(false);
         }
       });
+      if (!staticallyValid) {
+        return;
+      }
+      const timer = setTimeout(() => {
+        this.validateSlugAvailability(slug);
+      }, 300);
+      onCleanup(() => clearTimeout(timer));
+    });
   }
 
   onDragOver(event: DragEvent): void {
@@ -196,9 +207,10 @@ export class ImportProjectDialogComponent implements OnInit, OnDestroy {
       const suggestedSlug = this.importService.suggestSlug(
         preview.manifest.originalSlug
       );
-      this.initSlugControl(suggestedSlug);
+      this.model.set({ slug: suggestedSlug });
+      this.slugTaken.set(false);
       this.step.set('configure');
-      if (this.slugControl.valid) {
+      if (this.form.slug().valid()) {
         this.validateSlugAvailability(suggestedSlug);
       }
     } catch (error) {
@@ -218,20 +230,16 @@ export class ImportProjectDialogComponent implements OnInit, OnDestroy {
       error: result.error,
     });
     if (!result.available) {
-      this.slugControl.setErrors({ slugTaken: true });
-    } else if (this.slugControl.errors?.['slugTaken']) {
-      const errors = { ...this.slugControl.errors };
-      delete errors['slugTaken'];
-      this.slugControl.setErrors(
-        Object.keys(errors).length > 0 ? errors : null
-      );
+      this.slugTaken.set(true);
+    } else if (this.slugTaken()) {
+      this.slugTaken.set(false);
     }
     this.isValidating.set(false);
   }
 
   canImport(): boolean {
     return (
-      this.slugControl.valid &&
+      this.form.slug().valid() &&
       !this.isValidating() &&
       (this.validationResult()?.available ?? false)
     );
@@ -246,10 +254,10 @@ export class ImportProjectDialogComponent implements OnInit, OnDestroy {
     this.importError.set(null);
     try {
       await this.importService.importProject(file, {
-        slug: this.slugControl.value,
+        slug: this.model().slug,
         username: this.data?.username,
       });
-      this.importedSlug.set(this.slugControl.value);
+      this.importedSlug.set(this.model().slug);
       this.step.set('complete');
     } catch (error) {
       this.importError.set(

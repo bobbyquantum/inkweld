@@ -17,6 +17,7 @@ import { UnifiedUserService } from '@services/user/unified-user.service';
 import { Subject } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../testing/transloco-test-provider';
 import { userServiceMock } from '../testing/user-api.mock';
 import { ThemeService } from '../themes/theme.service';
 import { AppComponent } from './app.component';
@@ -68,6 +69,7 @@ describe('AppComponent', () => {
         MatProgressSpinnerModule,
         MatToolbarModule,
         MatButtonModule,
+        translocoTestProvider(),
       ],
       providers: [
         provideZonelessChangeDetection(),

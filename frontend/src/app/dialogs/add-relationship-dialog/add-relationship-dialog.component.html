@@ -63,7 +63,7 @@
           <input
             matInput
             id="add-relationship-element-search-input"
-            [formControl]="elementSearchControl"
+            [formField]="form.elementSearch"
             [matAutocomplete]="elementAuto"
             placeholder="Type to search..."
             data-testid="element-search-input"
@@ -98,8 +98,7 @@
         <mat-label>Note</mat-label>
         <textarea
           matInput
-          [value]="note()"
-          (input)="note.set($any($event.target).value)"
+          [formField]="form.note"
           placeholder="Add context about this relationship..."
           rows="2"
           data-testid="relationship-note-input"

@@ -19,6 +19,7 @@ import { LoggerService } from '@services/core/logger.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TimelineService } from '@services/timeline/timeline.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -58,18 +59,24 @@ describe('TimelineTabComponent', () => {
     addEra: vi.fn(() => 'era-1'),
     updateEra: vi.fn(),
     removeEra: vi.fn(),
+    scanAutoBuildCandidates: vi.fn(),
+    applyAutoBuild: vi.fn(),
+  };
+
+  const routeParams: Record<string, string> = {
+    tabId: 't-1',
+    username: 'testuser',
+    slug: 'test-slug',
   };
 
   const mockRoute = {
-    snapshot: { paramMap: new Map([['tabId', 't-1']]) } as unknown as {
-      paramMap: { get(key: string): string | null };
+    snapshot: {
+      paramMap: {
+        get: (k: string): string | null => routeParams[k] ?? null,
+      },
     },
-    paramMap: of({ get: (k: string) => (k === 'tabId' ? 't-1' : null) }),
+    paramMap: of({ get: (k: string) => routeParams[k] ?? null }),
   };
-  // Provide a proper get() on snapshot
-  (
-    mockRoute.snapshot.paramMap as unknown as { get: (k: string) => string }
-  ).get = (k: string): string => (k === 'tabId' ? 't-1' : '');
 
   const mockLogger = { warn: vi.fn(), error: vi.fn(), info: vi.fn() };
 
@@ -82,6 +89,8 @@ describe('TimelineTabComponent', () => {
     vi.clearAllMocks();
     timelineSignal.set(defaultConfig);
     mockProjectState.elements.set([]);
+    mockRoute.snapshot.paramMap.get = (k: string): string | null =>
+      routeParams[k] ?? null;
 
     mockDialog = {
       open: vi.fn(() => ({
@@ -103,6 +112,7 @@ describe('TimelineTabComponent', () => {
         { provide: LoggerService, useValue: mockLogger },
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: DialogGatewayService, useValue: mockDialogGateway },
+        { provide: WorldbuildingService, useValue: {} },
         {
           provide: PresenceService,
           useValue: {
@@ -1336,5 +1346,118 @@ describe('TimelineTabComponent', () => {
     fixture.detectChanges();
     component['onFit']();
     expect(mockLogger.warn).not.toHaveBeenCalled();
+  });
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Auto-build from elements
+  // ───────────────────────────────────────────────────────────────────────
+
+  describe('onAutoBuild', () => {
+    const mockCandidates = [
+      {
+        elementId: 'char-1',
+        elementName: 'Alice',
+        fieldKey: 'birthDate',
+        fieldLabel: 'Birth Date',
+        rawValue: '1999-3-15',
+        timePoint: { systemId: 'test', units: ['1999', '3', '15'] },
+        alreadyOnTimeline: false,
+      },
+    ];
+
+    function setupDialogResult(selected: typeof mockCandidates | null) {
+      mockDialog.open.mockReturnValue({
+        afterClosed: () =>
+          of(selected === null ? undefined : { kind: 'build', selected }),
+      });
+    }
+
+    it('scans candidates and applies selected via dialog', async () => {
+      mockTimelineService.scanAutoBuildCandidates.mockResolvedValue(
+        mockCandidates
+      );
+      mockTimelineService.applyAutoBuild.mockReturnValue({
+        created: 1,
+        updated: 0,
+        removed: 0,
+      });
+      setupDialogResult(mockCandidates);
+      fixture.detectChanges();
+      await component['onAutoBuild']();
+      expect(mockTimelineService.scanAutoBuildCandidates).toHaveBeenCalledWith(
+        'testuser',
+        'test-slug'
+      );
+      expect(mockTimelineService.applyAutoBuild).toHaveBeenCalledWith(
+        mockCandidates
+      );
+      expect(mockLogger.info).toHaveBeenCalled();
+    });
+
+    it('does nothing when no active system is set', async () => {
+      timelineSignal.set({ ...defaultConfig, timeSystemId: '' });
+      fixture.detectChanges();
+      await component['onAutoBuild']();
+      expect(
+        mockTimelineService.scanAutoBuildCandidates
+      ).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when username or slug is missing from route', async () => {
+      fixture.detectChanges();
+      const savedUsername = routeParams['username'];
+      routeParams['username'] = '';
+      await component['onAutoBuild']();
+      expect(
+        mockTimelineService.scanAutoBuildCandidates
+      ).not.toHaveBeenCalled();
+      routeParams['username'] = savedUsername;
+    });
+
+    it('does not apply when dialog is cancelled', async () => {
+      mockTimelineService.scanAutoBuildCandidates.mockResolvedValue(
+        mockCandidates
+      );
+      setupDialogResult(null);
+      fixture.detectChanges();
+      await component['onAutoBuild']();
+      expect(mockTimelineService.applyAutoBuild).not.toHaveBeenCalled();
+    });
+
+    it('logs error and resets autoBuilding when scan throws', async () => {
+      mockTimelineService.scanAutoBuildCandidates.mockRejectedValue(
+        new Error('Yjs error')
+      );
+      fixture.detectChanges();
+      await component['onAutoBuild']();
+      expect(mockLogger.error).toHaveBeenCalled();
+      expect(component['autoBuilding']()).toBe(false);
+    });
+
+    it('prevents concurrent calls via autoBuilding guard', async () => {
+      let resolveFn: (v: unknown) => void = () => {};
+      mockTimelineService.scanAutoBuildCandidates.mockReturnValue(
+        new Promise(resolve => {
+          resolveFn = resolve;
+        })
+      );
+      fixture.detectChanges();
+      const firstCall = component['onAutoBuild']();
+      expect(component['autoBuilding']()).toBe(true);
+      await component['onAutoBuild']();
+      expect(mockTimelineService.scanAutoBuildCandidates).toHaveBeenCalledTimes(
+        1
+      );
+      resolveFn(mockCandidates);
+      await firstCall;
+      expect(component['autoBuilding']()).toBe(false);
+    });
+
+    it('resets autoBuilding after null scan result', async () => {
+      mockTimelineService.scanAutoBuildCandidates.mockResolvedValueOnce(null);
+      fixture.detectChanges();
+      await component['onAutoBuild']();
+      expect(component['autoBuilding']()).toBe(false);
+    });
   });
 });

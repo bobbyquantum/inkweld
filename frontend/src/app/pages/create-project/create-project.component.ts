@@ -5,13 +5,9 @@ import {
   inject,
   type OnInit,
   signal,
+  untracked,
 } from '@angular/core';
-import {
-  FormBuilder,
-  type FormControl,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { form, FormField, pattern, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -33,11 +29,13 @@ import {
 } from '../../services/project/project-template.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
 
-interface ProjectForm {
-  title: FormControl<string>;
-  slug: FormControl<string>;
-  description: FormControl<string>;
+interface ProjectFormValue {
+  title: string;
+  slug: string;
+  description: string;
 }
+
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 @Component({
   selector: 'app-create-project',
@@ -45,7 +43,7 @@ interface ProjectForm {
   styleUrls: ['./create-project.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    ReactiveFormsModule,
+    FormField,
     MatButtonModule,
     MatIconModule,
     MatFormFieldModule,
@@ -64,7 +62,6 @@ export class CreateProjectComponent implements OnInit {
   protected unifiedUserService = inject(UnifiedUserService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
-  private readonly fb = inject(FormBuilder).nonNullable;
 
   /** Current step (1: template selection, 2: project details) */
   step = signal<1 | 2>(1);
@@ -75,17 +72,21 @@ export class CreateProjectComponent implements OnInit {
   /** Whether templates are loading */
   loadingTemplates = signal(true);
 
-  readonly projectForm = this.fb.group<ProjectForm>({
-    title: this.fb.control('', { validators: [Validators.required] }),
-    slug: this.fb.control('', {
-      validators: [
-        Validators.required,
-        Validators.pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-      ],
-    }),
-    description: this.fb.control(''),
+  readonly model = signal<ProjectFormValue>({
+    title: '',
+    slug: '',
+    description: '',
   });
-  projectUrl = '';
+
+  readonly projectForm = form(this.model, schemaPath => {
+    required(schemaPath.title, { message: 'Title is required' });
+    required(schemaPath.slug, { message: 'Slug is required' });
+    pattern(schemaPath.slug, SLUG_PATTERN, {
+      message: 'Slug can only contain lowercase letters, numbers, and hyphens',
+    });
+  });
+
+  readonly projectUrl = signal('');
   baseUrl: string;
   username = '';
   readonly isSaving = signal(false);
@@ -96,17 +97,22 @@ export class CreateProjectComponent implements OnInit {
       ? 'inkweld:/'
       : globalThis.location.origin;
 
-    this.projectForm
-      .get('title')
-      ?.valueChanges.subscribe((title: string | null) => {
-        if (title) {
-          const slug = this.generateSlug(title);
-          this.projectForm.patchValue({ slug }, { emitEvent: false });
-          this.updateProjectUrl();
-        }
-      });
+    effect(() => {
+      const title = this.projectForm.title().value();
+      if (title) {
+        const slug = this.generateSlug(title);
+        this.projectForm.slug().value.set(slug);
+        // `updateProjectUrl` is invoked by the slug-tracking effect below;
+        // calling it here would add `slug` to this effect's dependencies and
+        // cause it to re-fire (and overwrite the user's manual slug edits)
+        // on every slug change. Use `untracked` to avoid that.
+        untracked(() => this.updateProjectUrl());
+      }
+    });
 
-    this.projectForm.get('slug')?.valueChanges.subscribe(() => {
+    effect(() => {
+      // Read slug value to track changes
+      this.projectForm.slug().value();
       this.updateProjectUrl();
     });
 
@@ -123,12 +129,12 @@ export class CreateProjectComponent implements OnInit {
     this.selectedTemplateId.set('worldbuilding-empty');
     this.loadingTemplates.set(true);
     this.isSaving.set(false);
-    this.projectForm.reset({
+    this.model.set({
       title: '',
       slug: '',
       description: '',
     });
-    this.projectUrl = '';
+    this.projectUrl.set('');
 
     // Load available templates
     void this.loadTemplates();
@@ -142,11 +148,11 @@ export class CreateProjectComponent implements OnInit {
   };
 
   updateProjectUrl = (): void => {
-    const slug = this.projectForm.get('slug')?.value;
+    const slug = this.model().slug;
     if (this.username && slug) {
-      this.projectUrl = `${this.baseUrl}/${this.username}/${slug}`;
+      this.projectUrl.set(`${this.baseUrl}/${this.username}/${slug}`);
     } else {
-      this.projectUrl = '';
+      this.projectUrl.set('');
     }
   };
 
@@ -187,14 +193,18 @@ export class CreateProjectComponent implements OnInit {
     }
   }
 
-  async onSubmit(): Promise<void> {
-    if (this.projectForm.invalid) {
+  async onSubmit(event?: Event): Promise<void> {
+    // Signal-forms `[formField]` does not register a ControlContainer, so
+    // the native `<form>` would submit via GET and reload the page. Prevent
+    // the default submission and handle the action in-component.
+    event?.preventDefault();
+    if (this.projectForm().invalid()) {
       return;
     }
 
     this.isSaving.set(true);
     try {
-      const projectData = this.projectForm.value as Partial<Project>;
+      const projectData: Partial<Project> = this.model();
       const templateId = this.selectedTemplateId();
       const response = await this.unifiedProjectService.createProject(
         projectData,

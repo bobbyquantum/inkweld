@@ -21,7 +21,7 @@
               <button
                 mat-icon-button
                 (click)="toggleMobileSearch()"
-                aria-label="Close search"
+                [attr.aria-label]="'home.closeSearch' | transloco"
                 class="back-btn">
                 <mat-icon>arrow_back</mat-icon>
               </button>
@@ -37,16 +37,16 @@
                 <input
                   matInput
                   id="home-mobile-search-input"
-                  placeholder="Search projects"
-                  [formControl]="searchControl"
-                  aria-label="Search projects" />
+                  [placeholder]="'home.searchProjects' | transloco"
+                  [formField]="searchForm.search"
+                  [attr.aria-label]="'home.searchProjects' | transloco" />
                 <mat-icon matPrefix>search</mat-icon>
-                @if (searchControl.value) {
+                @if (searchForm.search().value()) {
                   <button
                     matSuffix
                     mat-icon-button
-                    aria-label="Clear"
-                    (click)="searchControl.setValue('')">
+                    [attr.aria-label]="'clear' | transloco"
+                    (click)="searchForm.search().value.set('')">
                     <mat-icon>close</mat-icon>
                   </button>
                 }
@@ -62,7 +62,7 @@
                 <button
                   mat-icon-button
                   (click)="toggleSideNav()"
-                  aria-label="Toggle navigation menu"
+                  [attr.aria-label]="'home.toggleNavMenu' | transloco"
                   class="hamburger-btn">
                   <mat-icon>menu</mat-icon>
                 </button>
@@ -85,16 +85,16 @@
                   <input
                     matInput
                     id="home-desktop-search-input"
-                    placeholder="Search projects"
-                    [formControl]="searchControl"
-                    aria-label="Search projects" />
+                    [placeholder]="'home.searchProjects' | transloco"
+                    [formField]="searchForm.search"
+                    [attr.aria-label]="'home.searchProjects' | transloco" />
                   <mat-icon matPrefix>search</mat-icon>
-                  @if (searchControl.value) {
+                  @if (searchForm.search().value()) {
                     <button
                       matSuffix
                       mat-icon-button
-                      aria-label="Clear"
-                      (click)="searchControl.setValue('')">
+                      [attr.aria-label]="'clear' | transloco"
+                      (click)="searchForm.search().value.set('')">
                       <mat-icon>close</mat-icon>
                     </button>
                   }
@@ -108,7 +108,7 @@
                 <button
                   mat-icon-button
                   (click)="toggleMobileSearch()"
-                  aria-label="Search projects"
+                  [attr.aria-label]="'home.searchProjects' | transloco"
                   class="search-icon-btn">
                   <mat-icon>search</mat-icon>
                 </button>
@@ -122,9 +122,9 @@
                     (click)="cancelSync()"
                     class="sync-btn syncing"
                     [matTooltip]="
-                      'Cancel sync (' +
-                      syncQueueService.overallProgress() +
-                      '% complete)'
+                      'home.cancelSyncTooltip'
+                        | transloco
+                          : { progress: syncQueueService.overallProgress() }
                     "
                     data-testid="cancel-sync-btn">
                     <mat-icon class="spin">sync</mat-icon>
@@ -142,7 +142,7 @@
                     data-testid="sync-all-btn">
                     <mat-icon>sync</mat-icon>
                     @if (!isMobile()) {
-                      <span>Sync All</span>
+                      <span>{{ 'home.syncAll' | transloco }}</span>
                     }
                   </button>
                 }
@@ -152,11 +152,11 @@
                 <button
                   mat-button
                   [matMenuTriggerFor]="createMenu"
-                  aria-label="Create or import project"
+                  [attr.aria-label]="'home.createOrImport' | transloco"
                   data-testid="create-new-project-button"
                   class="create-btn">
                   <mat-icon>add</mat-icon>
-                  <span>Create</span>
+                  <span>{{ 'home.create' | transloco }}</span>
                 </button>
                 <mat-menu #createMenu="matMenu">
                   <button
@@ -164,14 +164,14 @@
                     (click)="openNewProjectDialog()"
                     data-testid="create-new-project-menu-item">
                     <mat-icon>edit_note</mat-icon>
-                    <span>New Project</span>
+                    <span>{{ 'home.newProject' | transloco }}</span>
                   </button>
                   <button
                     mat-menu-item
                     (click)="importProject()"
                     data-testid="import-project-menu-item">
                     <mat-icon>upload_file</mat-icon>
-                    <span>Import Project</span>
+                    <span>{{ 'home.importProject' | transloco }}</span>
                   </button>
                 </mat-menu>
               }
@@ -206,7 +206,7 @@
             class="side-nav-overlay"
             (click)="toggleSideNav()"
             (keydown.escape)="toggleSideNav()"
-            aria-label="Close navigation"></button>
+            [attr.aria-label]="'home.closeNavigation' | transloco"></button>
         }
       }
 
@@ -227,7 +227,7 @@
                 (click)="openLoginDialog()"
                 class="welcome-login-btn"
                 data-testid="welcome-login-button">
-                Login
+                {{ 'home.login' | transloco }}
               </button>
               <button
                 mat-raised-button
@@ -235,7 +235,7 @@
                 (click)="openRegisterDialog()"
                 class="welcome-register-btn"
                 data-testid="welcome-register-button">
-                Register
+                {{ 'home.register' | transloco }}
               </button>
             </div>
 
@@ -261,19 +261,19 @@
           @if (isLoading()) {
             <div class="loading-state" data-testid="loading-projects">
               <mat-spinner diameter="40" />
-              <p>Loading projects...</p>
+              <p>{{ 'home.loadingProjects' | transloco }}</p>
             </div>
           } @else if (loadError) {
             <div class="error-state">
               <mat-icon class="error-icon">error_outline</mat-icon>
-              <h2>Failed to load projects</h2>
-              <p>There was a problem connecting to the server</p>
+              <h2>{{ 'home.failedToLoad' | transloco }}</h2>
+              <p>{{ 'home.serverConnectionError' | transloco }}</p>
               <button
                 mat-raised-button
                 color="primary"
                 (click)="loadProjects()">
                 <mat-icon>refresh</mat-icon>
-                Retry
+                {{ 'retry' | transloco }}
               </button>
             </div>
           } @else {
@@ -284,7 +284,7 @@
                 data-testid="invitations-section">
                 <h3 class="section-title">
                   <mat-icon>mail_outline</mat-icon>
-                  Pending Invitations
+                  {{ 'home.pendingInvitations' | transloco }}
                 </h3>
                 <div class="invitations-list">
                   @for (
@@ -298,9 +298,10 @@
                             <span class="project-title">{{
                               invitation.projectTitle
                             }}</span>
-                            <span class="owner-info"
-                              >by {{ invitation.ownerUsername }}</span
-                            >
+                            <span class="owner-info">{{
+                              'home.byOwner'
+                                | transloco: { owner: invitation.ownerUsername }
+                            }}</span>
                             <span class="role-badge">{{
                               invitation.role
                             }}</span>
@@ -311,14 +312,14 @@
                               color="warn"
                               (click)="declineInvitation(invitation)"
                               data-testid="decline-invitation">
-                              Decline
+                              {{ 'home.decline' | transloco }}
                             </button>
                             <button
                               mat-raised-button
                               color="primary"
                               (click)="acceptInvitation(invitation)"
                               data-testid="accept-invitation">
-                              Accept
+                              {{ 'home.accept' | transloco }}
                             </button>
                           </div>
                         </div>
@@ -332,30 +333,32 @@
             <!-- Collaborated Projects Section -->
 
             <!-- All Projects Section (owned + shared) -->
-            @if (allProjects().length === 0 && !searchControl.value) {
+            @if (allProjects().length === 0 && !searchForm.search().value()) {
               <div class="empty-state" data-testid="empty-state">
-                <h2>Create Your First Project</h2>
-                <p>Get started by creating a new project or importing one</p>
+                <h2>{{ 'home.createFirstProject' | transloco }}</h2>
+                <p>{{ 'home.getStarted' | transloco }}</p>
                 <div class="empty-state-actions">
                   <button
                     mat-button
                     data-testid="create-first-project-button"
                     (click)="openNewProjectDialog()">
-                    Create Project
+                    {{ 'home.createProject' | transloco }}
                   </button>
                   <button
                     mat-button
                     data-testid="import-first-project-button"
                     (click)="importProject()">
-                    Import Project
+                    {{ 'home.importProject' | transloco }}
                   </button>
                 </div>
               </div>
-            } @else if (allProjects().length === 0 && searchControl.value) {
+            } @else if (
+              allProjects().length === 0 && searchForm.search().value()
+            ) {
               <div class="empty-search-results">
                 <mat-icon>search_off</mat-icon>
-                <h3>No projects found</h3>
-                <p>Try a different search term</p>
+                <h3>{{ 'home.noProjectsFound' | transloco }}</h3>
+                <p>{{ 'home.tryDifferentSearch' | transloco }}</p>
               </div>
             } @else {
               <!-- Responsive cover grid with unified projects -->
@@ -368,7 +371,10 @@
                     [class.selected]="selectedProject?.id === item.project.id"
                     (click)="onProjectClick(item.project, $event, card)"
                     [title]="item.project.title"
-                    [attr.aria-label]="'Open project ' + item.project.title">
+                    [attr.aria-label]="
+                      'home.openProject'
+                        | transloco: { title: item.project.title }
+                    ">
                     <app-project-card
                       #card
                       [project]="item.project"

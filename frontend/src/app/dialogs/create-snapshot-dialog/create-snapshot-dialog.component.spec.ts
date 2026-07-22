@@ -1,6 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { type MockedObject, vi } from 'vitest';
 
@@ -25,7 +24,7 @@ describe('CreateSnapshotDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [CreateSnapshotDialogComponent, ReactiveFormsModule],
+      imports: [CreateSnapshotDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRefMock },
@@ -44,29 +43,37 @@ describe('CreateSnapshotDialogComponent', () => {
 
   describe('form initialization', () => {
     it('should initialize form with empty values', () => {
-      expect(component.form.get('name')?.value).toBe('');
-      expect(component.form.get('description')?.value).toBe('');
+      expect(component.model().name).toBe('');
+      expect(component.model().description).toBe('');
     });
 
     it('should validate name max length', () => {
-      const nameControl = component.form.get('name');
-      nameControl?.setValue('a'.repeat(101));
-      expect(nameControl?.hasError('maxlength')).toBe(true);
+      component.form.name().value.set('a'.repeat(101));
+      expect(component.form.name().invalid()).toBe(true);
+      expect(
+        component.form
+          .name()
+          .errors()
+          .some(e => e.kind === 'maxLength')
+      ).toBe(true);
     });
 
     it('should validate description max length', () => {
-      const descControl = component.form.get('description');
-      descControl?.setValue('a'.repeat(501));
-      expect(descControl?.hasError('maxlength')).toBe(true);
+      component.form.description().value.set('a'.repeat(501));
+      expect(component.form.description().invalid()).toBe(true);
+      expect(
+        component.form
+          .description()
+          .errors()
+          .some(e => e.kind === 'maxLength')
+      ).toBe(true);
     });
   });
 
   describe('onSubmit', () => {
     it('should close dialog with result when form is valid', () => {
-      component.form.patchValue({
-        name: 'My Snapshot',
-        description: 'A test description',
-      });
+      component.form.name().value.set('My Snapshot');
+      component.form.description().value.set('A test description');
 
       component.onSubmit();
 
@@ -77,10 +84,8 @@ describe('CreateSnapshotDialogComponent', () => {
     });
 
     it('should trim whitespace from name', () => {
-      component.form.patchValue({
-        name: '  My Snapshot  ',
-        description: '',
-      });
+      component.form.name().value.set('  My Snapshot  ');
+      component.form.description().value.set('');
 
       component.onSubmit();
 
@@ -91,10 +96,8 @@ describe('CreateSnapshotDialogComponent', () => {
     });
 
     it('should trim whitespace from description', () => {
-      component.form.patchValue({
-        name: 'Test',
-        description: '  My description  ',
-      });
+      component.form.name().value.set('Test');
+      component.form.description().value.set('  My description  ');
 
       component.onSubmit();
 
@@ -105,10 +108,8 @@ describe('CreateSnapshotDialogComponent', () => {
     });
 
     it('should set description to undefined when empty', () => {
-      component.form.patchValue({
-        name: 'Test',
-        description: '',
-      });
+      component.form.name().value.set('Test');
+      component.form.description().value.set('');
 
       component.onSubmit();
 
@@ -119,10 +120,8 @@ describe('CreateSnapshotDialogComponent', () => {
     });
 
     it('should generate ISO date-time name when name is left blank', () => {
-      component.form.patchValue({
-        name: '',
-        description: 'Test',
-      });
+      component.form.name().value.set('');
+      component.form.description().value.set('Test');
 
       component.onSubmit();
 
@@ -149,7 +148,7 @@ describe('CreateSnapshotDialogComponent', () => {
     it('should handle undefined word count', async () => {
       TestBed.resetTestingModule();
       await TestBed.configureTestingModule({
-        imports: [CreateSnapshotDialogComponent, ReactiveFormsModule],
+        imports: [CreateSnapshotDialogComponent],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MatDialogRef, useValue: dialogRefMock },

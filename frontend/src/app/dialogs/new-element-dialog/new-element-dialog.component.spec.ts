@@ -1,7 +1,6 @@
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -68,7 +67,6 @@ describe('NewElementDialogComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         NewElementDialogComponent,
-        ReactiveFormsModule,
         MatDialogModule,
         MatFormFieldModule,
         MatInputModule,
@@ -94,19 +92,17 @@ describe('NewElementDialogComponent', () => {
   });
 
   it('should initialize form with default values', () => {
-    expect(component.form.get('name')?.value).toBe('');
-    expect(component.form.get('type')?.value).toBe(ElementType.Item);
+    expect(component.form.name().value()).toBe('');
+    expect(component.form.type().value()).toBe(ElementType.Item);
   });
 
   it('should validate required fields', () => {
-    expect(component.form.valid).toBeFalsy();
+    expect(component.form().invalid()).toBe(true);
 
-    component.form.patchValue({
-      name: 'Test Element',
-      type: ElementType.Item,
-    });
+    component.form.name().value.set('Test Element');
+    component.form.type().value.set(ElementType.Item);
 
-    expect(component.form.valid).toBeTruthy();
+    expect(component.form().valid()).toBe(true);
   });
 
   it('should close dialog on cancel', () => {
@@ -120,7 +116,8 @@ describe('NewElementDialogComponent', () => {
       type: ElementType.Item,
     };
 
-    component.form.patchValue(formValue);
+    component.form.name().value.set(formValue.name);
+    component.form.type().value.set(formValue.type);
     component.onCreate();
 
     expect(dialogRef.close).toHaveBeenCalledWith(formValue);
@@ -179,7 +176,7 @@ describe('NewElementDialogComponent', () => {
         description: 'A folder',
         category: 'document',
       });
-      expect(component.form.controls.type.value).toBe(ElementType.Folder);
+      expect(component.form.type().value()).toBe(ElementType.Folder);
       expect(component.selectedType()).toBe(ElementType.Folder);
     });
   });

@@ -44,6 +44,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { HomeComponent } from './home.component';
 
 describe('HomeComponent', () => {
@@ -248,7 +249,7 @@ describe('HomeComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [HomeComponent],
+      imports: [HomeComponent, translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([
@@ -468,12 +469,12 @@ describe('HomeComponent', () => {
     });
 
     it('should clear search when closing mobile search', () => {
-      component.searchControl.setValue('test query');
+      component.searchForm.search().value.set('test query');
       component.mobileSearchActive.set(true);
 
       component.toggleMobileSearch();
 
-      expect(component.searchControl.value).toBe('');
+      expect(component.searchForm.search().value()).toBe('');
     });
   });
 
@@ -489,9 +490,9 @@ describe('HomeComponent', () => {
       mockProjectsSignal.set(mockProjects);
       component.ngOnInit();
 
-      // Directly set the search term signal (bypassing debounce for testing)
+      // Directly set the search field value (bypassing debounce for testing)
       // Use exact match that only matches one project
-      component['searchTerm'].set('Test Project');
+      component.searchForm.search().value.set('Test Project');
 
       const filtered = component['filteredProjects']();
       expect(filtered.length).toBe(1);
@@ -502,7 +503,7 @@ describe('HomeComponent', () => {
       mockProjectsSignal.set(mockProjects);
       component.ngOnInit();
 
-      component['searchTerm'].set('another');
+      component.searchForm.search().value.set('another');
 
       const filtered = component['filteredProjects']();
       expect(filtered.length).toBe(1);
@@ -513,7 +514,7 @@ describe('HomeComponent', () => {
       mockProjectsSignal.set(mockProjects);
       component.ngOnInit();
 
-      component['searchTerm'].set('description');
+      component.searchForm.search().value.set('description');
 
       const filtered = component['filteredProjects']();
       expect(filtered.length).toBe(2); // Both have "description" in their description
@@ -523,7 +524,7 @@ describe('HomeComponent', () => {
       mockProjectsSignal.set(mockProjects);
       component.ngOnInit();
 
-      component['searchTerm'].set('testuser');
+      component.searchForm.search().value.set('testuser');
 
       const filtered = component['filteredProjects']();
       expect(filtered.length).toBe(2);
@@ -817,14 +818,12 @@ describe('HomeComponent', () => {
       });
 
       it('should filter projects by search term', () => {
-        vi.useFakeTimers();
         mockProjectsSignal.set(mockProjects);
         component.collaboratedProjects.set(mockCollaboratedProjects);
 
-        // Search for "Another" (matches one own project)
-        component.searchControl.setValue('Another');
-        // Wait for debounce
-        vi.advanceTimersByTime(300);
+        // Search for "Another" (matches one own project).
+        // Setting the model value directly bypasses the debounce timer.
+        component.searchForm.search().value.set('Another');
 
         const filtered = component['allProjects']();
         expect(filtered.length).toBe(1);

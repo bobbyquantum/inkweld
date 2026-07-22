@@ -7,6 +7,7 @@ import { type ThemeOption, ThemeService } from '@themes/theme.service';
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { GeneralSettingsComponent } from './general-settings.component';
 
 describe('GeneralSettingsComponent', () => {
@@ -29,6 +30,7 @@ describe('GeneralSettingsComponent', () => {
         MatFormFieldModule,
         MatSelectModule,
         GeneralSettingsComponent,
+        translocoTestProvider(),
       ],
       providers: [
         provideZonelessChangeDetection(),

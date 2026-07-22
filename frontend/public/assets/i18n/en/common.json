@@ -1,0 +1,11 @@
+{
+  "cancel": "Cancel",
+  "close": "Close",
+  "dismiss": "Dismiss",
+  "retry": "Retry",
+  "refresh": "Refresh",
+  "clear": "Clear",
+  "errors": {
+    "unknown": "Something went wrong. Please try again."
+  }
+}

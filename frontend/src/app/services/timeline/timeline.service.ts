@@ -8,7 +8,14 @@
  */
 
 import { effect, inject, Injectable, signal, untracked } from '@angular/core';
-import { normalizeTimePoint, type TimeSystem } from '@models/time-system';
+import { type AutoBuildCandidate } from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.models';
+import { ElementType } from '@inkweld/index';
+import { type ElementTypeSchema, type FieldSchema } from '@models/schema-types';
+import {
+  normalizeTimePoint,
+  parseTimePoint,
+  type TimeSystem,
+} from '@models/time-system';
 import {
   createDefaultTimelineConfig,
   pickNextColor,
@@ -21,6 +28,7 @@ import {
 import { LoggerService } from '@services/core/logger.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { nanoid } from 'nanoid';
 
 /** Key used to store the serialized timeline config in element metadata */
@@ -31,6 +39,7 @@ export class TimelineService {
   private readonly logger = inject(LoggerService);
   private readonly projectState = inject(ProjectStateService);
   private readonly library = inject(TimeSystemLibraryService);
+  private readonly worldbuilding = inject(WorldbuildingService);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Active timeline state
@@ -345,4 +354,215 @@ export class TimelineService {
     });
     if (touched) this.saveConfig({ ...config, events });
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Auto-build from element date fields
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Scan every worldbuilding element in the project for date-type schema
+   * fields with populated values, and return a list of candidates the user
+   * can select from in the auto-build dialog.
+   *
+   * Each candidate includes the element name, field label, raw date string,
+   * parsed {@link TimePoint}, and whether an auto-built event already exists
+   * on the timeline for this element+field combination.
+   */
+  async scanAutoBuildCandidates(
+    username: string,
+    slug: string
+  ): Promise<AutoBuildCandidate[] | null> {
+    const config = this.activeConfigSignal();
+    if (!config) return null;
+    const system = this.getActiveSystem();
+    if (!system) return null;
+
+    try {
+      const worldbuildingElements = this.projectState
+        .elements()
+        .filter(e => e.type === ElementType.Worldbuilding);
+
+      const existingKeys = new Set(
+        config.events
+          .filter(isAutoEvent)
+          .map(ev => `${ev.linkedElementId}::${ev.sourceFieldKey}`)
+      );
+
+      const candidates: AutoBuildCandidate[] = [];
+
+      for (const element of worldbuildingElements) {
+        const schema = await this.worldbuilding.getSchemaForElement(
+          element.id,
+          username,
+          slug
+        );
+        if (!schema) continue;
+        const dateFields = collectDateFields(schema);
+        if (dateFields.length === 0) continue;
+
+        const data = await this.worldbuilding.getWorldbuildingData(
+          element.id,
+          username,
+          slug
+        );
+        if (!data) continue;
+
+        for (const field of dateFields) {
+          const raw = readNestedValue(data, field.key);
+          if (raw === null || raw === undefined || raw === '') continue;
+          if (typeof raw !== 'string') continue;
+          const point = parseTimePoint(raw, system);
+          if (!point) continue;
+          const key = `${element.id}::${field.key}`;
+          candidates.push({
+            elementId: element.id,
+            elementName: element.name,
+            fieldKey: field.key,
+            fieldLabel: field.label,
+            rawValue: raw,
+            timePoint: point,
+            alreadyOnTimeline: existingKeys.has(key),
+          });
+        }
+      }
+
+      return candidates;
+    } catch (err) {
+      this.logger.error('Timeline', 'Scan auto-build candidates failed', err);
+      return null;
+    }
+  }
+
+  /**
+   * Generate or update timeline events from the user-selected candidates.
+   * Existing auto-built events for the same element+field are updated in
+   * place. Auto-built events not in the selection are removed. Manual events
+   * are always preserved.
+   */
+  applyAutoBuild(
+    candidates: readonly AutoBuildCandidate[]
+  ): { created: number; updated: number; removed: number } | null {
+    const config = this.activeConfigSignal();
+    if (!config) return null;
+    const system = this.getActiveSystem();
+    if (!system) return null;
+
+    try {
+      const keyOf = (elementId: string, fieldKey: string) =>
+        `${elementId}::${fieldKey}`;
+      const autoByKey = buildAutoEventIndex(config.events, keyOf);
+      const selectedKeys = new Set(
+        candidates.map(c => keyOf(c.elementId, c.fieldKey))
+      );
+      const generatedEvents: TimelineEvent[] = [];
+      const summary = { created: 0, updated: 0, removed: 0 };
+
+      for (const candidate of candidates) {
+        const normalized =
+          normalizeTimePoint(candidate.timePoint, system) ??
+          candidate.timePoint;
+        const key = keyOf(candidate.elementId, candidate.fieldKey);
+        const existing = autoByKey.get(key);
+        const title = `${candidate.elementName}: ${candidate.fieldLabel}`;
+        if (existing) {
+          generatedEvents.push({ ...existing, start: normalized, title });
+          summary.updated++;
+        } else {
+          generatedEvents.push({
+            id: nanoid(),
+            trackId: config.tracks[0]?.id ?? '',
+            start: normalized,
+            title,
+            linkedElementId: candidate.elementId,
+            source: 'auto' as const,
+            sourceFieldKey: candidate.fieldKey,
+          });
+          summary.created++;
+        }
+      }
+
+      for (const key of autoByKey.keys()) {
+        if (!selectedKeys.has(key)) {
+          summary.removed++;
+        }
+      }
+
+      const currentConfig = this.activeConfigSignal();
+      if (!currentConfig) return summary;
+
+      const manualEvents = currentConfig.events.filter(isManualEvent);
+      this.saveConfig({
+        ...currentConfig,
+        events: [...manualEvents, ...generatedEvents],
+      });
+
+      return summary;
+    } catch (err) {
+      this.logger.error('Timeline', 'Apply auto-build failed', err);
+      return null;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Auto-build helpers
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Collect every {@link FieldSchema} of type `date` across all tabs. */
+function collectDateFields(schema: ElementTypeSchema): FieldSchema[] {
+  const out: FieldSchema[] = [];
+  for (const tab of schema.tabs) {
+    collectDateFieldsFromFields(tab.fields, out);
+  }
+  return out;
+}
+
+function collectDateFieldsFromFields(
+  fields: FieldSchema[],
+  out: FieldSchema[]
+): void {
+  for (const field of fields) {
+    if (field.type === 'date') {
+      out.push(field);
+    }
+    if (field.isNested && field.nestedFields) {
+      collectDateFieldsFromFields(field.nestedFields, out);
+    }
+  }
+}
+
+/**
+ * Read a value from a nested record following a dotted key
+ * (e.g. `appearance.born`). Returns `null` when any segment is missing.
+ */
+function readNestedValue(data: Record<string, unknown>, key: string): unknown {
+  const parts = key.split('.');
+  let current: unknown = data;
+  for (const part of parts) {
+    if (current === null || current === undefined) return null;
+    if (typeof current !== 'object') return null;
+    current = (current as Record<string, unknown>)[part] ?? null;
+  }
+  return current;
+}
+
+function isAutoEvent(ev: TimelineEvent): boolean {
+  return ev.source === 'auto' && !!ev.linkedElementId && !!ev.sourceFieldKey;
+}
+
+function isManualEvent(ev: TimelineEvent): boolean {
+  return !isAutoEvent(ev);
+}
+
+function buildAutoEventIndex(
+  events: readonly TimelineEvent[],
+  keyOf: (elementId: string, fieldKey: string) => string
+): Map<string, TimelineEvent> {
+  const map = new Map<string, TimelineEvent>();
+  for (const ev of events) {
+    if (isAutoEvent(ev)) {
+      map.set(keyOf(ev.linkedElementId!, ev.sourceFieldKey!), ev);
+    }
+  }
+  return map;
 }
