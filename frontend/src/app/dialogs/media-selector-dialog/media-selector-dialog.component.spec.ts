@@ -487,5 +487,286 @@ describe('MediaSelectorDialogComponent', () => {
       component.selectItem(downloadingItem);
       expect(component.selectedItem()).toBe(beforeSelection);
     });
+
+    it('downloadItem does nothing when item has no filename', async () => {
+      const noFilenameItem = {
+        ...mockMediaItems[0],
+        filename: undefined,
+        syncStatus: 'server-only' as const,
+      };
+
+      mediaSyncService.downloadFromServer.mockClear();
+      await component.downloadItem(noFilenameItem);
+      expect(mediaSyncService.downloadFromServer).not.toHaveBeenCalled();
+    });
+
+    it('downloadItem does nothing when already downloading', async () => {
+      const item = {
+        ...mockMediaItems[0],
+        filename: 'remote.png',
+        syncStatus: 'server-only' as const,
+      };
+
+      // Mark as already downloading
+      component['downloadingItemIds'].update(ids => {
+        const next = new Set(ids);
+        next.add(item.mediaId);
+        return next;
+      });
+
+      mediaSyncService.downloadFromServer.mockClear();
+      await component.downloadItem(item);
+      expect(mediaSyncService.downloadFromServer).not.toHaveBeenCalled();
+    });
+
+    it('downloadItem sets error message on download failure', async () => {
+      const item = {
+        ...mockMediaItems[0],
+        filename: 'broken.png',
+        syncStatus: 'server-only' as const,
+      };
+
+      mediaSyncService.downloadFromServer.mockRejectedValueOnce(
+        new Error('Network error')
+      );
+      // Stub listMedia so the reload in downloadItem doesn't hang
+      localStorageService.listMedia.mockResolvedValue([item]);
+
+      const beforeError = component.error();
+      await component.downloadItem(item);
+
+      expect(component.error()).toContain('broken.png');
+      expect(component.error()).not.toBe(beforeError);
+      // Flag should be cleared even on failure
+      expect(component.isDownloading(item)).toBe(false);
+    });
+  });
+
+  describe('checkServerMedia with server-only items', () => {
+    it('should add server-only items as placeholders and auto-download', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      // Set up checkSyncStatus to return server-only items
+      const serverItems = [
+        {
+          mediaId: 'server-1',
+          filename: 'server-img.png',
+          size: 500,
+          mimeType: 'image/png',
+          status: 'server-only' as const,
+          server: {
+            filename: 'server-img.png',
+            size: 500,
+            mimeType: 'image/png',
+            uploadedAt: '2024-01-04T00:00:00Z',
+          },
+        },
+        {
+          mediaId: 'server-2',
+          filename: 'server-img2.jpg',
+          size: 600,
+          mimeType: 'image/jpeg',
+          status: 'server-only' as const,
+          server: {
+            filename: 'server-img2.jpg',
+            size: 600,
+            mimeType: 'image/jpeg',
+            uploadedAt: '2024-01-05T00:00:00Z',
+          },
+        },
+      ];
+
+      mediaSyncService.checkSyncStatus.mockResolvedValue({
+        isSyncing: false,
+        lastChecked: null,
+        needsDownload: serverItems.length,
+        needsUpload: 0,
+        items: serverItems,
+        downloadProgress: 0,
+      });
+      mediaSyncService.downloadAllFromServer.mockClear();
+      mediaSyncService.downloadAllFromServer.mockResolvedValue(undefined);
+
+      // Clear local items so only server items remain
+      localStorageService.listMedia.mockResolvedValue([]);
+
+      // Call checkServerMedia directly with an empty local items array
+      // to simulate the "no local items" scenario
+      await component['checkServerMedia']([]);
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      const items = component.mediaItems();
+      const serverOnly = items.filter(i => i.syncStatus === 'server-only');
+      expect(serverOnly.length).toBe(2);
+      expect(component.serverItemsCount()).toBe(2);
+
+      // Should auto-download since no local items exist
+      expect(mediaSyncService.downloadAllFromServer).toHaveBeenCalledWith(
+        'testuser/test-project'
+      );
+      // Downloading flags should be cleared after completion
+      expect(component.downloadingItemIds().size).toBe(0);
+    });
+
+    it('should not auto-download when local items exist', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      const serverItems = [
+        {
+          mediaId: 'media-1', // Same as local — should be skipped
+          filename: 'image1.png',
+          size: 1024,
+          mimeType: 'image/png',
+          status: 'server-only' as const,
+          server: {
+            filename: 'image1.png',
+            size: 1024,
+            mimeType: 'image/png',
+            uploadedAt: '2024-01-01T00:00:00Z',
+          },
+        },
+        {
+          mediaId: 'server-extra',
+          filename: 'extra.png',
+          size: 300,
+          mimeType: 'image/png',
+          status: 'server-only' as const,
+          server: {
+            filename: 'extra.png',
+            size: 300,
+            mimeType: 'image/png',
+            uploadedAt: '2024-01-06T00:00:00Z',
+          },
+        },
+      ];
+
+      mediaSyncService.checkSyncStatus.mockResolvedValue({
+        isSyncing: false,
+        lastChecked: null,
+        needsDownload: serverItems.length,
+        needsUpload: 0,
+        items: serverItems,
+        downloadProgress: 0,
+      });
+      mediaSyncService.downloadAllFromServer.mockClear();
+      mediaSyncService.downloadAllFromServer.mockResolvedValue(undefined);
+
+      // Call checkServerMedia with a local item — should NOT auto-download
+      const localItem = { ...mockMediaItems[0] };
+      await component['checkServerMedia']([localItem]);
+      await flushPromises();
+      await flushPromises();
+
+      // Should not auto-download because local items exist
+      expect(mediaSyncService.downloadAllFromServer).not.toHaveBeenCalled();
+
+      // Should skip server items that exist locally
+      const items = component.mediaItems();
+      const serverOnly = items.filter(i => i.syncStatus === 'server-only');
+      expect(serverOnly.length).toBe(1);
+      expect(serverOnly[0].mediaId).toBe('server-extra');
+    });
+  });
+
+  describe('syncFromServer', () => {
+    it('should sync all media and reset state', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      mediaSyncService.downloadAllFromServer.mockClear();
+      localStorageService.listMedia.mockResolvedValueOnce([mockMediaItems[0]]);
+
+      await component.syncFromServer();
+
+      expect(mediaSyncService.downloadAllFromServer).toHaveBeenCalledWith(
+        'testuser/test-project'
+      );
+      expect(component.isSyncing()).toBe(false);
+      expect(component.serverItemsCount()).toBe(0);
+    });
+
+    it('should set error on sync failure', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      mediaSyncService.downloadAllFromServer.mockRejectedValueOnce(
+        new Error('Sync failed')
+      );
+
+      await component.syncFromServer();
+
+      expect(component.error()).toBe('Failed to sync media from server');
+      expect(component.isSyncing()).toBe(false);
+    });
+  });
+
+  describe('clearSearch', () => {
+    it('should reset the search query', () => {
+      component.searchQuery.set('test query');
+      expect(component.searchQuery()).toBe('test query');
+
+      component.clearSearch();
+      expect(component.searchQuery()).toBe('');
+    });
+  });
+
+  describe('filteredItems', () => {
+    it('should return all items when no search query', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      component.searchQuery.set('');
+      expect(component.filteredItems().length).toBe(
+        component.mediaItems().length
+      );
+    });
+
+    it('should filter items by filename', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      component.searchQuery.set('image1');
+      const filtered = component.filteredItems();
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].filename).toBe('image1.png');
+    });
+
+    it('should filter items by mediaId', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      component.searchQuery.set('media-2');
+      const filtered = component.filteredItems();
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].mediaId).toBe('media-2');
+    });
+
+    it('should return empty when no match', async () => {
+      fixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      component.searchQuery.set('nonexistent');
+      expect(component.filteredItems().length).toBe(0);
+    });
   });
 });
