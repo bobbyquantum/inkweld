@@ -48,39 +48,16 @@ describe('ElectronService', () => {
       expect(result).toBeNull();
     });
 
-    it('should return false for writeFile', async () => {
-      const result = await service.writeFile('/path/to/file', 'content');
-      expect(result).toBe(false);
-    });
-
-    it('should return null for readFile', async () => {
-      const result = await service.readFile('/path/to/file');
-      expect(result).toBeNull();
-    });
-
-    it('should do nothing for windowMinimize', async () => {
-      expect(await service.windowMinimize()).toBeUndefined();
-    });
-
-    it('should return false for windowMaximize', async () => {
-      const result = await service.windowMaximize();
-      expect(result).toBe(false);
-    });
-
-    it('should do nothing for windowClose', async () => {
-      expect(await service.windowClose()).toBeUndefined();
-    });
-
-    it('should return false for windowIsMaximized', async () => {
-      const result = await service.windowIsMaximized();
-      expect(result).toBe(false);
-    });
-
     it('should return { saved: false } for saveFileWithDialog', async () => {
       const result = await service.saveFileWithDialog('content', {
         title: 'Save',
       });
       expect(result).toEqual({ saved: false });
+    });
+
+    it('should return { data: null } for openAndReadFile', async () => {
+      const result = await service.openAndReadFile({ title: 'Open' });
+      expect(result).toEqual({ data: null });
     });
   });
 
@@ -91,9 +68,8 @@ describe('ElectronService', () => {
       getPlatform: vi.fn().mockResolvedValue('win32'),
       showSaveDialog: vi.fn(),
       showOpenDialog: vi.fn(),
-      writeFile: vi.fn(),
-      readFile: vi.fn(),
-      onMenuAction: vi.fn().mockReturnValue(() => {}),
+      saveFileWithDialog: vi.fn(),
+      openAndReadFile: vi.fn(),
       windowMinimize: vi.fn().mockResolvedValue(undefined),
       windowMaximize: vi.fn().mockResolvedValue(true),
       windowClose: vi.fn().mockResolvedValue(undefined),
@@ -180,88 +156,58 @@ describe('ElectronService', () => {
       });
     });
 
-    it('should call writeFile on Electron API', async () => {
-      mockElectronAPI.writeFile.mockResolvedValue({ success: true });
-
-      const result = await service.writeFile('/test/file.txt', 'content');
-
-      expect(mockElectronAPI.writeFile).toHaveBeenCalledWith(
-        '/test/file.txt',
-        'content'
-      );
-      expect(result).toBe(true);
-    });
-
-    it('should call readFile on Electron API', async () => {
-      const mockData = new ArrayBuffer(8);
-      mockElectronAPI.readFile.mockResolvedValue({
-        success: true,
-        data: mockData,
+    it('should call saveFileWithDialog on Electron API', async () => {
+      mockElectronAPI.saveFileWithDialog.mockResolvedValue({
+        saved: true,
+        filePath: '/test/file.txt',
       });
 
-      const result = await service.readFile('/test/file.txt');
+      const result = await service.saveFileWithDialog('content', {
+        title: 'Save',
+      });
 
-      expect(mockElectronAPI.readFile).toHaveBeenCalledWith('/test/file.txt');
-      expect(result).toBe(mockData);
+      expect(mockElectronAPI.saveFileWithDialog).toHaveBeenCalledWith(
+        'content',
+        { title: 'Save' }
+      );
+      expect(result).toEqual({ saved: true, filePath: '/test/file.txt' });
     });
 
-    it('should return null for readFile on failure', async () => {
-      mockElectronAPI.readFile.mockResolvedValue({
+    it('should return saved: false when saveFileWithDialog fails', async () => {
+      mockElectronAPI.saveFileWithDialog.mockResolvedValue({ saved: false });
+
+      const result = await service.saveFileWithDialog('content', {
+        title: 'Save',
+      });
+
+      expect(result).toEqual({ saved: false, filePath: undefined });
+    });
+
+    it('should call openAndReadFile on Electron API', async () => {
+      const mockData = new ArrayBuffer(8);
+      mockElectronAPI.openAndReadFile.mockResolvedValue({
+        success: true,
+        data: mockData,
+        filePath: '/test/file.txt',
+      });
+
+      const result = await service.openAndReadFile({ title: 'Open' });
+
+      expect(mockElectronAPI.openAndReadFile).toHaveBeenCalledWith({
+        title: 'Open',
+      });
+      expect(result).toEqual({ data: mockData, filePath: '/test/file.txt' });
+    });
+
+    it('should return null data for openAndReadFile on failure', async () => {
+      mockElectronAPI.openAndReadFile.mockResolvedValue({
         success: false,
         error: 'File not found',
       });
 
-      const result = await service.readFile('/test/file.txt');
+      const result = await service.openAndReadFile({ title: 'Open' });
 
-      expect(result).toBeNull();
-    });
-
-    describe('saveFileWithDialog', () => {
-      it('should return saved: false when dialog is canceled', async () => {
-        mockElectronAPI.showSaveDialog.mockResolvedValue({ canceled: true });
-
-        const result = await service.saveFileWithDialog('content', {
-          title: 'Save',
-        });
-
-        expect(result).toEqual({ saved: false });
-        expect(mockElectronAPI.writeFile).not.toHaveBeenCalled();
-      });
-
-      it('should write file and return saved: true on success', async () => {
-        mockElectronAPI.showSaveDialog.mockResolvedValue({
-          canceled: false,
-          filePath: '/test/file.txt',
-        });
-        mockElectronAPI.writeFile.mockResolvedValue({ success: true });
-
-        const result = await service.saveFileWithDialog('content', {
-          title: 'Save',
-        });
-
-        expect(mockElectronAPI.writeFile).toHaveBeenCalledWith(
-          '/test/file.txt',
-          'content'
-        );
-        expect(result).toEqual({ saved: true, filePath: '/test/file.txt' });
-      });
-
-      it('should return saved: false when write fails', async () => {
-        mockElectronAPI.showSaveDialog.mockResolvedValue({
-          canceled: false,
-          filePath: '/test/file.txt',
-        });
-        mockElectronAPI.writeFile.mockResolvedValue({
-          success: false,
-          error: 'Write error',
-        });
-
-        const result = await service.saveFileWithDialog('content', {
-          title: 'Save',
-        });
-
-        expect(result).toEqual({ saved: false, filePath: undefined });
-      });
+      expect(result).toEqual({ data: null });
     });
   });
 });

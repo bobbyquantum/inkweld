@@ -190,21 +190,31 @@ ipcMain.handle('show-open-dialog', async (_event, options) => {
 });
 
 ipcMain.handle(
-  'write-file',
-  async (_event, filePath: string, data: string | Buffer) => {
+  'save-file-with-dialog',
+  async (_event, data: string | Buffer, options) => {
+    if (!mainWindow) return { saved: false };
     try {
-      fs.writeFileSync(filePath, data);
-      return { success: true };
+      const result = await dialog.showSaveDialog(mainWindow, options);
+      if (result.canceled || !result.filePath) {
+        return { saved: false };
+      }
+      fs.writeFileSync(result.filePath, data);
+      return { saved: true, filePath: result.filePath };
     } catch (error) {
-      return { success: false, error: (error as Error).message };
+      return { saved: false, error: (error as Error).message };
     }
   }
 );
 
-ipcMain.handle('read-file', async (_event, filePath: string) => {
+ipcMain.handle('open-and-read-file', async (_event, options) => {
+  if (!mainWindow) return { success: false };
   try {
-    const data = fs.readFileSync(filePath);
-    return { success: true, data };
+    const result = await dialog.showOpenDialog(mainWindow, options);
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false };
+    }
+    const data = fs.readFileSync(result.filePaths[0]);
+    return { success: true, data, filePath: result.filePaths[0] };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }
@@ -248,7 +258,10 @@ app.whenReady().then(() => {
         urlPath = 'index.html';
       }
 
-      const filePath = path.join(DIST_PATH, urlPath);
+      const filePath = path.resolve(path.join(DIST_PATH, urlPath));
+      if (!filePath.startsWith(DIST_PATH + path.sep) && filePath !== DIST_PATH) {
+        return new Response('Forbidden', { status: 403 });
+      }
       return net.fetch(pathToFileURL(filePath).toString());
     });
   }
