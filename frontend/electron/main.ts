@@ -10,8 +10,24 @@ import {
 import * as path from 'path';
 import * as fs from 'fs';
 import { pathToFileURL } from 'url';
+import { homedir } from 'os';
 
 let mainWindow: BrowserWindow | null = null;
+
+const ALLOWED_BASE_DIRS = [
+  homedir(),
+  app.getPath('documents'),
+  app.getPath('downloads'),
+  app.getPath('desktop'),
+  app.getPath('userData'),
+];
+
+function isPathAllowed(filePath: string): boolean {
+  const resolved = path.resolve(filePath);
+  return ALLOWED_BASE_DIRS.some(
+    base => resolved === base || resolved.startsWith(base + path.sep)
+  );
+}
 
 // Determine if we're in development mode
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -193,7 +209,10 @@ ipcMain.handle(
   'write-file',
   async (_event, filePath: string, data: string | Buffer) => {
     try {
-      fs.writeFileSync(filePath, data);
+      if (!isPathAllowed(filePath)) {
+        return { success: false, error: 'Access denied: path not allowed' };
+      }
+      fs.writeFileSync(path.resolve(filePath), data);
       return { success: true };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -203,7 +222,10 @@ ipcMain.handle(
 
 ipcMain.handle('read-file', async (_event, filePath: string) => {
   try {
-    const data = fs.readFileSync(filePath);
+    if (!isPathAllowed(filePath)) {
+      return { success: false, error: 'Access denied: path not allowed' };
+    }
+    const data = fs.readFileSync(path.resolve(filePath));
     return { success: true, data };
   } catch (error) {
     return { success: false, error: (error as Error).message };
@@ -248,7 +270,10 @@ app.whenReady().then(() => {
         urlPath = 'index.html';
       }
 
-      const filePath = path.join(DIST_PATH, urlPath);
+      const filePath = path.resolve(path.join(DIST_PATH, urlPath));
+      if (!filePath.startsWith(DIST_PATH + path.sep) && filePath !== DIST_PATH) {
+        return new Response('Forbidden', { status: 403 });
+      }
       return net.fetch(pathToFileURL(filePath).toString());
     });
   }
