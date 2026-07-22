@@ -15,6 +15,8 @@ import {
 
 import { EditorToolbarComponent } from './editor-toolbar.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // @bobbyquantum/ngx-editor, prosemirror-commands, prosemirror-history,
 // and prosemirror-schema-list are all mocked globally in setup-vitest.ts
 
@@ -133,7 +135,7 @@ describe('EditorToolbarComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [EditorToolbarComponent],
+      imports: [translocoTestProvider(), EditorToolbarComponent],
       schemas: [NO_ERRORS_SCHEMA],
       providers: [
         provideZonelessChangeDetection(),

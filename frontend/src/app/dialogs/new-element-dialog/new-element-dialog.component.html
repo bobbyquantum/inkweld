@@ -1,18 +1,18 @@
 @if (currentStep() === 1) {
   <!-- Step 1: Choose Type -->
-  <h2 mat-dialog-title>Choose Element Type</h2>
+  <h2 mat-dialog-title>{{ 'dialogs.newElement.title' | transloco }}</h2>
 
   <mat-dialog-content class="type-selection-content">
     <!-- Search Field -->
     <mat-form-field appearance="outline" class="search-field">
-      <mat-label>Search element types...</mat-label>
+      <mat-label>{{ 'dialogs.newElement.searchLabel' | transloco }}</mat-label>
       <input
         matInput
         [value]="searchQuery()"
         (input)="searchQuery.set($event.target.value)"
-        placeholder="e.g., character, location, map..."
+        [placeholder]="'dialogs.newElement.searchPlaceholder' | transloco"
         id="new-element-type-search-input"
-        aria-label="Search element types" />
+        [attr.aria-label]="'dialogs.newElement.searchAria' | transloco" />
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
 
@@ -21,7 +21,7 @@
       <div class="category-section">
         <h3 class="category-title">
           <mat-icon>folder_open</mat-icon>
-          Documents & Organization
+          {{ 'dialogs.newElement.documentsCategory' | transloco }}
         </h3>
         <div class="type-grid">
           @for (option of documentOptions(); track option.type) {
@@ -52,7 +52,7 @@
       <div class="category-section">
         <h3 class="category-title">
           <mat-icon>language</mat-icon>
-          Worldbuilding Elements
+          {{ 'dialogs.newElement.worldbuildingCategory' | transloco }}
         </h3>
         <div class="type-grid">
           @for (option of worldbuildingOptions(); track option.schemaId) {
@@ -82,7 +82,7 @@
       <div class="category-section">
         <h3 class="category-title">
           <mat-icon>insights</mat-icon>
-          Visualization
+          {{ 'dialogs.newElement.visualizationCategory' | transloco }}
         </h3>
         <div class="type-grid">
           @for (option of visualizationOptions(); track option.type) {
@@ -108,13 +108,15 @@
     @if (filteredOptions().length === 0) {
       <div class="no-results">
         <mat-icon>search_off</mat-icon>
-        <p>No element types match your search.</p>
+        <p>{{ 'dialogs.newElement.noMatch' | transloco }}</p>
       </div>
     }
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
-    <button mat-button type="button" (click)="onCancel()">Cancel</button>
+    <button mat-button type="button" (click)="onCancel()">
+      {{ 'cancel' | transloco }}
+    </button>
   </mat-dialog-actions>
 } @else {
   <!-- Step 2: Enter Name -->
@@ -122,10 +124,13 @@
     <button
       mat-icon-button
       (click)="previousStep()"
-      matTooltip="Back to type selection">
+      [matTooltip]="'dialogs.newElement.backToTypes' | transloco">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    New {{ getSelectedOption()?.label }}
+    {{
+      'dialogs.newElement.newPrefix'
+        | transloco: { label: getSelectedOption()?.label || '' }
+    }}
   </h2>
 
   <form (submit)="$event.preventDefault(); onCreate()">
@@ -150,7 +155,10 @@
 
       <!-- Name Input -->
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ getSelectedOption()?.label }} Name</mat-label>
+        <mat-label>{{
+          'dialogs.newElement.nameLabel'
+            | transloco: { label: getSelectedOption()?.label || '' }
+        }}</mat-label>
         <input
           matInput
           [formField]="form.name"
@@ -158,28 +166,43 @@
           data-testid="element-name-input"
           [placeholder]="
             getSelectedOption()?.schemaId?.includes('character')
-              ? 'e.g., Aragorn, Hermione Granger'
+              ? ('dialogs.newElement.placeholders.character' | transloco)
               : getSelectedOption()?.schemaId?.includes('location')
-                ? 'e.g., Rivendell, Kings Landing'
+                ? ('dialogs.newElement.placeholders.location' | transloco)
                 : getSelectedOption()?.schemaId?.includes('item')
-                  ? 'e.g., Excalibur, Elder Wand'
+                  ? ('dialogs.newElement.placeholders.item' | transloco)
                   : getSelectedOption()?.schemaId?.includes('map')
-                    ? 'e.g., Middle Earth Map, City Layout'
+                    ? ('dialogs.newElement.placeholders.map' | transloco)
                     : getSelectedOption()?.schemaId?.includes('relationship')
-                      ? 'e.g., Frodo & Sam, Romeo & Juliet'
+                      ? ('dialogs.newElement.placeholders.relationship'
+                        | transloco)
                       : getSelectedOption()?.schemaId?.includes('philosophy')
-                        ? 'e.g., The Force, Stoicism'
+                        ? ('dialogs.newElement.placeholders.concept'
+                          | transloco)
                         : getSelectedOption()?.schemaId?.includes('culture')
-                          ? 'e.g., Elvish Culture, Viking Society'
+                          ? ('dialogs.newElement.placeholders.culture'
+                            | transloco)
                           : getSelectedOption()?.schemaId?.includes('species')
-                            ? 'e.g., Dragons, Time Lords'
+                            ? ('dialogs.newElement.placeholders.species'
+                              | transloco)
                             : getSelectedOption()?.schemaId?.includes('system')
-                              ? 'e.g., Magic System, FTL Travel'
+                              ? ('dialogs.newElement.placeholders.system'
+                                | transloco)
                               : getSelectedOption()?.type === 'FOLDER'
-                                ? 'e.g., Act 1, Characters, Research'
-                                : 'e.g., Chapter 1, Prologue'
+                                ? ('dialogs.newElement.placeholders.folder'
+                                  | transloco)
+                                : ('dialogs.newElement.placeholders.document'
+                                  | transloco)
           "
-          aria-label="{{ getSelectedOption()?.label || 'Element' }} Name" />
+          [attr.aria-label]="
+            'dialogs.newElement.nameAria'
+              | transloco
+                : {
+                    label:
+                      getSelectedOption()?.label ||
+                      ('dialogs.newElement.elementAria' | transloco),
+                  }
+          " />
         @if (form.name().touched() && form.name().invalid()) {
           @for (error of form.name().errors(); track error) {
             <mat-error>{{ error.message }}</mat-error>
@@ -191,15 +214,22 @@
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-button type="button" (click)="previousStep()">Back</button>
-      <button mat-button type="button" (click)="onCancel()">Cancel</button>
+      <button mat-button type="button" (click)="previousStep()">
+        {{ 'back' | transloco }}
+      </button>
+      <button mat-button type="button" (click)="onCancel()">
+        {{ 'cancel' | transloco }}
+      </button>
       <button
         mat-raised-button
         color="primary"
         type="submit"
         data-testid="create-element-button"
         [disabled]="form().invalid()">
-        Create {{ getSelectedOption()?.label }}
+        {{
+          'dialogs.newElement.createPrefix'
+            | transloco: { label: getSelectedOption()?.label || '' }
+        }}
       </button>
     </mat-dialog-actions>
   </form>

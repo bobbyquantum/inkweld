@@ -30,6 +30,8 @@ import { PublishedFilesService } from '../../../../services/publish/published-fi
 import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
 import { PublishPlanTabComponent } from './publish-plan-tab.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 describe('PublishPlanTabComponent', () => {
   let component: PublishPlanTabComponent;
   let fixture: ComponentFixture<PublishPlanTabComponent>;
@@ -92,7 +94,7 @@ describe('PublishPlanTabComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [PublishPlanTabComponent],
+      imports: [translocoTestProvider(), PublishPlanTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },

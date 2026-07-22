@@ -1,16 +1,18 @@
 <h2 mat-dialog-title>{{ data.title }}</h2>
 <mat-dialog-content>
   <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Text</mat-label>
+    <mat-label>{{ 'canvas.textDialog.textLabel' | transloco }}</mat-label>
     <textarea
       matInput
       id="canvas-text-input"
-      aria-label="Text"
+      [attr.aria-label]="'canvas.textDialog.textAria' | transloco"
       [formField]="form.text"
       cdkFocusInitial
       rows="3"
       data-testid="canvas-text-input"
-      placeholder="Enter text"></textarea>
+      [placeholder]="
+        'canvas.textDialog.textPlaceholder' | transloco
+      "></textarea>
     @if (form.text().touched() && form.text().invalid()) {
       @for (error of form.text().errors(); track error.message) {
         <mat-error>{{ error.message }}</mat-error>
@@ -19,20 +21,22 @@
   </mat-form-field>
 
   <div class="color-section">
-    <span class="color-label">Text Color</span>
+    <span class="color-label">{{
+      'canvas.textDialog.textColor' | transloco
+    }}</span>
     <app-color-swatches
       [selectedColor]="selectedColor"
       (colorChange)="onColorChange($event)" />
   </div>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-button (click)="onCancel()">{{ 'cancel' | transloco }}</button>
   <button
     mat-button
     color="primary"
     [disabled]="form().invalid()"
     data-testid="canvas-text-confirm"
     (click)="onConfirm()">
-    {{ data.confirmLabel || 'Add' }}
+    {{ data.confirmLabel || ('canvas.textDialog.add' | transloco) }}
   </button>
 </mat-dialog-actions>

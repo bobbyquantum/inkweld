@@ -1,10 +1,10 @@
 <section class="settings-section">
   <mat-checkbox [(ngModel)]="confirmElementMoves">
-    Confirm element moves
+    {{ 'settings.projectTreeTab.confirmMoves' | transloco }}
   </mat-checkbox>
   <mat-checkbox
     [(ngModel)]="showBreadcrumbs"
     data-testid="show-breadcrumbs-toggle">
-    Show breadcrumbs above editors
+    {{ 'settings.projectTreeTab.showBreadcrumbs' | transloco }}
   </mat-checkbox>
 </section>

@@ -9,6 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RecoverPasskeyRedeemComponent } from './recover-passkey-redeem.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('RecoverPasskeyRedeemComponent', () => {
   let component: RecoverPasskeyRedeemComponent;
   let fixture: ComponentFixture<RecoverPasskeyRedeemComponent>;
@@ -37,7 +39,7 @@ describe('RecoverPasskeyRedeemComponent', () => {
     mockRouter = { navigate: vi.fn().mockResolvedValue(true) };
 
     await TestBed.configureTestingModule({
-      imports: [RecoverPasskeyRedeemComponent],
+      imports: [translocoTestProvider(), RecoverPasskeyRedeemComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),
@@ -141,7 +143,7 @@ describe('RecoverPasskeyRedeemComponent', () => {
         new Error('weird')
       );
       await component.onSubmit();
-      expect(component.error()).toContain('Could not enrol your new passkey');
+      expect(component.error()).toBe('Something went wrong. Please try again.');
       expect(component.success()).toBe(false);
     });
   });

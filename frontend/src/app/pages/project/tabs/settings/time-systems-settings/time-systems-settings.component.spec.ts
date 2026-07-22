@@ -7,6 +7,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TimeSystemsSettingsComponent } from './time-systems-settings.component';
 
+import { translocoTestProvider } from '../../../../../../testing/transloco-test-provider';
+
 function makeSystem(overrides: Partial<TimeSystem> = {}): TimeSystem {
   return {
     ...GREGORIAN_SYSTEM,
@@ -36,7 +38,7 @@ async function createComponent(
   };
 
   await TestBed.configureTestingModule({
-    imports: [TimeSystemsSettingsComponent],
+    imports: [translocoTestProvider(), TimeSystemsSettingsComponent],
     providers: [
       { provide: TimeSystemLibraryService, useValue: libraryMock },
       { provide: DialogGatewayService, useValue: dialogsMock },

@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FileUploadComponent } from './file-upload.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('FileUploadComponent', () => {
   let component: FileUploadComponent;
   let fixture: ComponentFixture<FileUploadComponent>;
@@ -16,7 +18,7 @@ describe('FileUploadComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [FileUploadComponent],
+      imports: [translocoTestProvider(), FileUploadComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },

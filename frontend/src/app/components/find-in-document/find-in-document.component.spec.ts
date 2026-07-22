@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FindInDocumentService } from '../../services/core/find-in-document.service';
 import { FindInDocumentComponent } from './find-in-document.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 /**
  * Helper to create a mock FindInDocumentService
  */
@@ -44,7 +46,7 @@ describe('FindInDocumentComponent', () => {
       mockFindService = createMockFindService();
 
       await TestBed.configureTestingModule({
-        imports: [FindInDocumentComponent],
+        imports: [translocoTestProvider(), FindInDocumentComponent],
         providers: [
           { provide: FindInDocumentService, useValue: mockFindService },
         ],
@@ -78,7 +80,7 @@ describe('FindInDocumentComponent', () => {
 
       await TestBed.resetTestingModule()
         .configureTestingModule({
-          imports: [FindInDocumentComponent],
+          imports: [translocoTestProvider(), FindInDocumentComponent],
           providers: [
             { provide: FindInDocumentService, useValue: mockFindService },
           ],
@@ -101,7 +103,7 @@ describe('FindInDocumentComponent', () => {
       mockFindService = createMockFindService();
 
       await TestBed.configureTestingModule({
-        imports: [FindInDocumentComponent],
+        imports: [translocoTestProvider(), FindInDocumentComponent],
         providers: [
           { provide: FindInDocumentService, useValue: mockFindService },
         ],
@@ -139,7 +141,7 @@ describe('FindInDocumentComponent', () => {
       mockFindService = createMockFindService();
 
       await TestBed.configureTestingModule({
-        imports: [FindInDocumentComponent],
+        imports: [translocoTestProvider(), FindInDocumentComponent],
         providers: [
           { provide: FindInDocumentService, useValue: mockFindService },
         ],
@@ -173,7 +175,7 @@ describe('FindInDocumentComponent', () => {
       mockFindService = createMockFindService({ matchCount: 0 });
 
       await TestBed.configureTestingModule({
-        imports: [FindInDocumentComponent],
+        imports: [translocoTestProvider(), FindInDocumentComponent],
         providers: [
           { provide: FindInDocumentService, useValue: mockFindService },
         ],
@@ -207,7 +209,7 @@ describe('FindInDocumentComponent', () => {
       mockFindService = createMockFindService({ matchCount: 5 });
 
       await TestBed.configureTestingModule({
-        imports: [FindInDocumentComponent],
+        imports: [translocoTestProvider(), FindInDocumentComponent],
         providers: [
           { provide: FindInDocumentService, useValue: mockFindService },
         ],
@@ -244,7 +246,7 @@ describe('FindInDocumentComponent', () => {
       });
 
       await TestBed.configureTestingModule({
-        imports: [FindInDocumentComponent],
+        imports: [translocoTestProvider(), FindInDocumentComponent],
         providers: [
           { provide: FindInDocumentService, useValue: mockFindService },
         ],
@@ -313,7 +315,7 @@ describe('FindInDocumentComponent', () => {
       mockFindService = createMockFindService();
 
       await TestBed.configureTestingModule({
-        imports: [FindInDocumentComponent],
+        imports: [translocoTestProvider(), FindInDocumentComponent],
         providers: [
           { provide: FindInDocumentService, useValue: mockFindService },
         ],

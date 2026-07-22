@@ -1,9 +1,12 @@
 <div class="messages-page" data-testid="messages-page">
   <mat-toolbar class="messages-toolbar">
-    <button mat-icon-button routerLink="/" aria-label="Back to home">
+    <button
+      mat-icon-button
+      routerLink="/"
+      [attr.aria-label]="'messages.backToHome' | transloco">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <span class="toolbar-title">Messages</span>
+    <span class="toolbar-title">{{ 'messages.title' | transloco }}</span>
     <span class="spacer"></span>
     @if (hasUnread) {
       <button
@@ -11,7 +14,7 @@
         (click)="onMarkAllAsRead()"
         data-testid="mark-all-read-btn">
         <mat-icon>done_all</mat-icon>
-        Mark all as read
+        {{ 'messages.markAllRead' | transloco }}
       </button>
     }
   </mat-toolbar>
@@ -20,16 +23,16 @@
     @if (announcementService.isLoading()) {
       <div class="loading-container">
         <mat-spinner diameter="40"></mat-spinner>
-        <p>Loading messages...</p>
+        <p>{{ 'messages.loading' | transloco }}</p>
       </div>
     } @else if (!hasAnnouncements) {
       <div class="empty-state">
         <mat-icon class="empty-icon">inbox</mat-icon>
-        <h2>No messages</h2>
-        <p>You're all caught up! Check back later for updates.</p>
+        <h2>{{ 'messages.noMessages' | transloco }}</h2>
+        <p>{{ 'messages.noMessagesHint' | transloco }}</p>
         <button mat-stroked-button color="primary" routerLink="/">
           <mat-icon>home</mat-icon>
-          Back to Home
+          {{ 'messages.backToHomeButton' | transloco }}
         </button>
       </div>
     } @else {

@@ -14,6 +14,8 @@ import { ProjectStateService } from '../../services/project/project-state.servic
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { NewElementDialogComponent } from './new-element-dialog.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('NewElementDialogComponent', () => {
   let component: NewElementDialogComponent;
   let fixture: ComponentFixture<NewElementDialogComponent>;
@@ -66,6 +68,7 @@ describe('NewElementDialogComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         NewElementDialogComponent,
         MatDialogModule,
         MatFormFieldModule,

@@ -3,13 +3,15 @@
 <mat-dialog-content>
   <div class="editor-form">
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Title</mat-label>
+      <mat-label>{{
+        'admin.announcementEditor.titleLabel' | transloco
+      }}</mat-label>
       <input
         matInput
         id="announcement-editor-title-input"
-        aria-label="Title"
+        [attr.aria-label]="'admin.announcementEditor.titleAria' | transloco"
         [formField]="form.title"
-        placeholder="Announcement title"
+        [placeholder]="'admin.announcementEditor.titlePlaceholder' | transloco"
         data-testid="announcement-title-input" />
       @if (form.title().touched() && form.title().invalid()) {
         @for (error of form.title().errors(); track error) {
@@ -19,13 +21,17 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Content</mat-label>
+      <mat-label>{{
+        'admin.announcementEditor.contentLabel' | transloco
+      }}</mat-label>
       <textarea
         matInput
         id="announcement-editor-content-input"
-        aria-label="Content"
+        [attr.aria-label]="'admin.announcementEditor.contentAria' | transloco"
         [formField]="form.content"
-        placeholder="Write your announcement content here..."
+        [placeholder]="
+          'admin.announcementEditor.contentPlaceholder' | transloco
+        "
         rows="6"
         data-testid="announcement-content-input"></textarea>
       @if (form.content().touched() && form.content().invalid()) {
@@ -38,27 +44,31 @@
     <div class="form-selects">
       <div class="form-row">
         <mat-form-field appearance="outline">
-          <mat-label>Type</mat-label>
+          <mat-label>{{
+            'admin.announcementEditor.typeLabel' | transloco
+          }}</mat-label>
           <mat-select
             [formField]="form.type"
             data-testid="announcement-type-select">
             @for (option of typeOptions; track option.value) {
               <mat-option [value]="option.value">
                 <mat-icon>{{ option.icon }}</mat-icon>
-                {{ option.label }}
+                {{ option.label | transloco }}
               </mat-option>
             }
           </mat-select>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Priority</mat-label>
+          <mat-label>{{
+            'admin.announcementEditor.priorityLabel' | transloco
+          }}</mat-label>
           <mat-select
             [formField]="form.priority"
             data-testid="announcement-priority-select">
             @for (option of priorityOptions; track option.value) {
               <mat-option [value]="option.value">
-                {{ option.label }}
+                {{ option.label | transloco }}
               </mat-option>
             }
           </mat-select>
@@ -66,31 +76,38 @@
       </div>
 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Expires At (optional)</mat-label>
+        <mat-label>{{
+          'admin.announcementEditor.expiresLabel' | transloco
+        }}</mat-label>
         <input
           matInput
           id="announcement-editor-expires-input"
           [matDatepicker]="picker"
           [formField]="form.expiresAt"
-          placeholder="Choose a date"
-          aria-label="Expires at" />
+          [placeholder]="
+            'admin.announcementEditor.expiresPlaceholder' | transloco
+          "
+          [attr.aria-label]="
+            'admin.announcementEditor.expiresAria' | transloco
+          " />
         <mat-datepicker-toggle
           matIconSuffix
           [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
-        <mat-hint>Leave empty for no expiration</mat-hint>
+        <mat-hint>{{
+          'admin.announcementEditor.expiresHint' | transloco
+        }}</mat-hint>
       </mat-form-field>
 
       <div class="checkbox-row">
         <mat-checkbox [formField]="form.isPublic" color="primary">
           <span class="checkbox-label">
             <mat-icon>public</mat-icon>
-            Show to unauthenticated users
+            {{ 'admin.announcementEditor.showToUnauth' | transloco }}
           </span>
         </mat-checkbox>
         <p class="checkbox-hint">
-          When enabled, this announcement will appear on the home page for
-          visitors who are not logged in.
+          {{ 'admin.announcementEditor.showToUnauthHint' | transloco }}
         </p>
       </div>
     </div>
@@ -99,7 +116,7 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="cancel()" [disabled]="isSubmitting">
-    Cancel
+    {{ 'cancel' | transloco }}
   </button>
   <button
     mat-raised-button
@@ -110,7 +127,7 @@
     @if (isSubmitting) {
       <mat-spinner diameter="20"></mat-spinner>
     } @else {
-      {{ isEditMode ? 'Update' : 'Create' }}
+      {{ isEditMode ? ('update' | transloco) : ('create' | transloco) }}
     }
   </button>
 </mat-dialog-actions>

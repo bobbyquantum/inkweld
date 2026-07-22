@@ -6,6 +6,8 @@ import { ElementSyncProviderFactory } from './element-sync-provider.factory';
 import { LocalElementSyncProvider } from './local-element-sync.provider';
 import { YjsElementSyncProvider } from './yjs-element-sync.provider';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ElementSyncProviderFactory', () => {
   let factory: ElementSyncProviderFactory;
   let mockSetupService: {
@@ -32,6 +34,7 @@ describe('ElementSyncProviderFactory', () => {
     } as unknown as LocalElementSyncProvider;
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         ElementSyncProviderFactory,
         { provide: SetupService, useValue: mockSetupService },

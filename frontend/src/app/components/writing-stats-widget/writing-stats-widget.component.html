@@ -9,7 +9,7 @@
     <header class="widget-header">
       <h3>
         <mat-icon>insights</mat-icon>
-        Your writing
+        {{ 'home.writingStats.title' | transloco }}
       </h3>
       <span class="window-label">Last {{ windowDays }} days</span>
     </header>
@@ -17,27 +17,33 @@
     <section class="stats-row">
       <div class="stat">
         <div class="stat-value">{{ stats()?.totalWords ?? 0 | number }}</div>
-        <div class="stat-label">words</div>
+        <div class="stat-label">{{ 'words' | transloco }}</div>
       </div>
       <div class="stat">
         <div class="stat-value">{{ activeDays() }}</div>
-        <div class="stat-label">active days</div>
+        <div class="stat-label">
+          {{ 'home.writingStats.activeDays' | transloco }}
+        </div>
       </div>
       <div class="stat">
         <div class="stat-value">{{ stats()?.projectCount ?? 0 }}</div>
-        <div class="stat-label">projects</div>
+        <div class="stat-label">
+          {{ 'home.writingStats.projects' | transloco }}
+        </div>
       </div>
       @if (bestDay(); as best) {
         <div class="stat" [matTooltip]="best.day">
           <div class="stat-value">{{ best.words | number }}</div>
-          <div class="stat-label">best day</div>
+          <div class="stat-label">
+            {{ 'home.writingStats.bestDay' | transloco }}
+          </div>
         </div>
       }
     </section>
 
     @if (events().length > 0) {
       <section class="recent-section">
-        <h4>Recent activity</h4>
+        <h4>{{ 'home.writingStats.recentActivity' | transloco }}</h4>
         <ul class="recent-list">
           @for (event of events(); track event.id) {
             <li class="recent-item">

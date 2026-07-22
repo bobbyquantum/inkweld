@@ -21,6 +21,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
+import { TranslocoModule } from '@jsverse/transloco';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
 import { TimelineAutoBuildDialogComponent } from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.component';
@@ -174,6 +175,7 @@ type EventDragPreview = {
     MatIconModule,
     MatSelectModule,
     MatTooltipModule,
+    TranslocoModule,
     TabPresenceIndicatorComponent,
     DocumentBreadcrumbsComponent,
   ],

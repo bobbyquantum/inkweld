@@ -1,7 +1,7 @@
 <div class="relationships-tab" data-testid="relationships-tab">
   <div class="header">
-    <h2>Relationship Types</h2>
-    <p class="hint">Define how elements connect in your project.</p>
+    <h2>{{ 'relationships.tab.title' | transloco }}</h2>
+    <p class="hint">{{ 'relationships.tab.hint' | transloco }}</p>
   </div>
 
   <div class="controls">
@@ -12,21 +12,21 @@
         (click)="createType()"
         data-testid="create-type-button">
         <mat-icon>add</mat-icon>
-        New Type
+        {{ 'relationships.tab.newType' | transloco }}
       </button>
     </div>
 
     <div class="search-bar">
       <mat-form-field appearance="outline" class="search-field">
-        <mat-label>Search relationship types</mat-label>
+        <mat-label>{{ 'relationships.tab.searchLabel' | transloco }}</mat-label>
         <input
           matInput
           id="relationship-types-search-input"
-          aria-label="Search relationship types"
+          [attr.aria-label]="'relationships.tab.searchAria' | transloco"
           type="text"
           [value]="searchQuery()"
           (input)="searchQuery.set($any($event.target).value)"
-          placeholder="Search by name..." />
+          [placeholder]="'relationships.tab.searchPlaceholder' | transloco" />
         <mat-icon matPrefix>search</mat-icon>
       </mat-form-field>
     </div>
@@ -41,7 +41,7 @@
   @if (!isLoading() && !error() && !hasTypes()) {
     <div class="empty">
       <mat-icon>link</mat-icon>
-      <p>No relationship types defined yet.</p>
+      <p>{{ 'relationships.tab.noTypes' | transloco }}</p>
       <p class="hint">
         Relationship types define how elements connect — e.g. "Parent of",
         "Lives at", "Owns".
@@ -53,8 +53,10 @@
   @if (!isLoading() && !error() && hasTypes() && filteredTypes().length === 0) {
     <div class="empty">
       <mat-icon>search_off</mat-icon>
-      <p>No relationship types match your search</p>
-      <button mat-button (click)="searchQuery.set('')">Clear filter</button>
+      <p>{{ 'relationships.tab.noMatch' | transloco }}</p>
+      <button mat-button (click)="searchQuery.set('')">
+        {{ 'relationships.tab.clearFilter' | transloco }}
+      </button>
     </div>
   }
 
@@ -76,7 +78,7 @@
               @if (!type.showInverse) {
                 <mat-icon
                   class="hidden-icon"
-                  matTooltip="Inverse links are hidden">
+                  [matTooltip]="'relationships.tab.inverseHidden' | transloco">
                   visibility_off
                 </mat-icon>
               }
@@ -85,21 +87,21 @@
           <div class="type-actions">
             <button
               mat-icon-button
-              matTooltip="Edit"
+              [matTooltip]="'relationships.tab.edit' | transloco"
               (click)="editType(type)"
               data-testid="edit-type-button">
               <mat-icon>edit</mat-icon>
             </button>
             <button
               mat-icon-button
-              matTooltip="Duplicate"
+              [matTooltip]="'relationships.tab.duplicate' | transloco"
               (click)="cloneType(type)"
               data-testid="clone-type-button">
               <mat-icon>content_copy</mat-icon>
             </button>
             <button
               mat-icon-button
-              matTooltip="Delete"
+              [matTooltip]="'relationships.tab.delete' | transloco"
               (click)="deleteType(type)"
               data-testid="delete-type-button">
               <mat-icon>delete_outline</mat-icon>

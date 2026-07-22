@@ -1,8 +1,8 @@
 <h2 mat-dialog-title>
   @if (showCropper) {
-    Crop Image
+    {{ 'dialogs.insertImage.cropTitle' | transloco }}
   } @else {
-    Insert Image
+    {{ 'dialogs.insertImage.insertTitle' | transloco }}
   }
 </h2>
 
@@ -11,7 +11,7 @@
     <!-- Cropper View -->
     <div class="cropper-view">
       <p class="cropper-subtitle">
-        Adjust the selection to crop your image (free aspect ratio)
+        {{ 'dialogs.insertImage.cropSubtitle' | transloco }}
       </p>
       <div class="cropper-container">
         <image-cropper
@@ -40,7 +40,7 @@
       <div class="image-preview">
         <div class="no-image-placeholder">
           <mat-icon>add_photo_alternate</mat-icon>
-          <span>Select an image to insert</span>
+          <span>{{ 'dialogs.insertImage.placeholder' | transloco }}</span>
         </div>
       </div>
 
@@ -53,7 +53,7 @@
           [disabled]="isLoading()"
           data-testid="insert-image-upload">
           <mat-icon>add_photo_alternate</mat-icon>
-          Upload Image
+          {{ 'dialogs.insertImage.uploadImage' | transloco }}
         </button>
 
         <button
@@ -63,7 +63,7 @@
           [disabled]="isLoading()"
           data-testid="insert-image-library">
           <mat-icon>photo_library</mat-icon>
-          Select from Library
+          {{ 'dialogs.insertImage.selectFromLibrary' | transloco }}
         </button>
 
         @if (aiGenerationStatus().status !== 'hidden') {
@@ -77,7 +77,7 @@
             [matTooltip]="aiGenerationStatus().tooltip ?? ''"
             data-testid="insert-image-generate">
             <mat-icon>auto_awesome</mat-icon>
-            Generate with AI
+            {{ 'dialogs.insertImage.generateWithAI' | transloco }}
             @if (aiGenerationStatus().status === 'disabled') {
               <mat-icon class="disconnected-icon">cloud_off</mat-icon>
             }
@@ -103,21 +103,23 @@
     style="display: none"
     (change)="onFileSelected($event)"
     data-testid="insert-image-file-input"
-    aria-label="Select image file" />
+    [attr.aria-label]="'dialogs.insertImage.selectFileAria' | transloco" />
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   @if (showCropper) {
-    <button mat-button (click)="cancelCropping()">Back</button>
+    <button mat-button (click)="cancelCropping()">
+      {{ 'back' | transloco }}
+    </button>
     <button
       mat-raised-button
       color="primary"
       (click)="applyCroppedImage()"
       [disabled]="!croppedBlob"
       data-testid="insert-image-apply">
-      Insert
+      {{ 'dialogs.insertImage.insert' | transloco }}
     </button>
   } @else {
-    <button mat-button (click)="cancel()">Cancel</button>
+    <button mat-button (click)="cancel()">{{ 'cancel' | transloco }}</button>
   }
 </mat-dialog-actions>

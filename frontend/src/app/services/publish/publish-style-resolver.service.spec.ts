@@ -12,11 +12,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { PublishStyleResolverService } from './publish-style-resolver.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('PublishStyleResolverService', () => {
   let service: PublishStyleResolverService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         PublishStyleResolverService,

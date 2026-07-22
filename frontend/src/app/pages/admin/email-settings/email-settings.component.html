@@ -21,12 +21,11 @@
           <div class="setting-info">
             <span class="setting-label">
               <mat-icon class="email-icon">email</mat-icon>
-              Enable Email
+              {{ 'admin.email.enableEmail' | transloco }}
             </span>
-            <span class="setting-description">
-              Enable transactional email sending (welcome emails, password
-              resets). Requires SMTP configuration below.
-            </span>
+            <span class="setting-description">{{
+              'admin.email.enableEmailDesc' | transloco
+            }}</span>
           </div>
           <mat-slide-toggle
             [checked]="emailEnabled()"
@@ -41,24 +40,26 @@
     <!-- SMTP Configuration -->
     <mat-card class="setting-card smtp-card" data-testid="smtp-config-card">
       <mat-card-content>
-        <h3 class="section-title">SMTP Configuration</h3>
+        <h3 class="section-title">
+          {{ 'admin.email.smtpConfig' | transloco }}
+        </h3>
 
         <div class="form-grid">
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>SMTP Host</mat-label>
+            <mat-label>{{ 'admin.email.smtpHost' | transloco }}</mat-label>
             <input
               matInput
               id="smtp-host"
               [ngModel]="host()"
               (ngModelChange)="host.set($event)"
-              placeholder="smtp.example.com"
+              [placeholder]="'admin.email.smtpHostPlaceholder' | transloco"
               data-testid="smtp-host-input"
-              aria-label="SMTP host" />
+              [attr.aria-label]="'admin.email.smtpHostAria' | transloco" />
           </mat-form-field>
 
           <div class="form-row">
             <mat-form-field appearance="outline">
-              <mat-label>Port</mat-label>
+              <mat-label>{{ 'admin.email.port' | transloco }}</mat-label>
               <input
                 matInput
                 id="smtp-port"
@@ -66,11 +67,11 @@
                 (ngModelChange)="port.set($event)"
                 placeholder="587"
                 data-testid="smtp-port-input"
-                aria-label="SMTP port" />
+                [attr.aria-label]="'admin.email.portAria' | transloco" />
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Encryption</mat-label>
+              <mat-label>{{ 'admin.email.encryption' | transloco }}</mat-label>
               <mat-select
                 [ngModel]="encryption()"
                 (ngModelChange)="encryption.set($event)"
@@ -83,15 +84,15 @@
           </div>
 
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Username</mat-label>
+            <mat-label>{{ 'admin.email.username' | transloco }}</mat-label>
             <input
               matInput
               id="smtp-username"
               [ngModel]="username()"
               (ngModelChange)="username.set($event)"
-              placeholder="user@example.com"
+              [placeholder]="'admin.email.usernamePlaceholder' | transloco"
               data-testid="smtp-username-input"
-              aria-label="SMTP username" />
+              [attr.aria-label]="'admin.email.usernameAria' | transloco" />
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="full-width">

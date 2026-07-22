@@ -1,0 +1,94 @@
+{
+  "sidebar": {
+    "expand": "Expand sidebar",
+    "collapse": "Collapse sidebar",
+    "exportCanvas": "Export canvas",
+    "layers": "Layers",
+    "addLayer": "Add layer",
+    "layersAria": "Layers",
+    "hideLayer": "Hide layer",
+    "showLayer": "Show layer",
+    "unlockLayer": "Unlock layer",
+    "lockLayer": "Lock layer",
+    "moreOptions": "More options",
+    "layerOpacity": "Layer opacity",
+    "objects": "Objects",
+    "objectsAria": "Objects",
+    "noObjects": "No objects on this layer.",
+    "noObjectsHint": "Use the toolbar to add images, text, pins, or drawings."
+  },
+  "toolbar": {
+    "select": "Select (V)",
+    "rectangleSelect": "Rectangle select (R)",
+    "pan": "Pan (H)",
+    "placePin": "Place pin (P)",
+    "addImage": "Add image",
+    "addText": "Add text (T)",
+    "freehandDraw": "Freehand draw (D)",
+    "line": "Line (L)",
+    "shape": "Shape (S)",
+    "editColors": "Edit object colors",
+    "zoomIn": "Zoom in (⌘+)",
+    "zoomOut": "Zoom out (⌘-)",
+    "zoomInAria": "Zoom in",
+    "zoomOutAria": "Zoom out",
+    "fitAll": "Fit all (⌘0)",
+    "resetZoom": "Reset zoom to 100%"
+  },
+  "contextMenu": {
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "duplicate": "Duplicate",
+    "delete": "Delete",
+    "bringToFront": "Bring to front",
+    "bringForward": "Bring forward",
+    "sendBackward": "Send backward",
+    "sendToBack": "Send to back",
+    "sendToLayer": "Send to Layer"
+  },
+  "export": {
+    "exportPng": "Export as PNG",
+    "exportPngHighRes": "Export as PNG (High-res)",
+    "exportSvg": "Export as SVG"
+  },
+  "layerMenu": {
+    "rename": "Rename",
+    "duplicate": "Duplicate",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "delete": "Delete"
+  },
+  "shapes": {
+    "rectangle": "Rectangle",
+    "ellipse": "Ellipse",
+    "arrow": "Arrow",
+    "line": "Line"
+  },
+  "pinDialog": {
+    "labelLabel": "Label",
+    "labelAria": "Label",
+    "labelPlaceholder": "Enter pin label",
+    "pinColor": "Pin Color",
+    "linkToElement": "Link to Element",
+    "removeLink": "Remove linked element",
+    "removeLinkTooltip": "Remove link",
+    "linkButton": "Link to element",
+    "pinFallback": "Pin",
+    "linkedTooltip": "Linked to element",
+    "placePin": "Place Pin",
+    "labelRequired": "Label is required"
+  },
+  "textDialog": {
+    "textLabel": "Text",
+    "textAria": "Text",
+    "textPlaceholder": "Enter text",
+    "textColor": "Text Color",
+    "add": "Add",
+    "textRequired": "Text is required"
+  },
+  "colorDialog": {
+    "fillColor": "Fill Color",
+    "strokeColor": "Stroke Color"
+  }
+}

@@ -8,6 +8,8 @@ import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { SystemConfigService } from '../../services/core/system-config.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   InsertImageDialogComponent,
   type InsertImageDialogData,
@@ -46,7 +48,7 @@ describe('InsertImageDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [InsertImageDialogComponent],
+      imports: [translocoTestProvider(), InsertImageDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRefMock },
@@ -82,7 +84,7 @@ describe('InsertImageDialogComponent', () => {
 
       TestBed.resetTestingModule();
       await TestBed.configureTestingModule({
-        imports: [InsertImageDialogComponent],
+        imports: [translocoTestProvider(), InsertImageDialogComponent],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MatDialogRef, useValue: dialogRefMock },

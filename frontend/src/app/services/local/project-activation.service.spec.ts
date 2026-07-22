@@ -10,6 +10,8 @@ import { StorageContextService } from '../core/storage-context.service';
 import { ProjectActivationService } from './project-activation.service';
 import { StorageService } from './storage.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ProjectActivationService', () => {
   let service: ProjectActivationService;
   let storageService: StorageService;
@@ -36,6 +38,7 @@ describe('ProjectActivationService', () => {
     mockSetupService.getMode.mockReturnValue('server');
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         StorageService,

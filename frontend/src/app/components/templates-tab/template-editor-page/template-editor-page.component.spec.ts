@@ -12,6 +12,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TemplateEditorPageComponent } from './template-editor-page.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 describe('TemplateEditorPageComponent', () => {
   let component: TemplateEditorPageComponent;
   let fixture: ComponentFixture<TemplateEditorPageComponent>;
@@ -54,7 +56,7 @@ describe('TemplateEditorPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TemplateEditorPageComponent],
+      imports: [translocoTestProvider(), TemplateEditorPageComponent],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
 

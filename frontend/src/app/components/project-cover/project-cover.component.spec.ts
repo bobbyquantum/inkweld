@@ -12,6 +12,8 @@ import { SetupService } from '../../services/core/setup.service';
 import { LocalStorageService } from '../../services/local/local-storage.service';
 import { ProjectCoverComponent } from './project-cover.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ProjectCoverComponent', () => {
   let component: ProjectCoverComponent;
   let fixture: ComponentFixture<ProjectCoverComponent>;
@@ -73,7 +75,7 @@ describe('ProjectCoverComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ProjectCoverComponent],
+      imports: [translocoTestProvider(), ProjectCoverComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

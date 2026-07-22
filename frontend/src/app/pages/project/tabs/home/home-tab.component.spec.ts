@@ -18,6 +18,8 @@ import { ProjectStateService } from '../../../../services/project/project-state.
 import { RecentFilesService } from '../../../../services/project/recent-files.service';
 import { HomeTabComponent } from './home-tab.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 /* Convenience aliases for mocks */
 type ProjectsApiMock = DeepMockProxy<ProjectsService>;
 type ImagesApiMock = DeepMockProxy<ImagesService>;
@@ -139,7 +141,13 @@ describe('HomeTabComponent', () => {
     setupMockServices();
 
     await TestBed.configureTestingModule({
-      imports: [CommonModule, MatButtonModule, MatIconModule, HomeTabComponent],
+      imports: [
+        translocoTestProvider(),
+        CommonModule,
+        MatButtonModule,
+        MatIconModule,
+        HomeTabComponent,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: Router, useValue: mockRouter },

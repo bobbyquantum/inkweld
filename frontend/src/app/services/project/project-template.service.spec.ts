@@ -7,6 +7,8 @@ import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { ARCHIVE_VERSION } from '../../models/project-archive';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   type ProjectTemplateInfo,
   ProjectTemplateService,
@@ -63,6 +65,7 @@ describe('ProjectTemplateService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),

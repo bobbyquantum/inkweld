@@ -15,6 +15,8 @@ import { type MockedObject, vi } from 'vitest';
 
 import { UserProfileComponent } from './user-profile.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('UserProfileComponent', () => {
   let component: UserProfileComponent;
   let fixture: ComponentFixture<UserProfileComponent>;
@@ -92,7 +94,7 @@ describe('UserProfileComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [UserProfileComponent],
+      imports: [translocoTestProvider(), UserProfileComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),
@@ -129,7 +131,7 @@ describe('UserProfileComponent', () => {
 
       TestBed.resetTestingModule();
       await TestBed.configureTestingModule({
-        imports: [UserProfileComponent],
+        imports: [translocoTestProvider(), UserProfileComponent],
         providers: [
           provideZonelessChangeDetection(),
           provideHttpClient(withXhr()),

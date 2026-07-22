@@ -10,6 +10,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { SetupService } from '../core/setup.service';
 import { AdminEmailService } from './admin-email.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('AdminEmailService', () => {
   let service: AdminEmailService;
   let httpController: HttpTestingController;
@@ -20,6 +22,7 @@ describe('AdminEmailService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

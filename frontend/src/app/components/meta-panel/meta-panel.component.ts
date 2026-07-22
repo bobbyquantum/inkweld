@@ -31,6 +31,7 @@ import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.serv
 import { type Element, ElementType } from '../../../api-client';
 import { ElementRefService } from '../element-ref/element-ref.service';
 import { type ElementRefTooltipData } from '../element-ref/element-ref-tooltip/element-ref-tooltip.component';
+import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * Grouped relationships by type for display
@@ -63,6 +64,7 @@ interface RelationshipGroup {
     MatIconModule,
     MatMenuModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './meta-panel.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

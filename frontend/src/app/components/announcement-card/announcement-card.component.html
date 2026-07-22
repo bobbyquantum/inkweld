@@ -19,7 +19,7 @@
       </div>
     </mat-card-subtitle>
     @if (showReadStatus && !isRead) {
-      <div class="unread-indicator-top" matTooltip="Unread">
+      <div class="unread-indicator-top" [matTooltip]="'unread' | transloco">
         <mat-icon>fiber_manual_record</mat-icon>
       </div>
     }
@@ -37,7 +37,7 @@
         (click)="onMarkAsRead()"
         data-testid="mark-as-read-btn">
         <mat-icon>check</mat-icon>
-        Mark as read
+        {{ 'markAsRead' | transloco }}
       </button>
     </mat-card-actions>
   }

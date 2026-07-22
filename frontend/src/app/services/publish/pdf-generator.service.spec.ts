@@ -30,6 +30,8 @@ import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { BUNDLED_TYPST_FONT_URLS } from './pdf-generator.service';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   PdfGeneratorService,
   PdfPhase,
@@ -211,6 +213,7 @@ describe('PdfGeneratorService', () => {
     vi.stubGlobal('indexedDB', mockIndexedDB);
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         PdfGeneratorService,

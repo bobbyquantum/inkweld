@@ -11,6 +11,8 @@ import {
 } from './media-sync.service';
 import { ProjectSyncService } from './project-sync.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('MediaSyncService', () => {
   let service: MediaSyncService;
   let httpMock: {
@@ -49,6 +51,7 @@ describe('MediaSyncService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         { provide: HttpClient, useValue: httpMock },

@@ -5,34 +5,40 @@
         <div mat-card-avatar class="approval-icon">
           <mat-icon>pending</mat-icon>
         </div>
-        <mat-card-title>Registration Successful!</mat-card-title>
-        <mat-card-subtitle>Awaiting Administrator Approval</mat-card-subtitle>
+        <mat-card-title>{{
+          'auth.approvalPending.title' | transloco
+        }}</mat-card-title>
+        <mat-card-subtitle>{{
+          'auth.approvalPending.subtitle' | transloco
+        }}</mat-card-subtitle>
       </mat-card-header>
 
       <mat-card-content>
         <div class="success-message">
           <p>
-            <strong>Welcome, {{ displayName }}!</strong>
+            <strong>{{
+              'auth.approvalPending.welcome' | transloco: { name: displayName }
+            }}</strong>
           </p>
           <p>
-            Your account has been successfully created on {{ serverName }}.
-            However, this server requires administrator approval for new
-            accounts.
+            {{
+              'auth.approvalPending.message' | transloco: { server: serverName }
+            }}
           </p>
         </div>
 
         <div class="status-info">
-          <h3>What happens next?</h3>
+          <h3>{{ 'auth.approvalPending.whatNext' | transloco }}</h3>
           <ul>
-            <li>An administrator will review your registration request</li>
-            <li>You'll receive access once your account is approved</li>
+            <li>{{ 'auth.approvalPending.step1' | transloco }}</li>
+            <li>{{ 'auth.approvalPending.step2' | transloco }}</li>
           </ul>
         </div>
       </mat-card-content>
 
       <mat-card-actions align="end">
         <a mat-raised-button color="primary" routerLink="/welcome">
-          Return to Login
+          {{ 'auth.approvalPending.returnToLogin' | transloco }}
         </a>
       </mat-card-actions>
     </mat-card>

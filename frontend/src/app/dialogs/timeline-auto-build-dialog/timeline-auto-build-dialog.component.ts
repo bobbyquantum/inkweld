@@ -12,6 +12,8 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 
 import {
   type AutoBuildCandidate,
@@ -24,7 +26,14 @@ import {
   templateUrl: './timeline-auto-build-dialog.component.html',
   styleUrls: ['./timeline-auto-build-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatDialogModule, MatIconModule, MatCheckboxModule],
+  imports: [
+    MatButtonModule,
+    MatDialogModule,
+    MatIconModule,
+    MatCheckboxModule,
+    MatTooltipModule,
+    TranslocoModule,
+  ],
 })
 export class TimelineAutoBuildDialogComponent {
   readonly data = inject<AutoBuildDialogData>(MAT_DIALOG_DATA);

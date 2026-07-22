@@ -42,6 +42,8 @@ import { EpubGeneratorService } from './epub-generator.service';
 import { HtmlGeneratorService } from './html-generator.service';
 import { MarkdownGeneratorService } from './markdown-generator.service';
 import { PdfGeneratorService } from './pdf-generator.service';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   type RenderedWorldbuildingEntry,
   WorldbuildingPublishRendererService,
@@ -202,6 +204,7 @@ function makeMocks() {
 function configure(extra: unknown[] = []) {
   const mocks = makeMocks();
   TestBed.configureTestingModule({
+    imports: [translocoTestProvider()],
     providers: [
       provideZonelessChangeDetection(),
       { provide: LoggerService, useValue: mocks.logger },

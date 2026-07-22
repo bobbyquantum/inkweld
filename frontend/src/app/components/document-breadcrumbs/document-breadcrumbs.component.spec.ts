@@ -6,6 +6,8 @@ import { ProjectStateService } from '@services/project/project-state.service';
 
 import { DocumentBreadcrumbsComponent } from './document-breadcrumbs.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('DocumentBreadcrumbsComponent', () => {
   let fixture: ComponentFixture<DocumentBreadcrumbsComponent>;
   let component: DocumentBreadcrumbsComponent;
@@ -40,7 +42,7 @@ describe('DocumentBreadcrumbsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [DocumentBreadcrumbsComponent],
+      imports: [translocoTestProvider(), DocumentBreadcrumbsComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: projectStateMock },

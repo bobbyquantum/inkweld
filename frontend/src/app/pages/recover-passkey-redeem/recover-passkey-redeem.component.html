@@ -6,42 +6,27 @@
       @if (noToken()) {
         <div class="error-container" data-testid="redeem-no-token">
           <mat-icon class="error-icon-large">link_off</mat-icon>
-          <h2>Invalid Recovery Link</h2>
-          <p>
-            This page requires a valid recovery token. Please use the link from
-            your recovery email, or
-            <a routerLink="/recover-passkey">request a new one</a>.
-          </p>
+          <h2>{{ 'errors.unknown' | transloco }}</h2>
+          <p>{{ 'errors.loadFailed' | transloco }}</p>
         </div>
       } @else if (browserUnsupported()) {
         <div class="error-container" data-testid="redeem-unsupported">
           <mat-icon class="error-icon-large">block</mat-icon>
-          <h2>Browser Not Supported</h2>
-          <p>
-            Your browser does not support passkeys (WebAuthn). Please open this
-            link in a modern browser (Chrome, Edge, Safari, or Firefox) on a
-            device with biometrics or a hardware security key.
-          </p>
+          <h2>{{ 'auth.passkeys.unsupported' | transloco }}</h2>
+          <p>{{ 'auth.passkeys.unsupportedSnackbar' | transloco }}</p>
         </div>
       } @else if (success()) {
         <div class="success-container" data-testid="redeem-success">
           <mat-icon class="success-icon">check_circle</mat-icon>
-          <h2>Passkey Enrolled</h2>
-          <p>
-            Your new passkey has been added to your account. Your existing
-            passkeys (if any) are still active.
-          </p>
-          <p class="hint">
-            For your security, you'll need to sign in with your new passkey to
-            continue.
-          </p>
+          <h2>{{ 'auth.passkeys.passkeyAdded' | transloco }}</h2>
+          <p>{{ 'auth.passkeys.description' | transloco }}</p>
           <button
             mat-raised-button
             color="primary"
             (click)="goToLogin()"
             class="submit-button"
             data-testid="redeem-go-login">
-            Sign In With Your Passkey
+            {{ 'auth.passkeys.title' | transloco }}
           </button>
         </div>
       } @else {

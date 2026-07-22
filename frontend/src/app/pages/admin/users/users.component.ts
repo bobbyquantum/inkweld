@@ -24,6 +24,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
 import {
   ConfirmationDialogComponent,
@@ -53,6 +54,7 @@ const PAGE_SIZE = 20;
     MatSnackBarModule,
     MatTabsModule,
     MatTooltipModule,
+    TranslocoModule,
     UserAvatarComponent,
   ],
   templateUrl: './users.component.html',
@@ -64,6 +66,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   private readonly userService = inject(UnifiedUserService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
+  private readonly transloco = inject(TranslocoService);
 
   @ViewChild('userListContainer')
   userListContainer?: ElementRef<HTMLDivElement>;
@@ -166,10 +169,12 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       boolean
     >(ConfirmationDialogComponent, {
       data: {
-        title: 'Approve User',
-        message: `Are you sure you want to approve ${user.username}?`,
-        confirmText: 'Approve',
-        cancelText: 'Cancel',
+        title: this.transloco.translate('admin.users.approveTitle'),
+        message: this.transloco.translate('admin.users.approveMessage', {
+          name: user.username,
+        }),
+        confirmText: this.transloco.translate('admin.users.approve'),
+        cancelText: this.transloco.translate('cancel'),
       },
     });
 
@@ -178,13 +183,21 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
 
     try {
       await this.adminService.approveUser(user.id);
-      this.snackBar.open(`${user.username} has been approved`, 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.users.approved', {
+          name: user.username,
+        }),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       await this.loadUsers();
     } catch (err) {
       console.error('Failed to approve user:', err);
-      this.snackBar.open('Failed to approve user', 'Close', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('admin.users.approveFailed'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
     }
   }
 
@@ -195,10 +208,12 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       boolean
     >(ConfirmationDialogComponent, {
       data: {
-        title: 'Reject User',
-        message: `Are you sure you want to reject ${user.username}? This will permanently delete their account.`,
-        confirmText: 'Reject',
-        cancelText: 'Cancel',
+        title: this.transloco.translate('admin.users.rejectTitle'),
+        message: this.transloco.translate('admin.users.rejectMessage', {
+          name: user.username,
+        }),
+        confirmText: this.transloco.translate('admin.users.reject'),
+        cancelText: this.transloco.translate('cancel'),
       },
     });
 
@@ -207,34 +222,52 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
 
     try {
       await this.adminService.rejectUser(user.id);
-      this.snackBar.open(`${user.username} has been rejected`, 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.users.rejected', {
+          name: user.username,
+        }),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       await this.loadUsers();
     } catch (err) {
       console.error('Failed to reject user:', err);
-      this.snackBar.open('Failed to reject user', 'Close', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('admin.users.rejectFailed'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
     }
   }
 
   async enableUser(user: AdminUser): Promise<void> {
     try {
       await this.adminService.enableUser(user.id);
-      this.snackBar.open(`${user.username} has been enabled`, 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.users.enabled', {
+          name: user.username,
+        }),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       await this.loadUsers();
     } catch (err) {
       console.error('Failed to enable user:', err);
-      this.snackBar.open('Failed to enable user', 'Close', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('admin.users.enableFailed'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
     }
   }
 
   async disableUser(user: AdminUser): Promise<void> {
     if (this.isCurrentUser(user)) {
-      this.snackBar.open('You cannot disable yourself', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.users.cannotDisableSelf'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       return;
     }
 
@@ -244,10 +277,12 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       boolean
     >(ConfirmationDialogComponent, {
       data: {
-        title: 'Disable User',
-        message: `Are you sure you want to disable ${user.username}? They will no longer be able to access the system.`,
-        confirmText: 'Disable',
-        cancelText: 'Cancel',
+        title: this.transloco.translate('admin.users.disableTitle'),
+        message: this.transloco.translate('admin.users.disableMessage', {
+          name: user.username,
+        }),
+        confirmText: this.transloco.translate('admin.users.disable'),
+        cancelText: this.transloco.translate('cancel'),
       },
     });
 
@@ -256,37 +291,48 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
 
     try {
       await this.adminService.disableUser(user.id);
-      this.snackBar.open(`${user.username} has been disabled`, 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.users.disabled', {
+          name: user.username,
+        }),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       await this.loadUsers();
     } catch (err) {
       console.error('Failed to disable user:', err);
-      this.snackBar.open('Failed to disable user', 'Close', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('admin.users.disableFailed'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
     }
   }
 
   async toggleAdmin(user: AdminUser): Promise<void> {
     if (this.isCurrentUser(user)) {
-      this.snackBar.open('You cannot change your own admin status', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.users.cannotChangeOwnAdmin'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       return;
     }
 
-    const action = user.isAdmin
-      ? 'remove admin privileges from'
-      : 'grant admin privileges to';
     const dialogRef = this.dialog.open<
       ConfirmationDialogComponent,
       ConfirmationDialogData,
       boolean
     >(ConfirmationDialogComponent, {
       data: {
-        title: user.isAdmin ? 'Remove Admin' : 'Grant Admin',
-        message: `Are you sure you want to ${action} ${user.username}?`,
-        confirmText: user.isAdmin ? 'Remove Admin' : 'Grant Admin',
-        cancelText: 'Cancel',
+        title: user.isAdmin
+          ? this.transloco.translate('admin.users.removeAdminTitle')
+          : this.transloco.translate('admin.users.grantAdminTitle'),
+        message: `Are you sure you want to ${user.isAdmin ? 'remove admin privileges from' : 'grant admin privileges to'} ${user.username}?`,
+        confirmText: user.isAdmin
+          ? this.transloco.translate('admin.users.removeAdmin')
+          : this.transloco.translate('admin.users.grantAdmin'),
+        cancelText: this.transloco.translate('cancel'),
       },
     });
 
@@ -299,25 +345,27 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
         user.isAdmin
           ? `Admin privileges removed from ${user.username}`
           : `Admin privileges granted to ${user.username}`,
-        'Close',
-        {
-          duration: 3000,
-        }
+        this.transloco.translate('close'),
+        { duration: 3000 }
       );
       await this.loadUsers();
     } catch (err) {
       console.error('Failed to toggle admin:', err);
-      this.snackBar.open('Failed to change admin status', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.users.adminChangeFailed'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
     }
   }
 
   async deleteUser(user: AdminUser): Promise<void> {
     if (this.isCurrentUser(user)) {
-      this.snackBar.open('You cannot delete yourself', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.users.cannotDeleteSelf'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       return;
     }
 
@@ -327,10 +375,12 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       boolean
     >(ConfirmationDialogComponent, {
       data: {
-        title: 'Delete User',
-        message: `Are you sure you want to permanently delete ${user.username}? This action cannot be undone.`,
-        confirmText: 'Delete',
-        cancelText: 'Cancel',
+        title: this.transloco.translate('admin.users.deleteTitle'),
+        message: this.transloco.translate('admin.users.deleteMessage', {
+          name: user.username,
+        }),
+        confirmText: this.transloco.translate('delete'),
+        cancelText: this.transloco.translate('cancel'),
       },
     });
 
@@ -339,13 +389,21 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
 
     try {
       await this.adminService.deleteUser(user.id);
-      this.snackBar.open(`${user.username} has been deleted`, 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.users.deleted', {
+          name: user.username,
+        }),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       await this.loadUsers();
     } catch (err) {
       console.error('Failed to delete user:', err);
-      this.snackBar.open('Failed to delete user', 'Close', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('admin.users.deleteFailed'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
     }
   }
 

@@ -22,6 +22,7 @@ import { type Project } from '@inkweld/index';
 import { SyncQueueService, SyncStage } from '@services/sync/sync-queue.service';
 
 import { ProjectCoverComponent } from '../project-cover/project-cover.component';
+import { TranslocoModule } from '@jsverse/transloco';
 
 /** Long-press threshold in milliseconds */
 const LONG_PRESS_MS = 500;
@@ -38,6 +39,7 @@ const MOVE_THRESHOLD = 10;
     MatTooltipModule,
     RouterModule,
     ProjectCoverComponent,
+    TranslocoModule,
   ],
   templateUrl: './project-card.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

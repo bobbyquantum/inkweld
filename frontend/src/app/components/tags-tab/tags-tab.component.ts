@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoService } from '@jsverse/transloco';
 import { SettingsTabStatusComponent } from '@components/settings-tab-status/settings-tab-status.component';
 import {
   TagEditDialogComponent,
@@ -25,6 +26,7 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
 import { firstValueFrom } from 'rxjs';
+import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * View model for tags displayed in the list
@@ -55,12 +57,14 @@ interface TagView {
     MatMenuModule,
     MatTooltipModule,
     SettingsTabStatusComponent,
+    TranslocoModule,
   ],
 })
 export class TagsTabComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly tagService = inject(TagService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly dialog = inject(MatDialog);
 
@@ -165,12 +169,18 @@ export class TagsTabComponent {
         color: result.color,
         description: result.description,
       });
-      this.snackBar.open(`Created tag "${result.name}"`, 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('tags.tab.created', { name: result.name }),
+        this.transloco.translate('snackbar.dismiss'),
+        { duration: 3000 }
+      );
     } catch (err) {
       console.error('Failed to create tag:', err);
-      this.snackBar.open('Failed to create tag', 'Dismiss', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('tags.tab.createFailed'),
+        this.transloco.translate('snackbar.dismiss'),
+        { duration: 3000 }
+      );
     }
   }
 
@@ -209,12 +219,18 @@ export class TagsTabComponent {
         color: result.color,
         description: result.description,
       });
-      this.snackBar.open(`Updated tag "${result.name}"`, 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('tags.tab.updated', { name: result.name }),
+        this.transloco.translate('snackbar.dismiss'),
+        { duration: 3000 }
+      );
     } catch (err) {
       console.error('Failed to update tag:', err);
-      this.snackBar.open('Failed to update tag', 'Dismiss', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('tags.tab.updateFailed'),
+        this.transloco.translate('snackbar.dismiss'),
+        { duration: 3000 }
+      );
     }
   }
 
@@ -235,12 +251,18 @@ export class TagsTabComponent {
 
     try {
       this.tagService.deleteCustomTag(tag.id);
-      this.snackBar.open(`Deleted tag "${tag.name}"`, 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('tags.tab.deleted', { name: tag.name }),
+        this.transloco.translate('snackbar.dismiss'),
+        { duration: 3000 }
+      );
     } catch (err) {
       console.error('Failed to delete tag:', err);
-      this.snackBar.open('Failed to delete tag', 'Dismiss', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('tags.tab.deleteFailed'),
+        this.transloco.translate('snackbar.dismiss'),
+        { duration: 3000 }
+      );
     }
   }
 
@@ -249,9 +271,11 @@ export class TagsTabComponent {
    */
   viewTaggedElements(tag: TagView): void {
     if (tag.count === 0) {
-      this.snackBar.open('No elements have this tag', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('tags.tab.noElementsWithTag'),
+        this.transloco.translate('snackbar.dismiss'),
+        { duration: 3000 }
+      );
       return;
     }
 
@@ -262,9 +286,11 @@ export class TagsTabComponent {
       .filter((e): e is Element => e !== undefined);
 
     if (taggedElements.length === 0) {
-      this.snackBar.open('Tagged elements not found', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('tags.tab.taggedElementsNotFound'),
+        this.transloco.translate('snackbar.dismiss'),
+        { duration: 3000 }
+      );
       return;
     }
 
@@ -273,8 +299,11 @@ export class TagsTabComponent {
 
     if (taggedElements.length > 1) {
       this.snackBar.open(
-        `Opened "${taggedElements[0].name}". ${taggedElements.length - 1} more element(s) also have this tag.`,
-        'Dismiss',
+        this.transloco.translate('tags.tab.openedWithMore', {
+          name: taggedElements[0].name,
+          count: taggedElements.length - 1,
+        }),
+        this.transloco.translate('snackbar.dismiss'),
         { duration: 4000 }
       );
     }

@@ -16,6 +16,8 @@ import type Konva from 'konva';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('CanvasPlacementService', () => {
   let service: CanvasPlacementService;
   let canvasService: {
@@ -67,6 +69,7 @@ describe('CanvasPlacementService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasPlacementService,
         { provide: CanvasService, useValue: canvasService },

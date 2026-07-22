@@ -4,7 +4,9 @@
     class="tag-field"
     [class.compact]="compact()">
     <mat-label>{{ label() }}</mat-label>
-    <mat-chip-grid #chipGrid aria-label="Tag selection">
+    <mat-chip-grid
+      #chipGrid
+      [attr.aria-label]="'tags.chipList.ariaLabel' | transloco">
       @for (tag of resolvedTags(); track tag.assignment.id) {
         <mat-chip-row
           [removable]="!readonly()"
@@ -15,7 +17,9 @@
           <mat-icon matChipAvatar>{{ tag.definition.icon }}</mat-icon>
           {{ tag.definition.name }}
           @if (!readonly()) {
-            <button matChipRemove aria-label="Remove tag">
+            <button
+              matChipRemove
+              [attr.aria-label]="'tags.chipList.removeTag' | transloco">
               <mat-icon>cancel</mat-icon>
             </button>
           }
@@ -23,8 +27,8 @@
       }
       @if (!readonly()) {
         <input
-          placeholder="Add tag..."
-          aria-label="Add tag"
+          [placeholder]="'tags.chipList.addTagPlaceholder' | transloco"
+          [attr.aria-label]="'tags.chipList.addTagAria' | transloco"
           #tagInput
           [matAutocomplete]="auto"
           [matChipInputFor]="chipGrid"

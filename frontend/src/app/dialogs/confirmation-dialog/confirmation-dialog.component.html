@@ -12,22 +12,25 @@
 
   @if (data.requireConfirmationText) {
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label
-        >Type "{{ data.requireConfirmationText }}" to confirm</mat-label
-      >
+      <mat-label>{{
+        'dialogs.confirmation.typeToConfirm'
+          | transloco: { text: data.requireConfirmationText }
+      }}</mat-label>
       <input
         matInput
         id="confirm-dialog-input"
-        aria-label="Type to confirm"
+        [attr.aria-label]="'dialogs.confirmation.typeToConfirmAria' | transloco"
         [(ngModel)]="confirmationInput"
-        placeholder="Type to confirm"
+        [placeholder]="
+          'dialogs.confirmation.typeToConfirmPlaceholder' | transloco
+        "
         data-testid="confirm-dialog-input" />
     </mat-form-field>
   }
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()" data-testid="cancel-dialog-button">
-    {{ data.cancelText || 'Cancel' }}
+    {{ data.cancelText || ('cancel' | transloco) }}
   </button>
   <button
     mat-button
@@ -38,6 +41,6 @@
       data.requireConfirmationText &&
       confirmationInput !== data.requireConfirmationText
     ">
-    {{ data.confirmText || 'Confirm' }}
+    {{ data.confirmText || ('confirm' | transloco) }}
   </button>
 </mat-dialog-actions>

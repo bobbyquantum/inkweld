@@ -1,21 +1,25 @@
 <h2 mat-dialog-title>
-  {{ data.event ? 'Edit event' : 'Add event' }}
+  {{
+    data.event
+      ? ('timeline.eventDialog.editTitle' | transloco)
+      : ('timeline.eventDialog.addTitle' | transloco)
+  }}
 </h2>
 <mat-dialog-content class="content">
   <form class="form">
     <mat-form-field appearance="outline">
-      <mat-label>Title</mat-label>
+      <mat-label>{{ 'timeline.eventDialog.titleLabel' | transloco }}</mat-label>
       <input
         matInput
         id="timeline-event-title"
-        aria-label="Title"
+        [attr.aria-label]="'timeline.eventDialog.titleAria' | transloco"
         [formField]="form.title"
         data-testid="timeline-event-title"
         cdkFocusInitial />
     </mat-form-field>
 
     <mat-form-field appearance="outline">
-      <mat-label>Track</mat-label>
+      <mat-label>{{ 'timeline.eventDialog.trackLabel' | transloco }}</mat-label>
       <mat-select [formField]="form.trackId" data-testid="timeline-event-track">
         @for (track of data.tracks; track track.id) {
           <mat-option
@@ -27,15 +31,19 @@
       </mat-select>
     </mat-form-field>
 
-    <div class="section-label">Start</div>
+    <div class="section-label">
+      {{ 'timeline.eventDialog.startSection' | transloco }}
+    </div>
 
     @if (isGregorian()) {
       <mat-form-field appearance="outline">
-        <mat-label>Date</mat-label>
+        <mat-label>{{
+          'timeline.eventDialog.dateLabel' | transloco
+        }}</mat-label>
         <input
           matInput
           id="timeline-event-start-date"
-          aria-label="Start date"
+          [attr.aria-label]="'timeline.eventDialog.startDateAria' | transloco"
           type="date"
           [value]="startDateValue()"
           (change)="onStartDateChange($any($event.target).value)"
@@ -76,18 +84,22 @@
       [value]="combinedStart()" />
 
     <mat-checkbox [formField]="form.ranged" data-testid="timeline-event-ranged">
-      Ranged event
+      {{ 'timeline.eventDialog.rangedEvent' | transloco }}
     </mat-checkbox>
 
     @if (model().ranged) {
-      <div class="section-label">End</div>
+      <div class="section-label">
+        {{ 'timeline.eventDialog.endSection' | transloco }}
+      </div>
       @if (isGregorian()) {
         <mat-form-field appearance="outline">
-          <mat-label>Date</mat-label>
+          <mat-label>{{
+            'timeline.eventDialog.dateLabel' | transloco
+          }}</mat-label>
           <input
             matInput
             id="timeline-event-end-date"
-            aria-label="End date"
+            [attr.aria-label]="'timeline.eventDialog.endDateAria' | transloco"
             type="date"
             [value]="endDateValue()"
             (change)="onEndDateChange($any($event.target).value)"
@@ -130,17 +142,19 @@
           .some(e => e.kind === 'endBeforeStart')
       ) {
         <div class="field-error" data-testid="timeline-event-range-error">
-          End must be at or after start
+          {{ 'timeline.eventDialog.endAfterStart' | transloco }}
         </div>
       }
     }
 
     <mat-form-field appearance="outline">
-      <mat-label>Description</mat-label>
+      <mat-label>{{
+        'timeline.eventDialog.descriptionLabel' | transloco
+      }}</mat-label>
       <textarea
         matInput
         id="timeline-event-description"
-        aria-label="Description"
+        [attr.aria-label]="'timeline.eventDialog.descriptionAria' | transloco"
         rows="3"
         [formField]="form.description"
         data-testid="timeline-event-description"></textarea>
@@ -154,17 +168,17 @@
       color="warn"
       data-testid="timeline-event-delete"
       (click)="onDelete()">
-      Delete
+      {{ 'delete' | transloco }}
     </button>
   }
   <span class="spacer"></span>
-  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-button (click)="onCancel()">{{ 'cancel' | transloco }}</button>
   <button
     mat-button
     color="primary"
     data-testid="timeline-event-save"
     [disabled]="form().invalid()"
     (click)="onSave()">
-    Save
+    {{ 'save' | transloco }}
   </button>
 </mat-dialog-actions>

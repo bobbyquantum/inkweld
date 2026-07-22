@@ -6,6 +6,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MessagesComponent } from './messages.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('MessagesComponent', () => {
   let component: MessagesComponent;
   let fixture: ComponentFixture<MessagesComponent>;
@@ -29,7 +31,11 @@ describe('MessagesComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [MessagesComponent, RouterModule.forRoot([])],
+      imports: [
+        translocoTestProvider(),
+        MessagesComponent,
+        RouterModule.forRoot([]),
+      ],
       providers: [
         { provide: AnnouncementService, useValue: mockAnnouncementService },
       ],

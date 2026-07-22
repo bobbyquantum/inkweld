@@ -21,6 +21,7 @@ import {
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { PasskeyError, PasskeyService } from '@services/auth/passkey.service';
 import { SystemConfigService } from '@services/core/system-config.service';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { Subject } from 'rxjs';
 
 @Component({
@@ -31,6 +32,7 @@ import { Subject } from 'rxjs';
     MatDividerModule,
     OAuthProviderListComponent,
     RegistrationFormComponent,
+    TranslocoModule,
   ],
   templateUrl: './register-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -44,6 +46,7 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
   private readonly passkeyService = inject(PasskeyService);
   private readonly authTokenService = inject(AuthTokenService);
   private readonly systemConfig = inject(SystemConfigService);
+  private readonly transloco = inject(TranslocoService);
 
   readonly isPasswordLoginEnabled = this.systemConfig.isPasswordLoginEnabled;
   readonly isEnrollingPasskey = signal(false);
@@ -127,9 +130,13 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
       }
     }
 
-    this.snackBar.open('Registration successful!', 'Close', {
-      duration: 3000,
-    });
+    this.snackBar.open(
+      this.transloco.translate('auth.registerDialog.registrationSuccess'),
+      this.transloco.translate('close'),
+      {
+        duration: 3000,
+      }
+    );
     this.dialogRef.close(true); // Close with success result
     void this.router.navigate(['/']);
   }

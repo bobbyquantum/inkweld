@@ -4,6 +4,8 @@ import { vi } from 'vitest';
 
 import { LoggerService } from './logger.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('LoggerService', () => {
   let service: LoggerService;
   let consoleSpy: {
@@ -16,6 +18,7 @@ describe('LoggerService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [provideZonelessChangeDetection()],
     });
     service = TestBed.inject(LoggerService);

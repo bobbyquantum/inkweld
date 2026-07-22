@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CanvasService } from './canvas.service';
 import { CanvasLayerService } from './canvas-layer.service';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   CanvasLayerActionsService,
   type LayerActionsCallbacks,
@@ -29,6 +31,7 @@ describe('CanvasLayerActionsService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasLayerActionsService,
         { provide: CanvasLayerService, useValue: layer },

@@ -26,6 +26,8 @@ import { type MockedObject, vi } from 'vitest';
 
 import { AdminAiTextSettingsComponent } from './ai-text-settings.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 async function flushPromises(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0));
 }
@@ -199,6 +201,7 @@ describe('AdminAiTextSettingsComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         AdminAiTextSettingsComponent,
         FormsModule,
         MatButtonModule,

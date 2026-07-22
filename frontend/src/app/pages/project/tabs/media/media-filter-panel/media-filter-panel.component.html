@@ -1,14 +1,19 @@
 <div class="filter-panel" data-testid="filter-panel">
   <div class="filter-header">
-    <h3>Filters</h3>
-    <button mat-icon-button (click)="onClose()" matTooltip="Close filters">
+    <h3>{{ 'media.filterPanel.title' | transloco }}</h3>
+    <button
+      mat-icon-button
+      (click)="onClose()"
+      [matTooltip]="'media.filterPanel.closeFilters' | transloco">
       <mat-icon>close</mat-icon>
     </button>
   </div>
 
   <!-- Category -->
   <section class="filter-section">
-    <h4 class="section-label">Category</h4>
+    <h4 class="section-label">
+      {{ 'media.filterPanel.category' | transloco }}
+    </h4>
     <div class="category-chips">
       @for (cat of categories; track cat.value) {
         <button
@@ -27,12 +32,14 @@
   @if (availableElements().length > 0) {
     <section class="filter-section">
       <div class="section-header">
-        <h4 class="section-label">Elements</h4>
+        <h4 class="section-label">
+          {{ 'media.filterPanel.elements' | transloco }}
+        </h4>
         <button
           mat-icon-button
           class="add-filter-button"
           (click)="onAddElement()"
-          matTooltip="Add element filter"
+          [matTooltip]="'media.filterPanel.addElementFilter' | transloco"
           data-testid="filter-add-element">
           <mat-icon>add</mat-icon>
         </button>
@@ -51,14 +58,16 @@
                 mat-icon-button
                 class="filter-chip-remove"
                 (click)="removeElement(el.id)"
-                matTooltip="Remove">
+                [matTooltip]="'media.filterPanel.remove' | transloco">
                 <mat-icon>close</mat-icon>
               </button>
             </div>
           }
         </div>
       } @else {
-        <p class="empty-hint">No element filters applied</p>
+        <p class="empty-hint">
+          {{ 'media.filterPanel.noElementFilters' | transloco }}
+        </p>
       }
     </section>
   }
@@ -67,12 +76,14 @@
   @if (availableTags().length > 0) {
     <section class="filter-section">
       <div class="section-header">
-        <h4 class="section-label">Project Tags</h4>
+        <h4 class="section-label">
+          {{ 'media.filterPanel.projectTags' | transloco }}
+        </h4>
         <button
           mat-icon-button
           class="add-filter-button"
           (click)="onAddTag()"
-          matTooltip="Add tag filter"
+          [matTooltip]="'media.filterPanel.addTagFilter' | transloco"
           data-testid="filter-add-tag">
           <mat-icon>add</mat-icon>
         </button>
@@ -93,28 +104,32 @@
                 mat-icon-button
                 class="filter-chip-remove"
                 (click)="removeTag(tag.id)"
-                matTooltip="Remove">
+                [matTooltip]="'media.filterPanel.remove' | transloco">
                 <mat-icon>close</mat-icon>
               </button>
             </div>
           }
         </div>
       } @else {
-        <p class="empty-hint">No tag filters applied</p>
+        <p class="empty-hint">
+          {{ 'media.filterPanel.noTagFilters' | transloco }}
+        </p>
       }
     </section>
   }
 
   <!-- Date range -->
   <section class="filter-section">
-    <h4 class="section-label">Date Range</h4>
+    <h4 class="section-label">
+      {{ 'media.filterPanel.dateRange' | transloco }}
+    </h4>
     <div class="date-range">
       <mat-form-field appearance="outline" class="date-field">
-        <mat-label>From</mat-label>
+        <mat-label>{{ 'media.filterPanel.from' | transloco }}</mat-label>
         <input
           matInput
           id="filter-date-from-input"
-          aria-label="From date"
+          [attr.aria-label]="'media.filterPanel.fromAria' | transloco"
           [matDatepicker]="fromPicker"
           [ngModel]="filters().dateFrom"
           (dateChange)="setDateFrom($event.value)"
@@ -124,11 +139,11 @@
         <mat-datepicker #fromPicker></mat-datepicker>
       </mat-form-field>
       <mat-form-field appearance="outline" class="date-field">
-        <mat-label>To</mat-label>
+        <mat-label>{{ 'media.filterPanel.to' | transloco }}</mat-label>
         <input
           matInput
           id="filter-date-to-input"
-          aria-label="To date"
+          [attr.aria-label]="'media.filterPanel.toAria' | transloco"
           [matDatepicker]="toPicker"
           [ngModel]="filters().dateTo"
           (dateChange)="setDateTo($event.value)"
@@ -149,7 +164,7 @@
         (click)="onClearAll()"
         data-testid="filter-clear-all">
         <mat-icon>filter_alt_off</mat-icon>
-        Clear All Filters
+        {{ 'media.filterPanel.clearAll' | transloco }}
       </button>
     </div>
   }

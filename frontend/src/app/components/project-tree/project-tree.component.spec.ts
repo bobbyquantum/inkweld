@@ -33,6 +33,8 @@ import { DialogGatewayService } from '../../services/core/dialog-gateway.service
 import { QuickOpenService } from '../../services/core/quick-open.service';
 import { ProjectTreeComponent } from './project-tree.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ProjectTreeComponent', () => {
   let component: ProjectTreeComponent;
   let fixture: ComponentFixture<ProjectTreeComponent>;
@@ -136,7 +138,7 @@ describe('ProjectTreeComponent', () => {
     } as unknown as MockedObject<QuickOpenService>;
 
     await TestBed.configureTestingModule({
-      imports: [ProjectTreeComponent],
+      imports: [translocoTestProvider(), ProjectTreeComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([{ path: '**', children: [] }]),

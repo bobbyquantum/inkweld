@@ -26,6 +26,8 @@ import {
 } from '../sync/element-sync-provider.interface';
 import { WorldbuildingService } from './worldbuilding.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 /**
  * Creates a mock IElementSyncProvider for schema tests.
  */
@@ -159,6 +161,7 @@ describe('WorldbuildingService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

@@ -9,6 +9,8 @@ import { type IElementSyncProvider } from '../sync/element-sync-provider.interfa
 import { UnifiedUserService } from '../user/unified-user.service';
 import { PresenceService } from './presence.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 interface MockProvider {
   remotePresence$: BehaviorSubject<PresenceSession[]>;
   setLocalPresence: ReturnType<typeof vi.fn>;
@@ -40,6 +42,7 @@ function setupService(opts: {
   currentUser: Signal<{ id?: string; username: string } | null>;
 }): PresenceService {
   TestBed.configureTestingModule({
+    imports: [translocoTestProvider()],
     providers: [
       PresenceService,
       {

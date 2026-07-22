@@ -17,6 +17,8 @@ import {
 } from '../../../../../api-client';
 import { WorldbuildingTabComponent } from './worldbuilding-tab.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 describe('WorldbuildingTabComponent', () => {
   let component: WorldbuildingTabComponent;
   let fixture: ComponentFixture<WorldbuildingTabComponent>;
@@ -81,7 +83,7 @@ describe('WorldbuildingTabComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [WorldbuildingTabComponent],
+      imports: [translocoTestProvider(), WorldbuildingTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },

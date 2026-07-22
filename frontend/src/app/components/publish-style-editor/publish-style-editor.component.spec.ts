@@ -7,6 +7,8 @@ import {
 } from '../../models/publish-style';
 import { PublishStyleEditorComponent } from './publish-style-editor.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 /**
  * Helper to capture the most recent emission from `stylesChange`.
  */
@@ -27,7 +29,7 @@ function setupComponent(initial?: PublishStyles): {
 describe('PublishStyleEditorComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PublishStyleEditorComponent],
+      imports: [translocoTestProvider(), PublishStyleEditorComponent],
     }).compileComponents();
   });
 

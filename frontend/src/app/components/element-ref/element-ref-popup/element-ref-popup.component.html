@@ -5,7 +5,7 @@
   [style.top.px]="position().y"
   tabindex="-1"
   role="dialog"
-  aria-label="Element reference popup"
+  [attr.aria-label]="'editor.elementRef.popup.ariaLabel' | transloco"
   (keydown)="onKeyDown($event)">
   <!-- Search Input -->
   <div class="popup-search">
@@ -18,10 +18,10 @@
       data-testid="element-ref-search-input"
       [value]="query()"
       (input)="onSearchInput($event)"
-      placeholder="Search elements..."
+      [placeholder]="'editor.elementRef.popup.searchPlaceholder' | transloco"
       autocomplete="off"
       role="combobox"
-      aria-label="Search elements"
+      [attr.aria-label]="'editor.elementRef.popup.searchAria' | transloco"
       aria-controls="element-ref-results"
       [attr.aria-expanded]="results().length > 0" />
   </div>
@@ -35,9 +35,11 @@
     @if (results().length === 0) {
       <div class="no-results" data-testid="element-ref-no-results">
         @if (query()) {
-          <span>No elements match "{{ query() }}"</span>
+          <span>{{
+            'editor.elementRef.popup.noMatch' | transloco: { query: query() }
+          }}</span>
         } @else {
-          <span>Type to search elements...</span>
+          <span>{{ 'editor.elementRef.popup.typeToSearch' | transloco }}</span>
         }
       </div>
     } @else {
@@ -67,8 +69,14 @@
 
   <!-- Keyboard Hints -->
   <div class="popup-hints">
-    <span><kbd>↑↓</kbd> Navigate</span>
-    <span><kbd>Enter</kbd> Select</span>
-    <span><kbd>Esc</kbd> Cancel</span>
+    <span
+      ><kbd>↑↓</kbd> {{ 'editor.elementRef.popup.navigate' | transloco }}</span
+    >
+    <span
+      ><kbd>Enter</kbd> {{ 'editor.elementRef.popup.select' | transloco }}</span
+    >
+    <span
+      ><kbd>Esc</kbd> {{ 'editor.elementRef.popup.cancel' | transloco }}</span
+    >
   </div>
 </div>

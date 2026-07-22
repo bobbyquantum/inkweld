@@ -3,13 +3,13 @@
   @if (!hasPreview() && !loading() && !error()) {
     <div class="preview-empty">
       <mat-icon class="empty-icon">visibility</mat-icon>
-      <p>Generate a preview of your publication</p>
+      <p>{{ 'publish.preview.emptyState' | transloco }}</p>
       <button
         mat-flat-button
         (click)="generatePreview()"
         data-testid="generate-preview-button">
         <mat-icon>play_arrow</mat-icon>
-        Generate Preview
+        {{ 'publish.preview.generatePreview' | transloco }}
       </button>
     </div>
   }
@@ -18,7 +18,7 @@
   @if (loading()) {
     <div class="preview-loading">
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      <p>Generating preview…</p>
+      <p>{{ 'publish.preview.generating' | transloco }}</p>
     </div>
   }
 
@@ -29,7 +29,7 @@
       <p>{{ err }}</p>
       <button mat-stroked-button (click)="generatePreview()">
         <mat-icon>refresh</mat-icon>
-        Retry
+        {{ 'retry' | transloco }}
       </button>
     </div>
   }
@@ -40,13 +40,13 @@
     @if (outdated) {
       <div class="preview-outdated" data-testid="preview-outdated-banner">
         <mat-icon>info</mat-icon>
-        <span>Preview outdated — plan has changed</span>
+        <span>{{ 'publish.preview.outdated' | transloco }}</span>
         <button
           mat-stroked-button
           (click)="generatePreview()"
           data-testid="refresh-preview-button">
           <mat-icon>refresh</mat-icon>
-          Refresh
+          {{ 'refresh' | transloco }}
         </button>
       </div>
     }
@@ -83,7 +83,7 @@
         <iframe
           [src]="url"
           sandbox="allow-same-origin"
-          title="Publication preview"
+          [title]="'publish.preview.publicationPreview' | transloco"
           data-testid="html-preview-content">
         </iframe>
       </div>

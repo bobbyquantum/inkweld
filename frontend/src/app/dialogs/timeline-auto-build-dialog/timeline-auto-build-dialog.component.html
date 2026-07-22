@@ -1,17 +1,15 @@
-<h2 mat-dialog-title>Auto-build from elements</h2>
+<h2 mat-dialog-title>{{ 'timeline.autoBuildDialog.title' | transloco }}</h2>
 <mat-dialog-content class="content">
   <p class="dialog-hint">
-    Select worldbuilding elements with date fields to add as events to your
-    timeline. Elements already on the timeline are unchecked by default.
+    {{ 'timeline.autoBuildDialog.hint' | transloco }}
   </p>
 
   @if (candidates.length === 0) {
     <div class="empty-state" data-testid="auto-build-empty">
       <mat-icon>calendar_blank</mat-icon>
-      <p>No worldbuilding elements with date fields found.</p>
+      <p>{{ 'timeline.autoBuildDialog.noElements' | transloco }}</p>
       <p class="muted">
-        Add date-type fields to your element templates and fill in values to use
-        auto-build.
+        {{ 'timeline.autoBuildDialog.noElementsHint' | transloco }}
       </p>
     </div>
   } @else {
@@ -20,13 +18,13 @@
         mat-button
         (click)="selectAll()"
         data-testid="auto-build-select-all">
-        Select all
+        {{ 'timeline.autoBuildDialog.selectAll' | transloco }}
       </button>
       <button
         mat-button
         (click)="selectNone()"
         data-testid="auto-build-select-none">
-        Select none
+        {{ 'timeline.autoBuildDialog.selectNone' | transloco }}
       </button>
     </div>
 
@@ -56,7 +54,11 @@
             {{ candidate.rawValue }}
           </span>
           @if (candidate.alreadyOnTimeline) {
-            <mat-icon class="on-timeline-icon" matTooltip="Already on timeline">
+            <mat-icon
+              class="on-timeline-icon"
+              [matTooltip]="
+                'timeline.autoBuildDialog.alreadyOnTimeline' | transloco
+              ">
               check_circle
             </mat-icon>
           }
@@ -67,7 +69,7 @@
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()" data-testid="auto-build-cancel">
-    Cancel
+    {{ 'cancel' | transloco }}
   </button>
   <button
     mat-flat-button
@@ -76,6 +78,12 @@
     (click)="onBuild()"
     data-testid="auto-build-confirm">
     <mat-icon>auto_awesome</mat-icon>
-    Add {{ selectedCount() }} {{ selectedCount() === 1 ? 'event' : 'events' }}
+    {{
+      selectedCount() === 1
+        ? ('timeline.autoBuildDialog.addEvents'
+          | transloco: { count: selectedCount() })
+        : ('timeline.autoBuildDialog.addEventsPlural'
+          | transloco: { count: selectedCount() })
+    }}
   </button>
 </mat-dialog-actions>

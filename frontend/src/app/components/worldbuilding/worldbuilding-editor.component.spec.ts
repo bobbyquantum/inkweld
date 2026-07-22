@@ -16,6 +16,8 @@ import { ProjectStateService } from '../../services/project/project-state.servic
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { WorldbuildingEditorComponent } from './worldbuilding-editor.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 type WorldbuildingMock = DeepMockProxy<WorldbuildingService>;
 
 describe('WorldbuildingEditorComponent', () => {
@@ -149,7 +151,11 @@ describe('WorldbuildingEditorComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [WorldbuildingEditorComponent, ReactiveFormsModule],
+      imports: [
+        translocoTestProvider(),
+        WorldbuildingEditorComponent,
+        ReactiveFormsModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

@@ -23,6 +23,8 @@ import { LocalStorageService } from './local-storage.service';
 import { ProjectSyncService } from './project-sync.service';
 import { UnifiedProjectService } from './unified-project.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('UnifiedProjectService', () => {
   let service: UnifiedProjectService;
   let setupService: MockedObject<SetupService>;
@@ -163,6 +165,7 @@ describe('UnifiedProjectService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         UnifiedProjectService,

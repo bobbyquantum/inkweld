@@ -15,6 +15,8 @@ import { StorageContextService } from '../core/storage-context.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { PublishedFilesService } from './published-files.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('PublishedFilesService', () => {
   let service: PublishedFilesService;
   let localStorageService: DeepMockProxy<LocalStorageService>;
@@ -61,6 +63,7 @@ describe('PublishedFilesService', () => {
     setupService.getServerUrl.mockReturnValue('http://localhost:8333');
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         PublishedFilesService,

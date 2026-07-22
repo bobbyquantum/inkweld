@@ -22,6 +22,7 @@ import {
   Router,
   RouterLink,
 } from '@angular/router';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   type AuthorizationInfo,
   type AuthorizationInfoProjectsInner,
@@ -60,6 +61,7 @@ interface OAuthApiError {
     MatProgressBarModule,
     MatSelectModule,
     RouterLink,
+    TranslocoModule,
   ],
 })
 export class OAuthConsentComponent implements OnInit {
@@ -67,6 +69,7 @@ export class OAuthConsentComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
 
   /** Authorization info from the backend */
   authInfo = signal<AuthorizationInfo | null>(null);
@@ -100,9 +103,18 @@ export class OAuthConsentComponent implements OnInit {
 
   /** Available roles for selection */
   readonly roles: { value: ConsentRequestGrantsInnerRole; label: string }[] = [
-    { value: ConsentRequestGrantsInnerRole.Viewer, label: 'View only' },
-    { value: ConsentRequestGrantsInnerRole.Editor, label: 'View and edit' },
-    { value: ConsentRequestGrantsInnerRole.Admin, label: 'Full access' },
+    {
+      value: ConsentRequestGrantsInnerRole.Viewer,
+      label: 'auth.oauthConsent.viewOnly',
+    },
+    {
+      value: ConsentRequestGrantsInnerRole.Editor,
+      label: 'auth.oauthConsent.viewAndEdit',
+    },
+    {
+      value: ConsentRequestGrantsInnerRole.Admin,
+      label: 'auth.oauthConsent.fullAccess',
+    },
   ];
 
   /** Whether at least one project is selected */
@@ -233,9 +245,13 @@ export class OAuthConsentComponent implements OnInit {
       }));
 
     if (selectedGrants.length === 0) {
-      this.snackBar.open('Please select at least one project', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('auth.oauthConsent.selectAtLeastOne'),
+        this.transloco.translate('dismiss'),
+        {
+          duration: 3000,
+        }
+      );
       return;
     }
 

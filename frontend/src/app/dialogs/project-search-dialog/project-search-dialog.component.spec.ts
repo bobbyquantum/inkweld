@@ -16,6 +16,8 @@ import { TagService } from '../../services/tag/tag.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { ProjectSearchDialogComponent } from './project-search-dialog.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 const makeElement = (
   id: string,
   name: string,
@@ -103,7 +105,11 @@ describe('ProjectSearchDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ProjectSearchDialogComponent, MatDialogModule],
+      imports: [
+        translocoTestProvider(),
+        ProjectSearchDialogComponent,
+        MatDialogModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },

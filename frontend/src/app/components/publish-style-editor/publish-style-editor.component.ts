@@ -16,6 +16,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoModule } from '@jsverse/transloco';
 import {
   createDefaultPublishStyles,
   type DocNodeKey,
@@ -64,10 +66,12 @@ interface NodeSection {
     MatIconModule,
     MatInputModule,
     MatSelectModule,
+    TranslocoModule,
   ],
 })
 export class PublishStyleEditorComponent {
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
 
   @Input({ required: true }) styles!: PublishStyles;
   @Output() readonly stylesChange = new EventEmitter<PublishStyles>();
@@ -140,9 +144,13 @@ export class PublishStyleEditorComponent {
     const next = preset.build();
     next.preset = id;
     this.emit(next);
-    this.snackBar.open(`Applied preset: ${preset.label}`, 'OK', {
-      duration: 2000,
-    });
+    this.snackBar.open(
+      this.transloco.translate('publish.styleEditor.preset') +
+        ': ' +
+        preset.label,
+      this.transloco.translate('snackbar.ok'),
+      { duration: 2000 }
+    );
   }
 
   /** Reset to the default styles. */

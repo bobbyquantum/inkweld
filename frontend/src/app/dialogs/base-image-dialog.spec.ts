@@ -11,6 +11,8 @@ import { SystemConfigService } from '../services/core/system-config.service';
 import { ProjectStateService } from '../services/project/project-state.service';
 import { BaseImageDialogComponent } from './base-image-dialog';
 
+import { translocoTestProvider } from '../../testing/transloco-test-provider';
+
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -84,7 +86,7 @@ describe('BaseImageDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [TestImageDialogHost],
+      imports: [translocoTestProvider(), TestImageDialogHost],
       providers: [
         { provide: MatDialogRef, useValue: dialogRefMock },
         { provide: MatSnackBar, useValue: snackBarMock },

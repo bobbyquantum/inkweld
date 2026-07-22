@@ -23,6 +23,8 @@ import {
 } from '../../services/ai/image-generation.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   ImageGenerationDialogComponent,
   type ImageGenerationDialogData,
@@ -147,7 +149,7 @@ describe('ImageGenerationDialogComponent', () => {
     } as unknown as MockedObject<MatSnackBar>;
 
     await TestBed.configureTestingModule({
-      imports: [ImageGenerationDialogComponent],
+      imports: [translocoTestProvider(), ImageGenerationDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },
@@ -383,7 +385,7 @@ describe('ImageGenerationDialogComponent', () => {
     beforeEach(async () => {
       TestBed.resetTestingModule();
       await TestBed.configureTestingModule({
-        imports: [ImageGenerationDialogComponent],
+        imports: [translocoTestProvider(), ImageGenerationDialogComponent],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MatDialogRef, useValue: dialogRef },
@@ -1003,7 +1005,7 @@ describe('ImageGenerationDialogComponent', () => {
       };
 
       await TestBed.configureTestingModule({
-        imports: [ImageGenerationDialogComponent],
+        imports: [translocoTestProvider(), ImageGenerationDialogComponent],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MatDialogRef, useValue: dialogRef },

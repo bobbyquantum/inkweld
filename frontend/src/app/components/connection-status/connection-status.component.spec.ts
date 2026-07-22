@@ -6,13 +6,15 @@ import { DocumentSyncState } from '../../models/document-sync-state';
 import { type MediaSyncState } from '../../services/local/media-sync.service';
 import { ConnectionStatusComponent } from './connection-status.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ConnectionStatusComponent', () => {
   let component: ConnectionStatusComponent;
   let fixture: ComponentFixture<ConnectionStatusComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ConnectionStatusComponent],
+      imports: [translocoTestProvider(), ConnectionStatusComponent],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
 

@@ -19,6 +19,7 @@ import { SyncQueueService, SyncStage } from '@services/sync/sync-queue.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 
 import { ProjectCoverComponent } from '../project-cover/project-cover.component';
+import { TranslocoModule } from '@jsverse/transloco';
 
 export interface NavItem {
   label: string;
@@ -45,6 +46,7 @@ export interface UnifiedProjectItem {
     MatTooltipModule,
     RouterModule,
     ProjectCoverComponent,
+    TranslocoModule,
   ],
   templateUrl: './side-nav.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

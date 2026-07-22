@@ -9,7 +9,7 @@
         mat-icon-button
         class="expand-toggle"
         (click)="toggleExpanded()"
-        matTooltip="Expand relationships panel"
+        [matTooltip]="'relationships.metaPanel.expandPanel' | transloco"
         data-testid="expand-panel-button">
         <mat-icon fontSet="material-symbols-outlined"
           >right_panel_open</mat-icon
@@ -48,7 +48,7 @@
             mat-icon-button
             class="collapsed-icon-button placeholder"
             (click)="toggleExpanded()"
-            matTooltip="No relationships"
+            [matTooltip]="'relationships.metaPanel.noRelationships' | transloco"
             data-testid="collapsed-no-relationships">
             <mat-icon>link_off</mat-icon>
           </button>
@@ -59,7 +59,7 @@
           mat-icon-button
           class="collapsed-icon-button add-btn"
           (click)="openAddRelationshipDialog()"
-          matTooltip="Add relationship"
+          [matTooltip]="'relationships.metaPanel.addRelationship' | transloco"
           data-testid="collapsed-add-relationship-button">
           <mat-icon>add_link</mat-icon>
         </button>
@@ -71,12 +71,14 @@
   @if (isExpanded()) {
     <div class="expanded-panel">
       <div class="panel-header">
-        <span class="panel-title">Relationships</span>
+        <span class="panel-title">{{
+          'relationships.metaPanel.title' | transloco
+        }}</span>
         <button
           mat-icon-button
           class="collapse-toggle"
           (click)="toggleExpanded()"
-          matTooltip="Collapse panel"
+          [matTooltip]="'relationships.metaPanel.collapsePanel' | transloco"
           data-testid="collapse-panel-button">
           <mat-icon fontSet="material-symbols-outlined"
             >right_panel_close</mat-icon
@@ -93,7 +95,9 @@
             class="add-relationship-button"
             data-testid="add-relationship-button">
             <mat-icon>add</mat-icon>
-            <span>Add Relationship</span>
+            <span>{{
+              'relationships.metaPanel.addRelationshipButton' | transloco
+            }}</span>
           </button>
         </div>
 
@@ -178,7 +182,9 @@
                             mat-menu-item
                             (click)="navigateToElement(rel, group.isIncoming)">
                             <mat-icon>open_in_new</mat-icon>
-                            <span>Go to element</span>
+                            <span>{{
+                              'relationships.metaPanel.goToElement' | transloco
+                            }}</span>
                           </button>
                           @if (!group.isIncoming) {
                             <button
@@ -186,7 +192,10 @@
                               (click)="deleteRelationship(rel, $event)"
                               data-testid="delete-relationship-button">
                               <mat-icon color="warn">delete</mat-icon>
-                              <span>Remove relationship</span>
+                              <span>{{
+                                'relationships.metaPanel.removeRelationship'
+                                  | transloco
+                              }}</span>
                             </button>
                           }
                         </mat-menu>

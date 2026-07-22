@@ -15,6 +15,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ActivityFeedService } from './activity-feed.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ActivityFeedService', () => {
   let service: ActivityFeedService;
   let httpController: HttpTestingController;
@@ -60,6 +62,7 @@ describe('ActivityFeedService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

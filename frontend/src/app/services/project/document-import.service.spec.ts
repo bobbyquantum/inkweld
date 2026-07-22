@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoggerService } from '../core/logger.service';
 import { DocumentImportService } from './document-import.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // y-indexeddb is mocked globally in setup-vitest.ts with full on/off support.
 // Real yjs is used here (not mocked) because vi.mock('yjs') is unreliable with
 // isolate: false — the service may already have a bound reference to the real
@@ -21,6 +23,7 @@ describe('DocumentImportService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         DocumentImportService,

@@ -13,6 +13,8 @@ import { ProjectStateService } from '../project/project-state.service';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import { WorldbuildingPublishRendererService } from './worldbuilding-publish-renderer.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 /**
  * Builds a `WorldbuildingItem` with sensible defaults so each test only has
  * to specify the fields it cares about.
@@ -95,6 +97,7 @@ describe('WorldbuildingPublishRendererService', () => {
     logger = { warn: vi.fn(), info: vi.fn() };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         WorldbuildingPublishRendererService,

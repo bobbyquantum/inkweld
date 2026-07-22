@@ -3,13 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MediaItemCardComponent } from './media-item-card.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('MediaItemCardComponent', () => {
   let component: MediaItemCardComponent;
   let fixture: ComponentFixture<MediaItemCardComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MediaItemCardComponent],
+      imports: [translocoTestProvider(), MediaItemCardComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(MediaItemCardComponent);

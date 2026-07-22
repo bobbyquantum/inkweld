@@ -20,6 +20,8 @@ import { ProjectSyncService } from '../local/project-sync.service';
 import { StorageService } from '../local/storage.service';
 import { ProjectService, ProjectServiceError } from './project.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 const date = new Date().toISOString();
 const BASE: Project[] = [
   {
@@ -101,6 +103,7 @@ describe('ProjectService', () => {
     );
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

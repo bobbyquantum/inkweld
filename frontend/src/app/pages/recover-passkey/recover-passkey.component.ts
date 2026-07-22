@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterModule } from '@angular/router';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasskeyRecoveryService } from '@services/auth/passkey-recovery.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 
@@ -40,6 +41,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
     MatInputModule,
     MatProgressSpinnerModule,
     RouterModule,
+    TranslocoModule,
   ],
   templateUrl: './recover-passkey.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -48,6 +50,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
 export class RecoverPasskeyComponent {
   private readonly passkeyRecoveryService = inject(PasskeyRecoveryService);
   private readonly systemConfig = inject(SystemConfigService);
+  private readonly transloco = inject(TranslocoService);
 
   readonly isEmailRecoveryEnabled = this.systemConfig.isEmailRecoveryEnabled;
 
@@ -58,7 +61,7 @@ export class RecoverPasskeyComponent {
 
   async onSubmit(): Promise<void> {
     if (!this.email.trim()) {
-      this.error.set('Please enter your email address.');
+      this.error.set(this.transloco.translate('validation.emailRequired'));
       return;
     }
 
@@ -72,7 +75,7 @@ export class RecoverPasskeyComponent {
       this.submitted.set(true);
     } catch (err: unknown) {
       console.error('Passkey recovery request error:', err);
-      this.error.set('Something went wrong. Please try again later.');
+      this.error.set(this.transloco.translate('errors.unknown'));
     } finally {
       this.isSubmitting.set(false);
     }

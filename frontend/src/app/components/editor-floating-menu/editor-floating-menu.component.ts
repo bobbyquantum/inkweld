@@ -17,6 +17,7 @@ import { toggleMark } from 'prosemirror-commands';
 import { type MarkType } from 'prosemirror-model';
 import { type EditorState, type Transaction } from 'prosemirror-state';
 import { type Subscription } from 'rxjs';
+import { TranslocoModule } from '@jsverse/transloco';
 
 type Command = (
   state: EditorState,
@@ -30,7 +31,13 @@ type Command = (
  */
 @Component({
   selector: 'app-editor-floating-menu',
-  imports: [MatIconModule, MatTooltipModule, Toolbar, ToolbarWidget],
+  imports: [
+    MatIconModule,
+    MatTooltipModule,
+    Toolbar,
+    ToolbarWidget,
+    TranslocoModule,
+  ],
   templateUrl: './editor-floating-menu.component.html',
   styleUrl: './editor-floating-menu.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

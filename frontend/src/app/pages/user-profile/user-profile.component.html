@@ -5,7 +5,7 @@
       <mat-icon>arrow_back</mat-icon>
     </button>
     <span class="toolbar-spacer"></span>
-    <h1 class="toolbar-title">User Profile</h1>
+    <h1 class="toolbar-title">{{ 'settings.dialogTitle' | transloco }}</h1>
     <span class="toolbar-spacer"></span>
     <div class="toolbar-placeholder"></div>
     <!-- For symmetry -->
@@ -15,7 +15,7 @@
   @if (isLoading()) {
     <div class="loading-state">
       <mat-spinner diameter="40"></mat-spinner>
-      <p>Loading user profile...</p>
+      <p>{{ 'loading' | transloco }}</p>
     </div>
   }
 
@@ -23,11 +23,11 @@
   @if (!isLoading() && loadError) {
     <div class="error-state">
       <mat-icon class="error-icon">error_outline</mat-icon>
-      <h2>Failed to load profile</h2>
-      <p>There was a problem connecting to the server</p>
+      <h2>{{ 'errors.loadFailed' | transloco }}</h2>
+      <p>{{ 'errors.networkError' | transloco }}</p>
       <button mat-raised-button color="primary" (click)="navigateHome()">
         <mat-icon>home</mat-icon>
-        Return Home
+        {{ 'back' | transloco }}
       </button>
     </div>
   }
@@ -64,7 +64,10 @@
           <div class="user-stats">
             <div class="stat-item">
               <mat-icon>book</mat-icon>
-              <span>{{ projectService.projects().length }} Projects</span>
+              <span
+                >{{ projectService.projects().length }}
+                {{ 'elements' | transloco }}</span
+              >
             </div>
           </div>
         </div>
@@ -75,13 +78,15 @@
       }
       <div class="user-content">
         <div class="content-section">
-          <h3 class="section-title">Published Projects</h3>
+          <h3 class="section-title">
+            {{ 'project.homeTab.publishProject' | transloco }}
+          </h3>
           <!-- No Projects State -->
           @if (projectService.projects().length === 0) {
             <div class="empty-projects">
               <mat-icon>add_circle_outline</mat-icon>
-              <h4>No projects yet</h4>
-              <p>This user hasn't created any projects yet</p>
+              <h4>{{ 'project.homeTab.noPinned' | transloco }}</h4>
+              <p>{{ 'project.activity.noActivityHint' | transloco }}</p>
             </div>
           }
           <!-- Projects Grid -->
@@ -93,7 +98,7 @@
                   [routerLink]="['/', project.username, project.slug]">
                   <h4 class="project-title">{{ project.title }}</h4>
                   <p class="project-description">
-                    {{ project.description || 'No description provided' }}
+                    {{ project.description || ('none' | transloco) }}
                   </p>
                 </div>
               }

@@ -6,6 +6,8 @@ import { vi } from 'vitest';
 
 import { ApprovalPendingComponent } from './approval-pending.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ApprovalPendingComponent', () => {
   let component: ApprovalPendingComponent;
   let fixture: ComponentFixture<ApprovalPendingComponent>;
@@ -35,7 +37,7 @@ describe('ApprovalPendingComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ApprovalPendingComponent],
+      imports: [translocoTestProvider(), ApprovalPendingComponent],
       providers: [
         provideZonelessChangeDetection(),
         {

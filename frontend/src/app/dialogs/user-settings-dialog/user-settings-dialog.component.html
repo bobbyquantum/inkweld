@@ -1,5 +1,5 @@
 <div class="dialog-header">
-  <h2 mat-dialog-title>Settings</h2>
+  <h2 mat-dialog-title>{{ 'settings.dialogTitle' | transloco }}</h2>
   <button
     mat-icon-button
     mat-dialog-close
@@ -20,9 +20,9 @@
         [attr.aria-selected]="selectedCategory === 'account'"
         [class.active]="selectedCategory === 'account'"
         tabindex="0"
-        aria-label="Account settings">
+        [attr.aria-label]="'settings.accountSettingsAria' | transloco">
         <mat-icon matListItemIcon>person</mat-icon>
-        <span matListItemTitle>Account</span>
+        <span matListItemTitle>{{ 'settings.account' | transloco }}</span>
       </a>
       <a
         mat-list-item
@@ -32,9 +32,11 @@
         [attr.aria-selected]="selectedCategory === 'authorized-apps'"
         [class.active]="selectedCategory === 'authorized-apps'"
         tabindex="0"
-        aria-label="Authorized Apps settings">
+        [attr.aria-label]="'settings.authorizedAppsAria' | transloco">
         <mat-icon matListItemIcon>apps</mat-icon>
-        <span matListItemTitle>Authorized Apps</span>
+        <span matListItemTitle>{{
+          'settings.authorizedApps' | transloco
+        }}</span>
       </a>
       <a
         mat-list-item
@@ -44,9 +46,9 @@
         [attr.aria-selected]="selectedCategory === 'project-tree'"
         [class.active]="selectedCategory === 'project-tree'"
         tabindex="0"
-        aria-label="Project Tree settings">
+        [attr.aria-label]="'settings.projectTreeAria' | transloco">
         <mat-icon matListItemIcon>account_tree</mat-icon>
-        <span matListItemTitle>Project Tree</span>
+        <span matListItemTitle>{{ 'settings.projectTree' | transloco }}</span>
       </a>
       <a
         mat-list-item
@@ -56,9 +58,9 @@
         [attr.aria-selected]="selectedCategory === 'project'"
         [class.active]="selectedCategory === 'project'"
         tabindex="0"
-        aria-label="Project settings">
+        [attr.aria-label]="'settings.projectAria' | transloco">
         <mat-icon matListItemIcon>description</mat-icon>
-        <span matListItemTitle>Project</span>
+        <span matListItemTitle>{{ 'settings.project' | transloco }}</span>
       </a>
     </mat-nav-list>
 

@@ -24,6 +24,8 @@ import { userServiceMock } from '../../../testing/user-api.mock';
 import { StorageContextService } from '../core/storage-context.service';
 import { StorageService } from '../local/storage.service';
 import { UserService, UserServiceError } from './user.service';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 function createStructuredClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
@@ -86,6 +88,7 @@ describe('UserService', () => {
     });
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

@@ -7,14 +7,14 @@
 
   <!-- Search field -->
   <mat-form-field appearance="outline" class="search-field">
-    <mat-label>Search elements &amp; tags</mat-label>
+    <mat-label>{{ 'dialogs.tagPicker.searchLabel' | transloco }}</mat-label>
     <input
       matInput
       [value]="searchText()"
       (input)="searchText.set($any($event.target).value)"
-      placeholder="Type to filter..."
+      [placeholder]="'dialogs.tagPicker.searchPlaceholder' | transloco"
       id="tag-picker-search-input"
-      aria-label="Search elements and tags"
+      [attr.aria-label]="'dialogs.tagPicker.searchAria' | transloco"
       data-testid="tag-picker-search" />
     <mat-icon matPrefix>search</mat-icon>
     @if (searchText()) {
@@ -22,7 +22,7 @@
         matSuffix
         mat-icon-button
         (click)="searchText.set('')"
-        matTooltip="Clear search">
+        [matTooltip]="'dialogs.tagPicker.clearSearch' | transloco">
         <mat-icon>close</mat-icon>
       </button>
     }
@@ -66,10 +66,14 @@
       <div class="empty-state">
         @if (searchText()) {
           <mat-icon>search_off</mat-icon>
-          <p>No matches for "{{ searchText() }}"</p>
+          <p>
+            {{
+              'dialogs.tagPicker.noMatch' | transloco: { query: searchText() }
+            }}
+          </p>
         } @else {
           <mat-icon>sell</mat-icon>
-          <p>No tags or elements available</p>
+          <p>{{ 'dialogs.tagPicker.noItems' | transloco }}</p>
         }
       </div>
     }
@@ -83,7 +87,7 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="cancel()" data-testid="tag-picker-cancel">
-    Cancel
+    {{ 'cancel' | transloco }}
   </button>
   <button
     mat-flat-button
@@ -91,6 +95,6 @@
     [disabled]="!hasSelection()"
     (click)="confirm()"
     data-testid="tag-picker-confirm">
-    Add Selected
+    {{ 'dialogs.tagPicker.addSelected' | transloco }}
   </button>
 </mat-dialog-actions>

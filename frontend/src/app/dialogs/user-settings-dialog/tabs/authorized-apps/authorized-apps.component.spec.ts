@@ -21,6 +21,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthorizedAppsComponent } from './authorized-apps.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 function createMockSession(
   overrides: Partial<PublicOAuthSession> = {}
 ): PublicOAuthSession {
@@ -102,7 +104,7 @@ describe('AuthorizedAppsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AuthorizedAppsComponent],
+      imports: [translocoTestProvider(), AuthorizedAppsComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

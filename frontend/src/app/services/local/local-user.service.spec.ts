@@ -14,6 +14,8 @@ import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { LocalUserService } from './local-user.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('LocalUserService', () => {
   let service: LocalUserService;
   let setupService: MockedObject<SetupService>;
@@ -70,6 +72,7 @@ describe('LocalUserService', () => {
     } as unknown as MockedObject<StorageContextService>;
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         LocalUserService,

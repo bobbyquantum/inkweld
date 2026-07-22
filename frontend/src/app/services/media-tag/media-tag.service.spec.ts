@@ -9,6 +9,8 @@ import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factor
 import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
 import { MediaTagService } from './media-tag.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('MediaTagService', () => {
   let service: MediaTagService;
   let mockSyncProvider: IElementSyncProvider;
@@ -62,6 +64,7 @@ describe('MediaTagService', () => {
     } as unknown as IElementSyncProvider;
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         MediaTagService,
         {

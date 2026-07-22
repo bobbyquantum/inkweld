@@ -9,7 +9,7 @@
         <mat-icon>error</mat-icon>
         <p>{{ error()?.message }}</p>
         <button mat-raised-button color="primary" (click)="loadConfig()">
-          Retry
+          {{ 'retry' | transloco }}
         </button>
       </mat-card-content>
     </mat-card>
@@ -21,12 +21,12 @@
           <div class="setting-info">
             <span class="setting-label">
               <mat-icon class="github-icon" svgIcon="github"></mat-icon>
-              GitHub Sign-In
+              {{ 'admin.github.githubSignIn' | transloco }}
             </span>
             <span class="setting-description">
-              Allow users to sign in with their GitHub account.
+              {{ 'admin.github.githubSignInDesc' | transloco }}
               @if (!isConfigured()) {
-                Configure credentials below first.
+                {{ 'admin.github.configureFirst' | transloco }}
               }
             </span>
           </div>
@@ -45,17 +45,19 @@
       <mat-card-content>
         <h3 class="section-title">
           <mat-icon>school</mat-icon>
-          Setup Guide
+          {{ 'admin.github.setupGuide' | transloco }}
         </h3>
 
         <mat-stepper orientation="vertical" [linear]="false">
           <!-- Step 1: Create GitHub OAuth App -->
           <mat-step [completed]="isConfigured()">
-            <ng-template matStepLabel>Create a GitHub OAuth App</ng-template>
+            <ng-template matStepLabel>{{
+              'admin.github.step1' | transloco
+            }}</ng-template>
             <div class="step-content">
               <ol class="setup-steps">
                 <li>
-                  Go to
+                  {{ 'admin.github.step1a' | transloco }}
                   <a
                     href="https://github.com/settings/developers"
                     target="_blank"
@@ -64,32 +66,29 @@
                   >
                 </li>
                 <li>
-                  Click <strong>OAuth Apps</strong> →
-                  <strong>New OAuth App</strong>
+                  {{ 'admin.github.step1b' | transloco }}
                 </li>
                 <li>
-                  Fill in the form:
+                  {{ 'admin.github.step1c' | transloco }}
                   <ul>
                     <li>
-                      <strong>Application name:</strong> Your Inkweld instance
-                      name
+                      {{ 'admin.github.step1d' | transloco }}
                     </li>
-                    <li><strong>Homepage URL:</strong> Your Inkweld URL</li>
+                    <li>{{ 'admin.github.step1e' | transloco }}</li>
                     <li>
-                      <strong>Authorization callback URL:</strong>
+                      {{ 'admin.github.step1f' | transloco }}
                       <code class="copy-url" data-testid="callback-url">{{
                         defaultCallbackUrl
                       }}</code>
                     </li>
                   </ul>
                 </li>
-                <li>Click <strong>Register application</strong></li>
+                <li>{{ 'admin.github.step1g' | transloco }}</li>
                 <li>
-                  Copy the <strong>Client ID</strong> shown on the next page
+                  {{ 'admin.github.step1h' | transloco }}
                 </li>
                 <li>
-                  Click <strong>Generate a new client secret</strong> and copy
-                  it immediately
+                  {{ 'admin.github.step1i' | transloco }}
                 </li>
               </ol>
             </div>
@@ -97,19 +96,23 @@
 
           <!-- Step 2: Enter Credentials -->
           <mat-step [completed]="isConfigured()">
-            <ng-template matStepLabel>Enter credentials</ng-template>
+            <ng-template matStepLabel>{{
+              'admin.github.step2' | transloco
+            }}</ng-template>
             <div class="step-content">
               <p class="step-description">
-                Paste the Client ID and Client Secret from GitHub below.
+                {{ 'admin.github.step2Desc' | transloco }}
               </p>
 
               <div class="form-grid">
                 <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Client ID</mat-label>
+                  <mat-label>{{
+                    'admin.github.clientId' | transloco
+                  }}</mat-label>
                   <input
                     matInput
                     id="github-client-id-input"
-                    aria-label="Client ID"
+                    aria-label="{{ 'admin.github.clientIdAria' | transloco }}"
                     [ngModel]="clientId()"
                     (ngModelChange)="clientId.set($event)"
                     placeholder="Ov23li..."
@@ -117,39 +120,48 @@
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Client Secret</mat-label>
+                  <mat-label>{{
+                    'admin.github.clientSecret' | transloco
+                  }}</mat-label>
                   <input
                     matInput
                     type="password"
                     id="github-client-secret-input"
-                    aria-label="Client Secret"
+                    aria-label="{{
+                      'admin.github.clientSecretAria' | transloco
+                    }}"
                     [ngModel]="clientSecret()"
                     (ngModelChange)="clientSecret.set($event)"
                     [placeholder]="
                       isConfigured()
-                        ? 'Leave blank to keep current'
-                        : 'Paste client secret'
+                        ? ('admin.github.secretKeepPlaceholder' | transloco)
+                        : ('admin.github.secretPlaceholder' | transloco)
                     "
                     data-testid="github-client-secret-input" />
                   @if (isConfigured()) {
-                    <mat-hint>Leave blank to keep the current secret</mat-hint>
+                    <mat-hint>{{
+                      'admin.github.secretHint' | transloco
+                    }}</mat-hint>
                   }
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Callback URL (optional)</mat-label>
+                  <mat-label>{{
+                    'admin.github.callbackUrl' | transloco
+                  }}</mat-label>
                   <input
                     matInput
                     id="github-callback-url-input"
-                    aria-label="Callback URL"
+                    aria-label="{{
+                      'admin.github.callbackUrlAria' | transloco
+                    }}"
                     [ngModel]="callbackUrl()"
                     (ngModelChange)="callbackUrl.set($event)"
                     [placeholder]="defaultCallbackUrl"
                     data-testid="github-callback-url-input" />
-                  <mat-hint
-                    >Only change this if using a reverse proxy with a different
-                    URL</mat-hint
-                  >
+                  <mat-hint>{{
+                    'admin.github.callbackHint' | transloco
+                  }}</mat-hint>
                 </mat-form-field>
               </div>
 
@@ -165,7 +177,7 @@
                       diameter="18"
                       class="button-spinner"></mat-spinner>
                   } @else {
-                    Save Credentials
+                    {{ 'admin.github.saveCredentials' | transloco }}
                   }
                 </button>
               </div>
@@ -174,25 +186,25 @@
 
           <!-- Step 3: Enable -->
           <mat-step [completed]="githubEnabled()">
-            <ng-template matStepLabel>Enable GitHub sign-in</ng-template>
+            <ng-template matStepLabel>{{
+              'admin.github.step3' | transloco
+            }}</ng-template>
             <div class="step-content">
               @if (isConfigured()) {
                 <p class="step-description">
-                  Credentials are configured. Toggle the switch above to enable
-                  GitHub sign-in for your users.
+                  {{ 'admin.github.step3Desc' | transloco }}
                 </p>
                 @if (githubEnabled()) {
                   <div class="success-banner">
                     <mat-icon>check_circle</mat-icon>
                     <span>
-                      GitHub sign-in is active. Users will see a "Sign in with
-                      GitHub" button on the login page.
+                      {{ 'admin.github.step3Active' | transloco }}
                     </span>
                   </div>
                 }
               } @else {
                 <p class="step-description">
-                  Complete the previous steps first.
+                  {{ 'admin.github.step3Locked' | transloco }}
                 </p>
               }
             </div>

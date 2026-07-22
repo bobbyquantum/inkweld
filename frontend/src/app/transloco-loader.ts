@@ -3,7 +3,27 @@ import { inject, Injectable } from '@angular/core';
 import { type Translation, type TranslocoLoader } from '@jsverse/transloco';
 import { forkJoin, map, type Observable } from 'rxjs';
 
-const SCOPES = ['app', 'login', 'home', 'settings'] as const;
+const SCOPES = [
+  'app',
+  'login',
+  'home',
+  'settings',
+  'editor',
+  'project',
+  'dialogs',
+  'admin',
+  'auth',
+  'canvas',
+  'timeline',
+  'media',
+  'worldbuilding',
+  'publish',
+  'about',
+  'relationships',
+  'tags',
+  'templates',
+  'messages',
+] as const;
 
 @Injectable({ providedIn: 'root' })
 export class TranslocoHttpLoader implements TranslocoLoader {

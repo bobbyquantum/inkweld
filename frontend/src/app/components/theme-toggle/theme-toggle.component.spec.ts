@@ -5,6 +5,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { ThemeToggleComponent } from './theme-toggle.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ThemeToggleComponent', () => {
   let component: ThemeToggleComponent;
   let fixture: ComponentFixture<ThemeToggleComponent>;
@@ -16,7 +18,7 @@ describe('ThemeToggleComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ThemeToggleComponent],
+      imports: [translocoTestProvider(), ThemeToggleComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ThemeService, useValue: themeServiceMock },

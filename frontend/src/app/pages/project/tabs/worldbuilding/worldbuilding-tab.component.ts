@@ -12,6 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute } from '@angular/router';
+import { TranslocoModule } from '@jsverse/transloco';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { LoggerService } from '@services/core/logger.service';
 import { SettingsService } from '@services/core/settings.service';
@@ -33,6 +34,7 @@ import { ProjectStateService } from '../../../../services/project/project-state.
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    TranslocoModule,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   providers: [DocumentSyncService],

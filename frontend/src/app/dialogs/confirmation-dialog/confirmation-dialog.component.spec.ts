@@ -5,6 +5,8 @@ import { type MockedObject, vi } from 'vitest';
 
 import { ConfirmationDialogComponent } from './confirmation-dialog.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ConfirmationDialogComponent', () => {
   let component: ConfirmationDialogComponent;
   let fixture: ComponentFixture<ConfirmationDialogComponent>;
@@ -16,7 +18,7 @@ describe('ConfirmationDialogComponent', () => {
     } as unknown as MockedObject<MatDialogRef<ConfirmationDialogComponent>>;
 
     await TestBed.configureTestingModule({
-      imports: [ConfirmationDialogComponent],
+      imports: [translocoTestProvider(), ConfirmationDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },

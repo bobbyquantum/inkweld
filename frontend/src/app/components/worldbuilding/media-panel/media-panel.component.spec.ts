@@ -7,6 +7,8 @@ import { type MockedObject, vi } from 'vitest';
 
 import { MediaPanelComponent } from './media-panel.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 describe('MediaPanelComponent', () => {
   let component: MediaPanelComponent;
   let fixture: ComponentFixture<MediaPanelComponent>;
@@ -35,7 +37,7 @@ describe('MediaPanelComponent', () => {
     } as unknown as MockedObject<DialogGatewayService>;
 
     await TestBed.configureTestingModule({
-      imports: [MediaPanelComponent],
+      imports: [translocoTestProvider(), MediaPanelComponent],
       providers: [
         { provide: MediaTagService, useValue: mediaTagService },
         { provide: LocalStorageService, useValue: localStorageService },

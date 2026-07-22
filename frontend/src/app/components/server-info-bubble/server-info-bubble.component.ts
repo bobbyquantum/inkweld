@@ -9,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthTokenService } from '@services/auth/auth-token.service';
+import { TranslocoModule } from '@jsverse/transloco';
 import {
   type ServerConfig,
   StorageContextService,
@@ -21,7 +22,13 @@ import {
  */
 @Component({
   selector: 'app-server-info-bubble',
-  imports: [MatButtonModule, MatIconModule, MatMenuModule, MatTooltipModule],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+    MatTooltipModule,
+    TranslocoModule,
+  ],
   templateUrl: './server-info-bubble.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './server-info-bubble.component.scss',

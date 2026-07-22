@@ -3,13 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ColorSwatchesComponent } from './color-swatches.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ColorSwatchesComponent', () => {
   let component: ColorSwatchesComponent;
   let fixture: ComponentFixture<ColorSwatchesComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ColorSwatchesComponent],
+      imports: [translocoTestProvider(), ColorSwatchesComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ColorSwatchesComponent);

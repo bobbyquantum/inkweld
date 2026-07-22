@@ -4,6 +4,8 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { type UnifiedSnapshot } from '@services/project/unified-snapshot.service';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   RestoreSnapshotDialogComponent,
   type RestoreSnapshotDialogData,
@@ -37,7 +39,7 @@ describe('RestoreSnapshotDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [RestoreSnapshotDialogComponent],
+      imports: [translocoTestProvider(), RestoreSnapshotDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRefMock },
@@ -109,7 +111,7 @@ describe('RestoreSnapshotDialogComponent', () => {
     it('should handle undefined current word count', async () => {
       TestBed.resetTestingModule();
       await TestBed.configureTestingModule({
-        imports: [RestoreSnapshotDialogComponent],
+        imports: [translocoTestProvider(), RestoreSnapshotDialogComponent],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MatDialogRef, useValue: dialogRefMock },

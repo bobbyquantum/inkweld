@@ -21,6 +21,8 @@ import { ProjectStateService } from './project-state.service';
 import { type AppTab, TabManagerService } from './tab-manager.service';
 import { UnifiedSnapshotService } from './unified-snapshot.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('AutoSnapshotService', () => {
   let service: AutoSnapshotService;
   let projectSignal: ReturnType<typeof signal<Project | undefined>>;
@@ -101,6 +103,7 @@ describe('AutoSnapshotService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         AutoSnapshotService,

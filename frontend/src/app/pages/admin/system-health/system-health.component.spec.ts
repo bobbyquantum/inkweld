@@ -14,6 +14,8 @@ import { vi } from 'vitest';
 
 import { AdminSystemHealthComponent } from './system-health.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 async function flushPromises(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0));
 }
@@ -34,6 +36,7 @@ function createComponent() {
 
   TestBed.configureTestingModule({
     imports: [
+      translocoTestProvider(),
       AdminSystemHealthComponent,
       MatCardModule,
       MatIconModule,

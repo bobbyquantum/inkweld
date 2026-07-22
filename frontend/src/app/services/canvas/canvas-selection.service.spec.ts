@@ -7,6 +7,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CanvasSelectionService } from './canvas-selection.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 interface MockNode {
   id: () => string;
   parent: MockNode | null;
@@ -79,6 +81,7 @@ describe('CanvasSelectionService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasSelectionService,
         { provide: CanvasRendererService, useValue: renderer },

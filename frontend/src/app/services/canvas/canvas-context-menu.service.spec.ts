@@ -10,6 +10,8 @@ import {
 } from './canvas-context-menu.service';
 import { CanvasSelectionService } from './canvas-selection.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('CanvasContextMenuService', () => {
   let service: CanvasContextMenuService;
   let clipboard: any;
@@ -34,6 +36,7 @@ describe('CanvasContextMenuService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasContextMenuService,
         { provide: CanvasClipboardService, useValue: clipboard },

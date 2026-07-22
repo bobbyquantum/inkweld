@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ResetComponent } from './reset.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ResetComponent', () => {
   let component: ResetComponent;
   let fixture: ComponentFixture<ResetComponent>;
@@ -39,7 +41,7 @@ describe('ResetComponent', () => {
     });
 
     await TestBed.configureTestingModule({
-      imports: [ResetComponent],
+      imports: [translocoTestProvider(), ResetComponent],
     }).compileComponents();
 
     router = TestBed.inject(Router);

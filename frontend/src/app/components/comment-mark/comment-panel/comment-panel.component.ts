@@ -12,6 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 
 import type { CommentThreadResponse } from '../../../services/project/comment.service';
 import { CommentService } from '../../../services/project/comment.service';
@@ -31,6 +32,7 @@ interface PositionedThread extends CommentThreadResponse {
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    TranslocoModule,
     UserAvatarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

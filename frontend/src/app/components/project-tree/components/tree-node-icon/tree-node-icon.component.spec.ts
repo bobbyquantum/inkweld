@@ -5,6 +5,8 @@ import { ElementType } from '@inkweld/index';
 import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
 import { TreeNodeIconComponent } from './tree-node-icon.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 describe('TreeNodeIconComponent', () => {
   let component: TreeNodeIconComponent;
   let fixture: ComponentFixture<TreeNodeIconComponent>;
@@ -20,7 +22,7 @@ describe('TreeNodeIconComponent', () => {
         provideZonelessChangeDetection(),
         { provide: WorldbuildingService, useValue: mockWorldbuildingService },
       ],
-      imports: [TreeNodeIconComponent],
+      imports: [translocoTestProvider(), TreeNodeIconComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TreeNodeIconComponent);

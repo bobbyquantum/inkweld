@@ -1,7 +1,10 @@
 <div class="register-dialog" data-testid="register-dialog">
   <div class="dialog-header">
-    <img src="logo.png" alt="Inkweld Logo" class="logo-image" />
-    <h2 mat-dialog-title>Register for Inkweld</h2>
+    <img
+      src="logo.png"
+      [alt]="'auth.registerDialog.logoAlt' | transloco"
+      class="logo-image" />
+    <h2 mat-dialog-title>{{ 'auth.registerDialog.title' | transloco }}</h2>
   </div>
 
   <mat-dialog-content [class.mobile]="isMobile">
@@ -24,7 +27,7 @@
       type="button"
       (click)="onLoginClick()"
       class="login-button">
-      Already have an account? Login here
+      {{ 'auth.registerDialog.haveAccount' | transloco }}
     </button>
   </mat-dialog-content>
 </div>

@@ -2,10 +2,11 @@
   <!-- Image Cropper View -->
   @if (showCropper) {
     <div class="cropper-view">
-      <h3 class="cropper-title">Crop Cover Image</h3>
+      <h3 class="cropper-title">
+        {{ 'dialogs.editProject.cropTitle' | transloco }}
+      </h3>
       <p class="cropper-subtitle">
-        Adjust the selection to fit your project cover (1:1.6 ratio, recommended
-        1600×2560px)
+        {{ 'dialogs.editProject.cropSubtitle' | transloco }}
       </p>
       <div class="cropper-container">
         <image-cropper
@@ -37,7 +38,7 @@
           <div class="cover-image-wrapper">
             <img
               [src]="coverImageUrl"
-              alt="Project cover"
+              [alt]="'dialogs.editProject.coverAlt' | transloco"
               class="cover-preview" />
             <button
               mat-mini-fab
@@ -45,7 +46,7 @@
               class="remove-image-btn"
               (click)="removeCoverImage()"
               [disabled]="isLoadingCover()"
-              aria-label="Remove cover image">
+              [attr.aria-label]="'dialogs.editProject.removeCover' | transloco">
               <mat-icon>delete</mat-icon>
             </button>
           </div>
@@ -58,8 +59,12 @@
         } @else {
           <div class="placeholder-wrapper">
             <mat-icon class="placeholder-icon">image</mat-icon>
-            <p class="placeholder-text">No cover image</p>
-            <p class="placeholder-text">1:1.6 ratio</p>
+            <p class="placeholder-text">
+              {{ 'dialogs.editProject.noCover' | transloco }}
+            </p>
+            <p class="placeholder-text">
+              {{ 'dialogs.editProject.ratioPlaceholder' | transloco }}
+            </p>
           </div>
         }
       </div>
@@ -68,12 +73,14 @@
       <div class="form-column">
         <form (submit)="$event.preventDefault(); onSave()">
           <mat-form-field appearance="outline">
-            <mat-label>Title</mat-label>
+            <mat-label>{{
+              'dialogs.editProject.titleLabel' | transloco
+            }}</mat-label>
             <input
               matInput
               [formField]="form.title"
               id="edit-project-title-input"
-              aria-label="Title" />
+              [attr.aria-label]="'dialogs.editProject.titleAria' | transloco" />
             @if (form.title().touched() && form.title().invalid()) {
               @for (error of form.title().errors(); track error.message) {
                 <mat-error>{{ error.message }}</mat-error>
@@ -82,17 +89,21 @@
           </mat-form-field>
 
           <mat-form-field appearance="outline">
-            <mat-label>Description</mat-label>
+            <mat-label>{{
+              'dialogs.editProject.descriptionLabel' | transloco
+            }}</mat-label>
             <textarea
               matInput
               [formField]="form.description"
               rows="4"
               id="edit-project-description-input"
-              aria-label="Description"></textarea>
+              [attr.aria-label]="
+                'dialogs.editProject.descriptionAria' | transloco
+              "></textarea>
           </mat-form-field>
 
           <div class="cover-image-controls">
-            <h3>Cover Image</h3>
+            <h3>{{ 'dialogs.editProject.coverHeading' | transloco }}</h3>
             <div class="cover-buttons">
               <button
                 mat-stroked-button
@@ -100,7 +111,7 @@
                 (click)="openCoverImageSelector()"
                 [disabled]="isLoadingCover()">
                 <mat-icon>add_photo_alternate</mat-icon>
-                Upload Image
+                {{ 'dialogs.editProject.uploadImage' | transloco }}
               </button>
               <button
                 mat-stroked-button
@@ -108,7 +119,7 @@
                 (click)="openMediaLibrarySelector()"
                 [disabled]="isLoadingCover()">
                 <mat-icon>photo_library</mat-icon>
-                Select from Library
+                {{ 'dialogs.editProject.selectFromLibrary' | transloco }}
               </button>
               @if (aiGenerationStatus().status !== 'hidden') {
                 <button
@@ -121,7 +132,7 @@
                   "
                   [matTooltip]="aiGenerationStatus().tooltip ?? ''">
                   <mat-icon>auto_awesome</mat-icon>
-                  Generate with AI
+                  {{ 'dialogs.editProject.generateWithAI' | transloco }}
                   @if (aiGenerationStatus().status === 'disabled') {
                     <mat-icon class="disconnected-icon">cloud_off</mat-icon>
                   }
@@ -139,7 +150,7 @@
           style="display: none"
           (change)="onCoverImageSelected($event)"
           id="edit-project-cover-image-input"
-          aria-label="Cover image file" />
+          [attr.aria-label]="'dialogs.editProject.coverFileAria' | transloco" />
       </div>
     </div>
   }
@@ -147,22 +158,24 @@
 
 <mat-dialog-actions align="end">
   @if (showCropper) {
-    <button mat-button (click)="cancelCropping()">Cancel</button>
+    <button mat-button (click)="cancelCropping()">
+      {{ 'cancel' | transloco }}
+    </button>
     <button
       mat-raised-button
       color="primary"
       (click)="applyCroppedImage()"
       [disabled]="!croppedBlob">
-      Apply
+      {{ 'apply' | transloco }}
     </button>
   } @else {
-    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-button mat-dialog-close>{{ 'cancel' | transloco }}</button>
     <button
       mat-raised-button
       color="primary"
       [disabled]="form().invalid() || isSaving()"
       (click)="onSave()">
-      Save
+      {{ 'save' | transloco }}
     </button>
   }
 </mat-dialog-actions>

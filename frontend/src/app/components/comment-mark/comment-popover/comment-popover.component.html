@@ -22,8 +22,8 @@
         <button
           mat-icon-button
           class="comment-popover__action"
-          aria-label="Resolve comment thread"
-          matTooltip="Resolve"
+          [attr.aria-label]="'editor.comments.resolveThread' | transloco"
+          [matTooltip]="'editor.comments.resolve' | transloco"
           (click)="onResolve()"
           data-testid="comment-resolve-btn">
           <mat-icon>check_circle_outline</mat-icon>
@@ -32,8 +32,8 @@
         <button
           mat-icon-button
           class="comment-popover__action"
-          aria-label="Unresolve comment thread"
-          matTooltip="Unresolve"
+          [attr.aria-label]="'editor.comments.unresolveThread' | transloco"
+          [matTooltip]="'editor.comments.unresolve' | transloco"
           (click)="onUnresolve()"
           data-testid="comment-unresolve-btn">
           <mat-icon>undo</mat-icon>
@@ -42,8 +42,8 @@
       <button
         mat-icon-button
         class="comment-popover__action"
-        aria-label="Delete comment thread"
-        matTooltip="Delete thread"
+        [attr.aria-label]="'editor.comments.deleteThreadAria' | transloco"
+        [matTooltip]="'editor.comments.deleteThread' | transloco"
         (click)="onDelete()"
         data-testid="comment-delete-btn">
         <mat-icon>delete_outline</mat-icon>
@@ -51,8 +51,8 @@
       <button
         mat-icon-button
         class="comment-popover__action"
-        aria-label="Close comment popover"
-        matTooltip="Close"
+        [attr.aria-label]="'editor.comments.closePopover' | transloco"
+        [matTooltip]="'editor.comments.close' | transloco"
         (click)="closed.emit()"
         data-testid="comment-close-btn">
         <mat-icon>close</mat-icon>
@@ -77,7 +77,9 @@
           <div class="comment-popover__msg-text">{{ msg.text }}</div>
         </div>
       } @empty {
-        <div class="comment-popover__empty">No messages</div>
+        <div class="comment-popover__empty">
+          {{ 'editor.comments.noMessages' | transloco }}
+        </div>
       }
     </div>
 
@@ -85,10 +87,10 @@
       <input
         #replyInput
         id="comment-popover-reply-input"
-        aria-label="Reply"
+        [attr.aria-label]="'editor.comments.reply' | transloco"
         class="comment-popover__reply-input"
         type="text"
-        placeholder="Reply..."
+        [placeholder]="'editor.comments.replyPlaceholder' | transloco"
         [(ngModel)]="replyText"
         (keydown.enter)="onReply()"
         data-testid="comment-reply-input" />

@@ -10,7 +10,7 @@
       <div class="collapsed-sidebar" data-testid="chart-collapsed-sidebar">
         <button
           mat-icon-button
-          matTooltip="Expand sidebar"
+          [matTooltip]="'relationships.metaPanel.expandPanel' | transloco"
           (click)="toggleSidebar()">
           <mat-icon fontSet="material-symbols-outlined"
             >left_panel_open</mat-icon
@@ -19,7 +19,7 @@
         <button
           mat-icon-button
           [matMenuTriggerFor]="exportMenu"
-          matTooltip="Export chart">
+          [matTooltip]="'canvas.export.exportPng' | transloco">
           <mat-icon>download</mat-icon>
         </button>
       </div>
@@ -35,13 +35,13 @@
           <button
             mat-icon-button
             [matMenuTriggerFor]="exportMenu"
-            matTooltip="Export chart"
+            [matTooltip]="'canvas.export.exportPng' | transloco"
             class="header-action">
             <mat-icon>download</mat-icon>
           </button>
           <button
             mat-icon-button
-            matTooltip="Collapse sidebar"
+            [matTooltip]="'relationships.metaPanel.collapsePanel' | transloco"
             (click)="toggleSidebar()"
             class="header-action">
             <mat-icon fontSet="material-symbols-outlined"
@@ -53,34 +53,42 @@
         <!-- Layout -->
         <div class="sidebar-section">
           <div class="section-header">
-            <span class="section-title">Layout</span>
+            <span class="section-title">{{
+              'relationships.tab.title' | transloco
+            }}</span>
           </div>
           <mat-button-toggle-group
             class="layout-toggle"
             [value]="layout()"
             (change)="onLayoutChange($event.value)"
             hideSingleSelectionIndicator>
-            <mat-button-toggle value="force" matTooltip="Force-directed layout">
+            <mat-button-toggle
+              value="force"
+              [matTooltip]="'relationships.tab.title' | transloco">
               <mat-icon>blur_on</mat-icon>
               <span class="toggle-label">Force</span>
             </mat-button-toggle>
             <mat-button-toggle
               value="hierarchical"
-              matTooltip="Hierarchical (tree) layout">
+              [matTooltip]="'relationships.tab.title' | transloco">
               <mat-icon>account_tree</mat-icon>
               <span class="toggle-label">Tree</span>
             </mat-button-toggle>
-            <mat-button-toggle value="circular" matTooltip="Circular layout">
+            <mat-button-toggle
+              value="circular"
+              [matTooltip]="'relationships.tab.title' | transloco">
               <mat-icon>donut_large</mat-icon>
               <span class="toggle-label">Circular</span>
             </mat-button-toggle>
-            <mat-button-toggle value="grid" matTooltip="Grid layout">
+            <mat-button-toggle
+              value="grid"
+              [matTooltip]="'relationships.tab.title' | transloco">
               <mat-icon>grid_view</mat-icon>
               <span class="toggle-label">Grid</span>
             </mat-button-toggle>
             <mat-button-toggle
               value="concentric"
-              matTooltip="Concentric layout (most connected at center)">
+              [matTooltip]="'relationships.tab.title' | transloco">
               <mat-icon>target</mat-icon>
               <span class="toggle-label">Rings</span>
             </mat-button-toggle>
@@ -99,10 +107,12 @@
             hideSingleSelectionIndicator>
             <mat-button-toggle
               value="curated"
-              matTooltip="Manually pick elements">
+              [matTooltip]="'relationships.tab.title' | transloco">
               Curated
             </mat-button-toggle>
-            <mat-button-toggle value="all" matTooltip="Show all elements">
+            <mat-button-toggle
+              value="all"
+              [matTooltip]="'relationships.tab.title' | transloco">
               All
             </mat-button-toggle>
           </mat-button-toggle-group>
@@ -123,7 +133,9 @@
               <button
                 mat-icon-button
                 class="section-action"
-                matTooltip="Add elements"
+                [matTooltip]="
+                  'relationships.metaPanel.addRelationship' | transloco
+                "
                 (click)="openAddElements()">
                 <mat-icon>add</mat-icon>
               </button>
@@ -138,13 +150,17 @@
                   <button
                     mat-icon-button
                     class="chip-remove"
-                    matTooltip="Remove from chart"
+                    [matTooltip]="
+                      'relationships.metaPanel.removeRelationship' | transloco
+                    "
                     (click)="removeElement(el.id)">
                     <mat-icon>close</mat-icon>
                   </button>
                 </div>
               } @empty {
-                <p class="empty-hint">No elements added yet.</p>
+                <p class="empty-hint">
+                  {{ 'relationships.metaPanel.noRelationships' | transloco }}
+                </p>
               }
             </div>
           </div>
@@ -160,7 +176,7 @@
               class="toggle-row"
               [class.active]="showOrphans()"
               (click)="toggleOrphans()"
-              matTooltip="Show elements that have no relationships">
+              [matTooltip]="'relationships.tab.title' | transloco">
               <mat-icon class="toggle-icon">lan</mat-icon>
               <span class="toggle-label-text">Show isolated elements</span>
               <mat-icon class="toggle-check">{{
@@ -184,7 +200,7 @@
                   <button
                     mat-icon-button
                     class="section-action"
-                    matTooltip="Show all schemas"
+                    [matTooltip]="'relationships.tab.title' | transloco"
                     (click)="clearSchemaFilters()">
                     <mat-icon>filter_alt_off</mat-icon>
                   </button>
@@ -195,7 +211,7 @@
                   <button
                     class="rel-type-chip"
                     [class.active]="isSchemaActive(schema)"
-                    matTooltip="Toggle {{ getSchemaLabel(schema) }}"
+                    [matTooltip]="'relationships.tab.title' | transloco"
                     (click)="toggleSchema(schema)">
                     <span class="chip-label">{{ getSchemaLabel(schema) }}</span>
                   </button>
@@ -213,7 +229,7 @@
               <button
                 mat-icon-button
                 class="section-action"
-                matTooltip="Clear focus"
+                [matTooltip]="'relationships.tab.title' | transloco"
                 (click)="clearFocus()">
                 <mat-icon>close</mat-icon>
               </button>
@@ -237,7 +253,7 @@
                 step="1"
                 [value]="maxDepth()"
                 (input)="onMaxDepthChange($event)"
-                aria-label="Focus depth" />
+                [attr.aria-label]="'relationships.tab.title' | transloco" />
             </div>
           } @else {
             <p class="empty-hint">
@@ -255,7 +271,7 @@
             class="toggle-row"
             [class.active]="effectiveShowLabels()"
             (click)="toggleLabels()"
-            matTooltip="Cycle label visibility: auto → on → off">
+            [matTooltip]="'relationships.tab.title' | transloco">
             <mat-icon class="toggle-icon">label</mat-icon>
             <span class="toggle-label-text">{{ labelsButtonLabel }}</span>
           </button>
@@ -264,12 +280,14 @@
         <!-- Relationship Types -->
         <div class="sidebar-section">
           <div class="section-header">
-            <span class="section-title">Relationship Types</span>
+            <span class="section-title">{{
+              'relationships.metaPanel.title' | transloco
+            }}</span>
             @if (activeRelTypeIds().size > 0) {
               <button
                 mat-icon-button
                 class="section-action"
-                matTooltip="Show all types"
+                [matTooltip]="'relationships.tab.title' | transloco"
                 (click)="showAllRelTypes()">
                 <mat-icon>filter_alt_off</mat-icon>
               </button>
@@ -281,7 +299,7 @@
                 class="rel-type-chip"
                 [class.active]="isRelTypeActive(type.id)"
                 [style.--chip-color]="type.color || '#999'"
-                matTooltip="Toggle {{ type.name }}"
+                [matTooltip]="'relationships.tab.title' | transloco"
                 (click)="toggleRelType(type.id)">
                 <span
                   class="rel-color-dot"
@@ -289,7 +307,9 @@
                 <span class="chip-label">{{ type.name }}</span>
               </button>
             } @empty {
-              <p class="empty-hint">No relationship types defined.</p>
+              <p class="empty-hint">
+                {{ 'relationships.metaPanel.noRelationships' | transloco }}
+              </p>
             }
           </div>
         </div>
@@ -335,11 +355,11 @@
   <mat-menu #exportMenu="matMenu">
     <button mat-menu-item (click)="exportAsPng()">
       <mat-icon>image</mat-icon>
-      <span>Export as PNG</span>
+      <span>{{ 'canvas.export.exportPng' | transloco }}</span>
     </button>
     <button mat-menu-item (click)="exportAsHighResPng()">
       <mat-icon>high_quality</mat-icon>
-      <span>Export as High-Res PNG</span>
+      <span>{{ 'canvas.export.exportPngHighRes' | transloco }}</span>
     </button>
   </mat-menu>
 </div>

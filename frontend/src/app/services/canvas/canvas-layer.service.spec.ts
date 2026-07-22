@@ -7,6 +7,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CanvasService } from './canvas.service';
 import { CanvasLayerService } from './canvas-layer.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('CanvasLayerService', () => {
   let service: CanvasLayerService;
   let canvasService: any;
@@ -30,6 +32,7 @@ describe('CanvasLayerService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasLayerService,
         { provide: CanvasService, useValue: canvasService },

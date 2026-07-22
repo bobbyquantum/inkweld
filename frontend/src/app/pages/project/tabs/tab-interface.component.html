@@ -5,7 +5,7 @@
       type="button"
       class="scroll-arrow scroll-arrow-left"
       (click)="scrollLeft()"
-      aria-label="Scroll tabs left">
+      [attr.aria-label]="'project.tabs.scrollLeft' | transloco">
       <mat-icon>chevron_left</mat-icon>
     </button>
   }
@@ -57,7 +57,7 @@
       type="button"
       class="scroll-arrow scroll-arrow-right"
       (click)="scrollRight()"
-      aria-label="Scroll tabs right">
+      [attr.aria-label]="'project.tabs.scrollRight' | transloco">
       <mat-icon>chevron_right</mat-icon>
     </button>
   }
@@ -81,7 +81,9 @@
         cdkMenuItem
         (click)="onRenameTabElement(contextTab)">
         <mat-icon>edit_square</mat-icon>
-        <span class="context-menu-item-title">Rename</span>
+        <span class="context-menu-item-title">{{
+          'project.tabs.rename' | transloco
+        }}</span>
       </button>
     }
     @if (
@@ -97,7 +99,9 @@
         (click)="onTogglePinContextTab()">
         <mat-icon>push_pin</mat-icon>
         <span class="context-menu-item-title">{{
-          projectState.isPinned(contextTab.element.id) ? 'Unpin' : 'Pin'
+          projectState.isPinned(contextTab.element.id)
+            ? ('project.tabs.unpin' | transloco)
+            : ('project.tabs.pin' | transloco)
         }}</span>
       </button>
     }
@@ -108,7 +112,9 @@
         cdkMenuItem
         (click)="closeTab(contextTabIndex || 0)">
         <mat-icon>close</mat-icon>
-        <span class="context-menu-item-title">Close</span>
+        <span class="context-menu-item-title">{{
+          'project.tabs.close' | transloco
+        }}</span>
       </button>
       @if (hasTabsToRight()) {
         <button
@@ -117,7 +123,9 @@
           cdkMenuItem
           (click)="closeTabsToRight()">
           <mat-icon>chevron_right</mat-icon>
-          <span class="context-menu-item-title">Close to the Right</span>
+          <span class="context-menu-item-title">{{
+            'project.tabs.closeToRight' | transloco
+          }}</span>
         </button>
       }
       @if (hasOtherTabs()) {
@@ -127,7 +135,9 @@
           cdkMenuItem
           (click)="closeOtherTabs()">
           <mat-icon>tab_unselected</mat-icon>
-          <span class="context-menu-item-title">Close Others</span>
+          <span class="context-menu-item-title">{{
+            'project.tabs.closeOthers' | transloco
+          }}</span>
         </button>
       }
       <button
@@ -136,7 +146,9 @@
         cdkMenuItem
         (click)="closeAllTabs()">
         <mat-icon>close_fullscreen</mat-icon>
-        <span class="context-menu-item-title">Close All</span>
+        <span class="context-menu-item-title">{{
+          'project.tabs.closeAll' | transloco
+        }}</span>
       </button>
     }
   </div>

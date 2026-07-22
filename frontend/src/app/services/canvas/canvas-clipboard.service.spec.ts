@@ -12,6 +12,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CanvasService } from './canvas.service';
 import { CanvasClipboardService } from './canvas-clipboard.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 const makeShape = (id: string, layerId = 'L1', x = 10, y = 20): CanvasShape =>
   ({
     id,
@@ -87,6 +89,7 @@ describe('CanvasClipboardService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasClipboardService,
         { provide: CanvasService, useValue: mockCanvas },

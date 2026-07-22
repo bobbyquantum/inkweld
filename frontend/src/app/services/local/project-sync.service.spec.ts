@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ProjectSyncService } from './project-sync.service';
 import { StorageService } from './storage.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ProjectSyncService', () => {
   let service: ProjectSyncService;
   let storageService: StorageService;
@@ -15,6 +17,7 @@ describe('ProjectSyncService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         StorageService,

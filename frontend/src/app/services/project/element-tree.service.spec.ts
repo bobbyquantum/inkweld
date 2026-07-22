@@ -3,6 +3,8 @@ import { type Element, ElementType } from '@inkweld/index';
 
 import { ElementTreeService } from './element-tree.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ElementTreeService', () => {
   let service: ElementTreeService;
 
@@ -28,6 +30,7 @@ describe('ElementTreeService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [ElementTreeService],
     });
     service = TestBed.inject(ElementTreeService);

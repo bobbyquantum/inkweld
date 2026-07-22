@@ -11,6 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import type {
   ActivityEventType,
   ProjectActivityEvent,
@@ -45,6 +46,7 @@ import { formatRelativeDate } from '../../../../utils/date-format';
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
 })
 export class ActivityTabComponent {

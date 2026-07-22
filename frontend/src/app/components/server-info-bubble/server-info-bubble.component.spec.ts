@@ -9,6 +9,8 @@ import { type MockedObject, vi } from 'vitest';
 
 import { ServerInfoBubbleComponent } from './server-info-bubble.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ServerInfoBubbleComponent', () => {
   let component: ServerInfoBubbleComponent;
   let fixture: ComponentFixture<ServerInfoBubbleComponent>;
@@ -58,7 +60,7 @@ describe('ServerInfoBubbleComponent', () => {
     } as unknown as MockedObject<AuthTokenService>;
 
     await TestBed.configureTestingModule({
-      imports: [ServerInfoBubbleComponent],
+      imports: [translocoTestProvider(), ServerInfoBubbleComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: StorageContextService, useValue: storageContextMock },

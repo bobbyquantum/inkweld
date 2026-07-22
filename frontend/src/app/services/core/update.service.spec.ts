@@ -7,6 +7,8 @@ import { vi } from 'vitest';
 
 import { UpdateService } from './update.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('UpdateService', () => {
   let service: UpdateService;
   let swUpdateMock: any;
@@ -31,6 +33,7 @@ describe('UpdateService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         UpdateService,
         { provide: SwUpdate, useValue: swUpdateMock },

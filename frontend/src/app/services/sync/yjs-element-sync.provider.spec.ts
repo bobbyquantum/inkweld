@@ -35,6 +35,8 @@ import { StorageContextService } from '../core/storage-context.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import { YjsElementSyncProvider } from './yjs-element-sync.provider';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 const websocketModuleMocks = vi.hoisted(() => ({
   createAuthenticatedWebsocketProvider: vi.fn(),
   setupReauthentication: vi.fn(),
@@ -195,6 +197,7 @@ describe('YjsElementSyncProvider', () => {
     );
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         YjsElementSyncProvider,

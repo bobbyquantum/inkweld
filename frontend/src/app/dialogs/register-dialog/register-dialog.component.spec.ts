@@ -28,6 +28,8 @@ import {
 
 import { RegisterDialogComponent } from './register-dialog.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('RegisterDialogComponent', () => {
   let component: RegisterDialogComponent;
   let fixture: ComponentFixture<RegisterDialogComponent>;
@@ -92,7 +94,7 @@ describe('RegisterDialogComponent', () => {
     } as unknown as MockedObject<AuthTokenService>;
 
     await TestBed.configureTestingModule({
-      imports: [RegisterDialogComponent],
+      imports: [translocoTestProvider(), RegisterDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

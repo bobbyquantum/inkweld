@@ -10,6 +10,8 @@ import { type Mock, vi } from 'vitest';
 
 import { type ThemeOption, ThemeService } from './theme.service';
 
+import { translocoTestProvider } from '../testing/transloco-test-provider';
+
 describe('ThemeService', () => {
   let service: ThemeService;
   let document: Document;
@@ -46,6 +48,7 @@ describe('ThemeService', () => {
     });
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         {

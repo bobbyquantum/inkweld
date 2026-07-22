@@ -28,7 +28,7 @@
             @if (editorKey > 0) {
               <ngx-editor
                 [editor]="editor"
-                [placeholder]="'Type here...'"
+                [placeholder]="'editor.document.placeholder' | transloco"
                 class="editor-content">
               </ngx-editor>
               <!-- Custom floating menu for formatting + comments -->
@@ -46,14 +46,17 @@
       @if (!zenMode) {
         <div class="editor-status-bar">
           <span class="status-stats">
-            <span>{{ wordCountFormatted() }} words</span>
+            <span
+              >{{ wordCountFormatted() }}
+              {{ 'editor.document.words' | transloco }}</span
+            >
             @if (readingTime()) {
               <span class="reading-time">· {{ readingTime() }}</span>
             }
             <button
               class="tag-icons"
               (click)="openTagsDialog()"
-              matTooltip="Manage tags"
+              [matTooltip]="'editor.document.manageTags' | transloco"
               matTooltipShowDelay="800"
               type="button">
               @for (tag of elementTags(); track tag.assignment.id) {
@@ -73,8 +76,8 @@
               mat-icon-button
               class="snapshots-btn"
               (click)="openSnapshotsDialog()"
-              aria-label="Open document snapshots"
-              matTooltip="Document snapshots"
+              [attr.aria-label]="'editor.document.openSnapshots' | transloco"
+              [matTooltip]="'editor.document.snapshots' | transloco"
               data-testid="toolbar-snapshots">
               <mat-icon>history</mat-icon>
             </button>

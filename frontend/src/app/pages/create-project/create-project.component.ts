@@ -17,6 +17,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { type Project } from '@inkweld/index';
 import { ElectronService } from '@services/electron.service';
@@ -51,6 +52,7 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
     MatCardModule,
     MatProgressBarModule,
     MatRadioModule,
+    TranslocoModule,
     UserMenuComponent,
   ],
 })
@@ -62,6 +64,7 @@ export class CreateProjectComponent implements OnInit {
   protected unifiedUserService = inject(UnifiedUserService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
+  private readonly transloco = inject(TranslocoService);
 
   /** Current step (1: template selection, 2: project details) */
   step = signal<1 | 2>(1);
@@ -211,9 +214,11 @@ export class CreateProjectComponent implements OnInit {
         templateId
       );
 
-      this.snackBar.open('Project created successfully!', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('project.snackbar.projectImported'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
 
       // Auto-activate on the creating device
       if (response?.username && response?.slug) {
@@ -229,9 +234,11 @@ export class CreateProjectComponent implements OnInit {
         void this.router.navigate(['/']);
       }
     } catch (error) {
-      this.snackBar.open('Failed to create project.', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('errors.unknown'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       console.error('Failed to create project:', error);
     } finally {
       this.isSaving.set(false);

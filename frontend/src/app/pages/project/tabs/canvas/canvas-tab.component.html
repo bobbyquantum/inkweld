@@ -10,8 +10,8 @@
       <div class="collapsed-sidebar" data-testid="canvas-collapsed-sidebar">
         <button
           mat-icon-button
-          matTooltip="Expand sidebar"
-          aria-label="Expand sidebar"
+          [matTooltip]="'canvas.sidebar.expand' | transloco"
+          [attr.aria-label]="'canvas.sidebar.expand' | transloco"
           (click)="toggleSidebar()">
           <mat-icon fontSet="material-symbols-outlined"
             >left_panel_open</mat-icon
@@ -20,8 +20,8 @@
         <button
           mat-icon-button
           [matMenuTriggerFor]="exportMenu"
-          matTooltip="Export canvas"
-          aria-label="Export canvas">
+          [matTooltip]="'canvas.sidebar.exportCanvas' | transloco"
+          [attr.aria-label]="'canvas.sidebar.exportCanvas' | transloco">
           <mat-icon>download</mat-icon>
         </button>
       </div>
@@ -37,15 +37,15 @@
           <button
             mat-icon-button
             [matMenuTriggerFor]="exportMenu"
-            matTooltip="Export canvas"
-            aria-label="Export canvas"
+            [matTooltip]="'canvas.sidebar.exportCanvas' | transloco"
+            [attr.aria-label]="'canvas.sidebar.exportCanvas' | transloco"
             class="header-action">
             <mat-icon>download</mat-icon>
           </button>
           <button
             mat-icon-button
-            matTooltip="Collapse sidebar"
-            aria-label="Collapse sidebar"
+            [matTooltip]="'canvas.sidebar.collapse' | transloco"
+            [attr.aria-label]="'canvas.sidebar.collapse' | transloco"
             (click)="toggleSidebar()"
             class="header-action">
             <mat-icon fontSet="material-symbols-outlined"
@@ -57,18 +57,22 @@
         <!-- Layers section -->
         <div class="sidebar-section">
           <div class="section-header" data-testid="layers-header">
-            <span class="section-title">Layers</span>
+            <span class="section-title">{{
+              'canvas.sidebar.layers' | transloco
+            }}</span>
             <button
               mat-icon-button
-              matTooltip="Add layer"
-              aria-label="Add layer"
+              [matTooltip]="'canvas.sidebar.addLayer' | transloco"
+              [attr.aria-label]="'canvas.sidebar.addLayer' | transloco"
               data-testid="add-layer-button"
               (click)="onAddLayer()"
               class="section-action">
               <mat-icon>add</mat-icon>
             </button>
           </div>
-          <div class="layers-list" role="listbox" aria-label="Layers">
+          <div
+            class="layers-list"
+            [attr.aria-label]="'canvas.sidebar.layersAria' | transloco">
             @for (layer of sortedLayers(); track layer.id) {
               <div
                 role="option"
@@ -88,7 +92,11 @@
                     class="layer-visibility"
                     data-testid="layer-visibility"
                     (click)="onToggleLayerVisibility(layer.id, $event)"
-                    [matTooltip]="layer.visible ? 'Hide layer' : 'Show layer'">
+                    [matTooltip]="
+                      layer.visible
+                        ? ('canvas.sidebar.hideLayer' | transloco)
+                        : ('canvas.sidebar.showLayer' | transloco)
+                    ">
                     <mat-icon>{{
                       layer.visible ? 'visibility' : 'visibility_off'
                     }}</mat-icon>
@@ -98,7 +106,11 @@
                     class="layer-lock"
                     data-testid="layer-lock"
                     (click)="onToggleLayerLock(layer.id, $event)"
-                    [matTooltip]="layer.locked ? 'Unlock layer' : 'Lock layer'">
+                    [matTooltip]="
+                      layer.locked
+                        ? ('canvas.sidebar.unlockLayer' | transloco)
+                        : ('canvas.sidebar.lockLayer' | transloco)
+                    ">
                     <mat-icon>{{
                       layer.locked ? 'lock' : 'lock_open'
                     }}</mat-icon>
@@ -109,7 +121,7 @@
                   <button
                     mat-icon-button
                     class="layer-action"
-                    aria-label="More options"
+                    [attr.aria-label]="'canvas.sidebar.moreOptions' | transloco"
                     [matMenuTriggerFor]="layerMenu"
                     [matMenuTriggerData]="{ layerId: layer.id }"
                     (click)="$event.stopPropagation()">
@@ -122,8 +134,10 @@
                     class="layer-opacity"
                     id="canvas-layer-opacity-slider"
                     data-testid="layer-opacity"
-                    aria-label="Layer opacity"
-                    matTooltip="Layer opacity"
+                    [attr.aria-label]="
+                      'canvas.sidebar.layerOpacity' | transloco
+                    "
+                    [matTooltip]="'canvas.sidebar.layerOpacity' | transloco"
                     min="0"
                     max="1"
                     step="0.05"
@@ -142,10 +156,14 @@
         <!-- Objects section -->
         <div class="sidebar-section">
           <div class="section-header" data-testid="objects-header">
-            <span class="section-title">Objects</span>
+            <span class="section-title">{{
+              'canvas.sidebar.objects' | transloco
+            }}</span>
             <span class="object-count">{{ activeLayerObjects().length }}</span>
           </div>
-          <div class="objects-list" role="listbox" aria-label="Objects">
+          <div
+            class="objects-list"
+            [attr.aria-label]="'canvas.sidebar.objectsAria' | transloco">
             @for (obj of activeLayerObjects(); track obj.id) {
               <div
                 role="option"
@@ -167,16 +185,16 @@
                 <button
                   mat-icon-button
                   class="object-action"
-                  matTooltip="Delete"
+                  [matTooltip]="'delete' | transloco"
                   (click)="onDeleteObject(obj.id, $event)">
                   <mat-icon>delete</mat-icon>
                 </button>
               </div>
             } @empty {
               <div class="empty-state" data-testid="objects-empty">
-                <p>No objects on this layer.</p>
+                <p>{{ 'canvas.sidebar.noObjects' | transloco }}</p>
                 <p class="hint">
-                  Use the toolbar to add images, text, pins, or drawings.
+                  {{ 'canvas.sidebar.noObjectsHint' | transloco }}
                 </p>
               </div>
             }
@@ -193,24 +211,24 @@
           <button
             mat-icon-button
             [class.active]="activeTool() === 'select'"
-            matTooltip="Select (V)"
-            aria-label="Select (V)"
+            [matTooltip]="'canvas.toolbar.select' | transloco"
+            [attr.aria-label]="'canvas.toolbar.select' | transloco"
             (click)="onToolChange('select')">
             <mat-icon>near_me</mat-icon>
           </button>
           <button
             mat-icon-button
             [class.active]="activeTool() === 'rectSelect'"
-            matTooltip="Rectangle select (R)"
-            aria-label="Rectangle select (R)"
+            [matTooltip]="'canvas.toolbar.rectangleSelect' | transloco"
+            [attr.aria-label]="'canvas.toolbar.rectangleSelect' | transloco"
             (click)="onToolChange('rectSelect')">
             <mat-icon>select_all</mat-icon>
           </button>
           <button
             mat-icon-button
             [class.active]="activeTool() === 'pan'"
-            matTooltip="Pan (H)"
-            aria-label="Pan (H)"
+            [matTooltip]="'canvas.toolbar.pan' | transloco"
+            [attr.aria-label]="'canvas.toolbar.pan' | transloco"
             (click)="onToolChange('pan')">
             <mat-icon>pan_tool</mat-icon>
           </button>
@@ -223,15 +241,15 @@
             mat-icon-button
             [class.active]="activeTool() === 'pin'"
             [disabled]="!hasActiveLayer()"
-            matTooltip="Place pin (P)"
-            aria-label="Place pin (P)"
+            [matTooltip]="'canvas.toolbar.placePin' | transloco"
+            [attr.aria-label]="'canvas.toolbar.placePin' | transloco"
             (click)="onToolChange('pin')">
             <mat-icon>place</mat-icon>
           </button>
           <button
             mat-icon-button
-            matTooltip="Add image"
-            aria-label="Add image"
+            [matTooltip]="'canvas.toolbar.addImage' | transloco"
+            [attr.aria-label]="'canvas.toolbar.addImage' | transloco"
             [disabled]="!hasActiveLayer()"
             (click)="onAddImage()">
             <mat-icon>image</mat-icon>
@@ -240,8 +258,8 @@
             mat-icon-button
             [class.active]="activeTool() === 'text'"
             [disabled]="!hasActiveLayer()"
-            matTooltip="Add text (T)"
-            aria-label="Add text (T)"
+            [matTooltip]="'canvas.toolbar.addText' | transloco"
+            [attr.aria-label]="'canvas.toolbar.addText' | transloco"
             (click)="onToolChange('text')">
             <mat-icon>title</mat-icon>
           </button>
@@ -254,8 +272,8 @@
             mat-icon-button
             [class.active]="activeTool() === 'draw'"
             [disabled]="!hasActiveLayer()"
-            matTooltip="Freehand draw (D)"
-            aria-label="Freehand draw (D)"
+            [matTooltip]="'canvas.toolbar.freehandDraw' | transloco"
+            [attr.aria-label]="'canvas.toolbar.freehandDraw' | transloco"
             (click)="onToolChange('draw')">
             <mat-icon>draw</mat-icon>
           </button>
@@ -263,8 +281,8 @@
             mat-icon-button
             [class.active]="activeTool() === 'line'"
             [disabled]="!hasActiveLayer()"
-            matTooltip="Line (L)"
-            aria-label="Line (L)"
+            [matTooltip]="'canvas.toolbar.line' | transloco"
+            [attr.aria-label]="'canvas.toolbar.line' | transloco"
             (click)="onToolChange('line')">
             <mat-icon>horizontal_rule</mat-icon>
           </button>
@@ -272,8 +290,8 @@
             mat-icon-button
             [class.active]="activeTool() === 'shape'"
             [disabled]="!hasActiveLayer()"
-            matTooltip="Shape (S)"
-            aria-label="Shape (S)"
+            [matTooltip]="'canvas.toolbar.shape' | transloco"
+            [attr.aria-label]="'canvas.toolbar.shape' | transloco"
             (click)="onToolChange('shape')"
             [matMenuTriggerFor]="shapeMenu">
             <mat-icon>{{ shapeIcon() }}</mat-icon>
@@ -285,8 +303,8 @@
         <div class="toolbar-group">
           <button
             mat-icon-button
-            matTooltip="Edit object colors"
-            aria-label="Edit object colors"
+            [matTooltip]="'canvas.toolbar.editColors' | transloco"
+            [attr.aria-label]="'canvas.toolbar.editColors' | transloco"
             [disabled]="!selectedObjectId()"
             (click)="onEditObjectColors()">
             <mat-icon>palette</mat-icon>
@@ -298,21 +316,21 @@
         <div class="toolbar-group">
           <button
             mat-icon-button
-            matTooltip="Zoom in (⌘+)"
-            aria-label="Zoom in"
+            [matTooltip]="'canvas.toolbar.zoomIn' | transloco"
+            [attr.aria-label]="'canvas.toolbar.zoomInAria' | transloco"
             (click)="onZoomIn()">
             <mat-icon>add</mat-icon>
           </button>
           <button
             mat-icon-button
-            matTooltip="Zoom out (⌘-)"
-            aria-label="Zoom out"
+            [matTooltip]="'canvas.toolbar.zoomOut' | transloco"
+            [attr.aria-label]="'canvas.toolbar.zoomOutAria' | transloco"
             (click)="onZoomOut()">
             <mat-icon>remove</mat-icon>
           </button>
           <button
             mat-icon-button
-            matTooltip="Fit all (⌘0)"
+            [matTooltip]="'canvas.toolbar.fitAll' | transloco"
             (click)="onFitAll()">
             <mat-icon>fit_screen</mat-icon>
           </button>
@@ -320,7 +338,7 @@
             type="button"
             class="zoom-label zoom-reset"
             data-testid="zoom-label"
-            matTooltip="Reset zoom to 100%"
+            [matTooltip]="'canvas.toolbar.resetZoom' | transloco"
             (click)="onZoomReset()">
             {{ zoomPercent() }}%
           </button>
@@ -353,15 +371,15 @@
 <mat-menu #canvasContextMenu="matMenu">
   <button mat-menu-item [disabled]="!selectedObjectId()" (click)="onCut()">
     <mat-icon>content_cut</mat-icon>
-    <span>Cut</span>
+    <span>{{ 'canvas.contextMenu.cut' | transloco }}</span>
   </button>
   <button mat-menu-item [disabled]="!selectedObjectId()" (click)="onCopy()">
     <mat-icon>content_copy</mat-icon>
-    <span>Copy</span>
+    <span>{{ 'canvas.contextMenu.copy' | transloco }}</span>
   </button>
   <button mat-menu-item [disabled]="!clipboard()" (click)="onPaste()">
     <mat-icon>content_paste</mat-icon>
-    <span>Paste</span>
+    <span>{{ 'canvas.contextMenu.paste' | transloco }}</span>
   </button>
   <mat-divider></mat-divider>
   <button
@@ -369,14 +387,14 @@
     [disabled]="!selectedObjectId()"
     (click)="onDuplicateObject()">
     <mat-icon>copy_all</mat-icon>
-    <span>Duplicate</span>
+    <span>{{ 'canvas.contextMenu.duplicate' | transloco }}</span>
   </button>
   <button
     mat-menu-item
     [disabled]="!selectedObjectId()"
     (click)="onContextDelete()">
     <mat-icon>delete</mat-icon>
-    <span>Delete</span>
+    <span>{{ 'canvas.contextMenu.delete' | transloco }}</span>
   </button>
   @if (selectedObjectId()) {
     <mat-divider></mat-divider>
@@ -385,35 +403,35 @@
       data-testid="object-bring-to-front"
       (click)="onReorderObject('front')">
       <mat-icon>vertical_align_top</mat-icon>
-      <span>Bring to front</span>
+      <span>{{ 'canvas.contextMenu.bringToFront' | transloco }}</span>
     </button>
     <button
       mat-menu-item
       data-testid="object-bring-forward"
       (click)="onReorderObject('forward')">
       <mat-icon>arrow_upward</mat-icon>
-      <span>Bring forward</span>
+      <span>{{ 'canvas.contextMenu.bringForward' | transloco }}</span>
     </button>
     <button
       mat-menu-item
       data-testid="object-send-backward"
       (click)="onReorderObject('backward')">
       <mat-icon>arrow_downward</mat-icon>
-      <span>Send backward</span>
+      <span>{{ 'canvas.contextMenu.sendBackward' | transloco }}</span>
     </button>
     <button
       mat-menu-item
       data-testid="object-send-to-back"
       (click)="onReorderObject('back')">
       <mat-icon>vertical_align_bottom</mat-icon>
-      <span>Send to back</span>
+      <span>{{ 'canvas.contextMenu.sendToBack' | transloco }}</span>
     </button>
   }
   @if (selectedObjectId() && sortedLayers().length > 1) {
     <mat-divider></mat-divider>
     <button mat-menu-item [matMenuTriggerFor]="sendToLayerMenu">
       <mat-icon>swap_horiz</mat-icon>
-      <span>Send to Layer</span>
+      <span>{{ 'canvas.contextMenu.sendToLayer' | transloco }}</span>
     </button>
   }
 </mat-menu>
@@ -437,15 +455,15 @@
 <mat-menu #exportMenu="matMenu">
   <button mat-menu-item (click)="exportAsPng()">
     <mat-icon>image</mat-icon>
-    <span>Export as PNG</span>
+    <span>{{ 'canvas.export.exportPng' | transloco }}</span>
   </button>
   <button mat-menu-item (click)="exportAsHighResPng()">
     <mat-icon>high_quality</mat-icon>
-    <span>Export as PNG (High-res)</span>
+    <span>{{ 'canvas.export.exportPngHighRes' | transloco }}</span>
   </button>
   <button mat-menu-item (click)="exportAsSvg()">
     <mat-icon>polyline</mat-icon>
-    <span>Export as SVG</span>
+    <span>{{ 'canvas.export.exportSvg' | transloco }}</span>
   </button>
 </mat-menu>
 
@@ -454,11 +472,11 @@
   <ng-template matMenuContent let-layerId="layerId">
     <button mat-menu-item (click)="onRenameLayer(layerId)">
       <mat-icon>edit</mat-icon>
-      <span>Rename</span>
+      <span>{{ 'canvas.layerMenu.rename' | transloco }}</span>
     </button>
     <button mat-menu-item (click)="onDuplicateLayer(layerId)">
       <mat-icon>content_copy</mat-icon>
-      <span>Duplicate</span>
+      <span>{{ 'canvas.layerMenu.duplicate' | transloco }}</span>
     </button>
     <mat-divider></mat-divider>
     <button
@@ -466,14 +484,14 @@
       data-testid="layer-move-up"
       (click)="onMoveLayerUp(layerId)">
       <mat-icon>arrow_upward</mat-icon>
-      <span>Move up</span>
+      <span>{{ 'canvas.layerMenu.moveUp' | transloco }}</span>
     </button>
     <button
       mat-menu-item
       data-testid="layer-move-down"
       (click)="onMoveLayerDown(layerId)">
       <mat-icon>arrow_downward</mat-icon>
-      <span>Move down</span>
+      <span>{{ 'canvas.layerMenu.moveDown' | transloco }}</span>
     </button>
     <mat-divider></mat-divider>
     <button
@@ -481,7 +499,7 @@
       (click)="onDeleteLayer(layerId)"
       [disabled]="sortedLayers().length <= 1">
       <mat-icon>delete</mat-icon>
-      <span>Delete</span>
+      <span>{{ 'canvas.layerMenu.delete' | transloco }}</span>
     </button>
   </ng-template>
 </mat-menu>
@@ -490,18 +508,18 @@
 <mat-menu #shapeMenu="matMenu">
   <button mat-menu-item (click)="onShapeTypeChange('rect')">
     <mat-icon>crop_square</mat-icon>
-    <span>Rectangle</span>
+    <span>{{ 'canvas.shapes.rectangle' | transloco }}</span>
   </button>
   <button mat-menu-item (click)="onShapeTypeChange('ellipse')">
     <mat-icon>circle</mat-icon>
-    <span>Ellipse</span>
+    <span>{{ 'canvas.shapes.ellipse' | transloco }}</span>
   </button>
   <button mat-menu-item (click)="onShapeTypeChange('arrow')">
     <mat-icon>arrow_right_alt</mat-icon>
-    <span>Arrow</span>
+    <span>{{ 'canvas.shapes.arrow' | transloco }}</span>
   </button>
   <button mat-menu-item (click)="onShapeTypeChange('line')">
     <mat-icon>horizontal_rule</mat-icon>
-    <span>Line</span>
+    <span>{{ 'canvas.shapes.line' | transloco }}</span>
   </button>
 </mat-menu>

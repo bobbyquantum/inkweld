@@ -21,6 +21,8 @@ import { UnifiedUserService } from '../user/unified-user.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // y-indexeddb and y-websocket are mocked globally in setup-vitest.ts
 // @bobbyquantum/ngx-editor is only used as a type import — no mock needed
 // authenticated-websocket-provider is mocked via service instance properties
@@ -155,6 +157,7 @@ describe('DocumentService', () => {
 
     // Configure TestBed and inject service
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

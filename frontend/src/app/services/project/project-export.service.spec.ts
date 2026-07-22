@@ -36,6 +36,8 @@ import { DocumentService } from './document.service';
 import { ProjectExportService } from './project-export.service';
 import { ProjectStateService } from './project-state.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 /**
  * Tests for ProjectExportService.
  *
@@ -205,6 +207,7 @@ describe('ProjectExportService', () => {
     );
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         ProjectExportService,

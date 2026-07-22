@@ -24,6 +24,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import {
   RelationshipCategory,
   type RelationshipTypeDefinition,
@@ -179,6 +180,7 @@ export type EditRelationshipTypeDialogResult = Omit<
     MatSelectModule,
     MatSlideToggleModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
 })
 export class EditRelationshipTypeDialogComponent implements AfterViewInit {

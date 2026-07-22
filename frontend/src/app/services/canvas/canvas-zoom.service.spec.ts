@@ -6,6 +6,8 @@ import { CanvasService } from './canvas.service';
 import { CanvasRendererService } from './canvas-renderer.service';
 import { CanvasZoomService } from './canvas-zoom.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 function createStageStub() {
   const state = { x: 0, y: 0, scale: 1 };
   return {
@@ -38,6 +40,7 @@ describe('CanvasZoomService', () => {
     mockCanvasService = { activeConfig: signal(null) };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasZoomService,
         { provide: CanvasService, useValue: mockCanvasService },

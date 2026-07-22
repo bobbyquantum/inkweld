@@ -3,9 +3,9 @@
 } @else {
   <div class="templates-tab">
     <div class="header">
-      <h2>Templates</h2>
+      <h2>{{ 'templates.tab.title' | transloco }}</h2>
       <p class="hint">
-        Define element structures for your worldbuilding project.
+        {{ 'templates.tab.hint' | transloco }}
       </p>
     </div>
 
@@ -17,21 +17,21 @@
           (click)="createTemplate()"
           data-testid="create-template-button">
           <mat-icon>add</mat-icon>
-          New Template
+          {{ 'templates.tab.newTemplate' | transloco }}
         </button>
       </div>
 
       <div class="search-bar">
         <mat-form-field appearance="outline" class="search-field">
-          <mat-label>Search templates</mat-label>
+          <mat-label>{{ 'templates.tab.searchLabel' | transloco }}</mat-label>
           <input
             matInput
             type="text"
             id="templates-tab-search-input"
-            aria-label="Search templates"
+            [attr.aria-label]="'templates.tab.searchAria' | transloco"
             [value]="searchQuery()"
             (input)="searchQuery.set($any($event.target).value)"
-            placeholder="Search by name..." />
+            [placeholder]="'templates.tab.searchPlaceholder' | transloco" />
           <mat-icon matPrefix>search</mat-icon>
         </mat-form-field>
       </div>
@@ -46,7 +46,7 @@
     @if (!isLoading() && !error() && templates().length === 0) {
       <div class="empty">
         <mat-icon>description</mat-icon>
-        <p>No templates defined yet.</p>
+        <p>{{ 'templates.tab.noTemplates' | transloco }}</p>
         <p class="hint">
           Templates define the structure for worldbuilding elements like
           characters, locations, and more.
@@ -63,8 +63,10 @@
     ) {
       <div class="empty">
         <mat-icon>search_off</mat-icon>
-        <p>No templates match your search</p>
-        <button mat-button (click)="searchQuery.set('')">Clear filter</button>
+        <p>{{ 'templates.tab.noMatch' | transloco }}</p>
+        <button mat-button (click)="searchQuery.set('')">
+          {{ 'templates.tab.clearFilter' | transloco }}
+        </button>
       </div>
     }
 
@@ -81,12 +83,20 @@
               <div class="template-meta">
                 <span
                   >{{ template.tabCount }}
-                  {{ template.tabCount === 1 ? 'tab' : 'tabs' }}</span
+                  {{
+                    template.tabCount === 1
+                      ? ('templates.tab.tab' | transloco)
+                      : ('templates.tab.tabs' | transloco)
+                  }}</span
                 >
                 <span>·</span>
                 <span
                   >{{ template.fieldCount }}
-                  {{ template.fieldCount === 1 ? 'field' : 'fields' }}</span
+                  {{
+                    template.fieldCount === 1
+                      ? ('templates.tab.field' | transloco)
+                      : ('templates.tab.fields' | transloco)
+                  }}</span
                 >
                 @if (template.description) {
                   <span>· {{ template.description }}</span>

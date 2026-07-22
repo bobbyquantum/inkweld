@@ -7,6 +7,8 @@ import { IndexeddbPersistence, storeState } from 'y-indexeddb';
 import * as Y from 'yjs';
 
 import { LoggerService } from '../core/logger.service';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   type MigrationResult,
   ProjectRenameMigrationService,
@@ -97,6 +99,7 @@ describe('ProjectRenameMigrationService', () => {
     globalThis.indexedDB = new IDBFactory();
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [ProjectRenameMigrationService, LoggerService],
     });
 

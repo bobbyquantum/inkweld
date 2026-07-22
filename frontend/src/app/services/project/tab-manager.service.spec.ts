@@ -4,6 +4,8 @@ import { type Element, ElementType } from '@inkweld/index';
 import { LoggerService } from '../core/logger.service';
 import { type AppTab, TabManagerService } from './tab-manager.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('TabManagerService', () => {
   let service: TabManagerService;
   let mockLogger: {
@@ -37,6 +39,7 @@ describe('TabManagerService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         TabManagerService,
         { provide: LoggerService, useValue: mockLogger },

@@ -16,6 +16,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AdminSettingsComponent } from './settings.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 // Helper to wait for next microtask
 const flushMicrotasks = () => new Promise(resolve => setTimeout(resolve, 0));
 
@@ -74,7 +76,7 @@ describe('AdminSettingsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AdminSettingsComponent],
+      imports: [translocoTestProvider(), AdminSettingsComponent],
       providers: [
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),

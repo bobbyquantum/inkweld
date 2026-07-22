@@ -3,11 +3,11 @@
     <button
       mat-icon-button
       (click)="goBack()"
-      aria-label="Go back"
+      [attr.aria-label]="'about.goBack' | transloco"
       data-testid="about-back-button">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <h1>About {{ appName }}</h1>
+    <h1>{{ 'about.aboutTitle' | transloco: { appName: appName } }}</h1>
     <div class="header-spacer"></div>
     @if (userService.currentUser()) {
       <app-user-menu />
@@ -20,7 +20,7 @@
         <mat-icon mat-card-avatar>info</mat-icon>
         <mat-card-title>{{ appName }}</mat-card-title>
         <mat-card-subtitle
-          >Version {{ appVersion }}
+          >{{ 'about.version' | transloco: { version: appVersion } }}
           @if (commitHash()) {
             <span class="commit-hash" data-testid="commit-hash"
               >({{ commitHash() }})</span
@@ -31,12 +31,12 @@
       <mat-card-content>
         <p class="app-description">{{ appDescription }}</p>
         <p class="copyright">
-          © {{ currentYear }} Inkweld. All rights reserved.
+          {{ 'about.copyright' | transloco: { year: currentYear } }}
         </p>
         <div class="about-actions">
           <button mat-stroked-button routerLink="/about/changelog">
             <mat-icon>history</mat-icon>
-            View Changelog
+            {{ 'about.viewChangelog' | transloco }}
           </button>
         </div>
       </mat-card-content>
@@ -45,10 +45,10 @@
     <mat-card class="libraries-card" data-testid="libraries-card">
       <mat-card-header>
         <mat-icon mat-card-avatar>extension</mat-icon>
-        <mat-card-title>Key Libraries</mat-card-title>
-        <mat-card-subtitle
-          >Open source technologies powering Inkweld</mat-card-subtitle
-        >
+        <mat-card-title>{{ 'about.keyLibraries' | transloco }}</mat-card-title>
+        <mat-card-subtitle>{{
+          'about.keyLibrariesSubtitle' | transloco
+        }}</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <mat-list>
@@ -82,14 +82,15 @@
     <mat-card class="licenses-card" data-testid="licenses-card">
       <mat-card-header>
         <mat-icon mat-card-avatar>gavel</mat-icon>
-        <mat-card-title>Open Source Licenses</mat-card-title>
-        <mat-card-subtitle>Third-party license information</mat-card-subtitle>
+        <mat-card-title>{{
+          'about.openSourceLicenses' | transloco
+        }}</mat-card-title>
+        <mat-card-subtitle>{{
+          'about.openSourceLicensesSubtitle' | transloco
+        }}</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
-        <p>
-          Inkweld is built on the shoulders of giants. View the complete list of
-          third-party packages and their licenses.
-        </p>
+        <p>{{ 'about.openSourceLicensesDesc' | transloco }}</p>
       </mat-card-content>
       <mat-card-actions>
         <button
@@ -97,7 +98,7 @@
           (click)="openLicenses()"
           data-testid="view-licenses-button">
           <mat-icon>description</mat-icon>
-          View All Licenses
+          {{ 'about.viewAllLicenses' | transloco }}
         </button>
       </mat-card-actions>
     </mat-card>
@@ -105,21 +106,25 @@
     <mat-card class="links-card" data-testid="links-card">
       <mat-card-header>
         <mat-icon mat-card-avatar>link</mat-icon>
-        <mat-card-title>Links</mat-card-title>
-        <mat-card-subtitle>Helpful resources</mat-card-subtitle>
+        <mat-card-title>{{ 'about.links' | transloco }}</mat-card-title>
+        <mat-card-subtitle>{{
+          'about.linksSubtitle' | transloco
+        }}</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <mat-list>
           <mat-list-item class="link-item">
             <mat-icon matListItemIcon>code</mat-icon>
-            <span matListItemTitle>Source Code</span>
-            <span matListItemLine>View the project on GitHub</span>
+            <span matListItemTitle>{{ 'about.sourceCode' | transloco }}</span>
+            <span matListItemLine>{{
+              'about.sourceCodeDesc' | transloco
+            }}</span>
             <button
               mat-icon-button
               (click)="
                 openExternalLink('https://github.com/bobbyquantum/inkweld')
               "
-              aria-label="Open GitHub repository"
+              [attr.aria-label]="'about.sourceCodeAria' | transloco"
               matListItemMeta>
               <mat-icon>open_in_new</mat-icon>
             </button>
@@ -127,8 +132,10 @@
           <mat-divider></mat-divider>
           <mat-list-item class="link-item">
             <mat-icon matListItemIcon>bug_report</mat-icon>
-            <span matListItemTitle>Report Issues</span>
-            <span matListItemLine>Found a bug? Let us know</span>
+            <span matListItemTitle>{{ 'about.reportIssues' | transloco }}</span>
+            <span matListItemLine>{{
+              'about.reportIssuesDesc' | transloco
+            }}</span>
             <button
               mat-icon-button
               (click)="
@@ -136,7 +143,7 @@
                   'https://github.com/bobbyquantum/inkweld/issues'
                 )
               "
-              aria-label="Open GitHub issues"
+              [attr.aria-label]="'about.reportIssuesAria' | transloco"
               matListItemMeta>
               <mat-icon>open_in_new</mat-icon>
             </button>

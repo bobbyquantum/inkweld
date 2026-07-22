@@ -2,6 +2,8 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   APP_CONFIG_STORAGE_KEY,
   type AppConfigV2,
@@ -21,6 +23,7 @@ describe('StorageContextService', () => {
   function _createFreshService(): StorageContextService {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [provideZonelessChangeDetection(), StorageContextService],
     });
     return TestBed.inject(StorageContextService);

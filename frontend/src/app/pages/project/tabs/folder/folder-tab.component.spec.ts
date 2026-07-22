@@ -15,6 +15,8 @@ import { vi } from 'vitest';
 
 import { FolderTabComponent } from './folder-tab.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 // Mock FolderElementEditorComponent
 @Component({
   selector: 'app-folder-element-editor',
@@ -87,6 +89,7 @@ describe('FolderTabComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         RouterTestingModule,
         FolderTabComponent,
         MockFolderElementEditorComponent,

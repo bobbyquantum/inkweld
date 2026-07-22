@@ -17,6 +17,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
@@ -41,6 +42,7 @@ import { AiKillSwitchDialogComponent } from './ai-kill-switch-dialog/ai-kill-swi
     MatSlideToggleModule,
     MatSnackBarModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './settings.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -51,6 +53,7 @@ export class AdminSettingsComponent implements OnInit {
   private readonly systemConfigService = inject(SystemConfigService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
+  private readonly transloco = inject(TranslocoService);
 
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);

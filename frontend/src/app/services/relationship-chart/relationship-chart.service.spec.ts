@@ -13,6 +13,8 @@ import { ProjectStateService } from '../project/project-state.service';
 import { RelationshipService } from '../relationship/relationship.service';
 import { RelationshipChartService } from './relationship-chart.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Test Helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -104,6 +106,7 @@ describe('RelationshipChartService', () => {
     }
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         RelationshipChartService,
         { provide: ProjectStateService, useValue: mockProjectState },

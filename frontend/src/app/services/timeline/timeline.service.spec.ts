@@ -22,6 +22,8 @@ import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import { TimeSystemLibraryService } from './time-system-library.service';
 import { TIMELINE_CONFIG_META_KEY, TimelineService } from './timeline.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 function makeTimelineElement(overrides: Partial<Element> = {}): Element {
   return {
     id: 'timeline-1',
@@ -76,6 +78,7 @@ describe('TimelineService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         TimelineService,
         { provide: ProjectStateService, useValue: mockProjectState },

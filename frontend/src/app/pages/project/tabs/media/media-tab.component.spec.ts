@@ -24,6 +24,8 @@ import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 import { DocumentService } from '../../../../services/project/document.service';
 import { type MediaItem, MediaTabComponent } from './media-tab.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 describe('MediaTabComponent', () => {
   let component: MediaTabComponent;
   let fixture: ComponentFixture<MediaTabComponent>;
@@ -130,6 +132,7 @@ describe('MediaTabComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         MatButtonModule,
         MatIconModule,
         MatCardModule,

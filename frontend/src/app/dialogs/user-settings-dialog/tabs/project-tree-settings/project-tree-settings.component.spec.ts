@@ -7,6 +7,8 @@ import { StorageContextService } from '@services/core/storage-context.service';
 
 import { ProjectTreeSettingsComponent } from './project-tree-settings.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 describe('ProjectTreeSettingsComponent', () => {
   let component: ProjectTreeSettingsComponent;
   let fixture: ComponentFixture<ProjectTreeSettingsComponent>;
@@ -34,7 +36,12 @@ describe('ProjectTreeSettingsComponent', () => {
     });
 
     await TestBed.configureTestingModule({
-      imports: [ProjectTreeSettingsComponent, FormsModule, MatCheckboxModule],
+      imports: [
+        translocoTestProvider(),
+        ProjectTreeSettingsComponent,
+        FormsModule,
+        MatCheckboxModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         SettingsService,

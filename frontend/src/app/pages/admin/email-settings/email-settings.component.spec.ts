@@ -10,6 +10,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AdminEmailSettingsComponent } from './email-settings.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 describe('AdminEmailSettingsComponent', () => {
   let component: AdminEmailSettingsComponent;
   let fixture: ComponentFixture<AdminEmailSettingsComponent>;
@@ -44,7 +46,7 @@ describe('AdminEmailSettingsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AdminEmailSettingsComponent],
+      imports: [translocoTestProvider(), AdminEmailSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

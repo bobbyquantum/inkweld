@@ -14,6 +14,8 @@ import { SetupService } from '../core/setup.service';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { CommentService } from './comment.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,7 +63,7 @@ describe('CommentService', () => {
     mockLogger = { warn: vi.fn(), error: vi.fn() };
 
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
+      imports: [translocoTestProvider(), HttpClientTestingModule],
       providers: [
         CommentService,
         { provide: SetupService, useValue: mockSetupService },

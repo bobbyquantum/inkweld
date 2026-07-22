@@ -26,6 +26,7 @@ import { UnifiedUserService } from '@services/user/unified-user.service';
 import { type ThemeOption, ThemeService } from '@themes/theme.service';
 
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
+import { TranslocoModule } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-user-menu',
@@ -38,6 +39,7 @@ import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
     MatTooltipModule,
     UserAvatarComponent,
     RouterModule,
+    TranslocoModule,
   ],
   templateUrl: './user-menu.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

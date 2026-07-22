@@ -44,6 +44,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SettingsTabComponent } from './settings-tab.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 // Mock child components to avoid their complex dependencies
 @Component({
   selector: 'app-templates-tab',
@@ -285,6 +287,7 @@ describe('SettingsTabComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         FormsModule,
         MatButtonModule,
         MatCardModule,

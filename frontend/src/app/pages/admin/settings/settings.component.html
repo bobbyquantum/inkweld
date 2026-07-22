@@ -23,17 +23,15 @@
           <div class="setting-info">
             <span class="setting-label">
               <mat-icon class="warning-icon">security</mat-icon>
-              AI Kill Switch
+              {{ 'admin.settings.aiKillSwitch' | transloco }}
             </span>
-            <span class="setting-description">
-              Master switch to disable ALL AI features. When enabled, no data is
-              sent to AI providers.
-            </span>
+            <span class="setting-description">{{
+              'admin.settings.aiKillSwitchDesc' | transloco
+            }}</span>
             @if (aiKillSwitchLockedByEnv()) {
               <span class="env-locked-notice">
                 <mat-icon>lock</mat-icon>
-                Locked by environment variable (AI_KILL_SWITCH). Change .env to
-                modify.
+                {{ 'admin.settings.lockedByEnv' | transloco }}
               </span>
             }
           </div>
@@ -43,10 +41,10 @@
             [disabled]="isSaving() || aiKillSwitchLockedByEnv()"
             [matTooltip]="
               aiKillSwitchLockedByEnv()
-                ? 'Locked by environment variable'
+                ? ('admin.settings.lockedByEnvTooltip' | transloco)
                 : aiKillSwitchEnabled()
-                  ? 'AI features are disabled'
-                  : 'AI features are enabled'
+                  ? ('admin.settings.aiDisabledTooltip' | transloco)
+                  : ('admin.settings.aiEnabledTooltip' | transloco)
             "
             color="warn"
             data-testid="setting-toggle-ai-kill-switch"></mat-slide-toggle>
@@ -54,11 +52,7 @@
         @if (!aiKillSwitchEnabled()) {
           <div class="warning-banner">
             <mat-icon>warning</mat-icon>
-            <span
-              >AI features are enabled. Depending on your AI provider
-              configuration, data may be sent to third-party services. Use
-              self-hosted AI providers to keep data local.</span
-            >
+            <span>{{ 'admin.settings.aiWarning' | transloco }}</span>
           </div>
         }
       </mat-card-content>
@@ -69,11 +63,12 @@
       <mat-card-content>
         <div class="setting-row">
           <div class="setting-info">
-            <span class="setting-label">Require User Approval</span>
-            <span class="setting-description">
-              New users must be approved by an admin before they can access the
-              application.
-            </span>
+            <span class="setting-label">{{
+              'admin.settings.requireApproval' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.settings.requireApprovalDesc' | transloco
+            }}</span>
           </div>
           <mat-slide-toggle
             [checked]="userApprovalRequired()"
@@ -90,12 +85,12 @@
       <mat-card-content>
         <div class="setting-row">
           <div class="setting-info">
-            <span class="setting-label">Passkey Authentication</span>
-            <span class="setting-description">
-              Allow users to register and sign in with passkeys (biometrics,
-              hardware keys). When disabled, all passkey endpoints return an
-              error and the passkey UI is hidden.
-            </span>
+            <span class="setting-label">{{
+              'admin.settings.passkeyAuth' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.settings.passkeyAuthDesc' | transloco
+            }}</span>
           </div>
           <mat-slide-toggle
             [checked]="passkeysEnabled()"
@@ -112,17 +107,16 @@
       <mat-card-content>
         <div class="setting-row">
           <div class="setting-info">
-            <span class="setting-label">Password Login</span>
-            <span class="setting-description">
-              Allow users to sign in with email/username + password. Disable to
-              run a passkey-only deployment. Existing users without a passkey
-              must use the "Lost your passkey?" recovery flow to enrol one.
-            </span>
+            <span class="setting-label">{{
+              'admin.settings.passwordLogin' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.settings.passwordLoginDesc' | transloco
+            }}</span>
             @if (!passwordLoginEnabled() && !emailRecoveryEnabled()) {
               <span class="env-locked-notice">
                 <mat-icon>warning</mat-icon>
-                Email recovery is also OFF — users without a passkey have no way
-                to recover access.
+                {{ 'admin.settings.emailRecoveryOff' | transloco }}
               </span>
             }
           </div>
@@ -141,20 +135,18 @@
       <mat-card-content>
         <div class="setting-row">
           <div class="setting-info">
-            <span class="setting-label">Email-based Account Recovery</span>
-            <span class="setting-description">
-              When password login is enabled, this powers the "Forgot password?"
-              email. When passwords are off, it powers the "Lost your passkey?"
-              magic-link enrolment flow. Requires a working outbound mailer
-              (configure SMTP in your environment).
-            </span>
+            <span class="setting-label">{{
+              'admin.settings.emailRecovery' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.settings.emailRecoveryDesc' | transloco
+            }}</span>
             @if (!isEmailEnabled()) {
               <span
                 class="env-locked-notice"
                 data-testid="email-recovery-no-smtp-warning">
                 <mat-icon>warning</mat-icon>
-                No outbound email is configured (SMTP settings missing). This
-                toggle has no effect until email is set up.
+                {{ 'admin.settings.noEmailConfigured' | transloco }}
               </span>
             }
           </div>
@@ -173,11 +165,12 @@
       <mat-card-content>
         <div class="setting-row">
           <div class="setting-info">
-            <span class="setting-label">Require Email Address</span>
-            <span class="setting-description">
-              Require users to provide an email address during registration.
-              Needed for password resets and notifications.
-            </span>
+            <span class="setting-label">{{
+              'admin.settings.requireEmail' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.settings.requireEmailDesc' | transloco
+            }}</span>
           </div>
           <mat-slide-toggle
             [checked]="requireEmailEnabled()"
@@ -195,17 +188,18 @@
         <mat-card-content>
           <div class="setting-section-header">
             <mat-icon>password</mat-icon>
-            <span class="setting-label">Password Policy</span>
+            <span class="setting-label">{{
+              'admin.settings.passwordPolicy' | transloco
+            }}</span>
           </div>
-          <span class="setting-description policy-description">
-            Configure password requirements for user registration and password
-            resets.
-          </span>
+          <span class="setting-description policy-description">{{
+            'admin.settings.passwordPolicyDesc' | transloco
+          }}</span>
 
           <div class="policy-settings">
             <div class="policy-row">
               <div class="policy-info">
-                <span>Minimum Length</span>
+                <span>{{ 'admin.settings.minLength' | transloco }}</span>
               </div>
               <mat-form-field appearance="outline" class="min-length-field">
                 <input
@@ -218,13 +212,15 @@
                   [disabled]="isSaving()"
                   id="admin-password-min-length-input"
                   data-testid="password-min-length-input"
-                  aria-label="Minimum password length" />
+                  [attr.aria-label]="
+                    'admin.settings.minLengthAria' | transloco
+                  " />
               </mat-form-field>
             </div>
 
             <div class="policy-row">
               <div class="policy-info">
-                <span>Require Uppercase Letter</span>
+                <span>{{ 'admin.settings.requireUppercase' | transloco }}</span>
               </div>
               <mat-slide-toggle
                 [checked]="passwordRequireUppercase()"
@@ -241,7 +237,7 @@
 
             <div class="policy-row">
               <div class="policy-info">
-                <span>Require Lowercase Letter</span>
+                <span>{{ 'admin.settings.requireLowercase' | transloco }}</span>
               </div>
               <mat-slide-toggle
                 [checked]="passwordRequireLowercase()"
@@ -258,7 +254,7 @@
 
             <div class="policy-row">
               <div class="policy-info">
-                <span>Require Number</span>
+                <span>{{ 'admin.settings.requireNumber' | transloco }}</span>
               </div>
               <mat-slide-toggle
                 [checked]="passwordRequireNumber()"
@@ -275,7 +271,7 @@
 
             <div class="policy-row">
               <div class="policy-info">
-                <span>Require Special Character</span>
+                <span>{{ 'admin.settings.requireSpecial' | transloco }}</span>
                 <span class="policy-hint">(@$!%*?&)</span>
               </div>
               <mat-slide-toggle
@@ -300,29 +296,27 @@
       <mat-card-content>
         <div class="setting-row site-url-row">
           <div class="setting-info">
-            <span class="setting-label">Site URL</span>
-            <span class="setting-description">
-              Public URL used in email links and notifications (e.g.
-              https://inkweld.example.com). Leave empty to auto-detect from
-              environment.
-            </span>
+            <span class="setting-label">{{
+              'admin.settings.siteUrl' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.settings.siteUrlDesc' | transloco
+            }}</span>
           </div>
         </div>
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Site URL</mat-label>
+          <mat-label>{{ 'admin.settings.siteUrl' | transloco }}</mat-label>
           <input
             matInput
             type="url"
-            placeholder="https://inkweld.example.com"
+            [placeholder]="'admin.settings.siteUrlPlaceholder' | transloco"
             [ngModel]="siteUrl()"
             (change)="saveSiteUrl($any($event.target).value)"
             [disabled]="isSaving()"
             id="admin-site-url-input"
             data-testid="site-url-input"
-            aria-label="Site URL" />
-          <mat-hint
-            >Used in password reset emails and welcome notifications</mat-hint
-          >
+            [attr.aria-label]="'admin.settings.siteUrlAria' | transloco" />
+          <mat-hint>{{ 'admin.settings.siteUrlHint' | transloco }}</mat-hint>
         </mat-form-field>
       </mat-card-content>
     </mat-card>

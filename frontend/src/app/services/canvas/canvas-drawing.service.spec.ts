@@ -10,6 +10,8 @@ import {
 } from './canvas-drawing.service';
 import { CanvasRendererService } from './canvas-renderer.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // jsdom does not implement canvas.getContext('2d'). Stub it so Konva works.
 function makeCanvas2dStub() {
   return {
@@ -130,6 +132,7 @@ describe('CanvasDrawingService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasDrawingService,
         { provide: CanvasService, useValue: canvasSvc },

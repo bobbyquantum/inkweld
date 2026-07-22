@@ -17,6 +17,8 @@ import { SetupService } from '../../services/core/setup.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
 import { SetupComponent } from './setup.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('SetupComponent', () => {
   let component: SetupComponent;
   let fixture: ComponentFixture<SetupComponent>;
@@ -52,6 +54,7 @@ describe('SetupComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         SetupComponent,
         FormsModule,
         MatCardModule,

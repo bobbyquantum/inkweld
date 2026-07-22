@@ -14,6 +14,8 @@ import { type MockedObject, vi } from 'vitest';
 
 import { ConnectionSettingsComponent } from './connection-settings.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 describe('ConnectionSettingsComponent', () => {
   let component: ConnectionSettingsComponent;
   let fixture: ComponentFixture<ConnectionSettingsComponent>;
@@ -78,7 +80,7 @@ describe('ConnectionSettingsComponent', () => {
     } as unknown as MockedObject<MatSnackBar>;
 
     await TestBed.configureTestingModule({
-      imports: [ConnectionSettingsComponent],
+      imports: [translocoTestProvider(), ConnectionSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),
@@ -163,7 +165,7 @@ describe('ConnectionSettingsComponent', () => {
       await component.testConnection();
 
       expect(component['connectionError']()).toBe(
-        'Failed to connect to server'
+        'Failed to connect to server. Please check the URL and try again.'
       );
       consoleSpy.mockRestore();
       vi.unstubAllGlobals();

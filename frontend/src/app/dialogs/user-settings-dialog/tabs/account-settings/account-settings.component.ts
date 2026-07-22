@@ -15,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasskeysSettingsComponent } from '@components/passkeys-settings/passkeys-settings.component';
 import { type UserAuthProvider } from '@inkweld/model/user';
 import { SystemConfigService } from '@services/core/system-config.service';
@@ -32,6 +33,7 @@ import { UserService } from '@services/user/user.service';
     MatInputModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    TranslocoModule,
     PasskeysSettingsComponent,
   ],
   templateUrl: './account-settings.component.html',
@@ -42,6 +44,7 @@ export class AccountSettingsComponent implements OnInit {
   private readonly userService = inject(UserService);
   readonly systemConfig = inject(SystemConfigService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
 
   readonly isLocalMode = this.systemConfig.isLocalMode;
   readonly isSaving = signal(false);
@@ -76,15 +79,25 @@ export class AccountSettingsComponent implements OnInit {
       }
 
       if (Object.keys(data).length === 0) {
-        this.snackBar.open('No changes to save', 'Close', { duration: 2000 });
+        this.snackBar.open(
+          this.transloco.translate('settings.accountTab.noChanges'),
+          this.transloco.translate('close'),
+          { duration: 2000 }
+        );
         return;
       }
 
       await this.userService.updateProfile(data);
-      this.snackBar.open('Profile updated', 'Close', { duration: 2000 });
+      this.snackBar.open(
+        this.transloco.translate('settings.accountTab.profileUpdated'),
+        this.transloco.translate('close'),
+        { duration: 2000 }
+      );
     } catch (err) {
       console.error('Failed to update profile:', err);
-      let message = 'Failed to update profile';
+      let message = this.transloco.translate(
+        'settings.accountTab.updateFailed'
+      );
       if (
         err instanceof HttpErrorResponse &&
         err.error &&
@@ -95,7 +108,7 @@ export class AccountSettingsComponent implements OnInit {
           message = body['error'];
         }
       }
-      this.snackBar.open(message, 'Close', {
+      this.snackBar.open(message, this.transloco.translate('close'), {
         duration: 3000,
       });
     } finally {

@@ -2,25 +2,25 @@
   <button
     mat-icon-button
     (click)="onThemeChange('light-theme')"
-    matTooltip="Light theme"
+    [matTooltip]="'settings.light' | transloco"
     data-testid="theme-light-button"
-    aria-label="Light theme">
+    [attr.aria-label]="'settings.light' | transloco">
     <mat-icon>light_mode</mat-icon>
   </button>
   <button
     mat-icon-button
     (click)="onThemeChange('dark-theme')"
-    matTooltip="Dark theme"
+    [matTooltip]="'settings.dark' | transloco"
     data-testid="theme-dark-button"
-    aria-label="Dark theme">
+    [attr.aria-label]="'settings.dark' | transloco">
     <mat-icon>dark_mode</mat-icon>
   </button>
   <button
     mat-icon-button
     (click)="onThemeChange('system')"
-    matTooltip="Follow system"
+    [matTooltip]="'settings.followSystem' | transloco"
     data-testid="theme-system-button"
-    aria-label="Follow system theme">
+    [attr.aria-label]="'settings.followSystem' | transloco">
     <mat-icon>brightness_auto</mat-icon>
   </button>
 </div>

@@ -7,6 +7,8 @@ import { vi } from 'vitest';
 
 import { LocalProjectElementsService } from './local-project-elements.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // Note: nanoid is difficult to mock in Vitest due to hoisting issues
 // Tests will verify IDs exist rather than checking specific values
 
@@ -38,6 +40,7 @@ describe('LocalProjectElementsService', () => {
     mockLocalStorage.setItem.mockReset();
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         LocalProjectElementsService,

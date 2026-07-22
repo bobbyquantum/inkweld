@@ -18,6 +18,8 @@ import {
   ImportPhase,
 } from '../../models/project-archive';
 import { ProjectImportService } from '../../services/project/project-import.service';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   ImportProjectDialogComponent,
   type ImportProjectDialogData,
@@ -100,7 +102,7 @@ describe('ImportProjectDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ImportProjectDialogComponent],
+      imports: [translocoTestProvider(), ImportProjectDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

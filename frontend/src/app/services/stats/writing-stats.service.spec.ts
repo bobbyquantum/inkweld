@@ -15,6 +15,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { WritingStatsService } from './writing-stats.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('WritingStatsService', () => {
   let service: WritingStatsService;
   let httpController: HttpTestingController;
@@ -25,6 +27,7 @@ describe('WritingStatsService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

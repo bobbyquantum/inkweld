@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterModule } from '@angular/router';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasswordResetService } from '@services/auth/password-reset.service';
 
 @Component({
@@ -25,6 +26,7 @@ import { PasswordResetService } from '@services/auth/password-reset.service';
     MatInputModule,
     MatProgressSpinnerModule,
     RouterModule,
+    TranslocoModule,
   ],
   templateUrl: './forgot-password.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -32,6 +34,7 @@ import { PasswordResetService } from '@services/auth/password-reset.service';
 })
 export class ForgotPasswordComponent {
   private readonly passwordResetService = inject(PasswordResetService);
+  private readonly transloco = inject(TranslocoService);
 
   email = '';
   readonly isSubmitting = signal(false);
@@ -40,7 +43,7 @@ export class ForgotPasswordComponent {
 
   async onSubmit(): Promise<void> {
     if (!this.email.trim()) {
-      this.error.set('Please enter your email address.');
+      this.error.set(this.transloco.translate('validation.emailRequired'));
       return;
     }
 
@@ -52,7 +55,7 @@ export class ForgotPasswordComponent {
       this.submitted.set(true);
     } catch (err: unknown) {
       console.error('Forgot password error:', err);
-      this.error.set('Something went wrong. Please try again later.');
+      this.error.set(this.transloco.translate('errors.unknown'));
     } finally {
       this.isSubmitting.set(false);
     }

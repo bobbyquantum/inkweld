@@ -1,24 +1,27 @@
-<h2 mat-dialog-title>Create Snapshot</h2>
+<h2 mat-dialog-title>{{ 'dialogs.createSnapshot.title' | transloco }}</h2>
 
 <form (submit)="$event.preventDefault(); onSubmit()">
   <mat-dialog-content>
     @if (data.wordCount !== undefined) {
       <p class="word-count-info">
-        Current document:
-        <strong>{{ data.wordCount.toLocaleString() }}</strong> words
+        {{ 'dialogs.createSnapshot.currentDocument' | transloco }}
+        <strong>{{ data.wordCount.toLocaleString() }}</strong>
+        {{ 'dialogs.createSnapshot.words' | transloco }}
       </p>
     }
 
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Snapshot Name (Optional)</mat-label>
+      <mat-label>{{
+        'dialogs.createSnapshot.nameLabel' | transloco
+      }}</mat-label>
       <input
         matInput
         id="create-snapshot-name-input"
         [formField]="form.name"
-        placeholder="Leave blank for auto date-time"
+        [placeholder]="'dialogs.createSnapshot.namePlaceholder' | transloco"
         data-testid="snapshot-name-input"
-        aria-label="Snapshot name" />
-      <mat-hint>If left blank, uses current date-time</mat-hint>
+        [attr.aria-label]="'dialogs.createSnapshot.nameAria' | transloco" />
+      <mat-hint>{{ 'dialogs.createSnapshot.nameHint' | transloco }}</mat-hint>
       @if (form.name().touched() && form.name().invalid()) {
         @for (error of form.name().errors(); track error.message) {
           <mat-error>{{ error.message }}</mat-error>
@@ -27,15 +30,21 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Description (Optional)</mat-label>
+      <mat-label>{{
+        'dialogs.createSnapshot.descriptionLabel' | transloco
+      }}</mat-label>
       <textarea
         matInput
         [formField]="form.description"
-        placeholder="Add notes about this snapshot..."
+        [placeholder]="
+          'dialogs.createSnapshot.descriptionPlaceholder' | transloco
+        "
         rows="3"
         data-testid="snapshot-description-input"
         id="snapshot-description-input"
-        aria-label="Description"></textarea>
+        [attr.aria-label]="
+          'dialogs.createSnapshot.descriptionAria' | transloco
+        "></textarea>
       @if (form.description().touched() && form.description().invalid()) {
         @for (error of form.description().errors(); track error.message) {
           <mat-error>{{ error.message }}</mat-error>
@@ -50,7 +59,7 @@
       (click)="onCancel()"
       data-testid="cancel-snapshot-btn"
       type="button">
-      Cancel
+      {{ 'cancel' | transloco }}
     </button>
     <button
       mat-raised-button
@@ -58,7 +67,7 @@
       [disabled]="form().invalid()"
       data-testid="create-snapshot-submit-btn"
       type="submit">
-      Create Snapshot
+      {{ 'dialogs.snapshots.newSnapshot' | transloco }}
     </button>
   </mat-dialog-actions>
 </form>

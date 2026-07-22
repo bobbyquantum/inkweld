@@ -11,6 +11,8 @@ import { type Mock, type MockedObject, vi } from 'vitest';
 import { SetupService } from './setup.service';
 import { SystemConfigService } from './system-config.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('SystemConfigService', () => {
   let service: SystemConfigService;
   let mockConfigService: MockedObject<ConfigurationService>;
@@ -62,6 +64,7 @@ describe('SystemConfigService', () => {
     );
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         SystemConfigService,

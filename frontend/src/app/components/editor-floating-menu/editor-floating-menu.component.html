@@ -3,7 +3,7 @@
     ngToolbarWidget
     value="bold"
     [attr.aria-pressed]="isBold()"
-    matTooltip="Bold (Ctrl+B)"
+    [matTooltip]="'editor.floatingMenu.bold' | transloco"
     (mousedown)="preventFocusLoss($event)"
     (click)="toggleBold()"
     data-testid="floating-bold">
@@ -13,7 +13,7 @@
     ngToolbarWidget
     value="italic"
     [attr.aria-pressed]="isItalic()"
-    matTooltip="Italic (Ctrl+I)"
+    [matTooltip]="'editor.floatingMenu.italic' | transloco"
     (mousedown)="preventFocusLoss($event)"
     (click)="toggleItalic()"
     data-testid="floating-italic">
@@ -23,7 +23,7 @@
     ngToolbarWidget
     value="underline"
     [attr.aria-pressed]="isUnderline()"
-    matTooltip="Underline (Ctrl+U)"
+    [matTooltip]="'editor.floatingMenu.underline' | transloco"
     (mousedown)="preventFocusLoss($event)"
     (click)="toggleUnderline()"
     data-testid="floating-underline">
@@ -33,7 +33,7 @@
     ngToolbarWidget
     value="strike"
     [attr.aria-pressed]="isStrike()"
-    matTooltip="Strikethrough"
+    [matTooltip]="'editor.floatingMenu.strikethrough' | transloco"
     (mousedown)="preventFocusLoss($event)"
     (click)="toggleStrike()"
     data-testid="floating-strike">
@@ -44,7 +44,7 @@
     ngToolbarWidget
     value="link"
     [attr.aria-pressed]="isLink()"
-    matTooltip="Link"
+    [matTooltip]="'editor.floatingMenu.link' | transloco"
     (mousedown)="preventFocusLoss($event)"
     (click)="toggleLink()"
     data-testid="floating-link">
@@ -54,7 +54,7 @@
   <button
     ngToolbarWidget
     value="comment"
-    matTooltip="Comment (Ctrl+Alt+M)"
+    [matTooltip]="'editor.floatingMenu.comment' | transloco"
     (mousedown)="preventFocusLoss($event)"
     (click)="onAddComment()"
     data-testid="floating-comment">

@@ -25,6 +25,8 @@ import { LocalStorageService } from '../local/local-storage.service';
 import { MediaSyncService } from '../local/media-sync.service';
 import { CoverSyncService } from './cover-sync.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 const BASE = environment.apiUrl;
 
 function createProject(overrides: Partial<Project> = {}): Project {
@@ -78,6 +80,7 @@ describe('CoverSyncService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

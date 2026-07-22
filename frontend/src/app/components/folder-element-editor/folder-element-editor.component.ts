@@ -25,6 +25,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { type ProjectElement } from '../../models/project-element';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { TreeNodeIconComponent } from '../project-tree/components/tree-node-icon/tree-node-icon.component';
+import { TranslocoModule } from '@jsverse/transloco';
 
 type ViewMode = 'grid' | 'list';
 
@@ -42,6 +43,7 @@ type ViewMode = 'grid' | 'list';
     CdkDrag,
     CdkDropList,
     TreeNodeIconComponent,
+    TranslocoModule,
   ],
   templateUrl: './folder-element-editor.component.html',
   styleUrl: './folder-element-editor.component.scss',

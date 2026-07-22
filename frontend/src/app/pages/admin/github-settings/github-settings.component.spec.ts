@@ -7,6 +7,8 @@ import { vi } from 'vitest';
 
 import { AdminGithubSettingsComponent } from './github-settings.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 async function flushPromises(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0));
 }
@@ -32,7 +34,7 @@ describe('AdminGithubSettingsComponent', () => {
     mockSnackBar = { open: vi.fn() };
 
     await TestBed.configureTestingModule({
-      imports: [AdminGithubSettingsComponent],
+      imports: [translocoTestProvider(), AdminGithubSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: AdminConfigService, useValue: mockConfigService },
@@ -186,7 +188,7 @@ describe('AdminGithubSettingsComponent', () => {
         'true'
       );
       expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'GitHub sign-in enabled',
+        'GitHub Sign-In enabled',
         'Close',
         { duration: 2000 }
       );

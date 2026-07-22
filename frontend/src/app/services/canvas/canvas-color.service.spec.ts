@@ -9,6 +9,8 @@ import { CanvasService } from './canvas.service';
 import { CanvasColorService } from './canvas-color.service';
 import { CanvasRendererService } from './canvas-renderer.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 interface AnyObj {
   id: string;
   type: string;
@@ -33,6 +35,7 @@ describe('CanvasColorService', () => {
     mockRenderer = { konvaLayers: new Map() };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasColorService,
         { provide: MatDialog, useValue: mockDialog },

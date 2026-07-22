@@ -2,6 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { StorageContextService } from './storage-context.service';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   CLIENT_PROTOCOL_VERSION,
   compareVersions,
@@ -92,6 +94,7 @@ describe('VersionCompatibilityService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         VersionCompatibilityService,
         { provide: StorageContextService, useValue: storageContextMock },

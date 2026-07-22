@@ -23,6 +23,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProfileManagerDialogComponent } from './profile-manager-dialog.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ProfileManagerDialogComponent', () => {
   let component: ProfileManagerDialogComponent;
   let fixture: ComponentFixture<ProfileManagerDialogComponent>;
@@ -138,6 +140,7 @@ describe('ProfileManagerDialogComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         ProfileManagerDialogComponent,
         MatDialogModule,
         MatSnackBarModule,

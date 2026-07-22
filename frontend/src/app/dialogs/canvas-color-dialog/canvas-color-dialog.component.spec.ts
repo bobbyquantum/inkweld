@@ -7,6 +7,8 @@ import {
 } from '@angular/material/dialog';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   CanvasColorDialogComponent,
   type CanvasColorDialogData,
@@ -33,7 +35,11 @@ describe('CanvasColorDialogComponent', () => {
     >;
 
     await TestBed.configureTestingModule({
-      imports: [CanvasColorDialogComponent, MatDialogModule],
+      imports: [
+        translocoTestProvider(),
+        CanvasColorDialogComponent,
+        MatDialogModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },
@@ -88,7 +94,11 @@ describe('CanvasColorDialogComponent', () => {
 
     await TestBed.resetTestingModule()
       .configureTestingModule({
-        imports: [CanvasColorDialogComponent, MatDialogModule],
+        imports: [
+          translocoTestProvider(),
+          CanvasColorDialogComponent,
+          MatDialogModule,
+        ],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MatDialogRef, useValue: mockDialogRef },

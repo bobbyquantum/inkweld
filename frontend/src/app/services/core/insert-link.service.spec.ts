@@ -4,11 +4,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { InsertLinkService } from './insert-link.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('InsertLinkService', () => {
   let service: InsertLinkService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [provideZonelessChangeDetection(), InsertLinkService],
     });
     service = TestBed.inject(InsertLinkService);

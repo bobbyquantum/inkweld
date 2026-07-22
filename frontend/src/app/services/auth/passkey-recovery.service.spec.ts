@@ -27,6 +27,8 @@ import {
 } from './passkey.service';
 import { PasskeyRecoveryService } from './passkey-recovery.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 function obs<T>(value: T): Observable<any> {
   return of(value);
 }
@@ -74,6 +76,7 @@ describe('PasskeyRecoveryService', () => {
     fakeStartRegistration = vi.fn().mockResolvedValue(fakeAttestation);
 
     await TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

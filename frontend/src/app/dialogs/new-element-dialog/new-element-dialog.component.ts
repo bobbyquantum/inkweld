@@ -19,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 import { ElementType } from '../../../api-client';
 import { ProjectStateService } from '../../services/project/project-state.service';
@@ -67,6 +68,7 @@ interface NewElementFormValue {
     MatIconModule,
     MatTooltipModule,
     MatCardModule,
+    TranslocoModule,
   ],
 })
 export class NewElementDialogComponent {
@@ -78,6 +80,7 @@ export class NewElementDialogComponent {
   private readonly data = inject<NewElementDialogData | null>(MAT_DIALOG_DATA, {
     optional: true,
   });
+  private readonly transloco = inject(TranslocoService);
 
   // Step control
   currentStep = signal<1 | 2>(1);
@@ -169,8 +172,12 @@ export class NewElementDialogComponent {
   });
 
   readonly form = form(this.model, schemaPath => {
-    required(schemaPath.name, { message: 'Name is required' });
-    required(schemaPath.type, { message: 'Type is required' });
+    required(schemaPath.name, {
+      message: this.transloco.translate('dialogs.newElement.nameRequired'),
+    });
+    required(schemaPath.type, {
+      message: this.transloco.translate('dialogs.newElement.typeRequired'),
+    });
   });
 
   constructor() {

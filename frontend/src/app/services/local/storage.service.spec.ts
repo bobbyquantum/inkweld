@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { StorageService } from './storage.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // Polyfill structuredClone for test environment
 function createStructuredClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
@@ -21,6 +23,7 @@ describe('StorageService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [provideZonelessChangeDetection(), StorageService],
     });
     service = TestBed.inject(StorageService);

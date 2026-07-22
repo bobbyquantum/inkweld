@@ -3,13 +3,15 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { AriaTabPanelComponent } from './aria-tab-panel.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('AriaTabPanelComponent', () => {
   let component: AriaTabPanelComponent;
   let fixture: ComponentFixture<AriaTabPanelComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AriaTabPanelComponent],
+      imports: [translocoTestProvider(), AriaTabPanelComponent],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
 

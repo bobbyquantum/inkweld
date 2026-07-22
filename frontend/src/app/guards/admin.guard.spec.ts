@@ -8,6 +8,8 @@ import { SetupService } from '../services/core/setup.service';
 import { UnifiedUserService } from '../services/user/unified-user.service';
 import { adminGuard } from './admin.guard';
 
+import { translocoTestProvider } from '../../testing/transloco-test-provider';
+
 describe('adminGuard', () => {
   let routerMock: {
     createUrlTree: ReturnType<typeof vi.fn>;
@@ -51,6 +53,7 @@ describe('adminGuard', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         { provide: Router, useValue: routerMock },
         { provide: SetupService, useValue: setupServiceMock },

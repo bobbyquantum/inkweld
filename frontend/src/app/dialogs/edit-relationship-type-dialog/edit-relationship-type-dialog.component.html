@@ -1,5 +1,9 @@
 <h2 mat-dialog-title data-testid="dialog-title">
-  {{ data.isNew ? 'New Relationship Type' : 'Edit Relationship Type' }}
+  {{
+    data.isNew
+      ? ('relationships.editDialog.newTitle' | transloco)
+      : ('relationships.editDialog.editTitle' | transloco)
+  }}
 </h2>
 
 <mat-dialog-content
@@ -13,18 +17,24 @@
         [style.background-color]="color()"
         [style.color]="getTextColor(color())">
         <mat-icon class="chip-icon">{{ icon() }}</mat-icon>
-        <span>{{ name() || 'Relationship Name' }}</span>
+        <span>{{
+          name() || ('relationships.editDialog.nameFallback' | transloco)
+        }}</span>
       </span>
       @if (showInverse()) {
         <span class="preview-inverse"
-          >↔ {{ inverseLabel() || 'Inverse Label' }}</span
+          >↔
+          {{
+            inverseLabel() ||
+              ('relationships.editDialog.inverseFallback' | transloco)
+          }}</span
         >
       }
     </div>
     <div
       class="color-grid"
       role="radiogroup"
-      aria-label="Relationship color selection">
+      [attr.aria-label]="'relationships.editDialog.colorAria' | transloco">
       @for (colorOption of colorOptions; track colorOption) {
         <button
           type="button"
@@ -34,7 +44,10 @@
           [attr.data-testid]="'rel-color-option-' + $index"
           (click)="color.set(colorOption)"
           [attr.aria-checked]="colorOption === color()"
-          [attr.aria-label]="'Color ' + colorOption"
+          [attr.aria-label]="
+            'relationships.editDialog.colorPrefix'
+              | transloco: { color: colorOption }
+          "
           role="radio">
           @if (colorOption === color()) {
             <mat-icon [style.color]="getTextColor(colorOption)">check</mat-icon>
@@ -47,28 +60,34 @@
   <!-- ── Labels ───────────────────────────────────────────────────────────── -->
   <div class="two-col">
     <mat-form-field appearance="outline">
-      <mat-label>Name (forward label)</mat-label>
+      <mat-label>{{
+        'relationships.editDialog.nameLabel' | transloco
+      }}</mat-label>
       <input
         matInput
         id="rel-type-name-input"
-        aria-label="Name (forward label)"
+        [attr.aria-label]="'relationships.editDialog.nameAria' | transloco"
         #nameInput
         (input)="name.set($any($event.target).value)"
         data-testid="rel-name-input"
-        placeholder="e.g. Parent, Friend, Owns"
+        [placeholder]="'relationships.editDialog.namePlaceholder' | transloco"
         required />
     </mat-form-field>
 
     <mat-form-field appearance="outline">
-      <mat-label>Inverse label</mat-label>
+      <mat-label>{{
+        'relationships.editDialog.inverseLabel' | transloco
+      }}</mat-label>
       <input
         matInput
         id="rel-type-inverse-label-input"
-        aria-label="Inverse label"
+        [attr.aria-label]="'relationships.editDialog.inverseAria' | transloco"
         #inverseInput
         (input)="inverseLabel.set($any($event.target).value)"
         data-testid="rel-inverse-input"
-        placeholder="e.g. Child of, Friend of, Owned by"
+        [placeholder]="
+          'relationships.editDialog.inversePlaceholder' | transloco
+        "
         required />
     </mat-form-field>
   </div>
@@ -76,7 +95,9 @@
   <!-- ── Category + Show Inverse ──────────────────────────────────────────── -->
   <div class="two-col">
     <mat-form-field appearance="outline">
-      <mat-label>Category</mat-label>
+      <mat-label>{{
+        'relationships.editDialog.categoryLabel' | transloco
+      }}</mat-label>
       <mat-select
         [ngModel]="category()"
         (ngModelChange)="category.set($event)"
@@ -92,20 +113,22 @@
         [ngModel]="showInverse()"
         (ngModelChange)="showInverse.set($event)"
         data-testid="rel-show-inverse-toggle">
-        Show inverse label
+        {{ 'relationships.editDialog.showInverse' | transloco }}
       </mat-slide-toggle>
-      <span class="hint-text"
-        >When off, backlinks are hidden from the target element.</span
-      >
+      <span class="hint-text">{{
+        'relationships.editDialog.inverseHint' | transloco
+      }}</span>
     </div>
   </div>
 
   <!-- ── Icon Grid ────────────────────────────────────────────────────────── -->
-  <div class="section-label">Icon</div>
+  <div class="section-label">
+    {{ 'relationships.editDialog.iconLabel' | transloco }}
+  </div>
   <div
     class="icon-grid"
     role="radiogroup"
-    aria-label="Relationship icon selection">
+    [attr.aria-label]="'relationships.editDialog.iconAria' | transloco">
     @for (iconOption of iconOptions; track iconOption) {
       <button
         type="button"
@@ -115,7 +138,10 @@
         [matTooltip]="iconOption"
         [attr.data-testid]="'rel-icon-option-' + $index"
         [attr.aria-checked]="iconOption === icon()"
-        [attr.aria-label]="'Icon ' + iconOption"
+        [attr.aria-label]="
+          'relationships.editDialog.iconPrefix'
+            | transloco: { icon: iconOption }
+        "
         role="radio">
         <mat-icon>{{ iconOption }}</mat-icon>
       </button>
@@ -123,13 +149,15 @@
   </div>
 
   <!-- ── Source Endpoint ──────────────────────────────────────────────────── -->
-  <div class="section-label">Source — allowed element types</div>
+  <div class="section-label">
+    {{ 'relationships.editDialog.sourceTypes' | transloco }}
+  </div>
   <div class="endpoint-section" data-testid="source-endpoint-section">
     <mat-slide-toggle
       [ngModel]="sourceAnyType()"
       (ngModelChange)="sourceAnyType.set($event)"
       data-testid="source-any-type-toggle">
-      Any element type
+      {{ 'relationships.editDialog.anyElementType' | transloco }}
     </mat-slide-toggle>
 
     @if (!sourceAnyType() && data.availableSchemas.length > 0) {
@@ -151,28 +179,34 @@
     }
 
     <mat-form-field appearance="outline" class="max-count-field">
-      <mat-label>Max relationships (blank = unlimited)</mat-label>
+      <mat-label>{{
+        'relationships.editDialog.maxRelationships' | transloco
+      }}</mat-label>
       <input
         matInput
         id="rel-type-source-max-count-input"
-        aria-label="Max relationships (blank = unlimited)"
+        [attr.aria-label]="
+          'relationships.editDialog.maxRelationshipsAria' | transloco
+        "
         type="number"
         min="1"
         [value]="maxCountDisplay(sourceMaxCount())"
         (change)="onSourceMaxCountChange($any($event.target).value)"
         data-testid="source-max-count-input"
-        placeholder="Unlimited" />
+        [placeholder]="'relationships.editDialog.unlimited' | transloco" />
     </mat-form-field>
   </div>
 
   <!-- ── Target Endpoint ──────────────────────────────────────────────────── -->
-  <div class="section-label">Target — allowed element types</div>
+  <div class="section-label">
+    {{ 'relationships.editDialog.targetTypes' | transloco }}
+  </div>
   <div class="endpoint-section" data-testid="target-endpoint-section">
     <mat-slide-toggle
       [ngModel]="targetAnyType()"
       (ngModelChange)="targetAnyType.set($event)"
       data-testid="target-any-type-toggle">
-      Any element type
+      {{ 'relationships.editDialog.anyElementType' | transloco }}
     </mat-slide-toggle>
 
     @if (!targetAnyType() && data.availableSchemas.length > 0) {
@@ -194,24 +228,28 @@
     }
 
     <mat-form-field appearance="outline" class="max-count-field">
-      <mat-label>Max relationships (blank = unlimited)</mat-label>
+      <mat-label>{{
+        'relationships.editDialog.maxRelationships' | transloco
+      }}</mat-label>
       <input
         matInput
         id="rel-type-target-max-count-input"
-        aria-label="Max relationships (blank = unlimited)"
+        [attr.aria-label]="
+          'relationships.editDialog.maxRelationshipsAria' | transloco
+        "
         type="number"
         min="1"
         [value]="maxCountDisplay(targetMaxCount())"
         (change)="onTargetMaxCountChange($any($event.target).value)"
         data-testid="target-max-count-input"
-        placeholder="Unlimited" />
+        [placeholder]="'relationships.editDialog.unlimited' | transloco" />
     </mat-form-field>
   </div>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button mat-button data-testid="rel-dialog-cancel" (click)="onCancel()">
-    Cancel
+    {{ 'cancel' | transloco }}
   </button>
   <button
     mat-flat-button
@@ -219,6 +257,6 @@
     data-testid="rel-dialog-save"
     [disabled]="!isFormValid()"
     (click)="onSave()">
-    {{ data.isNew ? 'Create' : 'Save' }}
+    {{ data.isNew ? ('create' | transloco) : ('save' | transloco) }}
   </button>
 </mat-dialog-actions>

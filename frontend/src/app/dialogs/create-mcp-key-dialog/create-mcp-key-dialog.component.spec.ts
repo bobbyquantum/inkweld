@@ -10,6 +10,8 @@ import { type MockedObject, vi } from 'vitest';
 
 import { CreateMcpKeyDialogComponent } from './create-mcp-key-dialog.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('CreateMcpKeyDialogComponent', () => {
   let component: CreateMcpKeyDialogComponent;
   let fixture: ComponentFixture<CreateMcpKeyDialogComponent>;
@@ -55,7 +57,7 @@ describe('CreateMcpKeyDialogComponent', () => {
     snackBar = { open: vi.fn() } as unknown as MockedObject<MatSnackBar>;
 
     await TestBed.configureTestingModule({
-      imports: [CreateMcpKeyDialogComponent],
+      imports: [translocoTestProvider(), CreateMcpKeyDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },
@@ -198,9 +200,9 @@ describe('CreateMcpKeyDialogComponent', () => {
       component.togglePermission(McpPermission.ReadProject);
       await component.createKey();
       expect(snackBar.open).toHaveBeenCalledWith(
-        'Failed to create API key',
+        'Failed to save MCP API key',
         'Close',
-        expect.any(Object)
+        { duration: 3000 }
       );
       expect(dialogRef.close).not.toHaveBeenCalled();
     });

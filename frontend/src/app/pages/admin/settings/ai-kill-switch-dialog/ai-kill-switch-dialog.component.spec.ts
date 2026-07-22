@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AiKillSwitchDialogComponent } from './ai-kill-switch-dialog.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 describe('AiKillSwitchDialogComponent', () => {
   let component: AiKillSwitchDialogComponent;
   let fixture: ComponentFixture<AiKillSwitchDialogComponent>;
@@ -16,7 +18,7 @@ describe('AiKillSwitchDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AiKillSwitchDialogComponent],
+      imports: [translocoTestProvider(), AiKillSwitchDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },

@@ -5,6 +5,8 @@ import { AUTO_REVIEW_MARK_NAME } from '@inkweld/prosemirror/schema';
 
 import { AutoReviewApiService } from './auto-review.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // Minimal prosemirror mocks for scanDocumentMarks
 // Use the same object reference so `mark.type === markType` passes
 const markTypeObj = { name: AUTO_REVIEW_MARK_NAME };
@@ -80,6 +82,7 @@ describe('AutoReviewApiService', () => {
     };
 
     await TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         { provide: AutoReviewService, useValue: mockGeneratedService },

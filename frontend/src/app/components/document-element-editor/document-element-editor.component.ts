@@ -78,6 +78,7 @@ import {
 } from '../element-ref';
 import { FindInDocumentComponent } from '../find-in-document';
 import { createMediaUrl } from '../image-paste';
+import { TranslocoModule } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-document-element-editor',
@@ -98,6 +99,7 @@ import { createMediaUrl } from '../image-paste';
     FindInDocumentComponent,
     CommentPopoverComponent,
     CommentPanelComponent,
+    TranslocoModule,
   ],
   templateUrl: './document-element-editor.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

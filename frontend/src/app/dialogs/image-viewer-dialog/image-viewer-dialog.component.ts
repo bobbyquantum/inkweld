@@ -17,6 +17,7 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import {
   TagPickerDialogComponent,
   type TagPickerDialogData,
@@ -59,6 +60,7 @@ const MAX_ZOOM = 5;
     MatDialogModule,
     MatIconModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './image-viewer-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

@@ -18,12 +18,13 @@ import { firstValueFrom } from 'rxjs';
 import { SetupService } from '../../services/core/setup.service';
 import { LocalStorageService } from '../../services/local/local-storage.service';
 import { MediaSyncService } from '../../services/local/media-sync.service';
+import { TranslocoModule } from '@jsverse/transloco';
 
 export type ProjectCoverVariant = 'card' | 'list' | 'small';
 
 @Component({
   selector: 'app-project-cover',
-  imports: [],
+  imports: [TranslocoModule],
   templateUrl: './project-cover.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./project-cover.component.scss'],

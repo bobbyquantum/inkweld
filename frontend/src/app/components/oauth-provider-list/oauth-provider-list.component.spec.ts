@@ -11,6 +11,8 @@ import { vi } from 'vitest';
 
 import { OAuthProviderListComponent } from './oauth-provider-list.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('OAuthProviderListComponent', () => {
   let component: OAuthProviderListComponent;
   let fixture: ComponentFixture<OAuthProviderListComponent>;
@@ -31,7 +33,7 @@ describe('OAuthProviderListComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [OAuthProviderListComponent],
+      imports: [translocoTestProvider(), OAuthProviderListComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

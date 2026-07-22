@@ -8,6 +8,8 @@ import { TestBed } from '@angular/core/testing';
 import { SetupService } from '../core/setup.service';
 import { AdminConfigService, type ConfigValue } from './admin-config.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('AdminConfigService', () => {
   let service: AdminConfigService;
   let httpMock: HttpTestingController;
@@ -19,6 +21,7 @@ describe('AdminConfigService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),

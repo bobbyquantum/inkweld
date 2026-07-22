@@ -5,6 +5,7 @@ import {
   signal,
 } from '@angular/core';
 import { form, FormField, required } from '@angular/forms/signals';
+import { TranslocoService } from '@jsverse/transloco';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -16,6 +17,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import { ColorSwatchesComponent } from '@components/color-swatches/color-swatches.component';
 
 import { ElementType } from '../../../api-client/model/element-type';
@@ -64,6 +66,7 @@ interface CanvasPinFormValue {
     MatInputModule,
     MatIconModule,
     MatTooltipModule,
+    TranslocoModule,
     ColorSwatchesComponent,
   ],
 })
@@ -71,11 +74,14 @@ export class CanvasPinDialogComponent {
   protected readonly data = inject<CanvasPinDialogData>(MAT_DIALOG_DATA);
   private readonly dialogRef = inject(MatDialogRef<CanvasPinDialogComponent>);
   private readonly dialog = inject(MatDialog);
+  private readonly transloco = inject(TranslocoService);
 
   readonly model = signal<CanvasPinFormValue>({ label: this.data.label });
 
   readonly form = form(this.model, schemaPath => {
-    required(schemaPath.label, { message: 'Label is required' });
+    required(schemaPath.label, {
+      message: this.transloco.translate('canvas.pinDialog.labelRequired'),
+    });
   });
 
   protected selectedColor = this.data.color;
@@ -95,8 +101,8 @@ export class CanvasPinDialogComponent {
   /** Open the element picker to link a project element */
   pickElement(): void {
     const pickerData: ElementPickerDialogData = {
-      title: 'Link to Element',
-      subtitle: 'Choose an element to link this pin to.',
+      title: this.transloco.translate('canvas.pinDialog.linkToElement'),
+      subtitle: this.transloco.translate('canvas.pinDialog.linkButton'),
       maxSelections: 1,
       excludeTypes: [
         ElementType.Folder,

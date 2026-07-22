@@ -8,6 +8,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { PublishTypstEmitterService } from './publish-typst-emitter.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 /**
  * Unit tests for the Typst preamble emitter. The preamble is concatenated
  * into a generated Typst source by the PDF generator; tests assert the
@@ -20,6 +22,7 @@ describe('PublishTypstEmitterService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [provideZonelessChangeDetection(), PublishTypstEmitterService],
     });
     service = TestBed.inject(PublishTypstEmitterService);

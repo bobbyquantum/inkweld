@@ -11,6 +11,8 @@ import { ProjectStateService } from '../../services/project/project-state.servic
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { QuickOpenDialogComponent } from './quick-open-dialog.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('QuickOpenDialogComponent', () => {
   let component: QuickOpenDialogComponent;
   let fixture: ComponentFixture<QuickOpenDialogComponent>;
@@ -106,7 +108,7 @@ describe('QuickOpenDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [QuickOpenDialogComponent],
+      imports: [translocoTestProvider(), QuickOpenDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: QuickOpenService, useValue: mockQuickOpenService },

@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { environment } from '../../../environments/environment';
 import { SetupService } from './setup.service';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   APP_CONFIG_STORAGE_KEY,
   LOCAL_CONFIG_ID,
@@ -42,6 +44,7 @@ describe('SetupService', () => {
     globalThis.fetch = vi.fn();
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         StorageContextService,

@@ -14,6 +14,8 @@ import { ProjectStateService } from '../project/project-state.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { RelationshipService } from './relationship.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // Mock relationship types (simulating what would come from a project template)
 const MOCK_RELATIONSHIP_TYPES: RelationshipTypeDefinition[] = [
   {
@@ -159,6 +161,7 @@ describe('RelationshipService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         RelationshipService,
         { provide: LoggerService, useValue: mockLogger },

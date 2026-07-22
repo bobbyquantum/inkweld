@@ -1,4 +1,10 @@
-<h2 mat-dialog-title>{{ isEditing ? 'Edit Link' : 'Insert Link' }}</h2>
+<h2 mat-dialog-title>
+  {{
+    isEditing
+      ? ('dialogs.insertLink.editTitle' | transloco)
+      : ('dialogs.insertLink.insertTitle' | transloco)
+  }}
+</h2>
 
 <mat-dialog-content>
   @if (hasSelection) {
@@ -11,16 +17,18 @@
   <form (submit)="$event.preventDefault(); onConfirm()">
     @if (!hasSelection) {
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Link text</mat-label>
+        <mat-label>{{
+          'dialogs.insertLink.linkTextLabel' | transloco
+        }}</mat-label>
         <input
           matInput
           [formField]="form.linkText"
           cdkFocusInitial
-          placeholder="e.g. Click here"
+          [placeholder]="'dialogs.insertLink.linkTextPlaceholder' | transloco"
           autocomplete="off"
           spellcheck="true"
           id="insert-link-text-input"
-          aria-label="Link text"
+          [attr.aria-label]="'dialogs.insertLink.linkTextAria' | transloco"
           data-testid="link-text-input" />
         @if (form.linkText().touched() && form.linkText().invalid()) {
           @for (error of form.linkText().errors(); track error) {
@@ -31,16 +39,16 @@
     }
 
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>URL</mat-label>
+      <mat-label>{{ 'dialogs.insertLink.urlLabel' | transloco }}</mat-label>
       <input
         matInput
         [formField]="form.href"
         [attr.cdkFocusInitial]="hasSelection ? '' : null"
-        placeholder="https://example.com"
+        [placeholder]="'dialogs.insertLink.urlPlaceholder' | transloco"
         autocomplete="off"
         spellcheck="false"
         id="insert-link-url-input"
-        aria-label="URL"
+        [attr.aria-label]="'dialogs.insertLink.urlAria' | transloco"
         data-testid="link-url-input" />
       <mat-icon matSuffix>link</mat-icon>
       @if (form.href().touched() && form.href().invalid()) {
@@ -51,7 +59,7 @@
     </mat-form-field>
 
     <mat-checkbox [formField]="form.openInNewTab" data-testid="link-new-tab">
-      Open in new tab
+      {{ 'dialogs.insertLink.openInNewTab' | transloco }}
     </mat-checkbox>
   </form>
 </mat-dialog-content>
@@ -64,12 +72,12 @@
       class="remove-btn"
       (click)="onRemoveLink()"
       data-testid="link-remove-button">
-      Remove link
+      {{ 'dialogs.insertLink.removeLink' | transloco }}
     </button>
     <span class="spacer"></span>
   }
   <button mat-button (click)="onCancel()" data-testid="link-cancel-button">
-    Cancel
+    {{ 'cancel' | transloco }}
   </button>
   <button
     mat-flat-button
@@ -77,6 +85,10 @@
     [disabled]="form().invalid()"
     (click)="onConfirm()"
     data-testid="link-confirm-button">
-    {{ isEditing ? 'Update' : 'Insert' }}
+    {{
+      isEditing
+        ? ('update' | transloco)
+        : ('dialogs.insertLink.insert' | transloco)
+    }}
   </button>
 </mat-dialog-actions>

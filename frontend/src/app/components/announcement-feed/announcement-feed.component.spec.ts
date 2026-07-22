@@ -8,6 +8,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { AnnouncementFeedComponent } from './announcement-feed.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('AnnouncementFeedComponent', () => {
   let component: AnnouncementFeedComponent;
   let fixture: ComponentFixture<AnnouncementFeedComponent>;
@@ -54,7 +56,7 @@ describe('AnnouncementFeedComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AnnouncementFeedComponent],
+      imports: [translocoTestProvider(), AnnouncementFeedComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: AnnouncementService, useValue: announcementServiceMock },

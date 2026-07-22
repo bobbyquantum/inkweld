@@ -5,13 +5,15 @@ import { of } from 'rxjs';
 
 import { UnavailableComponent } from './unavailable.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('UnavailableComponent', () => {
   let component: UnavailableComponent;
   let fixture: ComponentFixture<UnavailableComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [UnavailableComponent],
+      imports: [translocoTestProvider(), UnavailableComponent],
       providers: [
         provideZonelessChangeDetection(),
         {

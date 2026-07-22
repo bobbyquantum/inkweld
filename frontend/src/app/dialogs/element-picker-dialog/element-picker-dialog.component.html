@@ -7,22 +7,22 @@
 
   <!-- Search field -->
   <mat-form-field appearance="outline" class="search-field">
-    <mat-label>Search elements</mat-label>
+    <mat-label>{{ 'dialogs.elementPicker.searchLabel' | transloco }}</mat-label>
     <input
       matInput
       [value]="searchText()"
       (input)="searchText.set($any($event.target).value)"
-      placeholder="Type to filter..."
+      [placeholder]="'dialogs.elementPicker.searchPlaceholder' | transloco"
       id="element-picker-search-input"
       data-testid="element-picker-search"
-      aria-label="Search elements" />
+      [attr.aria-label]="'dialogs.elementPicker.searchAria' | transloco" />
     <mat-icon matPrefix>search</mat-icon>
     @if (searchText()) {
       <button
         matSuffix
         mat-icon-button
         (click)="searchText.set('')"
-        matTooltip="Clear search">
+        [matTooltip]="'dialogs.elementPicker.clearSearch' | transloco">
         <mat-icon>close</mat-icon>
       </button>
     }
@@ -61,10 +61,15 @@
       <div class="empty-state">
         @if (searchText()) {
           <mat-icon>search_off</mat-icon>
-          <p>No elements match "{{ searchText() }}"</p>
+          <p>
+            {{
+              'dialogs.elementPicker.noMatch'
+                | transloco: { query: searchText() }
+            }}
+          </p>
         } @else {
           <mat-icon>inventory_2</mat-icon>
-          <p>No elements available</p>
+          <p>{{ 'dialogs.elementPicker.noElements' | transloco }}</p>
         }
       </div>
     }
@@ -74,14 +79,16 @@
   <div class="selection-status">
     <span>{{ selectionCountText() }}</span>
     @if (maxSelections < 10) {
-      <span class="max-hint">(max {{ maxSelections }})</span>
+      <span class="max-hint">{{
+        'dialogs.elementPicker.maxHint' | transloco: { max: maxSelections }
+      }}</span>
     }
   </div>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="cancel()" data-testid="element-picker-cancel">
-    Cancel
+    {{ 'cancel' | transloco }}
   </button>
   <button
     mat-flat-button
@@ -89,6 +96,6 @@
     [disabled]="!hasSelection()"
     (click)="confirm()"
     data-testid="element-picker-confirm">
-    Add Selected
+    {{ 'dialogs.elementPicker.addSelected' | transloco }}
   </button>
 </mat-dialog-actions>

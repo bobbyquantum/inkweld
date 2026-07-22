@@ -24,6 +24,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import { type Editor } from '@bobbyquantum/ngx-editor';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { toggleMark } from 'prosemirror-commands';
@@ -76,6 +77,7 @@ export type ToolbarGroupName =
     Toolbar,
     ToolbarWidget,
     ToolbarWidgetGroup,
+    TranslocoModule,
   ],
   templateUrl: './editor-toolbar.component.html',
   styleUrl: './editor-toolbar.component.scss',

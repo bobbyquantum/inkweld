@@ -8,6 +8,8 @@ import { ProjectStateService } from '../../services/project/project-state.servic
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { WorldbuildingElementSelectorComponent } from './worldbuilding-element-selector.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('WorldbuildingElementSelectorComponent', () => {
   let component: WorldbuildingElementSelectorComponent;
   let fixture: ComponentFixture<WorldbuildingElementSelectorComponent>;
@@ -93,7 +95,7 @@ describe('WorldbuildingElementSelectorComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [WorldbuildingElementSelectorComponent],
+      imports: [translocoTestProvider(), WorldbuildingElementSelectorComponent],
       providers: [
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: WorldbuildingService, useValue: mockWorldbuildingService },

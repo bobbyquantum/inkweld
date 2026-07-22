@@ -7,6 +7,7 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoModule } from '@jsverse/transloco';
 
 import { TagChipListComponent } from '../../components/tags/tag-chip-list.component';
 
@@ -32,6 +33,7 @@ export interface TagEditorDialogData {
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
+    TranslocoModule,
     TagChipListComponent,
   ],
   templateUrl: './tag-editor-dialog.component.html',

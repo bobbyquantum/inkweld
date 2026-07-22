@@ -9,6 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UserAvatarComponent } from './user-avatar.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('UserAvatarComponent', () => {
   let component: UserAvatarComponent;
   let mockUserService: { getUserAvatar: ReturnType<typeof vi.fn> };
@@ -60,7 +62,7 @@ describe('UserAvatarComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [UserAvatarComponent],
+      imports: [translocoTestProvider(), UserAvatarComponent],
       providers: [
         { provide: UserService, useValue: mockUserService },
         { provide: UnifiedUserService, useValue: mockUnifiedUserService },

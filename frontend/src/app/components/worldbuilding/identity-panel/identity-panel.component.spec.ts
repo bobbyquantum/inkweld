@@ -13,6 +13,8 @@ import { type MockedObject, vi } from 'vitest';
 
 import { IdentityPanelComponent } from './identity-panel.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 describe('IdentityPanelComponent', () => {
   let component: IdentityPanelComponent;
   let fixture: ComponentFixture<IdentityPanelComponent>;
@@ -42,7 +44,7 @@ describe('IdentityPanelComponent', () => {
     } as unknown as MockedObject<DialogGatewayService>;
 
     await TestBed.configureTestingModule({
-      imports: [IdentityPanelComponent],
+      imports: [translocoTestProvider(), IdentityPanelComponent],
       providers: [
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),

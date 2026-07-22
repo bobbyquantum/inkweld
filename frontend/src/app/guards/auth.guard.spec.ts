@@ -18,6 +18,8 @@ import { type Mock, vi } from 'vitest';
 
 import { authGuard } from './auth.guard';
 
+import { translocoTestProvider } from '../../testing/transloco-test-provider';
+
 describe('authGuard', () => {
   let router: Router;
   let setupService: SetupService;
@@ -51,6 +53,7 @@ describe('authGuard', () => {
 
     // Configure TestBed once
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         { provide: Router, useValue: router },

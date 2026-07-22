@@ -8,6 +8,7 @@ import {
 } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { TranslocoModule } from '@jsverse/transloco';
 
 export interface ConfirmationDialogData {
   title: string;
@@ -30,6 +31,7 @@ export interface ConfirmationDialogData {
     FormsModule,
     MatInputModule,
     MatFormFieldModule,
+    TranslocoModule,
   ],
 })
 export class ConfirmationDialogComponent {

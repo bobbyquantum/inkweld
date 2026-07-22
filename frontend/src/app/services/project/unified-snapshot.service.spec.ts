@@ -23,6 +23,8 @@ import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 import { UnifiedSnapshotService } from './unified-snapshot.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('UnifiedSnapshotService', () => {
   let service: UnifiedSnapshotService;
   let projectSignal: ReturnType<typeof signal<Project | undefined>>;
@@ -170,6 +172,7 @@ describe('UnifiedSnapshotService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         UnifiedSnapshotService,

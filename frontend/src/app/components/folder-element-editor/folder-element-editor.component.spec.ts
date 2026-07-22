@@ -14,6 +14,8 @@ import { type ProjectElement } from '../../models/project-element';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { FolderElementEditorComponent } from './folder-element-editor.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // Mock component for TreeNodeIcon
 @Component({
   selector: 'app-tree-node-icon',
@@ -84,7 +86,11 @@ describe('FolderElementEditorComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [FolderElementEditorComponent, MockTreeNodeIconComponent],
+      imports: [
+        translocoTestProvider(),
+        FolderElementEditorComponent,
+        MockTreeNodeIconComponent,
+      ],
       declarations: [],
       providers: [
         provideZonelessChangeDetection(),

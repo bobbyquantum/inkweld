@@ -5,6 +5,7 @@ import {
   signal,
 } from '@angular/core';
 import { form, FormField, required, validate } from '@angular/forms/signals';
+import { TranslocoService } from '@jsverse/transloco';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import {
@@ -15,6 +16,7 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { TranslocoModule } from '@jsverse/transloco';
 
 export interface InsertLinkDialogData {
   /** Pre-filled URL (used when editing an existing link) */
@@ -61,6 +63,7 @@ interface InsertLinkFormValue {
     MatInputModule,
     MatIconModule,
     MatCheckboxModule,
+    TranslocoModule,
   ],
 })
 export class InsertLinkDialogComponent {
@@ -68,6 +71,7 @@ export class InsertLinkDialogComponent {
   private readonly dialogRef = inject(
     MatDialogRef<InsertLinkDialogComponent, InsertLinkDialogResult>
   );
+  private readonly transloco = inject(TranslocoService);
 
   /** True when editing an existing link (pre-filled URL) */
   protected readonly isEditing = !!this.data.existingHref;
@@ -87,9 +91,15 @@ export class InsertLinkDialogComponent {
   readonly form = form(this.model, schemaPath => {
     // Only required when there's no pre-existing selection
     if (!this.hasSelection) {
-      required(schemaPath.linkText, { message: 'Link text is required' });
+      required(schemaPath.linkText, {
+        message: this.transloco.translate(
+          'dialogs.insertLink.linkTextRequired'
+        ),
+      });
     }
-    required(schemaPath.href, { message: 'A URL is required' });
+    required(schemaPath.href, {
+      message: this.transloco.translate('dialogs.insertLink.urlRequired'),
+    });
     validate(schemaPath.href, ({ value }) => {
       const v = String(value() ?? '').trim();
       if (!v) return null; // required handles empty
@@ -106,7 +116,7 @@ export class InsertLinkDialogComponent {
       if (!isAllowedProtocol) {
         return {
           kind: 'invalidUrl',
-          message: 'Enter a valid URL (e.g. https://example.com)',
+          message: this.transloco.translate('dialogs.insertLink.urlInvalid'),
         };
       }
 
@@ -119,14 +129,16 @@ export class InsertLinkDialogComponent {
         if (!/^\/\/[^\s/]+/.test(rest)) {
           return {
             kind: 'invalidUrl',
-            message: 'Enter a valid URL (e.g. https://example.com)',
+            message: this.transloco.translate('dialogs.insertLink.urlInvalid'),
           };
         }
       } else if (!rest) {
         // mailto:/tel: — require non-empty content after the colon.
         return {
           kind: 'invalidUrl',
-          message: 'Enter a valid destination (e.g. mailto:user@example.com)',
+          message: this.transloco.translate(
+            'dialogs.insertLink.destinationInvalid'
+          ),
         };
       }
 

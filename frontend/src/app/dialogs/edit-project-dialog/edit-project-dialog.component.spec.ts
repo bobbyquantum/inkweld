@@ -26,6 +26,8 @@ import { ProjectService } from '../../services/project/project.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { EditProjectDialogComponent } from './edit-project-dialog.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // Helper to create a mock File object
 const createMockFile = (name: string, type: string, size: number): File => {
   const blob = new Blob(['a'.repeat(size)], { type });
@@ -118,7 +120,7 @@ describe('EditProjectDialogComponent', () => {
     } as any;
 
     await TestBed.configureTestingModule({
-      imports: [EditProjectDialogComponent],
+      imports: [translocoTestProvider(), EditProjectDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

@@ -4,6 +4,8 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { GREGORIAN_SYSTEM, RELATIVE_YEARS_SYSTEM } from '@models/time-system';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   TimelineEraDialogComponent,
   type TimelineEraDialogData,
@@ -20,7 +22,7 @@ const baseData: TimelineEraDialogData = {
 async function createComponent(data: TimelineEraDialogData = baseData) {
   const closeSpy = vi.fn();
   await TestBed.configureTestingModule({
-    imports: [TimelineEraDialogComponent],
+    imports: [translocoTestProvider(), TimelineEraDialogComponent],
     providers: [
       provideZonelessChangeDetection(),
       { provide: MAT_DIALOG_DATA, useValue: data },

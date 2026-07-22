@@ -25,6 +25,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TimelineTabComponent } from './timeline-tab.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 describe('TimelineTabComponent', () => {
   let component: TimelineTabComponent;
   let fixture: ComponentFixture<TimelineTabComponent>;
@@ -104,7 +106,7 @@ describe('TimelineTabComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [TimelineTabComponent],
+      imports: [translocoTestProvider(), TimelineTabComponent],
       providers: [
         { provide: ActivatedRoute, useValue: mockRoute },
         { provide: Router, useValue: { navigate: vi.fn() } },

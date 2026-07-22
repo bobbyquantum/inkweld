@@ -10,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { TranslocoModule } from '@jsverse/transloco';
 import { SetupService } from '@services/core/setup.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -29,6 +30,7 @@ interface SystemStats {
     MatIconModule,
     MatProgressSpinnerModule,
     MatButtonModule,
+    TranslocoModule,
   ],
   templateUrl: './system-health.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

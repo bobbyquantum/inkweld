@@ -14,6 +14,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { ResetPasswordComponent } from './reset-password.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 const DEFAULT_POLICY = {
   minLength: 8,
   requireUppercase: true,
@@ -67,7 +69,7 @@ describe('ResetPasswordComponent', () => {
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [ResetPasswordComponent],
+      imports: [translocoTestProvider(), ResetPasswordComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

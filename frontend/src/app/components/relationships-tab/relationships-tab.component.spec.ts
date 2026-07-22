@@ -22,6 +22,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RelationshipsTabComponent } from './relationships-tab.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('RelationshipsTabComponent', () => {
   let component: RelationshipsTabComponent;
   let fixture: ComponentFixture<RelationshipsTabComponent>;
@@ -136,7 +138,7 @@ describe('RelationshipsTabComponent', () => {
     mockDialogResult(validDialogResult);
 
     await TestBed.configureTestingModule({
-      imports: [RelationshipsTabComponent],
+      imports: [translocoTestProvider(), RelationshipsTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

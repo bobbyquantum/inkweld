@@ -12,7 +12,9 @@
 
     <mat-menu #profileMenu="matMenu" class="profile-menu">
       <div class="menu-header">
-        <span class="header-title">Current Profile</span>
+        <span class="header-title">{{
+          'settings.dialogTitle' | transloco
+        }}</span>
       </div>
 
       @for (profile of profiles(); track profile.id) {
@@ -27,7 +29,9 @@
             <mat-icon class="check-icon">check</mat-icon>
           }
           @if (hasTokenForProfile(profile)) {
-            <mat-icon class="auth-indicator" matTooltip="Logged in">
+            <mat-icon
+              class="auth-indicator"
+              [matTooltip]="'login.login' | transloco">
               person
             </mat-icon>
           }
@@ -38,7 +42,7 @@
     <!-- Not configured yet - just show an info icon -->
     <button
       mat-mini-fab
-      matTooltip="Not connected to a server"
+      [matTooltip]="'settings.connectionTab.offlineInfo' | transloco"
       matTooltipPosition="above"
       class="bubble-button disconnected"
       data-testid="server-info-bubble-disconnected">

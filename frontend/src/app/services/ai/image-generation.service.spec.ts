@@ -16,6 +16,8 @@ import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectService } from '../project/project.service';
 import { ImageGenerationService } from './image-generation.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 async function flushPromises(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0));
 }
@@ -103,6 +105,7 @@ describe('ImageGenerationService', () => {
     } as unknown as MockedObject<AuthTokenService>;
 
     await TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         ImageGenerationService,

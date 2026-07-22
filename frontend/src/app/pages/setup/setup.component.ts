@@ -15,6 +15,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { ConfigurationService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
@@ -47,6 +48,7 @@ interface SystemFeaturesResponse {
     MatIconModule,
     MatDividerModule,
     MatProgressBarModule,
+    TranslocoModule,
     ThemeToggleComponent,
   ],
   templateUrl: './setup.component.html',

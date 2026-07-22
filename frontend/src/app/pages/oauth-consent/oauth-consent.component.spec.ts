@@ -16,6 +16,8 @@ import { type MockedObject, vi } from 'vitest';
 
 import { OAuthConsentComponent } from './oauth-consent.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('OAuthConsentComponent', () => {
   let component: OAuthConsentComponent;
   let fixture: ComponentFixture<OAuthConsentComponent>;
@@ -70,7 +72,7 @@ describe('OAuthConsentComponent', () => {
     } as unknown as MockedObject<Router>;
 
     await TestBed.configureTestingModule({
-      imports: [OAuthConsentComponent],
+      imports: [translocoTestProvider(), OAuthConsentComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideLocationMocks(),

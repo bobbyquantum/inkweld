@@ -22,6 +22,7 @@ import {
 } from '@dialogs/unit-editor-dialog/unit-editor-dialog.component';
 import { TIME_SYSTEM_TEMPLATES, type TimeSystem } from '@models/time-system';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
+import { TranslocoModule } from '@jsverse/transloco';
 
 interface UnitDraft {
   /** Stable identity used for @for tracking. */
@@ -63,6 +64,7 @@ interface TimeSystemFormValue {
     MatIconModule,
     MatInputModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './time-system-edit-page.component.html',
   styleUrls: ['./time-system-edit-page.component.scss'],

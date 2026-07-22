@@ -20,6 +20,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { Router } from '@angular/router';
 import { RegistrationFormComponent } from '@components/registration-form/registration-form.component';
 import { type Project, ProjectsService } from '@inkweld/index';
@@ -67,6 +68,7 @@ import {
     MatProgressBarModule,
     MatTooltipModule,
     FormsModule,
+    TranslocoModule,
     RegistrationFormComponent,
   ],
   templateUrl: './profile-manager-dialog.component.html',
@@ -83,6 +85,7 @@ export class ProfileManagerDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
+  private readonly transloco = inject(TranslocoService);
 
   // View state
   protected currentView = signal<'list' | 'add' | 'add-local' | 'migrate'>(
@@ -342,7 +345,9 @@ export class ProfileManagerDialogComponent {
   async testConnection(): Promise<void> {
     const rawUrl = this.newServerUrl().trim();
     if (!rawUrl) {
-      this.connectionError.set('Please enter a server URL');
+      this.connectionError.set(
+        this.transloco.translate('dialogs.profileManager.enterServerUrl')
+      );
       return;
     }
 
@@ -357,11 +362,17 @@ export class ProfileManagerDialogComponent {
         // Update the input with normalized URL so user sees what will be used
         this.newServerUrl.set(url);
         this.connectionSuccess.set(true);
-        this.snackBar.open('Connection successful!', 'Close', {
-          duration: 3000,
-        });
+        this.snackBar.open(
+          this.transloco.translate('dialogs.profileManager.connectionSuccess'),
+          this.transloco.translate('close'),
+          {
+            duration: 3000,
+          }
+        );
       } else {
-        this.connectionError.set('Server is not responding correctly');
+        this.connectionError.set(
+          this.transloco.translate('dialogs.profileManager.serverNotResponding')
+        );
       }
     } catch (error) {
       console.error('Connection test failed:', error);
@@ -372,10 +383,12 @@ export class ProfileManagerDialogComponent {
       ) {
         // This could be server down, CORS, or network error - provide helpful message
         this.connectionError.set(
-          'Unable to reach server. Please verify the URL and that the server is running.'
+          this.transloco.translate('dialogs.profileManager.serverUnreachable')
         );
       } else {
-        this.connectionError.set('Failed to connect to server');
+        this.connectionError.set(
+          this.transloco.translate('dialogs.profileManager.connectionFailed')
+        );
       }
     } finally {
       this.isConnecting.set(false);
@@ -391,7 +404,9 @@ export class ProfileManagerDialogComponent {
   addServer(): void {
     const rawUrl = this.newServerUrl().trim();
     if (!rawUrl) {
-      this.connectionError.set('Please enter a server URL');
+      this.connectionError.set(
+        this.transloco.translate('dialogs.profileManager.enterServerUrl')
+      );
       return;
     }
 
@@ -411,8 +426,8 @@ export class ProfileManagerDialogComponent {
   async removeProfile(profile: ServerConfig): Promise<void> {
     if (profile.id === this.activeProfile()?.id) {
       this.snackBar.open(
-        'Cannot remove the active profile. Switch to another first.',
-        'Close',
+        this.transloco.translate('dialogs.profileManager.cannotRemoveActive'),
+        this.transloco.translate('close'),
         { duration: 4000 }
       );
       return;
@@ -430,7 +445,11 @@ export class ProfileManagerDialogComponent {
     // Also clear any stored auth token
     this.authTokenService.clearTokenForConfig(profile.id);
 
-    this.snackBar.open('Profile removed', 'Close', { duration: 3000 });
+    this.snackBar.open(
+      this.transloco.translate('dialogs.profileManager.profileRemoved'),
+      this.transloco.translate('close'),
+      { duration: 3000 }
+    );
   }
 
   /**
@@ -466,14 +485,16 @@ export class ProfileManagerDialogComponent {
     const displayName = this.localDisplayName().trim() || username;
 
     if (!username) {
-      this.localError.set('Please enter a username');
+      this.localError.set(
+        this.transloco.translate('dialogs.profileManager.enterUsername')
+      );
       return;
     }
 
     // Validate username format (alphanumeric, hyphens, underscores)
     if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
       this.localError.set(
-        'Username can only contain letters, numbers, hyphens, and underscores'
+        this.transloco.translate('dialogs.profileManager.usernameFormat')
       );
       return;
     }
@@ -486,7 +507,9 @@ export class ProfileManagerDialogComponent {
       globalThis.location.href = '/';
     } catch (error) {
       console.error('Failed to add local mode:', error);
-      this.localError.set('Failed to add local mode. Please try again.');
+      this.localError.set(
+        this.transloco.translate('dialogs.profileManager.localModeFailed')
+      );
     }
   }
 
@@ -616,7 +639,9 @@ export class ProfileManagerDialogComponent {
     // support yet — guard explicitly so the call site below stays type-safe.
     if (!credentials.password) {
       this.authError.set(
-        'A password is required to migrate this profile to the server.'
+        this.transloco.translate(
+          'dialogs.profileManager.passwordRequiredMigrate'
+        )
       );
       return;
     }
@@ -648,15 +673,19 @@ export class ProfileManagerDialogComponent {
 
       const message =
         allSlugs.length > 0
-          ? 'Registered successfully! Select projects to migrate.'
-          : 'Registered successfully! Click Continue to switch to the server.';
-      this.snackBar.open(message, 'Close', { duration: 3000 });
+          ? this.transloco.translate('dialogs.profileManager.registeredMigrate')
+          : this.transloco.translate('dialogs.profileManager.registeredSwitch');
+      this.snackBar.open(message, this.transloco.translate('close'), {
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Registration failed:', error);
       const message =
         error instanceof Error
           ? error.message
-          : 'Registration failed. Please try again.';
+          : this.transloco.translate(
+              'dialogs.profileManager.registrationFailed'
+            );
       this.registrationForm?.setError(message);
       this.authError.set(message);
     } finally {
@@ -675,7 +704,9 @@ export class ProfileManagerDialogComponent {
 
     // Validation
     if (!usernameValue || !passwordValue) {
-      this.authError.set('Please enter username and password');
+      this.authError.set(
+        this.transloco.translate('dialogs.profileManager.enterCredentials')
+      );
       return;
     }
 
@@ -702,15 +733,23 @@ export class ProfileManagerDialogComponent {
 
       const message =
         allSlugs.length > 0
-          ? 'Authenticated successfully! Select projects to migrate.'
-          : 'Authenticated successfully! Click Continue to switch to the server.';
-      this.snackBar.open(message, 'Close', { duration: 3000 });
+          ? this.transloco.translate(
+              'dialogs.profileManager.authenticatedMigrate'
+            )
+          : this.transloco.translate(
+              'dialogs.profileManager.authenticatedSwitch'
+            );
+      this.snackBar.open(message, this.transloco.translate('close'), {
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Authentication failed:', error);
       this.authError.set(
         error instanceof Error
           ? error.message
-          : 'Authentication failed. Please try again.'
+          : this.transloco.translate(
+              'dialogs.profileManager.authenticationFailed'
+            )
       );
     } finally {
       this.isAuthenticating.set(false);
@@ -726,7 +765,7 @@ export class ProfileManagerDialogComponent {
 
     if (this.hasUnresolvedConflicts()) {
       this.authError.set(
-        'Please resolve slug conflicts before migrating. Rename conflicting projects or deselect them.'
+        this.transloco.translate('dialogs.profileManager.resolveConflicts')
       );
       return;
     }
@@ -753,7 +792,7 @@ export class ProfileManagerDialogComponent {
       this.authError.set(
         error instanceof Error
           ? error.message
-          : 'Migration failed. Please try again.'
+          : this.transloco.translate('dialogs.profileManager.migrationFailed')
       );
     } finally {
       this.isMigrating.set(false);

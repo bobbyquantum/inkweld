@@ -13,6 +13,8 @@ import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { PublishPlanService } from './publish-plan.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('PublishPlanService', () => {
   let service: PublishPlanService;
   let projectStateMock: {
@@ -67,6 +69,7 @@ describe('PublishPlanService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         PublishPlanService,

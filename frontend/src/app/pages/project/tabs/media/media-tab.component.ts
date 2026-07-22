@@ -24,6 +24,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { type MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import { createMediaUrl, extractMediaId } from '@components/image-paste';
 import { MediaItemCardComponent } from '@components/media-item-card/media-item-card.component';
 import {
@@ -104,6 +105,7 @@ export interface MediaItem extends MediaInfo {
     MediaItemCardComponent,
     MatSidenavModule,
     MatTooltipModule,
+    TranslocoModule,
     FileSizePipe,
     MediaFilterPanelComponent,
   ],

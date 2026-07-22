@@ -23,6 +23,8 @@ import { type MockedObject, vi } from 'vitest';
 
 import { AdminAiProvidersComponent } from './ai-providers.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 async function flushPromises(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0));
 }
@@ -100,6 +102,7 @@ describe('AdminAiProvidersComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         AdminAiProvidersComponent,
         FormsModule,
         MatButtonModule,

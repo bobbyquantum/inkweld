@@ -12,6 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * Compact color palette with preset swatches and a custom hex input.
@@ -22,7 +23,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   templateUrl: './color-swatches.component.html',
   styleUrls: ['./color-swatches.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [FormsModule, MatIconModule, MatInputModule, MatTooltipModule],
+  imports: [
+    FormsModule,
+    MatIconModule,
+    MatInputModule,
+    MatTooltipModule,
+    TranslocoModule,
+  ],
 })
 export class ColorSwatchesComponent {
   @Input() selectedColor = '#333333';

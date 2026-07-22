@@ -13,6 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { TranslocoService } from '@jsverse/transloco';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { SettingsTabStatusComponent } from '@components/settings-tab-status/settings-tab-status.component';
 import { type ElementTypeSchema, type TabSchema } from '@models/schema-types';
@@ -21,6 +22,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 
 import { TemplateEditorPageComponent } from './template-editor-page/template-editor-page.component';
+import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * Injection token for reload delay after mutations.
@@ -70,12 +72,14 @@ interface TemplateSchema {
     MatTooltipModule,
     SettingsTabStatusComponent,
     TemplateEditorPageComponent,
+    TranslocoModule,
   ],
 })
 export class TemplatesTabComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly reloadDelay = inject(TEMPLATE_RELOAD_DELAY);
 
@@ -251,18 +255,22 @@ export class TemplatesTabComponent {
         `Clone of ${template.label}`
       );
 
-      this.snackBar.open(`✓ Template "${newName}" created`, 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('templates.tab.created', { name: newName }),
+        this.transloco.translate('snackbar.close'),
+        { duration: 3000 }
+      );
 
       // Wait for sync then reload
       await new Promise(resolve => setTimeout(resolve, this.reloadDelay));
       this.loadTemplates();
     } catch (err) {
       console.error('[TemplatesTab] Error cloning template:', err);
-      this.snackBar.open('Failed to clone template', 'Close', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('templates.tab.cloneFailed'),
+        this.transloco.translate('snackbar.close'),
+        { duration: 5000 }
+      );
     }
   }
 
@@ -290,9 +298,13 @@ export class TemplatesTabComponent {
     try {
       this.worldbuildingService.deleteTemplate(template.id);
 
-      this.snackBar.open(`✓ Template "${template.label}" deleted`, 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('templates.tab.deleted', {
+          name: template.label,
+        }),
+        this.transloco.translate('snackbar.close'),
+        { duration: 3000 }
+      );
 
       // Wait for sync then reload
       await new Promise(resolve => setTimeout(resolve, this.reloadDelay));
@@ -301,9 +313,11 @@ export class TemplatesTabComponent {
       console.error('[TemplatesTab] Error deleting template:', err);
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to delete template';
-      this.snackBar.open(errorMessage, 'Close', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        errorMessage,
+        this.transloco.translate('snackbar.close'),
+        { duration: 5000 }
+      );
     }
   }
 
@@ -319,7 +333,11 @@ export class TemplatesTabComponent {
     const fullSchema = this.worldbuildingService.getSchema(template.id);
 
     if (!fullSchema) {
-      this.snackBar.open('Template not found', 'Close', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('templates.tab.notFound'),
+        this.transloco.translate('snackbar.close'),
+        { duration: 3000 }
+      );
       return;
     }
 
@@ -358,8 +376,10 @@ export class TemplatesTabComponent {
       this.editingState.set({ mode: 'list' });
 
       this.snackBar.open(
-        `✓ Template "${result.name}" ${state.templateId === null ? 'created' : 'updated'}`,
-        'Close',
+        this.transloco.translate('templates.tab.updated', {
+          name: result.name,
+        }),
+        this.transloco.translate('snackbar.close'),
         { duration: 3000 }
       );
     } catch (err) {
@@ -369,9 +389,11 @@ export class TemplatesTabComponent {
         schema: result,
         templateId: state.templateId,
       });
-      this.snackBar.open('Failed to save template', 'Close', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('templates.tab.saveFailed'),
+        this.transloco.translate('snackbar.close'),
+        { duration: 5000 }
+      );
     }
   }
 }

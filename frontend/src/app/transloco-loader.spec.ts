@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { TranslocoHttpLoader } from './transloco-loader';
 
+import { translocoTestProvider } from '../testing/transloco-test-provider';
+
 describe('TranslocoHttpLoader', () => {
   let loader: TranslocoHttpLoader;
   let httpMock: HttpTestingController;
@@ -39,9 +41,49 @@ describe('TranslocoHttpLoader', () => {
     moreLanguages: 'More languages coming soon',
   };
 
+  const mockEditor = { find: 'Find' };
+  const mockProject = { title: 'Project' };
+  const mockDialogs = { confirm: 'Confirm' };
+  const mockAdmin = { dashboard: 'Dashboard' };
+  const mockAuth = { signIn: 'Sign In' };
+  const mockCanvas = { draw: 'Draw' };
+  const mockTimeline = { events: 'Events' };
+  const mockMedia = { upload: 'Upload' };
+  const mockWorldbuilding = { create: 'Create' };
+  const mockPublish = { publish: 'Publish' };
+  const mockAbout = { version: 'Version' };
+  const mockRelationships = { add: 'Add' };
+  const mockTags = { tag: 'Tag' };
+  const mockTemplates = { template: 'Template' };
+  const mockMessages = { inbox: 'Inbox' };
+
+  const allScopeMocks: Record<string, Record<string, unknown>> = {
+    app: mockApp,
+    login: mockLogin,
+    home: mockHome,
+    settings: mockSettings,
+    editor: mockEditor,
+    project: mockProject,
+    dialogs: mockDialogs,
+    admin: mockAdmin,
+    auth: mockAuth,
+    canvas: mockCanvas,
+    timeline: mockTimeline,
+    media: mockMedia,
+    worldbuilding: mockWorldbuilding,
+    publish: mockPublish,
+    about: mockAbout,
+    relationships: mockRelationships,
+    tags: mockTags,
+    templates: mockTemplates,
+    messages: mockMessages,
+  };
+
+  const allScopeNames = Object.keys(allScopeMocks);
+
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
+      imports: [translocoTestProvider(), HttpClientTestingModule],
       providers: [TranslocoHttpLoader],
     });
 
@@ -59,55 +101,41 @@ describe('TranslocoHttpLoader', () => {
   });
 
   describe('getTranslation', () => {
+    function flushAllScopes(
+      lang: string,
+      overrides?: Record<string, Record<string, unknown>>
+    ) {
+      httpMock.expectOne(`/assets/i18n/${lang}/common.json`).flush(mockCommon);
+      for (const scope of allScopeNames) {
+        const mock = overrides?.[scope] ?? allScopeMocks[scope];
+        httpMock.expectOne(`/assets/i18n/${lang}/${scope}.json`).flush(mock);
+      }
+    }
+
+    function expectedTranslation(
+      overrides?: Record<string, Record<string, unknown>>
+    ) {
+      const result: Record<string, unknown> = { ...mockCommon };
+      for (const scope of allScopeNames) {
+        result[scope] = overrides?.[scope] ?? allScopeMocks[scope];
+      }
+      return result;
+    }
+
     it('should fetch and merge all scope files', () => {
       loader.getTranslation('en').subscribe(translation => {
-        expect(translation).toEqual({
-          ...mockCommon,
-          app: mockApp,
-          login: mockLogin,
-          home: mockHome,
-          settings: mockSettings,
-        });
+        expect(translation).toEqual(expectedTranslation());
       });
 
-      // Expect 5 HTTP requests (common + 4 scopes)
-      const commonReq = httpMock.expectOne('/assets/i18n/en/common.json');
-      expect(commonReq.request.method).toBe('GET');
-      commonReq.flush(mockCommon);
-
-      const appReq = httpMock.expectOne('/assets/i18n/en/app.json');
-      expect(appReq.request.method).toBe('GET');
-      appReq.flush(mockApp);
-
-      const loginReq = httpMock.expectOne('/assets/i18n/en/login.json');
-      expect(loginReq.request.method).toBe('GET');
-      loginReq.flush(mockLogin);
-
-      const homeReq = httpMock.expectOne('/assets/i18n/en/home.json');
-      expect(homeReq.request.method).toBe('GET');
-      homeReq.flush(mockHome);
-
-      const settingsReq = httpMock.expectOne('/assets/i18n/en/settings.json');
-      expect(settingsReq.request.method).toBe('GET');
-      settingsReq.flush(mockSettings);
+      flushAllScopes('en');
     });
 
     it('should handle different language', () => {
       loader.getTranslation('fr').subscribe(translation => {
-        expect(translation).toEqual({
-          ...mockCommon,
-          app: mockApp,
-          login: mockLogin,
-          home: mockHome,
-          settings: mockSettings,
-        });
+        expect(translation).toEqual(expectedTranslation());
       });
 
-      httpMock.expectOne('/assets/i18n/fr/common.json').flush(mockCommon);
-      httpMock.expectOne('/assets/i18n/fr/app.json').flush(mockApp);
-      httpMock.expectOne('/assets/i18n/fr/login.json').flush(mockLogin);
-      httpMock.expectOne('/assets/i18n/fr/home.json').flush(mockHome);
-      httpMock.expectOne('/assets/i18n/fr/settings.json').flush(mockSettings);
+      flushAllScopes('fr');
     });
 
     it('should merge scopes into common translations', () => {
@@ -117,37 +145,25 @@ describe('TranslocoHttpLoader', () => {
         expect(translation['close']).toBe('Close');
 
         // Scope keys should be nested
-        expect(translation['app']).toEqual(mockApp);
-        expect(translation['login']).toEqual(mockLogin);
-        expect(translation['home']).toEqual(mockHome);
-        expect(translation['settings']).toEqual(mockSettings);
+        for (const scope of allScopeNames) {
+          expect(translation[scope]).toEqual(allScopeMocks[scope]);
+        }
       });
 
-      httpMock.expectOne('/assets/i18n/en/common.json').flush(mockCommon);
-      httpMock.expectOne('/assets/i18n/en/app.json').flush(mockApp);
-      httpMock.expectOne('/assets/i18n/en/login.json').flush(mockLogin);
-      httpMock.expectOne('/assets/i18n/en/home.json').flush(mockHome);
-      httpMock.expectOne('/assets/i18n/en/settings.json').flush(mockSettings);
+      flushAllScopes('en');
     });
 
     it('should handle empty scope translations', () => {
       const emptyScope = {};
+      const overrides: Record<string, Record<string, unknown>> = {
+        login: emptyScope,
+      };
 
       loader.getTranslation('en').subscribe(translation => {
-        expect(translation).toEqual({
-          ...mockCommon,
-          app: mockApp,
-          login: emptyScope,
-          home: mockHome,
-          settings: mockSettings,
-        });
+        expect(translation).toEqual(expectedTranslation(overrides));
       });
 
-      httpMock.expectOne('/assets/i18n/en/common.json').flush(mockCommon);
-      httpMock.expectOne('/assets/i18n/en/app.json').flush(mockApp);
-      httpMock.expectOne('/assets/i18n/en/login.json').flush(emptyScope);
-      httpMock.expectOne('/assets/i18n/en/home.json').flush(mockHome);
-      httpMock.expectOne('/assets/i18n/en/settings.json').flush(mockSettings);
+      flushAllScopes('en', overrides);
     });
   });
 });

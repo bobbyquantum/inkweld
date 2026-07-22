@@ -1,23 +1,23 @@
 <h2 mat-dialog-title data-testid="profile-dialog-title">
   @if (isEditMode) {
-    Edit Image Profile
+    {{ 'admin.imageProfile.editTitle' | transloco }}
   } @else {
-    Create Image Profile
+    {{ 'admin.imageProfile.createTitle' | transloco }}
   }
 </h2>
 
 <mat-dialog-content data-testid="profile-dialog-content">
   <div class="profile-form">
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Name</mat-label>
+      <mat-label>{{ 'admin.imageProfile.nameLabel' | transloco }}</mat-label>
       <input
         matInput
         [formField]="form.name"
         id="image-profile-name-input"
         data-testid="profile-name-input"
-        placeholder="e.g., GPT Image 1 High Quality"
-        aria-label="Profile name" />
-      <mat-hint>A user-friendly name for this profile</mat-hint>
+        [placeholder]="'admin.imageProfile.namePlaceholder' | transloco"
+        [attr.aria-label]="'admin.imageProfile.nameAria' | transloco" />
+      <mat-hint>{{ 'admin.imageProfile.nameHint' | transloco }}</mat-hint>
       @if (form.name().touched() && form.name().invalid()) {
         @for (error of form.name().errors(); track error) {
           <mat-error>{{ error.message }}</mat-error>
@@ -26,20 +26,26 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Description</mat-label>
+      <mat-label>{{
+        'admin.imageProfile.descriptionLabel' | transloco
+      }}</mat-label>
       <textarea
         matInput
         [formField]="form.description"
         data-testid="profile-description-input"
         rows="2"
-        placeholder="Optional description of this profile"
+        [placeholder]="'admin.imageProfile.descriptionPlaceholder' | transloco"
         id="image-profile-description-input"
-        aria-label="Description"></textarea>
+        [attr.aria-label]="
+          'admin.imageProfile.descriptionAria' | transloco
+        "></textarea>
     </mat-form-field>
 
     <div class="row">
       <mat-form-field appearance="outline">
-        <mat-label>Provider</mat-label>
+        <mat-label>{{
+          'admin.imageProfile.providerLabel' | transloco
+        }}</mat-label>
         <mat-select
           [formField]="form.provider"
           data-testid="profile-provider-select"
@@ -58,7 +64,9 @@
       <!-- Fal.ai: Category selection first -->
       @if (isFalaiProvider()) {
         <mat-form-field appearance="outline">
-          <mat-label>Model Type</mat-label>
+          <mat-label>{{
+            'admin.imageProfile.modelTypeLabel' | transloco
+          }}</mat-label>
           <mat-select
             [value]="selectedFalaiCategory()"
             (selectionChange)="onFalaiCategoryChange($event.value)">
@@ -66,7 +74,9 @@
               <mat-option [value]="cat.value">{{ cat.label }}</mat-option>
             }
           </mat-select>
-          <mat-hint>Select type then choose model</mat-hint>
+          <mat-hint>{{
+            'admin.imageProfile.modelTypeHint' | transloco
+          }}</mat-hint>
         </mat-form-field>
       }
     </div>
@@ -76,7 +86,9 @@
       @if (isOpenAiProvider()) {
         <!-- OpenAI: Simple dropdown of hardcoded models -->
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Model</mat-label>
+          <mat-label>{{
+            'admin.imageProfile.modelLabel' | transloco
+          }}</mat-label>
           <mat-select
             (selectionChange)="selectModel($event.value)"
             [value]="null">
@@ -92,12 +104,14 @@
               <mat-error>{{ error.message }}</mat-error>
             }
           }
-          <mat-hint>Select an OpenAI image model</mat-hint>
+          <mat-hint>{{ 'admin.imageProfile.modelHint' | transloco }}</mat-hint>
         </mat-form-field>
       } @else if (canBrowseModels()) {
         <!-- Autocomplete for browsable providers (OpenRouter, Fal.ai) -->
         <mat-form-field appearance="outline" class="model-field full-width">
-          <mat-label>Model</mat-label>
+          <mat-label>{{
+            'admin.imageProfile.modelLabel' | transloco
+          }}</mat-label>
           <input
             matInput
             [formField]="form.modelId"
@@ -105,8 +119,10 @@
             [matAutocomplete]="modelAuto"
             (input)="onModelSearchInput($event)"
             (focus)="loadModelsForProvider()"
-            placeholder="Search for a model..."
-            aria-label="Model" />
+            [placeholder]="
+              'admin.imageProfile.modelSearchPlaceholder' | transloco
+            "
+            [attr.aria-label]="'admin.imageProfile.modelAria' | transloco" />
           <mat-autocomplete
             #modelAuto="matAutocomplete"
             (optionSelected)="selectModel($event.option.value)">
@@ -114,7 +130,9 @@
               <mat-option disabled>
                 <div class="loading-option">
                   <mat-spinner diameter="20"></mat-spinner>
-                  <span>Loading models...</span>
+                  <span>{{
+                    'admin.imageProfile.loadingModels' | transloco
+                  }}</span>
                 </div>
               </mat-option>
             } @else {
@@ -129,9 +147,9 @@
               @if (filteredModels().length === 0 && !isLoadingModels()) {
                 <mat-option disabled>
                   @if (isFalaiProvider()) {
-                    Select a model type above, then search here
+                    {{ 'admin.imageProfile.selectTypeFirst' | transloco }}
                   } @else {
-                    No models found. Type to search or check provider API key.
+                    {{ 'admin.imageProfile.noModelsFound' | transloco }}
                   }
                 </mat-option>
               }
@@ -142,7 +160,7 @@
             matSuffix
             type="button"
             (click)="loadModelsForProvider()"
-            matTooltip="Refresh models">
+            [matTooltip]="'admin.imageProfile.refreshModels' | transloco">
             <mat-icon>refresh</mat-icon>
           </button>
           @if (form.modelId().touched() && form.modelId().invalid()) {
@@ -150,21 +168,25 @@
               <mat-error>{{ error.message }}</mat-error>
             }
           }
-          <mat-hint>Search and select from available models</mat-hint>
+          <mat-hint>{{
+            'admin.imageProfile.modelSearchHint' | transloco
+          }}</mat-hint>
         </mat-form-field>
       } @else if (isManualModelEntry()) {
         <!-- Manual entry for Stable Diffusion -->
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Model ID</mat-label>
+          <mat-label>{{
+            'admin.imageProfile.modelIdLabel' | transloco
+          }}</mat-label>
           <input
             matInput
             [formField]="form.modelId"
             id="image-profile-model-id-input"
-            placeholder="e.g., stable-diffusion-xl-base-1.0"
-            aria-label="Model ID" />
-          <mat-hint
-            >Enter the model identifier from your Stable Diffusion API</mat-hint
-          >
+            [placeholder]="'admin.imageProfile.modelIdPlaceholder' | transloco"
+            [attr.aria-label]="'admin.imageProfile.modelIdAria' | transloco" />
+          <mat-hint>{{
+            'admin.imageProfile.modelIdHint' | transloco
+          }}</mat-hint>
           @if (form.modelId().touched() && form.modelId().invalid()) {
             @for (error of form.modelId().errors(); track error) {
               <mat-error>{{ error.message }}</mat-error>
@@ -178,7 +200,7 @@
       <mat-slide-toggle
         [formField]="form.enabled"
         data-testid="profile-enabled-toggle">
-        Enabled
+        {{ 'admin.imageProfile.enabledToggle' | transloco }}
       </mat-slide-toggle>
 
       <!-- Hide for OpenRouter (auto-detected from API) and OpenAI (all models support it) -->
@@ -186,7 +208,7 @@
         <mat-slide-toggle
           [formField]="form.supportsImageInput"
           data-testid="profile-image-input-toggle">
-          Supports Image Input
+          {{ 'admin.imageProfile.supportsImageInput' | transloco }}
         </mat-slide-toggle>
       }
 
@@ -195,15 +217,17 @@
         <mat-slide-toggle
           [formField]="form.supportsCustomResolutions"
           data-testid="profile-custom-resolutions-toggle"
-          matTooltip="Allow users to specify arbitrary width/height values">
-          Custom Resolutions
+          [matTooltip]="
+            'admin.imageProfile.customResolutionsTooltip' | transloco
+          ">
+          {{ 'admin.imageProfile.customResolutions' | transloco }}
         </mat-slide-toggle>
 
         <mat-slide-toggle
           [formField]="form.usesAspectRatioOnly"
           data-testid="profile-aspect-ratio-only-toggle"
-          matTooltip="Model only accepts aspect ratio (e.g., 16:9), not pixel dimensions. Enable for Gemini 3 Pro Image and similar models.">
-          Aspect Ratio Only
+          [matTooltip]="'admin.imageProfile.aspectRatioTooltip' | transloco">
+          {{ 'admin.imageProfile.aspectRatioOnly' | transloco }}
         </mat-slide-toggle>
       }
     </div>
@@ -212,12 +236,14 @@
     @if (!isOpenRouterProvider()) {
       <div class="sizes-section">
         <div class="sizes-header">
-          <span class="label">Supported Sizes</span>
+          <span class="label">{{
+            'admin.imageProfile.supportedSizes' | transloco
+          }}</span>
           <button
             mat-icon-button
             type="button"
             (click)="addSize()"
-            matTooltip="Add size">
+            [matTooltip]="'admin.imageProfile.addSize' | transloco">
             <mat-icon>add</mat-icon>
           </button>
         </div>
@@ -229,7 +255,9 @@
                 matInput
                 [formField]="form.supportedSizes[$index]"
                 [attr.id]="'image-profile-size-input-' + $index"
-                placeholder="e.g., 1024x1024" />
+                [placeholder]="
+                  'admin.imageProfile.sizePlaceholder' | transloco
+                " />
               @if (
                 form.supportedSizes[$index]().touched() &&
                 form.supportedSizes[$index]().invalid()
@@ -254,9 +282,11 @@
 
         @if (sizesArray.length > 0) {
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Default Size</mat-label>
+            <mat-label>{{
+              'admin.imageProfile.defaultSizeLabel' | transloco
+            }}</mat-label>
             <mat-select [formField]="form.defaultSize">
-              <mat-option value="">None</mat-option>
+              <mat-option value="">{{ 'none' | transloco }}</mat-option>
               @for (size of sizesArray; track $index) {
                 <mat-option [value]="size">{{ size }}</mat-option>
               }
@@ -268,22 +298,21 @@
       <!-- OpenRouter info notice -->
       <div class="openrouter-info">
         <mat-icon>info</mat-icon>
-        <span
-          >OpenRouter models use fixed aspect ratios (1:1, 2:3, 3:2, 4:3, 16:9,
-          etc.). Size options are configured automatically.</span
-        >
+        <span>{{ 'admin.imageProfile.openrouterNotice' | transloco }}</span>
       </div>
     }
 
     <mat-form-field appearance="outline" class="narrow-field">
-      <mat-label>Sort Order</mat-label>
+      <mat-label>{{
+        'admin.imageProfile.sortOrderLabel' | transloco
+      }}</mat-label>
       <input
         matInput
         type="number"
         [formField]="form.sortOrder"
         id="image-profile-sort-order-input"
-        aria-label="Sort order" />
-      <mat-hint>Lower numbers appear first</mat-hint>
+        [attr.aria-label]="'admin.imageProfile.sortOrderAria' | transloco" />
+      <mat-hint>{{ 'admin.imageProfile.sortOrderHint' | transloco }}</mat-hint>
     </mat-form-field>
 
     <div class="model-config-section">
@@ -291,20 +320,26 @@
         <mat-icon>{{
           showModelConfig() ? 'expand_less' : 'expand_more'
         }}</mat-icon>
-        Advanced: Model Config JSON
+        {{ 'admin.imageProfile.advancedConfig' | transloco }}
       </button>
 
       @if (showModelConfig()) {
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Model Configuration (JSON)</mat-label>
+          <mat-label>{{
+            'admin.imageProfile.modelConfigLabel' | transloco
+          }}</mat-label>
           <textarea
             matInput
             [formField]="form.modelConfigJson"
             rows="6"
             placeholder='{"quality": "hd", "style": "vivid"}'
             id="image-profile-model-config-input"
-            aria-label="Model configuration JSON"></textarea>
-          <mat-hint>Provider-specific configuration options as JSON</mat-hint>
+            [attr.aria-label]="
+              'admin.imageProfile.modelConfigAria' | transloco
+            "></textarea>
+          <mat-hint>{{
+            'admin.imageProfile.modelConfigHint' | transloco
+          }}</mat-hint>
         </mat-form-field>
       }
     </div>
@@ -313,7 +348,7 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()" data-testid="profile-dialog-cancel">
-    Cancel
+    {{ 'cancel' | transloco }}
   </button>
   <button
     mat-raised-button
@@ -322,9 +357,9 @@
     (click)="onSubmit()"
     data-testid="profile-dialog-submit">
     @if (isEditMode) {
-      Save Changes
+      {{ 'admin.imageProfile.saveChanges' | transloco }}
     } @else {
-      Create Profile
+      {{ 'admin.imageProfile.createProfile' | transloco }}
     }
   </button>
 </mat-dialog-actions>

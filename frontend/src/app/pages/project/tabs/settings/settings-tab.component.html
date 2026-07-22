@@ -6,7 +6,7 @@
     <!-- ===== SIDENAV (desktop / tablet landscape) ===== -->
     @if (useSidenav()) {
       <nav class="settings-sidenav" data-testid="settings-sidenav">
-        <h2 class="sidenav-title">Settings</h2>
+        <h2 class="sidenav-title">{{ 'settings.dialogTitle' | transloco }}</h2>
         <mat-nav-list>
           @for (section of sections(); track section.key) {
             <a

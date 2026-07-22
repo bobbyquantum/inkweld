@@ -13,14 +13,14 @@
     </div>
   }
   <mat-form-field appearance="outline">
-    <mat-label>Username</mat-label>
+    <mat-label>{{ 'auth.registration.usernameLabel' | transloco }}</mat-label>
     <input
       matInput
       id="registration-username-input"
       type="text"
       [formField]="form.username"
       (blur)="checkUsernameAvailability()"
-      aria-label="Username"
+      [attr.aria-label]="'auth.registration.usernameAria' | transloco"
       [attr.data-testid]="testIdPrefix + 'username-input'" />
     @switch (usernameAvailability()) {
       @case ('available') {
@@ -47,7 +47,9 @@
   @if (usernameSuggestions(); as suggestions) {
     @if (suggestions && suggestions.length > 0) {
       <div class="username-suggestions" data-testid="username-suggestions">
-        <span class="suggestions-label">Available alternatives:</span>
+        <span class="suggestions-label">{{
+          'auth.registration.alternativesLabel' | transloco
+        }}</span>
         <div class="suggestions-buttons">
           @for (suggestion of suggestions; track suggestion) {
             <button
@@ -66,30 +68,36 @@
   }
 
   <mat-form-field appearance="outline">
-    <mat-label>Display Name</mat-label>
+    <mat-label>{{
+      'auth.registration.displayNameLabel' | transloco
+    }}</mat-label>
     <input
       matInput
       id="registration-display-name-input"
       type="text"
       [formField]="form.displayName"
-      aria-label="Display Name"
+      [attr.aria-label]="'auth.registration.displayNameAria' | transloco"
       [attr.data-testid]="testIdPrefix + 'display-name-input'" />
-    <mat-hint>Optional. Shown instead of username.</mat-hint>
+    <mat-hint>{{ 'auth.registration.displayNameHint' | transloco }}</mat-hint>
   </mat-form-field>
 
   <mat-form-field appearance="outline">
-    <mat-label>Email Address</mat-label>
+    <mat-label>{{ 'auth.registration.emailLabel' | transloco }}</mat-label>
     <input
       matInput
       id="registration-email-input"
       type="email"
       [formField]="form.email"
-      aria-label="Email Address"
+      [attr.aria-label]="'auth.registration.emailAria' | transloco"
       [attr.data-testid]="testIdPrefix + 'email-input'" />
     @if (isRequireEmail()) {
-      <mat-hint>Required for password resets and notifications.</mat-hint>
+      <mat-hint>{{
+        'auth.registration.emailRequiredHint' | transloco
+      }}</mat-hint>
     } @else {
-      <mat-hint>Optional. Used for password resets.</mat-hint>
+      <mat-hint>{{
+        'auth.registration.emailOptionalHint' | transloco
+      }}</mat-hint>
     }
     @if (form.email().touched() && form.email().invalid()) {
       <mat-error>{{ getEmailErrorMessage() }}</mat-error>
@@ -98,7 +106,7 @@
 
   @if (isPasswordLoginEnabled()) {
     <mat-form-field appearance="outline">
-      <mat-label>Password</mat-label>
+      <mat-label>{{ 'auth.registration.passwordLabel' | transloco }}</mat-label>
       <input
         #passwordField
         matInput
@@ -108,7 +116,7 @@
         (focus)="onPasswordFocus()"
         (blur)="onPasswordBlur()"
         (input)="onPasswordInput($event)"
-        aria-label="Password"
+        [attr.aria-label]="'auth.registration.passwordAria' | transloco"
         [attr.data-testid]="testIdPrefix + 'password-input'" />
       @if (form.password().touched() && form.password().invalid()) {
         <mat-error>{{ getPasswordErrorMessage() }}</mat-error>
@@ -120,7 +128,9 @@
       serverValidationErrors()['password'].length > 0
     ) {
       <div class="password-validation-errors">
-        <div class="validation-error-heading">Password requirements:</div>
+        <div class="validation-error-heading">
+          {{ 'auth.registration.passwordRequirementsHeading' | transloco }}
+        </div>
         <ul class="validation-error-list">
           @for (error of serverValidationErrors()['password']; track error) {
             <li class="validation-error-item">
@@ -133,13 +143,15 @@
     }
 
     <mat-form-field appearance="outline">
-      <mat-label>Confirm Password</mat-label>
+      <mat-label>{{
+        'auth.registration.confirmPasswordLabel' | transloco
+      }}</mat-label>
       <input
         matInput
         id="registration-confirm-password-input"
         type="password"
         [formField]="form.confirmPassword"
-        aria-label="Confirm Password"
+        [attr.aria-label]="'auth.registration.confirmPasswordAria' | transloco"
         [attr.data-testid]="testIdPrefix + 'confirm-password-input'" />
       @if (
         form.confirmPassword().touched() && form.confirmPassword().invalid()
@@ -158,9 +170,7 @@
       data-testid="passwordless-registration-notice">
       <mat-icon>fingerprint</mat-icon>
       <span>
-        After creating your account you'll be prompted to set up a passkey (Face
-        ID, Touch ID, Windows Hello, or a hardware security key) to sign in. No
-        password required.
+        {{ 'auth.registration.passwordlessNotice' | transloco }}
       </span>
     </div>
   }
@@ -189,7 +199,9 @@
   <div class="password-requirements-tooltip">
     <div class="tooltip-header">
       <mat-icon class="tooltip-icon">security</mat-icon>
-      <span class="tooltip-title">Password Requirements</span>
+      <span class="tooltip-title">{{
+        'auth.registration.passwordRequirementsTitle' | transloco
+      }}</span>
     </div>
     <ul class="requirements-list">
       @for (

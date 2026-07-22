@@ -22,6 +22,7 @@ import {
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { TranslocoModule } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 
 import { ElementType } from '../../../../api-client';
@@ -68,7 +69,12 @@ export interface ElementPreviewContent {
 
 @Component({
   selector: 'app-element-ref-tooltip',
-  imports: [CommonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    TranslocoModule,
+  ],
   templateUrl: './element-ref-tooltip.component.html',
   styleUrls: ['./element-ref-tooltip.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

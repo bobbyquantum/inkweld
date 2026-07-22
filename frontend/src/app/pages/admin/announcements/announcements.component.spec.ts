@@ -11,6 +11,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AdminAnnouncementsComponent } from './announcements.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 describe('AdminAnnouncementsComponent', () => {
   let component: AdminAnnouncementsComponent;
   let fixture: ComponentFixture<AdminAnnouncementsComponent>;
@@ -68,7 +70,7 @@ describe('AdminAnnouncementsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AdminAnnouncementsComponent],
+      imports: [translocoTestProvider(), AdminAnnouncementsComponent],
       providers: [
         { provide: AnnouncementService, useValue: mockAnnouncementService },
         { provide: MatSnackBar, useValue: mockSnackBar },

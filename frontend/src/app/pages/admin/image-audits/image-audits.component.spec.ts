@@ -11,6 +11,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AdminImageAuditsComponent } from './image-audits.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 describe('AdminImageAuditsComponent', () => {
   let component: AdminImageAuditsComponent;
   let fixture: ComponentFixture<AdminImageAuditsComponent>;
@@ -72,7 +74,7 @@ describe('AdminImageAuditsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AdminImageAuditsComponent],
+      imports: [translocoTestProvider(), AdminImageAuditsComponent],
       providers: [
         { provide: AdminImageAuditsService, useValue: mockAuditService },
         { provide: MatSnackBar, useValue: mockSnackBar },

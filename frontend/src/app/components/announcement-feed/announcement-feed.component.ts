@@ -1,3 +1,4 @@
+import { TranslocoModule } from '@jsverse/transloco';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -19,6 +20,7 @@ import { AnnouncementService } from '@services/announcement/announcement.service
     MatIconModule,
     AnnouncementCardComponent,
     MatCard,
+    TranslocoModule,
   ],
   templateUrl: './announcement-feed.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

@@ -9,17 +9,17 @@
       class="search-input"
       [value]="searchQuery()"
       (input)="onSearchChange($any($event.target).value)"
-      placeholder="Search in project…"
+      [placeholder]="'dialogs.projectSearch.placeholder' | transloco"
       autocomplete="off"
       spellcheck="false"
       data-testid="project-search-input"
-      aria-label="Search in project" />
+      [attr.aria-label]="'dialogs.projectSearch.searchAria' | transloco" />
     @if (searchQuery()) {
       <button
         mat-icon-button
         class="clear-button"
         (click)="onSearchChange('')"
-        aria-label="Clear search">
+        [attr.aria-label]="'dialogs.projectSearch.clearSearch' | transloco">
         <mat-icon>close</mat-icon>
       </button>
     }
@@ -28,11 +28,16 @@
       class="filter-toggle-button"
       [class.active]="showFilters() || activeFilterCount() > 0"
       (click)="toggleFilters()"
-      [matTooltip]="showFilters() ? 'Hide filters' : 'Show filters'"
+      [matTooltip]="
+        showFilters()
+          ? ('dialogs.projectSearch.hideFilters' | transloco)
+          : ('dialogs.projectSearch.showFilters' | transloco)
+      "
       [attr.aria-label]="
         activeFilterCount() > 0
-          ? 'Toggle search filters, ' + activeFilterCount() + ' active'
-          : 'Toggle search filters'
+          ? ('dialogs.projectSearch.toggleFilters'
+            | transloco: { count: activeFilterCount() })
+          : ('dialogs.projectSearch.toggleFiltersNone' | transloco)
       "
       data-testid="project-search-filter-toggle">
       <mat-icon>tune</mat-icon>
@@ -47,7 +52,9 @@
     <div class="filter-panel" data-testid="project-search-filters">
       <!-- Element Type Filter -->
       <div class="filter-section">
-        <span class="filter-label">Type</span>
+        <span class="filter-label">{{
+          'dialogs.projectSearch.typeFilter' | transloco
+        }}</span>
         <div class="filter-chips">
           @for (opt of elementTypeOptions; track opt.type) {
             <button
@@ -65,7 +72,9 @@
       <!-- Worldbuilding Schema Filter -->
       @if (hasSchemas()) {
         <div class="filter-section">
-          <span class="filter-label">Schema</span>
+          <span class="filter-label">{{
+            'dialogs.projectSearch.schemaFilter' | transloco
+          }}</span>
           <div class="filter-chips">
             @for (schema of availableSchemas(); track schema.id) {
               <button
@@ -84,7 +93,9 @@
       <!-- Tag Filter -->
       @if (hasTags()) {
         <div class="filter-section">
-          <span class="filter-label">Tags</span>
+          <span class="filter-label">{{
+            'dialogs.projectSearch.tagsFilter' | transloco
+          }}</span>
           <div class="filter-chips">
             @for (tag of availableTags(); track tag.id) {
               <button
@@ -104,9 +115,9 @@
       <!-- Relationship Filter -->
       @if (hasRelationships()) {
         <div class="filter-section">
-          <label class="filter-label" for="project-search-related-to-select"
-            >Related to</label
-          >
+          <label class="filter-label" for="project-search-related-to-select">{{
+            'dialogs.projectSearch.relatedTo' | transloco
+          }}</label>
           <div class="filter-chips">
             <select
               class="relationship-select"
@@ -114,7 +125,9 @@
               (change)="setRelatedToElement($any($event.target).value)"
               data-testid="filter-related-to"
               id="project-search-related-to-select">
-              <option value="">Any element</option>
+              <option value="">
+                {{ 'dialogs.projectSearch.anyElement' | transloco }}
+              </option>
               @for (el of relatedElements(); track el.id) {
                 <option [value]="el.id">{{ el.name }}</option>
               }
@@ -130,7 +143,7 @@
           (click)="clearFilters()"
           data-testid="clear-filters">
           <mat-icon>filter_list_off</mat-icon>
-          Clear all filters
+          {{ 'dialogs.projectSearch.clearAllFilters' | transloco }}
         </button>
       }
     </div>
@@ -145,7 +158,11 @@
         class="scan-bar">
       </mat-progress-bar>
       <span class="progress-label">
-        Scanning {{ progress().scanned }}&nbsp;/&nbsp;{{ progress().total }}…
+        {{
+          'dialogs.projectSearch.scanning'
+            | transloco
+              : { current: progress().scanned, total: progress().total }
+        }}
       </span>
     </div>
   }
@@ -186,8 +203,9 @@
                 class="match-count"
                 [matTooltip]="
                   result.matchCount +
-                  ' match' +
-                  (result.matchCount === 1 ? '' : 'es')
+                  (result.matchCount === 1
+                    ? ('dialogs.projectSearch.match' | transloco)
+                    : ('dialogs.projectSearch.matches' | transloco))
                 ">
                 {{ result.matchCount }}
               </span>
@@ -205,9 +223,14 @@
         <div class="empty-state" data-testid="project-search-empty">
           <mat-icon>search_off</mat-icon>
           @if (hasQuery) {
-            <p>No results for "{{ searchQuery() }}"</p>
+            <p>
+              {{
+                'dialogs.projectSearch.noResults'
+                  | transloco: { query: searchQuery() }
+              }}
+            </p>
           } @else {
-            <p>No elements match the current filters</p>
+            <p>{{ 'dialogs.projectSearch.noFilterResults' | transloco }}</p>
           }
         </div>
       }
@@ -215,7 +238,10 @@
     @if (hasMoreResults()) {
       <div class="load-more-sentinel" data-testid="load-more">
         <button class="load-more-button" (click)="loadMore()">
-          Show more ({{ totalResults - results.length }} remaining)
+          {{
+            'dialogs.projectSearch.showMore'
+              | transloco: { count: totalResults - results.length }
+          }}
         </button>
       </div>
     }
@@ -224,15 +250,26 @@
   <!-- Footer -->
   <div class="dialog-footer">
     <div class="keyboard-hints">
-      <span class="hint"><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
-      <span class="hint"><kbd>Enter</kbd> Open</span>
-      <span class="hint"><kbd>Esc</kbd> Close</span>
+      <span class="hint"
+        ><kbd>↑</kbd><kbd>↓</kbd> {{ 'keyboard.navigate' | transloco }}</span
+      >
+      <span class="hint"
+        ><kbd>Enter</kbd> {{ 'keyboard.open' | transloco }}</span
+      >
+      <span class="hint"
+        ><kbd>Esc</kbd> {{ 'keyboard.close' | transloco }}</span
+      >
     </div>
     @if (isDone && totalResults > 0) {
       <span class="result-summary"
-        >{{ totalResults }} element{{ totalResults === 1 ? '' : 's' }}
+        >{{ totalResults }}
+        {{
+          totalResults === 1
+            ? ('dialogs.projectSearch.elementMatched' | transloco)
+            : ('dialogs.projectSearch.elementsMatched' | transloco)
+        }}
         @if (hasQuery) {
-          matched
+          {{ 'dialogs.projectSearch.matches' | transloco }}
         }
       </span>
     }

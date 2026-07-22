@@ -4,30 +4,27 @@
     <mat-card class="kill-switch-warning">
       <mat-card-header>
         <mat-icon mat-card-avatar class="warning-icon">block</mat-icon>
-        <mat-card-title>AI Features Disabled</mat-card-title>
+        <mat-card-title>{{
+          'admin.aiSettings.disabled' | transloco
+        }}</mat-card-title>
         <mat-card-subtitle>
           @if (isAiKillSwitchLockedByEnv()) {
-            AI features are disabled by the
-            <code>AI_KILL_SWITCH</code> environment variable.
+            {{ 'admin.aiSettings.disabledByEnv' | transloco }}
           } @else {
-            The AI Kill Switch is enabled. All AI features are currently
-            disabled.
+            {{ 'admin.aiSettings.killSwitchEnabled' | transloco }}
           }
         </mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <p>
-          While the kill switch is enabled, AI image generation and AI linting
-          features will not be available to users. You can still configure AI
-          providers below, but they will not be used until the kill switch is
-          disabled.
+          {{ 'admin.aiSettings.killSwitchWarning' | transloco }}
         </p>
       </mat-card-content>
       @if (!isAiKillSwitchLockedByEnv()) {
         <mat-card-actions>
           <a mat-button color="primary" routerLink="/admin/settings">
             <mat-icon>settings</mat-icon>
-            Go to Settings to disable Kill Switch
+            {{ 'admin.aiSettings.goToSettings' | transloco }}
           </a>
         </mat-card-actions>
       }
@@ -37,13 +34,15 @@
   @if (isLoading()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
-      <p>Loading AI configuration...</p>
+      <p>{{ 'admin.aiSettings.loading' | transloco }}</p>
     </div>
   } @else if (error()) {
     <mat-card class="error-card">
       <mat-card-header>
         <mat-icon mat-card-avatar>error</mat-icon>
-        <mat-card-title>Error Loading Configuration</mat-card-title>
+        <mat-card-title>{{
+          'admin.aiSettings.loadError' | transloco
+        }}</mat-card-title>
       </mat-card-header>
       <mat-card-content>
         <p>{{ error()?.message }}</p>
@@ -51,7 +50,7 @@
       <mat-card-actions>
         <button mat-button color="primary" (click)="loadConfig()">
           <mat-icon>refresh</mat-icon>
-          Retry
+          {{ 'retry' | transloco }}
         </button>
       </mat-card-actions>
     </mat-card>
@@ -60,17 +59,21 @@
     <mat-card class="settings-card">
       <mat-card-header>
         <mat-icon mat-card-avatar>auto_awesome</mat-icon>
-        <mat-card-title>AI Image Generation</mat-card-title>
+        <mat-card-title>{{
+          'admin.aiSettings.imageGeneration' | transloco
+        }}</mat-card-title>
         <mat-card-subtitle>
-          Enable or disable AI-powered image generation
+          {{ 'admin.aiSettings.imageGenerationDesc' | transloco }}
         </mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <div class="setting-row">
           <div class="setting-info">
-            <span class="setting-label">Enable Image Generation</span>
+            <span class="setting-label">{{
+              'admin.aiSettings.enableImageGeneration' | transloco
+            }}</span>
             <span class="setting-description">
-              Allow users to generate images using AI providers
+              {{ 'admin.aiSettings.enableImageGenerationDesc' | transloco }}
             </span>
           </div>
           <mat-slide-toggle
@@ -88,22 +91,22 @@
       <mat-card class="settings-card profiles-section-card">
         <mat-card-header>
           <mat-icon mat-card-avatar>tune</mat-icon>
-          <mat-card-title>Image Model Profiles</mat-card-title>
+          <mat-card-title>{{
+            'admin.aiSettings.imageProfiles' | transloco
+          }}</mat-card-title>
           <mat-card-subtitle>
-            Configure which AI models are available for image generation
+            {{ 'admin.aiSettings.imageProfilesDesc' | transloco }}
           </mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <p class="help-text">
-            Image profiles define which AI models users can select when
-            generating images. Each profile can have custom settings like
-            supported sizes and default options.
+            {{ 'admin.aiSettings.imageProfilesHelp' | transloco }}
           </p>
 
           @if (isLoadingProfiles()) {
             <div class="profiles-loading">
               <mat-spinner diameter="32"></mat-spinner>
-              <span>Loading profiles...</span>
+              <span>{{ 'admin.aiSettings.loadingProfiles' | transloco }}</span>
             </div>
           } @else {
             <div class="profiles-toolbar">
@@ -114,18 +117,17 @@
                 [disabled]="isSaving()"
                 data-testid="create-profile-button">
                 <mat-icon>add</mat-icon>
-                Create Profile
+                {{ 'admin.aiSettings.createProfile' | transloco }}
               </button>
             </div>
 
             @if (imageProfiles().length === 0) {
               <div class="empty-state small" data-testid="profiles-empty-state">
                 <mat-icon>image</mat-icon>
-                <p>No profiles configured</p>
-                <span class="hint"
-                  >Create an image model profile to enable image generation for
-                  users.</span
-                >
+                <p>{{ 'admin.aiSettings.noProfiles' | transloco }}</p>
+                <span class="hint">{{
+                  'admin.aiSettings.noProfilesHint' | transloco
+                }}</span>
               </div>
             } @else {
               <div class="profiles-grid" data-testid="profiles-grid">
@@ -152,12 +154,16 @@
 
                     <div class="profile-details">
                       <div class="detail-row">
-                        <span class="label">Image Input:</span>
+                        <span class="label">{{
+                          'admin.aiSettings.imageInput' | transloco
+                        }}</span>
                         <span class="value">
                           @if (profile.supportsImageInput) {
-                            <mat-icon class="check">check_circle</mat-icon> Yes
+                            <mat-icon class="check">check_circle</mat-icon>
+                            {{ 'yes' | transloco }}
                           } @else {
-                            <mat-icon class="no">cancel</mat-icon> No
+                            <mat-icon class="no">cancel</mat-icon>
+                            {{ 'no' | transloco }}
                           }
                         </span>
                       </div>
@@ -167,7 +173,9 @@
                         profile.supportedSizes.length > 0
                       ) {
                         <div class="detail-row">
-                          <span class="label">Sizes:</span>
+                          <span class="label">{{
+                            'admin.aiSettings.sizes' | transloco
+                          }}</span>
                           <span class="value sizes">
                             @for (size of profile.supportedSizes; track size) {
                               <span class="size-chip">{{ size }}</span>
@@ -183,14 +191,18 @@
                         (change)="toggleProfileEnabled(profile)"
                         [disabled]="isSaving()"
                         [attr.data-testid]="'profile-toggle-' + profile.id"
-                        matTooltip="Enable/disable this profile">
+                        [matTooltip]="
+                          'admin.aiSettings.enableProfile' | transloco
+                        ">
                       </mat-slide-toggle>
                       <button
                         mat-icon-button
                         (click)="openEditProfileDialog(profile)"
                         [disabled]="isSaving()"
                         [attr.data-testid]="'profile-edit-' + profile.id"
-                        matTooltip="Edit profile">
+                        [matTooltip]="
+                          'admin.aiSettings.editProfile' | transloco
+                        ">
                         <mat-icon>edit</mat-icon>
                       </button>
                       <button
@@ -199,7 +211,9 @@
                         (click)="deleteImageProfile(profile)"
                         [disabled]="isSaving()"
                         [attr.data-testid]="'profile-delete-' + profile.id"
-                        matTooltip="Delete profile">
+                        [matTooltip]="
+                          'admin.aiSettings.deleteProfile' | transloco
+                        ">
                         <mat-icon>delete</mat-icon>
                       </button>
                     </div>
@@ -215,15 +229,16 @@
       <mat-card class="settings-card">
         <mat-card-header>
           <mat-icon mat-card-avatar>photo_size_select_large</mat-icon>
-          <mat-card-title>Custom Image Sizes</mat-card-title>
+          <mat-card-title>{{
+            'admin.aiSettings.customSizes' | transloco
+          }}</mat-card-title>
           <mat-card-subtitle>
-            Define custom resolution profiles for image generation
+            {{ 'admin.aiSettings.customSizesDesc' | transloco }}
           </mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <p class="help-text">
-            Custom sizes are available in addition to the standard sizes offered
-            by each provider. Note that not all providers support all sizes.
+            {{ 'admin.aiSettings.customSizesHelp' | transloco }}
           </p>
 
           <!-- Existing Custom Sizes -->
@@ -248,7 +263,7 @@
                     mat-icon-button
                     color="warn"
                     (click)="removeCustomSize(size.id)"
-                    matTooltip="Remove this size">
+                    [matTooltip]="'admin.aiSettings.removeSize' | transloco">
                     <mat-icon>delete</mat-icon>
                   </button>
                 </div>
@@ -257,7 +272,7 @@
           } @else {
             <div class="empty-state small">
               <mat-icon>crop_free</mat-icon>
-              <p>No custom sizes defined</p>
+              <p>{{ 'admin.aiSettings.noCustomSizes' | transloco }}</p>
             </div>
           }
 
@@ -266,22 +281,30 @@
           <!-- Add New Size Form -->
           @if (editingNewSize()) {
             <div class="add-size-form">
-              <h4>Add Custom Size</h4>
+              <h4>{{ 'admin.aiSettings.addCustomSize' | transloco }}</h4>
               <div class="size-form-row">
                 <mat-form-field appearance="outline">
-                  <mat-label>Name</mat-label>
+                  <mat-label>{{
+                    'admin.aiSettings.sizeNameLabel' | transloco
+                  }}</mat-label>
                   <input
                     matInput
                     [value]="newSize().name"
                     (input)="updateNewSizeName($any($event.target).value)"
-                    placeholder="e.g., HD Landscape"
+                    [placeholder]="
+                      'admin.aiSettings.sizeNamePlaceholder' | transloco
+                    "
                     id="ai-settings-size-name-input"
-                    aria-label="Size name" />
+                    [attr.aria-label]="
+                      'admin.aiSettings.sizeNameAria' | transloco
+                    " />
                 </mat-form-field>
               </div>
               <div class="size-form-row dimensions-row">
                 <mat-form-field appearance="outline">
-                  <mat-label>Width (px)</mat-label>
+                  <mat-label>{{
+                    'admin.aiSettings.widthLabel' | transloco
+                  }}</mat-label>
                   <input
                     matInput
                     type="number"
@@ -290,11 +313,15 @@
                     [value]="newSize().width"
                     (input)="updateNewSizeWidth(+$any($event.target).value)"
                     id="ai-settings-size-width-input"
-                    aria-label="Width in pixels" />
+                    [attr.aria-label]="
+                      'admin.aiSettings.widthAria' | transloco
+                    " />
                 </mat-form-field>
                 <span class="dimension-separator">×</span>
                 <mat-form-field appearance="outline">
-                  <mat-label>Height (px)</mat-label>
+                  <mat-label>{{
+                    'admin.aiSettings.heightLabel' | transloco
+                  }}</mat-label>
                   <input
                     matInput
                     type="number"
@@ -303,25 +330,35 @@
                     [value]="newSize().height"
                     (input)="updateNewSizeHeight(+$any($event.target).value)"
                     id="ai-settings-size-height-input"
-                    aria-label="Height in pixels" />
+                    [attr.aria-label]="
+                      'admin.aiSettings.heightAria' | transloco
+                    " />
                 </mat-form-field>
               </div>
               <div class="size-form-row">
                 <mat-form-field appearance="outline">
-                  <mat-label>Description (optional)</mat-label>
+                  <mat-label>{{
+                    'admin.aiSettings.sizeDescLabel' | transloco
+                  }}</mat-label>
                   <input
                     matInput
                     [value]="newSize().description || ''"
                     (input)="
                       updateNewSizeDescription($any($event.target).value)
                     "
-                    placeholder="e.g., Standard HD for wallpapers"
+                    [placeholder]="
+                      'admin.aiSettings.sizeDescPlaceholder' | transloco
+                    "
                     id="ai-settings-size-description-input"
-                    aria-label="Description" />
+                    [attr.aria-label]="
+                      'admin.aiSettings.sizeDescAria' | transloco
+                    " />
                 </mat-form-field>
               </div>
               <div class="size-form-actions">
-                <button mat-button (click)="cancelAddingSize()">Cancel</button>
+                <button mat-button (click)="cancelAddingSize()">
+                  {{ 'cancel' | transloco }}
+                </button>
                 <button
                   mat-raised-button
                   color="primary"
@@ -329,7 +366,7 @@
                   [disabled]="
                     !newSize().name || !newSize().width || !newSize().height
                   ">
-                  Add Size
+                  {{ 'admin.aiSettings.addSize' | transloco }}
                 </button>
               </div>
             </div>
@@ -340,7 +377,7 @@
               (click)="startAddingSize()"
               class="add-size-button">
               <mat-icon>add</mat-icon>
-              Add Custom Size
+              {{ 'admin.aiSettings.addCustomSize' | transloco }}
             </button>
           }
         </mat-card-content>
@@ -349,7 +386,7 @@
           <mat-card-actions align="end">
             <button mat-button color="warn" (click)="resetCustomSizes()">
               <mat-icon>clear_all</mat-icon>
-              Clear All
+              {{ 'admin.aiSettings.clearAll' | transloco }}
             </button>
             <button
               mat-raised-button
@@ -357,7 +394,7 @@
               (click)="saveCustomSizes()"
               [disabled]="isSaving()">
               <mat-icon>save</mat-icon>
-              Save Custom Sizes
+              {{ 'admin.aiSettings.saveCustomSizes' | transloco }}
             </button>
           </mat-card-actions>
         }

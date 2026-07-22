@@ -10,6 +10,8 @@ import {
 } from './local-snapshot.service';
 import { StorageService } from './storage.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 /**
  * Tests for LocalSnapshotService.
  *
@@ -49,6 +51,7 @@ describe('LocalSnapshotService', () => {
     storageService.initializeDatabase.mockResolvedValue(mockDb);
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         LocalSnapshotService,

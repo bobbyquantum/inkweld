@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoModule } from '@jsverse/transloco';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { type Project } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
@@ -18,6 +19,8 @@ import { SyncQueueService } from '@services/sync/sync-queue.service';
 import { BehaviorSubject } from 'rxjs';
 
 import { DocumentTabComponent } from './document-tab.component';
+
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 
 // Mock DocumentElementEditorComponent (with standalone: true)
 @Component({
@@ -105,6 +108,7 @@ describe('DocumentTabComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         MatIconModule,
         DocumentTabComponent,
         MockDocumentElementEditorComponent,
@@ -125,6 +129,7 @@ describe('DocumentTabComponent', () => {
             MockDocumentElementEditorComponent,
             MockDocumentBreadcrumbsComponent,
             MatIconModule,
+            TranslocoModule,
           ],
         },
       })

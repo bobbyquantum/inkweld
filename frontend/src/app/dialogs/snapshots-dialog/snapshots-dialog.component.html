@@ -1,6 +1,6 @@
 <h2 mat-dialog-title>
   <mat-icon>history</mat-icon>
-  Document Snapshots
+  {{ 'dialogs.snapshots.title' | transloco }}
 </h2>
 
 <mat-dialog-content class="snapshots-dialog-content">
@@ -12,7 +12,7 @@
       (click)="createSnapshot()"
       data-testid="create-snapshot-btn">
       <mat-icon>add_photo_alternate</mat-icon>
-      New Snapshot
+      {{ 'dialogs.snapshots.newSnapshot' | transloco }}
     </button>
   </div>
 
@@ -20,7 +20,7 @@
   @if (loading()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
-      <p>Loading snapshots...</p>
+      <p>{{ 'dialogs.snapshots.loading' | transloco }}</p>
     </div>
   }
 
@@ -29,7 +29,9 @@
     <div class="error-container">
       <mat-icon color="warn">error</mat-icon>
       <p>{{ error() }}</p>
-      <button mat-button (click)="loadSnapshots()">Retry</button>
+      <button mat-button (click)="loadSnapshots()">
+        {{ 'retry' | transloco }}
+      </button>
     </div>
   }
 
@@ -37,8 +39,8 @@
   @if (!loading() && !error() && snapshots().length === 0) {
     <div class="empty-state">
       <mat-icon>photo_library</mat-icon>
-      <h3>No snapshots yet</h3>
-      <p>Create a snapshot to save the current state of your document.</p>
+      <h3>{{ 'dialogs.snapshots.noSnapshots' | transloco }}</h3>
+      <p>{{ 'dialogs.snapshots.noSnapshotsHint' | transloco }}</p>
     </div>
   }
 
@@ -65,7 +67,8 @@
 
               <span class="meta-item">
                 <mat-icon>text_fields</mat-icon>
-                {{ formatWordCount(snapshot.wordCount) }} words
+                {{ formatWordCount(snapshot.wordCount) }}
+                {{ 'dialogs.snapshots.words' | transloco }}
               </span>
             </div>
           </div>
@@ -76,7 +79,7 @@
               mat-icon-button
               [matMenuTriggerFor]="snapshotMenu"
               [attr.data-testid]="'snapshot-menu-' + snapshot.id"
-              matTooltip="Actions">
+              [matTooltip]="'dialogs.snapshots.actions' | transloco">
               <mat-icon>more_vert</mat-icon>
             </button>
 
@@ -86,7 +89,7 @@
                 (click)="restoreSnapshot(snapshot)"
                 [attr.data-testid]="'restore-snapshot-' + snapshot.id">
                 <mat-icon>restore</mat-icon>
-                <span>Restore</span>
+                <span>{{ 'dialogs.snapshots.restore' | transloco }}</span>
               </button>
 
               <button
@@ -94,7 +97,7 @@
                 (click)="previewSnapshot(snapshot)"
                 [attr.data-testid]="'preview-snapshot-' + snapshot.id">
                 <mat-icon>preview</mat-icon>
-                <span>Preview HTML</span>
+                <span>{{ 'dialogs.snapshots.previewHtml' | transloco }}</span>
               </button>
 
               <button
@@ -102,7 +105,7 @@
                 (click)="deleteSnapshot(snapshot)"
                 [attr.data-testid]="'delete-snapshot-' + snapshot.id">
                 <mat-icon color="warn">delete</mat-icon>
-                <span>Delete</span>
+                <span>{{ 'delete' | transloco }}</span>
               </button>
             </mat-menu>
           </div>
@@ -114,6 +117,6 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="close()" data-testid="close-snapshots-dialog">
-    Close
+    {{ 'close' | transloco }}
   </button>
 </mat-dialog-actions>

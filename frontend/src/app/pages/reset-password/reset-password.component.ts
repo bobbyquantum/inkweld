@@ -15,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, RouterModule } from '@angular/router';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasswordResetService } from '@services/auth/password-reset.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 
@@ -36,6 +37,7 @@ interface PasswordRequirement {
     MatInputModule,
     MatProgressSpinnerModule,
     RouterModule,
+    TranslocoModule,
   ],
   templateUrl: './reset-password.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -45,6 +47,7 @@ export class ResetPasswordComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly passwordResetService = inject(PasswordResetService);
   private readonly systemConfig = inject(SystemConfigService);
+  private readonly transloco = inject(TranslocoService);
   private readonly policy = this.systemConfig.passwordPolicy;
 
   newPassword = '';
@@ -56,41 +59,46 @@ export class ResetPasswordComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly noToken = signal(false);
 
-  passwordRequirements: Record<string, PasswordRequirement> = {
-    minLength: {
-      met: false,
-      message: `At least ${this.policy().minLength} characters long`,
-      enabled: true,
-    },
-    uppercase: {
-      met: false,
-      message: 'At least one uppercase letter',
-      enabled: this.policy().requireUppercase,
-    },
-    lowercase: {
-      met: false,
-      message: 'At least one lowercase letter',
-      enabled: this.policy().requireLowercase,
-    },
-    number: {
-      met: false,
-      message: 'At least one number',
-      enabled: this.policy().requireNumber,
-    },
-    special: {
-      met: false,
-      message: 'At least one special character (@$!%*?&)',
-      enabled: this.policy().requireSymbol,
-    },
-  };
+  passwordRequirements!: Record<string, PasswordRequirement>;
 
   constructor() {
+    this.passwordRequirements = {
+      minLength: {
+        met: false,
+        message: this.transloco.translate('auth.registration.reqMinLength', {
+          min: this.policy().minLength,
+        }),
+        enabled: true,
+      },
+      uppercase: {
+        met: false,
+        message: this.transloco.translate('auth.registration.reqUppercase'),
+        enabled: this.policy().requireUppercase,
+      },
+      lowercase: {
+        met: false,
+        message: this.transloco.translate('auth.registration.reqLowercase'),
+        enabled: this.policy().requireLowercase,
+      },
+      number: {
+        met: false,
+        message: this.transloco.translate('auth.registration.reqNumber'),
+        enabled: this.policy().requireNumber,
+      },
+      special: {
+        met: false,
+        message: this.transloco.translate('auth.registration.reqSpecial'),
+        enabled: this.policy().requireSymbol,
+      },
+    };
     // Sync password requirement enabled flags when policy signal changes
     effect(() => {
       const p = this.policy();
       this.passwordRequirements['minLength'].enabled = true;
-      this.passwordRequirements['minLength'].message =
-        `At least ${p.minLength} characters long`;
+      this.passwordRequirements['minLength'].message = this.transloco.translate(
+        'auth.registration.reqMinLength',
+        { min: p.minLength }
+      );
       this.passwordRequirements['uppercase'].enabled = p.requireUppercase;
       this.passwordRequirements['lowercase'].enabled = p.requireLowercase;
       this.passwordRequirements['number'].enabled = p.requireNumber;
@@ -132,10 +140,12 @@ export class ResetPasswordComponent implements OnInit {
       const unmet = Object.values(this.passwordRequirements).find(
         req => req.enabled && !req.met
       );
-      return unmet ? unmet.message : 'Password does not meet requirements';
+      return unmet
+        ? unmet.message
+        : this.transloco.translate('auth.registration.passwordTooWeak');
     }
     if (this.confirmPassword && this.newPassword !== this.confirmPassword) {
-      return 'Passwords do not match';
+      return this.transloco.translate('auth.registration.passwordsMismatch');
     }
     return null;
   }
@@ -162,9 +172,11 @@ export class ResetPasswordComponent implements OnInit {
         const httpError = (err as Record<string, Record<string, string>>)[
           'error'
         ];
-        this.error.set(httpError?.['error'] || 'Invalid or expired reset link');
+        this.error.set(
+          httpError?.['error'] || this.transloco.translate('errors.unknown')
+        );
       } else {
-        this.error.set('Something went wrong. Please try again.');
+        this.error.set(this.transloco.translate('errors.unknown'));
       }
     } finally {
       this.isSubmitting.set(false);

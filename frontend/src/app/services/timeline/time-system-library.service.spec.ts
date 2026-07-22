@@ -11,6 +11,8 @@ import { LoggerService } from '../core/logger.service';
 import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
 import { TimeSystemLibraryService } from './time-system-library.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 function makeSystem(overrides: Partial<TimeSystem> = {}): TimeSystem {
   return {
     ...GREGORIAN_SYSTEM,
@@ -50,6 +52,7 @@ describe('TimeSystemLibraryService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         TimeSystemLibraryService,
         { provide: LoggerService, useValue: mockLogger },

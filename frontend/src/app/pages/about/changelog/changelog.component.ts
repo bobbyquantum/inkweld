@@ -9,6 +9,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import {
   ChangelogService,
@@ -24,7 +25,13 @@ export interface SafeChangelogVersion extends Omit<
 
 @Component({
   selector: 'app-changelog',
-  imports: [CommonModule, MatExpansionModule, MatIconModule, MatButtonModule],
+  imports: [
+    CommonModule,
+    MatExpansionModule,
+    MatIconModule,
+    MatButtonModule,
+    TranslocoModule,
+  ],
   templateUrl: './changelog.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './changelog.component.scss',
@@ -32,6 +39,7 @@ export interface SafeChangelogVersion extends Omit<
 export class ChangelogComponent implements OnInit {
   private readonly changelogService = inject(ChangelogService);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly transloco = inject(TranslocoService);
 
   versions = signal<SafeChangelogVersion[]>([]);
   loading = signal<boolean>(true);
@@ -49,7 +57,7 @@ export class ChangelogComponent implements OnInit {
       },
       error: err => {
         console.error('Failed to load changelog', err);
-        this.error.set('Failed to load changelog. Please try again later.');
+        this.error.set(this.transloco.translate('errors.loadFailed'));
         this.loading.set(false);
       },
     });

@@ -12,6 +12,8 @@ import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { CanvasService } from './canvas.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Test Helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -96,6 +98,7 @@ describe('CanvasService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasService,
         { provide: ProjectStateService, useValue: mockProjectState },

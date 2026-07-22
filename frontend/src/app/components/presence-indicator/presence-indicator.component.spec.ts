@@ -7,6 +7,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { PresenceIndicatorComponent } from './presence-indicator.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 function session(sessionId: string, username: string): PresenceSession {
   return {
     sessionId,
@@ -26,7 +28,7 @@ describe('PresenceIndicatorComponent', () => {
     users = signal<PresenceSession[]>([]);
 
     await TestBed.configureTestingModule({
-      imports: [PresenceIndicatorComponent],
+      imports: [translocoTestProvider(), PresenceIndicatorComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: PresenceService, useValue: { users: users.asReadonly() } },

@@ -1,6 +1,6 @@
 <h2 mat-dialog-title data-testid="publish-complete-dialog-title">
   <mat-icon class="success-icon">check_circle</mat-icon>
-  Published Successfully!
+  {{ 'publish.complete.title' | transloco }}
 </h2>
 
 <mat-dialog-content>
@@ -20,10 +20,10 @@
 
   @if (isOnline) {
     <div class="sharing-section">
-      <h3>Share Settings</h3>
+      <h3>{{ 'publish.complete.shareSettings' | transloco }}</h3>
 
       <mat-form-field appearance="outline" class="share-select">
-        <mat-label>Who can access</mat-label>
+        <mat-label>{{ 'publish.complete.whoCanAccess' | transloco }}</mat-label>
         <mat-select
           [value]="sharePermission()"
           (selectionChange)="onPermissionChange($event.value)"
@@ -36,7 +36,9 @@
               <mat-icon>{{ option.icon }}</mat-icon>
               {{ option.label }}
               @if (option.disabled) {
-                <span class="coming-soon">(Coming soon)</span>
+                <span class="coming-soon">{{
+                  'publish.complete.comingSoon' | transloco
+                }}</span>
               }
             </mat-option>
           }
@@ -51,11 +53,11 @@
             id="publish-share-url-input"
             [value]="shareUrl || ''"
             class="share-url-input"
-            aria-label="Share URL" />
+            [attr.aria-label]="'publish.complete.shareUrlAria' | transloco" />
           <button
             mat-icon-button
             (click)="copyShareLink()"
-            matTooltip="Copy link">
+            [matTooltip]="'publish.complete.copyLink' | transloco">
             <mat-icon>content_copy</mat-icon>
           </button>
         </div>
@@ -64,7 +66,7 @@
   } @else {
     <div class="local-notice" data-testid="local-notice">
       <mat-icon>cloud_off</mat-icon>
-      <span>Sharing options available when online</span>
+      <span>{{ 'publish.complete.sharingOnlineOnly' | transloco }}</span>
     </div>
   }
 </mat-dialog-content>
@@ -72,7 +74,7 @@
 <mat-dialog-actions align="end">
   <button mat-button (click)="download()" data-testid="download-button">
     <mat-icon>download</mat-icon>
-    Download
+    {{ 'publish.complete.download' | transloco }}
   </button>
   @if (canShare) {
     <button
@@ -81,7 +83,7 @@
       (click)="copyShareLink()"
       data-testid="copy-link-button">
       <mat-icon>share</mat-icon>
-      Copy Link
+      {{ 'publish.complete.copyLinkButton' | transloco }}
     </button>
   } @else {
     <button
@@ -89,7 +91,7 @@
       color="primary"
       (click)="close()"
       data-testid="done-button">
-      Done
+      {{ 'done' | transloco }}
     </button>
   }
 </mat-dialog-actions>

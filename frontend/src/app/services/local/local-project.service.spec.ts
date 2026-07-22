@@ -9,6 +9,8 @@ import { LocalProjectService } from './local-project.service';
 import { LocalProjectElementsService } from './local-project-elements.service';
 import { ProjectSyncService } from './project-sync.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 type MockedObject<T> = {
   [K in keyof T]: T[K] extends (...args: any[]) => any
     ? ReturnType<typeof vi.fn> & T[K]
@@ -84,6 +86,7 @@ describe('LocalProjectService', () => {
     mockLocalStorage.getItem.mockReturnValue('[]');
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         LocalProjectService,

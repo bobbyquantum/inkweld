@@ -21,6 +21,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
+import { TranslocoModule } from '@jsverse/transloco';
 import cytoscape from 'cytoscape';
 import dagre from 'cytoscape-dagre';
 import fcose from 'cytoscape-fcose';
@@ -84,6 +85,7 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
     MatMenuModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    TranslocoModule,
     DocumentBreadcrumbsComponent,
   ],
   providers: [

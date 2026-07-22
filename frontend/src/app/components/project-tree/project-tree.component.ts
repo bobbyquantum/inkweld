@@ -39,6 +39,7 @@ import { DialogGatewayService } from '../../services/core/dialog-gateway.service
 import { LoggerService } from '../../services/core/logger.service';
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
+import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * Component for displaying and managing the project tree with ARIA accessibility.
@@ -58,6 +59,7 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
     CdkDragPlaceholder,
     CdkDropList,
     TreeNodeIconComponent,
+    TranslocoModule,
   ],
   selector: 'app-project-tree',
   templateUrl: './project-tree.component.html',

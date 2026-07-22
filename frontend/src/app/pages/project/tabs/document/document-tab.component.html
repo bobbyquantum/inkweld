@@ -1,11 +1,10 @@
 @if (documentUnavailable()) {
   <div class="editor-placeholder" data-testid="unsynchronized-document-warning">
     <mat-icon>cloud_off</mat-icon>
-    <span>This document has not been synced to your browser yet.</span>
-    <span class="subtitle"
-      >Reconnect to the server and try again once the document has finished
-      syncing.</span
-    >
+    <span>{{ 'project.documentTab.notSynced' | transloco }}</span>
+    <span class="subtitle">{{
+      'project.documentTab.notSyncedHint' | transloco
+    }}</span>
     @if (syncError()) {
       <span class="sync-error" data-testid="sync-error">{{ syncError() }}</span>
     }
@@ -16,11 +15,11 @@
       (click)="triggerSync()">
       @if (syncing()) {
         <mat-spinner diameter="18"></mat-spinner>
-        <span>Syncing…</span>
+        <span>{{ 'project.documentTab.syncing' | transloco }}</span>
       } @else {
         <ng-container>
           <mat-icon>sync</mat-icon>
-          <span>Sync Project</span>
+          <span>{{ 'project.documentTab.syncProject' | transloco }}</span>
         </ng-container>
       }
     </button>
@@ -39,12 +38,12 @@
   } @placeholder {
     <div class="editor-placeholder">
       <mat-icon>edit_note</mat-icon>
-      <span>Loading editor...</span>
+      <span>{{ 'project.documentTab.loadingEditor' | transloco }}</span>
     </div>
   }
 } @else {
   <div class="editor-placeholder">
     <mat-icon>edit_note</mat-icon>
-    <span>Loading document...</span>
+    <span>{{ 'project.documentTab.loadingDocument' | transloco }}</span>
   </div>
 }

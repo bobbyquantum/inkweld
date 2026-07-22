@@ -16,6 +16,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { AIProvidersService, type ProviderStatus } from 'api-client';
 import { firstValueFrom } from 'rxjs';
@@ -44,6 +45,7 @@ interface ProviderUIState extends ProviderStatus {
     MatSlideToggleModule,
     MatSnackBarModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './ai-providers.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -53,6 +55,7 @@ export class AdminAiProvidersComponent implements OnInit {
   private readonly providersService = inject(AIProvidersService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly systemConfigService = inject(SystemConfigService);
+  private readonly transloco = inject(TranslocoService);
 
   readonly isLoading = signal(true);
   readonly error = signal<Error | null>(null);
@@ -127,9 +130,11 @@ export class AdminAiProvidersComponent implements OnInit {
 
   async saveApiKey(provider: ProviderUIState): Promise<void> {
     if (!provider.apiKey.trim()) {
-      this.snackBar.open('API key cannot be empty', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.aiProviders.apiKeyEmpty'),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
       return;
     }
 
@@ -142,24 +147,36 @@ export class AdminAiProvidersComponent implements OnInit {
         })
       );
 
-      this.snackBar.open(`${provider.name} API key saved`, 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.aiProviders.apiKeySaved', {
+          provider: provider.name,
+        }),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
 
       // Reload to get updated status
       await this.loadProviders();
     } catch (err) {
       console.error(`Failed to save ${provider.name} API key:`, err);
-      this.snackBar.open(`Failed to save ${provider.name} API key`, 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.aiProviders.apiKeySaveFailed', {
+          provider: provider.name,
+        }),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
       this.updateProvider(provider.id, { isSaving: false });
     }
   }
 
   async deleteApiKey(provider: ProviderUIState): Promise<void> {
     if (
-      !confirm(`Are you sure you want to delete the ${provider.name} API key?`)
+      !confirm(
+        this.transloco.translate('admin.aiProviders.deleteKeyConfirm', {
+          provider: provider.name,
+        })
+      )
     ) {
       return;
     }
@@ -171,20 +188,24 @@ export class AdminAiProvidersComponent implements OnInit {
         this.providersService.deleteAiProviderKey(provider.id)
       );
 
-      this.snackBar.open(`${provider.name} API key deleted`, 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.aiProviders.apiKeyDeleted', {
+          provider: provider.name,
+        }),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
 
       // Reload to get updated status
       await this.loadProviders();
     } catch (err) {
       console.error(`Failed to delete ${provider.name} API key:`, err);
       this.snackBar.open(
-        `Failed to delete ${provider.name} API key`,
-        'Dismiss',
-        {
-          duration: 3000,
-        }
+        this.transloco.translate('admin.aiProviders.apiKeySaveFailed', {
+          provider: provider.name,
+        }),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
       );
       this.updateProvider(provider.id, { isSaving: false });
     }
@@ -192,9 +213,11 @@ export class AdminAiProvidersComponent implements OnInit {
 
   async saveEndpoint(provider: ProviderUIState): Promise<void> {
     if (!provider.endpoint.trim()) {
-      this.snackBar.open('Endpoint URL cannot be empty', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.aiProviders.endpointEmpty'),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
       return;
     }
 
@@ -207,20 +230,24 @@ export class AdminAiProvidersComponent implements OnInit {
         })
       );
 
-      this.snackBar.open(`${provider.name} endpoint saved`, 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.aiProviders.endpointSaved', {
+          provider: provider.name,
+        }),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
 
       // Reload to get updated status
       await this.loadProviders();
     } catch (err) {
       console.error(`Failed to save ${provider.name} endpoint:`, err);
       this.snackBar.open(
-        `Failed to save ${provider.name} endpoint`,
-        'Dismiss',
-        {
-          duration: 3000,
-        }
+        this.transloco.translate('admin.aiProviders.updateFailed', {
+          provider: provider.name,
+        }),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
       );
       this.updateProvider(provider.id, { isSaving: false });
     }
@@ -228,9 +255,11 @@ export class AdminAiProvidersComponent implements OnInit {
 
   async saveAccountId(provider: ProviderUIState): Promise<void> {
     if (!provider.accountId.trim()) {
-      this.snackBar.open('Account ID cannot be empty', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.aiProviders.accountIdEmpty'),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
       return;
     }
 
@@ -243,20 +272,24 @@ export class AdminAiProvidersComponent implements OnInit {
         })
       );
 
-      this.snackBar.open(`${provider.name} account ID saved`, 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.aiProviders.accountIdSaved', {
+          provider: provider.name,
+        }),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
 
       // Reload to get updated status
       await this.loadProviders();
     } catch (err) {
       console.error(`Failed to save ${provider.name} account ID:`, err);
       this.snackBar.open(
-        `Failed to save ${provider.name} account ID`,
-        'Dismiss',
-        {
-          duration: 3000,
-        }
+        this.transloco.translate('admin.aiProviders.updateFailed', {
+          provider: provider.name,
+        }),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
       );
       this.updateProvider(provider.id, { isSaving: false });
     }

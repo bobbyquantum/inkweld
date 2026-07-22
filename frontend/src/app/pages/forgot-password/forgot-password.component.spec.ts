@@ -9,6 +9,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ForgotPasswordComponent } from './forgot-password.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ForgotPasswordComponent', () => {
   let component: ForgotPasswordComponent;
   let fixture: ComponentFixture<ForgotPasswordComponent>;
@@ -23,7 +25,7 @@ describe('ForgotPasswordComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ForgotPasswordComponent],
+      imports: [translocoTestProvider(), ForgotPasswordComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),
@@ -49,7 +51,7 @@ describe('ForgotPasswordComponent', () => {
   it('should show error when submitting empty email', async () => {
     component.email = '';
     await component.onSubmit();
-    expect(component.error()).toBe('Please enter your email address.');
+    expect(component.error()).toBe('Email address is required');
   });
 
   it('should call forgotPassword on valid submit', async () => {
@@ -71,9 +73,7 @@ describe('ForgotPasswordComponent', () => {
     component.email = 'user@example.com';
     await component.onSubmit();
 
-    expect(component.error()).toBe(
-      'Something went wrong. Please try again later.'
-    );
+    expect(component.error()).toBe('Something went wrong. Please try again.');
     expect(component.submitted()).toBe(false);
   });
 

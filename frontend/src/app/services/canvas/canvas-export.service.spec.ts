@@ -5,6 +5,8 @@ import { CanvasService } from './canvas.service';
 import { CanvasExportService } from './canvas-export.service';
 import { CanvasRendererService } from './canvas-renderer.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('CanvasExportService', () => {
   let service: CanvasExportService;
   let renderer: { stage: { toDataURL: ReturnType<typeof vi.fn> } | null };
@@ -17,6 +19,7 @@ describe('CanvasExportService', () => {
     canvasService = { activeConfig: vi.fn(() => null) };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasExportService,
         { provide: CanvasRendererService, useValue: renderer },

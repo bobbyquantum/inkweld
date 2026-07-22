@@ -8,6 +8,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TimeSystemEditPageComponent } from './time-system-edit-page.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 function makeLibraryMock(initialSystems: TimeSystem[] = []) {
   const systemsSignal = signal<TimeSystem[]>(initialSystems);
   return {
@@ -30,7 +32,7 @@ async function createComponent(
   const dialogMock = { open: vi.fn().mockReturnValue(dialogRef) };
 
   await TestBed.configureTestingModule({
-    imports: [TimeSystemEditPageComponent],
+    imports: [translocoTestProvider(), TimeSystemEditPageComponent],
     providers: [
       { provide: TimeSystemLibraryService, useValue: libraryMock },
       { provide: MatDialog, useValue: dialogMock },

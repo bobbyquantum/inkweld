@@ -15,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { TranslocoModule } from '@jsverse/transloco';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
 import { WritingStatsWidgetComponent } from '@components/writing-stats-widget/writing-stats-widget.component';
 import { type User } from '@inkweld/index';
@@ -33,6 +34,7 @@ import { debounceTime } from 'rxjs/operators';
     MatDividerModule,
     MatToolbarModule,
     MatProgressSpinnerModule,
+    TranslocoModule,
     UserAvatarComponent,
     WritingStatsWidgetComponent,
   ],

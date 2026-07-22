@@ -39,6 +39,8 @@ import { WorldbuildingImageDialogComponent } from '../../dialogs/worldbuilding-i
 import { ProjectActivationService } from '../local/project-activation.service';
 import { DialogGatewayService } from './dialog-gateway.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('DialogGatewayService', () => {
   let service: DialogGatewayService;
   let dialogMock: MockedObject<MatDialog>;
@@ -60,6 +62,7 @@ describe('DialogGatewayService', () => {
     } as unknown as MockedObject<MatDialog>;
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         DialogGatewayService,

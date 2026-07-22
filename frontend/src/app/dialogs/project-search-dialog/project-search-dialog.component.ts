@@ -15,6 +15,7 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import { ElementType } from '@inkweld/index';
 
 import { FindInDocumentService } from '../../services/core/find-in-document.service';
@@ -55,6 +56,7 @@ const PAGE_SIZE = 50;
     MatIconModule,
     MatProgressBarModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './project-search-dialog.component.html',
   styleUrls: ['./project-search-dialog.component.scss'],

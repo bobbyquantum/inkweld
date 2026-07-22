@@ -10,6 +10,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { SetupService } from '../core/setup.service';
 import { PasswordResetService } from './password-reset.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('PasswordResetService', () => {
   let service: PasswordResetService;
   let httpController: HttpTestingController;
@@ -20,6 +22,7 @@ describe('PasswordResetService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

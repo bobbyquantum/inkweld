@@ -11,6 +11,8 @@ import { vi } from 'vitest';
 
 import { EditAvatarDialogComponent } from './edit-avatar-dialog.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('EditAvatarDialogComponent', () => {
   let component: EditAvatarDialogComponent;
   let fixture: ComponentFixture<EditAvatarDialogComponent>;
@@ -42,7 +44,7 @@ describe('EditAvatarDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [EditAvatarDialogComponent],
+      imports: [translocoTestProvider(), EditAvatarDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: UserService, useValue: userServiceMock },

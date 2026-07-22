@@ -13,6 +13,8 @@ import { mockDeep } from 'vitest-mock-extended';
 
 import { ActivityTabComponent } from './activity-tab.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 const makeEvent = (
   id: string,
   overrides: Partial<ProjectActivityEvent> = {}
@@ -55,7 +57,7 @@ describe('ActivityTabComponent', () => {
     }
 
     await TestBed.configureTestingModule({
-      imports: [ActivityTabComponent],
+      imports: [translocoTestProvider(), ActivityTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ActivityFeedService, useValue: activityFeed },

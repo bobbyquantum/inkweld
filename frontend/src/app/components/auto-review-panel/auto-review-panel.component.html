@@ -2,13 +2,13 @@
   <div class="auto-review-panel__header">
     <h3 class="auto-review-panel__title">
       <mat-icon>spellcheck</mat-icon>
-      Auto-Review
+      {{ 'editor.autoReview.title' | transloco }}
     </h3>
     <div class="auto-review-panel__header-actions">
       @if ((hasReviewed() || totalCount() > 0) && canWrite()) {
         <button
           mat-icon-button
-          matTooltip="Re-review"
+          [matTooltip]="'editor.autoReview.reReview' | transloco"
           [disabled]="reviewing()"
           (click)="onRereview()"
           data-testid="auto-review-rereview-btn">
@@ -20,7 +20,7 @@
         </button>
         <button
           mat-icon-button
-          matTooltip="Dismiss review"
+          [matTooltip]="'editor.autoReview.dismissReview' | transloco"
           [disabled]="reviewing()"
           (click)="onClearAll()"
           data-testid="auto-review-dismiss-header-btn">
@@ -29,7 +29,7 @@
       }
       <button
         mat-icon-button
-        matTooltip="Close"
+        [matTooltip]="'editor.autoReview.close' | transloco"
         (click)="onClose()"
         data-testid="auto-review-panel-close">
         <mat-icon>close</mat-icon>
@@ -43,15 +43,14 @@
         class="auto-review-panel__loading"
         data-testid="auto-review-panel-loading">
         <mat-spinner diameter="24"></mat-spinner>
-        <p>Reviewing document…</p>
+        <p>{{ 'editor.autoReview.reviewing' | transloco }}</p>
       </div>
     } @else if (!hasReviewed() && totalCount() === 0) {
       <!-- Idle: no review has been run yet. Show the review "form" with
            a Start Review button. Placeholder for future form fields. -->
       <div class="auto-review-panel__form" data-testid="auto-review-panel-form">
         <p class="auto-review-panel__form-description">
-          Run an AI review of this document to surface grammar, spelling, and
-          style suggestions.
+          {{ 'editor.autoReview.description' | transloco }}
         </p>
         @if (canWrite()) {
           <button
@@ -60,11 +59,11 @@
             (click)="onReview()"
             data-testid="auto-review-btn">
             <mat-icon>spellcheck</mat-icon>
-            Start Review
+            {{ 'editor.autoReview.startReview' | transloco }}
           </button>
         } @else {
           <p class="auto-review-panel__readonly-hint">
-            You need write access to run a review.
+            {{ 'editor.autoReview.noWriteAccess' | transloco }}
           </p>
         }
         @if (rejectionCount() > 0) {
@@ -78,7 +77,7 @@
               {{ rejectionCount() }} rejected suggestion{{
                 rejectionCount() > 1 ? 's' : ''
               }}
-              on record
+              {{ 'editor.autoReview.onRecord' | transloco }}
             </span>
             @if (canWrite()) {
               <button
@@ -92,7 +91,7 @@
                 } @else {
                   <mat-icon>delete_outline</mat-icon>
                 }
-                Reset
+                {{ 'editor.autoReview.reset' | transloco }}
               </button>
             }
           </div>
@@ -104,7 +103,7 @@
         class="auto-review-panel__empty"
         data-testid="auto-review-panel-empty">
         <mat-icon>check_circle_outline</mat-icon>
-        <p>No suggestions</p>
+        <p>{{ 'editor.autoReview.noSuggestions' | transloco }}</p>
         @if (canWrite()) {
           <button
             mat-stroked-button
@@ -112,7 +111,7 @@
             (click)="onReview()"
             data-testid="auto-review-run-again-btn">
             <mat-icon>refresh</mat-icon>
-            Run Again
+            {{ 'editor.autoReview.runAgain' | transloco }}
           </button>
         }
       </div>
@@ -170,7 +169,11 @@
                 }}</span>
                 @if (s.resolved) {
                   <span class="auto-review-panel__resolved-badge">
-                    {{ s.resolved === 'accepted' ? 'Accepted' : 'Rejected' }}
+                    {{
+                      s.resolved === 'accepted'
+                        ? ('editor.autoReview.accepted' | transloco)
+                        : ('editor.autoReview.rejected' | transloco)
+                    }}
                   </span>
                 }
               </div>
@@ -206,7 +209,7 @@
                           } @else {
                             <mat-icon>check</mat-icon>
                           }
-                          Accept
+                          {{ 'editor.autoReview.accept' | transloco }}
                         </button>
                         <button
                           mat-stroked-button
@@ -215,7 +218,7 @@
                           (click)="onReject(s, $event)"
                           data-testid="auto-review-reject-btn">
                           <mat-icon>close</mat-icon>
-                          Reject
+                          {{ 'editor.autoReview.reject' | transloco }}
                         </button>
                       } @else {
                         <button
@@ -229,7 +232,7 @@
                           } @else {
                             <mat-icon>undo</mat-icon>
                           }
-                          Undo
+                          {{ 'editor.autoReview.undo' | transloco }}
                         </button>
                       }
                     </div>

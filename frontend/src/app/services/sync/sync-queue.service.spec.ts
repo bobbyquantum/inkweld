@@ -13,6 +13,8 @@ import {
 import { DocumentService } from '../project/document.service';
 import { SyncQueueService, SyncStage } from './sync-queue.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('SyncQueueService', () => {
   let service: SyncQueueService;
   let mockProjectsApi: { getProject: Mock };
@@ -85,6 +87,7 @@ describe('SyncQueueService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         SyncQueueService,
         { provide: ProjectsService, useValue: mockProjectsApi },

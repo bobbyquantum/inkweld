@@ -4,30 +4,27 @@
     <mat-card class="kill-switch-warning">
       <mat-card-header>
         <mat-icon mat-card-avatar class="warning-icon">block</mat-icon>
-        <mat-card-title>AI Features Disabled</mat-card-title>
+        <mat-card-title>{{
+          'admin.aiText.disabled' | transloco
+        }}</mat-card-title>
         <mat-card-subtitle>
           @if (isAiKillSwitchLockedByEnv()) {
-            AI features are disabled by the
-            <code>AI_KILL_SWITCH</code> environment variable.
+            {{ 'admin.aiText.disabledByEnv' | transloco }}
           } @else {
-            The AI Kill Switch is enabled. All AI features are currently
-            disabled.
+            {{ 'admin.aiText.killSwitchEnabled' | transloco }}
           }
         </mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <p>
-          While the kill switch is enabled, AI text generation features
-          (linting, prompt optimization) will not be available. You can still
-          configure AI providers below, but they will not be used until the kill
-          switch is disabled.
+          {{ 'admin.aiText.killSwitchWarning' | transloco }}
         </p>
       </mat-card-content>
       @if (!isAiKillSwitchLockedByEnv()) {
         <mat-card-actions>
           <a mat-button color="primary" routerLink="/admin/settings">
             <mat-icon>settings</mat-icon>
-            Go to Settings to disable Kill Switch
+            {{ 'admin.aiText.goToSettings' | transloco }}
           </a>
         </mat-card-actions>
       }
@@ -37,13 +34,15 @@
   @if (isLoading()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
-      <p>Loading AI text configuration...</p>
+      <p>{{ 'admin.aiText.loading' | transloco }}</p>
     </div>
   } @else if (error()) {
     <mat-card class="error-card">
       <mat-card-header>
         <mat-icon mat-card-avatar>error</mat-icon>
-        <mat-card-title>Error Loading Configuration</mat-card-title>
+        <mat-card-title>{{
+          'admin.aiText.loadError' | transloco
+        }}</mat-card-title>
       </mat-card-header>
       <mat-card-content>
         <p>{{ error()?.message }}</p>
@@ -51,7 +50,7 @@
       <mat-card-actions>
         <button mat-button color="primary" (click)="loadConfig()">
           <mat-icon>refresh</mat-icon>
-          Retry
+          {{ 'retry' | transloco }}
         </button>
       </mat-card-actions>
     </mat-card>
@@ -60,20 +59,22 @@
     <mat-card class="settings-card">
       <mat-card-header>
         <mat-icon mat-card-avatar>psychology</mat-icon>
-        <mat-card-title>AI Text Generation</mat-card-title>
-        <mat-card-subtitle
-          >Global settings for AI-powered text generation (linting, prompt
-          optimization)</mat-card-subtitle
-        >
+        <mat-card-title>{{
+          'admin.aiText.textGeneration' | transloco
+        }}</mat-card-title>
+        <mat-card-subtitle>{{
+          'admin.aiText.textGenerationDesc' | transloco
+        }}</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <div class="setting-row">
           <div class="setting-info">
-            <span class="setting-label">Enable Text Generation</span>
-            <span class="setting-description"
-              >Allow AI text generation features like linting and prompt
-              optimization</span
-            >
+            <span class="setting-label">{{
+              'admin.aiText.enableTextGeneration' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.aiText.enableTextGenerationDesc' | transloco
+            }}</span>
           </div>
           <mat-slide-toggle
             [checked]="textGenerationEnabled()"
@@ -84,10 +85,12 @@
         @if (textGenerationEnabled()) {
           <div class="setting-row">
             <div class="setting-info">
-              <span class="setting-label">Default Provider</span>
-              <span class="setting-description"
-                >Provider used when none is specified</span
-              >
+              <span class="setting-label">{{
+                'admin.aiText.defaultProvider' | transloco
+              }}</span>
+              <span class="setting-description">{{
+                'admin.aiText.defaultProviderDesc' | transloco
+              }}</span>
             </div>
             <mat-form-field appearance="outline" class="provider-select">
               <mat-select
@@ -109,17 +112,21 @@
       <mat-card class="settings-card">
         <mat-card-header>
           <mat-icon mat-card-avatar>spellcheck</mat-icon>
-          <mat-card-title>AI Linting</mat-card-title>
+          <mat-card-title>{{
+            'admin.aiText.aiLinting' | transloco
+          }}</mat-card-title>
           <mat-card-subtitle>
-            Configure the AI model and prompt used for document linting
+            {{ 'admin.aiText.aiLintingDesc' | transloco }}
           </mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <div class="setting-row">
             <div class="setting-info">
-              <span class="setting-label">Lint Model</span>
+              <span class="setting-label">{{
+                'admin.aiText.lintModel' | transloco
+              }}</span>
               <span class="setting-description">
-                Model used for AI-powered grammar and style checking
+                {{ 'admin.aiText.lintModelDesc' | transloco }}
               </span>
             </div>
             <mat-form-field appearance="outline" class="model-select">
@@ -134,11 +141,13 @@
                     type="text"
                     id="lint-model-search-input"
                     class="model-search-input"
-                    placeholder="Search models..."
+                    [placeholder]="'admin.aiText.searchModels' | transloco"
                     [value]="lintModelSearch()"
                     (input)="lintModelSearch.set($any($event.target).value)"
                     (keydown)="$event.stopPropagation()"
-                    aria-label="Search lint models" />
+                    [attr.aria-label]="
+                      'admin.aiText.searchLintModels' | transloco
+                    " />
                   @if (lintModelSearch()) {
                     <button
                       type="button"
@@ -149,7 +158,9 @@
                   }
                 </div>
                 <mat-divider></mat-divider>
-                <mat-option value="">Use Default</mat-option>
+                <mat-option value="">{{
+                  'admin.aiText.useDefault' | transloco
+                }}</mat-option>
                 @for (model of filteredLintModels(); track model.id) {
                   <mat-option [value]="model.id">
                     {{ model.name }}
@@ -157,7 +168,10 @@
                   </mat-option>
                 } @empty {
                   <mat-option disabled class="no-results-option">
-                    No models matching "{{ lintModelSearch() }}"
+                    {{
+                      'admin.aiText.noModelsMatch'
+                        | transloco: { query: lintModelSearch() }
+                    }}
                   </mat-option>
                 }
               </mat-select>
@@ -166,22 +180,29 @@
 
           <div class="setting-row vertical">
             <div class="setting-info">
-              <span class="setting-label">Custom Lint Prompt</span>
+              <span class="setting-label">{{
+                'admin.aiText.customLintPrompt' | transloco
+              }}</span>
               <span class="setting-description">
-                Customize the system prompt sent to the AI for linting. Leave
-                empty to use the default prompt.
+                {{ 'admin.aiText.customLintPromptDesc' | transloco }}
               </span>
             </div>
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Custom lint prompt</mat-label>
+              <mat-label>{{
+                'admin.aiText.customLintPromptLabel' | transloco
+              }}</mat-label>
               <textarea
                 matInput
                 rows="6"
                 [value]="lintPrompt()"
                 (input)="lintPrompt.set($any($event.target).value)"
-                placeholder="You are an expert editor helping to improve creative writing..."
+                [placeholder]="
+                  'admin.aiText.customLintPromptPlaceholder' | transloco
+                "
                 id="ai-text-lint-prompt-input"
-                aria-label="Custom lint prompt"></textarea>
+                [attr.aria-label]="
+                  'admin.aiText.customLintPromptAria' | transloco
+                "></textarea>
             </mat-form-field>
             <div class="action-row">
               <button
@@ -190,7 +211,7 @@
                 (click)="saveLintPrompt()"
                 [disabled]="isSaving()">
                 <mat-icon>save</mat-icon>
-                Save Lint Prompt
+                {{ 'admin.aiText.saveLintPrompt' | transloco }}
               </button>
             </div>
           </div>
@@ -201,19 +222,21 @@
       <mat-card class="settings-card">
         <mat-card-header>
           <mat-icon mat-card-avatar>auto_fix_high</mat-icon>
-          <mat-card-title>Image Prompt Optimization</mat-card-title>
+          <mat-card-title>{{
+            'admin.aiText.imagePromptOptimization' | transloco
+          }}</mat-card-title>
           <mat-card-subtitle>
-            Configure the AI model that optimizes worldbuilding data into image
-            generation prompts
+            {{ 'admin.aiText.imagePromptOptimizationDesc' | transloco }}
           </mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <div class="setting-row">
             <div class="setting-info">
-              <span class="setting-label">Optimization Model</span>
+              <span class="setting-label">{{
+                'admin.aiText.optimizationModel' | transloco
+              }}</span>
               <span class="setting-description">
-                Model used to transform raw worldbuilding data into optimized
-                image prompts
+                {{ 'admin.aiText.optimizationModelDesc' | transloco }}
               </span>
             </div>
             <mat-form-field appearance="outline" class="model-select">
@@ -228,13 +251,15 @@
                     type="text"
                     id="image-prompt-model-search-input"
                     class="model-search-input"
-                    placeholder="Search models..."
+                    [placeholder]="'admin.aiText.searchModels' | transloco"
                     [value]="imagePromptModelSearch()"
                     (input)="
                       imagePromptModelSearch.set($any($event.target).value)
                     "
                     (keydown)="$event.stopPropagation()"
-                    aria-label="Search image prompt models" />
+                    [attr.aria-label]="
+                      'admin.aiText.searchImageModels' | transloco
+                    " />
                   @if (imagePromptModelSearch()) {
                     <button
                       type="button"
@@ -245,7 +270,9 @@
                   }
                 </div>
                 <mat-divider></mat-divider>
-                <mat-option value="">Use Default</mat-option>
+                <mat-option value="">{{
+                  'admin.aiText.useDefault' | transloco
+                }}</mat-option>
                 @for (model of filteredImagePromptModels(); track model.id) {
                   <mat-option [value]="model.id">
                     {{ model.name }}
@@ -253,7 +280,10 @@
                   </mat-option>
                 } @empty {
                   <mat-option disabled class="no-results-option">
-                    No models matching "{{ imagePromptModelSearch() }}"
+                    {{
+                      'admin.aiText.noModelsMatch'
+                        | transloco: { query: imagePromptModelSearch() }
+                    }}
                   </mat-option>
                 }
               </mat-select>
@@ -262,22 +292,29 @@
 
           <div class="setting-row vertical">
             <div class="setting-info">
-              <span class="setting-label">Custom Optimization Template</span>
+              <span class="setting-label">{{
+                'admin.aiText.customOptTemplate' | transloco
+              }}</span>
               <span class="setting-description">
-                Customize the system prompt for transforming worldbuilding data
-                into image prompts. Leave empty to use the default template.
+                {{ 'admin.aiText.customOptTemplateDesc' | transloco }}
               </span>
             </div>
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Custom optimization template</mat-label>
+              <mat-label>{{
+                'admin.aiText.customOptTemplateLabel' | transloco
+              }}</mat-label>
               <textarea
                 matInput
                 rows="8"
                 [value]="imagePromptTemplate()"
                 (input)="imagePromptTemplate.set($any($event.target).value)"
-                placeholder="You are an expert at creating prompts for AI image generation..."
+                [placeholder]="
+                  'admin.aiText.customOptTemplatePlaceholder' | transloco
+                "
                 id="ai-text-optimization-template-input"
-                aria-label="Custom optimization template"></textarea>
+                [attr.aria-label]="
+                  'admin.aiText.customOptTemplateAria' | transloco
+                "></textarea>
             </mat-form-field>
             <div class="action-row">
               <button
@@ -286,7 +323,7 @@
                 (click)="saveImagePromptTemplate()"
                 [disabled]="isSaving()">
                 <mat-icon>save</mat-icon>
-                Save Template
+                {{ 'admin.aiText.saveTemplate' | transloco }}
               </button>
             </div>
           </div>
@@ -298,18 +335,22 @@
         <mat-card class="settings-card empty-state-card">
           <mat-card-header>
             <mat-icon mat-card-avatar>api</mat-icon>
-            <mat-card-title>No Providers Configured</mat-card-title>
+            <mat-card-title>{{
+              'admin.aiText.noProviders' | transloco
+            }}</mat-card-title>
             <mat-card-subtitle>
-              Configure API keys to enable text models
+              {{ 'admin.aiText.noProvidersDesc' | transloco }}
             </mat-card-subtitle>
           </mat-card-header>
           <mat-card-content>
             <div class="empty-state">
               <mat-icon>key</mat-icon>
               <p>
-                Configure API keys for text providers (OpenAI, OpenRouter, or
-                Anthropic) on the
-                <a routerLink="/admin/providers">AI Providers</a> page.
+                {{ 'admin.aiText.noProvidersHelp' | transloco }}
+                <a routerLink="/admin/providers">{{
+                  'admin.nav.aiProviders' | transloco
+                }}</a
+                >.
               </p>
             </div>
           </mat-card-content>

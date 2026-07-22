@@ -4,6 +4,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   WorldbuildingImageDialogComponent,
   type WorldbuildingImageDialogData,
@@ -41,7 +43,7 @@ describe('WorldbuildingImageDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [WorldbuildingImageDialogComponent],
+      imports: [translocoTestProvider(), WorldbuildingImageDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: defaultDialogData },
@@ -69,7 +71,7 @@ describe('WorldbuildingImageDialogComponent', () => {
     // Recreate with current image
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
-      imports: [WorldbuildingImageDialogComponent],
+      imports: [translocoTestProvider(), WorldbuildingImageDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         {

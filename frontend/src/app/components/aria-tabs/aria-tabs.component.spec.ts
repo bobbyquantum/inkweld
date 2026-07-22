@@ -9,6 +9,8 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { AriaTabPanelComponent } from './aria-tab-panel.component';
 import { type AriaTabConfig, AriaTabsComponent } from './aria-tabs.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // Test host component to wrap AriaTabsComponent with projected content
 @Component({
   imports: [AriaTabsComponent, AriaTabPanelComponent],
@@ -58,7 +60,7 @@ describe('AriaTabsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AriaTabsComponent],
+      imports: [translocoTestProvider(), AriaTabsComponent],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
 
@@ -484,7 +486,7 @@ describe('AriaTabsComponent with host', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TestHostComponent],
+      imports: [translocoTestProvider(), TestHostComponent],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
 

@@ -39,6 +39,8 @@ import { DialogGatewayService } from '../../services/core/dialog-gateway.service
 import { ProjectComponent } from './project.component';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // Mock child components to avoid their dependencies
 @Component({
   selector: 'app-project-tree',
@@ -261,7 +263,7 @@ describe('ProjectComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ProjectComponent],
+      imports: [translocoTestProvider(), ProjectComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

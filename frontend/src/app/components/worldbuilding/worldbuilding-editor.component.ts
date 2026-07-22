@@ -51,6 +51,7 @@ import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
 import { MediaPanelComponent } from './media-panel/media-panel.component';
+import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * Main worldbuilding editor component that renders the dynamic
@@ -74,6 +75,7 @@ import { MediaPanelComponent } from './media-panel/media-panel.component';
     MetaPanelComponent,
     IdentityPanelComponent,
     MediaPanelComponent,
+    TranslocoModule,
   ],
   templateUrl: './worldbuilding-editor.component.html',
   styleUrls: ['./worldbuilding-editor.component.scss'],

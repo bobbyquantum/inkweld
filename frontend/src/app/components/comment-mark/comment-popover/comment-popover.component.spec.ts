@@ -12,6 +12,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CommentPopoverComponent } from './comment-popover.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 function createMockCommentService() {
   return {
     isServerMode: false,
@@ -55,7 +57,7 @@ describe('CommentPopoverComponent', () => {
     mockCommentService = createMockCommentService();
 
     await TestBed.configureTestingModule({
-      imports: [CommentPopoverComponent],
+      imports: [translocoTestProvider(), CommentPopoverComponent],
       providers: [
         provideHttpClient(withXhr()),
         { provide: CommentService, useValue: mockCommentService },

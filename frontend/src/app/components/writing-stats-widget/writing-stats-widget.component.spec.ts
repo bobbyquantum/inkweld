@@ -15,6 +15,8 @@ import { mockDeep } from 'vitest-mock-extended';
 
 import { WritingStatsWidgetComponent } from './writing-stats-widget.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 const makeUserEvent = (
   id: string,
   overrides: Partial<UserActivityEvent> = {}
@@ -57,7 +59,7 @@ describe('WritingStatsWidgetComponent', () => {
     );
 
     await TestBed.configureTestingModule({
-      imports: [WritingStatsWidgetComponent],
+      imports: [translocoTestProvider(), WritingStatsWidgetComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),

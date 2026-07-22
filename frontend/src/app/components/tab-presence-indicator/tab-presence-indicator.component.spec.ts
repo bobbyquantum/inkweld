@@ -6,6 +6,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { PresenceService } from '../../services/presence/presence.service';
 import { TabPresenceIndicatorComponent } from './tab-presence-indicator.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 function session(sessionId: string, username: string): PresenceSession {
   return {
     sessionId,
@@ -23,7 +25,7 @@ describe('TabPresenceIndicatorComponent', () => {
     usersAtLocationResult = signal<PresenceSession[]>([]);
 
     TestBed.configureTestingModule({
-      imports: [TabPresenceIndicatorComponent],
+      imports: [translocoTestProvider(), TabPresenceIndicatorComponent],
       providers: [
         {
           provide: PresenceService,

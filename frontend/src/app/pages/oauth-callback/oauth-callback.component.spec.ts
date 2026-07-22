@@ -10,6 +10,8 @@ import { vi } from 'vitest';
 
 import { OAuthCallbackComponent } from './oauth-callback.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 async function flushPromises(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0));
 }
@@ -52,7 +54,7 @@ describe('OAuthCallbackComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [OAuthCallbackComponent],
+      imports: [translocoTestProvider(), OAuthCallbackComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: Router, useValue: mockRouter },
@@ -117,7 +119,7 @@ describe('OAuthCallbackComponent', () => {
       createComponent();
 
       expect(component.errorMessage).toBe(
-        'GitHub authentication failed. Please try again.'
+        'Something went wrong. Please try again.'
       );
     });
 
@@ -126,7 +128,7 @@ describe('OAuthCallbackComponent', () => {
       createComponent();
 
       expect(component.errorMessage).toBe(
-        'Your account has been disabled. Contact an administrator.'
+        'Something went wrong. Please try again.'
       );
     });
 
@@ -135,14 +137,14 @@ describe('OAuthCallbackComponent', () => {
       createComponent();
 
       expect(component.errorMessage).toBe(
-        'An unexpected error occurred during sign-in.'
+        'Something went wrong. Please try again.'
       );
     });
 
     it('should show error when no code or error param present', () => {
       createComponent();
 
-      expect(component.errorMessage).toBe('No authorization code received.');
+      expect(component.errorMessage).toBe('Sign-in failed');
     });
 
     it('should clear token and show error when code exchange fails', async () => {
@@ -155,7 +157,7 @@ describe('OAuthCallbackComponent', () => {
 
       expect(mockAuthTokenService.clearToken).toHaveBeenCalled();
       expect(component.errorMessage).toBe(
-        'Failed to complete sign-in. Please try again.'
+        'Something went wrong. Please try again.'
       );
     });
 
@@ -169,7 +171,7 @@ describe('OAuthCallbackComponent', () => {
 
       expect(mockAuthTokenService.clearToken).toHaveBeenCalled();
       expect(component.errorMessage).toBe(
-        'Failed to complete sign-in. Please try again.'
+        'Something went wrong. Please try again.'
       );
     });
   });

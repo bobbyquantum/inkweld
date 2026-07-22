@@ -8,6 +8,8 @@ import {
 
 import { AutoReviewPanelComponent } from './auto-review-panel.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('AutoReviewPanelComponent', () => {
   let component: AutoReviewPanelComponent;
   let mockAutoReviewApi: Partial<AutoReviewApiService>;
@@ -29,7 +31,7 @@ describe('AutoReviewPanelComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AutoReviewPanelComponent],
+      imports: [translocoTestProvider(), AutoReviewPanelComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: AutoReviewApiService, useValue: mockAutoReviewApi },

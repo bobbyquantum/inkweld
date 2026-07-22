@@ -4,8 +4,18 @@
       <button
         mat-icon-button
         (click)="showInfo.set(!showInfo())"
-        [attr.aria-label]="showInfo() ? 'Hide info' : 'Show info'"
-        [matTooltip]="showInfo() ? 'Hide info' : 'Show info'">
+        [attr.aria-label]="
+          (showInfo()
+            ? 'media.imageViewer.hideInfo'
+            : 'media.imageViewer.showInfo'
+          ) | transloco
+        "
+        [matTooltip]="
+          (showInfo()
+            ? 'media.imageViewer.hideInfo'
+            : 'media.imageViewer.showInfo'
+          ) | transloco
+        ">
         <mat-icon>{{ showInfo() ? 'info' : 'info_outline' }}</mat-icon>
       </button>
     }
@@ -13,8 +23,8 @@
       <button
         mat-icon-button
         (click)="changeImage()"
-        aria-label="Change image"
-        matTooltip="Change image">
+        [attr.aria-label]="'media.imageViewer.changeImage' | transloco"
+        [matTooltip]="'media.imageViewer.changeImage' | transloco">
         <mat-icon>edit</mat-icon>
       </button>
     }
@@ -22,23 +32,26 @@
       <button
         mat-icon-button
         (click)="downloadImage()"
-        aria-label="Download image"
-        matTooltip="Download">
+        [attr.aria-label]="'media.imageViewer.downloadImage' | transloco"
+        [matTooltip]="'media.imageViewer.download' | transloco">
         <mat-icon>download</mat-icon>
       </button>
       @if (data.canEdit) {
         <button
           mat-icon-button
           (click)="deleteImage()"
-          aria-label="Delete image"
-          matTooltip="Delete"
+          [attr.aria-label]="'media.imageViewer.deleteImage' | transloco"
+          [matTooltip]="'media.imageViewer.delete' | transloco"
           class="delete-button">
           <mat-icon>delete</mat-icon>
         </button>
       }
     }
     <span class="title-spacer"></span>
-    <button mat-icon-button (click)="closeDialog()" aria-label="Close dialog">
+    <button
+      mat-icon-button
+      (click)="closeDialog()"
+      [attr.aria-label]="'media.imageViewer.closeDialog' | transloco">
       <mat-icon>close</mat-icon>
     </button>
   </h2>
@@ -109,8 +122,8 @@
       <button
         mat-icon-button
         (click)="addTags()"
-        aria-label="Add tags"
-        matTooltip="Add tags">
+        [attr.aria-label]="'media.imageViewer.addTags' | transloco"
+        [matTooltip]="'media.imageViewer.addTags' | transloco">
         <mat-icon>sell</mat-icon>
       </button>
     </div>

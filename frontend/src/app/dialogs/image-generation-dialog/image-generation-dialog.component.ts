@@ -26,6 +26,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { type MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
@@ -95,6 +96,7 @@ type DialogStage = 'select-elements' | 'edit-prompt' | 'generating';
     MatStepperModule,
     MatTooltipModule,
     MatSnackBarModule,
+    TranslocoModule,
     WorldbuildingElementSelectorComponent,
   ],
 })
@@ -110,6 +112,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly logger = inject(LoggerService);
+  private readonly transloco = inject(TranslocoService);
 
   // Stepper reference for programmatic control
   readonly stepper = viewChild<MatStepper>('stepper');
@@ -668,9 +671,13 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   goToPromptStage(): void {
     const profile = this.selectedProfile();
     if (!profile) {
-      this.snackBar.open('Please select a model profile', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('media.imageGeneration.selectModelProfile'),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
       return;
     }
 
@@ -716,9 +723,13 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     // Don't allow navigation during active generation
     if (this.isGenerationActive()) {
       this.resetStepperTo(currentIndex);
-      this.snackBar.open('Please wait for generation to complete', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('media.imageGeneration.waitForGeneration'),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
       return;
     }
 
@@ -729,9 +740,13 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       // Only allow going to prompt stage if we have a profile selected
       if (!this.canNavigateToPrompt()) {
         this.resetStepperTo(currentIndex);
-        this.snackBar.open('Please select a model profile first', 'Close', {
-          duration: 3000,
-        });
+        this.snackBar.open(
+          this.transloco.translate('media.imageGeneration.selectModelFirst'),
+          this.transloco.translate('close'),
+          {
+            duration: 3000,
+          }
+        );
         return;
       }
       this.stage.set('edit-prompt');
@@ -740,8 +755,8 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       if (!this.canNavigateToGenerate()) {
         this.resetStepperTo(currentIndex);
         this.snackBar.open(
-          'Click the Generate button to start generation',
-          'Close',
+          this.transloco.translate('media.imageGeneration.clickGenerate'),
+          this.transloco.translate('close'),
           {
             duration: 3000,
           }
@@ -854,20 +869,32 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     const prompt = this.prompt().trim();
 
     if (!prompt) {
-      this.snackBar.open('Please enter a prompt', 'Close', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('media.imageGeneration.enterPrompt'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       return;
     }
 
     if (!profile || !provider) {
-      this.snackBar.open('Please select a model profile', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('media.imageGeneration.selectModelProfile'),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
       return;
     }
 
     const project = this.projectState.project();
     if (!project?.username || !project?.slug) {
-      this.snackBar.open('No project context', 'Close', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('media.imageGeneration.noProjectContext'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       return;
     }
 
@@ -989,7 +1016,11 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     const job = this.currentJob();
     const selectedImage = this.getSelectedImage();
     if (!selectedImage || !job) {
-      this.snackBar.open('No image selected', 'Close', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('media.imageGeneration.noImageSelected'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       return;
     }
 
@@ -1009,8 +1040,8 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     const job = this.currentJob();
     if (job && (job.status === 'generating' || job.status === 'saving')) {
       this.snackBar.open(
-        'Generation will continue in the background. Check Media tab for results.',
-        'OK',
+        this.transloco.translate('media.imageGeneration.backgroundContinue'),
+        this.transloco.translate('ok'),
         {
           duration: 4000,
         }

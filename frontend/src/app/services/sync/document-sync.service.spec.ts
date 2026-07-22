@@ -7,6 +7,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DocumentSyncService } from './document-sync.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('DocumentSyncService', () => {
   let service: DocumentSyncService;
   let mockProjectState: Partial<ProjectStateService>;
@@ -36,6 +38,7 @@ describe('DocumentSyncService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         DocumentSyncService,

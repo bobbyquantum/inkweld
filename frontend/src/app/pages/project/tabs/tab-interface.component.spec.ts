@@ -29,6 +29,8 @@ import {
 import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
 import { TabInterfaceComponent } from './tab-interface.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 describe('TabInterfaceComponent', () => {
   let component: TabInterfaceComponent;
   let fixture: ComponentFixture<TabInterfaceComponent>;
@@ -171,6 +173,7 @@ describe('TabInterfaceComponent', () => {
     await TestBed.configureTestingModule({
       declarations: [],
       imports: [
+        translocoTestProvider(),
         TabInterfaceComponent,
         MatTabsModule,
         MatIconModule,

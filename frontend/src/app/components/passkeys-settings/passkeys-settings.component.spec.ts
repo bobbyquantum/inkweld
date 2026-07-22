@@ -16,6 +16,8 @@ import {
 
 import { PasskeysSettingsComponent } from './passkeys-settings.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // ─── Fake data ────────────────────────────────────────────────────────────────
 
 const fakePasskey: Passkey = {
@@ -63,7 +65,7 @@ describe('PasskeysSettingsComponent', () => {
     } as unknown as MockedObject<MatSnackBar>;
 
     await TestBed.configureTestingModule({
-      imports: [PasskeysSettingsComponent],
+      imports: [translocoTestProvider(), PasskeysSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: PasskeyService, useValue: passkeyService },

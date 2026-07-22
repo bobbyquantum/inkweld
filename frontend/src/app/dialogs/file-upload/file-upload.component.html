@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>Upload File</h2>
+<h2 mat-dialog-title>{{ 'dialogs.fileUpload.title' | transloco }}</h2>
 <mat-dialog-content>
   <div
     class="upload-area"
@@ -9,34 +9,40 @@
     (keydown.space)="$event.preventDefault(); fileInput.click()"
     tabindex="0"
     role="button"
-    aria-label="Select a file to upload">
+    [attr.aria-label]="'dialogs.fileUpload.selectFileAria' | transloco">
     <input
       id="file-upload-input"
-      aria-label="Select a file to upload"
+      [attr.aria-label]="'dialogs.fileUpload.selectFileAria' | transloco"
       #fileInput
       type="file"
       (change)="onFileSelected($event)"
       style="display: none" />
     @if (!selectedFile) {
       <div class="upload-prompt">
-        <p>Drop a file here or click to select</p>
+        <p>{{ 'dialogs.fileUpload.dropZone' | transloco }}</p>
       </div>
     }
     @if (selectedFile) {
       <div class="file-info">
-        <p>Selected file: {{ selectedFile.name }}</p>
-        <p>Size: {{ selectedFile.size | fileSize }}</p>
+        <p>
+          {{ 'dialogs.fileUpload.selectedFile' | transloco }}
+          {{ selectedFile.name }}
+        </p>
+        <p>
+          {{ 'dialogs.fileUpload.size' | transloco }}
+          {{ selectedFile.size | fileSize }}
+        </p>
       </div>
     }
   </div>
 </mat-dialog-content>
 <mat-dialog-actions>
-  <button mat-button mat-dialog-close>Cancel</button>
+  <button mat-button mat-dialog-close>{{ 'cancel' | transloco }}</button>
   <button
     mat-button
     color="primary"
     [disabled]="!selectedFile"
     (click)="onUpload()">
-    Upload
+    {{ 'dialogs.fileUpload.upload' | transloco }}
   </button>
 </mat-dialog-actions>

@@ -14,6 +14,7 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { TranslocoModule } from '@jsverse/transloco';
 import {
   PublishingPhase,
   type PublishingProgress,
@@ -64,6 +65,7 @@ export interface PublishingProgressDialogResult {
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
+    TranslocoModule,
   ],
 })
 export class PublishingProgressDialogComponent implements OnInit, OnDestroy {

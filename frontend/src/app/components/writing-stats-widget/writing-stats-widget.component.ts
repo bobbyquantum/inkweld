@@ -21,6 +21,7 @@ import { WritingStatsService } from '@services/stats/writing-stats.service';
 import { firstValueFrom } from 'rxjs';
 
 import { formatRelativeDate } from '../../utils/date-format';
+import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * Cross-project stats + recent activity widget for the home page.
@@ -42,6 +43,7 @@ import { formatRelativeDate } from '../../utils/date-format';
     MatProgressSpinnerModule,
     MatTooltipModule,
     RouterLink,
+    TranslocoModule,
   ],
   templateUrl: './writing-stats-widget.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

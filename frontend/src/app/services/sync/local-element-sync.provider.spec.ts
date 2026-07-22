@@ -25,6 +25,8 @@ import { LocalProjectElementsService } from '../local/local-project-elements.ser
 import { type ProjectMeta } from './element-sync-provider.interface';
 import { LocalElementSyncProvider } from './local-element-sync.provider';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('LocalElementSyncProvider', () => {
   let provider: LocalElementSyncProvider;
   let mockOfflineElementsService: {
@@ -216,6 +218,7 @@ describe('LocalElementSyncProvider', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         LocalElementSyncProvider,
         {

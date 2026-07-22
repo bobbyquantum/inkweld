@@ -1,7 +1,7 @@
 <div class="tags-tab" data-testid="tags-tab">
   <div class="header">
-    <h2>Tags</h2>
-    <p class="hint">Manage tags used across your project.</p>
+    <h2>{{ 'tags.tab.title' | transloco }}</h2>
+    <p class="hint">{{ 'tags.tab.hint' | transloco }}</p>
   </div>
 
   <div class="controls">
@@ -12,21 +12,21 @@
         data-testid="new-tag-button"
         (click)="createTag()">
         <mat-icon>add</mat-icon>
-        New Tag
+        {{ 'tags.tab.newTag' | transloco }}
       </button>
     </div>
 
     <div class="search-bar">
       <mat-form-field appearance="outline" class="search-field">
-        <mat-label>Search tags</mat-label>
+        <mat-label>{{ 'tags.tab.searchLabel' | transloco }}</mat-label>
         <input
           matInput
           type="text"
           id="tags-tab-search-input"
-          aria-label="Search tags"
+          [attr.aria-label]="'tags.tab.searchAria' | transloco"
           [value]="searchQuery()"
           (input)="searchQuery.set($any($event.target).value)"
-          placeholder="Search by name..." />
+          [placeholder]="'tags.tab.searchPlaceholder' | transloco" />
         <mat-icon matPrefix>search</mat-icon>
       </mat-form-field>
     </div>
@@ -41,9 +41,9 @@
   @if (!isLoading() && !error() && tags().length === 0) {
     <div class="empty" data-testid="tags-empty">
       <mat-icon>local_offer</mat-icon>
-      <p>No tags defined yet</p>
+      <p>{{ 'tags.tab.noTags' | transloco }}</p>
       <button mat-flat-button color="primary" (click)="createTag()">
-        Create your first tag
+        {{ 'tags.tab.createFirst' | transloco }}
       </button>
     </div>
   }
@@ -54,8 +54,10 @@
   ) {
     <div class="empty" data-testid="tags-empty">
       <mat-icon>search_off</mat-icon>
-      <p>No tags match your search</p>
-      <button mat-button (click)="searchQuery.set('')">Clear filter</button>
+      <p>{{ 'tags.tab.noMatch' | transloco }}</p>
+      <button mat-button (click)="searchQuery.set('')">
+        {{ 'tags.tab.clearFilter' | transloco }}
+      </button>
     </div>
   }
 
@@ -79,7 +81,12 @@
                 (click)="viewTaggedElements(tag)"
                 (keyup.enter)="viewTaggedElements(tag)">
                 <mat-icon>inventory_2</mat-icon>
-                {{ tag.count }} element{{ tag.count !== 1 ? 's' : '' }}
+                {{ tag.count }}
+                {{
+                  tag.count === 1
+                    ? ('tags.tab.element' | transloco)
+                    : ('tags.tab.elements' | transloco)
+                }}
               </button>
               @if (tag.description) {
                 <span class="tag-description">{{ tag.description }}</span>
@@ -89,16 +96,20 @@
           <div class="tag-actions">
             <button
               mat-icon-button
-              matTooltip="Edit"
-              [attr.aria-label]="'Edit tag ' + tag.name"
+              [matTooltip]="'tags.tab.edit' | transloco"
+              [attr.aria-label]="
+                'tags.tab.editTag' | transloco: { name: tag.name }
+              "
               data-testid="edit-tag-button"
               (click)="editTag(tag)">
               <mat-icon>edit</mat-icon>
             </button>
             <button
               mat-icon-button
-              matTooltip="Delete"
-              [attr.aria-label]="'Delete tag ' + tag.name"
+              [matTooltip]="'tags.tab.delete' | transloco"
+              [attr.aria-label]="
+                'tags.tab.deleteTag' | transloco: { name: tag.name }
+              "
               data-testid="delete-tag-button"
               (click)="deleteTag(tag)">
               <mat-icon>delete_outline</mat-icon>

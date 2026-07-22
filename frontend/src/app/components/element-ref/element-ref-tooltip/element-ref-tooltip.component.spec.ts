@@ -12,6 +12,8 @@ import { DocumentService } from '../../../services/project/document.service';
 import { ProjectStateService } from '../../../services/project/project-state.service';
 import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
 import { ElementRefService } from '../element-ref.service';
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 import {
   ElementRefTooltipComponent,
   type ElementRefTooltipData,
@@ -38,7 +40,7 @@ describe('ElementRefTooltipComponent', () => {
     ];
 
     await TestBed.configureTestingModule({
-      imports: [ElementRefTooltipComponent],
+      imports: [translocoTestProvider(), ElementRefTooltipComponent],
       providers: [
         ElementRefService,
         {

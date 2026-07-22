@@ -1,14 +1,17 @@
 <div class="changelog-container">
   <header class="changelog-header">
-    <button mat-icon-button (click)="goBack()" aria-label="Back">
+    <button
+      mat-icon-button
+      (click)="goBack()"
+      [attr.aria-label]="'about.changelog.back' | transloco">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <h1>Project Changelog</h1>
+    <h1>{{ 'about.changelog.title' | transloco }}</h1>
   </header>
 
   @if (loading()) {
     <div class="loading-state">
-      <p>Loading changelog...</p>
+      <p>{{ 'about.changelog.loading' | transloco }}</p>
     </div>
   } @else if (error()) {
     <div class="error-state">
@@ -35,7 +38,7 @@
           <div class="changelog-content" [innerHTML]="version.content"></div>
         </mat-expansion-panel>
       } @empty {
-        <p>No changelog entries found.</p>
+        <p>{{ 'about.changelog.noEntries' | transloco }}</p>
       }
     </mat-accordion>
   }

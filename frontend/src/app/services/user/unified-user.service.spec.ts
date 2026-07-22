@@ -16,6 +16,8 @@ import { LocalUserService } from '../local/local-user.service';
 import { UnifiedUserService } from './unified-user.service';
 import { UserService } from './user.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('UnifiedUserService', () => {
   let service: UnifiedUserService;
   let setupService: MockedObject<SetupService>;
@@ -84,6 +86,7 @@ describe('UnifiedUserService', () => {
     } as unknown as MockedObject<Router>;
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         UnifiedUserService,

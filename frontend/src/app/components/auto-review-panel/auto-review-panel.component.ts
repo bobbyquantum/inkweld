@@ -14,6 +14,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   AutoReviewApiService,
   type AutoReviewSuggestion,
@@ -36,6 +37,7 @@ interface PositionedSuggestion extends AutoReviewSuggestion {
     MatProgressSpinnerModule,
     MatTooltipModule,
     MatMenuModule,
+    TranslocoModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './auto-review-panel.component.html',
@@ -44,6 +46,7 @@ interface PositionedSuggestion extends AutoReviewSuggestion {
 export class AutoReviewPanelComponent {
   private readonly autoReviewApi = inject(AutoReviewApiService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
 
   /** Project coordinates */
   username = input.required<string>();
@@ -230,9 +233,11 @@ export class AutoReviewPanelComponent {
 
   /** Surface an API failure to the user via a snackbar. */
   private showApiError(action: string): void {
-    this.snackBar.open(`Failed to ${action}. Please try again.`, 'Dismiss', {
-      duration: 5000,
-    });
+    this.snackBar.open(
+      this.transloco.translate('editor.autoReview.failedAction', { action }),
+      this.transloco.translate('snackbar.dismiss'),
+      { duration: 5000 }
+    );
   }
 
   async onReview(): Promise<void> {

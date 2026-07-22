@@ -16,6 +16,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { ElementRefService } from '../element-ref/element-ref.service';
 import { MetaPanelComponent } from './meta-panel.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('MetaPanelComponent', () => {
   let component: MetaPanelComponent;
   let fixture: ComponentFixture<MetaPanelComponent>;
@@ -89,7 +91,7 @@ describe('MetaPanelComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [MetaPanelComponent],
+      imports: [translocoTestProvider(), MetaPanelComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

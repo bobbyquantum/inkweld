@@ -16,6 +16,8 @@ import { ElementType } from '../../../../api-client';
 import { ElementRefService } from '../element-ref.service';
 import { ElementRefPopupComponent } from './element-ref-popup.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 describe('ElementRefPopupComponent', () => {
   let component: ElementRefPopupComponent;
   let fixture: ComponentFixture<ElementRefPopupComponent>;
@@ -67,6 +69,7 @@ describe('ElementRefPopupComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         ElementRefPopupComponent,
         FormsModule,
         MatIconModule,

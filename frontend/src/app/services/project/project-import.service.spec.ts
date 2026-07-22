@@ -29,6 +29,8 @@ import * as archiveMigrations from './archive-migrations';
 import { DocumentImportService } from './document-import.service';
 import { ProjectImportService } from './project-import.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 /**
  * Helper to create a real ZIP file from a ProjectArchive for testing.
  * This uses JSZip to create an actual archive that the service can read.
@@ -194,6 +196,7 @@ describe('ProjectImportService', () => {
     http.post.mockReturnValue(of({}));
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

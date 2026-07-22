@@ -3,13 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SettingsTabStatusComponent } from './settings-tab-status.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('SettingsTabStatusComponent', () => {
   let component: SettingsTabStatusComponent;
   let fixture: ComponentFixture<SettingsTabStatusComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SettingsTabStatusComponent],
+      imports: [translocoTestProvider(), SettingsTabStatusComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SettingsTabStatusComponent);

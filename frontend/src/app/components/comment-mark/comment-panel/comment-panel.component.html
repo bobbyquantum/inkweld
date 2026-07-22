@@ -2,7 +2,7 @@
   <div class="comment-panel__header">
     <mat-icon class="comment-panel__icon">comment</mat-icon>
     <span class="comment-panel__title">
-      Comments
+      {{ 'editor.comments.panelTitle' | transloco }}
       @if (threads().length > 0) {
         <span class="comment-panel__count">({{ threads().length }})</span>
       }
@@ -10,7 +10,7 @@
     <span class="comment-panel__spacer"></span>
     <button
       mat-icon-button
-      matTooltip="Close panel"
+      [matTooltip]="'editor.comments.closePanel' | transloco"
       (click)="closed.emit()"
       data-testid="comment-panel-close">
       <mat-icon>close</mat-icon>
@@ -24,9 +24,9 @@
   } @else if (threads().length === 0) {
     <div class="comment-panel__empty" data-testid="comment-panel-empty">
       <mat-icon>chat_bubble_outline</mat-icon>
-      <p>No comments yet</p>
+      <p>{{ 'editor.comments.noComments' | transloco }}</p>
       <p class="comment-panel__hint">
-        Select text and press Ctrl+Alt+M to add a comment
+        {{ 'editor.comments.hint' | transloco }}
       </p>
     </div>
   } @else {
@@ -64,7 +64,7 @@
               @if (thread.resolved) {
                 <mat-icon
                   class="comment-panel__resolved-icon"
-                  matTooltip="Resolved"
+                  [matTooltip]="'editor.comments.resolved' | transloco"
                   >check_circle</mat-icon
                 >
               }
@@ -75,7 +75,7 @@
                 @if (!thread.resolved) {
                   <button
                     mat-icon-button
-                    matTooltip="Resolve"
+                    [matTooltip]="'editor.comments.resolve' | transloco"
                     (click)="onResolve(thread, $event)"
                     data-testid="panel-resolve-btn">
                     <mat-icon>check_circle_outline</mat-icon>
@@ -83,7 +83,7 @@
                 } @else {
                   <button
                     mat-icon-button
-                    matTooltip="Unresolve"
+                    [matTooltip]="'editor.comments.unresolve' | transloco"
                     (click)="onUnresolve(thread, $event)"
                     data-testid="panel-unresolve-btn">
                     <mat-icon>undo</mat-icon>
@@ -91,7 +91,7 @@
                 }
                 <button
                   mat-icon-button
-                  matTooltip="Delete thread"
+                  [matTooltip]="'editor.comments.deleteThread' | transloco"
                   (click)="onDelete(thread, $event)"
                   data-testid="panel-delete-btn">
                   <mat-icon>delete_outline</mat-icon>
@@ -125,10 +125,12 @@
                   <input
                     #replyInput
                     id="comment-panel-reply-input"
-                    aria-label="Reply"
+                    [attr.aria-label]="'editor.comments.reply' | transloco"
                     class="comment-panel__reply-input"
                     type="text"
-                    placeholder="Reply..."
+                    [placeholder]="
+                      'editor.comments.replyPlaceholder' | transloco
+                    "
                     (keydown.enter)="
                       onReply(thread, replyInput); $event.stopPropagation()
                     "
@@ -140,7 +142,7 @@
                     (click)="
                       onReply(thread, replyInput); $event.stopPropagation()
                     "
-                    matTooltip="Send reply"
+                    [matTooltip]="'editor.comments.sendReply' | transloco"
                     data-testid="panel-reply-btn">
                     <mat-icon>send</mat-icon>
                   </button>

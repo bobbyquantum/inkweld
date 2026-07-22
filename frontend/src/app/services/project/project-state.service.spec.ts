@@ -38,6 +38,8 @@ import { ProjectStateService } from './project-state.service';
 import { RecentFilesService } from './recent-files.service';
 import { type AppTab, TabManagerService } from './tab-manager.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 /**
  * Creates a mock IElementSyncProvider for testing.
  */
@@ -288,6 +290,7 @@ describe('ProjectStateService', () => {
     } as unknown as MockedObject<BackgroundSyncService>;
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

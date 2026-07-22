@@ -6,6 +6,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { ChangelogService, type ChangelogVersion } from './changelog.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ChangelogService', () => {
   let service: ChangelogService;
   let httpClientMock: { get: ReturnType<typeof vi.fn> };
@@ -46,6 +48,7 @@ All notable changes to this project will be documented in this file.
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         ChangelogService,

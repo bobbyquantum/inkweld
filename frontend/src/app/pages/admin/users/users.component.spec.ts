@@ -21,6 +21,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AdminUsersComponent } from './users.component';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+
 // Mock UserAvatarComponent to avoid HTTP calls
 @Component({
   selector: 'app-user-avatar',
@@ -153,7 +155,7 @@ describe('AdminUsersComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AdminUsersComponent],
+      imports: [translocoTestProvider(), AdminUsersComponent],
       providers: [
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),

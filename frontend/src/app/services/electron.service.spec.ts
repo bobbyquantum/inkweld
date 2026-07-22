@@ -2,6 +2,8 @@ import { TestBed } from '@angular/core/testing';
 
 import { ElectronService } from './electron.service';
 
+import { translocoTestProvider } from '../../testing/transloco-test-provider';
+
 describe('ElectronService', () => {
   let service: ElectronService;
 
@@ -10,6 +12,7 @@ describe('ElectronService', () => {
     delete (window as { electronAPI?: unknown }).electronAPI;
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [ElectronService],
     });
     service = TestBed.inject(ElectronService);

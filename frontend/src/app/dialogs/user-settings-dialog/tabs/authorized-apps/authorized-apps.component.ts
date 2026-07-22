@@ -13,6 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   AddOAuthGrantRequestRole,
   OAuthService as OAuthApiService,
@@ -37,6 +38,7 @@ import { firstValueFrom } from 'rxjs';
     MatSelectModule,
     MatSnackBarModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './authorized-apps.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -47,6 +49,7 @@ export class AuthorizedAppsComponent implements OnInit {
   private readonly projectsService = inject(ProjectsService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
 
   readonly sessions = signal<PublicOAuthSession[]>([]);
   readonly expandedSession = signal<OAuthSessionDetails | null>(null);
@@ -86,9 +89,13 @@ export class AuthorizedAppsComponent implements OnInit {
       );
       this.sessions.set(sessions);
     } catch {
-      this.snackBar.open('Failed to load authorized apps', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('settings.authorizedAppsTab.loadFailed'),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
     } finally {
       this.isLoading.set(false);
     }
@@ -111,9 +118,15 @@ export class AuthorizedAppsComponent implements OnInit {
       );
       this.expandedSession.set(details);
     } catch {
-      this.snackBar.open('Failed to load session details', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate(
+          'settings.authorizedAppsTab.sessionLoadFailed'
+        ),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
     } finally {
       this.isLoadingDetails.set(false);
     }
@@ -136,9 +149,15 @@ export class AuthorizedAppsComponent implements OnInit {
         })
       );
       this.removeSessionFromState(session.id);
-      this.snackBar.open(`Disconnected ${session.client.name}`, 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('settings.authorizedAppsTab.disconnected', {
+          name: session.client.name,
+        }),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
     } catch (error) {
       if (
         error instanceof HttpErrorResponse &&
@@ -146,15 +165,25 @@ export class AuthorizedAppsComponent implements OnInit {
         error.status < 300
       ) {
         this.removeSessionFromState(session.id);
-        this.snackBar.open(`Disconnected ${session.client.name}`, 'Close', {
-          duration: 3000,
-        });
+        this.snackBar.open(
+          this.transloco.translate('settings.authorizedAppsTab.disconnected', {
+            name: session.client.name,
+          }),
+          this.transloco.translate('close'),
+          {
+            duration: 3000,
+          }
+        );
         return;
       }
 
-      this.snackBar.open('Failed to disconnect app', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('settings.authorizedAppsTab.disconnectFailed'),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
     } finally {
       this.revokingSessionId.set(null);
     }
@@ -183,11 +212,23 @@ export class AuthorizedAppsComponent implements OnInit {
           ),
         };
       });
-      this.snackBar.open('Permission updated', 'Close', { duration: 2000 });
+      this.snackBar.open(
+        this.transloco.translate(
+          'settings.authorizedAppsTab.permissionUpdated'
+        ),
+        this.transloco.translate('close'),
+        { duration: 2000 }
+      );
     } catch {
-      this.snackBar.open('Failed to update permission', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate(
+          'settings.authorizedAppsTab.permissionUpdateFailed'
+        ),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
     } finally {
       this.updatingGrantKey.set(null);
     }
@@ -227,13 +268,21 @@ export class AuthorizedAppsComponent implements OnInit {
             : session
         )
       );
-      this.snackBar.open('Project access revoked', 'Close', {
-        duration: 2000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('settings.authorizedAppsTab.accessRevoked'),
+        this.transloco.translate('close'),
+        {
+          duration: 2000,
+        }
+      );
     } catch {
-      this.snackBar.open('Failed to revoke project access', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('settings.authorizedAppsTab.revokeFailed'),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
     } finally {
       this.revokingGrantKey.set(null);
     }
@@ -253,9 +302,15 @@ export class AuthorizedAppsComponent implements OnInit {
         );
         this.userProjects.set(projects);
       } catch {
-        this.snackBar.open('Failed to load projects', 'Close', {
-          duration: 3000,
-        });
+        this.snackBar.open(
+          this.transloco.translate(
+            'settings.authorizedAppsTab.projectsLoadFailed'
+          ),
+          this.transloco.translate('close'),
+          {
+            duration: 3000,
+          }
+        );
         return;
       }
     }
@@ -308,13 +363,21 @@ export class AuthorizedAppsComponent implements OnInit {
 
       this.showAddProject.set(false);
       this.selectedProjectId.set(null);
-      this.snackBar.open('Project access granted', 'Close', {
-        duration: 2000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('settings.authorizedAppsTab.accessGranted'),
+        this.transloco.translate('close'),
+        {
+          duration: 2000,
+        }
+      );
     } catch {
-      this.snackBar.open('Failed to add project access', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('settings.authorizedAppsTab.grantFailed'),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
     } finally {
       this.addingProject.set(false);
     }

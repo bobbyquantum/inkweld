@@ -13,6 +13,8 @@ import { vi } from 'vitest';
 
 import { InkweldTitleStrategy } from './title-strategy.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 function createProject(title: string): Project {
   return {
     id: 'p1',
@@ -93,6 +95,7 @@ describe('InkweldTitleStrategy', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         { provide: Title, useValue: title },
         { provide: ProjectStateService, useValue: projectState },

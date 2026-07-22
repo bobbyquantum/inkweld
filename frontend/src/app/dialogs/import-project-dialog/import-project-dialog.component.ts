@@ -26,6 +26,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 import {
   type ArchiveManifest,
@@ -76,6 +77,7 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
     MatInputModule,
     MatIconModule,
     MatProgressBarModule,
+    TranslocoModule,
   ],
 })
 export class ImportProjectDialogComponent {
@@ -87,6 +89,7 @@ export class ImportProjectDialogComponent {
     MatDialogRef<ImportProjectDialogComponent, ImportProjectDialogResult>
   );
   private readonly importService = inject(ProjectImportService);
+  private readonly transloco = inject(TranslocoService);
 
   readonly step = signal<DialogStep>('file-select');
   readonly isDragOver = signal(false);
@@ -115,19 +118,26 @@ export class ImportProjectDialogComponent {
   readonly model = signal<ImportProjectFormValue>({ slug: '' });
 
   readonly form = form(this.model, schemaPath => {
-    required(schemaPath.slug, { message: 'Slug is required' });
+    required(schemaPath.slug, {
+      message: this.transloco.translate('dialogs.importProject.slugRequired'),
+    });
     minLength(schemaPath.slug, 3, {
-      message: 'Slug must be at least 3 characters',
+      message: this.transloco.translate('dialogs.importProject.slugMinLength'),
     });
     maxLength(schemaPath.slug, 50, {
-      message: 'Slug cannot exceed 50 characters',
+      message: this.transloco.translate('dialogs.importProject.slugMaxLength'),
     });
     pattern(schemaPath.slug, SLUG_PATTERN, {
-      message: 'Use lowercase letters, numbers, and hyphens only',
+      message: this.transloco.translate('dialogs.importProject.slugFormat'),
     });
     validate(schemaPath.slug, () =>
       this.slugTaken()
-        ? { kind: 'slugTaken', message: 'This slug is already taken' }
+        ? {
+            kind: 'slugTaken',
+            message: this.transloco.translate(
+              'dialogs.importProject.slugTaken'
+            ),
+          }
         : null
     );
   });
@@ -195,7 +205,9 @@ export class ImportProjectDialogComponent {
 
   private async processFile(file: File): Promise<void> {
     if (!file.name.endsWith('.zip')) {
-      this.parseError.set('Please select a ZIP file');
+      this.parseError.set(
+        this.transloco.translate('dialogs.importProject.selectZip')
+      );
       return;
     }
     this.isParsing.set(true);
@@ -215,7 +227,9 @@ export class ImportProjectDialogComponent {
       }
     } catch (error) {
       this.parseError.set(
-        error instanceof Error ? error.message : 'Failed to parse archive'
+        error instanceof Error
+          ? error.message
+          : this.transloco.translate('dialogs.importProject.parseFailed')
       );
     } finally {
       this.isParsing.set(false);
@@ -250,7 +264,9 @@ export class ImportProjectDialogComponent {
     if (!this.canImport() || !file) return;
     this.step.set('importing');
     this.importProgress.set(0);
-    this.importStatus.set('Starting import...');
+    this.importStatus.set(
+      this.transloco.translate('dialogs.importProject.startingImport')
+    );
     this.importError.set(null);
     try {
       await this.importService.importProject(file, {
@@ -261,7 +277,9 @@ export class ImportProjectDialogComponent {
       this.step.set('complete');
     } catch (error) {
       this.importError.set(
-        error instanceof Error ? error.message : 'Import failed'
+        error instanceof Error
+          ? error.message
+          : this.transloco.translate('dialogs.importProject.importFailed')
       );
       this.step.set('complete');
     }

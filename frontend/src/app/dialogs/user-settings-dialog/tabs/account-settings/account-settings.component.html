@@ -1,36 +1,40 @@
 <div class="account-settings-container" data-testid="account-settings">
-  <h3 class="section-title">Account</h3>
+  <h3 class="section-title">{{ 'settings.accountTab.title' | transloco }}</h3>
 
   <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Display Name</mat-label>
+    <mat-label>{{
+      'settings.accountTab.displayNameLabel' | transloco
+    }}</mat-label>
     <input
       matInput
       id="account-settings-display-name-input"
       [(ngModel)]="displayName"
-      placeholder="Enter your display name"
+      [placeholder]="'settings.accountTab.displayNamePlaceholder' | transloco"
       data-testid="account-display-name-input"
-      aria-label="Display name" />
-    <mat-hint>Shown instead of your username in the UI.</mat-hint>
+      [attr.aria-label]="'settings.accountTab.displayNameAria' | transloco" />
+    <mat-hint>{{ 'settings.accountTab.displayNameHint' | transloco }}</mat-hint>
   </mat-form-field>
 
   @if (!isLocalMode()) {
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Email Address</mat-label>
+      <mat-label>{{ 'settings.accountTab.emailLabel' | transloco }}</mat-label>
       <input
         matInput
         type="email"
         id="account-settings-email-input"
         [(ngModel)]="email"
-        placeholder="Enter your email address"
+        [placeholder]="'settings.accountTab.emailPlaceholder' | transloco"
         data-testid="account-email-input"
-        aria-label="Email address" />
-      <mat-hint>Used for password resets and notifications.</mat-hint>
+        [attr.aria-label]="'settings.accountTab.emailAria' | transloco" />
+      <mat-hint>{{ 'settings.accountTab.emailHint' | transloco }}</mat-hint>
     </mat-form-field>
   }
 
   @if (authProvider(); as provider) {
     <div class="auth-provider-section" data-testid="auth-provider-section">
-      <span class="auth-provider-label">Authentication</span>
+      <span class="auth-provider-label">{{
+        'settings.accountTab.authentication' | transloco
+      }}</span>
       <div class="auth-provider-chips">
         @if (provider === 'local' || provider === 'local+github') {
           <!--
@@ -42,14 +46,14 @@
             <mat-chip-set>
               <mat-chip highlighted data-testid="auth-chip-password">
                 <mat-icon matChipAvatar>password</mat-icon>
-                Password
+                {{ 'settings.accountTab.password' | transloco }}
               </mat-chip>
             </mat-chip-set>
           } @else {
             <mat-chip-set>
               <mat-chip highlighted data-testid="auth-chip-passkey">
                 <mat-icon matChipAvatar>fingerprint</mat-icon>
-                Passkey
+                {{ 'settings.accountTab.passkey' | transloco }}
               </mat-chip>
             </mat-chip-set>
           }
@@ -58,7 +62,7 @@
           <mat-chip-set>
             <mat-chip highlighted data-testid="auth-chip-github">
               <mat-icon matChipAvatar>link</mat-icon>
-              GitHub
+              {{ 'settings.accountTab.github' | transloco }}
             </mat-chip>
           </mat-chip-set>
         }
@@ -76,7 +80,7 @@
       @if (isSaving()) {
         <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
       } @else {
-        Save
+        {{ 'settings.accountTab.save' | transloco }}
       }
     </button>
   </div>

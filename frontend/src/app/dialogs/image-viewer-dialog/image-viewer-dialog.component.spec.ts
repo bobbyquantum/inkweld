@@ -14,6 +14,8 @@ import { TagService } from '@services/tag/tag.service';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   ImageViewerDialogComponent,
   type ImageViewerDialogData,
@@ -94,7 +96,7 @@ describe('ImageViewerDialogComponent', () => {
     vi.clearAllMocks();
 
     await TestBed.configureTestingModule({
-      imports: [ImageViewerDialogComponent],
+      imports: [translocoTestProvider(), ImageViewerDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },

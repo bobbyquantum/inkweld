@@ -7,6 +7,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AccountSettingsComponent } from './account-settings.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 describe('AccountSettingsComponent (dialog tab)', () => {
   let component: AccountSettingsComponent;
   let fixture: ComponentFixture<AccountSettingsComponent>;
@@ -52,7 +54,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AccountSettingsComponent],
+      imports: [translocoTestProvider(), AccountSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: UserService, useValue: mockUserService },

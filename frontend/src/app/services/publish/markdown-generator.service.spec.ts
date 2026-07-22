@@ -15,6 +15,8 @@ import {
 import { LoggerService } from '../core/logger.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   MarkdownGeneratorService,
   MarkdownPhase,
@@ -146,6 +148,7 @@ describe('MarkdownGeneratorService', () => {
     vi.stubGlobal('indexedDB', mockIndexedDB);
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         MarkdownGeneratorService,

@@ -7,6 +7,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TagChipListComponent } from './tag-chip-list.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('TagChipListComponent', () => {
   let component: TagChipListComponent;
   let fixture: ComponentFixture<TagChipListComponent>;
@@ -60,7 +62,7 @@ describe('TagChipListComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [TagChipListComponent, FormsModule],
+      imports: [translocoTestProvider(), TagChipListComponent, FormsModule],
       providers: [
         provideZonelessChangeDetection(),
         { provide: TagService, useValue: mockTagService },

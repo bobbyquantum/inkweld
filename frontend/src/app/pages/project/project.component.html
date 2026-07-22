@@ -47,7 +47,9 @@
               (click)="goHome()"
               [class.active]="projectState.selectedTabIndex() === 0">
               <mat-icon>home</mat-icon>
-              <span class="mobile-tab-name">Home</span>
+              <span class="mobile-tab-name">{{
+                'project.nav.home' | transloco
+              }}</span>
             </button>
           </div>
         </div>
@@ -79,9 +81,11 @@
             [class.selected-item]="isSystemTabSelected('media')"
             data-testid="mobile-media-button"
             (click)="onShowMediaLibrary(); toggleSidebar()"
-            aria-label="Media Library">
+            [attr.aria-label]="'project.nav.mediaLibrary' | transloco">
             <mat-icon>perm_media</mat-icon>
-            <span class="nav-title">Media Library</span>
+            <span class="nav-title">{{
+              'project.nav.mediaLibrary' | transloco
+            }}</span>
           </button>
           <button
             type="button"
@@ -89,9 +93,11 @@
             [class.selected-item]="isSystemTabSelected('publish-plans')"
             data-testid="mobile-publishing-button"
             (click)="onShowPublishPlans(); toggleSidebar()"
-            aria-label="Publishing">
+            [attr.aria-label]="'project.nav.publishing' | transloco">
             <mat-icon>auto_stories</mat-icon>
-            <span class="nav-title">Publishing</span>
+            <span class="nav-title">{{
+              'project.nav.publishing' | transloco
+            }}</span>
           </button>
           @if (!isLocalMode()) {
             <button
@@ -100,9 +106,11 @@
               [class.selected-item]="isSystemTabSelected('activity')"
               data-testid="mobile-activity-button"
               (click)="onShowActivity(); toggleSidebar()"
-              aria-label="Activity">
+              [attr.aria-label]="'project.nav.activity' | transloco">
               <mat-icon>history</mat-icon>
-              <span class="nav-title">Activity</span>
+              <span class="nav-title">{{
+                'project.nav.activity' | transloco
+              }}</span>
             </button>
           }
           <button
@@ -111,18 +119,22 @@
             [class.selected-item]="isSystemTabSelected('settings')"
             data-testid="mobile-settings-button"
             (click)="onShowSettings(); toggleSidebar()"
-            aria-label="Project Settings">
+            [attr.aria-label]="'project.nav.projectSettings' | transloco">
             <mat-icon>settings</mat-icon>
-            <span class="nav-title">Project Settings</span>
+            <span class="nav-title">{{
+              'project.nav.projectSettings' | transloco
+            }}</span>
           </button>
           <button
             type="button"
             class="mobile-nav-item exit-item"
             data-testid="mobile-exit-button"
             (click)="exitProject()"
-            aria-label="Exit Project">
+            [attr.aria-label]="'project.nav.exitProject' | transloco">
             <mat-icon>exit_to_app</mat-icon>
-            <span class="nav-title">Exit Project</span>
+            <span class="nav-title">{{
+              'project.nav.exitProject' | transloco
+            }}</span>
           </button>
         </div>
       </div>
@@ -163,9 +175,9 @@
                 <button
                   mat-icon-button
                   (click)="toggleSidebarCollapsed()"
-                  matTooltip="Expand Sidebar"
+                  [matTooltip]="'project.nav.expandSidebar' | transloco"
                   data-testid="sidebar-expand-button"
-                  aria-label="Expand Sidebar">
+                  [attr.aria-label]="'project.nav.expandSidebar' | transloco">
                   <mat-icon fontSet="material-symbols-outlined"
                     >left_panel_open</mat-icon
                   >
@@ -174,17 +186,19 @@
                   mat-icon-button
                   (click)="goHome()"
                   [class.active]="projectState.selectedTabIndex() === 0"
-                  matTooltip="Home"
+                  [matTooltip]="'project.nav.home' | transloco"
                   data-testid="collapsed-home-button"
-                  aria-label="Home">
+                  [attr.aria-label]="'project.nav.home' | transloco">
                   <mat-icon>home</mat-icon>
                 </button>
                 <button
                   mat-icon-button
                   (click)="openProjectSearch()"
-                  matTooltip="Search in Project (Ctrl+Shift+F)"
+                  [matTooltip]="'project.nav.searchInProject' | transloco"
                   data-testid="collapsed-project-search-button"
-                  aria-label="Search in Project">
+                  [attr.aria-label]="
+                    'project.nav.searchInProjectAria' | transloco
+                  ">
                   <mat-icon>manage_search</mat-icon>
                 </button>
               </div>
@@ -225,18 +239,18 @@
                   mat-icon-button
                   (click)="onShowMediaLibrary()"
                   [class.active]="isSystemTabSelected('media')"
-                  matTooltip="Media Library"
+                  [matTooltip]="'project.nav.mediaLibrary' | transloco"
                   data-testid="collapsed-media-button"
-                  aria-label="Media Library">
+                  [attr.aria-label]="'project.nav.mediaLibrary' | transloco">
                   <mat-icon>perm_media</mat-icon>
                 </button>
                 <button
                   mat-icon-button
                   (click)="onShowPublishPlans()"
                   [class.active]="isSystemTabSelected('publish-plans')"
-                  matTooltip="Publishing"
+                  [matTooltip]="'project.nav.publishing' | transloco"
                   data-testid="collapsed-publishing-button"
-                  aria-label="Publishing">
+                  [attr.aria-label]="'project.nav.publishing' | transloco">
                   <mat-icon>auto_stories</mat-icon>
                 </button>
                 @if (!isLocalMode()) {
@@ -244,9 +258,9 @@
                     mat-icon-button
                     (click)="onShowActivity()"
                     [class.active]="isSystemTabSelected('activity')"
-                    matTooltip="Activity"
+                    [matTooltip]="'project.nav.activity' | transloco"
                     data-testid="collapsed-activity-button"
-                    aria-label="Activity">
+                    [attr.aria-label]="'project.nav.activity' | transloco">
                     <mat-icon>history</mat-icon>
                   </button>
                 }
@@ -254,17 +268,17 @@
                   mat-icon-button
                   (click)="onShowSettings()"
                   [class.active]="isSystemTabSelected('settings')"
-                  matTooltip="Project Settings"
+                  [matTooltip]="'project.nav.projectSettings' | transloco"
                   data-testid="collapsed-settings-button"
-                  aria-label="Project Settings">
+                  [attr.aria-label]="'project.nav.projectSettings' | transloco">
                   <mat-icon>settings</mat-icon>
                 </button>
                 <button
                   mat-icon-button
                   (click)="exitProject()"
-                  matTooltip="Exit Project"
+                  [matTooltip]="'project.nav.exitProject' | transloco"
                   data-testid="collapsed-exit-button"
-                  aria-label="Exit Project">
+                  [attr.aria-label]="'project.nav.exitProject' | transloco">
                   <mat-icon>exit_to_app</mat-icon>
                 </button>
               </div>
@@ -338,9 +352,11 @@
                     [class.selected-item]="isSystemTabSelected('media')"
                     data-testid="sidebar-media-button"
                     (click)="onShowMediaLibrary()"
-                    aria-label="Media Library">
+                    [attr.aria-label]="'project.nav.mediaLibrary' | transloco">
                     <mat-icon>perm_media</mat-icon>
-                    <span class="nav-title">Media Library</span>
+                    <span class="nav-title">{{
+                      'project.nav.mediaLibrary' | transloco
+                    }}</span>
                   </button>
                   <button
                     type="button"
@@ -348,9 +364,11 @@
                     [class.selected-item]="isSystemTabSelected('publish-plans')"
                     data-testid="sidebar-publishing-button"
                     (click)="onShowPublishPlans()"
-                    aria-label="Publishing">
+                    [attr.aria-label]="'project.nav.publishing' | transloco">
                     <mat-icon>auto_stories</mat-icon>
-                    <span class="nav-title">Publishing</span>
+                    <span class="nav-title">{{
+                      'project.nav.publishing' | transloco
+                    }}</span>
                   </button>
                   @if (!isLocalMode()) {
                     <button
@@ -359,9 +377,11 @@
                       [class.selected-item]="isSystemTabSelected('activity')"
                       data-testid="sidebar-activity-button"
                       (click)="onShowActivity()"
-                      aria-label="Activity">
+                      [attr.aria-label]="'project.nav.activity' | transloco">
                       <mat-icon>history</mat-icon>
-                      <span class="nav-title">Activity</span>
+                      <span class="nav-title">{{
+                        'project.nav.activity' | transloco
+                      }}</span>
                     </button>
                   }
                   <button
@@ -370,18 +390,24 @@
                     [class.selected-item]="isSystemTabSelected('settings')"
                     data-testid="sidebar-settings-button"
                     (click)="onShowSettings()"
-                    aria-label="Project Settings">
+                    [attr.aria-label]="
+                      'project.nav.projectSettings' | transloco
+                    ">
                     <mat-icon>settings</mat-icon>
-                    <span class="nav-title">Project Settings</span>
+                    <span class="nav-title">{{
+                      'project.nav.projectSettings' | transloco
+                    }}</span>
                   </button>
                   <button
                     type="button"
                     class="sidebar-nav-item exit-item"
                     data-testid="sidebar-exit-button"
                     (click)="exitProject()"
-                    aria-label="Exit Project">
+                    [attr.aria-label]="'project.nav.exitProject' | transloco">
                     <mat-icon>exit_to_app</mat-icon>
-                    <span class="nav-title">Exit Project</span>
+                    <span class="nav-title">{{
+                      'project.nav.exitProject' | transloco
+                    }}</span>
                   </button>
                 </div>
               </div>

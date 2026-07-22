@@ -14,6 +14,8 @@ import { SetupService } from '../core/setup.service';
 import { MediaSyncService } from '../local/media-sync.service';
 import { MediaAutoSyncService } from './media-auto-sync.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('MediaAutoSyncService', () => {
   let service: MediaAutoSyncService;
   let mockMediaSyncService: {
@@ -52,6 +54,7 @@ describe('MediaAutoSyncService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         MediaAutoSyncService,
         { provide: MediaSyncService, useValue: mockMediaSyncService },

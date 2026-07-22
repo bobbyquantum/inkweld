@@ -5,6 +5,8 @@ import { RelationshipCategory } from '@models/element-ref.model';
 import { type ElementTypeSchema } from '@models/schema-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   CATEGORY_OPTIONS,
   EditRelationshipTypeDialogComponent,
@@ -40,7 +42,7 @@ function createComponent(data: EditRelationshipTypeDialogData): {
   const dialogRefMock = { close: vi.fn() };
 
   TestBed.configureTestingModule({
-    imports: [EditRelationshipTypeDialogComponent],
+    imports: [translocoTestProvider(), EditRelationshipTypeDialogComponent],
     providers: [
       provideZonelessChangeDetection(),
       { provide: MatDialogRef, useValue: dialogRefMock },

@@ -14,6 +14,8 @@ import { RelationshipService } from '@services/relationship';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type Element, ElementType } from '../../../api-client';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   AddRelationshipDialogComponent,
   type AddRelationshipDialogData,
@@ -136,7 +138,11 @@ describe('AddRelationshipDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AddRelationshipDialogComponent, MatDialogModule],
+      imports: [
+        translocoTestProvider(),
+        AddRelationshipDialogComponent,
+        MatDialogModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },
@@ -197,7 +203,11 @@ describe('AddRelationshipDialogComponent', () => {
       };
 
       await TestBed.configureTestingModule({
-        imports: [AddRelationshipDialogComponent, MatDialogModule],
+        imports: [
+          translocoTestProvider(),
+          AddRelationshipDialogComponent,
+          MatDialogModule,
+        ],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MatDialogRef, useValue: mockDialogRef },

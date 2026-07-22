@@ -34,6 +34,7 @@ import {
   type AppTab,
   ProjectStateService,
 } from '@services/project/project-state.service';
+import { TranslocoModule } from '@jsverse/transloco';
 import { filter, Subject, type Subscription, takeUntil } from 'rxjs';
 
 import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
@@ -84,6 +85,7 @@ const TAB_TYPE_ICONS: Partial<Record<AppTab['type'], string>> = {
     CdkMenuItem,
     CdkDropList,
     CdkDrag,
+    TranslocoModule,
   ],
 })
 export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {

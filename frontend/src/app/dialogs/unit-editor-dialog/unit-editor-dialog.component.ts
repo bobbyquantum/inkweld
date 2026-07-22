@@ -19,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * Per-unit editor dialog.
@@ -96,6 +97,7 @@ interface OverrideRow {
     MatInputModule,
     MatSelectModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './unit-editor-dialog.component.html',
   styleUrls: ['./unit-editor-dialog.component.scss'],

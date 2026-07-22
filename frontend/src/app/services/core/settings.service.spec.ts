@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { SettingsService } from './settings.service';
 import { StorageContextService } from './storage-context.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('SettingsService', () => {
   let service: SettingsService;
   let localStorageMock: { [key: string]: string };
@@ -31,6 +33,7 @@ describe('SettingsService', () => {
     });
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         SettingsService,

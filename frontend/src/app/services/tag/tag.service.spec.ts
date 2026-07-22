@@ -17,6 +17,8 @@ import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factor
 import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
 import { TagService } from './tag.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // Mock tag definitions for testing (simulates what templates would provide)
 const MOCK_PROJECT_TAGS: TagDefinition[] = [
   {
@@ -138,6 +140,7 @@ describe('TagService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         TagService,
         { provide: ElementSyncProviderFactory, useValue: mockFactory },

@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { LocalStorageService } from './local-storage.service';
 import { StorageService } from './storage.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // Polyfill structuredClone for test environment if needed
 function createStructuredClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
@@ -39,6 +41,7 @@ describe('LocalStorageService', () => {
     globalThis.URL.revokeObjectURL = nativeRevokeObjectURL;
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         StorageService,

@@ -25,6 +25,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
+import { TranslocoModule } from '@jsverse/transloco';
 import { ElementRefService } from '@components/element-ref/element-ref.service';
 import { type ElementType } from '@inkweld/index';
 import { type ElementSearchResult } from '@models/element-ref.model';
@@ -38,6 +39,7 @@ import { type ElementSearchResult } from '@models/element-ref.model';
     MatIconModule,
     MatInputModule,
     MatListModule,
+    TranslocoModule,
   ],
   templateUrl: './element-ref-popup.component.html',
   styleUrls: ['./element-ref-popup.component.scss'],

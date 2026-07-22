@@ -15,6 +15,8 @@ import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   AdminService,
   AdminServiceError,
@@ -97,6 +99,7 @@ describe('AdminService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

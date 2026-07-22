@@ -3,6 +3,8 @@ import { TestBed } from '@angular/core/testing';
 
 import { ViewportService } from './viewport.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ViewportService', () => {
   let service: ViewportService;
 
@@ -43,6 +45,7 @@ describe('ViewportService', () => {
     });
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         ViewportService,
         { provide: PLATFORM_ID, useValue: 'browser' },

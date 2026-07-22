@@ -9,6 +9,8 @@ import { createFindPlugin } from '../../components/find-in-document/find-plugin'
 import { FindInDocumentService } from './find-in-document.service';
 import { LoggerService } from './logger.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // Basic schema for tests
 const testSchema = new Schema({
   nodes: {
@@ -42,6 +44,7 @@ describe('FindInDocumentService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         FindInDocumentService,
         { provide: LoggerService, useValue: mockLogger },

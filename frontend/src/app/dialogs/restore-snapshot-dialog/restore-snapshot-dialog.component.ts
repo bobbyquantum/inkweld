@@ -6,6 +6,7 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoModule } from '@jsverse/transloco';
 import { type UnifiedSnapshot } from '@services/project/unified-snapshot.service';
 
 /**
@@ -22,7 +23,7 @@ export interface RestoreSnapshotDialogData {
  */
 @Component({
   selector: 'app-restore-snapshot-dialog',
-  imports: [MatDialogModule, MatButtonModule, MatIconModule],
+  imports: [MatDialogModule, MatButtonModule, MatIconModule, TranslocoModule],
   templateUrl: './restore-snapshot-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './restore-snapshot-dialog.component.scss',

@@ -13,6 +13,8 @@ import {
 } from '../../models/published-file';
 import { SetupService } from '../../services/core/setup.service';
 import { PublishedFilesService } from '../../services/publish/published-files.service';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   PublishCompleteDialogComponent,
   type PublishCompleteDialogData,
@@ -65,6 +67,7 @@ describe('PublishCompleteDialogComponent', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockDialogData },

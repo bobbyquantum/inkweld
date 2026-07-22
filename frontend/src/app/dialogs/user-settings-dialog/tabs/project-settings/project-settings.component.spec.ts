@@ -9,6 +9,8 @@ import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
 
 import { ProjectSettingsComponent } from './project-settings.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 describe('ProjectSettingsComponent', () => {
   // Updated
   let component: ProjectSettingsComponent; // Updated
@@ -38,6 +40,7 @@ describe('ProjectSettingsComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         ProjectSettingsComponent, // Updated
         FormsModule,
         MatCheckboxModule,

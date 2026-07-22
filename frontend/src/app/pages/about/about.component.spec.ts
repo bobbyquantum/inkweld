@@ -11,6 +11,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AboutComponent } from './about.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('AboutComponent', () => {
   let router: {
     navigate: ReturnType<typeof vi.fn>;
@@ -23,7 +25,7 @@ describe('AboutComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AboutComponent],
+      imports: [translocoTestProvider(), AboutComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

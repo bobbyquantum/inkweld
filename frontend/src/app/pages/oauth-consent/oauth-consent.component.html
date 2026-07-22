@@ -8,13 +8,17 @@
       <mat-card class="error-card">
         <mat-card-header>
           <mat-icon matCardAvatar class="error-icon">error</mat-icon>
-          <mat-card-title>Authorization Error</mat-card-title>
+          <mat-card-title>{{
+            'auth.oauthConsent.errorTitle' | transloco
+          }}</mat-card-title>
         </mat-card-header>
         <mat-card-content>
           <p>{{ error() }}</p>
         </mat-card-content>
         <mat-card-actions>
-          <button mat-button routerLink="/">Return to Home</button>
+          <button mat-button routerLink="/">
+            {{ 'auth.oauthConsent.returnHome' | transloco }}
+          </button>
         </mat-card-actions>
       </mat-card>
     </div>
@@ -23,20 +27,26 @@
       <mat-card class="completion-card">
         <mat-card-content>
           <mat-icon class="completion-icon">check_circle</mat-icon>
-          <h2>Authorization Complete</h2>
+          <h2>{{ 'auth.oauthConsent.completeTitle' | transloco }}</h2>
           <p>
-            You have granted <strong>{{ clientName() }}</strong> access to your
-            selected projects.
+            {{
+              'auth.oauthConsent.completeMessage'
+                | transloco: { app: clientName() }
+            }}
           </p>
           <p class="completion-hint">
-            Return to your application. This window can now be closed.
+            {{ 'auth.oauthConsent.completeHint' | transloco }}
           </p>
         </mat-card-content>
         <mat-card-actions align="end">
           @if (redirectUri()) {
-            <a mat-flat-button [href]="redirectUri()"> Open Application </a>
+            <a mat-flat-button [href]="redirectUri()">
+              {{ 'auth.oauthConsent.openApplication' | transloco }}
+            </a>
           }
-          <button mat-button routerLink="/">Go to Inkweld</button>
+          <button mat-button routerLink="/">
+            {{ 'auth.oauthConsent.goToInkweld' | transloco }}
+          </button>
         </mat-card-actions>
       </mat-card>
     </div>
@@ -68,25 +78,27 @@
 
         <mat-card-content>
           <p class="authorization-message">
-            <strong>{{ clientName() }}</strong> is requesting access to your
-            projects. Select which projects to grant access to:
+            {{
+              'auth.oauthConsent.requestMessage'
+                | transloco: { app: clientName() }
+            }}
           </p>
 
           <div class="project-selection">
             <div class="selection-actions">
               <button mat-button type="button" (click)="selectAll()">
                 <mat-icon>select_all</mat-icon>
-                Select All
+                {{ 'auth.oauthConsent.selectAll' | transloco }}
               </button>
               <button mat-button type="button" (click)="deselectAll()">
                 <mat-icon>deselect</mat-icon>
-                Deselect All
+                {{ 'auth.oauthConsent.deselectAll' | transloco }}
               </button>
             </div>
 
             @if (projectGrants().length === 0) {
               <p class="no-projects">
-                You don't have any projects to grant access to.
+                {{ 'auth.oauthConsent.noProjects' | transloco }}
               </p>
             } @else {
               <div class="project-list">
@@ -108,13 +120,15 @@
 
                     @if (grant.selected) {
                       <mat-form-field appearance="outline" class="role-select">
-                        <mat-label>Access Level</mat-label>
+                        <mat-label>{{
+                          'auth.oauthConsent.accessLevel' | transloco
+                        }}</mat-label>
                         <mat-select
                           [value]="grant.role"
                           (selectionChange)="updateRole(grant, $event.value)">
                           @for (role of roles; track role.value) {
                             <mat-option [value]="role.value">{{
-                              role.label
+                              role.label | transloco
                             }}</mat-option>
                           }
                         </mat-select>
@@ -133,7 +147,7 @@
             type="button"
             (click)="deny()"
             [disabled]="submitting()">
-            Deny
+            {{ 'auth.oauthConsent.deny' | transloco }}
           </button>
           <button
             mat-flat-button
@@ -142,9 +156,9 @@
             (click)="approve()"
             [disabled]="!hasSelection() || submitting()">
             @if (submitting()) {
-              Authorizing...
+              {{ 'auth.oauthConsent.authorizing' | transloco }}
             } @else {
-              Authorize
+              {{ 'auth.oauthConsent.authorize' | transloco }}
             }
           </button>
         </mat-card-actions>

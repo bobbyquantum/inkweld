@@ -8,6 +8,8 @@ import { LoggerService } from '../core/logger.service';
 import { SettingsService } from '../core/settings.service';
 import { RecentFilesService } from './recent-files.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('RecentFilesService', () => {
   let service: RecentFilesService;
   let settingsService: SettingsService;
@@ -35,6 +37,7 @@ describe('RecentFilesService', () => {
 
     // Set up TestBed
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         RecentFilesService,

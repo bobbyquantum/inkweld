@@ -21,6 +21,8 @@ import { LocalStorageService } from './local-storage.service';
 import { MigrationService, MigrationStatus } from './migration.service';
 import { ProjectSyncService } from './project-sync.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('MigrationService', () => {
   let service: MigrationService;
   let storageContextServiceMock: {
@@ -181,6 +183,7 @@ describe('MigrationService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

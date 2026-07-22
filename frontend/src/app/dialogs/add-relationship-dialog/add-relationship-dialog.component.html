@@ -1,11 +1,13 @@
-<h2 mat-dialog-title>Add Relationship</h2>
+<h2 mat-dialog-title>{{ 'relationships.addDialog.title' | transloco }}</h2>
 
 <mat-dialog-content>
   <!-- Step 1: Select Relationship Type -->
   <div class="form-section">
-    <h3>1. Select Relationship Type</h3>
+    <h3>{{ 'relationships.addDialog.step1' | transloco }}</h3>
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Relationship Type</mat-label>
+      <mat-label>{{
+        'relationships.addDialog.typeLabel' | transloco
+      }}</mat-label>
       <mat-select
         [value]="selectedTypeId()"
         (selectionChange)="onTypeSelected($event.value)"
@@ -26,11 +28,15 @@
       <div class="type-description">
         <mat-icon>{{ getTypeIcon(type) }}</mat-icon>
         <span>
-          This element <strong>{{ type.name }}</strong> the selected target
+          {{ 'relationships.addDialog.thisElement' | transloco }}
+          <strong>{{ type.name }}</strong>
+          {{ 'relationships.addDialog.selectedTarget' | transloco }}
           @if (type.showInverse && type.inverseLabel) {
             <br />
             <span class="inverse-note">
-              Target will see this as: "{{ type.inverseLabel }}"
+              {{ 'relationships.addDialog.inverseNote' | transloco }} "{{
+                type.inverseLabel
+              }}"
             </span>
           }
         </span>
@@ -41,7 +47,7 @@
   <!-- Step 2: Select Target Element -->
   @if (selectedTypeId()) {
     <div class="form-section">
-      <h3>2. Select Target Element</h3>
+      <h3>{{ 'relationships.addDialog.step2' | transloco }}</h3>
 
       @if (selectedElement(); as element) {
         <!-- Show selected element -->
@@ -51,7 +57,7 @@
           <button
             mat-icon-button
             (click)="clearSelectedElement()"
-            matTooltip="Clear selection"
+            [matTooltip]="'relationships.addDialog.clearSelection' | transloco"
             data-testid="clear-element-button">
             <mat-icon>close</mat-icon>
           </button>
@@ -59,15 +65,21 @@
       } @else {
         <!-- Element search -->
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Search elements</mat-label>
+          <mat-label>{{
+            'relationships.addDialog.searchLabel' | transloco
+          }}</mat-label>
           <input
             matInput
             id="add-relationship-element-search-input"
             [formField]="form.elementSearch"
             [matAutocomplete]="elementAuto"
-            placeholder="Type to search..."
+            [placeholder]="
+              'relationships.addDialog.searchPlaceholder' | transloco
+            "
             data-testid="element-search-input"
-            aria-label="Search elements" />
+            [attr.aria-label]="
+              'relationships.addDialog.searchAria' | transloco
+            " />
           <mat-icon matSuffix>search</mat-icon>
           <mat-autocomplete
             #elementAuto="matAutocomplete"
@@ -81,7 +93,9 @@
               </mat-option>
             } @empty {
               <mat-option disabled>
-                <span class="no-results">No matching elements found</span>
+                <span class="no-results">{{
+                  'relationships.addDialog.noMatch' | transloco
+                }}</span>
               </mat-option>
             }
           </mat-autocomplete>
@@ -93,17 +107,21 @@
   <!-- Step 3: Optional Note -->
   @if (selectedElement()) {
     <div class="form-section">
-      <h3>3. Add Note (Optional)</h3>
+      <h3>{{ 'relationships.addDialog.step3' | transloco }}</h3>
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Note</mat-label>
+        <mat-label>{{
+          'relationships.addDialog.noteLabel' | transloco
+        }}</mat-label>
         <textarea
           matInput
           [formField]="form.note"
-          placeholder="Add context about this relationship..."
+          [placeholder]="'relationships.addDialog.notePlaceholder' | transloco"
           rows="2"
           data-testid="relationship-note-input"
           id="relationship-note-input"
-          aria-label="Note"></textarea>
+          [attr.aria-label]="
+            'relationships.addDialog.noteAria' | transloco
+          "></textarea>
       </mat-form-field>
     </div>
   }
@@ -111,7 +129,7 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="cancel()" data-testid="cancel-button">
-    Cancel
+    {{ 'cancel' | transloco }}
   </button>
   <button
     mat-raised-button
@@ -119,6 +137,6 @@
     [disabled]="!canSubmit()"
     (click)="submit()"
     data-testid="add-relationship-button">
-    Add Relationship
+    {{ 'relationships.addDialog.addRelationship' | transloco }}
   </button>
 </mat-dialog-actions>

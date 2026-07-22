@@ -23,6 +23,8 @@ import { ProjectActivationService } from './project-activation.service';
 import { ProjectSyncService } from './project-sync.service';
 import { StorageService } from './storage.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('BackgroundSyncService', () => {
   let service: BackgroundSyncService;
   let _setupService: SetupService;
@@ -78,6 +80,7 @@ describe('BackgroundSyncService', () => {
     });
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         StorageService,

@@ -7,6 +7,8 @@ import {
 } from './canvas-stage-events.service';
 import { CanvasZoomService } from './canvas-zoom.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('CanvasStageEventsService', () => {
   let service: CanvasStageEventsService;
   let zoom: { zoomToPoint: ReturnType<typeof vi.fn> };
@@ -36,6 +38,7 @@ describe('CanvasStageEventsService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasStageEventsService,
         { provide: CanvasZoomService, useValue: zoom },

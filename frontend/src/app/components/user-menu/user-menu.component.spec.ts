@@ -19,6 +19,8 @@ import { type MockedObject, vi } from 'vitest';
 
 import { UserMenuComponent } from './user-menu.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('UserMenuComponent', () => {
   let component: UserMenuComponent;
   let fixture: ComponentFixture<UserMenuComponent>;
@@ -119,7 +121,7 @@ describe('UserMenuComponent', () => {
     } as unknown as MockedObject<AuthTokenService>;
 
     await TestBed.configureTestingModule({
-      imports: [UserMenuComponent],
+      imports: [translocoTestProvider(), UserMenuComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: HttpClient, useValue: httpClientMock },

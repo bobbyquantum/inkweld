@@ -1,31 +1,33 @@
-<h2 mat-dialog-title>{{ data.title || 'Rename Item' }}</h2>
+<h2 mat-dialog-title>
+  {{ data.title || ('dialogs.rename.title' | transloco) }}
+</h2>
 <mat-dialog-content>
   <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Name</mat-label>
+    <mat-label>{{ 'dialogs.rename.nameLabel' | transloco }}</mat-label>
     <input
       matInput
       id="rename-dialog-input"
-      aria-label="Name"
+      [attr.aria-label]="'dialogs.rename.nameLabel' | transloco"
       #nameInput
       (input)="onInput($event)"
       (blur)="onBlur()"
       cdkFocusInitial
       (keyup.enter)="onConfirm()"
       data-testid="rename-input"
-      placeholder="Enter name" />
+      [placeholder]="'dialogs.rename.namePlaceholder' | transloco" />
     @if (touched() && name().trim().length === 0) {
-      <mat-error>Name is required</mat-error>
+      <mat-error>{{ 'dialogs.rename.nameRequired' | transloco }}</mat-error>
     }
   </mat-form-field>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-button (click)="onCancel()">{{ 'cancel' | transloco }}</button>
   <button
     mat-button
     color="primary"
     [disabled]="name().trim().length === 0"
     data-testid="rename-confirm-button"
     (click)="onConfirm()">
-    Rename
+    {{ 'dialogs.rename.rename' | transloco }}
   </button>
 </mat-dialog-actions>

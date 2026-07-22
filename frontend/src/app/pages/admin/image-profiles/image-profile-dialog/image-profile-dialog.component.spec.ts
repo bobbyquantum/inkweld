@@ -18,6 +18,8 @@ import {
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 import {
   ImageProfileDialogComponent,
   type ImageProfileDialogData,
@@ -97,7 +99,11 @@ describe('ImageProfileDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ImageProfileDialogComponent, MatDialogModule],
+      imports: [
+        translocoTestProvider(),
+        ImageProfileDialogComponent,
+        MatDialogModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MAT_DIALOG_DATA, useValue: data },

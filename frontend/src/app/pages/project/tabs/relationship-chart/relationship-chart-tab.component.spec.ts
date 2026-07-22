@@ -18,6 +18,8 @@ import { RelationshipChartService } from '../../../../services/relationship-char
 import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
 import { RelationshipChartTabComponent } from './relationship-chart-tab.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 // Cytoscape requires ResizeObserver which is not available in jsdom
 class MockResizeObserver {
   observe(): void {}
@@ -134,7 +136,7 @@ describe('RelationshipChartTabComponent', () => {
     mockChartService.activeConfig.set(createDefaultChartConfig('test-chart'));
 
     await TestBed.configureTestingModule({
-      imports: [RelationshipChartTabComponent],
+      imports: [translocoTestProvider(), RelationshipChartTabComponent],
       providers: [
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: ActivatedRoute, useValue: mockRoute },

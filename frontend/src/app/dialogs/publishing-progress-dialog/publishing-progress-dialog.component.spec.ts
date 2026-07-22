@@ -13,6 +13,8 @@ import {
 import { BehaviorSubject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 import {
   PublishingProgressDialogComponent,
   type PublishingProgressDialogData,
@@ -53,7 +55,11 @@ describe('PublishingProgressDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [PublishingProgressDialogComponent, MatDialogModule],
+      imports: [
+        translocoTestProvider(),
+        PublishingProgressDialogComponent,
+        MatDialogModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRefMock },

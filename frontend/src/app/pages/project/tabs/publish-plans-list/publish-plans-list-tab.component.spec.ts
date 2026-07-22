@@ -15,6 +15,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 import { PublishPlansListTabComponent } from './publish-plans-list-tab.component';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+
 describe('PublishPlansListTabComponent', () => {
   let component: PublishPlansListTabComponent;
   let fixture: ComponentFixture<PublishPlansListTabComponent>;
@@ -51,7 +53,7 @@ describe('PublishPlansListTabComponent', () => {
     vi.clearAllMocks();
 
     await TestBed.configureTestingModule({
-      imports: [PublishPlansListTabComponent],
+      imports: [translocoTestProvider(), PublishPlansListTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },

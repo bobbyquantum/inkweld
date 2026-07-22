@@ -11,6 +11,8 @@ import { PdfGeneratorService } from '@services/publish/pdf-generator.service';
 
 import { PublishPreviewComponent } from './publish-preview.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('PublishPreviewComponent', () => {
   let component: PublishPreviewComponent;
   let fixture: ComponentFixture<PublishPreviewComponent>;
@@ -62,7 +64,7 @@ describe('PublishPreviewComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [PublishPreviewComponent],
+      imports: [translocoTestProvider(), PublishPreviewComponent],
       providers: [
         { provide: PdfGeneratorService, useValue: mockPdfGenerator },
         { provide: HtmlGeneratorService, useValue: mockHtmlGenerator },

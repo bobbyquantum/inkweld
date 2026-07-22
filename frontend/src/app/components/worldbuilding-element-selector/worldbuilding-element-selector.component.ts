@@ -19,6 +19,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { type Element, ElementType } from '../../../api-client/model/models';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
+import { TranslocoModule } from '@jsverse/transloco';
 import {
   type WorldbuildingIdentity,
   WorldbuildingService,
@@ -89,6 +90,7 @@ export interface SelectionChangeEvent {
     MatIconModule,
     MatSlideToggleModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './worldbuilding-element-selector.component.html',
   styleUrls: ['./worldbuilding-element-selector.component.scss'],

@@ -9,6 +9,8 @@ import {
 } from '../core/storage-context.service';
 import { AuthTokenService } from './auth-token.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('AuthTokenService', () => {
   let service: AuthTokenService;
   let mockStorage: { [key: string]: string } = {};
@@ -69,6 +71,7 @@ describe('AuthTokenService', () => {
   function createServices() {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         StorageContextService,

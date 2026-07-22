@@ -1,14 +1,14 @@
-<h2 mat-dialog-title>Add Comment</h2>
+<h2 mat-dialog-title>{{ 'dialogs.addComment.title' | transloco }}</h2>
 
 <mat-dialog-content>
   <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Comment</mat-label>
+    <mat-label>{{ 'dialogs.addComment.commentLabel' | transloco }}</mat-label>
     <textarea
       matInput
       id="add-comment-text"
-      aria-label="Comment"
+      [attr.aria-label]="'dialogs.addComment.commentAria' | transloco"
       [(ngModel)]="commentText"
-      placeholder="Write your comment..."
+      [placeholder]="'dialogs.addComment.placeholder' | transloco"
       rows="3"
       maxlength="2000"
       cdkTextareaAutosize
@@ -20,7 +20,7 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()" data-testid="cancel-comment-btn">
-    Cancel
+    {{ 'cancel' | transloco }}
   </button>
   <button
     mat-raised-button
@@ -28,6 +28,6 @@
     [disabled]="!commentText.trim()"
     (click)="onSubmit()"
     data-testid="submit-comment-btn">
-    Comment
+    {{ 'dialogs.addComment.comment' | transloco }}
   </button>
 </mat-dialog-actions>

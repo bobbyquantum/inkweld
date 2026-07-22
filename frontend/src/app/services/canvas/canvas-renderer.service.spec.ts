@@ -27,6 +27,8 @@ import { CanvasService } from './canvas.service';
 import type { CanvasNodeHandlers } from './canvas-renderer.service';
 import { CanvasRendererService } from './canvas-renderer.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // jsdom does not implement canvas.getContext('2d'), which Konva requires.
 // Provide a minimal stub so Konva node constructors don't throw.
 function makeCanvas2dStub() {
@@ -207,6 +209,7 @@ describe('CanvasRendererService', () => {
     mockLogger = { warn: vi.fn() };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasRendererService,
         { provide: CanvasService, useValue: { activeConfig: signal(null) } },

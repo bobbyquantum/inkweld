@@ -20,6 +20,8 @@ import { AuthTokenService } from '../services/auth/auth-token.service';
 import { SetupService } from '../services/core/setup.service';
 import { AuthInterceptor } from './auth.interceptor';
 
+import { translocoTestProvider } from '../../testing/transloco-test-provider';
+
 describe('AuthInterceptor', () => {
   let interceptor: AuthInterceptor;
   let router: MockedObject<Router> & { url: string };
@@ -44,6 +46,7 @@ describe('AuthInterceptor', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         AuthInterceptor,

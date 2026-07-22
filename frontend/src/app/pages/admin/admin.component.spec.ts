@@ -17,6 +17,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UserMenuComponent } from '../../components/user-menu/user-menu.component';
 import { AdminComponent } from './admin.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 // Mock UserMenuComponent to avoid UserAvatarComponent's HTTP calls
 @Component({
   selector: 'app-user-menu',
@@ -56,7 +58,7 @@ describe('AdminComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AdminComponent],
+      imports: [translocoTestProvider(), AdminComponent],
       providers: [
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),

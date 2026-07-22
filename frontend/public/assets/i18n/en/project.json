@@ -1,0 +1,144 @@
+{
+  "nav": {
+    "home": "Home",
+    "mediaLibrary": "Media Library",
+    "publishing": "Publishing",
+    "activity": "Activity",
+    "projectSettings": "Project Settings",
+    "exitProject": "Exit Project",
+    "expandSidebar": "Expand Sidebar",
+    "collapseSidebar": "Collapse Sidebar",
+    "searchInProject": "Search in Project (Ctrl+Shift+F)",
+    "searchInProjectAria": "Search in Project"
+  },
+  "tree": {
+    "home": "Home",
+    "searchInProject": "Search in Project (Ctrl+Shift+F)",
+    "collapseSidebar": "Collapse Sidebar",
+    "pinned": "Pinned",
+    "create": "Create",
+    "openDocument": "Open Document",
+    "newElement": "New Element",
+    "rename": "Rename",
+    "delete": "Delete",
+    "unpin": "Unpin",
+    "pin": "Pin",
+    "confirmMove": "Confirm Move",
+    "confirmMoveMessage": "Are you sure you want to move this item?",
+    "move": "Move",
+    "renameFolder": "Rename Folder",
+    "renameItem": "Rename Item",
+    "confirmDelete": "Confirm Delete",
+    "confirmDeleteMessage": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone."
+  },
+  "tabs": {
+    "scrollLeft": "Scroll tabs left",
+    "scrollRight": "Scroll tabs right",
+    "rename": "Rename",
+    "unpin": "Unpin",
+    "pin": "Pin",
+    "close": "Close",
+    "closeToRight": "Close to the Right",
+    "closeOthers": "Close Others",
+    "closeAll": "Close All",
+    "renameFolder": "Rename Folder",
+    "renameDocument": "Rename Document"
+  },
+  "homeTab": {
+    "editCover": "Edit project cover",
+    "editDetails": "Edit project details",
+    "start": "Start",
+    "newFile": "New File",
+    "exportProject": "Export Project",
+    "importProject": "Import Project",
+    "publishProject": "Publish Project",
+    "mediaLibrary": "Media Library",
+    "templates": "Templates",
+    "projectSettings": "Project Settings",
+    "pinned": "Pinned",
+    "noPinned": "No pinned elements yet. Right-click an element to pin it.",
+    "recentElements": "Recent Elements",
+    "noRecent": "No recent elements yet. Open documents to see them here.",
+    "coverSaved": "Cover image saved successfully",
+    "coverSaveFailed": "Failed to save cover image"
+  },
+  "documentTab": {
+    "notSynced": "This document has not been synced to your browser yet.",
+    "notSyncedHint": "Reconnect to the server and try again once the document has finished syncing.",
+    "syncing": "Syncing…",
+    "syncProject": "Sync Project",
+    "loadingEditor": "Loading editor...",
+    "loadingDocument": "Loading document..."
+  },
+  "activity": {
+    "title": "Activity",
+    "refresh": "Refresh",
+    "loadFailed": "Could not load activity",
+    "retry": "Retry",
+    "noActivity": "No activity yet",
+    "noActivityHint": "Edits, comments, snapshots and other changes will appear here.",
+    "loadMore": "Load more"
+  },
+  "connection": {
+    "localMode": "Local Mode",
+    "connected": "Connected",
+    "offlineMode": "Offline Mode",
+    "connectionFailed": "Connection Failed",
+    "unknown": "Unknown",
+    "localTooltip": "Working in local mode - changes saved to browser storage",
+    "connectedTooltip": "Project is synced with server",
+    "connectingTooltip": "Connecting to server...",
+    "offlineTooltip": "Working offline (Last error: {{error}})",
+    "offlineNoErrorTooltip": "Working offline - changes saved locally",
+    "failedTooltip": "Connection failed: {{error}}",
+    "failedNoErrorTooltip": "Unable to connect to server",
+    "retryConnecting": "Connecting to server...",
+    "retryWithError": "Retry sync (Last error: {{error}})",
+    "retry": "Retry sync",
+    "syncingMedia": "Syncing media... {{progress}}%",
+    "mediaSynced": "Media synced",
+    "mediaPending": "{{count}} media pending",
+    "downloading": "Downloading: {{progress}}%",
+    "allMediaSynced": "All media files are synced",
+    "toDownload": "{{count}} to download",
+    "toUpload": "{{count}} to upload"
+  },
+  "presence": {
+    "user": "user",
+    "users": "users",
+    "online": "online"
+  },
+  "breadcrumbs": {
+    "ariaLabel": "Document path"
+  },
+  "exitConfirm": {
+    "title": "Unsynced Changes",
+    "message": "You have changes that haven't been synced to the server yet. Are you sure you want to leave?",
+    "leave": "Leave",
+    "stay": "Stay"
+  },
+  "snackbar": {
+    "projectImported": "Project imported successfully!",
+    "view": "View",
+    "projectExported": "Project exported successfully",
+    "exportFailed": "Failed to export project",
+    "deleteProject": "Delete Project",
+    "deleteProjectMessage": "To confirm deletion, please type the project slug \"{{slug}}\" below. This action cannot be undone.",
+    "projectDeleted": "Project deleted successfully",
+    "deleteFailed": "Failed to delete project",
+    "reconnecting": "Reconnecting...",
+    "reconnected": "Reconnected successfully",
+    "reconnectFailed": "Failed to reconnect to server"
+  },
+  "sideNav": {
+    "projects": "Projects",
+    "sharedBy": "Shared by {{username}}"
+  },
+  "projectCard": {
+    "sharedBy": "Shared by {{username}}"
+  },
+  "projectCover": {
+    "loading": "Loading...",
+    "coverAlt": "{{title}} cover"
+  }
+}

@@ -42,6 +42,8 @@ import {
 import { PublishingPhase, PublishService } from './publish.service';
 import { PublishPlanService } from './publish-plan.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('PublishService', () => {
   let service: PublishService;
   let publishPlanServiceMock: {
@@ -306,6 +308,7 @@ describe('PublishService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         PublishService,

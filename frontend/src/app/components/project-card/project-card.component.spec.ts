@@ -9,6 +9,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProjectCardComponent } from './project-card.component';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+
 describe('ProjectCardComponent', () => {
   let component: ProjectCardComponent;
   let fixture: ComponentFixture<ProjectCardComponent>;
@@ -37,7 +39,7 @@ describe('ProjectCardComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ProjectCardComponent],
+      imports: [translocoTestProvider(), ProjectCardComponent],
       providers: [
         { provide: SyncQueueService, useValue: mockSyncQueueService },
       ],

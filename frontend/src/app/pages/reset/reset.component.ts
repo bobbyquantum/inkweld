@@ -9,6 +9,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 /**
  * Component for resetting all browser storage and logging the user out.
@@ -24,10 +25,12 @@ import { Router } from '@angular/router';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    TranslocoModule,
   ],
 })
 export class ResetComponent {
   private readonly router = inject(Router);
+  private readonly transloco = inject(TranslocoService);
 
   readonly isClearing = signal(false);
   readonly error = signal<string | null>(null);
@@ -56,9 +59,7 @@ export class ResetComponent {
       await this.router.navigate(['/setup']);
     } catch (err) {
       console.error('Error clearing data:', err);
-      this.error.set(
-        'Failed to clear some data. Please try again or clear your browser data manually.'
-      );
+      this.error.set(this.transloco.translate('errors.unknown'));
       this.isClearing.set(false);
     }
   }
