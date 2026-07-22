@@ -19,16 +19,17 @@ export interface ElectronAPI {
   showOpenDialog: (
     options: OpenDialogOptions
   ) => Promise<OpenDialogReturnValue>;
-  // File operations
-  writeFile: (
-    filePath: string,
-    data: string | ArrayBuffer
-  ) => Promise<{ success: boolean; error?: string }>;
-  readFile: (
-    filePath: string
-  ) => Promise<{ success: boolean; data?: ArrayBuffer; error?: string }>;
-  // Menu (deprecated - removed in favor of custom titlebar)
-  // onMenuAction: (callback: (action: string) => void) => () => void;
+  // File operations (dialog + I/O combined in main process)
+  saveFileWithDialog: (
+    data: string | ArrayBuffer,
+    options: SaveDialogOptions
+  ) => Promise<{ saved: boolean; filePath?: string; error?: string }>;
+  openAndReadFile: (options: OpenDialogOptions) => Promise<{
+    success: boolean;
+    data?: ArrayBuffer;
+    filePath?: string;
+    error?: string;
+  }>;
   // Electron flag
   isElectron: boolean;
 }
@@ -160,32 +161,8 @@ export class ElectronService {
   }
 
   /**
-   * Write data to a file (requires Electron)
-   */
-  async writeFile(
-    filePath: string,
-    data: string | ArrayBuffer
-  ): Promise<boolean> {
-    if (!this.api) return false;
-    const result = await this.api.writeFile(filePath, data);
-    return result.success;
-  }
-
-  /**
-   * Read data from a file (requires Electron)
-   */
-  async readFile(filePath: string): Promise<ArrayBuffer | null> {
-    if (!this.api) return null;
-    const result = await this.api.readFile(filePath);
-    if (result.success && result.data) {
-      return result.data;
-    }
-    return null;
-  }
-
-  /**
-   * Save a file with a native dialog
-   * Convenience method combining dialog and write
+   * Save a file using a native save dialog
+   * The dialog and file write happen entirely in the main process
    */
   async saveFileWithDialog(
     data: string | ArrayBuffer,
@@ -194,16 +171,24 @@ export class ElectronService {
     if (!this.api) {
       return { saved: false };
     }
+    const result = await this.api.saveFileWithDialog(data, options);
+    return { saved: result.saved, filePath: result.filePath };
+  }
 
-    const dialogResult = await this.showSaveDialog(options);
-    if (!dialogResult || dialogResult.canceled || !dialogResult.filePath) {
-      return { saved: false };
+  /**
+   * Open and read a file using a native open dialog
+   * The dialog and file read happen entirely in the main process
+   */
+  async openAndReadFile(
+    options: OpenDialogOptions
+  ): Promise<{ data: ArrayBuffer | null; filePath?: string }> {
+    if (!this.api) {
+      return { data: null };
     }
-
-    const success = await this.writeFile(dialogResult.filePath, data);
-    return {
-      saved: success,
-      filePath: success ? dialogResult.filePath : undefined,
-    };
+    const result = await this.api.openAndReadFile(options);
+    if (result.success && result.data) {
+      return { data: result.data, filePath: result.filePath };
+    }
+    return { data: null };
   }
 }

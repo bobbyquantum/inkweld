@@ -87,6 +87,9 @@ async function setupWorldbuildingAtMobile(
   // Resize to mobile viewport first — accordion mode shows the image placeholder
   await page.setViewportSize(mobileViewport);
 
+  // Ensure the resize listener fires so the editor switches to accordion mode.
+  await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+
   // Wait for accordion layout to appear
   await expect(page.getByTestId('accordion-identity')).toBeVisible();
 

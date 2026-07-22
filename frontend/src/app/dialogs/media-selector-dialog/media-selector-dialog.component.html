@@ -75,15 +75,21 @@
             (keydown.space)="selectItem(item); $event.preventDefault()"
             [attr.aria-pressed]="isSelected(item)"
             [matTooltip]="
-              needsDownload(item)
-                ? ('media.mediaSelector.downloadFromServer' | transloco)
-                : ''
+              isDownloading(item)
+                ? ('media.mediaSelector.downloading' | transloco)
+                : needsDownload(item)
+                  ? ('media.mediaSelector.downloadFromServer' | transloco)
+                  : ''
             ">
             @if (item.url) {
               <img
                 [src]="item.url"
                 [alt]="item.filename || item.mediaId"
                 class="thumbnail" />
+            } @else if (isDownloading(item)) {
+              <div class="download-spinner">
+                <mat-progress-spinner diameter="32" mode="indeterminate" />
+              </div>
             } @else {
               <mat-icon class="placeholder-icon">
                 @if (needsDownload(item)) {
@@ -92,17 +98,6 @@
                   image
                 }
               </mat-icon>
-              @if (needsDownload(item)) {
-                <button
-                  mat-icon-button
-                  class="download-btn"
-                  (click)="downloadItem(item); $event.stopPropagation()"
-                  [matTooltip]="
-                    'media.mediaSelector.downloadTooltip' | transloco
-                  ">
-                  <mat-icon>download</mat-icon>
-                </button>
-              }
             }
             @if (isSelected(item)) {
               <div class="selected-overlay">

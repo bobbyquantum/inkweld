@@ -1,16 +1,14 @@
 /**
  * Templates Tab Screenshot Tests
  *
- * Captures screenshots of the template management feature.
- * Consolidated 10 → 2 tests (one per color scheme); each captures
- * overview, grid, header/create button, template editor page, clone menu, and
- * card details via test.step.
+ * Captures screenshots of the template management feature (embedded in
+ * Project Settings → Element Templates). Consolidated 10 → 2 tests (one
+ * per color scheme); each captures overview, list, header/create button,
+ * template editor page, template row actions, and card details via test.step.
  *
- * NOTE: This entire suite is `describe.skip` because schemas are not
- * available in local/offline mode after project creation from a template.
- * The schema sync provider doesn't populate schemas in time for the
- * templates tab to display them. This is a pre-existing issue unrelated
- * to the sidenav redesign / consolidation work.
+ * Uses the worldbuilding-demo project template which ships with pre-built
+ * schemas (Character, Location) so the templates tab has content to display
+ * in offline/local mode.
  */
 
 import { type Page } from '@playwright/test';
@@ -33,7 +31,13 @@ async function setupProjectAndTemplatesTab(
 
   await page.waitForSelector('.empty-state', { state: 'visible' });
 
-  await createProjectWithTwoSteps(page, projectTitle, projectSlug);
+  await createProjectWithTwoSteps(
+    page,
+    projectTitle,
+    projectSlug,
+    undefined,
+    'worldbuilding-demo'
+  );
   await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
 
   await page.goto(`/demouser/${projectSlug}/settings`);
@@ -43,7 +47,7 @@ async function setupProjectAndTemplatesTab(
 
   await page.getByTestId('nav-templates').click();
 
-  await page.waitForSelector('.templates-tab-container', { state: 'visible' });
+  await page.getByTestId('templates-tab').waitFor({ state: 'visible' });
   await page.waitForTimeout(500);
 }
 
@@ -65,21 +69,23 @@ async function captureAllTemplateScreenshots(
   });
 
   if (suffix === 'light') {
-    await test.step('grid section', async () => {
-      const gridSection = page.locator('.templates-grid').first();
+    await test.step('list section', async () => {
+      const listSection = page
+        .locator('[data-testid="templates-list"]')
+        .first();
       await captureElementScreenshot(
         page,
-        [gridSection],
+        [listSection],
         join(screenshotsDir, 'templates-grid-light.png'),
         16
       );
     });
 
     await test.step('header / create button', async () => {
-      const header = page.locator('.templates-header').first();
+      const controls = page.getByTestId('templates-controls');
       await captureElementScreenshot(
         page,
-        [header],
+        [controls],
         join(screenshotsDir, 'templates-create-button-light.png'),
         16
       );
@@ -96,25 +102,16 @@ async function captureAllTemplateScreenshots(
     );
   });
 
-  await test.step('clone template menu', async () => {
-    await page
-      .locator('[data-testid="template-card"]')
-      .first()
-      .locator('button[aria-label="Template actions"]')
-      .click();
-    await page.waitForTimeout(200);
-
-    const menu = page.locator('mat-menu.mat-mdc-menu-panel');
+  await test.step('template actions', async () => {
+    const card = page.locator('[data-testid="template-card"]').first();
+    const actions = card.getByTestId('template-actions');
+    await expect(actions).toBeVisible();
     await captureElementScreenshot(
       page,
-      [menu],
+      [actions],
       join(screenshotsDir, `templates-clone-menu-${suffix}.png`),
       16
     );
-
-    // Dismiss the menu before opening the create dialog.
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(200);
   });
 
   await test.step('create template dialog', async () => {
@@ -137,7 +134,7 @@ async function captureAllTemplateScreenshots(
   });
 }
 
-test.describe.skip('Templates Tab Screenshots', () => {
+test.describe('Templates Tab Screenshots', () => {
   const screenshotsDir = getScreenshotsDir();
 
   test.beforeAll(async () => {
@@ -146,14 +143,14 @@ test.describe.skip('Templates Tab Screenshots', () => {
 
   test('templates screenshots — light mode', async ({ offlinePage: page }) => {
     await setupProjectAndTemplatesTab(page, 'tpl-light', 'Templates Demo');
-    await expect(page.locator('.templates-tab-container')).toBeVisible();
+    await expect(page.getByTestId('templates-tab')).toBeVisible();
     await captureAllTemplateScreenshots(page, screenshotsDir, 'light');
   });
 
   test('templates screenshots — dark mode', async ({ offlinePage: page }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await setupProjectAndTemplatesTab(page, 'tpl-dark', 'Templates Demo');
-    await expect(page.locator('.templates-tab-container')).toBeVisible();
+    await expect(page.getByTestId('templates-tab')).toBeVisible();
     await captureAllTemplateScreenshots(page, screenshotsDir, 'dark');
   });
 });

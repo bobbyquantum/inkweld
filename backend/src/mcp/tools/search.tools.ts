@@ -1240,13 +1240,14 @@ export function extractTextFromXmlString(xmlString: string): string {
     i = tagEnd + 1;
   }
 
-  // Decode common HTML entities.
+  // Decode common HTML entities. &amp; must be decoded last so that nested
+  // entities like &amp;lt; are not double-unescaped to < instead of &lt;.
   out = out
-    .replaceAll('&amp;', '&')
     .replaceAll('&lt;', '<')
     .replaceAll('&gt;', '>')
     .replaceAll('&quot;', '"')
-    .replaceAll('&#39;', "'");
+    .replaceAll('&#39;', "'")
+    .replaceAll('&amp;', '&');
 
   // Collapse 3+ newlines to 2. {3,} is a fixed repetition on a single
   // character class — no backtracking risk.

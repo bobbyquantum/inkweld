@@ -285,12 +285,100 @@ Elements become powerful when connected:
 
 See [Element References](./element-references) and [Relationships](./relationships) for details.
 
-### Element Profile View
+## The Worldbuilding Editor
 
-When you open an element, you see:
+When you open an element, the worldbuilding editor provides a structured workspace for editing its data. The editor adapts its layout based on your screen size.
 
-- **Tabs** with structured fields
-- **Relationships section** showing connections and reference backlinks
+### Desktop Layout (Sidenav)
+
+On screens wider than 760px, the editor uses a **sidenav layout** with a navigation rail on the left and a content area on the right.
+
+<ThemedImage
+  src="/img/features/worldbuilding-editor-overview"
+  alt="The worldbuilding editor in desktop sidenav mode showing the navigation rail and identity section"
+/>
+
+| Area                    | Purpose                                                  |
+| ----------------------- | -------------------------------------------------------- |
+| **Sidenav** (left)      | Navigation rail with section links and element thumbnail |
+| **Content** (right)     | The active section's fields and panels                   |
+| **Status bar** (bottom) | Tags, document snapshots, and sync status                |
+
+The sidenav shows:
+
+- **Element thumbnail** — click to view the full-size identity image
+- **Identity** — name, description, and image
+- **Schema tabs** — one entry per tab defined in the template (e.g., Basic Info, Appearance)
+- **Relationships** — connections and backlinks
+- **Media** — images and files tagged to this element
+
+### Identity Panel
+
+The Identity section holds the element's core identity:
+
+- **Name** — displayed at the top (read-only; use the rename button to change it)
+- **Image** — upload, crop, or generate an AI image for the element
+- **Description** — a free-text summary of the element
+- **Tags** — visual labels for organizing and filtering
+
+<ThemedImage
+  src="/img/features/worldbuilding-editor-sidenav"
+  alt="The sidenav navigation showing Identity, schema tabs, Relationships, and Media links"
+/>
+
+### Schema Tab Fields
+
+Each template tab renders its fields as a form. Field types include text inputs, textareas, selects, multi-selects, numbers, dates, checkboxes, and arrays.
+
+<ThemedImage
+  src="/img/features/worldbuilding-editor-fields"
+  alt="The Basic Info tab showing form fields like Full Name, Age, Gender, and Species"
+/>
+
+Fields are laid out in a responsive grid. Each field's `span` (set in the template editor) controls how many columns it occupies — a span of 12 is full-width, 6 is half-width.
+
+### Relationships Section
+
+The Relationships section shows all connections for the element — both outgoing relationships you've created and incoming backlinks from documents and other elements.
+
+<ThemedImage
+  src="/img/features/worldbuilding-editor-relationships"
+  alt="The Relationships section showing relationship type groups and backlinks"
+/>
+
+See [Relationships](./relationships) for details on creating and managing connections.
+
+### Media Panel
+
+The Media panel lists all media items tagged to this element. Add images from your media library or remove tags you no longer need.
+
+<ThemedImage
+  src="/img/features/worldbuilding-editor-media"
+  alt="The Media panel showing tagged images for the element"
+/>
+
+### Status Bar
+
+The status bar at the bottom of the editor shows:
+
+| Control            | Purpose                                                        |
+| ------------------ | -------------------------------------------------------------- |
+| **Tags**           | View and manage element tags (click to open the tag editor)    |
+| **Snapshots**      | Open the document snapshots dialog to save or restore versions |
+| **Sync indicator** | Shows the real-time sync state (synced, syncing, or offline)   |
+
+<ThemedImage
+  src="/img/features/worldbuilding-editor-statusbar"
+  alt="The editor status bar showing tags, snapshots button, and sync status"
+/>
+
+### Mobile Layout (Accordion)
+
+On screens narrower than 760px, the sidenav is replaced with an **accordion layout**. All sections — Identity & Details, schema tabs, Relationships, and Media — are rendered as collapsible panels stacked vertically.
+
+![The worldbuilding editor in mobile accordion mode showing collapsible sections](/img/features/mobile/worldbuilding-accordion-iPhone14Pro.png)
+
+The Identity & Details panel is expanded by default. Tap any panel header to expand or collapse it. The accordion layout provides the same editing capabilities as the desktop sidenav, optimized for touch interaction.
 
 ---
 

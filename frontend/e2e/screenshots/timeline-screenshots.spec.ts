@@ -189,6 +189,7 @@ test.describe('Timeline Tab Screenshots', () => {
   }
 
   test('timeline screenshots — light mode', async ({ offlinePage: page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await setupTimeline(page);
 
     await test.step('canvas overview', async () => {
@@ -213,6 +214,7 @@ test.describe('Timeline Tab Screenshots', () => {
   });
 
   test('timeline screenshots — dark mode', async ({ offlinePage: page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.emulateMedia({ colorScheme: 'dark' });
     await setupTimeline(page);
 

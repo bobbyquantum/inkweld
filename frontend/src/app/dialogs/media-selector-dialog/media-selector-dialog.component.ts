@@ -98,6 +98,9 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
 
   readonly selectedCount = computed(() => this.selectedItems().size);
 
+  /** Media IDs that are currently being downloaded from the server. */
+  readonly downloadingItemIds = signal<Set<string>>(new Set());
+
   private readonly objectUrls: string[] = [];
   private projectKey = '';
 
@@ -207,10 +210,52 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
           });
         }
         this.mediaItems.set(newItems);
+
+        // If there are no local items yet and we only have server-only items,
+        // kick off downloads automatically so the user isn't stuck staring at
+        // placeholders when they open the dialog.
+        const localOnlyItems = newItems.filter(i => !this.needsDownload(i));
+        if (localOnlyItems.length === 0) {
+          void this.downloadAllServerOnlyItems();
+        }
       }
     } catch (err) {
       // Non-critical - just log and continue
       console.warn('Failed to check server media:', err);
+    }
+  }
+
+  /**
+   * Download every server-only item currently shown in the dialog.
+   * Used for auto-download when the dialog opens with only server items.
+   */
+  private async downloadAllServerOnlyItems(): Promise<void> {
+    const serverOnlyItems = this.mediaItems().filter(
+      i => this.needsDownload(i) && Boolean(i.filename)
+    );
+    if (serverOnlyItems.length === 0) return;
+
+    // Track all of them as downloading
+    this.downloadingItemIds.update(ids => {
+      const next = new Set(ids);
+      for (const item of serverOnlyItems) next.add(item.mediaId);
+      return next;
+    });
+
+    try {
+      await this.mediaSync.downloadAllFromServer(this.projectKey);
+      await this.loadMedia();
+      this.serverItemsCount.set(0);
+    } catch (err) {
+      console.error('Failed to auto-download server items:', err);
+      this.error.set('Failed to download media from server');
+      // Reconcile state: some items may have downloaded before the error.
+      // Reload to reflect partially downloaded items without re-entering the
+      // auto-download loop (loadMedia calls checkServerMedia, but since some
+      // items are now local, the auto-download trigger won't fire).
+      await this.loadMedia();
+    } finally {
+      this.downloadingItemIds.set(new Set());
     }
   }
 
@@ -243,6 +288,13 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
    */
   async downloadItem(item: MediaItem): Promise<void> {
     if (!item.filename) return;
+    if (this.downloadingItemIds().has(item.mediaId)) return;
+
+    this.downloadingItemIds.update(ids => {
+      const next = new Set(ids);
+      next.add(item.mediaId);
+      return next;
+    });
 
     try {
       await this.mediaSync.downloadFromServer(this.projectKey, item.filename);
@@ -254,7 +306,20 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
     } catch (err) {
       console.error('Failed to download item:', err);
       this.error.set(`Failed to download ${item.filename}`);
+    } finally {
+      this.downloadingItemIds.update(ids => {
+        const next = new Set(ids);
+        next.delete(item.mediaId);
+        return next;
+      });
     }
+  }
+
+  /**
+   * Check if an item is currently downloading
+   */
+  isDownloading(item: MediaItem): boolean {
+    return this.downloadingItemIds().has(item.mediaId);
   }
 
   /**
@@ -283,8 +348,14 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
   }
 
   selectItem(item: MediaItem): void {
-    // Don't allow selecting items that aren't downloaded
-    if (this.needsDownload(item)) return;
+    // If the item isn't downloaded yet, auto-download it instead of selecting
+    if (this.needsDownload(item)) {
+      void this.downloadItem(item);
+      return;
+    }
+
+    // Don't allow selecting items that are currently downloading
+    if (this.isDownloading(item)) return;
 
     if (this.multiSelect) {
       this.selectedItems.update(map => {

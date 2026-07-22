@@ -144,6 +144,7 @@ test.describe('Canvas Tab Screenshots', () => {
   }
 
   test('canvas screenshots — light mode', async ({ offlinePage: page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await setupCanvas(page);
 
     await test.step('overview', async () => {
@@ -180,6 +181,7 @@ test.describe('Canvas Tab Screenshots', () => {
   });
 
   test('canvas screenshots — dark mode', async ({ offlinePage: page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.emulateMedia({ colorScheme: 'dark' });
     await setupCanvas(page);
 

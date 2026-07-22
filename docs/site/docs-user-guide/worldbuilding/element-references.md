@@ -179,4 +179,5 @@ Hover over a reference to see:
 
 ---
 
+**Previous:** [Elements & Templates](./elements) — Create structured worldbuilding entries.
 **Next:** [Relationships](./relationships) - Define semantic connections between elements.

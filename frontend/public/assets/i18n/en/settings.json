@@ -123,7 +123,6 @@
     "migrateConfirm": "Continue",
     "enterCredentials": "Please enter username and password",
     "passwordsMismatch": "Passwords do not match",
-    "migrationSuccess": "Successfully migrated {{count}} project(s)!",
     "migrationErrorsSnackbar": "Migration completed with errors. {{success}} succeeded, {{failed}} failed.",
     "authFailed": "Authentication failed. Please try again."
   },

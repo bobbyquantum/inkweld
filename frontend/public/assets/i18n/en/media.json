@@ -76,6 +76,7 @@
     "searchPlaceholder": "Search media...",
     "searchAria": "Search media",
     "noMatch": "No media matching \"{{query}}\".",
+    "downloading": "Downloading...",
     "downloadFromServer": "Click to download from server",
     "downloadTooltip": "Download from server",
     "downloadAllTooltip": "Download all images from server",

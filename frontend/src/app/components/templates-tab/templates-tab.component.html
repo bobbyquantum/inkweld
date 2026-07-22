@@ -1,7 +1,7 @@
 @if (editingState().mode === 'edit' && editingSchema(); as schema) {
   <app-template-editor-page [schema]="schema" (done)="onEditorDone($event)" />
 } @else {
-  <div class="templates-tab">
+  <div class="templates-tab" data-testid="templates-tab">
     <div class="header">
       <h2>{{ 'templates.tab.title' | transloco }}</h2>
       <p class="hint">
@@ -9,7 +9,7 @@
       </p>
     </div>
 
-    <div class="controls">
+    <div class="controls" data-testid="templates-controls">
       <div class="actions">
         <button
           mat-flat-button
@@ -103,7 +103,7 @@
                 }
               </div>
             </div>
-            <div class="template-actions">
+            <div class="template-actions" data-testid="template-actions">
               <button
                 mat-icon-button
                 matTooltip="Edit"
