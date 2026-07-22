@@ -63,7 +63,7 @@ test.describe('Online Project Workflows', () => {
     await test.step('cancels project creation and returns home', async () => {
       await gotoCreateProjectStep2(page);
       await page.getByTestId('project-title-input').fill('Cancelled Project');
-      await page.getByLabel('Go back to home').click();
+      await page.getByLabel('Back').click();
       await expect(page).toHaveURL('/');
     });
   });

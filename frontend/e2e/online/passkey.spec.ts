@@ -129,7 +129,7 @@ test.describe('Passkeys', () => {
         await expect(userMenuButton).toBeVisible();
         await userMenuButton.click();
         await authenticatedPage
-          .getByRole('menuitem', { name: /log out|logout|sign out/i })
+          .getByRole('menuitem', { name: /login/i })
           .click();
 
         const welcomeLogin = authenticatedPage.getByTestId(
