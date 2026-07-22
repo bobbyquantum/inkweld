@@ -682,7 +682,7 @@ describe('MediaSelectorDialogComponent', () => {
       // Should skip server items that exist locally
       const items = component.mediaItems();
       const serverOnly = items.filter(i => i.syncStatus === 'server-only');
-      expect(serverOnly.length).toBe(1);
+      expect(serverOnly).toHaveLength(1);
       expect(serverOnly[0].mediaId).toBe('server-extra');
     });
   });
@@ -741,7 +741,7 @@ describe('MediaSelectorDialogComponent', () => {
       await flushPromises();
 
       component.searchQuery.set('');
-      expect(component.filteredItems().length).toBe(
+      expect(component.filteredItems()).toHaveLength(
         component.mediaItems().length
       );
     });
@@ -754,7 +754,7 @@ describe('MediaSelectorDialogComponent', () => {
 
       component.searchQuery.set('image1');
       const filtered = component.filteredItems();
-      expect(filtered.length).toBe(1);
+      expect(filtered).toHaveLength(1);
       expect(filtered[0].filename).toBe('image1.png');
     });
 
@@ -766,7 +766,7 @@ describe('MediaSelectorDialogComponent', () => {
 
       component.searchQuery.set('media-2');
       const filtered = component.filteredItems();
-      expect(filtered.length).toBe(1);
+      expect(filtered).toHaveLength(1);
       expect(filtered[0].mediaId).toBe('media-2');
     });
 
@@ -777,7 +777,7 @@ describe('MediaSelectorDialogComponent', () => {
       await flushPromises();
 
       component.searchQuery.set('nonexistent');
-      expect(component.filteredItems().length).toBe(0);
+      expect(component.filteredItems()).toHaveLength(0);
     });
   });
 });
