@@ -29,6 +29,14 @@ describe('extractTextFromXmlString', () => {
     expect(extractTextFromXmlString(xml)).toBe('&<>"\'');
   });
 
+  it('does not double-unescape nested entities like &amp;lt;', () => {
+    // &amp;lt; should become &lt; (not <) because &amp; is decoded last.
+    expect(extractTextFromXmlString('<paragraph>&amp;lt;</paragraph>')).toBe('&lt;');
+    expect(extractTextFromXmlString('<paragraph>&amp;gt;</paragraph>')).toBe('&gt;');
+    expect(extractTextFromXmlString('<paragraph>&amp;quot;</paragraph>')).toBe('&quot;');
+    expect(extractTextFromXmlString('<paragraph>&amp;#39;</paragraph>')).toBe('&#39;');
+  });
+
   it('collapses 3+ newlines into 2', () => {
     const xml =
       '<doc><paragraph>A</paragraph><paragraph>B</paragraph><paragraph>C</paragraph></doc>';

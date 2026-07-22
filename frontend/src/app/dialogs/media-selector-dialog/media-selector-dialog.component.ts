@@ -228,8 +228,8 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
    * Used for auto-download when the dialog opens with only server items.
    */
   private async downloadAllServerOnlyItems(): Promise<void> {
-    const serverOnlyItems = this.mediaItems().filter(i =>
-      this.needsDownload(i)
+    const serverOnlyItems = this.mediaItems().filter(
+      i => this.needsDownload(i) && Boolean(i.filename)
     );
     if (serverOnlyItems.length === 0) return;
 
@@ -247,6 +247,11 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
     } catch (err) {
       console.error('Failed to auto-download server items:', err);
       this.error.set('Failed to download media from server');
+      // Reconcile state: some items may have downloaded before the error.
+      // Reload to reflect partially downloaded items without re-entering the
+      // auto-download loop (loadMedia calls checkServerMedia, but since some
+      // items are now local, the auto-download trigger won't fire).
+      await this.loadMedia();
     } finally {
       this.downloadingItemIds.set(new Set());
     }
