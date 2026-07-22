@@ -7,9 +7,8 @@ import { PasswordResetService } from '@services/auth/password-reset.service';
 import { SetupService } from '@services/core/setup.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ForgotPasswordComponent } from './forgot-password.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { ForgotPasswordComponent } from './forgot-password.component';
 
 describe('ForgotPasswordComponent', () => {
   let component: ForgotPasswordComponent;

@@ -6,12 +6,11 @@ import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
 import { type ImageCroppedEvent, type LoadedImage } from 'ngx-image-cropper';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../testing/transloco-test-provider';
 import { DialogGatewayService } from '../services/core/dialog-gateway.service';
 import { SystemConfigService } from '../services/core/system-config.service';
 import { ProjectStateService } from '../services/project/project-state.service';
 import { BaseImageDialogComponent } from './base-image-dialog';
-
-import { translocoTestProvider } from '../../testing/transloco-test-provider';
 
 @Component({
   standalone: true,

@@ -9,7 +9,6 @@ import { AnnouncementService } from '@services/announcement/announcement.service
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
-
 import {
   AnnouncementEditorDialogComponent,
   type AnnouncementEditorDialogData,

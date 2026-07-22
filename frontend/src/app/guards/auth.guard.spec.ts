@@ -16,9 +16,8 @@ import { SetupService } from '@services/core/setup.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { type Mock, vi } from 'vitest';
 
-import { authGuard } from './auth.guard';
-
 import { translocoTestProvider } from '../../testing/transloco-test-provider';
+import { authGuard } from './auth.guard';
 
 describe('authGuard', () => {
   let router: Router;

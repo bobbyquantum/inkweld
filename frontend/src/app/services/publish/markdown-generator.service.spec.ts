@@ -4,6 +4,7 @@ import { type Element, ElementType, type Project } from '@inkweld/index';
 import { createDefaultPublishStyles } from '@models/publish-style';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ChapterNumbering,
   FrontmatterType,
@@ -15,8 +16,6 @@ import {
 import { LoggerService } from '../core/logger.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   MarkdownGeneratorService,
   MarkdownPhase,

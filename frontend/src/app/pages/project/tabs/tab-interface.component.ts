@@ -28,13 +28,13 @@ import {
   RouterModule,
 } from '@angular/router';
 import { type Element, ElementType } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
 import { DocumentService } from '@services/project/document.service';
 import {
   type AppTab,
   ProjectStateService,
 } from '@services/project/project-state.service';
-import { TranslocoModule } from '@jsverse/transloco';
 import { filter, Subject, type Subscription, takeUntil } from 'rxjs';
 
 import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';

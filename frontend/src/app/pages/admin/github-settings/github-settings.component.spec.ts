@@ -5,9 +5,8 @@ import { AdminConfigService } from '@services/admin/admin-config.service';
 import { SetupService } from '@services/core/setup.service';
 import { vi } from 'vitest';
 
-import { AdminGithubSettingsComponent } from './github-settings.component';
-
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+import { AdminGithubSettingsComponent } from './github-settings.component';
 
 async function flushPromises(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0));

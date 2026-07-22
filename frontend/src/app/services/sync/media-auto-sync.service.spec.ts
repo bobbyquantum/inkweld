@@ -9,12 +9,11 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { MediaSyncService } from '../local/media-sync.service';
 import { MediaAutoSyncService } from './media-auto-sync.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('MediaAutoSyncService', () => {
   let service: MediaAutoSyncService;

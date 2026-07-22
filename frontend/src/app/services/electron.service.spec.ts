@@ -1,8 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 
-import { ElectronService } from './electron.service';
-
 import { translocoTestProvider } from '../../testing/transloco-test-provider';
+import { ElectronService } from './electron.service';
 
 describe('ElectronService', () => {
   let service: ElectronService;

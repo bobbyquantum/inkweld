@@ -19,7 +19,6 @@ import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
-
 import {
   ImageProfileDialogComponent,
   type ImageProfileDialogData,

@@ -4,11 +4,10 @@ import { ElementType } from '@inkweld/index';
 import { type Element } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { SettingsService } from '../core/settings.service';
 import { RecentFilesService } from './recent-files.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('RecentFilesService', () => {
   let service: RecentFilesService;

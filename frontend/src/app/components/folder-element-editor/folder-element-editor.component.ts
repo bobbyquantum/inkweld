@@ -21,11 +21,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 
 import { type ProjectElement } from '../../models/project-element';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { TreeNodeIconComponent } from '../project-tree/components/tree-node-icon/tree-node-icon.component';
-import { TranslocoModule } from '@jsverse/transloco';
 
 type ViewMode = 'grid' | 'list';
 

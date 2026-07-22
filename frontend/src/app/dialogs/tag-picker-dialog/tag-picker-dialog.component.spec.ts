@@ -12,7 +12,6 @@ import { TagService } from '@services/tag/tag.service';
 import { describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   TagPickerDialogComponent,
   type TagPickerDialogData,

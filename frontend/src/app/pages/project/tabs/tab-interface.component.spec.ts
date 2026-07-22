@@ -19,6 +19,7 @@ import { type Element, type Project } from '@inkweld/index';
 import { of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../../models/document-sync-state';
 import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
 import { DocumentService } from '../../../services/project/document.service';
@@ -28,8 +29,6 @@ import {
 } from '../../../services/project/project-state.service';
 import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
 import { TabInterfaceComponent } from './tab-interface.component';
-
-import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 
 describe('TabInterfaceComponent', () => {
   let component: TabInterfaceComponent;

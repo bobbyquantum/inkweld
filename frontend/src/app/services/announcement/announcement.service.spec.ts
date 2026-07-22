@@ -4,7 +4,6 @@ import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   AnnouncementService,
   AnnouncementServiceError,

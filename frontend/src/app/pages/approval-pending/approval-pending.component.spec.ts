@@ -4,9 +4,8 @@ import { ActivatedRoute } from '@angular/router';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { vi } from 'vitest';
 
-import { ApprovalPendingComponent } from './approval-pending.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { ApprovalPendingComponent } from './approval-pending.component';
 
 describe('ApprovalPendingComponent', () => {
   let component: ApprovalPendingComponent;

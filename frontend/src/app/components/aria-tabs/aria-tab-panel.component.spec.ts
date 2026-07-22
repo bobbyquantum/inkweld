@@ -1,9 +1,8 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { AriaTabPanelComponent } from './aria-tab-panel.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { AriaTabPanelComponent } from './aria-tab-panel.component';
 
 describe('AriaTabPanelComponent', () => {
   let component: AriaTabPanelComponent;

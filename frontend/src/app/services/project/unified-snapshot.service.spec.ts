@@ -10,6 +10,7 @@ import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type ProjectElement } from '../../models/project-element';
 import { LoggerService } from '../core/logger.service';
 import {
@@ -22,8 +23,6 @@ import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 import { UnifiedSnapshotService } from './unified-snapshot.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('UnifiedSnapshotService', () => {
   let service: UnifiedSnapshotService;

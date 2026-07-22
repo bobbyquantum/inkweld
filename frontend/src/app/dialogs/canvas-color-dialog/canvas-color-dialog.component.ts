@@ -6,8 +6,8 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { TranslocoModule } from '@jsverse/transloco';
 import { ColorSwatchesComponent } from '@components/color-swatches/color-swatches.component';
+import { TranslocoModule } from '@jsverse/transloco';
 
 export interface CanvasColorDialogData {
   /** Dialog title */

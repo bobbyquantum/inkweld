@@ -24,12 +24,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
 import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
 } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AdminService, type AdminUser } from '@services/admin/admin.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { firstValueFrom, Subject } from 'rxjs';

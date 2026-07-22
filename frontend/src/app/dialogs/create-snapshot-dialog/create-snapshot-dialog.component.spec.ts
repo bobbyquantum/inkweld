@@ -4,7 +4,6 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { type MockedObject, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   CreateSnapshotDialogComponent,
   type CreateSnapshotDialogData,

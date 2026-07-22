@@ -14,9 +14,8 @@ import {
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
-import { OAuthConsentComponent } from './oauth-consent.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { OAuthConsentComponent } from './oauth-consent.component';
 
 describe('OAuthConsentComponent', () => {
   let component: OAuthConsentComponent;

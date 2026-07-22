@@ -4,9 +4,8 @@ import { type Element, ElementType } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 
-import { DocumentBreadcrumbsComponent } from './document-breadcrumbs.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { DocumentBreadcrumbsComponent } from './document-breadcrumbs.component';
 
 describe('DocumentBreadcrumbsComponent', () => {
   let fixture: ComponentFixture<DocumentBreadcrumbsComponent>;

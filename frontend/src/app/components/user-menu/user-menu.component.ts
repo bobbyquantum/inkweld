@@ -14,6 +14,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { type User } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -26,7 +27,6 @@ import { UnifiedUserService } from '@services/user/unified-user.service';
 import { type ThemeOption, ThemeService } from '@themes/theme.service';
 
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
-import { TranslocoModule } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-user-menu',

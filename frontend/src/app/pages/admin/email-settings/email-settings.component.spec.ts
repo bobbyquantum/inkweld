@@ -8,9 +8,8 @@ import { AdminEmailService } from '@services/admin/admin-email.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AdminEmailSettingsComponent } from './email-settings.component';
-
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+import { AdminEmailSettingsComponent } from './email-settings.component';
 
 describe('AdminEmailSettingsComponent', () => {
   let component: AdminEmailSettingsComponent;

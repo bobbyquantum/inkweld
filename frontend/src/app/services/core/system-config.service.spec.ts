@@ -8,10 +8,9 @@ import {
 import { of, throwError } from 'rxjs';
 import { type Mock, type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from './setup.service';
 import { SystemConfigService } from './system-config.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('SystemConfigService', () => {
   let service: SystemConfigService;

@@ -13,9 +13,8 @@ import { SetupService } from '@services/core/setup.service';
 import { firstValueFrom } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { WritingStatsService } from './writing-stats.service';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { WritingStatsService } from './writing-stats.service';
 
 describe('WritingStatsService', () => {
   let service: WritingStatsService;

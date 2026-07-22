@@ -13,10 +13,9 @@ import { MatListModule } from '@angular/material/list';
 import { type ElementSearchResult } from '@models/element-ref.model';
 
 import { ElementType } from '../../../../api-client';
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { ElementRefService } from '../element-ref.service';
 import { ElementRefPopupComponent } from './element-ref-popup.component';
-
-import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 
 describe('ElementRefPopupComponent', () => {
   let component: ElementRefPopupComponent;

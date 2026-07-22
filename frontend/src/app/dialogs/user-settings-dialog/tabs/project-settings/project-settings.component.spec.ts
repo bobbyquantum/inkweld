@@ -7,9 +7,8 @@ import { SettingsService } from '@services/core/settings.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
 
-import { ProjectSettingsComponent } from './project-settings.component';
-
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+import { ProjectSettingsComponent } from './project-settings.component';
 
 describe('ProjectSettingsComponent', () => {
   // Updated

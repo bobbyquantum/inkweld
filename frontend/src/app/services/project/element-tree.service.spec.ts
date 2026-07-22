@@ -1,9 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
 
-import { ElementTreeService } from './element-tree.service';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { ElementTreeService } from './element-tree.service';
 
 describe('ElementTreeService', () => {
   let service: ElementTreeService;

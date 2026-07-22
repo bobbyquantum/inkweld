@@ -30,6 +30,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { type Element, ElementType } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { ProjectSearchService } from '@services/core/project-search.service';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -39,7 +40,6 @@ import { DialogGatewayService } from '../../services/core/dialog-gateway.service
 import { LoggerService } from '../../services/core/logger.service';
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
-import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * Component for displaying and managing the project tree with ARIA accessibility.

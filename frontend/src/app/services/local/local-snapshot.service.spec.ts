@@ -3,14 +3,13 @@ import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import {
   LocalSnapshotService,
   type StoredSnapshot,
 } from './local-snapshot.service';
 import { StorageService } from './storage.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 /**
  * Tests for LocalSnapshotService.

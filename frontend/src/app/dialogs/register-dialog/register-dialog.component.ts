@@ -18,10 +18,10 @@ import {
   RegistrationFormComponent,
   type RegistrationResult,
 } from '@components/registration-form/registration-form.component';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { PasskeyError, PasskeyService } from '@services/auth/passkey.service';
 import { SystemConfigService } from '@services/core/system-config.service';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { Subject } from 'rxjs';
 
 @Component({

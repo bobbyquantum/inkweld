@@ -3,9 +3,8 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AiKillSwitchDialogComponent } from './ai-kill-switch-dialog.component';
-
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+import { AiKillSwitchDialogComponent } from './ai-kill-switch-dialog.component';
 
 describe('AiKillSwitchDialogComponent', () => {
   let component: AiKillSwitchDialogComponent;

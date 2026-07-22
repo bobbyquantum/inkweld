@@ -11,6 +11,7 @@ import { type Project } from '@inkweld/model/project';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
@@ -20,8 +21,6 @@ import { LocalProjectElementsService } from './local-project-elements.service';
 import { LocalStorageService } from './local-storage.service';
 import { MigrationService, MigrationStatus } from './migration.service';
 import { ProjectSyncService } from './project-sync.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('MigrationService', () => {
   let service: MigrationService;

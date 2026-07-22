@@ -18,10 +18,9 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { StorageContextService } from '../core/storage-context.service';
 import { AuthTokenService } from './auth-token.service';
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   BROWSER_SUPPORTS_WEBAUTHN,
   PasskeyService,

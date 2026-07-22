@@ -17,9 +17,8 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { of, throwError } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
-import { AccountSettingsComponent } from './account-settings.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { AccountSettingsComponent } from './account-settings.component';
 
 describe('AccountSettingsComponent', () => {
   let component: AccountSettingsComponent;

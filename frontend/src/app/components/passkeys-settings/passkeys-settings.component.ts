@@ -12,11 +12,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoService } from '@jsverse/transloco';
 import type { Passkey } from '@inkweld/index';
+import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoModule } from '@jsverse/transloco';
 import { PasskeyError, PasskeyService } from '@services/auth/passkey.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
-import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * Passkey management section for the account settings page.
@@ -147,7 +147,9 @@ export class PasskeysSettingsComponent implements OnInit {
   async delete(passkey: Passkey): Promise<void> {
     const confirmed = await this.dialogGateway.openConfirmationDialog({
       title: this.transloco.translate('auth.passkeys.deleteTitle'),
+
       message: this.transloco.translate('auth.passkeys.deleteMessage', {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         name:
           passkey.name ??
           this.transloco.translate('auth.passkeys.unnamedPasskey'),

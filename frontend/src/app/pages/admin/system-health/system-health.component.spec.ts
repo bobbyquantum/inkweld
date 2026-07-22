@@ -12,9 +12,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { SetupService } from '@services/core/setup.service';
 import { vi } from 'vitest';
 
-import { AdminSystemHealthComponent } from './system-health.component';
-
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+import { AdminSystemHealthComponent } from './system-health.component';
 
 async function flushPromises(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0));

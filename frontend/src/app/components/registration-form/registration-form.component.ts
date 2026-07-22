@@ -44,12 +44,12 @@ import {
   type User,
   type UsernameAvailability,
 } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { firstValueFrom } from 'rxjs';
-import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * Result of a successful registration

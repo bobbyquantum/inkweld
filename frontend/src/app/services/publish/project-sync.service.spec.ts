@@ -3,13 +3,12 @@ import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   ProjectSyncService,
   SyncPhase,

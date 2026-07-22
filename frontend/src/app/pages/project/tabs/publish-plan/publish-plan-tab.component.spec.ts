@@ -8,6 +8,7 @@ import { ElementType } from '@inkweld/index';
 import { BehaviorSubject, of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import {
   type BackmatterItem,
   BackmatterType,
@@ -29,8 +30,6 @@ import { PublishService } from '../../../../services/publish/publish.service';
 import { PublishedFilesService } from '../../../../services/publish/published-files.service';
 import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
 import { PublishPlanTabComponent } from './publish-plan-tab.component';
-
-import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 
 describe('PublishPlanTabComponent', () => {
   let component: PublishPlanTabComponent;

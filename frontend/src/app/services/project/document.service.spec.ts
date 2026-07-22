@@ -13,6 +13,7 @@ import { type IndexeddbPersistence } from 'y-indexeddb';
 import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { SetupService } from '../core/setup.service';
@@ -20,8 +21,6 @@ import { SystemConfigService } from '../core/system-config.service';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 // y-indexeddb and y-websocket are mocked globally in setup-vitest.ts
 // @bobbyquantum/ngx-editor is only used as a type import — no mock needed

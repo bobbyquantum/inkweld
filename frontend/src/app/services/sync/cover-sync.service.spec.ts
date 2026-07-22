@@ -19,13 +19,12 @@ import {
 } from 'vitest';
 
 import { environment } from '../../../environments/environment';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { MediaSyncService } from '../local/media-sync.service';
 import { CoverSyncService } from './cover-sync.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 const BASE = environment.apiUrl;
 

@@ -1,9 +1,8 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { SettingsTabStatusComponent } from './settings-tab-status.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { SettingsTabStatusComponent } from './settings-tab-status.component';
 
 describe('SettingsTabStatusComponent', () => {
   let component: SettingsTabStatusComponent;

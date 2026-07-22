@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   GREGORIAN_SYSTEM,
   TIME_SYSTEM_TEMPLATES,
@@ -10,8 +11,6 @@ import {
 import { LoggerService } from '../core/logger.service';
 import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
 import { TimeSystemLibraryService } from './time-system-library.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 function makeSystem(overrides: Partial<TimeSystem> = {}): TimeSystem {
   return {

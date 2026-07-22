@@ -2,9 +2,8 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { InsertImageService } from './insert-image.service';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { InsertImageService } from './insert-image.service';
 
 describe('InsertImageService', () => {
   let service: InsertImageService;

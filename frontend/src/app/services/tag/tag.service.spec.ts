@@ -10,14 +10,13 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type MediaTag } from '../../models/media-tag.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
 import { TagService } from './tag.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 // Mock tag definitions for testing (simulates what templates would provide)
 const MOCK_PROJECT_TAGS: TagDefinition[] = [

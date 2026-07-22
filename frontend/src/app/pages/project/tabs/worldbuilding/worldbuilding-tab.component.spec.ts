@@ -15,9 +15,8 @@ import {
   ElementType,
   type Project,
 } from '../../../../../api-client';
-import { WorldbuildingTabComponent } from './worldbuilding-tab.component';
-
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+import { WorldbuildingTabComponent } from './worldbuilding-tab.component';
 
 describe('WorldbuildingTabComponent', () => {
   let component: WorldbuildingTabComponent;

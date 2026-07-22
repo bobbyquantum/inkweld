@@ -2,9 +2,8 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ResetComponent } from './reset.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { ResetComponent } from './reset.component';
 
 describe('ResetComponent', () => {
   let component: ResetComponent;

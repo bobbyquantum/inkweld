@@ -3,9 +3,8 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { FileUploadComponent } from './file-upload.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { FileUploadComponent } from './file-upload.component';
 
 describe('FileUploadComponent', () => {
   let component: FileUploadComponent;

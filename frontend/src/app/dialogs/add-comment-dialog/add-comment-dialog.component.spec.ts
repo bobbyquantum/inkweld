@@ -2,9 +2,8 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AddCommentDialogComponent } from './add-comment-dialog.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { AddCommentDialogComponent } from './add-comment-dialog.component';
 
 describe('AddCommentDialogComponent', () => {
   let component: AddCommentDialogComponent;

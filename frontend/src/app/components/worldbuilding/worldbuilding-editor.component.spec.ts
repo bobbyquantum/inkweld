@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { type Element, ElementType } from '../../../api-client';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   type ElementTypeSchema,
   type TabSchema,
@@ -15,8 +16,6 @@ import { DialogGatewayService } from '../../services/core/dialog-gateway.service
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { WorldbuildingEditorComponent } from './worldbuilding-editor.component';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 type WorldbuildingMock = DeepMockProxy<WorldbuildingService>;
 

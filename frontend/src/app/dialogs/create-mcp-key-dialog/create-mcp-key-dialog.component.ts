@@ -15,13 +15,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
 import {
   type CreateMcpKeyRequest,
   McpPermission,
   type McpPublicKey,
 } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { firstValueFrom } from 'rxjs';
 

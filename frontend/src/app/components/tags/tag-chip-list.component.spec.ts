@@ -5,9 +5,8 @@ import { type ResolvedTag, type TagDefinition } from '@models/tag.model';
 import { TagService } from '@services/tag/tag.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { TagChipListComponent } from './tag-chip-list.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { TagChipListComponent } from './tag-chip-list.component';
 
 describe('TagChipListComponent', () => {
   let component: TagChipListComponent;

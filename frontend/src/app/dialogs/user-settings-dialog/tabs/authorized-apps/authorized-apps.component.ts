@@ -13,7 +13,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   AddOAuthGrantRequestRole,
   OAuthService as OAuthApiService,
@@ -25,6 +24,7 @@ import {
   type PublicOAuthSession,
   type UpdateOAuthGrantRequestRole,
 } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { firstValueFrom } from 'rxjs';
 

@@ -10,6 +10,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { DocumentService } from '../project/document.service';
@@ -22,8 +23,6 @@ import { LocalProjectElementsService } from './local-project-elements.service';
 import { LocalStorageService } from './local-storage.service';
 import { ProjectSyncService } from './project-sync.service';
 import { UnifiedProjectService } from './unified-project.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('UnifiedProjectService', () => {
   let service: UnifiedProjectService;

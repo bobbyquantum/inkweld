@@ -1,13 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   CanvasStageEventsService,
   type StageEventCallbacks,
 } from './canvas-stage-events.service';
 import { CanvasZoomService } from './canvas-zoom.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('CanvasStageEventsService', () => {
   let service: CanvasStageEventsService;

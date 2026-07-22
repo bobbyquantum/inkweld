@@ -45,9 +45,8 @@ import {
 } from 'vitest';
 
 import { type Element, ElementType } from '../../../../../api-client';
-import { CanvasTabComponent } from './canvas-tab.component';
-
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+import { CanvasTabComponent } from './canvas-tab.component';
 
 // Konva requires ResizeObserver which is not available in jsdom
 class MockResizeObserver {

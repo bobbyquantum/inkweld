@@ -11,9 +11,8 @@ import { of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockDeep } from 'vitest-mock-extended';
 
-import { ActivityTabComponent } from './activity-tab.component';
-
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+import { ActivityTabComponent } from './activity-tab.component';
 
 const makeEvent = (
   id: string,

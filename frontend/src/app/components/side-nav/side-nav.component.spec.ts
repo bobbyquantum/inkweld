@@ -14,9 +14,8 @@ import {
 import { UserService } from '@services/user/user.service';
 import { type MockedObject, vi } from 'vitest';
 
-import { type NavItem, SideNavComponent } from './side-nav.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { type NavItem, SideNavComponent } from './side-nav.component';
 
 describe('SideNavComponent', () => {
   let component: SideNavComponent;

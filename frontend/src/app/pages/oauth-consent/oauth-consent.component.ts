@@ -22,13 +22,13 @@ import {
   Router,
   RouterLink,
 } from '@angular/router';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   type AuthorizationInfo,
   type AuthorizationInfoProjectsInner,
   ConsentRequestGrantsInnerRole,
   OAuthService as OAuthApiService,
 } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 /** Grant with selection state for the UI */
 interface ProjectGrant {

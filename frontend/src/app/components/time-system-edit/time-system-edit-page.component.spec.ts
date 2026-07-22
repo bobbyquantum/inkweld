@@ -6,9 +6,8 @@ import { TimeSystemLibraryService } from '@services/timeline/time-system-library
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { TimeSystemEditPageComponent } from './time-system-edit-page.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { TimeSystemEditPageComponent } from './time-system-edit-page.component';
 
 function makeLibraryMock(initialSystems: TimeSystem[] = []) {
   const systemsSignal = signal<TimeSystem[]>(initialSystems);

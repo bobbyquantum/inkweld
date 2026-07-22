@@ -2,10 +2,9 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SettingsService } from './settings.service';
 import { StorageContextService } from './storage-context.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('SettingsService', () => {
   let service: SettingsService;

@@ -41,9 +41,8 @@ class MockProjectSettingsComponent {}
 })
 class MockAuthorizedAppsComponent {}
 
-import { UserSettingsDialogComponent } from './user-settings-dialog.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { UserSettingsDialogComponent } from './user-settings-dialog.component';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

@@ -11,9 +11,8 @@ import { type Project } from '@inkweld/index';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { vi } from 'vitest';
 
-import { InkweldTitleStrategy } from './title-strategy.service';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { InkweldTitleStrategy } from './title-strategy.service';
 
 function createProject(title: string): Project {
   return {

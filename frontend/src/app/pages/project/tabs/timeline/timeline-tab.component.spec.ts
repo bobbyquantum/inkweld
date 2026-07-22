@@ -23,9 +23,8 @@ import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.serv
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { TimelineTabComponent } from './timeline-tab.component';
-
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+import { TimelineTabComponent } from './timeline-tab.component';
 
 describe('TimelineTabComponent', () => {
   let component: TimelineTabComponent;

@@ -5,7 +5,6 @@ import type { TimelineTrack } from '@models/timeline.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   TimelineEventDialogComponent,
   type TimelineEventDialogData,

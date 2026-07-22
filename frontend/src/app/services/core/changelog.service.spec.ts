@@ -4,9 +4,8 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
-import { ChangelogService, type ChangelogVersion } from './changelog.service';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { ChangelogService, type ChangelogVersion } from './changelog.service';
 
 describe('ChangelogService', () => {
   let service: ChangelogService;

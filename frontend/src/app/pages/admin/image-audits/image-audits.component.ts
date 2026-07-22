@@ -23,11 +23,11 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   ImageViewerDialogComponent,
   type ImageViewerDialogData,
 } from '@dialogs/image-viewer-dialog/image-viewer-dialog.component';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   AdminImageAuditsService,
   type ImageAuditStats,

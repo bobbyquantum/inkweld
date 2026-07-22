@@ -10,9 +10,8 @@ import { TagService } from '@services/tag/tag.service';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { TagsTabComponent } from './tags-tab.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { TagsTabComponent } from './tags-tab.component';
 
 describe('TagsTabComponent', () => {
   let component: TagsTabComponent;

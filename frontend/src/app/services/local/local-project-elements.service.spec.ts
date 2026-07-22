@@ -5,9 +5,8 @@ import { type Element } from '@inkweld/index';
 import { IDBFactory } from 'fake-indexeddb';
 import { vi } from 'vitest';
 
-import { LocalProjectElementsService } from './local-project-elements.service';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { LocalProjectElementsService } from './local-project-elements.service';
 
 // Note: nanoid is difficult to mock in Vitest due to hoisting issues
 // Tests will verify IDs exist rather than checking specific values

@@ -10,6 +10,7 @@ import { of } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ARCHIVE_VERSION,
   type ArchiveElement,
@@ -28,8 +29,6 @@ import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factor
 import * as archiveMigrations from './archive-migrations';
 import { DocumentImportService } from './document-import.service';
 import { ProjectImportService } from './project-import.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 /**
  * Helper to create a real ZIP file from a ProjectArchive for testing.

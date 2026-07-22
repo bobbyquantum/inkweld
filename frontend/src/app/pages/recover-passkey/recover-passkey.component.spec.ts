@@ -7,9 +7,8 @@ import { PasskeyRecoveryService } from '@services/auth/passkey-recovery.service'
 import { SystemConfigService } from '@services/core/system-config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { RecoverPasskeyComponent } from './recover-passkey.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { RecoverPasskeyComponent } from './recover-passkey.component';
 
 describe('RecoverPasskeyComponent', () => {
   let component: RecoverPasskeyComponent;

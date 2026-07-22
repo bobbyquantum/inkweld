@@ -10,11 +10,10 @@ import { By } from '@angular/platform-browser';
 import { ElementType } from '@inkweld/index';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type ProjectElement } from '../../models/project-element';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { FolderElementEditorComponent } from './folder-element-editor.component';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 // Mock component for TreeNodeIcon
 @Component({

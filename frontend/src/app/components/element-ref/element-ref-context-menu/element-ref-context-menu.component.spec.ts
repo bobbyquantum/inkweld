@@ -15,7 +15,6 @@ import { MatMenuModule } from '@angular/material/menu';
 
 import { ElementType } from '../../../../api-client';
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
-
 import {
   type ElementRefContextData,
   ElementRefContextMenuComponent,

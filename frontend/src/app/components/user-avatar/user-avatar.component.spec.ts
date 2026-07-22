@@ -7,9 +7,8 @@ import { UserService } from '@services/user/user.service';
 import { of, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { UserAvatarComponent } from './user-avatar.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { UserAvatarComponent } from './user-avatar.component';
 
 describe('UserAvatarComponent', () => {
   let component: UserAvatarComponent;

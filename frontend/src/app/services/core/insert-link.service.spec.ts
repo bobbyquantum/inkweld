@@ -2,9 +2,8 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { InsertLinkService } from './insert-link.service';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { InsertLinkService } from './insert-link.service';
 
 describe('InsertLinkService', () => {
   let service: InsertLinkService;

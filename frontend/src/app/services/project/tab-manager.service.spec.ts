@@ -1,10 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { type AppTab, TabManagerService } from './tab-manager.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('TabManagerService', () => {
   let service: TabManagerService;

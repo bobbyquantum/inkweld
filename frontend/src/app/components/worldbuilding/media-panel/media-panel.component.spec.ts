@@ -5,9 +5,8 @@ import { LocalStorageService } from '@services/local/local-storage.service';
 import { MediaTagService } from '@services/media-tag/media-tag.service';
 import { type MockedObject, vi } from 'vitest';
 
-import { MediaPanelComponent } from './media-panel.component';
-
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+import { MediaPanelComponent } from './media-panel.component';
 
 describe('MediaPanelComponent', () => {
   let component: MediaPanelComponent;

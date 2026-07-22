@@ -18,11 +18,11 @@ import {
   type SafeHtml,
   type SafeResourceUrl,
 } from '@angular/platform-browser';
+import { TranslocoModule } from '@jsverse/transloco';
 import { PublishFormat, type PublishPlan } from '@models/publish-plan';
 import { HtmlGeneratorService } from '@services/publish/html-generator.service';
 import { MarkdownGeneratorService } from '@services/publish/markdown-generator.service';
 import { PdfGeneratorService } from '@services/publish/pdf-generator.service';
-import { TranslocoModule } from '@jsverse/transloco';
 
 type DevicePreset = 'phone' | 'tablet' | 'desktop';
 

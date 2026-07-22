@@ -14,9 +14,8 @@ import {
   vi,
 } from 'vitest';
 
-import { PasskeysSettingsComponent } from './passkeys-settings.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { PasskeysSettingsComponent } from './passkeys-settings.component';
 
 // ─── Fake data ────────────────────────────────────────────────────────────────
 

@@ -1,12 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from '../core/setup.service';
 import { ElementSyncProviderFactory } from './element-sync-provider.factory';
 import { LocalElementSyncProvider } from './local-element-sync.provider';
 import { YjsElementSyncProvider } from './yjs-element-sync.provider';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('ElementSyncProviderFactory', () => {
   let factory: ElementSyncProviderFactory;

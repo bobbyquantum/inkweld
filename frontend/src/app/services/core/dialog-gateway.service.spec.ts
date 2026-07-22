@@ -5,6 +5,7 @@ import { ElementType, type Project } from '@inkweld/index';
 import { of } from 'rxjs';
 import { type Mock, type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   AddRelationshipDialogComponent,
   type AddRelationshipDialogData,
@@ -38,8 +39,6 @@ import { UserSettingsDialogComponent } from '../../dialogs/user-settings-dialog/
 import { WorldbuildingImageDialogComponent } from '../../dialogs/worldbuilding-image-dialog/worldbuilding-image-dialog.component';
 import { ProjectActivationService } from '../local/project-activation.service';
 import { DialogGatewayService } from './dialog-gateway.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('DialogGatewayService', () => {
   let service: DialogGatewayService;

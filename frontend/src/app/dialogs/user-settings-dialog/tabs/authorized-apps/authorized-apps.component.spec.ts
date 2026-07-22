@@ -19,9 +19,8 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AuthorizedAppsComponent } from './authorized-apps.component';
-
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+import { AuthorizedAppsComponent } from './authorized-apps.component';
 
 function createMockSession(
   overrides: Partial<PublicOAuthSession> = {}

@@ -9,8 +9,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule } from '@angular/router';
-import { TranslocoModule } from '@jsverse/transloco';
 import { AnnouncementCardComponent } from '@components/announcement-card/announcement-card.component';
+import { TranslocoModule } from '@jsverse/transloco';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 
 @Component({

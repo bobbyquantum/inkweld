@@ -30,6 +30,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import { type ResolvedTag } from '@models/tag.model';
 
 import {
@@ -51,7 +52,6 @@ import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
 import { MediaPanelComponent } from './media-panel/media-panel.component';
-import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * Main worldbuilding editor component that renders the dynamic

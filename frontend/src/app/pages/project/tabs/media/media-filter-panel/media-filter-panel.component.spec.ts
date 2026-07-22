@@ -6,7 +6,6 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../../../../testing/transloco-test-provider';
-
 import {
   MediaFilterPanelComponent,
   type MediaFilterState,

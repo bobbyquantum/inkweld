@@ -11,9 +11,8 @@ import { TagService } from '@services/tag/tag.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { type MockedObject, vi } from 'vitest';
 
-import { IdentityPanelComponent } from './identity-panel.component';
-
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+import { IdentityPanelComponent } from './identity-panel.component';
 
 describe('IdentityPanelComponent', () => {
   let component: IdentityPanelComponent;

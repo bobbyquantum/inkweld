@@ -14,9 +14,8 @@ import { SystemConfigService } from '@services/core/system-config.service';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AdminSettingsComponent } from './settings.component';
-
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+import { AdminSettingsComponent } from './settings.component';
 
 // Helper to wait for next microtask
 const flushMicrotasks = () => new Promise(resolve => setTimeout(resolve, 0));

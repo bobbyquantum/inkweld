@@ -19,9 +19,8 @@ import { of } from 'rxjs';
 import { type MockedObject } from 'vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AdminUsersComponent } from './users.component';
-
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+import { AdminUsersComponent } from './users.component';
 
 // Mock UserAvatarComponent to avoid HTTP calls
 @Component({

@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
+import { TranslocoModule } from '@jsverse/transloco';
 import type { UserActivityEvent } from '@models/activity-event';
 import type { UserStatsResponse } from '@models/writing-stats';
 import { LoggerService } from '@services/core/logger.service';
@@ -21,7 +22,6 @@ import { WritingStatsService } from '@services/stats/writing-stats.service';
 import { firstValueFrom } from 'rxjs';
 
 import { formatRelativeDate } from '../../utils/date-format';
-import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * Cross-project stats + recent activity widget for the home page.

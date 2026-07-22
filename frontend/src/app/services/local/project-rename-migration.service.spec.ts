@@ -6,9 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IndexeddbPersistence, storeState } from 'y-indexeddb';
 import * as Y from 'yjs';
 
-import { LoggerService } from '../core/logger.service';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
+import { LoggerService } from '../core/logger.service';
 import {
   type MigrationResult,
   ProjectRenameMigrationService,

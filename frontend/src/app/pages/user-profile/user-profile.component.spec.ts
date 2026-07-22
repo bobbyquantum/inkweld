@@ -13,9 +13,8 @@ import { UserService } from '@services/user/user.service';
 import { of, Subject } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
-import { UserProfileComponent } from './user-profile.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { UserProfileComponent } from './user-profile.component';
 
 describe('UserProfileComponent', () => {
   let component: UserProfileComponent;

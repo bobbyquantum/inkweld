@@ -2,14 +2,13 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   APP_CONFIG_STORAGE_KEY,
   type AppConfigV2,
   StorageContextService,
 } from '../core/storage-context.service';
 import { AuthTokenService } from './auth-token.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('AuthTokenService', () => {
   let service: AuthTokenService;

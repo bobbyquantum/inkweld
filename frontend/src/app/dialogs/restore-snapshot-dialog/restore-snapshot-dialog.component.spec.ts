@@ -5,7 +5,6 @@ import { type UnifiedSnapshot } from '@services/project/unified-snapshot.service
 import { type MockedObject, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   RestoreSnapshotDialogComponent,
   type RestoreSnapshotDialogData,

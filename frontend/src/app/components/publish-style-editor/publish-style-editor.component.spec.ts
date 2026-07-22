@@ -1,13 +1,12 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   createDefaultPublishStyles,
   type PublishStyles,
 } from '../../models/publish-style';
 import { PublishStyleEditorComponent } from './publish-style-editor.component';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 /**
  * Helper to capture the most recent emission from `stylesChange`.

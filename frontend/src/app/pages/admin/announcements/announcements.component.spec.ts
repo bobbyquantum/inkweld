@@ -9,9 +9,8 @@ import {
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AdminAnnouncementsComponent } from './announcements.component';
-
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+import { AdminAnnouncementsComponent } from './announcements.component';
 
 describe('AdminAnnouncementsComponent', () => {
   let component: AdminAnnouncementsComponent;

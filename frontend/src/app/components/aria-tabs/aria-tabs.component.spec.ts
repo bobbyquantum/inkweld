@@ -6,10 +6,9 @@ import {
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { AriaTabPanelComponent } from './aria-tab-panel.component';
 import { type AriaTabConfig, AriaTabsComponent } from './aria-tabs.component';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 // Test host component to wrap AriaTabsComponent with projected content
 @Component({

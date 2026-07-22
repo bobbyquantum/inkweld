@@ -1,9 +1,8 @@
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { ViewportService } from './viewport.service';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { ViewportService } from './viewport.service';
 
 describe('ViewportService', () => {
   let service: ViewportService;

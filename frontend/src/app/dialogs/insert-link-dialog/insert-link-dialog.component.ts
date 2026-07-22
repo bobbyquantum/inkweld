@@ -5,7 +5,6 @@ import {
   signal,
 } from '@angular/core';
 import { form, FormField, required, validate } from '@angular/forms/signals';
-import { TranslocoService } from '@jsverse/transloco';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import {
@@ -16,6 +15,7 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { TranslocoService } from '@jsverse/transloco';
 import { TranslocoModule } from '@jsverse/transloco';
 
 export interface InsertLinkDialogData {

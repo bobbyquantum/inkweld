@@ -12,14 +12,13 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ARCHIVE_VERSION,
   type ArchiveProgress,
   ImportPhase,
 } from '../../models/project-archive';
 import { ProjectImportService } from '../../services/project/project-import.service';
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   ImportProjectDialogComponent,
   type ImportProjectDialogData,

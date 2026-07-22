@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { CanvasService } from './canvas.service';
 import { CanvasClipboardService } from './canvas-clipboard.service';
 import {
@@ -9,8 +10,6 @@ import {
   type ContextMenuCallbacks,
 } from './canvas-context-menu.service';
 import { CanvasSelectionService } from './canvas-selection.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('CanvasContextMenuService', () => {
   let service: CanvasContextMenuService;

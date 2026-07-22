@@ -21,9 +21,8 @@ import {
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ProfileManagerDialogComponent } from './profile-manager-dialog.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { ProfileManagerDialogComponent } from './profile-manager-dialog.component';
 
 describe('ProfileManagerDialogComponent', () => {
   let component: ProfileManagerDialogComponent;

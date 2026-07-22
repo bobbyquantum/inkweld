@@ -7,13 +7,12 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type Element, ElementType } from '../../../../api-client';
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { LoggerService } from '../../../services/core/logger.service';
 import { DocumentService } from '../../../services/project/document.service';
 import { ProjectStateService } from '../../../services/project/project-state.service';
 import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
 import { ElementRefService } from '../element-ref.service';
-import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
-
 import {
   ElementRefTooltipComponent,
   type ElementRefTooltipData,

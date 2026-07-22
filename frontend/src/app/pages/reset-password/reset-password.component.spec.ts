@@ -12,9 +12,8 @@ import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { describe, expect, it, vi } from 'vitest';
 
-import { ResetPasswordComponent } from './reset-password.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { ResetPasswordComponent } from './reset-password.component';
 
 const DEFAULT_POLICY = {
   minLength: 8,

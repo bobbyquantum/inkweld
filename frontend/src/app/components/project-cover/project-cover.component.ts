@@ -13,12 +13,12 @@ import {
   type SimpleChanges,
 } from '@angular/core';
 import { type Project } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 
 import { SetupService } from '../../services/core/setup.service';
 import { LocalStorageService } from '../../services/local/local-storage.service';
 import { MediaSyncService } from '../../services/local/media-sync.service';
-import { TranslocoModule } from '@jsverse/transloco';
 
 export type ProjectCoverVariant = 'card' | 'list' | 'small';
 

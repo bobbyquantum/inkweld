@@ -1,10 +1,9 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { FindInDocumentService } from '../../services/core/find-in-document.service';
 import { FindInDocumentComponent } from './find-in-document.component';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 /**
  * Helper to create a mock FindInDocumentService

@@ -8,12 +8,11 @@ import {
 } from '@models/element-ref.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { RelationshipService } from '../relationship/relationship.service';
 import { RelationshipChartService } from './relationship-chart.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test Helpers

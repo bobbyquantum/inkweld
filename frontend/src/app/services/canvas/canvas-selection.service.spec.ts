@@ -5,9 +5,8 @@ import { RelationshipService } from '@services/relationship/relationship.service
 import type Konva from 'konva';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CanvasSelectionService } from './canvas-selection.service';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { CanvasSelectionService } from './canvas-selection.service';
 
 interface MockNode {
   id: () => string;

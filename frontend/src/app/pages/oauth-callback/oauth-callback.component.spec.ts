@@ -8,9 +8,8 @@ import { UserService } from '@services/user/user.service';
 import { of, Subject, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
-import { OAuthCallbackComponent } from './oauth-callback.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { OAuthCallbackComponent } from './oauth-callback.component';
 
 async function flushPromises(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0));

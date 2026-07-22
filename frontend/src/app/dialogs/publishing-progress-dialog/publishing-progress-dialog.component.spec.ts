@@ -14,7 +14,6 @@ import { BehaviorSubject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   PublishingProgressDialogComponent,
   type PublishingProgressDialogData,

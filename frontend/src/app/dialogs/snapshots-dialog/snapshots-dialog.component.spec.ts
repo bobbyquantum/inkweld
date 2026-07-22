@@ -14,7 +14,6 @@ import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   SnapshotsDialogComponent,
   type SnapshotsDialogData,

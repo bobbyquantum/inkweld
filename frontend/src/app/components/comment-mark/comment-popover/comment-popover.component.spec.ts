@@ -10,9 +10,8 @@ import {
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CommentPopoverComponent } from './comment-popover.component';
-
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+import { CommentPopoverComponent } from './comment-popover.component';
 
 function createMockCommentService() {
   return {

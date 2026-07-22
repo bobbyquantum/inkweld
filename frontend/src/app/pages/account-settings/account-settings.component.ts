@@ -20,7 +20,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasskeysSettingsComponent } from '@components/passkeys-settings/passkeys-settings.component';
 import {
   OAuthService as OAuthApiService,
@@ -30,6 +29,7 @@ import {
   type PublicOAuthSession,
   UpdateOAuthGrantRequestRole,
 } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 

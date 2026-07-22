@@ -9,9 +9,8 @@ import { HtmlGeneratorService } from '@services/publish/html-generator.service';
 import { MarkdownGeneratorService } from '@services/publish/markdown-generator.service';
 import { PdfGeneratorService } from '@services/publish/pdf-generator.service';
 
-import { PublishPreviewComponent } from './publish-preview.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { PublishPreviewComponent } from './publish-preview.component';
 
 describe('PublishPreviewComponent', () => {
   let component: PublishPreviewComponent;

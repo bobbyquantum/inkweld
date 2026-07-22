@@ -13,9 +13,8 @@ import { of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockDeep } from 'vitest-mock-extended';
 
-import { WritingStatsWidgetComponent } from './writing-stats-widget.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { WritingStatsWidgetComponent } from './writing-stats-widget.component';
 
 const makeUserEvent = (
   id: string,

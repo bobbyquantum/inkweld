@@ -14,19 +14,19 @@ import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoService } from '@jsverse/transloco';
 import { SettingsTabStatusComponent } from '@components/settings-tab-status/settings-tab-status.component';
 import {
   TagEditDialogComponent,
   type TagEditDialogResult,
 } from '@dialogs/tag-edit-dialog/tag-edit-dialog.component';
 import { type Element } from '@inkweld/index';
+import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoModule } from '@jsverse/transloco';
 import { type TagIndexEntry } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
 import { firstValueFrom } from 'rxjs';
-import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * View model for tags displayed in the list

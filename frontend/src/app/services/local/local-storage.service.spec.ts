@@ -4,10 +4,9 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LocalStorageService } from './local-storage.service';
 import { StorageService } from './storage.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 // Polyfill structuredClone for test environment if needed
 function createStructuredClone<T>(value: T): T {

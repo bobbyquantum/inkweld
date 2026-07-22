@@ -26,9 +26,8 @@ import {
   vi,
 } from 'vitest';
 
-import { RegisterDialogComponent } from './register-dialog.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { RegisterDialogComponent } from './register-dialog.component';
 
 describe('RegisterDialogComponent', () => {
   let component: RegisterDialogComponent;

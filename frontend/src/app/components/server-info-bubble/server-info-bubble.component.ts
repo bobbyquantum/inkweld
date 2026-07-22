@@ -8,8 +8,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { AuthTokenService } from '@services/auth/auth-token.service';
 import { TranslocoModule } from '@jsverse/transloco';
+import { AuthTokenService } from '@services/auth/auth-token.service';
 import {
   type ServerConfig,
   StorageContextService,

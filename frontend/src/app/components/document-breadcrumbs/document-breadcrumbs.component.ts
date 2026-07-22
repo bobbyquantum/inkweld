@@ -8,9 +8,9 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type Element } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * A single segment in the breadcrumb trail.

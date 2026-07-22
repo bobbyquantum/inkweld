@@ -16,6 +16,7 @@ import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import { BehaviorSubject, of, Subject } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type MediaTag } from '../../models/media-tag.model';
 import { PublishFormat, type PublishPlan } from '../../models/publish-plan';
@@ -37,8 +38,6 @@ import {
 import { ProjectStateService } from './project-state.service';
 import { RecentFilesService } from './recent-files.service';
 import { type AppTab, TabManagerService } from './tab-manager.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 /**
  * Creates a mock IElementSyncProvider for testing.

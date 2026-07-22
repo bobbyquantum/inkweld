@@ -15,11 +15,11 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
 import { type Project } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { SyncQueueService, SyncStage } from '@services/sync/sync-queue.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 
 import { ProjectCoverComponent } from '../project-cover/project-cover.component';
-import { TranslocoModule } from '@jsverse/transloco';
 
 export interface NavItem {
   label: string;

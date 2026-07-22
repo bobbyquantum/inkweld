@@ -9,12 +9,11 @@ import {
 import { BehaviorSubject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { RelationshipService } from './relationship.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 // Mock relationship types (simulating what would come from a project template)
 const MOCK_RELATIONSHIP_TYPES: RelationshipTypeDefinition[] = [

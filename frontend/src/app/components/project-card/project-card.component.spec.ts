@@ -7,9 +7,8 @@ import {
 } from '@services/sync/sync-queue.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ProjectCardComponent } from './project-card.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { ProjectCardComponent } from './project-card.component';
 
 describe('ProjectCardComponent', () => {
   let component: ProjectCardComponent;

@@ -17,11 +17,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
 } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AdminConfigService } from '@services/admin/admin-config.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { firstValueFrom } from 'rxjs';

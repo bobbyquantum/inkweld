@@ -11,14 +11,13 @@ import { type Element, ElementType, type Project } from '@inkweld/index';
 import { afterAll, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
 import { ProjectService } from '../../../../services/project/project.service';
 import { ProjectExportService } from '../../../../services/project/project-export.service';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import { RecentFilesService } from '../../../../services/project/recent-files.service';
 import { HomeTabComponent } from './home-tab.component';
-
-import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 
 /* Convenience aliases for mocks */
 type ProjectsApiMock = DeepMockProxy<ProjectsService>;

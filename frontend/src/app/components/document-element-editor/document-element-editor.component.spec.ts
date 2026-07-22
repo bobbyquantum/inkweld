@@ -12,10 +12,9 @@ import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { DocumentElementEditorComponent } from './document-element-editor.component';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 // @bobbyquantum/ngx-editor is mocked globally in setup-vitest.ts
 

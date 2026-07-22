@@ -3,13 +3,12 @@ import { TestBed } from '@angular/core/testing';
 import { type Project } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { LocalProjectService } from './local-project.service';
 import { LocalProjectElementsService } from './local-project-elements.service';
 import { ProjectSyncService } from './project-sync.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 type MockedObject<T> = {
   [K in keyof T]: T[K] extends (...args: any[]) => any

@@ -11,12 +11,11 @@ import {
   type ImageGenerateResponse,
   type ImageProviderType,
 } from '../../../api-client/model/models';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectService } from '../project/project.service';
 import { ImageGenerationService } from './image-generation.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 async function flushPromises(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0));

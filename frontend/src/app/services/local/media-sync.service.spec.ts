@@ -4,14 +4,13 @@ import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LocalStorageService } from './local-storage.service';
 import {
   MediaSyncService,
   type ServerMediaListResponse,
 } from './media-sync.service';
 import { ProjectSyncService } from './project-sync.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('MediaSyncService', () => {
   let service: MediaSyncService;

@@ -26,9 +26,8 @@ import { UnifiedUserService } from '@services/user/unified-user.service';
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
-import { CreateProjectComponent } from './create-project.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { CreateProjectComponent } from './create-project.component';
 
 describe('CreateProjectComponent', () => {
   let component: CreateProjectComponent;

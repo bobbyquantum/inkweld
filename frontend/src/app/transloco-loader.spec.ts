@@ -5,9 +5,8 @@ import {
 import { TestBed } from '@angular/core/testing';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { TranslocoHttpLoader } from './transloco-loader';
-
 import { translocoTestProvider } from '../testing/transloco-test-provider';
+import { TranslocoHttpLoader } from './transloco-loader';
 
 describe('TranslocoHttpLoader', () => {
   let loader: TranslocoHttpLoader;

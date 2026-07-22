@@ -24,7 +24,6 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TranslocoModule } from '@jsverse/transloco';
 import { RelationshipsTabComponent } from '@components/relationships-tab/relationships-tab.component';
 import { TagsTabComponent } from '@components/tags-tab/tags-tab.component';
 import { TemplatesTabComponent } from '@components/templates-tab/templates-tab.component';
@@ -42,6 +41,7 @@ import {
   InvitationStatus,
   type McpPublicKey,
 } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';

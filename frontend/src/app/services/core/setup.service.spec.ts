@@ -3,9 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { environment } from '../../../environments/environment';
-import { SetupService } from './setup.service';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
+import { SetupService } from './setup.service';
 import {
   APP_CONFIG_STORAGE_KEY,
   LOCAL_CONFIG_ID,

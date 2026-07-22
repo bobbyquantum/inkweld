@@ -10,9 +10,8 @@ import {
 } from '@models/publish-style';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { PublishStyleResolverService } from './publish-style-resolver.service';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { PublishStyleResolverService } from './publish-style-resolver.service';
 
 describe('PublishStyleResolverService', () => {
   let service: PublishStyleResolverService;

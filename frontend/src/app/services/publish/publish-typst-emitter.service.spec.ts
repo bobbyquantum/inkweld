@@ -6,9 +6,8 @@ import {
 } from '@models/publish-style';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { PublishTypstEmitterService } from './publish-typst-emitter.service';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { PublishTypstEmitterService } from './publish-typst-emitter.service';
 
 /**
  * Unit tests for the Typst preamble emitter. The preamble is concatenated

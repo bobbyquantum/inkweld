@@ -4,6 +4,7 @@ import { ElementType, type Project } from '@inkweld/index';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type ProjectElement } from '../../models/project-element';
 import { LoggerService } from '../core/logger.service';
 import { SettingsService } from '../core/settings.service';
@@ -20,8 +21,6 @@ import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 import { type AppTab, TabManagerService } from './tab-manager.service';
 import { UnifiedSnapshotService } from './unified-snapshot.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('AutoSnapshotService', () => {
   let service: AutoSnapshotService;

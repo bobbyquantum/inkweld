@@ -19,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type AddRelationshipDialogData } from '@dialogs/add-relationship-dialog/add-relationship-dialog.component';
+import { TranslocoModule } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
@@ -31,7 +32,6 @@ import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.serv
 import { type Element, ElementType } from '../../../api-client';
 import { ElementRefService } from '../element-ref/element-ref.service';
 import { type ElementRefTooltipData } from '../element-ref/element-ref-tooltip/element-ref-tooltip.component';
-import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * Grouped relationships by type for display

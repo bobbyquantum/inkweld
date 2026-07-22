@@ -14,6 +14,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { ProjectService } from '../project/project.service';
@@ -22,8 +23,6 @@ import { LocalProjectService } from './local-project.service';
 import { ProjectActivationService } from './project-activation.service';
 import { ProjectSyncService } from './project-sync.service';
 import { StorageService } from './storage.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('BackgroundSyncService', () => {
   let service: BackgroundSyncService;

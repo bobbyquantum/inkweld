@@ -15,7 +15,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { type Element, ElementType } from '../../../api-client';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   AddRelationshipDialogComponent,
   type AddRelationshipDialogData,

@@ -14,8 +14,8 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { ColorSwatchesComponent } from '@components/color-swatches/color-swatches.component';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 export interface CanvasTextDialogData {
   /** Dialog title */

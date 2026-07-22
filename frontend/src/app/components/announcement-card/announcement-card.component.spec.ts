@@ -6,9 +6,8 @@ import {
 } from '@services/announcement/announcement.service';
 import { describe, expect, it, vi } from 'vitest';
 
-import { AnnouncementCardComponent } from './announcement-card.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { AnnouncementCardComponent } from './announcement-card.component';
 
 describe('AnnouncementCardComponent', () => {
   let component: AnnouncementCardComponent;

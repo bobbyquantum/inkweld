@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { ElementType } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   PublishPlanItemType,
   type WorldbuildingItem,
@@ -12,8 +13,6 @@ import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import { WorldbuildingPublishRendererService } from './worldbuilding-publish-renderer.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 /**
  * Builds a `WorldbuildingItem` with sensible defaults so each test only has

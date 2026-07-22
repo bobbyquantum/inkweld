@@ -9,9 +9,8 @@ import {
 import { type Observable, of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
-import { OAuthProviderListComponent } from './oauth-provider-list.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { OAuthProviderListComponent } from './oauth-provider-list.component';
 
 describe('OAuthProviderListComponent', () => {
   let component: OAuthProviderListComponent;

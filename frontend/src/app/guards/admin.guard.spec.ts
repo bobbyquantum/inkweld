@@ -4,11 +4,10 @@ import { Router } from '@angular/router';
 import { type User } from '@inkweld/model/user';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../testing/transloco-test-provider';
 import { SetupService } from '../services/core/setup.service';
 import { UnifiedUserService } from '../services/user/unified-user.service';
 import { adminGuard } from './admin.guard';
-
-import { translocoTestProvider } from '../../testing/transloco-test-provider';
 
 describe('adminGuard', () => {
   let routerMock: {

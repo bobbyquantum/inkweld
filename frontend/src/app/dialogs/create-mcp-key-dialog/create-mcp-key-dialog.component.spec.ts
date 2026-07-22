@@ -8,9 +8,8 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { of, throwError } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
-import { CreateMcpKeyDialogComponent } from './create-mcp-key-dialog.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { CreateMcpKeyDialogComponent } from './create-mcp-key-dialog.component';
 
 describe('CreateMcpKeyDialogComponent', () => {
   let component: CreateMcpKeyDialogComponent;

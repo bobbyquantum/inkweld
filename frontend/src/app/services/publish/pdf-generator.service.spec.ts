@@ -17,6 +17,7 @@ import { $typst } from '@myriaddreamin/typst.ts';
 import { $typst as $typstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ChapterNumbering,
   FrontmatterType,
@@ -30,8 +31,6 @@ import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { BUNDLED_TYPST_FONT_URLS } from './pdf-generator.service';
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   PdfGeneratorService,
   PdfPhase,

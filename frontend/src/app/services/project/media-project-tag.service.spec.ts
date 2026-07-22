@@ -2,14 +2,13 @@ import { TestBed } from '@angular/core/testing';
 import { BehaviorSubject, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import { LoggerService } from '../core/logger.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
 import { MediaProjectTagService } from './media-project-tag.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('MediaProjectTagService', () => {
   let service: MediaProjectTagService;

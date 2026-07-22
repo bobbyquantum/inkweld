@@ -5,9 +5,8 @@ import { type PresenceSession } from '@inkweld/presence';
 import { PresenceService } from '@services/presence/presence.service';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { PresenceIndicatorComponent } from './presence-indicator.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { PresenceIndicatorComponent } from './presence-indicator.component';
 
 function session(sessionId: string, username: string): PresenceSession {
   return {

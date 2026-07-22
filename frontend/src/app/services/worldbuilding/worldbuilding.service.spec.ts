@@ -11,6 +11,7 @@ import { BehaviorSubject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';
@@ -25,8 +26,6 @@ import {
   type ProjectMeta,
 } from '../sync/element-sync-provider.interface';
 import { WorldbuildingService } from './worldbuilding.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 /**
  * Creates a mock IElementSyncProvider for schema tests.

@@ -6,6 +6,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { PublishFormat } from '../../models/publish-plan';
 import {
   type PublishedFile,
@@ -13,8 +14,6 @@ import {
 } from '../../models/published-file';
 import { SetupService } from '../../services/core/setup.service';
 import { PublishedFilesService } from '../../services/publish/published-files.service';
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   PublishCompleteDialogComponent,
   type PublishCompleteDialogData,

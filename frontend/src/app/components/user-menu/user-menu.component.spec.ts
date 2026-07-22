@@ -17,9 +17,8 @@ import { type ThemeOption, ThemeService } from '@themes/theme.service';
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
-import { UserMenuComponent } from './user-menu.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { UserMenuComponent } from './user-menu.component';
 
 describe('UserMenuComponent', () => {
   let component: UserMenuComponent;

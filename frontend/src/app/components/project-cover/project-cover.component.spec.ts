@@ -8,11 +8,10 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { type Project } from '@inkweld/index';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from '../../services/core/setup.service';
 import { LocalStorageService } from '../../services/local/local-storage.service';
 import { ProjectCoverComponent } from './project-cover.component';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('ProjectCoverComponent', () => {
   let component: ProjectCoverComponent;

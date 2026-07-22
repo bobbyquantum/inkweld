@@ -28,12 +28,11 @@ import {
 } from 'vitest';
 
 import { projectServiceMock } from '../../../testing/project-api.mock';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type ProjectElement } from '../../models/project-element';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { QuickOpenService } from '../../services/core/quick-open.service';
 import { ProjectTreeComponent } from './project-tree.component';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('ProjectTreeComponent', () => {
   let component: ProjectTreeComponent;

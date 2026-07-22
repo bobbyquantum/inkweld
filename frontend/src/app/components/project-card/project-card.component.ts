@@ -19,10 +19,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { type Project } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { SyncQueueService, SyncStage } from '@services/sync/sync-queue.service';
 
 import { ProjectCoverComponent } from '../project-cover/project-cover.component';
-import { TranslocoModule } from '@jsverse/transloco';
 
 /** Long-press threshold in milliseconds */
 const LONG_PRESS_MS = 500;

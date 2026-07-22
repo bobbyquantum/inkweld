@@ -9,9 +9,8 @@ import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
 import { type Element } from '../../../api-client/model/element';
-import { ProjectStateService } from '../../services/project/project-state.service';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
+import { ProjectStateService } from '../../services/project/project-state.service';
 import {
   CanvasPinDialogComponent,
   type CanvasPinDialogData,

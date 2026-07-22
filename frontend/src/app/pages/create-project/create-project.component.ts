@@ -17,9 +17,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { type Project } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { ElectronService } from '@services/electron.service';
 
 import { ProjectActivationService } from '../../services/local/project-activation.service';

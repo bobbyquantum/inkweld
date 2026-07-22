@@ -7,9 +7,8 @@ import { PasskeyError } from '@services/auth/passkey.service';
 import { PasskeyRecoveryService } from '@services/auth/passkey-recovery.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { RecoverPasskeyRedeemComponent } from './recover-passkey-redeem.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { RecoverPasskeyRedeemComponent } from './recover-passkey-redeem.component';
 
 describe('RecoverPasskeyRedeemComponent', () => {
   let component: RecoverPasskeyRedeemComponent;

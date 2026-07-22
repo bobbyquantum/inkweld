@@ -3,9 +3,8 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { type MockedObject, vi } from 'vitest';
 
-import { ConfirmationDialogComponent } from './confirmation-dialog.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { ConfirmationDialogComponent } from './confirmation-dialog.component';
 
 describe('ConfirmationDialogComponent', () => {
   let component: ConfirmationDialogComponent;

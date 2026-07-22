@@ -2,10 +2,9 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ElementType } from '@inkweld/index';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
 import { TreeNodeIconComponent } from './tree-node-icon.component';
-
-import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 
 describe('TreeNodeIconComponent', () => {
   let component: TreeNodeIconComponent;

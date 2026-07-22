@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { PublishFormat } from '../../models/publish-plan';
 import {
   type PublishedFile,
@@ -14,8 +15,6 @@ import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { PublishedFilesService } from './published-files.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('PublishedFilesService', () => {
   let service: PublishedFilesService;

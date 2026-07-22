@@ -4,6 +4,7 @@ import { createDefaultPublishStyles } from '@models/publish-style';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ChapterNumbering,
   PublishFormat,
@@ -41,8 +42,6 @@ import {
 } from './project-sync.service';
 import { PublishingPhase, PublishService } from './publish.service';
 import { PublishPlanService } from './publish-plan.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('PublishService', () => {
   let service: PublishService;

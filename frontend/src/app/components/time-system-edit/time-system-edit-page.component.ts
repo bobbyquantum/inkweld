@@ -20,9 +20,9 @@ import {
   UnitEditorDialogComponent,
   type UnitEditorResult,
 } from '@dialogs/unit-editor-dialog/unit-editor-dialog.component';
+import { TranslocoModule } from '@jsverse/transloco';
 import { TIME_SYSTEM_TEMPLATES, type TimeSystem } from '@models/time-system';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
-import { TranslocoModule } from '@jsverse/transloco';
 
 interface UnitDraft {
   /** Stable identity used for @for tracking. */

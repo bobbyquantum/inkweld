@@ -2,9 +2,8 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
-import { LoggerService } from './logger.service';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { LoggerService } from './logger.service';
 
 describe('LoggerService', () => {
   let service: LoggerService;

@@ -2,11 +2,10 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type MediaSyncState } from '../../services/local/media-sync.service';
 import { ConnectionStatusComponent } from './connection-status.component';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('ConnectionStatusComponent', () => {
   let component: ConnectionStatusComponent;

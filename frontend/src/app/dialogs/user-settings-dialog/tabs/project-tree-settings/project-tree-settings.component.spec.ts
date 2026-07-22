@@ -5,9 +5,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { SettingsService } from '@services/core/settings.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 
-import { ProjectTreeSettingsComponent } from './project-tree-settings.component';
-
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+import { ProjectTreeSettingsComponent } from './project-tree-settings.component';
 
 describe('ProjectTreeSettingsComponent', () => {
   let component: ProjectTreeSettingsComponent;

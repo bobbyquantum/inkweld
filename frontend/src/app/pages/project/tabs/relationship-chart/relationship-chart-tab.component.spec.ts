@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type Element, ElementType } from '../../../../../api-client';
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import {
   type ChartGraphData,
   createDefaultChartConfig,
@@ -17,8 +18,6 @@ import { RelationshipService } from '../../../../services/relationship/relations
 import { RelationshipChartService } from '../../../../services/relationship-chart/relationship-chart.service';
 import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
 import { RelationshipChartTabComponent } from './relationship-chart-tab.component';
-
-import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 
 // Cytoscape requires ResizeObserver which is not available in jsdom
 class MockResizeObserver {

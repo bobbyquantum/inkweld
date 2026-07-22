@@ -3,6 +3,7 @@ import { ElementType, type Project, ProjectsService } from '@inkweld/index';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
@@ -12,8 +13,6 @@ import {
 } from '../local/media-sync.service';
 import { DocumentService } from '../project/document.service';
 import { SyncQueueService, SyncStage } from './sync-queue.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('SyncQueueService', () => {
   let service: SyncQueueService;

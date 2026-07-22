@@ -31,6 +31,7 @@ import { type SplitGutterInteractionEvent } from 'angular-split';
 import { BehaviorSubject, of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentElementEditorComponent } from '../../components/document-element-editor/document-element-editor.component';
 import { ProjectTreeComponent } from '../../components/project-tree/project-tree.component';
 import { UserMenuComponent } from '../../components/user-menu/user-menu.component';
@@ -38,8 +39,6 @@ import { DocumentSyncState } from '../../models/document-sync-state';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectComponent } from './project.component';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 // Mock child components to avoid their dependencies
 @Component({

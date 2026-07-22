@@ -1,9 +1,8 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { MediaItemCardComponent } from './media-item-card.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { MediaItemCardComponent } from './media-item-card.component';
 
 describe('MediaItemCardComponent', () => {
   let component: MediaItemCardComponent;

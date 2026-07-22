@@ -26,12 +26,12 @@ import {
   RouterModule,
   RouterOutlet,
 } from '@angular/router';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { ConnectionStatusComponent } from '@components/connection-status/connection-status.component';
 import { PresenceIndicatorComponent } from '@components/presence-indicator/presence-indicator.component';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { type Element, ElementType } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';

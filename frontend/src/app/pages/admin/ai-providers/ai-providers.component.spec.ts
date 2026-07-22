@@ -21,9 +21,8 @@ import {
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
-import { AdminAiProvidersComponent } from './ai-providers.component';
-
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+import { AdminAiProvidersComponent } from './ai-providers.component';
 
 async function flushPromises(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0));

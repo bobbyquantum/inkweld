@@ -6,9 +6,8 @@ import {
   type AutoReviewSuggestion,
 } from '@services/lint/auto-review.service';
 
-import { AutoReviewPanelComponent } from './auto-review-panel.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { AutoReviewPanelComponent } from './auto-review-panel.component';
 
 describe('AutoReviewPanelComponent', () => {
   let component: AutoReviewPanelComponent;

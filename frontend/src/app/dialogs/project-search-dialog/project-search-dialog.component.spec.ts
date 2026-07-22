@@ -4,6 +4,7 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { type Element, ElementType } from '@inkweld/index';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { FindInDocumentService } from '../../services/core/find-in-document.service';
 import {
   type ProjectSearchProgress,
@@ -15,8 +16,6 @@ import { RelationshipService } from '../../services/relationship/relationship.se
 import { TagService } from '../../services/tag/tag.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { ProjectSearchDialogComponent } from './project-search-dialog.component';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 const makeElement = (
   id: string,

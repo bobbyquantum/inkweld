@@ -3,6 +3,7 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   type QuickOpenResult,
   QuickOpenService,
@@ -10,8 +11,6 @@ import {
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { QuickOpenDialogComponent } from './quick-open-dialog.component';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('QuickOpenDialogComponent', () => {
   let component: QuickOpenDialogComponent;

@@ -5,9 +5,8 @@ import { ConfirmationDialogComponent } from '@dialogs/confirmation-dialog/confir
 import { of, Subject } from 'rxjs';
 import { vi } from 'vitest';
 
-import { UpdateService } from './update.service';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { UpdateService } from './update.service';
 
 describe('UpdateService', () => {
   let service: UpdateService;

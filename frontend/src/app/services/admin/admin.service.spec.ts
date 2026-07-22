@@ -13,10 +13,9 @@ import { AdminService as ApiAdminService } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   AdminService,
   AdminServiceError,

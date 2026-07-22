@@ -20,10 +20,10 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { Router } from '@angular/router';
 import { RegistrationFormComponent } from '@components/registration-form/registration-form.component';
 import { type Project, ProjectsService } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';
 import {

@@ -4,12 +4,11 @@ import { type PresenceSession } from '@inkweld/presence';
 import { BehaviorSubject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { PresenceService } from './presence.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 interface MockProvider {
   remotePresence$: BehaviorSubject<PresenceSession[]>;

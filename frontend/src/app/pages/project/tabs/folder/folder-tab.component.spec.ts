@@ -13,9 +13,8 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { BehaviorSubject } from 'rxjs';
 import { vi } from 'vitest';
 
-import { FolderTabComponent } from './folder-tab.component';
-
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+import { FolderTabComponent } from './folder-tab.component';
 
 // Mock FolderElementEditorComponent
 @Component({

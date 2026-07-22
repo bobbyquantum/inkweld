@@ -3,9 +3,8 @@ import { ChangelogService } from '@services/core/changelog.service';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ChangelogComponent } from './changelog.component';
-
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+import { ChangelogComponent } from './changelog.component';
 
 describe('ChangelogComponent', () => {
   let component: ChangelogComponent;

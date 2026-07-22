@@ -10,9 +10,8 @@ import {
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { TemplateEditorPageComponent } from './template-editor-page.component';
-
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+import { TemplateEditorPageComponent } from './template-editor-page.component';
 
 describe('TemplateEditorPageComponent', () => {
   let component: TemplateEditorPageComponent;

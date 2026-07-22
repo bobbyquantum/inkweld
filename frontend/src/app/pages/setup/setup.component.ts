@@ -15,9 +15,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { ConfigurationService } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 
 import { SetupService } from '../../services/core/setup.service';

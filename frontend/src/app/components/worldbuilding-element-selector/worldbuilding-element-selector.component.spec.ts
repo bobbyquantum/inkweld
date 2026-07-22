@@ -4,11 +4,10 @@ import { of } from 'rxjs';
 import { vi } from 'vitest';
 
 import { type Element } from '../../../api-client/model/element';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { WorldbuildingElementSelectorComponent } from './worldbuilding-element-selector.component';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('WorldbuildingElementSelectorComponent', () => {
   let component: WorldbuildingElementSelectorComponent;

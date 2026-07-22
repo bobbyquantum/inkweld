@@ -20,14 +20,13 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   BROWSER_SUPPORTS_WEBAUTHN,
   PasskeyError,
   START_REGISTRATION,
 } from './passkey.service';
 import { PasskeyRecoveryService } from './passkey-recovery.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 function obs<T>(value: T): Observable<any> {
   return of(value);

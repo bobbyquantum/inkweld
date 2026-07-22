@@ -18,9 +18,8 @@ import {
   vi,
 } from 'vitest';
 
-import { RegistrationFormComponent } from './registration-form.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { RegistrationFormComponent } from './registration-form.component';
 
 /** Valid password meeting all policy requirements, used throughout this spec */
 const VALID_PASSWORD = 'ValidPass123!';

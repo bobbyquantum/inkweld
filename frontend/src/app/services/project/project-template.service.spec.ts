@@ -6,9 +6,8 @@ import {
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { ARCHIVE_VERSION } from '../../models/project-archive';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
+import { ARCHIVE_VERSION } from '../../models/project-archive';
 import {
   type ProjectTemplateInfo,
   ProjectTemplateService,

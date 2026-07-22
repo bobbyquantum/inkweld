@@ -5,9 +5,8 @@ import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AccountSettingsComponent } from './account-settings.component';
-
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+import { AccountSettingsComponent } from './account-settings.component';
 
 describe('AccountSettingsComponent (dialog tab)', () => {
   let component: AccountSettingsComponent;

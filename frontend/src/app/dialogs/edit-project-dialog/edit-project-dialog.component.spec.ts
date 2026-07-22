@@ -20,13 +20,12 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LocalStorageService } from '../../services/local/local-storage.service';
 import { UnifiedProjectService } from '../../services/local/unified-project.service';
 import { ProjectService } from '../../services/project/project.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { EditProjectDialogComponent } from './edit-project-dialog.component';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 // Helper to create a mock File object
 const createMockFile = (name: string, type: string, size: number): File => {

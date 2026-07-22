@@ -3,14 +3,13 @@ import { TestBed } from '@angular/core/testing';
 import type { CanvasToolSettings } from '@models/canvas.model';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { CanvasService } from './canvas.service';
 import {
   CanvasDrawingService,
   type DrawingHandlers,
 } from './canvas-drawing.service';
 import { CanvasRendererService } from './canvas-renderer.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 // jsdom does not implement canvas.getContext('2d'). Stub it so Konva works.
 function makeCanvas2dStub() {

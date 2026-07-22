@@ -13,13 +13,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { TranslocoService } from '@jsverse/transloco';
 import { AuthenticationService } from '@inkweld/index';
+import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoModule } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { TranslocoModule } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-oauth-provider-list',

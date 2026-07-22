@@ -9,9 +9,8 @@ import {
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AdminImageAuditsComponent } from './image-audits.component';
-
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+import { AdminImageAuditsComponent } from './image-audits.component';
 
 describe('AdminImageAuditsComponent', () => {
   let component: AdminImageAuditsComponent;

@@ -13,9 +13,8 @@ import {
   vi,
 } from 'vitest';
 
-import { EditorToolbarComponent } from './editor-toolbar.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { EditorToolbarComponent } from './editor-toolbar.component';
 
 // @bobbyquantum/ngx-editor, prosemirror-commands, prosemirror-history,
 // and prosemirror-schema-list are all mocked globally in setup-vitest.ts

@@ -2,10 +2,9 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { DocumentImportService } from './document-import.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 // y-indexeddb is mocked globally in setup-vitest.ts with full on/off support.
 // Real yjs is used here (not mocked) because vi.mock('yjs') is unreliable with

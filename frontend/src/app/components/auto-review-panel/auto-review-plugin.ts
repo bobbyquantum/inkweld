@@ -11,7 +11,6 @@ import {
 } from '@inkweld/prosemirror/schema';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { type EditorView } from 'prosemirror-view';
-import { TranslocoModule } from '@jsverse/transloco';
 
 export interface AutoReviewPluginState {
   activeSuggestionId: string | null;

@@ -9,8 +9,8 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   ChangelogService,
   type ChangelogVersion,

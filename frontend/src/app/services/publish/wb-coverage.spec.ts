@@ -28,6 +28,7 @@ import { $typst } from '@myriaddreamin/typst.ts';
 import { $typst as $typstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ChapterNumbering,
   PublishFormat,
@@ -42,8 +43,6 @@ import { EpubGeneratorService } from './epub-generator.service';
 import { HtmlGeneratorService } from './html-generator.service';
 import { MarkdownGeneratorService } from './markdown-generator.service';
 import { PdfGeneratorService } from './pdf-generator.service';
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   type RenderedWorldbuildingEntry,
   WorldbuildingPublishRendererService,

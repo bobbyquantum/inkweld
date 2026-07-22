@@ -4,9 +4,8 @@ import { vi } from 'vitest';
 
 import { type Element } from '../../../api-client/model/element';
 import { ElementType } from '../../../api-client/model/element-type';
-import { ProjectStateService } from '../../services/project/project-state.service';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
+import { ProjectStateService } from '../../services/project/project-state.service';
 import {
   ElementPickerDialogComponent,
   type ElementPickerDialogData,

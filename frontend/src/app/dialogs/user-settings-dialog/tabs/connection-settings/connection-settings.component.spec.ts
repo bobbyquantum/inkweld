@@ -12,9 +12,8 @@ import {
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
-import { ConnectionSettingsComponent } from './connection-settings.component';
-
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
+import { ConnectionSettingsComponent } from './connection-settings.component';
 
 describe('ConnectionSettingsComponent', () => {
   let component: ConnectionSettingsComponent;

@@ -11,12 +11,11 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from '../core/setup.service';
 import { LocalUserService } from '../local/local-user.service';
 import { UnifiedUserService } from './unified-user.service';
 import { UserService } from './user.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('UnifiedUserService', () => {
   let service: UnifiedUserService;

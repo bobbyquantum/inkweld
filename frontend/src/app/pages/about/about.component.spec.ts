@@ -9,9 +9,8 @@ import { Router } from '@angular/router';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AboutComponent } from './about.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { AboutComponent } from './about.component';
 
 describe('AboutComponent', () => {
   let router: {

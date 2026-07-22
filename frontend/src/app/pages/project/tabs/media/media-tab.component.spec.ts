@@ -19,12 +19,11 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../../../models/document-sync-state';
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 import { DocumentService } from '../../../../services/project/document.service';
 import { type MediaItem, MediaTabComponent } from './media-tab.component';
-
-import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 
 describe('MediaTabComponent', () => {
   let component: MediaTabComponent;

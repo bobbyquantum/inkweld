@@ -4,6 +4,7 @@ import { type AutoBuildCandidate } from '@dialogs/timeline-auto-build-dialog/tim
 import { type Element, ElementType } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type ElementTypeSchema, FieldType } from '../../models/schema-types';
 import {
   GREGORIAN_SYSTEM,
@@ -21,8 +22,6 @@ import { ProjectStateService } from '../project/project-state.service';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import { TimeSystemLibraryService } from './time-system-library.service';
 import { TIMELINE_CONFIG_META_KEY, TimelineService } from './timeline.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 function makeTimelineElement(overrides: Partial<Element> = {}): Element {
   return {

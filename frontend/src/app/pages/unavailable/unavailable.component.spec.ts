@@ -3,9 +3,8 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
 
-import { UnavailableComponent } from './unavailable.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { UnavailableComponent } from './unavailable.component';
 
 describe('UnavailableComponent', () => {
   let component: UnavailableComponent;

@@ -7,9 +7,8 @@ import {
 } from '@services/core/storage-context.service';
 import { type MockedObject, vi } from 'vitest';
 
-import { ServerInfoBubbleComponent } from './server-info-bubble.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { ServerInfoBubbleComponent } from './server-info-bubble.component';
 
 describe('ServerInfoBubbleComponent', () => {
   let component: ServerInfoBubbleComponent;

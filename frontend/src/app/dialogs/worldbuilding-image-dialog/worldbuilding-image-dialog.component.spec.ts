@@ -5,7 +5,6 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   WorldbuildingImageDialogComponent,
   type WorldbuildingImageDialogData,

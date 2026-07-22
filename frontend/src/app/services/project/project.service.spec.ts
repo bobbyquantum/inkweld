@@ -13,14 +13,13 @@ import { type Observable } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { apiErr, apiOk } from '../../../testing/utils';
 import { SetupService } from '../core/setup.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectSyncService } from '../local/project-sync.service';
 import { StorageService } from '../local/storage.service';
 import { ProjectService, ProjectServiceError } from './project.service';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 const date = new Date().toISOString();
 const BASE: Project[] = [

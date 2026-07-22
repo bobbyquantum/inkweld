@@ -3,9 +3,8 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ThemeService } from '@themes/theme.service';
 import { describe, expect, it, vi } from 'vitest';
 
-import { ThemeToggleComponent } from './theme-toggle.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { ThemeToggleComponent } from './theme-toggle.component';
 
 describe('ThemeToggleComponent', () => {
   let component: ThemeToggleComponent;

@@ -24,9 +24,8 @@ import { AITextGenerationService } from 'api-client';
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
-import { AdminAiTextSettingsComponent } from './ai-text-settings.component';
-
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
+import { AdminAiTextSettingsComponent } from './ai-text-settings.component';
 
 async function flushPromises(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0));

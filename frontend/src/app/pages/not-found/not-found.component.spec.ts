@@ -2,9 +2,8 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, RouterLink } from '@angular/router';
 
-import { NotFoundComponent } from './not-found.component';
-
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { NotFoundComponent } from './not-found.component';
 
 describe('NotFoundComponent', () => {
   let component: NotFoundComponent;

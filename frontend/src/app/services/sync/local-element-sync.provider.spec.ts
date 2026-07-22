@@ -10,6 +10,7 @@ import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
@@ -24,8 +25,6 @@ import { LoggerService } from '../core/logger.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
 import { type ProjectMeta } from './element-sync-provider.interface';
 import { LocalElementSyncProvider } from './local-element-sync.provider';
-
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('LocalElementSyncProvider', () => {
   let provider: LocalElementSyncProvider;

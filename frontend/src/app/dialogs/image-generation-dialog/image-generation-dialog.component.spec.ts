@@ -16,6 +16,7 @@ import {
   type PublicImageModelProfile,
   PublicImageModelProfileProvider,
 } from '../../../api-client/model/models';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type WorldbuildingElementSelection } from '../../components/worldbuilding-element-selector/worldbuilding-element-selector.component';
 import {
   type GenerationJob,
@@ -23,8 +24,6 @@ import {
 } from '../../services/ai/image-generation.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
 import {
   ImageGenerationDialogComponent,
   type ImageGenerationDialogData,
