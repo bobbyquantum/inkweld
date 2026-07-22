@@ -14,8 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthenticationService } from '@inkweld/index';
-import { TranslocoService } from '@jsverse/transloco';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
 import { firstValueFrom } from 'rxjs';
 

@@ -17,8 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ColorSwatchesComponent } from '@components/color-swatches/color-swatches.component';
-import { TranslocoService } from '@jsverse/transloco';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 import { ElementType } from '../../../api-client/model/element-type';
 import {

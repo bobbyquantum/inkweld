@@ -20,8 +20,7 @@ import {
   type TagEditDialogResult,
 } from '@dialogs/tag-edit-dialog/tag-edit-dialog.component';
 import { type Element } from '@inkweld/index';
-import { TranslocoService } from '@jsverse/transloco';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { type TagIndexEntry } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';

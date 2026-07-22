@@ -20,8 +20,7 @@ import {
   type EditRelationshipTypeDialogData,
   type EditRelationshipTypeDialogResult,
 } from '@dialogs/edit-relationship-type-dialog/edit-relationship-type-dialog.component';
-import { TranslocoService } from '@jsverse/transloco';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DocumentSyncState } from '@models/document-sync-state';
 import {
   getCategoryIcon,

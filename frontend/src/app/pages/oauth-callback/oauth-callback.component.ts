@@ -78,13 +78,7 @@ export class OAuthCallbackComponent implements OnInit {
   }
 
   private getErrorMessage(error: string): string {
-    switch (error) {
-      case 'github_auth_failed':
-        return this.transloco.translate('errors.unknown');
-      case 'account_disabled':
-        return this.transloco.translate('errors.unknown');
-      default:
-        return this.transloco.translate('errors.unknown');
-    }
+    // All error cases map to the same generic message
+    return this.transloco.translate('errors.unknown');
   }
 }

@@ -13,8 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { Passkey } from '@inkweld/index';
-import { TranslocoService } from '@jsverse/transloco';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasskeyError, PasskeyService } from '@services/auth/passkey.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 
