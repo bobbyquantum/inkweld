@@ -54,7 +54,7 @@ Choose how nodes are arranged:
 | ------------ | ------------ | ----------------------------------------------------- |
 | **Force**    | Scatter      | Organic graphs where clusters form naturally          |
 | **Tree**     | Account Tree | Hierarchical relationships (org charts, family trees) |
-| **Circular** | Ring         | Evenly-spaced arrangements, good for small groups     |
+| **Circular** | Ring         | Evenly spaced arrangements, good for small groups     |
 | **Grid**     | Grid View    | Dense graphs, comparing many elements                 |
 | **Rings**    | Target       | Centrality-based, most connected nodes at center      |
 

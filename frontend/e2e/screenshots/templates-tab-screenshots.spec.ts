@@ -47,7 +47,7 @@ async function setupProjectAndTemplatesTab(
 
   await page.getByTestId('nav-templates').click();
 
-  await page.waitForSelector('.templates-tab', { state: 'visible' });
+  await page.getByTestId('templates-tab').waitFor({ state: 'visible' });
   await page.waitForTimeout(500);
 }
 
@@ -82,7 +82,7 @@ async function captureAllTemplateScreenshots(
     });
 
     await test.step('header / create button', async () => {
-      const controls = page.locator('.templates-tab .controls').first();
+      const controls = page.getByTestId('templates-controls');
       await captureElementScreenshot(
         page,
         [controls],
@@ -104,7 +104,8 @@ async function captureAllTemplateScreenshots(
 
   await test.step('template actions', async () => {
     const card = page.locator('[data-testid="template-card"]').first();
-    const actions = card.locator('.template-actions');
+    const actions = card.getByTestId('template-actions');
+    await expect(actions).toBeVisible();
     await captureElementScreenshot(
       page,
       [actions],
@@ -142,14 +143,14 @@ test.describe('Templates Tab Screenshots', () => {
 
   test('templates screenshots — light mode', async ({ offlinePage: page }) => {
     await setupProjectAndTemplatesTab(page, 'tpl-light', 'Templates Demo');
-    await expect(page.locator('.templates-tab')).toBeVisible();
+    await expect(page.getByTestId('templates-tab')).toBeVisible();
     await captureAllTemplateScreenshots(page, screenshotsDir, 'light');
   });
 
   test('templates screenshots — dark mode', async ({ offlinePage: page }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await setupProjectAndTemplatesTab(page, 'tpl-dark', 'Templates Demo');
-    await expect(page.locator('.templates-tab')).toBeVisible();
+    await expect(page.getByTestId('templates-tab')).toBeVisible();
     await captureAllTemplateScreenshots(page, screenshotsDir, 'dark');
   });
 });

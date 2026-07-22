@@ -42,7 +42,7 @@ test.describe('Worldbuilding Editor Screenshots', () => {
     projectTitle: string
   ): Promise<void> {
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await page.getByTestId('empty-state').waitFor({ state: 'visible' });
 
     await createProjectWithTwoSteps(
       page,
@@ -52,27 +52,15 @@ test.describe('Worldbuilding Editor Screenshots', () => {
       'worldbuilding-demo'
     );
 
-    await page.waitForSelector('app-project-tree', { state: 'visible' });
+    await page.getByTestId('project-tree').waitFor({ state: 'visible' });
     await dismissToastIfPresent(page);
 
-    const charactersFolder = page.locator(
-      '[data-testid="expand-folder-button"]'
-    );
-    const folderCount = await charactersFolder.count();
-    for (let i = 0; i < folderCount; i++) {
-      const btn = charactersFolder.nth(i);
-      const parent = btn.locator('..');
-      const text = await parent.textContent();
-      if (text?.includes('Characters')) {
-        await btn.click();
-        break;
-      }
-    }
+    await page.getByTestId('element-Characters').click();
 
-    await page
-      .locator('[data-testid="element-Elara Nightwhisper"]')
-      .waitFor({ state: 'visible' });
-    await page.locator('[data-testid="element-Elara Nightwhisper"]').click();
+    await page.getByTestId('element-Elara Nightwhisper').waitFor({
+      state: 'visible',
+    });
+    await page.getByTestId('element-Elara Nightwhisper').click();
 
     await page.waitForURL(/\/worldbuilding\//);
     await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
@@ -85,9 +73,9 @@ test.describe('Worldbuilding Editor Screenshots', () => {
   ): Promise<void> {
     await test.step('editor overview (sidenav + identity)', async () => {
       await page.getByTestId('nav-identity').click();
-      await expect(page.locator('app-identity-panel')).toBeVisible();
+      await expect(page.getByTestId('identity-panel')).toBeVisible();
 
-      const container = page.locator('.worldbuilding-editor-container');
+      const container = page.getByTestId('worldbuilding-editor');
       await captureElementScreenshot(
         page,
         [container],
@@ -100,7 +88,7 @@ test.describe('Worldbuilding Editor Screenshots', () => {
       await page.getByTestId('nav-basic').click();
       await expect(page.getByTestId('field-fullName')).toBeVisible();
 
-      const container = page.locator('.worldbuilding-editor-container');
+      const container = page.getByTestId('worldbuilding-editor');
       await captureElementScreenshot(
         page,
         [container],
@@ -111,9 +99,9 @@ test.describe('Worldbuilding Editor Screenshots', () => {
 
     await test.step('relationships section', async () => {
       await page.getByTestId('nav-relationships').click();
-      await expect(page.locator('app-meta-panel')).toBeVisible();
+      await expect(page.getByTestId('meta-panel')).toBeVisible();
 
-      const container = page.locator('.worldbuilding-editor-container');
+      const container = page.getByTestId('worldbuilding-editor');
       await captureElementScreenshot(
         page,
         [container],
@@ -127,9 +115,9 @@ test.describe('Worldbuilding Editor Screenshots', () => {
 
     await test.step('media section', async () => {
       await page.getByTestId('nav-media').click();
-      await expect(page.locator('app-media-panel')).toBeVisible();
+      await expect(page.getByTestId('media-panel')).toBeVisible();
 
-      const container = page.locator('.worldbuilding-editor-container');
+      const container = page.getByTestId('worldbuilding-editor');
       await captureElementScreenshot(
         page,
         [container],
