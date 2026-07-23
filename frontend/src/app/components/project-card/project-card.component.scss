@@ -31,6 +31,12 @@ mat-card {
       opacity: 0.85;
     }
   }
+
+  // Reveal the download hint when the card is hovered or focused
+  &:hover .download-hint,
+  &:focus-within .download-hint {
+    opacity: 1;
+  }
 }
 
 // Add aspect-ratio styles to the project-card class for browsers that support it
@@ -92,17 +98,6 @@ mat-card {
   }
 }
 
-:host-context(body:not(.dark-theme)) {
-  .card-actions .kebab-btn {
-    background-color: rgba(255, 255, 255, 0.85);
-    color: #333;
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 1);
-    }
-  }
-}
-
 // Hover overlay shown on deactivated (not-yet-downloaded) cards
 .download-hint {
   position: absolute;
@@ -140,12 +135,8 @@ mat-card {
 
 // Show the hint when the host cover button is hovered, focused, or the card
 // itself is hovered (covers keyboard focus and touch hover on cards).
-mat-card {
-  &:hover .download-hint,
-  &:focus-within .download-hint {
-    opacity: 1;
-  }
-}
+// NOTE: The hover/focus reveal rule is declared inside the `mat-card` block
+// above to avoid duplicating the selector (SonarQube css:S4666).
 
 // Light mode adjustments
 :host-context(body:not(.dark-theme)) {
@@ -155,6 +146,15 @@ mat-card {
 
     mat-icon {
       color: #333;
+    }
+  }
+
+  .card-actions .kebab-btn {
+    background-color: rgba(255, 255, 255, 0.85);
+    color: #333;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 1);
     }
   }
 
