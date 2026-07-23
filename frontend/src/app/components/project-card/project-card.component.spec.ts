@@ -390,5 +390,61 @@ describe('ProjectCardComponent', () => {
 
       expect(component.isActivated).toBe(false);
     });
+
+    it('should show download hint when deactivated', () => {
+      fixture.componentRef.setInput('isActivated', false);
+      fixture.detectChanges();
+
+      const hint = fixture.nativeElement.querySelector(
+        '[data-testid="download-hint"]'
+      );
+      expect(hint).toBeTruthy();
+    });
+
+    it('should not show download hint when activated', () => {
+      fixture.componentRef.setInput('isActivated', true);
+      fixture.detectChanges();
+
+      const hint = fixture.nativeElement.querySelector(
+        '[data-testid="download-hint"]'
+      );
+      expect(hint).toBeNull();
+    });
+
+    it('should render a kebab menu trigger', () => {
+      fixture.detectChanges();
+      const kebab = fixture.nativeElement.querySelector(
+        '[data-testid="project-card-kebab"]'
+      );
+      expect(kebab).toBeTruthy();
+    });
+  });
+
+  describe('kebab actions', () => {
+    it('should emit activateRequested when requestActivate is called', () => {
+      const spy = vi.spyOn(component.activateRequested, 'emit');
+      component.requestActivate();
+      expect(spy).toHaveBeenCalledOnce();
+    });
+
+    it('should emit deactivateRequested when requestDeactivate is called', () => {
+      const spy = vi.spyOn(component.deactivateRequested, 'emit');
+      component.requestDeactivate();
+      expect(spy).toHaveBeenCalledOnce();
+    });
+
+    it('should stop propagation when kebab is clicked', () => {
+      const event = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+      });
+      const stopSpy = vi.spyOn(event, 'stopPropagation');
+      const preventSpy = vi.spyOn(event, 'preventDefault');
+
+      component.onKebabClick(event);
+
+      expect(stopSpy).toHaveBeenCalled();
+      expect(preventSpy).toHaveBeenCalled();
+    });
   });
 });

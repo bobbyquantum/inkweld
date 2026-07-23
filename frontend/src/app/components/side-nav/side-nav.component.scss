@@ -251,6 +251,51 @@
       }
     }
 
+    // Deactivated (not downloaded to this device) tiles — greyed out
+    &.deactivated {
+      .tile-cover {
+        filter: grayscale(100%);
+        opacity: 0.6;
+      }
+
+      .tile-title {
+        opacity: 0.7;
+      }
+
+      &:hover .tile-cover {
+        opacity: 0.85;
+      }
+    }
+
+    .tile-actions {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      margin-left: auto;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+
+      .kebab-btn {
+        width: 26px;
+        height: 26px;
+        line-height: 26px;
+        color: var(--nav-text-secondary);
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+          color: inherit;
+        }
+      }
+    }
+
+    &:hover .tile-actions,
+    &.selected .tile-actions,
+    &:focus-within .tile-actions {
+      opacity: 1;
+    }
+
     .tile-cover {
       flex-shrink: 0;
       width: 36px;
@@ -284,6 +329,34 @@
           height: 10px;
           color: #fff;
         }
+      }
+
+      // Hover overlay shown on deactivated (not-downloaded) tiles
+      .download-hint {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+        pointer-events: none;
+        border-radius: inherit;
+
+        .download-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+          color: #fff;
+        }
+      }
+
+      // Reveal the download hint when the tile is hovered or focused
+      .project-tile:hover &,
+      .project-tile:focus-within & {
+        opacity: 1;
       }
 
       // Sync overlay for mini project tiles

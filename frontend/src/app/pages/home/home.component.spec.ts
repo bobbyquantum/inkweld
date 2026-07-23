@@ -1033,6 +1033,112 @@ describe('HomeComponent', () => {
       });
     });
 
+    describe('onProjectActivateRequested', () => {
+      it('should do nothing when project is already activated', () => {
+        mockActivationService.isActivated.mockReturnValue(true);
+
+        component.onProjectActivateRequested(mockProjects[0]);
+
+        expect(matDialog.open).not.toHaveBeenCalled();
+      });
+
+      it('should open activation dialog for deactivated project', () => {
+        mockActivationService.isActivated.mockReturnValue(false);
+        const afterClosedSubject = { subscribe: vi.fn() };
+        matDialog.open.mockReturnValue({
+          afterClosed: () => afterClosedSubject,
+        } as unknown as MatDialogRef<unknown>);
+
+        component.onProjectActivateRequested(mockProjects[0]);
+
+        expect(matDialog.open).toHaveBeenCalled();
+        const dialogData = matDialog.open.mock.calls[0][1]?.data as Record<
+          string,
+          unknown
+        >;
+        expect(dialogData['title']).toBe('Activate Project');
+      });
+
+      it('should activate and sync when dialog confirmed', async () => {
+        mockActivationService.isActivated.mockReturnValue(false);
+        let afterClosedCb: (val: boolean) => void;
+        matDialog.open.mockReturnValue({
+          afterClosed: () => ({
+            subscribe: (cb: (val: boolean) => void) => {
+              afterClosedCb = cb;
+            },
+          }),
+        } as unknown as MatDialogRef<unknown>);
+
+        component.onProjectActivateRequested(mockProjects[0]);
+        afterClosedCb!(true);
+
+        await vi.waitFor(() => {
+          expect(mockActivationService.activate).toHaveBeenCalledWith(
+            'testuser/test-project'
+          );
+        });
+      });
+    });
+
+    describe('onProjectDeactivateRequested', () => {
+      it('should do nothing when project is not activated', () => {
+        mockActivationService.isActivated.mockReturnValue(false);
+
+        component.onProjectDeactivateRequested(mockProjects[0]);
+
+        expect(matDialog.open).not.toHaveBeenCalled();
+      });
+
+      it('should open deactivation dialog for activated project', () => {
+        mockActivationService.isActivated.mockReturnValue(true);
+        const afterClosedSubject = { subscribe: vi.fn() };
+        matDialog.open.mockReturnValue({
+          afterClosed: () => afterClosedSubject,
+        } as unknown as MatDialogRef<unknown>);
+
+        component.onProjectDeactivateRequested(mockProjects[0]);
+
+        expect(matDialog.open).toHaveBeenCalled();
+        const dialogData = matDialog.open.mock.calls[0][1]?.data as Record<
+          string,
+          unknown
+        >;
+        expect(dialogData['title']).toBe('Deactivate Project');
+      });
+
+      it('should deactivate when dialog confirmed', async () => {
+        mockActivationService.isActivated.mockReturnValue(true);
+        let afterClosedCb: (val: boolean) => void;
+        matDialog.open.mockReturnValue({
+          afterClosed: () => ({
+            subscribe: (cb: (val: boolean) => void) => {
+              afterClosedCb = cb;
+            },
+          }),
+        } as unknown as MatDialogRef<unknown>);
+
+        component.onProjectDeactivateRequested(mockProjects[0]);
+        afterClosedCb!(true);
+
+        await vi.waitFor(() => {
+          expect(mockActivationService.deactivate).toHaveBeenCalledWith(
+            'testuser/test-project'
+          );
+        });
+      });
+    });
+
+    describe('isProjectKeyActivated', () => {
+      it('should delegate to activation service with the project key', () => {
+        mockActivationService.isActivated.mockReturnValue(true);
+        expect(component.isProjectKeyActivated('foo/bar')).toBe(true);
+        expect(mockActivationService.isActivated).toHaveBeenCalledWith(
+          'foo/bar'
+        );
+      });
+    });
+
     describe('syncAllProjects', () => {
       it('should show snack bar when no activated projects', () => {
         mockActivationService.isActivationRequired.mockReturnValue(true);

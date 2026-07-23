@@ -395,6 +395,13 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Arrow-function version of the activation check, suitable for passing
+   * as an input binding to child components (keeps `this` bound).
+   */
+  readonly isProjectKeyActivated = (projectKey: string): boolean =>
+    this.activationService.isActivated(projectKey);
+
+  /**
    * Handle project card click. If deactivated in server mode, prompt to activate.
    * Suppresses click if it was triggered by a long-press.
    */
@@ -417,7 +424,41 @@ export class HomeComponent implements OnInit, OnDestroy {
     // Deactivated project — show activation dialog
     event.preventDefault();
     event.stopPropagation();
+    this.promptActivate(project);
+  }
 
+  /**
+   * Handle long-press on an activated project — offer to deactivate.
+   */
+  onProjectLongPress(project: Project): void {
+    if (!this.isProjectActivated(project)) {
+      return;
+    }
+    this.promptDeactivate(project);
+  }
+
+  /**
+   * Handle "Download to this device" chosen from a card/tile kebab menu.
+   * If the project is already activated, this is a no-op.
+   */
+  onProjectActivateRequested(project: Project): void {
+    if (this.isProjectActivated(project)) return;
+    this.promptActivate(project);
+  }
+
+  /**
+   * Handle "Deactivate on this device" chosen from a card/tile kebab menu.
+   * If the project is not activated, this is a no-op.
+   */
+  onProjectDeactivateRequested(project: Project): void {
+    if (!this.isProjectActivated(project)) return;
+    this.promptDeactivate(project);
+  }
+
+  /**
+   * Open the activation confirmation dialog and sync on confirm.
+   */
+  private promptActivate(project: Project): void {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       data: {
         title: this.transloco.translate('home.dialogs.activateTitle'),
@@ -437,13 +478,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Handle long-press on an activated project — offer to deactivate.
+   * Open the deactivation confirmation dialog and purge on confirm.
    */
-  onProjectLongPress(project: Project): void {
-    if (!this.isProjectActivated(project)) {
-      return;
-    }
-
+  private promptDeactivate(project: Project): void {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       data: {
         title: this.transloco.translate('home.dialogs.deactivateTitle'),

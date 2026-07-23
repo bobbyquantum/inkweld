@@ -15,6 +15,50 @@
     </div>
   }
 
+  <!-- Kebab menu for project actions -->
+  <div class="card-actions">
+    <button
+      mat-icon-button
+      type="button"
+      class="kebab-btn"
+      [matMenuTriggerFor]="projectMenu"
+      (click)="onKebabClick($event)"
+      [attr.aria-label]="'home.projectMenu' | transloco"
+      [matTooltip]="'home.projectMenu' | transloco"
+      data-testid="project-card-kebab">
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #projectMenu="matMenu">
+      @if (isActivated) {
+        <button
+          mat-menu-item
+          type="button"
+          (click)="requestDeactivate()"
+          data-testid="project-card-deactivate">
+          <mat-icon>cloud_off</mat-icon>
+          <span>{{ 'home.deactivateAction' | transloco }}</span>
+        </button>
+      } @else {
+        <button
+          mat-menu-item
+          type="button"
+          (click)="requestActivate()"
+          data-testid="project-card-activate">
+          <mat-icon>cloud_download</mat-icon>
+          <span>{{ 'home.activateAction' | transloco }}</span>
+        </button>
+      }
+    </mat-menu>
+  </div>
+
+  <!-- Hover overlay: prompts to download on deactivated (non-synced) cards -->
+  @if (!isActivated) {
+    <div class="download-hint" data-testid="download-hint">
+      <mat-icon class="download-icon">cloud_download</mat-icon>
+      <span class="download-label">{{ 'home.clickToSync' | transloco }}</span>
+    </div>
+  }
+
   <!-- Sync overlay: shows when project is in sync queue -->
   @if (syncStatus()) {
     <div
