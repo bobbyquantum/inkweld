@@ -6,11 +6,14 @@ import {
   input,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type Element } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+
+import { BreadcrumbMenuComponent } from './breadcrumb-menu.component';
 
 /**
  * A single segment in the breadcrumb trail.
@@ -20,18 +23,35 @@ export interface BreadcrumbSegment {
   name: string;
   /** True when this segment represents the currently-open document/element (last segment). */
   isCurrent: boolean;
+  /**
+   * Id of the next segment along the chain (the child of this segment on the
+   * path to the current element). Passed as `currentBranchId` to the flyout
+   * so the "you are here" row is highlighted. `null` for the last segment.
+   */
+  nextBranchId: string | null;
 }
 
 /**
  * Breadcrumb component that displays the folder path leading to the
  * currently-open document or element, e.g. "Part One › Chapter Two › Scene 3".
  *
- * Segments are purely informational — they show context only and are not
- * interactive. Visibility is gated on the `showBreadcrumbs` user setting.
+ * Every segment except the last (current) is clickable: clicking it opens a
+ * Material flyout listing that segment's children, with folders expanding
+ * into nested submenus. Lets you jump anywhere in the tree without
+ * back-tracking. The current/last segment stays static.
+ *
+ * Visibility is gated on the `showBreadcrumbs` user setting and only renders
+ * when the element has at least one ancestor.
  */
 @Component({
   selector: 'app-document-breadcrumbs',
-  imports: [MatIconModule, MatTooltipModule, TranslocoModule],
+  imports: [
+    MatIconModule,
+    MatMenuModule,
+    MatTooltipModule,
+    TranslocoModule,
+    BreadcrumbMenuComponent,
+  ],
   templateUrl: './document-breadcrumbs.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './document-breadcrumbs.component.scss',
@@ -69,6 +89,7 @@ export class DocumentBreadcrumbsComponent {
       id: el.id,
       name: el.name || 'Untitled',
       isCurrent: index === chain.length - 1,
+      nextBranchId: index < chain.length - 1 ? chain[index + 1].id : null,
     }));
   });
 

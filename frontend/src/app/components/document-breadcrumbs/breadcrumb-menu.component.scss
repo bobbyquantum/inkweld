@@ -1,0 +1,14 @@
+.breadcrumb-flyout-empty {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+// Highlight the row that lies on the path to the currently-open element.
+::ng-deep .breadcrumb-flyout-menu .current-branch {
+  font-weight: 600;
+}
+
+::ng-deep .breadcrumb-flyout-chevron {
+  margin-left: auto;
+  color: var(--sys-on-surface-variant);
+}

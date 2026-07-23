@@ -6,16 +6,26 @@
     matTooltipShowDelay="600"
     data-testid="document-breadcrumbs">
     @for (segment of segments(); track segment.id; let isLast = $last) {
-      <span
-        class="breadcrumb-segment"
-        [class.current]="segment.isCurrent"
-        [attr.aria-current]="segment.isCurrent ? 'page' : null">
-        {{ segment.name }}
-      </span>
       @if (!isLast) {
+        <button
+          type="button"
+          class="breadcrumb-segment breadcrumb-segment-button"
+          [matMenuTriggerFor]="segMenu.menu"
+          [attr.aria-haspopup]="'menu'"
+          [attr.data-testid]="'breadcrumb-segment-' + segment.id">
+          {{ segment.name }}
+        </button>
+        <app-breadcrumb-menu
+          #segMenu="appBreadcrumbMenu"
+          [parentId]="segment.id"
+          [currentBranchId]="segment.nextBranchId" />
         <mat-icon class="breadcrumb-separator" aria-hidden="true">
           chevron_right
         </mat-icon>
+      } @else {
+        <span class="breadcrumb-segment current" [attr.aria-current]="'page'">
+          {{ segment.name }}
+        </span>
       }
     }
   </nav>

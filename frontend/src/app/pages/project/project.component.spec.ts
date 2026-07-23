@@ -401,33 +401,20 @@ describe('ProjectComponent', () => {
   });
 
   describe('document opening', () => {
-    it('should open document via projectState', () => {
+    it('closes mobile sidenav when a document is opened', () => {
+      const mockSidenav = { close: vi.fn().mockResolvedValue(undefined) };
+      component.sidenav = mockSidenav as any;
+      component.isMobile.set(true);
       component.onDocumentOpened(mockElement);
-      expect(projectStateService.openDocument).toHaveBeenCalledWith(
-        mockElement
-      );
+      expect(mockSidenav.close).toHaveBeenCalled();
     });
 
-    it('should navigate to document route when opening document', () => {
+    it('does not close sidenav on desktop', () => {
+      const mockSidenav = { close: vi.fn().mockResolvedValue(undefined) };
+      component.sidenav = mockSidenav as any;
+      component.isMobile.set(false);
       component.onDocumentOpened(mockElement);
-      expect(router.navigate).toHaveBeenCalledWith([
-        '/',
-        'testuser',
-        'test-project',
-        'document',
-        mockElement.id,
-      ]);
-    });
-
-    it('should navigate to folder route when opening folder', () => {
-      component.onDocumentOpened(mockFolderElement);
-      expect(router.navigate).toHaveBeenCalledWith([
-        '/',
-        'testuser',
-        'test-project',
-        'folder',
-        mockFolderElement.id,
-      ]);
+      expect(mockSidenav.close).not.toHaveBeenCalled();
     });
   });
 
