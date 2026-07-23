@@ -131,7 +131,7 @@ describe('DocumentBreadcrumbsComponent', () => {
     const names = component.segments().map(s => s.name);
     expect(names).toContain('A');
     expect(names).toContain('B');
-    expect(names.length).toBe(2);
+    expect(names).toHaveLength(2);
   });
 
   it('renders the current segment as a non-interactive span', () => {
@@ -164,7 +164,7 @@ describe('DocumentBreadcrumbsComponent', () => {
       '[data-testid="document-breadcrumbs"]'
     );
     const buttons = nav.querySelectorAll('.breadcrumb-segment-button');
-    expect(buttons.length).toBe(1);
+    expect(buttons).toHaveLength(1);
     expect(buttons[0].tagName.toLowerCase()).toBe('button');
     expect(buttons[0].getAttribute('aria-haspopup')).toBe('menu');
     expect(buttons[0].getAttribute('data-testid')).toBe(
@@ -187,9 +187,9 @@ describe('DocumentBreadcrumbsComponent', () => {
       '[data-testid="document-breadcrumbs"]'
     );
     const segments = nav.querySelectorAll('.breadcrumb-segment');
-    expect(segments.length).toBe(2);
+    expect(segments).toHaveLength(2);
     const separators = nav.querySelectorAll('.breadcrumb-separator');
-    expect(separators.length).toBe(1);
+    expect(separators).toHaveLength(1);
   });
 
   it('hides the breadcrumb entirely for top-level elements', () => {
