@@ -15,6 +15,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AdminConfigService } from '@services/admin/admin-config.service';
 import { AdminEmailService } from '@services/admin/admin-email.service';
 import { SystemConfigService } from '@services/core/system-config.service';
@@ -32,6 +33,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
     MatSelectModule,
     MatSlideToggleModule,
     MatSnackBarModule,
+    TranslocoModule,
   ],
   templateUrl: './email-settings.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -42,6 +44,7 @@ export class AdminEmailSettingsComponent implements OnInit {
   private readonly systemConfigService = inject(SystemConfigService);
   private readonly emailApiService = inject(AdminEmailService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
 
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);

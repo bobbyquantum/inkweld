@@ -7,6 +7,7 @@ import { UserService } from '@services/user/user.service';
 import { of, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { UserAvatarComponent } from './user-avatar.component';
 
 describe('UserAvatarComponent', () => {
@@ -60,7 +61,7 @@ describe('UserAvatarComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [UserAvatarComponent],
+      imports: [translocoTestProvider(), UserAvatarComponent],
       providers: [
         { provide: UserService, useValue: mockUserService },
         { provide: UnifiedUserService, useValue: mockUnifiedUserService },

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { CanvasService } from './canvas.service';
 import { CanvasLayerService } from './canvas-layer.service';
 import {
@@ -29,6 +30,7 @@ describe('CanvasLayerActionsService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasLayerActionsService,
         { provide: CanvasLayerService, useValue: layer },

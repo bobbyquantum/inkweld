@@ -14,6 +14,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { PasskeysSettingsComponent } from './passkeys-settings.component';
 
 // ─── Fake data ────────────────────────────────────────────────────────────────
@@ -63,7 +64,7 @@ describe('PasskeysSettingsComponent', () => {
     } as unknown as MockedObject<MatSnackBar>;
 
     await TestBed.configureTestingModule({
-      imports: [PasskeysSettingsComponent],
+      imports: [translocoTestProvider(), PasskeysSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: PasskeyService, useValue: passkeyService },

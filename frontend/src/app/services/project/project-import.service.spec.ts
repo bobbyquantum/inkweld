@@ -10,6 +10,7 @@ import { of } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ARCHIVE_VERSION,
   type ArchiveElement,
@@ -194,6 +195,7 @@ describe('ProjectImportService', () => {
     http.post.mockReturnValue(of({}));
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

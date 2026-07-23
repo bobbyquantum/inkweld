@@ -3,6 +3,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { UnavailableComponent } from './unavailable.component';
 
 describe('UnavailableComponent', () => {
@@ -11,7 +12,7 @@ describe('UnavailableComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [UnavailableComponent],
+      imports: [translocoTestProvider(), UnavailableComponent],
       providers: [
         provideZonelessChangeDetection(),
         {

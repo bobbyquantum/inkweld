@@ -12,6 +12,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ARCHIVE_VERSION,
   type ArchiveProgress,
@@ -100,7 +101,7 @@ describe('ImportProjectDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ImportProjectDialogComponent],
+      imports: [translocoTestProvider(), ImportProjectDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

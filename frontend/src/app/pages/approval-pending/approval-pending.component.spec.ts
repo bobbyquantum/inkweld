@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ApprovalPendingComponent } from './approval-pending.component';
 
 describe('ApprovalPendingComponent', () => {
@@ -35,7 +36,7 @@ describe('ApprovalPendingComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ApprovalPendingComponent],
+      imports: [translocoTestProvider(), ApprovalPendingComponent],
       providers: [
         provideZonelessChangeDetection(),
         {

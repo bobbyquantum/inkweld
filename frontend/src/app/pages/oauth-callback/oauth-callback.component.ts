@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router } from '@angular/router';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';
 import { UserService } from '@services/user/user.service';
@@ -14,7 +15,7 @@ import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-oauth-callback',
-  imports: [MatProgressSpinnerModule],
+  imports: [MatProgressSpinnerModule, TranslocoModule],
   templateUrl: './oauth-callback.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./oauth-callback.component.scss'],
@@ -26,6 +27,7 @@ export class OAuthCallbackComponent implements OnInit {
   private readonly authTokenService = inject(AuthTokenService);
   private readonly setupService = inject(SetupService);
   private readonly userService = inject(UserService);
+  private readonly transloco = inject(TranslocoService);
 
   errorMessage = '';
 
@@ -43,7 +45,9 @@ export class OAuthCallbackComponent implements OnInit {
     }
 
     if (!code) {
-      this.errorMessage = 'No authorization code received.';
+      this.errorMessage = this.transloco.translate(
+        'auth.oauthCallback.signInFailed'
+      );
       return;
     }
 
@@ -69,18 +73,12 @@ export class OAuthCallbackComponent implements OnInit {
     } catch {
       // Clear any partially stored token on failure
       this.authTokenService.clearToken();
-      this.errorMessage = 'Failed to complete sign-in. Please try again.';
+      this.errorMessage = this.transloco.translate('errors.unknown');
     }
   }
 
-  private getErrorMessage(error: string): string {
-    switch (error) {
-      case 'github_auth_failed':
-        return 'GitHub authentication failed. Please try again.';
-      case 'account_disabled':
-        return 'Your account has been disabled. Contact an administrator.';
-      default:
-        return 'An unexpected error occurred during sign-in.';
-    }
+  private getErrorMessage(_error: string): string {
+    // All error cases map to the same generic message
+    return this.transloco.translate('errors.unknown');
   }
 }

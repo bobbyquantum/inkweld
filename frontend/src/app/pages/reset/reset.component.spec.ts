@@ -2,6 +2,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ResetComponent } from './reset.component';
 
 describe('ResetComponent', () => {
@@ -39,7 +40,7 @@ describe('ResetComponent', () => {
     });
 
     await TestBed.configureTestingModule({
-      imports: [ResetComponent],
+      imports: [translocoTestProvider(), ResetComponent],
     }).compileComponents();
 
     router = TestBed.inject(Router);

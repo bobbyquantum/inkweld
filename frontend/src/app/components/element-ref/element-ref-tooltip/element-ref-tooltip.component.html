@@ -41,7 +41,9 @@
         @if (isLoadingPreview()) {
           <div class="tooltip-preview loading">
             <mat-spinner diameter="16"></mat-spinner>
-            <span>Loading preview...</span>
+            <span>{{
+              'editor.elementRef.tooltip.loadingPreview' | transloco
+            }}</span>
           </div>
         } @else if (previewContent()) {
           <div class="tooltip-preview">
@@ -68,7 +70,7 @@
 
     <!-- Hint -->
     <div class="tooltip-hint">
-      <span>Click to edit • Right-click for options</span>
+      <span>{{ 'editor.elementRef.tooltip.hint' | transloco }}</span>
     </div>
   </div>
 }

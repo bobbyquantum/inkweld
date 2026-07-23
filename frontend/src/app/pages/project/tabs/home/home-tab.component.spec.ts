@@ -11,6 +11,7 @@ import { type Element, ElementType, type Project } from '@inkweld/index';
 import { afterAll, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
 import { ProjectService } from '../../../../services/project/project.service';
 import { ProjectExportService } from '../../../../services/project/project-export.service';
@@ -139,7 +140,13 @@ describe('HomeTabComponent', () => {
     setupMockServices();
 
     await TestBed.configureTestingModule({
-      imports: [CommonModule, MatButtonModule, MatIconModule, HomeTabComponent],
+      imports: [
+        translocoTestProvider(),
+        CommonModule,
+        MatButtonModule,
+        MatIconModule,
+        HomeTabComponent,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: Router, useValue: mockRouter },

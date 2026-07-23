@@ -4,6 +4,7 @@ import { ElementType, type Project } from '@inkweld/index';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type ProjectElement } from '../../models/project-element';
 import { LoggerService } from '../core/logger.service';
 import { SettingsService } from '../core/settings.service';
@@ -101,6 +102,7 @@ describe('AutoSnapshotService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         AutoSnapshotService,

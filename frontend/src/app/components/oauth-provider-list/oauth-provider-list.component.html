@@ -2,7 +2,11 @@
   <div class="oauth-container">
     @if (shouldShowText()) {
       <h3 class="mat-subtitle-1">
-        {{ isRegisterContext ? 'Or register with:' : 'Or sign in with:' }}
+        {{
+          isRegisterContext
+            ? ('auth.oauth.registerWith' | transloco)
+            : ('auth.oauth.signInWith' | transloco)
+        }}
       </h3>
     }
 
@@ -11,7 +15,7 @@
         <mat-progress-spinner
           mode="indeterminate"
           diameter="24"></mat-progress-spinner>
-        <span>Loading sign-in options...</span>
+        <span>{{ 'auth.oauth.loadingOptions' | transloco }}</span>
       </div>
     } @else {
       @if (googleEnabled()) {
@@ -19,7 +23,8 @@
           type="button"
           mat-raised-button
           (click)="signInWithProvider('google')">
-          <mat-icon svgIcon="google"></mat-icon> Google
+          <mat-icon svgIcon="google"></mat-icon>
+          {{ 'auth.oauth.google' | transloco }}
         </button>
       }
       @if (facebookEnabled()) {
@@ -27,7 +32,8 @@
           type="button"
           mat-raised-button
           (click)="signInWithProvider('facebook')">
-          <mat-icon svgIcon="facebook"></mat-icon> Facebook
+          <mat-icon svgIcon="facebook"></mat-icon>
+          {{ 'auth.oauth.facebook' | transloco }}
         </button>
       }
       @if (githubEnabled()) {
@@ -35,7 +41,8 @@
           type="button"
           mat-raised-button
           (click)="signInWithProvider('github')">
-          <mat-icon svgIcon="github"></mat-icon> GitHub
+          <mat-icon svgIcon="github"></mat-icon>
+          {{ 'auth.oauth.github' | transloco }}
         </button>
       }
       @if (appleEnabled()) {
@@ -43,7 +50,8 @@
           type="button"
           mat-raised-button
           (click)="signInWithProvider('apple')">
-          <mat-icon svgIcon="apple"></mat-icon> Apple
+          <mat-icon svgIcon="apple"></mat-icon>
+          {{ 'auth.oauth.apple' | transloco }}
         </button>
       }
       @if (discordEnabled()) {
@@ -51,7 +59,8 @@
           type="button"
           mat-raised-button
           (click)="signInWithProvider('discord')">
-          <mat-icon svgIcon="discord"></mat-icon> Discord
+          <mat-icon svgIcon="discord"></mat-icon>
+          {{ 'auth.oauth.discord' | transloco }}
         </button>
       }
     }

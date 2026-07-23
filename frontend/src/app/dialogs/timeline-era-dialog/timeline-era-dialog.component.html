@@ -1,27 +1,33 @@
 <h2 mat-dialog-title>
-  {{ data.era ? 'Edit era' : 'Add era' }}
+  {{
+    data.era
+      ? ('timeline.eraDialog.editTitle' | transloco)
+      : ('timeline.eraDialog.addTitle' | transloco)
+  }}
 </h2>
 <mat-dialog-content class="content">
   <form class="form">
     <mat-form-field appearance="outline">
-      <mat-label>Name</mat-label>
+      <mat-label>{{ 'timeline.eraDialog.nameLabel' | transloco }}</mat-label>
       <input
         matInput
         id="timeline-era-name"
-        aria-label="Name"
+        [attr.aria-label]="'timeline.eraDialog.nameAria' | transloco"
         [formField]="form.name"
         data-testid="timeline-era-name"
         cdkFocusInitial />
     </mat-form-field>
 
-    <div class="section-label">Start</div>
+    <div class="section-label">
+      {{ 'timeline.eraDialog.startSection' | transloco }}
+    </div>
     @if (isGregorian()) {
       <mat-form-field appearance="outline">
-        <mat-label>Date</mat-label>
+        <mat-label>{{ 'timeline.eraDialog.dateLabel' | transloco }}</mat-label>
         <input
           matInput
           id="timeline-era-start-date"
-          aria-label="Start date"
+          [attr.aria-label]="'timeline.eraDialog.startDateAria' | transloco"
           type="date"
           [value]="startDateValue()"
           (change)="onStartDateChange($event)"
@@ -56,14 +62,16 @@
       }
     </div>
 
-    <div class="section-label">End</div>
+    <div class="section-label">
+      {{ 'timeline.eraDialog.endSection' | transloco }}
+    </div>
     @if (isGregorian()) {
       <mat-form-field appearance="outline">
-        <mat-label>Date</mat-label>
+        <mat-label>{{ 'timeline.eraDialog.dateLabel' | transloco }}</mat-label>
         <input
           matInput
           id="timeline-era-end-date"
-          aria-label="End date"
+          [attr.aria-label]="'timeline.eraDialog.endDateAria' | transloco"
           type="date"
           [value]="endDateValue()"
           (change)="onEndDateChange($event)"
@@ -104,18 +112,18 @@
         .some(e => e.kind === 'endBeforeStart')
     ) {
       <div class="field-error" data-testid="timeline-era-range-error">
-        End must be at or after start
+        {{ 'timeline.eraDialog.endAfterStart' | transloco }}
       </div>
     }
 
     <mat-form-field appearance="outline">
-      <mat-label>Color</mat-label>
+      <mat-label>{{ 'timeline.eraDialog.colorLabel' | transloco }}</mat-label>
       <input
         matInput
         id="timeline-era-color"
-        aria-label="Color"
+        [attr.aria-label]="'timeline.eraDialog.colorAria' | transloco"
         [formField]="form.color"
-        placeholder="e.g. var(--sys-tertiary-container) or #8b5cf6"
+        [placeholder]="'timeline.eraDialog.colorPlaceholder' | transloco"
         data-testid="timeline-era-color" />
     </mat-form-field>
   </form>
@@ -127,17 +135,17 @@
       color="warn"
       data-testid="timeline-era-delete"
       (click)="onDelete()">
-      Delete
+      {{ 'delete' | transloco }}
     </button>
   }
   <span class="spacer"></span>
-  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-button (click)="onCancel()">{{ 'cancel' | transloco }}</button>
   <button
     mat-button
     color="primary"
     data-testid="timeline-era-save"
     [disabled]="form().invalid()"
     (click)="onSave()">
-    Save
+    {{ 'save' | transloco }}
   </button>
 </mat-dialog-actions>

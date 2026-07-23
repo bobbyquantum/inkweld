@@ -5,6 +5,7 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../../testing/transloco-test-provider';
 import { TimeSystemsSettingsComponent } from './time-systems-settings.component';
 
 function makeSystem(overrides: Partial<TimeSystem> = {}): TimeSystem {
@@ -36,7 +37,7 @@ async function createComponent(
   };
 
   await TestBed.configureTestingModule({
-    imports: [TimeSystemsSettingsComponent],
+    imports: [translocoTestProvider(), TimeSystemsSettingsComponent],
     providers: [
       { provide: TimeSystemLibraryService, useValue: libraryMock },
       { provide: DialogGatewayService, useValue: dialogsMock },

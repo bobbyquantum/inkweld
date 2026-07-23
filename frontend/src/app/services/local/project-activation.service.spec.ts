@@ -4,6 +4,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
@@ -36,6 +37,7 @@ describe('ProjectActivationService', () => {
     mockSetupService.getMode.mockReturnValue('server');
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         StorageService,

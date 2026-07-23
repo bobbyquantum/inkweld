@@ -1,8 +1,9 @@
 <div class="authorized-apps-container" data-testid="authorized-apps-settings">
-  <h3 class="section-title">Authorized Applications</h3>
+  <h3 class="section-title">
+    {{ 'settings.authorizedAppsTab.title' | transloco }}
+  </h3>
   <p class="section-description">
-    These are third-party applications that have been granted access to your
-    projects. You can review permissions or disconnect them at any time.
+    {{ 'settings.authorizedAppsTab.description' | transloco }}
   </p>
 
   @if (isLoading()) {
@@ -12,10 +13,9 @@
   } @else if (sessions().length === 0) {
     <div class="empty-state" data-testid="authorized-apps-empty">
       <mat-icon class="empty-icon">apps</mat-icon>
-      <p>No authorized applications</p>
+      <p>{{ 'settings.authorizedAppsTab.noApps' | transloco }}</p>
       <p class="empty-hint">
-        When you authorize third-party apps to access your projects, they will
-        appear here.
+        {{ 'settings.authorizedAppsTab.noAppsHint' | transloco }}
       </p>
     </div>
   } @else {
@@ -41,9 +41,17 @@
               <div class="app-details">
                 <span class="app-name">{{ session.client.name }}</span>
                 <span class="app-meta">
-                  Connected {{ formatDate(session.createdAt) }} ·
+                  {{
+                    'settings.authorizedAppsTab.connectedPrefix'
+                      | transloco: { date: formatDate(session.createdAt) }
+                  }}
+                  ·
                   {{ session.projectCount }}
-                  {{ session.projectCount === 1 ? 'project' : 'projects' }}
+                  {{
+                    session.projectCount === 1
+                      ? ('settings.authorizedAppsTab.project' | transloco)
+                      : ('settings.authorizedAppsTab.projects' | transloco)
+                  }}
                 </span>
               </div>
             </button>
@@ -53,8 +61,8 @@
                 (click)="loadSessionDetails(session.id)"
                 [matTooltip]="
                   expandedSession()?.session?.id === session.id
-                    ? 'Collapse'
-                    : 'View details'
+                    ? ('settings.authorizedAppsTab.collapse' | transloco)
+                    : ('settings.authorizedAppsTab.viewDetails' | transloco)
                 "
                 data-testid="authorized-app-expand">
                 <mat-icon>{{
@@ -68,7 +76,9 @@
                 color="warn"
                 (click)="revokeSession(session)"
                 [disabled]="revokingSessionId() === session.id"
-                matTooltip="Disconnect app"
+                [matTooltip]="
+                  'settings.authorizedAppsTab.disconnectApp' | transloco
+                "
                 data-testid="authorized-app-disconnect">
                 @if (revokingSessionId() === session.id) {
                   <mat-spinner diameter="18"></mat-spinner>
@@ -87,7 +97,9 @@
                 </div>
               } @else {
                 <div class="grants-header">
-                  <span class="grants-title">Project Permissions</span>
+                  <span class="grants-title">{{
+                    'settings.authorizedAppsTab.projectPermissions' | transloco
+                  }}</span>
                   <button
                     mat-stroked-button
                     (click)="toggleAddProject()"
@@ -95,7 +107,7 @@
                     class="add-project-btn"
                     data-testid="authorized-app-add-project-btn">
                     <mat-icon>add</mat-icon>
-                    Add Project
+                    {{ 'settings.authorizedAppsTab.addProject' | transloco }}
                   </button>
                 </div>
 
@@ -106,7 +118,9 @@
                     <mat-select
                       [value]="selectedProjectId()"
                       (selectionChange)="selectedProjectId.set($event.value)"
-                      placeholder="Select a project"
+                      [placeholder]="
+                        'settings.authorizedAppsTab.selectProject' | transloco
+                      "
                       class="project-select"
                       data-testid="authorized-app-project-select">
                       @for (project of availableProjects(); track project.id) {
@@ -115,7 +129,10 @@
                         </mat-option>
                       }
                       @if (availableProjects().length === 0) {
-                        <mat-option disabled>No projects available</mat-option>
+                        <mat-option disabled>{{
+                          'settings.authorizedAppsTab.noProjectsAvailable'
+                            | transloco
+                        }}</mat-option>
                       }
                     </mat-select>
                     <mat-select
@@ -134,7 +151,9 @@
                       color="primary"
                       (click)="addProjectGrant(session.id)"
                       [disabled]="!selectedProjectId() || addingProject()"
-                      matTooltip="Grant access"
+                      [matTooltip]="
+                        'settings.authorizedAppsTab.grantAccess' | transloco
+                      "
                       data-testid="authorized-app-confirm-add">
                       @if (addingProject()) {
                         <mat-spinner diameter="18"></mat-spinner>
@@ -145,7 +164,7 @@
                     <button
                       mat-icon-button
                       (click)="cancelAddProject()"
-                      matTooltip="Cancel"
+                      [matTooltip]="'cancel' | transloco"
                       data-testid="authorized-app-cancel-add">
                       <mat-icon>close</mat-icon>
                     </button>
@@ -154,8 +173,7 @@
 
                 @if (expandedSession()!.grants.length === 0) {
                   <p class="no-grants">
-                    No project permissions. This app has no access to any
-                    projects.
+                    {{ 'settings.authorizedAppsTab.noGrants' | transloco }}
                   </p>
                 } @else {
                   <div class="grants-list">
@@ -199,7 +217,10 @@
                               revokingGrantKey() ===
                               grantKey(session.id, grant.projectId)
                             "
-                            matTooltip="Revoke project access"
+                            [matTooltip]="
+                              'settings.authorizedAppsTab.revokeAccess'
+                                | transloco
+                            "
                             data-testid="authorized-app-revoke-grant">
                             @if (
                               revokingGrantKey() ===

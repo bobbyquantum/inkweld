@@ -7,6 +7,7 @@ import {
 } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../testing/transloco-test-provider';
 import { routes } from './app.routes';
 import { CanDeactivateProjectGuard } from './guards/can-deactivate-project.guard';
 import type { ProjectComponent } from './pages/project/project.component';
@@ -23,6 +24,7 @@ describe('app.routes', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         {
           provide: CanDeactivateProjectGuard,

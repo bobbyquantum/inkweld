@@ -1,9 +1,8 @@
 @if (documentUnavailable()) {
   <div class="error-message" data-testid="unsynchronized-document-warning">
-    <p>This document has not been synced to your browser yet.</p>
+    <p>{{ 'worldbuilding.tab.notSynced' | transloco }}</p>
     <p>
-      Reconnect to the server and try again once the document has finished
-      syncing.
+      {{ 'worldbuilding.tab.notSyncedHint' | transloco }}
     </p>
     @if (syncError()) {
       <p class="sync-error" data-testid="sync-error">{{ syncError() }}</p>
@@ -15,11 +14,11 @@
       (click)="triggerSync()">
       @if (syncing()) {
         <mat-spinner diameter="18"></mat-spinner>
-        <span>Syncing…</span>
+        <span>{{ 'worldbuilding.tab.syncing' | transloco }}</span>
       } @else {
         <ng-container>
           <mat-icon>sync</mat-icon>
-          <span>Sync Project</span>
+          <span>{{ 'worldbuilding.tab.syncProject' | transloco }}</span>
         </ng-container>
       }
     </button>
@@ -36,12 +35,15 @@
       [slug]="slug()!"></app-worldbuilding-editor>
   } @placeholder {
     <div class="editor-placeholder">
-      <span>Loading worldbuilding editor...</span>
+      <span>{{ 'worldbuilding.tab.loadingEditor' | transloco }}</span>
     </div>
   }
 } @else {
   <div class="error-message">
-    <p>Unable to load worldbuilding element.</p>
-    <p>Element ID: {{ elementId() || 'Not provided' }}</p>
+    <p>{{ 'worldbuilding.tab.loadFailed' | transloco }}</p>
+    <p>
+      {{ 'worldbuilding.tab.elementId' | transloco }}
+      {{ elementId() || ('worldbuilding.tab.notProvided' | transloco) }}
+    </p>
   </div>
 }

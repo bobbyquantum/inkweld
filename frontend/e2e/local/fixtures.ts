@@ -209,16 +209,16 @@ export const test = base.extend<LocalTestFixtures>({
     await nextButton.click();
 
     // Step 2: Fill in project details
-    const titleInput = page.getByLabel(/project title/i);
+    const titleInput = page.getByLabel(/title/i);
     await titleInput.waitFor();
     await titleInput.fill('Test Project');
 
-    const slugInput = page.getByLabel(/project slug/i);
+    const slugInput = page.getByLabel(/name/i);
     await slugInput.waitFor();
     await slugInput.fill('test-project');
 
     // Submit the form
-    const submitButton = page.getByRole('button', { name: /create project/i });
+    const submitButton = page.getByRole('button', { name: /create/i });
     await submitButton.waitFor();
     await submitButton.click();
 

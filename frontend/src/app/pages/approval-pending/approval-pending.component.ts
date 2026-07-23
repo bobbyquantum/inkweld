@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ServerInfoBubbleComponent } from '@components/server-info-bubble/server-info-bubble.component';
 import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
+import { TranslocoModule } from '@jsverse/transloco';
 import { SystemConfigService } from '@services/core/system-config.service';
 
 @Component({
@@ -19,6 +20,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
     MatButtonModule,
     MatIconModule,
     RouterLink,
+    TranslocoModule,
     ServerInfoBubbleComponent,
     ThemeToggleComponent,
   ],

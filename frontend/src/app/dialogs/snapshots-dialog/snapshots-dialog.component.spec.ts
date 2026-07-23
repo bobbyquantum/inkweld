@@ -13,6 +13,7 @@ import {
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   SnapshotsDialogComponent,
   type SnapshotsDialogData,
@@ -77,7 +78,7 @@ describe('SnapshotsDialogComponent', () => {
     } as unknown as MockedObject<MatSnackBar>;
 
     await TestBed.configureTestingModule({
-      imports: [SnapshotsDialogComponent],
+      imports: [translocoTestProvider(), SnapshotsDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: UnifiedSnapshotService, useValue: snapshotServiceMock },

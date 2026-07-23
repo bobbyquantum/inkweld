@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type SafeUrl } from '@angular/platform-browser';
+import { TranslocoModule } from '@jsverse/transloco';
 import { ImageCropperComponent } from 'ngx-image-cropper';
 
 import { formatWorldbuildingFields } from '../../utils/worldbuilding.utils';
@@ -55,6 +56,7 @@ export interface WorldbuildingImageDialogResult {
     MatIconModule,
     MatProgressBarModule,
     MatTooltipModule,
+    TranslocoModule,
     ImageCropperComponent,
   ],
   templateUrl: './worldbuilding-image-dialog.component.html',

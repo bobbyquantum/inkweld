@@ -5,6 +5,7 @@ import { type PresenceSession } from '@inkweld/presence';
 import { PresenceService } from '@services/presence/presence.service';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { PresenceIndicatorComponent } from './presence-indicator.component';
 
 function session(sessionId: string, username: string): PresenceSession {
@@ -26,7 +27,7 @@ describe('PresenceIndicatorComponent', () => {
     users = signal<PresenceSession[]>([]);
 
     await TestBed.configureTestingModule({
-      imports: [PresenceIndicatorComponent],
+      imports: [translocoTestProvider(), PresenceIndicatorComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: PresenceService, useValue: { users: users.asReadonly() } },

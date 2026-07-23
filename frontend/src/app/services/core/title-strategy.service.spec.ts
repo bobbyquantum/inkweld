@@ -11,6 +11,7 @@ import { type Project } from '@inkweld/index';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { InkweldTitleStrategy } from './title-strategy.service';
 
 function createProject(title: string): Project {
@@ -93,6 +94,7 @@ describe('InkweldTitleStrategy', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         { provide: Title, useValue: title },
         { provide: ProjectStateService, useValue: projectState },

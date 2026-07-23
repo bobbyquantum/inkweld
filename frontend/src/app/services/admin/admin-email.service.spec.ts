@@ -7,6 +7,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from '../core/setup.service';
 import { AdminEmailService } from './admin-email.service';
 
@@ -20,6 +21,7 @@ describe('AdminEmailService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { ElementType } from '../../../../api-client';
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import {
   type ElementRefContextData,
   ElementRefContextMenuComponent,
@@ -35,6 +36,7 @@ describe('ElementRefContextMenuComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         ElementRefContextMenuComponent,
         FormsModule,
         MatButtonModule,

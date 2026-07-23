@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { PublishFormat } from '../../models/publish-plan';
 import {
   type PublishedFile,
@@ -61,6 +62,7 @@ describe('PublishedFilesService', () => {
     setupService.getServerUrl.mockReturnValue('http://localhost:8333');
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         PublishedFilesService,

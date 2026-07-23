@@ -11,6 +11,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from '../core/setup.service';
 import { LocalUserService } from '../local/local-user.service';
 import { UnifiedUserService } from './unified-user.service';
@@ -84,6 +85,7 @@ describe('UnifiedUserService', () => {
     } as unknown as MockedObject<Router>;
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         UnifiedUserService,

@@ -13,6 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { Passkey } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasskeyError, PasskeyService } from '@services/auth/passkey.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 
@@ -34,11 +35,13 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
 })
 export class PasskeysSettingsComponent implements OnInit {
   private readonly passkeyService = inject(PasskeyService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
   private readonly dialogGateway = inject(DialogGatewayService);
 
   readonly isSupported = this.passkeyService.isSupported();
@@ -69,9 +72,11 @@ export class PasskeysSettingsComponent implements OnInit {
 
   async register(): Promise<void> {
     if (!this.isSupported) {
-      this.snackBar.open('This browser does not support passkeys.', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('auth.passkeys.unsupportedSnackbar'),
+        this.transloco.translate('snackbar.dismiss'),
+        { duration: 3000 }
+      );
       return;
     }
 
@@ -80,15 +85,22 @@ export class PasskeysSettingsComponent implements OnInit {
       // We let the user name the key after the prompt completes so that the
       // browser-native UI is the first thing they see (more familiar UX).
       await this.passkeyService.register();
-      this.snackBar.open('Passkey added.', 'Dismiss', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('auth.passkeys.passkeyAdded'),
+        this.transloco.translate('snackbar.dismiss'),
+        { duration: 3000 }
+      );
       await this.refresh();
     } catch (err) {
       if (err instanceof PasskeyError && err.code === 'CANCELLED') {
         return; // user cancelled - silent
       }
       this.snackBar.open(
-        this.toMessage(err, 'Failed to add passkey.'),
-        'Dismiss',
+        this.toMessage(
+          err,
+          this.transloco.translate('auth.passkeys.addFailed')
+        ),
+        this.transloco.translate('snackbar.dismiss'),
         { duration: 4000 }
       );
     } finally {
@@ -99,7 +111,7 @@ export class PasskeysSettingsComponent implements OnInit {
   async rename(passkey: Passkey): Promise<void> {
     const newName = await this.dialogGateway.openRenameDialog({
       currentName: passkey.name ?? '',
-      title: 'Rename passkey',
+      title: this.transloco.translate('auth.passkeys.renameTitle'),
     });
     if (newName === null || newName.trim() === '' || newName === passkey.name) {
       return;
@@ -112,11 +124,18 @@ export class PasskeysSettingsComponent implements OnInit {
       this.passkeys.update(list =>
         list.map(p => (p.id === passkey.id ? { ...p, name: trimmed } : p))
       );
-      this.snackBar.open('Passkey renamed.', 'Dismiss', { duration: 2000 });
+      this.snackBar.open(
+        this.transloco.translate('auth.passkeys.passkeyRenamed'),
+        this.transloco.translate('snackbar.dismiss'),
+        { duration: 2000 }
+      );
     } catch (err) {
       this.snackBar.open(
-        this.toMessage(err, 'Failed to rename passkey.'),
-        'Dismiss',
+        this.toMessage(
+          err,
+          this.transloco.translate('auth.passkeys.renameFailed')
+        ),
+        this.transloco.translate('snackbar.dismiss'),
         { duration: 4000 }
       );
     } finally {
@@ -126,9 +145,15 @@ export class PasskeysSettingsComponent implements OnInit {
 
   async delete(passkey: Passkey): Promise<void> {
     const confirmed = await this.dialogGateway.openConfirmationDialog({
-      title: 'Delete passkey',
-      message: `Delete "${passkey.name ?? 'Unnamed passkey'}"? You will no longer be able to sign in with this passkey.`,
-      confirmText: 'Delete',
+      title: this.transloco.translate('auth.passkeys.deleteTitle'),
+
+      message: this.transloco.translate('auth.passkeys.deleteMessage', {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        name:
+          passkey.name ??
+          this.transloco.translate('auth.passkeys.unnamedPasskey'),
+      }),
+      confirmText: this.transloco.translate('delete'),
     });
     if (!confirmed) return;
 
@@ -136,11 +161,18 @@ export class PasskeysSettingsComponent implements OnInit {
     try {
       await this.passkeyService.delete(passkey.id);
       this.passkeys.update(list => list.filter(p => p.id !== passkey.id));
-      this.snackBar.open('Passkey deleted.', 'Dismiss', { duration: 2000 });
+      this.snackBar.open(
+        this.transloco.translate('auth.passkeys.passkeyDeleted'),
+        this.transloco.translate('snackbar.dismiss'),
+        { duration: 2000 }
+      );
     } catch (err) {
       this.snackBar.open(
-        this.toMessage(err, 'Failed to delete passkey.'),
-        'Dismiss',
+        this.toMessage(
+          err,
+          this.transloco.translate('auth.passkeys.deleteFailed')
+        ),
+        this.transloco.translate('snackbar.dismiss'),
         { duration: 4000 }
       );
     } finally {

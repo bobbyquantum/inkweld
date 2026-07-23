@@ -6,6 +6,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { PublishFormat } from '../../models/publish-plan';
 import {
   type PublishedFile,
@@ -65,6 +66,7 @@ describe('PublishCompleteDialogComponent', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockDialogData },

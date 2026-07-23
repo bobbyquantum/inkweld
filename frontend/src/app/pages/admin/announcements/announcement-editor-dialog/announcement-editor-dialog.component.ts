@@ -21,6 +21,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   type Announcement,
   AnnouncementService,
@@ -56,6 +57,7 @@ interface AnnouncementFormValue {
     MatInputModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    TranslocoModule,
   ],
   providers: [provideNativeDateAdapter()],
   templateUrl: './announcement-editor-dialog.component.html',
@@ -69,24 +71,37 @@ export class AnnouncementEditorDialogComponent implements OnInit {
   private readonly data = inject<AnnouncementEditorDialogData>(MAT_DIALOG_DATA);
   private readonly announcementService = inject(AnnouncementService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
 
   isSubmitting = false;
 
   readonly isEditMode = this.data.mode === 'edit';
   readonly dialogTitle = this.isEditMode
-    ? 'Edit Announcement'
-    : 'Create Announcement';
+    ? this.transloco.translate('admin.announcementEditor.editTitle')
+    : this.transloco.translate('admin.announcementEditor.createTitle');
 
   readonly typeOptions = [
-    { value: 'announcement', label: 'Announcement', icon: 'campaign' },
-    { value: 'update', label: 'Update', icon: 'update' },
-    { value: 'maintenance', label: 'Maintenance', icon: 'build' },
+    {
+      value: 'announcement',
+      label: 'admin.announcementEditor.typeAnnouncement',
+      icon: 'campaign',
+    },
+    {
+      value: 'update',
+      label: 'admin.announcementEditor.typeUpdate',
+      icon: 'update',
+    },
+    {
+      value: 'maintenance',
+      label: 'admin.announcementEditor.typeMaintenance',
+      icon: 'build',
+    },
   ];
 
   readonly priorityOptions = [
-    { value: 'low', label: 'Low' },
-    { value: 'normal', label: 'Normal' },
-    { value: 'high', label: 'High' },
+    { value: 'low', label: 'admin.announcementEditor.priorityLow' },
+    { value: 'normal', label: 'admin.announcementEditor.priorityNormal' },
+    { value: 'high', label: 'admin.announcementEditor.priorityHigh' },
   ];
 
   readonly model = signal<AnnouncementFormValue>({

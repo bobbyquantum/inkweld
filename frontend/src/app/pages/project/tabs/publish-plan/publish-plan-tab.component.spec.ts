@@ -8,6 +8,7 @@ import { ElementType } from '@inkweld/index';
 import { BehaviorSubject, of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import {
   type BackmatterItem,
   BackmatterType,
@@ -92,7 +93,7 @@ describe('PublishPlanTabComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [PublishPlanTabComponent],
+      imports: [translocoTestProvider(), PublishPlanTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },

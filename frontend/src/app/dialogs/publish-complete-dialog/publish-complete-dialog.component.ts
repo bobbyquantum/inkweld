@@ -18,6 +18,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   getFormatDisplayName,
   getFormatIcon,
@@ -69,6 +70,7 @@ export interface PublishCompleteDialogResult {
     MatSnackBarModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
+    TranslocoModule,
   ],
   templateUrl: './publish-complete-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -82,6 +84,7 @@ export class PublishCompleteDialogComponent {
   private readonly publishedFilesService = inject(PublishedFilesService);
   private readonly setupService = inject(SetupService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
 
   /** The published file */
   file = signal(this.data.file);
@@ -154,7 +157,11 @@ export class PublishCompleteDialogComponent {
     a.remove();
     URL.revokeObjectURL(url);
 
-    this.snackBar.open('File downloaded', 'Dismiss', { duration: 2000 });
+    this.snackBar.open(
+      this.transloco.translate('publish.complete.fileDownloaded'),
+      this.transloco.translate('dismiss'),
+      { duration: 2000 }
+    );
   }
 
   /**
@@ -163,17 +170,29 @@ export class PublishCompleteDialogComponent {
   async copyShareLink(): Promise<void> {
     const url = this.shareUrl;
     if (!url) {
-      this.snackBar.open('Enable sharing first', 'Dismiss', { duration: 2000 });
+      this.snackBar.open(
+        this.transloco.translate('publish.complete.enableSharingFirst'),
+        this.transloco.translate('dismiss'),
+        { duration: 2000 }
+      );
       return;
     }
 
     try {
       await navigator.clipboard.writeText(url);
-      this.snackBar.open('Link copied to clipboard', 'Dismiss', {
-        duration: 2000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('publish.complete.linkCopied'),
+        this.transloco.translate('dismiss'),
+        {
+          duration: 2000,
+        }
+      );
     } catch {
-      this.snackBar.open('Failed to copy link', 'Dismiss', { duration: 2000 });
+      this.snackBar.open(
+        this.transloco.translate('publish.complete.copyFailed'),
+        this.transloco.translate('dismiss'),
+        { duration: 2000 }
+      );
     }
   }
 
@@ -200,9 +219,13 @@ export class PublishCompleteDialogComponent {
         this.file.set(updated);
       }
     } catch {
-      this.snackBar.open('Failed to update sharing', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('publish.complete.shareUpdateFailed'),
+        this.transloco.translate('dismiss'),
+        {
+          duration: 3000,
+        }
+      );
     } finally {
       this.updating.set(false);
     }

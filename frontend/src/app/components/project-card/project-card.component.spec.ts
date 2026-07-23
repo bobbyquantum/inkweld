@@ -7,6 +7,7 @@ import {
 } from '@services/sync/sync-queue.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ProjectCardComponent } from './project-card.component';
 
 describe('ProjectCardComponent', () => {
@@ -37,7 +38,7 @@ describe('ProjectCardComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ProjectCardComponent],
+      imports: [translocoTestProvider(), ProjectCardComponent],
       providers: [
         { provide: SyncQueueService, useValue: mockSyncQueueService },
       ],

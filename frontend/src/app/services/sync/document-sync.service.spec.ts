@@ -5,6 +5,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { SyncQueueService } from '@services/sync/sync-queue.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncService } from './document-sync.service';
 
 describe('DocumentSyncService', () => {
@@ -36,6 +37,7 @@ describe('DocumentSyncService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         DocumentSyncService,

@@ -13,6 +13,7 @@ import {
 } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 /**
  * Data passed to the CreateSnapshotDialog
@@ -47,6 +48,7 @@ interface CreateSnapshotFormValue {
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    TranslocoModule,
   ],
   templateUrl: './create-snapshot-dialog.component.html',
   styleUrl: './create-snapshot-dialog.component.scss',
@@ -57,6 +59,7 @@ export class CreateSnapshotDialogComponent {
     MatDialogRef<CreateSnapshotDialogComponent>
   );
   data = inject<CreateSnapshotDialogData>(MAT_DIALOG_DATA);
+  private readonly transloco = inject(TranslocoService);
 
   readonly model = signal<CreateSnapshotFormValue>({
     name: '',
@@ -65,10 +68,12 @@ export class CreateSnapshotDialogComponent {
 
   readonly form = form(this.model, schemaPath => {
     maxLength(schemaPath.name, 100, {
-      message: 'Name cannot exceed 100 characters',
+      message: this.transloco.translate('dialogs.createSnapshot.nameTooLong'),
     });
     maxLength(schemaPath.description, 500, {
-      message: 'Description cannot exceed 500 characters',
+      message: this.transloco.translate(
+        'dialogs.createSnapshot.descriptionTooLong'
+      ),
     });
   });
 

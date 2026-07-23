@@ -16,7 +16,9 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ElementType } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 
 import {
   type QuickOpenResult,
@@ -45,6 +47,8 @@ import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
+    MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './quick-open-dialog.component.html',
   styleUrls: ['./quick-open-dialog.component.scss'],

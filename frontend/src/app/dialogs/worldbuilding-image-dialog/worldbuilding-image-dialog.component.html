@@ -1,8 +1,10 @@
 <h2 mat-dialog-title>
   @if (showCropper) {
-    Crop Image
+    {{ 'worldbuilding.imageDialog.cropTitle' | transloco }}
   } @else {
-    Set Image for {{ elementName }}
+    {{
+      'worldbuilding.imageDialog.setTitle' | transloco: { name: elementName }
+    }}
   }
 </h2>
 
@@ -11,7 +13,7 @@
     <!-- Cropper View -->
     <div class="cropper-view">
       <p class="cropper-subtitle">
-        Adjust the selection to crop your image (1:1 square ratio)
+        {{ 'worldbuilding.imageDialog.cropSubtitle' | transloco }}
       </p>
       <div class="cropper-container">
         <image-cropper
@@ -47,7 +49,7 @@
         } @else {
           <div class="no-image-placeholder">
             <mat-icon>image</mat-icon>
-            <span>No image set</span>
+            <span>{{ 'worldbuilding.imageDialog.noImage' | transloco }}</span>
           </div>
         }
       </div>
@@ -60,7 +62,7 @@
           (click)="openFileSelector()"
           [disabled]="isLoading()">
           <mat-icon>add_photo_alternate</mat-icon>
-          Upload Image
+          {{ 'worldbuilding.imageDialog.uploadImage' | transloco }}
         </button>
 
         <button
@@ -69,7 +71,7 @@
           (click)="openMediaLibrary()"
           [disabled]="isLoading()">
           <mat-icon>photo_library</mat-icon>
-          Select from Library
+          {{ 'worldbuilding.imageDialog.selectFromLibrary' | transloco }}
         </button>
 
         @if (aiGenerationStatus().status !== 'hidden') {
@@ -82,7 +84,7 @@
             "
             [matTooltip]="aiGenerationStatus().tooltip ?? ''">
             <mat-icon>auto_awesome</mat-icon>
-            Generate with AI
+            {{ 'worldbuilding.imageDialog.generateWithAI' | transloco }}
             @if (aiGenerationStatus().status === 'disabled') {
               <mat-icon class="disconnected-icon">cloud_off</mat-icon>
             }
@@ -96,7 +98,7 @@
             (click)="removeImage()"
             [disabled]="isLoading()">
             <mat-icon>delete</mat-icon>
-            Remove Image
+            {{ 'worldbuilding.imageDialog.removeImage' | transloco }}
           </button>
         }
       </div>
@@ -118,20 +120,24 @@
     style="display: none"
     id="worldbuilding-image-file-input"
     (change)="onFileSelected($event)"
-    aria-label="Select image file" />
+    [attr.aria-label]="
+      'worldbuilding.imageDialog.selectFileAria' | transloco
+    " />
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   @if (showCropper) {
-    <button mat-button (click)="cancelCropping()">Back</button>
+    <button mat-button (click)="cancelCropping()">
+      {{ 'back' | transloco }}
+    </button>
     <button
       mat-raised-button
       color="primary"
       (click)="applyCroppedImage()"
       [disabled]="!croppedBlob">
-      Apply
+      {{ 'worldbuilding.imageDialog.apply' | transloco }}
     </button>
   } @else {
-    <button mat-button (click)="cancel()">Cancel</button>
+    <button mat-button (click)="cancel()">{{ 'cancel' | transloco }}</button>
   }
 </mat-dialog-actions>

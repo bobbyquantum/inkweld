@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { type PresenceSession } from '@inkweld/presence';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { PresenceService } from '../../services/presence/presence.service';
 import { TabPresenceIndicatorComponent } from './tab-presence-indicator.component';
 
@@ -23,7 +24,7 @@ describe('TabPresenceIndicatorComponent', () => {
     usersAtLocationResult = signal<PresenceSession[]>([]);
 
     TestBed.configureTestingModule({
-      imports: [TabPresenceIndicatorComponent],
+      imports: [translocoTestProvider(), TabPresenceIndicatorComponent],
       providers: [
         {
           provide: PresenceService,

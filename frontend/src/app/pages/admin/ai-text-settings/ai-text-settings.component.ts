@@ -21,6 +21,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
+import { TranslocoModule } from '@jsverse/transloco';
 import { AdminConfigService } from '@services/admin/admin-config.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import {
@@ -84,6 +85,7 @@ interface UnifiedModel {
     MatSnackBarModule,
     MatTooltipModule,
     RouterModule,
+    TranslocoModule,
   ],
   templateUrl: './ai-text-settings.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

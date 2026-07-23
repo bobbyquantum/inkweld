@@ -5,6 +5,7 @@ import { type Element, ElementType, type Project } from '@inkweld/index';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ProjectStateService } from '../project/project-state.service';
 import { RecentFilesService } from '../project/recent-files.service';
 import { QuickOpenService } from './quick-open.service';
@@ -119,6 +120,7 @@ describe('QuickOpenService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         QuickOpenService,

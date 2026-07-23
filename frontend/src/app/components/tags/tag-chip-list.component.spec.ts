@@ -5,6 +5,7 @@ import { type ResolvedTag, type TagDefinition } from '@models/tag.model';
 import { TagService } from '@services/tag/tag.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { TagChipListComponent } from './tag-chip-list.component';
 
 describe('TagChipListComponent', () => {
@@ -60,7 +61,7 @@ describe('TagChipListComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [TagChipListComponent, FormsModule],
+      imports: [translocoTestProvider(), TagChipListComponent, FormsModule],
       providers: [
         provideZonelessChangeDetection(),
         { provide: TagService, useValue: mockTagService },

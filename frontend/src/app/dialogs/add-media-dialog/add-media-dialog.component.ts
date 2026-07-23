@@ -6,6 +6,7 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoModule } from '@jsverse/transloco';
 
 export interface AddMediaDialogData {
   /** Whether AI generation is available */
@@ -18,7 +19,7 @@ export type AddMediaDialogResult = 'upload' | 'generate';
 
 @Component({
   selector: 'app-add-media-dialog',
-  imports: [MatDialogModule, MatButtonModule, MatIconModule],
+  imports: [MatDialogModule, MatButtonModule, MatIconModule, TranslocoModule],
   templateUrl: './add-media-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./add-media-dialog.component.scss'],

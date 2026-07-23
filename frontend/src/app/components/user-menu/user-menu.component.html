@@ -3,7 +3,7 @@
     mat-icon-button
     [matMenuTriggerFor]="menu"
     class="user-menu mini-mode"
-    aria-label="User menu"
+    [attr.aria-label]="'settings.accountSettingsAria' | transloco"
     data-testid="user-menu-button">
     <app-user-avatar
       [username]="userService.currentUser().username"
@@ -56,25 +56,25 @@
       <div class="menu-actions">
         <!-- Theme Selection -->
         <div class="theme-selector">
-          <span class="theme-label">Theme:</span>
+          <span class="theme-label">{{ 'settings.theme' | transloco }}:</span>
           <button
             mat-icon-button
             (click)="onThemeChange('light-theme')"
-            matTooltip="Light theme"
+            [matTooltip]="'settings.light' | transloco"
             data-testid="theme-light-button">
             <mat-icon>light_mode</mat-icon>
           </button>
           <button
             mat-icon-button
             (click)="onThemeChange('dark-theme')"
-            matTooltip="Dark theme"
+            [matTooltip]="'settings.dark' | transloco"
             data-testid="theme-dark-button">
             <mat-icon>dark_mode</mat-icon>
           </button>
           <button
             mat-icon-button
             (click)="onThemeChange('system')"
-            matTooltip="Follow system"
+            [matTooltip]="'settings.followSystem' | transloco"
             data-testid="theme-system-button">
             <mat-icon>brightness_auto</mat-icon>
           </button>
@@ -86,7 +86,7 @@
             routerLink="/admin"
             data-testid="admin-menu-link">
             <mat-icon>admin_panel_settings</mat-icon>
-            <span>Admin</span>
+            <span>{{ 'settings.accountTab.title' | transloco }}</span>
           </button>
         }
         @if (setupService.getMode() === 'server') {
@@ -102,26 +102,28 @@
               aria-hidden="false">
               mail
             </mat-icon>
-            <span>Messages</span>
+            <span>{{ 'messages.title' | transloco }}</span>
           </button>
         }
         <button mat-menu-item (click)="onSettings()">
           <mat-icon>settings</mat-icon>
-          <span>Settings</span>
+          <span>{{ 'settings.dialogTitle' | transloco }}</span>
         </button>
         <button mat-menu-item routerLink="/about" data-testid="about-menu-link">
           <mat-icon>info</mat-icon>
-          <span>About</span>
+          <span>{{ 'about.aboutTitle' | transloco }}</span>
         </button>
         @if (setupService.getMode() === 'server') {
           <button mat-menu-item (click)="onLogout()">
             <mat-icon>exit_to_app</mat-icon>
-            <span>Log out</span>
+            <span>{{ 'login.login' | transloco }}</span>
           </button>
         } @else {
           <button mat-menu-item routerLink="/reset">
             <mat-icon>restart_alt</mat-icon>
-            <span>Reset App</span>
+            <span>{{
+              'settings.connectionTab.switchToLocal' | transloco
+            }}</span>
           </button>
         }
       </div>
@@ -131,7 +133,7 @@
   <!-- Server/Profile Switcher Submenu -->
   <mat-menu #profileMenu="matMenu" class="profile-submenu">
     <div class="profile-menu-header">
-      <span>Switch Server</span>
+      <span>{{ 'settings.connectionTab.changeServer' | transloco }}</span>
     </div>
     @for (profile of profiles(); track profile.id) {
       @let display = getProfileDisplay(profile);
@@ -161,7 +163,7 @@
       (click)="onManageProfiles()"
       data-testid="manage-profiles-button">
       <mat-icon>settings</mat-icon>
-      <span>Manage Profiles...</span>
+      <span>{{ 'settings.connectionTab.title' | transloco }}</span>
     </button>
   </mat-menu>
 </div>

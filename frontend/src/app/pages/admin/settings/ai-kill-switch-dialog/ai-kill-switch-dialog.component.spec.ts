@@ -3,6 +3,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { AiKillSwitchDialogComponent } from './ai-kill-switch-dialog.component';
 
 describe('AiKillSwitchDialogComponent', () => {
@@ -16,7 +17,7 @@ describe('AiKillSwitchDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AiKillSwitchDialogComponent],
+      imports: [translocoTestProvider(), AiKillSwitchDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },

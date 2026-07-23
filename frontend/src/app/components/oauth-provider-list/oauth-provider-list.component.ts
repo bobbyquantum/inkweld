@@ -14,6 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthenticationService } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -21,7 +22,12 @@ import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-oauth-provider-list',
-  imports: [MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    TranslocoModule,
+  ],
   templateUrl: './oauth-provider-list.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./oauth-provider-list.component.scss'],
@@ -29,6 +35,7 @@ import { environment } from '../../../environments/environment';
 export class OAuthProviderListComponent implements OnInit {
   private readonly AuthenticationService = inject(AuthenticationService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
   private readonly ngZone = inject(NgZone);
   private readonly logger = inject(LoggerService);
 
@@ -104,9 +111,11 @@ export class OAuthProviderListComponent implements OnInit {
       this.discordEnabled.set(providers.includes('discord'));
       this.appleEnabled.set(providers.includes('apple'));
     } catch {
-      this.snackBar.open('Failed to load sign-in options', 'Close', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('auth.oauth.loadFailed'),
+        this.transloco.translate('snackbar.close'),
+        { duration: 5000 }
+      );
     } finally {
       this.isLoadingProviders.set(false);
       this.loaded.emit();

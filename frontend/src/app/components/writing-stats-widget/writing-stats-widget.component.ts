@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
+import { TranslocoModule } from '@jsverse/transloco';
 import type { UserActivityEvent } from '@models/activity-event';
 import type { UserStatsResponse } from '@models/writing-stats';
 import { LoggerService } from '@services/core/logger.service';
@@ -42,6 +43,7 @@ import { formatRelativeDate } from '../../utils/date-format';
     MatProgressSpinnerModule,
     MatTooltipModule,
     RouterLink,
+    TranslocoModule,
   ],
   templateUrl: './writing-stats-widget.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

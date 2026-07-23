@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ElementTreeService } from './element-tree.service';
 
 describe('ElementTreeService', () => {
@@ -28,6 +29,7 @@ describe('ElementTreeService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [ElementTreeService],
     });
     service = TestBed.inject(ElementTreeService);

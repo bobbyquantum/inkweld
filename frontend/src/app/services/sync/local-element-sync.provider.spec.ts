@@ -10,6 +10,7 @@ import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
@@ -216,6 +217,7 @@ describe('LocalElementSyncProvider', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         LocalElementSyncProvider,
         {

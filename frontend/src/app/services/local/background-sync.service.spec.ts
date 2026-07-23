@@ -14,6 +14,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { ProjectService } from '../project/project.service';
@@ -78,6 +79,7 @@ describe('BackgroundSyncService', () => {
     });
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         StorageService,

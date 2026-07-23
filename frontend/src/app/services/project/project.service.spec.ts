@@ -13,6 +13,7 @@ import { type Observable } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { apiErr, apiOk } from '../../../testing/utils';
 import { SetupService } from '../core/setup.service';
 import { LocalStorageService } from '../local/local-storage.service';
@@ -101,6 +102,7 @@ describe('ProjectService', () => {
     );
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

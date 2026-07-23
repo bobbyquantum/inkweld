@@ -12,6 +12,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { SetupService } from '@services/core/setup.service';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { AdminSystemHealthComponent } from './system-health.component';
 
 async function flushPromises(): Promise<void> {
@@ -34,6 +35,7 @@ function createComponent() {
 
   TestBed.configureTestingModule({
     imports: [
+      translocoTestProvider(),
       AdminSystemHealthComponent,
       MatCardModule,
       MatIconModule,

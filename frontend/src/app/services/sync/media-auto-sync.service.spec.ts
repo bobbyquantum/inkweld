@@ -9,6 +9,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { MediaSyncService } from '../local/media-sync.service';
@@ -52,6 +53,7 @@ describe('MediaAutoSyncService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         MediaAutoSyncService,
         { provide: MediaSyncService, useValue: mockMediaSyncService },

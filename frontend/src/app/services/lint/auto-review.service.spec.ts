@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { AutoReviewService } from '@inkweld/index';
 import { AUTO_REVIEW_MARK_NAME } from '@inkweld/prosemirror/schema';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { AutoReviewApiService } from './auto-review.service';
 
 // Minimal prosemirror mocks for scanDocumentMarks
@@ -80,6 +81,7 @@ describe('AutoReviewApiService', () => {
     };
 
     await TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         { provide: AutoReviewService, useValue: mockGeneratedService },

@@ -24,6 +24,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Project } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
 import { SystemConfigService } from '@services/core/system-config.service';
@@ -56,6 +57,7 @@ interface EditProjectFormValue {
     MatProgressBarModule,
     MatIconModule,
     MatTooltipModule,
+    TranslocoModule,
     ImageCropperComponent,
   ],
 })
@@ -72,6 +74,7 @@ export class EditProjectDialogComponent implements OnInit {
   private readonly projectState = inject(ProjectStateService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly logger = inject(LoggerService);
+  private readonly transloco = inject(TranslocoService);
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('coverImageInput') coverImageInput!: ElementRef<HTMLInputElement>;
@@ -89,7 +92,9 @@ export class EditProjectDialogComponent implements OnInit {
   });
 
   readonly form = form(this.model, schemaPath => {
-    required(schemaPath.title, { message: 'Title is required' });
+    required(schemaPath.title, {
+      message: this.transloco.translate('dialogs.editProject.titleRequired'),
+    });
   });
 
   readonly isSaving = signal(false);
@@ -217,7 +222,9 @@ export class EditProjectDialogComponent implements OnInit {
         this.pendingFileName = file.name;
         this.showCropper = true;
       } else {
-        this.showError('Invalid image file. Please select a JPEG or PNG file.');
+        this.showError(
+          this.transloco.translate('dialogs.editProject.invalidImage')
+        );
       }
     }
   }
@@ -243,7 +250,7 @@ export class EditProjectDialogComponent implements OnInit {
   onLoadImageFailed(): void {
     this.hasLoadFailed = true;
     this.showCropper = false;
-    this.showError('Failed to load image. Please try another file.');
+    this.showError(this.transloco.translate('dialogs.editProject.loadFailed'));
   }
 
   resetCropperState(): void {
@@ -382,11 +389,17 @@ export class EditProjectDialogComponent implements OnInit {
         this.projectState.updateProject(currentProject, '');
       }
 
-      this.showSuccess('Cover image removed successfully');
+      this.showSuccess(
+        this.transloco.translate('dialogs.editProject.coverRemoved')
+      );
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      this.showError(`Failed to remove cover image: ${errorMessage}`);
+      this.showError(
+        this.transloco.translate('dialogs.editProject.coverRemoveFailed', {
+          error: errorMessage,
+        })
+      );
     } finally {
       this.isLoadingCover.set(false);
     }
@@ -457,7 +470,9 @@ export class EditProjectDialogComponent implements OnInit {
       // Update project state with coverMediaId for Yjs sync
       this.projectState.updateProject(response, newCoverMediaId);
 
-      this.showSuccess('Project updated successfully');
+      this.showSuccess(
+        this.transloco.translate('dialogs.editProject.projectUpdated')
+      );
       this.dialogRef.close(response);
     } catch (error: unknown) {
       const errorMessage =
@@ -470,14 +485,14 @@ export class EditProjectDialogComponent implements OnInit {
   }
 
   private showError(message: string): void {
-    this.snackBar.open(message, 'Close', {
+    this.snackBar.open(message, this.transloco.translate('close'), {
       duration: 5000,
       panelClass: ['error-snackbar'],
     });
   }
 
   private showSuccess(message: string): void {
-    this.snackBar.open(message, 'Close', {
+    this.snackBar.open(message, this.transloco.translate('close'), {
       duration: 3000,
       panelClass: ['success-snackbar'],
     });

@@ -4,7 +4,7 @@
       <a routerLink="/" class="back-link" data-testid="admin-back-link">
         <mat-icon>arrow_back</mat-icon>
       </a>
-      <span class="header-title">Admin</span>
+      <span class="header-title">{{ 'admin.nav.admin' | transloco }}</span>
     </div>
     <div class="header-right">
       @if (currentUser()) {
@@ -22,7 +22,7 @@
           routerLinkActive="active"
           data-testid="admin-nav-users">
           <mat-icon matListItemIcon>people</mat-icon>
-          <span matListItemTitle>Users</span>
+          <span matListItemTitle>{{ 'admin.nav.users' | transloco }}</span>
         </a>
         <a
           mat-list-item
@@ -30,7 +30,7 @@
           routerLinkActive="active"
           data-testid="admin-nav-settings">
           <mat-icon matListItemIcon>settings</mat-icon>
-          <span matListItemTitle>Settings</span>
+          <span matListItemTitle>{{ 'admin.nav.settings' | transloco }}</span>
         </a>
         <a
           mat-list-item
@@ -38,7 +38,9 @@
           routerLinkActive="active"
           data-testid="admin-nav-announcements">
           <mat-icon matListItemIcon>campaign</mat-icon>
-          <span matListItemTitle>Announcements</span>
+          <span matListItemTitle>{{
+            'admin.nav.announcements' | transloco
+          }}</span>
         </a>
         <a
           mat-list-item
@@ -46,7 +48,7 @@
           routerLinkActive="active"
           data-testid="admin-nav-email">
           <mat-icon matListItemIcon>email</mat-icon>
-          <span matListItemTitle>Email</span>
+          <span matListItemTitle>{{ 'admin.nav.email' | transloco }}</span>
         </a>
         <a
           mat-list-item
@@ -54,7 +56,7 @@
           routerLinkActive="active"
           data-testid="admin-nav-github">
           <mat-icon matListItemIcon svgIcon="github"></mat-icon>
-          <span matListItemTitle>GitHub</span>
+          <span matListItemTitle>{{ 'admin.nav.github' | transloco }}</span>
         </a>
         <a
           mat-list-item
@@ -62,7 +64,9 @@
           routerLinkActive="active"
           data-testid="admin-nav-system-health">
           <mat-icon matListItemIcon>monitor_heart</mat-icon>
-          <span matListItemTitle>System Health</span>
+          <span matListItemTitle>{{
+            'admin.nav.systemHealth' | transloco
+          }}</span>
         </a>
         @if (!isAiKillSwitchEnabled()) {
           <a
@@ -71,7 +75,9 @@
             routerLinkActive="active"
             data-testid="admin-nav-ai-providers">
             <mat-icon matListItemIcon>key</mat-icon>
-            <span matListItemTitle>AI Providers</span>
+            <span matListItemTitle>{{
+              'admin.nav.aiProviders' | transloco
+            }}</span>
           </a>
           <a
             mat-list-item
@@ -79,7 +85,7 @@
             routerLinkActive="active"
             data-testid="admin-nav-ai">
             <mat-icon matListItemIcon>auto_awesome</mat-icon>
-            <span matListItemTitle>AI Images</span>
+            <span matListItemTitle>{{ 'admin.nav.aiImages' | transloco }}</span>
           </a>
           <a
             mat-list-item
@@ -87,7 +93,7 @@
             routerLinkActive="active"
             data-testid="admin-nav-ai-text">
             <mat-icon matListItemIcon>psychology</mat-icon>
-            <span matListItemTitle>AI Text</span>
+            <span matListItemTitle>{{ 'admin.nav.aiText' | transloco }}</span>
           </a>
           <a
             mat-list-item
@@ -95,7 +101,9 @@
             routerLinkActive="active"
             data-testid="admin-nav-image-audits">
             <mat-icon matListItemIcon>receipt_long</mat-icon>
-            <span matListItemTitle>Image Audits</span>
+            <span matListItemTitle>{{
+              'admin.nav.imageAudits' | transloco
+            }}</span>
           </a>
         }
       </mat-nav-list>

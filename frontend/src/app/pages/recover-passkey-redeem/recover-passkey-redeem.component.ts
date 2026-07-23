@@ -13,6 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasskeyError } from '@services/auth/passkey.service';
 import { PasskeyRecoveryService } from '@services/auth/passkey-recovery.service';
 
@@ -47,6 +48,7 @@ import { PasskeyRecoveryService } from '@services/auth/passkey-recovery.service'
     MatInputModule,
     MatProgressSpinnerModule,
     RouterModule,
+    TranslocoModule,
   ],
   templateUrl: './recover-passkey-redeem.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -56,6 +58,7 @@ export class RecoverPasskeyRedeemComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly passkeyRecoveryService = inject(PasskeyRecoveryService);
+  private readonly transloco = inject(TranslocoService);
 
   /** Default credential name; user can override before submitting. */
   passkeyName = 'Recovery passkey';
@@ -98,9 +101,7 @@ export class RecoverPasskeyRedeemComponent implements OnInit {
       if (err instanceof PasskeyError) {
         this.error.set(err.message);
       } else {
-        this.error.set(
-          'Could not enrol your new passkey. The link may be invalid or expired.'
-        );
+        this.error.set(this.transloco.translate('errors.unknown'));
       }
     } finally {
       this.isSubmitting.set(false);

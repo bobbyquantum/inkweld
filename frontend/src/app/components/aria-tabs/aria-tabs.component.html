@@ -5,7 +5,7 @@
       type="button"
       class="scroll-arrow scroll-arrow-left"
       (click)="scrollLeft()"
-      aria-label="Scroll tabs left">
+      [attr.aria-label]="'scrollTabsLeft' | transloco">
       <mat-icon>chevron_left</mat-icon>
     </button>
   }
@@ -42,7 +42,7 @@
       type="button"
       class="scroll-arrow scroll-arrow-right"
       (click)="scrollRight()"
-      aria-label="Scroll tabs right">
+      [attr.aria-label]="'scrollTabsRight' | transloco">
       <mat-icon>chevron_right</mat-icon>
     </button>
   }

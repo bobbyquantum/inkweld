@@ -13,6 +13,7 @@ import { SetupService } from '@services/core/setup.service';
 import { firstValueFrom } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ActivityFeedService } from './activity-feed.service';
 
 describe('ActivityFeedService', () => {
@@ -60,6 +61,7 @@ describe('ActivityFeedService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

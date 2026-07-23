@@ -8,6 +8,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import {
   AnnouncementEditorDialogComponent,
   type AnnouncementEditorDialogData,
@@ -38,7 +39,11 @@ describe('AnnouncementEditorDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AnnouncementEditorDialogComponent, MatDialogModule],
+      imports: [
+        translocoTestProvider(),
+        AnnouncementEditorDialogComponent,
+        MatDialogModule,
+      ],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: data },
@@ -247,17 +252,29 @@ describe('AnnouncementEditorDialogComponent', () => {
 
     it('should have correct type options', () => {
       expect(component.typeOptions).toEqual([
-        { value: 'announcement', label: 'Announcement', icon: 'campaign' },
-        { value: 'update', label: 'Update', icon: 'update' },
-        { value: 'maintenance', label: 'Maintenance', icon: 'build' },
+        {
+          value: 'announcement',
+          label: 'admin.announcementEditor.typeAnnouncement',
+          icon: 'campaign',
+        },
+        {
+          value: 'update',
+          label: 'admin.announcementEditor.typeUpdate',
+          icon: 'update',
+        },
+        {
+          value: 'maintenance',
+          label: 'admin.announcementEditor.typeMaintenance',
+          icon: 'build',
+        },
       ]);
     });
 
     it('should have correct priority options', () => {
       expect(component.priorityOptions).toEqual([
-        { value: 'low', label: 'Low' },
-        { value: 'normal', label: 'Normal' },
-        { value: 'high', label: 'High' },
+        { value: 'low', label: 'admin.announcementEditor.priorityLow' },
+        { value: 'normal', label: 'admin.announcementEditor.priorityNormal' },
+        { value: 'high', label: 'admin.announcementEditor.priorityHigh' },
       ]);
     });
   });

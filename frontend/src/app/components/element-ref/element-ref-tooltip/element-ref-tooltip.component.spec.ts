@@ -7,6 +7,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type Element, ElementType } from '../../../../api-client';
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { LoggerService } from '../../../services/core/logger.service';
 import { DocumentService } from '../../../services/project/document.service';
 import { ProjectStateService } from '../../../services/project/project-state.service';
@@ -38,7 +39,7 @@ describe('ElementRefTooltipComponent', () => {
     ];
 
     await TestBed.configureTestingModule({
-      imports: [ElementRefTooltipComponent],
+      imports: [translocoTestProvider(), ElementRefTooltipComponent],
       providers: [
         ElementRefService,
         {

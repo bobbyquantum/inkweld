@@ -5,6 +5,7 @@ import Konva from 'konva';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { CanvasService } from './canvas.service';
 import { CanvasColorService } from './canvas-color.service';
 import { CanvasRendererService } from './canvas-renderer.service';
@@ -33,6 +34,7 @@ describe('CanvasColorService', () => {
     mockRenderer = { konvaLayers: new Map() };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasColorService,
         { provide: MatDialog, useValue: mockDialog },

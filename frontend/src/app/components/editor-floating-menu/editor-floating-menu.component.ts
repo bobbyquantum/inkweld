@@ -13,6 +13,7 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type Editor } from '@bobbyquantum/ngx-editor';
+import { TranslocoModule } from '@jsverse/transloco';
 import { toggleMark } from 'prosemirror-commands';
 import { type MarkType } from 'prosemirror-model';
 import { type EditorState, type Transaction } from 'prosemirror-state';
@@ -30,7 +31,13 @@ type Command = (
  */
 @Component({
   selector: 'app-editor-floating-menu',
-  imports: [MatIconModule, MatTooltipModule, Toolbar, ToolbarWidget],
+  imports: [
+    MatIconModule,
+    MatTooltipModule,
+    Toolbar,
+    ToolbarWidget,
+    TranslocoModule,
+  ],
   templateUrl: './editor-floating-menu.component.html',
   styleUrl: './editor-floating-menu.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

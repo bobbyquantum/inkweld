@@ -10,6 +10,7 @@ import { TagService } from '@services/tag/tag.service';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { TagsTabComponent } from './tags-tab.component';
 
 describe('TagsTabComponent', () => {
@@ -92,7 +93,7 @@ describe('TagsTabComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [TagsTabComponent, FormsModule],
+      imports: [translocoTestProvider(), TagsTabComponent, FormsModule],
       providers: [
         provideZonelessChangeDetection(),
         { provide: TagService, useValue: mockTagService },

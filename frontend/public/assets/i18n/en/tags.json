@@ -1,0 +1,38 @@
+{
+  "tab": {
+    "title": "Tags",
+    "hint": "Manage tags used across your project.",
+    "newTag": "New Tag",
+    "searchLabel": "Search tags",
+    "searchAria": "Search tags",
+    "searchPlaceholder": "Search by name...",
+    "noTags": "No tags defined yet",
+    "createFirst": "Create your first tag",
+    "noMatch": "No tags match your search",
+    "clearFilter": "Clear filter",
+    "element": "element",
+    "elements": "elements",
+    "edit": "Edit",
+    "editTag": "Edit tag {{name}}",
+    "delete": "Delete",
+    "deleteTag": "Delete tag {{name}}",
+    "created": "Created tag \"{{name}}\"",
+    "createFailed": "Failed to create tag",
+    "updated": "Updated tag \"{{name}}\"",
+    "updateFailed": "Failed to update tag",
+    "deleteTitle": "Delete Tag",
+    "deleteMessage": "Are you sure you want to delete \"{{name}}\"? This will remove the tag from {{count}} element(s).",
+    "deleted": "Deleted tag \"{{name}}\"",
+    "deleteFailed": "Failed to delete tag",
+    "noElementsWithTag": "No elements have this tag",
+    "taggedElementsNotFound": "Tagged elements not found",
+    "openedWithMore": "Opened \"{{name}}\". {{count}} more element(s) also have this tag."
+  },
+  "chipList": {
+    "ariaLabel": "Tag selection",
+    "removeTag": "Remove tag",
+    "addTagPlaceholder": "Add tag...",
+    "addTagAria": "Add tag",
+    "createTag": "Create \"{{name}}\""
+  }
+}

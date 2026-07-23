@@ -7,6 +7,7 @@ import { PasskeyRecoveryService } from '@services/auth/passkey-recovery.service'
 import { SystemConfigService } from '@services/core/system-config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { RecoverPasskeyComponent } from './recover-passkey.component';
 
 describe('RecoverPasskeyComponent', () => {
@@ -24,7 +25,7 @@ describe('RecoverPasskeyComponent', () => {
     isEmailRecoveryEnabled = signal(true);
 
     await TestBed.configureTestingModule({
-      imports: [RecoverPasskeyComponent],
+      imports: [translocoTestProvider(), RecoverPasskeyComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),
@@ -53,14 +54,14 @@ describe('RecoverPasskeyComponent', () => {
   it('shows error when submitting empty email', async () => {
     component.email = '';
     await component.onSubmit();
-    expect(component.error()).toBe('Please enter your email address.');
+    expect(component.error()).toBe('Email address is required');
     expect(mockPasskeyRecoveryService.requestRecovery).not.toHaveBeenCalled();
   });
 
   it('shows error when submitting whitespace-only email', async () => {
     component.email = '   ';
     await component.onSubmit();
-    expect(component.error()).toBe('Please enter your email address.');
+    expect(component.error()).toBe('Email address is required');
   });
 
   it('calls requestRecovery on valid submit and trims whitespace', async () => {
@@ -82,9 +83,7 @@ describe('RecoverPasskeyComponent', () => {
     component.email = 'user@example.com';
     await component.onSubmit();
 
-    expect(component.error()).toBe(
-      'Something went wrong. Please try again later.'
-    );
+    expect(component.error()).toBe('Something went wrong. Please try again.');
     expect(component.submitted()).toBe(false);
     expect(component.isSubmitting()).toBe(false);
   });

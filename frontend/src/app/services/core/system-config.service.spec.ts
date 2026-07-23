@@ -8,6 +8,7 @@ import {
 import { of, throwError } from 'rxjs';
 import { type Mock, type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from './setup.service';
 import { SystemConfigService } from './system-config.service';
 
@@ -62,6 +63,7 @@ describe('SystemConfigService', () => {
     );
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         SystemConfigService,

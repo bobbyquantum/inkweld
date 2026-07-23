@@ -20,6 +20,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LocalStorageService } from '../../services/local/local-storage.service';
 import { UnifiedProjectService } from '../../services/local/unified-project.service';
 import { ProjectService } from '../../services/project/project.service';
@@ -118,7 +119,7 @@ describe('EditProjectDialogComponent', () => {
     } as any;
 
     await TestBed.configureTestingModule({
-      imports: [EditProjectDialogComponent],
+      imports: [translocoTestProvider(), EditProjectDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

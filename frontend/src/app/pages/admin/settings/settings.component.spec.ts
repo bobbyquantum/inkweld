@@ -14,6 +14,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { AdminSettingsComponent } from './settings.component';
 
 // Helper to wait for next microtask
@@ -74,7 +75,7 @@ describe('AdminSettingsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AdminSettingsComponent],
+      imports: [translocoTestProvider(), AdminSettingsComponent],
       providers: [
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),

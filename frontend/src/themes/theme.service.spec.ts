@@ -8,6 +8,7 @@ import { MatIconRegistry } from '@angular/material/icon';
 import { DomSanitizer } from '@angular/platform-browser';
 import { type Mock, vi } from 'vitest';
 
+import { translocoTestProvider } from '../testing/transloco-test-provider';
 import { type ThemeOption, ThemeService } from './theme.service';
 
 describe('ThemeService', () => {
@@ -46,6 +47,7 @@ describe('ThemeService', () => {
     });
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         {

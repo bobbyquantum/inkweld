@@ -3,25 +3,25 @@
     <button mat-icon-button routerLink="/">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <span class="toolbar-title">Account Settings</span>
+    <span class="toolbar-title">{{
+      'settings.accountTab.title' | transloco
+    }}</span>
   </mat-toolbar>
 
   <div class="settings-content">
     <section class="settings-section">
       <h2>
         <mat-icon>smart_toy</mat-icon>
-        Connected Apps
+        {{ 'settings.authorizedAppsTab.title' | transloco }}
       </h2>
       <p class="section-description">
-        These are third-party applications that have been granted access to your
-        Inkweld projects. You can revoke access or modify permissions at any
-        time.
+        {{ 'settings.authorizedAppsTab.description' | transloco }}
       </p>
 
       @if (loading()) {
         <div class="loading-state">
           <mat-spinner diameter="32"></mat-spinner>
-          <span>Loading connected apps...</span>
+          <span>{{ 'loading' | transloco }}</span>
         </div>
       } @else if (error()) {
         <mat-card class="error-card">
@@ -30,15 +30,17 @@
             <span>{{ error() }}</span>
           </mat-card-content>
           <mat-card-actions>
-            <button mat-button (click)="loadSessions()">Try Again</button>
+            <button mat-button (click)="loadSessions()">
+              {{ 'retry' | transloco }}
+            </button>
           </mat-card-actions>
         </mat-card>
       } @else if (!hasSessions()) {
         <mat-card class="empty-card">
           <mat-card-content>
             <mat-icon>check_circle</mat-icon>
-            <h3>No connected apps</h3>
-            <p>You haven't authorized any third-party applications yet.</p>
+            <h3>{{ 'settings.authorizedAppsTab.noApps' | transloco }}</h3>
+            <p>{{ 'settings.authorizedAppsTab.noAppsHint' | transloco }}</p>
           </mat-card-content>
         </mat-card>
       } @else {
@@ -58,10 +60,16 @@
                   <span class="app-name">{{ session.client.name }}</span>
                 </mat-panel-title>
                 <mat-panel-description>
-                  <span class="auth-date"
-                    >Authorized {{ formatDate(session.createdAt) }}</span
+                  <span class="auth-date">{{
+                    'settings.authorizedAppsTab.connectedPrefix'
+                      | transloco: { date: formatDate(session.createdAt) }
+                  }}</span>
+                  <mat-chip
+                    >{{ session.projectCount }}
+                    {{
+                      'settings.authorizedAppsTab.project' | transloco
+                    }}(s)</mat-chip
                   >
-                  <mat-chip>{{ session.projectCount }} project(s)</mat-chip>
                 </mat-panel-description>
               </mat-expansion-panel-header>
 
@@ -69,14 +77,21 @@
                 @if (isLoadingDetails(session.id)) {
                   <div class="loading-details">
                     <mat-spinner diameter="24"></mat-spinner>
-                    <span>Loading details...</span>
+                    <span>{{ 'loading' | transloco }}</span>
                   </div>
                 } @else {
                   @let details = getSessionDetails(session.id);
                   @if (details) {
-                    <h4>Project Access</h4>
+                    <h4>
+                      {{
+                        'settings.authorizedAppsTab.projectPermissions'
+                          | transloco
+                      }}
+                    </h4>
                     @if (details.grants.length === 0) {
-                      <p class="no-grants">No projects currently accessible</p>
+                      <p class="no-grants">
+                        {{ 'settings.authorizedAppsTab.noGrants' | transloco }}
+                      </p>
                     } @else {
                       <div class="grants-list">
                         @for (grant of details.grants; track grant.projectId) {
@@ -86,7 +101,11 @@
                                 grant.projectTitle
                               }}</span>
                               <mat-chip-set>
-                                <mat-chip [matTooltip]="'Current access level'">
+                                <mat-chip
+                                  [matTooltip]="
+                                    'settings.authorizedAppsTab.viewDetails'
+                                      | transloco
+                                  ">
                                   {{ getRoleLabel(grant.role) }}
                                 </mat-chip>
                               </mat-chip-set>
@@ -98,7 +117,10 @@
                                 [disabled]="
                                   isUpdatingGrant(session.id, grant.projectId)
                                 "
-                                matTooltip="Change access level">
+                                [matTooltip]="
+                                  'settings.authorizedAppsTab.viewDetails'
+                                    | transloco
+                                ">
                                 @if (
                                   isUpdatingGrant(session.id, grant.projectId)
                                 ) {
@@ -157,12 +179,12 @@
                     <mat-spinner
                       diameter="18"
                       class="button-spinner"></mat-spinner>
-                    Revoking...
+                    {{ 'loading' | transloco }}
                   } @else {
                     <mat-icon>block</mat-icon>
                   }
                   @if (!isRevokingSession(session.id)) {
-                    Revoke All Access
+                    {{ 'settings.authorizedAppsTab.disconnectApp' | transloco }}
                   }
                 </button>
               </mat-action-row>

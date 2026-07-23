@@ -3,6 +3,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { FileUploadComponent } from './file-upload.component';
 
 describe('FileUploadComponent', () => {
@@ -16,7 +17,7 @@ describe('FileUploadComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [FileUploadComponent],
+      imports: [translocoTestProvider(), FileUploadComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },

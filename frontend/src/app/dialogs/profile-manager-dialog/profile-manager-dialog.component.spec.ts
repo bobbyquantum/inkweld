@@ -21,6 +21,7 @@ import {
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ProfileManagerDialogComponent } from './profile-manager-dialog.component';
 
 describe('ProfileManagerDialogComponent', () => {
@@ -138,6 +139,7 @@ describe('ProfileManagerDialogComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         ProfileManagerDialogComponent,
         MatDialogModule,
         MatSnackBarModule,

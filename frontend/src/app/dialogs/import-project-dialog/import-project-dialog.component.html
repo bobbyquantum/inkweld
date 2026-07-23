@@ -1,19 +1,19 @@
 <h2 mat-dialog-title>
   @switch (step()) {
     @case ('file-select') {
-      Import Project
+      {{ 'dialogs.importProject.importTitle' | transloco }}
     }
     @case ('configure') {
-      Configure Import
+      {{ 'dialogs.importProject.configureTitle' | transloco }}
     }
     @case ('importing') {
-      Importing...
+      {{ 'dialogs.importProject.importingTitle' | transloco }}
     }
     @case ('complete') {
       @if (importError()) {
-        Import Failed
+        {{ 'dialogs.importProject.failedTitle' | transloco }}
       } @else {
-        Import Complete
+        {{ 'dialogs.importProject.completeTitle' | transloco }}
       }
     }
   }
@@ -32,11 +32,11 @@
       (drop)="onDrop($event)">
       @if (isParsing()) {
         <mat-icon>hourglass_empty</mat-icon>
-        <p>Parsing archive...</p>
+        <p>{{ 'dialogs.importProject.parsing' | transloco }}</p>
       } @else {
         <mat-icon>upload_file</mat-icon>
-        <p>Drag and drop a project archive here</p>
-        <p class="hint">or</p>
+        <p>{{ 'dialogs.importProject.dropZone' | transloco }}</p>
+        <p class="hint">{{ 'dialogs.importProject.or' | transloco }}</p>
         <label class="file-input-label">
           <input
             type="file"
@@ -45,9 +45,9 @@
             data-testid="import-file-input"
             (change)="onFileSelected($event)"
             hidden />
-          <span class="browse-btn" data-testid="import-browse-button"
-            >Browse Files</span
-          >
+          <span class="browse-btn" data-testid="import-browse-button">{{
+            'dialogs.importProject.browseFiles' | transloco
+          }}</span>
         </label>
       }
     </div>
@@ -66,7 +66,11 @@
       <div class="archive-info" data-testid="import-archive-info">
         <h3>{{ m.projectTitle }}</h3>
         <p class="archive-meta">
-          Exported {{ formatDate(m.exportedAt) }} • Version {{ m.version }}
+          {{
+            'dialogs.importProject.exportedMeta'
+              | transloco
+                : { date: formatDate(m.exportedAt), version: m.version }
+          }}
         </p>
       </div>
     }
@@ -75,41 +79,56 @@
       <div class="project-summary" data-testid="import-project-summary">
         <div class="summary-item">
           <mat-icon>description</mat-icon>
-          <span>{{ c.elements }} elements</span>
+          <span
+            >{{ c.elements }}
+            {{ 'dialogs.importProject.elementsSuffix' | transloco }}</span
+          >
         </div>
         @if (c.mediaFiles > 0) {
           <div class="summary-item">
             <mat-icon>image</mat-icon>
-            <span>{{ c.mediaFiles }} media files</span>
+            <span
+              >{{ c.mediaFiles }}
+              {{ 'dialogs.importProject.mediaSuffix' | transloco }}</span
+            >
           </div>
         }
         @if (c.worldbuildingEntries > 0) {
           <div class="summary-item">
             <mat-icon>public</mat-icon>
-            <span>{{ c.worldbuildingEntries }} worldbuilding entries</span>
+            <span
+              >{{ c.worldbuildingEntries }}
+              {{
+                'dialogs.importProject.worldbuildingSuffix' | transloco
+              }}</span
+            >
           </div>
         }
       </div>
     }
 
     <mat-form-field appearance="outline" class="slug-field">
-      <mat-label>Project Slug</mat-label>
+      <mat-label>{{ 'dialogs.importProject.slugLabel' | transloco }}</mat-label>
       <input
         matInput
         id="import-project-slug-input"
         [formField]="form.slug"
         data-testid="import-slug-input"
-        placeholder="my-project"
-        aria-label="Project slug" />
+        [placeholder]="'dialogs.importProject.slugPlaceholder' | transloco"
+        [attr.aria-label]="'dialogs.importProject.slugAria' | transloco" />
       @if (form.slug().touched() && form.slug().invalid()) {
         @for (error of form.slug().errors(); track error) {
           <mat-error>{{ error.message }}</mat-error>
         }
       }
       @if (isValidating()) {
-        <mat-hint>Checking availability...</mat-hint>
+        <mat-hint>{{
+          'dialogs.importProject.checkingAvailability' | transloco
+        }}</mat-hint>
       } @else if (validationResult()?.available) {
-        <mat-hint class="available">Slug is available</mat-hint>
+        <mat-hint class="available">{{
+          'dialogs.importProject.slugAvailable' | transloco
+        }}</mat-hint>
       }
     </mat-form-field>
   }
@@ -137,10 +156,13 @@
     } @else {
       <div class="result-success" data-testid="import-success">
         <mat-icon>check_circle</mat-icon>
-        <p>Project imported successfully!</p>
+        <p>{{ 'dialogs.importProject.importSuccess' | transloco }}</p>
         @if (importedSlug()) {
           <p class="imported-slug" data-testid="import-result-slug">
-            Slug: {{ importedSlug() }}
+            {{
+              'dialogs.importProject.slugResult'
+                | transloco: { slug: importedSlug() }
+            }}
           </p>
         }
       </div>
@@ -155,18 +177,18 @@
         mat-button
         (click)="onCancel()"
         data-testid="import-cancel-button">
-        Cancel
+        {{ 'cancel' | transloco }}
       </button>
     }
     @case ('configure') {
       <button mat-button (click)="onBack()" data-testid="import-back-button">
-        Back
+        {{ 'back' | transloco }}
       </button>
       <button
         mat-button
         (click)="onCancel()"
         data-testid="import-cancel-button">
-        Cancel
+        {{ 'cancel' | transloco }}
       </button>
       <button
         mat-flat-button
@@ -174,7 +196,7 @@
         data-testid="import-start-button"
         [disabled]="!canImport()"
         (click)="onStartImport()">
-        Import
+        {{ 'dialogs.importProject.import' | transloco }}
       </button>
     }
     @case ('importing') {
@@ -186,13 +208,13 @@
           mat-button
           (click)="onBack()"
           data-testid="import-try-again-button">
-          Try Again
+          {{ 'dialogs.importProject.tryAgain' | transloco }}
         </button>
         <button
           mat-button
           (click)="onCancel()"
           data-testid="import-cancel-button">
-          Cancel
+          {{ 'cancel' | transloco }}
         </button>
       } @else {
         <button
@@ -200,7 +222,7 @@
           color="primary"
           (click)="onClose()"
           data-testid="import-done-button">
-          Done
+          {{ 'done' | transloco }}
         </button>
       }
     }

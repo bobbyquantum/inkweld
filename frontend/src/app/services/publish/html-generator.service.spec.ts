@@ -4,6 +4,7 @@ import { type Element, ElementType, type Project } from '@inkweld/index';
 import { createDefaultPublishStyles } from '@models/publish-style';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ChapterNumbering,
   FrontmatterType,
@@ -156,6 +157,7 @@ describe('HtmlGeneratorService', () => {
     vi.stubGlobal('indexedDB', mockIndexedDB);
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         HtmlGeneratorService,

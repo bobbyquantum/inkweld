@@ -17,6 +17,7 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoModule } from '@jsverse/transloco';
 
 import { AriaTabPanelComponent } from './aria-tab-panel.component';
 
@@ -34,7 +35,15 @@ export interface AriaTabConfig {
 
 @Component({
   selector: 'app-aria-tabs',
-  imports: [CommonModule, Tabs, TabList, Tab, MatIconModule, MatButtonModule],
+  imports: [
+    CommonModule,
+    Tabs,
+    TabList,
+    Tab,
+    MatIconModule,
+    MatButtonModule,
+    TranslocoModule,
+  ],
   templateUrl: './aria-tabs.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './aria-tabs.component.scss',

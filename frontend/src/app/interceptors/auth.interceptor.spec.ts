@@ -16,6 +16,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../testing/transloco-test-provider';
 import { AuthTokenService } from '../services/auth/auth-token.service';
 import { SetupService } from '../services/core/setup.service';
 import { AuthInterceptor } from './auth.interceptor';
@@ -44,6 +45,7 @@ describe('AuthInterceptor', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         AuthInterceptor,

@@ -19,6 +19,7 @@ import { of } from 'rxjs';
 import { type MockedObject } from 'vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { AdminUsersComponent } from './users.component';
 
 // Mock UserAvatarComponent to avoid HTTP calls
@@ -153,7 +154,7 @@ describe('AdminUsersComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AdminUsersComponent],
+      imports: [translocoTestProvider(), AdminUsersComponent],
       providers: [
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),

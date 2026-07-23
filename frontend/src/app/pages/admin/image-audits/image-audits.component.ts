@@ -27,6 +27,7 @@ import {
   ImageViewerDialogComponent,
   type ImageViewerDialogData,
 } from '@dialogs/image-viewer-dialog/image-viewer-dialog.component';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   AdminImageAuditsService,
   type ImageAuditStats,
@@ -53,6 +54,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
     MatSnackBarModule,
     MatTableModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './image-audits.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -62,6 +64,7 @@ export class AdminImageAuditsComponent implements OnInit {
   private readonly auditService = inject(AdminImageAuditsService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
+  private readonly transloco = inject(TranslocoService);
 
   readonly isLoading = signal(false);
   readonly audits = signal<ImageGenerationAudit[]>([]);
@@ -117,9 +120,11 @@ export class AdminImageAuditsComponent implements OnInit {
       this.total.set(result.total);
     } catch (err) {
       console.error('Failed to load audits:', err);
-      this.snackBar.open('Failed to load image audits', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.imageAudits.loadFailed'),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
     } finally {
       this.isLoading.set(false);
     }
@@ -164,9 +169,11 @@ export class AdminImageAuditsComponent implements OnInit {
 
   viewOutputImages(audit: ImageGenerationAudit): void {
     if (!audit.outputImageUrls || audit.outputImageUrls.length === 0) {
-      this.snackBar.open('No output images available', 'Dismiss', {
-        duration: 2000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.imageAudits.noOutputImages'),
+        this.transloco.translate('dismiss'),
+        { duration: 2000 }
+      );
       return;
     }
 

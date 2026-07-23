@@ -3,6 +3,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ThemeService } from '@themes/theme.service';
 import { describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ThemeToggleComponent } from './theme-toggle.component';
 
 describe('ThemeToggleComponent', () => {
@@ -16,7 +17,7 @@ describe('ThemeToggleComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ThemeToggleComponent],
+      imports: [translocoTestProvider(), ThemeToggleComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ThemeService, useValue: themeServiceMock },

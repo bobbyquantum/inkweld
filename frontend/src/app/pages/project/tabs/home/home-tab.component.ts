@@ -13,6 +13,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Element, ElementType } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
 import { ProjectService } from '@services/project/project.service';
@@ -33,6 +34,7 @@ import { base64ToBlob } from '../../../../utils/base64-utils';
     MatIconModule,
     RouterModule,
     MatMenuModule,
+    TranslocoModule,
     ProjectCoverComponent,
   ],
 })
@@ -49,6 +51,7 @@ export class HomeTabComponent {
   // Router for navigation
   protected readonly router = inject(Router);
   private readonly logger = inject(LoggerService);
+  private readonly transloco = inject(TranslocoService);
 
   protected readonly hasCover = computed(() => {
     const project = this.projectState.project();
@@ -156,9 +159,11 @@ export class HomeTabComponent {
       .uploadProjectCover(username, slug, imageBlob)
       .then(async () => {
         this.logger.debug('HomeTab', 'Cover image uploaded successfully');
-        this.snackBar.open('Cover image saved successfully', 'Close', {
-          duration: 3000,
-        });
+        this.snackBar.open(
+          this.transloco.translate('project.homeTab.coverSaved'),
+          this.transloco.translate('close'),
+          { duration: 3000 }
+        );
 
         // Refresh the project to get the updated cover image
         try {
@@ -174,9 +179,11 @@ export class HomeTabComponent {
       })
       .catch((error: unknown) => {
         console.error('Error uploading cover image:', error);
-        this.snackBar.open('Failed to save cover image', 'Close', {
-          duration: 5000,
-        });
+        this.snackBar.open(
+          this.transloco.translate('project.homeTab.coverSaveFailed'),
+          this.transloco.translate('close'),
+          { duration: 5000 }
+        );
       });
   }
 

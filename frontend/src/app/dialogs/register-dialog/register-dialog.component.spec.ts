@@ -26,6 +26,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { RegisterDialogComponent } from './register-dialog.component';
 
 describe('RegisterDialogComponent', () => {
@@ -92,7 +93,7 @@ describe('RegisterDialogComponent', () => {
     } as unknown as MockedObject<AuthTokenService>;
 
     await TestBed.configureTestingModule({
-      imports: [RegisterDialogComponent],
+      imports: [translocoTestProvider(), RegisterDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

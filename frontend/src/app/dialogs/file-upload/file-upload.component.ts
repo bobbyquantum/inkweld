@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { TranslocoModule } from '@jsverse/transloco';
 
 import { FileSizePipe } from '../../pipes/file-size.pipe';
 
@@ -11,6 +12,7 @@ import { FileSizePipe } from '../../pipes/file-size.pipe';
     MatDialogModule,
     MatButtonModule,
     MatProgressBarModule,
+    TranslocoModule,
     FileSizePipe,
   ],
   templateUrl: './file-upload.component.html',

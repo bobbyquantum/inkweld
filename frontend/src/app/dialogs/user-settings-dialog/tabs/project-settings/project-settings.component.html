@@ -1,12 +1,12 @@
 <section class="settings-section">
   <mat-checkbox [(ngModel)]="zenModeFullscreen">
-    Enable fullscreen in Zen mode
+    {{ 'settings.projectSettingsTab.fullscreenZen' | transloco }}
   </mat-checkbox>
 </section>
 
 <section class="settings-section">
   <mat-checkbox [(ngModel)]="useTabsDesktop">
-    Use tabs (desktop only)
+    {{ 'settings.projectSettingsTab.useTabs' | transloco }}
   </mat-checkbox>
 </section>
 
@@ -14,6 +14,6 @@
   <mat-checkbox
     [(ngModel)]="autoSnapshots"
     data-testid="setting-auto-snapshots">
-    Auto-save snapshots on tab close and project exit
+    {{ 'settings.projectSettingsTab.autoSaveSnapshots' | transloco }}
   </mat-checkbox>
 </section>

@@ -23,6 +23,7 @@ import {
   type TagPickerDialogResult,
 } from '@dialogs/tag-picker-dialog/tag-picker-dialog.component';
 import { type Element } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { type TagDefinition } from '@models/tag.model';
 import { MediaTagService } from '@services/media-tag/media-tag.service';
 import { MediaProjectTagService } from '@services/project/media-project-tag.service';
@@ -59,6 +60,7 @@ const MAX_ZOOM = 5;
     MatDialogModule,
     MatIconModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './image-viewer-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

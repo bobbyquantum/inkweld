@@ -15,6 +15,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { ColorSwatchesComponent } from '@components/color-swatches/color-swatches.component';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 export interface CanvasTextDialogData {
   /** Dialog title */
@@ -48,17 +49,21 @@ interface CanvasTextFormValue {
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
+    TranslocoModule,
     ColorSwatchesComponent,
   ],
 })
 export class CanvasTextDialogComponent {
   protected readonly data = inject<CanvasTextDialogData>(MAT_DIALOG_DATA);
   private readonly dialogRef = inject(MatDialogRef<CanvasTextDialogComponent>);
+  private readonly transloco = inject(TranslocoService);
 
   readonly model = signal<CanvasTextFormValue>({ text: this.data.text });
 
   readonly form = form(this.model, schemaPath => {
-    required(schemaPath.text, { message: 'Text is required' });
+    required(schemaPath.text, {
+      message: this.transloco.translate('canvas.textDialog.textRequired'),
+    });
   });
 
   protected selectedColor = this.data.color;

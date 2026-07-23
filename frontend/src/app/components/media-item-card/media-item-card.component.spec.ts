@@ -1,6 +1,7 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { MediaItemCardComponent } from './media-item-card.component';
 
 describe('MediaItemCardComponent', () => {
@@ -9,7 +10,7 @@ describe('MediaItemCardComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MediaItemCardComponent],
+      imports: [translocoTestProvider(), MediaItemCardComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(MediaItemCardComponent);

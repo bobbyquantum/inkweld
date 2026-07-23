@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { RouterModule } from '@angular/router';
+import { TranslocoModule } from '@jsverse/transloco';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 
@@ -17,6 +18,7 @@ import { UserMenuComponent } from '../../components/user-menu/user-menu.componen
     MatListModule,
     MatSidenavModule,
     RouterModule,
+    TranslocoModule,
     UserMenuComponent,
   ],
   templateUrl: './admin.component.html',

@@ -9,6 +9,7 @@ import {
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { AdminImageAuditsComponent } from './image-audits.component';
 
 describe('AdminImageAuditsComponent', () => {
@@ -72,7 +73,7 @@ describe('AdminImageAuditsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AdminImageAuditsComponent],
+      imports: [translocoTestProvider(), AdminImageAuditsComponent],
       providers: [
         { provide: AdminImageAuditsService, useValue: mockAuditService },
         { provide: MatSnackBar, useValue: mockSnackBar },

@@ -18,6 +18,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { RegistrationFormComponent } from './registration-form.component';
 
 /** Valid password meeting all policy requirements, used throughout this spec */
@@ -70,7 +71,7 @@ describe('RegistrationFormComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [RegistrationFormComponent],
+      imports: [translocoTestProvider(), RegistrationFormComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),
@@ -122,7 +123,7 @@ describe('RegistrationFormComponent', () => {
       // Trigger the validator update via re-creation (config is read in schema)
       TestBed.resetTestingModule();
       await TestBed.configureTestingModule({
-        imports: [RegistrationFormComponent],
+        imports: [translocoTestProvider(), RegistrationFormComponent],
         providers: [
           provideZonelessChangeDetection(),
           provideHttpClient(withXhr()),
@@ -713,7 +714,7 @@ describe('RegistrationFormComponent', () => {
       // Re-create component so the passwordless flag is read at construction.
       TestBed.resetTestingModule();
       await TestBed.configureTestingModule({
-        imports: [RegistrationFormComponent],
+        imports: [translocoTestProvider(), RegistrationFormComponent],
         providers: [
           provideZonelessChangeDetection(),
           provideHttpClient(withXhr()),

@@ -23,7 +23,7 @@
       <div class="projects-section">
         <div class="section-header">
           <mat-icon>collections_bookmark</mat-icon>
-          <span>Projects</span>
+          <span>{{ 'project.sideNav.projects' | transloco }}</span>
         </div>
         <div class="project-tiles">
           @for (item of projectItems; track item.project.id) {

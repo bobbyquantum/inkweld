@@ -31,6 +31,7 @@ import {
 import { of, Subject } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { AdminAiSettingsComponent } from './ai-settings.component';
 
 async function flushPromises(): Promise<void> {
@@ -275,6 +276,7 @@ describe('AdminAiSettingsComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         AdminAiSettingsComponent,
         FormsModule,
         MatButtonModule,

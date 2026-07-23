@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { MessagesComponent } from './messages.component';
 
 describe('MessagesComponent', () => {
@@ -29,7 +30,11 @@ describe('MessagesComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [MessagesComponent, RouterModule.forRoot([])],
+      imports: [
+        translocoTestProvider(),
+        MessagesComponent,
+        RouterModule.forRoot([]),
+      ],
       providers: [
         { provide: AnnouncementService, useValue: mockAnnouncementService },
       ],

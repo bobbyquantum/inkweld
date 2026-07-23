@@ -2,11 +2,17 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { TranslocoModule } from '@jsverse/transloco';
 import { SettingsService } from '@services/core/settings.service';
 
 @Component({
   selector: 'app-project-tree-settings',
-  imports: [FormsModule, MatCheckboxModule, MatFormFieldModule],
+  imports: [
+    FormsModule,
+    MatCheckboxModule,
+    MatFormFieldModule,
+    TranslocoModule,
+  ],
   templateUrl: './project-tree-settings.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './project-tree-settings.component.scss',

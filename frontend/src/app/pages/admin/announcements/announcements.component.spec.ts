@@ -9,6 +9,7 @@ import {
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { AdminAnnouncementsComponent } from './announcements.component';
 
 describe('AdminAnnouncementsComponent', () => {
@@ -68,7 +69,7 @@ describe('AdminAnnouncementsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AdminAnnouncementsComponent],
+      imports: [translocoTestProvider(), AdminAnnouncementsComponent],
       providers: [
         { provide: AnnouncementService, useValue: mockAnnouncementService },
         { provide: MatSnackBar, useValue: mockSnackBar },

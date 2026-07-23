@@ -17,7 +17,9 @@
   } @else {
     <div class="no-cover-container">
       @if (variant !== 'small') {
-        <div class="centered-title">Loading...</div>
+        <div class="centered-title">
+          {{ 'project.projectCover.loading' | transloco }}
+        </div>
       }
     </div>
   }

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   CanvasStageEventsService,
   type StageEventCallbacks,
@@ -36,6 +37,7 @@ describe('CanvasStageEventsService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasStageEventsService,
         { provide: CanvasZoomService, useValue: zoom },

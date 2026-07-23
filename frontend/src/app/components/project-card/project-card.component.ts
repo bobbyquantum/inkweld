@@ -19,6 +19,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { type Project } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { SyncQueueService, SyncStage } from '@services/sync/sync-queue.service';
 
 import { ProjectCoverComponent } from '../project-cover/project-cover.component';
@@ -38,6 +39,7 @@ const MOVE_THRESHOLD = 10;
     MatTooltipModule,
     RouterModule,
     ProjectCoverComponent,
+    TranslocoModule,
   ],
   templateUrl: './project-card.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

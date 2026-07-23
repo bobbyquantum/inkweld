@@ -20,6 +20,7 @@ import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.serv
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { RelationshipsTabComponent } from './relationships-tab.component';
 
 describe('RelationshipsTabComponent', () => {
@@ -136,7 +137,7 @@ describe('RelationshipsTabComponent', () => {
     mockDialogResult(validDialogResult);
 
     await TestBed.configureTestingModule({
-      imports: [RelationshipsTabComponent],
+      imports: [translocoTestProvider(), RelationshipsTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

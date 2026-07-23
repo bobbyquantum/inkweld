@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { createDefaultPublishStyles } from '@models/publish-style';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ChapterNumbering,
   PublishFormat,
@@ -67,6 +68,7 @@ describe('PublishPlanService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         PublishPlanService,

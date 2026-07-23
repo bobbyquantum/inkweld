@@ -1,6 +1,7 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ColorSwatchesComponent } from './color-swatches.component';
 
 describe('ColorSwatchesComponent', () => {
@@ -9,7 +10,7 @@ describe('ColorSwatchesComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ColorSwatchesComponent],
+      imports: [translocoTestProvider(), ColorSwatchesComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ColorSwatchesComponent);

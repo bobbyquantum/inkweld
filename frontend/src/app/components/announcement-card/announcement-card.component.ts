@@ -11,6 +11,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import type {
   Announcement,
   AnnouncementWithReadStatus,
@@ -25,6 +26,7 @@ import type {
     MatIconModule,
     MatChipsModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './announcement-card.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

@@ -13,6 +13,7 @@ import { UserService } from '@services/user/user.service';
 import { of, Subject } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { UserProfileComponent } from './user-profile.component';
 
 describe('UserProfileComponent', () => {
@@ -92,7 +93,7 @@ describe('UserProfileComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [UserProfileComponent],
+      imports: [translocoTestProvider(), UserProfileComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),
@@ -129,7 +130,7 @@ describe('UserProfileComponent', () => {
 
       TestBed.resetTestingModule();
       await TestBed.configureTestingModule({
-        imports: [UserProfileComponent],
+        imports: [translocoTestProvider(), UserProfileComponent],
         providers: [
           provideZonelessChangeDetection(),
           provideHttpClient(withXhr()),

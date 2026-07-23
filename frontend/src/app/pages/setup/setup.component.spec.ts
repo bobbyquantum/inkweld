@@ -13,6 +13,7 @@ import { ConfigurationService } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from '../../services/core/setup.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
 import { SetupComponent } from './setup.component';
@@ -52,6 +53,7 @@ describe('SetupComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         SetupComponent,
         FormsModule,
         MatCardModule,

@@ -7,6 +7,7 @@ import {
 } from '@angular/material/dialog';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   RenameDialogComponent,
   type RenameDialogData,
@@ -30,7 +31,11 @@ describe('RenameDialogComponent', () => {
     >;
 
     await TestBed.configureTestingModule({
-      imports: [RenameDialogComponent, MatDialogModule],
+      imports: [
+        translocoTestProvider(),
+        RenameDialogComponent,
+        MatDialogModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },

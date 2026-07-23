@@ -4,6 +4,7 @@ import { RelationshipService } from '@services/relationship/relationship.service
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { CanvasService } from './canvas.service';
 import { CanvasLayerService } from './canvas-layer.service';
 
@@ -30,6 +31,7 @@ describe('CanvasLayerService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasLayerService,
         { provide: CanvasService, useValue: canvasService },

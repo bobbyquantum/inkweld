@@ -5,6 +5,7 @@ import { ConfirmationDialogComponent } from '@dialogs/confirmation-dialog/confir
 import { of, Subject } from 'rxjs';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { UpdateService } from './update.service';
 
 describe('UpdateService', () => {
@@ -31,6 +32,7 @@ describe('UpdateService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         UpdateService,
         { provide: SwUpdate, useValue: swUpdateMock },

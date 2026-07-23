@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type Element, ElementType } from '../../../../../api-client';
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import {
   type ChartGraphData,
   createDefaultChartConfig,
@@ -134,7 +135,7 @@ describe('RelationshipChartTabComponent', () => {
     mockChartService.activeConfig.set(createDefaultChartConfig('test-chart'));
 
     await TestBed.configureTestingModule({
-      imports: [RelationshipChartTabComponent],
+      imports: [translocoTestProvider(), RelationshipChartTabComponent],
       providers: [
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: ActivatedRoute, useValue: mockRoute },

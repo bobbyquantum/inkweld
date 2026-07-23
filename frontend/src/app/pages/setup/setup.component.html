@@ -20,7 +20,7 @@
         </mat-card-title>
         <mat-card-subtitle>
           @if (configLoading()) {
-            Loading configuration...
+            {{ 'loading' | transloco }}
           } @else if (shouldShowModeSelection()) {
             Choose how you'd like to use Inkweld
           } @else if (showServerSetup()) {
@@ -49,7 +49,7 @@
               "
               >settings</mat-icon
             >
-            <p>Loading system configuration...</p>
+            <p>{{ 'loading' | transloco }}</p>
           </div>
         } @else if (shouldShowModeSelection()) {
           <!-- Initial choice screen - only shown when appMode is 'BOTH' -->
@@ -95,16 +95,22 @@
           <div class="setup-form">
             <div class="field-row">
               <mat-form-field appearance="outline">
-                <mat-label>Server URL</mat-label>
+                <mat-label>{{
+                  'settings.connectionTab.serverUrlLabel' | transloco
+                }}</mat-label>
                 <input
                   matInput
                   id="setup-server-url-input"
                   [(ngModel)]="serverUrl"
-                  placeholder="http://localhost:8333"
+                  [placeholder]="
+                    'settings.connectionTab.serverUrlPlaceholder' | transloco
+                  "
                   type="url"
                   required
                   data-testid="server-url-input"
-                  aria-label="Server URL" />
+                  [attr.aria-label]="
+                    'settings.connectionTab.serverUrlAria' | transloco
+                  " />
                 <mat-icon matSuffix>link</mat-icon>
               </mat-form-field>
               <p class="field-hint">
@@ -120,14 +126,18 @@
           <div class="setup-form">
             <div class="field-row">
               <mat-form-field appearance="outline">
-                <mat-label>Username</mat-label>
+                <mat-label>{{
+                  'settings.connectionTab.usernameLabel' | transloco
+                }}</mat-label>
                 <input
                   matInput
                   id="setup-local-username-input"
                   [(ngModel)]="userName"
                   placeholder="local"
                   data-testid="local-username-input"
-                  aria-label="Username" />
+                  [attr.aria-label]="
+                    'settings.connectionTab.usernameAria' | transloco
+                  " />
                 <mat-icon matSuffix>person</mat-icon>
               </mat-form-field>
               <p class="field-hint">
@@ -138,14 +148,18 @@
 
             <div class="field-row">
               <mat-form-field appearance="outline">
-                <mat-label>Display Name</mat-label>
+                <mat-label>{{
+                  'settings.accountTab.displayNameLabel' | transloco
+                }}</mat-label>
                 <input
                   matInput
                   id="setup-local-display-name-input"
                   [(ngModel)]="displayName"
                   placeholder="Local User"
                   data-testid="local-displayname-input"
-                  aria-label="Display name" />
+                  [attr.aria-label]="
+                    'settings.accountTab.displayNameAria' | transloco
+                  " />
                 <mat-icon matSuffix>badge</mat-icon>
               </mat-form-field>
               <p class="field-hint">

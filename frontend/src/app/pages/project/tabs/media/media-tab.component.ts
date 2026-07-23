@@ -38,6 +38,7 @@ import {
   type TagPickerDialogResult,
 } from '@dialogs/tag-picker-dialog/tag-picker-dialog.component';
 import { ElementType } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import type { CanvasConfig } from '@models/canvas.model';
 import { type TagDefinition } from '@models/tag.model';
 import {
@@ -104,6 +105,7 @@ export interface MediaItem extends MediaInfo {
     MediaItemCardComponent,
     MatSidenavModule,
     MatTooltipModule,
+    TranslocoModule,
     FileSizePipe,
     MediaFilterPanelComponent,
   ],

@@ -2,7 +2,7 @@
   @if (isLoading()) {
     <div class="loading-container" data-testid="admin-loading">
       <mat-spinner diameter="48"></mat-spinner>
-      <p>Loading users...</p>
+      <p>{{ 'admin.users.loading' | transloco }}</p>
     </div>
   } @else if (error()) {
     <div class="error-container" data-testid="admin-error">
@@ -13,7 +13,7 @@
         color="primary"
         (click)="loadUsers()"
         data-testid="admin-retry-button">
-        Retry
+        {{ 'retry' | transloco }}
       </button>
     </div>
   } @else {
@@ -26,15 +26,16 @@
       <mat-tab data-testid="stat-pending-users">
         <ng-template mat-tab-label>
           <mat-icon>pending</mat-icon>
-          <span data-testid="stat-pending-users-value"
-            >Pending ({{ pendingUsers().length }})</span
-          >
+          <span data-testid="stat-pending-users-value">{{
+            'admin.users.pendingTab'
+              | transloco: { count: pendingUsers().length }
+          }}</span>
         </ng-template>
         <div class="tab-content" data-testid="pending-users-tab">
           @if (pendingUsers().length === 0) {
             <div class="empty-state" data-testid="pending-users-empty">
               <mat-icon>check_circle</mat-icon>
-              <p>No pending users</p>
+              <p>{{ 'admin.users.noPending' | transloco }}</p>
             </div>
           } @else {
             <div class="user-list" data-testid="pending-users-list">
@@ -60,7 +61,7 @@
                         (click)="approveUser(user)"
                         [attr.data-testid]="'approve-user-' + user.username">
                         <mat-icon>check</mat-icon>
-                        Approve
+                        {{ 'admin.users.approve' | transloco }}
                       </button>
                       <button
                         mat-raised-button
@@ -68,7 +69,7 @@
                         (click)="rejectUser(user)"
                         [attr.data-testid]="'reject-user-' + user.username">
                         <mat-icon>close</mat-icon>
-                        Reject
+                        {{ 'admin.users.reject' | transloco }}
                       </button>
                     </div>
                   </mat-card-content>
@@ -83,24 +84,24 @@
       <mat-tab data-testid="stat-total-users">
         <ng-template mat-tab-label>
           <mat-icon>people</mat-icon>
-          <span data-testid="stat-total-users-value"
-            >All Users ({{ totalUsers() }})</span
-          >
+          <span data-testid="stat-total-users-value">{{
+            'admin.users.allUsersTab' | transloco: { count: totalUsers() }
+          }}</span>
         </ng-template>
         <div class="tab-content" data-testid="all-users-tab">
           <!-- Search bar -->
           <div class="search-container" data-testid="user-search">
             <mat-form-field appearance="outline" class="search-field">
-              <mat-label>Search users</mat-label>
+              <mat-label>{{ 'admin.users.searchLabel' | transloco }}</mat-label>
               <input
                 matInput
                 type="text"
                 id="admin-users-search-input"
-                placeholder="Search by username or email..."
+                [placeholder]="'admin.users.searchPlaceholder' | transloco"
                 [value]="searchQuery()"
                 (input)="onSearchInput($event)"
                 data-testid="user-search-input"
-                aria-label="Search users" />
+                [attr.aria-label]="'admin.users.searchAria' | transloco" />
               <mat-icon matPrefix>search</mat-icon>
               @if (searchQuery()) {
                 <button
@@ -114,7 +115,10 @@
             </mat-form-field>
             @if (searchQuery()) {
               <span class="search-results-count">
-                {{ users().length }} of {{ totalUsers() }} users
+                {{
+                  'admin.users.searchCount'
+                    | transloco: { shown: users().length, total: totalUsers() }
+                }}
               </span>
             }
           </div>
@@ -123,12 +127,16 @@
             <div class="empty-state" data-testid="all-users-empty">
               <mat-icon>people_outline</mat-icon>
               @if (searchQuery()) {
-                <p>No users found matching "{{ searchQuery() }}"</p>
+                <p>
+                  {{
+                    'admin.users.noMatch' | transloco: { query: searchQuery() }
+                  }}
+                </p>
                 <button mat-button color="primary" (click)="clearSearch()">
-                  Clear search
+                  {{ 'admin.users.clearSearch' | transloco }}
                 </button>
               } @else {
-                <p>No users found</p>
+                <p>{{ 'admin.users.noUsers' | transloco }}</p>
               }
             </div>
           } @else {
@@ -152,7 +160,9 @@
                         <span class="username">
                           {{ user.username }}
                           @if (isCurrentUser(user)) {
-                            <span class="you-badge">(you)</span>
+                            <span class="you-badge">{{
+                              'admin.users.you' | transloco
+                            }}</span>
                           }
                         </span>
                         <span class="email">{{ user.email }}</span>
@@ -169,7 +179,10 @@
                         mat-icon-button
                         [matMenuTriggerFor]="userMenu"
                         [attr.data-testid]="'user-menu-' + user.username"
-                        [matTooltip]="'Actions for ' + user.username">
+                        [matTooltip]="
+                          'admin.users.actionsFor'
+                            | transloco: { name: user.username }
+                        ">
                         <mat-icon>more_vert</mat-icon>
                       </button>
                       <mat-menu #userMenu="matMenu">
@@ -179,7 +192,7 @@
                             (click)="enableUser(user)"
                             [attr.data-testid]="'enable-user-' + user.username">
                             <mat-icon>check_circle</mat-icon>
-                            <span>Enable</span>
+                            <span>{{ 'admin.users.enable' | transloco }}</span>
                           </button>
                         }
                         @if (user.enabled && user.approved) {
@@ -191,7 +204,7 @@
                               'disable-user-' + user.username
                             ">
                             <mat-icon>block</mat-icon>
-                            <span>Disable</span>
+                            <span>{{ 'admin.users.disable' | transloco }}</span>
                           </button>
                         }
                         <button
@@ -203,7 +216,9 @@
                             user.isAdmin ? 'remove_moderator' : 'shield'
                           }}</mat-icon>
                           <span>{{
-                            user.isAdmin ? 'Remove Admin' : 'Grant Admin'
+                            user.isAdmin
+                              ? ('admin.users.removeAdmin' | transloco)
+                              : ('admin.users.grantAdmin' | transloco)
                           }}</span>
                         </button>
                         <mat-divider></mat-divider>
@@ -214,7 +229,7 @@
                           [disabled]="isCurrentUser(user)"
                           [attr.data-testid]="'delete-user-' + user.username">
                           <mat-icon color="warn">delete</mat-icon>
-                          <span>Delete</span>
+                          <span>{{ 'delete' | transloco }}</span>
                         </button>
                       </mat-menu>
                     </div>
@@ -226,7 +241,7 @@
               @if (isLoadingMore()) {
                 <div class="loading-more" data-testid="loading-more">
                   <mat-spinner diameter="24"></mat-spinner>
-                  <span>Loading more users...</span>
+                  <span>{{ 'admin.users.loadingMore' | transloco }}</span>
                 </div>
               }
 
@@ -237,7 +252,11 @@
                     mat-stroked-button
                     (click)="loadMoreUsers()"
                     data-testid="load-more-button">
-                    Load more ({{ users().length }} of {{ totalUsers() }})
+                    {{
+                      'admin.users.loadMore'
+                        | transloco
+                          : { shown: users().length, total: totalUsers() }
+                    }}
                   </button>
                 </div>
               }

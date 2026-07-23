@@ -31,6 +31,7 @@ import { PresenceIndicatorComponent } from '@components/presence-indicator/prese
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { type Element, ElementType } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
@@ -73,6 +74,7 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
     MatProgressSpinnerModule,
     MatToolbarModule,
     MatTooltipModule,
+    TranslocoModule,
     ConnectionStatusComponent,
     PresenceIndicatorComponent,
     ProjectTreeComponent,
@@ -96,6 +98,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly exportService = inject(ProjectExportService);
   protected readonly projectService = inject(UnifiedProjectService);
   private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly transloco = inject(TranslocoService);
   private readonly settingsService = inject(SettingsService);
   private readonly quickOpenService = inject(QuickOpenService);
   private readonly projectSearchService = inject(ProjectSearchService);
@@ -137,7 +140,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly errorEffect = effect(() => {
     const error = this.projectState.error();
     if (error) {
-      this.snackBar.open(error, 'Close', { duration: 5000 });
+      this.snackBar.open(error, this.transloco.translate('close'), {
+        duration: 5000,
+      });
     }
   });
   protected readonly DocumentSyncState = DocumentSyncState;
@@ -223,11 +228,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     const confirmed = await this.dialogGateway.openConfirmationDialog({
-      title: 'Unsynced Changes',
-      message:
-        "You have changes that haven't been synced to the server yet. Are you sure you want to leave?",
-      confirmText: 'Leave',
-      cancelText: 'Stay',
+      title: this.transloco.translate('project.exitConfirm.title'),
+      message: this.transloco.translate('project.exitConfirm.message'),
+      confirmText: this.transloco.translate('project.exitConfirm.leave'),
+      cancelText: this.transloco.translate('project.exitConfirm.stay'),
     });
 
     return confirmed;
@@ -424,9 +428,11 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       .then(result => {
         if (result?.success && result.slug) {
           this.snackBar
-            .open('Project imported successfully!', 'View', {
-              duration: 5000,
-            })
+            .open(
+              this.transloco.translate('project.snackbar.projectImported'),
+              this.transloco.translate('project.snackbar.view'),
+              { duration: 5000 }
+            )
             .onAction()
             .subscribe(() => {
               // Navigate to the imported project
@@ -440,14 +446,18 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   async onExportClicked(): Promise<void> {
     try {
       await this.exportService.exportProject();
-      this.snackBar.open('Project exported successfully', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('project.snackbar.projectExported'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
     } catch (error) {
       console.error('Export failed:', error);
-      this.snackBar.open('Failed to export project', 'Close', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('project.snackbar.exportFailed'),
+        this.transloco.translate('close'),
+        { duration: 5000 }
+      );
     }
   }
 
@@ -646,16 +656,20 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
           void this.projectService
             .deleteProject(project.username, project.slug)
             .then(() => {
-              this.snackBar.open('Project deleted successfully', 'Close', {
-                duration: 3000,
-              });
+              this.snackBar.open(
+                this.transloco.translate('project.snackbar.projectDeleted'),
+                this.transloco.translate('close'),
+                { duration: 3000 }
+              );
               void this.router.navigate(['/']);
             })
             .catch(error => {
               console.error('Error deleting project:', error);
-              this.snackBar.open('Failed to delete project', 'Close', {
-                duration: 5000,
-              });
+              this.snackBar.open(
+                this.transloco.translate('project.snackbar.deleteFailed'),
+                this.transloco.translate('close'),
+                { duration: 5000 }
+              );
             })
             .finally(() => {
               this.isDeleting.set(false);
@@ -697,19 +711,27 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     const project = this.projectState.project();
     if (!project) return;
 
-    this.snackBar.open('Reconnecting...', undefined, { duration: 2000 });
+    this.snackBar.open(
+      this.transloco.translate('project.snackbar.reconnecting'),
+      undefined,
+      { duration: 2000 }
+    );
 
     try {
       // Reload the project to re-establish sync provider
       await this.projectState.loadProject(project.username, project.slug);
-      this.snackBar.open('Reconnected successfully', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('project.snackbar.reconnected'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
     } catch (error) {
       console.error('Failed to reconnect:', error);
-      this.snackBar.open('Failed to reconnect to server', 'Close', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('project.snackbar.reconnectFailed'),
+        this.transloco.translate('close'),
+        { duration: 5000 }
+      );
     }
   }
 }

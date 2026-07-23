@@ -10,6 +10,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type MediaTag } from '../../models/media-tag.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
@@ -138,6 +139,7 @@ describe('TagService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         TagService,
         { provide: ElementSyncProviderFactory, useValue: mockFactory },

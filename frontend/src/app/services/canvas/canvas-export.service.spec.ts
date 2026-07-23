@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { CanvasService } from './canvas.service';
 import { CanvasExportService } from './canvas-export.service';
 import { CanvasRendererService } from './canvas-renderer.service';
@@ -17,6 +18,7 @@ describe('CanvasExportService', () => {
     canvasService = { activeConfig: vi.fn(() => null) };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasExportService,
         { provide: CanvasRendererService, useValue: renderer },

@@ -21,6 +21,7 @@ import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
 } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AdminConfigService } from '@services/admin/admin-config.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { firstValueFrom } from 'rxjs';
@@ -41,6 +42,7 @@ import { AiKillSwitchDialogComponent } from './ai-kill-switch-dialog/ai-kill-swi
     MatSlideToggleModule,
     MatSnackBarModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './settings.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -51,6 +53,7 @@ export class AdminSettingsComponent implements OnInit {
   private readonly systemConfigService = inject(SystemConfigService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
+  private readonly transloco = inject(TranslocoService);
 
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);

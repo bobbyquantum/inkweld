@@ -9,6 +9,7 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import { ImageCropperComponent } from 'ngx-image-cropper';
 
 import { BaseImageDialogComponent } from '../base-image-dialog';
@@ -43,6 +44,7 @@ export interface InsertImageDialogResult {
     MatIconModule,
     MatProgressBarModule,
     MatTooltipModule,
+    TranslocoModule,
     ImageCropperComponent,
   ],
   templateUrl: './insert-image-dialog.component.html',

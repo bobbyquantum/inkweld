@@ -11,6 +11,7 @@ import {
 } from '@services/local/media-sync.service';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   MediaSelectorDialogComponent,
   type MediaSelectorDialogData,
@@ -91,7 +92,7 @@ describe('MediaSelectorDialogComponent', () => {
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
 
     await TestBed.configureTestingModule({
-      imports: [MediaSelectorDialogComponent],
+      imports: [translocoTestProvider(), MediaSelectorDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },
@@ -121,7 +122,7 @@ describe('MediaSelectorDialogComponent', () => {
     // Recreate with no title
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
-      imports: [MediaSelectorDialogComponent],
+      imports: [translocoTestProvider(), MediaSelectorDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },
@@ -164,7 +165,7 @@ describe('MediaSelectorDialogComponent', () => {
   it('should show all items when filterType is all', async () => {
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
-      imports: [MediaSelectorDialogComponent],
+      imports: [translocoTestProvider(), MediaSelectorDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },
@@ -304,7 +305,7 @@ describe('MediaSelectorDialogComponent', () => {
     beforeEach(async () => {
       TestBed.resetTestingModule();
       await TestBed.configureTestingModule({
-        imports: [MediaSelectorDialogComponent],
+        imports: [translocoTestProvider(), MediaSelectorDialogComponent],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MatDialogRef, useValue: dialogRef },

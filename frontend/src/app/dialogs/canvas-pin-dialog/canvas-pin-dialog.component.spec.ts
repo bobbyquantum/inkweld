@@ -9,6 +9,7 @@ import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
 import { type Element } from '../../../api-client/model/element';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import {
   CanvasPinDialogComponent,
@@ -38,7 +39,11 @@ describe('CanvasPinDialogComponent', () => {
     >;
 
     await TestBed.configureTestingModule({
-      imports: [CanvasPinDialogComponent, MatDialogModule],
+      imports: [
+        translocoTestProvider(),
+        CanvasPinDialogComponent,
+        MatDialogModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },

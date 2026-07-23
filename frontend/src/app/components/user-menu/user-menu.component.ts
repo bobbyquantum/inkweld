@@ -14,6 +14,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { type User } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -38,6 +39,7 @@ import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
     MatTooltipModule,
     UserAvatarComponent,
     RouterModule,
+    TranslocoModule,
   ],
   templateUrl: './user-menu.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

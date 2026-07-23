@@ -4,6 +4,7 @@ import { GREGORIAN_SYSTEM, RELATIVE_YEARS_SYSTEM } from '@models/time-system';
 import type { TimelineTrack } from '@models/timeline.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   TimelineEventDialogComponent,
   type TimelineEventDialogData,
@@ -26,7 +27,7 @@ const baseData: TimelineEventDialogData = {
 async function createComponent(data: TimelineEventDialogData = baseData) {
   const closeSpy = vi.fn();
   await TestBed.configureTestingModule({
-    imports: [TimelineEventDialogComponent],
+    imports: [translocoTestProvider(), TimelineEventDialogComponent],
     providers: [
       { provide: MAT_DIALOG_DATA, useValue: data },
       { provide: MatDialogRef, useValue: { close: closeSpy } },

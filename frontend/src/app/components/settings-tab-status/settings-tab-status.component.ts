@@ -7,6 +7,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { TranslocoModule } from '@jsverse/transloco';
 
 /**
  * Shared loading / error status block reused across settings sub-tabs
@@ -17,7 +18,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   templateUrl: './settings-tab-status.component.html',
   styleUrls: ['./settings-tab-status.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    TranslocoModule,
+  ],
 })
 export class SettingsTabStatusComponent {
   isLoading = input<boolean>(false);

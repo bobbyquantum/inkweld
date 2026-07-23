@@ -1,13 +1,17 @@
 <h2 mat-dialog-title>
-  {{ seed.name ? 'Edit unit: ' + seed.name : 'New unit' }}
+  {{
+    seed.name
+      ? ('timeline.unitEditor.editTitle' | transloco: { name: seed.name })
+      : ('timeline.unitEditor.newTitle' | transloco)
+  }}
 </h2>
 <mat-dialog-content class="content">
   <mat-form-field appearance="outline" subscriptSizing="dynamic">
-    <mat-label>Name</mat-label>
+    <mat-label>{{ 'timeline.unitEditor.nameLabel' | transloco }}</mat-label>
     <input
       matInput
       id="unit-editor-name"
-      aria-label="Name"
+      [attr.aria-label]="'timeline.unitEditor.nameAria' | transloco"
       [ngModel]="name()"
       (ngModelChange)="name.set($event)"
       data-testid="unit-editor-name"
@@ -20,7 +24,7 @@
       <input
         matInput
         id="unit-editor-subdivision"
-        aria-label="{{ subdivisionLabel() }}"
+        [attr.aria-label]="subdivisionLabel()"
         type="number"
         min="1"
         step="1"
@@ -32,16 +36,20 @@
 
   <div class="flags-row">
     <mat-checkbox [(ngModel)]="allowZero" data-testid="unit-editor-allow-zero">
-      Allow zero
+      {{ 'timeline.unitEditor.allowZero' | transloco }}
     </mat-checkbox>
     <mat-form-field
       appearance="outline"
       class="input-mode"
       subscriptSizing="dynamic">
-      <mat-label>Input</mat-label>
+      <mat-label>{{ 'timeline.unitEditor.inputLabel' | transloco }}</mat-label>
       <mat-select [(ngModel)]="inputMode" data-testid="unit-editor-input-mode">
-        <mat-option value="numeric">Numeric</mat-option>
-        <mat-option value="dropdown">Dropdown</mat-option>
+        <mat-option value="numeric">{{
+          'timeline.unitEditor.numeric' | transloco
+        }}</mat-option>
+        <mat-option value="dropdown">{{
+          'timeline.unitEditor.dropdown' | transloco
+        }}</mat-option>
       </mat-select>
     </mat-form-field>
   </div>
@@ -49,13 +57,11 @@
   <mat-divider></mat-divider>
 
   <div class="aliases-header">
-    <div class="section-label">Overrides</div>
+    <div class="section-label">
+      {{ 'timeline.unitEditor.overrides' | transloco }}
+    </div>
     <p class="hint">
-      Override how a specific value of this unit is named or how many sub-units
-      it contains. Example: month <code>2</code> &rarr; name "February",
-      sub-units <code>28</code>. Use <code>&#123;a&lt;i&gt;&#125;</code> in the
-      system's display format to render the override name;
-      <code>&#123;u&lt;i&gt;&#125;</code> still shows the raw number.
+      {{ 'timeline.unitEditor.overridesHelp' | transloco }}
     </p>
   </div>
 
@@ -66,7 +72,9 @@
           appearance="outline"
           class="value"
           subscriptSizing="dynamic">
-          <mat-label>Value</mat-label>
+          <mat-label>{{
+            'timeline.unitEditor.valueLabel' | transloco
+          }}</mat-label>
           <input
             matInput
             [attr.id]="'unit-editor-override-value-' + idx"
@@ -79,7 +87,7 @@
           appearance="outline"
           class="alias"
           subscriptSizing="dynamic">
-          <mat-label>Name</mat-label>
+          <mat-label>{{ 'name' | transloco }}</mat-label>
           <input
             matInput
             [attr.id]="'unit-editor-override-name-' + idx"
@@ -108,21 +116,25 @@
         <button
           mat-icon-button
           type="button"
-          matTooltip="Remove override"
+          [matTooltip]="'timeline.unitEditor.removeOverride' | transloco"
           (click)="removeRow(row.id)"
           [attr.data-testid]="'unit-editor-override-remove-' + idx">
           <mat-icon>delete</mat-icon>
         </button>
       </div>
     } @empty {
-      <div class="empty">No overrides yet.</div>
+      <div class="empty">
+        {{ 'timeline.unitEditor.noOverrides' | transloco }}
+      </div>
     }
   </div>
 
   @if (duplicateKeys().length > 0) {
     <div class="warn" data-testid="unit-editor-duplicate-warning">
-      Duplicate values: {{ duplicateKeys().join(', ') }}. Only the last entry
-      for each value will be saved.
+      {{
+        'timeline.unitEditor.duplicateValues'
+          | transloco: { values: duplicateKeys().join(', ') }
+      }}
     </div>
   }
 
@@ -133,7 +145,7 @@
       (click)="addRow()"
       data-testid="unit-editor-override-add">
       <mat-icon>add</mat-icon>
-      Add override
+      {{ 'timeline.unitEditor.addOverride' | transloco }}
     </button>
     @if (effectiveSuggestedCount() > 0) {
       <button
@@ -141,17 +153,20 @@
         type="button"
         (click)="fillRange()"
         [disabled]="fillDisabled()"
-        matTooltip="Add a row for every value in this unit's range"
+        [matTooltip]="'timeline.unitEditor.fillRange' | transloco"
         data-testid="unit-editor-override-fill-range">
         <mat-icon>format_list_numbered</mat-icon>
-        Fill 1–{{ effectiveSuggestedCount() }}
+        {{
+          'timeline.unitEditor.fillPrefix'
+            | transloco: { max: effectiveSuggestedCount() }
+        }}
       </button>
     }
   </div>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()" data-testid="unit-editor-cancel">
-    Cancel
+    {{ 'cancel' | transloco }}
   </button>
   <button
     mat-button
@@ -159,6 +174,6 @@
     [disabled]="!canSave()"
     (click)="onSave()"
     data-testid="unit-editor-save">
-    Save unit
+    {{ 'timeline.unitEditor.saveUnit' | transloco }}
   </button>
 </mat-dialog-actions>

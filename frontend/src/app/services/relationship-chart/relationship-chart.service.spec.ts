@@ -8,6 +8,7 @@ import {
 } from '@models/element-ref.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { RelationshipService } from '../relationship/relationship.service';
@@ -104,6 +105,7 @@ describe('RelationshipChartService', () => {
     }
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         RelationshipChartService,
         { provide: ProjectStateService, useValue: mockProjectState },

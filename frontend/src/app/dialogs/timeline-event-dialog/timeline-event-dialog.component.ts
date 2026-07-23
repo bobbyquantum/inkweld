@@ -25,6 +25,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { TranslocoModule } from '@jsverse/transloco';
 import {
   isValidTimePointFor,
   type TimePoint,
@@ -73,6 +74,7 @@ interface TimelineEventFormValue {
     MatIconModule,
     MatInputModule,
     MatSelectModule,
+    TranslocoModule,
   ],
   templateUrl: './timeline-event-dialog.component.html',
   styleUrls: ['./timeline-event-dialog.component.scss'],

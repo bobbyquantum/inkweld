@@ -18,6 +18,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type Element, ElementType } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { type TagDefinition } from '@models/tag.model';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
@@ -82,6 +83,7 @@ export interface TagPickerDialogResult {
     MatInputModule,
     MatCheckboxModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './tag-picker-dialog.component.html',
   styleUrls: ['./tag-picker-dialog.component.scss'],
@@ -93,6 +95,7 @@ export class TagPickerDialogComponent {
   private readonly data = inject<TagPickerDialogData>(MAT_DIALOG_DATA);
   private readonly projectState = inject(ProjectStateService);
   private readonly tagService = inject(TagService);
+  private readonly transloco = inject(TranslocoService);
 
   /** Search text */
   readonly searchText = signal('');
@@ -167,9 +170,13 @@ export class TagPickerDialogComponent {
   /** Selection count text */
   readonly selectionCountText = computed(() => {
     const count = this.selectedIds().size;
-    if (count === 0) return 'Nothing selected';
-    if (count === 1) return '1 item selected';
-    return `${count} items selected`;
+    if (count === 0)
+      return this.transloco.translate('dialogs.tagPicker.nothingSelected');
+    if (count === 1)
+      return this.transloco.translate('dialogs.tagPicker.oneSelected');
+    return this.transloco.translate('dialogs.tagPicker.manySelected', {
+      count,
+    });
   });
 
   isSelected(item: TagPickerItem): boolean {

@@ -22,6 +22,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import { type RelationshipTypeDefinition } from '@models/element-ref.model';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
@@ -78,6 +80,8 @@ interface AddRelationshipFormValue {
     MatInputModule,
     MatListModule,
     MatSelectModule,
+    MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './add-relationship-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

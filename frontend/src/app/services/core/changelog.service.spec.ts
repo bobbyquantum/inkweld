@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ChangelogService, type ChangelogVersion } from './changelog.service';
 
 describe('ChangelogService', () => {
@@ -46,6 +47,7 @@ All notable changes to this project will be documented in this file.
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         ChangelogService,

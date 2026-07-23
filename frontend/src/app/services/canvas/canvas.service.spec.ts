@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   type CanvasPin,
   type CanvasText,
@@ -96,6 +97,7 @@ describe('CanvasService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasService,
         { provide: ProjectStateService, useValue: mockProjectState },

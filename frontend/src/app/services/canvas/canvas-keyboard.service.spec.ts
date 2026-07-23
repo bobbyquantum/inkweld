@@ -7,6 +7,7 @@ import {
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   type CanvasKeyboardHandlers,
   CanvasKeyboardService,
@@ -57,7 +58,9 @@ describe('CanvasKeyboardService', () => {
   let handlers: CanvasKeyboardHandlers;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [HostComponent] });
+    TestBed.configureTestingModule({
+      imports: [translocoTestProvider(), HostComponent],
+    });
     const fixture = TestBed.createComponent(HostComponent);
     svc = fixture.componentInstance.svc;
     handlers = createHandlers();

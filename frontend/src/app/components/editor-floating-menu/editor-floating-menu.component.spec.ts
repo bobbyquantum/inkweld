@@ -14,6 +14,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { EditorFloatingMenuComponent } from './editor-floating-menu.component';
 
 // @bobbyquantum/ngx-editor and prosemirror-commands are mocked globally in setup-vitest.ts
@@ -89,7 +90,7 @@ describe('EditorFloatingMenuComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [EditorFloatingMenuComponent],
+      imports: [translocoTestProvider(), EditorFloatingMenuComponent],
       schemas: [NO_ERRORS_SCHEMA],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();

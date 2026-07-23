@@ -4,6 +4,7 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { type Element, ElementType } from '@inkweld/index';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { FindInDocumentService } from '../../services/core/find-in-document.service';
 import {
   type ProjectSearchProgress,
@@ -103,7 +104,11 @@ describe('ProjectSearchDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ProjectSearchDialogComponent, MatDialogModule],
+      imports: [
+        translocoTestProvider(),
+        ProjectSearchDialogComponent,
+        MatDialogModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },

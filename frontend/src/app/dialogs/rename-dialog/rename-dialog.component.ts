@@ -16,6 +16,7 @@ import {
 } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { TranslocoModule } from '@jsverse/transloco';
 
 export interface RenameDialogData {
   currentName: string;
@@ -33,6 +34,7 @@ export interface RenameDialogData {
     MatFormFieldModule,
     MatInputModule,
     FormsModule,
+    TranslocoModule,
   ],
 })
 export class RenameDialogComponent implements AfterViewInit {

@@ -41,6 +41,7 @@ class MockProjectSettingsComponent {}
 })
 class MockAuthorizedAppsComponent {}
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { UserSettingsDialogComponent } from './user-settings-dialog.component';
 
 Object.defineProperty(window, 'matchMedia', {
@@ -119,7 +120,7 @@ describe('UserSettingsDialogComponent', () => {
     class TestWrapperComponent extends UserSettingsDialogComponent {}
 
     await TestBed.configureTestingModule({
-      imports: [TestWrapperComponent],
+      imports: [translocoTestProvider(), TestWrapperComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

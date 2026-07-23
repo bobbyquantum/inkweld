@@ -4,6 +4,7 @@ import { createDefaultPublishStyles } from '@models/publish-style';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ChapterNumbering,
   PublishFormat,
@@ -306,6 +307,7 @@ describe('PublishService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         PublishService,

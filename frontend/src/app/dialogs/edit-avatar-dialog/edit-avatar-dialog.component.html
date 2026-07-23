@@ -1,4 +1,4 @@
-<h1 mat-dialog-title>Edit Avatar</h1>
+<h1 mat-dialog-title>{{ 'settings.accountTab.title' | transloco }}</h1>
 <div mat-dialog-content class="dialog-content">
   <div class="file-input-container">
     <button
@@ -7,7 +7,7 @@
       (click)="fileInput.click()"
       color="primary">
       <mat-icon>add_photo_alternate</mat-icon>
-      Choose Image
+      {{ 'upload' | transloco }}
     </button>
     @if (fileName) {
       <span class="file-name">{{ fileName }}</span>
@@ -19,7 +19,7 @@
       #fileInput
       (change)="fileChangeEvent($event)"
       style="display: none"
-      aria-label="Choose avatar image" />
+      [attr.aria-label]="'upload' | transloco" />
   </div>
   @if (imageChangedEvent) {
     <div class="cropper-container">
@@ -41,7 +41,7 @@
       </image-cropper>
       @if (croppedImage) {
         <div class="preview-container">
-          <h3>Preview</h3>
+          <h3>{{ 'preview' | transloco }}</h3>
           <div class="avatar-preview-wrapper">
             <img
               [src]="croppedImage"
@@ -58,13 +58,13 @@
     mat-button
     (click)="dialogRef.close(false)"
     [disabled]="isSubmitting()">
-    Cancel
+    {{ 'cancel' | transloco }}
   </button>
   <button
     mat-raised-button
     color="primary"
     (click)="submit()"
     [disabled]="isSubmitting() || !croppedBlob">
-    {{ isSubmitting() ? 'Uploading...' : 'Save' }}
+    {{ isSubmitting() ? ('loading' | transloco) : ('save' | transloco) }}
   </button>
 </div>

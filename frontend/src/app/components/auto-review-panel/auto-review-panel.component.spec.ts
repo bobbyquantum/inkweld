@@ -6,6 +6,7 @@ import {
   type AutoReviewSuggestion,
 } from '@services/lint/auto-review.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { AutoReviewPanelComponent } from './auto-review-panel.component';
 
 describe('AutoReviewPanelComponent', () => {
@@ -29,7 +30,7 @@ describe('AutoReviewPanelComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AutoReviewPanelComponent],
+      imports: [translocoTestProvider(), AutoReviewPanelComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: AutoReviewApiService, useValue: mockAutoReviewApi },

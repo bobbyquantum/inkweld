@@ -9,6 +9,7 @@ import { TagService } from '@services/tag/tag.service';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   type ProjectSearchProgress,
   ProjectSearchService,
@@ -135,6 +136,7 @@ describe('ProjectSearchService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         ProjectSearchService,

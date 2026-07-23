@@ -9,6 +9,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { ElementType, type Project } from '@inkweld/index';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
@@ -66,6 +67,7 @@ describe('NewElementDialogComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         NewElementDialogComponent,
         MatDialogModule,
         MatFormFieldModule,

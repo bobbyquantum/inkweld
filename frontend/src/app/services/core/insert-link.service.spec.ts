@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { InsertLinkService } from './insert-link.service';
 
 describe('InsertLinkService', () => {
@@ -9,6 +10,7 @@ describe('InsertLinkService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [provideZonelessChangeDetection(), InsertLinkService],
     });
     service = TestBed.inject(InsertLinkService);

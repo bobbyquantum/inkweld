@@ -3,6 +3,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   CreateSnapshotDialogComponent,
   type CreateSnapshotDialogData,
@@ -24,7 +25,7 @@ describe('CreateSnapshotDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [CreateSnapshotDialogComponent],
+      imports: [translocoTestProvider(), CreateSnapshotDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRefMock },
@@ -148,7 +149,7 @@ describe('CreateSnapshotDialogComponent', () => {
     it('should handle undefined word count', async () => {
       TestBed.resetTestingModule();
       await TestBed.configureTestingModule({
-        imports: [CreateSnapshotDialogComponent],
+        imports: [translocoTestProvider(), CreateSnapshotDialogComponent],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MatDialogRef, useValue: dialogRefMock },

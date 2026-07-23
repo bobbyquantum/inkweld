@@ -10,6 +10,7 @@ import {
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { CommentPanelComponent } from './comment-panel.component';
 
 function createMockCommentService() {
@@ -63,7 +64,7 @@ describe('CommentPanelComponent', () => {
     mockCommentService = createMockCommentService();
 
     await TestBed.configureTestingModule({
-      imports: [CommentPanelComponent],
+      imports: [translocoTestProvider(), CommentPanelComponent],
       providers: [
         provideHttpClient(withXhr()),
         { provide: CommentService, useValue: mockCommentService },

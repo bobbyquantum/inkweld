@@ -12,6 +12,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { PublishedFilesService } from '@services/publish/published-files.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 import { PublishPlansListTabComponent } from './publish-plans-list-tab.component';
 
@@ -51,7 +52,7 @@ describe('PublishPlansListTabComponent', () => {
     vi.clearAllMocks();
 
     await TestBed.configureTestingModule({
-      imports: [PublishPlansListTabComponent],
+      imports: [translocoTestProvider(), PublishPlansListTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },

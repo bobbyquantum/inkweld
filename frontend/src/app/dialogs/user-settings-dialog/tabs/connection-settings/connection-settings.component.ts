@@ -16,6 +16,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { LoggerService } from '@services/core/logger.service';
 import { SetupService } from '@services/core/setup.service';
@@ -42,6 +43,7 @@ import {
     MatProgressSpinnerModule,
     MatProgressBarModule,
     FormsModule,
+    TranslocoModule,
   ],
   templateUrl: './connection-settings.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -56,6 +58,7 @@ export class ConnectionSettingsComponent {
   private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
   private readonly logger = inject(LoggerService);
+  private readonly transloco = inject(TranslocoService);
 
   protected currentMode = this.setupService.getMode();
   protected currentServerUrl = this.setupService.getServerUrl() || '';
@@ -104,20 +107,30 @@ export class ConnectionSettingsComponent {
       // Navigate to setup page which will handle the transition
       this.setupService.resetConfiguration();
       await this.router.navigate(['/setup']);
-      this.snackBar.open('Switched to local mode configuration', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('settings.connectionTab.switchedToLocal'),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
     } catch (error) {
       console.error('Failed to switch to local mode:', error);
-      this.snackBar.open('Failed to switch modes', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('settings.connectionTab.switchFailed'),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
     }
   }
 
   async switchToServerMode() {
     if (!this.newServerUrl.trim()) {
-      this.connectionError.set('Please enter a server URL');
+      this.connectionError.set(
+        this.transloco.translate('settings.connectionTab.enterServerUrl')
+      );
       return;
     }
 
@@ -135,7 +148,7 @@ export class ConnectionSettingsComponent {
     } catch (error) {
       console.error('Failed to connect to server:', error);
       this.connectionError.set(
-        'Failed to connect to server. Please check the URL and try again.'
+        this.transloco.translate('settings.connectionTab.connectionFailed')
       );
     } finally {
       this.isConnecting.set(false);
@@ -148,7 +161,9 @@ export class ConnectionSettingsComponent {
 
   async testConnection() {
     if (!this.newServerUrl.trim()) {
-      this.connectionError.set('Please enter a server URL');
+      this.connectionError.set(
+        this.transloco.translate('settings.connectionTab.enterServerUrl')
+      );
       return;
     }
 
@@ -158,15 +173,23 @@ export class ConnectionSettingsComponent {
     try {
       const response = await fetch(`${this.newServerUrl.trim()}/api/v1/health`);
       if (response.ok) {
-        this.snackBar.open('Connection successful!', 'Close', {
-          duration: 3000,
-        });
+        this.snackBar.open(
+          this.transloco.translate('settings.connectionTab.connectionSuccess'),
+          this.transloco.translate('close'),
+          {
+            duration: 3000,
+          }
+        );
       } else {
-        this.connectionError.set('Server is not responding correctly');
+        this.connectionError.set(
+          this.transloco.translate('settings.connectionTab.serverNotResponding')
+        );
       }
     } catch (error) {
       console.error('Connection test failed:', error);
-      this.connectionError.set('Failed to connect to server');
+      this.connectionError.set(
+        this.transloco.translate('settings.connectionTab.connectionFailed')
+      );
     } finally {
       this.isConnecting.set(false);
     }
@@ -177,7 +200,9 @@ export class ConnectionSettingsComponent {
    */
   async startMigration() {
     if (!this.newServerUrl.trim()) {
-      this.connectionError.set('Please enter a server URL');
+      this.connectionError.set(
+        this.transloco.translate('settings.connectionTab.enterServerUrl')
+      );
       return;
     }
 
@@ -229,7 +254,9 @@ export class ConnectionSettingsComponent {
 
     // Validation
     if (!usernameValue || !passwordValue) {
-      this.authError.set('Please enter username and password');
+      this.authError.set(
+        this.transloco.translate('settings.connectionTab.enterCredentials')
+      );
       return;
     }
 
@@ -237,7 +264,9 @@ export class ConnectionSettingsComponent {
       this.authMode() === 'register' &&
       passwordValue !== confirmPasswordValue
     ) {
-      this.authError.set('Passwords do not match');
+      this.authError.set(
+        this.transloco.translate('settings.connectionTab.passwordsMismatch')
+      );
       return;
     }
 
@@ -290,8 +319,10 @@ export class ConnectionSettingsComponent {
 
       if (state.status === MigrationStatus.Completed) {
         this.snackBar.open(
-          `Successfully migrated ${state.completedProjects} project(s)!`,
-          'Close',
+          this.transloco.translate('settings.connectionTab.migrationSuccess', {
+            count: state.completedProjects,
+          }),
+          this.transloco.translate('close'),
           { duration: 5000 }
         );
 
@@ -317,8 +348,11 @@ export class ConnectionSettingsComponent {
         }, 1000);
       } else if (state.status === MigrationStatus.Failed) {
         this.snackBar.open(
-          `Migration completed with errors. ${state.completedProjects} succeeded, ${state.failedProjects} failed.`,
-          'Close',
+          this.transloco.translate(
+            'settings.connectionTab.migrationErrorsSnackbar',
+            { success: state.completedProjects, failed: state.failedProjects }
+          ),
+          this.transloco.translate('close'),
           { duration: 7000 }
         );
       }
@@ -327,7 +361,7 @@ export class ConnectionSettingsComponent {
       this.authError.set(
         error instanceof Error
           ? error.message
-          : 'Authentication failed. Please try again.'
+          : this.transloco.translate('settings.connectionTab.authFailed')
       );
     } finally {
       this.isAuthenticating.set(false);

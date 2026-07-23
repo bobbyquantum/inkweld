@@ -7,6 +7,7 @@ import {
 } from '@angular/material/dialog';
 import { describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   AddMediaDialogComponent,
   type AddMediaDialogData,
@@ -22,7 +23,11 @@ describe('AddMediaDialogComponent', () => {
     } as unknown as MatDialogRef<AddMediaDialogComponent>;
 
     TestBed.configureTestingModule({
-      imports: [AddMediaDialogComponent, MatDialogModule],
+      imports: [
+        translocoTestProvider(),
+        AddMediaDialogComponent,
+        MatDialogModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },

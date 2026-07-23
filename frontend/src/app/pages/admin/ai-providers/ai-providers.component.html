@@ -1,22 +1,24 @@
 <div class="ai-providers-container" data-testid="admin-ai-providers-page">
-  <h1>AI Providers</h1>
+  <h1>{{ 'admin.aiProviders.title' | transloco }}</h1>
   <p class="description">
-    Configure API keys for AI service providers. These keys are shared across
-    all AI features including image generation and text generation.
+    {{ 'admin.aiProviders.description' | transloco }}
   </p>
 
   @if (isLoading()) {
     <div class="loading-container" data-testid="ai-providers-loading">
       <mat-spinner diameter="40"></mat-spinner>
-      <p>Loading provider configuration...</p>
+      <p>{{ 'admin.aiProviders.loading' | transloco }}</p>
     </div>
   } @else if (error()) {
     <mat-card class="error-card" data-testid="ai-providers-error">
       <mat-card-content>
         <mat-icon>error</mat-icon>
-        <span>Failed to load providers: {{ error()?.message }}</span>
+        <span>{{
+          'admin.aiProviders.loadFailed'
+            | transloco: { error: error()?.message }
+        }}</span>
         <button mat-button color="primary" (click)="loadProviders()">
-          Retry
+          {{ 'retry' | transloco }}
         </button>
       </mat-card-content>
     </mat-card>
@@ -49,57 +51,63 @@
 
             <!-- Enable/Disable toggle -->
             <div class="toggle-row">
-              <span class="toggle-label">Enabled</span>
+              <span class="toggle-label">{{
+                'admin.aiProviders.enabled' | transloco
+              }}</span>
               <mat-slide-toggle
                 [checked]="provider.imageEnabled ?? false"
                 (change)="toggleProviderEnabled(provider)"
                 [disabled]="provider.isSaving || !provider.hasApiKey"
                 [matTooltip]="
                   !provider.hasApiKey
-                    ? 'Configure API key first'
+                    ? ('admin.aiProviders.configureFirst' | transloco)
                     : provider.imageEnabled
-                      ? 'Disable provider'
-                      : 'Enable provider'
+                      ? ('admin.aiProviders.disableProvider' | transloco)
+                      : ('admin.aiProviders.enableProvider' | transloco)
                 "
                 [attr.data-testid]="'ai-provider-toggle-' + provider.id">
               </mat-slide-toggle>
             </div>
 
             <div class="status-row">
-              <span class="status-label">API Key:</span>
+              <span class="status-label">{{
+                'admin.aiProviders.apiKeyStatus' | transloco
+              }}</span>
               @if (provider.hasApiKey) {
                 <span
                   class="status-value configured"
                   data-testid="ai-provider-key-configured">
                   <mat-icon>check_circle</mat-icon>
-                  Configured
+                  {{ 'admin.aiProviders.configured' | transloco }}
                 </span>
               } @else {
                 <span
                   class="status-value not-configured"
                   data-testid="ai-provider-key-not-configured">
                   <mat-icon>cancel</mat-icon>
-                  Not configured
+                  {{ 'admin.aiProviders.notConfigured' | transloco }}
                 </span>
               }
             </div>
 
             @if (provider.requiresEndpoint) {
               <div class="status-row">
-                <span class="status-label">Endpoint:</span>
+                <span class="status-label">{{
+                  'admin.aiProviders.endpointStatus' | transloco
+                }}</span>
                 @if (provider.hasEndpoint) {
                   <span
                     class="status-value configured"
                     data-testid="ai-provider-endpoint-configured">
                     <mat-icon>check_circle</mat-icon>
-                    Configured
+                    {{ 'admin.aiProviders.configured' | transloco }}
                   </span>
                 } @else {
                   <span
                     class="status-value not-configured"
                     data-testid="ai-provider-endpoint-not-configured">
                     <mat-icon>cancel</mat-icon>
-                    Not configured
+                    {{ 'admin.aiProviders.notConfigured' | transloco }}
                   </span>
                 }
               </div>
@@ -107,20 +115,22 @@
 
             @if (provider.requiresAccountId) {
               <div class="status-row">
-                <span class="status-label">Account ID:</span>
+                <span class="status-label">{{
+                  'admin.aiProviders.accountIdStatus' | transloco
+                }}</span>
                 @if (provider.hasAccountId) {
                   <span
                     class="status-value configured"
                     data-testid="ai-provider-account-id-configured">
                     <mat-icon>check_circle</mat-icon>
-                    Configured
+                    {{ 'admin.aiProviders.configured' | transloco }}
                   </span>
                 } @else {
                   <span
                     class="status-value not-configured"
                     data-testid="ai-provider-account-id-not-configured">
                     <mat-icon>cancel</mat-icon>
-                    Not configured
+                    {{ 'admin.aiProviders.notConfigured' | transloco }}
                   </span>
                 }
               </div>
@@ -130,7 +140,9 @@
             @if (provider.isEditingKey) {
               <div class="edit-section" data-testid="ai-provider-key-edit">
                 <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>API Key</mat-label>
+                  <mat-label>{{
+                    'admin.aiProviders.apiKeyLabel' | transloco
+                  }}</mat-label>
                   <input
                     matInput
                     id="ai-provider-key-input"
@@ -139,9 +151,13 @@
                     (input)="
                       updateProviderApiKey(provider, $any($event.target).value)
                     "
-                    placeholder="Enter API key"
+                    [placeholder]="
+                      'admin.aiProviders.apiKeyPlaceholder' | transloco
+                    "
                     data-testid="ai-provider-key-input"
-                    aria-label="API key" />
+                    [attr.aria-label]="
+                      'admin.aiProviders.apiKeyAria' | transloco
+                    " />
                 </mat-form-field>
                 <div class="edit-actions">
                   <button
@@ -149,7 +165,7 @@
                     (click)="cancelEditingKey(provider)"
                     [disabled]="provider.isSaving"
                     data-testid="ai-provider-key-cancel">
-                    Cancel
+                    {{ 'cancel' | transloco }}
                   </button>
                   <button
                     mat-flat-button
@@ -160,7 +176,7 @@
                     @if (provider.isSaving) {
                       <mat-spinner diameter="20"></mat-spinner>
                     } @else {
-                      Save
+                      {{ 'save' | transloco }}
                     }
                   </button>
                 </div>
@@ -171,7 +187,9 @@
             @if (provider.isEditingEndpoint) {
               <div class="edit-section" data-testid="ai-provider-endpoint-edit">
                 <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Endpoint URL</mat-label>
+                  <mat-label>{{
+                    'admin.aiProviders.endpointLabel' | transloco
+                  }}</mat-label>
                   <input
                     matInput
                     id="ai-provider-endpoint-input"
@@ -183,9 +201,13 @@
                         $any($event.target).value
                       )
                     "
-                    placeholder="https://your-sd-endpoint.com"
+                    [placeholder]="
+                      'admin.aiProviders.endpointPlaceholder' | transloco
+                    "
                     data-testid="ai-provider-endpoint-input"
-                    aria-label="Endpoint URL" />
+                    [attr.aria-label]="
+                      'admin.aiProviders.endpointAria' | transloco
+                    " />
                 </mat-form-field>
                 <div class="edit-actions">
                   <button
@@ -193,7 +215,7 @@
                     (click)="cancelEditingEndpoint(provider)"
                     [disabled]="provider.isSaving"
                     data-testid="ai-provider-endpoint-cancel">
-                    Cancel
+                    {{ 'cancel' | transloco }}
                   </button>
                   <button
                     mat-flat-button
@@ -204,7 +226,7 @@
                     @if (provider.isSaving) {
                       <mat-spinner diameter="20"></mat-spinner>
                     } @else {
-                      Save
+                      {{ 'save' | transloco }}
                     }
                   </button>
                 </div>
@@ -217,7 +239,9 @@
                 class="edit-section"
                 data-testid="ai-provider-account-id-edit">
                 <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Account ID</mat-label>
+                  <mat-label>{{
+                    'admin.aiProviders.accountIdLabel' | transloco
+                  }}</mat-label>
                   <input
                     matInput
                     id="ai-provider-account-id-input"
@@ -229,9 +253,13 @@
                         $any($event.target).value
                       )
                     "
-                    placeholder="Your Cloudflare Account ID"
+                    [placeholder]="
+                      'admin.aiProviders.accountIdPlaceholder' | transloco
+                    "
                     data-testid="ai-provider-account-id-input"
-                    aria-label="Account ID" />
+                    [attr.aria-label]="
+                      'admin.aiProviders.accountIdAria' | transloco
+                    " />
                 </mat-form-field>
                 <div class="edit-actions">
                   <button
@@ -239,7 +267,7 @@
                     (click)="cancelEditingAccountId(provider)"
                     [disabled]="provider.isSaving"
                     data-testid="ai-provider-account-id-cancel">
-                    Cancel
+                    {{ 'cancel' | transloco }}
                   </button>
                   <button
                     mat-flat-button
@@ -250,7 +278,7 @@
                     @if (provider.isSaving) {
                       <mat-spinner diameter="20"></mat-spinner>
                     } @else {
-                      Save
+                      {{ 'save' | transloco }}
                     }
                   </button>
                 </div>
@@ -273,7 +301,11 @@
                     : 'ai-provider-add-key-' + provider.id
                 ">
                 <mat-icon>{{ provider.hasApiKey ? 'edit' : 'add' }}</mat-icon>
-                {{ provider.hasApiKey ? 'Update Key' : 'Add Key' }}
+                {{
+                  provider.hasApiKey
+                    ? ('admin.aiProviders.updateKey' | transloco)
+                    : ('admin.aiProviders.addKey' | transloco)
+                }}
               </button>
 
               @if (provider.hasApiKey) {
@@ -284,7 +316,7 @@
                   [disabled]="provider.isSaving"
                   [attr.data-testid]="'ai-provider-delete-key-' + provider.id">
                   <mat-icon>delete</mat-icon>
-                  Delete Key
+                  {{ 'admin.aiProviders.deleteKey' | transloco }}
                 </button>
               }
             }
@@ -301,7 +333,11 @@
                     : 'ai-provider-add-endpoint-' + provider.id
                 ">
                 <mat-icon>{{ provider.hasEndpoint ? 'edit' : 'add' }}</mat-icon>
-                {{ provider.hasEndpoint ? 'Update Endpoint' : 'Add Endpoint' }}
+                {{
+                  provider.hasEndpoint
+                    ? ('admin.aiProviders.updateEndpoint' | transloco)
+                    : ('admin.aiProviders.addEndpoint' | transloco)
+                }}
               </button>
             }
 
@@ -320,7 +356,9 @@
                   provider.hasAccountId ? 'edit' : 'add'
                 }}</mat-icon>
                 {{
-                  provider.hasAccountId ? 'Update Account ID' : 'Add Account ID'
+                  provider.hasAccountId
+                    ? ('admin.aiProviders.updateAccountId' | transloco)
+                    : ('admin.aiProviders.addAccountId' | transloco)
                 }}
               </button>
             }

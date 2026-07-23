@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { CanvasService } from './canvas.service';
 import { CanvasClipboardService } from './canvas-clipboard.service';
 import {
@@ -34,6 +35,7 @@ describe('CanvasContextMenuService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasContextMenuService,
         { provide: CanvasClipboardService, useValue: clipboard },

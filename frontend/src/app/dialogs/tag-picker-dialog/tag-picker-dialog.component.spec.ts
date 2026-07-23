@@ -11,6 +11,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
 import { describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   TagPickerDialogComponent,
   type TagPickerDialogData,
@@ -92,7 +93,11 @@ describe('TagPickerDialogComponent', () => {
     } as unknown as MatDialogRef<TagPickerDialogComponent>;
 
     TestBed.configureTestingModule({
-      imports: [TagPickerDialogComponent, MatDialogModule],
+      imports: [
+        translocoTestProvider(),
+        TagPickerDialogComponent,
+        MatDialogModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },

@@ -28,6 +28,7 @@ import {
   RouterModule,
 } from '@angular/router';
 import { type Element, ElementType } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
 import { DocumentService } from '@services/project/document.service';
 import {
@@ -84,6 +85,7 @@ const TAB_TYPE_ICONS: Partial<Record<AppTab['type'], string>> = {
     CdkMenuItem,
     CdkDropList,
     CdkDrag,
+    TranslocoModule,
   ],
 })
 export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {

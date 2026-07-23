@@ -9,6 +9,7 @@ import { MatCard, MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AnnouncementCardComponent } from '@components/announcement-card/announcement-card.component';
+import { TranslocoModule } from '@jsverse/transloco';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 
 @Component({
@@ -19,6 +20,7 @@ import { AnnouncementService } from '@services/announcement/announcement.service
     MatIconModule,
     AnnouncementCardComponent,
     MatCard,
+    TranslocoModule,
   ],
   templateUrl: './announcement-feed.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

@@ -13,6 +13,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterModule } from '@angular/router';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
+import { TranslocoModule } from '@jsverse/transloco';
 import packageJson from '@package';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 
@@ -37,6 +38,7 @@ function stripSemverPrefix(version: string): string {
     MatListModule,
     MatProgressSpinnerModule,
     RouterModule,
+    TranslocoModule,
     UserMenuComponent,
   ],
   templateUrl: './about.component.html',

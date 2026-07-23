@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   output,
 } from '@angular/core';
@@ -9,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoService } from '@jsverse/transloco';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type MediaSyncState } from '../../services/local/media-sync.service';
@@ -35,6 +37,7 @@ import { type MediaSyncState } from '../../services/local/media-sync.service';
 })
 export class ConnectionStatusComponent {
   protected readonly DocumentSyncState = DocumentSyncState;
+  private readonly transloco = inject(TranslocoService);
 
   /** Current document sync state */
   syncState = input.required<DocumentSyncState>();
@@ -106,19 +109,19 @@ export class ConnectionStatusComponent {
   syncStatusText = computed(() => {
     // In local mode, always show "Local Mode" regardless of sync state
     if (this.isLocalMode()) {
-      return 'Local Mode';
+      return this.transloco.translate('project.connection.localMode');
     }
     switch (this.syncState()) {
       case DocumentSyncState.Synced:
-        return 'Connected';
+        return this.transloco.translate('project.connection.connected');
       case DocumentSyncState.Syncing:
-        return 'Offline Mode'; // Show as offline while connecting
+        return this.transloco.translate('project.connection.offlineMode'); // Show as offline while connecting
       case DocumentSyncState.Local:
-        return 'Offline Mode';
+        return this.transloco.translate('project.connection.offlineMode');
       case DocumentSyncState.Unavailable:
-        return 'Connection Failed';
+        return this.transloco.translate('project.connection.connectionFailed');
       default:
-        return 'Unknown';
+        return this.transloco.translate('project.connection.unknown');
     }
   });
 
@@ -126,22 +129,28 @@ export class ConnectionStatusComponent {
   syncTooltip = computed(() => {
     // In local mode, show local-specific tooltip
     if (this.isLocalMode()) {
-      return 'Working in local mode - changes saved to browser storage';
+      return this.transloco.translate('project.connection.localTooltip');
     }
     const error = this.lastError();
     switch (this.syncState()) {
       case DocumentSyncState.Synced:
-        return 'Project is synced with server';
+        return this.transloco.translate('project.connection.connectedTooltip');
       case DocumentSyncState.Syncing:
-        return 'Connecting to server...';
+        return this.transloco.translate('project.connection.connectingTooltip');
       case DocumentSyncState.Local:
         return error
-          ? `Working offline (Last error: ${error})`
-          : 'Working offline - changes saved locally';
+          ? this.transloco.translate('project.connection.offlineTooltip', {
+              error,
+            })
+          : this.transloco.translate(
+              'project.connection.offlineNoErrorTooltip'
+            );
       case DocumentSyncState.Unavailable:
         return error
-          ? `Connection failed: ${error}`
-          : 'Unable to connect to server';
+          ? this.transloco.translate('project.connection.failedTooltip', {
+              error,
+            })
+          : this.transloco.translate('project.connection.failedNoErrorTooltip');
       default:
         return '';
     }
@@ -150,13 +159,15 @@ export class ConnectionStatusComponent {
   /** Get tooltip for the retry button - includes last error if available */
   retryButtonTooltip = computed(() => {
     if (this.isConnecting()) {
-      return 'Connecting to server...';
+      return this.transloco.translate('project.connection.retryConnecting');
     }
     const error = this.lastError();
     if (error) {
-      return `Retry sync (Last error: ${error})`;
+      return this.transloco.translate('project.connection.retryWithError', {
+        error,
+      });
     }
-    return 'Retry sync';
+    return this.transloco.translate('project.connection.retry');
   });
 
   /** Check if media is fully synced */
@@ -180,13 +191,17 @@ export class ConnectionStatusComponent {
     const state = this.mediaSyncState();
     if (!state) return '';
     if (state.isSyncing) {
-      return `Syncing media... ${state.downloadProgress}%`;
+      return this.transloco.translate('project.connection.syncingMedia', {
+        progress: state.downloadProgress,
+      });
     }
     if (this.isMediaSynced()) {
-      return 'Media synced';
+      return this.transloco.translate('project.connection.mediaSynced');
     }
     const pending = state.needsDownload + state.needsUpload;
-    return `${pending} media pending`;
+    return this.transloco.translate('project.connection.mediaPending', {
+      count: pending,
+    });
   });
 
   /** Get tooltip for media status */
@@ -194,17 +209,27 @@ export class ConnectionStatusComponent {
     const state = this.mediaSyncState();
     if (!state) return '';
     if (state.isSyncing) {
-      return `Downloading: ${state.downloadProgress}%`;
+      return this.transloco.translate('project.connection.downloading', {
+        progress: state.downloadProgress,
+      });
     }
     if (this.isMediaSynced()) {
-      return 'All media files are synced';
+      return this.transloco.translate('project.connection.allMediaSynced');
     }
     const parts: string[] = [];
     if (state.needsDownload > 0) {
-      parts.push(`${state.needsDownload} to download`);
+      parts.push(
+        this.transloco.translate('project.connection.toDownload', {
+          count: state.needsDownload,
+        })
+      );
     }
     if (state.needsUpload > 0) {
-      parts.push(`${state.needsUpload} to upload`);
+      parts.push(
+        this.transloco.translate('project.connection.toUpload', {
+          count: state.needsUpload,
+        })
+      );
     }
     return parts.join(', ');
   });

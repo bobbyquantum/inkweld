@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   type UnitEditorData,
   UnitEditorDialogComponent,
@@ -30,7 +31,7 @@ const makeData = (overrides: Partial<UnitEditorData> = {}): UnitEditorData => ({
 async function createComponent(data: UnitEditorData = makeData()) {
   const closeSpy = vi.fn();
   await TestBed.configureTestingModule({
-    imports: [UnitEditorDialogComponent],
+    imports: [translocoTestProvider(), UnitEditorDialogComponent],
     providers: [
       { provide: MAT_DIALOG_DATA, useValue: data },
       { provide: MatDialogRef, useValue: { close: closeSpy } },

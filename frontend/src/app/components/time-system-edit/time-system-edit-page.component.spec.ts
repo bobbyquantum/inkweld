@@ -6,6 +6,7 @@ import { TimeSystemLibraryService } from '@services/timeline/time-system-library
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { TimeSystemEditPageComponent } from './time-system-edit-page.component';
 
 function makeLibraryMock(initialSystems: TimeSystem[] = []) {
@@ -30,7 +31,7 @@ async function createComponent(
   const dialogMock = { open: vi.fn().mockReturnValue(dialogRef) };
 
   await TestBed.configureTestingModule({
-    imports: [TimeSystemEditPageComponent],
+    imports: [translocoTestProvider(), TimeSystemEditPageComponent],
     providers: [
       { provide: TimeSystemLibraryService, useValue: libraryMock },
       { provide: MatDialog, useValue: dialogMock },

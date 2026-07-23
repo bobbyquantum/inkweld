@@ -44,6 +44,7 @@ import {
   type User,
   type UsernameAvailability,
 } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
@@ -108,6 +109,7 @@ interface RegistrationFormValue {
     KeyValuePipe,
     OverlayModule,
     MatProgressSpinnerModule,
+    TranslocoModule,
   ],
   templateUrl: './registration-form.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

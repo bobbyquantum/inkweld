@@ -16,6 +16,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AdminConfigService } from '@services/admin/admin-config.service';
 import { SetupService } from '@services/core/setup.service';
 
@@ -33,6 +34,7 @@ import { SetupService } from '@services/core/setup.service';
     MatSnackBarModule,
     MatStepperModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './github-settings.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -42,6 +44,7 @@ export class AdminGithubSettingsComponent implements OnInit {
   private readonly configService = inject(AdminConfigService);
   private readonly setupService = inject(SetupService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
 
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
@@ -96,9 +99,11 @@ export class AdminGithubSettingsComponent implements OnInit {
   async toggleGithubEnabled(enabled: boolean): Promise<void> {
     // Don't allow enabling without credentials
     if (enabled && !this.isConfigured()) {
-      this.snackBar.open('Configure GitHub credentials first', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.github.configureFirstError'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       return;
     }
 
@@ -110,14 +115,18 @@ export class AdminGithubSettingsComponent implements OnInit {
       );
       this.githubEnabled.set(enabled);
       this.snackBar.open(
-        enabled ? 'GitHub sign-in enabled' : 'GitHub sign-in disabled',
-        'Close',
+        enabled
+          ? this.transloco.translate('admin.github.githubSignIn') + ' enabled'
+          : this.transloco.translate('admin.github.githubSignIn') + ' disabled',
+        this.transloco.translate('close'),
         { duration: 2000 }
       );
     } catch {
-      this.snackBar.open('Failed to save setting', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.github.saveFailed'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       this.githubEnabled.set(!enabled);
     } finally {
       this.isSaving.set(false);
@@ -127,7 +136,11 @@ export class AdminGithubSettingsComponent implements OnInit {
   async saveCredentials(): Promise<void> {
     const id = this.clientId().trim();
     if (!id) {
-      this.snackBar.open('Client ID is required', 'Close', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('admin.github.clientIdRequired'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
       return;
     }
 
@@ -150,13 +163,17 @@ export class AdminGithubSettingsComponent implements OnInit {
 
       this.isConfigured.set(true);
       this.clientSecret.set(''); // Clear the field after save
-      this.snackBar.open('GitHub credentials saved', 'Close', {
-        duration: 2000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.github.credentialsSaved'),
+        this.transloco.translate('close'),
+        { duration: 2000 }
+      );
     } catch {
-      this.snackBar.open('Failed to save credentials', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.github.credentialsSaveFailed'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
     } finally {
       this.isSaving.set(false);
     }

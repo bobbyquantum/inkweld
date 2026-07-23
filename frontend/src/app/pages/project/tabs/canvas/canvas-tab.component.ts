@@ -21,6 +21,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
+import { TranslocoModule } from '@jsverse/transloco';
 import {
   type CanvasLayer,
   type CanvasObject,
@@ -76,6 +77,7 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
     MatIconModule,
     MatMenuModule,
     MatTooltipModule,
+    TranslocoModule,
     TabPresenceIndicatorComponent,
     DocumentBreadcrumbsComponent,
   ],

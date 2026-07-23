@@ -4,6 +4,7 @@ import { type PresenceSession } from '@inkweld/presence';
 import { BehaviorSubject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
 import { UnifiedUserService } from '../user/unified-user.service';
@@ -40,6 +41,7 @@ function setupService(opts: {
   currentUser: Signal<{ id?: string; username: string } | null>;
 }): PresenceService {
   TestBed.configureTestingModule({
+    imports: [translocoTestProvider()],
     providers: [
       PresenceService,
       {

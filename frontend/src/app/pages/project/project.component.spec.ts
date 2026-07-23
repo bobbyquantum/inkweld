@@ -31,6 +31,7 @@ import { type SplitGutterInteractionEvent } from 'angular-split';
 import { BehaviorSubject, of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentElementEditorComponent } from '../../components/document-element-editor/document-element-editor.component';
 import { ProjectTreeComponent } from '../../components/project-tree/project-tree.component';
 import { UserMenuComponent } from '../../components/user-menu/user-menu.component';
@@ -261,7 +262,7 @@ describe('ProjectComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ProjectComponent],
+      imports: [translocoTestProvider(), ProjectComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

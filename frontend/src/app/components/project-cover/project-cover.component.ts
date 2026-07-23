@@ -13,6 +13,7 @@ import {
   type SimpleChanges,
 } from '@angular/core';
 import { type Project } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 
 import { SetupService } from '../../services/core/setup.service';
@@ -23,7 +24,7 @@ export type ProjectCoverVariant = 'card' | 'list' | 'small';
 
 @Component({
   selector: 'app-project-cover',
-  imports: [],
+  imports: [TranslocoModule],
   templateUrl: './project-cover.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./project-cover.component.scss'],

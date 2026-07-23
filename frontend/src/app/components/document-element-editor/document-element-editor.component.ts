@@ -36,6 +36,7 @@ import { type InsertLinkDialogResult } from '@dialogs/insert-link-dialog/insert-
 import { type SnapshotsDialogData } from '@dialogs/snapshots-dialog/snapshots-dialog.component';
 import { type TagEditorDialogData } from '@dialogs/tag-editor-dialog/tag-editor-dialog.component';
 import { type AutoReviewMarkAttrs } from '@inkweld/prosemirror/schema';
+import { TranslocoModule } from '@jsverse/transloco';
 import { type ResolvedTag } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { FindInDocumentService } from '@services/core/find-in-document.service';
@@ -98,6 +99,7 @@ import { createMediaUrl } from '../image-paste';
     FindInDocumentComponent,
     CommentPopoverComponent,
     CommentPanelComponent,
+    TranslocoModule,
   ],
   templateUrl: './document-element-editor.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

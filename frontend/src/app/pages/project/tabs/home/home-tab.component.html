@@ -13,7 +13,9 @@
         [attr.tabindex]="projectState.canWrite() ? 0 : null"
         [attr.role]="projectState.canWrite() ? 'button' : null"
         [attr.aria-label]="
-          projectState.canWrite() ? 'Edit project cover' : null
+          projectState.canWrite()
+            ? ('project.homeTab.editCover' | transloco)
+            : null
         ">
         <app-project-cover
           [project]="projectState.project()!"
@@ -39,7 +41,9 @@
         [attr.tabindex]="projectState.canWrite() ? 0 : null"
         [attr.role]="projectState.canWrite() ? 'button' : null"
         [attr.aria-label]="
-          projectState.canWrite() ? 'Edit project details' : null
+          projectState.canWrite()
+            ? ('project.homeTab.editDetails' | transloco)
+            : null
         ">
         <div class="header-content">
           <div class="project-info">
@@ -59,29 +63,29 @@
   <div class="columns-container">
     <div class="home-column">
       <div class="home-column-header">
-        <h3>Start</h3>
+        <h3>{{ 'project.homeTab.start' | transloco }}</h3>
       </div>
 
       <div class="start-actions">
         <button mat-button color="primary" (click)="onNewFileClick()">
           <mat-icon>note_add</mat-icon>
-          New File
+          {{ 'project.homeTab.newFile' | transloco }}
         </button>
         <button mat-button color="primary" (click)="onExportClick()">
           <mat-icon>cloud_download</mat-icon>
-          Export Project
+          {{ 'project.homeTab.exportProject' | transloco }}
         </button>
         <button mat-button color="primary" (click)="onImportClick()">
           <mat-icon>cloud_upload</mat-icon>
-          Import Project
+          {{ 'project.homeTab.importProject' | transloco }}
         </button>
         <button mat-button color="primary" (click)="onPublishClick()">
           <mat-icon>cloud_upload</mat-icon>
-          Publish Project
+          {{ 'project.homeTab.publishProject' | transloco }}
         </button>
         <button mat-button color="primary" (click)="openMediaTab()">
           <mat-icon>perm_media</mat-icon>
-          Media Library
+          {{ 'project.homeTab.mediaLibrary' | transloco }}
         </button>
         <button
           mat-button
@@ -89,7 +93,7 @@
           (click)="openTemplatesTab()"
           data-testid="template-library-button">
           <mat-icon>description</mat-icon>
-          Templates
+          {{ 'project.homeTab.templates' | transloco }}
         </button>
         <button
           mat-button
@@ -97,13 +101,13 @@
           (click)="openSettingsTab()"
           data-testid="project-settings-button">
           <mat-icon>settings</mat-icon>
-          Project Settings
+          {{ 'project.homeTab.projectSettings' | transloco }}
         </button>
       </div>
     </div>
     <div class="home-column">
       <div class="home-column-header">
-        <h3>Pinned</h3>
+        <h3>{{ 'project.homeTab.pinned' | transloco }}</h3>
       </div>
       @if (pinnedElements().length > 0) {
         <div class="recent-files-list" data-testid="home-pinned-list">
@@ -121,13 +125,13 @@
       } @else {
         <p class="no-recent-files" data-testid="home-pinned-empty">
           <mat-icon>info</mat-icon>
-          No pinned elements yet. Right-click an element to pin it.
+          {{ 'project.homeTab.noPinned' | transloco }}
         </p>
       }
     </div>
     <div class="home-column">
       <div class="home-column-header">
-        <h3>Recent Elements</h3>
+        <h3>{{ 'project.homeTab.recentElements' | transloco }}</h3>
       </div>
       @if (
         projectState.project() &&
@@ -158,7 +162,7 @@
       } @else {
         <p class="no-recent-files">
           <mat-icon>info</mat-icon>
-          No recent elements yet. Open documents to see them here.
+          {{ 'project.homeTab.noRecent' | transloco }}
         </p>
       }
     </div>

@@ -6,6 +6,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   InsertLinkDialogComponent,
   type InsertLinkDialogData,
@@ -19,7 +20,7 @@ function createFixture(data: InsertLinkDialogData): {
   const closeSpy = vi.fn();
 
   TestBed.configureTestingModule({
-    imports: [InsertLinkDialogComponent],
+    imports: [translocoTestProvider(), InsertLinkDialogComponent],
     schemas: [NO_ERRORS_SCHEMA],
     providers: [
       provideZonelessChangeDetection(),
@@ -288,7 +289,7 @@ describe('InsertLinkDialogComponent', () => {
       const closeSpy = vi.fn();
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
-        imports: [InsertLinkDialogComponent],
+        imports: [translocoTestProvider(), InsertLinkDialogComponent],
         schemas: [NO_ERRORS_SCHEMA],
         providers: [
           provideZonelessChangeDetection(),
@@ -336,7 +337,7 @@ describe('InsertLinkDialogComponent', () => {
       const closeSpy = vi.fn();
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
-        imports: [InsertLinkDialogComponent],
+        imports: [translocoTestProvider(), InsertLinkDialogComponent],
         schemas: [NO_ERRORS_SCHEMA],
         providers: [
           provideZonelessChangeDetection(),

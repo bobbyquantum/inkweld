@@ -23,6 +23,7 @@ import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.serv
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { TimelineTabComponent } from './timeline-tab.component';
 
 describe('TimelineTabComponent', () => {
@@ -104,7 +105,7 @@ describe('TimelineTabComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [TimelineTabComponent],
+      imports: [translocoTestProvider(), TimelineTabComponent],
       providers: [
         { provide: ActivatedRoute, useValue: mockRoute },
         { provide: Router, useValue: { navigate: vi.fn() } },

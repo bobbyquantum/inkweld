@@ -10,6 +10,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { LocalUserService } from './local-user.service';
@@ -70,6 +71,7 @@ describe('LocalUserService', () => {
     } as unknown as MockedObject<StorageContextService>;
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         LocalUserService,

@@ -4,16 +4,16 @@
 </h2>
 <mat-dialog-content>
   <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Label</mat-label>
+    <mat-label>{{ 'canvas.pinDialog.labelLabel' | transloco }}</mat-label>
     <input
       matInput
       id="canvas-pin-label-input"
-      aria-label="Label"
+      [attr.aria-label]="'canvas.pinDialog.labelAria' | transloco"
       [formField]="form.label"
       cdkFocusInitial
       (keyup.enter)="onConfirm()"
       data-testid="canvas-pin-label-input"
-      placeholder="Enter pin label" />
+      [placeholder]="'canvas.pinDialog.labelPlaceholder' | transloco" />
     @if (form.label().touched() && form.label().invalid()) {
       @for (error of form.label().errors(); track error.message) {
         <mat-error>{{ error.message }}</mat-error>
@@ -22,22 +22,26 @@
   </mat-form-field>
 
   <div class="color-section">
-    <span class="color-label">Pin Color</span>
+    <span class="color-label">{{
+      'canvas.pinDialog.pinColor' | transloco
+    }}</span>
     <app-color-swatches
       [selectedColor]="selectedColor"
       (colorChange)="onColorChange($event)" />
   </div>
 
   <div class="link-section">
-    <span class="color-label">Link to Element</span>
+    <span class="color-label">{{
+      'canvas.pinDialog.linkToElement' | transloco
+    }}</span>
     @if (linkedElementName()) {
       <div class="linked-element" data-testid="canvas-pin-linked-element">
         <mat-icon class="link-icon">link</mat-icon>
         <span class="linked-name">{{ linkedElementName() }}</span>
         <button
           mat-icon-button
-          aria-label="Remove linked element"
-          matTooltip="Remove link"
+          [attr.aria-label]="'canvas.pinDialog.removeLink' | transloco"
+          [matTooltip]="'canvas.pinDialog.removeLinkTooltip' | transloco"
           (click)="clearLink()"
           data-testid="canvas-pin-clear-link">
           <mat-icon>close</mat-icon>
@@ -49,7 +53,7 @@
         (click)="pickElement()"
         data-testid="canvas-pin-link-element">
         <mat-icon>add_link</mat-icon>
-        Link to element
+        {{ 'canvas.pinDialog.linkButton' | transloco }}
       </button>
     }
   </div>
@@ -58,22 +62,26 @@
     <div class="pin-preview" [style.background]="selectedColor">
       <mat-icon>place</mat-icon>
     </div>
-    <span class="preview-label">{{ form.label().value() || 'Pin' }}</span>
+    <span class="preview-label">{{
+      form.label().value() || ('canvas.pinDialog.pinFallback' | transloco)
+    }}</span>
     @if (linkedElementName()) {
-      <mat-icon class="preview-link-icon" matTooltip="Linked to element"
+      <mat-icon
+        class="preview-link-icon"
+        [matTooltip]="'canvas.pinDialog.linkedTooltip' | transloco"
         >link</mat-icon
       >
     }
   </div>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-button (click)="onCancel()">{{ 'cancel' | transloco }}</button>
   <button
     mat-button
     color="primary"
     [disabled]="form().invalid()"
     data-testid="canvas-pin-confirm"
     (click)="onConfirm()">
-    {{ data.confirmLabel || 'Place Pin' }}
+    {{ data.confirmLabel || ('canvas.pinDialog.placePin' | transloco) }}
   </button>
 </mat-dialog-actions>

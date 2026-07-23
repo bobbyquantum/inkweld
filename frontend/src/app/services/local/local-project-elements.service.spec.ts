@@ -5,6 +5,7 @@ import { type Element } from '@inkweld/index';
 import { IDBFactory } from 'fake-indexeddb';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LocalProjectElementsService } from './local-project-elements.service';
 
 // Note: nanoid is difficult to mock in Vitest due to hoisting issues
@@ -38,6 +39,7 @@ describe('LocalProjectElementsService', () => {
     mockLocalStorage.setItem.mockReset();
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         LocalProjectElementsService,

@@ -3,8 +3,8 @@
   @if (serverItemsCount() > 0) {
     <span
       class="sync-badge"
-      matTooltip="Images on server not downloaded locally">
-      {{ serverItemsCount() }} on server
+      [matTooltip]="'media.mediaSelector.serverOnlyTooltip' | transloco">
+      {{ serverItemsCount() }} {{ 'media.mediaSelector.onServer' | transloco }}
     </span>
   }
 </h2>
@@ -13,14 +13,14 @@
   @if (isSyncing()) {
     <div class="sync-progress">
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      <p>Syncing media from server...</p>
+      <p>{{ 'media.mediaSelector.syncingFromServer' | transloco }}</p>
     </div>
   }
 
   @if (isLoading()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
-      <p>Loading media...</p>
+      <p>{{ 'media.mediaSelector.loadingMedia' | transloco }}</p>
     </div>
   } @else if (error()) {
     <div class="error-container">
@@ -30,8 +30,8 @@
   } @else if (mediaItems().length === 0) {
     <div class="empty-container">
       <mat-icon>photo_library</mat-icon>
-      <p>No images in your media library.</p>
-      <p class="hint">Generate or upload images first, then select one here.</p>
+      <p>{{ 'media.mediaSelector.noImages' | transloco }}</p>
+      <p class="hint">{{ 'media.mediaSelector.noImagesHint' | transloco }}</p>
     </div>
   } @else {
     <mat-form-field
@@ -42,10 +42,10 @@
       <input
         matInput
         id="media-selector-search-input"
-        placeholder="Search media..."
+        [placeholder]="'media.mediaSelector.searchPlaceholder' | transloco"
         [ngModel]="searchQuery()"
         (ngModelChange)="searchQuery.set($event)"
-        aria-label="Search media" />
+        [attr.aria-label]="'media.mediaSelector.searchAria' | transloco" />
       @if (searchQuery()) {
         <button matSuffix mat-icon-button (click)="clearSearch()">
           <mat-icon>close</mat-icon>
@@ -56,7 +56,11 @@
     @if (filteredItems().length === 0) {
       <div class="empty-container">
         <mat-icon>search_off</mat-icon>
-        <p>No media matching "{{ searchQuery() }}".</p>
+        <p>
+          {{
+            'media.mediaSelector.noMatch' | transloco: { query: searchQuery() }
+          }}
+        </p>
       </div>
     } @else {
       <div class="media-grid">
@@ -72,9 +76,9 @@
             [attr.aria-pressed]="isSelected(item)"
             [matTooltip]="
               isDownloading(item)
-                ? 'Downloading...'
+                ? ('media.mediaSelector.downloading' | transloco)
                 : needsDownload(item)
-                  ? 'Click to download from server'
+                  ? ('media.mediaSelector.downloadFromServer' | transloco)
                   : ''
             ">
             @if (item.url) {
@@ -116,21 +120,21 @@
       mat-button
       (click)="syncFromServer()"
       [disabled]="isSyncing()"
-      matTooltip="Download all images from server">
+      [matTooltip]="'media.mediaSelector.downloadAllTooltip' | transloco">
       <mat-icon>cloud_download</mat-icon>
-      Sync All
+      {{ 'media.mediaSelector.syncAll' | transloco }}
     </button>
   }
-  <button mat-button (click)="cancel()">Cancel</button>
+  <button mat-button (click)="cancel()">{{ 'cancel' | transloco }}</button>
   <button
     mat-raised-button
     color="primary"
     [disabled]="!hasSelection()"
     (click)="confirm()">
     @if (multiSelect && selectedCount() > 0) {
-      Select {{ selectedCount() }}
+      {{ 'media.mediaSelector.selectButton' | transloco }} {{ selectedCount() }}
     } @else {
-      Select
+      {{ 'media.mediaSelector.selectButton' | transloco }}
     }
   </button>
 </mat-dialog-actions>

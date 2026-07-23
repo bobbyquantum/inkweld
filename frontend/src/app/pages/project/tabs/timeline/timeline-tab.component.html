@@ -9,7 +9,7 @@
     [disabled]="!hasActiveSystem()"
     data-testid="timeline-add-event">
     <mat-icon>add</mat-icon>
-    Add event
+    {{ 'timeline.tab.addEvent' | transloco }}
   </button>
 
   <button
@@ -18,17 +18,17 @@
     [disabled]="!hasActiveSystem()"
     data-testid="timeline-add-era">
     <mat-icon>view_week</mat-icon>
-    Add era
+    {{ 'timeline.tab.addEra' | transloco }}
   </button>
 
   <button
     mat-stroked-button
     (click)="onAutoBuild()"
     [disabled]="!hasActiveSystem() || autoBuilding()"
-    matTooltip="Generate events from worldbuilding element date fields"
+    [matTooltip]="'timeline.tab.autoBuildTooltip' | transloco"
     data-testid="timeline-auto-build">
     <mat-icon>auto_awesome</mat-icon>
-    Auto-build from elements
+    {{ 'timeline.tab.autoBuild' | transloco }}
   </button>
 
   <span class="spacer"></span>
@@ -37,7 +37,7 @@
 
   <button
     mat-icon-button
-    matTooltip="Zoom out"
+    [matTooltip]="'timeline.tab.zoomOut' | transloco"
     (click)="onZoom(1.25)"
     [disabled]="!hasActiveSystem()"
     data-testid="timeline-zoom-out">
@@ -45,7 +45,7 @@
   </button>
   <button
     mat-icon-button
-    matTooltip="Zoom in"
+    [matTooltip]="'timeline.tab.zoomIn' | transloco"
     (click)="onZoom(0.8)"
     [disabled]="!hasActiveSystem()"
     data-testid="timeline-zoom-in">
@@ -53,7 +53,7 @@
   </button>
   <button
     mat-icon-button
-    matTooltip="Fit contents"
+    [matTooltip]="'timeline.tab.fitContents' | transloco"
     (click)="onFit()"
     [disabled]="!hasActiveSystem()"
     data-testid="timeline-fit">
@@ -62,26 +62,17 @@
 </div>
 
 @if (needsSystemSelection()) {
-  <!--
-    Setup overlay: shown once per timeline, before any time system is
-    committed. After commit, the system is locked for the lifetime of this
-    timeline. Rendered outside `.canvas-wrap` so pointer events don't hit
-    the (possibly partly-initialised) svg layers behind it.
-  -->
   <div class="setup-overlay" data-testid="timeline-setup">
     <div class="setup-card">
       <mat-icon class="setup-icon">schedule</mat-icon>
-      <h2>Choose a time system</h2>
+      <h2>{{ 'timeline.tab.chooseTimeSystem' | transloco }}</h2>
       <p class="setup-hint">
-        Events and eras on this timeline will be anchored to the time system you
-        pick here. This choice
-        <strong>locks in</strong> for the timeline — create a new timeline if
-        you later want to use a different calendar.
+        {{ 'timeline.tab.timeSystemHint' | transloco }}
       </p>
 
       @if (availableSystems().length === 0) {
         <p class="setup-hint">
-          No time systems are installed in this project yet.
+          {{ 'timeline.tab.noTimeSystems' | transloco }}
         </p>
         <button
           mat-flat-button
@@ -89,11 +80,13 @@
           (click)="onOpenTimeSystemSettings()"
           data-testid="timeline-setup-open-settings">
           <mat-icon>settings</mat-icon>
-          Open time system settings
+          {{ 'timeline.tab.openTimeSettings' | transloco }}
         </button>
       } @else {
         <mat-form-field appearance="outline" class="setup-select">
-          <mat-label>Time system</mat-label>
+          <mat-label>{{
+            'timeline.tab.timeSystemLabel' | transloco
+          }}</mat-label>
           <mat-select
             [value]="pendingSystemId()"
             (valueChange)="onPendingSystemChange($event)"
@@ -109,7 +102,7 @@
             mat-stroked-button
             (click)="onOpenTimeSystemSettings()"
             data-testid="timeline-setup-manage">
-            Manage time systems
+            {{ 'timeline.tab.manageTimeSystems' | transloco }}
           </button>
           <button
             mat-flat-button
@@ -118,7 +111,7 @@
             (click)="onCommitTimeSystem()"
             data-testid="timeline-setup-commit">
             <mat-icon>check</mat-icon>
-            Use this system
+            {{ 'timeline.tab.useThisSystem' | transloco }}
           </button>
         </div>
       }
@@ -287,20 +280,17 @@
             <g
               class="event-pill event-pill-instant"
               [attr.data-testid]="'timeline-event-' + pill.event.id">
-              <!-- Stalk: from axis line down to top of diamond -->
               <line
                 class="event-stalk"
                 [attr.x1]="pill.cx"
                 [attr.x2]="pill.cx"
                 [attr.y1]="pill.labelY! + 4"
                 [attr.y2]="pill.diamondCY! - diamondHalf" />
-              <!-- Diamond -->
               <polygon
                 class="event-diamond"
                 [attr.points]="pill.diamondPoints"
                 [attr.fill]="pill.color"
                 [attr.data-testid]="'timeline-event-body-' + pill.event.id" />
-              <!-- Label centred above the stalk -->
               <text
                 class="event-label-instant"
                 [attr.x]="pill.cx"
@@ -309,7 +299,6 @@
                 dominant-baseline="middle">
                 {{ pill.event.title }}
               </text>
-              <!-- Hit / drag area: invisible rect over diamond -->
               <rect
                 class="event-hit"
                 [attr.x]="pill.hitX"
@@ -389,10 +378,10 @@
             class="add-track-button"
             (click)="onAddTrack()"
             [disabled]="!hasActiveSystem()"
-            matTooltip="Add track"
+            [matTooltip]="'timeline.tab.addTrack' | transloco"
             data-testid="timeline-add-track">
             <mat-icon>playlist_add</mat-icon>
-            <span>Add track</span>
+            <span>{{ 'timeline.tab.addTrack' | transloco }}</span>
           </button>
         </div>
       </div>
@@ -450,13 +439,13 @@
     @if (hasActiveSystem() && events().length === 0 && eras().length === 0) {
       <div class="empty" data-testid="timeline-empty">
         <mat-icon>schedule</mat-icon>
-        <div>This timeline is empty.</div>
+        <div>{{ 'timeline.tab.emptyTimeline' | transloco }}</div>
         <button
           mat-stroked-button
           color="primary"
           (click)="onAddEvent()"
           data-testid="timeline-empty-add-event">
-          Add your first event
+          {{ 'timeline.tab.addFirstEvent' | transloco }}
         </button>
       </div>
     }
@@ -470,20 +459,37 @@
       [class.time-system-status--missing]="!hasActiveSystem()"
       [matTooltip]="
         hasActiveSystem()
-          ? 'Time system is locked for this timeline'
-          : 'No time system selected'
+          ? ('timeline.tab.timeSystemLocked' | transloco)
+          : ('timeline.tab.noTimeSystem' | transloco)
       "
       data-testid="timeline-status-system">
       <mat-icon aria-hidden="true">schedule</mat-icon>
-      <span>{{ activeSystemName() || 'No time system' }}</span>
+      <span>{{
+        activeSystemName() || ('timeline.tab.noTimeSystemFallback' | transloco)
+      }}</span>
       @if (hasActiveSystem()) {
         <mat-icon class="lock-icon" aria-hidden="true">lock</mat-icon>
       }
     </span>
   </span>
   <span class="timeline-status-summary">
-    {{ tracks().length }} {{ tracks().length === 1 ? 'track' : 'tracks' }} ·
-    {{ events().length }} {{ events().length === 1 ? 'event' : 'events' }} ·
-    {{ eras().length }} {{ eras().length === 1 ? 'era' : 'eras' }}
+    {{ tracks().length }}
+    {{
+      tracks().length === 1
+        ? ('timeline.tab.track' | transloco)
+        : ('timeline.tab.tracks' | transloco)
+    }}
+    · {{ events().length }}
+    {{
+      events().length === 1
+        ? ('timeline.tab.event' | transloco)
+        : ('timeline.tab.events' | transloco)
+    }}
+    · {{ eras().length }}
+    {{
+      eras().length === 1
+        ? ('timeline.tab.era' | transloco)
+        : ('timeline.tab.eras' | transloco)
+    }}
   </span>
 </div>

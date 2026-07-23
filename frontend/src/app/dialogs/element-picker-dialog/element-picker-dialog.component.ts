@@ -20,6 +20,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type Element } from '@inkweld/model/element';
 import { type ElementType } from '@inkweld/model/element-type';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { ProjectStateService } from '@services/project/project-state.service';
 
 /**
@@ -61,6 +62,7 @@ export interface ElementPickerDialogResult {
     MatInputModule,
     MatCheckboxModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './element-picker-dialog.component.html',
   styleUrls: ['./element-picker-dialog.component.scss'],
@@ -71,6 +73,7 @@ export class ElementPickerDialogComponent {
   );
   private readonly data = inject<ElementPickerDialogData>(MAT_DIALOG_DATA);
   private readonly projectState = inject(ProjectStateService);
+  private readonly transloco = inject(TranslocoService);
 
   /** Search text */
   readonly searchText = signal('');
@@ -117,7 +120,10 @@ export class ElementPickerDialogComponent {
 
   /** Title to display */
   get title(): string {
-    return this.data.title || 'Select Elements';
+    return (
+      this.data.title ||
+      this.transloco.translate('dialogs.elementPicker.addSelected')
+    );
   }
 
   /** Subtitle to display */
@@ -143,9 +149,13 @@ export class ElementPickerDialogComponent {
   /** Selection count text */
   readonly selectionCountText = computed(() => {
     const count = this.selectedIds().size;
-    if (count === 0) return 'No elements selected';
-    if (count === 1) return '1 element selected';
-    return `${count} elements selected`;
+    if (count === 0)
+      return this.transloco.translate('dialogs.elementPicker.noneSelected');
+    if (count === 1)
+      return this.transloco.translate('dialogs.elementPicker.oneSelected');
+    return this.transloco.translate('dialogs.elementPicker.manySelected', {
+      count,
+    });
   });
 
   /**

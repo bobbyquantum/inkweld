@@ -3,6 +3,7 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   type QuickOpenResult,
   QuickOpenService,
@@ -106,7 +107,7 @@ describe('QuickOpenDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [QuickOpenDialogComponent],
+      imports: [translocoTestProvider(), QuickOpenDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: QuickOpenService, useValue: mockQuickOpenService },

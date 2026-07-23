@@ -28,6 +28,7 @@ import {
 } from 'vitest';
 
 import { projectServiceMock } from '../../../testing/project-api.mock';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type ProjectElement } from '../../models/project-element';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { QuickOpenService } from '../../services/core/quick-open.service';
@@ -136,7 +137,7 @@ describe('ProjectTreeComponent', () => {
     } as unknown as MockedObject<QuickOpenService>;
 
     await TestBed.configureTestingModule({
-      imports: [ProjectTreeComponent],
+      imports: [translocoTestProvider(), ProjectTreeComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([{ path: '**', children: [] }]),

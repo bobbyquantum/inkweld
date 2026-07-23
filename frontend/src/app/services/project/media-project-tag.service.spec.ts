@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { BehaviorSubject, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import { LoggerService } from '../core/logger.service';
@@ -62,6 +63,7 @@ describe('MediaProjectTagService', () => {
     } as unknown as IElementSyncProvider;
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         MediaProjectTagService,
         {

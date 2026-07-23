@@ -28,6 +28,7 @@ import { $typst } from '@myriaddreamin/typst.ts';
 import { $typst as $typstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ChapterNumbering,
   PublishFormat,
@@ -202,6 +203,7 @@ function makeMocks() {
 function configure(extra: unknown[] = []) {
   const mocks = makeMocks();
   TestBed.configureTestingModule({
+    imports: [translocoTestProvider()],
     providers: [
       provideZonelessChangeDetection(),
       { provide: LoggerService, useValue: mocks.logger },

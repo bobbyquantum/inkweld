@@ -5,6 +5,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { AccountSettingsComponent } from './account-settings.component';
 
 describe('AccountSettingsComponent (dialog tab)', () => {
@@ -52,7 +53,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AccountSettingsComponent],
+      imports: [translocoTestProvider(), AccountSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: UserService, useValue: mockUserService },

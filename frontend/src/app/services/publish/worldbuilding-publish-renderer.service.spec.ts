@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { ElementType } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   PublishPlanItemType,
   type WorldbuildingItem,
@@ -95,6 +96,7 @@ describe('WorldbuildingPublishRendererService', () => {
     logger = { warn: vi.fn(), info: vi.fn() };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         WorldbuildingPublishRendererService,

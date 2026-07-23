@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { type Element, ElementType } from '../../../api-client';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   type ElementTypeSchema,
   type TabSchema,
@@ -149,7 +150,11 @@ describe('WorldbuildingEditorComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [WorldbuildingEditorComponent, ReactiveFormsModule],
+      imports: [
+        translocoTestProvider(),
+        WorldbuildingEditorComponent,
+        ReactiveFormsModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

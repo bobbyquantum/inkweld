@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { type AppTab, TabManagerService } from './tab-manager.service';
 
@@ -37,6 +38,7 @@ describe('TabManagerService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         TabManagerService,
         { provide: LoggerService, useValue: mockLogger },

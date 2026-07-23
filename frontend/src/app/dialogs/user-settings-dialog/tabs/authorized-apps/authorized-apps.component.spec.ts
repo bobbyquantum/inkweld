@@ -19,6 +19,7 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { AuthorizedAppsComponent } from './authorized-apps.component';
 
 function createMockSession(
@@ -102,7 +103,7 @@ describe('AuthorizedAppsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AuthorizedAppsComponent],
+      imports: [translocoTestProvider(), AuthorizedAppsComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

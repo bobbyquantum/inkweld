@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from '../core/setup.service';
 import { ElementSyncProviderFactory } from './element-sync-provider.factory';
 import { LocalElementSyncProvider } from './local-element-sync.provider';
@@ -32,6 +33,7 @@ describe('ElementSyncProviderFactory', () => {
     } as unknown as LocalElementSyncProvider;
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         ElementSyncProviderFactory,
         { provide: SetupService, useValue: mockSetupService },

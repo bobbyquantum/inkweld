@@ -11,7 +11,7 @@
     [style.left.px]="menuPosition().x"
     [style.top.px]="menuPosition().y"
     role="menu"
-    aria-label="Element reference actions"
+    [attr.aria-label]="'editor.elementRef.contextMenu.ariaLabel' | transloco"
     data-testid="element-ref-context-menu">
     @if (!isEditing()) {
       <!-- Normal menu mode -->
@@ -20,7 +20,9 @@
         (click)="navigateToElement()"
         data-testid="context-menu-navigate">
         <mat-icon>open_in_new</mat-icon>
-        <span>Go to element</span>
+        <span>{{
+          'editor.elementRef.contextMenu.goToElement' | transloco
+        }}</span>
       </button>
 
       <button
@@ -28,7 +30,9 @@
         (click)="startEditing()"
         data-testid="context-menu-edit">
         <mat-icon>edit</mat-icon>
-        <span>Edit display text</span>
+        <span>{{
+          'editor.elementRef.contextMenu.editDisplayText' | transloco
+        }}</span>
       </button>
 
       <mat-divider></mat-divider>
@@ -38,13 +42,17 @@
         (click)="deleteReference()"
         data-testid="context-menu-delete">
         <mat-icon>delete</mat-icon>
-        <span>Delete reference</span>
+        <span>{{
+          'editor.elementRef.contextMenu.deleteReference' | transloco
+        }}</span>
       </button>
     } @else {
       <!-- Editing mode -->
       <div class="edit-mode">
         <div class="edit-header">
-          <span>Edit display text</span>
+          <span>{{
+            'editor.elementRef.contextMenu.editDisplayText' | transloco
+          }}</span>
           <button mat-icon-button (click)="cancelEditing()">
             <mat-icon>close</mat-icon>
           </button>
@@ -53,7 +61,9 @@
           #editInput
           type="text"
           id="element-ref-edit-text-input"
-          aria-label="Edit display text"
+          [attr.aria-label]="
+            'editor.elementRef.contextMenu.editDisplayTextAria' | transloco
+          "
           class="edit-input"
           [value]="editText()"
           (input)="editText.set($any($event.target).value)"
@@ -66,7 +76,9 @@
             (click)="resetToOriginal()"
             [disabled]="editText() === data()?.originalName">
             <mat-icon>refresh</mat-icon>
-            <span>Reset to original</span>
+            <span>{{
+              'editor.elementRef.contextMenu.resetToOriginal' | transloco
+            }}</span>
           </button>
           <button
             mat-flat-button
@@ -74,7 +86,7 @@
             (click)="saveEdit()"
             [disabled]="!editText().trim()"
             data-testid="context-menu-save">
-            Save
+            {{ 'editor.elementRef.contextMenu.save' | transloco }}
           </button>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { type AutoBuildCandidate } from '@dialogs/timeline-auto-build-dialog/tim
 import { type Element, ElementType } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type ElementTypeSchema, FieldType } from '../../models/schema-types';
 import {
   GREGORIAN_SYSTEM,
@@ -76,6 +77,7 @@ describe('TimelineService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         TimelineService,
         { provide: ProjectStateService, useValue: mockProjectState },

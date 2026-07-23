@@ -10,8 +10,10 @@
           <button
             class="sidenav-thumbnail"
             (click)="identityPanel()?.viewImage()"
-            aria-label="View full size identity image"
-            matTooltip="View full size"
+            [attr.aria-label]="'worldbuilding.editor.viewFullSize' | transloco"
+            [matTooltip]="
+              'worldbuilding.editor.viewFullSizeTooltip' | transloco
+            "
             data-testid="sidenav-thumbnail">
             <img [src]="imageUrl" [alt]="elementName()" />
           </button>
@@ -21,8 +23,10 @@
           <button
             class="sidenav-thumbnail sidenav-thumbnail--empty"
             (click)="identityPanel()?.onImageClick()"
-            aria-label="Set identity image"
-            matTooltip="Set image"
+            [attr.aria-label]="
+              'worldbuilding.editor.setIdentityImage' | transloco
+            "
+            [matTooltip]="'worldbuilding.editor.setImageTooltip' | transloco"
             data-testid="sidenav-thumbnail-empty">
             <mat-icon aria-hidden="true">add_photo_alternate</mat-icon>
           </button>
@@ -39,7 +43,9 @@
             tabindex="0"
             data-testid="nav-identity">
             <mat-icon matListItemIcon>badge</mat-icon>
-            <span matListItemTitle>Identity</span>
+            <span matListItemTitle>{{
+              'worldbuilding.editor.identity' | transloco
+            }}</span>
           </a>
 
           @for (tab of getTabs(); track tab.key) {
@@ -69,7 +75,9 @@
             tabindex="0"
             data-testid="nav-relationships">
             <mat-icon matListItemIcon>link</mat-icon>
-            <span matListItemTitle>Relationships</span>
+            <span matListItemTitle>{{
+              'worldbuilding.editor.relationships' | transloco
+            }}</span>
           </a>
 
           <a
@@ -81,7 +89,9 @@
             tabindex="0"
             data-testid="nav-media">
             <mat-icon matListItemIcon>perm_media</mat-icon>
-            <span matListItemTitle>Media</span>
+            <span matListItemTitle>{{
+              'worldbuilding.editor.media' | transloco
+            }}</span>
           </a>
         </mat-nav-list>
       </nav>
@@ -169,7 +179,7 @@
         @if (!schema() && isTabSection()) {
           <div class="loading-state">
             <mat-icon>hourglass_empty</mat-icon>
-            <p>Loading schema...</p>
+            <p>{{ 'worldbuilding.editor.loadingSchema' | transloco }}</p>
           </div>
         }
       } @else {
@@ -182,7 +192,7 @@
             <mat-expansion-panel-header>
               <mat-panel-title>
                 <mat-icon class="panel-title-icon">badge</mat-icon>
-                Identity & Details
+                {{ 'worldbuilding.editor.identityAndDetails' | transloco }}
               </mat-panel-title>
             </mat-expansion-panel-header>
             <div class="identity-inline">
@@ -220,7 +230,7 @@
               <mat-expansion-panel-header>
                 <mat-panel-title>
                   <mat-icon class="panel-title-icon">hourglass_empty</mat-icon>
-                  Loading schema...
+                  {{ 'worldbuilding.editor.loadingSchema' | transloco }}
                 </mat-panel-title>
               </mat-expansion-panel-header>
             </mat-expansion-panel>
@@ -270,10 +280,10 @@
       <button
         class="tag-icons"
         (click)="openTagsDialog()"
-        matTooltip="Manage tags"
+        [matTooltip]="'worldbuilding.editor.manageTags' | transloco"
         matTooltipShowDelay="800"
         type="button">
-        <span>Tags</span>
+        <span>{{ 'worldbuilding.editor.tags' | transloco }}</span>
         @for (tag of elementTags(); track tag.assignment.id) {
           <mat-icon
             aria-hidden="true"
@@ -294,8 +304,8 @@
         mat-icon-button
         class="snapshots-btn"
         (click)="openSnapshotsDialog()"
-        aria-label="Open document snapshots"
-        matTooltip="Document snapshots"
+        [attr.aria-label]="'worldbuilding.editor.openSnapshots' | transloco"
+        [matTooltip]="'worldbuilding.editor.snapshots' | transloco"
         data-testid="toolbar-snapshots">
         <mat-icon>history</mat-icon>
       </button>

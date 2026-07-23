@@ -20,6 +20,7 @@ import {
   type EditRelationshipTypeDialogData,
   type EditRelationshipTypeDialogResult,
 } from '@dialogs/edit-relationship-type-dialog/edit-relationship-type-dialog.component';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DocumentSyncState } from '@models/document-sync-state';
 import {
   getCategoryIcon,
@@ -65,6 +66,7 @@ interface RelationshipTypeView {
     MatMenuModule,
     MatTooltipModule,
     SettingsTabStatusComponent,
+    TranslocoModule,
   ],
 })
 export class RelationshipsTabComponent {
@@ -72,6 +74,7 @@ export class RelationshipsTabComponent {
   private readonly relationshipService = inject(RelationshipService);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly dialog = inject(MatDialog);
   private readonly ngZone = inject(NgZone);
@@ -215,8 +218,10 @@ export class RelationshipsTabComponent {
       this.ngZone.run(() => {
         const newType = this.relationshipService.addCustomType(result);
         this.snackBar.open(
-          `✓ Created relationship type: ${newType.name}`,
-          'Close',
+          this.transloco.translate('relationships.tab.created', {
+            name: newType.name,
+          }),
+          this.transloco.translate('snackbar.close'),
           { duration: 3000 }
         );
       });
@@ -225,9 +230,11 @@ export class RelationshipsTabComponent {
         '[RelationshipsTab] Error creating type:',
         err instanceof Error ? err.message : err
       );
-      this.snackBar.open('Failed to create relationship type', 'Close', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('relationships.tab.createFailed'),
+        this.transloco.translate('snackbar.close'),
+        { duration: 5000 }
+      );
     }
   }
 
@@ -256,13 +263,17 @@ export class RelationshipsTabComponent {
         );
 
         if (updated) {
-          this.snackBar.open(`✓ Updated relationship type`, 'Close', {
-            duration: 3000,
-          });
+          this.snackBar.open(
+            this.transloco.translate('relationships.tab.updated'),
+            this.transloco.translate('snackbar.close'),
+            { duration: 3000 }
+          );
         } else {
-          this.snackBar.open('Failed to update relationship type', 'Close', {
-            duration: 5000,
-          });
+          this.snackBar.open(
+            this.transloco.translate('relationships.tab.updateFailed'),
+            this.transloco.translate('snackbar.close'),
+            { duration: 5000 }
+          );
         }
       });
     } catch (err: unknown) {
@@ -270,9 +281,11 @@ export class RelationshipsTabComponent {
         '[RelationshipsTab] Error updating type:',
         err instanceof Error ? err.message : err
       );
-      this.snackBar.open('Failed to update relationship type', 'Close', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('relationships.tab.updateFailed'),
+        this.transloco.translate('snackbar.close'),
+        { duration: 5000 }
+      );
     }
   }
 
@@ -281,10 +294,12 @@ export class RelationshipsTabComponent {
    */
   async deleteType(type: RelationshipTypeView): Promise<void> {
     const confirmed = await this.dialogGateway.openConfirmationDialog({
-      title: 'Delete Relationship Type',
-      message: `Are you sure you want to delete "${type.name}"? This action cannot be undone.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: this.transloco.translate('relationships.tab.deleteTitle'),
+      message: this.transloco.translate('relationships.tab.deleteMessage', {
+        name: type.name,
+      }),
+      confirmText: this.transloco.translate('delete'),
+      cancelText: this.transloco.translate('cancel'),
     });
 
     if (!confirmed) return;
@@ -295,14 +310,18 @@ export class RelationshipsTabComponent {
 
         if (removed) {
           this.snackBar.open(
-            `✓ Deleted relationship type: ${type.name}`,
-            'Close',
+            this.transloco.translate('relationships.tab.deleted', {
+              name: type.name,
+            }),
+            this.transloco.translate('snackbar.close'),
             { duration: 3000 }
           );
         } else {
-          this.snackBar.open('Failed to delete relationship type', 'Close', {
-            duration: 5000,
-          });
+          this.snackBar.open(
+            this.transloco.translate('relationships.tab.deleteFailed'),
+            this.transloco.translate('snackbar.close'),
+            { duration: 5000 }
+          );
         }
       });
     } catch (err: unknown) {
@@ -310,9 +329,11 @@ export class RelationshipsTabComponent {
         '[RelationshipsTab] Error deleting type:',
         err instanceof Error ? err.message : err
       );
-      this.snackBar.open('Failed to delete relationship type', 'Close', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('relationships.tab.deleteFailed'),
+        this.transloco.translate('snackbar.close'),
+        { duration: 5000 }
+      );
     }
   }
 
@@ -325,9 +346,11 @@ export class RelationshipsTabComponent {
 
     const original = this.relationshipService.getTypeById(type.id);
     if (!original) {
-      this.snackBar.open('Failed to duplicate relationship type', 'Close', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('relationships.tab.duplicateFailed'),
+        this.transloco.translate('snackbar.close'),
+        { duration: 5000 }
+      );
       return;
     }
 
@@ -337,7 +360,7 @@ export class RelationshipsTabComponent {
     const result = await this.openEditorDialog({
       type: {
         ...original,
-        name: `${original.name} (Copy)`,
+        name: `${original.name} ${this.transloco.translate('relationships.tab.copySuffix')}`,
       },
       isNew: true,
       availableSchemas,
@@ -349,8 +372,10 @@ export class RelationshipsTabComponent {
       this.ngZone.run(() => {
         const newType = this.relationshipService.addCustomType(result);
         this.snackBar.open(
-          `✓ Duplicated relationship type: ${newType.name}`,
-          'Close',
+          this.transloco.translate('relationships.tab.duplicated', {
+            name: newType.name,
+          }),
+          this.transloco.translate('snackbar.close'),
           { duration: 3000 }
         );
       });
@@ -359,9 +384,11 @@ export class RelationshipsTabComponent {
         '[RelationshipsTab] Error duplicating type:',
         err instanceof Error ? err.message : err
       );
-      this.snackBar.open('Failed to duplicate relationship type', 'Close', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('relationships.tab.duplicateFailed'),
+        this.transloco.translate('snackbar.close'),
+        { duration: 5000 }
+      );
     }
   }
 }

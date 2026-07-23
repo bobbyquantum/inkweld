@@ -6,6 +6,7 @@ import {
 } from '@services/announcement/announcement.service';
 import { describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { AnnouncementCardComponent } from './announcement-card.component';
 
 describe('AnnouncementCardComponent', () => {
@@ -28,7 +29,7 @@ describe('AnnouncementCardComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AnnouncementCardComponent],
+      imports: [translocoTestProvider(), AnnouncementCardComponent],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
 

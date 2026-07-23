@@ -1,7 +1,7 @@
 @if (visible()) {
   <nav
     class="document-breadcrumbs"
-    aria-label="Document path"
+    [attr.aria-label]="'project.breadcrumbs.ariaLabel' | transloco"
     [matTooltip]="fullPath()"
     matTooltipShowDelay="600"
     data-testid="document-breadcrumbs">

@@ -6,7 +6,7 @@
     <span data-testid="phase-name">{{ getPhaseName(progress.phase) }}</span>
   } @else {
     <mat-icon class="phase-icon">hourglass_empty</mat-icon>
-    <span>Publishing</span>
+    <span>{{ 'publish.progress.publishing' | transloco }}</span>
   }
 </h2>
 
@@ -44,8 +44,8 @@
             <span class="subphase-type">
               {{
                 progress.subPhase.type === 'sync'
-                  ? 'Synchronizing'
-                  : 'Generating'
+                  ? ('publish.progress.synchronizing' | transloco)
+                  : ('publish.progress.generating' | transloco)
               }}
             </span>
             @if (progress.subPhase.totalItems) {
@@ -77,7 +77,9 @@
       @if (progress.phase === PublishingPhase.COMPLETE) {
         <div class="success-container" data-testid="success-container">
           <mat-icon color="primary">check_circle</mat-icon>
-          <span class="success-message">Your file has been downloaded!</span>
+          <span class="success-message">{{
+            'publish.progress.downloaded' | transloco
+          }}</span>
         </div>
       }
     </div>
@@ -92,7 +94,7 @@
         color="primary"
         (click)="onClose()"
         data-testid="close-button">
-        Close
+        {{ 'close' | transloco }}
       </button>
     } @else {
       <button
@@ -100,7 +102,7 @@
         (click)="onCancel()"
         [disabled]="!progress.cancellable"
         data-testid="cancel-button">
-        Cancel
+        {{ 'cancel' | transloco }}
       </button>
     }
   }

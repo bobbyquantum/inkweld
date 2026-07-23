@@ -7,6 +7,7 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type PresenceSession } from '@inkweld/presence';
+import { TranslocoModule } from '@jsverse/transloco';
 import { PresenceService } from '@services/presence/presence.service';
 
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
@@ -19,7 +20,12 @@ import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
  */
 @Component({
   selector: 'app-presence-indicator',
-  imports: [MatIconModule, MatTooltipModule, UserAvatarComponent],
+  imports: [
+    MatIconModule,
+    MatTooltipModule,
+    UserAvatarComponent,
+    TranslocoModule,
+  ],
   templateUrl: './presence-indicator.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./presence-indicator.component.scss'],

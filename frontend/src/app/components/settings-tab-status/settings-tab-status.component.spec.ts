@@ -1,6 +1,7 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SettingsTabStatusComponent } from './settings-tab-status.component';
 
 describe('SettingsTabStatusComponent', () => {
@@ -9,7 +10,7 @@ describe('SettingsTabStatusComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SettingsTabStatusComponent],
+      imports: [translocoTestProvider(), SettingsTabStatusComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SettingsTabStatusComponent);

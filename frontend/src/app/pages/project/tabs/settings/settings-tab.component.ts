@@ -41,6 +41,7 @@ import {
   InvitationStatus,
   type McpPublicKey,
 } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
@@ -81,6 +82,7 @@ import { TimeSystemsSettingsComponent } from './time-systems-settings/time-syste
     MatSelectModule,
     MatTooltipModule,
     NgTemplateOutlet,
+    TranslocoModule,
     RelationshipsTabComponent,
     TagsTabComponent,
     TemplatesTabComponent,

@@ -23,7 +23,12 @@
     </div>
     <span class="presence-label">
       {{ activeUsers().length }}
-      {{ activeUsers().length === 1 ? 'user' : 'users' }} online
+      {{
+        activeUsers().length === 1
+          ? ('project.presence.user' | transloco)
+          : ('project.presence.users' | transloco)
+      }}
+      {{ 'project.presence.online' | transloco }}
     </span>
   </div>
 }

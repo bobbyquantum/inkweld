@@ -14,6 +14,7 @@ import {
 import { UserService } from '@services/user/user.service';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type NavItem, SideNavComponent } from './side-nav.component';
 
 describe('SideNavComponent', () => {
@@ -65,7 +66,7 @@ describe('SideNavComponent', () => {
     } as unknown as MockedObject<SyncQueueService>;
 
     await TestBed.configureTestingModule({
-      imports: [SideNavComponent],
+      imports: [translocoTestProvider(), SideNavComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: Router, useValue: routerMock },

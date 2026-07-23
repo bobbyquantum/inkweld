@@ -4,6 +4,7 @@ import { type Element, ElementType } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentBreadcrumbsComponent } from './document-breadcrumbs.component';
 
 describe('DocumentBreadcrumbsComponent', () => {
@@ -40,7 +41,7 @@ describe('DocumentBreadcrumbsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [DocumentBreadcrumbsComponent],
+      imports: [translocoTestProvider(), DocumentBreadcrumbsComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: projectStateMock },

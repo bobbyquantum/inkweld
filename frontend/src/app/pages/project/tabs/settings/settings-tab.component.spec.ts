@@ -42,6 +42,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { of, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { SettingsTabComponent } from './settings-tab.component';
 
 // Mock child components to avoid their complex dependencies
@@ -285,6 +286,7 @@ describe('SettingsTabComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         FormsModule,
         MatButtonModule,
         MatCardModule,

@@ -45,6 +45,7 @@ import {
 } from 'vitest';
 
 import { type Element, ElementType } from '../../../../../api-client';
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { CanvasTabComponent } from './canvas-tab.component';
 
 // Konva requires ResizeObserver which is not available in jsdom
@@ -259,7 +260,7 @@ describe('CanvasTabComponent', () => {
     mockCanvasRenderer = r;
 
     await TestBed.configureTestingModule({
-      imports: [CanvasTabComponent],
+      imports: [translocoTestProvider(), CanvasTabComponent],
       providers: [
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: ActivatedRoute, useValue: mockRoute },

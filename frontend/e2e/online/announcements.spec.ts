@@ -57,32 +57,44 @@ async function fillAndSubmitAnnouncementForm(
       .toBe(true);
   }
 
-  // Type — scope to the open listbox overlay.
+  // Type — scope to the open listbox overlay. Wait for the option text to
+  // be populated (Transloco loads translations asynchronously via HTTP; in
+  // slower environments like Docker e2e the translations may not have arrived
+  // when the listbox first opens, leaving the option text empty).
   await page.locator('[data-testid="announcement-type-select"]').click();
   const typeListbox = page.locator('[role="listbox"]');
   await typeListbox.waitFor({ state: 'visible' });
-  await typeListbox
+  const typeOption = typeListbox
     .getByRole('option', { name: /announcement/i })
-    .first()
-    .click();
+    .first();
+  await expect(typeOption).toHaveText(/\S/);
+  await typeOption.click();
 
-  // Priority — same.
+  // Priority — same. The anchored /^normal$/i regex requires the option
+  // text to be exactly "Normal" (the translated value), not the raw
+  // translation key, so we must wait for the text to load before matching.
   await page.locator('[data-testid="announcement-priority-select"]').click();
   const priorityListbox = page.locator('[role="listbox"]');
   await priorityListbox.waitFor({ state: 'visible' });
-  await priorityListbox
+  const priorityOption = priorityListbox
     .getByRole('option', { name: /^normal$/i })
-    .first()
-    .click();
+    .first();
+  await expect(priorityOption).toBeVisible();
+  await priorityOption.click();
 
   // Wait for the listbox overlay to close so the mat-select has finished
   // writing the value back to the signal-forms model and Angular has
   // flushed change detection before we check the submit button state.
   await expect(priorityListbox).toBeHidden();
 
-  await expect(
-    page.locator('[data-testid="announcement-submit-btn"]')
-  ).toBeEnabled();
+  // The submit button may take a moment to become enabled in zoneless
+  // change detection, especially in slower environments (Docker e2e).
+  // Use toPass so the assertion retries until CD flushes the form validity.
+  await expect(async () => {
+    await expect(
+      page.locator('[data-testid="announcement-submit-btn"]')
+    ).toBeEnabled();
+  }).toPass({ timeout: 15000 });
   await page.locator('[data-testid="announcement-submit-btn"]').click();
 
   await page

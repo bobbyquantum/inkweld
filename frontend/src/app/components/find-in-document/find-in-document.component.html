@@ -5,7 +5,7 @@
       mat-icon-button
       (click)="findService.toggleReplaceMode()"
       [class.active]="findService.isReplaceMode()"
-      matTooltip="Toggle Replace"
+      [matTooltip]="'editor.find.toggleReplace' | transloco"
       data-testid="find-toggle-replace"
       type="button"
       class="toggle-replace-btn">
@@ -19,9 +19,9 @@
         #searchInput
         type="text"
         id="find-in-doc-search-input"
-        aria-label="Find in document"
+        [attr.aria-label]="'editor.find.findInDocument' | transloco"
         class="find-input"
-        placeholder="Find in document..."
+        [placeholder]="'editor.find.placeholder' | transloco"
         [ngModel]="findService.query()"
         (ngModelChange)="onQueryChange($event)"
         (keydown)="onKeydown($event)"
@@ -33,7 +33,7 @@
           {{ findService.currentMatchNumber() }} of
           {{ findService.matchCount() }}
         } @else if (findService.query().length > 0) {
-          No results
+          {{ 'editor.find.noResults' | transloco }}
         }
       </span>
     </div>
@@ -43,7 +43,7 @@
         mat-icon-button
         (click)="findService.toggleCaseSensitive()"
         [class.active]="findService.caseSensitive()"
-        matTooltip="Match Case"
+        [matTooltip]="'editor.find.matchCase' | transloco"
         data-testid="find-case-sensitive"
         type="button">
         <mat-icon>text_format</mat-icon>
@@ -53,7 +53,7 @@
         mat-icon-button
         (click)="findService.previousMatch()"
         [disabled]="findService.matchCount() === 0"
-        matTooltip="Previous Match (Shift+Enter)"
+        [matTooltip]="'editor.find.previousMatch' | transloco"
         data-testid="find-previous"
         type="button">
         <mat-icon>keyboard_arrow_up</mat-icon>
@@ -63,7 +63,7 @@
         mat-icon-button
         (click)="findService.nextMatch()"
         [disabled]="findService.matchCount() === 0"
-        matTooltip="Next Match (Enter)"
+        [matTooltip]="'editor.find.nextMatch' | transloco"
         data-testid="find-next"
         type="button">
         <mat-icon>keyboard_arrow_down</mat-icon>
@@ -72,7 +72,7 @@
       <button
         mat-icon-button
         (click)="close()"
-        matTooltip="Close (Escape)"
+        [matTooltip]="'editor.find.close' | transloco"
         data-testid="find-close"
         type="button">
         <mat-icon>close</mat-icon>
@@ -89,9 +89,9 @@
           #replaceInput
           type="text"
           id="find-in-doc-replace-input"
-          aria-label="Replace with"
+          [attr.aria-label]="'editor.find.replaceWith' | transloco"
           class="replace-input"
-          placeholder="Replace with..."
+          [placeholder]="'editor.find.replacePlaceholder' | transloco"
           [ngModel]="findService.replacementText()"
           (ngModelChange)="findService.setReplacementText($event)"
           (keydown)="onReplaceKeydown($event)"
@@ -105,7 +105,7 @@
           mat-icon-button
           (click)="onReplace()"
           [disabled]="findService.matchCount() === 0"
-          matTooltip="Replace (Enter)"
+          [matTooltip]="'editor.find.replace' | transloco"
           data-testid="replace-single"
           type="button">
           <mat-icon>find_replace</mat-icon>
@@ -115,7 +115,7 @@
           mat-icon-button
           (click)="onReplaceAll()"
           [disabled]="findService.matchCount() === 0"
-          matTooltip="Replace All"
+          [matTooltip]="'editor.find.replaceAll' | transloco"
           data-testid="replace-all"
           type="button">
           <mat-icon>swap_horiz</mat-icon>

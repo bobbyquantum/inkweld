@@ -1,9 +1,11 @@
 <div class="activity-tab">
   <header class="tab-header">
-    <h2><mat-icon>history</mat-icon> Activity</h2>
+    <h2>
+      <mat-icon>history</mat-icon> {{ 'project.activity.title' | transloco }}
+    </h2>
     <button
       mat-icon-button
-      matTooltip="Refresh"
+      [matTooltip]="'project.activity.refresh' | transloco"
       [disabled]="loading()"
       (click)="loadInitial()">
       <mat-icon>refresh</mat-icon>
@@ -17,17 +19,17 @@
   } @else if (error()) {
     <div class="error-state">
       <mat-icon class="error-icon">error_outline</mat-icon>
-      <h3>Could not load activity</h3>
+      <h3>{{ 'project.activity.loadFailed' | transloco }}</h3>
       <p>{{ error() }}</p>
       <button mat-raised-button color="primary" (click)="loadInitial()">
-        <mat-icon>refresh</mat-icon> Retry
+        <mat-icon>refresh</mat-icon> {{ 'project.activity.retry' | transloco }}
       </button>
     </div>
   } @else if (isEmpty()) {
     <div class="empty-state">
       <mat-icon>history_toggle_off</mat-icon>
-      <h3>No activity yet</h3>
-      <p>Edits, comments, snapshots and other changes will appear here.</p>
+      <h3>{{ 'project.activity.noActivity' | transloco }}</h3>
+      <p>{{ 'project.activity.noActivityHint' | transloco }}</p>
     </div>
   } @else {
     <ol class="event-list">
@@ -57,7 +59,9 @@
           @if (loadingMore()) {
             <mat-spinner diameter="18" />
           } @else {
-            <ng-container>Load more</ng-container>
+            <ng-container>{{
+              'project.activity.loadMore' | transloco
+            }}</ng-container>
           }
         </button>
       </div>

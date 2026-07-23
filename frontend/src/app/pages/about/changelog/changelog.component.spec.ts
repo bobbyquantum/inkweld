@@ -3,6 +3,7 @@ import { ChangelogService } from '@services/core/changelog.service';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { ChangelogComponent } from './changelog.component';
 
 describe('ChangelogComponent', () => {
@@ -18,7 +19,7 @@ describe('ChangelogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ChangelogComponent],
+      imports: [translocoTestProvider(), ChangelogComponent],
       providers: [
         { provide: ChangelogService, useValue: mockChangelogService },
       ],
@@ -59,9 +60,7 @@ describe('ChangelogComponent', () => {
     fixture.detectChanges();
 
     expect(component.loading()).toBe(false);
-    expect(component.error()).toBe(
-      'Failed to load changelog. Please try again later.'
-    );
+    expect(component.error()).toBe('Failed to load data. Please try again.');
     expect(component.versions().length).toBe(0);
   });
 

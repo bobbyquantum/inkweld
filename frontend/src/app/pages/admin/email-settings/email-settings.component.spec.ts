@@ -8,6 +8,7 @@ import { AdminEmailService } from '@services/admin/admin-email.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { AdminEmailSettingsComponent } from './email-settings.component';
 
 describe('AdminEmailSettingsComponent', () => {
@@ -44,7 +45,7 @@ describe('AdminEmailSettingsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AdminEmailSettingsComponent],
+      imports: [translocoTestProvider(), AdminEmailSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

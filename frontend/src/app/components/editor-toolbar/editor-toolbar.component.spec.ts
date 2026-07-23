@@ -13,6 +13,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { EditorToolbarComponent } from './editor-toolbar.component';
 
 // @bobbyquantum/ngx-editor, prosemirror-commands, prosemirror-history,
@@ -133,7 +134,7 @@ describe('EditorToolbarComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [EditorToolbarComponent],
+      imports: [translocoTestProvider(), EditorToolbarComponent],
       schemas: [NO_ERRORS_SCHEMA],
       providers: [
         provideZonelessChangeDetection(),

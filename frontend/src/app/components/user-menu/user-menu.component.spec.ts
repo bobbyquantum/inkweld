@@ -17,6 +17,7 @@ import { type ThemeOption, ThemeService } from '@themes/theme.service';
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { UserMenuComponent } from './user-menu.component';
 
 describe('UserMenuComponent', () => {
@@ -119,7 +120,7 @@ describe('UserMenuComponent', () => {
     } as unknown as MockedObject<AuthTokenService>;
 
     await TestBed.configureTestingModule({
-      imports: [UserMenuComponent],
+      imports: [translocoTestProvider(), UserMenuComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: HttpClient, useValue: httpClientMock },

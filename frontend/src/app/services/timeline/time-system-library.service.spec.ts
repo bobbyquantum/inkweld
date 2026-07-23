@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   GREGORIAN_SYSTEM,
   TIME_SYSTEM_TEMPLATES,
@@ -50,6 +51,7 @@ describe('TimeSystemLibraryService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         TimeSystemLibraryService,
         { provide: LoggerService, useValue: mockLogger },

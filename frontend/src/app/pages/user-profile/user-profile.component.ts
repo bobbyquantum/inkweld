@@ -18,6 +18,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
 import { WritingStatsWidgetComponent } from '@components/writing-stats-widget/writing-stats-widget.component';
 import { type User } from '@inkweld/index';
+import { TranslocoModule } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
@@ -33,6 +34,7 @@ import { debounceTime } from 'rxjs/operators';
     MatDividerModule,
     MatToolbarModule,
     MatProgressSpinnerModule,
+    TranslocoModule,
     UserAvatarComponent,
     WritingStatsWidgetComponent,
   ],

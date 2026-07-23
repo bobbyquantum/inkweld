@@ -10,6 +10,7 @@ import {
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
+import { TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -31,6 +32,7 @@ export abstract class BaseImageDialogComponent {
   protected readonly cdr = inject(ChangeDetectorRef);
   protected readonly systemConfig = inject(SystemConfigService);
   protected readonly projectState = inject(ProjectStateService);
+  protected readonly transloco = inject(TranslocoService);
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
@@ -71,7 +73,9 @@ export abstract class BaseImageDialogComponent {
         this.pendingFileName = file.name;
         this.showCropper = true;
       } else {
-        this.showError('Invalid image file. Please select a JPEG or PNG file.');
+        this.showError(
+          this.transloco.translate('dialogs.baseImage.invalidImage')
+        );
       }
     }
   }
@@ -151,7 +155,7 @@ export abstract class BaseImageDialogComponent {
   onLoadImageFailed(): void {
     this.hasLoadFailed = true;
     this.showCropper = false;
-    this.showError('Failed to load image. Please try another file.');
+    this.showError(this.transloco.translate('dialogs.baseImage.loadFailed'));
   }
 
   resetCropperState(): void {
@@ -193,6 +197,8 @@ export abstract class BaseImageDialogComponent {
   }
 
   protected showError(message: string): void {
-    this.snackBar.open(message, 'Close', { duration: 5000 });
+    this.snackBar.open(message, this.transloco.translate('close'), {
+      duration: 5000,
+    });
   }
 }

@@ -18,10 +18,14 @@
       <mat-button-toggle-group
         [value]="viewMode()"
         (change)="setViewMode($event.value)">
-        <mat-button-toggle value="grid" matTooltip="Grid View">
+        <mat-button-toggle
+          value="grid"
+          [matTooltip]="'canvas.sidebar.layers' | transloco">
           <mat-icon>grid_view</mat-icon>
         </mat-button-toggle>
-        <mat-button-toggle value="list" matTooltip="List View">
+        <mat-button-toggle
+          value="list"
+          [matTooltip]="'canvas.sidebar.objects' | transloco">
           <mat-icon>view_list</mat-icon>
         </mat-button-toggle>
       </mat-button-toggle-group>
@@ -31,10 +35,10 @@
   @if (!hasElements()) {
     <div class="empty-folder">
       <mat-icon>folder_open</mat-icon>
-      <p>This folder is empty</p>
+      <p>{{ 'project.homeTab.noPinned' | transloco }}</p>
       <button mat-raised-button color="primary" (click)="createNewElement()">
         <mat-icon>add</mat-icon>
-        Add Element
+        {{ 'project.tree.newElement' | transloco }}
       </button>
     </div>
   } @else {
@@ -63,7 +67,7 @@
             <div class="grid-item-actions">
               <button
                 mat-icon-button
-                matTooltip="Open"
+                [matTooltip]="'keyboard.open' | transloco"
                 (click)="openElement(element)">
                 <mat-icon>open_in_new</mat-icon>
               </button>
@@ -92,9 +96,9 @@
         <table class="element-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Actions</th>
+              <th>{{ 'name' | transloco }}</th>
+              <th>{{ 'type' | transloco }}</th>
+              <th>{{ 'actions' | transloco }}</th>
             </tr>
           </thead>
           <tbody>
@@ -142,7 +146,7 @@
         mat-fab
         color="primary"
         class="add-button"
-        matTooltip="Add Element"
+        [matTooltip]="'project.tree.newElement' | transloco"
         (click)="createNewElement()">
         <mat-icon>add</mat-icon>
       </button>

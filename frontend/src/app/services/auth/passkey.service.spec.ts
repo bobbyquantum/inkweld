@@ -18,6 +18,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { StorageContextService } from '../core/storage-context.service';
 import { AuthTokenService } from './auth-token.service';
 import {
@@ -124,6 +125,7 @@ describe('PasskeyService', () => {
     fakeStartAuthentication = vi.fn().mockResolvedValue(fakeAssertion);
 
     await TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

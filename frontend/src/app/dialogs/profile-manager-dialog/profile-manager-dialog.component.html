@@ -4,26 +4,26 @@
       @switch (currentView()) {
         @case ('list') {
           <mat-icon>dns</mat-icon>
-          Server Profiles
+          {{ 'dialogs.profileManager.serverProfiles' | transloco }}
         }
         @case ('add') {
           <mat-icon>add_circle</mat-icon>
-          Add Server
+          {{ 'dialogs.profileManager.addServer' | transloco }}
         }
         @case ('add-local') {
           <mat-icon>computer</mat-icon>
-          Add Local Mode
+          {{ 'dialogs.profileManager.addLocalMode' | transloco }}
         }
         @case ('migrate') {
           <mat-icon>cloud_upload</mat-icon>
           @if (isAuthenticated()) {
             @if (localProjectsCount() > 0) {
-              Select Projects to Migrate
+              {{ 'dialogs.profileManager.selectProjects' | transloco }}
             } @else {
-              Connected to Server
+              {{ 'dialogs.profileManager.connectedToServer' | transloco }}
             }
           } @else {
-            Log In to Server
+            {{ 'dialogs.profileManager.loginToServer' | transloco }}
           }
         }
       }
@@ -59,7 +59,11 @@
             </div>
             <div class="profile-actions">
               @if (profile.type === 'server' && !hasAuthForProfile(profile)) {
-                <mat-icon class="auth-warning" matTooltip="Login required">
+                <mat-icon
+                  class="auth-warning"
+                  [matTooltip]="
+                    'dialogs.profileManager.loginRequired' | transloco
+                  ">
                   lock
                 </mat-icon>
               }
@@ -67,7 +71,9 @@
                 <button
                   mat-icon-button
                   (click)="removeProfile(profile); $event.stopPropagation()"
-                  matTooltip="Remove profile"
+                  [matTooltip]="
+                    'dialogs.profileManager.removeProfile' | transloco
+                  "
                   [attr.data-testid]="'remove-profile-' + profile.id">
                   <mat-icon>delete</mat-icon>
                 </button>
@@ -77,7 +83,7 @@
         } @empty {
           <div class="empty-state">
             <mat-icon>cloud_off</mat-icon>
-            <p>No server profiles configured</p>
+            <p>{{ 'dialogs.profileManager.noProfiles' | transloco }}</p>
           </div>
         }
       </div>
@@ -90,7 +96,7 @@
           (click)="showAddServer()"
           data-testid="add-server-button">
           <mat-icon>add</mat-icon>
-          Add Server
+          {{ 'dialogs.profileManager.addServer' | transloco }}
         </button>
         @if (!hasLocalProfile()) {
           <button
@@ -98,7 +104,7 @@
             (click)="switchToLocalMode()"
             data-testid="add-local-button">
             <mat-icon>computer</mat-icon>
-            Add Local Mode
+            {{ 'dialogs.profileManager.addLocalMode' | transloco }}
           </button>
         }
       </div>
@@ -108,60 +114,77 @@
     @if (currentView() === 'add') {
       <div class="add-server-form">
         <p class="form-description">
-          Connect to an Inkweld server to sync your projects and collaborate
-          with others.
+          {{ 'dialogs.profileManager.connectDescription' | transloco }}
         </p>
 
         @if (localProjectsCount() > 0) {
           <div class="local-projects-notice">
             <mat-icon>info</mat-icon>
             <span>
-              You have {{ localProjectsCount() }} local project(s) that can be
-              migrated to the server.
+              {{
+                'dialogs.profileManager.localProjectsNotice'
+                  | transloco: { count: localProjectsCount() }
+              }}
             </span>
           </div>
         }
 
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Server URL</mat-label>
+          <mat-label>{{
+            'dialogs.profileManager.serverUrlLabel' | transloco
+          }}</mat-label>
           <input
             matInput
             id="new-server-url"
             [ngModel]="newServerUrl()"
             (ngModelChange)="newServerUrl.set($event)"
-            placeholder="https://inkweld.example.com"
+            [placeholder]="
+              'dialogs.profileManager.serverUrlPlaceholder' | transloco
+            "
             [disabled]="isConnecting()"
             type="url"
             data-testid="new-server-url-input"
-            aria-label="Server URL" />
+            [attr.aria-label]="
+              'dialogs.profileManager.serverUrlAria' | transloco
+            " />
           @if (connectionError()) {
             <mat-error>{{ connectionError() }}</mat-error>
           }
           @if (connectionSuccess()) {
             <mat-hint class="success-hint">
               <mat-icon>check_circle</mat-icon>
-              Connection verified
+              {{ 'dialogs.profileManager.connectionVerified' | transloco }}
             </mat-hint>
           }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Display Name (optional)</mat-label>
+          <mat-label>{{
+            'dialogs.profileManager.displayNameLabel' | transloco
+          }}</mat-label>
           <input
             matInput
             id="new-server-name"
             [ngModel]="newServerName()"
             (ngModelChange)="newServerName.set($event)"
-            placeholder="My Inkweld Server"
+            [placeholder]="
+              'dialogs.profileManager.displayNamePlaceholder' | transloco
+            "
             [disabled]="isConnecting()"
             type="text"
             data-testid="new-server-name-input"
-            aria-label="Display name" />
-          <mat-hint>A friendly name to identify this server</mat-hint>
+            [attr.aria-label]="
+              'dialogs.profileManager.displayNameAria' | transloco
+            " />
+          <mat-hint>{{
+            'dialogs.profileManager.displayNameHint' | transloco
+          }}</mat-hint>
         </mat-form-field>
 
         <div class="form-actions">
-          <button mat-button (click)="cancelAddServer()">Cancel</button>
+          <button mat-button (click)="cancelAddServer()">
+            {{ 'cancel' | transloco }}
+          </button>
           <button
             mat-stroked-button
             (click)="testConnection()"
@@ -171,7 +194,7 @@
             } @else {
               <mat-icon>check_circle</mat-icon>
             }
-            Test
+            {{ 'dialogs.profileManager.test' | transloco }}
           </button>
           <button
             mat-raised-button
@@ -184,7 +207,7 @@
             } @else {
               <mat-icon>cloud</mat-icon>
             }
-            Connect
+            {{ 'dialogs.profileManager.connect' | transloco }}
           </button>
         </div>
       </div>
@@ -194,45 +217,58 @@
     @if (currentView() === 'add-local') {
       <div class="add-local-form">
         <p class="form-description">
-          Work offline without a server connection. Your data will be stored
-          locally on this device.
+          {{ 'dialogs.profileManager.localDescription' | transloco }}
         </p>
 
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Username</mat-label>
+          <mat-label>{{
+            'dialogs.profileManager.usernameLabel' | transloco
+          }}</mat-label>
           <input
             matInput
             id="local-username"
             [ngModel]="localUsername()"
             (ngModelChange)="localUsername.set($event)"
-            placeholder="myusername"
+            [placeholder]="
+              'dialogs.profileManager.usernamePlaceholder' | transloco
+            "
             type="text"
             data-testid="local-username-input"
-            aria-label="Username" />
+            [attr.aria-label]="
+              'dialogs.profileManager.usernameAria' | transloco
+            " />
           @if (localError()) {
             <mat-error>{{ localError() }}</mat-error>
           }
-          <mat-hint
-            >Used for project URLs (e.g., myusername/my-project)</mat-hint
-          >
+          <mat-hint>{{
+            'dialogs.profileManager.usernameHint' | transloco
+          }}</mat-hint>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Display Name (optional)</mat-label>
+          <mat-label>{{
+            'dialogs.profileManager.displayNameLabel' | transloco
+          }}</mat-label>
           <input
             matInput
             id="local-display-name"
             [ngModel]="localDisplayName()"
             (ngModelChange)="localDisplayName.set($event)"
-            placeholder="My Name"
+            [placeholder]="'dialogs.profileManager.namePlaceholder' | transloco"
             type="text"
             data-testid="local-displayname-input"
-            aria-label="Display name" />
-          <mat-hint>Your display name (defaults to username)</mat-hint>
+            [attr.aria-label]="
+              'dialogs.profileManager.displayNameAria' | transloco
+            " />
+          <mat-hint>{{
+            'dialogs.profileManager.nameHint' | transloco
+          }}</mat-hint>
         </mat-form-field>
 
         <div class="form-actions">
-          <button mat-button (click)="cancelAddLocal()">Cancel</button>
+          <button mat-button (click)="cancelAddLocal()">
+            {{ 'cancel' | transloco }}
+          </button>
           <button
             mat-raised-button
             color="primary"
@@ -240,7 +276,7 @@
             [disabled]="!localUsername().trim()"
             data-testid="add-local-mode-button">
             <mat-icon>computer</mat-icon>
-            Create Local Profile
+            {{ 'dialogs.profileManager.createLocalProfile' | transloco }}
           </button>
         </div>
       </div>
@@ -255,15 +291,25 @@
             <p class="form-description">
               @if (localProjectsCount() > 0) {
                 @if (authMode() === 'register') {
-                  Create an account on the server to migrate your projects.
+                  {{
+                    'dialogs.profileManager.registerMigrateDescription'
+                      | transloco
+                  }}
                 } @else {
-                  Log in to your server account to migrate your projects.
+                  {{
+                    'dialogs.profileManager.loginMigrateDescription' | transloco
+                  }}
                 }
               } @else {
                 @if (authMode() === 'register') {
-                  Create an account to connect to this server.
+                  {{
+                    'dialogs.profileManager.registerConnectDescription'
+                      | transloco
+                  }}
                 } @else {
-                  Log in to connect to this server.
+                  {{
+                    'dialogs.profileManager.loginConnectDescription' | transloco
+                  }}
                 }
               }
             </p>
@@ -283,7 +329,9 @@
             } @else {
               <!-- Simple login form -->
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Username</mat-label>
+                <mat-label>{{
+                  'dialogs.profileManager.usernameLabel' | transloco
+                }}</mat-label>
                 <input
                   matInput
                   id="migration-username"
@@ -292,11 +340,15 @@
                   [disabled]="isAuthenticating()"
                   type="text"
                   data-testid="migration-username-input"
-                  aria-label="Username" />
+                  [attr.aria-label]="
+                    'dialogs.profileManager.usernameAria' | transloco
+                  " />
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Password</mat-label>
+                <mat-label>{{
+                  'dialogs.profileManager.passwordLabel' | transloco
+                }}</mat-label>
                 <input
                   matInput
                   id="migration-password"
@@ -305,7 +357,9 @@
                   [disabled]="isAuthenticating()"
                   type="password"
                   data-testid="migration-password-input"
-                  aria-label="Password" />
+                  [attr.aria-label]="
+                    'dialogs.profileManager.passwordAria' | transloco
+                  " />
               </mat-form-field>
             }
 
@@ -321,7 +375,7 @@
                 mat-button
                 (click)="cancelMigration()"
                 [disabled]="isAuthenticating()">
-                Cancel
+                {{ 'cancel' | transloco }}
               </button>
               <button
                 mat-button
@@ -330,8 +384,8 @@
                 data-testid="toggle-auth-mode-button">
                 {{
                   authMode() === 'login'
-                    ? 'Need an account? Register'
-                    : 'Have an account? Log in'
+                    ? ('dialogs.profileManager.needAccount' | transloco)
+                    : ('dialogs.profileManager.haveAccount' | transloco)
                 }}
               </button>
               @if (authMode() === 'login') {
@@ -343,9 +397,9 @@
                   data-testid="migrate-authenticate-button">
                   @if (isAuthenticating()) {
                     <mat-spinner diameter="18"></mat-spinner>
-                    Authenticating...
+                    {{ 'dialogs.profileManager.authenticating' | transloco }}
                   } @else {
-                    Log In
+                    {{ 'dialogs.profileManager.logIn' | transloco }}
                   }
                 </button>
               } @else {
@@ -357,9 +411,9 @@
                   data-testid="migrate-authenticate-button">
                   @if (isAuthenticating()) {
                     <mat-spinner diameter="18"></mat-spinner>
-                    Registering...
+                    {{ 'dialogs.profileManager.registering' | transloco }}
                   } @else {
-                    Register
+                    {{ 'dialogs.profileManager.register' | transloco }}
                   }
                 </button>
               }
@@ -373,23 +427,26 @@
             <div class="success-message">
               <mat-icon color="primary">check_circle</mat-icon>
               <div>
-                <h4>Connected Successfully!</h4>
+                <h4>
+                  {{ 'dialogs.profileManager.connectedSuccess' | transloco }}
+                </h4>
                 <p>
-                  You're now authenticated with the server. Click Continue to
-                  switch to your new server profile.
+                  {{ 'dialogs.profileManager.connectedMessage' | transloco }}
                 </p>
               </div>
             </div>
 
             <div class="migration-actions">
-              <button mat-button (click)="cancelMigration()">Cancel</button>
+              <button mat-button (click)="cancelMigration()">
+                {{ 'cancel' | transloco }}
+              </button>
               <button
                 mat-raised-button
                 color="primary"
                 (click)="completeServerSwitch()"
                 data-testid="complete-switch-button">
                 <mat-icon>arrow_forward</mat-icon>
-                Continue
+                {{ 'dialogs.profileManager.continue' | transloco }}
               </button>
             </div>
           </div>
@@ -405,13 +462,17 @@
         ) {
           <div class="project-selection">
             <p class="form-description">
-              Select which local projects to migrate to the server.
+              {{
+                'dialogs.profileManager.selectMigrateDescription' | transloco
+              }}
             </p>
 
             @if (isCheckingConflicts()) {
               <div class="checking-conflicts">
                 <mat-spinner diameter="18"></mat-spinner>
-                <span>Checking for existing projects on server...</span>
+                <span>{{
+                  'dialogs.profileManager.checkingExisting' | transloco
+                }}</span>
               </div>
             }
 
@@ -419,8 +480,10 @@
               <div class="conflict-warning">
                 <mat-icon>warning</mat-icon>
                 <span>
-                  {{ conflictingSlugs().size }} project(s) already exist on the
-                  server. Rename them or deselect to skip.
+                  {{
+                    'dialogs.profileManager.conflictWarning'
+                      | transloco: { count: conflictingSlugs().size }
+                  }}
                 </span>
               </div>
             }
@@ -433,11 +496,17 @@
                   (change)="toggleAllProjects()"
                   [disabled]="isMigrating()"
                   data-testid="select-all-projects">
-                  Select All
+                  {{ 'dialogs.profileManager.selectAll' | transloco }}
                 </mat-checkbox>
                 <span class="selection-count">
-                  {{ selectedProjectSlugs().size }} of
-                  {{ localProjectsCount() }} selected
+                  {{
+                    'dialogs.profileManager.selected'
+                      | transloco: { count: selectedProjectSlugs().size }
+                  }}
+                  {{
+                    'dialogs.profileManager.of'
+                      | transloco: { total: localProjectsCount() }
+                  }}
                 </span>
               </div>
 
@@ -465,7 +534,9 @@
                       <div class="slug-conflict-row">
                         <mat-icon
                           class="conflict-icon"
-                          matTooltip="This slug already exists on the server">
+                          [matTooltip]="
+                            'dialogs.profileManager.slugExists' | transloco
+                          ">
                           warning
                         </mat-icon>
                         <input
@@ -479,13 +550,18 @@
                               $any($event.target).value
                             )
                           "
-                          placeholder="Enter new slug"
+                          [placeholder]="
+                            'dialogs.profileManager.enterNewSlug' | transloco
+                          "
                           [attr.data-testid]="'rename-slug-' + project.slug" />
                         @if (projectRenames().get(project.slug); as newSlug) {
                           @if (wouldSlugConflict(newSlug)) {
                             <mat-icon
                               class="conflict-icon"
-                              matTooltip="This slug also conflicts">
+                              [matTooltip]="
+                                'dialogs.profileManager.slugAlsoConflicts'
+                                  | transloco
+                              ">
                               error
                             </mat-icon>
                           } @else if (isValidSlug(newSlug)) {
@@ -513,7 +589,7 @@
                 mat-button
                 (click)="cancelMigration()"
                 [disabled]="isMigrating()">
-                Cancel
+                {{ 'cancel' | transloco }}
               </button>
               <button
                 mat-raised-button
@@ -523,11 +599,14 @@
                 data-testid="migrate-projects-button">
                 @if (isMigrating()) {
                   <mat-spinner diameter="18"></mat-spinner>
-                  Migrating...
+                  {{ 'dialogs.profileManager.migrating' | transloco }}
                 } @else if (selectedProjectSlugs().size > 0) {
-                  Migrate ({{ selectedProjectSlugs().size }})
+                  {{
+                    'dialogs.profileManager.migrateCount'
+                      | transloco: { count: selectedProjectSlugs().size }
+                  }}
                 } @else {
-                  Skip Migration
+                  {{ 'dialogs.profileManager.skipMigration' | transloco }}
                 }
               </button>
             </div>
@@ -541,20 +620,26 @@
           <div class="migration-progress">
             <h4>
               <mat-icon class="spinning">sync</mat-icon>
-              Migrating Projects...
+              {{ 'dialogs.profileManager.migratingProjects' | transloco }}
             </h4>
 
             <mat-progress-bar mode="determinate" [value]="migrationProgress()">
             </mat-progress-bar>
 
             <p class="progress-text">
-              {{ migrationState().completedProjects }} of
-              {{ migrationState().totalProjects }} projects migrated
+              {{
+                'dialogs.profileManager.projectsMigrated'
+                  | transloco: { count: migrationState().completedProjects }
+              }}
+              {{
+                'dialogs.profileManager.of'
+                  | transloco: { total: migrationState().totalProjects }
+              }}
             </p>
 
             @if (migrationState().currentProject) {
               <p class="current-project">
-                Currently migrating:
+                {{ 'dialogs.profileManager.currentlyMigrating' | transloco }}
                 <strong>{{ migrationState().currentProject }}</strong>
               </p>
             }
@@ -600,12 +685,14 @@
           <div class="migration-progress" data-testid="sync-progress">
             <h4>
               <mat-icon class="spinning">cloud_upload</mat-icon>
-              Syncing to Server...
+              {{ 'dialogs.profileManager.syncingToServer' | transloco }}
             </h4>
 
             <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 
-            <p class="progress-text">Creating projects on the server...</p>
+            <p class="progress-text">
+              {{ 'dialogs.profileManager.creatingProjects' | transloco }}
+            </p>
           </div>
         }
 
@@ -613,12 +700,18 @@
         @if (syncSuccess()) {
           <div class="migration-complete" data-testid="sync-success">
             <mat-icon class="success-icon">check_circle</mat-icon>
-            <h4>Migration Complete!</h4>
+            <h4>
+              {{ 'dialogs.profileManager.migrationComplete' | transloco }}
+            </h4>
             <p>
-              Successfully migrated
-              {{ migrationState().completedProjects }} project(s) to the server.
+              {{
+                'dialogs.profileManager.migrationSuccessMessage'
+                  | transloco: { count: migrationState().completedProjects }
+              }}
             </p>
-            <p class="redirect-notice">Redirecting to home...</p>
+            <p class="redirect-notice">
+              {{ 'dialogs.profileManager.redirectingHome' | transloco }}
+            </p>
           </div>
         }
 
@@ -626,9 +719,13 @@
         @if (syncError()) {
           <div class="migration-failed" data-testid="sync-error">
             <mat-icon class="warning-icon">warning</mat-icon>
-            <h4>Sync Partially Complete</h4>
+            <h4>
+              {{ 'dialogs.profileManager.syncPartiallyComplete' | transloco }}
+            </h4>
             <p>{{ syncError() }}</p>
-            <button mat-button (click)="cancelMigration()">Close</button>
+            <button mat-button (click)="cancelMigration()">
+              {{ 'close' | transloco }}
+            </button>
           </div>
         }
 
@@ -640,12 +737,20 @@
         ) {
           <div class="migration-failed">
             <mat-icon class="error-icon">error</mat-icon>
-            <h4>Migration Completed with Errors</h4>
+            <h4>{{ 'dialogs.profileManager.migrationErrors' | transloco }}</h4>
             <p>
-              {{ migrationState().completedProjects }} project(s) succeeded,
-              {{ migrationState().failedProjects }} failed.
+              {{
+                'dialogs.profileManager.migrationErrorMessage'
+                  | transloco
+                    : {
+                        success: migrationState().completedProjects,
+                        failed: migrationState().failedProjects,
+                      }
+              }}
             </p>
-            <button mat-button (click)="cancelMigration()">Close</button>
+            <button mat-button (click)="cancelMigration()">
+              {{ 'close' | transloco }}
+            </button>
           </div>
         }
       </div>

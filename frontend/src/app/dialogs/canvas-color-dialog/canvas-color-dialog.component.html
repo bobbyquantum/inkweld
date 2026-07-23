@@ -4,7 +4,7 @@
     <div class="color-section">
       <span class="color-label">
         <mat-icon class="label-icon">format_color_fill</mat-icon>
-        Fill Color
+        {{ 'canvas.colorDialog.fillColor' | transloco }}
       </span>
       <app-color-swatches
         [selectedColor]="selectedFill"
@@ -15,7 +15,7 @@
     <div class="color-section">
       <span class="color-label">
         <mat-icon class="label-icon">border_color</mat-icon>
-        Stroke Color
+        {{ 'canvas.colorDialog.strokeColor' | transloco }}
       </span>
       <app-color-swatches
         [selectedColor]="selectedStroke"
@@ -24,12 +24,12 @@
   }
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-button (click)="onCancel()">{{ 'cancel' | transloco }}</button>
   <button
     mat-button
     color="primary"
     data-testid="canvas-color-confirm"
     (click)="onConfirm()">
-    Apply
+    {{ 'apply' | transloco }}
   </button>
 </mat-dialog-actions>

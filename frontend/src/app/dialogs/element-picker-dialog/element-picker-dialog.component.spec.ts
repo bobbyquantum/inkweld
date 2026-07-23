@@ -4,6 +4,7 @@ import { vi } from 'vitest';
 
 import { type Element } from '../../../api-client/model/element';
 import { ElementType } from '../../../api-client/model/element-type';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import {
   ElementPickerDialogComponent,
@@ -82,7 +83,7 @@ describe('ElementPickerDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ElementPickerDialogComponent],
+      imports: [translocoTestProvider(), ElementPickerDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: defaultDialogData },
@@ -111,7 +112,7 @@ describe('ElementPickerDialogComponent', () => {
     // Recreate with filterType
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
-      imports: [ElementPickerDialogComponent],
+      imports: [translocoTestProvider(), ElementPickerDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         {
@@ -133,7 +134,7 @@ describe('ElementPickerDialogComponent', () => {
   it('should exclude elements by ID when excludeIds is provided', async () => {
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
-      imports: [ElementPickerDialogComponent],
+      imports: [translocoTestProvider(), ElementPickerDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         {
@@ -192,7 +193,7 @@ describe('ElementPickerDialogComponent', () => {
   it('should not allow selection beyond max limit', async () => {
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
-      imports: [ElementPickerDialogComponent],
+      imports: [translocoTestProvider(), ElementPickerDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: { maxSelections: 2 } },

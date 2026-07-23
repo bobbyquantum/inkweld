@@ -12,6 +12,7 @@ import {
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { ConnectionSettingsComponent } from './connection-settings.component';
 
 describe('ConnectionSettingsComponent', () => {
@@ -78,7 +79,7 @@ describe('ConnectionSettingsComponent', () => {
     } as unknown as MockedObject<MatSnackBar>;
 
     await TestBed.configureTestingModule({
-      imports: [ConnectionSettingsComponent],
+      imports: [translocoTestProvider(), ConnectionSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),
@@ -163,7 +164,7 @@ describe('ConnectionSettingsComponent', () => {
       await component.testConnection();
 
       expect(component['connectionError']()).toBe(
-        'Failed to connect to server'
+        'Failed to connect to server. Please check the URL and try again.'
       );
       consoleSpy.mockRestore();
       vi.unstubAllGlobals();

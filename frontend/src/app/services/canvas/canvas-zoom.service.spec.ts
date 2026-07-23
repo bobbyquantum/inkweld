@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { CanvasService } from './canvas.service';
 import { CanvasRendererService } from './canvas-renderer.service';
 import { CanvasZoomService } from './canvas-zoom.service';
@@ -38,6 +39,7 @@ describe('CanvasZoomService', () => {
     mockCanvasService = { activeConfig: signal(null) };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasZoomService,
         { provide: CanvasService, useValue: mockCanvasService },

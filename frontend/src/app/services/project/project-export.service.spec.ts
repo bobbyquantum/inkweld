@@ -11,6 +11,7 @@ import JSZip from '@progress/jszip-esm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ARCHIVE_VERSION,
   type ArchiveManifest,
@@ -205,6 +206,7 @@ describe('ProjectExportService', () => {
     );
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         ProjectExportService,

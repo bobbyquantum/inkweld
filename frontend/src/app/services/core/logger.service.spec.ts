@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from './logger.service';
 
 describe('LoggerService', () => {
@@ -16,6 +17,7 @@ describe('LoggerService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [provideZonelessChangeDetection()],
     });
     service = TestBed.inject(LoggerService);

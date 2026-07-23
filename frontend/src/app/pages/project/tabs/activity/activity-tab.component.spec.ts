@@ -11,6 +11,7 @@ import { of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockDeep } from 'vitest-mock-extended';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { ActivityTabComponent } from './activity-tab.component';
 
 const makeEvent = (
@@ -55,7 +56,7 @@ describe('ActivityTabComponent', () => {
     }
 
     await TestBed.configureTestingModule({
-      imports: [ActivityTabComponent],
+      imports: [translocoTestProvider(), ActivityTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ActivityFeedService, useValue: activityFeed },

@@ -17,6 +17,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   type UnifiedSnapshot,
   UnifiedSnapshotService,
@@ -60,6 +61,7 @@ export interface SnapshotsDialogData {
     MatTooltipModule,
     MatMenuModule,
     MatProgressSpinnerModule,
+    TranslocoModule,
   ],
   templateUrl: './snapshots-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -71,6 +73,7 @@ export class SnapshotsDialogComponent implements OnInit {
   private readonly snapshotService = inject(UnifiedSnapshotService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
 
   /** Loading state */
   loading = signal(false);
@@ -104,7 +107,7 @@ export class SnapshotsDialogComponent implements OnInit {
       this.snapshots.set(result);
     } catch (err) {
       console.error('Failed to load snapshots:', err);
-      this.error.set('Failed to load snapshots. Please try again.');
+      this.error.set(this.transloco.translate('dialogs.snapshots.loadFailed'));
     } finally {
       this.loading.set(false);
     }
@@ -135,16 +138,22 @@ export class SnapshotsDialogComponent implements OnInit {
           result.description
         );
         this.snackBar.open(
-          `Snapshot "${snapshot.name}" created successfully`,
-          'OK',
+          this.transloco.translate('dialogs.snapshots.created', {
+            name: snapshot.name,
+          }),
+          this.transloco.translate('ok'),
           { duration: 3000 }
         );
         await this.loadSnapshots();
       } catch (err) {
         console.error('Failed to create snapshot:', err);
-        this.snackBar.open('Failed to create snapshot', 'OK', {
-          duration: 3000,
-        });
+        this.snackBar.open(
+          this.transloco.translate('dialogs.snapshots.createFailed'),
+          this.transloco.translate('ok'),
+          {
+            duration: 3000,
+          }
+        );
         this.loading.set(false);
       }
     }
@@ -174,17 +183,25 @@ export class SnapshotsDialogComponent implements OnInit {
           this.data.documentId,
           snapshot.id
         );
-        this.snackBar.open(`Document restored to "${snapshot.name}"`, 'OK', {
-          duration: 3000,
-        });
+        this.snackBar.open(
+          this.transloco.translate('dialogs.snapshots.restored', {
+            name: snapshot.name,
+          }),
+          this.transloco.translate('ok'),
+          { duration: 3000 }
+        );
         await this.loadSnapshots();
         // Close the snapshots dialog after successful restore
         this.dialogRef.close(true);
       } catch (err) {
         console.error('Failed to restore snapshot:', err);
-        this.snackBar.open('Failed to restore snapshot', 'OK', {
-          duration: 3000,
-        });
+        this.snackBar.open(
+          this.transloco.translate('dialogs.snapshots.restoreFailed'),
+          this.transloco.translate('ok'),
+          {
+            duration: 3000,
+          }
+        );
         this.loading.set(false);
       }
     }
@@ -196,7 +213,11 @@ export class SnapshotsDialogComponent implements OnInit {
    */
   previewSnapshot(_snapshot: UnifiedSnapshot): void {
     // For now, show a message that preview is not available
-    this.snackBar.open('Preview feature coming soon', 'OK', { duration: 3000 });
+    this.snackBar.open(
+      this.transloco.translate('dialogs.snapshots.previewComingSoon'),
+      this.transloco.translate('ok'),
+      { duration: 3000 }
+    );
   }
 
   /**
@@ -223,15 +244,23 @@ export class SnapshotsDialogComponent implements OnInit {
 
     try {
       await this.snapshotService.deleteSnapshot(snapshot.id);
-      this.snackBar.open('Snapshot deleted successfully', 'OK', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('dialogs.snapshots.deleted'),
+        this.transloco.translate('ok'),
+        {
+          duration: 3000,
+        }
+      );
       await this.loadSnapshots();
     } catch (err) {
       console.error('Failed to delete snapshot:', err);
-      this.snackBar.open('Failed to delete snapshot', 'OK', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('dialogs.snapshots.deleteFailed'),
+        this.transloco.translate('ok'),
+        {
+          duration: 3000,
+        }
+      );
     }
   }
 

@@ -23,6 +23,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { CanvasService } from './canvas.service';
 import type { CanvasNodeHandlers } from './canvas-renderer.service';
 import { CanvasRendererService } from './canvas-renderer.service';
@@ -207,6 +208,7 @@ describe('CanvasRendererService', () => {
     mockLogger = { warn: vi.fn() };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasRendererService,
         { provide: CanvasService, useValue: { activeConfig: signal(null) } },

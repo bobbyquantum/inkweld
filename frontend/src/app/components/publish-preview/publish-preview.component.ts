@@ -18,6 +18,7 @@ import {
   type SafeHtml,
   type SafeResourceUrl,
 } from '@angular/platform-browser';
+import { TranslocoModule } from '@jsverse/transloco';
 import { PublishFormat, type PublishPlan } from '@models/publish-plan';
 import { HtmlGeneratorService } from '@services/publish/html-generator.service';
 import { MarkdownGeneratorService } from '@services/publish/markdown-generator.service';
@@ -35,6 +36,7 @@ type DevicePreset = 'phone' | 'tablet' | 'desktop';
     MatIconModule,
     MatProgressBarModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
 })
 export class PublishPreviewComponent implements AfterViewInit, OnDestroy {

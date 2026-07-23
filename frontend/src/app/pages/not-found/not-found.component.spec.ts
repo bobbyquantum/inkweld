@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, RouterLink } from '@angular/router';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { NotFoundComponent } from './not-found.component';
 
 describe('NotFoundComponent', () => {
@@ -10,7 +11,7 @@ describe('NotFoundComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [NotFoundComponent, RouterLink],
+      imports: [translocoTestProvider(), NotFoundComponent, RouterLink],
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([{ path: '', component: NotFoundComponent }]),
@@ -29,7 +30,7 @@ describe('NotFoundComponent', () => {
   it('should render 404 message', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain(
-      '404 - Page Not Found'
+      '404 - Something went wrong. Please try again.'
     );
   });
 
@@ -37,6 +38,6 @@ describe('NotFoundComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const link = compiled.querySelector('a');
     expect(link?.getAttribute('routerLink')).toBe('/');
-    expect(link?.textContent).toContain('Return to Home');
+    expect(link?.textContent).toContain('Back to home');
   });
 });

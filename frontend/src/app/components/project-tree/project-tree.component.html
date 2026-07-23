@@ -20,7 +20,7 @@
       class="home-button"
       [class.active]="isHomeSelected()"
       (click)="goHome()"
-      matTooltip="Home"
+      [matTooltip]="'project.tree.home' | transloco"
       data-testid="toolbar-home-button">
       <mat-icon>home</mat-icon>
     </button>
@@ -28,7 +28,7 @@
       mat-icon-button
       class="search-button"
       (click)="openProjectSearch()"
-      matTooltip="Search in Project (Ctrl+Shift+F)"
+      [matTooltip]="'project.tree.searchInProject' | transloco"
       data-testid="toolbar-project-search-button">
       <mat-icon>manage_search</mat-icon>
     </button>
@@ -38,9 +38,9 @@
         mat-icon-button
         class="collapse-button"
         (click)="collapseRequested.emit()"
-        matTooltip="Collapse Sidebar"
+        [matTooltip]="'project.tree.collapseSidebar' | transloco"
         data-testid="toolbar-collapse-button"
-        aria-label="Collapse Sidebar">
+        [attr.aria-label]="'project.tree.collapseSidebar' | transloco">
         <mat-icon fontSet="material-symbols-outlined"
           >left_panel_close</mat-icon
         >
@@ -53,7 +53,9 @@
     <div class="pinned-section">
       <div class="pinned-section-header">
         <mat-icon class="pinned-section-icon">push_pin</mat-icon>
-        <span class="pinned-section-label">Pinned</span>
+        <span class="pinned-section-label">{{
+          'project.tree.pinned' | transloco
+        }}</span>
       </div>
       @for (element of pinnedElements(); track element.id) {
         <div
@@ -209,7 +211,7 @@
         (click)="onCreateNewElement()"
         (keyup.enter)="onCreateNewElement()">
         <mat-icon>add</mat-icon>
-        <div class="node-title">Create</div>
+        <div class="node-title">{{ 'project.tree.create' | transloco }}</div>
       </div>
     }
   </div>
@@ -226,7 +228,9 @@
         [disabled]="isLoading()"
         (click)="onOpenDocument(node)">
         <mat-icon>open_in_new</mat-icon>
-        <span class="context-menu-item-title">Open Document</span>
+        <span class="context-menu-item-title">{{
+          'project.tree.openDocument' | transloco
+        }}</span>
       </button>
     }
     @if (node.expandable && projectStateService.canWrite()) {
@@ -238,7 +242,9 @@
         [disabled]="isLoading()"
         (click)="onCreateNewElementInFolder(node)">
         <mat-icon>add</mat-icon>
-        <span class="context-menu-item-title">New Element</span>
+        <span class="context-menu-item-title">{{
+          'project.tree.newElement' | transloco
+        }}</span>
       </button>
     }
     @if (projectStateService.canWrite()) {
@@ -249,7 +255,9 @@
         [disabled]="isLoading()"
         (click)="onRename(node)">
         <mat-icon>edit_square</mat-icon>
-        <span class="context-menu-item-title">Rename</span>
+        <span class="context-menu-item-title">{{
+          'project.tree.rename' | transloco
+        }}</span>
       </button>
       <button
         type="button"
@@ -258,7 +266,9 @@
         [disabled]="isLoading()"
         (click)="onDelete(node)">
         <mat-icon>delete</mat-icon>
-        <span class="context-menu-item-title">Delete</span>
+        <span class="context-menu-item-title">{{
+          'project.tree.delete' | transloco
+        }}</span>
       </button>
     }
     @if (projectStateService.isOwner()) {
@@ -272,7 +282,9 @@
           projectStateService.isPinned(node.id) ? 'push_pin' : 'push_pin'
         }}</mat-icon>
         <span class="context-menu-item-title">{{
-          projectStateService.isPinned(node.id) ? 'Unpin' : 'Pin'
+          projectStateService.isPinned(node.id)
+            ? ('project.tree.unpin' | transloco)
+            : ('project.tree.pin' | transloco)
         }}</span>
       </button>
     }

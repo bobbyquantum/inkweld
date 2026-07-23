@@ -9,10 +9,11 @@
       [disabled]="!canAddMore()"
       (click)="openElementPicker()">
       <mat-icon>add</mat-icon>
-      Add Element
+      {{ 'worldbuilding.elementSelector.addElement' | transloco }}
     </button>
     <span class="element-count">
-      {{ selectedElements().length }} / {{ maxElements() }} elements
+      {{ selectedElements().length }} / {{ maxElements() }}
+      {{ 'worldbuilding.elementSelector.elements' | transloco }}
     </span>
   </div>
 
@@ -21,17 +22,38 @@
     <table ngGrid class="element-grid">
       <thead>
         <tr ngGridRow>
-          <th ngGridCell class="col-element">Element</th>
+          <th ngGridCell class="col-element">
+            {{ 'worldbuilding.elementSelector.elementHeader' | transloco }}
+          </th>
           <th ngGridCell class="col-toggle">
-            <span matTooltip="Include element images as references"
-              >Reference</span
+            <span
+              [matTooltip]="
+                'worldbuilding.elementSelector.referenceTooltip' | transloco
+              "
+              >{{
+                'worldbuilding.elementSelector.referenceHeader' | transloco
+              }}</span
             >
           </th>
           <th ngGridCell class="col-toggle">
-            <span matTooltip="Include element descriptions">Description</span>
+            <span
+              [matTooltip]="
+                'worldbuilding.elementSelector.descriptionTooltip' | transloco
+              "
+              >{{
+                'worldbuilding.elementSelector.descriptionHeader' | transloco
+              }}</span
+            >
           </th>
           <th ngGridCell class="col-toggle">
-            <span matTooltip="Include worldbuilding data fields">Data</span>
+            <span
+              [matTooltip]="
+                'worldbuilding.elementSelector.dataTooltip' | transloco
+              "
+              >{{
+                'worldbuilding.elementSelector.dataHeader' | transloco
+              }}</span
+            >
           </th>
           <th ngGridCell class="col-actions"></th>
         </tr>
@@ -68,7 +90,10 @@
                 @if (!element.hasImage) {
                   <span
                     class="material-symbols-outlined no-image-icon"
-                    matTooltip="No image available"
+                    [matTooltip]="
+                      'worldbuilding.elementSelector.noImageAvailable'
+                        | transloco
+                    "
                     >image_not_supported</span
                   >
                 }
@@ -109,7 +134,9 @@
                 class="remove-button"
                 aria-label="Remove {{ element.name }}"
                 (click)="removeElement(element)"
-                matTooltip="Remove element">
+                [matTooltip]="
+                  'worldbuilding.elementSelector.removeTooltip' | transloco
+                ">
                 <span class="material-symbols-outlined">close</span>
               </button>
             </td>
@@ -120,9 +147,9 @@
   } @else if (!isLoading()) {
     <div class="empty-state">
       <span class="material-symbols-outlined">diversity_3</span>
-      <p>No elements selected</p>
+      <p>{{ 'worldbuilding.elementSelector.noElements' | transloco }}</p>
       <p class="hint">
-        Add worldbuilding elements to include their details in the image prompt.
+        {{ 'worldbuilding.elementSelector.noElementsHint' | transloco }}
       </p>
     </div>
   }
@@ -130,7 +157,7 @@
   <!-- Loading State -->
   @if (isLoading()) {
     <div class="loading-state">
-      <p>Loading worldbuilding elements...</p>
+      <p>{{ 'worldbuilding.elementSelector.loading' | transloco }}</p>
     </div>
   }
 </div>

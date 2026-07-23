@@ -1,7 +1,10 @@
 <div class="image-audits-container">
   <div class="header">
-    <h1>Image Generation Audits</h1>
-    <button mat-icon-button (click)="refresh()" matTooltip="Refresh">
+    <h1>{{ 'admin.imageAudits.title' | transloco }}</h1>
+    <button
+      mat-icon-button
+      (click)="refresh()"
+      [matTooltip]="'admin.imageAudits.refresh' | transloco">
       <mat-icon>refresh</mat-icon>
     </button>
   </div>
@@ -12,25 +15,33 @@
       <mat-card class="stat-card">
         <mat-card-content>
           <div class="stat-value">{{ stats()!.totalRequests }}</div>
-          <div class="stat-label">Total Requests</div>
+          <div class="stat-label">
+            {{ 'admin.imageAudits.totalRequests' | transloco }}
+          </div>
         </mat-card-content>
       </mat-card>
       <mat-card class="stat-card">
         <mat-card-content>
           <div class="stat-value">{{ stats()!.totalCredits }}</div>
-          <div class="stat-label">Total Credits Used</div>
+          <div class="stat-label">
+            {{ 'admin.imageAudits.totalCredits' | transloco }}
+          </div>
         </mat-card-content>
       </mat-card>
       <mat-card class="stat-card success">
         <mat-card-content>
           <div class="stat-value">{{ stats()!.successCount }}</div>
-          <div class="stat-label">Successful</div>
+          <div class="stat-label">
+            {{ 'admin.imageAudits.successful' | transloco }}
+          </div>
         </mat-card-content>
       </mat-card>
       <mat-card class="stat-card moderated">
         <mat-card-content>
           <div class="stat-value">{{ stats()!.moderatedCount }}</div>
-          <div class="stat-label">Moderated</div>
+          <div class="stat-label">
+            {{ 'admin.imageAudits.moderated' | transloco }}
+          </div>
         </mat-card-content>
       </mat-card>
     </div>
@@ -39,15 +50,15 @@
   <!-- Filters -->
   <div class="filters">
     <mat-form-field appearance="outline" class="search-field">
-      <mat-label>Search prompts</mat-label>
+      <mat-label>{{ 'admin.imageAudits.searchLabel' | transloco }}</mat-label>
       <input
         matInput
         id="image-audits-search-input"
         [value]="searchQuery()"
         (input)="onSearchInput($event)"
-        placeholder="Search prompt text..."
+        [placeholder]="'admin.imageAudits.searchPlaceholder' | transloco"
         data-testid="audit-search-input"
-        aria-label="Search prompts" />
+        [attr.aria-label]="'admin.imageAudits.searchAria' | transloco" />
       @if (searchQuery()) {
         <button matSuffix mat-icon-button (click)="clearSearch()">
           <mat-icon>close</mat-icon>
@@ -56,14 +67,20 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="status-filter">
-      <mat-label>Status</mat-label>
+      <mat-label>{{ 'admin.imageAudits.statusLabel' | transloco }}</mat-label>
       <mat-select
         [value]="statusFilter()"
         (selectionChange)="onStatusFilterChange($event.value)"
         data-testid="audit-status-filter">
-        <mat-option value="">All</mat-option>
-        <mat-option value="success">Success</mat-option>
-        <mat-option value="moderated">Moderated</mat-option>
+        <mat-option value="">{{
+          'admin.imageAudits.statusAll' | transloco
+        }}</mat-option>
+        <mat-option value="success">{{
+          'admin.imageAudits.statusSuccess' | transloco
+        }}</mat-option>
+        <mat-option value="moderated">{{
+          'admin.imageAudits.statusModerated' | transloco
+        }}</mat-option>
       </mat-select>
     </mat-form-field>
   </div>
@@ -81,7 +98,9 @@
       <table mat-table [dataSource]="audits()" class="audits-table">
         <!-- Date Column -->
         <ng-container matColumnDef="createdAt">
-          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'admin.imageAudits.dateHeader' | transloco }}
+          </th>
           <td mat-cell *matCellDef="let audit">
             {{ audit.createdAt | date: 'short' }}
           </td>
@@ -89,7 +108,9 @@
 
         <!-- User Column -->
         <ng-container matColumnDef="username">
-          <th mat-header-cell *matHeaderCellDef>User</th>
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'admin.imageAudits.userHeader' | transloco }}
+          </th>
           <td mat-cell *matCellDef="let audit">
             {{ audit.username || 'Unknown' }}
           </td>
@@ -97,7 +118,9 @@
 
         <!-- Profile Column -->
         <ng-container matColumnDef="profileName">
-          <th mat-header-cell *matHeaderCellDef>Profile</th>
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'admin.imageAudits.profileHeader' | transloco }}
+          </th>
           <td mat-cell *matCellDef="let audit">
             {{ audit.profileName }}
           </td>
@@ -105,7 +128,9 @@
 
         <!-- Prompt Column -->
         <ng-container matColumnDef="prompt">
-          <th mat-header-cell *matHeaderCellDef>Prompt</th>
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'admin.imageAudits.promptHeader' | transloco }}
+          </th>
           <td mat-cell *matCellDef="let audit" class="prompt-cell">
             <span [matTooltip]="audit.prompt" matTooltipClass="wide-tooltip">
               {{ truncatePrompt(audit.prompt) }}
@@ -115,7 +140,9 @@
 
         <!-- Credit Cost Column -->
         <ng-container matColumnDef="creditCost">
-          <th mat-header-cell *matHeaderCellDef>Credits</th>
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'admin.imageAudits.creditsHeader' | transloco }}
+          </th>
           <td mat-cell *matCellDef="let audit">
             {{ audit.creditCost }}
           </td>
@@ -123,7 +150,9 @@
 
         <!-- Status Column -->
         <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'admin.imageAudits.statusHeader' | transloco }}
+          </th>
           <td mat-cell *matCellDef="let audit">
             <mat-chip-set>
               <mat-chip
@@ -139,13 +168,15 @@
 
         <!-- Actions Column -->
         <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'admin.imageAudits.actionsHeader' | transloco }}
+          </th>
           <td mat-cell *matCellDef="let audit">
             @if (audit.outputImageUrls && audit.outputImageUrls.length > 0) {
               <button
                 mat-icon-button
                 (click)="viewOutputImages(audit)"
-                matTooltip="View generated image">
+                [matTooltip]="'admin.imageAudits.viewImage' | transloco">
                 <mat-icon>image</mat-icon>
               </button>
             }
@@ -171,12 +202,12 @@
   @if (!isLoading() && audits().length === 0) {
     <div class="empty-state">
       <mat-icon>receipt_long</mat-icon>
-      <h2>No audit records found</h2>
+      <h2>{{ 'admin.imageAudits.noRecords' | transloco }}</h2>
       <p>
         @if (searchQuery() || statusFilter()) {
-          Try adjusting your filters
+          {{ 'admin.imageAudits.adjustFilters' | transloco }}
         } @else {
-          Image generation audits will appear here
+          {{ 'admin.imageAudits.auditsWillAppear' | transloco }}
         }
       </p>
     </div>

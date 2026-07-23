@@ -14,6 +14,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { UserMenuComponent } from '../../components/user-menu/user-menu.component';
 import { AdminComponent } from './admin.component';
 
@@ -56,7 +57,7 @@ describe('AdminComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [AdminComponent],
+      imports: [translocoTestProvider(), AdminComponent],
       providers: [
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),

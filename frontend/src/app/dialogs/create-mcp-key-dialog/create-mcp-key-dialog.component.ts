@@ -21,6 +21,7 @@ import {
   McpPermission,
   type McpPublicKey,
 } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -60,6 +61,7 @@ export interface CreateMcpKeyDialogResult {
     MatProgressSpinnerModule,
     MatSelectModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
 })
 export class CreateMcpKeyDialogComponent {
@@ -69,6 +71,7 @@ export class CreateMcpKeyDialogComponent {
   private readonly mcpKeysService = inject(MCPKeysService);
   private readonly projectState = inject(ProjectStateService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
 
   protected readonly isCreating = signal(false);
   protected readonly selectedPermissions = signal<Set<McpPermission>>(
@@ -198,9 +201,13 @@ export class CreateMcpKeyDialogComponent {
         )
       );
 
-      this.snackBar.open('API key created successfully', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.aiProviders.apiKeySaved', {
+          provider: 'MCP',
+        }),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
 
       this.dialogRef.close({
         fullKey: response.fullKey,
@@ -208,9 +215,13 @@ export class CreateMcpKeyDialogComponent {
       });
     } catch (error) {
       console.error('Failed to create API key:', error);
-      this.snackBar.open('Failed to create API key', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.aiProviders.apiKeySaveFailed', {
+          provider: 'MCP',
+        }),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
     } finally {
       this.isCreating.set(false);
     }

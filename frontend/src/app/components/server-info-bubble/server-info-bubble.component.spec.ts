@@ -7,6 +7,7 @@ import {
 } from '@services/core/storage-context.service';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ServerInfoBubbleComponent } from './server-info-bubble.component';
 
 describe('ServerInfoBubbleComponent', () => {
@@ -58,7 +59,7 @@ describe('ServerInfoBubbleComponent', () => {
     } as unknown as MockedObject<AuthTokenService>;
 
     await TestBed.configureTestingModule({
-      imports: [ServerInfoBubbleComponent],
+      imports: [translocoTestProvider(), ServerInfoBubbleComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: StorageContextService, useValue: storageContextMock },

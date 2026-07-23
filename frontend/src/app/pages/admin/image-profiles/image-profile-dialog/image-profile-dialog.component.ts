@@ -22,6 +22,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import {
   type AdminImageModelProfile,
   type AdminListImageProviders200ResponseInner,
@@ -79,6 +80,7 @@ interface ImageProfileFormValue {
     MatSelectModule,
     MatSlideToggleModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './image-profile-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

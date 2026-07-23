@@ -7,6 +7,7 @@ import { PasskeyError } from '@services/auth/passkey.service';
 import { PasskeyRecoveryService } from '@services/auth/passkey-recovery.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { RecoverPasskeyRedeemComponent } from './recover-passkey-redeem.component';
 
 describe('RecoverPasskeyRedeemComponent', () => {
@@ -37,7 +38,7 @@ describe('RecoverPasskeyRedeemComponent', () => {
     mockRouter = { navigate: vi.fn().mockResolvedValue(true) };
 
     await TestBed.configureTestingModule({
-      imports: [RecoverPasskeyRedeemComponent],
+      imports: [translocoTestProvider(), RecoverPasskeyRedeemComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),
@@ -141,7 +142,7 @@ describe('RecoverPasskeyRedeemComponent', () => {
         new Error('weird')
       );
       await component.onSubmit();
-      expect(component.error()).toContain('Could not enrol your new passkey');
+      expect(component.error()).toBe('Something went wrong. Please try again.');
       expect(component.success()).toBe(false);
     });
   });

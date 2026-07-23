@@ -20,6 +20,7 @@ import {
   vi,
 } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   BROWSER_SUPPORTS_WEBAUTHN,
   PasskeyError,
@@ -74,6 +75,7 @@ describe('PasskeyRecoveryService', () => {
     fakeStartRegistration = vi.fn().mockResolvedValue(fakeAttestation);
 
     await TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

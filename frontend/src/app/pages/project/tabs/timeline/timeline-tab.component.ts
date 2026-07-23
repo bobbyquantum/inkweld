@@ -38,6 +38,7 @@ import {
   type TimelineEventDialogData,
   type TimelineEventDialogResult,
 } from '@dialogs/timeline-event-dialog/timeline-event-dialog.component';
+import { TranslocoModule } from '@jsverse/transloco';
 import {
   absoluteToTimePoint,
   isValidTimePointFor,
@@ -174,6 +175,7 @@ type EventDragPreview = {
     MatIconModule,
     MatSelectModule,
     MatTooltipModule,
+    TranslocoModule,
     TabPresenceIndicatorComponent,
     DocumentBreadcrumbsComponent,
   ],

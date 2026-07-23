@@ -19,6 +19,7 @@ import {
 } from 'vitest';
 
 import { environment } from '../../../environments/environment';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { LocalStorageService } from '../local/local-storage.service';
@@ -78,6 +79,7 @@ describe('CoverSyncService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

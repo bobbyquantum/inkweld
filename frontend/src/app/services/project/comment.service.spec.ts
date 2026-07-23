@@ -8,6 +8,7 @@ import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { commentMarkSpec } from '../../components/comment-mark/comment-mark-schema';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
@@ -61,7 +62,7 @@ describe('CommentService', () => {
     mockLogger = { warn: vi.fn(), error: vi.fn() };
 
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
+      imports: [translocoTestProvider(), HttpClientTestingModule],
       providers: [
         CommentService,
         { provide: SetupService, useValue: mockSetupService },

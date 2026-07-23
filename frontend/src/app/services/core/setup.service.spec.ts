@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { environment } from '../../../environments/environment';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from './setup.service';
 import {
   APP_CONFIG_STORAGE_KEY,
@@ -42,6 +43,7 @@ describe('SetupService', () => {
     globalThis.fetch = vi.fn();
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         StorageContextService,

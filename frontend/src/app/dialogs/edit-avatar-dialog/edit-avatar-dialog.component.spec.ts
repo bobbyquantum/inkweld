@@ -9,6 +9,7 @@ import { type ImageCroppedEvent, type LoadedImage } from 'ngx-image-cropper';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { EditAvatarDialogComponent } from './edit-avatar-dialog.component';
 
 describe('EditAvatarDialogComponent', () => {
@@ -42,7 +43,7 @@ describe('EditAvatarDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [EditAvatarDialogComponent],
+      imports: [translocoTestProvider(), EditAvatarDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: UserService, useValue: userServiceMock },

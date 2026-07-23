@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { DocumentElementEditorComponent } from '@components/document-element-editor/document-element-editor.component';
+import { TranslocoModule } from '@jsverse/transloco';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { DocumentSyncService } from '@services/sync/document-sync.service';
@@ -24,6 +25,7 @@ import { DocumentSyncService } from '@services/sync/document-sync.service';
     MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,
+    TranslocoModule,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   providers: [DocumentSyncService],

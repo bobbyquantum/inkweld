@@ -9,16 +9,16 @@
       class="search-input"
       [value]="searchQuery()"
       (input)="onSearchChange($any($event.target).value)"
-      placeholder="Search files by name..."
+      [placeholder]="'dialogs.quickOpen.placeholder' | transloco"
       autocomplete="off"
       data-testid="quick-open-search"
-      aria-label="Search files" />
+      [attr.aria-label]="'dialogs.quickOpen.searchAria' | transloco" />
     @if (searchQuery()) {
       <button
         mat-icon-button
         class="clear-button"
         (click)="onSearchChange('')"
-        aria-label="Clear search">
+        [attr.aria-label]="'dialogs.quickOpen.clearSearch' | transloco">
         <mat-icon>close</mat-icon>
       </button>
     }
@@ -30,7 +30,9 @@
     role="listbox"
     data-testid="quick-open-results">
     @if (showingRecent() && results().length > 0) {
-      <div class="results-header">Recent Files</div>
+      <div class="results-header">
+        {{ 'dialogs.quickOpen.recentFiles' | transloco }}
+      </div>
     }
 
     @for (
@@ -63,7 +65,9 @@
 
         <!-- Recent indicator -->
         @if (result.isRecent && !showingRecent()) {
-          <mat-icon class="recent-indicator" matTooltip="Recently opened"
+          <mat-icon
+            class="recent-indicator"
+            [matTooltip]="'dialogs.quickOpen.recentlyOpened' | transloco"
             >schedule</mat-icon
           >
         }
@@ -72,10 +76,14 @@
       <div class="empty-state">
         @if (searchQuery()) {
           <mat-icon>search_off</mat-icon>
-          <p>No files match "{{ searchQuery() }}"</p>
+          <p>
+            {{
+              'dialogs.quickOpen.noMatch' | transloco: { query: searchQuery() }
+            }}
+          </p>
         } @else {
           <mat-icon>folder_open</mat-icon>
-          <p>No documents in project</p>
+          <p>{{ 'dialogs.quickOpen.noDocuments' | transloco }}</p>
         }
       </div>
     }
@@ -84,9 +92,15 @@
   <!-- Footer with hints -->
   <div class="dialog-footer">
     <div class="keyboard-hints">
-      <span class="hint"><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
-      <span class="hint"><kbd>Enter</kbd> Open</span>
-      <span class="hint"><kbd>Esc</kbd> Close</span>
+      <span class="hint"
+        ><kbd>↑</kbd><kbd>↓</kbd> {{ 'keyboard.navigate' | transloco }}</span
+      >
+      <span class="hint"
+        ><kbd>Enter</kbd> {{ 'keyboard.open' | transloco }}</span
+      >
+      <span class="hint"
+        ><kbd>Esc</kbd> {{ 'keyboard.close' | transloco }}</span
+      >
     </div>
   </div>
 </div>

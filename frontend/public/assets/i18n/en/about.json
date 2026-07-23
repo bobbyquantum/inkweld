@@ -1,0 +1,35 @@
+{
+  "goBack": "Go back",
+  "aboutTitle": "About {{appName}}",
+  "version": "Version {{version}}",
+  "copyright": "© {{year}} Inkweld. All rights reserved.",
+  "viewChangelog": "View Changelog",
+  "keyLibraries": "Key Libraries",
+  "keyLibrariesSubtitle": "Open source technologies powering Inkweld",
+  "openSourceLicenses": "Open Source Licenses",
+  "openSourceLicensesSubtitle": "Third-party license information",
+  "openSourceLicensesDesc": "Inkweld is built on the shoulders of giants. View the complete list of third-party packages and their licenses.",
+  "viewAllLicenses": "View All Licenses",
+  "links": "Links",
+  "linksSubtitle": "Helpful resources",
+  "sourceCode": "Source Code",
+  "sourceCodeDesc": "View the project on GitHub",
+  "sourceCodeAria": "Open GitHub repository",
+  "reportIssues": "Report Issues",
+  "reportIssuesDesc": "Found a bug? Let us know",
+  "reportIssuesAria": "Open GitHub issues",
+  "libraries": {
+    "angular": "A platform for building mobile and desktop web applications",
+    "angularMaterial": "Material Design components for Angular",
+    "yjs": "A CRDT framework for building collaborative applications",
+    "prosemirror": "A toolkit for building rich-text editors",
+    "hono": "A small, simple, and ultrafast web framework for the edge",
+    "drizzle": "TypeScript ORM that is lightweight and performant"
+  },
+  "changelog": {
+    "back": "Back",
+    "title": "Project Changelog",
+    "loading": "Loading changelog...",
+    "noEntries": "No changelog entries found."
+  }
+}

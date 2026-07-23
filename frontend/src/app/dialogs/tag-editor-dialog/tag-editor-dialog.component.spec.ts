@@ -3,6 +3,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { TagService } from '../../services/tag/tag.service';
 import {
   TagEditorDialogComponent,
@@ -23,7 +24,7 @@ describe('TagEditorDialogComponent', () => {
     dialogRefMock = { close: vi.fn() };
 
     await TestBed.configureTestingModule({
-      imports: [TagEditorDialogComponent],
+      imports: [translocoTestProvider(), TagEditorDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRefMock },

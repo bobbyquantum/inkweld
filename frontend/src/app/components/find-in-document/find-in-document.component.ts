@@ -26,6 +26,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import { FindInDocumentService } from '@services/core/find-in-document.service';
 
 @Component({
@@ -36,6 +37,7 @@ import { FindInDocumentService } from '@services/core/find-in-document.service';
     MatIconModule,
     MatInputModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './find-in-document.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

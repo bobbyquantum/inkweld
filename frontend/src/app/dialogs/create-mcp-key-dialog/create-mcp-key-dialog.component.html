@@ -1,45 +1,45 @@
-<h2 mat-dialog-title>Create Legacy API Key</h2>
+<h2 mat-dialog-title>{{ 'admin.aiProviders.title' | transloco }}</h2>
 
 <mat-dialog-content>
   <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Key Name</mat-label>
+    <mat-label>{{ 'name' | transloco }}</mat-label>
     <input
       matInput
       [(ngModel)]="keyName"
-      placeholder="e.g., Claude Desktop, Cursor IDE"
+      [placeholder]="'admin.aiProviders.apiKeyPlaceholder' | transloco"
       id="create-mcp-key-name-input"
       data-testid="key-name-input"
-      aria-label="Key Name" />
-    <mat-hint>A friendly name to identify this key</mat-hint>
+      [attr.aria-label]="'admin.aiProviders.apiKeyAria' | transloco" />
+    <mat-hint>{{ 'admin.aiProviders.apiKeyLabel' | transloco }}</mat-hint>
   </mat-form-field>
 
   <div class="permissions-section">
     <div class="permissions-header">
-      <h4>Permissions</h4>
+      <h4>{{ 'admin.aiProviders.title' | transloco }}</h4>
       <div class="permission-shortcuts">
         <button
           mat-button
           (click)="selectAllReadPermissions()"
           data-testid="permissions-all-read-button">
-          All Read
+          {{ 'all' | transloco }}
         </button>
         <button
           mat-button
           (click)="selectAllWritePermissions()"
           data-testid="permissions-all-write-button">
-          All Write
+          {{ 'all' | transloco }}
         </button>
         <button
           mat-button
           (click)="selectAllPermissions()"
           data-testid="permissions-all-button">
-          All
+          {{ 'all' | transloco }}
         </button>
         <button
           mat-button
           (click)="clearPermissions()"
           data-testid="permissions-clear-button">
-          Clear
+          {{ 'clear' | transloco }}
         </button>
       </div>
     </div>
@@ -62,19 +62,19 @@
   </div>
 
   <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Expiration</mat-label>
+    <mat-label>{{ 'date' | transloco }}</mat-label>
     <mat-select [(ngModel)]="keyExpiration">
-      <mat-option value="never">Never expires</mat-option>
-      <mat-option value="7days">7 days</mat-option>
-      <mat-option value="30days">30 days</mat-option>
-      <mat-option value="90days">90 days</mat-option>
+      <mat-option value="never">{{ 'never' | transloco }}</mat-option>
+      <mat-option value="7days">7 {{ 'days' | transloco }}</mat-option>
+      <mat-option value="30days">30 {{ 'days' | transloco }}</mat-option>
+      <mat-option value="90days">90 {{ 'days' | transloco }}</mat-option>
     </mat-select>
   </mat-form-field>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="cancel()" data-testid="cancel-create-key-button">
-    Cancel
+    {{ 'cancel' | transloco }}
   </button>
   <button
     mat-raised-button
@@ -90,7 +90,7 @@
     } @else {
       <ng-container>
         <mat-icon>add</mat-icon>
-        Create Key
+        {{ 'create' | transloco }}
       </ng-container>
     }
   </button>

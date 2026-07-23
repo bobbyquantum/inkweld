@@ -17,6 +17,7 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { of, throwError } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { AccountSettingsComponent } from './account-settings.component';
 
 describe('AccountSettingsComponent', () => {
@@ -87,7 +88,7 @@ describe('AccountSettingsComponent', () => {
     } as unknown as MockedObject<DialogGatewayService>;
 
     await TestBed.configureTestingModule({
-      imports: [AccountSettingsComponent],
+      imports: [translocoTestProvider(), AccountSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideLocationMocks(),
@@ -129,7 +130,7 @@ describe('AccountSettingsComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      expect(component.error()).toBe('Failed to load connected apps');
+      expect(component.error()).toBe('Failed to load authorized apps');
       expect(component.loading()).toBe(false);
     });
   });
@@ -183,9 +184,9 @@ describe('AccountSettingsComponent', () => {
       await component.revokeSession(mockSessions[0]);
 
       expect(dialogGateway.openConfirmationDialog).toHaveBeenCalledWith({
-        title: 'Revoke Access',
-        message: expect.stringContaining('Test App'),
-        confirmText: 'Revoke Access',
+        title: 'Disconnect app',
+        message: 'Disconnected Test App',
+        confirmText: 'Disconnect app',
       });
     });
 

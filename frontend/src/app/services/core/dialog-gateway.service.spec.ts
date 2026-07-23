@@ -5,6 +5,7 @@ import { ElementType, type Project } from '@inkweld/index';
 import { of } from 'rxjs';
 import { type Mock, type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   AddRelationshipDialogComponent,
   type AddRelationshipDialogData,
@@ -60,6 +61,7 @@ describe('DialogGatewayService', () => {
     } as unknown as MockedObject<MatDialog>;
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         DialogGatewayService,

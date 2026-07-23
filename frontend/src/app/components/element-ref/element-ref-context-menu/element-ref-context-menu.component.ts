@@ -25,6 +25,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
+import { TranslocoModule } from '@jsverse/transloco';
 
 import { type ElementType } from '../../../../api-client';
 
@@ -65,6 +66,7 @@ export type ElementRefAction =
     MatIconModule,
     MatInputModule,
     MatMenuModule,
+    TranslocoModule,
   ],
   templateUrl: './element-ref-context-menu.component.html',
   styleUrls: ['./element-ref-context-menu.component.scss'],

@@ -11,6 +11,7 @@ import { TagService } from '@services/tag/tag.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { IdentityPanelComponent } from './identity-panel.component';
 
 describe('IdentityPanelComponent', () => {
@@ -42,7 +43,7 @@ describe('IdentityPanelComponent', () => {
     } as unknown as MockedObject<DialogGatewayService>;
 
     await TestBed.configureTestingModule({
-      imports: [IdentityPanelComponent],
+      imports: [translocoTestProvider(), IdentityPanelComponent],
       providers: [
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),

@@ -5,6 +5,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { SettingsService } from '@services/core/settings.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { ProjectTreeSettingsComponent } from './project-tree-settings.component';
 
 describe('ProjectTreeSettingsComponent', () => {
@@ -34,7 +35,12 @@ describe('ProjectTreeSettingsComponent', () => {
     });
 
     await TestBed.configureTestingModule({
-      imports: [ProjectTreeSettingsComponent, FormsModule, MatCheckboxModule],
+      imports: [
+        translocoTestProvider(),
+        ProjectTreeSettingsComponent,
+        FormsModule,
+        MatCheckboxModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         SettingsService,

@@ -3,6 +3,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ConfirmationDialogComponent } from './confirmation-dialog.component';
 
 describe('ConfirmationDialogComponent', () => {
@@ -16,7 +17,7 @@ describe('ConfirmationDialogComponent', () => {
     } as unknown as MockedObject<MatDialogRef<ConfirmationDialogComponent>>;
 
     await TestBed.configureTestingModule({
-      imports: [ConfirmationDialogComponent],
+      imports: [translocoTestProvider(), ConfirmationDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },

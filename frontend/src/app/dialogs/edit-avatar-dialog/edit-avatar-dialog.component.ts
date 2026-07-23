@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { SetupService } from '@services/core/setup.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
@@ -27,6 +28,7 @@ import { firstValueFrom } from 'rxjs';
     MatButtonModule,
     MatDialogModule,
     MatIconModule,
+    TranslocoModule,
     ImageCropperComponent,
   ],
   templateUrl: './edit-avatar-dialog.component.html',
@@ -40,6 +42,7 @@ export class EditAvatarDialogComponent {
   private readonly setupService = inject(SetupService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly transloco = inject(TranslocoService);
 
   imageChangedEvent: Event | null = null;
   croppedImage: SafeUrl | null = null;
@@ -79,7 +82,7 @@ export class EditAvatarDialogComponent {
 
   onLoadImageFailed() {
     this.hasLoadFailed = true;
-    alert('Failed to load image. Please try another file.');
+    alert(this.transloco.translate('dialogs.baseImage.loadFailed'));
   }
 
   resetState() {

@@ -10,6 +10,7 @@ import { By } from '@angular/platform-browser';
 import { ElementType } from '@inkweld/index';
 import { vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type ProjectElement } from '../../models/project-element';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { FolderElementEditorComponent } from './folder-element-editor.component';
@@ -84,7 +85,11 @@ describe('FolderElementEditorComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [FolderElementEditorComponent, MockTreeNodeIconComponent],
+      imports: [
+        translocoTestProvider(),
+        FolderElementEditorComponent,
+        MockTreeNodeIconComponent,
+      ],
       declarations: [],
       providers: [
         provideZonelessChangeDetection(),

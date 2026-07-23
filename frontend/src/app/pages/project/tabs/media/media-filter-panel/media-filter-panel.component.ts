@@ -14,6 +14,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 
 export type MediaCategory =
   'all' | 'cover' | 'generated' | 'inline' | 'published' | 'other';
@@ -52,6 +53,7 @@ export interface FilterTag {
     MatInputModule,
     MatNativeDateModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './media-filter-panel.component.html',
   styleUrls: ['./media-filter-panel.component.scss'],

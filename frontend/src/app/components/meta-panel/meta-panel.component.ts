@@ -19,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type AddRelationshipDialogData } from '@dialogs/add-relationship-dialog/add-relationship-dialog.component';
+import { TranslocoModule } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
@@ -63,6 +64,7 @@ interface RelationshipGroup {
     MatIconModule,
     MatMenuModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './meta-panel.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

@@ -29,6 +29,7 @@ import {
   type PublicOAuthSession,
   UpdateOAuthGrantRequestRole,
 } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 
@@ -58,6 +59,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
     MatSelectModule,
     MatToolbarModule,
     MatTooltipModule,
+    TranslocoModule,
     PasskeysSettingsComponent,
   ],
 })
@@ -65,6 +67,7 @@ export class AccountSettingsComponent implements OnInit {
   private readonly oauthApiService = inject(OAuthApiService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly transloco = inject(TranslocoService);
   readonly systemConfig = inject(SystemConfigService);
 
   /** Connected OAuth sessions */
@@ -109,7 +112,9 @@ export class AccountSettingsComponent implements OnInit {
       },
       error: err => {
         console.error('Failed to load OAuth sessions:', err);
-        this.error.set('Failed to load connected apps');
+        this.error.set(
+          this.transloco.translate('settings.authorizedAppsTab.loadFailed')
+        );
         this.loading.set(false);
       },
     });
@@ -142,9 +147,15 @@ export class AccountSettingsComponent implements OnInit {
       },
       error: err => {
         console.error('Failed to load session details:', err);
-        this.snackBar.open('Failed to load session details', 'Dismiss', {
-          duration: 3000,
-        });
+        this.snackBar.open(
+          this.transloco.translate(
+            'settings.authorizedAppsTab.sessionLoadFailed'
+          ),
+          this.transloco.translate('dismiss'),
+          {
+            duration: 3000,
+          }
+        );
         this.loadingDetails.update(set => {
           const newSet = new Set(set);
           newSet.delete(sessionId);
@@ -157,9 +168,16 @@ export class AccountSettingsComponent implements OnInit {
   /** Revoke an entire OAuth session */
   async revokeSession(session: PublicOAuthSession): Promise<void> {
     const confirmed = await this.dialogGateway.openConfirmationDialog({
-      title: 'Revoke Access',
-      message: `Are you sure you want to revoke all access for "${session.client.name}"? This app will no longer be able to access any of your projects.`,
-      confirmText: 'Revoke Access',
+      title: this.transloco.translate(
+        'settings.authorizedAppsTab.disconnectApp'
+      ),
+      message: this.transloco.translate(
+        'settings.authorizedAppsTab.disconnected',
+        { name: session.client.name }
+      ),
+      confirmText: this.transloco.translate(
+        'settings.authorizedAppsTab.disconnectApp'
+      ),
     });
 
     if (!confirmed) return;
@@ -176,9 +194,15 @@ export class AccountSettingsComponent implements OnInit {
           newMap.delete(session.id);
           return newMap;
         });
-        this.snackBar.open('Access revoked successfully', 'Dismiss', {
-          duration: 3000,
-        });
+        this.snackBar.open(
+          this.transloco.translate('settings.authorizedAppsTab.disconnected', {
+            name: session.client.name,
+          }),
+          this.transloco.translate('dismiss'),
+          {
+            duration: 3000,
+          }
+        );
         this.revokingSession.set(null);
       },
       error: err => {

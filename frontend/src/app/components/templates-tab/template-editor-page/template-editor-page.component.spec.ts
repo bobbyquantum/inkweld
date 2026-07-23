@@ -10,6 +10,7 @@ import {
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { TemplateEditorPageComponent } from './template-editor-page.component';
 
 describe('TemplateEditorPageComponent', () => {
@@ -54,7 +55,7 @@ describe('TemplateEditorPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TemplateEditorPageComponent],
+      imports: [translocoTestProvider(), TemplateEditorPageComponent],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
 

@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { type Project } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { LocalProjectService } from './local-project.service';
@@ -84,6 +85,7 @@ describe('LocalProjectService', () => {
     mockLocalStorage.getItem.mockReturnValue('[]');
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         LocalProjectService,

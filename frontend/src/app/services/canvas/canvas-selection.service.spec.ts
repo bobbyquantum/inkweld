@@ -5,6 +5,7 @@ import { RelationshipService } from '@services/relationship/relationship.service
 import type Konva from 'konva';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { CanvasSelectionService } from './canvas-selection.service';
 
 interface MockNode {
@@ -79,6 +80,7 @@ describe('CanvasSelectionService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         CanvasSelectionService,
         { provide: CanvasRendererService, useValue: renderer },

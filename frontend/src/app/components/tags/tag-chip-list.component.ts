@@ -23,6 +23,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import { type ResolvedTag, type TagDefinition } from '@models/tag.model';
 import { TagService } from '@services/tag/tag.service';
 
@@ -51,6 +52,7 @@ type TagAutocompleteValue = TagDefinition | { name: string; isNew: true };
     MatIconModule,
     MatAutocompleteModule,
     MatTooltipModule,
+    TranslocoModule,
   ],
   templateUrl: './tag-chip-list.component.html',
   styleUrls: ['./tag-chip-list.component.scss'],

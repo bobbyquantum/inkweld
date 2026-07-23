@@ -30,6 +30,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import { type ResolvedTag } from '@models/tag.model';
 
 import {
@@ -74,6 +75,7 @@ import { MediaPanelComponent } from './media-panel/media-panel.component';
     MetaPanelComponent,
     IdentityPanelComponent,
     MediaPanelComponent,
+    TranslocoModule,
   ],
   templateUrl: './worldbuilding-editor.component.html',
   styleUrls: ['./worldbuilding-editor.component.scss'],

@@ -8,6 +8,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   TEMPLATE_RELOAD_DELAY,
   TemplatesTabComponent,
@@ -78,7 +79,7 @@ describe('TemplatesTabComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [TemplatesTabComponent],
+      imports: [translocoTestProvider(), TemplatesTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },

@@ -4,6 +4,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LocalStorageService } from './local-storage.service';
 import { StorageService } from './storage.service';
 
@@ -39,6 +40,7 @@ describe('LocalStorageService', () => {
     globalThis.URL.revokeObjectURL = nativeRevokeObjectURL;
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         StorageService,

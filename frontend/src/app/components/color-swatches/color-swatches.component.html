@@ -24,7 +24,7 @@
   }
 </div>
 <div class="custom-color">
-  <label class="hex-label" for="hexInput">Custom</label>
+  <label class="hex-label" for="hexInput">{{ 'color' | transloco }}</label>
   <div class="hex-input-group">
     <span class="hash">#</span>
     <input
@@ -41,7 +41,7 @@
       type="button"
       class="preview-swatch"
       [style.background]="selectedColor"
-      aria-label="Apply custom color"
+      [attr.aria-label]="'apply' | transloco"
       (click)="onHexBlur()"></button>
   </div>
 </div>

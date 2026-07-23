@@ -4,6 +4,7 @@ import { of } from 'rxjs';
 import { vi } from 'vitest';
 
 import { type Element } from '../../../api-client/model/element';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { WorldbuildingElementSelectorComponent } from './worldbuilding-element-selector.component';
@@ -93,7 +94,7 @@ describe('WorldbuildingElementSelectorComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [WorldbuildingElementSelectorComponent],
+      imports: [translocoTestProvider(), WorldbuildingElementSelectorComponent],
       providers: [
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: WorldbuildingService, useValue: mockWorldbuildingService },

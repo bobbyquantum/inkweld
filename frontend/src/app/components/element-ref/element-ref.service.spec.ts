@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../../services/core/logger.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
@@ -76,6 +77,7 @@ describe('ElementRefService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         ElementRefService,
         { provide: ProjectStateService, useValue: mockProjectState },

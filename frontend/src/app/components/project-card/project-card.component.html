@@ -5,7 +5,12 @@
   data-testid="project-card">
   <app-project-cover [project]="project" variant="card"></app-project-cover>
   @if (isShared) {
-    <div class="shared-badge" [matTooltip]="'Shared by ' + sharedByUsername">
+    <div
+      class="shared-badge"
+      [matTooltip]="
+        'project.projectCard.sharedBy'
+          | transloco: { username: sharedByUsername }
+      ">
       <mat-icon>group</mat-icon>
     </div>
   }

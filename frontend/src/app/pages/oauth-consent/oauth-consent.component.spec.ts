@@ -14,6 +14,7 @@ import {
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { OAuthConsentComponent } from './oauth-consent.component';
 
 describe('OAuthConsentComponent', () => {
@@ -70,7 +71,7 @@ describe('OAuthConsentComponent', () => {
     } as unknown as MockedObject<Router>;
 
     await TestBed.configureTestingModule({
-      imports: [OAuthConsentComponent],
+      imports: [translocoTestProvider(), OAuthConsentComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideLocationMocks(),

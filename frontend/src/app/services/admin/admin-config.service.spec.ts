@@ -5,6 +5,7 @@ import {
 } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from '../core/setup.service';
 import { AdminConfigService, type ConfigValue } from './admin-config.service';
 
@@ -19,6 +20,7 @@ describe('AdminConfigService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),

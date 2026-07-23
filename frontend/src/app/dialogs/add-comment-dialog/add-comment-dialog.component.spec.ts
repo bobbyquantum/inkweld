@@ -2,6 +2,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { AddCommentDialogComponent } from './add-comment-dialog.component';
 
 describe('AddCommentDialogComponent', () => {
@@ -13,7 +14,7 @@ describe('AddCommentDialogComponent', () => {
     mockDialogRef = { close: vi.fn() };
 
     await TestBed.configureTestingModule({
-      imports: [AddCommentDialogComponent],
+      imports: [translocoTestProvider(), AddCommentDialogComponent],
       providers: [{ provide: MatDialogRef, useValue: mockDialogRef }],
     }).compileComponents();
 

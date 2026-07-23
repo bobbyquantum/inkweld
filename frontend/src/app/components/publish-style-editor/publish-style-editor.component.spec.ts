@@ -1,6 +1,7 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   createDefaultPublishStyles,
   type PublishStyles,
@@ -27,7 +28,7 @@ function setupComponent(initial?: PublishStyles): {
 describe('PublishStyleEditorComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PublishStyleEditorComponent],
+      imports: [translocoTestProvider(), PublishStyleEditorComponent],
     }).compileComponents();
   });
 

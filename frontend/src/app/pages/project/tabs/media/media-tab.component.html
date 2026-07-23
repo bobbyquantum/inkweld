@@ -8,8 +8,8 @@
     <input
       matInput
       id="media-tab-search-input"
-      aria-label="Search media, elements, or tags"
-      placeholder="Search media, elements, or tags..."
+      [attr.aria-label]="'media.tab.searchAria' | transloco"
+      [placeholder]="'media.tab.searchPlaceholder' | transloco"
       [ngModel]="searchQuery()"
       (ngModelChange)="searchQuery.set($event)"
       data-testid="media-search-input" />
@@ -17,7 +17,7 @@
       <button
         matSuffix
         mat-icon-button
-        aria-label="Clear search"
+        [attr.aria-label]="'media.tab.clearSearch' | transloco"
         (click)="clearSearch()"
         data-testid="media-search-clear">
         <mat-icon>close</mat-icon>
@@ -27,21 +27,21 @@
   <div class="header-actions">
     <button
       mat-icon-button
-      aria-label="Add media"
+      [attr.aria-label]="'media.tab.addMedia' | transloco"
       (click)="openAddMedia()"
-      matTooltip="Add media"
+      [matTooltip]="'media.tab.addMedia' | transloco"
       data-testid="add-media-button">
       <mat-icon>add</mat-icon>
     </button>
     <button
       mat-icon-button
       class="filter-toggle-button"
-      aria-label="Open filters"
+      [attr.aria-label]="'media.tab.openFilters' | transloco"
       (click)="openFilters()"
       [matBadge]="activeFilterCount() || null"
       matBadgeSize="small"
       matBadgeColor="primary"
-      matTooltip="Filters"
+      [matTooltip]="'media.tab.filters' | transloco"
       data-testid="media-filter-button">
       <mat-icon>filter_list</mat-icon>
     </button>
@@ -74,7 +74,7 @@
         <div class="active-jobs-section">
           <h3 class="section-title">
             <mat-icon>auto_awesome</mat-icon>
-            Generating Images
+            {{ 'media.tab.generatingImages' | transloco }}
           </h3>
           <div class="active-jobs-grid">
             @for (job of activeJobs(); track job.id) {
@@ -105,19 +105,23 @@
                     {{ getJobProviderLabel(job) }} ·
                     @switch (job.status) {
                       @case ('pending') {
-                        Queued...
+                        {{ 'media.tab.queued' | transloco }}
                       }
                       @case ('generating') {
-                        Generating...
+                        {{ 'media.tab.generating' | transloco }}
                       }
                       @case ('saving') {
-                        Saving to library...
+                        {{ 'media.tab.savingToLibrary' | transloco }}
                       }
                       @case ('completed') {
-                        {{ job.images.length }} image(s) saved
+                        {{
+                          'media.tab.imagesSaved'
+                            | transloco: { count: job.images.length }
+                        }}
                       }
                       @case ('failed') {
-                        Failed: {{ job.error }}
+                        {{ 'media.tab.failedPrefix' | transloco }}
+                        {{ job.error }}
                       }
                     }
                   </span>
@@ -126,7 +130,7 @@
                   <div class="job-preview">
                     <img
                       [src]="job.images[0]"
-                      alt="Generated preview"
+                      [alt]="'media.tab.generatedPreview' | transloco"
                       class="preview-thumbnail" />
                   </div>
                 }
@@ -140,7 +144,7 @@
       @if (isLoading()) {
         <div class="loading-container">
           <mat-spinner diameter="40"></mat-spinner>
-          <p>Loading media...</p>
+          <p>{{ 'media.tab.loadingMedia' | transloco }}</p>
         </div>
       }
 
@@ -151,7 +155,7 @@
             <mat-icon color="warn">error</mat-icon>
             <p>{{ error() }}</p>
             <button mat-button color="primary" (click)="loadMedia()">
-              Try Again
+              {{ 'media.tab.tryAgain' | transloco }}
             </button>
           </mat-card-content>
         </mat-card>
@@ -163,18 +167,24 @@
           <mat-card-content>
             <mat-icon>perm_media</mat-icon>
             @if (searchQuery()) {
-              <p>No media matching "{{ searchQuery() }}".</p>
+              <p>
+                {{ 'media.tab.noMatch' | transloco: { query: searchQuery() } }}
+              </p>
               <button mat-button color="primary" (click)="clearSearch()">
-                Clear Search
+                {{ 'media.tab.clearSearchButton' | transloco }}
               </button>
             } @else if (selectedCategory() === 'all') {
-              <p>No media stored locally for this project.</p>
+              <p>{{ 'media.tab.noMediaLocal' | transloco }}</p>
               <p class="hint">
-                Media includes cover images, inline images in documents, and
-                published exports (EPUB, PDF, etc.)
+                {{ 'media.tab.mediaHint' | transloco }}
               </p>
             } @else {
-              <p>No {{ selectedCategory() }} media found.</p>
+              <p>
+                {{
+                  'media.tab.noMediaFiltered'
+                    | transloco: { filter: selectedCategory() }
+                }}
+              </p>
             }
           </mat-card-content>
         </mat-card>
@@ -193,7 +203,7 @@
               <div cardTopLeft>
                 <button
                   mat-icon-button
-                  matTooltip="Add tag"
+                  [matTooltip]="'media.tab.addTag' | transloco"
                   [attr.aria-label]="
                     'Add tag to ' + (item.filename || item.mediaId)
                   "
@@ -206,7 +216,7 @@
                 @if (item.isImage) {
                   <button
                     mat-icon-button
-                    matTooltip="View"
+                    [matTooltip]="'media.tab.view' | transloco"
                     [attr.aria-label]="
                       'View ' + (item.filename || item.mediaId)
                     "
@@ -216,7 +226,7 @@
                 }
                 <button
                   mat-icon-button
-                  matTooltip="Download"
+                  [matTooltip]="'media.tab.download' | transloco"
                   [attr.aria-label]="
                     'Download ' + (item.filename || item.mediaId)
                   "
@@ -225,7 +235,7 @@
                 </button>
                 <button
                   mat-icon-button
-                  matTooltip="Delete"
+                  [matTooltip]="'media.tab.delete' | transloco"
                   [attr.aria-label]="
                     'Delete ' + (item.filename || item.mediaId)
                   "
@@ -329,7 +339,7 @@
 
 <!-- Fixed status bar -->
 <div class="media-status-bar">
-  <span>{{ filteredItems().length }} items</span>
+  <span>{{ filteredItems().length }} {{ 'media.tab.items' | transloco }}</span>
   <span class="separator">·</span>
   <span>{{ filteredSize() | fileSize }}</span>
 </div>

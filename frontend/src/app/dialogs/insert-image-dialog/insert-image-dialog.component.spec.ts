@@ -5,6 +5,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { type ImageCroppedEvent, type LoadedImage } from 'ngx-image-cropper';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { SystemConfigService } from '../../services/core/system-config.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
@@ -46,7 +47,7 @@ describe('InsertImageDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [InsertImageDialogComponent],
+      imports: [translocoTestProvider(), InsertImageDialogComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRefMock },
@@ -82,7 +83,7 @@ describe('InsertImageDialogComponent', () => {
 
       TestBed.resetTestingModule();
       await TestBed.configureTestingModule({
-        imports: [InsertImageDialogComponent],
+        imports: [translocoTestProvider(), InsertImageDialogComponent],
         providers: [
           provideZonelessChangeDetection(),
           { provide: MatDialogRef, useValue: dialogRefMock },

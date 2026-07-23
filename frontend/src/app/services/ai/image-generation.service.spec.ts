@@ -11,6 +11,7 @@ import {
   type ImageGenerateResponse,
   type ImageProviderType,
 } from '../../../api-client/model/models';
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectService } from '../project/project.service';
@@ -103,6 +104,7 @@ describe('ImageGenerationService', () => {
     } as unknown as MockedObject<AuthTokenService>;
 
     await TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         ImageGenerationService,

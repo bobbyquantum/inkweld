@@ -12,6 +12,7 @@ import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ResetPasswordComponent } from './reset-password.component';
 
 const DEFAULT_POLICY = {
@@ -67,7 +68,7 @@ describe('ResetPasswordComponent', () => {
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [ResetPasswordComponent],
+      imports: [translocoTestProvider(), ResetPasswordComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

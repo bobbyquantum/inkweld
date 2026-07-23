@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { TranslocoModule } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-add-comment-dialog',
@@ -15,6 +16,7 @@ import { MatInputModule } from '@angular/material/input';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    TranslocoModule,
   ],
   templateUrl: './add-comment-dialog.component.html',
   styleUrls: ['./add-comment-dialog.component.scss'],

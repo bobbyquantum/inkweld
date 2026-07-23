@@ -1,112 +1,48 @@
 import { isDevMode } from '@angular/core';
 import { TranslocoTestingModule } from '@jsverse/transloco';
 
+import aboutEn from '../../public/assets/i18n/en/about.json';
+import adminEn from '../../public/assets/i18n/en/admin.json';
+import appEn from '../../public/assets/i18n/en/app.json';
+import authEn from '../../public/assets/i18n/en/auth.json';
+import canvasEn from '../../public/assets/i18n/en/canvas.json';
+import commonEn from '../../public/assets/i18n/en/common.json';
+import dialogsEn from '../../public/assets/i18n/en/dialogs.json';
+import editorEn from '../../public/assets/i18n/en/editor.json';
+import homeEn from '../../public/assets/i18n/en/home.json';
+import loginEn from '../../public/assets/i18n/en/login.json';
+import mediaEn from '../../public/assets/i18n/en/media.json';
+import messagesEn from '../../public/assets/i18n/en/messages.json';
+import projectEn from '../../public/assets/i18n/en/project.json';
+import publishEn from '../../public/assets/i18n/en/publish.json';
+import relationshipsEn from '../../public/assets/i18n/en/relationships.json';
+import settingsEn from '../../public/assets/i18n/en/settings.json';
+import tagsEn from '../../public/assets/i18n/en/tags.json';
+import templatesEn from '../../public/assets/i18n/en/templates.json';
+import timelineEn from '../../public/assets/i18n/en/timeline.json';
+import worldbuildingEn from '../../public/assets/i18n/en/worldbuilding.json';
+
 const enTranslations = {
-  cancel: 'Cancel',
-  close: 'Close',
-  dismiss: 'Dismiss',
-  retry: 'Retry',
-  refresh: 'Refresh',
-  clear: 'Clear',
-  errors: {
-    unknown: 'Something went wrong. Please try again.',
-  },
-  app: {
-    updateNow: 'Update Now',
-    sessionExpiredMessage:
-      'Your session has expired. Please re-authenticate or continue offline.',
-    reAuthenticate: 'Re-authenticate',
-    continueOffline: 'Continue Offline',
-  },
-  login: {
-    title: 'Login to Inkweld',
-    signInWithPasskey: 'Sign in with passkey',
-    waitingForPasskey: 'Waiting for passkey...',
-    lostPasskey: 'Lost your passkey?',
-    username: 'Username',
-    password: 'Password',
-    login: 'Login',
-    loggingIn: 'Logging in...',
-    forgotPassword: 'Forgot password?',
-    noAccountRegister: "Don't have an account? Register here",
-    enterBothFields: 'Please enter both username and password.',
-    welcomeBack: 'Welcome back, {{username}}!',
-    invalidCredentials: 'Invalid username or password',
-    loginFailedGeneric: 'Login failed. Please try again.',
-    passkeyLoginFailed: 'Passkey login failed. Please try again.',
-    errors: {
-      loginFailed: 'Invalid username or password',
-      verificationFailed: 'Passkey verification failed. Please try again.',
-      networkError:
-        'Network error. Please check your connection and try again.',
-      unsupported: 'Passkeys are not supported by this browser.',
-      accountDisabled:
-        'Your account has been disabled. Please contact an administrator.',
-    },
-  },
-  home: {
-    searchProjects: 'Search projects',
-    closeSearch: 'Close search',
-    toggleNavMenu: 'Toggle navigation menu',
-    closeNavigation: 'Close navigation',
-    syncAll: 'Sync All',
-    create: 'Create',
-    createOrImport: 'Create or import project',
-    newProject: 'New Project',
-    importProject: 'Import Project',
-    login: 'Login',
-    register: 'Register',
-    loadingProjects: 'Loading projects...',
-    failedToLoad: 'Failed to load projects',
-    serverConnectionError: 'There was a problem connecting to the server',
-    pendingInvitations: 'Pending Invitations',
-    byOwner: 'by {{owner}}',
-    decline: 'Decline',
-    accept: 'Accept',
-    createFirstProject: 'Create Your First Project',
-    getStarted: 'Get started by creating a new project or importing one',
-    createProject: 'Create Project',
-    noProjectsFound: 'No projects found',
-    tryDifferentSearch: 'Try a different search term',
-    openProject: 'Open project {{title}}',
-    cancelSyncTooltip: 'Cancel sync ({{progress}}% complete)',
-    tooltips: {
-      onlineOnly: 'Only available in online mode',
-      offline: 'Cannot sync while offline',
-      syncInProgress: 'Sync in progress...',
-      noProjectsToSync: 'No projects to sync',
-      noActivatedProjects: 'No activated projects to sync',
-      syncCount: 'Sync {{count}} activated project(s)',
-    },
-    snackbar: {
-      noActivatedToSync: 'No activated projects to sync',
-      activatedSyncing: '"{{title}}" activated — syncing now',
-      activateFailed: 'Failed to activate project',
-      deactivated: '"{{title}}" deactivated',
-      deactivateFailed: 'Failed to deactivate project',
-      syncCancelled: 'Sync cancelled',
-      projectImported: 'Project imported successfully!',
-      view: 'View',
-      nowCollaborator: 'You are now a collaborator on "{{title}}"',
-      acceptInvitationFailed: 'Failed to accept invitation',
-      invitationDeclined: 'Invitation declined',
-      declineInvitationFailed: 'Failed to decline invitation',
-    },
-    dialogs: {
-      activateTitle: 'Activate Project',
-      activateMessage:
-        'Activate "{{title}}" on this device? This will download all project data.',
-      activate: 'Activate',
-      deactivateTitle: 'Deactivate Project',
-      deactivateMessage:
-        'Deactivate "{{title}}"? All local data for this project will be removed from this device. You can reactivate it anytime.',
-      deactivate: 'Deactivate',
-    },
-  },
-  settings: {
-    language: 'Language',
-    moreLanguages: 'More languages coming soon',
-  },
+  ...commonEn,
+  app: appEn,
+  login: loginEn,
+  home: homeEn,
+  settings: settingsEn,
+  editor: editorEn,
+  project: projectEn,
+  dialogs: dialogsEn,
+  admin: adminEn,
+  auth: authEn,
+  canvas: canvasEn,
+  timeline: timelineEn,
+  media: mediaEn,
+  worldbuilding: worldbuildingEn,
+  publish: publishEn,
+  about: aboutEn,
+  relationships: relationshipsEn,
+  tags: tagsEn,
+  templates: templatesEn,
+  messages: messagesEn,
 };
 
 export function translocoTestProvider() {

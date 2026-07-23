@@ -5,6 +5,7 @@ import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { createFindPlugin } from '../../components/find-in-document/find-plugin';
 import { FindInDocumentService } from './find-in-document.service';
 import { LoggerService } from './logger.service';
@@ -42,6 +43,7 @@ describe('FindInDocumentService', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         FindInDocumentService,
         { provide: LoggerService, useValue: mockLogger },

@@ -26,6 +26,7 @@ import { UnifiedUserService } from '@services/user/unified-user.service';
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { CreateProjectComponent } from './create-project.component';
 
 describe('CreateProjectComponent', () => {
@@ -98,6 +99,7 @@ describe('CreateProjectComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
+        translocoTestProvider(),
         CreateProjectComponent,
         MatButtonModule,
         MatIconModule,
@@ -220,7 +222,7 @@ describe('CreateProjectComponent', () => {
     await component.onSubmit();
 
     expect(snackBar.open).toHaveBeenCalledWith(
-      'Project created successfully!',
+      'Project imported successfully!',
       'Close',
       { duration: 3000 }
     );
@@ -244,7 +246,7 @@ describe('CreateProjectComponent', () => {
     await component.onSubmit();
 
     expect(snackBar.open).toHaveBeenCalledWith(
-      'Failed to create project.',
+      'Something went wrong. Please try again.',
       'Close',
       { duration: 3000 }
     );

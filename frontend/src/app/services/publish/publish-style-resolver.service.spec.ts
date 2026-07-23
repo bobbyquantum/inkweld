@@ -10,6 +10,7 @@ import {
 } from '@models/publish-style';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { PublishStyleResolverService } from './publish-style-resolver.service';
 
 describe('PublishStyleResolverService', () => {
@@ -17,6 +18,7 @@ describe('PublishStyleResolverService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         PublishStyleResolverService,

@@ -13,6 +13,7 @@ import { RelationshipService } from '@services/relationship';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ElementRefService } from '../element-ref/element-ref.service';
 import { MetaPanelComponent } from './meta-panel.component';
 
@@ -89,7 +90,7 @@ describe('MetaPanelComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [MetaPanelComponent],
+      imports: [translocoTestProvider(), MetaPanelComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),

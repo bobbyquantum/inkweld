@@ -17,6 +17,7 @@ import { $typst } from '@myriaddreamin/typst.ts';
 import { $typst as $typstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ChapterNumbering,
   FrontmatterType,
@@ -211,6 +212,7 @@ describe('PdfGeneratorService', () => {
     vi.stubGlobal('indexedDB', mockIndexedDB);
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         PdfGeneratorService,
