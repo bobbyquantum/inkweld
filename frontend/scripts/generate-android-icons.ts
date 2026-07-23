@@ -3,8 +3,8 @@
  *
  * Why this exists:
  *   Android adaptive icons render the foreground drawable inside a 108dp x 108dp
- *   viewport, but only the inner 72dp x 72dp (66%) "safe zone" is guaranteed to
- *   be visible. Launcher masks (circle, squircle, rounded square) and parallax
+ *   viewport, but only the inner 66dp x 66dp safe zone is guaranteed to be
+ *   visible. Launcher masks (circle, squircle, rounded square) and parallax
  *   crop the outer ~18% on every side. The previous foreground PNG filled the
  *   full 432x432 canvas edge-to-edge, so the logo looked "zoomed in" and got
  *   clipped by the mask. This script re-renders the foreground (and the legacy
@@ -37,11 +37,10 @@ const RES_DIR = join(PROJECT_ROOT, 'android', 'app', 'src', 'main', 'res');
 const PRIMARY_COLOR = '#006874';
 
 // Android adaptive-icon safe zone: the foreground drawable is 108dp x 108dp, but
-// only the inner 66dp x 66dp (~0.6111) is guaranteed visible. We scale the logo
-// to 66% of the canvas and center it, leaving transparent padding so OEM masks
-// and parallax don't crop the artwork. 0.66 matches Google's guidance and keeps
-// the logo visually consistent with the PWA icon.
-const SAFE_ZONE_RATIO = 0.66;
+// only the inner 66dp x 66dp (~61%) is guaranteed visible. We scale the logo to
+// 66/108 of the canvas and center it, leaving transparent padding so OEM masks
+// and parallax don't crop the artwork. This matches Google's official guidance.
+const SAFE_ZONE_RATIO = 66 / 108;
 
 // Foreground drawable: 108dp @ xxxhdpi (4x) = 432px, transparent background.
 const FOREGROUND_SIZE = 432;
@@ -56,6 +55,17 @@ const MIPMAP_SIZES: Array<{ folder: string; size: number }> = [
   { folder: 'mipmap-xxhdpi', size: 144 },
   { folder: 'mipmap-xxxhdpi', size: 192 },
 ];
+
+export const __test__ = {
+  SAFE_ZONE_RATIO,
+  FOREGROUND_SIZE,
+  MIPMAP_SIZES,
+  PRIMARY_COLOR,
+  RES_DIR,
+  renderLogoAt,
+  makeForeground,
+  makeMipmap,
+};
 
 async function renderLogoAt(size: number): Promise<Buffer> {
   // Render the SVG to a square PNG of `size` px with transparent background.
@@ -130,7 +140,13 @@ async function main(): Promise<void> {
   console.log('\nAll Android launcher icons generated.');
 }
 
-main().catch((err) => {
-  console.error('Failed to generate Android icons:', err);
-  process.exit(1);
-});
+// Only run main when executed directly (not when imported by tests).
+const isDirectRun =
+  process.argv[1]?.endsWith('generate-android-icons.ts') ||
+  process.argv[1]?.endsWith('generate-android-icons.js');
+if (isDirectRun) {
+  main().catch((err) => {
+    console.error('Failed to generate Android icons:', err);
+    process.exit(1);
+  });
+}

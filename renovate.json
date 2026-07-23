@@ -6,10 +6,11 @@
   },
   "packageRules": [
     {
-      "description": "Regenerate Gradle dependency-verification metadata whenever a Maven dependency (AGP, Gradle wrapper, androidx, etc.) changes. Gradle's verification pins SHA-256 hashes of every resolved artifact; without refreshing android/gradle/verification-metadata.xml in the same PR, the TWA build check fails with 'Dependency verification failed'. The 'help' task is cheap and resolves the full runtime classpath so all transitive hashes are recorded.",
+      "description": "Regenerate Gradle dependency-verification metadata whenever a Maven dependency (AGP, Gradle wrapper, androidx, etc.) changes. Gradle's verification pins SHA-256 hashes of every resolved artifact; without refreshing android/gradle/verification-metadata.xml in the same PR, the TWA build check fails with 'Dependency verification failed'. The 'help' task is cheap and resolves the full runtime classpath so all transitive hashes are recorded. Note: postUpgradeTasks commands run without a shell by default and require the command to be in the admin-configured allowedCommands allowlist (self-hosted) or allowShellExecutorForPostUpgradeCommands. workingDirTemplate runs the command from the android/ directory.",
       "matchDatasources": ["maven", "gradle-version"],
-      "postUpdateTasks": {
-        "commands": ["cd android && ./gradlew --write-verification-metadata sha256 help"]
+      "postUpgradeTasks": {
+        "commands": ["./gradlew --write-verification-metadata sha256 help"],
+        "workingDirTemplate": "android"
       }
     },
     {
