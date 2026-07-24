@@ -74,10 +74,7 @@
             matInput
             id="login-username-input"
             type="text"
-            [(ngModel)]="username"
-            (ngModelChange)="onUsernameChange()"
-            name="username"
-            required
+            [formField]="form.username"
             data-testid="username-input"
             aria-label="Username" />
         </mat-form-field>
@@ -88,10 +85,7 @@
             matInput
             id="login-password-input"
             type="password"
-            [(ngModel)]="password"
-            (ngModelChange)="onPasswordChange()"
-            name="password"
-            required
+            [formField]="form.password"
             data-testid="password-input"
             aria-label="Password" />
         </mat-form-field>

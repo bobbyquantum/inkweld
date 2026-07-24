@@ -61,9 +61,7 @@
               matInput
               id="redeem-passkey-name-input"
               type="text"
-              [(ngModel)]="passkeyName"
-              name="passkeyName"
-              maxlength="64"
+              [formField]="form.passkeyName"
               data-testid="redeem-name-input"
               aria-label="Passkey name" />
             <mat-hint

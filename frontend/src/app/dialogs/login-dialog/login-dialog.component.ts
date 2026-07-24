@@ -2,10 +2,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { form, FormField, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
@@ -19,10 +20,15 @@ import { PasskeyError, PasskeyService } from '@services/auth/passkey.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService, UserServiceError } from '@services/user/user.service';
 
+interface LoginFormValue {
+  username: string;
+  password: string;
+}
+
 @Component({
   selector: 'app-login-dialog',
   imports: [
-    FormsModule,
+    FormField,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
@@ -61,8 +67,16 @@ export class LoginDialogComponent {
       this.systemConfig.isPasskeysEnabled()
   );
 
-  username = '';
-  password = '';
+  readonly model = signal<LoginFormValue>({
+    username: '',
+    password: '',
+  });
+
+  readonly form = form(this.model, schemaPath => {
+    required(schemaPath.username, { message: 'Username is required' });
+    required(schemaPath.password, { message: 'Password is required' });
+  });
+
   readonly passwordError = signal<string | null>(null);
   readonly passkeyError = signal<string | null>(null);
   readonly isLoggingIn = signal(false);
@@ -70,39 +84,42 @@ export class LoginDialogComponent {
   lastAttemptedPassword = '';
   readonly providersLoaded = signal(false);
 
-  // Clear error when username is changed
-  onUsernameChange(): void {
-    if (this.passwordError()) {
-      this.passwordError.set(null);
-    }
+  constructor() {
+    // Clear error when username is changed
+    effect(() => {
+      const username = this.model().username;
+      if (this.passwordError()) {
+        this.passwordError.set(null);
+      }
+      // If username is different from the last attempt, clear the lastAttemptedUsername
+      if (username !== this.lastAttemptedUsername) {
+        this.lastAttemptedUsername = '';
+      }
+    });
 
-    // If username is different from the last attempt, clear the lastAttemptedUsername
-    if (this.username !== this.lastAttemptedUsername) {
-      this.lastAttemptedUsername = '';
-    }
-  }
-
-  // Clear error when password is changed
-  onPasswordChange(): void {
-    if (this.passwordError()) {
-      this.passwordError.set(null);
-    }
-
-    // If password is different from the last attempt, clear the lastAttemptedPassword
-    if (this.password !== this.lastAttemptedPassword) {
-      this.lastAttemptedPassword = '';
-    }
+    // Clear error when password is changed
+    effect(() => {
+      const password = this.model().password;
+      if (this.passwordError()) {
+        this.passwordError.set(null);
+      }
+      // If password is different from the last attempt, clear the lastAttemptedPassword
+      if (password !== this.lastAttemptedPassword) {
+        this.lastAttemptedPassword = '';
+      }
+    });
   }
 
   // Check if form is valid and can be submitted
   isFormValid(): boolean {
     // Basic form validation - fields must not be empty
     const basicValidation =
-      this.username.trim() !== '' && this.password.trim() !== '';
+      this.model().username.trim() !== '' &&
+      this.model().password.trim() !== '';
 
     // Don't allow resubmitting the same failing password
     const notSameFailedPassword =
-      this.password !== this.lastAttemptedPassword ||
+      this.model().password !== this.lastAttemptedPassword ||
       this.lastAttemptedPassword === '';
 
     return basicValidation && notSameFailedPassword;
@@ -127,8 +144,11 @@ export class LoginDialogComponent {
     this.isLoggingIn.set(true);
 
     try {
-      await this.userService.login(this.username, this.password);
-      this.snackBar.open(`Welcome back, ${this.username}!`, 'Close', {
+      await this.userService.login(
+        this.model().username,
+        this.model().password
+      );
+      this.snackBar.open(`Welcome back, ${this.model().username}!`, 'Close', {
         duration: 3000,
       });
       this.dialogRef.close(true); // Close with success result
@@ -154,8 +174,8 @@ export class LoginDialogComponent {
         // Handle specific error types
         if (error.code === 'LOGIN_FAILED') {
           // Track the username/password that failed
-          this.lastAttemptedUsername = this.username;
-          this.lastAttemptedPassword = this.password;
+          this.lastAttemptedUsername = this.model().username;
+          this.lastAttemptedPassword = this.model().password;
           this.passwordError.set('Invalid username or password');
           return;
         }

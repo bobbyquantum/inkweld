@@ -106,7 +106,7 @@ describe('RecoverPasskeyRedeemComponent', () => {
     });
 
     it('redeems with passkey name and shows success', async () => {
-      component.passkeyName = 'My Backup';
+      component.form.passkeyName().value.set('My Backup');
       await component.onSubmit();
 
       expect(mockPasskeyRecoveryService.redeemRecovery).toHaveBeenCalledWith(
@@ -119,7 +119,7 @@ describe('RecoverPasskeyRedeemComponent', () => {
     });
 
     it('passes undefined when name is empty after trim', async () => {
-      component.passkeyName = '   ';
+      component.form.passkeyName().value.set('   ');
       await component.onSubmit();
       expect(mockPasskeyRecoveryService.redeemRecovery).toHaveBeenCalledWith(
         'tok-123',

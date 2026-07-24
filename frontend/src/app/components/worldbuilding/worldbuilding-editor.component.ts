@@ -20,6 +20,7 @@ import {
   FormGroup,
   ReactiveFormsModule,
 } from '@angular/forms';
+import { compatForm } from '@angular/forms/signals/compat';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -94,6 +95,15 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);
   form: WritableSignal<FormGroup> = signal(new FormGroup({}));
+
+  /**
+   * Signal Forms view over the dynamic reactive form. The form structure is
+   * built at runtime from a schema (nested groups, arrays, realtime sync),
+   * so we use `compatForm` to expose a Signal Forms field tree while keeping
+   * the existing FormGroup/FormControl instances intact. This is the official
+   * migration path for complex dynamic forms.
+   */
+  readonly signalForm = compatForm(this.form);
 
   /** Computed element name from project state */
   elementName = computed(() => {

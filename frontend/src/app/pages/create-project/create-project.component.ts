@@ -6,7 +6,7 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormField, form, pattern, required } from '@angular/forms/signals';
+import { form, FormField, pattern, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';

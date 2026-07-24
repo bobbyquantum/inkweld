@@ -7,8 +7,8 @@ import {
 } from '@angular/core';
 import {
   applyEach,
-  FormField,
   form,
+  FormField,
   required,
   validate,
   validateTree,

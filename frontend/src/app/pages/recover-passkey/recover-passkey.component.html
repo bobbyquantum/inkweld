@@ -31,9 +31,7 @@
               matInput
               id="recover-passkey-email-input"
               type="email"
-              [(ngModel)]="email"
-              name="email"
-              required
+              [formField]="form.email"
               data-testid="recover-email-input"
               aria-label="Email address" />
           </mat-form-field>
@@ -53,7 +51,7 @@
             mat-raised-button
             color="primary"
             type="submit"
-            [disabled]="isSubmitting() || !email.trim()"
+            [disabled]="isSubmitting() || !model().email.trim()"
             class="submit-button"
             data-testid="recover-submit-button">
             @if (isSubmitting()) {

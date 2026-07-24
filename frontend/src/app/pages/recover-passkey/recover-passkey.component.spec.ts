@@ -51,20 +51,20 @@ describe('RecoverPasskeyComponent', () => {
   });
 
   it('shows error when submitting empty email', async () => {
-    component.email = '';
+    component.form.email().value.set('');
     await component.onSubmit();
     expect(component.error()).toBe('Please enter your email address.');
     expect(mockPasskeyRecoveryService.requestRecovery).not.toHaveBeenCalled();
   });
 
   it('shows error when submitting whitespace-only email', async () => {
-    component.email = '   ';
+    component.form.email().value.set('   ');
     await component.onSubmit();
     expect(component.error()).toBe('Please enter your email address.');
   });
 
   it('calls requestRecovery on valid submit and trims whitespace', async () => {
-    component.email = '  user@example.com  ';
+    component.form.email().value.set('  user@example.com  ');
     await component.onSubmit();
 
     expect(mockPasskeyRecoveryService.requestRecovery).toHaveBeenCalledWith(
@@ -79,7 +79,7 @@ describe('RecoverPasskeyComponent', () => {
     mockPasskeyRecoveryService.requestRecovery.mockRejectedValue(
       new Error('boom')
     );
-    component.email = 'user@example.com';
+    component.form.email().value.set('user@example.com');
     await component.onSubmit();
 
     expect(component.error()).toBe(

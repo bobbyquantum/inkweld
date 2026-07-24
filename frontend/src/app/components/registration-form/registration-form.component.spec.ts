@@ -117,11 +117,11 @@ describe('RegistrationFormComponent', () => {
       expect(component.form.email().valid()).toBe(true);
     });
 
-    it('should require email when requireEmail is enabled', () => {
+    it('should require email when requireEmail is enabled', async () => {
       systemConfigService.isRequireEmailEnabled.mockReturnValue(true);
       // Trigger the validator update via re-creation (config is read in schema)
       TestBed.resetTestingModule();
-      TestBed.configureTestingModule({
+      await TestBed.configureTestingModule({
         imports: [RegistrationFormComponent],
         providers: [
           provideZonelessChangeDetection(),
@@ -708,11 +708,11 @@ describe('RegistrationFormComponent', () => {
   });
 
   describe('passwordless mode', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       systemConfigService.isPasswordLoginEnabled.mockReturnValue(false);
       // Re-create component so the passwordless flag is read at construction.
       TestBed.resetTestingModule();
-      TestBed.configureTestingModule({
+      await TestBed.configureTestingModule({
         imports: [RegistrationFormComponent],
         providers: [
           provideZonelessChangeDetection(),

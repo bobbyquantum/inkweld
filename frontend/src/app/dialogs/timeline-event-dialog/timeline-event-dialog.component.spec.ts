@@ -316,10 +316,11 @@ describe('TimelineEventDialogComponent', () => {
     const hasRootError = component
       .form()
       .errors()
-      .some(e => e.kind === 'endBeforeStart');
-    const hasEndError = component.form.endUnits
+      .some((e: { kind: string }) => e.kind === 'endBeforeStart');
+    const hasEndError = component.form
+      .endUnits()
       .errors()
-      .some(e => e.kind === 'endBeforeStart');
+      .some((e: { kind: string }) => e.kind === 'endBeforeStart');
     expect(hasRootError || hasEndError).toBe(true);
   });
 

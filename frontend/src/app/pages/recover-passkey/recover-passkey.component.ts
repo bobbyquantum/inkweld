@@ -4,7 +4,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { form, FormField, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -14,6 +14,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterModule } from '@angular/router';
 import { PasskeyRecoveryService } from '@services/auth/passkey-recovery.service';
 import { SystemConfigService } from '@services/core/system-config.service';
+
+interface RecoverPasskeyFormValue {
+  email: string;
+}
 
 /**
  * "Lost your passkey?" page — collects the user's email and asks the backend
@@ -32,7 +36,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
 @Component({
   selector: 'app-recover-passkey',
   imports: [
-    FormsModule,
+    FormField,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
@@ -51,13 +55,17 @@ export class RecoverPasskeyComponent {
 
   readonly isEmailRecoveryEnabled = this.systemConfig.isEmailRecoveryEnabled;
 
-  email = '';
+  readonly model = signal<RecoverPasskeyFormValue>({ email: '' });
+  readonly form = form(this.model, schemaPath => {
+    required(schemaPath.email, { message: 'Please enter your email address' });
+  });
+
   readonly isSubmitting = signal(false);
   readonly submitted = signal(false);
   readonly error = signal<string | null>(null);
 
   async onSubmit(): Promise<void> {
-    if (!this.email.trim()) {
+    if (!this.model().email.trim()) {
       this.error.set('Please enter your email address.');
       return;
     }
@@ -66,7 +74,9 @@ export class RecoverPasskeyComponent {
     this.error.set(null);
 
     try {
-      await this.passkeyRecoveryService.requestRecovery(this.email.trim());
+      await this.passkeyRecoveryService.requestRecovery(
+        this.model().email.trim()
+      );
       // Backend always returns 200 to prevent enumeration — surface the same
       // generic confirmation regardless of whether a user was actually found.
       this.submitted.set(true);

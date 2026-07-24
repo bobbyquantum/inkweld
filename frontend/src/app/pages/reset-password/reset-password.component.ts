@@ -7,7 +7,7 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { form, FormField, required, validate } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -24,10 +24,15 @@ interface PasswordRequirement {
   enabled: boolean;
 }
 
+interface ResetPasswordFormValue {
+  newPassword: string;
+  confirmPassword: string;
+}
+
 @Component({
   selector: 'app-reset-password',
   imports: [
-    FormsModule,
+    FormField,
     KeyValuePipe,
     MatButtonModule,
     MatCardModule,
@@ -47,8 +52,27 @@ export class ResetPasswordComponent implements OnInit {
   private readonly systemConfig = inject(SystemConfigService);
   private readonly policy = this.systemConfig.passwordPolicy;
 
-  newPassword = '';
-  confirmPassword = '';
+  readonly model = signal<ResetPasswordFormValue>({
+    newPassword: '',
+    confirmPassword: '',
+  });
+
+  readonly form = form(this.model, schemaPath => {
+    required(schemaPath.newPassword, { message: 'New password is required' });
+    required(schemaPath.confirmPassword, {
+      message: 'Please confirm your password',
+    });
+    validate(schemaPath.newPassword, () => this.passwordValidatorErrors());
+    validate(schemaPath.confirmPassword, ({ value, valueOf }) => {
+      const confirm = value();
+      if (!confirm) return null;
+      const password = valueOf(schemaPath.newPassword);
+      return password && confirm !== password
+        ? { kind: 'passwordMismatch', message: 'Passwords do not match' }
+        : null;
+    });
+  });
+
   private token = '';
 
   readonly isSubmitting = signal(false);
@@ -96,9 +120,16 @@ export class ResetPasswordComponent implements OnInit {
       this.passwordRequirements['number'].enabled = p.requireNumber;
       this.passwordRequirements['special'].enabled = p.requireSymbol;
       // Re-evaluate met status with current password
-      if (this.newPassword) {
-        this.updatePasswordRequirements(this.newPassword);
+      const password = this.model().newPassword;
+      if (password) {
+        this.updatePasswordRequirements(password);
       }
+    });
+
+    // Update password requirements when password changes
+    effect(() => {
+      const password = this.model().newPassword;
+      this.updatePasswordRequirements(password);
     });
   }
 
@@ -109,15 +140,11 @@ export class ResetPasswordComponent implements OnInit {
     }
   }
 
-  onPasswordInput(): void {
-    this.updatePasswordRequirements(this.newPassword);
-  }
-
   isFormValid(): boolean {
     return (
       this.isPasswordValid() &&
-      this.newPassword.length > 0 &&
-      this.newPassword === this.confirmPassword
+      this.model().newPassword.length > 0 &&
+      this.model().newPassword === this.model().confirmPassword
     );
   }
 
@@ -128,13 +155,16 @@ export class ResetPasswordComponent implements OnInit {
   }
 
   getPasswordError(): string | null {
-    if (this.newPassword && !this.isPasswordValid()) {
+    if (this.model().newPassword && !this.isPasswordValid()) {
       const unmet = Object.values(this.passwordRequirements).find(
         req => req.enabled && !req.met
       );
       return unmet ? unmet.message : 'Password does not meet requirements';
     }
-    if (this.confirmPassword && this.newPassword !== this.confirmPassword) {
+    if (
+      this.model().confirmPassword &&
+      this.model().newPassword !== this.model().confirmPassword
+    ) {
       return 'Passwords do not match';
     }
     return null;
@@ -149,7 +179,7 @@ export class ResetPasswordComponent implements OnInit {
     try {
       await this.passwordResetService.resetPassword(
         this.token,
-        this.newPassword
+        this.model().newPassword
       );
       this.success.set(true);
     } catch (err: unknown) {
@@ -169,6 +199,46 @@ export class ResetPasswordComponent implements OnInit {
     } finally {
       this.isSubmitting.set(false);
     }
+  }
+
+  private passwordValidatorErrors(): { kind: string; message: string } | null {
+    const password = this.model().newPassword;
+    if (!password) {
+      return null;
+    }
+
+    const p = this.policy();
+
+    if (password.length < p.minLength) {
+      return { kind: 'minLength', message: 'Password is too short' };
+    }
+    if (p.requireUppercase && !/[A-Z]/.test(password)) {
+      return {
+        kind: 'uppercase',
+        message: 'Password must contain at least one uppercase letter',
+      };
+    }
+    if (p.requireLowercase && !/[a-z]/.test(password)) {
+      return {
+        kind: 'lowercase',
+        message: 'Password must contain at least one lowercase letter',
+      };
+    }
+    if (p.requireNumber && !/\d/.test(password)) {
+      return {
+        kind: 'number',
+        message: 'Password must contain at least one number',
+      };
+    }
+    if (p.requireSymbol && !/[@$!%*?&]/.test(password)) {
+      return {
+        kind: 'special',
+        message:
+          'Password must contain at least one special character (@$!%*?&)',
+      };
+    }
+
+    return null;
   }
 
   private updatePasswordRequirements(password: string): void {

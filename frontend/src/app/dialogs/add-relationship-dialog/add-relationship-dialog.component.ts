@@ -6,7 +6,7 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormField, form } from '@angular/forms/signals';
+import { form, FormField } from '@angular/forms/signals';
 import {
   MatAutocompleteModule,
   type MatAutocompleteSelectedEvent,

@@ -5,7 +5,7 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { form, FormField } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -15,6 +15,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { PasskeyError } from '@services/auth/passkey.service';
 import { PasskeyRecoveryService } from '@services/auth/passkey-recovery.service';
+
+interface RecoverPasskeyRedeemFormValue {
+  passkeyName: string;
+}
 
 /**
  * Redemption page for a passkey-recovery magic link.
@@ -39,7 +43,7 @@ import { PasskeyRecoveryService } from '@services/auth/passkey-recovery.service'
 @Component({
   selector: 'app-recover-passkey-redeem',
   imports: [
-    FormsModule,
+    FormField,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
@@ -57,8 +61,10 @@ export class RecoverPasskeyRedeemComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly passkeyRecoveryService = inject(PasskeyRecoveryService);
 
-  /** Default credential name; user can override before submitting. */
-  passkeyName = 'Recovery passkey';
+  readonly model = signal<RecoverPasskeyRedeemFormValue>({
+    passkeyName: 'Recovery passkey',
+  });
+  readonly form = form(this.model);
 
   private token = '';
 
@@ -88,7 +94,7 @@ export class RecoverPasskeyRedeemComponent implements OnInit {
     try {
       await this.passkeyRecoveryService.redeemRecovery(
         this.token,
-        this.passkeyName.trim() || undefined
+        this.model().passkeyName.trim() || undefined
       );
       this.success.set(true);
     } catch (err: unknown) {

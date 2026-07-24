@@ -477,7 +477,7 @@ export class ImageProfileDialogComponent {
     if (model.supportedSizes?.length) {
       this.model.update(m => ({
         ...m,
-        supportedSizes: [...model.supportedSizes!],
+        supportedSizes: [...model.supportedSizes],
         defaultSize: model.supportedSizes[0],
       }));
     }
