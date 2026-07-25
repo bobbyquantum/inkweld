@@ -1,9 +1,9 @@
-import { WebsocketProvider } from 'y-websocket';
-import type * as Y from 'yjs';
 import {
   PRESENCE_KEEPALIVE_PING,
   PRESENCE_KEEPALIVE_PONG,
 } from '@inkweld/presence';
+import { WebsocketProvider } from 'y-websocket';
+import type * as Y from 'yjs';
 
 /**
  * Authentication result from the WebSocket auth protocol
@@ -99,7 +99,7 @@ function frameHexPreview(data: unknown): string {
   if (data instanceof ArrayBuffer) {
     bytes = new Uint8Array(data);
   } else if (ArrayBuffer.isView(data)) {
-    const view = data as ArrayBufferView;
+    const view = data;
     bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
   }
   if (!bytes) return 'unavailable';
@@ -291,7 +291,6 @@ export async function createAuthenticatedWebsocketProvider(
       onDecodeError:
         onDecodeError ??
         ((error, byteLength, hexPreview) => {
-          // eslint-disable-next-line no-console
           console.warn(
             `[AuthWS] Contained a malformed binary frame ` +
               `(${byteLength} bytes; preview: ${hexPreview}); ` +
