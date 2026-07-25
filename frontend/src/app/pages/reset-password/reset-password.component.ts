@@ -21,7 +21,10 @@ import { SystemConfigService } from '@services/core/system-config.service';
 
 interface PasswordRequirement {
   met: boolean;
-  message: string;
+  /** Translation key rendered reactively in the template via the transloco pipe. */
+  messageKey: string;
+  /** Interpolation params for messageKey (e.g. { min: 8 } for reqMinLength). */
+  messageParams: Record<string, unknown>;
   enabled: boolean;
 }
 
@@ -62,43 +65,51 @@ export class ResetPasswordComponent implements OnInit {
   passwordRequirements!: Record<string, PasswordRequirement>;
 
   constructor() {
+    // Transloco translations load asynchronously via HTTP. Calling
+    // transloco.translate() here in the constructor would return the raw key
+    // (e.g. 'auth.registration.reqMinLength') before the loader resolves,
+    // leaving the rendered requirement text blank/key-shaped. Instead we
+    // store the key + params and render via the `| transloco` pipe in the
+    // template, which re-evaluates when the translation map loads.
     this.passwordRequirements = {
       minLength: {
         met: false,
-        message: this.transloco.translate('auth.registration.reqMinLength', {
-          min: this.policy().minLength,
-        }),
+        messageKey: 'auth.registration.reqMinLength',
+        messageParams: { min: this.policy().minLength },
         enabled: true,
       },
       uppercase: {
         met: false,
-        message: this.transloco.translate('auth.registration.reqUppercase'),
+        messageKey: 'auth.registration.reqUppercase',
+        messageParams: {},
         enabled: this.policy().requireUppercase,
       },
       lowercase: {
         met: false,
-        message: this.transloco.translate('auth.registration.reqLowercase'),
+        messageKey: 'auth.registration.reqLowercase',
+        messageParams: {},
         enabled: this.policy().requireLowercase,
       },
       number: {
         met: false,
-        message: this.transloco.translate('auth.registration.reqNumber'),
+        messageKey: 'auth.registration.reqNumber',
+        messageParams: {},
         enabled: this.policy().requireNumber,
       },
       special: {
         met: false,
-        message: this.transloco.translate('auth.registration.reqSpecial'),
+        messageKey: 'auth.registration.reqSpecial',
+        messageParams: {},
         enabled: this.policy().requireSymbol,
       },
     };
-    // Sync password requirement enabled flags when policy signal changes
+    // Sync password requirement enabled flags when policy signal changes.
     effect(() => {
       const p = this.policy();
       this.passwordRequirements['minLength'].enabled = true;
-      this.passwordRequirements['minLength'].message = this.transloco.translate(
-        'auth.registration.reqMinLength',
-        { min: p.minLength }
-      );
+      this.passwordRequirements['minLength'].messageParams = {
+        min: p.minLength,
+      };
       this.passwordRequirements['uppercase'].enabled = p.requireUppercase;
       this.passwordRequirements['lowercase'].enabled = p.requireLowercase;
       this.passwordRequirements['number'].enabled = p.requireNumber;
@@ -141,7 +152,7 @@ export class ResetPasswordComponent implements OnInit {
         req => req.enabled && !req.met
       );
       return unmet
-        ? unmet.message
+        ? this.transloco.translate(unmet.messageKey, unmet.messageParams)
         : this.transloco.translate('auth.registration.passwordTooWeak');
     }
     if (this.confirmPassword && this.newPassword !== this.confirmPassword) {
