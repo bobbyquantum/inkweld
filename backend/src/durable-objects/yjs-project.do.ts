@@ -47,6 +47,7 @@ import {
   isYjsFrameBlockedForViewer,
   isElementsDoc,
 } from '../utils/yjs-document-utils';
+import { YjsDocStorage } from './yjs-do-storage';
 import {
   PRESENCE_KEEPALIVE_PING,
   PRESENCE_KEEPALIVE_PONG,
@@ -138,8 +139,25 @@ const Y_MESSAGE_AWARENESS = 1;
  */
 export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   private readonly state: DurableObjectState;
-  private readonly documents: Map<string, WSSharedDoc> = new Map();
+  /**
+   * In-flight or resolved `WSSharedDoc` for each documentId.
+   *
+   * Stored as a Promise (set BEFORE the async storage load) so that two
+   * sockets authenticating the same document concurrently share a single
+   * load + a single `WSSharedDoc` instance. Previously the map held the doc
+   * directly and was only populated AFTER `loadDocumentFromStorage` awaited,
+   * so a second socket arriving mid-load missed the cache, created a second
+   * doc, and overwrote the first — leaving socket A orphaned on a divergent
+   * doc and burning duplicate sync traffic forever.
+   */
+  private readonly documents = new Map<string, Promise<WSSharedDoc>>();
   private readonly connections: Map<WebSocket, ConnectionInfo> = new Map();
+  /**
+   * Persistence/replay helper. Decoupled from the DurableObject base class so
+   * the storage logic is unit-testable with a mock `DoStorage` — the DO base
+   * class and `cloudflare:workers` can't be imported in the Bun test runtime.
+   */
+  private readonly docStorage: YjsDocStorage;
   private projectId: string = '';
   /** Per-doc element snapshots used for CRUD activity event diffing. */
   private readonly elementSnapshots: Map<string, Map<string, { name: string; type: string }>> =
@@ -157,6 +175,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   constructor(state: DurableObjectState, env: YjsEnv['Bindings']) {
     super(state, env);
     this.state = state;
+    this.docStorage = new YjsDocStorage(state.storage, projDOLog);
     this.state.setWebSocketAutoResponse(
       new WebSocketRequestResponsePair(PRESENCE_KEEPALIVE_PING, PRESENCE_KEEPALIVE_PONG)
     );
@@ -941,67 +960,82 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
-   * Get or create a document with its own storage namespace
+   * Get or create a document with its own storage namespace.
+   *
+   * Returns a Promise so concurrent callers (e.g. two sockets authenticating
+   * the same document within the same wake) share one load and one
+   * `WSSharedDoc`. The Promise is stored in the cache BEFORE the async storage
+   * load begins, so the second caller hits the in-flight Promise instead of
+   * missing the cache and spinning up a divergent second doc.
    */
   private async getOrCreateDocument(documentId: string): Promise<WSSharedDoc> {
-    console.log('[DO-HTTP] getOrCreateDocument - checking cache for:', documentId);
-    let sharedDoc = this.documents.get(documentId);
+    const cached = this.documents.get(documentId);
+    if (cached) return cached;
 
-    if (!sharedDoc) {
-      console.log('[DO-HTTP] getOrCreateDocument - not in cache, creating new...');
-      // Create new shared doc with persistence
-      sharedDoc = new WSSharedDoc();
+    const loadPromise = this.loadDocument(documentId);
+    this.documents.set(documentId, loadPromise);
 
-      // ============================================================
-      // CRITICAL: Disable y-protocols Awareness server-side timers
-      // ============================================================
-      // The Awareness constructor does two things that block hibernation:
-      //
-      //   1. Calls `setLocalState({})` so the local clientID has presence.
-      //   2. Registers a `setInterval` (every ~3s) that:
-      //        a. Renews the local clock every 15s by calling
-      //           `setLocalState(getLocalState())`, which fires an
-      //           awareness `update` event → broadcast to every connected
-      //           client (this is what was producing the "20 outbound
-      //           messages per minute" with zero inbound).
-      //        b. Reaps stale remote awareness states.
-      //
-      // Cloudflare's Hibernation API explicitly states that any active
-      // `setInterval`/`setTimeout` prevents the DO from being evicted
-      // from memory — even if the callback is a no-op. While the timer
-      // is alive, billable Duration (GB-s) accrues continuously.
-      //
-      // The DO has no business publishing its own awareness state
-      // (it's not a "user"); it only relays awareness between clients.
-      // Stale-state cleanup is handled in `cleanupConnection()` when a
-      // socket closes, so we don't need the periodic reaper either.
-      //
-      // Clearing local state + the interval lets the DO hibernate
-      // between client messages and stops the server-originated
-      // outbound broadcast loop.
-      sharedDoc.awareness.setLocalState(null);
-      const checkInterval = (sharedDoc.awareness as unknown as { _checkInterval?: number })
-        ._checkInterval;
-      if (checkInterval !== undefined) {
-        clearInterval(checkInterval);
-      }
-      // ============================================================
-
-      console.log('[DO-HTTP] getOrCreateDocument - loading from storage...');
-
-      // Set up storage-backed persistence for this specific document
-      await this.loadDocumentFromStorage(documentId, sharedDoc);
-      console.log('[DO-HTTP] getOrCreateDocument - loaded from storage');
-
-      // Listen to updates and persist them
-      sharedDoc.notify((update: Uint8Array) => {
-        void this.persistUpdate(documentId, update);
-      });
-
-      this.documents.set(documentId, sharedDoc);
-      projDOLog.debug(`Created new shared doc for ${documentId}`);
+    try {
+      return await loadPromise;
+    } catch (error) {
+      // Load failed — drop the cached Promise so a later call can retry
+      // instead of permanently returning a rejected Promise.
+      this.documents.delete(documentId);
+      throw error;
     }
+  }
 
+  /**
+   * Create a `WSSharedDoc` for `documentId`, replay its persisted sync
+   * updates from storage, and wire up persistence for future updates.
+   */
+  private async loadDocument(documentId: string): Promise<WSSharedDoc> {
+    const sharedDoc = new WSSharedDoc();
+
+    // ============================================================
+    // CRITICAL: Disable y-protocols Awareness server-side timers
+    // ============================================================
+    // The Awareness constructor does two things that block hibernation:
+    //
+    //   1. Calls `setLocalState({})` so the local clientID has presence.
+    //   2. Registers a `setInterval` (every ~3s) that:
+    //        a. Renews the local clock every 15s by calling
+    //           `setLocalState(getLocalState())`, which fires an
+    //           awareness `update` event → broadcast to every connected
+    //           client (this is what was producing the "20 outbound
+    //           messages per minute" with zero inbound).
+    //        b. Reaps stale remote awareness states.
+    //
+    // Cloudflare's Hibernation API explicitly states that any active
+    // `setInterval`/`setTimeout` prevents the DO from being evicted
+    // from memory — even if the callback is a no-op. While the timer
+    // is alive, billable Duration (GB-s) accrues continuously.
+    //
+    // The DO has no business publishing its own awareness state
+    // (it's not a "user"); it only relays awareness between clients.
+    // Stale-state cleanup is handled in `cleanupConnection()` when a
+    // socket closes, so we don't need the periodic reaper either.
+    //
+    // Clearing local state + the interval lets the DO hibernate
+    // between client messages and stops the server-originated
+    // outbound broadcast loop.
+    sharedDoc.awareness.setLocalState(null);
+    const checkInterval = (sharedDoc.awareness as unknown as { _checkInterval?: number })
+      ._checkInterval;
+    if (checkInterval !== undefined) {
+      clearInterval(checkInterval);
+    }
+    // ============================================================
+
+    // Set up storage-backed persistence for this specific document
+    await this.docStorage.loadAndReplay(documentId, (frame) => sharedDoc.update(frame));
+
+    // Listen to updates and persist them
+    sharedDoc.notify((update: Uint8Array) => {
+      void this.docStorage.persist(documentId, update);
+    });
+
+    projDOLog.debug(`Created new shared doc for ${documentId}`);
     return sharedDoc;
   }
 
@@ -1807,56 +1841,5 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
 
     this.connections.delete(ws);
-  }
-
-  /**
-   * Load persisted state for a specific document using y-durableobjects storage pattern
-   * Each document gets its own storage namespace
-   */
-  private async loadDocumentFromStorage(documentId: string, sharedDoc: WSSharedDoc) {
-    try {
-      const storagePrefix = `doc:${documentId}:`;
-      console.log(
-        '[DO-HTTP] loadDocumentFromStorage - listing storage with prefix:',
-        storagePrefix
-      );
-
-      // Use y-durableobjects storage transaction approach
-      const updates = await this.state.storage.list<number[]>({
-        prefix: `${storagePrefix}update:`,
-      });
-      console.log('[DO-HTTP] loadDocumentFromStorage - found', updates.size, 'updates');
-
-      if (updates.size > 0) {
-        projDOLog.debug(`📦 Loading ${updates.size} persisted updates for ${documentId}`);
-
-        for (const [_key, updateArray] of updates.entries()) {
-          const update = new Uint8Array(updateArray);
-          sharedDoc.update(update);
-        }
-
-        projDOLog.debug(`📦 Loaded document ${documentId} from storage`);
-      } else {
-        projDOLog.debug(`📦 No persisted updates found for ${documentId} - starting fresh`);
-      }
-    } catch (error) {
-      projDOLog.error(`❌ Error loading document ${documentId} from storage:`, error);
-    }
-  }
-
-  /**
-   * Persist a document update to storage
-   * Uses document-specific storage namespace
-   */
-  private async persistUpdate(documentId: string, update: Uint8Array) {
-    try {
-      const storagePrefix = `doc:${documentId}:`;
-      const timestamp = Date.now();
-      const key = `${storagePrefix}update:${timestamp}`;
-
-      await this.state.storage.put(key, Array.from(update));
-    } catch (error) {
-      projDOLog.error(`Error persisting update for ${documentId}:`, error);
-    }
   }
 }

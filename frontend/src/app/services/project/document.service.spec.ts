@@ -19,7 +19,7 @@ import { AuthTokenService } from '../auth/auth-token.service';
 import { SetupService } from '../core/setup.service';
 import { SystemConfigService } from '../core/system-config.service';
 import { UnifiedUserService } from '../user/unified-user.service';
-import { DocumentService } from './document.service';
+import { type DocumentConnection, DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 
 // y-indexeddb and y-websocket are mocked globally in setup-vitest.ts
@@ -842,6 +842,166 @@ describe('DocumentService', () => {
 
       setTimeoutSpy.mockRestore();
     }, 15000);
+  });
+
+  /**
+   * Reconnect state machine — exercises the stability-aware backoff reset,
+   * circuit breaker, and sticky authFailed flag added to fix the overnight
+   * reconnect storm. Drives the status handler via the captured 'status'
+   * callback (the same approach as the skipped lifecycle test above) so it
+   * doesn't depend on real provider timing.
+   */
+  describe('reconnect state machine', () => {
+    type StatusCb = (payload: { status: string }) => void;
+    type ErrCb = (error: Error | string | Event) => void;
+
+    /**
+     * Wire up a document connection and return handles to its captured
+     * provider event callbacks so a test can drive the state machine.
+     */
+    async function setupConnection(): Promise<{
+      callbacks: Record<string, StatusCb | ErrCb>;
+      scheduled: (() => void)[];
+      advanceReconnect: () => void;
+    }> {
+      const ydoc = new Y.Doc();
+      const connection = {
+        ydoc,
+        provider: null as WebsocketProvider | null,
+        type: ydoc.getXmlFragment('prosemirror'),
+        indexeddbProvider: _mockIndexedDbProvider,
+      };
+      const callbacks: Record<string, StatusCb | ErrCb> = {};
+      const scheduled: (() => void)[] = [];
+      const editorWithView = {
+        ...mockEditor,
+        view: {
+          ...mockEditor.view,
+          dom: { parentNode: {} },
+          state: {
+            ...mockEditor.view.state,
+            plugins: [],
+            reconfigure: vi.fn().mockReturnValue({}),
+          },
+          updateState: vi.fn(),
+        },
+      } as unknown as DeepMockProxy<Editor>;
+      const privateService = service as unknown as {
+        connectWebSocketInBackground: (
+          websocketUrl: string | null,
+          documentId: string,
+          doc: Y.Doc,
+          editor: Editor,
+          connection: DocumentConnection
+        ) => Promise<void>;
+      };
+
+      vi.spyOn(globalThis, 'setTimeout').mockImplementation(
+        (cb: TimerHandler) => {
+          scheduled.push(cb as () => void);
+          return 1 as unknown as ReturnType<typeof setTimeout>;
+        }
+      );
+
+      // Cast the `on` mock to a loose signature so we can capture callbacks
+      // without matching y-websocket's strict event-union typing.
+      (mockWebSocketProvider.on as ReturnType<typeof vi.fn>).mockImplementation(
+        (event: string, cb: StatusCb | ErrCb) => {
+          callbacks[event] = cb;
+          return () => {};
+        }
+      );
+
+      service.initializeSyncStatus(testDocumentId);
+
+      // connectWebSocketInBackground expects the connection to already be
+      // registered in the service's connections map (the 'disconnected'
+      // handler bails if it isn't). Register it the way setupCollaboration
+      // does before invoking the background connect.
+      (
+        service as unknown as { connections: Map<string, unknown> }
+      ).connections.set(testDocumentId, connection);
+
+      await privateService.connectWebSocketInBackground(
+        'ws://localhost:8333',
+        testDocumentId,
+        ydoc,
+        editorWithView,
+        connection
+      );
+
+      return {
+        callbacks,
+        scheduled,
+        advanceReconnect: () => {
+          const fn = scheduled.shift();
+          fn?.();
+        },
+      };
+    }
+
+    it('exercises the connect/disconnect/backoff path without resetting on a short session', async () => {
+      const { callbacks, advanceReconnect } = await setupConnection();
+      const status = callbacks['status'] as StatusCb;
+
+      // A short (sub-stable) session: connect, then drop almost immediately.
+      // The backoff counter must NOT reset to 0 on the next connected, so the
+      // breaker can still engage after repeated flaps.
+      status({ status: 'disconnected' });
+      expect(mockWebSocketProvider.connect).not.toHaveBeenCalled();
+      advanceReconnect(); // attempt 1
+      expect(mockWebSocketProvider.connect).toHaveBeenCalledTimes(1);
+      status({ status: 'connected' });
+      // Immediate disconnect — short session.
+      status({ status: 'disconnected' });
+      advanceReconnect(); // attempt 2 (not reset because session was < 60s)
+      status({ status: 'connected' });
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Synced
+      );
+    });
+
+    it('trips the circuit breaker after MAX_RECONNECT_ATTEMPTS and stops the provider', async () => {
+      const { callbacks, advanceReconnect } = await setupConnection();
+      const status = callbacks['status'] as StatusCb;
+
+      // Drive MAX_RECONNECT_ATTEMPTS (5) failed reconnect cycles.
+      status({ status: 'disconnected' });
+      for (let i = 0; i < 5; i++) {
+        advanceReconnect(); // scheduled reconnect attempt
+        // Each attempt connects but immediately drops again (flap).
+        status({ status: 'disconnected' });
+      }
+
+      // After the 5th attempt the circuit breaker trips: provider.disconnect()
+      // is called to stop y-websocket's internal loop, and state goes Unavailable.
+      expect(mockWebSocketProvider.disconnect).toHaveBeenCalled();
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Unavailable
+      );
+    });
+
+    it('does not retry after an auth failure (sticky authFailed flag)', async () => {
+      const { callbacks, advanceReconnect } = await setupConnection();
+      const status = callbacks['status'] as StatusCb;
+      const errCb = callbacks['connection-error'] as ErrCb;
+
+      // An auth error trips the sticky flag and disconnects.
+      errCb(new Error('401 Unauthorized'));
+
+      // The 'disconnected' event fired by the disconnect() above must NOT
+      // schedule a reconnect (dead session).
+      const connectCallsBefore =
+        mockWebSocketProvider.connect.mock.calls.length;
+      status({ status: 'disconnected' });
+      advanceReconnect(); // no-op if nothing was scheduled
+      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(
+        connectCallsBefore
+      );
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Unavailable
+      );
+    });
   });
 
   describe('Collaboration Setup', () => {

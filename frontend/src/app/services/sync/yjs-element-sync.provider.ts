@@ -40,6 +40,7 @@ import { VersionCompatibilityService } from '../core/version-compatibility.servi
 import {
   createAuthenticatedWebsocketProvider,
   setupReauthentication,
+  WS_MAX_BACKOFF_TIME,
 } from './authenticated-websocket-provider';
 import {
   type IElementSyncProvider,
@@ -266,6 +267,23 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
           authToken,
           {
             resyncInterval: 60000,
+            maxBackoffTime: WS_MAX_BACKOFF_TIME,
+            // Capture malformed-frame diagnostics through the logger so
+            // they're attributable to the elements doc in production logs.
+            onDecodeError: (error, byteLength, hexPreview) => {
+              this.logger.warn(
+                'YjsSync',
+                `Contained malformed WebSocket frame for ${this.docId} ` +
+                  `(${byteLength} bytes; preview: ${hexPreview})`,
+                error
+              );
+            },
+            onTextMessage: text => {
+              this.logger.debug(
+                'YjsSync',
+                `Unexpected text frame on ${this.docId}: ${text}`
+              );
+            },
           }
         );
 
