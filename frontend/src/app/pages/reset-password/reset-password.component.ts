@@ -152,7 +152,7 @@ export class ResetPasswordComponent implements OnInit {
         req => req.enabled && !req.met
       );
       return unmet
-        ? unmet.message
+        ? this.transloco.translate(unmet.messageKey, unmet.messageParams)
         : this.transloco.translate('auth.registration.passwordTooWeak');
     }
     if (this.confirmPassword && this.newPassword !== this.confirmPassword) {
