@@ -10,6 +10,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -42,6 +43,7 @@ export interface UnifiedProjectItem {
     MatListModule,
     MatIconModule,
     MatButtonModule,
+    MatMenuModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
     RouterModule,
@@ -64,8 +66,49 @@ export class SideNavComponent {
   /** Unified project items (owned + shared) */
   @Input() projectItems: UnifiedProjectItem[] = [];
   @Input() selectedProject: Project | null = null;
+  /**
+   * Predicate that returns true when the given project key
+   * (`username/slug`) is activated on this device. When omitted, all
+   * projects are treated as activated.
+   */
+  @Input() isActivatedFn: (projectKey: string) => boolean = () => true;
+  /**
+   * Whether activation is required at all (false in local mode). Used to
+   * hide the kebab menu and download hint in local mode where everything
+   * is always activated.
+   */
+  @Input() activationRequired = false;
 
   @Output() projectSelected = new EventEmitter<Project>();
+  /** Emitted when the user requests deactivation via the tile kebab menu. */
+  @Output() deactivateRequested = new EventEmitter<Project>();
+  /** Emitted when the user requests activation via the tile hover/kebab. */
+  @Output() activateRequested = new EventEmitter<Project>();
+
+  /** Build the project key for a project. */
+  projectKey(project: Project): string {
+    return `${project.username}/${project.slug}`;
+  }
+
+  /** Whether a project is activated on this device. */
+  isProjectActivated(project: Project): boolean {
+    if (!this.activationRequired) return true;
+    return this.isActivatedFn(this.projectKey(project));
+  }
+
+  /** Stop click propagation so tile selection doesn't fire when the kebab is used. */
+  onKebabClick(event: MouseEvent): void {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
+  requestActivate(project: Project): void {
+    this.activateRequested.emit(project);
+  }
+
+  requestDeactivate(project: Project): void {
+    this.deactivateRequested.emit(project);
+  }
 
   /** Get sync status for a project by username/slug key */
   getSyncStatus(

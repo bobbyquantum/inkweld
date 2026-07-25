@@ -273,6 +273,80 @@ describe('SideNavComponent', () => {
     });
   });
 
+  describe('activation state', () => {
+    const project = {
+      id: '1',
+      title: 'Test Project',
+      slug: 'test-project',
+      username: 'testuser',
+      createdDate: '2024-01-01',
+      updatedDate: '2024-01-01',
+    };
+
+    it('should treat all projects as activated when activationRequired is false', () => {
+      component.activationRequired = false;
+      component.isActivatedFn = () => false; // even if predicate says no
+
+      expect(component.isProjectActivated(project)).toBe(true);
+    });
+
+    it('should honor the predicate when activationRequired is true', () => {
+      component.activationRequired = true;
+      component.isActivatedFn = (key: string) =>
+        key === 'testuser/test-project';
+
+      expect(component.isProjectActivated(project)).toBe(true);
+    });
+
+    it('should report deactivated when predicate returns false', () => {
+      component.activationRequired = true;
+      component.isActivatedFn = () => false;
+
+      expect(component.isProjectActivated(project)).toBe(false);
+    });
+
+    it('should build the project key from username/slug', () => {
+      expect(component.projectKey(project)).toBe('testuser/test-project');
+    });
+  });
+
+  describe('kebab actions', () => {
+    const project = {
+      id: '1',
+      title: 'Test Project',
+      slug: 'test-project',
+      username: 'testuser',
+      createdDate: '2024-01-01',
+      updatedDate: '2024-01-01',
+    };
+
+    it('should emit activateRequested when requestActivate is called', () => {
+      const spy = vi.spyOn(component.activateRequested, 'emit');
+      component.requestActivate(project);
+      expect(spy).toHaveBeenCalledWith(project);
+    });
+
+    it('should emit deactivateRequested when requestDeactivate is called', () => {
+      const spy = vi.spyOn(component.deactivateRequested, 'emit');
+      component.requestDeactivate(project);
+      expect(spy).toHaveBeenCalledWith(project);
+    });
+
+    it('should stop propagation when kebab is clicked', () => {
+      const event = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+      });
+      const stopSpy = vi.spyOn(event, 'stopPropagation');
+      const preventSpy = vi.spyOn(event, 'preventDefault');
+
+      component.onKebabClick(event);
+
+      expect(stopSpy).toHaveBeenCalled();
+      expect(preventSpy).toHaveBeenCalled();
+    });
+  });
+
   describe('sync status methods', () => {
     const project = {
       id: '1',

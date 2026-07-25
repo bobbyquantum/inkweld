@@ -23,6 +23,11 @@
   "noProjectsFound": "No projects found",
   "tryDifferentSearch": "Try a different search term",
   "openProject": "Open project {{title}}",
+  "clickToSync": "Click to download",
+  "clickToSyncHint": "Sync this project to this device",
+  "projectMenu": "Project options",
+  "deactivateAction": "Deactivate on this device",
+  "activateAction": "Download to this device",
   "cancelSyncTooltip": "Cancel sync ({{progress}}% complete)",
   "tooltips": {
     "onlineOnly": "Only available in online mode",

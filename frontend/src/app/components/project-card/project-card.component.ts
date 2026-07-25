@@ -15,6 +15,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
@@ -35,6 +36,7 @@ const MOVE_THRESHOLD = 10;
     MatCardModule,
     MatButtonModule,
     MatIconModule,
+    MatMenuModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
     RouterModule,
@@ -69,8 +71,35 @@ export class ProjectCardComponent implements AfterViewInit, OnDestroy {
   @Output()
   public longPress = new EventEmitter<void>();
 
+  /** Emitted when the user picks "Download to this device" from the kebab menu */
+  @Output()
+  public activateRequested = new EventEmitter<void>();
+
+  /** Emitted when the user picks "Deactivate on this device" from the kebab menu */
+  @Output()
+  public deactivateRequested = new EventEmitter<void>();
+
   /** Project key for looking up sync status */
   readonly projectKey = input<string>();
+
+  /**
+   * Stop click propagation so the surrounding cover-item button doesn't
+   * navigate when the kebab trigger or its menu items are interacted with.
+   */
+  onKebabClick(event: MouseEvent): void {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
+  /** Emit a request to activate/download this project to the device. */
+  requestActivate(): void {
+    this.activateRequested.emit();
+  }
+
+  /** Emit a request to deactivate this project on the device. */
+  requestDeactivate(): void {
+    this.deactivateRequested.emit();
+  }
 
   // Long-press tracking
   private longPressTimer: ReturnType<typeof setTimeout> | null = null;

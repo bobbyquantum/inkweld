@@ -32,6 +32,7 @@
               class="project-tile"
               (click)="onProjectClick(item.project)"
               [class.selected]="selectedProject?.id === item.project.id"
+              [class.deactivated]="!isProjectActivated(item.project)"
               [attr.data-testid]="'project-' + item.project.slug"
               [title]="item.project.title">
               <div class="tile-cover">
@@ -43,6 +44,15 @@
                     class="shared-indicator"
                     [matTooltip]="'Shared by ' + item.sharedByUsername">
                     <mat-icon>group</mat-icon>
+                  </div>
+                }
+                <!-- Hover overlay: prompts to download on deactivated tiles -->
+                @if (!isProjectActivated(item.project)) {
+                  <div
+                    class="download-hint"
+                    data-testid="tile-download-hint"
+                    [matTooltip]="'home.clickToSyncHint' | transloco">
+                    <mat-icon class="download-icon">cloud_download</mat-icon>
                   </div>
                 }
                 <!-- Sync overlay: shows when project is in sync queue -->
@@ -74,6 +84,48 @@
                 <span class="tile-title">{{ item.project.title }}</span>
                 <span class="tile-author">{{ item.project.username }}</span>
               </div>
+              @if (activationRequired) {
+                <div class="tile-actions">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    class="kebab-btn"
+                    [matMenuTriggerFor]="tileMenu"
+                    (click)="onKebabClick($event)"
+                    [attr.aria-label]="'home.projectMenu' | transloco"
+                    [matTooltip]="'home.projectMenu' | transloco"
+                    [attr.data-testid]="
+                      'project-tile-kebab-' + item.project.slug
+                    ">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  <mat-menu #tileMenu="matMenu">
+                    @if (isProjectActivated(item.project)) {
+                      <button
+                        mat-menu-item
+                        type="button"
+                        (click)="requestDeactivate(item.project)"
+                        [attr.data-testid]="
+                          'project-tile-deactivate-' + item.project.slug
+                        ">
+                        <mat-icon>cloud_off</mat-icon>
+                        <span>{{ 'home.deactivateAction' | transloco }}</span>
+                      </button>
+                    } @else {
+                      <button
+                        mat-menu-item
+                        type="button"
+                        (click)="requestActivate(item.project)"
+                        [attr.data-testid]="
+                          'project-tile-activate-' + item.project.slug
+                        ">
+                        <mat-icon>cloud_download</mat-icon>
+                        <span>{{ 'home.activateAction' | transloco }}</span>
+                      </button>
+                    }
+                  </mat-menu>
+                </div>
+              }
             </button>
           }
         </div>

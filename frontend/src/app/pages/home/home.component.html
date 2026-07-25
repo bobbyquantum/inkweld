@@ -198,7 +198,11 @@
           [isMobile]="isMobile()"
           [projectItems]="allProjects()"
           [selectedProject]="selectedProject"
-          (projectSelected)="selectProject($event)">
+          [isActivatedFn]="isProjectKeyActivated"
+          [activationRequired]="activationService.isActivationRequired()"
+          (projectSelected)="selectProject($event)"
+          (activateRequested)="onProjectActivateRequested($event)"
+          (deactivateRequested)="onProjectDeactivateRequested($event)">
         </app-side-nav>
         @if (isMobile() && sideNavOpen()) {
           <button
@@ -384,7 +388,13 @@
                       [isShared]="item.isShared"
                       [sharedByUsername]="item.sharedByUsername"
                       [isActivated]="isProjectActivated(item.project)"
-                      (longPress)="onProjectLongPress(item.project)">
+                      (longPress)="onProjectLongPress(item.project)"
+                      (activateRequested)="
+                        onProjectActivateRequested(item.project)
+                      "
+                      (deactivateRequested)="
+                        onProjectDeactivateRequested(item.project)
+                      ">
                     </app-project-card>
                   </button>
                 }
