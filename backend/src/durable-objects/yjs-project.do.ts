@@ -1854,52 +1854,61 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * every load replayed thousands of transient presence frames, slowing wakes
    * until the WS upgrade hit Cloudflare's 504 threshold. This self-heals
    * existing bloat: non-sync entries are skipped AND deleted on the next load.
+   *
+   * Storage list/replay errors PROPAGATE to `getOrCreateDocument`, which drops
+   * the cached Promise so the next connection retries instead of caching a
+   * blank doc and writing on top of lost history. Only the best-effort purge is
+   * swallowed (failing to delete stale keys doesn't corrupt the doc).
    */
   private async loadDocumentFromStorage(documentId: string, sharedDoc: WSSharedDoc) {
-    try {
-      const storagePrefix = `doc:${documentId}:`;
-      const updatePrefix = `${storagePrefix}update:`;
+    const storagePrefix = `doc:${documentId}:`;
+    const updatePrefix = `${storagePrefix}update:`;
 
-      const entries = await this.state.storage.list<number[]>({
-        prefix: updatePrefix,
-      });
+    const entries = await this.state.storage.list<number[]>({
+      prefix: updatePrefix,
+    });
 
-      if (entries.size === 0) {
-        projDOLog.debug(`📦 No persisted updates found for ${documentId} - starting fresh`);
-        return;
+    if (entries.size === 0) {
+      projDOLog.debug(`📦 No persisted updates found for ${documentId} - starting fresh`);
+      return;
+    }
+
+    // Partition into sync frames to apply vs. non-sync (awareness/presence)
+    // frames to purge. Awareness frames were persisted by an older version
+    // of persistUpdate; they're ephemeral and must never be replayed.
+    const staleKeys: string[] = [];
+    let applied = 0;
+    for (const [key, updateArray] of entries.entries()) {
+      const update = new Uint8Array(updateArray);
+      if (isSyncFrame(update)) {
+        sharedDoc.update(update);
+        applied++;
+      } else {
+        staleKeys.push(key);
       }
+    }
 
-      // Partition into sync frames to apply vs. non-sync (awareness/presence)
-      // frames to purge. Awareness frames were persisted by an older version
-      // of persistUpdate; they're ephemeral and must never be replayed.
-      const staleKeys: string[] = [];
-      let applied = 0;
-      for (const [key, updateArray] of entries.entries()) {
-        const update = new Uint8Array(updateArray);
-        if (isSyncFrame(update)) {
-          sharedDoc.update(update);
-          applied++;
-        } else {
-          staleKeys.push(key);
-        }
-      }
+    projDOLog.debug(
+      `📦 Loaded document ${documentId} from storage: ${applied} sync frames applied, ${staleKeys.length} non-sync frames purged`
+    );
 
-      projDOLog.debug(
-        `📦 Loaded document ${documentId} from storage: ${applied} sync frames applied, ${staleKeys.length} non-sync frames purged`
-      );
-
-      // Best-effort cleanup of the legacy awareness/presence rows. Deleting in
-      // a single call is cheaper than one-per-key and self-heals the storage
-      // bloat that was amplifying every reconnect into a slow load + 504.
-      if (staleKeys.length > 0) {
+    // Best-effort cleanup of the legacy awareness/presence rows. Durable
+    // Object storage caps bulk delete() at 128 keys per call, so chunk the
+    // purge — the bloated docs this targets hold thousands of rows and a
+    // single call would reject, leaving the bloat un-purged.
+    if (staleKeys.length > 0) {
+      const BATCH = 128;
+      for (let i = 0; i < staleKeys.length; i += BATCH) {
+        const batch = staleKeys.slice(i, i + BATCH);
         try {
-          await this.state.storage.delete(staleKeys);
+          await this.state.storage.delete(batch);
         } catch (err) {
-          projDOLog.warn(`Failed to purge ${staleKeys.length} stale frames for ${documentId}`, err);
+          projDOLog.warn(
+            `Failed to purge ${batch.length} of ${staleKeys.length} stale frames for ${documentId}`,
+            err
+          );
         }
       }
-    } catch (error) {
-      projDOLog.error(`❌ Error loading document ${documentId} from storage:`, error);
     }
   }
 

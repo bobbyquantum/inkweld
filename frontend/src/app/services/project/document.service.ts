@@ -54,6 +54,7 @@ import { PresenceService } from '../presence/presence.service';
 import {
   createAuthenticatedWebsocketProvider,
   setupReauthentication,
+  WS_MAX_BACKOFF_TIME,
 } from '../sync/authenticated-websocket-provider';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { CommentService } from './comment.service';
@@ -79,12 +80,6 @@ const STABLE_CONNECTION_MS = 60_000;
  * the next single retry.
  */
 const CIRCUIT_BREAKER_DELAY_MS = 5 * 60_000;
-/**
- * Caps y-websocket's *internal* reconnect backoff (default only 2.5s). During
- * a real backend outage this stops the provider from reconnecting every couple
- * of seconds on its own, independent of the app-level counter above.
- */
-const WS_MAX_BACKOFF_TIME = 30_000;
 
 type YjsProseMirrorMapping = Parameters<
   typeof absolutePositionToRelativePosition
@@ -1156,13 +1151,21 @@ export class DocumentService {
       let reconnectAttempts = 0;
       let reconnectTimeout: number | null = null;
       let circuitBreakerTimeout: number | null = null;
-      // Timestamp of the last 'connected' event. Used to decide whether a
-      // disconnect was a brief flap (don't reset the backoff counter) or the
-      // end of a healthy session (reset so the next outage starts fresh).
+      // Timestamp of the last 'connected' event, captured so we can measure
+      // the session *duration* at disconnect time (not uptime + reconnect
+      // delay). Used to decide whether a disconnect was a brief flap (don't
+      // reset the backoff counter) or the end of a healthy session (reset so
+      // the next outage starts fresh).
       let connectedAt = 0;
-      // `connectedAt` snapshot captured at disconnect time, so the subsequent
-      // 'connected' can measure how long the *previous* connection lasted.
-      let reconnectLastConnectedAt = 0;
+      // How long the just-lost connection stayed up. Set on disconnect, read
+      // on the next 'connected'. Measured at disconnect time so a 2s session
+      // + 60s reconnect delay is NOT mistaken for a stable 62s session.
+      let lastSessionDurationMs = 0;
+      // Sticky flag set when the session is definitively dead (auth failure).
+      // Prevents the circuit-breaker cool-down from retrying a dead session
+      // and prevents the 'disconnected' handler re-entered via
+      // providerRef.disconnect() from scheduling retries.
+      let authFailed = false;
 
       // Handle connection status with enhanced logging
       provider.on('status', ({ status }: { status: string }) => {
@@ -1182,13 +1185,18 @@ export class DocumentService {
             `Successfully connected to WebSocket server for ${documentId}`
           );
           connectedAt = Date.now();
+          // A fresh successful connection clears any prior auth-failure flag.
+          authFailed = false;
           // Only reset the backoff counter once the connection has proven
           // stable. A connection that flaps every few seconds would otherwise
           // reset attempts to 0 on every brief 'connected' and retry forever —
           // the exact overnight reconnect storm that exhausted the daily quota.
+          // Use the *previous session's duration* (measured at disconnect),
+          // not uptime + reconnect delay, so a 2s session + 60s delay isn't
+          // mistaken for a stable connection.
           if (
             reconnectAttempts === 0 ||
-            Date.now() - (reconnectLastConnectedAt ?? 0) >= STABLE_CONNECTION_MS
+            lastSessionDurationMs >= STABLE_CONNECTION_MS
           ) {
             reconnectAttempts = 0;
           }
@@ -1206,14 +1214,28 @@ export class DocumentService {
             return;
           }
 
+          // Measure the session duration NOW (at disconnect) so the next
+          // 'connected' can compare against STABLE_CONNECTION_MS without the
+          // reconnect delay inflating the figure.
+          lastSessionDurationMs = connectedAt ? Date.now() - connectedAt : 0;
+
+          // If the session died because auth failed, don't schedule any
+          // retries — the session is dead and reconnecting just re-triggers
+          // the 401. Also short-circuits the re-entry caused by our own
+          // providerRef.disconnect() in the connection-error handler.
+          if (authFailed) {
+            this.logger.warn(
+              'DocumentService',
+              `Disconnected after auth failure for ${documentId}; not retrying`
+            );
+            this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
+            return;
+          }
+
           this.logger.warn(
             'DocumentService',
             `Disconnected from WebSocket server for ${documentId}. Will attempt reconnect.`
           );
-
-          // Record how long the just-lost connection stayed up so the next
-          // 'connected' can decide whether to reset the backoff counter.
-          reconnectLastConnectedAt = connectedAt;
 
           if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             const delay = Math.min(
@@ -1236,6 +1258,15 @@ export class DocumentService {
             // just once after a long cool-down. Without disconnecting the
             // provider, y-websocket would keep reconnecting every few seconds
             // regardless of MAX_RECONNECT_ATTEMPTS.
+            //
+            // Idempotent: providerRef.disconnect() below synchronously emits
+            // another 'disconnected' status that re-enters this branch. Guard
+            // with the pending breaker timer so re-entry can't queue a
+            // duplicate cool-down (which would also overwrite the timer id in
+            // reconnectTimeouts and leak the first timer).
+            if (circuitBreakerTimeout) {
+              return;
+            }
             this.logger.warn(
               'DocumentService',
               `Max reconnection attempts reached for ${documentId}; entering cool-down`
@@ -1316,6 +1347,10 @@ export class DocumentService {
             circuitBreakerTimeout = null;
           }
           reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
+          // Sticky flag: the 'disconnected' event fired by the disconnect()
+          // below (and any later ones) must NOT schedule a cool-down retry for
+          // a dead session.
+          authFailed = true;
           // Stop y-websocket's internal reconnect loop too — the session is
           // dead, so reconnecting just re-triggers the 401 and burns requests.
           providerRef.disconnect();

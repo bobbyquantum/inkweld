@@ -34,6 +34,14 @@ export interface AuthResult {
 const KEEPALIVE_INTERVAL_MS = 25_000;
 
 /**
+ * Caps y-websocket's *internal* reconnect backoff (its default is only 2.5s,
+ * which during a real backend outage reconnects every few seconds and
+ * amplifies server load). Shared by the document and elements sync paths so
+ * both stay in lockstep.
+ */
+export const WS_MAX_BACKOFF_TIME = 30_000;
+
+/**
  * Sockets we've already wrapped with the resilient message guard, so a
  * re-auth handler running after the guard doesn't double-wrap the same
  * `WebSocket` instance.
