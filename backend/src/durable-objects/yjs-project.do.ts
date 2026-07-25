@@ -46,8 +46,8 @@ import {
   parseTrackableElementId as parseTrackableElementIdUtil,
   isYjsFrameBlockedForViewer,
   isElementsDoc,
-  isSyncFrame,
 } from '../utils/yjs-document-utils';
+import { YjsDocStorage } from './yjs-do-storage';
 import {
   PRESENCE_KEEPALIVE_PING,
   PRESENCE_KEEPALIVE_PONG,
@@ -153,13 +153,11 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   private readonly documents = new Map<string, Promise<WSSharedDoc>>();
   private readonly connections: Map<WebSocket, ConnectionInfo> = new Map();
   /**
-   * Monotonic sequence used to make persisted-update storage keys unique even
-   * when two updates land in the same millisecond (which previously caused the
-   * later one to overwrite the earlier one — silent data loss). Combined with
-   * `Date.now()` in the key so lexicographic ordering across DO restarts stays
-   * chronological.
+   * Persistence/replay helper. Decoupled from the DurableObject base class so
+   * the storage logic is unit-testable with a mock `DoStorage` — the DO base
+   * class and `cloudflare:workers` can't be imported in the Bun test runtime.
    */
-  private updateSequence = 0;
+  private readonly docStorage: YjsDocStorage;
   private projectId: string = '';
   /** Per-doc element snapshots used for CRUD activity event diffing. */
   private readonly elementSnapshots: Map<string, Map<string, { name: string; type: string }>> =
@@ -177,6 +175,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   constructor(state: DurableObjectState, env: YjsEnv['Bindings']) {
     super(state, env);
     this.state = state;
+    this.docStorage = new YjsDocStorage(state.storage, projDOLog);
     this.state.setWebSocketAutoResponse(
       new WebSocketRequestResponsePair(PRESENCE_KEEPALIVE_PING, PRESENCE_KEEPALIVE_PONG)
     );
@@ -1029,11 +1028,11 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     // ============================================================
 
     // Set up storage-backed persistence for this specific document
-    await this.loadDocumentFromStorage(documentId, sharedDoc);
+    await this.docStorage.loadAndReplay(documentId, (frame) => sharedDoc.update(frame));
 
     // Listen to updates and persist them
     sharedDoc.notify((update: Uint8Array) => {
-      void this.persistUpdate(documentId, update);
+      void this.docStorage.persist(documentId, update);
     });
 
     projDOLog.debug(`Created new shared doc for ${documentId}`);
@@ -1842,96 +1841,5 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
 
     this.connections.delete(ws);
-  }
-
-  /**
-   * Load persisted state for a specific document using y-durableobjects storage
-   * pattern. Each document gets its own storage namespace.
-   *
-   * Only Yjs *sync* frames are replayed. Historically `persistUpdate` stored
-   * every notify emission — including awareness frames — so the per-doc update
-   * log grew without bound (a few entries per second per connected client) and
-   * every load replayed thousands of transient presence frames, slowing wakes
-   * until the WS upgrade hit Cloudflare's 504 threshold. This self-heals
-   * existing bloat: non-sync entries are skipped AND deleted on the next load.
-   *
-   * Storage list/replay errors PROPAGATE to `getOrCreateDocument`, which drops
-   * the cached Promise so the next connection retries instead of caching a
-   * blank doc and writing on top of lost history. Only the best-effort purge is
-   * swallowed (failing to delete stale keys doesn't corrupt the doc).
-   */
-  private async loadDocumentFromStorage(documentId: string, sharedDoc: WSSharedDoc) {
-    const storagePrefix = `doc:${documentId}:`;
-    const updatePrefix = `${storagePrefix}update:`;
-
-    const entries = await this.state.storage.list<number[]>({
-      prefix: updatePrefix,
-    });
-
-    if (entries.size === 0) {
-      projDOLog.debug(`📦 No persisted updates found for ${documentId} - starting fresh`);
-      return;
-    }
-
-    // Partition into sync frames to apply vs. non-sync (awareness/presence)
-    // frames to purge. Awareness frames were persisted by an older version
-    // of persistUpdate; they're ephemeral and must never be replayed.
-    const staleKeys: string[] = [];
-    let applied = 0;
-    for (const [key, updateArray] of entries.entries()) {
-      const update = new Uint8Array(updateArray);
-      if (isSyncFrame(update)) {
-        sharedDoc.update(update);
-        applied++;
-      } else {
-        staleKeys.push(key);
-      }
-    }
-
-    projDOLog.debug(
-      `📦 Loaded document ${documentId} from storage: ${applied} sync frames applied, ${staleKeys.length} non-sync frames purged`
-    );
-
-    // Best-effort cleanup of the legacy awareness/presence rows. Durable
-    // Object storage caps bulk delete() at 128 keys per call, so chunk the
-    // purge — the bloated docs this targets hold thousands of rows and a
-    // single call would reject, leaving the bloat un-purged.
-    if (staleKeys.length > 0) {
-      const BATCH = 128;
-      for (let i = 0; i < staleKeys.length; i += BATCH) {
-        const batch = staleKeys.slice(i, i + BATCH);
-        try {
-          await this.state.storage.delete(batch);
-        } catch (err) {
-          projDOLog.warn(
-            `Failed to purge ${batch.length} of ${staleKeys.length} stale frames for ${documentId}`,
-            err
-          );
-        }
-      }
-    }
-  }
-
-  /**
-   * Persist a document update to storage under a document-specific namespace.
-   *
-   * Only Yjs *sync* frames are persisted — awareness updates are ephemeral
-   * (presence/cursors) and persisting them grew the update log without bound
-   * and made every document load replay thousands of transient frames. The
-   * key includes a per-DO monotonic sequence so two updates in the same
-   * millisecond no longer collide and overwrite each other.
-   */
-  private async persistUpdate(documentId: string, update: Uint8Array) {
-    if (!isSyncFrame(update)) return;
-    try {
-      const storagePrefix = `doc:${documentId}:`;
-      const timestamp = Date.now();
-      const seq = this.updateSequence++;
-      const key = `${storagePrefix}update:${timestamp}:${String(seq).padStart(8, '0')}`;
-
-      await this.state.storage.put(key, Array.from(update));
-    } catch (error) {
-      projDOLog.error(`Error persisting update for ${documentId}:`, error);
-    }
   }
 }
