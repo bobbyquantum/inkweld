@@ -24,6 +24,7 @@
   "include": [
     "src/**/*.spec.ts",
     "src/**/*.d.ts",
+    "scripts/**/*.spec.ts",
     "setup-vitest.ts",
     "../packages/inkweld-prosemirror/src/**/*.ts",
     "../packages/inkweld-prosemirror/test/**/*.ts"

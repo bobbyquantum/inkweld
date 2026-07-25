@@ -78,6 +78,7 @@
     "cloudflare:prod:logs": "cd backend && bun run wrangler tail --env production",
     "twa:setup": "bun run scripts/twa-setup.ts",
     "twa:update": "bunx bubblewrap update --manifest twa-manifest.json",
+    "twa:icons": "cd frontend && bun run scripts/generate-android-icons.ts",
     "twa:build:preview": "cd android && ./gradlew assemblePreviewRelease",
     "twa:build:prod": "cd android && ./gradlew assembleProdRelease",
     "twa:bundle:prod": "cd android && ./gradlew bundleProdRelease",
