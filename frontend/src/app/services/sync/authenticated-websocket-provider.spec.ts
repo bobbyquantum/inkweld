@@ -1,14 +1,14 @@
+import { PRESENCE_KEEPALIVE_PING } from '@inkweld/presence';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
-import {
-  PRESENCE_KEEPALIVE_PING,
-  PRESENCE_KEEPALIVE_PONG,
-} from '@inkweld/presence';
 
 // Type for our mock WebSocket
 interface MockWebSocket {
   onmessage: ((event: MessageEvent) => void) | null;
   send: ReturnType<typeof vi.fn>;
+  /** Mirrors the WebSocket ready-state constants the guard reads. */
+  readyState?: number;
+  OPEN?: number;
 }
 
 // Type for our mock provider instance
@@ -18,6 +18,11 @@ interface MockProviderInstance {
   off: ReturnType<typeof vi.fn>;
   connect: ReturnType<typeof vi.fn>;
   disconnect: ReturnType<typeof vi.fn>;
+  /** y-websocket tracks connection state on the provider; the guard reads it. */
+  wsconnected: boolean;
+  /** y-websocket's idle-timer timestamp; the guard bumps it on every message. */
+  wsLastMessageReceived: number;
+  destroy: ReturnType<typeof vi.fn>;
   awareness: { setLocalStateField: ReturnType<typeof vi.fn>; clientID: number };
   _listeners: Map<string, Array<(arg: unknown) => void>>;
   _emitStatus: (status: string) => void;
@@ -53,9 +58,14 @@ class MockWebsocketProvider implements MockProviderInstance {
     this.ws = {
       onmessage: null,
       send: vi.fn(),
+      readyState: 1,
+      OPEN: 1,
     };
   });
   disconnect = vi.fn();
+  destroy = vi.fn();
+  wsconnected = false;
+  wsLastMessageReceived = 0;
   awareness = {
     setLocalStateField: vi.fn(),
     clientID: 123,
@@ -620,10 +630,10 @@ describe('authenticated-websocket-provider', () => {
       bytes[3] = 0xff;
       const binaryEvent = new MessageEvent('message', { data: bytes.buffer });
 
-      provider.ws!.onmessage?.(binaryEvent);
+      provider.ws.onmessage?.(binaryEvent);
 
       expect(onDecodeError).toHaveBeenCalledTimes(1);
-      const [, byteLength, hexPreview] = onDecodeError.mock.calls[0]!;
+      const [, byteLength, hexPreview] = onDecodeError.mock.calls[0];
       expect(byteLength).toBe(40);
       // Preview capped at 32 bytes, leading bytes present, ellipsis appended.
       expect(hexPreview).toBe(
