@@ -155,10 +155,12 @@ export class YjsDocStorage {
     const storagePrefix = `doc:${documentId}:`;
     const base = persistUpdateKey(storagePrefix, Date.now(), this.sequence++);
     // 4 hex chars (16 bits) of entropy — enough that two same-ms, same-seq
-    // writes across a restart collision is astronomically unlikely.
-    const suffix = Math.floor(Math.random() * 0x10000)
-      .toString(16)
-      .padStart(4, '0');
+    // writes across a restart collision is astronomically unlikely. Use the
+    // Web Crypto RNG (available in the Workers runtime) rather than
+    // Math.random(), which Sonar flags as a weak random source.
+    const rand = new Uint8Array(2);
+    crypto.getRandomValues(rand);
+    const suffix = Array.from(rand, (b) => b.toString(16).padStart(2, '0')).join('');
     const key = `${base}:${suffix}`;
     await this.storage.put(key, Array.from(frame));
     return key;
