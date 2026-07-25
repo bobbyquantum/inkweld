@@ -690,8 +690,16 @@ describe('authenticated-websocket-provider', () => {
       vi.useFakeTimers();
       try {
         const provider = new MockWebsocketProvider();
-        // No connect() → no ws, wsconnected false.
-        (provider as unknown as { wsconnected: boolean }).wsconnected = false;
+        // Give it a ws with a send spy, but leave wsconnected=false so the
+        // keepalive's guard skips the send.
+        provider.ws = {
+          onmessage: null,
+          send: vi.fn(),
+          readyState: 1,
+          OPEN: 1,
+        };
+        provider.wsconnected = false;
+        const send = provider.ws.send;
 
         installWebSocketResilience(
           provider as unknown as Parameters<
@@ -699,7 +707,7 @@ describe('authenticated-websocket-provider', () => {
           >[0]
         );
         vi.advanceTimersByTime(25_000);
-        expect(provider.ws?.send).not.toHaveBeenCalled();
+        expect(send).not.toHaveBeenCalled();
       } finally {
         vi.useRealTimers();
       }

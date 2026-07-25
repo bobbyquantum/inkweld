@@ -913,6 +913,15 @@ describe('DocumentService', () => {
       );
 
       service.initializeSyncStatus(testDocumentId);
+
+      // connectWebSocketInBackground expects the connection to already be
+      // registered in the service's connections map (the 'disconnected'
+      // handler bails if it isn't). Register it the way setupCollaboration
+      // does before invoking the background connect.
+      (
+        service as unknown as { connections: Map<string, unknown> }
+      ).connections.set(testDocumentId, connection);
+
       await privateService.connectWebSocketInBackground(
         'ws://localhost:8333',
         testDocumentId,
