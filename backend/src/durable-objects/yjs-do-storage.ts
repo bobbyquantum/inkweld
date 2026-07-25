@@ -61,9 +61,11 @@ export function chunkKeysForDelete(
   batchSize = STORAGE_DELETE_BATCH_LIMIT
 ): string[][] {
   if (keys.length === 0) return [];
+  // Guard against a non-positive batch size, which would infinite-loop.
+  const safe = batchSize > 0 ? batchSize : STORAGE_DELETE_BATCH_LIMIT;
   const batches: string[][] = [];
-  for (let i = 0; i < keys.length; i += batchSize) {
-    batches.push(keys.slice(i, i + batchSize));
+  for (let i = 0; i < keys.length; i += safe) {
+    batches.push(keys.slice(i, i + safe));
   }
   return batches;
 }
@@ -140,11 +142,24 @@ export class YjsDocStorage {
    * Persist a Yjs wire frame. Only sync frames are stored — awareness/presence
    * are ephemeral and persisting them grew the update log without bound.
    * Returns the key written, or null if the frame was filtered out.
+   *
+   * A short random suffix is appended to the key so a Durable Object that
+   * restarts (resetting its in-memory `sequence` to 0) can never reuse a key
+   * written before the restart and overwrite an earlier frame — the previous
+   * `timestamp:sequence` scheme collided across restarts at the same
+   * millisecond. Lexicographic ordering is preserved by timestamp-then-seq;
+   * the random suffix only breaks ties that would otherwise have collided.
    */
   async persist(documentId: string, frame: Uint8Array): Promise<string | null> {
     if (!isSyncFrame(frame)) return null;
     const storagePrefix = `doc:${documentId}:`;
-    const key = persistUpdateKey(storagePrefix, Date.now(), this.sequence++);
+    const base = persistUpdateKey(storagePrefix, Date.now(), this.sequence++);
+    // 4 hex chars (16 bits) of entropy — enough that two same-ms, same-seq
+    // writes across a restart collision is astronomically unlikely.
+    const suffix = Math.floor(Math.random() * 0x10000)
+      .toString(16)
+      .padStart(4, '0');
+    const key = `${base}:${suffix}`;
     await this.storage.put(key, Array.from(frame));
     return key;
   }

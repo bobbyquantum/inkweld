@@ -125,6 +125,15 @@ describe('chunkKeysForDelete', () => {
     const batches = chunkKeysForDelete(keys, 2);
     expect(batches).toEqual([['a', 'b'], ['c', 'd'], ['e']]);
   });
+
+  it('falls back to the default limit for a non-positive batch size (no infinite loop)', () => {
+    const keys = Array.from({ length: 130 }, (_, i) => `k${i}`);
+    for (const bad of [0, -1, -100]) {
+      const batches = chunkKeysForDelete(keys, bad);
+      expect(batches).toHaveLength(2); // 128 + 2, same as default
+      expect(batches.flat()).toEqual(keys);
+    }
+  });
 });
 
 describe('YjsDocStorage.loadAndReplay', () => {
@@ -225,7 +234,7 @@ describe('YjsDocStorage.loadAndReplay', () => {
 });
 
 describe('YjsDocStorage.persist', () => {
-  it('persists sync frames under a collision-free timestamp:sequence key', async () => {
+  it('persists sync frames under a collision-free timestamp:sequence:suffix key', async () => {
     const storage = makeStorage();
     const ds = new YjsDocStorage(storage, noopLogger);
     const sync = new Uint8Array([Y_MESSAGE_SYNC, 0, 1]);
@@ -235,7 +244,8 @@ describe('YjsDocStorage.persist', () => {
     expect(key).not.toBeNull();
     expect(storage.puts).toHaveLength(1);
     expect(storage.puts[0]?.value).toEqual(Array.from(sync));
-    expect(key).toMatch(/^doc:d:update:\d+:00000000$/);
+    // timestamp:zero-padded-seq:4-hex-suffix
+    expect(key).toMatch(/^doc:d:update:\d+:00000000:[0-9a-f]{4}$/);
   });
 
   it('increments the sequence across calls within the same millisecond', async () => {
@@ -247,8 +257,8 @@ describe('YjsDocStorage.persist', () => {
     const b = await ds.persist('d', sync);
 
     expect(a).not.toBe(b);
-    expect(a).toMatch(/00000000$/);
-    expect(b).toMatch(/00000001$/);
+    expect(a).toMatch(/:00000000:[0-9a-f]{4}$/);
+    expect(b).toMatch(/:00000001:[0-9a-f]{4}$/);
   });
 
   it('filters out awareness frames (returns null, writes nothing)', async () => {
@@ -281,5 +291,21 @@ describe('YjsDocStorage.persist', () => {
 
     expect(key).toBeNull();
     expect(storage.puts).toHaveLength(0);
+  });
+
+  it('produces distinct keys across instances with a reset sequence (cross-restart collision guard)', async () => {
+    // Two YjsDocStorage instances represent the same DO before and after a
+    // restart (sequence resets to 0). With the random suffix, two frames
+    // persisted at the same millisecond + same sequence must still get
+    // distinct keys.
+    const sync = new Uint8Array([Y_MESSAGE_SYNC, 0]);
+    const keys = new Set<string>();
+    for (let i = 0; i < 50; i++) {
+      const storage = makeStorage();
+      const ds = new YjsDocStorage(storage, noopLogger);
+      keys.add((await ds.persist('d', sync)) as string);
+    }
+    // 50 distinct keys despite all being seq=0.
+    expect(keys.size).toBe(50);
   });
 });
