@@ -197,17 +197,17 @@ describe('YjsDocStorage.loadAndReplay', () => {
     expect(storage.deletes).toHaveLength(2);
     expect(storage.deletes[0]).toHaveLength(128);
     expect(storage.deletes[1]).toHaveLength(72);
-    // All stale keys removed; sync key remains (it was replayed, not purged).
-    expect(
-      Array.from(storage.list({ prefix: 'doc:d:update:' }) as unknown as Map<string, unknown>)
-    ).toHaveLength(0);
+    // Stale keys removed; the sync key remains (it was replayed, not purged).
+    // Await the list() Promise — Array.from(promise) would silently yield [].
+    const remaining = await storage.list({ prefix: 'doc:d:update:' });
+    expect(Array.from(remaining.keys())).toHaveLength(1);
   });
 
   it('swallows individual delete failures and continues purging remaining batches', async () => {
-    // Use 130 stale keys → 2 batches (128 + 2). Make the second batch fail so
-    // the warn path is exercised while the first batch still succeeds.
+    // 300 stale keys → 3 batches (128 + 128 + 44). Make the MIDDLE batch fail
+    // so we prove the final batch still runs after a failed one.
     const entries = new Map<string, number[]>();
-    for (let i = 0; i < 130; i++) {
+    for (let i = 0; i < 300; i++) {
       entries.set(`doc:d:update:1:${String(i).padStart(8, '0')}`, [Y_MESSAGE_AWARENESS, 1]);
     }
     const storage = makeStorage(entries);
@@ -226,10 +226,13 @@ describe('YjsDocStorage.loadAndReplay', () => {
 
     await ds.loadAndReplay('d', () => {});
 
+    // All 3 batches were attempted (the middle one failed but didn't abort).
+    expect(call).toBe(3);
     expect(warnLog).toHaveBeenCalledTimes(1);
-    // First batch (128) was deleted; second batch failed but the call still
-    // completed without throwing.
-    expect(call).toBe(2);
+    // Batches 1 and 3 succeeded → 128 + 44 = 172 keys deleted; batch 2's 128
+    // remain because the mock threw before delegating.
+    const remaining = await storage.list({ prefix: 'doc:d:update:' });
+    expect(remaining.size).toBe(128);
   });
 });
 
@@ -244,8 +247,8 @@ describe('YjsDocStorage.persist', () => {
     expect(key).not.toBeNull();
     expect(storage.puts).toHaveLength(1);
     expect(storage.puts[0]?.value).toEqual(Array.from(sync));
-    // timestamp:zero-padded-seq:4-hex-suffix
-    expect(key).toMatch(/^doc:d:update:\d+:00000000:[0-9a-f]{4}$/);
+    // timestamp:zero-padded-seq:32-hex (128-bit) suffix
+    expect(key).toMatch(/^doc:d:update:\d+:00000000:[0-9a-f]{32}$/);
   });
 
   it('increments the sequence across calls within the same millisecond', async () => {
@@ -257,8 +260,8 @@ describe('YjsDocStorage.persist', () => {
     const b = await ds.persist('d', sync);
 
     expect(a).not.toBe(b);
-    expect(a).toMatch(/:00000000:[0-9a-f]{4}$/);
-    expect(b).toMatch(/:00000001:[0-9a-f]{4}$/);
+    expect(a).toMatch(/:00000000:[0-9a-f]{32}$/);
+    expect(b).toMatch(/:00000001:[0-9a-f]{32}$/);
   });
 
   it('filters out awareness frames (returns null, writes nothing)', async () => {
@@ -307,5 +310,24 @@ describe('YjsDocStorage.persist', () => {
     }
     // 50 distinct keys despite all being seq=0.
     expect(keys.size).toBe(50);
+  });
+
+  it('logs and does not throw when storage.put rejects', async () => {
+    const storage: DoStorage = {
+      list: async () => new Map(),
+      put: async () => {
+        throw new Error('disk full');
+      },
+      delete: async () => {},
+    };
+    const errorLog = mock(() => {});
+    const ds = new YjsDocStorage(storage, { ...noopLogger, error: errorLog });
+    const sync = new Uint8Array([Y_MESSAGE_SYNC, 0]);
+
+    // Should not reject — the caller invokes this fire-and-forget.
+    const key = await ds.persist('d', sync);
+
+    expect(key).not.toBeNull();
+    expect(errorLog).toHaveBeenCalledTimes(1);
   });
 });

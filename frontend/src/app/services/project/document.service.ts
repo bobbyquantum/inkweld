@@ -1280,6 +1280,13 @@ export class DocumentService {
           providerRef.disconnect();
           this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
           circuitBreakerTimeout = window.setTimeout(() => {
+            // Clear the breaker state FIRST so a subsequent flap can trip a
+            // fresh cool-down. Without this the stale timer id stays in
+            // circuitBreakerTimeout and the idempotency guard above blocks
+            // every future breaker — y-websocket's internal loop then
+            // reconnects indefinitely at WS_MAX_BACKOFF_TIME.
+            circuitBreakerTimeout = null;
+            this.reconnectTimeouts.delete(documentId);
             if (!this.connections.has(documentId)) {
               return;
             }

@@ -144,25 +144,36 @@ export class YjsDocStorage {
    * Returns the key written, or null if the frame was filtered out.
    *
    * A short random suffix is appended to the key so a Durable Object that
-   * restarts (resetting its in-memory `sequence` to 0) can never reuse a key
-   * written before the restart and overwrite an earlier frame — the previous
-   * `timestamp:sequence` scheme collided across restarts at the same
-   * millisecond. Lexicographic ordering is preserved by timestamp-then-seq;
-   * the random suffix only breaks ties that would otherwise have collided.
+   * restarts (resetting its in-memory `sequence` to 0) makes reuse of a key
+   * written before the restart negligibly unlikely. Lexicographic ordering is
+   * preserved by timestamp-then-seq; the random suffix only breaks ties that
+   * would otherwise have collided.
+   *
+   * Storage write failures are caught and logged — the caller invokes this
+   * fire-and-forget (`void …persist()`), so a rejected `put` would otherwise
+   * surface as an unhandled rejection. The update has already been applied to
+   * the in-memory doc and broadcast to live peers; a failed durable write
+   * means that update is lost on the next hibernation/reload, which is logged
+   * for diagnosis rather than silently dropped.
    */
   async persist(documentId: string, frame: Uint8Array): Promise<string | null> {
     if (!isSyncFrame(frame)) return null;
     const storagePrefix = `doc:${documentId}:`;
     const base = persistUpdateKey(storagePrefix, Date.now(), this.sequence++);
-    // 4 hex chars (16 bits) of entropy — enough that two same-ms, same-seq
-    // writes across a restart collision is astronomically unlikely. Use the
-    // Web Crypto RNG (available in the Workers runtime) rather than
-    // Math.random(), which Sonar flags as a weak random source.
-    const rand = new Uint8Array(2);
+    // 128 bits of entropy (16 bytes) makes a collision across a DO restart
+    // (sequence resets to 0) at the same millisecond negligibly unlikely.
+    // Uses the Web Crypto RNG (available in the Workers runtime); this is a
+    // collision-avoidance aid, not a security-sensitive random, but the
+    // secure RNG avoids the Sonar Math.random hotspot.
+    const rand = new Uint8Array(16);
     crypto.getRandomValues(rand);
     const suffix = Array.from(rand, (b) => b.toString(16).padStart(2, '0')).join('');
     const key = `${base}:${suffix}`;
-    await this.storage.put(key, Array.from(frame));
+    try {
+      await this.storage.put(key, Array.from(frame));
+    } catch (err) {
+      this.log.error(`Failed to persist update for ${documentId}`, err);
+    }
     return key;
   }
 }
