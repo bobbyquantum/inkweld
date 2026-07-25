@@ -995,7 +995,7 @@ describe('DocumentService', () => {
         mockWebSocketProvider.connect.mock.calls.length;
       status({ status: 'disconnected' });
       advanceReconnect(); // no-op if nothing was scheduled
-      expect(mockWebSocketProvider.connect.mock.calls.length).toBe(
+      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(
         connectCallsBefore
       );
       expect(service.getSyncStatusSignal(testDocumentId)()).toBe(

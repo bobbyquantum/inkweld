@@ -81,6 +81,25 @@ const STABLE_CONNECTION_MS = 60_000;
  */
 const CIRCUIT_BREAKER_DELAY_MS = 5 * 60_000;
 
+/**
+ * Map a y-websocket status event + the current reconnect-attempt count to a
+ * sync-state for the UI. Extracted from the inline nested ternary so the
+ * status handler stays under the cognitive-complexity limit.
+ */
+function syncStateForStatus(
+  status: string,
+  reconnectAttempts: number
+): DocumentSyncState {
+  if (status === 'connected') return DocumentSyncState.Synced;
+  if (
+    status === 'disconnected' &&
+    reconnectAttempts >= MAX_RECONNECT_ATTEMPTS
+  ) {
+    return DocumentSyncState.Unavailable;
+  }
+  return DocumentSyncState.Local;
+}
+
 type YjsProseMirrorMapping = Parameters<
   typeof absolutePositionToRelativePosition
 >[2];
@@ -1168,6 +1187,114 @@ export class DocumentService {
       let authFailed = false;
 
       // Handle connection status with enhanced logging
+      //
+      // The 'connected' and 'disconnected' branches are extracted into local
+      // closures to keep the status handler's cognitive complexity under the
+      // Sonar limit. They share the reconnect-state variables above by
+      // closure capture.
+      const handleConnected = () => {
+        this.logger.info(
+          'DocumentService',
+          `Successfully connected to WebSocket server for ${documentId}`
+        );
+        connectedAt = Date.now();
+        authFailed = false;
+        // Only reset the backoff counter once the connection has proven
+        // stable. A connection that flaps every few seconds would otherwise
+        // reset attempts to 0 on every brief 'connected' and retry forever —
+        // the exact overnight reconnect storm that exhausted the daily quota.
+        if (
+          reconnectAttempts === 0 ||
+          lastSessionDurationMs >= STABLE_CONNECTION_MS
+        ) {
+          reconnectAttempts = 0;
+        }
+        if (reconnectTimeout) {
+          clearTimeout(reconnectTimeout);
+          reconnectTimeout = null;
+        }
+        if (circuitBreakerTimeout) {
+          clearTimeout(circuitBreakerTimeout);
+          circuitBreakerTimeout = null;
+        }
+        this.reconnectTimeouts.delete(documentId);
+      };
+
+      const handleDisconnected = (): boolean => {
+        if (!this.connections.has(documentId)) {
+          return false;
+        }
+
+        // Measure the session duration NOW so the next 'connected' can
+        // compare against STABLE_CONNECTION_MS without the reconnect delay
+        // inflating the figure.
+        lastSessionDurationMs = connectedAt ? Date.now() - connectedAt : 0;
+
+        // If the session died because auth failed, don't schedule any
+        // retries — the session is dead and reconnecting just re-triggers
+        // the 401. Also short-circuits the re-entry caused by our own
+        // providerRef.disconnect() in the connection-error handler.
+        if (authFailed) {
+          this.logger.warn(
+            'DocumentService',
+            `Disconnected after auth failure for ${documentId}; not retrying`
+          );
+          this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
+          return false;
+        }
+
+        this.logger.warn(
+          'DocumentService',
+          `Disconnected from WebSocket server for ${documentId}. Will attempt reconnect.`
+        );
+
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          const delay = Math.min(
+            INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttempts),
+            MAX_RECONNECT_DELAY
+          );
+          reconnectTimeout = window.setTimeout(() => {
+            if (!this.connections.has(documentId)) {
+              return;
+            }
+            providerRef.connect();
+            reconnectAttempts++;
+          }, delay);
+          this.reconnectTimeouts.set(documentId, reconnectTimeout);
+        } else {
+          // Circuit breaker: stop y-websocket's internal reconnect loop too
+          // (it has its own backoff that ignores this counter), then retry
+          // just once after a long cool-down.
+          //
+          // Idempotent: providerRef.disconnect() below synchronously emits
+          // another 'disconnected' status that re-enters this branch. Guard
+          // with the pending breaker timer so re-entry can't queue a
+          // duplicate cool-down.
+          if (circuitBreakerTimeout) {
+            return false;
+          }
+          this.logger.warn(
+            'DocumentService',
+            `Max reconnection attempts reached for ${documentId}; entering cool-down`
+          );
+          providerRef.disconnect();
+          this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
+          circuitBreakerTimeout = window.setTimeout(() => {
+            if (!this.connections.has(documentId)) {
+              return;
+            }
+            this.logger.info(
+              'DocumentService',
+              `Circuit breaker cool-down elapsed for ${documentId}; retrying`
+            );
+            reconnectAttempts = 0;
+            providerRef.connect();
+          }, CIRCUIT_BREAKER_DELAY_MS);
+          this.reconnectTimeouts.set(documentId, circuitBreakerTimeout);
+        }
+        return true;
+      };
+
       provider.on('status', ({ status }: { status: string }) => {
         this.logger.debug(
           'DocumentService',
@@ -1180,121 +1307,12 @@ export class DocumentService {
             `Connecting to WebSocket URL: ${wsUrl}`
           );
         } else if (status === 'connected') {
-          this.logger.info(
-            'DocumentService',
-            `Successfully connected to WebSocket server for ${documentId}`
-          );
-          connectedAt = Date.now();
-          // A fresh successful connection clears any prior auth-failure flag.
-          authFailed = false;
-          // Only reset the backoff counter once the connection has proven
-          // stable. A connection that flaps every few seconds would otherwise
-          // reset attempts to 0 on every brief 'connected' and retry forever —
-          // the exact overnight reconnect storm that exhausted the daily quota.
-          // Use the *previous session's duration* (measured at disconnect),
-          // not uptime + reconnect delay, so a 2s session + 60s delay isn't
-          // mistaken for a stable connection.
-          if (
-            reconnectAttempts === 0 ||
-            lastSessionDurationMs >= STABLE_CONNECTION_MS
-          ) {
-            reconnectAttempts = 0;
-          }
-          if (reconnectTimeout) {
-            clearTimeout(reconnectTimeout);
-            reconnectTimeout = null;
-          }
-          if (circuitBreakerTimeout) {
-            clearTimeout(circuitBreakerTimeout);
-            circuitBreakerTimeout = null;
-          }
-          this.reconnectTimeouts.delete(documentId);
+          handleConnected();
         } else if (status === 'disconnected') {
-          if (!this.connections.has(documentId)) {
-            return;
-          }
-
-          // Measure the session duration NOW (at disconnect) so the next
-          // 'connected' can compare against STABLE_CONNECTION_MS without the
-          // reconnect delay inflating the figure.
-          lastSessionDurationMs = connectedAt ? Date.now() - connectedAt : 0;
-
-          // If the session died because auth failed, don't schedule any
-          // retries — the session is dead and reconnecting just re-triggers
-          // the 401. Also short-circuits the re-entry caused by our own
-          // providerRef.disconnect() in the connection-error handler.
-          if (authFailed) {
-            this.logger.warn(
-              'DocumentService',
-              `Disconnected after auth failure for ${documentId}; not retrying`
-            );
-            this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
-            return;
-          }
-
-          this.logger.warn(
-            'DocumentService',
-            `Disconnected from WebSocket server for ${documentId}. Will attempt reconnect.`
-          );
-
-          if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-            const delay = Math.min(
-              INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttempts),
-              MAX_RECONNECT_DELAY
-            );
-
-            reconnectTimeout = window.setTimeout(() => {
-              if (!this.connections.has(documentId)) {
-                return;
-              }
-              providerRef.connect();
-              reconnectAttempts++;
-            }, delay);
-
-            this.reconnectTimeouts.set(documentId, reconnectTimeout);
-          } else {
-            // Circuit breaker: stop y-websocket's *internal* reconnect loop too
-            // (it has its own backoff that ignores this counter), then retry
-            // just once after a long cool-down. Without disconnecting the
-            // provider, y-websocket would keep reconnecting every few seconds
-            // regardless of MAX_RECONNECT_ATTEMPTS.
-            //
-            // Idempotent: providerRef.disconnect() below synchronously emits
-            // another 'disconnected' status that re-enters this branch. Guard
-            // with the pending breaker timer so re-entry can't queue a
-            // duplicate cool-down (which would also overwrite the timer id in
-            // reconnectTimeouts and leak the first timer).
-            if (circuitBreakerTimeout) {
-              return;
-            }
-            this.logger.warn(
-              'DocumentService',
-              `Max reconnection attempts reached for ${documentId}; entering cool-down`
-            );
-            providerRef.disconnect();
-            this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
-            circuitBreakerTimeout = window.setTimeout(() => {
-              if (!this.connections.has(documentId)) {
-                return;
-              }
-              this.logger.info(
-                'DocumentService',
-                `Circuit breaker cool-down elapsed for ${documentId}; retrying`
-              );
-              reconnectAttempts = 0;
-              providerRef.connect();
-            }, CIRCUIT_BREAKER_DELAY_MS);
-            this.reconnectTimeouts.set(documentId, circuitBreakerTimeout);
-          }
+          handleDisconnected();
         }
 
-        const newState =
-          status === 'connected'
-            ? DocumentSyncState.Synced
-            : status === 'disconnected' &&
-                reconnectAttempts >= MAX_RECONNECT_ATTEMPTS
-              ? DocumentSyncState.Unavailable
-              : DocumentSyncState.Local;
+        const newState = syncStateForStatus(status, reconnectAttempts);
         this.updateSyncStatus(documentId, newState);
 
         if (newState === DocumentSyncState.Synced) {

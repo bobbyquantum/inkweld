@@ -39,8 +39,7 @@ export function frameMessageType(message: ArrayBuffer | Uint8Array): number {
   // Multi-byte varuint — decode manually (lib0's readVarUint inlined).
   let num = 0;
   let mult = 1;
-  for (let i = 0; i < bytes.length; i++) {
-    const b = bytes[i];
+  for (const b of bytes) {
     num += (b & 0x7f) * mult;
     mult *= 128;
     if (b < 0x80) return num;
