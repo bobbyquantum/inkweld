@@ -20,6 +20,46 @@ export const Y_MESSAGE_SYNC = 0;
 export const Y_MESSAGE_AWARENESS = 1;
 
 /**
+ * Read the outer multiplex message type from a Yjs wire frame.
+ *
+ * The wire format prefixes each frame with a lib0 varuint message type. Every
+ * type this app emits (0 = sync, 1 = awareness, 100 = presence) fits in a
+ * single byte (values < 128 have their high bit clear, terminating the
+ * varuint), so `bytes[0]` is the full type for all realistic frames. When the
+ * first byte has the continuation bit set (≥ 128) we fall back to a proper
+ * lib0 varuint decode.
+ *
+ * Returns -1 for an empty frame.
+ */
+export function frameMessageType(message: ArrayBuffer | Uint8Array): number {
+  const bytes = message instanceof Uint8Array ? message : new Uint8Array(message);
+  if (bytes.length === 0) return -1;
+  const first = bytes[0];
+  if (first < 0x80) return first;
+  // Multi-byte varuint — decode manually (lib0's readVarUint inlined).
+  let num = 0;
+  let mult = 1;
+  for (let i = 0; i < bytes.length; i++) {
+    const b = bytes[i];
+    num += (b & 0x7f) * mult;
+    mult *= 128;
+    if (b < 0x80) return num;
+  }
+  return num;
+}
+
+/**
+ * True when the frame is a Yjs sync message (the only type we persist as a
+ * document update). Awareness frames (ephemeral presence/cursors) and
+ * presence frames (app-level multiplex) must NOT be persisted — persisting
+ * them grows the per-doc update log without bound and makes every document
+ * load replay thousands of transient frames.
+ */
+export function isSyncFrame(message: ArrayBuffer | Uint8Array): boolean {
+  return frameMessageType(message) === Y_MESSAGE_SYNC;
+}
+
+/**
  * Parse the project owner + slug out of a Yjs document id. Returns null
  * for malformed ids. Strips the optional `worldbuilding:` prefix so the
  * worldbuilding namespace resolves to the same project access record.

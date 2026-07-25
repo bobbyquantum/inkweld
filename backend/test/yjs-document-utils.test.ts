@@ -3,6 +3,8 @@ import {
   parseDocumentOwner,
   parseTrackableElementId,
   isYjsFrameBlockedForViewer,
+  frameMessageType,
+  isSyncFrame,
   Y_MESSAGE_SYNC,
   Y_MESSAGE_AWARENESS,
 } from '../src/utils/yjs-document-utils';
@@ -106,5 +108,49 @@ describe('isYjsFrameBlockedForViewer', () => {
 
   it('returns false for sync frame with no subtype byte', () => {
     expect(isYjsFrameBlockedForViewer(new Uint8Array([Y_MESSAGE_SYNC]))).toBe(false);
+  });
+});
+
+describe('frameMessageType', () => {
+  it('reads single-byte sync/awareness tags directly', () => {
+    expect(frameMessageType(new Uint8Array([Y_MESSAGE_SYNC, 0, 0]))).toBe(0);
+    expect(frameMessageType(new Uint8Array([Y_MESSAGE_AWARENESS, 1, 2]))).toBe(1);
+  });
+
+  it('reads the presence multiplex tag (100)', () => {
+    expect(frameMessageType(new Uint8Array([100, 0, 1]))).toBe(100);
+  });
+
+  it('decodes a multi-byte varuint when the continuation bit is set', () => {
+    // 200 = 0b11001000 → varuint encoding: first byte 0x80 | (200 & 0x7f) = 0xC8,
+    // second byte (200 >> 7) = 1. So [0xC8, 0x01] decodes to 200.
+    expect(frameMessageType(new Uint8Array([0xc8, 0x01, 0x00]))).toBe(200);
+  });
+
+  it('returns -1 for an empty frame', () => {
+    expect(frameMessageType(new Uint8Array([]))).toBe(-1);
+    expect(frameMessageType(new ArrayBuffer(0))).toBe(-1);
+  });
+
+  it('accepts ArrayBuffer input', () => {
+    expect(frameMessageType(new Uint8Array([Y_MESSAGE_AWARENESS]).buffer)).toBe(1);
+  });
+});
+
+describe('isSyncFrame', () => {
+  it('is true for sync frames', () => {
+    expect(isSyncFrame(new Uint8Array([Y_MESSAGE_SYNC, 1, 2]))).toBe(true);
+  });
+
+  it('is false for awareness frames (must not be persisted)', () => {
+    expect(isSyncFrame(new Uint8Array([Y_MESSAGE_AWARENESS, 1, 2]))).toBe(false);
+  });
+
+  it('is false for presence frames (must not be persisted)', () => {
+    expect(isSyncFrame(new Uint8Array([100, 0, 1]))).toBe(false);
+  });
+
+  it('is false for empty frames', () => {
+    expect(isSyncFrame(new Uint8Array([]))).toBe(false);
   });
 });
