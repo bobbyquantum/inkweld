@@ -189,9 +189,9 @@ describe('YjsDocStorage.loadAndReplay', () => {
     expect(storage.deletes[0]).toHaveLength(128);
     expect(storage.deletes[1]).toHaveLength(72);
     // All stale keys removed; sync key remains (it was replayed, not purged).
-    expect(Array.from(storage.list({ prefix: 'doc:d:update:' }) as unknown as Map<string, unknown>)).toHaveLength(
-      0
-    );
+    expect(
+      Array.from(storage.list({ prefix: 'doc:d:update:' }) as unknown as Map<string, unknown>)
+    ).toHaveLength(0);
   });
 
   it('swallows individual delete failures and continues purging remaining batches', async () => {
@@ -234,7 +234,7 @@ describe('YjsDocStorage.persist', () => {
 
     expect(key).not.toBeNull();
     expect(storage.puts).toHaveLength(1);
-    expect(storage.puts[0]!.value).toEqual(Array.from(sync));
+    expect(storage.puts[0]?.value).toEqual(Array.from(sync));
     expect(key).toMatch(/^doc:d:update:\d+:00000000$/);
   });
 

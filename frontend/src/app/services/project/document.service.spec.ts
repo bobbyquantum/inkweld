@@ -19,7 +19,7 @@ import { AuthTokenService } from '../auth/auth-token.service';
 import { SetupService } from '../core/setup.service';
 import { SystemConfigService } from '../core/system-config.service';
 import { UnifiedUserService } from '../user/unified-user.service';
-import { DocumentService } from './document.service';
+import { type DocumentConnection, DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 
 // y-indexeddb and y-websocket are mocked globally in setup-vitest.ts
@@ -892,7 +892,7 @@ describe('DocumentService', () => {
           documentId: string,
           doc: Y.Doc,
           editor: Editor,
-          connection: typeof connection
+          connection: DocumentConnection
         ) => Promise<void>;
       };
 
@@ -903,7 +903,9 @@ describe('DocumentService', () => {
         }
       );
 
-      mockWebSocketProvider.on.mockImplementation(
+      // Cast the `on` mock to a loose signature so we can capture callbacks
+      // without matching y-websocket's strict event-union typing.
+      (mockWebSocketProvider.on as ReturnType<typeof vi.fn>).mockImplementation(
         (event: string, cb: StatusCb | ErrCb) => {
           callbacks[event] = cb;
           return () => {};
