@@ -327,9 +327,9 @@ If you previously set `BACKEND_WRANGLER_TOML` as a **secret**:
 
 1. Copy the secret's current value.
 2. Replace any real `SESSION_SECRET = "…"` line with `SESSION_SECRET = "placeholder-set-via-wrangler-secret"`.
-3. Add `[env.preview.observability] enabled = true` so observability stays on.
+3. Add `[env.preview.observability] enabled = true` so observability stays on. **TOML ordering matters**: place the `[env.preview.observability]` subtable **after** any `routes = [...]` line and **before** the next `[env.*]` section — keys that appear after a `[table]` header belong to that table, so `routes` placed after `[env.preview.observability]` would be parsed as a (invalid) field of `observability` rather than of `env.preview`.
 4. Create a GitHub **variable** named `BACKEND_WRANGLER_TOML` with the edited contents.
-5. Create a GitHub **secret** named `SESSION_SECRET` with the real session key.
+5. Create a GitHub **secret** named `SESSION_SECRET` with the real session key (optional — see the secrets table above).
 6. Delete the old `BACKEND_WRANGLER_TOML` secret.
 
 ## Custom Domain
