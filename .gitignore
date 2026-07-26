@@ -30,6 +30,7 @@ twa-manifest.json
 # Coverage reports
 coverage/
 .actrc
+opencode.json
 .vscode
 .cscode
 nohup.out

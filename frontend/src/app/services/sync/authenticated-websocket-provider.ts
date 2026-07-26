@@ -39,7 +39,7 @@ const KEEPALIVE_INTERVAL_MS = 25_000;
  * amplifies server load). Shared by the document and elements sync paths so
  * both stay in lockstep.
  */
-export const WS_MAX_BACKOFF_TIME = 30_000;
+export const WS_MAX_BACKOFF_TIME = 60_000;
 
 /**
  * Sockets we've already wrapped with the resilient message guard, so a

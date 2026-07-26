@@ -48,6 +48,7 @@ import {
   isElementsDoc,
 } from '../utils/yjs-document-utils';
 import { YjsDocStorage } from './yjs-do-storage';
+import { checkWsRateLimit } from './ws-rate-limiter';
 import {
   PRESENCE_KEEPALIVE_PING,
   PRESENCE_KEEPALIVE_PONG,
@@ -159,6 +160,15 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    */
   private readonly docStorage: YjsDocStorage;
   private projectId: string = '';
+  /**
+   * Per-document WS reconnect timestamps (unix ms). Used to rate-limit
+   * reconnections so a single buggy/old/malicious client can't DoS the DO
+   * with rapid reconnect cycles — each cycle re-loads the document from
+   * storage (thousands of row reads) and re-runs auth DB queries. Sliding
+   * window: allows up to 3 quick reconnects in 10s (legitimate multi-tab /
+   * page navigation), then throttles at 5s intervals.
+   */
+  private readonly lastWsAcceptMs = new Map<string, number[]>();
   /** Per-doc element snapshots used for CRUD activity event diffing. */
   private readonly elementSnapshots: Map<string, Map<string, { name: string; type: string }>> =
     new Map();
@@ -797,6 +807,11 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       return new Response('Invalid documentId format', { status: 400 });
     }
     this.projectId = `${parts[0]}:${parts[1]}`;
+
+    // Note: WS reconnect rate limiting is applied AFTER authentication
+    // (in handleAuthMessage), not here — an unauthenticated upgrade doesn't
+    // consume the cooldown, so an attacker can't exhaust it for legitimate
+    // clients by opening unauthenticated connections.
 
     const pair = new WebSocketPair();
     const [client, server] = pair;
@@ -1658,6 +1673,25 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
       // Send success message
       ws.send('authenticated');
+
+      // ────────────────────────────────────────────────────────────────────
+      // Rate-limit reconnections per documentId (server-side DoS immunity).
+      // Applied AFTER auth so unauthenticated callers can't exhaust the
+      // cooldown for legitimate clients. A single old/buggy/malicious client
+      // can otherwise reconnect every ~100ms, each reconnect re-loading the
+      // full document from storage + re-running queries. The sliding window
+      // allows 3 rapid reconnects in 10s (legitimate multi-tab / page
+      // navigation), then throttles at 5s intervals.
+      // ────────────────────────────────────────────────────────────────────
+      const rateLimit = checkWsRateLimit(this.lastWsAcceptMs, connInfo.documentId, Date.now());
+      if (!rateLimit.allowed) {
+        projDOLog.warn(
+          `Rate-limited WS reconnect for ${connInfo.documentId} (${rateLimit.retryAfterMs}ms cooldown remaining)`
+        );
+        ws.send('access-denied:rate-limited');
+        ws.close(4029, 'access-denied:rate-limited');
+        return;
+      }
 
       // Now set up Yjs connection
       const sharedDoc = await this.getOrCreateDocument(connInfo.documentId);
