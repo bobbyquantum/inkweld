@@ -161,14 +161,14 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   private readonly docStorage: YjsDocStorage;
   private projectId: string = '';
   /**
-   * Per-document last WS-accept timestamp (unix ms). Used to rate-limit
+   * Per-document WS reconnect timestamps (unix ms). Used to rate-limit
    * reconnections so a single buggy/old/malicious client can't DoS the DO
    * with rapid reconnect cycles — each cycle re-loads the document from
-   * storage (thousands of row reads) and re-runs auth DB queries. The limit
-   * is per documentId, not per IP, so legitimate multi-client access is
-   * unaffected.
+   * storage (thousands of row reads) and re-runs auth DB queries. Sliding
+   * window: allows up to 3 quick reconnects in 10s (legitimate multi-tab /
+   * page navigation), then throttles at 5s intervals.
    */
-  private readonly lastWsAcceptMs = new Map<string, number>();
+  private readonly lastWsAcceptMs = new Map<string, number[]>();
   /** Per-doc element snapshots used for CRUD activity event diffing. */
   private readonly elementSnapshots: Map<string, Map<string, { name: string; type: string }>> =
     new Map();

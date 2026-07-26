@@ -1,68 +1,77 @@
 import { describe, it, expect } from 'bun:test';
-import { checkWsRateLimit, WS_RECONNECT_COOLDOWN_MS } from '../src/durable-objects/ws-rate-limiter';
+import { checkWsRateLimit } from '../src/durable-objects/ws-rate-limiter';
 
 describe('checkWsRateLimit', () => {
-  it('allows the first upgrade for a documentId', () => {
-    const map = new Map<string, number>();
-    const result = checkWsRateLimit(map, 'alice:novel:chapter-1', 1000);
-    expect(result.allowed).toBe(true);
-    expect(map.get('alice:novel:chapter-1')).toBe(1000);
-  });
-
-  it('blocks a second upgrade within the cooldown', () => {
-    const map = new Map<string, number>();
-    checkWsRateLimit(map, 'doc', 1000);
-    const result = checkWsRateLimit(map, 'doc', 1000 + 1_000);
-    expect(result.allowed).toBe(false);
-    if (!result.allowed) {
-      expect(result.retryAfterMs).toBe(WS_RECONNECT_COOLDOWN_MS - 1_000);
+  it('allows the first few upgrades for a documentId', () => {
+    const map = new Map<string, number[]>();
+    for (let i = 0; i < 3; i++) {
+      const result = checkWsRateLimit(map, 'doc', i * 100);
+      expect(result.allowed).toBe(true);
     }
   });
 
-  it('allows an upgrade after the cooldown elapses', () => {
-    const map = new Map<string, number>();
-    checkWsRateLimit(map, 'doc', 1000);
-    const result = checkWsRateLimit(map, 'doc', 1000 + WS_RECONNECT_COOLDOWN_MS);
+  it('throttles the 4th rapid reconnect within the window', () => {
+    const map = new Map<string, number[]>();
+    // 3 rapid reconnects (allowed)
+    for (let i = 0; i < 3; i++) {
+      checkWsRateLimit(map, 'doc', i * 100);
+    }
+    // 4th within the window → throttled
+    const result = checkWsRateLimit(map, 'doc', 400);
+    expect(result.allowed).toBe(false);
+    if (!result.allowed) {
+      expect(result.retryAfterMs).toBeGreaterThan(0);
+    }
+  });
+
+  it('allows reconnects after the cooldown elapses', () => {
+    const map = new Map<string, number[]>();
+    for (let i = 0; i < 3; i++) {
+      checkWsRateLimit(map, 'doc', i * 100);
+    }
+    // Throttled at 400ms
+    expect(checkWsRateLimit(map, 'doc', 400).allowed).toBe(false);
+    // After 5s cooldown (measured from last attempt at 200ms) → allowed
+    const result = checkWsRateLimit(map, 'doc', 200 + 5_001);
     expect(result.allowed).toBe(true);
-    expect(map.get('doc')).toBe(1000 + WS_RECONNECT_COOLDOWN_MS);
+  });
+
+  it('allows reconnects after the sliding window expires', () => {
+    const map = new Map<string, number[]>();
+    for (let i = 0; i < 3; i++) {
+      checkWsRateLimit(map, 'doc', i * 100);
+    }
+    // After 10s window (all old entries drop out) → allowed
+    const result = checkWsRateLimit(map, 'doc', 10_001);
+    expect(result.allowed).toBe(true);
   });
 
   it('tracks different documentIds independently', () => {
-    const map = new Map<string, number>();
-    const a = checkWsRateLimit(map, 'doc-a', 1000);
-    const b = checkWsRateLimit(map, 'doc-b', 1000);
-    expect(a.allowed).toBe(true);
-    expect(b.allowed).toBe(true);
-  });
-
-  it('respects a custom cooldown', () => {
-    const map = new Map<string, number>();
-    checkWsRateLimit(map, 'doc', 1000, 10_000);
-    const result = checkWsRateLimit(map, 'doc', 1000 + 5_000, 10_000);
-    expect(result.allowed).toBe(false);
-    if (!result.allowed) {
-      expect(result.retryAfterMs).toBe(5_000);
+    const map = new Map<string, number[]>();
+    for (let i = 0; i < 3; i++) {
+      expect(checkWsRateLimit(map, 'doc-a', i * 100).allowed).toBe(true);
+    }
+    // doc-b is independent — first 3 allowed
+    for (let i = 0; i < 3; i++) {
+      expect(checkWsRateLimit(map, 'doc-b', i * 100).allowed).toBe(true);
     }
   });
 
-  it('allows the exact cooldown boundary', () => {
-    const map = new Map<string, number>();
-    checkWsRateLimit(map, 'doc', 1000);
-    const result = checkWsRateLimit(map, 'doc', 1000 + WS_RECONNECT_COOLDOWN_MS);
-    expect(result.allowed).toBe(true);
-  });
-
-  it('blocks rapid reconnects simulating a storm (100ms apart)', () => {
-    const map = new Map<string, number>();
-    // First is allowed, rest within cooldown are blocked.
-    const first = checkWsRateLimit(map, 'doc', 0);
-    expect(first.allowed).toBe(true);
-    for (let t = 100; t < 3000; t += 100) {
+  it('simulates a reconnect storm (100ms apart) and blocks it', () => {
+    const map = new Map<string, number[]>();
+    // First 3 are allowed
+    for (let i = 0; i < 3; i++) {
+      expect(checkWsRateLimit(map, 'doc', i * 100).allowed).toBe(true);
+    }
+    // The storm: every 100ms, should be blocked
+    let blocked = 0;
+    for (let t = 400; t < 5000; t += 100) {
       const r = checkWsRateLimit(map, 'doc', t);
-      expect(r.allowed).toBe(false);
+      if (!r.allowed) blocked++;
     }
-    // After cooldown, allowed again.
-    const after = checkWsRateLimit(map, 'doc', 3001);
+    expect(blocked).toBeGreaterThan(10);
+    // After cooldown, one is allowed
+    const after = checkWsRateLimit(map, 'doc', 200 + 5_001);
     expect(after.allowed).toBe(true);
   });
 });
