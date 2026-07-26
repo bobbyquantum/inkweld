@@ -1,0 +1,94 @@
+name: Regenerate Gradle Verification
+
+# Regenerates android/gradle/verification-metadata.xml so that Renovate
+# dependency-bump PRs pass the TWA Build Check. Gradle dependency verification
+# pins SHA-256 hashes for every resolved artifact; when AGP / Gradle / androidx
+# deps are bumped, new artifacts (e.g. aapt2) appear that aren't in the file,
+# causing 'Dependency verification failed'. Renovate's postUpgradeTasks tries
+# to refresh the file in-PR, but if any artifacts are still missing this
+# workflow can be run manually on the branch to top it up.
+#
+# Usage: Actions -> Regenerate Gradle Verification -> Run workflow on the
+# renovate branch. It commits the updated verification-metadata.xml directly.
+#
+# NOTE: GitHub requires this workflow file to exist on the default branch
+# before the "Run workflow" button appears in the Actions UI. Once merged to
+# the default branch you can trigger it on any branch.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: regenerate-gradle-verification-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  regenerate:
+    name: Regenerate verification-metadata.xml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Do not persist the write token into git config — the Gradle build
+          # does not need repo access. We authenticate only for the push step.
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+        with:
+          packages: "platforms;android-36 build-tools;36.0.0"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
+
+      - name: Generate test keystore
+        working-directory: android
+        run: |
+          keytool -genkey \
+            -v \
+            -keystore test-keystore.jks \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 365 \
+            -alias test \
+            -dname "CN=Test" \
+            -storepass testpass \
+            -keypass testpass
+
+      - name: Regenerate verification metadata
+        working-directory: android
+        env:
+          ORG_GRADLE_PROJECT_KEYSTORE_PATH: test-keystore.jks
+          ORG_GRADLE_PROJECT_KEYSTORE_PASSWORD: testpass
+          ORG_GRADLE_PROJECT_KEY_ALIAS: test
+          ORG_GRADLE_PROJECT_KEY_PASSWORD: testpass
+        # assemblePreviewRelease resolves the full build classpath (aapt2,
+        # databinding, etc.) so --write-verification-metadata records every
+        # artifact the TWA Build Check will later need.
+        run: ./gradlew --write-verification-metadata sha256 assemblePreviewRelease
+
+      - name: Commit regenerated metadata
+        working-directory: android
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gradle/verification-metadata.xml
+          if git diff --cached --quiet; then
+            echo "No verification-metadata changes to commit."
+          else
+            git commit -m "chore(android): regenerate gradle verification metadata"
+            # Authenticate only for the push — the GITHUB_TOKEN has contents:write
+            # (granted by the permissions block above) but was not persisted into
+            # git config by the checkout step.
+            git -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" push
