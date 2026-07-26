@@ -42,7 +42,7 @@ export function checkWsRateLimit(
 
   if (recent.length >= maxRapidReconnects) {
     // Check if we're still in the cooldown after the threshold was hit.
-    const lastAttempt = recent[recent.length - 1] ?? 0;
+    const lastAttempt = recent.at(-1) ?? 0;
     if (now - lastAttempt < cooldownMs) {
       return { allowed: false, retryAfterMs: cooldownMs - (now - lastAttempt) };
     }
