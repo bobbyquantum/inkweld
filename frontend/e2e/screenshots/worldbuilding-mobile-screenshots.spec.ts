@@ -73,6 +73,19 @@ async function setupWorldbuildingAtMobile(
   await expect(page.locator('mat-dialog-container')).toBeHidden();
   await expect(page.getByTestId(`element-${elementName}`)).toBeVisible();
 
+  // Ensure the project tree (and therefore ProjectStateService — project
+  // metadata, username, slug) is fully mounted before navigating to the
+  // editor. The worldbuilding tab template only renders
+  // <app-worldbuilding-editor> once elementId, elementType, username AND
+  // slug signals are all truthy; without this readiness gate the tab can
+  // transiently render its loadFailed branch under CI load, causing the
+  // worldbuilding-editor locator to never appear (flaky across viewports).
+  // The desktop screenshot test gets this for free via the pre-populated
+  // worldbuilding-demo template; the mobile test creates a fresh element in
+  // an empty project, so it must wait explicitly.
+  await expect(page.getByTestId('project-tree')).toBeVisible();
+  await page.waitForLoadState('networkidle');
+
   // Open the worldbuilding element at desktop size. Wait for the router
   // navigation to complete and the editor to render before asserting
   // visibility — under CI load the editor can take longer than the
