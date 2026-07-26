@@ -1689,7 +1689,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
           `Rate-limited WS reconnect for ${connInfo.documentId} (${rateLimit.retryAfterMs}ms cooldown remaining)`
         );
         ws.send('access-denied:rate-limited');
-        ws.close(4029, 'Rate limited');
+        ws.close(4029, 'access-denied:rate-limited');
         return;
       }
 
