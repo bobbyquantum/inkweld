@@ -307,15 +307,15 @@ These hold non-secret configuration. Using a variable (not a secret) means you c
 | --- | --- |
 | `CLOUDFLARE_API_TOKEN` | Wrangler API token with Workers/Pages/D1/R2 permissions |
 | `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
-| `SESSION_SECRET` | The real session-signing key (32+ characters). Injected via `wrangler deploy --secrets-file`, which atomically overrides the placeholder `[vars]` value. |
+| `SESSION_SECRET` | The real session-signing key (32+ characters). **Optional** when `SESSION_SECRET` is already set as a Cloudflare Worker secret (via `wrangler secret put`) — in that case it persists across deploys and no GitHub secret is needed. When provided, CI injects it via `wrangler deploy --secrets-file`, which atomically overrides the placeholder `[vars]` value. |
 | `PREVIEW_API_URL` | Frontend environment file: API base URL |
 | `PREVIEW_WSS_URL` | Frontend environment file: WebSocket URL for Yjs sync |
 
 ### How the deploy works
 
 1. CI writes `backend/wrangler.toml` from the `BACKEND_WRANGLER_TOML` variable.
-2. CI writes a temporary `backend/.secrets.env` containing `SESSION_SECRET=<real value>` from the GitHub secret.
-3. `wrangler deploy --env preview --secrets-file .secrets.env …` pushes the Worker and the secret in one atomic step. Cloudflare's secret store overrides the `[vars]` placeholder at runtime — there is no difference to your Worker between a secret and an environment variable. Secrets not listed in the file are preserved from the previous version.
+2. If a `SESSION_SECRET` GitHub secret exists, CI writes a temporary `backend/.secrets.env` containing it.
+3. `wrangler deploy --env preview …` pushes the Worker. The `--secrets-file .secrets.env` flag is only added when the file exists — wrangler rejects an empty secrets file, so when no GitHub secret is set the deploy falls back to the existing Cloudflare Worker secret (set once via `wrangler secret put`), which persists across deploys and overrides the `[vars]` placeholder at runtime. Cloudflare's secret store has no difference to your Worker between a secret and an environment variable, and secrets are never deleted by a deployment.
 
 ### Why not keep the whole toml as a secret?
 
