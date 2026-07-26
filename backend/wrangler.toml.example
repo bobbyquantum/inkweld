@@ -96,6 +96,11 @@ new_sqlite_classes = ["YjsProject"]
 [env.preview]
 name = "inkweld-backend-preview"
 
+# Keep Workers Logs on across redeploys. Without this, every `wrangler deploy`
+# resets observability to off. See: https://developers.cloudflare.com/workers/observability/logs/workers-logs/
+[env.preview.observability]
+enabled = true
+
 # Custom domain for preview backend (optional)
 # Uncomment and set your domain. Requires domain to be added to Cloudflare.
 # See: https://developers.cloudflare.com/workers/configuration/routing/custom-domains/
@@ -143,6 +148,11 @@ script_name = "inkweld-backend-preview"
 
 [env.production]
 name = "inkweld-backend-prod"
+
+# Keep Workers Logs on across redeploys. Without this, every `wrangler deploy`
+# resets observability to off.
+[env.production.observability]
+enabled = true
 
 # Custom domain for production backend (optional)
 # Uncomment and set your domain. Requires domain to be added to Cloudflare.

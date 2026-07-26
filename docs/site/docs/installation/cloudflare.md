@@ -285,6 +285,53 @@ npm run cloudflare:preview:deploy
 npm run cloudflare:prod:deploy
 ```
 
+## Automated Deployment via GitHub Actions
+
+The `.github/workflows/deploy-cloudflare.yml` workflow deploys the preview environment automatically on every push to `main`. To enable it, configure the following in your fork's **Settings → Secrets and variables → Actions**.
+
+### Required GitHub *variables* (visible, editable)
+
+These hold non-secret configuration. Using a variable (not a secret) means you can read and tweak the value in the GitHub UI without a round-trip through a secret manager.
+
+| Variable | Purpose |
+| --- | --- |
+| `BACKEND_WRANGLER_TOML` | The full contents of `backend/wrangler.toml` for your deployment — D1 IDs, R2 bucket names, custom domains, `ALLOWED_ORIGINS`, etc. Use `SESSION_SECRET = "placeholder-set-via-wrangler-secret"` in the `[vars]` block; the real value is injected from the `SESSION_SECRET` GitHub secret at deploy time (see below). Include a `[env.preview.observability] enabled = true` block so Workers Logs stay on across redeploys — without it, every `wrangler deploy` resets observability to off. |
+| `BASE_URL` | Public backend URL, e.g. `https://api.preview.inkweld.app` |
+| `FRONTEND_URL` | Public frontend URL, e.g. `https://preview.inkweld.app` |
+| `APP_NAME` | Display name shown in the UI, e.g. `Inkweld` |
+| `TWA_SHA256_FINGERPRINT` | (Optional) Android TWA signing fingerprint for `assetlinks.json` |
+
+### Required GitHub *secrets* (hidden)
+
+| Secret | Purpose |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Wrangler API token with Workers/Pages/D1/R2 permissions |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
+| `SESSION_SECRET` | The real session-signing key (32+ characters). Injected via `wrangler deploy --secrets-file`, which atomically overrides the placeholder `[vars]` value. |
+| `PREVIEW_API_URL` | Frontend environment file: API base URL |
+| `PREVIEW_WSS_URL` | Frontend environment file: WebSocket URL for Yjs sync |
+
+### How the deploy works
+
+1. CI writes `backend/wrangler.toml` from the `BACKEND_WRANGLER_TOML` variable.
+2. CI writes a temporary `backend/.secrets.env` containing `SESSION_SECRET=<real value>` from the GitHub secret.
+3. `wrangler deploy --env preview --secrets-file .secrets.env …` pushes the Worker and the secret in one atomic step. Cloudflare's secret store overrides the `[vars]` placeholder at runtime — there is no difference to your Worker between a secret and an environment variable. Secrets not listed in the file are preserved from the previous version.
+
+### Why not keep the whole toml as a secret?
+
+Earlier versions stored the entire `wrangler.toml` in a single GitHub secret. That worked but was awkward: every tweak (toggling observability, changing a domain, bumping an origin) required editing an opaque blob in the secret manager, and there was no way to read the current value back. The current split keeps the non-secret toml in a visible variable and pushes only the genuinely sensitive `SESSION_SECRET` through Cloudflare's secret mechanism — which is what Cloudflare's own docs recommend ("Do not use vars to store sensitive information").
+
+### Migrating from the old single-secret setup
+
+If you previously set `BACKEND_WRANGLER_TOML` as a **secret**:
+
+1. Copy the secret's current value.
+2. Replace any real `SESSION_SECRET = "…"` line with `SESSION_SECRET = "placeholder-set-via-wrangler-secret"`.
+3. Add `[env.preview.observability] enabled = true` so observability stays on.
+4. Create a GitHub **variable** named `BACKEND_WRANGLER_TOML` with the edited contents.
+5. Create a GitHub **secret** named `SESSION_SECRET` with the real session key.
+6. Delete the old `BACKEND_WRANGLER_TOML` secret.
+
 ## Custom Domain
 
 To use your own domain instead of `*.workers.dev` and `*.pages.dev`:

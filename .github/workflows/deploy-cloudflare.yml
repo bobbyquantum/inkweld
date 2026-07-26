@@ -41,8 +41,20 @@ jobs:
 
       - name: Write backend wrangler.toml
         env:
-          BACKEND_WRANGLER_TOML: ${{ secrets.BACKEND_WRANGLER_TOML }}
+          BACKEND_WRANGLER_TOML: ${{ vars.BACKEND_WRANGLER_TOML }}
         run: printf '%s' "${BACKEND_WRANGLER_TOML}" > backend/wrangler.toml
+
+      - name: Write backend secrets file
+        env:
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+        run: |
+          # --secrets-file pushes secrets to Cloudflare alongside the deploy,
+          # atomically overriding any [vars] placeholder in wrangler.toml.
+          # Secrets not listed here are preserved from the previous version.
+          touch backend/.secrets.env
+          if [ -n "$SESSION_SECRET" ]; then
+            printf 'SESSION_SECRET="%s"\n' "$SESSION_SECRET" >> backend/.secrets.env
+          fi
 
       - name: Write frontend wrangler.toml
         run: |
@@ -93,4 +105,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: backend
-          command: deploy --env preview --var BASE_URL:${{ vars.BASE_URL }} --var FRONTEND_URL:${{ vars.FRONTEND_URL }} --var APP_NAME:${{ vars.APP_NAME }}
+          command: deploy --env preview --secrets-file .secrets.env --var BASE_URL:${{ vars.BASE_URL }} --var FRONTEND_URL:${{ vars.FRONTEND_URL }} --var APP_NAME:${{ vars.APP_NAME }}
