@@ -1200,13 +1200,14 @@ export class DocumentService {
         connectedAt = Date.now();
         authFailed = false;
         // Only reset the backoff counter once the connection has proven
-        // stable. A connection that flaps every few seconds would otherwise
-        // reset attempts to 0 on every brief 'connected' and retry forever —
-        // the exact overnight reconnect storm that exhausted the daily quota.
-        if (
-          reconnectAttempts === 0 ||
-          lastSessionDurationMs >= STABLE_CONNECTION_MS
-        ) {
+        // stable (the previous session lasted ≥ STABLE_CONNECTION_MS). A
+        // connection that flaps every few seconds must NOT reset attempts —
+        // otherwise the circuit breaker never trips and y-websocket retries
+        // forever at its internal cadence (~3/s when the backend is down).
+        // The first-ever connection (lastSessionDurationMs === 0) is
+        // intentionally NOT treated as stable so a backend that's down at
+        // boot still triggers the breaker after MAX_RECONNECT_ATTEMPTS.
+        if (lastSessionDurationMs >= STABLE_CONNECTION_MS) {
           reconnectAttempts = 0;
         }
         if (reconnectTimeout) {
