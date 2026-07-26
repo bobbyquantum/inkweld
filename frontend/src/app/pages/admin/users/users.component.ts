@@ -10,7 +10,6 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -40,7 +39,6 @@ const PAGE_SIZE = 20;
   selector: 'app-admin-users',
   imports: [
     NgClass,
-    FormsModule,
     MatButtonModule,
     MatCardModule,
     MatChipsModule,

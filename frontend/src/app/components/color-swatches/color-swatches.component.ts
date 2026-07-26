@@ -8,7 +8,6 @@ import {
   Output,
   ViewChild,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -22,7 +21,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   templateUrl: './color-swatches.component.html',
   styleUrls: ['./color-swatches.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [FormsModule, MatIconModule, MatInputModule, MatTooltipModule],
+  imports: [MatIconModule, MatInputModule, MatTooltipModule],
 })
 export class ColorSwatchesComponent {
   @Input() selectedColor = '#333333';

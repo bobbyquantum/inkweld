@@ -1,5 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
+import { form, FormField } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -19,15 +24,19 @@ export interface ConfirmationDialogData {
   details?: string[];
 }
 
+interface ConfirmationFormValue {
+  confirmationInput: string;
+}
+
 @Component({
   selector: 'app-confirmation-dialog',
   templateUrl: './confirmation-dialog.component.html',
   styleUrls: ['./confirmation-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    FormField,
     MatDialogModule,
     MatButtonModule,
-    FormsModule,
     MatInputModule,
     MatFormFieldModule,
   ],
@@ -37,7 +46,9 @@ export class ConfirmationDialogComponent {
   private readonly dialogRef = inject(
     MatDialogRef<ConfirmationDialogComponent>
   );
-  protected confirmationInput = '';
+
+  readonly model = signal<ConfirmationFormValue>({ confirmationInput: '' });
+  readonly form = form(this.model);
 
   onCancel(): void {
     this.dialogRef.close(false);

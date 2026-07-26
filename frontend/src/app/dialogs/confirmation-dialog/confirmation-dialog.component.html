@@ -19,7 +19,7 @@
         matInput
         id="confirm-dialog-input"
         aria-label="Type to confirm"
-        [(ngModel)]="confirmationInput"
+        [formField]="form.confirmationInput"
         placeholder="Type to confirm"
         data-testid="confirm-dialog-input" />
     </mat-form-field>
@@ -36,7 +36,7 @@
     data-testid="confirm-delete-button"
     [disabled]="
       data.requireConfirmationText &&
-      confirmationInput !== data.requireConfirmationText
+      model().confirmationInput !== data.requireConfirmationText
     ">
     {{ data.confirmText || 'Confirm' }}
   </button>

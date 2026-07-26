@@ -6,7 +6,6 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -39,7 +38,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
   selector: 'app-admin-image-audits',
   imports: [
     DatePipe,
-    FormsModule,
     NgClass,
     MatButtonModule,
     MatCardModule,

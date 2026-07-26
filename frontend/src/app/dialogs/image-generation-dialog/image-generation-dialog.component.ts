@@ -10,7 +10,6 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import {
@@ -83,7 +82,6 @@ type DialogStage = 'select-elements' | 'edit-prompt' | 'generating';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
-    FormsModule,
     MatDialogModule,
     MatButtonModule,
     MatButtonToggleModule,
