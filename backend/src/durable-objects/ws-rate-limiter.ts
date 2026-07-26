@@ -48,7 +48,7 @@ export function checkWsRateLimit(
     }
   }
 
-  // Allow and record.
+  // Allow and record. Prune empty entries so the map doesn't grow unbounded.
   recent.push(now);
   reconnectHistory.set(documentId, recent);
   return { allowed: true };

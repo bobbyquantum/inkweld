@@ -1213,17 +1213,9 @@ export class DocumentService {
         );
         connectedAt = Date.now();
         authFailed = false;
-        // Only reset the backoff counter once the connection has proven
-        // stable (the previous session lasted ≥ STABLE_CONNECTION_MS). A
-        // connection that flaps every few seconds must NOT reset attempts —
-        // otherwise the circuit breaker never trips and y-websocket retries
-        // forever at its internal cadence (~3/s when the backend is down).
-        // The first-ever connection (lastSessionDurationMs === 0) is
-        // intentionally NOT treated as stable so a backend that's down at
-        // boot still triggers the breaker after MAX_RECONNECT_ATTEMPTS.
-        if (lastSessionDurationMs >= STABLE_CONNECTION_MS) {
-          reconnectAttempts = 0;
-        }
+        // The backoff counter is reset in handleDisconnected when a stable
+        // session ends, not here — resetting here would require the previous
+        // session's duration, which is already consumed.
         if (reconnectTimeout) {
           clearTimeout(reconnectTimeout);
           reconnectTimeout = null;
@@ -1250,8 +1242,19 @@ export class DocumentService {
 
         // Measure the session duration NOW so the next 'connected' can
         // compare against STABLE_CONNECTION_MS without the reconnect delay
-        // inflating the figure.
+        // inflating the figure. Clear connectedAt so repeated failed
+        // reconnects don't count downtime as session duration.
         lastSessionDurationMs = connectedAt ? Date.now() - connectedAt : 0;
+        connectedAt = 0;
+
+        // If the just-lost session was stable (≥ STABLE_CONNECTION_MS), reset
+        // the backoff counter NOW — before the breaker check below. Otherwise
+        // a stable session that disconnects while reconnectAttempts is at MAX
+        // would trip the breaker before this reset could run on the next
+        // 'connected' event.
+        if (lastSessionDurationMs >= STABLE_CONNECTION_MS) {
+          reconnectAttempts = 0;
+        }
 
         // If the session died because auth failed, don't schedule any
         // retries — the session is dead and reconnecting just re-triggers
