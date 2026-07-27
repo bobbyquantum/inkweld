@@ -441,11 +441,12 @@ describe('WorldbuildingTabComponent', () => {
       fixture.detectChanges();
     });
 
-    it('calls syncAllProjects with the current project', async () => {
+    it('calls syncAllProjects with the current project and priority document ID', async () => {
       await (component as any).triggerSync();
-      expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledWith([
-        mockProject,
-      ]);
+      expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledWith(
+        [mockProject],
+        'testuser:test-project:element-123'
+      );
     });
 
     it('sets syncing to true during sync and false after', async () => {
