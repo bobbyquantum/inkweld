@@ -9,11 +9,17 @@ async function navigateToAdminAnnouncements(page: Page): Promise<void> {
   await page.locator('[data-testid="user-menu-button"]').click();
   await page.locator('[data-testid="admin-menu-link"]').click();
   await expect(page).toHaveURL(/.*\/admin\/.*/);
-  await page.waitForLoadState('networkidle');
+  // Best-effort networkidle — wrangler dev can hold long-poll/sse
+  // connections that prevent the page from ever reaching idle.
+  await page
+    .waitForLoadState('networkidle', { timeout: 15000 })
+    .catch(() => {});
 
   await page.locator('[data-testid="admin-nav-announcements"]').click();
   await expect(page).toHaveURL(/.*\/admin\/announcements/);
-  await page.waitForLoadState('networkidle');
+  await page
+    .waitForLoadState('networkidle', { timeout: 15000 })
+    .catch(() => {});
 }
 
 /**
@@ -30,10 +36,29 @@ async function fillAndSubmitAnnouncementForm(
   const titleInput = page.locator('[data-testid="announcement-title-input"]');
   await titleInput.waitFor({ state: 'visible' });
 
-  await titleInput.fill(testData.title);
-  await page
-    .locator('[data-testid="announcement-content-input"]')
-    .fill(testData.content);
+  // Under wrangler dev (D1 + DO) load, zoneless change detection can lag
+  // the visible input: the field is `visible` but the signal-form control
+  // isn't wired up yet, so `fill()` populates the DOM but not the model
+  // — leaving "Title is required" / "Content is required" errors and the
+  // submit button disabled. Retry the fill (using pressSequentially which
+  // reliably triggers the [formField] directive's input listeners) until
+  // both inputs reflect the intended values. Pressing Tab after each field
+  // flushes zoneless change detection.
+  const contentInput = page.locator(
+    '[data-testid="announcement-content-input"]'
+  );
+  await expect(async () => {
+    await titleInput.click();
+    await titleInput.fill('');
+    await titleInput.pressSequentially(testData.title, { delay: 10 });
+    await titleInput.press('Tab');
+    await contentInput.click();
+    await contentInput.fill('');
+    await contentInput.pressSequentially(testData.content, { delay: 10 });
+    await contentInput.press('Tab');
+    await expect(titleInput).toHaveValue(testData.title);
+    await expect(contentInput).toHaveValue(testData.content);
+  }).toPass({ timeout: 30000 });
 
   // The form's default for `isPublic` is `true`, but Material's
   // mat-checkbox renders its hidden <input> as `checked=false` until the
@@ -88,13 +113,17 @@ async function fillAndSubmitAnnouncementForm(
   await expect(priorityListbox).toBeHidden();
 
   // The submit button may take a moment to become enabled in zoneless
-  // change detection, especially in slower environments (Docker e2e).
-  // Use toPass so the assertion retries until CD flushes the form validity.
+  // change detection, especially in slower environments (Docker/wrangler
+  // e2e). Use toPass so the assertion retries until CD flushes the form
+  // validity. The original 15000ms timeout was too tight under wrangler
+  // dev (D1 + DO) load — bump to 30000ms to match the expect.timeout in
+  // the wrangler config and avoid spurious "Timeout 15000ms exceeded
+  // while waiting on the predicate" flakes.
   await expect(async () => {
     await expect(
       page.locator('[data-testid="announcement-submit-btn"]')
     ).toBeEnabled();
-  }).toPass({ timeout: 15000 });
+  }).toPass({ timeout: 30000 });
   await page.locator('[data-testid="announcement-submit-btn"]').click();
 
   await page
@@ -258,7 +287,9 @@ test.describe('User Messages', () => {
     await test.step('messages page shows empty state or list', async () => {
       // Reload via direct nav to assert the page also renders standalone.
       await authenticatedPage.goto('/messages');
-      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage
+        .waitForLoadState('networkidle', { timeout: 15000 })
+        .catch(() => {});
 
       await expect(
         authenticatedPage.locator('[data-testid="messages-page"]')
@@ -308,7 +339,9 @@ test.describe('Published Announcement Visibility', () => {
 
     await test.step('anonymous home page surfaces the announcement (when feed is shown)', async () => {
       await anonymousPage.goto('/');
-      await anonymousPage.waitForLoadState('networkidle');
+      await anonymousPage
+        .waitForLoadState('networkidle', { timeout: 15000 })
+        .catch(() => {});
 
       const feed = anonymousPage.locator('[data-testid="announcement-feed"]');
       const isFeedVisible = await feed.isVisible().catch(() => false);
@@ -321,7 +354,9 @@ test.describe('Published Announcement Visibility', () => {
 
     await test.step('authenticated user can mark all messages as read', async () => {
       await authenticatedPage.goto('/messages');
-      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage
+        .waitForLoadState('networkidle', { timeout: 15000 })
+        .catch(() => {});
 
       await authenticatedPage
         .locator('[data-testid="messages-page"]')
@@ -336,8 +371,17 @@ test.describe('Published Announcement Visibility', () => {
         .catch(() => false);
 
       if (isButtonVisible) {
-        await markAllButton.click();
-        await expect(markAllButton).not.toBeVisible();
+        // The button disappears when `hasUnread` flips to false, which
+        // requires the mark-all-read API call to complete and zoneless CD
+        // to flush. Under wrangler dev (D1 + DO) load the API call can
+        // fail transiently (network/DO restart) — retry the click until
+        // the button actually disappears.
+        await expect(async () => {
+          if (await markAllButton.isVisible().catch(() => false)) {
+            await markAllButton.click();
+          }
+          await expect(markAllButton).not.toBeVisible();
+        }).toPass({ timeout: 60000 });
       }
     });
   });

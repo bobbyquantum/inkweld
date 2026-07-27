@@ -214,12 +214,16 @@ export const test = base.extend<OnlineTestFixtures>({
     // Navigate to the app with both config and token already set
     await page.goto('/');
 
-    await page.waitForLoadState('networkidle');
-
     // Wait for the user menu button to be visible - this is the most reliable
-    // indicator that authentication succeeded and the app is fully initialized
+    // indicator that authentication succeeded and the app is fully initialized.
+    // Don't wait for `networkidle` first — wrangler dev can hold long-poll/sse
+    // connections that prevent it ever firing. Poll the user-menu button
+    // directly with a generous timeout; the diagnostic error path runs only
+    // if it really doesn't appear.
     try {
-      await page.locator('[data-testid="user-menu-button"]').waitFor();
+      await page
+        .locator('[data-testid="user-menu-button"]')
+        .waitFor({ timeout: 60000 });
     } catch {
       // If user menu didn't appear, check what state we're in for better error message
       const welcomeHeading = await page
@@ -254,7 +258,7 @@ export const test = base.extend<OnlineTestFixtures>({
         );
       } else {
         throw new Error(
-          `authenticatedPage fixture failed: user menu not visible after 15s. URL: ${currentUrl}`
+          `authenticatedPage fixture failed: user menu not visible after 60s. URL: ${currentUrl}`
         );
       }
     }
@@ -318,12 +322,17 @@ export const test = base.extend<OnlineTestFixtures>({
 
     // Navigate to the app with config and token already set
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
 
     // Wait for the user menu button to be visible - this is the most reliable
-    // indicator that authentication succeeded and the app is fully initialized
+    // indicator that authentication succeeded and the app is fully initialized.
+    // Don't wait for `networkidle` first — wrangler dev can hold long-poll/sse
+    // connections that prevent it ever firing. Poll the user-menu button
+    // directly with a generous timeout; the diagnostic error path runs only
+    // if it really doesn't appear.
     try {
-      await page.locator('[data-testid="user-menu-button"]').waitFor();
+      await page
+        .locator('[data-testid="user-menu-button"]')
+        .waitFor({ timeout: 60000 });
     } catch {
       // If user menu didn't appear, check what state we're in for better error message
       const welcomeHeading = await page
@@ -344,7 +353,7 @@ export const test = base.extend<OnlineTestFixtures>({
         );
       } else {
         throw new Error(
-          `adminPage fixture failed: user menu not visible after 15s. URL: ${currentUrl}`
+          `adminPage fixture failed: user menu not visible after 60s. URL: ${currentUrl}`
         );
       }
     }
@@ -472,11 +481,14 @@ export const test = base.extend<OnlineTestFixtures>({
 
     // Step 3: Navigate to app and confirm auth works while server is up
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
 
-    // Wait for auth to complete
+    // Wait for auth to complete — poll the user menu button directly
+    // (don't wait for networkidle first; wrangler dev can hold
+    // long-poll/sse connections that prevent it ever firing).
     try {
-      await page.locator('[data-testid="user-menu-button"]').waitFor();
+      await page
+        .locator('[data-testid="user-menu-button"]')
+        .waitFor({ timeout: 60000 });
     } catch {
       throw new Error(
         `serverUnavailablePage fixture failed: authentication did not complete. URL: ${page.url()}`
@@ -720,7 +732,9 @@ export async function registerUser(
   await registerButton.click();
 
   // Wait for network to settle
-  await page.waitForLoadState('networkidle');
+  await page
+    .waitForLoadState('networkidle', { timeout: 15000 })
+    .catch(() => {});
 
   // Wait for dialog to close (indicates success)
   await expect(page.getByTestId('register-dialog')).toBeHidden();
@@ -771,7 +785,9 @@ export async function createProject(
   description?: string
 ): Promise<void> {
   await page.goto('/create-project');
-  await page.waitForLoadState('networkidle');
+  await page
+    .waitForLoadState('networkidle', { timeout: 15000 })
+    .catch(() => {});
 
   // Verify we're on the create project page (not redirected to login)
   const url = page.url();

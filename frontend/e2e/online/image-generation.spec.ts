@@ -144,18 +144,39 @@ async function navigateToAdminViaMenu(page: Page): Promise<void> {
   await page.locator('[data-testid="user-menu-button"]').click();
   await page.locator('[data-testid="admin-menu-link"]').click();
   await page.waitForURL('**/admin/**');
-  await page.waitForLoadState('networkidle');
+  await page
+    .waitForLoadState('networkidle', { timeout: 15000 })
+    .catch(() => {});
 }
 
 async function navigateToMediaTab(page: Page): Promise<void> {
   const mediaButton = page.getByTestId('sidebar-media-button');
-  await mediaButton.click();
-  await page.waitForURL(/\/media$/);
-  await page.waitForLoadState('networkidle');
+  const searchInput = page.locator('[data-testid="media-search-input"]');
 
-  await expect(
-    page.locator('[data-testid="media-search-input"]')
-  ).toBeVisible();
+  // Under wrangler dev (D1 + DO) load, the project state can take a moment
+  // to hydrate after `createProject`. `navigateToSystemTab` silently bails
+  // when `getProjectRouteIdentity()` returns null at click time — leaving
+  // the tab unselected and the URL unchanged. Retry the click until the
+  // Media tab's search input renders (the definitive signal that the tab
+  // opened and its content loaded).
+  await expect(async () => {
+    await mediaButton.click();
+    // Accept either signal that the tab opened: the URL lands on /media,
+    // or the search input becomes visible.
+    await Promise.race([
+      page.waitForURL(/\/media$/, { timeout: 5000 }).catch(() => {}),
+      searchInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {}),
+    ]);
+    await expect(searchInput).toBeVisible();
+  }).toPass({ timeout: 60000 });
+
+  // Best-effort networkidle — don't fail the test if the page never reaches
+  // a fully idle state (wrangler dev can hold long-poll/sse connections).
+  await page
+    .waitForLoadState('networkidle', { timeout: 15000 })
+    .catch(() => {});
+
+  await expect(searchInput).toBeVisible();
 }
 
 async function openImageGenDialog(page: Page): Promise<void> {
@@ -189,7 +210,9 @@ test.describe('Image Generation - Admin Profile Management', () => {
       await navigateToAdminViaMenu(adminPage);
       await adminPage.locator('[data-testid="admin-nav-ai"]').click();
       await adminPage.waitForURL('**/admin/ai');
-      await adminPage.waitForLoadState('networkidle');
+      await adminPage
+        .waitForLoadState('networkidle', { timeout: 15000 })
+        .catch(() => {});
 
       const profilesCard = adminPage.locator('mat-card', {
         hasText: 'Image Model Profiles',
@@ -203,7 +226,9 @@ test.describe('Image Generation - Admin Profile Management', () => {
     await test.step('AI Providers page shows OpenAI key configured/not-configured state', async () => {
       await adminPage.locator('[data-testid="admin-nav-ai-providers"]').click();
       await adminPage.waitForURL('**/admin/ai-providers');
-      await adminPage.waitForLoadState('networkidle');
+      await adminPage
+        .waitForLoadState('networkidle', { timeout: 15000 })
+        .catch(() => {});
 
       const openaiCard = adminPage.locator(
         '[data-testid="ai-provider-card-openai"]'
@@ -234,7 +259,9 @@ test.describe('Image Generation - Admin Profile Management', () => {
       await adminPage.waitForURL('**/admin/ai');
       // Force a fresh profile fetch — the page caches its first load.
       await adminPage.reload();
-      await adminPage.waitForLoadState('networkidle');
+      await adminPage
+        .waitForLoadState('networkidle', { timeout: 15000 })
+        .catch(() => {});
 
       const profilesGrid = adminPage.locator('[data-testid="profiles-grid"]');
       await expect(profilesGrid).toBeVisible();

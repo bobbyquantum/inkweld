@@ -273,7 +273,13 @@ class AnnouncementService {
         )
       );
 
-    // Insert read records for all unread announcements
+    // Insert read records for all unread announcements.
+    // D1 (Cloudflare Workers SQLite) enforces a per-query bind parameter
+    // limit (SQLITE_MAX_VARIABLE_NUMBER, historically 100). Each row has 4
+    // bind params (id, announcementId, userId, readAt), so a single batch
+    // INSERT of >25 rows exceeds the limit and fails with "Failed query:
+    // insert into announcement_reads ...". Chunk the inserts to stay well
+    // under the limit.
     if (unreadAnnouncements.length > 0) {
       const readRecords = unreadAnnouncements.map((a) => ({
         id: crypto.randomUUID(),
@@ -282,7 +288,10 @@ class AnnouncementService {
         readAt: now,
       }));
 
-      await db.insert(announcementReads).values(readRecords);
+      const BATCH_SIZE = 20;
+      for (let i = 0; i < readRecords.length; i += BATCH_SIZE) {
+        await db.insert(announcementReads).values(readRecords.slice(i, i + BATCH_SIZE));
+      }
     }
   }
 }
