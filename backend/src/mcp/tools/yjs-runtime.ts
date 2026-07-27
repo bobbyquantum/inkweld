@@ -11,6 +11,7 @@
 import type { McpContext } from '../mcp.types';
 import { type Element } from '../../schemas/element.schemas';
 import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
+import { xmlContentToText } from '../../utils/xml-utils';
 import { YjsWorkerService, type YjsWorkerContext } from '../../services/yjs-worker.service';
 
 /**
@@ -233,7 +234,7 @@ export async function getDocumentContent(
       return { xmlContent: '', wordCount: 0 };
     }
     const xmlContent = xmlFragment.toString();
-    const wordCount = countXmlWords(xmlContent);
+    const wordCount = countWordsFromXml(xmlContent);
     return { xmlContent, wordCount };
   }
 
@@ -242,19 +243,18 @@ export async function getDocumentContent(
   const sharedDoc = await yjsService.getDocument(docId);
   const xmlFragment = sharedDoc.doc.getXmlFragment('prosemirror');
   const xmlContent = xmlFragment.toString();
-  const wordCount = countXmlWords(xmlContent);
+  const wordCount = countWordsFromXml(xmlContent);
   return { xmlContent, wordCount };
 }
 
 /**
- * Count words in a ProseMirror XML string by stripping tags.
- * Matches the `xmlContentToText(...).split(/\s+/).filter(...)` logic used by
- * the `update_document_content` tool so pre/post counts are comparable.
+ * Count words in a ProseMirror XML string by reusing the canonical
+ * `xmlContentToText` utility (so pre/post counts can never diverge) and
+ * applying the same whitespace-split + non-empty filter the rest of the
+ * codebase uses for `document_edit` events.
  */
-function countXmlWords(xmlContent: string): number {
-  // Strip XML tags, collapse whitespace, and count non-empty tokens.
-  const text = xmlContent.replace(/<[^>]+>/g, ' ').trim();
-  if (!text) return 0;
+function countWordsFromXml(xmlContent: string): number {
+  const text = xmlContentToText(xmlContent);
   return text.split(/\s+/).filter((w) => w.length > 0).length;
 }
 

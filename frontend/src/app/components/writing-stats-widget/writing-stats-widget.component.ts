@@ -12,7 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import type { UserActivityEvent } from '@models/activity-event';
 import type { UserStatsResponse } from '@models/writing-stats';
 import { LoggerService } from '@services/core/logger.service';
@@ -54,6 +54,7 @@ export class WritingStatsWidgetComponent implements OnInit {
   private readonly activityService = inject(ActivityFeedService);
   private readonly logger = inject(LoggerService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly transloco = inject(TranslocoService);
 
   /** Look-back window in days; default 30. */
   readonly windowDays = 30;
@@ -113,47 +114,149 @@ export class WritingStatsWidgetComponent implements OnInit {
   }
 
   protected eventSummary(event: UserActivityEvent): string {
-    const who = event.username ?? event.actorLabel ?? 'Someone';
+    const who =
+      event.username ??
+      event.actorLabel ??
+      this.transloco.translate('common.someone');
     const name = event.entityName ?? '';
-    const onName = name ? ` on ${name}` : '';
-    const ofName = name ? ` of ${name}` : '';
+    const params = { who, name };
+    const key = (named: string, generic: string) => (name ? named : generic);
     switch (event.eventType) {
       case 'document_edit':
-        return `${who} edited ${name || 'a document'}`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.document_edit',
+            'project.activity.events.document_edit_generic'
+          ),
+          params
+        );
       case 'snapshot_created':
-        return `${who} saved a snapshot${ofName}`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.snapshot_created',
+            'project.activity.events.snapshot_created_generic'
+          ),
+          params
+        );
       case 'comment_thread_created':
-        return `${who} commented${onName}`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.comment_thread_created',
+            'project.activity.events.comment_thread_created_generic'
+          ),
+          params
+        );
       case 'comment_reply_added':
-        return `${who} replied${onName}`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.comment_reply_added',
+            'project.activity.events.comment_reply_added_generic'
+          ),
+          params
+        );
       case 'file_published':
-        return `${who} published ${name || 'a file'}`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.file_published',
+            'project.activity.events.file_published_generic'
+          ),
+          params
+        );
       case 'collaborator_invited':
-        return `${who} invited a collaborator`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.collaborator_invited',
+            'project.activity.events.collaborator_invited_generic'
+          ),
+          params
+        );
       case 'collaborator_joined':
-        return `${who} joined`;
+        return this.transloco.translate(
+          'project.activity.events.collaborator_joined',
+          params
+        );
       case 'collaborator_role_changed':
-        return `${who} changed a collaborator role`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.collaborator_role_changed',
+            'project.activity.events.collaborator_role_changed_generic'
+          ),
+          params
+        );
       case 'collaborator_removed':
-        return `${who} removed a collaborator`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.collaborator_removed',
+            'project.activity.events.collaborator_removed_generic'
+          ),
+          params
+        );
       case 'element_created':
-        return `${who} created ${name || 'an item'}`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.element_created',
+            'project.activity.events.element_created_generic'
+          ),
+          params
+        );
       case 'element_renamed':
-        return `${who} renamed ${name || 'an item'}`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.element_renamed',
+            'project.activity.events.element_renamed_generic'
+          ),
+          params
+        );
       case 'element_deleted':
-        return `${who} deleted ${name || 'an item'}`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.element_deleted',
+            'project.activity.events.element_deleted_generic'
+          ),
+          params
+        );
       case 'elements_reorganized':
-        return `${who} reorganized items`;
+        return this.transloco.translate(
+          'project.activity.events.elements_reorganized',
+          params
+        );
       case 'element_tagged':
-        return `${who} updated tags`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.element_tagged',
+            'project.activity.events.element_tagged_generic'
+          ),
+          params
+        );
       case 'worldbuilding_updated':
-        return `${who} updated worldbuilding`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.worldbuilding_updated',
+            'project.activity.events.worldbuilding_updated_generic'
+          ),
+          params
+        );
       case 'relationship_created':
-        return `${who} created a relationship`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.relationship_created',
+            'project.activity.events.relationship_created_generic'
+          ),
+          params
+        );
       case 'relationship_deleted':
-        return `${who} deleted a relationship`;
+        return this.transloco.translate(
+          key(
+            'project.activity.events.relationship_deleted',
+            'project.activity.events.relationship_deleted_generic'
+          ),
+          params
+        );
       default:
-        return `${who} did something`;
+        return this.transloco.translate(
+          'project.activity.events.unknown',
+          params
+        );
     }
   }
 

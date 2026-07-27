@@ -1472,12 +1472,17 @@ The content replaces the entire document. Use get_document_content first to read
       // delta instead of always 0. Best-effort: if the read fails (e.g. the
       // document doesn't exist yet on this runtime), treat the prior count
       // as 0 so we still get a meaningful delta for a brand-new document.
+      // We flag an unreliable read in the recorded metadata so downstream
+      // consumers (activity feed, stats widget) can distinguish a real
+      // delta from a fallback estimate.
       let preWordCount = 0;
+      let preWordCountReliable = true;
       try {
         const pre = await runtimeGetDocumentContent(ctx, username, slug, elementId);
         preWordCount = pre.wordCount;
       } catch (err) {
-        mcpMutLog.debug(`Could not read pre-update word count for ${elementId}; defaulting to 0`, {
+        preWordCountReliable = false;
+        mcpMutLog.warn(`Could not read pre-update word count for ${elementId}; defaulting to 0`, {
           error: err instanceof Error ? err.message : String(err),
         });
       }
@@ -1499,7 +1504,11 @@ The content replaces the entire document. Use get_document_content first to read
         wordsDelta,
         endWordCount: wordCount,
         durationMs: 0,
-        metadata: { source: 'mcp', format },
+        metadata: {
+          source: 'mcp',
+          format,
+          ...(preWordCountReliable ? {} : { previousWordCountEstimated: true }),
+        },
       });
 
       return {
