@@ -38,20 +38,42 @@ export default defineConfig({
   /* Global setup to initialize D1 database */
   globalSetup: require.resolve('./e2e/wrangler-setup.ts'),
 
-  /* Run tests sequentially for database state management */
+  // Run tests sequentially against the single shared wrangler dev server.
+  // wrangler dev serves a stateful D1 + Durable Objects backend from one
+  // local runtime; running multiple Playwright workers in parallel against
+  // it causes intermittent "Connection reset by peer" / "Target page,
+  // context or browser has been closed" infra errors under concurrent DO
+  // load. The structurally analogous playwright.cloudflare.config.ts sets
+  // the same `fullyParallel: false` + `workers: 1` for the same reason.
+  fullyParallel: false,
+  workers: 1,
 
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env['CI'],
 
-  /* Retry failed tests in CI for stability */
-  retries: process.env['CI'] ? 1 : 0,
+  /* Retry failed tests in CI for stability. Wrangler dev with D1 + DO is
+     materially slower than the Bun backend and more prone to transient
+     infra errors; mirror playwright.cloudflare.config.ts's retry posture. */
+  retries: process.env['CI'] ? 2 : 0,
 
   /* Reporter to use */
   reporter: [['list'], ['html', { open: 'never' }]],
 
-  /* Expect timeout */
+  /* Per-test timeout. Wrangler dev (D1 + DO locally) is materially slower
+     than the Bun backend. The Playwright default of 30000ms is too tight
+     for multi-step flows like image-generation.spec.ts's user dialog
+     lifecycle under load, and for the Published Announcement Visibility
+     test which sets up three browser contexts (admin + anonymous +
+     authenticated) each needing fixture setup. Allow 120s to cover
+     fixture setup + test execution under wrangler load. */
+  timeout: 120000,
+
+  /* Expect timeout. Wrangler dev (D1 + DO locally) is slower than the
+     Bun backend; allow 60s for assertions that wait for backend-driven
+     UI state transitions (e.g. mark-all-read button disappearing after
+     an API call). */
   expect: {
-    timeout: 30000,
+    timeout: 60000,
   },
 
   /* Shared settings for all the projects below */
@@ -59,8 +81,11 @@ export default defineConfig({
     /* Base URL - frontend served separately (dedicated e2e port to avoid clashing with dev server) */
     baseURL: FRONTEND_URL,
 
-    /* Action timeout for slow CI environments */
-    actionTimeout: 15000,
+    /* Action timeout for slow CI environments. Wrangler dev (D1 + DO
+       locally) is slower than the Bun backend — match the online config's
+       30000ms instead of the original 15000ms, which produced spurious
+       "Timeout 15000ms exceeded" infra failures under load. */
+    actionTimeout: 30000,
     navigationTimeout: 30000,
 
     /* Collect trace when retrying the failed test */
