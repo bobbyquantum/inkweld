@@ -17,7 +17,6 @@ import { type IElementSyncProvider } from '../sync/element-sync-provider.interfa
 
 // Constants for timeouts and intervals
 const INDEXEDDB_SYNC_TIMEOUT = 5000;
-const WEBSOCKET_RESYNC_INTERVAL = 60000;
 
 interface WorldbuildingConnection {
   ydoc: Y.Doc;
@@ -300,7 +299,7 @@ export class WorldbuildingService {
         '', // Empty room name - documentId is already in URL
         ydoc,
         authToken,
-        { resyncInterval: WEBSOCKET_RESYNC_INTERVAL }
+        {}
       );
 
       return provider;

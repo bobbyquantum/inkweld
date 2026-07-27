@@ -1091,7 +1091,6 @@ export class DocumentService {
         ydoc,
         authToken,
         {
-          resyncInterval: 60000, // Attempt to resync every 60 seconds when offline
           maxBackoffTime: WS_MAX_BACKOFF_TIME,
           // Capture malformed-frame diagnostics through the logger so they're
           // attributable to a document in production logs (the default
@@ -2514,7 +2513,7 @@ export class DocumentService {
         '',
         params.ydoc,
         params.authToken,
-        { resyncInterval: 60000 }
+        {}
       );
 
       await new Promise<void>((resolve, reject) => {

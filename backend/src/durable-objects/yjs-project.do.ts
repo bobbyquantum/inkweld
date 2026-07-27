@@ -46,6 +46,7 @@ import {
   parseTrackableElementId as parseTrackableElementIdUtil,
   isYjsFrameBlockedForViewer,
   isElementsDoc,
+  frameMessageType,
 } from '../utils/yjs-document-utils';
 import { YjsDocStorage } from './yjs-do-storage';
 import { checkWsRateLimit } from './ws-rate-limiter';
@@ -1337,9 +1338,20 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * Handle incoming WebSocket messages
    * Text messages: Authentication (first message must be JWT token)
    * Binary messages: Yjs sync protocol (only after auth)
+   *
+   * Presence frames (Y_MESSAGE_PRESENCE) are dispatched with a lightweight
+   * rehydration (skipDocLoad) because they never touch the Yjs document —
+   * they only update the in-memory presence registry. Loading the full
+   * document history from storage on every presence frame is pure waste and
+   * was a major source of rows_read amplification.
    */
   async webSocketMessage(ws: WebSocket, message: ArrayBuffer | string): Promise<void> {
-    const connInfo = await this.rehydrateConnection(ws);
+    // Peek at binary message type before rehydrating so presence frames can
+    // skip the expensive document load.
+    const isPresenceFrame =
+      typeof message !== 'string' && frameMessageType(message) === Y_MESSAGE_PRESENCE;
+
+    const connInfo = await this.rehydrateConnection(ws, /* skipDocLoad */ isPresenceFrame);
     if (!connInfo) {
       projDOLog.warn('Received message from unknown connection');
       try {
@@ -1379,6 +1391,15 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       return;
     }
 
+    // Dispatch presence frames WITHOUT requiring sharedDoc. Presence frames
+    // only touch the in-memory presence registry — loading the full document
+    // from storage to handle them is pure waste (and was a major source of
+    // rows_read amplification, since presence frames fire frequently).
+    if (frameMessageType(message) === Y_MESSAGE_PRESENCE) {
+      this.handlePresenceFrame(ws, connInfo, message);
+      return;
+    }
+
     const sharedDoc = connInfo.sharedDoc;
     if (!sharedDoc) {
       projDOLog.warn(`No document state for ${connInfo.documentId}`);
@@ -1394,6 +1415,28 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     } catch (error) {
       projDOLog.error('Error handling WebSocket message:', error);
     }
+  }
+
+  /**
+   * Handle a Y_MESSAGE_PRESENCE binary frame. Presence frames never touch the
+   * Yjs document — they only update the in-memory presence registry — so the
+   * caller skips the document load (skipDocLoad) before dispatching here.
+   */
+  private handlePresenceFrame(ws: WebSocket, connInfo: ConnectionInfo, data: ArrayBuffer): void {
+    const documentId = connInfo.documentId;
+    if (!documentId || !this.isElementsDocumentId(documentId)) {
+      projDOLog.debug(`Ignoring presence frame on non-elements doc ${documentId ?? '<unknown>'}`);
+      return;
+    }
+    const projectKey = this.projectKeyForDocumentId(documentId);
+    if (!projectKey) return;
+    const message = new Uint8Array(data);
+    const decoder = createDecoder(message);
+    // Skip the outer Y_MESSAGE_PRESENCE tag that applyDocumentMessage would
+    // have peeled — we read it via frameMessageType above, so advance the
+    // decoder past it before handing to the presence service.
+    readVarUint(decoder);
+    this.presence.handleMessage(projectKey, ws as unknown as PresenceSocket, decoder, message);
   }
 
   /**
@@ -1775,20 +1818,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       return;
     }
 
-    if (messageType === Y_MESSAGE_PRESENCE) {
-      // Drop presence frames received on per-document sockets — only the
-      // elements WS carries presence (one session per user, not per tab).
-      const connInfo = this.connections.get(ws);
-      const documentId = connInfo?.documentId;
-      if (!documentId || !this.isElementsDocumentId(documentId)) {
-        projDOLog.debug(`Ignoring presence frame on non-elements doc ${documentId ?? '<unknown>'}`);
-        return;
-      }
-      const projectKey = this.projectKeyForDocumentId(documentId);
-      if (!projectKey) return;
-      this.presence.handleMessage(projectKey, ws as unknown as PresenceSocket, decoder, message);
-      return;
-    }
+    // Y_MESSAGE_PRESENCE is handled earlier in handleBinaryMessage (before
+    // the sharedDoc guard) so presence frames never trigger a document load.
 
     sharedDoc.update(message);
   }
