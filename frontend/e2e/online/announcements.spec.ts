@@ -11,11 +11,15 @@ async function navigateToAdminAnnouncements(page: Page): Promise<void> {
   await expect(page).toHaveURL(/.*\/admin\/.*/);
   // Best-effort networkidle — wrangler dev can hold long-poll/sse
   // connections that prevent the page from ever reaching idle.
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page
+    .waitForLoadState('networkidle', { timeout: 15000 })
+    .catch(() => {});
 
   await page.locator('[data-testid="admin-nav-announcements"]').click();
   await expect(page).toHaveURL(/.*\/admin\/announcements/);
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page
+    .waitForLoadState('networkidle', { timeout: 15000 })
+    .catch(() => {});
 }
 
 /**
@@ -40,7 +44,9 @@ async function fillAndSubmitAnnouncementForm(
   // reliably triggers the [formField] directive's input listeners) until
   // both inputs reflect the intended values. Pressing Tab after each field
   // flushes zoneless change detection.
-  const contentInput = page.locator('[data-testid="announcement-content-input"]');
+  const contentInput = page.locator(
+    '[data-testid="announcement-content-input"]'
+  );
   await expect(async () => {
     await titleInput.click();
     await titleInput.fill('');
@@ -281,7 +287,9 @@ test.describe('User Messages', () => {
     await test.step('messages page shows empty state or list', async () => {
       // Reload via direct nav to assert the page also renders standalone.
       await authenticatedPage.goto('/messages');
-      await authenticatedPage.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+      await authenticatedPage
+        .waitForLoadState('networkidle', { timeout: 15000 })
+        .catch(() => {});
 
       await expect(
         authenticatedPage.locator('[data-testid="messages-page"]')
@@ -331,7 +339,9 @@ test.describe('Published Announcement Visibility', () => {
 
     await test.step('anonymous home page surfaces the announcement (when feed is shown)', async () => {
       await anonymousPage.goto('/');
-      await anonymousPage.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+      await anonymousPage
+        .waitForLoadState('networkidle', { timeout: 15000 })
+        .catch(() => {});
 
       const feed = anonymousPage.locator('[data-testid="announcement-feed"]');
       const isFeedVisible = await feed.isVisible().catch(() => false);
@@ -344,7 +354,9 @@ test.describe('Published Announcement Visibility', () => {
 
     await test.step('authenticated user can mark all messages as read', async () => {
       await authenticatedPage.goto('/messages');
-      await authenticatedPage.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+      await authenticatedPage
+        .waitForLoadState('networkidle', { timeout: 15000 })
+        .catch(() => {});
 
       await authenticatedPage
         .locator('[data-testid="messages-page"]')

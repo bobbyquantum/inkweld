@@ -221,7 +221,9 @@ export const test = base.extend<OnlineTestFixtures>({
     // directly with a generous timeout; the diagnostic error path runs only
     // if it really doesn't appear.
     try {
-      await page.locator('[data-testid="user-menu-button"]').waitFor({ timeout: 60000 });
+      await page
+        .locator('[data-testid="user-menu-button"]')
+        .waitFor({ timeout: 60000 });
     } catch {
       // If user menu didn't appear, check what state we're in for better error message
       const welcomeHeading = await page
@@ -328,7 +330,9 @@ export const test = base.extend<OnlineTestFixtures>({
     // directly with a generous timeout; the diagnostic error path runs only
     // if it really doesn't appear.
     try {
-      await page.locator('[data-testid="user-menu-button"]').waitFor({ timeout: 60000 });
+      await page
+        .locator('[data-testid="user-menu-button"]')
+        .waitFor({ timeout: 60000 });
     } catch {
       // If user menu didn't appear, check what state we're in for better error message
       const welcomeHeading = await page
@@ -482,7 +486,9 @@ export const test = base.extend<OnlineTestFixtures>({
     // (don't wait for networkidle first; wrangler dev can hold
     // long-poll/sse connections that prevent it ever firing).
     try {
-      await page.locator('[data-testid="user-menu-button"]').waitFor({ timeout: 60000 });
+      await page
+        .locator('[data-testid="user-menu-button"]')
+        .waitFor({ timeout: 60000 });
     } catch {
       throw new Error(
         `serverUnavailablePage fixture failed: authentication did not complete. URL: ${page.url()}`
@@ -726,7 +732,9 @@ export async function registerUser(
   await registerButton.click();
 
   // Wait for network to settle
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page
+    .waitForLoadState('networkidle', { timeout: 15000 })
+    .catch(() => {});
 
   // Wait for dialog to close (indicates success)
   await expect(page.getByTestId('register-dialog')).toBeHidden();
@@ -777,7 +785,9 @@ export async function createProject(
   description?: string
 ): Promise<void> {
   await page.goto('/create-project');
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page
+    .waitForLoadState('networkidle', { timeout: 15000 })
+    .catch(() => {});
 
   // Verify we're on the create project page (not redirected to login)
   const url = page.url();
