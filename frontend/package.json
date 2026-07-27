@@ -139,7 +139,7 @@
     "eslint-plugin-unused-imports": "4.4.1",
     "fake-indexeddb": "6.2.5",
     "http-server": "^14.1.1",
-    "jsdom": "^29.0.0",
+    "jsdom": "^30.0.0",
     "jszip": "^3.10.1",
     "playwright-ng-schematics": "22.0.3",
     "png-to-ico": "^3.0.1",
