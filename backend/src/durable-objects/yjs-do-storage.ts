@@ -12,9 +12,10 @@ import { isSyncFrame } from '../utils/yjs-document-utils';
 
 /**
  * The slice of `DurableObjectState.storage` these helpers use. Matches the
- * Cloudflare Workers `DurableObjectStorage` contract for `list`/`put`/`delete`.
+ * Cloudflare Workers `DurableObjectStorage` contract for `get`/`list`/`put`/`delete`.
  */
 export interface DoStorage {
+  get<T>(key: string): Promise<T | undefined>;
   list<T>(options: { prefix: string }): Promise<Map<string, T>>;
   put<T>(key: string, value: T): Promise<void>;
   delete(keys: string | string[]): Promise<void>;
@@ -22,6 +23,21 @@ export interface DoStorage {
 
 /** Cloudflare Durable Object storage caps bulk delete() at 128 keys per call. */
 const STORAGE_DELETE_BATCH_LIMIT = 128;
+
+/** Number of incremental update rows that triggers a background compaction. */
+export const COMPACT_THRESHOLD = 50;
+
+/** Storage key for the compacted document snapshot. */
+export function snapshotKey(storagePrefix: string): string {
+  return `${storagePrefix}snapshot`;
+}
+
+/** Result metadata from a `loadAndReplay` call. */
+export interface LoadResult {
+  totalRowsRead: number;
+  hadSnapshot: boolean;
+  incrementalKeys: string[];
+}
 
 /** Prefix + timestamp + zero-padded sequence keeps keys unique AND ordered. */
 export function persistUpdateKey(
@@ -84,14 +100,17 @@ export interface StorageLogger {
  * Yjs document persistence + replay, decoupled from the Durable Object base
  * class so it can be unit-tested with a mock `DoStorage`.
  *
- * Semantics:
- *  - `loadAndReplay` reads every `doc:<id>:update:*` row, replays sync frames
- *    onto the shared doc, and purges legacy non-sync (awareness/presence) rows
- *    in batched deletes. Storage list/replay errors PROPAGATE so the caller
- *    can drop a cached blank doc and retry, rather than writing over lost
- *    history. Only the best-effort purge is swallowed.
+ * Storage strategy — snapshot + incremental updates:
+ *  - `loadAndReplay` reads a single compacted snapshot key (O(1) row read),
+ *    then lists only the incremental update keys written since the last
+ *    compaction. Legacy non-sync (awareness/presence) rows are purged.
  *  - `persist` drops awareness/presence frames (ephemeral) and writes sync
  *    frames under a collision-free `timestamp:sequence` key.
+ *  - `compact` merges all incremental update rows into a single snapshot,
+ *    reducing subsequent loads to O(1) row reads. Safe for offline clients:
+ *    `Y.encodeStateAsUpdate` preserves the full state vector (all clientIDs +
+ *    clocks), so the Yjs sync protocol can still compute correct diffs against
+ *    a compacted state. CRDT merge is commutative and idempotent.
  */
 export class YjsDocStorage {
   private sequence = 0;
@@ -102,30 +121,46 @@ export class YjsDocStorage {
   ) {}
 
   /**
-   * Replay persisted sync frames onto `sharedDoc` and purge legacy non-sync
-   * rows. Throws on storage list/replay failure so the caller can retry.
+   * Replay persisted state onto `sharedDoc`: snapshot first (one row read),
+   * then incremental updates. Purges legacy non-sync rows. Throws on storage
+   * list/replay failure so the caller can drop a cached blank doc and retry.
    */
-  async loadAndReplay(documentId: string, applyFrame: (frame: Uint8Array) => void): Promise<void> {
+  async loadAndReplay(
+    documentId: string,
+    applyFrame: (frame: Uint8Array) => void
+  ): Promise<LoadResult> {
     const storagePrefix = `doc:${documentId}:`;
+    const snapKey = snapshotKey(storagePrefix);
     const updatePrefix = `${storagePrefix}update:`;
 
-    const entries = await this.storage.list<number[]>({ prefix: updatePrefix });
+    let totalRowsRead = 0;
+    let hadSnapshot = false;
 
-    if (entries.size === 0) {
+    const snapshotRaw = await this.storage.get<number[]>(snapKey);
+    if (snapshotRaw) {
+      hadSnapshot = true;
+      totalRowsRead++;
+      applyFrame(new Uint8Array(snapshotRaw));
+    }
+
+    const entries = await this.storage.list<number[]>({ prefix: updatePrefix });
+    totalRowsRead += entries.size;
+
+    if (entries.size === 0 && !hadSnapshot) {
       this.log.debug(`No persisted updates found for ${documentId} - starting fresh`);
-      return;
+      return { totalRowsRead: 0, hadSnapshot: false, incrementalKeys: [] };
     }
 
     const { syncFrames, staleKeys } = partitionPersistedFrames(entries);
     for (const frame of syncFrames) applyFrame(frame);
 
+    const staleKeySet = new Set(staleKeys);
+    const incrementalKeys = [...entries.keys()].filter((key) => !staleKeySet.has(key));
+
     this.log.debug(
-      `Loaded document ${documentId} from storage: ${syncFrames.length} sync frames applied, ${staleKeys.length} non-sync frames purged`
+      `Loaded document ${documentId} from storage: snapshot=${hadSnapshot}, ${syncFrames.length} incremental sync frames, ${staleKeys.length} non-sync frames purged`
     );
 
-    // Best-effort purge of legacy awareness/presence rows. Durable Object
-    // storage caps bulk delete() at 128 keys per call, so chunk — the bloated
-    // docs this targets hold thousands of rows and a single call would reject.
     for (const batch of chunkKeysForDelete(staleKeys)) {
       try {
         await this.storage.delete(batch);
@@ -136,6 +171,53 @@ export class YjsDocStorage {
         );
       }
     }
+
+    return { totalRowsRead, hadSnapshot, incrementalKeys };
+  }
+
+  /**
+   * Merge all incremental update rows into a single snapshot.
+   *
+   * Write order is snapshot-first, then delete: if the DO crashes between the
+   * two steps the next load applies the snapshot AND the leftover incrementals.
+   * Yjs updates are idempotent, so double-applying is correct (just slightly
+   * wasteful until the next compaction cleans up).
+   *
+   * @param encodedState The full document state from `Y.encodeStateAsUpdate(doc)`.
+   * @param knownKeys When provided, these keys are deleted directly without a
+   *   storage list (saves N row reads). Omit for warm-session compaction where
+   *   the full key set isn't tracked.
+   */
+  async compact(documentId: string, encodedState: Uint8Array, knownKeys?: string[]): Promise<void> {
+    const storagePrefix = `doc:${documentId}:`;
+    const snapKey = snapshotKey(storagePrefix);
+
+    await this.storage.put(snapKey, Array.from(encodedState));
+
+    let keys: string[];
+    if (knownKeys) {
+      keys = knownKeys;
+    } else {
+      const updatePrefix = `${storagePrefix}update:`;
+      const entries = await this.storage.list<number[]>({ prefix: updatePrefix });
+      keys = [...entries.keys()];
+    }
+    if (keys.length === 0) return;
+
+    for (const batch of chunkKeysForDelete(keys)) {
+      try {
+        await this.storage.delete(batch);
+      } catch (err) {
+        this.log.warn(
+          `Failed to delete ${batch.length} of ${keys.length} update rows during compaction for ${documentId}`,
+          { error: String(err) }
+        );
+      }
+    }
+
+    this.log.debug(
+      `Compacted document ${documentId}: ${keys.length} update rows merged into snapshot`
+    );
   }
 
   /**
@@ -160,11 +242,6 @@ export class YjsDocStorage {
     if (!isSyncFrame(frame)) return null;
     const storagePrefix = `doc:${documentId}:`;
     const base = persistUpdateKey(storagePrefix, Date.now(), this.sequence++);
-    // 128 bits of entropy (16 bytes) makes a collision across a DO restart
-    // (sequence resets to 0) at the same millisecond negligibly unlikely.
-    // Uses the Web Crypto RNG (available in the Workers runtime); this is a
-    // collision-avoidance aid, not a security-sensitive random, but the
-    // secure RNG avoids the Sonar Math.random hotspot.
     const rand = new Uint8Array(16);
     crypto.getRandomValues(rand);
     const suffix = Array.from(rand, (b) => b.toString(16).padStart(2, '0')).join('');

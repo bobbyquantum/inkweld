@@ -32,6 +32,7 @@ import {
 } from 'y-protocols/awareness';
 import { writeSyncStep1 } from 'y-protocols/sync';
 import { WSSharedDoc } from 'y-durableobjects';
+import * as Y from 'yjs';
 import { logger } from '../services/logger.service';
 import { stripTrailingSlashes } from '../utils/string-utils';
 import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
@@ -48,7 +49,7 @@ import {
   isElementsDoc,
   frameMessageType,
 } from '../utils/yjs-document-utils';
-import { YjsDocStorage } from './yjs-do-storage';
+import { YjsDocStorage, COMPACT_THRESHOLD, snapshotKey } from './yjs-do-storage';
 import { checkWsRateLimit } from './ws-rate-limiter';
 import {
   PRESENCE_KEEPALIVE_PING,
@@ -355,23 +356,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     console.log('[DO-HTTP] projectId:', this.projectId);
 
     try {
-      // Route based on path and method
-      if (path === '/api/elements' && method === 'GET') {
-        console.log('[DO-HTTP] Routing to handleGetElements');
-        return this.handleGetElements(documentId);
-      } else if (path === '/api/elements' && method === 'POST') {
-        console.log('[DO-HTTP] Routing to handleMutateElements');
-        return this.handleMutateElements(request, documentId);
-      } else if (path === '/api/document' && method === 'GET') {
-        return this.handleGetDocument(documentId);
-      } else if (path === '/api/document' && method === 'POST') {
-        return this.handleUpdateDocument(request, documentId);
-      } else {
-        return new Response(JSON.stringify({ error: 'Not found' }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
+      return await this.dispatchHttpRoute(path, method, request, documentId);
     } catch (error) {
       projDOLog.error('HTTP API error:', error);
       return new Response(JSON.stringify({ error: 'Internal server error' }), {
@@ -379,6 +364,33 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+  }
+
+  private async dispatchHttpRoute(
+    path: string,
+    method: string,
+    request: Request,
+    documentId: string
+  ): Promise<Response> {
+    if (path === '/api/elements' && method === 'GET') {
+      return this.handleGetElements(documentId);
+    }
+    if (path === '/api/elements' && method === 'POST') {
+      return this.handleMutateElements(request, documentId);
+    }
+    if (path === '/api/document' && method === 'GET') {
+      return this.handleGetDocument(documentId);
+    }
+    if (path === '/api/document' && method === 'POST') {
+      return this.handleUpdateDocument(request, documentId);
+    }
+    if (path === '/api/stats' && method === 'GET') {
+      return this.handleGetStats(documentId);
+    }
+    return new Response(JSON.stringify({ error: 'Not found' }), {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   /**
@@ -615,6 +627,31 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  /**
+   * GET /api/stats - Report storage row usage for a document.
+   * Diagnostic endpoint: reads the snapshot key + lists incremental update
+   * rows to report counts. Not intended for hot-path use.
+   */
+  private async handleGetStats(documentId: string): Promise<Response> {
+    const storagePrefix = `doc:${documentId}:`;
+    const snapKey = snapshotKey(storagePrefix);
+    const updatePrefix = `${storagePrefix}update:`;
+
+    const hasSnapshot = (await this.state.storage.get(snapKey)) !== undefined;
+    const updates = await this.state.storage.list({ prefix: updatePrefix });
+
+    return new Response(
+      JSON.stringify({
+        documentId,
+        hasSnapshot,
+        incrementalRows: updates.size,
+        totalRows: (hasSnapshot ? 1 : 0) + updates.size,
+        loadedInMemory: this.documents.has(documentId),
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 
   /**
@@ -1004,6 +1041,11 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   /**
    * Create a `WSSharedDoc` for `documentId`, replay its persisted sync
    * updates from storage, and wire up persistence for future updates.
+   *
+   * Uses snapshot + incremental storage: loads a compacted snapshot (O(1)
+   * row read) plus any incremental updates written since the last compaction.
+   * Compacts after load and periodically during warm sessions so subsequent
+   * hibernation wakes stay O(1).
    */
   private async loadDocument(documentId: string): Promise<WSSharedDoc> {
     const sharedDoc = new WSSharedDoc();
@@ -1043,16 +1085,45 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
     // ============================================================
 
-    // Set up storage-backed persistence for this specific document
-    await this.docStorage.loadAndReplay(documentId, (frame) => sharedDoc.update(frame));
+    const loadResult = await this.docStorage.loadAndReplay(documentId, (frame) =>
+      sharedDoc.update(frame)
+    );
 
-    // Listen to updates and persist them
+    if (loadResult.incrementalKeys.length > 0) {
+      void this.compactDocument(documentId, sharedDoc, loadResult.incrementalKeys);
+    }
+
+    let pendingSinceCompact = 0;
     sharedDoc.notify((update: Uint8Array) => {
-      void this.docStorage.persist(documentId, update);
+      void this.docStorage.persist(documentId, update).then((key) => {
+        if (!key) return;
+        pendingSinceCompact++;
+        if (pendingSinceCompact >= COMPACT_THRESHOLD) {
+          pendingSinceCompact = 0;
+          void this.compactDocument(documentId, sharedDoc);
+        }
+      });
     });
 
     projDOLog.debug(`Created new shared doc for ${documentId}`);
     return sharedDoc;
+  }
+
+  /**
+   * Encode the current document state and compact storage. Fire-and-forget —
+   * failures are logged but never propagate to callers.
+   */
+  private async compactDocument(
+    documentId: string,
+    sharedDoc: WSSharedDoc,
+    knownKeys?: string[]
+  ): Promise<void> {
+    try {
+      const encoded = Y.encodeStateAsUpdate(sharedDoc);
+      await this.docStorage.compact(documentId, encoded, knownKeys);
+    } catch (err) {
+      projDOLog.error(`Compaction failed for ${documentId}`, err);
+    }
   }
 
   /**
