@@ -174,6 +174,16 @@ export class ActivityTabComponent {
         return `${who} renamed ${name || 'an item'}`;
       case 'element_deleted':
         return `${who} deleted ${name || 'an item'}`;
+      case 'elements_reorganized':
+        return `${who} reorganized items`;
+      case 'element_tagged':
+        return `${who} updated tags${onName}`;
+      case 'worldbuilding_updated':
+        return `${who} updated worldbuilding${onName}`;
+      case 'relationship_created':
+        return `${who} created a relationship${ofName}`;
+      case 'relationship_deleted':
+        return `${who} deleted a relationship${ofName}`;
       default:
         return `${who} did something`;
     }
@@ -193,4 +203,9 @@ const ACTIVITY_ICONS: Record<ActivityEventType, string> = {
   element_created: 'add_circle',
   element_renamed: 'drive_file_rename_outline',
   element_deleted: 'delete',
+  elements_reorganized: 'low_priority',
+  relationship_created: 'account_tree',
+  relationship_deleted: 'link_off',
+  element_tagged: 'label',
+  worldbuilding_updated: 'public',
 };

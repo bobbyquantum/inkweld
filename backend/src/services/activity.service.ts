@@ -105,6 +105,14 @@ class ActivityService {
       endWordCount: number;
       durationMs: number;
       windowMs?: number;
+      /**
+       * Extra metadata merged into the event row (e.g. `{ source: 'mcp',
+       * format: 'markdown' }`). The coalesce accumulator preserves these
+       * fields from the most recent call; the rolling `wordsDelta` /
+       * `durationMs` / `endWordCount` fields are still summed/replaced
+       * as before.
+       */
+      metadata?: Record<string, unknown> | null;
     }
   ): Promise<void> {
     const windowMs = data.windowMs ?? DEFAULT_EDIT_COALESCE_WINDOW_MS;
@@ -142,6 +150,7 @@ class ActivityService {
         };
         const mergedMetadata = {
           ...prevMeta,
+          ...(data.metadata ?? {}),
           wordsDelta: (prevMeta.wordsDelta ?? 0) + data.wordsDelta,
           endWordCount: data.endWordCount,
           durationMs: (prevMeta.durationMs ?? 0) + data.durationMs,
@@ -168,6 +177,7 @@ class ActivityService {
           entityId: data.entityId,
           entityName: data.entityName,
           metadata: {
+            ...(data.metadata ?? {}),
             wordsDelta: data.wordsDelta,
             endWordCount: data.endWordCount,
             durationMs: data.durationMs,

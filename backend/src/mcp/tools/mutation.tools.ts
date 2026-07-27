@@ -34,6 +34,7 @@ import {
   getWorldbuildingDoc,
   updateWorldbuilding,
   updateDocumentContent as runtimeUpdateDocumentContent,
+  getDocumentContent as runtimeGetDocumentContent,
   getRelationships as runtimeGetRelationships,
   replaceAllRelationships as runtimeReplaceAllRelationships,
   addRelationship as runtimeAddRelationship,
@@ -458,6 +459,18 @@ WARNING: This will delete all existing elements and replace them.`,
       // Replace all elements
       await runtimeReplaceAllElements(ctx, username, slug, newElements);
 
+      await activityService.record(db, {
+        projectId: result.project.projectId,
+        ...mcpActor(ctx),
+        eventType: 'elements_reorganized',
+        entityId: null,
+        entityName: null,
+        metadata: {
+          action: 'replace_all_elements',
+          count: newElements.length,
+        },
+      });
+
       return {
         content: [
           {
@@ -775,6 +788,20 @@ To move multiple elements, call this tool multiple times or provide all IDs.`,
 
       await runtimeReplaceAllElements(ctx, username, slug, currentElements);
 
+      await activityService.record(db, {
+        projectId: result.project.projectId,
+        ...mcpActor(ctx),
+        eventType: 'elements_reorganized',
+        entityId: null,
+        entityName: null,
+        metadata: {
+          action: 'move_elements',
+          movedElements,
+          newParentId,
+          errors,
+        },
+      });
+
       const errorSuffix = errors.length > 0 ? ` (errors: ${errors.join(', ')})` : '';
 
       return {
@@ -1003,6 +1030,19 @@ to a new position among its siblings.`,
 
       await runtimeReplaceAllElements(ctx, username, slug, updatedElements);
 
+      await activityService.record(db, {
+        projectId: result.project.projectId,
+        ...mcpActor(ctx),
+        eventType: 'elements_reorganized',
+        entityId: elementId,
+        entityName: element.name,
+        metadata: {
+          action: 'reorder_element',
+          afterElementId,
+          position,
+        },
+      });
+
       return {
         content: [
           {
@@ -1132,6 +1172,21 @@ This properly handles positional hierarchy - subtrees move with their parents.`,
 
       const sortDescription = `${sortBy}${descending ? ' (descending)' : ''}${foldersFirst ? ', folders first' : ''}`;
 
+      await activityService.record(db, {
+        projectId: result.project.projectId,
+        ...mcpActor(ctx),
+        eventType: 'elements_reorganized',
+        entityId: parentId,
+        entityName: null,
+        metadata: {
+          action: 'sort_elements',
+          sortBy,
+          descending,
+          foldersFirst,
+          recursive,
+        },
+      });
+
       return {
         content: [
           {
@@ -1249,6 +1304,18 @@ registerTool({
       }
 
       const updatedFields = Object.keys(fields);
+
+      await activityService.record(db, {
+        projectId: result.project.projectId,
+        ...mcpActor(ctx),
+        eventType: 'worldbuilding_updated',
+        entityId: elementId,
+        entityName: null,
+        metadata: {
+          action: 'update_worldbuilding',
+          updatedFields,
+        },
+      });
 
       return {
         content: [
@@ -1401,29 +1468,47 @@ The content replaces the entire document. Use get_document_content first to read
         });
       }
 
+      // Read the pre-update word count so the activity event records a real
+      // delta instead of always 0. Best-effort: if the read fails (e.g. the
+      // document doesn't exist yet on this runtime), treat the prior count
+      // as 0 so we still get a meaningful delta for a brand-new document.
+      let preWordCount = 0;
+      try {
+        const pre = await runtimeGetDocumentContent(ctx, username, slug, elementId);
+        preWordCount = pre.wordCount;
+      } catch (err) {
+        mcpMutLog.debug(`Could not read pre-update word count for ${elementId}; defaulting to 0`, {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+
       // Apply the content update via Yjs
       await runtimeUpdateDocumentContent(ctx, username, slug, elementId, xmlContent);
 
-      // Calculate word count from the content
+      // Calculate word count from the new content
       const textContent = xmlContentToText(xmlContent);
 
       const wordCount = textContent.split(/\s+/).filter((w) => w.length > 0).length;
+      const wordsDelta = wordCount - preWordCount;
 
       await activityService.recordOrCoalesceEdit(db, {
         projectId: result.project.projectId,
         ...mcpActor(ctx),
         entityId: elementId,
         entityName: element.name,
-        wordsDelta: 0,
+        wordsDelta,
         endWordCount: wordCount,
         durationMs: 0,
+        metadata: { source: 'mcp', format },
       });
 
       return {
         content: [
           {
             type: 'text',
-            text: `Updated content for "${element.name}" (${wordCount} words)`,
+            text: `Updated content for "${element.name}" (${wordCount} words, ${
+              wordsDelta >= 0 ? '+' : ''
+            }${wordsDelta} vs. previous)`,
           },
         ],
         structuredContent: {
@@ -1431,6 +1516,8 @@ The content replaces the entire document. Use get_document_content first to read
           elementId,
           elementName: element.name,
           wordCount,
+          previousWordCount: preWordCount,
+          wordsDelta,
           format,
         },
       };
@@ -1522,6 +1609,20 @@ registerTool({
 
       await runtimeAddRelationship(ctx, username, slug, newRelationship);
 
+      await activityService.record(db, {
+        projectId: result.project.projectId,
+        ...mcpActor(ctx),
+        eventType: 'relationship_created',
+        entityId: newRelationship.id,
+        entityName: null,
+        metadata: {
+          sourceElementId: sourceId,
+          targetElementId: targetId,
+          relationshipType: type,
+          note: details ?? null,
+        },
+      });
+
       return {
         content: [
           {
@@ -1595,12 +1696,27 @@ registerTool({
         };
       }
 
+      const removed = relationships[index];
+
       // Remove the relationship from the array
       const updatedRelationships = [
         ...relationships.slice(0, index),
         ...relationships.slice(index + 1),
       ];
       await runtimeReplaceAllRelationships(ctx, username, slug, updatedRelationships);
+
+      await activityService.record(db, {
+        projectId: result.project.projectId,
+        ...mcpActor(ctx),
+        eventType: 'relationship_deleted',
+        entityId: relationshipId,
+        entityName: null,
+        metadata: {
+          sourceElementId: removed.sourceElementId,
+          targetElementId: removed.targetElementId,
+          relationshipType: removed.relationshipTypeId,
+        },
+      });
 
       return {
         content: [
@@ -1730,6 +1846,19 @@ registerTool({
       };
 
       await runtimeReplaceAllElements(ctx, username, slug, updatedElements);
+
+      await activityService.record(db, {
+        projectId: result.project.projectId,
+        ...mcpActor(ctx),
+        eventType: 'element_tagged',
+        entityId: elementId,
+        entityName: element.name,
+        metadata: {
+          action,
+          previousTags: currentTags,
+          newTags,
+        },
+      });
 
       return {
         content: [
@@ -1867,6 +1996,21 @@ registerTool({
           createdBy: 'mcp',
           elementName: element.name,
           elementType: element.type,
+        },
+      });
+
+      await activityService.record(db, {
+        projectId,
+        ...mcpActor(ctx),
+        eventType: 'snapshot_created',
+        entityId: snapshot.id,
+        entityName: snapshot.name,
+        metadata: {
+          documentId: elementId,
+          elementName: element.name,
+          elementType: element.type,
+          wordCount: snapshot.wordCount ?? null,
+          source: 'mcp',
         },
       });
 

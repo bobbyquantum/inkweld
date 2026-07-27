@@ -142,6 +142,16 @@ export class WritingStatsWidgetComponent implements OnInit {
         return `${who} renamed ${name || 'an item'}`;
       case 'element_deleted':
         return `${who} deleted ${name || 'an item'}`;
+      case 'elements_reorganized':
+        return `${who} reorganized items`;
+      case 'element_tagged':
+        return `${who} updated tags`;
+      case 'worldbuilding_updated':
+        return `${who} updated worldbuilding`;
+      case 'relationship_created':
+        return `${who} created a relationship`;
+      case 'relationship_deleted':
+        return `${who} deleted a relationship`;
       default:
         return `${who} did something`;
     }
