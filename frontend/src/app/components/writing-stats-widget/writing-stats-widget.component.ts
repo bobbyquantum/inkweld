@@ -22,6 +22,7 @@ import { WritingStatsService } from '@services/stats/writing-stats.service';
 import { firstValueFrom } from 'rxjs';
 
 import { formatRelativeDate } from '../../utils/date-format';
+import { describeActivityEvent } from '../../utils/activity-event-describe';
 
 /**
  * Cross-project stats + recent activity widget for the home page.
@@ -114,150 +115,9 @@ export class WritingStatsWidgetComponent implements OnInit {
   }
 
   protected eventSummary(event: UserActivityEvent): string {
-    const who =
-      event.username ??
-      event.actorLabel ??
-      this.transloco.translate('common.someone');
-    const name = event.entityName ?? '';
-    const params = { who, name };
-    const key = (named: string, generic: string) => (name ? named : generic);
-    switch (event.eventType) {
-      case 'document_edit':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.document_edit',
-            'project.activity.events.document_edit_generic'
-          ),
-          params
-        );
-      case 'snapshot_created':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.snapshot_created',
-            'project.activity.events.snapshot_created_generic'
-          ),
-          params
-        );
-      case 'comment_thread_created':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.comment_thread_created',
-            'project.activity.events.comment_thread_created_generic'
-          ),
-          params
-        );
-      case 'comment_reply_added':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.comment_reply_added',
-            'project.activity.events.comment_reply_added_generic'
-          ),
-          params
-        );
-      case 'file_published':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.file_published',
-            'project.activity.events.file_published_generic'
-          ),
-          params
-        );
-      case 'collaborator_invited':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.collaborator_invited',
-            'project.activity.events.collaborator_invited_generic'
-          ),
-          params
-        );
-      case 'collaborator_joined':
-        return this.transloco.translate(
-          'project.activity.events.collaborator_joined',
-          params
-        );
-      case 'collaborator_role_changed':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.collaborator_role_changed',
-            'project.activity.events.collaborator_role_changed_generic'
-          ),
-          params
-        );
-      case 'collaborator_removed':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.collaborator_removed',
-            'project.activity.events.collaborator_removed_generic'
-          ),
-          params
-        );
-      case 'element_created':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.element_created',
-            'project.activity.events.element_created_generic'
-          ),
-          params
-        );
-      case 'element_renamed':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.element_renamed',
-            'project.activity.events.element_renamed_generic'
-          ),
-          params
-        );
-      case 'element_deleted':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.element_deleted',
-            'project.activity.events.element_deleted_generic'
-          ),
-          params
-        );
-      case 'elements_reorganized':
-        return this.transloco.translate(
-          'project.activity.events.elements_reorganized',
-          params
-        );
-      case 'element_tagged':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.element_tagged',
-            'project.activity.events.element_tagged_generic'
-          ),
-          params
-        );
-      case 'worldbuilding_updated':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.worldbuilding_updated',
-            'project.activity.events.worldbuilding_updated_generic'
-          ),
-          params
-        );
-      case 'relationship_created':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.relationship_created',
-            'project.activity.events.relationship_created_generic'
-          ),
-          params
-        );
-      case 'relationship_deleted':
-        return this.transloco.translate(
-          key(
-            'project.activity.events.relationship_deleted',
-            'project.activity.events.relationship_deleted_generic'
-          ),
-          params
-        );
-      default:
-        return this.transloco.translate(
-          'project.activity.events.unknown',
-          params
-        );
-    }
+    return describeActivityEvent(event, (k, p) =>
+      this.transloco.translate(k, p)
+    );
   }
 
   /** Router link target for an event's owning project, or null if unknown. */
