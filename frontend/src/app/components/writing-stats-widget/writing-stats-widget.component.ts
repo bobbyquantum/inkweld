@@ -21,8 +21,8 @@ import { ActivityFeedService } from '@services/stats/activity-feed.service';
 import { WritingStatsService } from '@services/stats/writing-stats.service';
 import { firstValueFrom } from 'rxjs';
 
-import { formatRelativeDate } from '../../utils/date-format';
 import { describeActivityEvent } from '../../utils/activity-event-describe';
+import { formatRelativeDate } from '../../utils/date-format';
 
 /**
  * Cross-project stats + recent activity widget for the home page.

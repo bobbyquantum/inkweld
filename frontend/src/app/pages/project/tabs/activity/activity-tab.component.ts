@@ -21,8 +21,8 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { ActivityFeedService } from '@services/stats/activity-feed.service';
 import { firstValueFrom } from 'rxjs';
 
-import { formatRelativeDate } from '../../../../utils/date-format';
 import { describeActivityEvent } from '../../../../utils/activity-event-describe';
+import { formatRelativeDate } from '../../../../utils/date-format';
 
 /**
  * Project-scoped activity feed tab.

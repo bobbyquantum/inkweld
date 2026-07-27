@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import type { ProjectActivityEvent } from '@models/activity-event';
+import { describe, expect, it } from 'vitest';
+
 import { describeActivityEvent } from './activity-event-describe';
 
 /**
@@ -140,7 +141,6 @@ describe('describeActivityEvent', () => {
 
   it('falls back to the "unknown" key for an unrecognized event type', () => {
     const out = describeActivityEvent(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       makeEvent({ eventType: 'totally_made_up' as any, entityName: null }),
       fakeT
     );
