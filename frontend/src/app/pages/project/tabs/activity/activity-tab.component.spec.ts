@@ -199,6 +199,11 @@ describe('ActivityTabComponent', () => {
       'element_created',
       'element_renamed',
       'element_deleted',
+      'elements_reorganized',
+      'element_tagged',
+      'worldbuilding_updated',
+      'relationship_created',
+      'relationship_deleted',
     ] as const;
 
     for (const t of types) {

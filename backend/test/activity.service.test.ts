@@ -405,4 +405,76 @@ describe('ActivityService – recordOrCoalesceEdit', () => {
       durationMs: 1,
     });
   });
+
+  it('persists extra metadata fields supplied by the caller (e.g. MCP source)', async () => {
+    await activityService.recordOrCoalesceEdit(db, {
+      projectId: PROJECT_A,
+      userId: USER_ID,
+      entityId: 'el-meta-1',
+      entityName: 'Chapter Meta',
+      wordsDelta: 12,
+      endWordCount: 88,
+      durationMs: 4_000,
+      metadata: { source: 'mcp', format: 'markdown' },
+    });
+
+    const rows = await db
+      .select()
+      .from(activityEvents)
+      .where(eq(activityEvents.projectId, PROJECT_A));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].metadata).toEqual({
+      source: 'mcp',
+      format: 'markdown',
+      wordsDelta: 12,
+      endWordCount: 88,
+      durationMs: 4_000,
+    });
+  });
+
+  it('coalesces extra metadata fields from the most recent call', async () => {
+    await activityService.recordOrCoalesceEdit(db, {
+      projectId: PROJECT_A,
+      userId: USER_ID,
+      entityId: 'el-meta-2',
+      entityName: 'Chapter Meta 2',
+      wordsDelta: 5,
+      endWordCount: 5,
+      durationMs: 1_000,
+      metadata: { source: 'mcp', format: 'prosemirror_xml' },
+    });
+    // Second edit reports an unreliable pre-update read (the
+    // `previousWordCountEstimated: true` flag the MCP tool sets when
+    // runtimeGetDocumentContent throws). The coalesced row should carry
+    // the latest metadata while still summing wordsDelta/durationMs.
+    await activityService.recordOrCoalesceEdit(db, {
+      projectId: PROJECT_A,
+      userId: USER_ID,
+      entityId: 'el-meta-2',
+      entityName: 'Chapter Meta 2',
+      wordsDelta: 10,
+      endWordCount: 15,
+      durationMs: 2_000,
+      metadata: {
+        source: 'mcp',
+        format: 'markdown',
+        previousWordCountEstimated: true,
+      },
+    });
+
+    const rows = await db
+      .select()
+      .from(activityEvents)
+      .where(eq(activityEvents.projectId, PROJECT_A));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].metadata).toMatchObject({
+      source: 'mcp',
+      format: 'markdown',
+      previousWordCountEstimated: true,
+      wordsDelta: 15,
+      endWordCount: 15,
+      durationMs: 3_000,
+      coalesced: true,
+    });
+  });
 });

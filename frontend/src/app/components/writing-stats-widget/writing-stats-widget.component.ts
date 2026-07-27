@@ -12,7 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import type { UserActivityEvent } from '@models/activity-event';
 import type { UserStatsResponse } from '@models/writing-stats';
 import { LoggerService } from '@services/core/logger.service';
@@ -21,6 +21,7 @@ import { ActivityFeedService } from '@services/stats/activity-feed.service';
 import { WritingStatsService } from '@services/stats/writing-stats.service';
 import { firstValueFrom } from 'rxjs';
 
+import { describeActivityEvent } from '../../utils/activity-event-describe';
 import { formatRelativeDate } from '../../utils/date-format';
 
 /**
@@ -54,6 +55,7 @@ export class WritingStatsWidgetComponent implements OnInit {
   private readonly activityService = inject(ActivityFeedService);
   private readonly logger = inject(LoggerService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly transloco = inject(TranslocoService);
 
   /** Look-back window in days; default 30. */
   readonly windowDays = 30;
@@ -113,38 +115,9 @@ export class WritingStatsWidgetComponent implements OnInit {
   }
 
   protected eventSummary(event: UserActivityEvent): string {
-    const who = event.username ?? event.actorLabel ?? 'Someone';
-    const name = event.entityName ?? '';
-    const onName = name ? ` on ${name}` : '';
-    const ofName = name ? ` of ${name}` : '';
-    switch (event.eventType) {
-      case 'document_edit':
-        return `${who} edited ${name || 'a document'}`;
-      case 'snapshot_created':
-        return `${who} saved a snapshot${ofName}`;
-      case 'comment_thread_created':
-        return `${who} commented${onName}`;
-      case 'comment_reply_added':
-        return `${who} replied${onName}`;
-      case 'file_published':
-        return `${who} published ${name || 'a file'}`;
-      case 'collaborator_invited':
-        return `${who} invited a collaborator`;
-      case 'collaborator_joined':
-        return `${who} joined`;
-      case 'collaborator_role_changed':
-        return `${who} changed a collaborator role`;
-      case 'collaborator_removed':
-        return `${who} removed a collaborator`;
-      case 'element_created':
-        return `${who} created ${name || 'an item'}`;
-      case 'element_renamed':
-        return `${who} renamed ${name || 'an item'}`;
-      case 'element_deleted':
-        return `${who} deleted ${name || 'an item'}`;
-      default:
-        return `${who} did something`;
-    }
+    return describeActivityEvent(event, (k, p) =>
+      this.transloco.translate(k, p)
+    );
   }
 
   /** Router link target for an event's owning project, or null if unknown. */

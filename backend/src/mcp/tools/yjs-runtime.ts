@@ -11,6 +11,7 @@
 import type { McpContext } from '../mcp.types';
 import { type Element } from '../../schemas/element.schemas';
 import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
+import { xmlContentToText } from '../../utils/xml-utils';
 import { YjsWorkerService, type YjsWorkerContext } from '../../services/yjs-worker.service';
 
 /**
@@ -198,6 +199,63 @@ export async function updateWorldbuilding(
       }
     });
   }
+}
+
+/**
+ * Read the current ProseMirror content of a document (works on both runtimes).
+ *
+ * Returns the canonical XML string and a plain-text word count. Used by the
+ * `update_document_content` MCP tool to compute a real `wordsDelta` against
+ * the pre-update state, so the activity feed reflects how much the document
+ * actually changed rather than always recording 0.
+ *
+ * @param ctx - MCP context
+ * @param username - Project owner username
+ * @param slug - Project slug
+ * @param elementId - Document element ID
+ */
+export async function getDocumentContent(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string
+): Promise<{ xmlContent: string; wordCount: number }> {
+  const docId = `${username}:${slug}:${elementId}/`;
+
+  if (isCloudflareWorkers(ctx)) {
+    const workerCtx: YjsWorkerContext = {
+      env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
+      authToken: ctx.authToken ?? '',
+    };
+    const workerService = new YjsWorkerService(workerCtx);
+    const doc = await workerService.getDocument(docId);
+    const xmlFragment = doc.doc.getXmlFragment('prosemirror');
+    if (!xmlFragment) {
+      return { xmlContent: '', wordCount: 0 };
+    }
+    const xmlContent = xmlFragment.toString();
+    const wordCount = countWordsFromXml(xmlContent);
+    return { xmlContent, wordCount };
+  }
+
+  // Bun: use LevelDB service for direct Yjs access
+  const { yjsService } = await import('../../services/yjs.service');
+  const sharedDoc = await yjsService.getDocument(docId);
+  const xmlFragment = sharedDoc.doc.getXmlFragment('prosemirror');
+  const xmlContent = xmlFragment.toString();
+  const wordCount = countWordsFromXml(xmlContent);
+  return { xmlContent, wordCount };
+}
+
+/**
+ * Count words in a ProseMirror XML string by reusing the canonical
+ * `xmlContentToText` utility (so pre/post counts can never diverge) and
+ * applying the same whitespace-split + non-empty filter the rest of the
+ * codebase uses for `document_edit` events.
+ */
+function countWordsFromXml(xmlContent: string): number {
+  const text = xmlContentToText(xmlContent);
+  return text.split(/\s+/).filter((w) => w.length > 0).length;
 }
 
 /**

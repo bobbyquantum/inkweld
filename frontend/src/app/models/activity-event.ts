@@ -22,7 +22,12 @@ export type ActivityEventType =
   | 'collaborator_removed'
   | 'element_created'
   | 'element_renamed'
-  | 'element_deleted';
+  | 'element_deleted'
+  | 'elements_reorganized'
+  | 'element_tagged'
+  | 'worldbuilding_updated'
+  | 'relationship_created'
+  | 'relationship_deleted';
 
 /** Event as returned by the project-scoped feed. */
 export interface ProjectActivityEvent {

@@ -11,7 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import type {
   ActivityEventType,
   ProjectActivityEvent,
@@ -21,6 +21,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { ActivityFeedService } from '@services/stats/activity-feed.service';
 import { firstValueFrom } from 'rxjs';
 
+import { describeActivityEvent } from '../../../../utils/activity-event-describe';
 import { formatRelativeDate } from '../../../../utils/date-format';
 
 /**
@@ -53,6 +54,7 @@ export class ActivityTabComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly activityFeed = inject(ActivityFeedService);
   private readonly logger = inject(LoggerService);
+  private readonly transloco = inject(TranslocoService);
 
   /** Monotonically-increasing token; guards against stale async responses. */
   private requestToken = 0;
@@ -145,38 +147,9 @@ export class ActivityTabComponent {
   }
 
   protected describe(event: ProjectActivityEvent): string {
-    const who = event.username ?? event.actorLabel ?? 'Someone';
-    const name = event.entityName ?? '';
-    const ofName = name ? ` of ${name}` : '';
-    const onName = name ? ` on ${name}` : '';
-    switch (event.eventType) {
-      case 'document_edit':
-        return `${who} edited ${name || 'a document'}`;
-      case 'snapshot_created':
-        return `${who} saved a snapshot${ofName}`;
-      case 'comment_thread_created':
-        return `${who} started a comment thread${onName}`;
-      case 'comment_reply_added':
-        return `${who} replied to a comment${onName}`;
-      case 'file_published':
-        return `${who} published ${name || 'a file'}`;
-      case 'collaborator_invited':
-        return `${who} invited ${name || 'a collaborator'}`;
-      case 'collaborator_joined':
-        return `${who} joined the project`;
-      case 'collaborator_role_changed':
-        return `${who} changed the role of ${name || 'a collaborator'}`;
-      case 'collaborator_removed':
-        return `${who} removed ${name || 'a collaborator'}`;
-      case 'element_created':
-        return `${who} created ${name || 'an item'}`;
-      case 'element_renamed':
-        return `${who} renamed ${name || 'an item'}`;
-      case 'element_deleted':
-        return `${who} deleted ${name || 'an item'}`;
-      default:
-        return `${who} did something`;
-    }
+    return describeActivityEvent(event, (k, p) =>
+      this.transloco.translate(k, p)
+    );
   }
 }
 
@@ -193,4 +166,9 @@ const ACTIVITY_ICONS: Record<ActivityEventType, string> = {
   element_created: 'add_circle',
   element_renamed: 'drive_file_rename_outline',
   element_deleted: 'delete',
+  elements_reorganized: 'low_priority',
+  relationship_created: 'account_tree',
+  relationship_deleted: 'link_off',
+  element_tagged: 'label',
+  worldbuilding_updated: 'public',
 };

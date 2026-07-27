@@ -31,6 +31,11 @@ export const ACTIVITY_EVENT_TYPES = [
   'element_created',
   'element_renamed',
   'element_deleted',
+  'elements_reorganized',
+  'element_tagged',
+  'worldbuilding_updated',
+  'relationship_created',
+  'relationship_deleted',
 ] as const;
 
 export type ActivityEventType = (typeof ACTIVITY_EVENT_TYPES)[number];
