@@ -355,25 +355,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     console.log('[DO-HTTP] projectId:', this.projectId);
 
     try {
-      // Route based on path and method
-      if (path === '/api/elements' && method === 'GET') {
-        console.log('[DO-HTTP] Routing to handleGetElements');
-        return this.handleGetElements(documentId);
-      } else if (path === '/api/elements' && method === 'POST') {
-        console.log('[DO-HTTP] Routing to handleMutateElements');
-        return this.handleMutateElements(request, documentId);
-      } else if (path === '/api/document' && method === 'GET') {
-        return this.handleGetDocument(documentId);
-      } else if (path === '/api/document' && method === 'POST') {
-        return this.handleUpdateDocument(request, documentId);
-      } else if (path === '/api/stats' && method === 'GET') {
-        return this.handleGetStats(documentId);
-      } else {
-        return new Response(JSON.stringify({ error: 'Not found' }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
+      return await this.dispatchHttpRoute(path, method, request, documentId);
     } catch (error) {
       projDOLog.error('HTTP API error:', error);
       return new Response(JSON.stringify({ error: 'Internal server error' }), {
@@ -381,6 +363,33 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+  }
+
+  private async dispatchHttpRoute(
+    path: string,
+    method: string,
+    request: Request,
+    documentId: string
+  ): Promise<Response> {
+    if (path === '/api/elements' && method === 'GET') {
+      return this.handleGetElements(documentId);
+    }
+    if (path === '/api/elements' && method === 'POST') {
+      return this.handleMutateElements(request, documentId);
+    }
+    if (path === '/api/document' && method === 'GET') {
+      return this.handleGetDocument(documentId);
+    }
+    if (path === '/api/document' && method === 'POST') {
+      return this.handleUpdateDocument(request, documentId);
+    }
+    if (path === '/api/stats' && method === 'GET') {
+      return this.handleGetStats(documentId);
+    }
+    return new Response(JSON.stringify({ error: 'Not found' }), {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   /**
