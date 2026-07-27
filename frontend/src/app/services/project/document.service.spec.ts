@@ -106,8 +106,11 @@ describe('DocumentService', () => {
     // Note: WebsocketProvider and IndexeddbPersistence are already mocked in setup-vitest.ts
 
     // Mock ProjectStateService
+    // isLocallyCreatedElement returns true to bypass the empty-document guard
+    // in tests (the guard is tested separately in project-state.service.spec.ts)
     mockProjectStateService = {
       updateSyncState: vi.fn(),
+      isLocallyCreatedElement: vi.fn().mockReturnValue(true),
       project: vi.fn().mockReturnValue({
         username: 'testuser',
         slug: 'test-project',

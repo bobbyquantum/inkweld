@@ -83,6 +83,13 @@ export class SyncQueueService {
   >();
 
   /**
+   * Document ID to prioritize during sync.
+   * When set, this document is synced first before other documents in the project.
+   * Format: "username:slug:elementId"
+   */
+  private priorityDocumentId: string | null = null;
+
+  /**
    * Version counter that increments whenever the projectStatuses map changes.
    * Used to trigger reactivity in components that depend on status lookups.
    */
@@ -145,8 +152,12 @@ export class SyncQueueService {
    * Clears any existing queue and starts fresh.
    *
    * @param projects - Array of projects to sync
+   * @param priorityDocumentId - Optional document ID to sync first (format: "username:slug:elementId")
    */
-  async syncAllProjects(projects: Project[]): Promise<void> {
+  async syncAllProjects(
+    projects: Project[],
+    priorityDocumentId?: string
+  ): Promise<void> {
     if (this.queueState().isActive) {
       this.logger.warn('SyncQueueService', 'Sync already in progress');
       return;
@@ -173,8 +184,11 @@ export class SyncQueueService {
 
     this.logger.info(
       'SyncQueueService',
-      `Starting sync of ${projects.length} projects`
+      `Starting sync of ${projects.length} projects${priorityDocumentId ? ` (priority: ${priorityDocumentId})` : ''}`
     );
+
+    // Store priority document ID for use during document sync
+    this.priorityDocumentId = priorityDocumentId ?? null;
 
     // Clear previous state
     this.projectStatuses.clear();
@@ -262,6 +276,9 @@ export class SyncQueueService {
       isActive: false,
       currentProjectKey: null,
     }));
+
+    // Clear priority document ID after sync completes
+    this.priorityDocumentId = null;
 
     const finalState = this.queueState();
     this.logger.info(
@@ -373,21 +390,40 @@ export class SyncQueueService {
   /**
    * Sync all documents in the project.
    * Discovers ITEM elements from the local elements Yjs doc, then syncs each prose document.
+   * If a priority document ID is set, that document is synced first.
    */
   private async syncDocuments(projectKey: string): Promise<void> {
     const [username, slug] = projectKey.split('/');
     const elements = await this.loadElementsFromIndexedDB(username, slug);
 
-    const documentIds = elements
+    const allDocumentIds = elements
       .filter(el => el.type === ElementType.Item)
       .map(el => `${username}:${slug}:${el.id}`);
 
-    if (documentIds.length === 0) {
+    if (allDocumentIds.length === 0) {
       this.logger.debug(
         'SyncQueueService',
         `[${projectKey}] No documents to sync`
       );
       return;
+    }
+
+    // Prioritize the requested document if it belongs to this project
+    let documentIds = allDocumentIds;
+    if (this.priorityDocumentId) {
+      const priorityId = this.priorityDocumentId;
+      const belongsToProject = allDocumentIds.includes(priorityId);
+      if (belongsToProject) {
+        // Move priority document to the front
+        documentIds = [
+          priorityId,
+          ...allDocumentIds.filter(id => id !== priorityId),
+        ];
+        this.logger.debug(
+          'SyncQueueService',
+          `[${projectKey}] Prioritizing document: ${priorityId}`
+        );
+      }
     }
 
     const result =
