@@ -267,8 +267,11 @@ export class DocumentService {
    * the onupgradeneeded event fires and we immediately abort the transaction.
    * This prevents creating an empty database shell.
    *
+   * A database with object stores but no persisted Yjs updates (a "schema shell")
+   * is treated as empty. We check the y-indexeddb `updates` store for actual records.
+   *
    * @param documentId - The document ID to check
-   * @returns True if the document exists and has object stores
+   * @returns True if the document exists and has persisted Yjs update records
    */
   private checkDocumentHasContent(documentId: string): Promise<boolean> {
     return new Promise(resolve => {
@@ -283,9 +286,42 @@ export class DocumentService {
 
         request.onsuccess = () => {
           const db = request.result;
-          const hasData = db.objectStoreNames.length > 0;
-          db.close();
-          resolve(hasData);
+
+          // No object stores means no schema - definitely empty
+          if (db.objectStoreNames.length === 0) {
+            db.close();
+            resolve(false);
+            return;
+          }
+
+          // y-indexeddb stores persisted updates in the 'updates' store.
+          // A schema-only database (created but never synced) has the store
+          // but zero records. Check for at least one record.
+          const storeName = 'updates';
+          if (!db.objectStoreNames.contains(storeName)) {
+            // Unexpected schema - treat as having content to be safe
+            db.close();
+            resolve(true);
+            return;
+          }
+
+          try {
+            const tx = db.transaction(storeName, 'readonly');
+            const store = tx.objectStore(storeName);
+            const countRequest = store.count();
+
+            countRequest.onsuccess = () => {
+              db.close();
+              resolve(countRequest.result > 0);
+            };
+            countRequest.onerror = () => {
+              db.close();
+              resolve(false);
+            };
+          } catch {
+            db.close();
+            resolve(false);
+          }
         };
 
         // Covers both real errors and the AbortError from onupgradeneeded

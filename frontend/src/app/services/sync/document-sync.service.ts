@@ -56,17 +56,21 @@ export class DocumentSyncService {
     this.documentUnavailable.set(unavailable);
 
     if (unavailable) {
-      void this.maybeAutoSync(elementId, docType);
+      void this.maybeAutoSync(elementId, docType, token);
     }
   }
 
   /**
    * Auto-trigger sync if online and in server mode.
    * Only attempts once per document to avoid repeated sync loops.
+   *
+   * @param availabilityToken - The token from checkAvailability, preserved so
+   *   the post-sync re-check doesn't overwrite a newer document's state.
    */
   private async maybeAutoSync(
     elementId: string,
-    docType: 'document' | 'worldbuilding'
+    docType: 'document' | 'worldbuilding',
+    availabilityToken: number
   ): Promise<void> {
     if (this.syncing()) return;
     if (this.autoSyncAttemptedFor === elementId) return;
@@ -74,16 +78,21 @@ export class DocumentSyncService {
     if (this.setupService.getMode() !== 'server') return;
 
     this.autoSyncAttemptedFor = elementId;
-    await this.triggerSync(elementId, docType);
+    await this.triggerSync(elementId, docType, availabilityToken);
   }
 
   /**
    * Trigger a sync for the current project, then re-check document availability.
    * The document being synced is prioritized so it downloads first.
+   *
+   * @param availabilityToken - Optional token from checkAvailability. When provided,
+   *   the post-sync re-check uses this token instead of creating a new one, preventing
+   *   an older document's sync from overwriting a newer document's availability state.
    */
   async triggerSync(
     elementId: string,
-    docType: 'document' | 'worldbuilding' = 'document'
+    docType: 'document' | 'worldbuilding' = 'document',
+    availabilityToken?: number
   ): Promise<void> {
     const project = this.projectState.project();
     if (!project) return;
@@ -106,9 +115,11 @@ export class DocumentSyncService {
       return;
     }
 
-    // Re-check availability after sync
+    // Re-check availability after sync.
+    // Use the provided token (from auto-sync) or create a new one (manual sync).
+    // This prevents an older document's sync from overwriting newer state.
     if (elementId) {
-      const token = ++this.availabilityCheckToken;
+      const token = availabilityToken ?? ++this.availabilityCheckToken;
       const unavailable = await this.projectState.isDocumentUnavailable(
         elementId,
         docType
