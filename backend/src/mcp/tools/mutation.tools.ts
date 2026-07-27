@@ -51,6 +51,30 @@ const mcpMutLog = logger.child('MCP-Mutation');
 function mcpActor(ctx: McpContext): { userId: string } | { actorLabel: string } {
   return ctx.type === 'oauth' ? { userId: ctx.userId } : { actorLabel: ctx.key.name || 'MCP' };
 }
+
+/**
+ * Read the pre-update word count for a document so the activity event
+ * can record a real `wordsDelta` instead of always 0. Best-effort: on
+ * failure (e.g. the document doesn't exist yet on this runtime), the
+ * prior count defaults to 0 and `reliable` is set to `false` so the
+ * caller can flag the recorded event as an estimate.
+ */
+async function readPreUpdateWordCount(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string
+): Promise<{ preWordCount: number; reliable: boolean }> {
+  try {
+    const pre = await runtimeGetDocumentContent(ctx, username, slug, elementId);
+    return { preWordCount: pre.wordCount, reliable: true };
+  } catch (err) {
+    mcpMutLog.warn(`Could not read pre-update word count for ${elementId}; defaulting to 0`, {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return { preWordCount: 0, reliable: false };
+  }
+}
 import {
   insertElement,
   removeElement,
@@ -1469,23 +1493,16 @@ The content replaces the entire document. Use get_document_content first to read
       }
 
       // Read the pre-update word count so the activity event records a real
-      // delta instead of always 0. Best-effort: if the read fails (e.g. the
-      // document doesn't exist yet on this runtime), treat the prior count
-      // as 0 so we still get a meaningful delta for a brand-new document.
-      // We flag an unreliable read in the recorded metadata so downstream
-      // consumers (activity feed, stats widget) can distinguish a real
-      // delta from a fallback estimate.
-      let preWordCount = 0;
-      let preWordCountReliable = true;
-      try {
-        const pre = await runtimeGetDocumentContent(ctx, username, slug, elementId);
-        preWordCount = pre.wordCount;
-      } catch (err) {
-        preWordCountReliable = false;
-        mcpMutLog.warn(`Could not read pre-update word count for ${elementId}; defaulting to 0`, {
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
+      // delta instead of always 0. Best-effort: on failure the prior count
+      // defaults to 0 and `preWordCountReliable` is false, which we flag in
+      // the recorded metadata so downstream consumers (activity feed, stats
+      // widget) can distinguish a real delta from a fallback estimate.
+      const { preWordCount, reliable: preWordCountReliable } = await readPreUpdateWordCount(
+        ctx,
+        username,
+        slug,
+        elementId
+      );
 
       // Apply the content update via Yjs
       await runtimeUpdateDocumentContent(ctx, username, slug, elementId, xmlContent);

@@ -139,11 +139,12 @@ describe('describeActivityEvent', () => {
     }
   });
 
-  it('falls back to the "unknown" key for an unrecognized event type', () => {
-    const out = describeActivityEvent(
-      makeEvent({ eventType: 'totally_made_up' as any, entityName: null }),
-      fakeT
-    );
-    expect(out).toBe('project.activity.events.unknown');
+  it('throws on an unrecognized event type (exhaustiveness guard)', () => {
+    expect(() =>
+      describeActivityEvent(
+        makeEvent({ eventType: 'totally_made_up' as any, entityName: null }),
+        fakeT
+      )
+    ).toThrow(/Unhandled activity event type/);
   });
 });

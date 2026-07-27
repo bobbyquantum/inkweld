@@ -150,7 +150,7 @@ class ActivityService {
         };
         const mergedMetadata = {
           ...prevMeta,
-          ...(data.metadata ?? {}),
+          ...data.metadata,
           wordsDelta: (prevMeta.wordsDelta ?? 0) + data.wordsDelta,
           endWordCount: data.endWordCount,
           durationMs: (prevMeta.durationMs ?? 0) + data.durationMs,
@@ -177,7 +177,7 @@ class ActivityService {
           entityId: data.entityId,
           entityName: data.entityName,
           metadata: {
-            ...(data.metadata ?? {}),
+            ...data.metadata,
             wordsDelta: data.wordsDelta,
             endWordCount: data.endWordCount,
             durationMs: data.durationMs,
