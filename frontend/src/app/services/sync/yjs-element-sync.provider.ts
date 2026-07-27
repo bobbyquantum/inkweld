@@ -266,7 +266,6 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
           this.doc,
           authToken,
           {
-            resyncInterval: 60000,
             maxBackoffTime: WS_MAX_BACKOFF_TIME,
             // Capture malformed-frame diagnostics through the logger so
             // they're attributable to the elements doc in production logs.

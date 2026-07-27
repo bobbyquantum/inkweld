@@ -1565,7 +1565,7 @@ describe('DocumentService', () => {
           '',
           expect.any(Y.Doc),
           'test-auth-token',
-          { resyncInterval: 60000 }
+          {}
         );
         expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
         expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
@@ -1689,7 +1689,7 @@ describe('DocumentService', () => {
           '',
           expect.any(Y.Doc),
           'test-auth-token',
-          { resyncInterval: 60000 }
+          {}
         );
         expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
         expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
@@ -1791,7 +1791,7 @@ describe('DocumentService', () => {
           '',
           expect.any(Y.Doc),
           'test-auth-token',
-          { resyncInterval: 60000 }
+          {}
         );
         expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
         expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
