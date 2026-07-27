@@ -343,11 +343,12 @@ describe('DocumentTabComponent', () => {
       (projectStateService.selectedTabIndex as any).set(0);
     });
 
-    it('calls syncAllProjects with the current project', async () => {
+    it('calls syncAllProjects with the current project and priority document ID', async () => {
       await (component as any).triggerSync();
-      expect(syncQueueService.syncAllProjects).toHaveBeenCalledWith([
-        mockProject,
-      ]);
+      expect(syncQueueService.syncAllProjects).toHaveBeenCalledWith(
+        [mockProject],
+        'user:proj:remote-doc'
+      );
     });
 
     it('sets syncing to true during sync and false after', async () => {

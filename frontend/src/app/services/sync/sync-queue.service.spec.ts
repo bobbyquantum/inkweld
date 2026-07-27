@@ -466,4 +466,70 @@ describe('SyncQueueService', () => {
       );
     });
   });
+
+  describe('priority document', () => {
+    it('should prioritize the specified document when it belongs to the project', async () => {
+      vi.spyOn(service as any, 'loadElementsFromIndexedDB').mockResolvedValue([
+        { id: 'doc-a', type: ElementType.Item, name: 'Chapter A' },
+        { id: 'doc-b', type: ElementType.Item, name: 'Chapter B' },
+        { id: 'doc-c', type: ElementType.Item, name: 'Chapter C' },
+      ]);
+
+      const projects = [createMockProject('1', 'project-1')];
+      await service.syncAllProjects(projects, 'testuser:project-1:doc-b');
+
+      // doc-b should be first in the list
+      expect(mockDocumentService.syncDocumentsToServer).toHaveBeenCalledWith([
+        'testuser:project-1:doc-b',
+        'testuser:project-1:doc-a',
+        'testuser:project-1:doc-c',
+      ]);
+    });
+
+    it('should not reorder when priority document does not belong to project', async () => {
+      vi.spyOn(service as any, 'loadElementsFromIndexedDB').mockResolvedValue([
+        { id: 'doc-a', type: ElementType.Item, name: 'Chapter A' },
+        { id: 'doc-b', type: ElementType.Item, name: 'Chapter B' },
+      ]);
+
+      const projects = [createMockProject('1', 'project-1')];
+      await service.syncAllProjects(projects, 'testuser:other-project:doc-x');
+
+      // Original order preserved
+      expect(mockDocumentService.syncDocumentsToServer).toHaveBeenCalledWith([
+        'testuser:project-1:doc-a',
+        'testuser:project-1:doc-b',
+      ]);
+    });
+
+    it('should sync normally when no priority document is specified', async () => {
+      vi.spyOn(service as any, 'loadElementsFromIndexedDB').mockResolvedValue([
+        { id: 'doc-a', type: ElementType.Item, name: 'Chapter A' },
+        { id: 'doc-b', type: ElementType.Item, name: 'Chapter B' },
+      ]);
+
+      const projects = [createMockProject('1', 'project-1')];
+      await service.syncAllProjects(projects);
+
+      expect(mockDocumentService.syncDocumentsToServer).toHaveBeenCalledWith([
+        'testuser:project-1:doc-a',
+        'testuser:project-1:doc-b',
+      ]);
+    });
+  });
+
+  describe('offline behavior', () => {
+    it('should not sync when offline', async () => {
+      vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+
+      const projects = [createMockProject('1', 'project-1')];
+      await service.syncAllProjects(projects);
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'SyncQueueService',
+        'Cannot sync while offline'
+      );
+      expect(service.queueState().isActive).toBe(false);
+    });
+  });
 });

@@ -1,6 +1,7 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Project } from '@inkweld/index';
+import { SetupService } from '@services/core/setup.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { SyncQueueService } from '@services/sync/sync-queue.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,6 +13,7 @@ describe('DocumentSyncService', () => {
   let service: DocumentSyncService;
   let mockProjectState: Partial<ProjectStateService>;
   let mockSyncQueueService: Partial<SyncQueueService>;
+  let mockSetupService: Partial<SetupService>;
 
   const mockProject = {
     id: 'p1',
@@ -36,6 +38,10 @@ describe('DocumentSyncService', () => {
       }),
     };
 
+    mockSetupService = {
+      getMode: vi.fn().mockReturnValue('server'),
+    };
+
     TestBed.configureTestingModule({
       imports: [translocoTestProvider()],
       providers: [
@@ -43,6 +49,7 @@ describe('DocumentSyncService', () => {
         DocumentSyncService,
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: SyncQueueService, useValue: mockSyncQueueService },
+        { provide: SetupService, useValue: mockSetupService },
       ],
     });
 
@@ -90,14 +97,80 @@ describe('DocumentSyncService', () => {
       await service.checkAvailability('');
       expect(mockProjectState.isDocumentUnavailable).not.toHaveBeenCalled();
     });
+
+    describe('auto-sync', () => {
+      it('auto-triggers sync when document unavailable, online, and in server mode', async () => {
+        (
+          mockProjectState.isDocumentUnavailable as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(true);
+        vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+
+        await service.checkAvailability('elem-1');
+
+        expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledWith(
+          [mockProject],
+          'user:proj:elem-1'
+        );
+      });
+
+      it('does not auto-sync when offline', async () => {
+        (
+          mockProjectState.isDocumentUnavailable as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(true);
+        vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+
+        await service.checkAvailability('elem-1');
+
+        expect(mockSyncQueueService.syncAllProjects).not.toHaveBeenCalled();
+      });
+
+      it('does not auto-sync in local mode', async () => {
+        (
+          mockProjectState.isDocumentUnavailable as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(true);
+        (mockSetupService.getMode as ReturnType<typeof vi.fn>).mockReturnValue(
+          'local'
+        );
+        vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+
+        await service.checkAvailability('elem-1');
+
+        expect(mockSyncQueueService.syncAllProjects).not.toHaveBeenCalled();
+      });
+
+      it('only auto-syncs once per document', async () => {
+        (
+          mockProjectState.isDocumentUnavailable as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(true);
+        vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+
+        await service.checkAvailability('elem-1');
+        await service.checkAvailability('elem-1');
+
+        expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledTimes(1);
+      });
+
+      it('auto-syncs again for a different document', async () => {
+        (
+          mockProjectState.isDocumentUnavailable as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(true);
+        vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+
+        await service.checkAvailability('elem-1');
+        await service.checkAvailability('elem-2');
+
+        expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledTimes(2);
+      });
+    });
   });
 
   describe('triggerSync', () => {
-    it('calls syncAllProjects with the current project', async () => {
+    it('calls syncAllProjects with the current project and priority document ID', async () => {
       await service.triggerSync('elem-1');
-      expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledWith([
-        mockProject,
-      ]);
+      expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledWith(
+        [mockProject],
+        'user:proj:elem-1'
+      );
     });
 
     it('sets syncing to true during sync and false after', async () => {

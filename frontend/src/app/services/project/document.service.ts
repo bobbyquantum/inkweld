@@ -207,6 +207,132 @@ export class DocumentService {
   constructor() {}
 
   /**
+   * Guard against creating empty documents for unsynced remote content.
+   *
+   * In server mode, if a document doesn't exist in IndexedDB and wasn't created
+   * locally during this session, we refuse to create it. This prevents the
+   * "empty doc conflicts with server content" problem that occurs when:
+   * 1. Server is down
+   * 2. User opens a document that hasn't synced yet
+   * 3. An empty Y.Doc is created and persisted to IndexedDB
+   * 4. Server comes back, but now local empty doc conflicts with server content
+   *
+   * @param documentId - The full document ID (username:slug:elementId)
+   * @throws Error if the document is unavailable and should not be created
+   */
+  private async guardAgainstEmptyDocumentCreation(
+    documentId: string
+  ): Promise<void> {
+    // Only guard in server mode - local mode always allows creation
+    if (this.setupService.getMode() !== 'server') {
+      return;
+    }
+
+    // Extract element ID from documentId (username:slug:elementId)
+    const parts = documentId.split(':');
+    const elementId = parts.at(-1);
+    if (!elementId) return;
+
+    // Check if this element was created locally during this session
+    // Locally created elements are always safe to open
+    if (this.projectStateService.isLocallyCreatedElement(elementId)) {
+      return;
+    }
+
+    // Check if the document already has content in IndexedDB
+    // We use the same abort-on-upgrade technique as ProjectStateService
+    const hasContent = await this.checkDocumentHasContent(documentId);
+    if (hasContent) {
+      return;
+    }
+
+    // Document doesn't exist locally and wasn't created locally
+    // Refuse to create it to prevent conflicts with server content
+    this.logger.warn(
+      'DocumentService',
+      `Blocking creation of empty document ${documentId} - ` +
+        `document not synced and not locally created. ` +
+        `Use the Sync Project button to download it first.`
+    );
+    throw new Error(
+      `Document unavailable: "${documentId}" has not been synced to this device yet. ` +
+        `Please sync the project first.`
+    );
+  }
+
+  /**
+   * Check if a Yjs document has content in IndexedDB without creating it.
+   *
+   * Uses the abort-on-upgrade technique: if the database doesn't exist,
+   * the onupgradeneeded event fires and we immediately abort the transaction.
+   * This prevents creating an empty database shell.
+   *
+   * A database with object stores but no persisted Yjs updates (a "schema shell")
+   * is treated as empty. We check the y-indexeddb `updates` store for actual records.
+   *
+   * @param documentId - The document ID to check
+   * @returns True if the document exists and has persisted Yjs update records
+   */
+  private checkDocumentHasContent(documentId: string): Promise<boolean> {
+    return new Promise(resolve => {
+      try {
+        const request = indexedDB.open(documentId);
+
+        // onupgradeneeded fires when the DB doesn't exist (version 0 → 1)
+        // Aborting prevents creating an empty shell database
+        request.onupgradeneeded = event => {
+          (event.target as IDBOpenDBRequest).transaction?.abort();
+        };
+
+        request.onsuccess = () => {
+          const db = request.result;
+
+          // No object stores means no schema - definitely empty
+          if (db.objectStoreNames.length === 0) {
+            db.close();
+            resolve(false);
+            return;
+          }
+
+          // y-indexeddb stores persisted updates in the 'updates' store.
+          // A schema-only database (created but never synced) has the store
+          // but zero records. Check for at least one record.
+          const storeName = 'updates';
+          if (!db.objectStoreNames.contains(storeName)) {
+            // Unexpected schema - treat as having content to be safe
+            db.close();
+            resolve(true);
+            return;
+          }
+
+          try {
+            const tx = db.transaction(storeName, 'readonly');
+            const store = tx.objectStore(storeName);
+            const countRequest = store.count();
+
+            countRequest.onsuccess = () => {
+              db.close();
+              resolve(countRequest.result > 0);
+            };
+            countRequest.onerror = () => {
+              db.close();
+              resolve(false);
+            };
+          } catch {
+            db.close();
+            resolve(false);
+          }
+        };
+
+        // Covers both real errors and the AbortError from onupgradeneeded
+        request.onerror = () => resolve(false);
+      } catch {
+        resolve(false);
+      }
+    });
+  }
+
+  /**
    * Gets reactive sync status signal for a document
    */
   getSyncStatusSignal(documentId: string): Signal<DocumentSyncState> {
@@ -697,6 +823,7 @@ export class DocumentService {
    * @param editor - The editor instance to enable collaboration on
    * @param documentId - Unique identifier for the document
    * @returns Promise that resolves when collaboration is set up
+   * @throws Error if the document is unavailable (server mode, not locally created, no IndexedDB content)
    */
   async setupCollaboration(editor: Editor, documentId: string): Promise<void> {
     this.logger.debug(
@@ -727,6 +854,12 @@ export class DocumentService {
     if (!editor?.view) {
       throw new Error('Editor Yjs not properly initialized');
     }
+
+    // Guard: Prevent creating empty documents for unsynced remote content.
+    // In server mode, if the document doesn't exist in IndexedDB and wasn't
+    // created locally, refuse to create it. This prevents the "empty doc
+    // conflicts with server content" problem when the server was down.
+    await this.guardAgainstEmptyDocumentCreation(documentId);
 
     // Check if we already have a connection for this document
     let connection = this.connections.get(documentId);
