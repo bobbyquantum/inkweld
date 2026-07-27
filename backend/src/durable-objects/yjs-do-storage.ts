@@ -154,7 +154,8 @@ export class YjsDocStorage {
     const { syncFrames, staleKeys } = partitionPersistedFrames(entries);
     for (const frame of syncFrames) applyFrame(frame);
 
-    const incrementalKeys = [...entries.keys()];
+    const staleKeySet = new Set(staleKeys);
+    const incrementalKeys = [...entries.keys()].filter((key) => !staleKeySet.has(key));
 
     this.log.debug(
       `Loaded document ${documentId} from storage: snapshot=${hadSnapshot}, ${syncFrames.length} incremental sync frames, ${staleKeys.length} non-sync frames purged`

@@ -162,7 +162,7 @@ describe('YjsDocStorage.loadAndReplay', () => {
     expect(storage.deletes).toEqual([['doc:d:update:1:00000001']]);
     expect(result.hadSnapshot).toBe(false);
     expect(result.totalRowsRead).toBe(3);
-    expect(result.incrementalKeys).toHaveLength(3);
+    expect(result.incrementalKeys).toEqual(['doc:d:update:1:00000000', 'doc:d:update:1:00000002']);
   });
 
   it('does nothing when no persisted updates exist', async () => {

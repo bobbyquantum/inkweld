@@ -48,7 +48,7 @@ import {
   isYjsFrameBlockedForViewer,
   isElementsDoc,
 } from '../utils/yjs-document-utils';
-import { YjsDocStorage, COMPACT_THRESHOLD } from './yjs-do-storage';
+import { YjsDocStorage, COMPACT_THRESHOLD, snapshotKey } from './yjs-do-storage';
 import { checkWsRateLimit } from './ws-rate-limiter';
 import {
   PRESENCE_KEEPALIVE_PING,
@@ -626,7 +626,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    */
   private async handleGetStats(documentId: string): Promise<Response> {
     const storagePrefix = `doc:${documentId}:`;
-    const snapKey = `${storagePrefix}snapshot`;
+    const snapKey = snapshotKey(storagePrefix);
     const updatePrefix = `${storagePrefix}update:`;
 
     const hasSnapshot = (await this.state.storage.get(snapKey)) !== undefined;
