@@ -4,6 +4,8 @@ import {
   persistUpdateKey,
   partitionPersistedFrames,
   chunkKeysForDelete,
+  snapshotKey,
+  COMPACT_THRESHOLD,
   type DoStorage,
   type StorageLogger,
 } from '../src/durable-objects/yjs-do-storage';
@@ -17,6 +19,9 @@ function makeStorage(entries: Map<string, number[]> = new Map()): DoStorage & {
   const puts: Array<{ key: string; value: number[] }> = [];
   const deletes: string[][] = [];
   return {
+    async get<T>(key: string): Promise<T | undefined> {
+      return entries.get(key) as unknown as T | undefined;
+    },
     async list<T>(opts: { prefix: string }): Promise<Map<string, T>> {
       const out = new Map<string, T>();
       for (const [k, v] of entries) {
@@ -151,10 +156,13 @@ describe('YjsDocStorage.loadAndReplay', () => {
     const applied: Uint8Array[] = [];
     const ds = new YjsDocStorage(storage, noopLogger);
 
-    await ds.loadAndReplay('d', (frame) => applied.push(frame));
+    const result = await ds.loadAndReplay('d', (frame) => applied.push(frame));
 
     expect(applied).toEqual([sync1, sync2]);
     expect(storage.deletes).toEqual([['doc:d:update:1:00000001']]);
+    expect(result.hadSnapshot).toBe(false);
+    expect(result.totalRowsRead).toBe(3);
+    expect(result.incrementalKeys).toHaveLength(3);
   });
 
   it('does nothing when no persisted updates exist', async () => {
@@ -162,14 +170,52 @@ describe('YjsDocStorage.loadAndReplay', () => {
     const applied = mock(() => {});
     const ds = new YjsDocStorage(storage, noopLogger);
 
-    await ds.loadAndReplay('d', applied);
+    const result = await ds.loadAndReplay('d', applied);
 
     expect(applied).not.toHaveBeenCalled();
     expect(storage.deletes).toHaveLength(0);
+    expect(result.totalRowsRead).toBe(0);
+    expect(result.hadSnapshot).toBe(false);
+    expect(result.incrementalKeys).toEqual([]);
+  });
+
+  it('applies snapshot first, then incremental updates', async () => {
+    const snapshotFrame = new Uint8Array([Y_MESSAGE_SYNC, 10]);
+    const incremental = new Uint8Array([Y_MESSAGE_SYNC, 20]);
+    const storage = makeStorage(
+      new Map([
+        ['doc:d:snapshot', Array.from(snapshotFrame)],
+        ['doc:d:update:2:00000000', Array.from(incremental)],
+      ])
+    );
+    const applied: Uint8Array[] = [];
+    const ds = new YjsDocStorage(storage, noopLogger);
+
+    const result = await ds.loadAndReplay('d', (frame) => applied.push(frame));
+
+    expect(applied).toEqual([snapshotFrame, incremental]);
+    expect(result.hadSnapshot).toBe(true);
+    expect(result.totalRowsRead).toBe(2);
+    expect(result.incrementalKeys).toEqual(['doc:d:update:2:00000000']);
+  });
+
+  it('loads snapshot-only storage with zero incremental rows', async () => {
+    const snapshotFrame = new Uint8Array([Y_MESSAGE_SYNC, 42]);
+    const storage = makeStorage(new Map([['doc:d:snapshot', Array.from(snapshotFrame)]]));
+    const applied: Uint8Array[] = [];
+    const ds = new YjsDocStorage(storage, noopLogger);
+
+    const result = await ds.loadAndReplay('d', (frame) => applied.push(frame));
+
+    expect(applied).toEqual([snapshotFrame]);
+    expect(result.hadSnapshot).toBe(true);
+    expect(result.totalRowsRead).toBe(1);
+    expect(result.incrementalKeys).toEqual([]);
   });
 
   it('propagates storage list failures (so the caller can retry)', async () => {
     const storage: DoStorage = {
+      get: async () => undefined,
       list: async () => {
         throw new Error('storage unavailable');
       },
@@ -314,6 +360,7 @@ describe('YjsDocStorage.persist', () => {
 
   it('logs and does not throw when storage.put rejects', async () => {
     const storage: DoStorage = {
+      get: async () => undefined,
       list: async () => new Map(),
       put: async () => {
         throw new Error('disk full');
@@ -329,5 +376,108 @@ describe('YjsDocStorage.persist', () => {
 
     expect(key).not.toBeNull();
     expect(errorLog).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('snapshotKey', () => {
+  it('appends "snapshot" to the storage prefix', () => {
+    expect(snapshotKey('doc:alice:proj:')).toBe('doc:alice:proj:snapshot');
+  });
+});
+
+describe('COMPACT_THRESHOLD', () => {
+  it('is a positive integer', () => {
+    expect(COMPACT_THRESHOLD).toBeGreaterThan(0);
+    expect(Number.isInteger(COMPACT_THRESHOLD)).toBe(true);
+  });
+});
+
+describe('YjsDocStorage.compact', () => {
+  it('writes snapshot and deletes known update keys', async () => {
+    const storage = makeStorage(
+      new Map([
+        ['doc:d:update:1:00000000', [Y_MESSAGE_SYNC, 0]],
+        ['doc:d:update:1:00000001', [Y_MESSAGE_SYNC, 1]],
+      ])
+    );
+    const ds = new YjsDocStorage(storage, noopLogger);
+    const encoded = new Uint8Array([Y_MESSAGE_SYNC, 99]);
+
+    await ds.compact('d', encoded, ['doc:d:update:1:00000000', 'doc:d:update:1:00000001']);
+
+    const snap = await storage.get<number[]>('doc:d:snapshot');
+    expect(snap).toEqual(Array.from(encoded));
+    const remaining = await storage.list({ prefix: 'doc:d:update:' });
+    expect(remaining.size).toBe(0);
+  });
+
+  it('lists and deletes update keys when knownKeys is omitted', async () => {
+    const storage = makeStorage(
+      new Map([
+        ['doc:d:update:1:00000000', [Y_MESSAGE_SYNC, 0]],
+        ['doc:d:update:2:00000000', [Y_MESSAGE_SYNC, 1]],
+        ['doc:d:snapshot', [Y_MESSAGE_SYNC, 50]],
+      ])
+    );
+    const ds = new YjsDocStorage(storage, noopLogger);
+    const encoded = new Uint8Array([Y_MESSAGE_SYNC, 99]);
+
+    await ds.compact('d', encoded);
+
+    const snap = await storage.get<number[]>('doc:d:snapshot');
+    expect(snap).toEqual(Array.from(encoded));
+    const remaining = await storage.list({ prefix: 'doc:d:update:' });
+    expect(remaining.size).toBe(0);
+  });
+
+  it('is a no-op when there are no update keys to delete', async () => {
+    const storage = makeStorage(new Map());
+    const ds = new YjsDocStorage(storage, noopLogger);
+    const encoded = new Uint8Array([Y_MESSAGE_SYNC, 0]);
+
+    await ds.compact('d', encoded, []);
+
+    const snap = await storage.get<number[]>('doc:d:snapshot');
+    expect(snap).toEqual(Array.from(encoded));
+    expect(storage.deletes).toHaveLength(0);
+  });
+
+  it('chunks deletes when update keys exceed the 128-key limit', async () => {
+    const entries = new Map<string, number[]>();
+    const keys: string[] = [];
+    for (let i = 0; i < 200; i++) {
+      const key = `doc:d:update:1:${String(i).padStart(8, '0')}`;
+      entries.set(key, [Y_MESSAGE_SYNC, 0]);
+      keys.push(key);
+    }
+    const storage = makeStorage(entries);
+    const ds = new YjsDocStorage(storage, noopLogger);
+
+    await ds.compact('d', new Uint8Array([Y_MESSAGE_SYNC, 99]), keys);
+
+    expect(storage.deletes).toHaveLength(2);
+    expect(storage.deletes[0]).toHaveLength(128);
+    expect(storage.deletes[1]).toHaveLength(72);
+  });
+
+  it('survives a crash between snapshot write and key deletion (idempotent reload)', async () => {
+    const sync1 = new Uint8Array([Y_MESSAGE_SYNC, 1]);
+    const sync2 = new Uint8Array([Y_MESSAGE_SYNC, 2]);
+    const snapshot = new Uint8Array([Y_MESSAGE_SYNC, 99]);
+    const storage = makeStorage(
+      new Map([
+        ['doc:d:snapshot', Array.from(snapshot)],
+        ['doc:d:update:1:00000000', Array.from(sync1)],
+        ['doc:d:update:1:00000001', Array.from(sync2)],
+      ])
+    );
+    const applied: Uint8Array[] = [];
+    const ds = new YjsDocStorage(storage, noopLogger);
+
+    const result = await ds.loadAndReplay('d', (frame) => applied.push(frame));
+
+    expect(applied).toEqual([snapshot, sync1, sync2]);
+    expect(result.hadSnapshot).toBe(true);
+    expect(result.incrementalKeys).toHaveLength(2);
   });
 });
