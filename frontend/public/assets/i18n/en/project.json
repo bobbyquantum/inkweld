@@ -107,9 +107,9 @@
       "element_tagged_generic": "{{who}} updated tags",
       "worldbuilding_updated": "{{who}} updated worldbuilding on {{name}}",
       "worldbuilding_updated_generic": "{{who}} updated worldbuilding",
-      "relationship_created": "{{who}} created a relationship of {{name}}",
+      "relationship_created": "{{who}} created a relationship involving {{name}}",
       "relationship_created_generic": "{{who}} created a relationship",
-      "relationship_deleted": "{{who}} deleted a relationship of {{name}}",
+      "relationship_deleted": "{{who}} deleted a relationship involving {{name}}",
       "relationship_deleted_generic": "{{who}} deleted a relationship",
       "unknown": "{{who}} did something"
     }

@@ -1,7 +1,4 @@
-import type {
-  ActivityEventType,
-  ProjectActivityEvent,
-} from '@models/activity-event';
+import type { ProjectActivityEvent } from '@models/activity-event';
 
 /**
  * Translate function shape expected by {@link describeActivityEvent}.
@@ -107,11 +104,16 @@ export function describeActivityEvent(
         named('relationship_deleted', 'relationship_deleted_generic'),
         params
       );
-    default:
+    default: {
+      // Compile-time exhaustiveness guard: fails to type-check if a new
+      // ActivityEventType is added without a corresponding case above.
+      // The `never` assignment errors at compile time for any unhandled
+      // union member; we still fall through to the localized "unknown"
+      // string at runtime for safety (e.g. older frontends encountering
+      // a newer event type from the backend).
+      const _exhaustive: never = event.eventType;
+      void _exhaustive;
       return t(single('unknown'), params);
+    }
   }
 }
-
-// Ensure the union stays exhaustive — a new ActivityEventType that isn't
-// handled above will fail to compile here.
-export type _AssertExhaustiveActivityEvent = ActivityEventType;
