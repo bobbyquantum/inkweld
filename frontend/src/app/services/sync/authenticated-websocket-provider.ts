@@ -158,9 +158,13 @@ export function installWebSocketResilience(
     ws.onmessage = (event: MessageEvent) => {
       // y-websocket resets its idle timer from its own handler; do it here too
       // so text frames (the keepalive PONG) also reset it.
+      // CRITICAL: y-websocket uses time.getUnixTime() which is Date.now() —
+      // MILLISECONDS. Setting this to seconds (Math.floor(Date.now()/1000))
+      // makes the messageReconnectTimeout check always true, causing a
+      // close/reconnect loop every ~3s.
       (
         provider as unknown as { wsLastMessageReceived: number }
-      ).wsLastMessageReceived = Math.floor(Date.now() / 1000);
+      ).wsLastMessageReceived = Date.now();
 
       if (typeof event.data === 'string') {
         // Auth interceptors installed by createAuthenticatedWebsocketProvider /
