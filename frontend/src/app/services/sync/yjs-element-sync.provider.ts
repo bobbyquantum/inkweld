@@ -38,6 +38,12 @@ import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import {
+  HARD_DENIAL_REASONS,
+  parseAccessDeniedReason,
+  RATE_LIMIT_BACKOFF_MS,
+  withJitter,
+} from './access-denial';
+import {
   createAuthenticatedWebsocketProvider,
   setupReauthentication,
   WS_MAX_BACKOFF_TIME,
@@ -66,41 +72,6 @@ const DEFAULT_RECONNECTION_CONFIG: ReconnectionConfig = {
 };
 
 const PRESENCE_KEEPALIVE_INTERVAL_MS = 30_000;
-
-/**
- * One-shot backoff after the server rate-limits a reconnect. Exceeds the
- * server's 5s cooldown so the retry doesn't land inside the window and fail
- * again (which previously produced a tight `rate-limited` fail-loop).
- */
-const RATE_LIMIT_BACKOFF_MS = 30_000;
-
-/** `access-denied:<reason>` codes that won't self-heal on retry. */
-const HARD_DENIAL_REASONS = new Set([
-  'invalid-token',
-  'forbidden',
-  'project-not-found',
-  'invalid-document',
-  'error',
-]);
-
-/**
- * Extract an `access-denied` reason from a server message (raw frame or the
- * wrapped `Access denied: <reason>` re-auth string), or null if not a denial.
- */
-function parseAccessDeniedReason(message: string): string | null {
-  const raw = message.startsWith('access-denied')
-    ? message.slice('access-denied'.length)
-    : message.startsWith('Access denied')
-      ? message.slice('Access denied'.length)
-      : null;
-  if (raw === null) return null;
-  return raw.replace(/^[:\s]+/, '').trim() || 'unknown';
-}
-
-/** Full-jitter factor in [0.5, 1) so clients don't retry in lockstep. */
-function withJitter(delayMs: number): number {
-  return Math.floor(delayMs * (0.5 + Math.random() * 0.5));
-}
 
 /**
  * Yjs-based implementation of the element sync provider.
@@ -326,20 +297,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
                 error
               );
             },
-            onTextMessage: text => {
-              // A post-auth `access-denied` is terminal — stop the reconnect
-              // loop instead of debug-logging it and letting the subsequent
-              // close event schedule another retry.
-              const reason = parseAccessDeniedReason(text);
-              if (reason) {
-                this.handleAccessDenied(reason);
-                return;
-              }
-              this.logger.debug(
-                'YjsSync',
-                `Unexpected text frame on ${this.docId}: ${text}`
-              );
-            },
+            onTextMessage: text => this.handlePostAuthText(text),
           }
         );
 
@@ -351,15 +309,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
         setupReauthentication(
           this.wsProvider,
           () => this.authTokenService.getToken(),
-          error => {
-            const reason = parseAccessDeniedReason(error);
-            if (reason) {
-              this.handleAccessDenied(reason);
-              return;
-            }
-            this.logger.error('YjsSync', `WebSocket auth error: ${error}`);
-            this.syncStateSubject.next(DocumentSyncState.Unavailable);
-          }
+          error => this.handleReauthError(error)
         );
       } catch (authError) {
         this.logger.error(
@@ -1179,8 +1129,10 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
         break;
 
       case 'disconnected':
-        this.syncStateSubject.next(DocumentSyncState.Local);
-        if (!this.terminalDenialReason) {
+        if (this.terminalDenialReason) {
+          this.syncStateSubject.next(DocumentSyncState.Unavailable);
+        } else {
+          this.syncStateSubject.next(DocumentSyncState.Local);
           this.scheduleReconnect();
         }
         break;
@@ -1300,6 +1252,37 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
         this.reconnectAttempts++;
       }
     }, delay);
+  }
+
+  /**
+   * Handle a text frame received after authentication. A post-auth
+   * `access-denied` (e.g. the server accepted the token but then failed to
+   * load the document) is terminal; anything else is unexpected and logged.
+   */
+  private handlePostAuthText(text: string): void {
+    const reason = parseAccessDeniedReason(text);
+    if (reason) {
+      this.handleAccessDenied(reason);
+      return;
+    }
+    this.logger.debug(
+      'YjsSync',
+      `Unexpected text frame on ${this.docId}: ${text}`
+    );
+  }
+
+  /**
+   * Handle an error from the re-authentication callback. A denial stops the
+   * reconnect loop; any other error just marks the connection unavailable.
+   */
+  private handleReauthError(error: string): void {
+    const reason = parseAccessDeniedReason(error);
+    if (reason) {
+      this.handleAccessDenied(reason);
+      return;
+    }
+    this.logger.error('YjsSync', `WebSocket auth error: ${error}`);
+    this.syncStateSubject.next(DocumentSyncState.Unavailable);
   }
 
   /**

@@ -52,6 +52,12 @@ import { AutoReviewApiService } from '../lint/auto-review.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { PresenceService } from '../presence/presence.service';
 import {
+  HARD_DENIAL_REASONS,
+  parseAccessDeniedReason,
+  RATE_LIMIT_BACKOFF_MS,
+  withJitter,
+} from '../sync/access-denial';
+import {
   createAuthenticatedWebsocketProvider,
   setupReauthentication,
   WS_MAX_BACKOFF_TIME,
@@ -106,49 +112,6 @@ function syncStateForStatus(
     return DocumentSyncState.Unavailable;
   }
   return DocumentSyncState.Local;
-}
-
-/**
- * One-shot backoff applied after the server rate-limits a reconnect. Must
- * exceed the server's reconnect cooldown (5s) so the retry doesn't land inside
- * the cooldown window and fail again — which previously produced a tight
- * fail-loop that read as instant `rate-limited` spam.
- */
-const RATE_LIMIT_BACKOFF_MS = 30_000;
-
-/**
- * Server `access-denied:<reason>` codes that will not self-heal on retry (bad
- * token, no access, missing project, or a server-side load failure such as a
- * document that can't be loaded). Retrying just burns requests, so these stop
- * the reconnect loop permanently until the user refreshes / reopens.
- */
-const HARD_DENIAL_REASONS = new Set([
-  'invalid-token',
-  'forbidden',
-  'project-not-found',
-  'invalid-document',
-  'error',
-]);
-
-/**
- * Extract the `access-denied` reason from a server message, or null if the
- * message is not a denial. Handles both the raw wire frame
- * (`access-denied:error`) and the wrapped re-auth callback string
- * (`Access denied: error`).
- */
-function parseAccessDeniedReason(message: string): string | null {
-  const raw = message.startsWith('access-denied')
-    ? message.slice('access-denied'.length)
-    : message.startsWith('Access denied')
-      ? message.slice('Access denied'.length)
-      : null;
-  if (raw === null) return null;
-  return raw.replace(/^[:\s]+/, '').trim() || 'unknown';
-}
-
-/** Full-jitter factor in [0.5, 1) so clients/tabs don't retry in lockstep. */
-function withJitter(delayMs: number): number {
-  return Math.floor(delayMs * (0.5 + Math.random() * 0.5));
 }
 
 type YjsProseMirrorMapping = Parameters<

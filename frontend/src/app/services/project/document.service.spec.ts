@@ -1052,14 +1052,55 @@ describe('DocumentService', () => {
       expect(scheduled).toHaveLength(1);
       const before = mockWebSocketProvider.connect.mock.calls.length;
       advanceReconnect(); // the single long-backoff retry
-      expect(mockWebSocketProvider.connect.mock.calls.length).toBe(before + 1);
+      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(before + 1);
 
       // Second rate-limit with no successful connection in between: terminal.
       onText?.('access-denied:rate-limited');
       const afterSecond = mockWebSocketProvider.connect.mock.calls.length;
       status({ status: 'disconnected' });
       advanceReconnect(); // no-op: hard-stopped
-      expect(mockWebSocketProvider.connect.mock.calls.length).toBe(afterSecond);
+      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(
+        afterSecond
+      );
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Unavailable
+      );
+    });
+
+    it('treats a re-auth access-denied callback as terminal', async () => {
+      // Capture the onAuthError wrapper that connectWebSocketInBackground hands
+      // to setupReauthentication, so we can deliver a denial the way the real
+      // re-auth path would (a string like "Access denied: forbidden"). This
+      // covers the re-auth wrapper that routes denials into markDenied.
+      let capturedOnAuthError: ((error: string) => void) | undefined;
+      service['setupWsReauth'] = vi.fn(
+        (
+          _provider: unknown,
+          _getToken: unknown,
+          onError: (e: string) => void
+        ) => {
+          capturedOnAuthError = onError;
+        }
+      ) as never;
+
+      const { callbacks, advanceReconnect } = await setupConnection();
+      const status = callbacks['status'] as StatusCb;
+
+      const disconnectCallsBefore =
+        mockWebSocketProvider.disconnect.mock.calls.length;
+      capturedOnAuthError?.('Access denied: forbidden');
+
+      // Hard denial: the provider is disconnected and the loop is stopped.
+      expect(mockWebSocketProvider.disconnect.mock.calls).toHaveLength(
+        disconnectCallsBefore + 1
+      );
+      const connectCallsBefore =
+        mockWebSocketProvider.connect.mock.calls.length;
+      status({ status: 'disconnected' });
+      advanceReconnect(); // no-op: hard-stopped
+      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(
+        connectCallsBefore
+      );
       expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
         DocumentSyncState.Unavailable
       );

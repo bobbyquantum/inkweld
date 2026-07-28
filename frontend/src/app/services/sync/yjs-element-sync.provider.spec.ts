@@ -1110,4 +1110,107 @@ describe('YjsElementSyncProvider', () => {
       expect(() => provider.updateTimeSystems([])).not.toThrow();
     });
   });
+
+  describe('access-denied handling', () => {
+    function setWsStub(): {
+      disconnect: ReturnType<typeof vi.fn>;
+      connect: ReturnType<typeof vi.fn>;
+    } {
+      const stub = { disconnect: vi.fn(), connect: vi.fn() };
+      (provider as unknown as { wsProvider: unknown }).wsProvider = stub;
+      return stub;
+    }
+
+    function privateProvider() {
+      return provider as unknown as {
+        terminalDenialReason: string | null;
+        rateLimitRetryUsed: boolean;
+        pendingRateLimitBackoff: boolean;
+        handleAccessDenied: (reason: string) => void;
+        handlePostAuthText: (text: string) => void;
+        handleReauthError: (error: string) => void;
+        handleWebSocketStatus: (status: string) => void;
+      };
+    }
+
+    it('stops reconnecting on a hard denial and disconnects the socket', () => {
+      const stub = setWsStub();
+
+      privateProvider().handleAccessDenied('forbidden');
+
+      expect(privateProvider().terminalDenialReason).toBe('forbidden');
+      expect(stub.disconnect).toHaveBeenCalledTimes(1);
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
+    });
+
+    it('grants one retry on rate-limited, then becomes terminal', () => {
+      setWsStub();
+      const priv = privateProvider();
+
+      priv.handleAccessDenied('rate-limited');
+      expect(priv.rateLimitRetryUsed).toBe(true);
+      expect(priv.pendingRateLimitBackoff).toBe(true);
+      expect(priv.terminalDenialReason).toBeNull();
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
+
+      // A second rate-limited with no successful connection in between stops.
+      priv.handleAccessDenied('rate-limited');
+      expect(priv.terminalDenialReason).toBe('rate-limited');
+    });
+
+    it('routes a post-auth access-denied text frame through handleAccessDenied', () => {
+      const stub = setWsStub();
+      const priv = privateProvider();
+
+      priv.handlePostAuthText('access-denied:error');
+      expect(stub.disconnect).toHaveBeenCalledTimes(1);
+      expect(priv.terminalDenialReason).toBe('error');
+
+      // Non-denial text is just logged, not treated as terminal.
+      priv.handlePostAuthText('ping');
+      expect(stub.disconnect).toHaveBeenCalledTimes(1);
+    });
+
+    it('routes a re-auth access-denied callback through handleAccessDenied', () => {
+      const stub = setWsStub();
+      const priv = privateProvider();
+
+      priv.handleReauthError('Access denied: forbidden');
+      expect(stub.disconnect).toHaveBeenCalledTimes(1);
+      expect(priv.terminalDenialReason).toBe('forbidden');
+
+      // A non-denial re-auth error marks unavailable without disconnecting.
+      priv.handleReauthError('transient');
+      expect(stub.disconnect).toHaveBeenCalledTimes(1);
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
+    });
+
+    it('keeps state Unavailable and does not reconnect after a terminal disconnect', () => {
+      const stub = setWsStub();
+      privateProvider().handleAccessDenied('forbidden');
+      stub.disconnect.mockClear();
+
+      privateProvider().handleWebSocketStatus('disconnected');
+
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
+      expect(stub.connect).not.toHaveBeenCalled();
+    });
+
+    it('uses the long rate-limit backoff on the retry after a rate-limit', () => {
+      vi.useFakeTimers();
+      const stub = setWsStub();
+      const priv = privateProvider();
+      priv.pendingRateLimitBackoff = true;
+
+      priv.handleWebSocketStatus('disconnected');
+      // The long backoff must not fire within the server cooldown window.
+      vi.advanceTimersByTime(10_000);
+      expect(stub.connect).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(30_000);
+      expect(stub.connect).toHaveBeenCalledTimes(1);
+      expect(priv.pendingRateLimitBackoff).toBe(false);
+
+      vi.useRealTimers();
+    });
+  });
 });
