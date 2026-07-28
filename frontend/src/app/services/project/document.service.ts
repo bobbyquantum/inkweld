@@ -23,6 +23,12 @@ import {
 } from '@editor';
 import { DocumentsService } from '@inkweld/index';
 import { type PresenceSession } from '@inkweld/presence';
+import {
+  HARD_DENIAL_REASONS,
+  parseAccessDeniedReason,
+  rateLimitBackoff,
+  withJitter,
+} from '@services/sync/access-denial';
 import { type Node as ProseMirrorModelNode } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
@@ -51,12 +57,6 @@ import { VersionCompatibilityService } from '../core/version-compatibility.servi
 import { AutoReviewApiService } from '../lint/auto-review.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { PresenceService } from '../presence/presence.service';
-import {
-  HARD_DENIAL_REASONS,
-  parseAccessDeniedReason,
-  RATE_LIMIT_BACKOFF_MS,
-  withJitter,
-} from '../sync/access-denial';
 import {
   createAuthenticatedWebsocketProvider,
   setupReauthentication,
@@ -1291,16 +1291,19 @@ export class DocumentService {
       );
       if (reason === 'rate-limited') {
         if (rateLimitRetryUsed) {
-          // Second rate-limit in a row: stop hammering the server.
+          // Second rate-limit in a row: stop hammering the server AND close
+          // the socket so y-websocket's internal loop can't keep it alive.
           authFailed = true;
           this.logger.warn(
             'DocumentService',
             `Repeatedly rate-limited for ${documentId}; stopping reconnects`
           );
+          suppressReconnect = true;
+          deniedProviderRef?.disconnect();
         } else {
           this.logger.warn(
             'DocumentService',
-            `Rate-limited for ${documentId}; backing off ${RATE_LIMIT_BACKOFF_MS}ms before a single retry`
+            `Rate-limited for ${documentId}; backing off before a single retry`
           );
         }
         return;
@@ -1511,7 +1514,7 @@ export class DocumentService {
             // instead of the tight exponential loop that caused the spam.
             rateLimitRetryUsed = true;
             deniedReason = null;
-            delay = withJitter(RATE_LIMIT_BACKOFF_MS);
+            delay = rateLimitBackoff();
           } else {
             deniedReason = null;
             delay = withJitter(

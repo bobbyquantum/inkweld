@@ -30,31 +30,56 @@ export const HARD_DENIAL_REASONS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Wire prefixes that mark a message as an access denial. The trailing `:` is
+ * required so unrelated text such as `access-denieding` is not misread as a
+ * denial (downstream handlers treat any non-null result as terminal/
+ * rate-limited).
+ */
+const DENIAL_PREFIXES = ['access-denied:', 'Access denied:'] as const;
+
+/**
  * Extract the `access-denied` reason from a server message, or null if the
  * message is not a denial. Handles both the raw wire frame
  * (`access-denied:error`) and the wrapped re-auth callback string
- * (`Access denied: error`).
+ * (`Access denied: error`). A denial with no reason after the delimiter
+ * resolves to `'unknown'`.
  */
 export function parseAccessDeniedReason(message: string): string | null {
-  let raw: string | null = null;
-  if (message.startsWith('access-denied')) {
-    raw = message.slice('access-denied'.length);
-  } else if (message.startsWith('Access denied')) {
-    raw = message.slice('Access denied'.length);
+  for (const prefix of DENIAL_PREFIXES) {
+    if (message.startsWith(prefix)) {
+      return message.slice(prefix.length).trim() || 'unknown';
+    }
   }
-  if (raw === null) return null;
-  return raw.replace(/^[:\s]+/, '').trim() || 'unknown';
+  return null;
 }
 
 /**
- * Full-jitter backoff: scale `delayMs` by a factor in [0.5, 1) so concurrent
- * clients/tabs don't retry in lockstep (thundering herd on the single-threaded
- * Durable Object). Uses crypto.getRandomValues rather than Math.random so the
- * jitter source isn't flagged as an insecure PRNG.
+ * Full-jitter backoff: return a uniform random integer in `[0, delayMs)`.
+ * Spreading retries across the whole window (rather than only its upper half)
+ * minimises the chance that concurrent clients/tabs retry in lockstep and
+ * re-form a thundering herd on the single-threaded Durable Object. Uses
+ * `crypto.getRandomValues` rather than `Math.random` so the jitter source is
+ * not flagged as an insecure PRNG.
+ *
+ * NOTE: full jitter can produce very small values, so callers that must stay
+ * above a hard floor (e.g. the server rate-limit cooldown) should use
+ * {@link rateLimitBackoff} instead of wrapping this directly.
  */
 export function withJitter(delayMs: number): number {
   const sample = new Uint32Array(1);
   crypto.getRandomValues(sample);
-  const factor = 0.5 + (sample[0] / 0x1_0000_0000) * 0.5;
-  return Math.floor(delayMs * factor);
+  return Math.floor((sample[0] / 2 ** 32) * delayMs);
+}
+
+/**
+ * Jittered backoff for the rate-limit retry. Unlike {@link withJitter}, this
+ * keeps a floor of `RATE_LIMIT_BACKOFF_MS / 2` so the sampled delay always
+ * exceeds the server's reconnect cooldown (5s) — full jitter on its own could
+ * land inside that window and reintroduce the tight fail-loop this whole
+ * mechanism exists to prevent. The result lies in
+ * `[RATE_LIMIT_BACKOFF_MS / 2, RATE_LIMIT_BACKOFF_MS)`.
+ */
+export function rateLimitBackoff(): number {
+  const half = RATE_LIMIT_BACKOFF_MS / 2;
+  return half + withJitter(half);
 }

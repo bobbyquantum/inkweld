@@ -4,6 +4,7 @@ import {
   HARD_DENIAL_REASONS,
   parseAccessDeniedReason,
   RATE_LIMIT_BACKOFF_MS,
+  rateLimitBackoff,
   withJitter,
 } from './access-denial';
 
@@ -27,15 +28,19 @@ describe('parseAccessDeniedReason', () => {
     );
   });
 
-  it('returns "unknown" for a denial with no reason', () => {
+  it('returns "unknown" for a denial with no reason after the delimiter', () => {
     expect(parseAccessDeniedReason('access-denied:')).toBe('unknown');
-    expect(parseAccessDeniedReason('Access denied')).toBe('unknown');
+    expect(parseAccessDeniedReason('Access denied:')).toBe('unknown');
   });
 
-  it('returns null for non-denial messages', () => {
+  it('returns null for non-denial messages and delimiter-less look-alikes', () => {
     expect(parseAccessDeniedReason('authenticated')).toBeNull();
     expect(parseAccessDeniedReason('')).toBeNull();
     expect(parseAccessDeniedReason('ping')).toBeNull();
+    // The delimiter is required, so these are NOT denials.
+    expect(parseAccessDeniedReason('Access denied')).toBeNull();
+    expect(parseAccessDeniedReason('access-denieding')).toBeNull();
+    expect(parseAccessDeniedReason('Access denieding')).toBeNull();
   });
 });
 
@@ -58,17 +63,39 @@ describe('RATE_LIMIT_BACKOFF_MS', () => {
 });
 
 describe('withJitter', () => {
-  it('scales the delay into [0.5*delay, delay) and returns an integer', () => {
+  it('samples the full window [0, delay) and returns an integer', () => {
     const delay = 10_000;
-    for (let i = 0; i < 50; i++) {
+    let sawLowerHalf = false;
+    for (let i = 0; i < 200; i++) {
       const jittered = withJitter(delay);
       expect(Number.isInteger(jittered)).toBe(true);
-      expect(jittered).toBeGreaterThanOrEqual(delay / 2);
+      expect(jittered).toBeGreaterThanOrEqual(0);
       expect(jittered).toBeLessThan(delay);
+      if (jittered < delay / 2) sawLowerHalf = true;
     }
+    // Full jitter (not upper-half) should reach the lower half of the window.
+    expect(sawLowerHalf).toBe(true);
   });
 
   it('returns 0 for a zero delay', () => {
     expect(withJitter(0)).toBe(0);
+  });
+});
+
+describe('rateLimitBackoff', () => {
+  it('stays within [RATE_LIMIT_BACKOFF_MS/2, RATE_LIMIT_BACKOFF_MS)', () => {
+    const floor = RATE_LIMIT_BACKOFF_MS / 2;
+    for (let i = 0; i < 200; i++) {
+      const delay = rateLimitBackoff();
+      expect(Number.isInteger(delay)).toBe(true);
+      expect(delay).toBeGreaterThanOrEqual(floor);
+      expect(delay).toBeLessThan(RATE_LIMIT_BACKOFF_MS);
+    }
+  });
+
+  it('never drops to or below the server reconnect cooldown', () => {
+    for (let i = 0; i < 200; i++) {
+      expect(rateLimitBackoff()).toBeGreaterThan(5_000);
+    }
   });
 });

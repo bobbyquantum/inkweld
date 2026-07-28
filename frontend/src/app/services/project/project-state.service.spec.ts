@@ -1117,6 +1117,39 @@ describe('ProjectStateService', () => {
       expect(() => service.disconnectSync()).not.toThrow();
       expect(mockSyncProvider.disconnect).toHaveBeenCalledTimes(1);
     });
+
+    it('abandons an in-flight load torn down during the metadata fetch', async () => {
+      // Make the metadata fetch hang so the load parks on its await — the
+      // window in which a teardown would otherwise leak an orphaned provider
+      // once the fetch later resolves.
+      let resolveProject: (project: Project | null) => void = () => {};
+      mockUnifiedProjectService.getProject.mockImplementation(
+        () =>
+          new Promise<Project | null>(resolve => {
+            resolveProject = resolve;
+          })
+      );
+
+      // Start the load without awaiting it.
+      const load = service.loadProject('testuser', 'test-project');
+
+      // Drain the microtask queue up to the parked getProject await. No sync
+      // provider has been created yet at this point.
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // Tear down while the fetch is in flight.
+      service.disconnectSync();
+
+      // Resolve the fetch after teardown. The load must detect it was
+      // superseded and stop *before* connecting a provider.
+      resolveProject(mockProject);
+      await load;
+
+      expect(mockSyncProvider.connect).not.toHaveBeenCalled();
+      expect(
+        (service as unknown as { syncProvider: unknown }).syncProvider
+      ).toBeNull();
+    });
   });
 
   describe('deletePublishPlan', () => {

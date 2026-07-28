@@ -92,6 +92,11 @@ export class ProjectStateService implements OnDestroy {
   private syncProvider: IElementSyncProvider | null = null;
   private providerSubscriptions: Subscription[] = [];
 
+  // Monotonic counter bumped by disconnectSync() and captured per loadProject
+  // so an in-flight load that resumes after teardown can detect it was
+  // superseded/abandoned and stop instead of connecting an orphaned provider.
+  private loadGeneration = 0;
+
   // Document cache
   private documentCacheDb: Promise<IDBDatabase> | null = null;
 
@@ -297,14 +302,24 @@ export class ProjectStateService implements OnDestroy {
       // Clear previous project state
       this.clearProjectState();
 
+      // Capture a load generation AFTER clearing (clearProjectState bumps it
+      // via disconnectSync). Any disconnectSync() that runs during the awaits
+      // below bumps it again, so comparing against this value tells an
+      // in-flight load whether it was superseded/abandoned and must stop
+      // instead of connecting a provider nobody will tear down.
+      const loadId = ++this.loadGeneration;
+
       // Load project metadata and elements
       const mode = this.setupService.getMode();
 
       if (mode === 'local') {
-        await this.loadOfflineProject(username, slug);
+        await this.loadOfflineProject(username, slug, loadId);
       } else {
-        await this.loadServerProject(username, slug);
+        await this.loadServerProject(username, slug, loadId);
       }
+
+      // Abandon if torn down or superseded while loading.
+      if (loadId !== this.loadGeneration) return;
 
       // Restore opened documents from cache
       await this.restoreOpenedDocumentsFromCache();
@@ -317,17 +332,20 @@ export class ProjectStateService implements OnDestroy {
 
   private async loadOfflineProject(
     username: string,
-    slug: string
+    slug: string,
+    loadId: number
   ): Promise<void> {
     // Get project metadata
     const project = await this.unifiedProjectService.getProject(username, slug);
+    if (loadId !== this.loadGeneration) return;
     if (!project) {
       throw new Error('Project not found');
     }
     this.project.set(project);
 
     // Connect sync provider
-    const connected = await this.connectSyncProvider(username, slug);
+    const connected = await this.connectSyncProvider(username, slug, loadId);
+    if (loadId !== this.loadGeneration) return;
     if (!connected) {
       throw new Error('Failed to connect to sync provider');
     }
@@ -335,12 +353,14 @@ export class ProjectStateService implements OnDestroy {
 
   private async loadServerProject(
     username: string,
-    slug: string
+    slug: string,
+    loadId: number
   ): Promise<void> {
     const projectKey = `${username}/${slug}`;
 
     // Sync pending creation if needed
     await this.syncPendingCreation(projectKey);
+    if (loadId !== this.loadGeneration) return;
 
     // Local-first: Try to get project metadata using UnifiedProjectService
     let project: Project | null = null;
@@ -359,6 +379,7 @@ export class ProjectStateService implements OnDestroy {
         `Server unavailable, will try local-first sync: ${serverError.message}`
       );
     }
+    if (loadId !== this.loadGeneration) return;
 
     if (project) {
       this.project.set(project);
@@ -366,7 +387,8 @@ export class ProjectStateService implements OnDestroy {
       throw new Error('Project not found');
     }
 
-    const connected = await this.connectSyncProvider(username, slug);
+    const connected = await this.connectSyncProvider(username, slug, loadId);
+    if (loadId !== this.loadGeneration) return;
 
     // Handle offline/degraded mode
     if (!project && !connected) {
@@ -494,26 +516,50 @@ export class ProjectStateService implements OnDestroy {
    */
   private async connectSyncProvider(
     username: string,
-    slug: string
+    slug: string,
+    loadId: number
   ): Promise<boolean> {
-    // Get the appropriate provider (Yjs or Offline)
-    this.syncProvider = this.syncProviderFactory.getProvider();
+    // Get the appropriate provider (Yjs or Offline). Hold a local handle so
+    // that, if this load is abandoned during the connect() await below, we can
+    // disconnect exactly this orphaned provider without disturbing a
+    // concurrent new load that may have already taken over the shared
+    // `syncProvider` field and the worldbuilding/time-system references.
+    const provider = this.syncProviderFactory.getProvider();
+    this.syncProvider = provider;
 
     // Set WorldbuildingService sync provider BEFORE subscribing to observables
     // This ensures schemasCache is populated when elements$ triggers component effects
-    this.worldbuildingService.setSyncProvider(this.syncProvider);
-    this.timeSystemLibrary.setSyncProvider(this.syncProvider);
+    this.worldbuildingService.setSyncProvider(provider);
+    this.timeSystemLibrary.setSyncProvider(provider);
 
     // Subscribe to provider observables
     this.setupProviderSubscriptions();
 
     // Connect - Yjs provider is local-first and will load from IndexedDB
     // even if WebSocket fails
-    const result = await this.syncProvider.connect({
+    const result = await provider.connect({
       username,
       slug,
       webSocketUrl: this.setupService.getWebSocketUrl() ?? undefined,
     });
+
+    // Abandoned while connecting: the teardown that bumped the generation has
+    // already cleared the shared references (and, for a plain disconnect,
+    // already disconnected this provider); a concurrent new load has replaced
+    // them. Either way this provider is now an orphan — close it defensively
+    // (idempotent) and report failure so the caller stops.
+    if (loadId !== this.loadGeneration) {
+      try {
+        provider.disconnect();
+      } catch (error) {
+        this.logger.warn(
+          'ProjectState',
+          'Error disconnecting abandoned sync provider',
+          error
+        );
+      }
+      return false;
+    }
 
     if (!result.success) {
       // Critical failure (e.g., IndexedDB unavailable)
@@ -674,6 +720,9 @@ export class ProjectStateService implements OnDestroy {
    * ngOnDestroy now actually runs when leaving a project.
    */
   disconnectSync(): void {
+    // Invalidate any in-flight loadProject so a slow metadata/provider await
+    // that resumes after teardown can't connect a fresh, orphaned provider.
+    this.loadGeneration++;
     this.worldbuildingService.setSyncProvider(null);
     this.timeSystemLibrary.setSyncProvider(null);
     this.cleanupProviderSubscriptions();

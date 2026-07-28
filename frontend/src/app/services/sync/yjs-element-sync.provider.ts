@@ -40,7 +40,7 @@ import { VersionCompatibilityService } from '../core/version-compatibility.servi
 import {
   HARD_DENIAL_REASONS,
   parseAccessDeniedReason,
-  RATE_LIMIT_BACKOFF_MS,
+  rateLimitBackoff,
   withJitter,
 } from './access-denial';
 import {
@@ -1229,7 +1229,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     if (this.pendingRateLimitBackoff) {
       // One-shot long backoff after a rate-limit denial.
       this.pendingRateLimitBackoff = false;
-      delay = withJitter(RATE_LIMIT_BACKOFF_MS);
+      delay = rateLimitBackoff();
     } else {
       delay = withJitter(
         Math.min(
@@ -1286,8 +1286,26 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   }
 
   /**
+   * Cancel any pending reconnect timer and close the WebSocket provider so
+   * y-websocket's internal loop can't keep a denied/dead session alive.
+   * Shared by the hard-denial and terminal-rate-limit paths.
+   */
+  private stopProvider(): void {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    try {
+      this.wsProvider?.disconnect();
+    } catch (error) {
+      this.logger.warn('YjsSync', 'Error disconnecting after denial', error);
+    }
+  }
+
+  /**
    * Record a server `access-denied`. Hard reasons stop reconnection outright;
-   * `rate-limited` gets one long backoff retry, then becomes terminal.
+   * `rate-limited` gets one long backoff retry, then becomes terminal. In
+   * both terminal cases the socket is closed so no reconnect loop lingers.
    */
   private handleAccessDenied(reason: string): void {
     this.syncStateSubject.next(DocumentSyncState.Unavailable);
@@ -1298,6 +1316,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
           'YjsSync',
           `Repeatedly rate-limited for ${this.docId}; stopping reconnects`
         );
+        this.stopProvider();
       } else {
         this.rateLimitRetryUsed = true;
         this.pendingRateLimitBackoff = true;
@@ -1314,16 +1333,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
         'YjsSync',
         `Access denied (${reason}) for ${this.docId}; not retrying`
       );
-      // Stop y-websocket's internal reconnect loop too.
-      if (this.reconnectTimeout) {
-        clearTimeout(this.reconnectTimeout);
-        this.reconnectTimeout = null;
-      }
-      try {
-        this.wsProvider?.disconnect();
-      } catch (error) {
-        this.logger.warn('YjsSync', 'Error disconnecting after denial', error);
-      }
+      this.stopProvider();
     }
   }
 
