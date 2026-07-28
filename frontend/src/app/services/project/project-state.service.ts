@@ -663,6 +663,25 @@ export class ProjectStateService implements OnDestroy {
   }
 
   /**
+   * Tear down the live collaboration connection for the current project
+   * without wiping UI state. Closes the elements WebSocket, drops the sync
+   * provider reference, and unsubscribes its observables so no reconnect loop
+   * or subscription keeps the project alive after the component is gone.
+   *
+   * Public (unlike {@link clearProjectState}) so the project component can
+   * call it from ngOnDestroy to guarantee connections close on exit — the
+   * route is no longer reused (see app.routes `reuseComponent: false`), so
+   * ngOnDestroy now actually runs when leaving a project.
+   */
+  disconnectSync(): void {
+    this.worldbuildingService.setSyncProvider(null);
+    this.timeSystemLibrary.setSyncProvider(null);
+    this.cleanupProviderSubscriptions();
+    this.syncProvider?.disconnect();
+    this.syncProvider = null;
+  }
+
+  /**
    * Clear all project-specific state when switching projects.
    */
   private clearProjectState(): void {
@@ -672,14 +691,7 @@ export class ProjectStateService implements OnDestroy {
       currentProjectSlug: currentProject?.slug,
     });
 
-    // Clear WorldbuildingService sync provider
-    this.worldbuildingService.setSyncProvider(null);
-    this.timeSystemLibrary.setSyncProvider(null);
-
-    // Disconnect sync provider
-    this.cleanupProviderSubscriptions();
-    this.syncProvider?.disconnect();
-    this.syncProvider = null;
+    this.disconnectSync();
 
     // Close all tabs
     this.tabManager.clearAllTabs();

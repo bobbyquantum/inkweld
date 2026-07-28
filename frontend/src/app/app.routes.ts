@@ -246,7 +246,17 @@ export const routes: Routes = [
         inject(CanDeactivateProjectGuard).canDeactivate(component),
     ],
     data: {
-      reuseComponent: true,
+      // The project component owns live collaboration connections (per-doc
+      // WebSockets via DocumentService + the elements WebSocket via
+      // ProjectStateService). Reusing (detaching) this route on exit stored
+      // the component instead of destroying it, so ngOnDestroy never fired and
+      // those connections — and their reconnect loops — leaked indefinitely,
+      // hammering the Durable Object after the user had left the project.
+      // Disabling reuse makes leaving the project destroy the component, which
+      // runs the connection teardown in ngOnDestroy. Intra-project tab switches
+      // are unaffected: those deactivate only the child tab routes, not this
+      // parent, so editor state is still preserved while you move between tabs.
+      reuseComponent: false,
     },
     children: [
       {

@@ -1105,6 +1105,18 @@ describe('ProjectStateService', () => {
 
       expect(mockSyncProvider.disconnect).toHaveBeenCalled();
     });
+
+    it('disconnectSync should close the connection and be idempotent', async () => {
+      await service.loadProject('testuser', 'test-project');
+
+      service.disconnectSync();
+      expect(mockSyncProvider.disconnect).toHaveBeenCalledTimes(1);
+
+      // A second call must not throw or reach the (now cleared) provider —
+      // this is the path the project component's ngOnDestroy relies on.
+      expect(() => service.disconnectSync()).not.toThrow();
+      expect(mockSyncProvider.disconnect).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('deletePublishPlan', () => {
