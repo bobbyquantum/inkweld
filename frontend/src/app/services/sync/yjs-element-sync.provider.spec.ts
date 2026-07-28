@@ -355,7 +355,10 @@ describe('YjsElementSyncProvider', () => {
     ).handleWebSocketStatus('disconnected');
     expect(provider.getSyncState()).toBe(DocumentSyncState.Local);
 
-    await vi.advanceTimersByTimeAsync(1000);
+    // First-attempt backoff is baseDelayMs (3000) * 2^0 with full jitter in
+    // [0.5,1) → up to 3000ms. Advance past the worst case so the scheduled
+    // reconnect fires deterministically regardless of the jitter draw.
+    await vi.advanceTimersByTimeAsync(3000);
     expect(connect).toHaveBeenCalledTimes(1);
 
     (

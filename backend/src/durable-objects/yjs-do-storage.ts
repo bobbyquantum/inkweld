@@ -11,12 +11,26 @@
 import { isSyncFrame } from '../utils/yjs-document-utils';
 
 /**
+ * Bytes as persisted by `put`. New writes store a `Uint8Array` (compact BLOB);
+ * rows written by older builds are a `number[]`. Both are array-like, so
+ * `new Uint8Array(value)` reconstructs the frame from either shape — which is
+ * what makes the storage-format change backward compatible with no migration.
+ */
+export type StoredBytes = number[] | Uint8Array;
+
+/**
  * The slice of `DurableObjectState.storage` these helpers use. Matches the
- * Cloudflare Workers `DurableObjectStorage` contract for `get`/`list`/`put`/`delete`.
+ * Cloudflare Workers `DurableObjectStorage` contract for `get`/`list`/`put`/
+ * `delete`. `list` honours `limit` + `startAfter` so callers can page a large
+ * key range without materialising every value in memory at once.
  */
 export interface DoStorage {
   get<T>(key: string): Promise<T | undefined>;
-  list<T>(options: { prefix: string }): Promise<Map<string, T>>;
+  list<T>(options: {
+    prefix: string;
+    limit?: number;
+    startAfter?: string;
+  }): Promise<Map<string, T>>;
   put<T>(key: string, value: T): Promise<void>;
   delete(keys: string | string[]): Promise<void>;
 }
@@ -24,8 +38,28 @@ export interface DoStorage {
 /** Cloudflare Durable Object storage caps bulk delete() at 128 keys per call. */
 const STORAGE_DELETE_BATCH_LIMIT = 128;
 
+/**
+ * Rows read per `list` page. Bounded so a document with a huge update history
+ * (hundreds of thousands of rows) never materialises every value into the
+ * isolate's 128 MB heap at once — which is what bricked the load path on
+ * long-lived documents. Page size trades list-call overhead against peak
+ * memory; total rows read (and billed) is unchanged by paging.
+ */
+export const LIST_PAGE_SIZE = 500;
+
 /** Number of incremental update rows that triggers a background compaction. */
 export const COMPACT_THRESHOLD = 50;
+
+/**
+ * Largest snapshot value (bytes) we will write. Cloudflare caps a single
+ * stored value (key + value) at 2 MB; we leave headroom for the key and for
+ * structured-clone overhead. A document whose *current* state exceeds this
+ * cannot be snapshotted, so compaction is skipped (the update rows are left in
+ * place — paging keeps the load functional, and skipping the delete avoids any
+ * data loss). In practice the snapshot is the *current* document state, which
+ * is small even when the *edit history* (the rows) is huge.
+ */
+export const SNAPSHOT_VALUE_LIMIT = 1_900_000;
 
 /** Storage key for the compacted document snapshot. */
 export function snapshotKey(storagePrefix: string): string {
@@ -39,6 +73,12 @@ export interface LoadResult {
   incrementalKeys: string[];
 }
 
+/** Result metadata from a `compact` call. */
+export interface CompactResult {
+  snapshotWritten: boolean;
+  rowsDeleted: number;
+}
+
 /** Prefix + timestamp + zero-padded sequence keeps keys unique AND ordered. */
 export function persistUpdateKey(
   storagePrefix: string,
@@ -48,20 +88,25 @@ export function persistUpdateKey(
   return `${storagePrefix}update:${timestamp}:${String(sequence).padStart(8, '0')}`;
 }
 
+/** Coerce a persisted value (legacy `number[]` or current `Uint8Array`) to bytes. */
+export function toBytes(value: StoredBytes): Uint8Array {
+  return value instanceof Uint8Array ? value : new Uint8Array(value);
+}
+
 /**
  * Split a storage listing into sync frames to replay vs. non-sync (awareness
  * / presence) frames to purge. Awareness frames were persisted by an older
  * version of the DO and must never be replayed — they're ephemeral and
  * replaying them grows the load cost without bound.
  */
-export function partitionPersistedFrames(entries: Map<string, number[]>): {
+export function partitionPersistedFrames(entries: Map<string, StoredBytes>): {
   syncFrames: Uint8Array[];
   staleKeys: string[];
 } {
   const syncFrames: Uint8Array[] = [];
   const staleKeys: string[] = [];
   for (const [key, updateArray] of entries.entries()) {
-    const frame = new Uint8Array(updateArray);
+    const frame = toBytes(updateArray);
     if (isSyncFrame(frame)) {
       syncFrames.push(frame);
     } else {
@@ -100,17 +145,22 @@ export interface StorageLogger {
  * Yjs document persistence + replay, decoupled from the Durable Object base
  * class so it can be unit-tested with a mock `DoStorage`.
  *
- * Storage strategy — snapshot + incremental updates:
+ * Storage strategy — snapshot + paged incremental updates:
  *  - `loadAndReplay` reads a single compacted snapshot key (O(1) row read),
- *    then lists only the incremental update keys written since the last
- *    compaction. Legacy non-sync (awareness/presence) rows are purged.
+ *    then pages the incremental update keys written since the last compaction
+ *    (`limit` + `startAfter`) so peak memory stays bounded regardless of how
+ *    long the history is. Legacy non-sync (awareness/presence) rows are purged
+ *    page-by-page.
  *  - `persist` drops awareness/presence frames (ephemeral) and writes sync
- *    frames under a collision-free `timestamp:sequence` key.
+ *    frames as compact `Uint8Array` BLOBs under a collision-free key.
  *  - `compact` merges all incremental update rows into a single snapshot,
  *    reducing subsequent loads to O(1) row reads. Safe for offline clients:
  *    `Y.encodeStateAsUpdate` preserves the full state vector (all clientIDs +
  *    clocks), so the Yjs sync protocol can still compute correct diffs against
- *    a compacted state. CRDT merge is commutative and idempotent.
+ *    a compacted state. CRDT merge is commutative and idempotent. If the
+ *    encoded state exceeds `SNAPSHOT_VALUE_LIMIT` the snapshot write AND the
+ *    row deletes are both skipped (a partial write or a delete-without-snapshot
+ *    would risk data loss), leaving the paged load as the recovery path.
  */
 export class YjsDocStorage {
   private sequence = 0;
@@ -121,9 +171,40 @@ export class YjsDocStorage {
   ) {}
 
   /**
+   * Page through all `update:*` rows for a document, invoking `onPage` with
+   * each page's entries in ascending key order. Bounded memory: only one page
+   * of values is live at a time. Returns the total number of rows read.
+   */
+  private async forEachUpdatePage(
+    updatePrefix: string,
+    onPage: (page: Map<string, StoredBytes>) => Promise<void> | void
+  ): Promise<number> {
+    let total = 0;
+    let startAfter: string | undefined;
+    for (;;) {
+      const page = await this.storage.list<StoredBytes>({
+        prefix: updatePrefix,
+        limit: LIST_PAGE_SIZE,
+        ...(startAfter ? { startAfter } : {}),
+      });
+      if (page.size === 0) break;
+      total += page.size;
+
+      await onPage(page);
+      if (page.size < LIST_PAGE_SIZE) break;
+      // `list` returns keys in ascending order; the last key is the page max.
+      let lastKey = '';
+      for (const key of page.keys()) lastKey = key;
+      startAfter = lastKey;
+    }
+    return total;
+  }
+
+  /**
    * Replay persisted state onto `sharedDoc`: snapshot first (one row read),
-   * then incremental updates. Purges legacy non-sync rows. Throws on storage
-   * list/replay failure so the caller can drop a cached blank doc and retry.
+   * then paged incremental updates. Purges legacy non-sync rows page-by-page.
+   * Throws on storage read/replay failure so the caller can drop a cached
+   * blank doc and retry.
    */
   async loadAndReplay(
     documentId: string,
@@ -136,43 +217,66 @@ export class YjsDocStorage {
     let totalRowsRead = 0;
     let hadSnapshot = false;
 
-    const snapshotRaw = await this.storage.get<number[]>(snapKey);
+    const snapshotRaw = await this.storage.get<StoredBytes>(snapKey);
     if (snapshotRaw) {
       hadSnapshot = true;
       totalRowsRead++;
-      applyFrame(new Uint8Array(snapshotRaw));
+      applyFrame(toBytes(snapshotRaw));
     }
 
-    const entries = await this.storage.list<number[]>({ prefix: updatePrefix });
-    totalRowsRead += entries.size;
+    const incrementalKeys: string[] = [];
+    let incrementalSyncFrames = 0;
 
-    if (entries.size === 0 && !hadSnapshot) {
+    const rowsRead = await this.forEachUpdatePage(updatePrefix, async (page) => {
+      const { syncFrames, staleKeys } = partitionPersistedFrames(page);
+      for (const frame of syncFrames) applyFrame(frame);
+      incrementalSyncFrames += syncFrames.length;
+
+      const staleKeySet = new Set(staleKeys);
+      for (const key of page.keys()) {
+        if (!staleKeySet.has(key)) incrementalKeys.push(key);
+      }
+
+      // Purge legacy non-sync rows for this page (best-effort, chunked).
+      // Awaited per batch so the load doesn't return before the deletes
+      // settle; a failed batch is logged and skipped without aborting the
+      // rest. Bounded by the page size, so this adds negligible latency.
+      for (const batch of chunkKeysForDelete(staleKeys)) {
+        await this.deleteBatch(batch, documentId, staleKeys.length);
+      }
+    });
+    totalRowsRead += rowsRead;
+
+    if (rowsRead === 0 && !hadSnapshot) {
       this.log.debug(`No persisted updates found for ${documentId} - starting fresh`);
       return { totalRowsRead: 0, hadSnapshot: false, incrementalKeys: [] };
     }
 
-    const { syncFrames, staleKeys } = partitionPersistedFrames(entries);
-    for (const frame of syncFrames) applyFrame(frame);
-
-    const staleKeySet = new Set(staleKeys);
-    const incrementalKeys = [...entries.keys()].filter((key) => !staleKeySet.has(key));
-
     this.log.debug(
-      `Loaded document ${documentId} from storage: snapshot=${hadSnapshot}, ${syncFrames.length} incremental sync frames, ${staleKeys.length} non-sync frames purged`
+      `Loaded document ${documentId} from storage: snapshot=${hadSnapshot}, ${incrementalSyncFrames} incremental sync frames (paged), ${incrementalKeys.length} live update rows`
     );
 
-    for (const batch of chunkKeysForDelete(staleKeys)) {
-      try {
-        await this.storage.delete(batch);
-      } catch (err) {
-        this.log.warn(
-          `Failed to purge ${batch.length} of ${staleKeys.length} stale frames for ${documentId}`,
-          { error: String(err) }
-        );
-      }
-    }
-
     return { totalRowsRead, hadSnapshot, incrementalKeys };
+  }
+
+  /**
+   * Delete one batch of keys, swallowing + logging failures. Returns the count
+   * deleted on success, 0 on failure (best-effort purge/compaction cleanup).
+   */
+  private async deleteBatch(
+    batch: string[],
+    documentId: string,
+    totalForLog: number
+  ): Promise<number> {
+    try {
+      await this.storage.delete(batch);
+      return batch.length;
+    } catch (err) {
+      this.log.warn(`Failed to delete ${batch.length} of ${totalForLog} rows for ${documentId}`, {
+        error: String(err),
+      });
+      return 0;
+    }
   }
 
   /**
@@ -183,47 +287,68 @@ export class YjsDocStorage {
    * Yjs updates are idempotent, so double-applying is correct (just slightly
    * wasteful until the next compaction cleans up).
    *
+   * If the encoded state exceeds `SNAPSHOT_VALUE_LIMIT` the write is skipped
+   * entirely (and no rows are deleted) so we never lose the only copy of the
+   * history — the paged load remains the recovery path for oversized docs.
+   *
    * @param encodedState The full document state from `Y.encodeStateAsUpdate(doc)`.
    * @param knownKeys When provided, these keys are deleted directly without a
    *   storage list (saves N row reads). Omit for warm-session compaction where
    *   the full key set isn't tracked.
    */
-  async compact(documentId: string, encodedState: Uint8Array, knownKeys?: string[]): Promise<void> {
+  async compact(
+    documentId: string,
+    encodedState: Uint8Array,
+    knownKeys?: string[]
+  ): Promise<CompactResult> {
+    if (encodedState.byteLength > SNAPSHOT_VALUE_LIMIT) {
+      this.log.warn(
+        `Skipping compaction for ${documentId}: encoded state ${encodedState.byteLength} bytes exceeds snapshot limit ${SNAPSHOT_VALUE_LIMIT}; leaving incremental rows (paged load still works)`,
+        { documentId, bytes: encodedState.byteLength, limit: SNAPSHOT_VALUE_LIMIT }
+      );
+      return { snapshotWritten: false, rowsDeleted: 0 };
+    }
+
     const storagePrefix = `doc:${documentId}:`;
     const snapKey = snapshotKey(storagePrefix);
 
-    await this.storage.put(snapKey, Array.from(encodedState));
+    // Store the raw bytes (compact BLOB), not Array.from(bytes) — the latter
+    // inflates stored size ~8x (one boxed number per byte) and the in-memory
+    // load cost likewise.
+    await this.storage.put(snapKey, encodedState);
 
     let keys: string[];
     if (knownKeys) {
       keys = knownKeys;
     } else {
       const updatePrefix = `${storagePrefix}update:`;
-      const entries = await this.storage.list<number[]>({ prefix: updatePrefix });
-      keys = [...entries.keys()];
+      keys = [];
+      await this.forEachUpdatePage(updatePrefix, (page) => {
+        for (const key of page.keys()) keys.push(key);
+      });
     }
-    if (keys.length === 0) return;
+    if (keys.length === 0) {
+      return { snapshotWritten: true, rowsDeleted: 0 };
+    }
 
+    let rowsDeleted = 0;
     for (const batch of chunkKeysForDelete(keys)) {
-      try {
-        await this.storage.delete(batch);
-      } catch (err) {
-        this.log.warn(
-          `Failed to delete ${batch.length} of ${keys.length} update rows during compaction for ${documentId}`,
-          { error: String(err) }
-        );
-      }
+      rowsDeleted += await this.deleteBatch(batch, documentId, keys.length);
     }
 
     this.log.debug(
-      `Compacted document ${documentId}: ${keys.length} update rows merged into snapshot`
+      `Compacted document ${documentId}: ${rowsDeleted}/${keys.length} update rows merged into snapshot`
     );
+    return { snapshotWritten: true, rowsDeleted };
   }
 
   /**
    * Persist a Yjs wire frame. Only sync frames are stored — awareness/presence
    * are ephemeral and persisting them grew the update log without bound.
    * Returns the key written, or null if the frame was filtered out.
+   *
+   * The frame is stored as a compact `Uint8Array` BLOB (not `Array.from`,
+   * which would box every byte as a JS number and inflate storage ~8x).
    *
    * A short random suffix is appended to the key so a Durable Object that
    * restarts (resetting its in-memory `sequence` to 0) makes reuse of a key
@@ -247,7 +372,7 @@ export class YjsDocStorage {
     const suffix = Array.from(rand, (b) => b.toString(16).padStart(2, '0')).join('');
     const key = `${base}:${suffix}`;
     try {
-      await this.storage.put(key, Array.from(frame));
+      await this.storage.put(key, frame);
     } catch (err) {
       this.log.error(`Failed to persist update for ${documentId}`, err);
     }

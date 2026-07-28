@@ -1005,6 +1005,65 @@ describe('DocumentService', () => {
         DocumentSyncState.Unavailable
       );
     });
+
+    /**
+     * Pull the `onTextMessage` callback the service passed into the auth-ws
+     * provider options, so a test can deliver a post-auth text frame (e.g. a
+     * server `access-denied` that arrives *after* `authenticated`).
+     */
+    function capturedOnTextMessage(): ((text: string) => void) | undefined {
+      const calls = mockCreateAuthWsProvider.mock.calls;
+      const opts = calls[calls.length - 1]?.[4] as
+        { onTextMessage?: (text: string) => void } | undefined;
+      return opts?.onTextMessage;
+    }
+
+    it('stops reconnecting after a post-auth hard access-denied', async () => {
+      const { callbacks, advanceReconnect } = await setupConnection();
+      const status = callbacks['status'] as StatusCb;
+
+      // Server accepted the token then failed (e.g. document won't load):
+      // `authenticated` was already processed, so the denial arrives as a
+      // post-auth text frame routed to onTextMessage.
+      capturedOnTextMessage()?.('access-denied:error');
+
+      // The close that follows must NOT schedule a reconnect.
+      const connectCallsBefore =
+        mockWebSocketProvider.connect.mock.calls.length;
+      status({ status: 'disconnected' });
+      advanceReconnect();
+      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(
+        connectCallsBefore
+      );
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Unavailable
+      );
+    });
+
+    it('backs off (not a tight loop) on rate-limited, then stops on a second denial', async () => {
+      const { callbacks, advanceReconnect, scheduled } =
+        await setupConnection();
+      const status = callbacks['status'] as StatusCb;
+      const onText = capturedOnTextMessage();
+
+      // First rate-limit: grants exactly one long backoff retry.
+      onText?.('access-denied:rate-limited');
+      status({ status: 'disconnected' });
+      expect(scheduled).toHaveLength(1);
+      const before = mockWebSocketProvider.connect.mock.calls.length;
+      advanceReconnect(); // the single long-backoff retry
+      expect(mockWebSocketProvider.connect.mock.calls.length).toBe(before + 1);
+
+      // Second rate-limit with no successful connection in between: terminal.
+      onText?.('access-denied:rate-limited');
+      const afterSecond = mockWebSocketProvider.connect.mock.calls.length;
+      status({ status: 'disconnected' });
+      advanceReconnect(); // no-op: hard-stopped
+      expect(mockWebSocketProvider.connect.mock.calls.length).toBe(afterSecond);
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Unavailable
+      );
+    });
   });
 
   describe('Collaboration Setup', () => {
