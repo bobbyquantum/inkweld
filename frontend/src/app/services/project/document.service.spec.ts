@@ -1040,30 +1040,35 @@ describe('DocumentService', () => {
       );
     });
 
-    it('backs off (not a tight loop) on rate-limited, then stops on a second denial', async () => {
+    it('rate-limited backs off with the long delay and is not terminal', async () => {
       const { callbacks, advanceReconnect, scheduled } =
         await setupConnection();
       const status = callbacks['status'] as StatusCb;
       const onText = capturedOnTextMessage();
 
-      // First rate-limit: grants exactly one long backoff retry.
+      // First rate-limit: the server's close drives a single long-backoff
+      // retry (not the tight exponential loop), and the socket is stopped so
+      // y-websocket's internal loop can't storm the DO.
       onText?.('access-denied:rate-limited');
       status({ status: 'disconnected' });
       expect(scheduled).toHaveLength(1);
+      expect(mockWebSocketProvider.disconnect).toHaveBeenCalled();
       const before = mockWebSocketProvider.connect.mock.calls.length;
-      advanceReconnect(); // the single long-backoff retry
+      advanceReconnect();
       expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(before + 1);
 
-      // Second rate-limit with no successful connection in between: terminal.
+      // A second rate-limit is NOT terminal: a transient throttle clears on
+      // its own, so it schedules another long-backoff retry (only the
+      // max-attempts breaker stops a genuinely stuck server). advanceReconnect
+      // above shifted the first callback out, so the array holds just the new
+      // one here.
       onText?.('access-denied:rate-limited');
-      const afterSecond = mockWebSocketProvider.connect.mock.calls.length;
       status({ status: 'disconnected' });
-      advanceReconnect(); // no-op: hard-stopped
+      expect(scheduled).toHaveLength(1);
+      const beforeSecond = mockWebSocketProvider.connect.mock.calls.length;
+      advanceReconnect();
       expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(
-        afterSecond
-      );
-      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
-        DocumentSyncState.Unavailable
+        beforeSecond + 1
       );
     });
 

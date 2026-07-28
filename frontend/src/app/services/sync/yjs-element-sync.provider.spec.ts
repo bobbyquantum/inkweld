@@ -1124,7 +1124,6 @@ describe('YjsElementSyncProvider', () => {
     function privateProvider() {
       return provider as unknown as {
         terminalDenialReason: string | null;
-        rateLimitRetryUsed: boolean;
         pendingRateLimitBackoff: boolean;
         handleAccessDenied: (reason: string) => void;
         handlePostAuthText: (text: string) => void;
@@ -1143,19 +1142,24 @@ describe('YjsElementSyncProvider', () => {
       expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
     });
 
-    it('grants one retry on rate-limited, then becomes terminal', () => {
-      setWsStub();
+    it('rate-limited is not terminal and stops the internal reconnect loop', () => {
+      const stub = setWsStub();
       const priv = privateProvider();
 
       priv.handleAccessDenied('rate-limited');
-      expect(priv.rateLimitRetryUsed).toBe(true);
-      expect(priv.pendingRateLimitBackoff).toBe(true);
+      // A throttle is transient: not terminal, and the provider is stopped so
+      // y-websocket's internal auto-reconnect loop can't hammer the DO and
+      // re-saturate the per-doc rate-limit window (the reconnect storm).
       expect(priv.terminalDenialReason).toBeNull();
+      expect(priv.pendingRateLimitBackoff).toBe(true);
+      expect(stub.disconnect).toHaveBeenCalledTimes(1);
       expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
 
-      // A second rate-limited with no successful connection in between stops.
+      // A second rate-limited is still not terminal — only the max-attempts
+      // breaker can stop a genuinely stuck server.
       priv.handleAccessDenied('rate-limited');
-      expect(priv.terminalDenialReason).toBe('rate-limited');
+      expect(priv.terminalDenialReason).toBeNull();
+      expect(stub.disconnect).toHaveBeenCalledTimes(2);
     });
 
     it('routes a post-auth access-denied text frame through handleAccessDenied', () => {

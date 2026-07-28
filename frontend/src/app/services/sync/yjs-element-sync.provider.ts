@@ -111,13 +111,17 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private readonly reconnectionConfig = DEFAULT_RECONNECTION_CONFIG;
   /**
-   * Set when the server refuses the connection with `access-denied`. A hard
-   * reason stops the reconnect loop permanently; `rate-limited` grants one
-   * long backoff retry (see scheduleReconnect) before becoming terminal.
-   * Cleared on a fresh connect() and on a successful connection.
+   * Set when the server refuses the connection with a hard `access-denied`
+   * reason, stopping the reconnect loop permanently. Cleared on a fresh
+   * connect() and on a successful connection. (`rate-limited` is transient and
+   * does NOT set this — see pendingRateLimitBackoff.)
    */
   private terminalDenialReason: string | null = null;
-  private rateLimitRetryUsed = false;
+  /**
+   * When set, the next scheduleReconnect uses the long rate-limit backoff. A
+   * rate-limit also stops the provider (killing y-websocket's internal loop)
+   * but is not terminal, so the server's throttle can clear on its own.
+   */
   private pendingRateLimitBackoff = false;
 
   // Event listeners for cleanup
@@ -222,7 +226,6 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     // A new connection attempt clears any prior terminal denial so a user
     // retry / refresh can reconnect after a transient refusal.
     this.terminalDenialReason = null;
-    this.rateLimitRetryUsed = false;
 
     // Document ID for server communication (unprefixed)
     this.docId = `${username}:${slug}:elements`;
@@ -1120,7 +1123,6 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
         this.lastConnectionErrorSubject.next(null); // Clear error on successful connection
         this.reconnectAttempts = 0;
         this.terminalDenialReason = null;
-        this.rateLimitRetryUsed = false;
         this.pendingRateLimitBackoff = false;
         if (this.reconnectTimeout) {
           clearTimeout(this.reconnectTimeout);
@@ -1205,8 +1207,8 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
   /**
    * Schedule a reconnection attempt with exponential backoff + full jitter.
-   * A terminal `access-denied` stops the loop; `rate-limited` gets one long
-   * backoff retry before becoming terminal.
+   * A terminal `access-denied` stops the loop; `rate-limited` uses the long
+   * floored backoff (it is not terminal — the throttle clears on its own).
    */
   private scheduleReconnect(): void {
     if (this.terminalDenialReason) {
@@ -1303,28 +1305,23 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   }
 
   /**
-   * Record a server `access-denied`. Hard reasons stop reconnection outright;
-   * `rate-limited` gets one long backoff retry, then becomes terminal. In
-   * both terminal cases the socket is closed so no reconnect loop lingers.
+   * Record a server `access-denied`. Hard reasons stop reconnection outright
+   * and close the socket. `rate-limited` is transient, so it is NOT terminal:
+   * we stop the provider (switching off y-websocket's internal auto-reconnect
+   * loop, which doesn't know we were throttled and would otherwise hammer the
+   * DO on its 100ms*2^n schedule — each reconnect re-authing and re-saturating
+   * the per-doc window, i.e. the reconnect storm) and let scheduleReconnect
+   * retry with the long floored backoff until the max-attempts breaker.
    */
   private handleAccessDenied(reason: string): void {
     this.syncStateSubject.next(DocumentSyncState.Unavailable);
     if (reason === 'rate-limited') {
-      if (this.rateLimitRetryUsed) {
-        this.terminalDenialReason = reason;
-        this.logger.warn(
-          'YjsSync',
-          `Repeatedly rate-limited for ${this.docId}; stopping reconnects`
-        );
-        this.stopProvider();
-      } else {
-        this.rateLimitRetryUsed = true;
-        this.pendingRateLimitBackoff = true;
-        this.logger.warn(
-          'YjsSync',
-          `Rate-limited for ${this.docId}; backing off before a single retry`
-        );
-      }
+      this.pendingRateLimitBackoff = true;
+      this.logger.warn(
+        'YjsSync',
+        `Rate-limited for ${this.docId}; suppressing internal loop and backing off (not terminal)`
+      );
+      this.stopProvider();
       return;
     }
     if (HARD_DENIAL_REASONS.has(reason)) {

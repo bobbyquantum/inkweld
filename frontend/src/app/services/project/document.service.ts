@@ -1263,12 +1263,9 @@ export class DocumentService {
     // providerRef.disconnect() from scheduling retries.
     let authFailed = false;
     // Reason from the most recent server `access-denied` frame (post-auth
-    // text or re-auth callback). Read by handleDisconnected to choose
-    // terminal-stop vs. long rate-limit backoff, then cleared on success.
+    // text or re-auth callback). Read by handleDisconnected to apply the long
+    // rate-limit backoff, then cleared on success or once consumed.
     let deniedReason: string | null = null;
-    // Whether we've already spent the single long retry granted after a
-    // `rate-limited` denial. A second rate-limit becomes terminal.
-    let rateLimitRetryUsed = false;
 
     /**
      * Record a server `access-denied` and, for hard reasons, stop the
@@ -1290,22 +1287,20 @@ export class DocumentService {
         DocumentSyncState.Unavailable
       );
       if (reason === 'rate-limited') {
-        if (rateLimitRetryUsed) {
-          // Second rate-limit in a row: stop hammering the server AND close
-          // the socket so y-websocket's internal loop can't keep it alive.
-          authFailed = true;
-          this.logger.warn(
-            'DocumentService',
-            `Repeatedly rate-limited for ${documentId}; stopping reconnects`
-          );
-          suppressReconnect = true;
-          deniedProviderRef?.disconnect();
-        } else {
-          this.logger.warn(
-            'DocumentService',
-            `Rate-limited for ${documentId}; backing off before a single retry`
-          );
-        }
+        // A throttle is transient — the server's per-doc window clears on its
+        // own — so unlike a hard denial it is NOT terminal. We keep retrying
+        // with the long floored backoff (applied in handleDisconnected) until
+        // the normal max-attempts breaker stops us. We deliberately do NOT
+        // disconnect here: the server closes the socket with 4029 right after
+        // this frame, and handleDisconnected (which that close triggers) is
+        // what kills y-websocket's internal reconnect loop and schedules the
+        // long backoff. The previous "terminal after one rate-limit" policy
+        // left the document permanently un-synced whenever a retry happened to
+        // land in a still-full window, which bricked the e2e renders.
+        this.logger.warn(
+          'DocumentService',
+          `Rate-limited for ${documentId}; backing off and retrying (not terminal)`
+        );
         return;
       }
       if (HARD_DENIAL_REASONS.has(reason)) {
@@ -1446,7 +1441,6 @@ export class DocumentService {
         connectedAt = Date.now();
         authFailed = false;
         deniedReason = null;
-        rateLimitRetryUsed = false;
         // The backoff counter is reset in handleDisconnected when a stable
         // session ends, not here — resetting here would require the previous
         // session's duration, which is already consumed.
@@ -1509,10 +1503,11 @@ export class DocumentService {
 
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           let delay: number;
-          if (deniedReason === 'rate-limited' && !rateLimitRetryUsed) {
-            // Honour the server's cooldown with one long, jittered retry
-            // instead of the tight exponential loop that caused the spam.
-            rateLimitRetryUsed = true;
+          if (deniedReason === 'rate-limited') {
+            // Honour the server's cooldown with a long, floored, jittered
+            // backoff instead of the tight exponential loop. Not terminal: a
+            // transient throttle clears on its own, so repeated rate-limits
+            // keep using this long backoff until the max-attempts breaker.
             deniedReason = null;
             delay = rateLimitBackoff();
           } else {
