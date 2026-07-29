@@ -631,8 +631,10 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
   /**
    * GET /api/stats - Report storage row usage for a document.
-   * Diagnostic endpoint: reads the snapshot key + lists incremental update
-   * rows to report counts. Not intended for hot-path use.
+   * Diagnostic endpoint: reads the snapshot key + pages the incremental update
+   * rows to count them (bounded memory, so it stays safe on a document with a
+   * huge history). Not intended for hot-path use — every row counted is still
+   * a billed row read.
    */
   private async handleGetStats(documentId: string): Promise<Response> {
     const storagePrefix = `doc:${documentId}:`;
@@ -640,14 +642,28 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     const updatePrefix = `${storagePrefix}update:`;
 
     const hasSnapshot = (await this.state.storage.get(snapKey)) !== undefined;
-    const updates = await this.state.storage.list({ prefix: updatePrefix });
+
+    let incrementalRows = 0;
+    let startAfter: string | undefined;
+    for (;;) {
+      const page = await this.state.storage.list({
+        prefix: updatePrefix,
+        limit: 1000,
+        ...(startAfter ? { startAfter } : {}),
+      });
+      incrementalRows += page.size;
+      if (page.size < 1000) break;
+      let lastKey = '';
+      for (const key of page.keys()) lastKey = key;
+      startAfter = lastKey;
+    }
 
     return new Response(
       JSON.stringify({
         documentId,
         hasSnapshot,
-        incrementalRows: updates.size,
-        totalRows: (hasSnapshot ? 1 : 0) + updates.size,
+        incrementalRows,
+        totalRows: (hasSnapshot ? 1 : 0) + incrementalRows,
         loadedInMemory: this.documents.has(documentId),
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }

@@ -193,6 +193,7 @@ describe('ProjectComponent', () => {
       openPublishPlan: vi.fn(),
       showEditProjectDialog: vi.fn(),
       showNewElementDialog: vi.fn(),
+      disconnectSync: vi.fn(),
     };
 
     documentService = {
@@ -201,6 +202,7 @@ describe('ProjectComponent', () => {
         .mockReturnValue(signal(DocumentSyncState.Synced)),
       hasUnsyncedChanges: vi.fn().mockReturnValue(false),
       getActiveConnections: vi.fn().mockReturnValue([]),
+      disconnect: vi.fn(),
     };
 
     recentFilesService = {
@@ -932,6 +934,16 @@ describe('ProjectComponent', () => {
 
       expect(destroySpy).toHaveBeenCalled();
       expect(completeSpy).toHaveBeenCalled();
+    });
+
+    it('should close all collaboration connections on destroy', () => {
+      component.ngOnDestroy();
+
+      // Leaving a project must tear down the per-doc WebSockets and the
+      // elements WebSocket so their reconnect loops can't keep running after
+      // the component is gone (the route is no longer reused on exit).
+      expect(documentService.disconnect).toHaveBeenCalledTimes(1);
+      expect(projectStateService.disconnectSync).toHaveBeenCalledTimes(1);
     });
   });
 

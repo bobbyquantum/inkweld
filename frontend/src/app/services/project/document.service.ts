@@ -23,6 +23,12 @@ import {
 } from '@editor';
 import { DocumentsService } from '@inkweld/index';
 import { type PresenceSession } from '@inkweld/presence';
+import {
+  HARD_DENIAL_REASONS,
+  parseAccessDeniedReason,
+  rateLimitBackoff,
+  withJitter,
+} from '@services/sync/access-denial';
 import { type Node as ProseMirrorModelNode } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
@@ -1216,6 +1222,99 @@ export class DocumentService {
 
     const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${formattedDocId}`;
     let provider: WebsocketProvider | null;
+    // Nullable handle assigned once auth succeeds, so the `markDenied`
+    // closure (declared below, before the `try`) can stop the provider on a
+    // hard denial. The status/error handlers further down keep their own
+    // non-null `const providerRef` alias for narrow typing.
+    let deniedProviderRef: WebsocketProvider | null = null;
+
+    // Reconnect-state flags + the denial handler are declared BEFORE the
+    // `try` block because the auth callbacks created inside it (onTextMessage
+    // / onAuthError) reference `markDenied`. A `const` referenced from a
+    // closure that is *created* earlier in source order than the `const`'s
+    // declaration leaves the type checker unable to resolve the call
+    // (`no-unsafe-call`) and flags the declaration as unused. Declaring them
+    // here puts them in scope at the callbacks' creation site. `markDenied`
+    // stops the provider via `deniedProviderRef` (assigned once auth succeeds)
+    // and reads `suppressReconnect` (declared below) only at *call* time.
+    // Track connection attempts for exponential backoff
+    let reconnectAttempts = 0;
+    let reconnectTimeout: number | null = null;
+    let circuitBreakerTimeout: number | null = null;
+    // Set before calling providerRef.disconnect() to suppress the
+    // 'disconnected' re-entry that disconnect() triggers. y-websocket's
+    // own internal reconnect loop starts at 100ms (2^n × 100), so without
+    // this suppression the first 5 reconnects fire in ~3s — each hitting
+    // the main Worker. We kill that loop and drive reconnects ourselves.
+    let suppressReconnect = false;
+    // Timestamp of the last 'connected' event, captured so we can measure
+    // the session *duration* at disconnect time (not uptime + reconnect
+    // delay). Used to decide whether a disconnect was a brief flap (don't
+    // reset the backoff counter) or the end of a healthy session (reset so
+    // the next outage starts fresh).
+    let connectedAt = 0;
+    // How long the just-lost connection stayed up. Set on disconnect, read
+    // on the next 'connected'. Measured at disconnect time so a 2s session
+    // + 60s reconnect delay is NOT mistaken for a stable 62s session.
+    let lastSessionDurationMs = 0;
+    // Sticky flag set when the session is definitively dead (auth failure).
+    // Prevents the circuit-breaker cool-down from retrying a dead session
+    // and prevents the 'disconnected' handler re-entered via
+    // providerRef.disconnect() from scheduling retries.
+    let authFailed = false;
+    // Reason from the most recent server `access-denied` frame (post-auth
+    // text or re-auth callback). Read by handleDisconnected to apply the long
+    // rate-limit backoff, then cleared on success or once consumed.
+    let deniedReason: string | null = null;
+
+    /**
+     * Record a server `access-denied` and, for hard reasons, stop the
+     * reconnect loop outright. Called from both the post-auth message guard
+     * (a denial that arrives *after* `authenticated`, e.g. a document that
+     * fails to load server-side) and the re-auth callback (a denial that
+     * arrives *during* the auth handshake, e.g. rate-limited / forbidden).
+     *
+     * Hard reasons set the sticky `authFailed` flag so handleDisconnected
+     * schedules no retry. `rate-limited` is left non-terminal: it gets one
+     * long backoff retry (handled in handleDisconnected), and only turns
+     * terminal if that retry is also denied.
+     */
+    const markDenied = (reason: string) => {
+      deniedReason = reason;
+      this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
+      this.projectStateService.updateSyncState(
+        documentId,
+        DocumentSyncState.Unavailable
+      );
+      if (reason === 'rate-limited') {
+        // A throttle is transient — the server's per-doc window clears on its
+        // own — so unlike a hard denial it is NOT terminal. We keep retrying
+        // with the long floored backoff (applied in handleDisconnected) until
+        // the normal max-attempts breaker stops us. We deliberately do NOT
+        // disconnect here: the server closes the socket with 4029 right after
+        // this frame, and handleDisconnected (which that close triggers) is
+        // what kills y-websocket's internal reconnect loop and schedules the
+        // long backoff. The previous "terminal after one rate-limit" policy
+        // left the document permanently un-synced whenever a retry happened to
+        // land in a still-full window, which bricked the e2e renders.
+        this.logger.warn(
+          'DocumentService',
+          `Rate-limited for ${documentId}; backing off and retrying (not terminal)`
+        );
+        return;
+      }
+      if (HARD_DENIAL_REASONS.has(reason)) {
+        authFailed = true;
+        this.logger.error(
+          'DocumentService',
+          `Access denied (${reason}) for ${documentId}; not retrying`
+        );
+        // Stop y-websocket's internal reconnect loop too. suppressReconnect
+        // guards the synchronous 'disconnected' this disconnect() emits.
+        suppressReconnect = true;
+        deniedProviderRef?.disconnect();
+      }
+    };
 
     try {
       provider = await this.createAuthWsProvider(
@@ -1237,8 +1336,17 @@ export class DocumentService {
             );
           },
           onTextMessage: text => {
-            // Post-auth text on a document socket is unexpected (the keepalive
-            // PONG is swallowed by the guard). Surface it for diagnosis.
+            // A post-auth `access-denied` (e.g. the server sent `authenticated`
+            // then failed to load the document) is terminal — stop the
+            // reconnect loop instead of debug-logging it and letting the
+            // subsequent close event schedule another retry.
+            const reason = parseAccessDeniedReason(text);
+            if (reason) {
+              markDenied(reason);
+              return;
+            }
+            // Other post-auth text is unexpected (the keepalive PONG is
+            // swallowed by the guard). Surface it for diagnosis.
             this.logger.debug(
               'DocumentService',
               `Unexpected text frame on ${documentId}: ${text}`
@@ -1258,6 +1366,15 @@ export class DocumentService {
         provider,
         () => this.authTokenService.getToken(),
         error => {
+          // A denial during the re-auth handshake (rate-limited / forbidden /
+          // invalid token) is terminal or long-backoff — route it through the
+          // same classifier as post-auth denials so it can't drive a tight
+          // reconnect loop.
+          const reason = parseAccessDeniedReason(error);
+          if (reason) {
+            markDenied(reason);
+            return;
+          }
           this.logger.error(
             'DocumentService',
             `WebSocket auth error: ${error}`
@@ -1290,6 +1407,7 @@ export class DocumentService {
       // Track unsynced changes by listening to Yjs document updates
       this.unsyncedChanges.set(documentId, false);
       const providerRef = provider;
+      deniedProviderRef = provider;
       ydoc.on(
         'update',
         (
@@ -1306,31 +1424,8 @@ export class DocumentService {
         }
       );
 
-      // Track connection attempts for exponential backoff
-      let reconnectAttempts = 0;
-      let reconnectTimeout: number | null = null;
-      let circuitBreakerTimeout: number | null = null;
-      // Set before calling providerRef.disconnect() to suppress the
-      // 'disconnected' re-entry that disconnect() triggers. y-websocket's
-      // own internal reconnect loop starts at 100ms (2^n × 100), so without
-      // this suppression the first 5 reconnects fire in ~3s — each hitting
-      // the main Worker. We kill that loop and drive reconnects ourselves.
-      let suppressReconnect = false;
-      // Timestamp of the last 'connected' event, captured so we can measure
-      // the session *duration* at disconnect time (not uptime + reconnect
-      // delay). Used to decide whether a disconnect was a brief flap (don't
-      // reset the backoff counter) or the end of a healthy session (reset so
-      // the next outage starts fresh).
-      let connectedAt = 0;
-      // How long the just-lost connection stayed up. Set on disconnect, read
-      // on the next 'connected'. Measured at disconnect time so a 2s session
-      // + 60s reconnect delay is NOT mistaken for a stable 62s session.
-      let lastSessionDurationMs = 0;
-      // Sticky flag set when the session is definitively dead (auth failure).
-      // Prevents the circuit-breaker cool-down from retrying a dead session
-      // and prevents the 'disconnected' handler re-entered via
-      // providerRef.disconnect() from scheduling retries.
-      let authFailed = false;
+      // Reconnect-state flags and the `markDenied` handler live above the
+      // `try` block (so the auth callbacks created here can reference them).
 
       // Handle connection status with enhanced logging
       //
@@ -1345,6 +1440,7 @@ export class DocumentService {
         );
         connectedAt = Date.now();
         authFailed = false;
+        deniedReason = null;
         // The backoff counter is reset in handleDisconnected when a stable
         // session ends, not here — resetting here would require the previous
         // session's duration, which is already consumed.
@@ -1406,10 +1502,23 @@ export class DocumentService {
         );
 
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-          const delay = Math.min(
-            INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttempts),
-            MAX_RECONNECT_DELAY
-          );
+          let delay: number;
+          if (deniedReason === 'rate-limited') {
+            // Honour the server's cooldown with a long, floored, jittered
+            // backoff instead of the tight exponential loop. Not terminal: a
+            // transient throttle clears on its own, so repeated rate-limits
+            // keep using this long backoff until the max-attempts breaker.
+            deniedReason = null;
+            delay = rateLimitBackoff();
+          } else {
+            deniedReason = null;
+            delay = withJitter(
+              Math.min(
+                INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttempts),
+                MAX_RECONNECT_DELAY
+              )
+            );
+          }
           // Kill y-websocket's internal reconnect loop (starts at 100ms,
           // would fire ~5 retries in 3s, each hitting the Worker even when
           // the DO returns 429/504). We drive the reconnect ourselves.
@@ -1477,7 +1586,13 @@ export class DocumentService {
           handleDisconnected();
         }
 
-        const newState = syncStateForStatus(status, reconnectAttempts);
+        let newState = syncStateForStatus(status, reconnectAttempts);
+        // A terminal denial must keep the UI on Unavailable; the generic
+        // status mapping would otherwise flip it back to Local on the
+        // 'disconnected' event that follows the denial.
+        if (authFailed) {
+          newState = DocumentSyncState.Unavailable;
+        }
         this.updateSyncStatus(documentId, newState);
 
         if (newState === DocumentSyncState.Synced) {

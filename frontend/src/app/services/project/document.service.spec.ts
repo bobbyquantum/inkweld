@@ -1005,6 +1005,111 @@ describe('DocumentService', () => {
         DocumentSyncState.Unavailable
       );
     });
+
+    /**
+     * Pull the `onTextMessage` callback the service passed into the auth-ws
+     * provider options, so a test can deliver a post-auth text frame (e.g. a
+     * server `access-denied` that arrives *after* `authenticated`).
+     */
+    function capturedOnTextMessage(): ((text: string) => void) | undefined {
+      const calls = mockCreateAuthWsProvider.mock.calls;
+      const opts = calls[calls.length - 1]?.[4] as
+        { onTextMessage?: (text: string) => void } | undefined;
+      return opts?.onTextMessage;
+    }
+
+    it('stops reconnecting after a post-auth hard access-denied', async () => {
+      const { callbacks, advanceReconnect } = await setupConnection();
+      const status = callbacks['status'] as StatusCb;
+
+      // Server accepted the token then failed (e.g. document won't load):
+      // `authenticated` was already processed, so the denial arrives as a
+      // post-auth text frame routed to onTextMessage.
+      capturedOnTextMessage()?.('access-denied:error');
+
+      // The close that follows must NOT schedule a reconnect.
+      const connectCallsBefore =
+        mockWebSocketProvider.connect.mock.calls.length;
+      status({ status: 'disconnected' });
+      advanceReconnect();
+      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(
+        connectCallsBefore
+      );
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Unavailable
+      );
+    });
+
+    it('rate-limited backs off with the long delay and is not terminal', async () => {
+      const { callbacks, advanceReconnect, scheduled } =
+        await setupConnection();
+      const status = callbacks['status'] as StatusCb;
+      const onText = capturedOnTextMessage();
+
+      // First rate-limit: the server's close drives a single long-backoff
+      // retry (not the tight exponential loop), and the socket is stopped so
+      // y-websocket's internal loop can't storm the DO.
+      onText?.('access-denied:rate-limited');
+      status({ status: 'disconnected' });
+      expect(scheduled).toHaveLength(1);
+      expect(mockWebSocketProvider.disconnect).toHaveBeenCalled();
+      const before = mockWebSocketProvider.connect.mock.calls.length;
+      advanceReconnect();
+      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(before + 1);
+
+      // A second rate-limit is NOT terminal: a transient throttle clears on
+      // its own, so it schedules another long-backoff retry (only the
+      // max-attempts breaker stops a genuinely stuck server). advanceReconnect
+      // above shifted the first callback out, so the array holds just the new
+      // one here.
+      onText?.('access-denied:rate-limited');
+      status({ status: 'disconnected' });
+      expect(scheduled).toHaveLength(1);
+      const beforeSecond = mockWebSocketProvider.connect.mock.calls.length;
+      advanceReconnect();
+      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(
+        beforeSecond + 1
+      );
+    });
+
+    it('treats a re-auth access-denied callback as terminal', async () => {
+      // Capture the onAuthError wrapper that connectWebSocketInBackground hands
+      // to setupReauthentication, so we can deliver a denial the way the real
+      // re-auth path would (a string like "Access denied: forbidden"). This
+      // covers the re-auth wrapper that routes denials into markDenied.
+      let capturedOnAuthError: ((error: string) => void) | undefined;
+      service['setupWsReauth'] = vi.fn(
+        (
+          _provider: unknown,
+          _getToken: unknown,
+          onError: (e: string) => void
+        ) => {
+          capturedOnAuthError = onError;
+        }
+      ) as never;
+
+      const { callbacks, advanceReconnect } = await setupConnection();
+      const status = callbacks['status'] as StatusCb;
+
+      const disconnectCallsBefore =
+        mockWebSocketProvider.disconnect.mock.calls.length;
+      capturedOnAuthError?.('Access denied: forbidden');
+
+      // Hard denial: the provider is disconnected and the loop is stopped.
+      expect(mockWebSocketProvider.disconnect.mock.calls).toHaveLength(
+        disconnectCallsBefore + 1
+      );
+      const connectCallsBefore =
+        mockWebSocketProvider.connect.mock.calls.length;
+      status({ status: 'disconnected' });
+      advanceReconnect(); // no-op: hard-stopped
+      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(
+        connectCallsBefore
+      );
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Unavailable
+      );
+    });
   });
 
   describe('Collaboration Setup', () => {

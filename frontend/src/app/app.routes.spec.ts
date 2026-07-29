@@ -64,13 +64,16 @@ describe('app.routes', () => {
     }
   }, 60000);
 
-  it('configures project child routes with reuse metadata and redirects', () => {
+  it('disables project route reuse and configures child routes and redirects', () => {
     const projectRoute = flatRoutes.find(
       route => route.path === ':username/:slug'
     );
     const childPaths = projectRoute?.children?.map(route => route.path) ?? [];
 
-    expect(projectRoute?.data).toEqual({ reuseComponent: true });
+    // reuseComponent is intentionally false so leaving a project destroys the
+    // component (firing ngOnDestroy's connection teardown) instead of detaching
+    // it and leaking its WebSocket providers.
+    expect(projectRoute?.data).toEqual({ reuseComponent: false });
     expect(childPaths).toContain('document/:tabId');
     expect(childPaths).toContain('canvas/:tabId');
     expect(childPaths).toContain('publish-plan/:tabId');

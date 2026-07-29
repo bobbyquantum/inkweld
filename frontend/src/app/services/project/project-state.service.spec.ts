@@ -1105,6 +1105,105 @@ describe('ProjectStateService', () => {
 
       expect(mockSyncProvider.disconnect).toHaveBeenCalled();
     });
+
+    it('disconnectSync should close the connection and be idempotent', async () => {
+      await service.loadProject('testuser', 'test-project');
+
+      service.disconnectSync();
+      expect(mockSyncProvider.disconnect).toHaveBeenCalledTimes(1);
+
+      // A second call must not throw or reach the (now cleared) provider —
+      // this is the path the project component's ngOnDestroy relies on.
+      expect(() => service.disconnectSync()).not.toThrow();
+      expect(mockSyncProvider.disconnect).toHaveBeenCalledTimes(1);
+    });
+
+    it('abandons an in-flight load torn down during the metadata fetch', async () => {
+      // Make the metadata fetch hang so the load parks on its await — the
+      // window in which a teardown would otherwise leak an orphaned provider
+      // once the fetch later resolves.
+      let resolveProject: (project: Project | null) => void = () => {};
+      mockUnifiedProjectService.getProject.mockImplementation(
+        () =>
+          new Promise<Project | null>(resolve => {
+            resolveProject = resolve;
+          })
+      );
+
+      // Start the load without awaiting it.
+      const load = service.loadProject('testuser', 'test-project');
+
+      // Drain the microtask queue up to the parked getProject await. No sync
+      // provider has been created yet at this point.
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // Tear down while the fetch is in flight.
+      service.disconnectSync();
+
+      // Resolve the fetch after teardown. The load must detect it was
+      // superseded and stop *before* connecting a provider.
+      resolveProject(mockProject);
+      await load;
+
+      expect(mockSyncProvider.connect).not.toHaveBeenCalled();
+      expect(
+        (service as unknown as { syncProvider: unknown }).syncProvider
+      ).toBeNull();
+    });
+
+    it('abandons an offline load torn down during the metadata fetch', async () => {
+      mockSetupService.getMode.mockReturnValue('local');
+      let resolveProject: (project: Project | null) => void = () => {};
+      mockUnifiedProjectService.getProject.mockImplementation(
+        () =>
+          new Promise<Project | null>(resolve => {
+            resolveProject = resolve;
+          })
+      );
+
+      const load = service.loadProject('testuser', 'test-project');
+      await new Promise(resolve => setTimeout(resolve, 0));
+      service.disconnectSync();
+      resolveProject(mockProject);
+      await load;
+
+      // loadOfflineProject's post-fetch guard stops the load before connecting.
+      expect(mockSyncProvider.connect).not.toHaveBeenCalled();
+      expect(
+        (service as unknown as { syncProvider: unknown }).syncProvider
+      ).toBeNull();
+    });
+
+    it('disconnects an orphan provider when torn down during connect()', async () => {
+      mockSetupService.getMode.mockReturnValue('local');
+      // Park the load inside provider.connect() so the provider is created and
+      // wired up, then torn down before connect() resolves — the orphan-close
+      // branch in connectSyncProvider must disconnect exactly that provider.
+      let resolveConnect: (r: { success: boolean }) => void = () => {};
+      mockSyncProvider.connect.mockImplementation(
+        () =>
+          new Promise<{ success: boolean }>(resolve => {
+            resolveConnect = resolve;
+          })
+      );
+
+      const load = service.loadProject('testuser', 'test-project');
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // Provider has been created/assigned by now; tear down mid-connect.
+      expect(mockSyncProvider.connect).toHaveBeenCalledTimes(1);
+      service.disconnectSync();
+
+      resolveConnect({ success: true });
+      await load;
+
+      // disconnectSync() disconnects the live provider, and the orphan-close
+      // branch disconnects it again once connect() resolves after teardown.
+      expect(mockSyncProvider.disconnect).toHaveBeenCalledTimes(2);
+      expect(
+        (service as unknown as { syncProvider: unknown }).syncProvider
+      ).toBeNull();
+    });
   });
 
   describe('deletePublishPlan', () => {

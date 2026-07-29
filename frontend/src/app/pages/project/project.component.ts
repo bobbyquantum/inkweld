@@ -221,8 +221,11 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   async canDeactivate(): Promise<boolean> {
     // Create auto-snapshots for any edited documents before leaving the project.
-    // This is done here (not in ngOnDestroy) because the CustomRouteReuseStrategy
-    // detaches the component instead of destroying it, so ngOnDestroy is not called.
+    // This runs in the CanDeactivate guard (not ngOnDestroy) because it must
+    // complete *before* navigation commits and can still cancel the navigation
+    // (unsaved-changes confirmation). The connection teardown itself lives in
+    // ngOnDestroy, which now fires on exit because the route is no longer
+    // reused (see app.routes `reuseComponent: false`).
     await this.autoSnapshotService.createAutoSnapshots();
 
     if (!this.hasUnsavedChanges) {
@@ -313,6 +316,15 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy() {
+    // Close every live collaboration connection for this project. The route is
+    // no longer reused on exit (app.routes `reuseComponent: false`), so this
+    // hook now actually runs when leaving a project — previously the detached
+    // component kept its WebSocket providers (and their reconnect loops) alive
+    // indefinitely, which is what left connections hammering the server after
+    // the user had exited.
+    this.documentService.disconnect();
+    this.projectState.disconnectSync();
+
     this.paramsSubscription?.unsubscribe();
     this.errorEffect.destroy();
     this.destroy$.next();

@@ -355,7 +355,10 @@ describe('YjsElementSyncProvider', () => {
     ).handleWebSocketStatus('disconnected');
     expect(provider.getSyncState()).toBe(DocumentSyncState.Local);
 
-    await vi.advanceTimersByTimeAsync(1000);
+    // First-attempt backoff is baseDelayMs (3000) * 2^0 with full jitter in
+    // [0.5,1) → up to 3000ms. Advance past the worst case so the scheduled
+    // reconnect fires deterministically regardless of the jitter draw.
+    await vi.advanceTimersByTimeAsync(3000);
     expect(connect).toHaveBeenCalledTimes(1);
 
     (
@@ -1105,6 +1108,113 @@ describe('YjsElementSyncProvider', () => {
     it('does not throw when updating time systems without a connected doc', () => {
       // doc is null — the guard branch (line 633-635) fires
       expect(() => provider.updateTimeSystems([])).not.toThrow();
+    });
+  });
+
+  describe('access-denied handling', () => {
+    function setWsStub(): {
+      disconnect: ReturnType<typeof vi.fn>;
+      connect: ReturnType<typeof vi.fn>;
+    } {
+      const stub = { disconnect: vi.fn(), connect: vi.fn() };
+      (provider as unknown as { wsProvider: unknown }).wsProvider = stub;
+      return stub;
+    }
+
+    function privateProvider() {
+      return provider as unknown as {
+        terminalDenialReason: string | null;
+        pendingRateLimitBackoff: boolean;
+        handleAccessDenied: (reason: string) => void;
+        handlePostAuthText: (text: string) => void;
+        handleReauthError: (error: string) => void;
+        handleWebSocketStatus: (status: string) => void;
+      };
+    }
+
+    it('stops reconnecting on a hard denial and disconnects the socket', () => {
+      const stub = setWsStub();
+
+      privateProvider().handleAccessDenied('forbidden');
+
+      expect(privateProvider().terminalDenialReason).toBe('forbidden');
+      expect(stub.disconnect).toHaveBeenCalledTimes(1);
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
+    });
+
+    it('rate-limited is not terminal and stops the internal reconnect loop', () => {
+      const stub = setWsStub();
+      const priv = privateProvider();
+
+      priv.handleAccessDenied('rate-limited');
+      // A throttle is transient: not terminal, and the provider is stopped so
+      // y-websocket's internal auto-reconnect loop can't hammer the DO and
+      // re-saturate the per-doc rate-limit window (the reconnect storm).
+      expect(priv.terminalDenialReason).toBeNull();
+      expect(priv.pendingRateLimitBackoff).toBe(true);
+      expect(stub.disconnect).toHaveBeenCalledTimes(1);
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
+
+      // A second rate-limited is still not terminal — only the max-attempts
+      // breaker can stop a genuinely stuck server.
+      priv.handleAccessDenied('rate-limited');
+      expect(priv.terminalDenialReason).toBeNull();
+      expect(stub.disconnect).toHaveBeenCalledTimes(2);
+    });
+
+    it('routes a post-auth access-denied text frame through handleAccessDenied', () => {
+      const stub = setWsStub();
+      const priv = privateProvider();
+
+      priv.handlePostAuthText('access-denied:error');
+      expect(stub.disconnect).toHaveBeenCalledTimes(1);
+      expect(priv.terminalDenialReason).toBe('error');
+
+      // Non-denial text is just logged, not treated as terminal.
+      priv.handlePostAuthText('ping');
+      expect(stub.disconnect).toHaveBeenCalledTimes(1);
+    });
+
+    it('routes a re-auth access-denied callback through handleAccessDenied', () => {
+      const stub = setWsStub();
+      const priv = privateProvider();
+
+      priv.handleReauthError('Access denied: forbidden');
+      expect(stub.disconnect).toHaveBeenCalledTimes(1);
+      expect(priv.terminalDenialReason).toBe('forbidden');
+
+      // A non-denial re-auth error marks unavailable without disconnecting.
+      priv.handleReauthError('transient');
+      expect(stub.disconnect).toHaveBeenCalledTimes(1);
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
+    });
+
+    it('keeps state Unavailable and does not reconnect after a terminal disconnect', () => {
+      const stub = setWsStub();
+      privateProvider().handleAccessDenied('forbidden');
+      stub.disconnect.mockClear();
+
+      privateProvider().handleWebSocketStatus('disconnected');
+
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
+      expect(stub.connect).not.toHaveBeenCalled();
+    });
+
+    it('uses the long rate-limit backoff on the retry after a rate-limit', () => {
+      vi.useFakeTimers();
+      const stub = setWsStub();
+      const priv = privateProvider();
+      priv.pendingRateLimitBackoff = true;
+
+      priv.handleWebSocketStatus('disconnected');
+      // The long backoff must not fire within the server cooldown window.
+      vi.advanceTimersByTime(10_000);
+      expect(stub.connect).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(30_000);
+      expect(stub.connect).toHaveBeenCalledTimes(1);
+      expect(priv.pendingRateLimitBackoff).toBe(false);
+
+      vi.useRealTimers();
     });
   });
 });
