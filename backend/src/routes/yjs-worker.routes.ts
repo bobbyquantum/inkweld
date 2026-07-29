@@ -64,4 +64,57 @@ app.get('/yjs', async (c) => {
   }
 });
 
+/**
+ * HTTP API proxy to the Durable Object.
+ *
+ * The DO exposes /api/stats, /api/elements, /api/document etc. but these are
+ * only reachable via internal stub.fetch() calls (MCP tools). This route
+ * forwards external HTTP requests to the DO so they can be hit with curl /
+ * browser for diagnostics. Auth is handled by the DO itself (Bearer token).
+ *
+ * Usage:
+ *   GET /api/v1/ws/yjs/do/stats?documentId=user:slug:elements
+ *   GET /api/v1/ws/yjs/do/elements?documentId=user:slug:elements
+ *   GET /api/v1/ws/yjs/do/document?documentId=user:slug:docId
+ */
+app.get('/yjs/do/:endpoint', async (c) => {
+  const endpoint = c.req.param('endpoint');
+  const documentId = c.req.query('documentId');
+
+  if (!documentId) {
+    return c.json({ error: 'Missing documentId parameter' }, 400);
+  }
+
+  const parts = documentId.split(':');
+  if (parts.length < 2) {
+    return c.json({ error: `Invalid document ID format: ${documentId}` }, 400);
+  }
+
+  const [username, slug] = parts;
+  const projectId = `${username}:${slug}`;
+
+  try {
+    const namespace = c.env.YJS_PROJECTS;
+    if (!namespace) {
+      return c.json({ error: 'WebSocket service unavailable' }, 503);
+    }
+
+    const id = namespace.idFromName(projectId);
+    const stub = namespace.get(id);
+
+    // Rewrite the path so the DO's handleHttpApi sees /api/<endpoint>
+    const url = new URL(c.req.url);
+    url.pathname = `/api/${endpoint}`;
+    const req = new Request(url.toString(), {
+      method: c.req.method,
+      headers: c.req.raw.headers,
+    });
+
+    return stub.fetch(req);
+  } catch (error) {
+    yjsWorkerLog.error('Error routing HTTP to Durable Object', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
 export default app;
