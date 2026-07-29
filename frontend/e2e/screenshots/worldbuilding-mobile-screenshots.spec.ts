@@ -97,14 +97,8 @@ async function setupWorldbuildingAtMobile(
     timeout: 45000,
   });
 
-  // Resize to mobile viewport first — accordion mode shows the image placeholder
-  await page.setViewportSize(mobileViewport);
-
-  // Ensure the resize listener fires so the editor switches to accordion mode.
-  await page.evaluate(() => window.dispatchEvent(new Event('resize')));
-
-  // Wait for accordion layout to appear
-  await expect(page.getByTestId('accordion-identity')).toBeVisible();
+  // Resize to mobile and wait for the editor to switch to accordion mode.
+  await switchToAccordionLayout(page, mobileViewport);
 
   // Ensure the identity accordion is expanded so app-identity-panel is
   // in the DOM before seedIdentityImage tries to locate it.
@@ -188,6 +182,36 @@ async function seedIdentityImage(page: Page): Promise<void> {
   }, dataUrl);
 
   await page.waitForSelector('.image-placeholder img', { state: 'visible' });
+}
+
+/**
+ * Resize to a mobile viewport and wait for the editor to leave the desktop
+ * sidenav layout and render the mobile accordion layout.
+ *
+ * The editor toggles `useSidenav` from a plain `resize` listener that reads
+ * `window.innerWidth` (>= 760px => sidenav, otherwise accordion). Under CI
+ * load a single dispatched resize event is occasionally processed while the
+ * editor is still settling — it is loaded via `@defer (on idle)` and rebuilds
+ * its form asynchronously — so the layout flip is missed and the accordion
+ * never appears within the expect timeout. Re-dispatch the resize event on a
+ * poll until the accordion renders rather than relying on a single event.
+ */
+async function switchToAccordionLayout(
+  page: Page,
+  mobileViewport: { width: number; height: number }
+): Promise<void> {
+  await page.setViewportSize(mobileViewport);
+
+  const accordion = page.getByTestId('accordion-identity');
+  await expect
+    .poll(
+      async () => {
+        await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+        return accordion.isVisible();
+      },
+      { timeout: 45000, intervals: [250] }
+    )
+    .toBe(true);
 }
 
 async function expandAccordionPanel(
