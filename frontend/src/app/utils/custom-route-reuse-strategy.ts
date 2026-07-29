@@ -41,35 +41,50 @@ export class CustomRouteReuseStrategy implements RouteReuseStrategy {
   }
 
   /**
-   * Determines if a route should be reused
-   * Checks if the routes share the same configuration,
-   * and respects reuseComponent flag in route data
+   * Determines if a route should be reused in place.
+   *
+   * `reuseComponent: false` normally means "do not reuse this component in
+   * place either" (the tab routes set it so each tab activation gets a fresh
+   * component — see app.routes). The single exception is the project parent
+   * route (`:username/:slug`): it carries `reuseComponent: false` only so that
+   * *leaving* the project destroys the component (isReusable → shouldDetach is
+   * false, so the component is not cached and its ngOnDestroy tears down the
+   * collaboration connections — the exit-leak fix). But the app also performs
+   * in-place navigations to that same route (after project creation and on
+   * internal URL normalisation); destroying+recreating the component there
+   * would run that same ngOnDestroy teardown mid-render and drop the sync
+   * providers, so the project tree / editor never stabilises. The project
+   * parent must therefore reuse in place even though reuseComponent is false.
    */
   shouldReuseRoute(
     future: ActivatedRouteSnapshot,
     curr: ActivatedRouteSnapshot
   ): boolean {
-    // Default behavior is to reuse the component if the two routes use the same component and params
+    // Default behavior is to reuse the component if the two routes use the same
+    // component and params.
     const defaultReuse = future.routeConfig === curr.routeConfig;
 
-    // If the future route explicitly specifies not to reuse, respect that
+    // Honour reuseComponent:false (recreate instead of reuse in place) for
+    // every route except the project parent, which is exempted for the reason
+    // described above.
     if (
       defaultReuse &&
       future.routeConfig &&
-      future.data['reuseComponent'] === false
+      future.data['reuseComponent'] === false &&
+      future.routeConfig.path !== ':username/:slug'
     ) {
-      // Don't reuse if reuseComponent is explicitly set to false
       return false;
     }
 
-    // Special handling for project routes: never reuse if username or slug changes
+    // Special handling for project routes: never reuse if username or slug
+    // changes — a different project must get a fresh component (and, because
+    // isReusable is false for reuseComponent:false, the old one is destroyed
+    // rather than cached, so its connections are torn down).
     if (defaultReuse && future.routeConfig?.path === ':username/:slug') {
-      // If username or slug has changed, create a fresh component
       if (
         future.params['username'] !== curr.params['username'] ||
         future.params['slug'] !== curr.params['slug']
       ) {
-        // Clear any stored handlers for the previous project
         this.clearStoredProject(
           curr.params['username'] as string,
           curr.params['slug'] as string

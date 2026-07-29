@@ -123,18 +123,52 @@ describe('CustomRouteReuseStrategy', () => {
       expect(strategy.shouldReuseRoute(future, curr)).toBe(false);
     });
 
-    it('should not reuse route when reuseComponent is false', () => {
-      const config = { path: 'test-path' };
+    it('reuses the project parent in place even though reuseComponent is false', () => {
+      // The project parent carries reuseComponent:false only so that *leaving*
+      // destroys it (the exit-leak fix). But in-place navigations to the same
+      // project must reuse the component, otherwise the ngOnDestroy teardown
+      // runs mid-render and drops the sync providers.
+      const config = { path: ':username/:slug' };
       const future = {
         routeConfig: config,
+        params: { username: 'user', slug: 'project' },
         data: { reuseComponent: false },
       } as unknown as ActivatedRouteSnapshot;
       const curr = {
         routeConfig: config,
-        data: {},
+        params: { username: 'user', slug: 'project' },
+        data: { reuseComponent: false },
+      } as unknown as ActivatedRouteSnapshot;
+
+      expect(strategy.shouldReuseRoute(future, curr)).toBe(true);
+    });
+
+    it('recreates (does not reuse in place) a tab route with reuseComponent false', () => {
+      // Tab routes set reuseComponent:false so each activation gets a fresh
+      // component — reusing in place would leave a stale editor. This matches
+      // main's behaviour; only the project parent is exempted.
+      const config = { path: 'document/:tabId' };
+      const future = {
+        routeConfig: config,
+        params: { tabId: '2' },
+        data: { reuseComponent: false },
+      } as unknown as ActivatedRouteSnapshot;
+      const curr = {
+        routeConfig: config,
+        params: { tabId: '1' },
+        data: { reuseComponent: false },
       } as unknown as ActivatedRouteSnapshot;
 
       expect(strategy.shouldReuseRoute(future, curr)).toBe(false);
+    });
+
+    it('does not detach (cache) a reuseComponent:false route on exit', () => {
+      // reuseComponent:false must still prevent the component being stored on
+      // exit, so leaving the route destroys it (running the connection teardown
+      // in ngOnDestroy) instead of leaking it.
+      const route = createRoute('test-path', {}, { reuseComponent: false });
+      expect(strategy.shouldDetach(route)).toBe(false);
+      expect(strategy.shouldAttach(route)).toBe(false);
     });
 
     it('should not reuse project route when username changes', () => {
