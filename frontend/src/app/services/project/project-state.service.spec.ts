@@ -1150,6 +1150,60 @@ describe('ProjectStateService', () => {
         (service as unknown as { syncProvider: unknown }).syncProvider
       ).toBeNull();
     });
+
+    it('abandons an offline load torn down during the metadata fetch', async () => {
+      mockSetupService.getMode.mockReturnValue('local');
+      let resolveProject: (project: Project | null) => void = () => {};
+      mockUnifiedProjectService.getProject.mockImplementation(
+        () =>
+          new Promise<Project | null>(resolve => {
+            resolveProject = resolve;
+          })
+      );
+
+      const load = service.loadProject('testuser', 'test-project');
+      await new Promise(resolve => setTimeout(resolve, 0));
+      service.disconnectSync();
+      resolveProject(mockProject);
+      await load;
+
+      // loadOfflineProject's post-fetch guard stops the load before connecting.
+      expect(mockSyncProvider.connect).not.toHaveBeenCalled();
+      expect(
+        (service as unknown as { syncProvider: unknown }).syncProvider
+      ).toBeNull();
+    });
+
+    it('disconnects an orphan provider when torn down during connect()', async () => {
+      mockSetupService.getMode.mockReturnValue('local');
+      // Park the load inside provider.connect() so the provider is created and
+      // wired up, then torn down before connect() resolves — the orphan-close
+      // branch in connectSyncProvider must disconnect exactly that provider.
+      let resolveConnect: (r: { success: boolean }) => void = () => {};
+      mockSyncProvider.connect.mockImplementation(
+        () =>
+          new Promise<{ success: boolean }>(resolve => {
+            resolveConnect = resolve;
+          })
+      );
+
+      const load = service.loadProject('testuser', 'test-project');
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // Provider has been created/assigned by now; tear down mid-connect.
+      expect(mockSyncProvider.connect).toHaveBeenCalledTimes(1);
+      service.disconnectSync();
+
+      resolveConnect({ success: true });
+      await load;
+
+      // disconnectSync() disconnects the live provider, and the orphan-close
+      // branch disconnects it again once connect() resolves after teardown.
+      expect(mockSyncProvider.disconnect).toHaveBeenCalledTimes(2);
+      expect(
+        (service as unknown as { syncProvider: unknown }).syncProvider
+      ).toBeNull();
+    });
   });
 
   describe('deletePublishPlan', () => {
