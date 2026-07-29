@@ -7,10 +7,9 @@
       matInput
       id="add-comment-text"
       aria-label="Comment"
-      [(ngModel)]="commentText"
+      [formField]="form.commentText"
       placeholder="Write your comment..."
       rows="3"
-      maxlength="2000"
       cdkTextareaAutosize
       data-testid="comment-text-input"
       (keydown.meta.enter)="onSubmit()"
@@ -25,7 +24,7 @@
   <button
     mat-raised-button
     color="primary"
-    [disabled]="!commentText.trim()"
+    [disabled]="!model().commentText.trim()"
     (click)="onSubmit()"
     data-testid="submit-comment-btn">
     Comment

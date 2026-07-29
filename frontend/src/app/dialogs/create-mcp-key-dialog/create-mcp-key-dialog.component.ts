@@ -4,7 +4,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { form, FormField, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -44,13 +44,18 @@ export interface CreateMcpKeyDialogResult {
   key: McpPublicKey;
 }
 
+interface CreateMcpKeyFormValue {
+  keyName: string;
+  keyExpiration: 'never' | '7days' | '30days' | '90days';
+}
+
 @Component({
   selector: 'app-create-mcp-key-dialog',
   templateUrl: './create-mcp-key-dialog.component.html',
   styleUrls: ['./create-mcp-key-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule,
+    FormField,
     MatButtonModule,
     MatCheckboxModule,
     MatDialogModule,
@@ -75,8 +80,14 @@ export class CreateMcpKeyDialogComponent {
     new Set()
   );
 
-  protected keyName = '';
-  protected keyExpiration: 'never' | '7days' | '30days' | '90days' = 'never';
+  readonly model = signal<CreateMcpKeyFormValue>({
+    keyName: '',
+    keyExpiration: 'never',
+  });
+
+  readonly form = form(this.model, schemaPath => {
+    required(schemaPath.keyName, { message: 'Key name is required' });
+  });
 
   protected readonly permissionGroups: PermissionGroup[] = [
     {
@@ -175,7 +186,7 @@ export class CreateMcpKeyDialogComponent {
     const project = this.projectState.project();
     if (
       !project ||
-      !this.keyName.trim() ||
+      !this.model().keyName.trim() ||
       this.selectedPermissions().size === 0
     ) {
       return;
@@ -185,7 +196,7 @@ export class CreateMcpKeyDialogComponent {
 
     try {
       const request: CreateMcpKeyRequest = {
-        name: this.keyName.trim(),
+        name: this.model().keyName.trim(),
         permissions: Array.from(this.selectedPermissions()),
         expiresAt: this.getExpirationTimestamp(),
       };
@@ -221,11 +232,12 @@ export class CreateMcpKeyDialogComponent {
   }
 
   private getExpirationTimestamp(): number | undefined {
-    if (this.keyExpiration === 'never') {
+    const expiration = this.model().keyExpiration;
+    if (expiration === 'never') {
       return undefined;
     }
     const now = Date.now();
-    const days = Number.parseInt(this.keyExpiration.replaceAll('days', ''), 10);
+    const days = Number.parseInt(expiration.replaceAll('days', ''), 10);
     return now + days * 24 * 60 * 60 * 1000;
   }
 }

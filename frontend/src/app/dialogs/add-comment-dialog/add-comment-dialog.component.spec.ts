@@ -27,18 +27,18 @@ describe('AddCommentDialogComponent', () => {
   });
 
   it('should initialise with empty comment text', () => {
-    expect(component.commentText).toBe('');
+    expect(component.model().commentText).toBe('');
   });
 
   describe('onSubmit', () => {
     it('should close dialog with trimmed text when text is non-empty', () => {
-      component.commentText = '  Hello world  ';
+      component.form.commentText().value.set('  Hello world  ');
       component.onSubmit();
       expect(mockDialogRef.close).toHaveBeenCalledWith('Hello world');
     });
 
     it('should not close dialog when text is empty or whitespace only', () => {
-      component.commentText = '   ';
+      component.form.commentText().value.set('   ');
       component.onSubmit();
       expect(mockDialogRef.close).not.toHaveBeenCalled();
     });
@@ -71,7 +71,7 @@ describe('AddCommentDialogComponent', () => {
     });
 
     it('should disable submit button when text is empty', () => {
-      component.commentText = '';
+      component.form.commentText().value.set('');
       fixture.detectChanges();
       const submit = fixture.nativeElement.querySelector(
         '[data-testid="submit-comment-btn"]'

@@ -5,7 +5,7 @@
     <mat-label>Key Name</mat-label>
     <input
       matInput
-      [(ngModel)]="keyName"
+      [formField]="form.keyName"
       placeholder="e.g., Claude Desktop, Cursor IDE"
       id="create-mcp-key-name-input"
       data-testid="key-name-input"
@@ -63,7 +63,7 @@
 
   <mat-form-field appearance="outline" class="full-width">
     <mat-label>Expiration</mat-label>
-    <mat-select [(ngModel)]="keyExpiration">
+    <mat-select [formField]="form.keyExpiration">
       <mat-option value="never">Never expires</mat-option>
       <mat-option value="7days">7 days</mat-option>
       <mat-option value="30days">30 days</mat-option>
@@ -80,7 +80,9 @@
     mat-raised-button
     color="primary"
     [disabled]="
-      !keyName.trim() || selectedPermissions().size === 0 || isCreating()
+      !model().keyName.trim() ||
+      selectedPermissions().size === 0 ||
+      isCreating()
     "
     (click)="createKey()"
     data-testid="submit-create-key-button">
