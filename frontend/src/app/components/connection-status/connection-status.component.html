@@ -23,6 +23,7 @@
       [class.status-offline]="displayAsOffline()"
       [class.status-unavailable]="syncState() === DocumentSyncState.Unavailable"
       [matTooltip]="syncTooltip()"
+      (mouseenter)="onStatusHover()"
       data-testid="project-sync-status">
       <mat-icon class="status-icon">{{ syncIcon() }}</mat-icon>
       <span class="status-text">{{ syncStatusText() }}</span>

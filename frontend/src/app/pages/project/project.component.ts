@@ -126,6 +126,13 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Whether we're in local-only mode (no server configured) */
   protected readonly isLocalMode = this.storageContext.isLocalMode;
 
+  /** Elements document ID for storage stats hover */
+  protected readonly elementsDocId = computed(() => {
+    const project = this.projectState.project();
+    if (!project) return null;
+    return `${project.username}:${project.slug}:elements`;
+  });
+
   /** Pinned elements resolved from the current element list, in pin order. */
   protected readonly pinnedElements = computed(() => {
     const ids = this.projectState.pinnedElementIds();

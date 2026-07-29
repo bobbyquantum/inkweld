@@ -53,6 +53,7 @@ import { LocalStorageService } from '@services/local/local-storage.service';
 import { CommentService } from '@services/project/comment.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { DocStatsService } from '@services/sync/doc-stats.service';
 import { RelationshipService } from '@services/relationship';
 import { TagService } from '@services/tag/tag.service';
 import type { MarkType, ResolvedPos } from 'prosemirror-model';
@@ -206,6 +207,17 @@ export class DocumentElementEditorComponent
   readonly syncState = computed(() => {
     return this.documentService.getSyncStatusSignal(this.documentIdSignal())();
   });
+
+  private readonly docStatsService = inject(DocStatsService);
+  readonly docStatsTooltip = signal('');
+
+  onDocSyncHover(): void {
+    const docId = this.documentIdSignal();
+    if (!docId || docId === 'invalid') return;
+    void this.docStatsService.fetchStats(docId).then(stats => {
+      this.docStatsTooltip.set(this.docStatsService.formatStats(stats));
+    });
+  }
 
   readonly wordCount = computed(() => {
     return this.documentService.getWordCountSignal(this.documentIdSignal())();
