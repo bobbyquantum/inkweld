@@ -71,6 +71,8 @@ export interface LoadResult {
   totalRowsRead: number;
   hadSnapshot: boolean;
   incrementalKeys: string[];
+  /** Keys whose frames threw when applied (corrupted / truncated). Purged after load. */
+  corruptedKeys: string[];
 }
 
 /** Result metadata from a `compact` call. */
@@ -216,12 +218,22 @@ export class YjsDocStorage {
 
     let totalRowsRead = 0;
     let hadSnapshot = false;
+    const corruptedKeys: string[] = [];
 
     const snapshotRaw = await this.storage.get<StoredBytes>(snapKey);
     if (snapshotRaw) {
       hadSnapshot = true;
       totalRowsRead++;
-      applyFrame(toBytes(snapshotRaw));
+      try {
+        applyFrame(toBytes(snapshotRaw));
+      } catch (err) {
+        this.log.error(
+          `Corrupted snapshot for ${documentId} — skipping (incrementals may still reconstruct partial state)`,
+          err
+        );
+        corruptedKeys.push(snapKey);
+        hadSnapshot = false;
+      }
     }
 
     const incrementalKeys: string[] = [];
@@ -229,34 +241,56 @@ export class YjsDocStorage {
 
     const rowsRead = await this.forEachUpdatePage(updatePrefix, async (page) => {
       const { syncFrames, staleKeys } = partitionPersistedFrames(page);
-      for (const frame of syncFrames) applyFrame(frame);
-      incrementalSyncFrames += syncFrames.length;
-
       const staleKeySet = new Set(staleKeys);
+
+      // Build the ordered list of sync-frame keys (page keys minus stale keys,
+      // in the same order partitionPersistedFrames pushed syncFrames).
+      const syncKeys: string[] = [];
       for (const key of page.keys()) {
-        if (!staleKeySet.has(key)) incrementalKeys.push(key);
+        if (!staleKeySet.has(key)) syncKeys.push(key);
       }
 
-      // Purge legacy non-sync rows for this page (best-effort, chunked).
-      // Awaited per batch so the load doesn't return before the deletes
-      // settle; a failed batch is logged and skipped without aborting the
-      // rest. Bounded by the page size, so this adds negligible latency.
-      for (const batch of chunkKeysForDelete(staleKeys)) {
-        await this.deleteBatch(batch, documentId, staleKeys.length);
+      const pageCorrupted: string[] = [];
+      for (let i = 0; i < syncFrames.length; i++) {
+        try {
+          applyFrame(syncFrames[i]);
+          incrementalSyncFrames++;
+        } catch (err) {
+          const key = syncKeys[i] ?? `unknown-${i}`;
+          this.log.error(`Corrupted frame at ${key} for ${documentId} — skipping`, err);
+          pageCorrupted.push(key);
+        }
+      }
+      corruptedKeys.push(...pageCorrupted);
+
+      const corruptedSet = new Set(pageCorrupted);
+      for (const key of syncKeys) {
+        if (!corruptedSet.has(key)) incrementalKeys.push(key);
+      }
+
+      const purgeKeys = [...staleKeys, ...pageCorrupted];
+      for (const batch of chunkKeysForDelete(purgeKeys)) {
+        await this.deleteBatch(batch, documentId, purgeKeys.length);
       }
     });
     totalRowsRead += rowsRead;
 
     if (rowsRead === 0 && !hadSnapshot) {
       this.log.debug(`No persisted updates found for ${documentId} - starting fresh`);
-      return { totalRowsRead: 0, hadSnapshot: false, incrementalKeys: [] };
+      return { totalRowsRead: 0, hadSnapshot: false, incrementalKeys: [], corruptedKeys: [] };
+    }
+
+    if (corruptedKeys.length > 0) {
+      this.log.warn(`Purged ${corruptedKeys.length} corrupted frame(s) for ${documentId}`, {
+        keys: corruptedKeys,
+      });
     }
 
     this.log.debug(
-      `Loaded document ${documentId} from storage: snapshot=${hadSnapshot}, ${incrementalSyncFrames} incremental sync frames (paged), ${incrementalKeys.length} live update rows`
+      `Loaded document ${documentId} from storage: snapshot=${hadSnapshot}, ${incrementalSyncFrames} incremental sync frames (paged), ${incrementalKeys.length} live update rows, ${corruptedKeys.length} corrupted purged`
     );
 
-    return { totalRowsRead, hadSnapshot, incrementalKeys };
+    return { totalRowsRead, hadSnapshot, incrementalKeys, corruptedKeys };
   }
 
   /**

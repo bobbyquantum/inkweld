@@ -175,6 +175,66 @@ describe('YjsDocStorage.loadAndReplay', () => {
     expect(result.hadSnapshot).toBe(false);
     expect(result.totalRowsRead).toBe(3);
     expect(result.incrementalKeys).toEqual(['doc:d:update:1:00000000', 'doc:d:update:1:00000002']);
+    expect(result.corruptedKeys).toEqual([]);
+  });
+
+  it('skips corrupted frames and purges them without aborting the load', async () => {
+    const good1 = new Uint8Array([Y_MESSAGE_SYNC, 0]);
+    const good2 = new Uint8Array([Y_MESSAGE_SYNC, 1]);
+    const storage = makeStorage(
+      new Map([
+        ['doc:d:update:1:00000000', Array.from(good1)],
+        ['doc:d:update:1:00000001', Array.from(good1)],
+        ['doc:d:update:1:00000002', Array.from(good2)],
+      ])
+    );
+    const applied: Uint8Array[] = [];
+    const ds = new YjsDocStorage(storage, noopLogger);
+
+    // applyFrame throws on the second frame (simulating a corrupted sync
+    // sub-type that readSyncMessage rejects with "Unknown message type").
+    let callCount = 0;
+    const result = await ds.loadAndReplay('d', (frame) => {
+      callCount++;
+      if (callCount === 2) throw new Error('Unknown message type');
+      applied.push(frame);
+    });
+
+    // Good frames applied; corrupted one skipped.
+    expect(applied).toEqual([good1, good2]);
+    expect(result.corruptedKeys).toEqual(['doc:d:update:1:00000001']);
+    // Corrupted key purged alongside stale keys.
+    expect(storage.deletes).toEqual([['doc:d:update:1:00000001']]);
+    // incrementalKeys excludes the corrupted key.
+    expect(result.incrementalKeys).toEqual(['doc:d:update:1:00000000', 'doc:d:update:1:00000002']);
+  });
+
+  it('skips a corrupted snapshot and still loads incrementals', async () => {
+    const snapshot = new Uint8Array([Y_MESSAGE_SYNC, 99]);
+    const incremental = new Uint8Array([Y_MESSAGE_SYNC, 0]);
+    const storage = makeStorage(
+      new Map([
+        ['doc:d:snapshot', Array.from(snapshot)],
+        ['doc:d:update:2:00000000', Array.from(incremental)],
+      ])
+    );
+    const applied: Uint8Array[] = [];
+    const ds = new YjsDocStorage(storage, noopLogger);
+
+    // Snapshot throws; incremental succeeds.
+    let isFirst = true;
+    const result = await ds.loadAndReplay('d', (frame) => {
+      if (isFirst) {
+        isFirst = false;
+        throw new Error('Unknown message type');
+      }
+      applied.push(frame);
+    });
+
+    expect(applied).toEqual([incremental]);
+    expect(result.hadSnapshot).toBe(false);
+    expect(result.corruptedKeys).toEqual(['doc:d:snapshot']);
+    expect(result.incrementalKeys).toEqual(['doc:d:update:2:00000000']);
   });
 
   it('does nothing when no persisted updates exist', async () => {
