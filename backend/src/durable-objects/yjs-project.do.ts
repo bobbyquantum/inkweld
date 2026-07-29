@@ -96,14 +96,7 @@ interface ConnectionInfo {
    *  already loaded). Used by tryFinalizeSession so the activity event can
    *  show "edited <name>" even on the skipDocLoad close path where sharedDoc
    *  is null and the elements doc can't be loaded without a storage read.
-   *
-   *  NOTE: like the other writing-session fields above, this is NOT persisted
-   *  in WSAttachment and is therefore lost across a DO hibernation wake. This
-   *  is a pre-existing gap (writingSessionId, trackedProjectId, etc. are also
-   *  not in WSAttachment). In practice the name capture mitigates it for the
-   *  common case where the session starts and ends within the same wake cycle.
-   *  A full fix would add all writing-session fields to WSAttachment (subject
-   *  to the 2 KB attachment size limit). */
+   *  Persisted in WSAttachment so it survives hibernation. */
   trackedElementName?: string | null;
 }
 
@@ -125,6 +118,18 @@ interface WSAttachment {
    *  so the DO can enforce read-only after a hibernation wake without a new
    *  DB lookup. */
   canWrite: boolean;
+  /** Writing-session metadata persisted so tryFinalizeSession can emit a
+   *  document_edit activity event with the correct element name after a
+   *  hibernation wake. All fields are optional — absent when no writing
+   *  session was started (viewer, non-trackable doc, or session not yet
+   *  opened). Well under the 2 KB attachment limit. */
+  writingSessionId?: string | null;
+  trackedProjectId?: string | null;
+  trackedUserId?: string | null;
+  trackedElementId?: string | null;
+  trackedProjectOwner?: string | null;
+  trackedProjectSlug?: string | null;
+  trackedElementName?: string | null;
 }
 
 interface SessionData {
@@ -1344,6 +1349,13 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       pendingMessages: [],
       awarenessClientIds: new Set(),
       sharedDoc,
+      writingSessionId: attachment.writingSessionId,
+      trackedProjectId: attachment.trackedProjectId,
+      trackedUserId: attachment.trackedUserId,
+      trackedElementId: attachment.trackedElementId,
+      trackedProjectOwner: attachment.trackedProjectOwner,
+      trackedProjectSlug: attachment.trackedProjectSlug,
+      trackedElementName: attachment.trackedElementName,
     };
   }
 
@@ -1871,6 +1883,26 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       if (projectDbId) {
         await this.tryStartSession(connInfo, projectDbId);
       }
+
+      // Re-serialize the attachment now that tryStartSession may have populated
+      // writing-session fields (writingSessionId, tracked*, trackedElementName).
+      // Without this re-serialization the fields would be lost on hibernation
+      // and tryFinalizeSession couldn't emit a document_edit event with the
+      // correct element name after a wake.
+      ws.serializeAttachment({
+        documentId: connInfo.documentId,
+        authenticated: true,
+        userId: connInfo.userId,
+        username: connInfo.username,
+        canWrite,
+        writingSessionId: connInfo.writingSessionId,
+        trackedProjectId: connInfo.trackedProjectId,
+        trackedUserId: connInfo.trackedUserId,
+        trackedElementId: connInfo.trackedElementId,
+        trackedProjectOwner: connInfo.trackedProjectOwner,
+        trackedProjectSlug: connInfo.trackedProjectSlug,
+        trackedElementName: connInfo.trackedElementName,
+      });
 
       // If this is the elements doc, attach the snapshot-diff observer so
       // element creates/renames/deletes are recorded as activity events.
