@@ -95,7 +95,15 @@ interface ConnectionInfo {
   /** Element name captured at session start (when the elements doc is usually
    *  already loaded). Used by tryFinalizeSession so the activity event can
    *  show "edited <name>" even on the skipDocLoad close path where sharedDoc
-   *  is null and the elements doc can't be loaded without a storage read. */
+   *  is null and the elements doc can't be loaded without a storage read.
+   *
+   *  NOTE: like the other writing-session fields above, this is NOT persisted
+   *  in WSAttachment and is therefore lost across a DO hibernation wake. This
+   *  is a pre-existing gap (writingSessionId, trackedProjectId, etc. are also
+   *  not in WSAttachment). In practice the name capture mitigates it for the
+   *  common case where the session starts and ends within the same wake cycle.
+   *  A full fix would add all writing-session fields to WSAttachment (subject
+   *  to the 2 KB attachment size limit). */
   trackedElementName?: string | null;
 }
 
@@ -1613,7 +1621,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       // already loaded at this point (the frontend opens the elements socket
       // before individual document sockets).
       if (parsed) {
-        const elementsDocId = `${parsed.projectOwner}:${parsed.projectSlug}:elements`;
+        const elementsDocId = `${parsed.projectOwner}:${parsed.slug}:elements`;
         const cachedElementsDoc = this.documents.get(elementsDocId);
         if (cachedElementsDoc) {
           try {
