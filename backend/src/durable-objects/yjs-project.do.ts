@@ -92,6 +92,12 @@ interface ConnectionInfo {
   trackedElementId?: string | null;
   trackedProjectOwner?: string | null;
   trackedProjectSlug?: string | null;
+  /** Element name captured at session start (when the elements doc is usually
+   *  already loaded). Used by tryFinalizeSession so the activity event can
+   *  show "edited <name>" even on the skipDocLoad close path where sharedDoc
+   *  is null and the elements doc can't be loaded without a storage read.
+   *  Persisted in WSAttachment so it survives hibernation. */
+  trackedElementName?: string | null;
 }
 
 /**
@@ -112,6 +118,18 @@ interface WSAttachment {
    *  so the DO can enforce read-only after a hibernation wake without a new
    *  DB lookup. */
   canWrite: boolean;
+  /** Writing-session metadata persisted so tryFinalizeSession can emit a
+   *  document_edit activity event with the correct element name after a
+   *  hibernation wake. All fields are optional — absent when no writing
+   *  session was started (viewer, non-trackable doc, or session not yet
+   *  opened). Well under the 2 KB attachment limit. */
+  writingSessionId?: string | null;
+  trackedProjectId?: string | null;
+  trackedUserId?: string | null;
+  trackedElementId?: string | null;
+  trackedProjectOwner?: string | null;
+  trackedProjectSlug?: string | null;
+  trackedElementName?: string | null;
 }
 
 interface SessionData {
@@ -1331,6 +1349,13 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       pendingMessages: [],
       awarenessClientIds: new Set(),
       sharedDoc,
+      writingSessionId: attachment.writingSessionId,
+      trackedProjectId: attachment.trackedProjectId,
+      trackedUserId: attachment.trackedUserId,
+      trackedElementId: attachment.trackedElementId,
+      trackedProjectOwner: attachment.trackedProjectOwner,
+      trackedProjectSlug: attachment.trackedProjectSlug,
+      trackedElementName: attachment.trackedElementName,
     };
   }
 
@@ -1601,6 +1626,36 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       const parsed = this.parseDocumentOwner(connInfo.documentId);
       connInfo.trackedProjectOwner = parsed?.projectOwner ?? null;
       connInfo.trackedProjectSlug = parsed?.slug ?? null;
+
+      // Capture the element name now (at session start) so the activity event
+      // at finalize time can show "edited <name>" even on the skipDocLoad
+      // close path where sharedDoc is null. The elements doc is almost always
+      // already loaded at this point (the frontend opens the elements socket
+      // before individual document sockets).
+      if (parsed) {
+        const elementsDocId = `${parsed.projectOwner}:${parsed.slug}:elements`;
+        const cachedElementsDoc = this.documents.get(elementsDocId);
+        if (cachedElementsDoc) {
+          try {
+            const elementsDoc = await cachedElementsDoc;
+            const arr = elementsDoc.getArray('elements');
+            arr.forEach((value) => {
+              if (
+                connInfo.trackedElementName == null &&
+                value &&
+                typeof value === 'object' &&
+                (value as Record<string, unknown>).id === elementId
+              ) {
+                const name = (value as Record<string, unknown>).name;
+                if (typeof name === 'string') connInfo.trackedElementName = name;
+              }
+            });
+          } catch {
+            // Best-effort; name stays null.
+          }
+        }
+      }
+
       projDOLog.debug(
         `Writing session started ${id} for ${connInfo.documentId} (start words: ${startWordCount})`
       );
@@ -1631,16 +1686,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         `Writing session finalized ${id} for ${connInfo.documentId} (end words: ${endWordCount}, delta: ${result?.wordsDelta ?? 'n/a'})`
       );
       if (result && result.wordsDelta !== 0 && projectId && userId && elementId) {
-        // Best-effort element name lookup so the activity feed can show
-        // "edited <document name>" instead of just "edited a document".
-        //
-        // Skip when the doc was not loaded (close/error path with
-        // skipDocLoad): getOrCreateDocument would read the full elements
-        // history from storage, which is exactly the amplification we're
-        // avoiding. entityName stays null — the activity event still
-        // records, just without the friendly name.
-        let entityName: string | null = null;
-        if (projectOwner && projectSlug && connInfo.sharedDoc) {
+        // Use the name captured at session start (when the elements doc was
+        // usually already loaded). Fall back to loading the elements doc only
+        // if the name wasn't captured and the doc being closed is available
+        // (i.e. not the skipDocLoad close path).
+        let entityName: string | null = connInfo.trackedElementName ?? null;
+        if (!entityName && projectOwner && projectSlug && connInfo.sharedDoc) {
           try {
             const elementsDoc = await this.getOrCreateDocument(
               `${projectOwner}:${projectSlug}:elements/`
@@ -1832,6 +1883,26 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       if (projectDbId) {
         await this.tryStartSession(connInfo, projectDbId);
       }
+
+      // Re-serialize the attachment now that tryStartSession may have populated
+      // writing-session fields (writingSessionId, tracked*, trackedElementName).
+      // Without this re-serialization the fields would be lost on hibernation
+      // and tryFinalizeSession couldn't emit a document_edit event with the
+      // correct element name after a wake.
+      ws.serializeAttachment({
+        documentId: connInfo.documentId,
+        authenticated: true,
+        userId: connInfo.userId,
+        username: connInfo.username,
+        canWrite,
+        writingSessionId: connInfo.writingSessionId,
+        trackedProjectId: connInfo.trackedProjectId,
+        trackedUserId: connInfo.trackedUserId,
+        trackedElementId: connInfo.trackedElementId,
+        trackedProjectOwner: connInfo.trackedProjectOwner,
+        trackedProjectSlug: connInfo.trackedProjectSlug,
+        trackedElementName: connInfo.trackedElementName,
+      });
 
       // If this is the elements doc, attach the snapshot-diff observer so
       // element creates/renames/deletes are recorded as activity events.
