@@ -1,5 +1,4 @@
 import {
-  HttpClient,
   provideHttpClient,
   withInterceptorsFromDi,
 } from '@angular/common/http';
@@ -8,7 +7,7 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { environment } from '../../../environments/environment';
 import { DocStatsService, type DocStorageStats } from './doc-stats.service';

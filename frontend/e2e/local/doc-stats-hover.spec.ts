@@ -18,12 +18,19 @@ test.describe('Doc Stats Hover (Local Mode)', () => {
     await page.waitForURL(/\/testuser\//);
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
-    // Hover the sidebar connection status — should not trigger any API call
+    // Hover the sidebar connection status — should not trigger any API call.
+    // The local-mode guard is synchronous (returns immediately), so no wait
+    // is needed; the fixture's afterEach catches any leaked requests.
     const connectionStatus = page.getByTestId('sidebar-connection-status');
     await expect(connectionStatus).toBeVisible();
     await connectionStatus.hover();
-    // Small wait to ensure any async hover handler would have fired
-    await page.waitForTimeout(500);
+
+    // Verify the tooltip does not contain stats text (would indicate a fetch
+    // happened despite the local-mode guard).
+    await expect(connectionStatus).not.toHaveAttribute(
+      'aria-describedby',
+      /Rows:/
+    );
 
     // Open a document to test the editor sync status hover
     const firstDoc = page
@@ -32,13 +39,17 @@ test.describe('Doc Stats Hover (Local Mode)', () => {
       .first();
     if (await firstDoc.isVisible()) {
       await firstDoc.click();
-      await expect(page.getByTestId('document-sync-status')).toBeVisible({
-        timeout: 5000,
-      });
+      const docSyncStatus = page.getByTestId('document-sync-status');
+      await expect(docSyncStatus).toBeVisible({ timeout: 5000 });
 
-      // Hover the document sync status dot
-      await page.getByTestId('document-sync-status').hover();
-      await page.waitForTimeout(500);
+      // Hover the document sync status dot — local-mode guard is synchronous.
+      await docSyncStatus.hover();
+
+      // Verify no stats text appeared in the tooltip.
+      await expect(docSyncStatus).not.toHaveAttribute(
+        'aria-describedby',
+        /Rows:/
+      );
     }
 
     // The local fixture's afterEach will fail the test if any API requests
