@@ -92,6 +92,11 @@ interface ConnectionInfo {
   trackedElementId?: string | null;
   trackedProjectOwner?: string | null;
   trackedProjectSlug?: string | null;
+  /** Element name captured at session start (when the elements doc is usually
+   *  already loaded). Used by tryFinalizeSession so the activity event can
+   *  show "edited <name>" even on the skipDocLoad close path where sharedDoc
+   *  is null and the elements doc can't be loaded without a storage read. */
+  trackedElementName?: string | null;
 }
 
 /**
@@ -1601,6 +1606,36 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       const parsed = this.parseDocumentOwner(connInfo.documentId);
       connInfo.trackedProjectOwner = parsed?.projectOwner ?? null;
       connInfo.trackedProjectSlug = parsed?.slug ?? null;
+
+      // Capture the element name now (at session start) so the activity event
+      // at finalize time can show "edited <name>" even on the skipDocLoad
+      // close path where sharedDoc is null. The elements doc is almost always
+      // already loaded at this point (the frontend opens the elements socket
+      // before individual document sockets).
+      if (parsed) {
+        const elementsDocId = `${parsed.projectOwner}:${parsed.projectSlug}:elements`;
+        const cachedElementsDoc = this.documents.get(elementsDocId);
+        if (cachedElementsDoc) {
+          try {
+            const elementsDoc = await cachedElementsDoc;
+            const arr = elementsDoc.getArray('elements');
+            arr.forEach((value) => {
+              if (
+                connInfo.trackedElementName == null &&
+                value &&
+                typeof value === 'object' &&
+                (value as Record<string, unknown>).id === elementId
+              ) {
+                const name = (value as Record<string, unknown>).name;
+                if (typeof name === 'string') connInfo.trackedElementName = name;
+              }
+            });
+          } catch {
+            // Best-effort; name stays null.
+          }
+        }
+      }
+
       projDOLog.debug(
         `Writing session started ${id} for ${connInfo.documentId} (start words: ${startWordCount})`
       );
@@ -1631,16 +1666,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         `Writing session finalized ${id} for ${connInfo.documentId} (end words: ${endWordCount}, delta: ${result?.wordsDelta ?? 'n/a'})`
       );
       if (result && result.wordsDelta !== 0 && projectId && userId && elementId) {
-        // Best-effort element name lookup so the activity feed can show
-        // "edited <document name>" instead of just "edited a document".
-        //
-        // Skip when the doc was not loaded (close/error path with
-        // skipDocLoad): getOrCreateDocument would read the full elements
-        // history from storage, which is exactly the amplification we're
-        // avoiding. entityName stays null — the activity event still
-        // records, just without the friendly name.
-        let entityName: string | null = null;
-        if (projectOwner && projectSlug && connInfo.sharedDoc) {
+        // Use the name captured at session start (when the elements doc was
+        // usually already loaded). Fall back to loading the elements doc only
+        // if the name wasn't captured and the doc being closed is available
+        // (i.e. not the skipDocLoad close path).
+        let entityName: string | null = connInfo.trackedElementName ?? null;
+        if (!entityName && projectOwner && projectSlug && connInfo.sharedDoc) {
           try {
             const elementsDoc = await this.getOrCreateDocument(
               `${projectOwner}:${projectSlug}:elements/`
