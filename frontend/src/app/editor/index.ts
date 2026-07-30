@@ -30,4 +30,5 @@ export {
   extractMediaId,
   generateMediaId,
   isMediaUrl,
+  MAX_PASTE_BYTES,
 } from '@components/image-paste/image-paste-plugin';

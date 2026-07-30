@@ -18,6 +18,7 @@ import {
   imagePastePluginKey,
   isBase64ImageUrl,
   isMediaUrl,
+  MAX_PASTE_BYTES,
   MEDIA_URL_PREFIX,
   MediaImageNodeView,
   type MediaImageNodeViewOptions,
@@ -628,6 +629,170 @@ describe('Plugin Integration', () => {
 
       // Should not crash — error logged
       consoleError.mockRestore();
+    });
+
+    describe('paste size cap', () => {
+      it('blocks text paste exceeding MAX_PASTE_BYTES and fires callback', () => {
+        const onPasteTooLarge = vi.fn();
+        const cappedCallbacks = { ...callbacks, onPasteTooLarge };
+        const cappedPlugin = createImagePastePlugin(cappedCallbacks);
+        const cappedState = EditorState.create({
+          doc: view.state.doc,
+          plugins: [cappedPlugin],
+        });
+        const cappedView = new EditorView(container, { state: cappedState });
+        const plugin = cappedView.state.plugins[0];
+
+        const oversizedText = 'x'.repeat(MAX_PASTE_BYTES + 1);
+        const clipboardEvent = {
+          clipboardData: {
+            files: [],
+            getData: (type: string) =>
+              type === 'text/plain' ? oversizedText : '',
+          },
+          preventDefault: vi.fn(),
+        } as unknown as ClipboardEvent;
+
+        const result = plugin.props.handlePaste!.call(
+          plugin,
+          cappedView,
+          clipboardEvent,
+          cappedView.state.doc
+            .content as unknown as import('prosemirror-model').Slice
+        );
+
+        expect(result).toBe(true);
+        expect(clipboardEvent.preventDefault).toHaveBeenCalled();
+        expect(onPasteTooLarge).toHaveBeenCalledWith(
+          new TextEncoder().encode(oversizedText).byteLength
+        );
+        cappedView.destroy();
+      });
+
+      it('allows text paste within MAX_PASTE_BYTES', () => {
+        const onPasteTooLarge = vi.fn();
+        const cappedCallbacks = { ...callbacks, onPasteTooLarge };
+        const cappedPlugin = createImagePastePlugin(cappedCallbacks);
+        const cappedState = EditorState.create({
+          doc: view.state.doc,
+          plugins: [cappedPlugin],
+        });
+        const cappedView = new EditorView(container, { state: cappedState });
+        const plugin = cappedView.state.plugins[0];
+
+        const normalText = 'Hello world';
+        const clipboardEvent = {
+          clipboardData: {
+            files: [],
+            getData: (type: string) =>
+              type === 'text/plain' ? normalText : '',
+          },
+          preventDefault: vi.fn(),
+        } as unknown as ClipboardEvent;
+
+        const result = plugin.props.handlePaste!.call(
+          plugin,
+          cappedView,
+          clipboardEvent,
+          cappedView.state.doc
+            .content as unknown as import('prosemirror-model').Slice
+        );
+
+        expect(result).toBe(false);
+        expect(clipboardEvent.preventDefault).not.toHaveBeenCalled();
+        expect(onPasteTooLarge).not.toHaveBeenCalled();
+        cappedView.destroy();
+      });
+
+      it('skips size check when clipboard has image files', () => {
+        const onPasteTooLarge = vi.fn();
+        const cappedCallbacks = { ...callbacks, onPasteTooLarge };
+        const cappedPlugin = createImagePastePlugin(cappedCallbacks);
+        const cappedState = EditorState.create({
+          doc: view.state.doc,
+          plugins: [cappedPlugin],
+        });
+        const cappedView = new EditorView(container, { state: cappedState });
+        const plugin = cappedView.state.plugins[0];
+
+        const imageFile = new File(['fake-png'], 'test.png', {
+          type: 'image/png',
+        });
+        const clipboardEvent = {
+          clipboardData: {
+            files: [imageFile],
+            getData: () => 'x'.repeat(MAX_PASTE_BYTES + 1),
+          },
+          preventDefault: vi.fn(),
+        } as unknown as ClipboardEvent;
+
+        const result = plugin.props.handlePaste!.call(
+          plugin,
+          cappedView,
+          clipboardEvent,
+          cappedView.state.doc
+            .content as unknown as import('prosemirror-model').Slice
+        );
+
+        expect(result).toBe(false);
+        expect(onPasteTooLarge).not.toHaveBeenCalled();
+        cappedView.destroy();
+      });
+
+      it('blocks oversized paste without callback (silent block)', () => {
+        const plugin = view.state.plugins[0];
+        const oversizedText = 'x'.repeat(MAX_PASTE_BYTES + 1);
+        const clipboardEvent = {
+          clipboardData: {
+            files: [],
+            getData: (type: string) =>
+              type === 'text/plain' ? oversizedText : '',
+          },
+          preventDefault: vi.fn(),
+        } as unknown as ClipboardEvent;
+
+        const result = plugin.props.handlePaste!.call(
+          plugin,
+          view,
+          clipboardEvent,
+          view.state.doc.content as unknown as import('prosemirror-model').Slice
+        );
+
+        expect(result).toBe(true);
+        expect(clipboardEvent.preventDefault).toHaveBeenCalled();
+      });
+
+      it('allows paste with empty text (no getData result)', () => {
+        const onPasteTooLarge = vi.fn();
+        const cappedCallbacks = { ...callbacks, onPasteTooLarge };
+        const cappedPlugin = createImagePastePlugin(cappedCallbacks);
+        const cappedState = EditorState.create({
+          doc: view.state.doc,
+          plugins: [cappedPlugin],
+        });
+        const cappedView = new EditorView(container, { state: cappedState });
+        const plugin = cappedView.state.plugins[0];
+
+        const clipboardEvent = {
+          clipboardData: {
+            files: [],
+            getData: () => '',
+          },
+          preventDefault: vi.fn(),
+        } as unknown as ClipboardEvent;
+
+        const result = plugin.props.handlePaste!.call(
+          plugin,
+          cappedView,
+          clipboardEvent,
+          cappedView.state.doc
+            .content as unknown as import('prosemirror-model').Slice
+        );
+
+        expect(result).toBe(false);
+        expect(onPasteTooLarge).not.toHaveBeenCalled();
+        cappedView.destroy();
+      });
     });
   });
 
