@@ -432,7 +432,6 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     try {
       switch (body.action) {
         case 'replace_all': {
-          // Replace all elements with new array
           if (!body.elements || !Array.isArray(body.elements)) {
             return new Response(
               JSON.stringify({ error: 'elements array required for replace_all' }),
@@ -443,6 +442,20 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
             );
           }
           const elementsToInsert = body.elements;
+          if (elementsArray.length > 0 && elementsToInsert.length === 0) {
+            console.error(
+              `[DO-HTTP] Blocked replace_all that would wipe ${elementsArray.length} elements to 0`
+            );
+            return new Response(
+              JSON.stringify({
+                error: `Refusing to replace ${elementsArray.length} existing elements with an empty array`,
+              }),
+              {
+                status: 409,
+                headers: { 'Content-Type': 'application/json' },
+              }
+            );
+          }
           sharedDoc.transact(() => {
             elementsArray.delete(0, elementsArray.length);
             elementsArray.insert(0, elementsToInsert);

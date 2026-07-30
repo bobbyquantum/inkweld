@@ -83,28 +83,22 @@ export class YjsWorkerService {
     const docId = `${username}:${slug}:elements`;
     const stub = getDoStub(this.ctx.env, username, slug);
 
-    try {
-      const response = await stub.fetch(
-        new Request(`https://yjs-do/api/elements?documentId=${encodeURIComponent(docId)}`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${this.ctx.authToken}`,
-          },
-        })
-      );
-      if (!response.ok) {
-        const errorText = await response.text();
-        log.error(`Failed to get elements: ${response.status} ${errorText}`);
-        return [];
-      }
-
-      const text = await response.text();
-      const data = JSON.parse(text) as { elements: Element[] };
-      return data.elements || [];
-    } catch (err) {
-      log.error('Error getting elements from DO', err);
-      return [];
+    const response = await stub.fetch(
+      new Request(`https://yjs-do/api/elements?documentId=${encodeURIComponent(docId)}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${this.ctx.authToken}`,
+        },
+      })
+    );
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to get elements from DO: ${response.status} ${errorText}`);
     }
+
+    const text = await response.text();
+    const data = JSON.parse(text) as { elements: Element[] };
+    return data.elements || [];
   }
 
   /**

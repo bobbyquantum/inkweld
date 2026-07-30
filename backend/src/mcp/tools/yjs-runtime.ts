@@ -12,6 +12,9 @@ import type { McpContext } from '../mcp.types';
 import { type Element } from '../../schemas/element.schemas';
 import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
 import { YjsWorkerService, type YjsWorkerContext } from '../../services/yjs-worker.service';
+import { logger } from '../../services/logger.service';
+
+const yjsRuntimeLog = logger.child('Yjs-Runtime');
 
 /**
  * Check if running on Cloudflare Workers (has DO bindings)
@@ -29,7 +32,6 @@ export async function getElements(
   slug: string
 ): Promise<Element[]> {
   if (isCloudflareWorkers(ctx)) {
-    // Cloudflare Workers: use DO HTTP API
     const workerCtx: YjsWorkerContext = {
       env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
       authToken: ctx.authToken ?? '',
@@ -37,17 +39,14 @@ export async function getElements(
     const workerService = new YjsWorkerService(workerCtx);
     return workerService.getElements(username, slug);
   } else {
-    // Bun: use LevelDB service (dynamic import to avoid loading y-leveldb on Workers)
     const { yjsService } = await import('../../services/yjs.service');
-    const docId = `${username}:${slug}:elements/`;
-    const sharedDoc = await yjsService.getDocument(docId);
-    const elementsArray = sharedDoc.doc.getArray('elements');
-    return elementsArray.toJSON() as Element[];
+    return yjsService.getElements(username, slug);
   }
 }
 
 /**
- * Replace all elements in a project (works on both runtimes)
+ * Replace all elements in a project (works on both runtimes).
+ * Guards against accidentally wiping a non-empty project to zero elements.
  */
 export async function replaceAllElements(
   ctx: McpContext,
@@ -56,7 +55,6 @@ export async function replaceAllElements(
   elements: Element[]
 ): Promise<void> {
   if (isCloudflareWorkers(ctx)) {
-    // Cloudflare Workers: use DO HTTP API
     const workerCtx: YjsWorkerContext = {
       env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
       authToken: ctx.authToken ?? '',
@@ -64,11 +62,21 @@ export async function replaceAllElements(
     const workerService = new YjsWorkerService(workerCtx);
     await workerService.replaceAllElements(username, slug, elements);
   } else {
-    // Bun: use LevelDB service
     const { yjsService } = await import('../../services/yjs.service');
     const docId = `${username}:${slug}:elements/`;
     const sharedDoc = await yjsService.getDocument(docId);
     const elementsArray = sharedDoc.doc.getArray('elements');
+
+    if (elementsArray.length > 0 && elements.length === 0) {
+      yjsRuntimeLog.error(
+        `Blocked replace_all that would wipe ${elementsArray.length} elements to 0 for ${username}/${slug}`
+      );
+      throw new Error(
+        `Refusing to replace ${elementsArray.length} existing elements with an empty array. ` +
+          `This is likely a bug in the caller. Use delete_element to remove elements intentionally.`
+      );
+    }
+
     sharedDoc.doc.transact(() => {
       elementsArray.delete(0, elementsArray.length);
       elementsArray.insert(0, elements);

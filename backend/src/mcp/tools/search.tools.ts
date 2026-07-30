@@ -142,17 +142,12 @@ interface SearchResult {
 }
 
 /**
- * Get elements from Yjs (uses appropriate service based on runtime)
+ * Get elements from Yjs (uses appropriate service based on runtime).
+ * Throws on read failure so callers can distinguish "empty project" from "read error".
  */
 async function getElements(ctx: McpContext, username: string, slug: string): Promise<Element[]> {
-  try {
-    const service = getYjsService(ctx);
-    const elements = await service.getElements(username, slug);
-    return elements;
-  } catch (err) {
-    mcpSearchLog.error('Error getting elements', err);
-    return [];
-  }
+  const service = getYjsService(ctx);
+  return service.getElements(username, slug);
 }
 
 /**

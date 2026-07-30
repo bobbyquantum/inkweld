@@ -70,6 +70,8 @@ export class YjsService {
   private readonly docs = new Map<string, WSSharedDoc>();
   // Map by project key (username:projectSlug) instead of documentId
   private readonly persistences = new Map<string, LeveldbPersistence>();
+  private persistFailureCount = 0;
+  private lastPersistFailureDoc: string | null = null;
 
   /**
    * Get project key from documentId
@@ -190,6 +192,13 @@ export class YjsService {
           const currentPersistence = this.persistences.get(projectKey);
           if (currentPersistence) {
             await currentPersistence.storeUpdate(documentId, update);
+            if (this.persistFailureCount > 0) {
+              yjsLog.info(
+                `LevelDB persistence recovered after ${this.persistFailureCount} failures (last doc: ${this.lastPersistFailureDoc})`
+              );
+              this.persistFailureCount = 0;
+              this.lastPersistFailureDoc = null;
+            }
           } else {
             yjsLog.warn(`No persistence available for project ${projectKey}, update not saved`);
           }
@@ -205,7 +214,14 @@ export class YjsService {
             this.broadcastMessage(sharedDoc, message, origin);
           }
         } catch (error) {
-          yjsLog.error(`Error persisting/broadcasting update for ${documentId}`, error);
+          this.persistFailureCount++;
+          this.lastPersistFailureDoc = documentId;
+          if (this.persistFailureCount === 1 || this.persistFailureCount % 10 === 0) {
+            yjsLog.error(
+              `LevelDB persist failure #${this.persistFailureCount} for ${documentId} — updates are in-memory only and will be lost on restart`,
+              error
+            );
+          }
         }
       });
     } catch (error) {
