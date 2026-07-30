@@ -1,16 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { rpFromContext } from '../src/utils/webauthn-utils';
 
-function mockContext(
-  env: Record<string, string | undefined>,
-  originHeader?: string
-): any {
+type MockCtx = Parameters<typeof rpFromContext>[0];
+
+function mockContext(env: Record<string, string | undefined>, originHeader?: string): MockCtx {
   return {
     env,
     req: {
       header: (name: string) => (name === 'origin' ? originHeader : undefined),
     },
-  };
+  } as MockCtx;
 }
 
 const ORIGINAL_NODE_ENV = process.env['NODE_ENV'];
@@ -95,10 +94,7 @@ describe('rpFromContext', () => {
         ALLOWED_ORIGINS: 'https://app.example.com,https://other.example.com',
       });
       const result = rpFromContext(c);
-      expect(result.origins).toEqual([
-        'https://app.example.com',
-        'https://other.example.com',
-      ]);
+      expect(result.origins).toEqual(['https://app.example.com', 'https://other.example.com']);
     });
 
     it('returns request origin for wildcard in non-production', () => {
