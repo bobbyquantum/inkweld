@@ -1186,6 +1186,24 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
 
     let pendingSinceCompact = 0;
+
+    // When the document loaded with no incremental rows (blank load or
+    // sealed-blank snapshot), the next browser sync is the first opportunity
+    // to write real content to durable storage.  A full tree sync produces
+    // only ~5-15 Yjs frames — far below COMPACT_THRESHOLD (50) — so without
+    // priming the counter the tree would live only in RAM and be lost when
+    // the DO hibernates.  Priming at THRESHOLD-1 means the very first
+    // successful persist triggers an immediate compaction, writing the
+    // snapshot before the DO can evict.
+    //
+    // The regression guard (#1273) ensures this is safe: if the browser
+    // pushes an empty state the guard blocks the compaction; if it pushes
+    // real content the guard allows it and the sealed-blank snapshot is
+    // overwritten.
+    if (loadResult.incrementalKeys.length === 0) {
+      pendingSinceCompact = COMPACT_THRESHOLD - 1;
+    }
+
     sharedDoc.notify((update: Uint8Array) => {
       void this.docStorage.persist(documentId, update).then((key) => {
         if (!key) return;
