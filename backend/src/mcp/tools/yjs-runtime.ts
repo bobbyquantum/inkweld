@@ -46,13 +46,15 @@ export async function getElements(
 
 /**
  * Replace all elements in a project (works on both runtimes).
- * Guards against accidentally wiping a non-empty project to zero elements.
+ * Guards against accidentally wiping a non-empty project to zero elements
+ * unless `allowEmpty` is set (e.g. by delete_element removing the last element).
  */
 export async function replaceAllElements(
   ctx: McpContext,
   username: string,
   slug: string,
-  elements: Element[]
+  elements: Element[],
+  options?: { allowEmpty?: boolean }
 ): Promise<void> {
   if (isCloudflareWorkers(ctx)) {
     const workerCtx: YjsWorkerContext = {
@@ -60,14 +62,14 @@ export async function replaceAllElements(
       authToken: ctx.authToken ?? '',
     };
     const workerService = new YjsWorkerService(workerCtx);
-    await workerService.replaceAllElements(username, slug, elements);
+    await workerService.replaceAllElements(username, slug, elements, options?.allowEmpty);
   } else {
     const { yjsService } = await import('../../services/yjs.service');
     const docId = `${username}:${slug}:elements/`;
     const sharedDoc = await yjsService.getDocument(docId);
     const elementsArray = sharedDoc.doc.getArray('elements');
 
-    if (elementsArray.length > 0 && elements.length === 0) {
+    if (!options?.allowEmpty && elementsArray.length > 0 && elements.length === 0) {
       yjsRuntimeLog.error(
         `Blocked replace_all that would wipe ${elementsArray.length} elements to 0 for ${username}/${slug}`
       );

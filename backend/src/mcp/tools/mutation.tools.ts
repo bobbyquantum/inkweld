@@ -674,7 +674,7 @@ this element in the array at deeper levels).`,
       // Remove element and its subtree
       const updatedElements = removeElement(currentElements, elementId);
 
-      await runtimeReplaceAllElements(ctx, username, slug, updatedElements);
+      await runtimeReplaceAllElements(ctx, username, slug, updatedElements, { allowEmpty: true });
 
       await activityService.record(db, {
         projectId: result.project.projectId,

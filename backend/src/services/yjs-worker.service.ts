@@ -275,7 +275,12 @@ export class YjsWorkerService {
   /**
    * Replace all elements in a project (via DO HTTP API)
    */
-  async replaceAllElements(username: string, slug: string, elements: unknown[]): Promise<void> {
+  async replaceAllElements(
+    username: string,
+    slug: string,
+    elements: unknown[],
+    allowEmpty?: boolean
+  ): Promise<void> {
     const docId = `${username}:${slug}:elements`;
     const stub = getDoStub(this.ctx.env, username, slug);
 
@@ -286,7 +291,7 @@ export class YjsWorkerService {
           Authorization: `Bearer ${this.ctx.authToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action: 'replace_all', elements }),
+        body: JSON.stringify({ action: 'replace_all', elements, allowEmpty }),
       })
     );
 

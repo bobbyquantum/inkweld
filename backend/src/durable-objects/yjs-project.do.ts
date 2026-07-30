@@ -425,6 +425,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       element?: Record<string, unknown>;
       elementId?: string;
       position?: number;
+      allowEmpty?: boolean;
     };
 
     console.log('[DO-HTTP] handleMutateElements - action:', body.action);
@@ -442,7 +443,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
             );
           }
           const elementsToInsert = body.elements;
-          if (elementsArray.length > 0 && elementsToInsert.length === 0) {
+          if (!body.allowEmpty && elementsArray.length > 0 && elementsToInsert.length === 0) {
             console.error(
               `[DO-HTTP] Blocked replace_all that would wipe ${elementsArray.length} elements to 0`
             );
