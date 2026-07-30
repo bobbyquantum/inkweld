@@ -39,8 +39,9 @@ function getClientIp(c: Context): string {
   const xRealIp = c.req.header('x-real-ip');
   if (xRealIp) return xRealIp.trim();
 
-  // Hono provides req.raw for the underlying Request in Bun/Node
-  const raw = c.req.raw;
+  // Hono provides req.raw for the underlying Request. Bun attaches the client
+  // address as a non-standard `ip` field, so it isn't on the standard Request type.
+  const raw = c.req.raw as Request & { ip?: string };
   if (raw.ip) return raw.ip;
 
   return '127.0.0.1';
