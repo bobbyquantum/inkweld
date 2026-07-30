@@ -5,11 +5,13 @@ import {
   partitionPersistedFrames,
   chunkKeysForDelete,
   snapshotKey,
+  describeDocStorage,
   COMPACT_THRESHOLD,
   LIST_PAGE_SIZE,
   SNAPSHOT_VALUE_LIMIT,
   type DoStorage,
   type StorageLogger,
+  type SnapshotDecoder,
 } from '../src/durable-objects/yjs-do-storage';
 import { Y_MESSAGE_SYNC, Y_MESSAGE_AWARENESS } from '../src/utils/yjs-document-utils';
 
@@ -605,5 +607,152 @@ describe('YjsDocStorage.loadAndReplay paging', () => {
     expect(applied).toHaveLength(total);
     expect(result.incrementalKeys).toHaveLength(total);
     expect(result.totalRowsRead).toBe(total);
+  });
+});
+
+describe('YjsDocStorage.compact regression guard', () => {
+  it('reads the existing snapshot and skips write+delete when the guard vetoes', async () => {
+    const storage = makeStorage(
+      new Map([
+        ['doc:d:snapshot', [Y_MESSAGE_SYNC, 50]],
+        ['doc:d:update:1:00000000', [Y_MESSAGE_SYNC, 0]],
+      ])
+    );
+    const ds = new YjsDocStorage(storage, noopLogger);
+    const next = new Uint8Array([Y_MESSAGE_SYNC, 1]);
+    let seenExisting: Uint8Array | undefined = new Uint8Array([9, 9, 9]);
+    let seenNext: Uint8Array | undefined;
+
+    const result = await ds.compact('d', next, ['doc:d:update:1:00000000'], {
+      skipCompaction: (existing, n) => {
+        seenExisting = existing;
+        seenNext = n;
+        return true;
+      },
+    });
+
+    expect(result).toEqual({
+      snapshotWritten: false,
+      rowsDeleted: 0,
+      skippedReason: 'regression-guard',
+    });
+    // The guard saw the stored snapshot bytes and the state we tried to write.
+    expect(seenExisting).toEqual(new Uint8Array([Y_MESSAGE_SYNC, 50]));
+    expect(seenNext).toEqual(next);
+    // Nothing written, nothing deleted — the existing state is retained intact.
+    expect(storage.puts).toHaveLength(0);
+    expect(storage.deletes).toHaveLength(0);
+    expect(await storage.get('doc:d:snapshot')).toEqual([Y_MESSAGE_SYNC, 50]);
+    expect((await storage.list({ prefix: 'doc:d:update:' })).size).toBe(1);
+  });
+
+  it('proceeds normally when the guard allows it', async () => {
+    const storage = makeStorage(
+      new Map([
+        ['doc:d:snapshot', [Y_MESSAGE_SYNC, 50]],
+        ['doc:d:update:1:00000000', [Y_MESSAGE_SYNC, 0]],
+      ])
+    );
+    const ds = new YjsDocStorage(storage, noopLogger);
+    const next = new Uint8Array([Y_MESSAGE_SYNC, 1]);
+
+    const result = await ds.compact('d', next, ['doc:d:update:1:00000000'], {
+      skipCompaction: () => false,
+    });
+
+    expect(result.snapshotWritten).toBe(true);
+    expect(result.rowsDeleted).toBe(1);
+    expect(result.skippedReason).toBeUndefined();
+    expect(await storage.get('doc:d:snapshot')).toEqual(next);
+  });
+
+  it('passes undefined existing when no snapshot is stored', async () => {
+    const storage = makeStorage(new Map([['doc:d:update:1:00000000', [Y_MESSAGE_SYNC, 0]]]));
+    const ds = new YjsDocStorage(storage, noopLogger);
+    let seenExisting: Uint8Array | undefined | 'unset' = 'unset';
+
+    const result = await ds.compact(
+      'd',
+      new Uint8Array([Y_MESSAGE_SYNC, 1]),
+      ['doc:d:update:1:00000000'],
+      {
+        skipCompaction: (existing) => {
+          seenExisting = existing;
+          return false;
+        },
+      }
+    );
+
+    expect(seenExisting).toBeUndefined();
+    expect(result.snapshotWritten).toBe(true);
+  });
+});
+
+describe('describeDocStorage', () => {
+  // Mock decoder: last byte is the element count; 0xfe means "undecodable".
+  const decode: SnapshotDecoder = (bytes) => {
+    if (bytes[0] === 0xfe) throw new Error('bad frame');
+    const count = bytes[bytes.length - 1];
+    return { elementCount: count, topLevel: { elements: count } };
+  };
+
+  it('scans canonical + ghost prefixes and decodes each snapshot', async () => {
+    const storage = makeStorage(
+      new Map<string, number[]>([
+        ['doc:d:snapshot', [1, 7]],
+        ['doc:d:update:1:00000000', [0, 1, 2]],
+        ['doc:d:update:1:00000001', [0, 1]],
+        ['doc:d/:snapshot', [2, 9]],
+        ['doc:d/:update:1:00000000', [0, 1, 2, 3, 4]],
+      ])
+    );
+
+    const desc = await describeDocStorage(storage, 'd', decode);
+
+    expect(desc.rawDocumentId).toBe('d');
+    expect(desc.prefixesScanned).toEqual(['doc:d:', 'doc:d/:']);
+    expect(desc.canonical.snapshot?.elementCount).toBe(7);
+    expect(desc.canonical.snapshot?.bytes).toBe(2);
+    expect(desc.canonical.snapshot?.decodeError).toBeUndefined();
+    expect(desc.canonical.updateRows).toBe(2);
+    expect(desc.canonical.updateBytes).toBe(5);
+    expect(desc.ghost.snapshot?.elementCount).toBe(9);
+    expect(desc.ghost.updateRows).toBe(1);
+    expect(desc.ghost.updateBytes).toBe(5);
+    expect(desc.keys).toHaveLength(5);
+    expect(desc.keysTruncated).toBe(false);
+  });
+
+  it('strips a trailing slash off the raw id before deriving prefixes', async () => {
+    const storage = makeStorage(new Map<string, number[]>([['doc:d:snapshot', [1, 3]]]));
+    const desc = await describeDocStorage(storage, 'd/', decode);
+    expect(desc.prefixesScanned).toEqual(['doc:d:', 'doc:d/:']);
+    expect(desc.canonical.snapshot?.elementCount).toBe(3);
+  });
+
+  it('records a decodeError when a snapshot cannot be decoded', async () => {
+    const storage = makeStorage(new Map<string, number[]>([['doc:d:snapshot', [0xfe, 0]]]));
+    const desc = await describeDocStorage(storage, 'd', decode);
+    expect(desc.canonical.snapshot?.elementCount).toBeNull();
+    expect(desc.canonical.snapshot?.decodeError).toContain('bad frame');
+  });
+
+  it('caps the key list and flags truncation', async () => {
+    const entries = new Map<string, number[]>();
+    for (let i = 0; i < 10; i++) {
+      entries.set(`doc:d:update:1:${String(i).padStart(8, '0')}`, [0, 1]);
+    }
+    const storage = makeStorage(entries);
+    const desc = await describeDocStorage(storage, 'd', decode, { maxKeys: 3 });
+    expect(desc.keys).toHaveLength(3);
+    expect(desc.keysTruncated).toBe(true);
+    expect(desc.canonical.updateRows).toBe(10);
+  });
+
+  it('is exposed as a thin wrapper on YjsDocStorage', async () => {
+    const storage = makeStorage(new Map<string, number[]>([['doc:d:snapshot', [1, 4]]]));
+    const ds = new YjsDocStorage(storage, noopLogger);
+    const desc = await ds.describeStorage('d', decode);
+    expect(desc.canonical.snapshot?.elementCount).toBe(4);
   });
 });

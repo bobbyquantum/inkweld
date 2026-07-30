@@ -50,6 +50,11 @@ import {
   frameMessageType,
 } from '../utils/yjs-document-utils';
 import { YjsDocStorage, COMPACT_THRESHOLD, snapshotKey } from './yjs-do-storage';
+import {
+  decodeSnapshotMetrics,
+  hasDocContent,
+  isBlankStateVector,
+} from '../utils/yjs-snapshot-inspect';
 import { checkWsRateLimit } from './ws-rate-limiter';
 import {
   PRESENCE_KEEPALIVE_PING,
@@ -405,6 +410,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     if (path === '/api/stats' && method === 'GET') {
       return this.handleGetStats(documentId);
     }
+    if (path === '/api/storage-keys' && method === 'GET') {
+      return this.handleGetStorageKeys(request);
+    }
     return new Response(JSON.stringify({ error: 'Not found' }), {
       status: 404,
       headers: { 'Content-Type': 'application/json' },
@@ -703,6 +711,39 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
+  }
+
+  /**
+   * GET /api/storage-keys - Read-only diagnostic of a document's DO storage.
+   *
+   * Lists the actual stored keys under BOTH the canonical prefix and the
+   * trailing-slash ghost prefix (the raw, un-stripped id is read straight from
+   * the query so a ghost copy can't hide behind normalisation), reports each
+   * row's byte length, and decodes any snapshot in a throwaway doc to show
+   * whether the stored state is full or empty. Writes nothing and never touches
+   * the live in-memory document, so it is safe to run against a document you
+   * suspect is corrupted. Proxied externally at
+   * `/api/v1/ws/yjs/do/storage-keys?documentId=...` (auth via Bearer header,
+   * enforced by handleHttpApi).
+   */
+  private async handleGetStorageKeys(request: Request): Promise<Response> {
+    const rawDocumentId = new URL(request.url).searchParams.get('documentId') ?? '';
+    try {
+      const description = await this.docStorage.describeStorage(
+        rawDocumentId,
+        decodeSnapshotMetrics
+      );
+      return new Response(JSON.stringify(description), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      projDOLog.error('storage-keys diagnostic failed', error);
+      return new Response(JSON.stringify({ error: 'Internal server error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   /**
@@ -1171,7 +1212,16 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   ): Promise<void> {
     try {
       const encoded = Y.encodeStateAsUpdate(sharedDoc);
-      await this.docStorage.compact(documentId, encoded, knownKeys);
+      // Regression guard: never let a compaction collapse a populated stored
+      // tree into a blank/failed-load state. If the in-memory doc has an empty
+      // state vector (it never loaded its history) while storage still holds
+      // content, compact() aborts — writing nothing and deleting nothing — so
+      // the existing snapshot + incrementals survive as the recovery path. A
+      // genuinely emptied tree has an advanced state vector, so real user
+      // deletes still compact normally.
+      await this.docStorage.compact(documentId, encoded, knownKeys, {
+        skipCompaction: (existing, next) => hasDocContent(existing) && isBlankStateVector(next),
+      });
     } catch (err) {
       projDOLog.error(`Compaction failed for ${documentId}`, err);
     }
