@@ -418,20 +418,24 @@ function updateWranglerToml(
       );
     }
 
-    // Update ALLOWED_ORIGINS - use custom frontend domain if specified, otherwise use pages.dev
+    // Update ALLOWED_ORIGINS and WEBAUTHN_RP_ID — the RP ID is the domain-only
+    // form of the frontend origin (no protocol, no port).  When the setup script
+    // regenerates the toml it must keep these in sync; otherwise the runtime
+    // falls through to 'localhost' and passkey auth breaks on every environment
+    // except local dev.
     if (previewPagesName || previewFrontendDomain) {
       const previewSectionMatch = content.match(/\[env\.preview\.vars\]([\s\S]*?)(?=\n\[|$)/);
       if (previewSectionMatch) {
         const oldSection = previewSectionMatch[0];
-        const newSection = oldSection.replace(/ALLOWED_ORIGINS = "([^"]*)"/, () => {
-          // If custom domain specified, use only that. Otherwise use pages.dev URL.
-          if (previewFrontendDomain) {
-            return `ALLOWED_ORIGINS = "https://${previewFrontendDomain}"`;
-          } else if (previewPagesName) {
-            return `ALLOWED_ORIGINS = "https://${previewPagesName}.pages.dev"`;
-          }
-          return `ALLOWED_ORIGINS = ""`;
-        });
+        const previewDomain = previewFrontendDomain ?? `${previewPagesName}.pages.dev`;
+        let newSection = oldSection.replace(
+          /ALLOWED_ORIGINS = "([^"]*)"/,
+          `ALLOWED_ORIGINS = "https://${previewDomain}"`
+        );
+        newSection = newSection.replace(
+          /WEBAUTHN_RP_ID = "([^"]*)"/,
+          `WEBAUTHN_RP_ID = "${previewDomain}"`
+        );
         content = content.replace(oldSection, newSection);
       }
     }
@@ -440,15 +444,15 @@ function updateWranglerToml(
       const prodSectionMatch = content.match(/\[env\.production\.vars\]([\s\S]*?)(?=\n\[|$)/);
       if (prodSectionMatch) {
         const oldSection = prodSectionMatch[0];
-        const newSection = oldSection.replace(/ALLOWED_ORIGINS = "([^"]*)"/, () => {
-          // If custom domain specified, use only that. Otherwise use pages.dev URL.
-          if (prodFrontendDomain) {
-            return `ALLOWED_ORIGINS = "https://${prodFrontendDomain}"`;
-          } else if (prodPagesName) {
-            return `ALLOWED_ORIGINS = "https://${prodPagesName}.pages.dev"`;
-          }
-          return `ALLOWED_ORIGINS = ""`;
-        });
+        const prodDomain = prodFrontendDomain ?? `${prodPagesName}.pages.dev`;
+        let newSection = oldSection.replace(
+          /ALLOWED_ORIGINS = "([^"]*)"/,
+          `ALLOWED_ORIGINS = "https://${prodDomain}"`
+        );
+        newSection = newSection.replace(
+          /WEBAUTHN_RP_ID = "([^"]*)"/,
+          `WEBAUTHN_RP_ID = "${prodDomain}"`
+        );
         content = content.replace(oldSection, newSection);
       }
     }
@@ -475,8 +479,8 @@ function updateWranglerToml(
     if (previewRemoteConfig) {
       const bindings = previewRemoteConfig.resources.bindings;
       const origins = bindings.find((b: WranglerBinding) => b.name === 'ALLOWED_ORIGINS');
+      const rpId = bindings.find((b: WranglerBinding) => b.name === 'WEBAUTHN_RP_ID');
       if (origins && origins.text) {
-        // Find the preview environment section and replace ALLOWED_ORIGINS within it
         const previewSectionMatch = content.match(/\[env\.preview\.vars\]([\s\S]*?)(?=\n\[|$)/);
         if (previewSectionMatch) {
           const oldSection = previewSectionMatch[0];
@@ -487,20 +491,42 @@ function updateWranglerToml(
           content = content.replace(oldSection, newSection);
         }
       }
+      if (rpId && rpId.text) {
+        const previewSectionMatch = content.match(/\[env\.preview\.vars\]([\s\S]*?)(?=\n\[|$)/);
+        if (previewSectionMatch) {
+          const oldSection = previewSectionMatch[0];
+          const newSection = oldSection.replace(
+            /WEBAUTHN_RP_ID = "[^"]*"/,
+            `WEBAUTHN_RP_ID = "${rpId.text}"`
+          );
+          content = content.replace(oldSection, newSection);
+        }
+      }
     }
 
     // Import other variables for production
     if (prodRemoteConfig) {
       const bindings = prodRemoteConfig.resources.bindings;
       const origins = bindings.find((b: WranglerBinding) => b.name === 'ALLOWED_ORIGINS');
+      const rpId = bindings.find((b: WranglerBinding) => b.name === 'WEBAUTHN_RP_ID');
       if (origins && origins.text) {
-        // Find the production environment section and replace ALLOWED_ORIGINS within it
         const prodSectionMatch = content.match(/\[env\.production\.vars\]([\s\S]*?)(?=\n\[|$)/);
         if (prodSectionMatch) {
           const oldSection = prodSectionMatch[0];
           const newSection = oldSection.replace(
             /ALLOWED_ORIGINS = "[^"]*"/,
             `ALLOWED_ORIGINS = "${origins.text}"`
+          );
+          content = content.replace(oldSection, newSection);
+        }
+      }
+      if (rpId && rpId.text) {
+        const prodSectionMatch = content.match(/\[env\.production\.vars\]([\s\S]*?)(?=\n\[|$)/);
+        if (prodSectionMatch) {
+          const oldSection = prodSectionMatch[0];
+          const newSection = oldSection.replace(
+            /WEBAUTHN_RP_ID = "[^"]*"/,
+            `WEBAUTHN_RP_ID = "${rpId.text}"`
           );
           content = content.replace(oldSection, newSection);
         }
