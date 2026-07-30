@@ -12,11 +12,55 @@
  */
 
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { logger } from '../services/logger.service';
-import type { CloudflareAppContext } from '../types/cloudflare';
+import type { CloudflareAppContext, DurableObjectStub } from '../types/cloudflare';
 
 const yjsWorkerLog = logger.child('YjsWorker');
 const app = new Hono<CloudflareAppContext>();
+
+/** Result of resolving a project's Durable Object stub from a documentId. */
+type ProjectStubResult =
+  | { ok: true; stub: DurableObjectStub; projectId: string }
+  | { ok: false; error: Response };
+
+/**
+ * Validate a `documentId` (`username:slug:...`) and resolve the Durable Object
+ * stub for the project that owns it. Shared by the WebSocket upgrade route and
+ * the HTTP diagnostics proxy so the validation + namespace lookup lives in one
+ * place. Returns an error Response to short-circuit when the input is invalid
+ * or the binding is missing.
+ */
+function resolveProjectStub(
+  c: Context<CloudflareAppContext>,
+  documentId: string | undefined
+): ProjectStubResult {
+  if (!documentId) {
+    return { ok: false, error: c.json({ error: 'Missing documentId parameter' }, 400) };
+  }
+
+  // Validate document format (username:slug:documentId or username:slug:elements)
+  const parts = documentId.split(':');
+  if (parts.length < 2) {
+    return {
+      ok: false,
+      error: c.json({ error: `Invalid document ID format: ${documentId}` }, 400),
+    };
+  }
+
+  const namespace = c.env.YJS_PROJECTS;
+  if (!namespace) {
+    yjsWorkerLog.error('YJS_PROJECTS binding not found');
+    return { ok: false, error: c.json({ error: 'WebSocket service unavailable' }, 503) };
+  }
+
+  // One Durable Object per PROJECT (username:slug). idFromName ensures the same
+  // project always maps to the same instance, so ALL documents in a project
+  // share one DO = massive cost savings.
+  const projectId = `${parts[0]}:${parts[1]}`;
+  const stub = namespace.get(namespace.idFromName(projectId));
+  return { ok: true, stub, projectId };
+}
 
 /**
  * WebSocket endpoint for Yjs collaboration (Cloudflare Workers)
@@ -26,38 +70,17 @@ const app = new Hono<CloudflareAppContext>();
 app.get('/yjs', async (c) => {
   const documentId = c.req.query('documentId');
 
-  if (!documentId) {
-    return c.json({ error: 'Missing documentId parameter' }, 400);
-  }
-
-  // Validate document format (username:slug:documentId or username:slug:elements)
-  const parts = documentId.split(':');
-  if (parts.length < 2) {
-    return c.json({ error: `Invalid document ID format: ${documentId}` }, 400);
-  }
-
-  const [username, slug] = parts;
-  const projectId = `${username}:${slug}`;
-
   try {
-    // Get Durable Object namespace binding
-    const namespace = c.env.YJS_PROJECTS;
-    if (!namespace) {
-      yjsWorkerLog.error('YJS_PROJECTS binding not found');
-      return c.json({ error: 'WebSocket service unavailable' }, 503);
-    }
+    const result = resolveProjectStub(c, documentId);
+    if (!result.ok) return result.error;
 
-    // Get or create Durable Object instance for this PROJECT
-    // Using idFromName ensures the same project always gets the same instance
-    // This means ALL documents in the project share one DO = massive cost savings!
-    const id = namespace.idFromName(projectId);
-    const stub = namespace.get(id);
-
-    yjsWorkerLog.debug(`Routing WebSocket to project DO: ${projectId} for document: ${documentId}`);
+    yjsWorkerLog.debug(
+      `Routing WebSocket to project DO: ${result.projectId} for document: ${documentId}`
+    );
 
     // Forward the request to the Durable Object
     // The DO will handle authentication over the WebSocket connection
-    return stub.fetch(c.req.raw);
+    return await result.stub.fetch(c.req.raw);
   } catch (error) {
     yjsWorkerLog.error('Error routing to Durable Object', error);
     return c.json({ error: 'Internal server error' }, 500);
@@ -81,26 +104,9 @@ app.get('/yjs/do/:endpoint', async (c) => {
   const endpoint = c.req.param('endpoint');
   const documentId = c.req.query('documentId');
 
-  if (!documentId) {
-    return c.json({ error: 'Missing documentId parameter' }, 400);
-  }
-
-  const parts = documentId.split(':');
-  if (parts.length < 2) {
-    return c.json({ error: `Invalid document ID format: ${documentId}` }, 400);
-  }
-
-  const [username, slug] = parts;
-  const projectId = `${username}:${slug}`;
-
   try {
-    const namespace = c.env.YJS_PROJECTS;
-    if (!namespace) {
-      return c.json({ error: 'WebSocket service unavailable' }, 503);
-    }
-
-    const id = namespace.idFromName(projectId);
-    const stub = namespace.get(id);
+    const result = resolveProjectStub(c, documentId);
+    if (!result.ok) return result.error;
 
     // Rewrite the path so the DO's handleHttpApi sees /api/<endpoint>
     const url = new URL(c.req.url);
@@ -110,7 +116,7 @@ app.get('/yjs/do/:endpoint', async (c) => {
       headers: c.req.raw.headers,
     });
 
-    return stub.fetch(req);
+    return await result.stub.fetch(req);
   } catch (error) {
     yjsWorkerLog.error('Error routing HTTP to Durable Object', error);
     return c.json({ error: 'Internal server error' }, 500);
