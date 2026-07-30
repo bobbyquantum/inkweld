@@ -24,13 +24,6 @@ export function rpFromContext(c: Context): PasskeyRpConfig {
   // process.env. Read both, preferring the request-scoped binding.
   const env = (c.env ?? undefined) as Record<string, string | undefined> | undefined;
 
-  const rpId = env?.WEBAUTHN_RP_ID || config.webauthn.rpId;
-  const rpName = env?.WEBAUTHN_RP_NAME || config.webauthn.rpName;
-
-  // Origins — prefer ALLOWED_ORIGINS env (Workers / Bun process.env), fall
-  // back to the parsed config. A non-empty but blank value (",", "  ") would
-  // otherwise produce an empty origins array and fail every WebAuthn check,
-  // so we explicitly fall back when the parsed list is empty too.
   const rawAllowedOrigins = env?.ALLOWED_ORIGINS ?? process.env['ALLOWED_ORIGINS'];
   const parsedOrigins = rawAllowedOrigins
     ? rawAllowedOrigins
@@ -39,6 +32,31 @@ export function rpFromContext(c: Context): PasskeyRpConfig {
         .filter(Boolean)
     : [];
   const configOrigins = parsedOrigins.length > 0 ? parsedOrigins : [...config.allowedOrigins];
+
+  // RP ID resolution: prefer the explicit env var, then the static config,
+  // then derive from the first ALLOWED_ORIGINS entry (strip protocol).  The
+  // derived fallback ensures that even if the wrangler.toml is missing
+  // WEBAUTHN_RP_ID (e.g. after a setup-script regeneration that dropped it),
+  // the RP ID is still correct as long as ALLOWED_ORIGINS is set — which the
+  // setup script always injects.  Without this fallback the runtime falls
+  // through to 'localhost' and passkey auth silently breaks on every
+  // non-local environment.
+  let rpId = env?.WEBAUTHN_RP_ID || config.webauthn.rpId;
+  if ((!rpId || rpId === 'localhost') && configOrigins.length > 0) {
+    const firstOrigin = configOrigins[0];
+    if (firstOrigin !== '*') {
+      try {
+        const derived = new URL(firstOrigin).hostname;
+        if (derived && derived !== 'localhost') {
+          rpId = derived;
+        }
+      } catch {
+        // malformed origin — keep whatever we had
+      }
+    }
+  }
+
+  const rpName = env?.WEBAUTHN_RP_NAME || config.webauthn.rpName;
 
   // WebAuthn requires an exact origin match — never silently trust the
   // client-supplied Origin header in production. If the operator left
