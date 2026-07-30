@@ -97,6 +97,17 @@ async function setupWorldbuildingAtMobile(
     timeout: 45000,
   });
 
+  // Wait for the initial schema/data load to finish before resizing. The
+  // editor container is visible even while the skeleton loading shell is
+  // shown, but the accordion layout only renders once isInitialLoading is
+  // false. Under CI load the IndexedDB read can still be in progress when
+  // the editor first appears, so resizing immediately would start the
+  // accordion poll while the loading shell blocks it — wasting the full
+  // 45 s timeout on resize events that have no effect.
+  await expect(page.getByTestId('worldbuilding-loading-shell')).toBeHidden({
+    timeout: 45000,
+  });
+
   // Resize to mobile and wait for the editor to switch to accordion mode.
   await switchToAccordionLayout(page, mobileViewport);
 

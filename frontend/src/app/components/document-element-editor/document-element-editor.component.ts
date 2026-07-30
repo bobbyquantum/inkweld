@@ -44,6 +44,7 @@ import { InsertImageService } from '@services/core/insert-image.service';
 import { InsertLinkService } from '@services/core/insert-link.service';
 import { LoggerService } from '@services/core/logger.service';
 import { SettingsService } from '@services/core/settings.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import {
   AutoReviewApiService,
@@ -54,6 +55,7 @@ import { CommentService } from '@services/project/comment.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
+import { DocStatsService } from '@services/sync/doc-stats.service';
 import { TagService } from '@services/tag/tag.service';
 import type { MarkType, ResolvedPos } from 'prosemirror-model';
 import type { EditorState } from 'prosemirror-state';
@@ -206,6 +208,19 @@ export class DocumentElementEditorComponent
   readonly syncState = computed(() => {
     return this.documentService.getSyncStatusSignal(this.documentIdSignal())();
   });
+
+  private readonly docStatsService = inject(DocStatsService);
+  private readonly storageContext = inject(StorageContextService);
+  readonly docStatsTooltip = signal('');
+
+  onDocSyncHover(): void {
+    if (this.storageContext.isLocalMode()) return;
+    const docId = this.documentIdSignal();
+    if (!docId || docId === 'invalid') return;
+    void this.docStatsService.fetchStats(docId).then(stats => {
+      this.docStatsTooltip.set(this.docStatsService.formatStats(stats));
+    });
+  }
 
   readonly wordCount = computed(() => {
     return this.documentService.getWordCountSignal(this.documentIdSignal())();

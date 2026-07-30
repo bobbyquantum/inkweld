@@ -5,6 +5,7 @@ import {
   inject,
   input,
   output,
+  signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,6 +15,7 @@ import { TranslocoService } from '@jsverse/transloco';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type MediaSyncState } from '../../services/local/media-sync.service';
+import { DocStatsService } from '../../services/sync/doc-stats.service';
 
 /**
  * Component to display the connection status for project sync and media sync.
@@ -57,8 +59,22 @@ export class ConnectionStatusComponent {
   /** Whether the app is in local-only mode (no server configured) */
   isLocalMode = input<boolean>(false);
 
+  /** Elements document ID for storage stats hover (e.g. "user:slug:elements") */
+  elementsDocId = input<string | null>(null);
+
   /** Event emitted when user clicks retry sync */
   syncRequested = output<void>();
+
+  private readonly docStatsService = inject(DocStatsService);
+  private readonly statsText = signal('');
+
+  onStatusHover(): void {
+    const docId = this.elementsDocId();
+    if (!docId || this.isLocalMode()) return;
+    void this.docStatsService.fetchStats(docId).then(stats => {
+      this.statsText.set(this.docStatsService.formatStats(stats));
+    });
+  }
 
   /** Whether we're currently trying to connect (Syncing state) */
   isConnecting = computed(() => this.syncState() === DocumentSyncState.Syncing);
@@ -127,33 +143,47 @@ export class ConnectionStatusComponent {
 
   /** Get tooltip text for sync status row - includes last error when offline */
   syncTooltip = computed(() => {
+    let base: string;
     // In local mode, show local-specific tooltip
     if (this.isLocalMode()) {
-      return this.transloco.translate('project.connection.localTooltip');
+      base = this.transloco.translate('project.connection.localTooltip');
+    } else {
+      const error = this.lastError();
+      switch (this.syncState()) {
+        case DocumentSyncState.Synced:
+          base = this.transloco.translate(
+            'project.connection.connectedTooltip'
+          );
+          break;
+        case DocumentSyncState.Syncing:
+          base = this.transloco.translate(
+            'project.connection.connectingTooltip'
+          );
+          break;
+        case DocumentSyncState.Local:
+          base = error
+            ? this.transloco.translate('project.connection.offlineTooltip', {
+                error,
+              })
+            : this.transloco.translate(
+                'project.connection.offlineNoErrorTooltip'
+              );
+          break;
+        case DocumentSyncState.Unavailable:
+          base = error
+            ? this.transloco.translate('project.connection.failedTooltip', {
+                error,
+              })
+            : this.transloco.translate(
+                'project.connection.failedNoErrorTooltip'
+              );
+          break;
+        default:
+          base = '';
+      }
     }
-    const error = this.lastError();
-    switch (this.syncState()) {
-      case DocumentSyncState.Synced:
-        return this.transloco.translate('project.connection.connectedTooltip');
-      case DocumentSyncState.Syncing:
-        return this.transloco.translate('project.connection.connectingTooltip');
-      case DocumentSyncState.Local:
-        return error
-          ? this.transloco.translate('project.connection.offlineTooltip', {
-              error,
-            })
-          : this.transloco.translate(
-              'project.connection.offlineNoErrorTooltip'
-            );
-      case DocumentSyncState.Unavailable:
-        return error
-          ? this.transloco.translate('project.connection.failedTooltip', {
-              error,
-            })
-          : this.transloco.translate('project.connection.failedNoErrorTooltip');
-      default:
-        return '';
-    }
+    const stats = this.statsText();
+    return stats ? `${base}\n${stats}` : base;
   });
 
   /** Get tooltip for the retry button - includes last error if available */

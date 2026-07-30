@@ -67,6 +67,7 @@
             [syncState]="projectSyncState()"
             [lastError]="lastConnectionError()"
             [isLocalMode]="isLocalMode()"
+            [elementsDocId]="elementsDocId()"
             (syncRequested)="onRetrySyncConnection()"
             data-testid="mobile-connection-status">
           </app-connection-status>
@@ -228,6 +229,7 @@
                     [syncState]="projectSyncState()"
                     [lastError]="lastConnectionError()"
                     [isLocalMode]="isLocalMode()"
+                    [elementsDocId]="elementsDocId()"
                     [collapsed]="true"
                     (syncRequested)="onRetrySyncConnection()"
                     data-testid="collapsed-connection-status">
@@ -338,6 +340,7 @@
                     [syncState]="projectSyncState()"
                     [lastError]="lastConnectionError()"
                     [isLocalMode]="isLocalMode()"
+                    [elementsDocId]="elementsDocId()"
                     (syncRequested)="onRetrySyncConnection()"
                     data-testid="sidebar-connection-status">
                   </app-connection-status>
