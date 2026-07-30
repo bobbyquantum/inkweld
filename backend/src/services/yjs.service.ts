@@ -1,5 +1,3 @@
-// @ts-expect-error - y-leveldb has types but package.json exports aren't properly configured
-import { LeveldbPersistence } from 'y-leveldb';
 import * as Y from 'yjs';
 import * as syncProtocol from 'y-protocols/sync';
 import * as awarenessProtocol from 'y-protocols/awareness';
@@ -14,6 +12,35 @@ import { activityService } from './activity.service';
 import type { DatabaseInstance } from '../types/context';
 
 const yjsLog = logger.child('Yjs');
+
+/**
+ * The subset of `y-leveldb`'s LeveldbPersistence this service uses. Typed
+ * structurally because the package's `exports` don't expose its types cleanly.
+ */
+interface LeveldbPersistence {
+  getYDoc(docName: string): Promise<Y.Doc>;
+  storeUpdate(docName: string, update: Uint8Array): Promise<unknown>;
+  destroy(): Promise<void>;
+}
+
+/**
+ * Lazily import `y-leveldb` on first use. This service only persists via
+ * LevelDB on the Bun/Node runtime, but the module is also pulled into the
+ * Cloudflare Worker bundle — a top-level import initialised the whole LevelDB
+ * dependency chain inside the Worker at startup (and, as a side effect, made
+ * lib0's singleton error stacks point at the y-leveldb import chain, which is
+ * how it ended up as a red herring in DO "corrupted snapshot" logs). Deferring
+ * the import means the Worker never initialises any of it.
+ */
+let leveldbCtorPromise: Promise<new (location: string) => LeveldbPersistence> | null = null;
+function loadLeveldbPersistence(): Promise<new (location: string) => LeveldbPersistence> {
+  // @ts-expect-error - y-leveldb has types but package.json exports aren't properly configured
+  leveldbCtorPromise ??= import('y-leveldb').then(
+    (mod: { LeveldbPersistence: new (location: string) => LeveldbPersistence }) =>
+      mod.LeveldbPersistence
+  );
+  return leveldbCtorPromise;
+}
 
 const messageSync = 0;
 const messageAwareness = 1;
@@ -169,7 +196,8 @@ export class YjsService {
 
     // Create new persistence if none exists for this project
     if (!persistence) {
-      persistence = new LeveldbPersistence(dbPath);
+      const LeveldbPersistenceCtor = await loadLeveldbPersistence();
+      persistence = new LeveldbPersistenceCtor(dbPath);
       this.persistences.set(projectKey, persistence);
     }
 

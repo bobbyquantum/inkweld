@@ -1,4 +1,8 @@
 import { describe, it, expect, mock } from 'bun:test';
+import * as Y from 'yjs';
+import * as syncProtocol from 'y-protocols/sync';
+import * as encoding from 'lib0/encoding';
+import * as decoding from 'lib0/decoding';
 import {
   YjsDocStorage,
   persistUpdateKey,
@@ -14,6 +18,15 @@ import {
   type SnapshotDecoder,
 } from '../src/durable-objects/yjs-do-storage';
 import { Y_MESSAGE_SYNC, Y_MESSAGE_AWARENESS } from '../src/utils/yjs-document-utils';
+
+/**
+ * applySnapshot stand-in for tests whose storage holds no snapshot. Throwing
+ * here surfaces as `hadSnapshot === false` + a corrupted-key entry, so the
+ * tests' existing assertions fail loudly if the router ever misdirects.
+ */
+const noSnapshotExpected = (): void => {
+  throw new Error('applySnapshot must not be called: storage holds no snapshot');
+};
 
 /** Build an in-memory DoStorage that records calls and honours list paging. */
 function makeStorage(entries: Map<string, number[]> = new Map()): DoStorage & {
@@ -170,7 +183,10 @@ describe('YjsDocStorage.loadAndReplay', () => {
     const applied: Uint8Array[] = [];
     const ds = new YjsDocStorage(storage, noopLogger);
 
-    const result = await ds.loadAndReplay('d', (frame) => applied.push(frame));
+    const result = await ds.loadAndReplay('d', {
+      applyFrame: (frame) => applied.push(frame),
+      applySnapshot: noSnapshotExpected,
+    });
 
     expect(applied).toEqual([sync1, sync2]);
     expect(storage.deletes).toEqual([['doc:d:update:1:00000001']]);
@@ -196,10 +212,13 @@ describe('YjsDocStorage.loadAndReplay', () => {
     // applyFrame throws on the second frame (simulating a corrupted sync
     // sub-type that readSyncMessage rejects with "Unknown message type").
     let callCount = 0;
-    const result = await ds.loadAndReplay('d', (frame) => {
-      callCount++;
-      if (callCount === 2) throw new Error('Unknown message type');
-      applied.push(frame);
+    const result = await ds.loadAndReplay('d', {
+      applyFrame: (frame) => {
+        callCount++;
+        if (callCount === 2) throw new Error('Unknown message type');
+        applied.push(frame);
+      },
+      applySnapshot: noSnapshotExpected,
     });
 
     // Good frames applied; corrupted one skipped.
@@ -223,14 +242,12 @@ describe('YjsDocStorage.loadAndReplay', () => {
     const applied: Uint8Array[] = [];
     const ds = new YjsDocStorage(storage, noopLogger);
 
-    // Snapshot throws; incremental succeeds.
-    let isFirst = true;
-    const result = await ds.loadAndReplay('d', (frame) => {
-      if (isFirst) {
-        isFirst = false;
-        throw new Error('Unknown message type');
-      }
-      applied.push(frame);
+    // Snapshot decode throws; incremental succeeds.
+    const result = await ds.loadAndReplay('d', {
+      applySnapshot: () => {
+        throw new Error('Unexpected end of array');
+      },
+      applyFrame: (frame) => applied.push(frame),
     });
 
     expect(applied).toEqual([incremental]);
@@ -244,7 +261,10 @@ describe('YjsDocStorage.loadAndReplay', () => {
     const applied = mock(() => {});
     const ds = new YjsDocStorage(storage, noopLogger);
 
-    const result = await ds.loadAndReplay('d', applied);
+    const result = await ds.loadAndReplay('d', {
+      applyFrame: applied,
+      applySnapshot: noSnapshotExpected,
+    });
 
     expect(applied).not.toHaveBeenCalled();
     expect(storage.deletes).toHaveLength(0);
@@ -253,35 +273,46 @@ describe('YjsDocStorage.loadAndReplay', () => {
     expect(result.incrementalKeys).toEqual([]);
   });
 
-  it('applies snapshot first, then incremental updates', async () => {
-    const snapshotFrame = new Uint8Array([Y_MESSAGE_SYNC, 10]);
+  it('routes the snapshot to applySnapshot and incrementals to applyFrame, snapshot first', async () => {
+    const snapshotBytes = new Uint8Array([Y_MESSAGE_SYNC, 10]);
     const incremental = new Uint8Array([Y_MESSAGE_SYNC, 20]);
     const storage = makeStorage(
       new Map([
-        ['doc:d:snapshot', Array.from(snapshotFrame)],
+        ['doc:d:snapshot', Array.from(snapshotBytes)],
         ['doc:d:update:2:00000000', Array.from(incremental)],
       ])
     );
-    const applied: Uint8Array[] = [];
+    const applied: Array<{ via: 'snapshot' | 'frame'; bytes: Uint8Array }> = [];
     const ds = new YjsDocStorage(storage, noopLogger);
 
-    const result = await ds.loadAndReplay('d', (frame) => applied.push(frame));
+    const result = await ds.loadAndReplay('d', {
+      applySnapshot: (bytes) => applied.push({ via: 'snapshot', bytes }),
+      applyFrame: (bytes) => applied.push({ via: 'frame', bytes }),
+    });
 
-    expect(applied).toEqual([snapshotFrame, incremental]);
+    expect(applied).toEqual([
+      { via: 'snapshot', bytes: snapshotBytes },
+      { via: 'frame', bytes: incremental },
+    ]);
     expect(result.hadSnapshot).toBe(true);
     expect(result.totalRowsRead).toBe(2);
     expect(result.incrementalKeys).toEqual(['doc:d:update:2:00000000']);
   });
 
   it('loads snapshot-only storage with zero incremental rows', async () => {
-    const snapshotFrame = new Uint8Array([Y_MESSAGE_SYNC, 42]);
-    const storage = makeStorage(new Map([['doc:d:snapshot', Array.from(snapshotFrame)]]));
+    const snapshotBytes = new Uint8Array([Y_MESSAGE_SYNC, 42]);
+    const storage = makeStorage(new Map([['doc:d:snapshot', Array.from(snapshotBytes)]]));
     const applied: Uint8Array[] = [];
+    const frameApplied = mock(() => {});
     const ds = new YjsDocStorage(storage, noopLogger);
 
-    const result = await ds.loadAndReplay('d', (frame) => applied.push(frame));
+    const result = await ds.loadAndReplay('d', {
+      applySnapshot: (bytes) => applied.push(bytes),
+      applyFrame: frameApplied,
+    });
 
-    expect(applied).toEqual([snapshotFrame]);
+    expect(applied).toEqual([snapshotBytes]);
+    expect(frameApplied).not.toHaveBeenCalled();
     expect(result.hadSnapshot).toBe(true);
     expect(result.totalRowsRead).toBe(1);
     expect(result.incrementalKeys).toEqual([]);
@@ -298,7 +329,9 @@ describe('YjsDocStorage.loadAndReplay', () => {
     };
     const ds = new YjsDocStorage(storage, noopLogger);
 
-    await expect(ds.loadAndReplay('d', () => {})).rejects.toThrow('storage unavailable');
+    await expect(
+      ds.loadAndReplay('d', { applyFrame: () => {}, applySnapshot: () => {} })
+    ).rejects.toThrow('storage unavailable');
   });
 
   it('chunks the purge when stale keys exceed the 128-key delete limit', async () => {
@@ -311,7 +344,7 @@ describe('YjsDocStorage.loadAndReplay', () => {
     const storage = makeStorage(entries);
     const ds = new YjsDocStorage(storage, noopLogger);
 
-    await ds.loadAndReplay('d', () => {});
+    await ds.loadAndReplay('d', { applyFrame: () => {}, applySnapshot: noSnapshotExpected });
 
     // 200 stale keys → 2 batches (128 + 72).
     expect(storage.deletes).toHaveLength(2);
@@ -344,7 +377,7 @@ describe('YjsDocStorage.loadAndReplay', () => {
       warn: warnLog,
     });
 
-    await ds.loadAndReplay('d', () => {});
+    await ds.loadAndReplay('d', { applyFrame: () => {}, applySnapshot: noSnapshotExpected });
 
     // All 3 batches were attempted (the middle one failed but didn't abort).
     expect(call).toBe(3);
@@ -583,7 +616,10 @@ describe('YjsDocStorage.compact', () => {
     const applied: Uint8Array[] = [];
     const ds = new YjsDocStorage(storage, noopLogger);
 
-    const result = await ds.loadAndReplay('d', (frame) => applied.push(frame));
+    const result = await ds.loadAndReplay('d', {
+      applySnapshot: (bytes) => applied.push(bytes),
+      applyFrame: (frame) => applied.push(frame),
+    });
 
     expect(applied).toEqual([snapshot, sync1, sync2]);
     expect(result.hadSnapshot).toBe(true);
@@ -602,7 +638,10 @@ describe('YjsDocStorage.loadAndReplay paging', () => {
     const applied: Uint8Array[] = [];
     const ds = new YjsDocStorage(storage, noopLogger);
 
-    const result = await ds.loadAndReplay('d', (frame) => applied.push(frame));
+    const result = await ds.loadAndReplay('d', {
+      applyFrame: (frame) => applied.push(frame),
+      applySnapshot: noSnapshotExpected,
+    });
 
     expect(applied).toHaveLength(total);
     expect(result.incrementalKeys).toHaveLength(total);
@@ -754,5 +793,99 @@ describe('describeDocStorage', () => {
     const ds = new YjsDocStorage(storage, noopLogger);
     const desc = await ds.describeStorage('d', decode);
     expect(desc.canonical.snapshot?.elementCount).toBe(4);
+  });
+});
+
+describe('snapshot + wire-frame round trip (production format contract)', () => {
+  /** Wrap a raw Yjs update as the wire frame WSSharedDoc broadcasts/persists. */
+  function toWireFrame(update: Uint8Array): Uint8Array {
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, Y_MESSAGE_SYNC);
+    syncProtocol.writeUpdate(encoder, update);
+    return encoding.toUint8Array(encoder);
+  }
+
+  /**
+   * Faithful replica of y-durableobjects `WSSharedDoc.update()` (which can't
+   * be imported under Bun — its package entry pulls `cloudflare:workers`):
+   * read the varuint message-type header, apply sync messages via
+   * `readSyncMessage`, treat type 1 as an awareness payload, and silently
+   * ignore any other type — exactly the production switch.
+   */
+  function applyWireFrame(doc: Y.Doc, frame: Uint8Array): void {
+    const decoder = decoding.createDecoder(frame);
+    const type = decoding.readVarUint(decoder);
+    if (type === Y_MESSAGE_SYNC) {
+      const encoder = encoding.createEncoder();
+      syncProtocol.readSyncMessage(decoder, encoder, doc, null);
+    } else if (type === Y_MESSAGE_AWARENESS) {
+      // Production hands this to applyAwarenessUpdate; reading the
+      // length-prefixed payload is where garbage bytes overrun and throw
+      // lib0's "Unexpected end of array".
+      decoding.readVarUint8Array(decoder);
+    }
+  }
+
+  it('replays a compacted snapshot plus later incrementals into a fresh doc', async () => {
+    const storage = makeStorage();
+    const ds = new YjsDocStorage(storage, noopLogger);
+
+    // Writer doc: capture every Yjs update exactly as the DO persists it —
+    // wrapped as a wire frame by the notify stream.
+    const writer = new Y.Doc();
+    const frames: Uint8Array[] = [];
+    writer.on('update', (u: Uint8Array) => frames.push(toWireFrame(u)));
+    writer.getArray('elements').insert(0, [
+      { id: 'e1', name: 'Journal', type: 'FOLDER', order: 0 },
+      { id: 'e2', name: 'Entry 1', type: 'ITEM', order: 1 },
+    ]);
+    for (const f of frames) await ds.persist('d', f);
+    frames.length = 0;
+
+    // Compact: raw encodeStateAsUpdate, exactly like compactDocument().
+    await ds.compact('d', Y.encodeStateAsUpdate(writer));
+
+    // Post-compaction edit → persisted as an incremental wire frame.
+    writer.getArray('elements').push([{ id: 'e3', name: 'Entry 2', type: 'ITEM', order: 2 }]);
+    for (const f of frames) await ds.persist('d', f);
+
+    // Reload into a fresh doc with the production appliers: raw snapshot via
+    // Y.applyUpdate, wire frames via the WSSharedDoc-style handler.
+    const reader = new Y.Doc();
+    const result = await ds.loadAndReplay('d', {
+      applySnapshot: (bytes) => Y.applyUpdate(reader, bytes),
+      applyFrame: (frame) => applyWireFrame(reader, frame),
+    });
+
+    expect(result.hadSnapshot).toBe(true);
+    expect(result.corruptedKeys).toEqual([]);
+    expect(result.incrementalKeys).toHaveLength(1);
+    expect(reader.getArray('elements').toJSON()).toEqual([
+      { id: 'e1', name: 'Journal', type: 'FOLDER', order: 0 },
+      { id: 'e2', name: 'Entry 1', type: 'ITEM', order: 1 },
+      { id: 'e3', name: 'Entry 2', type: 'ITEM', order: 2 },
+    ]);
+    expect(reader.getArray('elements').length).toBe(3);
+  });
+
+  it('regression: a raw snapshot routed through the wire-frame handler never restores the state', () => {
+    // The bug this suite guards against: the compacted snapshot is a raw
+    // Y.encodeStateAsUpdate payload, so parsing it as a wire frame reads the
+    // update's leading client-struct count as a message type. Depending on
+    // that count it throws lib0's "Unexpected end of array" (surfacing in
+    // production as "Corrupted snapshot for <id> — skipping") or falls through
+    // the switch silently — either way the document reloads blank while
+    // storage still holds the full, valid tree.
+    const writer = new Y.Doc();
+    writer.getArray('elements').insert(0, [{ id: 'e1', name: 'Journal', type: 'FOLDER' }]);
+    const rawSnapshot = Y.encodeStateAsUpdate(writer);
+
+    const reader = new Y.Doc();
+    try {
+      applyWireFrame(reader, rawSnapshot);
+    } catch {
+      // "Unexpected end of array" — the throwing variant of the same loss.
+    }
+    expect(reader.getArray('elements').length).toBe(0);
   });
 });
