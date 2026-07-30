@@ -815,9 +815,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         }
       });
     } else if (body.yUpdate) {
-      // Apply raw Yjs update (base64 encoded)
+      // Apply raw Yjs update (base64 encoded). Raw updates have no wire
+      // header, so they must go through Y.applyUpdate — WSSharedDoc.update()
+      // expects wire-protocol frames and would misparse this. The doc's
+      // 'update' event still fires, so the change persists and broadcasts.
       const update = Uint8Array.from(atob(body.yUpdate), (c) => c.codePointAt(0) ?? 0);
-      sharedDoc.update(update);
+      Y.applyUpdate(sharedDoc, update);
     } else if (body.relationships) {
       // Apply relationship array mutations
       const { action, items } = body.relationships;
@@ -1213,9 +1216,15 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
     // ============================================================
 
-    const loadResult = await this.docStorage.loadAndReplay(documentId, (frame) =>
-      sharedDoc.update(frame)
-    );
+    const loadResult = await this.docStorage.loadAndReplay(documentId, {
+      // Incremental rows are wire-protocol frames captured from the notify
+      // stream; WSSharedDoc.update() parses that framing.
+      applyFrame: (frame) => sharedDoc.update(frame),
+      // The snapshot is a raw Y.encodeStateAsUpdate payload with no wire
+      // header — WSSharedDoc.update() would misread its leading client-struct
+      // count as a message type and throw or silently drop the whole state.
+      applySnapshot: (bytes) => Y.applyUpdate(sharedDoc, bytes),
+    });
 
     if (loadResult.incrementalKeys.length > 0) {
       void this.compactDocument(documentId, sharedDoc, loadResult.incrementalKeys);

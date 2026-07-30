@@ -67,6 +67,26 @@ export function snapshotKey(storagePrefix: string): string {
   return `${storagePrefix}snapshot`;
 }
 
+/**
+ * Callbacks for replaying persisted state onto a live doc.
+ *
+ * The two stored formats are NOT interchangeable:
+ *  - Incremental `update:*` rows are Yjs *wire-protocol* frames as captured
+ *    from the `WSSharedDoc` notify stream — they start with a varuint message
+ *    type header (`0` = sync) followed by a sync message.
+ *  - The `snapshot` row is a *raw* `Y.encodeStateAsUpdate` payload with no
+ *    wire header. It must be applied with `Y.applyUpdate`; feeding it to the
+ *    wire-frame handler makes the decoder read the update's leading
+ *    client-struct count as a message type, which either throws
+ *    ("Unexpected end of array") or silently drops the whole snapshot.
+ */
+export interface ReplayAppliers {
+  /** Apply one incremental wire-protocol frame (e.g. `WSSharedDoc.update`). */
+  applyFrame: (frame: Uint8Array) => void;
+  /** Apply the raw compacted snapshot (e.g. `Y.applyUpdate(doc, bytes)`). */
+  applySnapshot: (bytes: Uint8Array) => void;
+}
+
 /** Result metadata from a `loadAndReplay` call. */
 export interface LoadResult {
   totalRowsRead: number;
@@ -365,11 +385,15 @@ export class YjsDocStorage {
    * then paged incremental updates. Purges legacy non-sync rows page-by-page.
    * Throws on storage read/replay failure so the caller can drop a cached
    * blank doc and retry.
+   *
+   * The snapshot and the incremental rows are stored in different formats and
+   * MUST go through different appliers — see {@link ReplayAppliers}. Routing
+   * both through the wire-frame handler was the root cause of every snapshot
+   * "corruption" on load: the raw snapshot bytes never parse as a wire frame,
+   * so a compacted document reloaded as blank.
    */
-  async loadAndReplay(
-    documentId: string,
-    applyFrame: (frame: Uint8Array) => void
-  ): Promise<LoadResult> {
+  async loadAndReplay(documentId: string, appliers: ReplayAppliers): Promise<LoadResult> {
+    const { applyFrame, applySnapshot } = appliers;
     const storagePrefix = `doc:${documentId}:`;
     const snapKey = snapshotKey(storagePrefix);
     const updatePrefix = `${storagePrefix}update:`;
@@ -383,7 +407,7 @@ export class YjsDocStorage {
       hadSnapshot = true;
       totalRowsRead++;
       try {
-        applyFrame(toBytes(snapshotRaw));
+        applySnapshot(toBytes(snapshotRaw));
       } catch (err) {
         this.log.error(
           `Corrupted snapshot for ${documentId} — skipping (incrementals may still reconstruct partial state)`,
