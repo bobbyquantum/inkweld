@@ -184,10 +184,21 @@ export class YjsService {
         Y.applyUpdate(ydoc, diff);
       }
 
-      // Listen for updates - persist them AND broadcast to connected clients
+      // Listen for updates - broadcast to connected clients AND persist.
+      // Broadcast runs first (synchronous, always safe — the update is already
+      // applied to the in-memory Y.Doc) so live collaboration continues even
+      // during a LevelDB outage.
       ydoc.on('update', async (update: Uint8Array, origin: unknown) => {
+        const sharedDoc = this.docs.get(documentId);
+        if (sharedDoc && sharedDoc.conns.size > 0) {
+          const encoder = encoding.createEncoder();
+          encoding.writeVarUint(encoder, messageSync);
+          syncProtocol.writeUpdate(encoder, update);
+          const message = encoding.toUint8Array(encoder);
+          this.broadcastMessage(sharedDoc, message, origin);
+        }
+
         try {
-          // Look up persistence by PROJECT KEY, not documentId
           const currentPersistence = this.persistences.get(projectKey);
           if (currentPersistence) {
             await currentPersistence.storeUpdate(documentId, update);
@@ -200,17 +211,6 @@ export class YjsService {
             }
           } else {
             yjsLog.warn(`No persistence available for project ${projectKey}, update not saved`);
-          }
-
-          // Broadcast update to all connected WebSocket clients
-          // (except the origin if it's a WebSocket connection - they already have it)
-          const sharedDoc = this.docs.get(documentId);
-          if (sharedDoc && sharedDoc.conns.size > 0) {
-            const encoder = encoding.createEncoder();
-            encoding.writeVarUint(encoder, messageSync);
-            syncProtocol.writeUpdate(encoder, update);
-            const message = encoding.toUint8Array(encoder);
-            this.broadcastMessage(sharedDoc, message, origin);
           }
         } catch (error) {
           const count = (this.persistFailures.get(documentId) ?? 0) + 1;
