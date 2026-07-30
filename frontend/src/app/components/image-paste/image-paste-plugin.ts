@@ -272,7 +272,7 @@ export function createImagePastePlugin(
         // Reject oversized text pastes synchronously — a paste larger than
         // MAX_PASTE_BYTES would produce a Yjs sync frame approaching the DO's
         // 2 MB per-value storage cap, risking a silent persist failure.
-        if (clipboardData && clipboardData.files.length === 0) {
+        if (clipboardData?.files.length === 0) {
           const text = clipboardData.getData('text/plain');
           if (text) {
             const byteLength = new TextEncoder().encode(text).byteLength;
