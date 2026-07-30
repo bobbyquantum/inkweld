@@ -55,6 +55,19 @@ import {
   hasDocContent,
   isBlankStateVector,
 } from '../utils/yjs-snapshot-inspect';
+import {
+  ELEMENT_BUNDLE_ARRAYS,
+  planIdenticalDedupe,
+  type DedupeRow,
+} from '../utils/yjs-element-dedupe';
+
+/**
+ * Debounce window for the elements-document duplicate-id auto-heal after a sync
+ * update. Long enough to coalesce a burst of CRDT frames from one client merge,
+ * short enough that a re-poisoned doc heals (and pushes the deletes back to the
+ * offending client) almost immediately. See {@link YjsProject.dedupeTimers}.
+ */
+const DEDUPE_DEBOUNCE_MS = 300;
 import { checkWsRateLimit } from './ws-rate-limiter';
 import {
   PRESENCE_KEEPALIVE_PING,
@@ -178,6 +191,15 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    */
   private readonly documents = new Map<string, Promise<WSSharedDoc>>();
   private readonly connections: Map<WebSocket, ConnectionInfo> = new Map();
+  /**
+   * Debounce handles for the elements-document duplicate-id auto-heal, keyed by
+   * documentId. A heal is scheduled after each sync update to the elements doc
+   * so a dirty client that re-merges duplicate rows gets them re-deleted (and
+   * the deletes pushed back to it) until its IndexedDB is clean. Each timer is
+   * short-lived (DEDUPE_DEBOUNCE_MS) and self-clears, so the worst-case
+   * hibernation delay it adds is bounded to that window after the last update.
+   */
+  private readonly dedupeTimers = new Map<string, ReturnType<typeof setTimeout>>();
   /**
    * Persistence/replay helper. Decoupled from the DurableObject base class so
    * the storage logic is unit-testable with a mock `DoStorage` — the DO base
@@ -440,10 +462,24 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       }
     });
 
-    // Sort by order
-    elements.sort((a, b) => ((a.order as number) ?? 0) - ((b.order as number) ?? 0));
+    // Read-side dedupe: drop content-identical duplicate rows so REST/MCP
+    // consumers never see the double-seed artefact even in the brief window
+    // before the on-sync auto-heal transact lands. Differing-content duplicates
+    // are NOT dropped (that would hide a real edit) — they are reported via
+    // `duplicateIds` so the caller knows the stored bundle is still dirty.
+    const plan = planIdenticalDedupe(elements);
+    const deleteSet = new Set(plan.deleteIndices);
+    const deduped = deleteSet.size === 0 ? elements : elements.filter((_, i) => !deleteSet.has(i));
 
-    return new Response(JSON.stringify({ elements }), {
+    // Sort by order
+    deduped.sort((a, b) => ((a.order as number) ?? 0) - ((b.order as number) ?? 0));
+
+    const body: { elements: Record<string, unknown>[]; duplicateIds?: string[] } = {
+      elements: deduped,
+    };
+    if (plan.conflictingIds.length > 0) body.duplicateIds = plan.conflictingIds;
+
+    return new Response(JSON.stringify(body), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -1195,7 +1231,24 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
           void this.compactDocument(documentId, sharedDoc);
         }
       });
+      // A sync update to the elements doc may have (re-)introduced duplicate-id
+      // rows (e.g. a dirty client reconnecting). Debounce a heal so the burst of
+      // frames from one merge collapses to a single pass.
+      this.scheduleDedupeHeal(documentId, sharedDoc);
     });
+
+    // Heal any identical duplicate rows left by a prior double-seed BEFORE we
+    // hand the doc back, so every reader (REST + the about-to-register WS
+    // client's initial sync) sees a clean bundle. Awaited: the resulting delete
+    // transact is captured by the notify handler above, so it persists and (for
+    // WS) broadcasts. Idempotent — a clean doc returns 0 with no transaction.
+    if (isElementsDoc(documentId)) {
+      try {
+        this.dedupeIdenticalRows(sharedDoc);
+      } catch (err) {
+        projDOLog.error(`Initial dedupe heal failed for ${documentId}`, err);
+      }
+    }
 
     projDOLog.debug(`Created new shared doc for ${documentId}`);
     return sharedDoc;
@@ -1225,6 +1278,114 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     } catch (err) {
       projDOLog.error(`Compaction failed for ${documentId}`, err);
     }
+  }
+
+  /**
+   * Read one top-level id-array as plain-JSON rows in array order, suitable for
+   * {@link planIdenticalDedupe}. Non-object entries become `null` (the planner
+   * ignores them). Indices in the returned array line up with the `Y.Array`
+   * positions so a plan's `deleteIndices` can be applied directly.
+   */
+  private bundleRows(sharedDoc: WSSharedDoc, arrayName: string): DedupeRow[] {
+    const arr = sharedDoc.getArray<unknown>(arrayName);
+    const rows: DedupeRow[] = [];
+    for (let i = 0; i < arr.length; i++) {
+      const value = arr.get(i);
+      if (value && typeof value === 'object') {
+        const json = this.yValueToJson(value);
+        rows.push(
+          json && typeof json === 'object' && !Array.isArray(json)
+            ? (json as Record<string, unknown>)
+            : null
+        );
+      } else {
+        rows.push(null);
+      }
+    }
+    return rows;
+  }
+
+  /**
+   * Remove content-identical duplicate-id rows from every array in the elements
+   * bundle, in a single transaction so the heal is atomic and produces one
+   * broadcast/persist update. Only *identical* duplicates are deleted (lossless
+   * — the surviving row equals the removed ones); ids whose duplicates differ
+   * in content are left intact and logged as a warning for manual resolution.
+   *
+   * Safe to call repeatedly: when no identical duplicates remain the planner
+   * returns no deletions and no transaction runs, so the on-sync debounce and
+   * the on-load call both quiesce to a cheap read.
+   *
+   * Returns the number of rows removed (0 when already clean).
+   */
+  private dedupeIdenticalRows(sharedDoc: WSSharedDoc): number {
+    // Plan every array first (read-only), then mutate once. Deletions are
+    // collected per array as `Y.Array` positions; within the transaction each
+    // array is drained from highest position to lowest so earlier indices stay
+    // valid as later rows are removed.
+    const deletions = new Map<string, number[]>();
+    let totalRemoved = 0;
+    const allConflicting: string[] = [];
+
+    for (const arrayName of ELEMENT_BUNDLE_ARRAYS) {
+      const rows = this.bundleRows(sharedDoc, arrayName);
+      const plan = planIdenticalDedupe(rows);
+      if (plan.conflictingIds.length > 0) {
+        allConflicting.push(...plan.conflictingIds.map((id) => `${arrayName}:${id}`));
+      }
+      if (plan.deleteIndices.length > 0) {
+        deletions.set(arrayName, plan.deleteIndices);
+        totalRemoved += plan.deleteIndices.length;
+      }
+    }
+
+    if (allConflicting.length > 0) {
+      // Differing-content duplicates need a human / divergence-flow decision;
+      // surface them but never auto-delete (deleting would discard an edit).
+      projDOLog.warn('Elements document has conflicting duplicate ids (not auto-healed)', {
+        conflicting: allConflicting,
+      });
+    }
+
+    if (totalRemoved === 0) return 0;
+
+    sharedDoc.transact(() => {
+      for (const [arrayName, indices] of deletions) {
+        const arr = sharedDoc.getArray<unknown>(arrayName);
+        const descending = [...indices].sort((a, b) => b - a);
+        for (const idx of descending) {
+          // Guard against a concurrent length change between plan and transact.
+          if (idx < arr.length) arr.delete(idx, 1);
+        }
+      }
+    });
+
+    projDOLog.info(`Auto-healed ${totalRemoved} identical duplicate row(s) from elements bundle`);
+    return totalRemoved;
+  }
+
+  /**
+   * Schedule a debounced duplicate-id heal for the elements document after a
+   * sync update. Closes the re-poisoning loop: a client whose IndexedDB still
+   * holds duplicate rows re-merges them on connect; this re-deletes them on the
+   * server and the resulting delete ops propagate back to that client until its
+   * local copy is clean too. No-op for non-elements documents.
+   */
+  private scheduleDedupeHeal(documentId: string, sharedDoc: WSSharedDoc): void {
+    if (!isElementsDoc(documentId)) return;
+    const existing = this.dedupeTimers.get(documentId);
+    if (existing) clearTimeout(existing);
+    this.dedupeTimers.set(
+      documentId,
+      setTimeout(() => {
+        this.dedupeTimers.delete(documentId);
+        try {
+          this.dedupeIdenticalRows(sharedDoc);
+        } catch (err) {
+          projDOLog.error(`Dedupe heal failed for ${documentId}`, err);
+        }
+      }, DEDUPE_DEBOUNCE_MS)
+    );
   }
 
   /**
