@@ -79,8 +79,13 @@ export function canonicalStringify(value: unknown): string {
   }
   if (typeof value === 'object') {
     const obj = value as Record<string, unknown>;
-    const keys = Object.keys(obj).sort();
-    return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalStringify(obj[k])}`).join(',')}}`;
+    const keys = Object.keys(obj).sort((a, b) => a.localeCompare(b));
+    const entries = keys.map((k) => {
+      const keyPart = JSON.stringify(k);
+      const valPart = canonicalStringify(obj[k]);
+      return `${keyPart}:${valPart}`;
+    });
+    return `{${entries.join(',')}}`;
   }
   return JSON.stringify(value);
 }
