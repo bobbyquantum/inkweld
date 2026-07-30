@@ -44,7 +44,23 @@ export interface ImagePastePluginCallbacks {
    * @returns The project key or null if no project is active
    */
   getProjectKey: () => string | null;
+
+  /**
+   * Called when a text paste exceeds {@link MAX_PASTE_BYTES}. The plugin
+   * prevents the paste; the host should surface a user-visible warning.
+   * When omitted the paste is silently blocked.
+   */
+  onPasteTooLarge?: (byteLength: number) => void;
 }
+
+/**
+ * Maximum clipboard text size (in bytes) allowed for a single paste.
+ * A paste larger than this would produce a Yjs sync frame approaching the
+ * Durable Object's 2 MB per-value storage cap, risking a silent persist
+ * failure. 512 KB of UTF-8 text (~250 K characters) is far beyond any
+ * reasonable paste while keeping the sync frame well under 1 MB.
+ */
+export const MAX_PASTE_BYTES = 512 * 1024;
 
 /**
  * Plugin key for accessing image paste plugin
@@ -251,6 +267,23 @@ export function createImagePastePlugin(
 
     props: {
       handlePaste(view, event) {
+        const clipboardData = event.clipboardData;
+
+        // Reject oversized text pastes synchronously — a paste larger than
+        // MAX_PASTE_BYTES would produce a Yjs sync frame approaching the DO's
+        // 2 MB per-value storage cap, risking a silent persist failure.
+        if (clipboardData && clipboardData.files.length === 0) {
+          const text = clipboardData.getData('text/plain');
+          if (text) {
+            const byteLength = new TextEncoder().encode(text).byteLength;
+            if (byteLength > MAX_PASTE_BYTES) {
+              event.preventDefault();
+              callbacks.onPasteTooLarge?.(byteLength);
+              return true;
+            }
+          }
+        }
+
         // Handle async paste in a non-blocking way
         void handlePaste(view, event, callbacks).catch(error => {
           console.error('[ImagePaste] Paste handler error:', error);

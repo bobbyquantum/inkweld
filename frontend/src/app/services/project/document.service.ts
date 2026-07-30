@@ -8,6 +8,7 @@ import {
   signal,
   type WritableSignal,
 } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { type Editor } from '@bobbyquantum/ngx-editor';
 import {
   createAutoReviewPlugin,
@@ -20,6 +21,7 @@ import {
   extractMediaId,
   generateMediaId,
   isMediaUrl,
+  MAX_PASTE_BYTES,
 } from '@editor';
 import { DocumentsService } from '@inkweld/index';
 import { type PresenceSession } from '@inkweld/presence';
@@ -185,6 +187,7 @@ export class DocumentService {
   private readonly commentService = inject(CommentService);
   private readonly autoReviewApi = inject(AutoReviewApiService);
   private readonly presenceService = inject(PresenceService);
+  private readonly snackBar = inject(MatSnackBar);
 
   /** @internal Wrapped for testability — esbuild inlines local modules, so vi.mock can't intercept them */
   private createAuthWsProvider = createAuthenticatedWebsocketProvider; // NOSONAR - writable for test overrides
@@ -1078,6 +1081,16 @@ export class DocumentService {
         return await this.localStorage.getMediaUrl(projectKey, mediaId);
       },
       getProjectKey: () => this.getProjectKey(),
+      onPasteTooLarge: (byteLength: number) => {
+        const kb = Math.round(byteLength / 1024);
+        const maxKb = Math.round(MAX_PASTE_BYTES / 1024);
+        this.snackBar.open(
+          `Paste too large (${kb} KB). Maximum is ${maxKb} KB per paste. ` +
+            `Split into smaller chunks or insert as a file.`,
+          'Dismiss',
+          { duration: 6000 }
+        );
+      },
     });
     plugins.push(imagePastePlugin);
 
