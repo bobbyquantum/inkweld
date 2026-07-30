@@ -70,6 +70,7 @@ export class YjsService {
   private readonly docs = new Map<string, WSSharedDoc>();
   // Map by project key (username:projectSlug) instead of documentId
   private readonly persistences = new Map<string, LeveldbPersistence>();
+  private readonly persistFailures = new Map<string, number>();
 
   /**
    * Get project key from documentId
@@ -190,6 +191,13 @@ export class YjsService {
           const currentPersistence = this.persistences.get(projectKey);
           if (currentPersistence) {
             await currentPersistence.storeUpdate(documentId, update);
+            const prevFailures = this.persistFailures.get(documentId);
+            if (prevFailures) {
+              yjsLog.info(
+                `LevelDB persistence recovered for ${documentId} after ${prevFailures} failures`
+              );
+              this.persistFailures.delete(documentId);
+            }
           } else {
             yjsLog.warn(`No persistence available for project ${projectKey}, update not saved`);
           }
@@ -205,7 +213,14 @@ export class YjsService {
             this.broadcastMessage(sharedDoc, message, origin);
           }
         } catch (error) {
-          yjsLog.error(`Error persisting/broadcasting update for ${documentId}`, error);
+          const count = (this.persistFailures.get(documentId) ?? 0) + 1;
+          this.persistFailures.set(documentId, count);
+          if (count === 1 || count % 10 === 0) {
+            yjsLog.error(
+              `LevelDB persist failure #${count} for ${documentId} — updates are in-memory only and will be lost on restart`,
+              error
+            );
+          }
         }
       });
     } catch (error) {
@@ -497,6 +512,7 @@ export class YjsService {
           doc.awareness.destroy();
           doc.doc.destroy();
           this.docs.delete(doc.name);
+          this.persistFailures.delete(doc.name);
           yjsLog.debug(`Document ${doc.name} cleaned up after inactivity`);
 
           // Check if there are any other documents from the same project still active
