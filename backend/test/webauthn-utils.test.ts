@@ -23,68 +23,61 @@ afterEach(() => {
 });
 
 describe('rpFromContext', () => {
-  describe('resolveRpId paths', () => {
-    it('uses the explicit WEBAUTHN_RP_ID env var when set', () => {
-      const c = mockContext({
+  const rpIdCases: Array<{
+    name: string;
+    env: Record<string, string | undefined>;
+    expected: string;
+  }> = [
+    {
+      name: 'uses the explicit WEBAUTHN_RP_ID env var when set',
+      env: {
         WEBAUTHN_RP_ID: 'preview.inkweld.app',
         ALLOWED_ORIGINS: 'https://preview.inkweld.app',
-      });
-      const result = rpFromContext(c);
-      expect(result.rpId).toBe('preview.inkweld.app');
-    });
-
-    it('derives RP ID from ALLOWED_ORIGINS when env var is missing', () => {
-      const c = mockContext({
-        ALLOWED_ORIGINS: 'https://preview.inkweld.app',
-      });
-      const result = rpFromContext(c);
-      expect(result.rpId).toBe('preview.inkweld.app');
-    });
-
-    it('derives RP ID from ALLOWED_ORIGINS when env var is localhost', () => {
-      const c = mockContext({
-        WEBAUTHN_RP_ID: 'localhost',
-        ALLOWED_ORIGINS: 'https://app.example.com',
-      });
-      const result = rpFromContext(c);
-      expect(result.rpId).toBe('app.example.com');
-    });
-
-    it('keeps localhost when ALLOWED_ORIGINS is wildcard', () => {
-      const c = mockContext({
-        WEBAUTHN_RP_ID: 'localhost',
-        ALLOWED_ORIGINS: '*',
-      });
-      const result = rpFromContext(c);
-      expect(result.rpId).toBe('localhost');
-    });
-
-    it('keeps localhost when ALLOWED_ORIGINS is empty', () => {
-      const c = mockContext({
-        WEBAUTHN_RP_ID: 'localhost',
-        ALLOWED_ORIGINS: '',
-      });
-      const result = rpFromContext(c);
-      expect(result.rpId).toBe('localhost');
-    });
-
-    it('keeps fallback when ALLOWED_ORIGINS has a malformed URL', () => {
-      const c = mockContext({
-        WEBAUTHN_RP_ID: 'localhost',
-        ALLOWED_ORIGINS: 'not-a-url',
-      });
-      const result = rpFromContext(c);
-      expect(result.rpId).toBe('localhost');
-    });
-
-    it('uses first origin when multiple are configured', () => {
-      const c = mockContext({
+      },
+      expected: 'preview.inkweld.app',
+    },
+    {
+      name: 'derives RP ID from ALLOWED_ORIGINS when env var is missing',
+      env: { ALLOWED_ORIGINS: 'https://preview.inkweld.app' },
+      expected: 'preview.inkweld.app',
+    },
+    {
+      name: 'derives RP ID from ALLOWED_ORIGINS when env var is localhost',
+      env: { WEBAUTHN_RP_ID: 'localhost', ALLOWED_ORIGINS: 'https://app.example.com' },
+      expected: 'app.example.com',
+    },
+    {
+      name: 'keeps localhost when ALLOWED_ORIGINS is wildcard',
+      env: { WEBAUTHN_RP_ID: 'localhost', ALLOWED_ORIGINS: '*' },
+      expected: 'localhost',
+    },
+    {
+      name: 'keeps localhost when ALLOWED_ORIGINS is empty',
+      env: { WEBAUTHN_RP_ID: 'localhost', ALLOWED_ORIGINS: '' },
+      expected: 'localhost',
+    },
+    {
+      name: 'keeps fallback when ALLOWED_ORIGINS has a malformed URL',
+      env: { WEBAUTHN_RP_ID: 'localhost', ALLOWED_ORIGINS: 'not-a-url' },
+      expected: 'localhost',
+    },
+    {
+      name: 'uses first origin when multiple are configured',
+      env: {
         WEBAUTHN_RP_ID: 'localhost',
         ALLOWED_ORIGINS: 'https://first.example.com,https://second.example.com',
+      },
+      expected: 'first.example.com',
+    },
+  ];
+
+  describe('resolveRpId paths', () => {
+    for (const { name, env, expected } of rpIdCases) {
+      it(name, () => {
+        const result = rpFromContext(mockContext(env));
+        expect(result.rpId).toBe(expected);
       });
-      const result = rpFromContext(c);
-      expect(result.rpId).toBe('first.example.com');
-    });
+    }
   });
 
   describe('resolveOrigins paths', () => {
