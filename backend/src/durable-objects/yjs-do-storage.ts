@@ -9,6 +9,7 @@
  */
 
 import { isSyncFrame } from '../utils/yjs-document-utils';
+import { stripTrailingSlashes } from '../utils/string-utils';
 
 /**
  * Bytes as persisted by `put`. New writes store a `Uint8Array` (compact BLOB);
@@ -79,6 +80,65 @@ export interface LoadResult {
 export interface CompactResult {
   snapshotWritten: boolean;
   rowsDeleted: number;
+  /**
+   * Set when compaction was deliberately aborted (e.g. the regression guard
+   * refused to collapse a populated stored tree into a blank state). Absent on
+   * the normal write/delete and value-limit-skip paths so existing equality
+   * assertions on those results stay exact.
+   */
+  skippedReason?: string;
+}
+
+/**
+ * Predicate that can veto a compaction. Receives the bytes of the snapshot
+ * currently in storage (or `undefined` when none) and the encoded state about
+ * to be written. Returning `true` aborts the compaction: nothing is written and
+ * no incremental rows are deleted, so the existing stored state is retained
+ * intact. Used by the Durable Object to block the regression where a doc that
+ * failed to load its history (blank state vector) would otherwise overwrite a
+ * good snapshot and destroy the incrementals.
+ */
+export type CompactionGuard = (
+  existingSnapshot: Uint8Array | undefined,
+  nextState: Uint8Array
+) => boolean;
+
+/** Options for {@link YjsDocStorage.compact}. */
+export interface CompactOptions {
+  skipCompaction?: CompactionGuard;
+}
+
+/** Decoded content metrics for a stored snapshot (diagnostic only). */
+export interface SnapshotContent {
+  elementCount: number | null;
+  topLevel: Record<string, number>;
+}
+
+/** Injected decoder so this module stays Yjs-free (and Bun-testable). */
+export type SnapshotDecoder = (bytes: Uint8Array) => SnapshotContent;
+
+/** One storage row as surfaced by the diagnostic (value bytes discarded). */
+export interface StorageKeyInfo {
+  key: string;
+  bytes: number;
+}
+
+/** Per-prefix slice of a {@link StorageDescription}. */
+export interface StoragePrefixSummary {
+  snapshot: (SnapshotContent & { key: string; bytes: number; decodeError?: string }) | null;
+  updateRows: number;
+  updateBytes: number;
+}
+
+/** Read-only view of a document's Durable Object storage (diagnostic only). */
+export interface StorageDescription {
+  rawDocumentId: string;
+  prefixesScanned: string[];
+  canonical: StoragePrefixSummary;
+  /** The trailing-slash ghost prefix (`doc:<id>/:`), scanned to detect legacy data. */
+  ghost: StoragePrefixSummary;
+  keys: StorageKeyInfo[];
+  keysTruncated: boolean;
 }
 
 /** Prefix + timestamp + zero-padded sequence keeps keys unique AND ordered. */
@@ -134,6 +194,121 @@ export function chunkKeysForDelete(
 }
 
 /**
+ * Page every key under `prefix` in ascending order, invoking `onPage` with each
+ * page (bounded to {@link LIST_PAGE_SIZE} values live at a time so a document
+ * with a huge history never materialises every value into the isolate heap).
+ * Returns the total number of rows read. Shared by the load/compact paths and
+ * the read-only diagnostic so the paging mechanic lives in exactly one place.
+ */
+async function pagePrefix(
+  storage: DoStorage,
+  prefix: string,
+  onPage: (page: Map<string, StoredBytes>) => Promise<void> | void
+): Promise<number> {
+  let total = 0;
+  let startAfter: string | undefined;
+  for (;;) {
+    const page = await storage.list<StoredBytes>({
+      prefix,
+      limit: LIST_PAGE_SIZE,
+      ...(startAfter ? { startAfter } : {}),
+    });
+    if (page.size === 0) break;
+    total += page.size;
+
+    await onPage(page);
+    if (page.size < LIST_PAGE_SIZE) break;
+    // `list` returns keys in ascending order; the last key is the page max.
+    let lastKey = '';
+    for (const key of page.keys()) lastKey = key;
+    startAfter = lastKey;
+  }
+  return total;
+}
+
+/**
+ * Read-only diagnostic: page a document's storage under BOTH the canonical
+ * prefix (`doc:<id>:`) and the trailing-slash ghost prefix (`doc:<id>/:`),
+ * reporting per-key byte lengths (values discarded page-by-page to bound
+ * memory) and decoding any snapshot via the injected `decode` so callers can
+ * see whether the stored state is full or empty — without writing anything or
+ * touching a live document.
+ *
+ * `rawDocumentId` is the *un-stripped* id as the client sent it; the canonical
+ * prefix is derived by stripping trailing slashes, and the ghost prefix adds
+ * one back, so a single call reveals data that lives under either convention.
+ *
+ * Pure (no Yjs import): the snapshot decoder is injected so this is testable
+ * with a mock storage + mock decoder under Bun.
+ */
+export async function describeDocStorage(
+  storage: DoStorage,
+  rawDocumentId: string,
+  decode: SnapshotDecoder,
+  options?: { maxKeys?: number }
+): Promise<StorageDescription> {
+  const maxKeys = options?.maxKeys ?? 5000;
+  const stripped = stripTrailingSlashes(rawDocumentId);
+  const canonicalPrefix = `doc:${stripped}:`;
+  const ghostPrefix = `doc:${stripped}/:`;
+
+  const keys: StorageKeyInfo[] = [];
+  let keysTruncated = false;
+
+  const scan = async (prefix: string): Promise<StoragePrefixSummary> => {
+    let snapshot: StoragePrefixSummary['snapshot'] = null;
+    let updateRows = 0;
+    let updateBytes = 0;
+    const snapKeyForPrefix = snapshotKey(prefix);
+
+    await pagePrefix(storage, prefix, (page) => {
+      for (const [key, value] of page.entries()) {
+        const bytes = toBytes(value);
+        if (keys.length < maxKeys) {
+          keys.push({ key, bytes: bytes.byteLength });
+        } else {
+          keysTruncated = true;
+        }
+
+        if (key === snapKeyForPrefix) {
+          let content: SnapshotContent;
+          let decodeError: string | undefined;
+          try {
+            content = decode(bytes);
+          } catch (err) {
+            content = { elementCount: null, topLevel: {} };
+            decodeError = String(err);
+          }
+          snapshot = {
+            key,
+            bytes: bytes.byteLength,
+            ...content,
+            ...(decodeError ? { decodeError } : {}),
+          };
+        } else {
+          updateRows++;
+          updateBytes += bytes.byteLength;
+        }
+      }
+    });
+
+    return { snapshot, updateRows, updateBytes };
+  };
+
+  const canonical = await scan(canonicalPrefix);
+  const ghost = await scan(ghostPrefix);
+
+  return {
+    rawDocumentId,
+    prefixesScanned: [canonicalPrefix, ghostPrefix],
+    canonical,
+    ghost,
+    keys,
+    keysTruncated,
+  };
+}
+
+/**
  * Logger subset the storage helpers call. Matches the child-logger shape from
  * `logger.service.ts` so the DO can pass its `projDOLog` straight through.
  */
@@ -176,30 +351,13 @@ export class YjsDocStorage {
    * Page through all `update:*` rows for a document, invoking `onPage` with
    * each page's entries in ascending key order. Bounded memory: only one page
    * of values is live at a time. Returns the total number of rows read.
+   * Delegates to the module-level {@link pagePrefix} pager.
    */
-  private async forEachUpdatePage(
+  private forEachUpdatePage(
     updatePrefix: string,
     onPage: (page: Map<string, StoredBytes>) => Promise<void> | void
   ): Promise<number> {
-    let total = 0;
-    let startAfter: string | undefined;
-    for (;;) {
-      const page = await this.storage.list<StoredBytes>({
-        prefix: updatePrefix,
-        limit: LIST_PAGE_SIZE,
-        ...(startAfter ? { startAfter } : {}),
-      });
-      if (page.size === 0) break;
-      total += page.size;
-
-      await onPage(page);
-      if (page.size < LIST_PAGE_SIZE) break;
-      // `list` returns keys in ascending order; the last key is the page max.
-      let lastKey = '';
-      for (const key of page.keys()) lastKey = key;
-      startAfter = lastKey;
-    }
-    return total;
+    return pagePrefix(this.storage, updatePrefix, onPage);
   }
 
   /**
@@ -281,9 +439,17 @@ export class YjsDocStorage {
     }
 
     if (corruptedKeys.length > 0) {
-      this.log.warn(`Purged ${corruptedKeys.length} corrupted frame(s) for ${documentId}`, {
-        keys: corruptedKeys,
-      });
+      // Note: a corrupted *snapshot* is intentionally NOT deleted — it is kept
+      // as the last-good copy so a future decode fix (or a manual recovery) can
+      // still read it. Only corrupted *incremental* frames (and stale awareness
+      // rows) are purged, in the per-page loop above. The wording here reflects
+      // that to avoid implying the snapshot was destroyed.
+      this.log.warn(
+        `Skipped ${corruptedKeys.length} corrupted frame(s) on load for ${documentId} (corrupted incrementals purged; any corrupted snapshot retained as last-good copy)`,
+        {
+          keys: corruptedKeys,
+        }
+      );
     }
 
     this.log.debug(
@@ -333,7 +499,8 @@ export class YjsDocStorage {
   async compact(
     documentId: string,
     encodedState: Uint8Array,
-    knownKeys?: string[]
+    knownKeys?: string[],
+    options?: CompactOptions
   ): Promise<CompactResult> {
     if (encodedState.byteLength > SNAPSHOT_VALUE_LIMIT) {
       this.log.warn(
@@ -345,6 +512,29 @@ export class YjsDocStorage {
 
     const storagePrefix = `doc:${documentId}:`;
     const snapKey = snapshotKey(storagePrefix);
+
+    // Regression guard: when supplied, ask whether writing `encodedState` would
+    // destroy a populated stored tree (e.g. the in-memory doc is a blank
+    // failed-load state while storage still holds content). If so, abort
+    // entirely — write nothing, delete nothing — so the existing snapshot and
+    // incrementals survive as the recovery path. Read the existing snapshot
+    // only when a guard is present, so unguarded compactions keep their exact
+    // prior cost and behaviour.
+    if (options?.skipCompaction) {
+      const existingRaw = await this.storage.get<StoredBytes>(snapKey);
+      const existingBytes = existingRaw ? toBytes(existingRaw) : undefined;
+      if (options.skipCompaction(existingBytes, encodedState)) {
+        this.log.warn(
+          `Skipping compaction for ${documentId}: regression guard tripped (stored snapshot has content but the next state is a blank/failed-load state); retaining existing snapshot + incremental rows`,
+          {
+            documentId,
+            hadExistingSnapshot: existingBytes !== undefined,
+            nextBytes: encodedState.byteLength,
+          }
+        );
+        return { snapshotWritten: false, rowsDeleted: 0, skippedReason: 'regression-guard' };
+      }
+    }
 
     // Store the raw bytes (compact BLOB), not Array.from(bytes) — the latter
     // inflates stored size ~8x (one boxed number per byte) and the in-memory
@@ -374,6 +564,19 @@ export class YjsDocStorage {
       `Compacted document ${documentId}: ${rowsDeleted}/${keys.length} update rows merged into snapshot`
     );
     return { snapshotWritten: true, rowsDeleted };
+  }
+
+  /**
+   * Read-only diagnostic over this document's storage. Thin wrapper that hands
+   * the already-wired `DoStorage` to the pure {@link describeDocStorage} helper
+   * so the Durable Object can expose it without re-implementing the paging.
+   */
+  describeStorage(
+    rawDocumentId: string,
+    decode: SnapshotDecoder,
+    options?: { maxKeys?: number }
+  ): Promise<StorageDescription> {
+    return describeDocStorage(this.storage, rawDocumentId, decode, options);
   }
 
   /**
