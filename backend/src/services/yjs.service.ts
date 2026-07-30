@@ -70,8 +70,7 @@ export class YjsService {
   private readonly docs = new Map<string, WSSharedDoc>();
   // Map by project key (username:projectSlug) instead of documentId
   private readonly persistences = new Map<string, LeveldbPersistence>();
-  private persistFailureCount = 0;
-  private lastPersistFailureDoc: string | null = null;
+  private readonly persistFailures = new Map<string, number>();
 
   /**
    * Get project key from documentId
@@ -192,12 +191,12 @@ export class YjsService {
           const currentPersistence = this.persistences.get(projectKey);
           if (currentPersistence) {
             await currentPersistence.storeUpdate(documentId, update);
-            if (this.persistFailureCount > 0) {
+            const prevFailures = this.persistFailures.get(documentId);
+            if (prevFailures) {
               yjsLog.info(
-                `LevelDB persistence recovered after ${this.persistFailureCount} failures (last doc: ${this.lastPersistFailureDoc})`
+                `LevelDB persistence recovered for ${documentId} after ${prevFailures} failures`
               );
-              this.persistFailureCount = 0;
-              this.lastPersistFailureDoc = null;
+              this.persistFailures.delete(documentId);
             }
           } else {
             yjsLog.warn(`No persistence available for project ${projectKey}, update not saved`);
@@ -214,11 +213,11 @@ export class YjsService {
             this.broadcastMessage(sharedDoc, message, origin);
           }
         } catch (error) {
-          this.persistFailureCount++;
-          this.lastPersistFailureDoc = documentId;
-          if (this.persistFailureCount === 1 || this.persistFailureCount % 10 === 0) {
+          const count = (this.persistFailures.get(documentId) ?? 0) + 1;
+          this.persistFailures.set(documentId, count);
+          if (count === 1 || count % 10 === 0) {
             yjsLog.error(
-              `LevelDB persist failure #${this.persistFailureCount} for ${documentId} — updates are in-memory only and will be lost on restart`,
+              `LevelDB persist failure #${count} for ${documentId} — updates are in-memory only and will be lost on restart`,
               error
             );
           }
@@ -513,6 +512,7 @@ export class YjsService {
           doc.awareness.destroy();
           doc.doc.destroy();
           this.docs.delete(doc.name);
+          this.persistFailures.delete(doc.name);
           yjsLog.debug(`Document ${doc.name} cleaned up after inactivity`);
 
           // Check if there are any other documents from the same project still active

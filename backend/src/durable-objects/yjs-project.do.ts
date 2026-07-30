@@ -410,6 +410,30 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     });
   }
 
+  private guardReplaceAll(
+    elementsArray: { length: number },
+    body: { elements?: Record<string, unknown>[]; allowEmpty?: boolean }
+  ): Response | null {
+    if (!body.elements || !Array.isArray(body.elements)) {
+      return new Response(JSON.stringify({ error: 'elements array required for replace_all' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (!body.allowEmpty && elementsArray.length > 0 && body.elements.length === 0) {
+      console.error(
+        `[DO-HTTP] Blocked replace_all that would wipe ${elementsArray.length} elements to 0`
+      );
+      return new Response(
+        JSON.stringify({
+          error: `Refusing to replace ${elementsArray.length} existing elements with an empty array`,
+        }),
+        { status: 409, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    return null;
+  }
+
   /**
    * POST /api/elements - Mutate elements array
    * Body: { action: 'replace_all' | 'insert' | 'update' | 'delete', elements?: Element[], element?: Element, elementId?: string, parentId?: string | null }
@@ -433,30 +457,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     try {
       switch (body.action) {
         case 'replace_all': {
-          if (!body.elements || !Array.isArray(body.elements)) {
-            return new Response(
-              JSON.stringify({ error: 'elements array required for replace_all' }),
-              {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-              }
-            );
-          }
-          const elementsToInsert = body.elements;
-          if (!body.allowEmpty && elementsArray.length > 0 && elementsToInsert.length === 0) {
-            console.error(
-              `[DO-HTTP] Blocked replace_all that would wipe ${elementsArray.length} elements to 0`
-            );
-            return new Response(
-              JSON.stringify({
-                error: `Refusing to replace ${elementsArray.length} existing elements with an empty array`,
-              }),
-              {
-                status: 409,
-                headers: { 'Content-Type': 'application/json' },
-              }
-            );
-          }
+          const guardResponse = this.guardReplaceAll(elementsArray, body);
+          if (guardResponse) return guardResponse;
+          const elementsToInsert = body.elements as Record<string, unknown>[];
           sharedDoc.transact(() => {
             elementsArray.delete(0, elementsArray.length);
             elementsArray.insert(0, elementsToInsert);
