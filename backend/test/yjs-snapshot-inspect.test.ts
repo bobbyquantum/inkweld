@@ -33,7 +33,7 @@ describe('isBlankStateVector', () => {
     const doc = new Y.Doc();
     doc.transact(() => doc.getArray('elements').push([{ id: 'a' }, { id: 'b' }]));
     doc.transact(() => doc.getArray('elements').delete(0, 2));
-    expect(doc.getArray('elements').length).toBe(0);
+    expect(doc.getArray('elements')).toHaveLength(0);
     expect(isBlankStateVector(encoded(doc))).toBe(false);
     doc.destroy();
   });
