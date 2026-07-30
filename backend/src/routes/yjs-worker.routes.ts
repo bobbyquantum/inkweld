@@ -21,8 +21,7 @@ const app = new Hono<CloudflareAppContext>();
 
 /** Result of resolving a project's Durable Object stub from a documentId. */
 type ProjectStubResult =
-  | { ok: true; stub: DurableObjectStub; projectId: string }
-  | { ok: false; error: Response };
+  { ok: true; stub: DurableObjectStub; projectId: string } | { ok: false; error: Response };
 
 /**
  * Validate a `documentId` (`username:slug:...`) and resolve the Durable Object
