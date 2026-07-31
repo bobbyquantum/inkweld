@@ -89,14 +89,14 @@
         class="comment-popover__reply-input"
         type="text"
         placeholder="Reply..."
-        [(ngModel)]="replyText"
+        [formField]="form.replyText"
         (keydown.enter)="onReply()"
         data-testid="comment-reply-input" />
       <button
         mat-icon-button
         class="comment-popover__reply-btn"
         aria-label="Send reply"
-        [disabled]="!replyText.trim()"
+        [disabled]="!model().replyText.trim()"
         (click)="onReply()"
         matTooltip="Send reply"
         data-testid="comment-reply-btn">

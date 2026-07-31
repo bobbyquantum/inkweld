@@ -10,7 +10,7 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { form, FormField } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -25,11 +25,15 @@ import { formatRelativeDate } from '../../../utils/date-format';
 import { UserAvatarComponent } from '../../user-avatar/user-avatar.component';
 import type { CommentMarkAttrs } from '../comment-mark-schema';
 
+interface CommentPopoverFormValue {
+  replyText: string;
+}
+
 @Component({
   selector: 'app-comment-popover',
   standalone: true,
   imports: [
-    FormsModule,
+    FormField,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -70,7 +74,9 @@ export class CommentPopoverComponent {
 
   loading = signal(true);
   thread = signal<CommentThreadResponse | null>(null);
-  replyText = '';
+
+  readonly model = signal<CommentPopoverFormValue>({ replyText: '' });
+  readonly form = form(this.model);
 
   /** Unified message list (works for both server and local-only) */
   messages = computed<
@@ -165,7 +171,7 @@ export class CommentPopoverComponent {
   }
 
   async onReply(): Promise<void> {
-    const text = this.replyText.trim();
+    const text = this.model().replyText.trim();
     if (!text) return;
 
     const a = this.attrs();
@@ -175,7 +181,7 @@ export class CommentPopoverComponent {
         commentId: a.commentId,
         updates: { messageCount: (a.messageCount || 0) + 1 },
       });
-      this.replyText = '';
+      this.form.replyText().value.set('');
       return;
     }
 
@@ -186,7 +192,7 @@ export class CommentPopoverComponent {
         a.commentId,
         text
       );
-      this.replyText = '';
+      this.form.replyText().value.set('');
       // Refresh the thread
       await this.fetchThread(a.commentId);
       this.updated.emit({

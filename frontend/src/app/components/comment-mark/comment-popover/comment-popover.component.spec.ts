@@ -197,14 +197,14 @@ describe('CommentPopoverComponent', () => {
       const updatedSpy = vi.fn();
       component.updated.subscribe(updatedSpy);
 
-      component.replyText = 'My reply';
+      component.form.replyText().value.set('My reply');
       await component.onReply();
 
       expect(updatedSpy).toHaveBeenCalledWith({
         commentId: 'test-comment',
         updates: { messageCount: 2 },
       });
-      expect(component.replyText).toBe('');
+      expect(component.model().replyText).toBe('');
     });
 
     it('should not emit when reply text is empty', async () => {
@@ -213,7 +213,7 @@ describe('CommentPopoverComponent', () => {
       const updatedSpy = vi.fn();
       component.updated.subscribe(updatedSpy);
 
-      component.replyText = '   ';
+      component.form.replyText().value.set('   ');
       await component.onReply();
 
       expect(updatedSpy).not.toHaveBeenCalled();
@@ -441,7 +441,7 @@ describe('CommentPopoverComponent', () => {
       const updatedSpy = vi.fn();
       component.updated.subscribe(updatedSpy);
 
-      component.replyText = 'Server reply';
+      component.form.replyText().value.set('Server reply');
       await component.onReply();
 
       expect(mockCommentService.addMessage).toHaveBeenCalledWith(
@@ -450,7 +450,7 @@ describe('CommentPopoverComponent', () => {
         'test-comment',
         'Server reply'
       );
-      expect(component.replyText).toBe('');
+      expect(component.model().replyText).toBe('');
       expect(updatedSpy).toHaveBeenCalled();
     });
   });
