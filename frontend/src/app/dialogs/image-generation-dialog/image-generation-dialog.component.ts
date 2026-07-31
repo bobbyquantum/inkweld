@@ -52,7 +52,10 @@ import {
   type WorldbuildingElementSelection,
   WorldbuildingElementSelectorComponent,
 } from '../../components/worldbuilding-element-selector/worldbuilding-element-selector.component';
-import { ImageGenerationService } from '../../services/ai/image-generation.service';
+import {
+  type GenerationJob,
+  ImageGenerationService,
+} from '../../services/ai/image-generation.service';
 import { LoggerService } from '../../services/core/logger.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
@@ -1034,44 +1037,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
-    let imageData: string | null = null;
-    if (selectedImage.b64Json) {
-      imageData = `data:image/png;base64,${selectedImage.b64Json}`;
-    } else {
-      try {
-        let blob: Blob | null = null;
-        // The generation service saves each image to local media on
-        // completion. savedMediaIds is only reliably index-aligned with
-        // job.images when every save succeeded (failed saves are skipped,
-        // compacting the array) — so only trust the index when the lengths
-        // match; otherwise fall through to fetching the image URL.
-        const mediaId =
-          job.savedMediaIds.length === job.images.length
-            ? job.savedMediaIds[this.selectedImageIndex()]
-            : undefined;
-        if (mediaId) {
-          blob = await this.localStorage.getMedia(job.projectKey, mediaId);
-        }
-        if (!blob && selectedImage.url) {
-          const response = await fetch(selectedImage.url);
-          if (response.ok) blob = await response.blob();
-        }
-        if (blob) {
-          imageData = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = () => reject(new Error('Failed to read image'));
-            reader.readAsDataURL(blob);
-          });
-        }
-      } catch (err) {
-        this.logger.error(
-          'ImageGenDialog',
-          'Failed to resolve image data',
-          err
-        );
-      }
-    }
+    const imageData = await this.resolveImageDataUrl(job, selectedImage);
 
     if (!imageData) {
       this.snackBar.open(
@@ -1089,6 +1055,47 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     };
 
     this.dialogRef.close(result);
+  }
+
+  /**
+   * Resolve the selected image to a data URL: base64 directly, otherwise
+   * from the blob the generation service already saved to local media,
+   * otherwise by fetching the hosted URL. Returns null when no usable
+   * payload can be produced.
+   */
+  private async resolveImageDataUrl(
+    job: GenerationJob,
+    selectedImage: GeneratedImage
+  ): Promise<string | null> {
+    if (selectedImage.b64Json) {
+      return `data:image/png;base64,${selectedImage.b64Json}`;
+    }
+
+    try {
+      let blob: Blob | null = null;
+      // The generation service saves each image to local media on
+      // completion. savedMediaIds is only reliably index-aligned with
+      // job.images when every save succeeded (failed saves are skipped,
+      // compacting the array) — so only trust the index when the lengths
+      // match; otherwise fall through to fetching the image URL.
+      const mediaId =
+        job.savedMediaIds.length === job.images.length
+          ? job.savedMediaIds[this.selectedImageIndex()]
+          : undefined;
+      if (mediaId) {
+        blob = await this.localStorage.getMedia(job.projectKey, mediaId);
+      }
+      if (!blob && selectedImage.url) {
+        const response = await fetch(selectedImage.url);
+        if (response.ok) blob = await response.blob();
+      }
+      if (blob) {
+        return await blobToDataUrl(blob);
+      }
+    } catch (err) {
+      this.logger.error('ImageGenDialog', 'Failed to resolve image data', err);
+    }
+    return null;
   }
 
   /**
@@ -1188,4 +1195,14 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     if (prompt.length <= maxLength) return prompt;
     return prompt.substring(0, maxLength) + '...';
   }
+}
+
+/** Read a blob into a data URL via FileReader. */
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Failed to read image'));
+    reader.readAsDataURL(blob);
+  });
 }
