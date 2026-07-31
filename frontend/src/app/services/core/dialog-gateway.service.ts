@@ -94,7 +94,10 @@ export class DialogGatewayService {
     const dialogRef = this.dialog.open(EditProjectDialogComponent, {
       data: project,
       disableClose: true,
+      // Responsive: 600px on desktop, edge-to-edge on phones (the dialog's
+      // SCSS stacks the cover/form columns under 600px viewport width).
       width: '600px',
+      maxWidth: '100vw',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

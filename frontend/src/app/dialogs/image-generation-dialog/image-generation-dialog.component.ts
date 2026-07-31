@@ -53,6 +53,7 @@ import {
 } from '../../components/worldbuilding-element-selector/worldbuilding-element-selector.component';
 import { ImageGenerationService } from '../../services/ai/image-generation.service';
 import { LoggerService } from '../../services/core/logger.service';
+import { LocalStorageService } from '../../services/local/local-storage.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { formatWorldbuildingFields } from '../../utils/worldbuilding.utils';
@@ -113,6 +114,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   private readonly snackBar = inject(MatSnackBar);
   private readonly logger = inject(LoggerService);
   private readonly transloco = inject(TranslocoService);
+  private readonly localStorage = inject(LocalStorageService);
 
   // Stepper reference for programmatic control
   readonly stepper = viewChild<MatStepper>('stepper');
@@ -1010,9 +1012,17 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Use selected image and close dialog
+   * Use selected image and close dialog.
+   *
+   * `imageData` in the result must be a DATA URL — consumers (cover save,
+   * cropper) decode it as base64. Providers that return a hosted `url`
+   * instead of `b64Json` (fal.ai, Workers AI) used to leak that raw URL
+   * here, which downstream `base64ToBlob` calls choked on silently. Resolve
+   * everything to a data URL: b64 directly, otherwise from the blob the
+   * generation service already saved to local media, otherwise by fetching
+   * the URL. Never close with `saved: true` and unusable imageData.
    */
-  saveAndClose(): void {
+  async saveAndClose(): Promise<void> {
     const job = this.currentJob();
     const selectedImage = this.getSelectedImage();
     if (!selectedImage || !job) {
@@ -1024,9 +1034,51 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
+    let imageData: string | null = null;
+    if (selectedImage.b64Json) {
+      imageData = `data:image/png;base64,${selectedImage.b64Json}`;
+    } else {
+      try {
+        let blob: Blob | null = null;
+        // The generation service saves each image to local media on
+        // completion; savedMediaIds is index-aligned with job.images.
+        const mediaId = job.savedMediaIds[this.selectedImageIndex()];
+        if (mediaId) {
+          blob = await this.localStorage.getMedia(job.projectKey, mediaId);
+        }
+        if (!blob && selectedImage.url) {
+          const response = await fetch(selectedImage.url);
+          if (response.ok) blob = await response.blob();
+        }
+        if (blob) {
+          imageData = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = () => reject(new Error('Failed to read image'));
+            reader.readAsDataURL(blob);
+          });
+        }
+      } catch (err) {
+        this.logger.error(
+          'ImageGenDialog',
+          'Failed to resolve image data',
+          err
+        );
+      }
+    }
+
+    if (!imageData) {
+      this.snackBar.open(
+        this.transloco.translate('media.imageGeneration.imageDataUnavailable'),
+        this.transloco.translate('close'),
+        { duration: 5000 }
+      );
+      return;
+    }
+
     const result: ImageGenerationDialogResult = {
       saved: true,
-      imageData: this.getImageUrl(selectedImage),
+      imageData,
       response: job.response,
     };
 

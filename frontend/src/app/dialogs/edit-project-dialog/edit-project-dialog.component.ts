@@ -330,6 +330,15 @@ export class EditProjectDialogComponent implements OnInit {
     const result = await this.dialogGateway.openImageGenerationDialog({
       forCover: true,
     });
+    if (result?.saved && !result.imageData) {
+      // Never fail silently: the dialog claims success but produced no
+      // usable image payload (e.g. provider returned a URL that couldn't
+      // be resolved to data).
+      this.showError(
+        this.transloco.translate('dialogs.editProject.loadFailed')
+      );
+      return;
+    }
     if (result?.saved && result.imageData) {
       // Show the cropper to let user crop the generated image to the correct cover dimensions
       // Reset cropper state first

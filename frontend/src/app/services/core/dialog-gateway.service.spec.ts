@@ -111,6 +111,7 @@ describe('DialogGatewayService', () => {
       data: project,
       disableClose: true,
       width: '600px',
+      maxWidth: '100vw',
     });
     expect(result).toEqual(updatedProject);
   });

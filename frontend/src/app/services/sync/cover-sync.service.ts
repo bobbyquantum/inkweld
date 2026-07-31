@@ -3,9 +3,9 @@ import { inject, Injectable, signal } from '@angular/core';
 import { type Project } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
-import { environment } from '../../../environments/environment';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { MediaSyncService } from '../local/media-sync.service';
 
@@ -38,6 +38,7 @@ export class CoverSyncService {
   private readonly mediaSyncService = inject(MediaSyncService);
   private readonly setupService = inject(SetupService);
   private readonly logger = inject(LoggerService);
+  private readonly storageContext = inject(StorageContextService);
 
   /** Whether a cover sync is currently running */
   readonly isSyncing = signal(false);
@@ -167,7 +168,7 @@ export class CoverSyncService {
    * Download a single cover and save it to IndexedDB.
    */
   private async downloadCover(task: CoverDownloadTask): Promise<void> {
-    const url = `${environment.apiUrl}/api/v1/media/${task.username}/${task.slug}/${task.filename}`;
+    const url = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${task.username}/${task.slug}/${task.filename}`;
 
     const blob = await firstValueFrom(
       this.http.get(url, { responseType: 'blob' })

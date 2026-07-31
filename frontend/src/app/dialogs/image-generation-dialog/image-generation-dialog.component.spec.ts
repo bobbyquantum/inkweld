@@ -363,8 +363,8 @@ describe('ImageGenerationDialogComponent', () => {
       expect(url).toBe('https://example.com/image.png');
     });
 
-    it('should close dialog with saved result when saveAndClose is called', () => {
-      component.saveAndClose();
+    it('should close dialog with saved result when saveAndClose is called', async () => {
+      await component.saveAndClose();
 
       expect(dialogRef.close).toHaveBeenCalledWith({
         saved: true,
@@ -1076,7 +1076,7 @@ describe('ImageGenerationDialogComponent', () => {
       generationService.getJob.mockReturnValue(emptyJob);
       component.generate();
 
-      component.saveAndClose();
+      await component.saveAndClose();
 
       // Should not close dialog when no image is selected
       expect(dialogRef.close).not.toHaveBeenCalled();
