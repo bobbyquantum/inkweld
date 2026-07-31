@@ -163,6 +163,7 @@
     "deleteFailed": "Failed to delete project",
     "reconnecting": "Reconnecting...",
     "reconnected": "Reconnected successfully",
+    "stillOffline": "Could not reach the server — working offline, changes are saved locally",
     "reconnectFailed": "Failed to reconnect to server"
   },
   "sideNav": {

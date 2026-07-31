@@ -970,6 +970,38 @@ describe('ProjectComponent', () => {
       });
     });
 
+    it('should report success only when the provider actually reconnected', async () => {
+      syncStateSignal.set(DocumentSyncState.Synced);
+
+      await component.onRetrySyncConnection();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Reconnected successfully',
+        'Close',
+        { duration: 3000 }
+      );
+    });
+
+    it('should report still-offline when the provider fell back to local mode', async () => {
+      // loadProject resolves successfully even when the WS auth failed and
+      // the provider fell back to local-only — the snackbar must not claim
+      // "reconnected" while the indicator stays offline.
+      syncStateSignal.set(DocumentSyncState.Local);
+
+      await component.onRetrySyncConnection();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Could not reach the server — working offline, changes are saved locally',
+        'Close',
+        { duration: 5000 }
+      );
+      expect(snackBar.open).not.toHaveBeenCalledWith(
+        'Reconnected successfully',
+        'Close',
+        expect.anything()
+      );
+    });
+
     it('should surface a reconnect failure', async () => {
       const consoleSpy = vi
         .spyOn(console, 'error')

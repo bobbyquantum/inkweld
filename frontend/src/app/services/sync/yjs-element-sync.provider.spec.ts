@@ -1124,7 +1124,7 @@ describe('YjsElementSyncProvider', () => {
     function privateProvider() {
       return provider as unknown as {
         terminalDenialReason: string | null;
-        pendingRateLimitBackoff: boolean;
+        pendingLongBackoff: boolean;
         handleAccessDenied: (reason: string) => void;
         handlePostAuthText: (text: string) => void;
         handleReauthError: (error: string) => void;
@@ -1151,24 +1151,38 @@ describe('YjsElementSyncProvider', () => {
       // y-websocket's internal auto-reconnect loop can't hammer the DO and
       // re-saturate the per-doc rate-limit window (the reconnect storm).
       expect(priv.terminalDenialReason).toBeNull();
-      expect(priv.pendingRateLimitBackoff).toBe(true);
+      expect(priv.pendingLongBackoff).toBe(true);
       expect(stub.disconnect).toHaveBeenCalledTimes(1);
       expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
 
-      // A second rate-limited is still not terminal — only the max-attempts
-      // breaker can stop a genuinely stuck server.
+      // A second rate-limited is still not terminal — retries continue for as
+      // long as the server keeps refusing.
       priv.handleAccessDenied('rate-limited');
       expect(priv.terminalDenialReason).toBeNull();
       expect(stub.disconnect).toHaveBeenCalledTimes(2);
+    });
+
+    it('server-side error is not terminal and takes the long backoff', () => {
+      const stub = setWsStub();
+      const priv = privateProvider();
+
+      // `error` means the SERVER failed to load the document — it says
+      // nothing about this client's access and routinely self-heals, so it
+      // must retry (long backoff) rather than bench the client until refresh.
+      priv.handleAccessDenied('error');
+      expect(priv.terminalDenialReason).toBeNull();
+      expect(priv.pendingLongBackoff).toBe(true);
+      expect(stub.disconnect).toHaveBeenCalledTimes(1);
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
     });
 
     it('routes a post-auth access-denied text frame through handleAccessDenied', () => {
       const stub = setWsStub();
       const priv = privateProvider();
 
-      priv.handlePostAuthText('access-denied:error');
+      priv.handlePostAuthText('access-denied:forbidden');
       expect(stub.disconnect).toHaveBeenCalledTimes(1);
-      expect(priv.terminalDenialReason).toBe('error');
+      expect(priv.terminalDenialReason).toBe('forbidden');
 
       // Non-denial text is just logged, not treated as terminal.
       priv.handlePostAuthText('ping');
@@ -1204,7 +1218,7 @@ describe('YjsElementSyncProvider', () => {
       vi.useFakeTimers();
       const stub = setWsStub();
       const priv = privateProvider();
-      priv.pendingRateLimitBackoff = true;
+      priv.pendingLongBackoff = true;
 
       priv.handleWebSocketStatus('disconnected');
       // The long backoff must not fire within the server cooldown window.
@@ -1212,9 +1226,94 @@ describe('YjsElementSyncProvider', () => {
       expect(stub.connect).not.toHaveBeenCalled();
       vi.advanceTimersByTime(30_000);
       expect(stub.connect).toHaveBeenCalledTimes(1);
-      expect(priv.pendingRateLimitBackoff).toBe(false);
+      expect(priv.pendingLongBackoff).toBe(false);
 
       vi.useRealTimers();
+    });
+
+    it('leaves reconnects to y-websocket while its internal loop is active', () => {
+      vi.useFakeTimers();
+      const connect = vi.fn();
+      // shouldConnect true = y-websocket's own loop is still retrying; our
+      // timer must NOT stack a second reconnect on top of it.
+      (provider as unknown as { wsProvider: unknown }).wsProvider = {
+        connect,
+        disconnect: vi.fn(),
+        shouldConnect: true,
+      };
+
+      privateProvider().handleWebSocketStatus('disconnected');
+      vi.advanceTimersByTime(600_000);
+      expect(connect).not.toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+
+    it('never gives up: keeps scheduling retries far beyond five attempts', () => {
+      vi.useFakeTimers();
+      const stub = setWsStub();
+      const priv = privateProvider();
+
+      // Each 'disconnected' schedules one retry (no internal loop on the
+      // stub); fire well past the old 5-attempt cap. Delay is capped at
+      // maxDelayMs (300s), so advancing 300s guarantees each timer fires.
+      for (let i = 0; i < 12; i++) {
+        priv.handleWebSocketStatus('disconnected');
+        vi.advanceTimersByTime(300_000);
+      }
+      expect(stub.connect).toHaveBeenCalledTimes(12);
+
+      vi.useRealTimers();
+    });
+
+    it('does not stack a second timer while a retry is already scheduled', () => {
+      vi.useFakeTimers();
+      const stub = setWsStub();
+      const priv = privateProvider();
+
+      // Two disconnects in quick succession must produce ONE scheduled retry.
+      priv.handleWebSocketStatus('disconnected');
+      priv.handleWebSocketStatus('disconnected');
+      vi.advanceTimersByTime(300_000);
+      expect(stub.connect).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe('visibility/focus resume', () => {
+    it('reconnects immediately when the tab becomes visible while disconnected', () => {
+      const connect = vi.fn();
+      (provider as unknown as { wsProvider: unknown }).wsProvider = {
+        connect,
+        wsconnected: false,
+      };
+
+      (
+        provider as unknown as { setupNetworkHandlers: () => void }
+      ).setupNetworkHandlers();
+
+      globalThis.dispatchEvent(new Event('focus'));
+      expect(connect).toHaveBeenCalledTimes(1);
+    });
+
+    it('does nothing on focus while connected or after a terminal denial', () => {
+      const connect = vi.fn();
+      const priv = provider as unknown as {
+        wsProvider: unknown;
+        terminalDenialReason: string | null;
+        setupNetworkHandlers: () => void;
+      };
+      priv.wsProvider = { connect, wsconnected: true };
+      priv.setupNetworkHandlers();
+
+      globalThis.dispatchEvent(new Event('focus'));
+      expect(connect).not.toHaveBeenCalled();
+
+      priv.wsProvider = { connect, wsconnected: false };
+      priv.terminalDenialReason = 'forbidden';
+      globalThis.dispatchEvent(new Event('focus'));
+      expect(connect).not.toHaveBeenCalled();
     });
   });
 });

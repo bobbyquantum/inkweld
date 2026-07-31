@@ -39,6 +39,7 @@ import { StorageContextService } from '../core/storage-context.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import {
   HARD_DENIAL_REASONS,
+  LONG_BACKOFF_DENIAL_REASONS,
   parseAccessDeniedReason,
   rateLimitBackoff,
   withJitter,
@@ -57,18 +58,21 @@ import {
 } from './element-sync-provider.interface';
 
 /**
- * Configuration for reconnection behavior
+ * Configuration for reconnection behavior. There is deliberately no attempt
+ * cap: the elements connection is the project's lifeline (and the sidebar
+ * indicator), so we keep retrying forever with the backoff capped at
+ * `maxDelayMs` — a laptop waking from overnight sleep reconnects on the next
+ * tick instead of finding a provider that gave up hours ago. Terminal
+ * `access-denied` reasons (bad token / no access) still stop the loop.
  */
 interface ReconnectionConfig {
-  maxAttempts: number;
   baseDelayMs: number;
   maxDelayMs: number;
 }
 
 const DEFAULT_RECONNECTION_CONFIG: ReconnectionConfig = {
-  maxAttempts: 5,
   baseDelayMs: 3000,
-  maxDelayMs: 30000,
+  maxDelayMs: 300_000,
 };
 
 const PRESENCE_KEEPALIVE_INTERVAL_MS = 30_000;
@@ -118,15 +122,18 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
    */
   private terminalDenialReason: string | null = null;
   /**
-   * When set, the next scheduleReconnect uses the long rate-limit backoff. A
-   * rate-limit also stops the provider (killing y-websocket's internal loop)
-   * but is not terminal, so the server's throttle can clear on its own.
+   * When set, the next scheduleReconnect uses the long floored backoff. Set
+   * after a `rate-limited` or server-side `error` denial — both stop the
+   * provider (killing y-websocket's internal loop) but are not terminal, so
+   * the server's throttle / transient failure can clear on its own.
    */
-  private pendingRateLimitBackoff = false;
+  private pendingLongBackoff = false;
 
   // Event listeners for cleanup
   private onlineHandler: (() => void) | null = null;
   private offlineHandler: (() => void) | null = null;
+  private visibilityHandler: (() => void) | null = null;
+  private focusHandler: (() => void) | null = null;
   private presenceKeepaliveInterval: ReturnType<typeof setInterval> | null =
     null;
 
@@ -377,6 +384,14 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     if (this.offlineHandler) {
       globalThis.removeEventListener('offline', this.offlineHandler);
       this.offlineHandler = null;
+    }
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
+    if (this.focusHandler) {
+      globalThis.removeEventListener('focus', this.focusHandler);
+      this.focusHandler = null;
     }
 
     // Clean up in reverse order of creation:
@@ -1123,7 +1138,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
         this.lastConnectionErrorSubject.next(null); // Clear error on successful connection
         this.reconnectAttempts = 0;
         this.terminalDenialReason = null;
-        this.pendingRateLimitBackoff = false;
+        this.pendingLongBackoff = false;
         if (this.reconnectTimeout) {
           clearTimeout(this.reconnectTimeout);
           this.reconnectTimeout = null;
@@ -1135,7 +1150,16 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
           this.syncStateSubject.next(DocumentSyncState.Unavailable);
         } else {
           this.syncStateSubject.next(DocumentSyncState.Local);
-          this.scheduleReconnect();
+          // y-websocket's internal loop (shouldConnect true) owns retries
+          // for network-level drops — its backoff is capped via
+          // WS_MAX_BACKOFF_TIME and it never gives up. Scheduling our own
+          // timer as well would double the reconnect pressure and trip the
+          // server's per-doc reconnect rate limiter. Our timer takes over
+          // only when that loop was deliberately stopped (stopProvider after
+          // a rate-limit / server-error denial).
+          if (!this.isInternalReconnectLoopActive()) {
+            this.scheduleReconnect();
+          }
         }
         break;
 
@@ -1182,13 +1206,12 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.lastConnectionErrorSubject.next('Session expired');
       this.syncStateSubject.next(DocumentSyncState.Unavailable);
 
-      // Don't retry on auth errors
+      // Don't retry on auth errors — the terminal reason blocks the loop.
       if (this.reconnectTimeout) {
         clearTimeout(this.reconnectTimeout);
         this.reconnectTimeout = null;
       }
       this.terminalDenialReason = 'invalid-token';
-      this.reconnectAttempts = this.reconnectionConfig.maxAttempts;
     } else {
       this.syncStateSubject.next(DocumentSyncState.Local);
     }
@@ -1206,9 +1229,20 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   }
 
   /**
-   * Schedule a reconnection attempt with exponential backoff + full jitter.
-   * A terminal `access-denied` stops the loop; `rate-limited` uses the long
-   * floored backoff (it is not terminal — the throttle clears on its own).
+   * True while y-websocket's own auto-reconnect loop is active (i.e. the
+   * provider hasn't been deliberately stopped via disconnect()).
+   */
+  private isInternalReconnectLoopActive(): boolean {
+    return this.wsProvider?.shouldConnect === true;
+  }
+
+  /**
+   * Schedule a reconnection attempt with exponential backoff + full jitter,
+   * capped at `maxDelayMs` and retrying indefinitely — there is no give-up:
+   * an outage longer than any attempt budget (overnight sleep, a long deploy)
+   * must still reconnect on its own once the server is back. A terminal
+   * `access-denied` stops the loop; `rate-limited` / server-side `error` use
+   * the long floored backoff (not terminal — they clear on their own).
    */
   private scheduleReconnect(): void {
     if (this.terminalDenialReason) {
@@ -1219,18 +1253,16 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       return;
     }
 
-    if (this.reconnectAttempts >= this.reconnectionConfig.maxAttempts) {
-      this.logger.warn('YjsSync', 'Max reconnection attempts reached');
-      this.errorsSubject.next(
-        'Unable to connect to server. Please refresh the page.'
-      );
+    // One timer at a time: 'disconnected' can fire again while a retry is
+    // already scheduled, and stacking timers doubles connect() pressure.
+    if (this.reconnectTimeout) {
       return;
     }
 
     let delay: number;
-    if (this.pendingRateLimitBackoff) {
-      // One-shot long backoff after a rate-limit denial.
-      this.pendingRateLimitBackoff = false;
+    if (this.pendingLongBackoff) {
+      // One-shot long backoff after a rate-limit / server-error denial.
+      this.pendingLongBackoff = false;
       delay = rateLimitBackoff();
     } else {
       delay = withJitter(
@@ -1244,10 +1276,11 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
     this.logger.info(
       'YjsSync',
-      `Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.reconnectionConfig.maxAttempts})`
+      `Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1})`
     );
 
     this.reconnectTimeout = setTimeout(() => {
+      this.reconnectTimeout = null;
       if (this.wsProvider) {
         this.logger.info('YjsSync', 'Attempting to reconnect...');
         this.wsProvider.connect();
@@ -1306,20 +1339,21 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
   /**
    * Record a server `access-denied`. Hard reasons stop reconnection outright
-   * and close the socket. `rate-limited` is transient, so it is NOT terminal:
-   * we stop the provider (switching off y-websocket's internal auto-reconnect
-   * loop, which doesn't know we were throttled and would otherwise hammer the
-   * DO on its 100ms*2^n schedule — each reconnect re-authing and re-saturating
-   * the per-doc window, i.e. the reconnect storm) and let scheduleReconnect
-   * retry with the long floored backoff until the max-attempts breaker.
+   * and close the socket. `rate-limited` and server-side `error` are
+   * transient, so they are NOT terminal: we stop the provider (switching off
+   * y-websocket's internal auto-reconnect loop, which doesn't know we were
+   * refused and would otherwise hammer the DO on its 100ms*2^n schedule —
+   * each reconnect re-authing and re-saturating the per-doc window, i.e. the
+   * reconnect storm) and let scheduleReconnect retry with the long floored
+   * backoff for as long as it takes the server to recover.
    */
   private handleAccessDenied(reason: string): void {
     this.syncStateSubject.next(DocumentSyncState.Unavailable);
-    if (reason === 'rate-limited') {
-      this.pendingRateLimitBackoff = true;
+    if (LONG_BACKOFF_DENIAL_REASONS.has(reason)) {
+      this.pendingLongBackoff = true;
       this.logger.warn(
         'YjsSync',
-        `Rate-limited for ${this.docId}; suppressing internal loop and backing off (not terminal)`
+        `Denied (${reason}) for ${this.docId}; suppressing internal loop and backing off (not terminal)`
       );
       this.stopProvider();
       return;
@@ -1335,13 +1369,17 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   }
 
   /**
-   * Set up browser online/offline event handlers.
+   * Set up browser online/offline/visibility/focus event handlers.
+   *
+   * Visibility and focus matter because an overnight sleep/wake cycle does
+   * not reliably fire an 'online' event, and a backgrounded tab's throttled
+   * timers can let the socket idle out. The user returning to the tab is a
+   * strong signal to retry immediately instead of waiting out a backoff.
    */
   private setupNetworkHandlers(): void {
     this.onlineHandler = () => {
       this.logger.info('YjsSync', 'Network connection restored');
-      this.reconnectAttempts = 0;
-      this.wsProvider?.connect();
+      this.resumeConnectionNow('online');
     };
 
     this.offlineHandler = () => {
@@ -1349,8 +1387,39 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.syncStateSubject.next(DocumentSyncState.Local);
     };
 
+    this.visibilityHandler = () => {
+      if (document.visibilityState === 'visible') {
+        this.resumeConnectionNow('tab visible');
+      }
+    };
+    this.focusHandler = () => {
+      this.resumeConnectionNow('window focus');
+    };
+
     globalThis.addEventListener('online', this.onlineHandler);
     globalThis.addEventListener('offline', this.offlineHandler);
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+    globalThis.addEventListener('focus', this.focusHandler);
+  }
+
+  /**
+   * Reset the backoff and, when the socket is down (and the denial isn't
+   * terminal), retry immediately — bypassing any scheduled backoff. Driven by
+   * user-visible signals (network restored, tab visible, window focus), so a
+   * single immediate attempt is the same thing the user would do by hand.
+   * No-op while connected, so routine focus changes cost nothing.
+   */
+  private resumeConnectionNow(trigger: string): void {
+    this.reconnectAttempts = 0;
+    if (this.terminalDenialReason) return;
+    const provider = this.wsProvider;
+    if (!provider || provider.wsconnected) return;
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    this.logger.info('YjsSync', `Reconnecting immediately (${trigger})`);
+    provider.connect();
   }
 
   /**
