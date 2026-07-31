@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { effect, inject, Injectable, signal } from '@angular/core';
 import { type Project } from '@inkweld/index';
 
 import { SetupService } from '../core/setup.service';
@@ -37,6 +37,17 @@ export class LocalProjectService {
   constructor() {
     this.loadLocalProjects();
     this.loadMigratedProjects();
+
+    // Reload whenever the storage-context prefix changes (setup completing,
+    // switching between local and server configs). The lists were previously
+    // read only once, at construction, so a prefix change left them pointing
+    // at the OLD context's data — lookups then failed with "Project not
+    // found" for projects that exist under the new prefix.
+    effect(() => {
+      this.storageContext.prefix();
+      this.loadLocalProjects();
+      this.loadMigratedProjects();
+    });
   }
 
   /**
@@ -341,10 +352,21 @@ export class LocalProjectService {
     this.isLoading.set(true);
 
     try {
-      const projects = this.projects();
-      const projectIndex = projects.findIndex(
+      let projects = this.projects();
+      let projectIndex = projects.findIndex(
         p => p.username === username && p.slug === slug
       );
+
+      if (projectIndex === -1) {
+        // Self-heal: the in-memory list can lag localStorage (another tab
+        // wrote to it, or it was loaded under a stale context prefix).
+        // Re-read once before declaring the project missing.
+        this.loadLocalProjects();
+        projects = this.projects();
+        projectIndex = projects.findIndex(
+          p => p.username === username && p.slug === slug
+        );
+      }
 
       if (projectIndex === -1) {
         throw new Error('Project not found');
@@ -386,7 +408,16 @@ export class LocalProjectService {
 
     try {
       const projectKey = `${username}/${slug}`;
-      const projects = this.projects();
+      let projects = this.projects();
+
+      if (!projects.some(p => p.username === username && p.slug === slug)) {
+        // Self-heal: same staleness as updateProject — re-read once so a
+        // stale in-memory list can't turn the delete into a silent no-op, or
+        // worse, persist the stale list over data written by another tab.
+        this.loadLocalProjects();
+        projects = this.projects();
+      }
+
       const updatedProjects = projects.filter(
         p => !(p.username === username && p.slug === slug)
       );
@@ -415,6 +446,10 @@ export class LocalProjectService {
    * Import projects from an export
    */
   importProjects(importedProjects: Project[]): void {
+    // Merge against a fresh read — merging into a stale in-memory list and
+    // saving the result would clobber projects written by another tab or
+    // under a previous context prefix.
+    this.loadLocalProjects();
     const currentProjects = this.projects();
     const userProfile = this.setupService.getLocalUserProfile();
 

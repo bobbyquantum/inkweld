@@ -457,22 +457,45 @@ export class EditProjectDialogComponent implements OnInit {
         }
       }
 
-      // Use UnifiedProjectService for update - handles both online and offline modes
-      const response = await this.unifiedProjectService.updateProject(
-        updatedProject.username,
-        updatedProject.slug,
-        {
-          title: updatedProject.title,
-          description: updatedProject.description,
-        }
-      );
+      // Use UnifiedProjectService for update - handles both online and offline modes.
+      // This only persists title/description to the project record — the cover
+      // is a media blob (already saved above) plus coverMediaId in Yjs project
+      // meta, neither of which depends on this call. So a failure here must
+      // NOT discard the cover: apply the state/Yjs update with whatever
+      // project object we have and surface the record-update failure softly.
+      let response: Project;
+      let recordUpdateError: string | null = null;
+      try {
+        response = await this.unifiedProjectService.updateProject(
+          updatedProject.username,
+          updatedProject.slug,
+          {
+            title: updatedProject.title,
+            description: updatedProject.description,
+          }
+        );
+      } catch (error: unknown) {
+        recordUpdateError =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error('Failed to update project record:', recordUpdateError);
+        response = updatedProject;
+      }
 
-      // Update project state with coverMediaId for Yjs sync
+      // Update project state with coverMediaId for Yjs sync — this is what
+      // actually makes the cover show up, and it works offline-first.
       this.projectState.updateProject(response, newCoverMediaId);
 
-      this.showSuccess(
-        this.transloco.translate('dialogs.editProject.projectUpdated')
-      );
+      if (recordUpdateError) {
+        this.showError(
+          this.transloco.translate('dialogs.editProject.savedLocallyOnly', {
+            error: recordUpdateError,
+          })
+        );
+      } else {
+        this.showSuccess(
+          this.transloco.translate('dialogs.editProject.projectUpdated')
+        );
+      }
       this.dialogRef.close(response);
     } catch (error: unknown) {
       const errorMessage =

@@ -1,4 +1,4 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Project } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,6 +22,7 @@ describe('LocalProjectService', () => {
   let mockElementsService: MockedObject<LocalProjectElementsService>;
   let mockStorageContext: MockedObject<StorageContextService>;
   let mockProjectSyncService: MockedObject<ProjectSyncService>;
+  let prefixSignal: ReturnType<typeof signal<string>>;
 
   // The prefixed key that will be used in storage
   const PREFIXED_PROJECTS_KEY = 'local:inkweld-local-projects';
@@ -59,12 +60,16 @@ describe('LocalProjectService', () => {
       createDefaultStructure: vi.fn().mockReturnValue([]),
     } as any;
 
-    // Mock StorageContextService to return predictable prefixed keys
+    // Mock StorageContextService to return predictable prefixed keys.
+    // `prefix` is a real writable signal so tests can drive context switches
+    // (the service reloads its lists reactively when the prefix changes).
+    prefixSignal = signal('local:');
     mockStorageContext = {
-      prefixKey: vi.fn((key: string) => `local:${key}`),
-      prefixDbName: vi.fn((name: string) => `local:${name}`),
-      prefixDocumentId: vi.fn((id: string) => `local:${id}`),
-      getPrefix: vi.fn().mockReturnValue('local:'),
+      prefix: prefixSignal,
+      prefixKey: vi.fn((key: string) => `${prefixSignal()}${key}`),
+      prefixDbName: vi.fn((name: string) => `${prefixSignal()}${name}`),
+      prefixDocumentId: vi.fn((id: string) => `${prefixSignal()}${id}`),
+      getPrefix: vi.fn(() => prefixSignal()),
       getPrefixForConfig: vi.fn((configId: string) =>
         configId === 'local' ? 'local:' : `srv:${configId}:`
       ),
@@ -376,6 +381,45 @@ describe('LocalProjectService', () => {
         service.updateProject('testuser', 'non-existent', { title: 'New' })
       ).toThrow('Project not found');
     });
+
+    it('self-heals a stale in-memory list by re-reading localStorage before failing', () => {
+      // Simulate the in-memory signal lagging behind localStorage (another
+      // tab wrote to it, or the list was loaded under a stale context
+      // prefix). The lookup must re-read once instead of throwing
+      // "Project not found" for a project that exists.
+      service.projects.set([]);
+
+      const result = service.updateProject('testuser', 'test-project', {
+        title: 'Healed Title',
+      });
+
+      expect(result.title).toBe('Healed Title');
+    });
+
+    it('reloads the project list when the storage-context prefix changes', () => {
+      const serverProjects: Project[] = [
+        {
+          id: 'server-project-id',
+          title: 'Server Project',
+          slug: 'server-project',
+          username: 'serveruser',
+          description: '',
+          createdDate: '2023-01-01T00:00:00.000Z',
+          updatedDate: '2023-01-01T00:00:00.000Z',
+        },
+      ];
+      mockLocalStorage.getItem.mockImplementation((key: string) =>
+        key.startsWith('srv:abc:') ? JSON.stringify(serverProjects) : '[]'
+      );
+
+      // Switch context: setup completing / server switch changes the prefix.
+      prefixSignal.set('srv:abc:');
+      TestBed.flushEffects();
+
+      expect(service.getProject('serveruser', 'server-project')).toEqual(
+        serverProjects[0]
+      );
+    });
   });
 
   describe('deleteProject', () => {
@@ -401,6 +445,9 @@ describe('LocalProjectService', () => {
         },
       ];
       service.projects.set(projects);
+      // Keep localStorage consistent with the signal so the self-heal
+      // re-read (triggered when a lookup misses) sees the same list.
+      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(projects));
     });
 
     it('should delete project', () => {
@@ -418,6 +465,24 @@ describe('LocalProjectService', () => {
       service.deleteProject('testuser', 'non-existent');
 
       expect(service.projects()).toHaveLength(originalCount);
+    });
+
+    it('self-heals a stale in-memory list before deleting', () => {
+      // The signal lags behind localStorage (another tab wrote to it, or it
+      // was loaded under a stale context prefix). Without the re-read the
+      // filter is a silent no-op AND saveProjects would persist the stale
+      // list over the real one.
+      service.projects.set([]);
+
+      service.deleteProject('testuser', 'project-1');
+
+      const remaining = service.projects();
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0].slug).toBe('project-2');
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'local:inkweld-local-projects',
+        JSON.stringify(remaining)
+      );
     });
 
     it('should create a tombstone when deleting a project', () => {

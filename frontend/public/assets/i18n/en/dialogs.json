@@ -118,6 +118,7 @@
     "coverRemoved": "Cover image removed successfully",
     "coverRemoveFailed": "Failed to remove cover image: {{error}}",
     "projectUpdated": "Project updated successfully",
+    "savedLocallyOnly": "Changes saved locally, but updating the project record failed: {{error}}",
     "updateFailed": "Failed to update project: {{error}}",
     "unknownError": "Unknown error"
   },

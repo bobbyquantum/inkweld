@@ -113,7 +113,7 @@ describe('HomeTabComponent', () => {
         // Tests will override this with specific behavior
         return new Promise(() => {});
       }),
-      uploadProjectCover: vi.fn().mockResolvedValue(undefined),
+      uploadProjectCover: vi.fn().mockResolvedValue('cover-1700000000000.png'),
       getProjectByUsernameAndSlug: vi.fn().mockResolvedValue(mockProject),
     };
 
@@ -380,8 +380,7 @@ describe('HomeTabComponent', () => {
     expect(projectService.uploadProjectCover).toHaveBeenCalled();
   });
 
-  it('should refresh project state after saving a generated cover image', async () => {
-    const updatedProject = { ...mockProject, coverImage: 'cover.png' };
+  it('should propagate the coverMediaId via project state after saving a generated cover', async () => {
     const mockResult = {
       saved: true,
       imageData: 'data:image/png;base64,dGVzdA==',
@@ -390,8 +389,8 @@ describe('HomeTabComponent', () => {
     (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
       mockResult
     );
-    (projectService.getProjectByUsernameAndSlug as any).mockResolvedValue(
-      updatedProject
+    (projectService.uploadProjectCover as any).mockResolvedValue(
+      'cover-1707900000000.jpg'
     );
 
     component.onGenerateCoverClick();
@@ -409,40 +408,14 @@ describe('HomeTabComponent', () => {
       'Close',
       { duration: 3000 }
     );
-    expect(projectService.getProjectByUsernameAndSlug).toHaveBeenCalledWith(
-      mockProject.username,
-      mockProject.slug
-    );
+    // The cover is rendered from Yjs project meta (coverMediaId = the
+    // uploaded filename's stem) — no server refresh round-trip. The old
+    // implementation refreshed through the server-only ProjectService, which
+    // broke in local mode and never set coverMediaId at all.
+    expect(projectService.getProjectByUsernameAndSlug).not.toHaveBeenCalled();
     expect(projectStateService.updateProject).toHaveBeenCalledWith(
-      updatedProject
-    );
-  });
-
-  it('should report a refresh failure after saving a generated cover image', async () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
-    const refreshError = new Error('refresh failed');
-    const mockResult = {
-      saved: true,
-      imageData: 'data:image/png;base64,dGVzdA==',
-    };
-
-    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
-      mockResult
-    );
-    (projectService.getProjectByUsernameAndSlug as any).mockRejectedValue(
-      refreshError
-    );
-
-    component.onGenerateCoverClick();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Failed to refresh project after cover upload:',
-      refreshError
+      expect.objectContaining({ slug: mockProject.slug }),
+      'cover-1707900000000'
     );
   });
 
