@@ -1295,11 +1295,13 @@ export class DocumentService {
      */
     const markDenied = (reason: string) => {
       deniedReason = reason;
-      this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
-      this.projectStateService.updateSyncState(
-        documentId,
-        DocumentSyncState.Unavailable
-      );
+      // Transient denials read as Local ("offline, retrying"); only unknown
+      // and hard (terminal) reasons show the terminal-looking Unavailable.
+      const deniedState = LONG_BACKOFF_DENIAL_REASONS.has(reason)
+        ? DocumentSyncState.Local
+        : DocumentSyncState.Unavailable;
+      this.updateSyncStatus(documentId, deniedState);
+      this.projectStateService.updateSyncState(documentId, deniedState);
       if (LONG_BACKOFF_DENIAL_REASONS.has(reason)) {
         // A throttle (`rate-limited`) or server-side failure (`error`) is
         // transient — the per-doc window / backend incident clears on its

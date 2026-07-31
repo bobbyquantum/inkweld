@@ -128,6 +128,14 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
    * the server's throttle / transient failure can clear on its own.
    */
   private pendingLongBackoff = false;
+  /**
+   * True while the currently scheduled retry is honouring a long-backoff
+   * denial cooldown. `pendingLongBackoff` is consumed the moment the retry is
+   * *scheduled*, so this flag is what tells the immediate-resume path (online
+   * / tab-visible / focus) that jumping the queue would land inside the
+   * server's cooldown window and just get denied again.
+   */
+  private longBackoffCooldownActive = false;
 
   // Event listeners for cleanup
   private onlineHandler: (() => void) | null = null;
@@ -1139,6 +1147,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
         this.reconnectAttempts = 0;
         this.terminalDenialReason = null;
         this.pendingLongBackoff = false;
+        this.longBackoffCooldownActive = false;
         if (this.reconnectTimeout) {
           clearTimeout(this.reconnectTimeout);
           this.reconnectTimeout = null;
@@ -1261,8 +1270,11 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
     let delay: number;
     if (this.pendingLongBackoff) {
-      // One-shot long backoff after a rate-limit / server-error denial.
+      // One-shot long backoff after a rate-limit / server-error denial. Mark
+      // the cooldown active so the immediate-resume path can't jump the queue
+      // and land inside the server's cooldown window.
       this.pendingLongBackoff = false;
+      this.longBackoffCooldownActive = true;
       delay = rateLimitBackoff();
     } else {
       delay = withJitter(
@@ -1281,6 +1293,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
+      this.longBackoffCooldownActive = false;
       if (this.wsProvider) {
         this.logger.info('YjsSync', 'Attempting to reconnect...');
         this.wsProvider.connect();
@@ -1348,8 +1361,11 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
    * backoff for as long as it takes the server to recover.
    */
   private handleAccessDenied(reason: string): void {
-    this.syncStateSubject.next(DocumentSyncState.Unavailable);
     if (LONG_BACKOFF_DENIAL_REASONS.has(reason)) {
+      // Transient denial: the connection is down but retrying, which is the
+      // Local ("offline mode") story — showing the terminal-looking
+      // Unavailable here would contradict the retry that's about to happen.
+      this.syncStateSubject.next(DocumentSyncState.Local);
       this.pendingLongBackoff = true;
       this.logger.warn(
         'YjsSync',
@@ -1358,6 +1374,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.stopProvider();
       return;
     }
+    this.syncStateSubject.next(DocumentSyncState.Unavailable);
     if (HARD_DENIAL_REASONS.has(reason)) {
       this.terminalDenialReason = reason;
       this.logger.error(
@@ -1411,7 +1428,16 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
    */
   private resumeConnectionNow(trigger: string): void {
     this.reconnectAttempts = 0;
-    if (this.terminalDenialReason) return;
+    // Never jump the queue past a terminal denial or a long-backoff denial
+    // cooldown — an immediate retry inside the server's cooldown window (or
+    // during a backend incident) just gets denied again and resets nothing.
+    if (
+      this.terminalDenialReason ||
+      this.pendingLongBackoff ||
+      this.longBackoffCooldownActive
+    ) {
+      return;
+    }
     const provider = this.wsProvider;
     if (!provider || provider.wsconnected) return;
     if (this.reconnectTimeout) {

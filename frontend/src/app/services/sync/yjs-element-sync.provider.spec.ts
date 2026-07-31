@@ -1153,7 +1153,9 @@ describe('YjsElementSyncProvider', () => {
       expect(priv.terminalDenialReason).toBeNull();
       expect(priv.pendingLongBackoff).toBe(true);
       expect(stub.disconnect).toHaveBeenCalledTimes(1);
-      expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
+      // Transient denial reads as Local (offline, retrying) — not the
+      // terminal-looking Unavailable.
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Local);
 
       // A second rate-limited is still not terminal — retries continue for as
       // long as the server keeps refusing.
@@ -1173,7 +1175,7 @@ describe('YjsElementSyncProvider', () => {
       expect(priv.terminalDenialReason).toBeNull();
       expect(priv.pendingLongBackoff).toBe(true);
       expect(stub.disconnect).toHaveBeenCalledTimes(1);
-      expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Local);
     });
 
     it('routes a post-auth access-denied text frame through handleAccessDenied', () => {
@@ -1295,6 +1297,42 @@ describe('YjsElementSyncProvider', () => {
 
       globalThis.dispatchEvent(new Event('focus'));
       expect(connect).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not jump the queue during a long-backoff denial cooldown', () => {
+      vi.useFakeTimers();
+      const connect = vi.fn();
+      const priv = provider as unknown as {
+        wsProvider: unknown;
+        handleAccessDenied: (reason: string) => void;
+        handleWebSocketStatus: (status: string) => void;
+        setupNetworkHandlers: () => void;
+      };
+      priv.wsProvider = {
+        connect,
+        disconnect: vi.fn(),
+        wsconnected: false,
+      };
+      priv.setupNetworkHandlers();
+
+      // Rate-limit denial → long-backoff retry scheduled.
+      priv.handleAccessDenied('rate-limited');
+      priv.handleWebSocketStatus('disconnected');
+
+      // A focus during the cooldown must NOT reconnect immediately — that
+      // would land inside the server's cooldown window and get denied again.
+      globalThis.dispatchEvent(new Event('focus'));
+      expect(connect).not.toHaveBeenCalled();
+
+      // The scheduled long-backoff retry still fires on its own.
+      vi.advanceTimersByTime(30_000);
+      expect(connect).toHaveBeenCalledTimes(1);
+
+      // With the cooldown consumed, a later focus resumes immediately again.
+      globalThis.dispatchEvent(new Event('focus'));
+      expect(connect).toHaveBeenCalledTimes(2);
+
+      vi.useRealTimers();
     });
 
     it('does nothing on focus while connected or after a terminal denial', () => {
