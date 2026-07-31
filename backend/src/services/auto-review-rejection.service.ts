@@ -12,6 +12,7 @@ import {
   type InsertAutoReviewRejection,
 } from '../db/schema/auto-review-rejections';
 import type { DatabaseInstance } from '../types/context';
+import type { D1DatabaseInstance } from '../db/d1';
 import { logger } from './logger.service';
 
 const rejectionLog = logger.child('AutoReviewRejections');
@@ -105,7 +106,10 @@ export class AutoReviewRejectionService {
     projectId: string,
     elementId: string
   ): Promise<number> {
-    const rows = await db
+    // Cast to one union member before .select(projection): TypeScript cannot
+    // call a generic method with arguments on a union of drizzle instances
+    // (same workaround as announcementService.getUnreadCount).
+    const rows = await (db as D1DatabaseInstance)
       .select({ id: autoReviewRejections.id })
       .from(autoReviewRejections)
       .where(

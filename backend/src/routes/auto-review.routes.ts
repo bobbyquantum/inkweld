@@ -18,6 +18,7 @@ import { requireAuth } from '../middleware/auth';
 import { logger } from '../services/logger.service';
 import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
+import { NotFoundError, ForbiddenError } from '../errors';
 
 const lintReviewLog = logger.child('AutoReview');
 const lintReviewRoutes = new OpenAPIHono<AppContext>();
@@ -26,20 +27,27 @@ lintReviewRoutes.use('*', requireAuth);
 
 /**
  * Resolve the project from the URL path params and enforce write access for
- * the authenticated user. Returns a discriminated union: handlers branch on
- * `error` (returning the prepared Hono response) or use `project` to proceed.
- * Extracted to remove the repeated lookup+auth boilerplate that SonarCloud
- * flagged as copy-paste across the review/accept/reject/clear/delete handlers.
+ * the authenticated user. Throws the domain errors (`NotFoundError` /
+ * `ForbiddenError`) that the error-handler middleware maps to 404/403 — the
+ * pattern the other route files use — so handlers keep the typed responses
+ * that `OpenAPIHono.openapi()` requires (a prepared plain `Response` is not
+ * assignable to `RouteConfigToTypedResponse`). Extracted to remove the
+ * repeated lookup+auth boilerplate that SonarCloud flagged as copy-paste
+ * across the review/accept/reject/clear/delete handlers.
  */
 async function loadProjectContext(c: Context<AppContext>, requireWrite = true) {
   const db = c.get('db');
   const username = c.req.param('username');
   const slug = c.req.param('slug');
   const docId = c.req.param('docId');
+  // Every route binds these params; the check narrows `string | undefined`.
+  if (!username || !slug || !docId) {
+    throw new NotFoundError('Project not found');
+  }
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
   if (!project) {
-    return { error: c.json({ error: 'Project not found' }, 404) as Response };
+    throw new NotFoundError('Project not found');
   }
 
   if (requireWrite) {
@@ -47,7 +55,7 @@ async function loadProjectContext(c: Context<AppContext>, requireWrite = true) {
     if (user && project.userId !== user.id) {
       const access = await collaborationService.checkAccess(db, project.id, user.id);
       if (!access.canWrite) {
-        return { error: c.json({ error: 'Unauthorized' }, 403) as Response };
+        throw new ForbiddenError();
       }
     }
   }
@@ -153,9 +161,7 @@ const reviewRoute = createRoute({
 });
 
 lintReviewRoutes.openapi(reviewRoute, async (c) => {
-  const ctx = await loadProjectContext(c);
-  if ('error' in ctx) return ctx.error;
-  const { db, username, slug, docId } = ctx;
+  const { db, username, slug, docId } = await loadProjectContext(c);
 
   if (!(await openAILintService.isAiEnabled(db))) {
     return c.json(
@@ -222,9 +228,7 @@ const acceptRoute = createRoute({
 });
 
 lintReviewRoutes.openapi(acceptRoute, async (c) => {
-  const ctx = await loadProjectContext(c);
-  if ('error' in ctx) return ctx.error;
-  const { db, project, username, slug, docId } = ctx;
+  const { db, project, username, slug, docId } = await loadProjectContext(c);
 
   try {
     const body = await c.req.json();
@@ -238,7 +242,10 @@ lintReviewRoutes.openapi(acceptRoute, async (c) => {
     const info = await autoReviewService.getSuggestionInfo(documentId, suggestionId);
 
     const success = await autoReviewService.acceptSuggestion(documentId, suggestionId, replacement);
-    if (success && info) {
+    if (!success) {
+      return c.json({ error: 'Suggestion not found' }, 404);
+    }
+    if (info) {
       // Delete matching rejections since the issue is now resolved.
       await autoReviewRejectionService.deleteMatchingRejections(
         db,
@@ -247,10 +254,10 @@ lintReviewRoutes.openapi(acceptRoute, async (c) => {
         info.originalText
       );
     }
-    return c.json({ success }, success ? 200 : 404);
+    return c.json({ success: true }, 200);
   } catch (error: unknown) {
     lintReviewLog.error('Error accepting suggestion', error);
-    return c.json({ success: false }, 500);
+    return c.json({ error: 'Failed to accept suggestion' }, 500);
   }
 });
 
@@ -297,9 +304,7 @@ const rejectRoute = createRoute({
 });
 
 lintReviewRoutes.openapi(rejectRoute, async (c) => {
-  const ctx = await loadProjectContext(c);
-  if ('error' in ctx) return ctx.error;
-  const { db, project, username, slug, docId } = ctx;
+  const { db, project, username, slug, docId } = await loadProjectContext(c);
 
   try {
     const body = await c.req.json();
@@ -310,7 +315,10 @@ lintReviewRoutes.openapi(rejectRoute, async (c) => {
     const info = await autoReviewService.getSuggestionInfo(documentId, suggestionId);
 
     const success = await autoReviewService.rejectSuggestion(documentId, suggestionId);
-    if (success && info) {
+    if (!success) {
+      return c.json({ error: 'Suggestion not found' }, 404);
+    }
+    if (info) {
       // Store the rejection so the LLM doesn't repeat this suggestion.
       const user = c.get('user');
       await autoReviewRejectionService.addRejection(db, {
@@ -326,10 +334,10 @@ lintReviewRoutes.openapi(rejectRoute, async (c) => {
         userId: user?.id ?? '',
       });
     }
-    return c.json({ success }, success ? 200 : 404);
+    return c.json({ success: true }, 200);
   } catch (error: unknown) {
     lintReviewLog.error('Error rejecting suggestion', error);
-    return c.json({ success: false }, 500);
+    return c.json({ error: 'Failed to reject suggestion' }, 500);
   }
 });
 
@@ -367,9 +375,7 @@ const clearRoute = createRoute({
 });
 
 lintReviewRoutes.openapi(clearRoute, async (c) => {
-  const ctx = await loadProjectContext(c);
-  if ('error' in ctx) return ctx.error;
-  const { username, slug, docId } = ctx;
+  const { username, slug, docId } = await loadProjectContext(c);
 
   try {
     const documentId = `${username}:${slug}:${docId}/`;
@@ -377,7 +383,7 @@ lintReviewRoutes.openapi(clearRoute, async (c) => {
     return c.json({ success: true }, 200);
   } catch (error: unknown) {
     lintReviewLog.error('Error clearing marks', error);
-    return c.json({ success: false }, 500);
+    return c.json({ error: 'Failed to clear marks' }, 500);
   }
 });
 
@@ -415,9 +421,7 @@ const rejectionsRoute = createRoute({
 });
 
 lintReviewRoutes.openapi(rejectionsRoute, async (c) => {
-  const ctx = await loadProjectContext(c, false);
-  if ('error' in ctx) return ctx.error;
-  const { db, project, docId } = ctx;
+  const { db, project, docId } = await loadProjectContext(c, false);
 
   try {
     const count = await autoReviewRejectionService.countRejections(db, project.id, docId);
@@ -460,16 +464,14 @@ const deleteRejectionsRoute = createRoute({
 });
 
 lintReviewRoutes.openapi(deleteRejectionsRoute, async (c) => {
-  const ctx = await loadProjectContext(c);
-  if ('error' in ctx) return ctx.error;
-  const { db, project, docId } = ctx;
+  const { db, project, docId } = await loadProjectContext(c);
 
   try {
     await autoReviewRejectionService.deleteAllRejections(db, project.id, docId);
     return c.json({ success: true }, 200);
   } catch (error: unknown) {
     lintReviewLog.error('Error deleting rejections', error);
-    return c.json({ success: false }, 500);
+    return c.json({ error: 'Failed to delete rejections' }, 500);
   }
 });
 
