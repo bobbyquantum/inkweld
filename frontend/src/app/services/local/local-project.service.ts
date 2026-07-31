@@ -408,7 +408,16 @@ export class LocalProjectService {
 
     try {
       const projectKey = `${username}/${slug}`;
-      const projects = this.projects();
+      let projects = this.projects();
+
+      if (!projects.some(p => p.username === username && p.slug === slug)) {
+        // Self-heal: same staleness as updateProject — re-read once so a
+        // stale in-memory list can't turn the delete into a silent no-op, or
+        // worse, persist the stale list over data written by another tab.
+        this.loadLocalProjects();
+        projects = this.projects();
+      }
+
       const updatedProjects = projects.filter(
         p => !(p.username === username && p.slug === slug)
       );
@@ -437,6 +446,10 @@ export class LocalProjectService {
    * Import projects from an export
    */
   importProjects(importedProjects: Project[]): void {
+    // Merge against a fresh read — merging into a stale in-memory list and
+    // saving the result would clobber projects written by another tab or
+    // under a previous context prefix.
+    this.loadLocalProjects();
     const currentProjects = this.projects();
     const userProfile = this.setupService.getLocalUserProfile();
 

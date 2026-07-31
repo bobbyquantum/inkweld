@@ -445,6 +445,9 @@ describe('LocalProjectService', () => {
         },
       ];
       service.projects.set(projects);
+      // Keep localStorage consistent with the signal so the self-heal
+      // re-read (triggered when a lookup misses) sees the same list.
+      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(projects));
     });
 
     it('should delete project', () => {
@@ -462,6 +465,24 @@ describe('LocalProjectService', () => {
       service.deleteProject('testuser', 'non-existent');
 
       expect(service.projects()).toHaveLength(originalCount);
+    });
+
+    it('self-heals a stale in-memory list before deleting', () => {
+      // The signal lags behind localStorage (another tab wrote to it, or it
+      // was loaded under a stale context prefix). Without the re-read the
+      // filter is a silent no-op AND saveProjects would persist the stale
+      // list over the real one.
+      service.projects.set([]);
+
+      service.deleteProject('testuser', 'project-1');
+
+      const remaining = service.projects();
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0].slug).toBe('project-2');
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'local:inkweld-local-projects',
+        JSON.stringify(remaining)
+      );
     });
 
     it('should create a tombstone when deleting a project', () => {
