@@ -17,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import {
   type WorldbuildingIdentity,
@@ -24,7 +25,6 @@ import {
 } from '@services/worldbuilding/worldbuilding.service';
 import { debounceTime, firstValueFrom, Subject, takeUntil } from 'rxjs';
 
-import { environment } from '../../../../environments/environment';
 import { TagChipListComponent } from '../../tags/tag-chip-list.component';
 
 /**
@@ -64,6 +64,7 @@ export class IdentityPanelComponent implements OnDestroy {
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly http = inject(HttpClient);
+  private readonly storageContext = inject(StorageContextService);
   private readonly localStorage = inject(LocalStorageService);
 
   // State
@@ -188,7 +189,7 @@ export class IdentityPanelComponent implements OnDestroy {
 
       // Not cached or cache was invalid - download from server
       this.isLoadingImage.set(true);
-      const apiUrl = `${environment.apiUrl}/api/v1/media/${username}/${slug}/${filename}`;
+      const apiUrl = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}/${filename}`;
 
       const blob = await firstValueFrom(
         this.http.get(apiUrl, { responseType: 'blob' })

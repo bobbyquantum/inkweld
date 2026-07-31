@@ -1109,6 +1109,13 @@ describe('ProjectComponent', () => {
       });
       // Should NOT load the project
       expect(projectStateService.loadProject).toHaveBeenCalledTimes(1); // only the initial call
+      // And it must explain itself — the silent redirect read as the app
+      // mysteriously bouncing back to the main screen.
+      expect(snackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('deactivated-project'),
+        'Close',
+        expect.any(Object)
+      );
     });
 
     it('should load project when it is activated', async () => {

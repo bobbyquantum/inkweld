@@ -3,6 +3,7 @@
     <div class="header-container">
       <div
         class="cover-image-wrapper"
+        data-testid="project-cover-edit"
         [class.clickable]="projectState.canWrite()"
         (click)="
           projectState.canWrite() && projectState.showEditProjectDialog()

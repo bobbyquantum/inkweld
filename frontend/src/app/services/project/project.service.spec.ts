@@ -992,6 +992,58 @@ describe('ProjectService', () => {
       // markPendingUpload should NOT be called (that's offline-only)
       expect(projectSync.markPendingUpload).not.toHaveBeenCalled();
     });
+
+    it('falls back to local save + queued sync when the server 404s the cover upload', async () => {
+      // The "server lost the project record" incident: the upload endpoint
+      // 404s. Local-first means the cover blob (the user's data) must be
+      // kept locally with a pending sync — never discarded over a
+      // server-side problem.
+      setup.getMode.mockReturnValue('server');
+      localStorage.saveMedia.mockResolvedValue(undefined);
+      projectSync.markPendingUpload.mockResolvedValue(undefined);
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {});
+
+      const coverBlob = new Blob(['test cover'], { type: 'image/png' });
+      const uploadPromise = service.uploadProjectCover(
+        'alice',
+        'project-1',
+        coverBlob
+      );
+
+      // The pipe retries MAX_RETRIES (3) times, so flush the 404 for the
+      // initial attempt plus each retry.
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const req = httpMock.expectOne(
+          r =>
+            r.url.includes('/api/v1/projects/alice/project-1/cover') &&
+            r.method === 'POST'
+        );
+        req.flush(
+          { error: 'Project not found' },
+          { status: 404, statusText: 'Not Found' }
+        );
+        // Let the retry re-subscribe before expecting the next request.
+        await Promise.resolve();
+      }
+
+      const result = await uploadPromise;
+
+      // Local fallback filename returned, blob saved, sync queued.
+      expect(result).toMatch(/^cover-\d+\.jpg$/);
+      expect(localStorage.saveMedia).toHaveBeenCalledWith(
+        'alice/project-1',
+        expect.stringMatching(/^cover-\d+$/),
+        coverBlob
+      );
+      expect(projectSync.markPendingUpload).toHaveBeenCalledWith(
+        'alice/project-1',
+        'cover'
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
   });
 
   /* -------------------------------------------------------------- */
