@@ -1,8 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { firstValueFrom } from 'rxjs';
 
-import { StorageContextService } from '../core/storage-context.service';
 import { LocalStorageService, type MediaInfo } from './local-storage.service';
 import { ProjectSyncService } from './project-sync.service';
 

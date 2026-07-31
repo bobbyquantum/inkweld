@@ -17,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import {
   type WorldbuildingIdentity,
@@ -24,7 +25,6 @@ import {
 } from '@services/worldbuilding/worldbuilding.service';
 import { debounceTime, firstValueFrom, Subject, takeUntil } from 'rxjs';
 
-import { StorageContextService } from '../../../services/core/storage-context.service';
 import { TagChipListComponent } from '../../tags/tag-chip-list.component';
 
 /**

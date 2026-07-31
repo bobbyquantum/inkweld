@@ -27,6 +27,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { type MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import { firstValueFrom } from 'rxjs';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
@@ -53,7 +54,6 @@ import {
 } from '../../components/worldbuilding-element-selector/worldbuilding-element-selector.component';
 import { ImageGenerationService } from '../../services/ai/image-generation.service';
 import { LoggerService } from '../../services/core/logger.service';
-import { LocalStorageService } from '../../services/local/local-storage.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { formatWorldbuildingFields } from '../../utils/worldbuilding.utils';
@@ -1041,8 +1041,14 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       try {
         let blob: Blob | null = null;
         // The generation service saves each image to local media on
-        // completion; savedMediaIds is index-aligned with job.images.
-        const mediaId = job.savedMediaIds[this.selectedImageIndex()];
+        // completion. savedMediaIds is only reliably index-aligned with
+        // job.images when every save succeeded (failed saves are skipped,
+        // compacting the array) — so only trust the index when the lengths
+        // match; otherwise fall through to fetching the image URL.
+        const mediaId =
+          job.savedMediaIds.length === job.images.length
+            ? job.savedMediaIds[this.selectedImageIndex()]
+            : undefined;
         if (mediaId) {
           blob = await this.localStorage.getMedia(job.projectKey, mediaId);
         }

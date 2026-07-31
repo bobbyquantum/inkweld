@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { environment } from '../../../environments/environment';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   APP_CONFIG_STORAGE_KEY,
@@ -194,6 +195,18 @@ describe('StorageContextService', () => {
       expect(service.prefixDocumentId('alice:my-novel:elements')).toBe(
         'local:alice:my-novel:elements'
       );
+    });
+  });
+
+  describe('getApiBaseUrl', () => {
+    it('returns the runtime-configured server URL when a server config is active', () => {
+      service.addServerConfig('https://my-server.example.com/');
+      expect(service.getApiBaseUrl()).toBe('https://my-server.example.com');
+    });
+
+    it('falls back to the build-time environment default in local mode', () => {
+      service.addLocalConfig({ name: 'Local User', username: 'localuser' });
+      expect(service.getApiBaseUrl()).toBe(environment.apiUrl);
     });
   });
 

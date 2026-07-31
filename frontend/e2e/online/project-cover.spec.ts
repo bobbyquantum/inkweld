@@ -47,10 +47,10 @@ async function createProject(
 async function openEditProjectDialog(
   page: import('@playwright/test').Page
 ): Promise<void> {
-  const coverWrapper = page.locator('.cover-image-wrapper').first();
+  const coverWrapper = page.getByTestId('project-cover-edit');
   await expect(coverWrapper).toBeVisible();
   await coverWrapper.click();
-  await expect(page.locator('mat-dialog-container')).toBeVisible();
+  await expect(page.getByTestId('edit-project-dialog')).toBeVisible();
 }
 
 /** Upload a generated cover through the dialog's hidden file input and crop it. */
@@ -58,7 +58,7 @@ async function uploadAndCropCover(
   page: import('@playwright/test').Page
 ): Promise<void> {
   const png = await makeCoverPng(page);
-  await page.locator('mat-dialog-container input[type="file"]').setInputFiles({
+  await page.locator('#edit-project-cover-image-input').setInputFiles({
     name: 'e2e-cover.png',
     mimeType: 'image/png',
     buffer: png,
@@ -81,20 +81,16 @@ test.describe('Project Cover', () => {
     await page.getByRole('button', { name: /^save$/i }).click();
 
     await expect(page.getByText('Project updated successfully')).toBeVisible();
-    await expect(page.locator('mat-dialog-container')).not.toBeVisible();
+    await expect(page.getByTestId('edit-project-dialog')).not.toBeVisible();
 
     // Cover renders on the home tab...
-    await expect(
-      page.locator('.cover-image-wrapper img').first()
-    ).toBeVisible();
+    await expect(page.getByTestId('project-cover-image').first()).toBeVisible();
 
     // ...and survives a full reload (blob in IndexedDB + coverMediaId in
     // Yjs project meta).
     await page.reload();
     await page.waitForLoadState('networkidle');
-    await expect(
-      page.locator('.cover-image-wrapper img').first()
-    ).toBeVisible();
+    await expect(page.getByTestId('project-cover-image').first()).toBeVisible();
   });
 
   // Route interception is bypassed by the Angular service worker in prod
@@ -136,14 +132,12 @@ test.describe('Project Cover', () => {
     // The record update failure is surfaced softly — never a silent failure
     // and never a discarded cover.
     await expect(page.getByText(/saved locally/i)).toBeVisible();
-    await expect(page.locator('mat-dialog-container')).not.toBeVisible();
+    await expect(page.getByTestId('edit-project-dialog')).not.toBeVisible();
 
     // Still on the project page (no silent bounce to home) with the cover
     // applied from local storage.
     expect(page.url()).toContain(slug);
-    await expect(
-      page.locator('.cover-image-wrapper img').first()
-    ).toBeVisible();
+    await expect(page.getByTestId('project-cover-image').first()).toBeVisible();
   });
 });
 
@@ -158,12 +152,9 @@ test.describe('Project Cover (mobile)', () => {
 
     await openEditProjectDialog(page);
 
-    const dialog = page.locator('mat-dialog-container');
+    const dialog = page.getByTestId('edit-project-dialog');
     // The two-column layout stacks on phones.
-    await expect(dialog.locator('.dialog-layout')).toHaveCSS(
-      'flex-direction',
-      'column'
-    );
+    await expect(dialog).toHaveCSS('flex-direction', 'column');
     // No horizontal overflow and the actions are reachable.
     const box = await dialog.boundingBox();
     expect(box).not.toBeNull();

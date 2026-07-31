@@ -23,10 +23,10 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslocoModule } from '@jsverse/transloco';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { firstValueFrom } from 'rxjs';
 
 import { ElementType } from '../../../../api-client';
-import { StorageContextService } from '../../../services/core/storage-context.service';
 import { LocalStorageService } from '../../../services/local/local-storage.service';
 import { DocumentService } from '../../../services/project/document.service';
 import { ProjectStateService } from '../../../services/project/project-state.service';
