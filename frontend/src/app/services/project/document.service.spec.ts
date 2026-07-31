@@ -1022,10 +1022,10 @@ describe('DocumentService', () => {
       const { callbacks, advanceReconnect } = await setupConnection();
       const status = callbacks['status'] as StatusCb;
 
-      // Server accepted the token then failed (e.g. document won't load):
-      // `authenticated` was already processed, so the denial arrives as a
-      // post-auth text frame routed to onTextMessage.
-      capturedOnTextMessage()?.('access-denied:error');
+      // Server revoked access mid-session: `authenticated` was already
+      // processed, so the denial arrives as a post-auth text frame routed to
+      // onTextMessage.
+      capturedOnTextMessage()?.('access-denied:forbidden');
 
       // The close that follows must NOT schedule a reconnect.
       const connectCallsBefore =
@@ -1038,6 +1038,24 @@ describe('DocumentService', () => {
       expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
         DocumentSyncState.Unavailable
       );
+    });
+
+    it('retries with the long backoff after a server-side error denial', async () => {
+      const { callbacks, advanceReconnect, scheduled } =
+        await setupConnection();
+      const status = callbacks['status'] as StatusCb;
+
+      // `access-denied:error` means the SERVER failed to load the document —
+      // it says nothing about this client's access and routinely self-heals,
+      // so it must schedule a long-backoff retry rather than bench the
+      // document until the user refreshes.
+      capturedOnTextMessage()?.('access-denied:error');
+      status({ status: 'disconnected' });
+
+      expect(scheduled).toHaveLength(1);
+      const before = mockWebSocketProvider.connect.mock.calls.length;
+      advanceReconnect();
+      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(before + 1);
     });
 
     it('rate-limited backs off with the long delay and is not terminal', async () => {

@@ -728,11 +728,25 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     try {
       // Reload the project to re-establish sync provider
       await this.projectState.loadProject(project.username, project.slug);
-      this.snackBar.open(
-        this.transloco.translate('project.snackbar.reconnected'),
-        this.transloco.translate('close'),
-        { duration: 3000 }
-      );
+      // loadProject resolves successfully even when the provider fell back to
+      // local-only mode (no token, version-blocked, WS auth failed) — check
+      // the resulting sync state so the snackbar reports what actually
+      // happened instead of claiming "reconnected" while the indicator stays
+      // offline.
+      const state = this.projectState.getSyncState();
+      if (state === DocumentSyncState.Synced) {
+        this.snackBar.open(
+          this.transloco.translate('project.snackbar.reconnected'),
+          this.transloco.translate('close'),
+          { duration: 3000 }
+        );
+      } else {
+        this.snackBar.open(
+          this.transloco.translate('project.snackbar.stillOffline'),
+          this.transloco.translate('close'),
+          { duration: 5000 }
+        );
+      }
     } catch (error) {
       console.error('Failed to reconnect:', error);
       this.snackBar.open(

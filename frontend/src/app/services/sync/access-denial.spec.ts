@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   HARD_DENIAL_REASONS,
+  LONG_BACKOFF_DENIAL_REASONS,
   parseAccessDeniedReason,
   RATE_LIMIT_BACKOFF_MS,
   rateLimitBackoff,
@@ -48,11 +49,28 @@ describe('HARD_DENIAL_REASONS', () => {
   it('treats the known terminal reasons as hard denials', () => {
     expect(HARD_DENIAL_REASONS.has('invalid-token')).toBe(true);
     expect(HARD_DENIAL_REASONS.has('forbidden')).toBe(true);
-    expect(HARD_DENIAL_REASONS.has('error')).toBe(true);
+    expect(HARD_DENIAL_REASONS.has('project-not-found')).toBe(true);
+    expect(HARD_DENIAL_REASONS.has('invalid-document')).toBe(true);
   });
 
-  it('does not treat rate-limited as a hard denial (it gets one retry)', () => {
+  it('does not treat transient reasons as hard denials', () => {
     expect(HARD_DENIAL_REASONS.has('rate-limited')).toBe(false);
+    // A server-side failure says nothing about this client's access and
+    // routinely self-heals — terminal handling would bench healthy clients.
+    expect(HARD_DENIAL_REASONS.has('error')).toBe(false);
+  });
+});
+
+describe('LONG_BACKOFF_DENIAL_REASONS', () => {
+  it('routes throttles and server-side failures to the long backoff', () => {
+    expect(LONG_BACKOFF_DENIAL_REASONS.has('rate-limited')).toBe(true);
+    expect(LONG_BACKOFF_DENIAL_REASONS.has('error')).toBe(true);
+  });
+
+  it('does not overlap the hard (terminal) reasons', () => {
+    for (const reason of LONG_BACKOFF_DENIAL_REASONS) {
+      expect(HARD_DENIAL_REASONS.has(reason)).toBe(false);
+    }
   });
 });
 

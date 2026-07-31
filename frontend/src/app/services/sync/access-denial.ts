@@ -17,15 +17,33 @@ export const RATE_LIMIT_BACKOFF_MS = 30_000;
 
 /**
  * Server `access-denied:<reason>` codes that will not self-heal on retry (bad
- * token, no access, missing project, or a server-side load failure such as a
- * document that can't be loaded). Retrying just burns requests, so these stop
- * the reconnect loop permanently until the user refreshes / reopens.
+ * token, no access, or a missing project/document). Retrying just burns
+ * requests, so these stop the reconnect loop permanently until the user
+ * refreshes / reopens.
+ *
+ * `error` is deliberately NOT here: the server sends it for a *server-side*
+ * failure (e.g. the Durable Object failed to load the document), which says
+ * nothing about this client's access and routinely self-heals — treating it
+ * as terminal permanently benched healthy clients during transient backend
+ * incidents. It gets the long backoff instead (see
+ * {@link LONG_BACKOFF_DENIAL_REASONS}).
  */
 export const HARD_DENIAL_REASONS: ReadonlySet<string> = new Set([
   'invalid-token',
   'forbidden',
   'project-not-found',
   'invalid-document',
+]);
+
+/**
+ * Denial codes that are transient but mean the server needs breathing room:
+ * a reconnect throttle (`rate-limited`) or a server-side failure (`error`).
+ * Both paths stop y-websocket's internal auto-reconnect loop (which would
+ * hammer the server on its fast schedule) and retry once per long, floored,
+ * jittered backoff via {@link rateLimitBackoff}.
+ */
+export const LONG_BACKOFF_DENIAL_REASONS: ReadonlySet<string> = new Set([
+  'rate-limited',
   'error',
 ]);
 

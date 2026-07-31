@@ -2,10 +2,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
+  effect,
   inject,
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,12 +21,26 @@ import { type MediaSyncState } from '../../services/local/media-sync.service';
 import { DocStatsService } from '../../services/sync/doc-stats.service';
 
 /**
+ * How long an *established* (Synced) connection must stay non-synced before
+ * the indicator visibly flips to offline. Reconnect handshakes routinely last
+ * well under this (a background-tab socket idling out and re-authing on tab
+ * return, for example), so debouncing prevents the "flashes offline when
+ * changing tabs" effect. Genuine outages exceed this easily and still show.
+ */
+const OFFLINE_DISPLAY_DEBOUNCE_MS = 4000;
+
+/**
  * Component to display the connection status for project sync and media sync.
  * Shows appropriate icons and status text based on the current state.
  *
  * Design: While connecting, we show "Offline Mode" with a spinning retry button
  * rather than a prominent "Connecting..." state, to avoid visual distraction
  * during repeated connection attempts.
+ *
+ * The rendered state is a debounced view of the `syncState` input: a blip
+ * from Synced to Local/Syncing only becomes visible if it persists for
+ * {@link OFFLINE_DISPLAY_DEBOUNCE_MS}; recovery to Synced and the hard
+ * Unavailable state render immediately.
  */
 @Component({
   selector: 'app-connection-status',
@@ -62,11 +79,67 @@ export class ConnectionStatusComponent {
   /** Elements document ID for storage stats hover (e.g. "user:slug:elements") */
   elementsDocId = input<string | null>(null);
 
+  /**
+   * Debounce window before an established connection displays as offline.
+   * Overridable primarily so tests can shorten the wait; production callers
+   * keep the default.
+   */
+  offlineDebounceMs = input<number>(OFFLINE_DISPLAY_DEBOUNCE_MS);
+
   /** Event emitted when user clicks retry sync */
   syncRequested = output<void>();
 
   private readonly docStatsService = inject(DocStatsService);
   private readonly statsText = signal('');
+
+  /**
+   * The state the template renders — follows `syncState` with the
+   * offline-display debounce applied (see class doc). All display computeds
+   * read this instead of the raw input.
+   */
+  private readonly effectiveState = signal<DocumentSyncState>(
+    DocumentSyncState.Syncing
+  );
+  private offlineDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    effect(() => {
+      const state = this.syncState();
+      const displayed = untracked(this.effectiveState);
+
+      if (
+        state === DocumentSyncState.Synced ||
+        state === DocumentSyncState.Unavailable
+      ) {
+        // Recovery and hard failure render immediately.
+        this.clearOfflineDebounce();
+        this.effectiveState.set(state);
+        return;
+      }
+
+      // Local / Syncing: if we were showing a healthy connection, hold the
+      // display for the debounce window — most reconnect handshakes finish
+      // well inside it. If we weren't Synced (initial connect, or already
+      // offline), render the state right away.
+      if (displayed === DocumentSyncState.Synced) {
+        this.offlineDebounceTimer ??= setTimeout(() => {
+          this.offlineDebounceTimer = null;
+          this.effectiveState.set(this.syncState());
+        }, this.offlineDebounceMs());
+      } else {
+        this.effectiveState.set(state);
+      }
+    });
+
+    inject(DestroyRef).onDestroy(() => this.clearOfflineDebounce());
+  }
+
+  private clearOfflineDebounce(): void {
+    if (this.offlineDebounceTimer) {
+      clearTimeout(this.offlineDebounceTimer);
+      this.offlineDebounceTimer = null;
+    }
+  }
 
   onStatusHover(): void {
     const docId = this.elementsDocId();
@@ -77,11 +150,13 @@ export class ConnectionStatusComponent {
   }
 
   /** Whether we're currently trying to connect (Syncing state) */
-  isConnecting = computed(() => this.syncState() === DocumentSyncState.Syncing);
+  isConnecting = computed(
+    () => this.effectiveState() === DocumentSyncState.Syncing
+  );
 
   /** Display as offline when offline OR when connecting (to reduce visual noise) */
   displayAsOffline = computed(() => {
-    const state = this.syncState();
+    const state = this.effectiveState();
     return (
       state === DocumentSyncState.Local || state === DocumentSyncState.Syncing
     );
@@ -93,7 +168,7 @@ export class ConnectionStatusComponent {
     if (this.isLocalMode()) {
       return false;
     }
-    const state = this.syncState();
+    const state = this.effectiveState();
     return (
       state === DocumentSyncState.Local ||
       state === DocumentSyncState.Syncing ||
@@ -107,7 +182,7 @@ export class ConnectionStatusComponent {
     if (this.isLocalMode()) {
       return 'folder';
     }
-    switch (this.syncState()) {
+    switch (this.effectiveState()) {
       case DocumentSyncState.Synced:
         return 'cloud_done';
       case DocumentSyncState.Syncing:
@@ -127,7 +202,7 @@ export class ConnectionStatusComponent {
     if (this.isLocalMode()) {
       return this.transloco.translate('project.connection.localMode');
     }
-    switch (this.syncState()) {
+    switch (this.effectiveState()) {
       case DocumentSyncState.Synced:
         return this.transloco.translate('project.connection.connected');
       case DocumentSyncState.Syncing:
@@ -149,7 +224,7 @@ export class ConnectionStatusComponent {
       base = this.transloco.translate('project.connection.localTooltip');
     } else {
       const error = this.lastError();
-      switch (this.syncState()) {
+      switch (this.effectiveState()) {
         case DocumentSyncState.Synced:
           base = this.transloco.translate(
             'project.connection.connectedTooltip'

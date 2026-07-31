@@ -27,6 +27,7 @@ import { DocumentsService } from '@inkweld/index';
 import { type PresenceSession } from '@inkweld/presence';
 import {
   HARD_DENIAL_REASONS,
+  LONG_BACKOFF_DENIAL_REASONS,
   parseAccessDeniedReason,
   rateLimitBackoff,
   withJitter,
@@ -1294,25 +1295,30 @@ export class DocumentService {
      */
     const markDenied = (reason: string) => {
       deniedReason = reason;
-      this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
-      this.projectStateService.updateSyncState(
-        documentId,
-        DocumentSyncState.Unavailable
-      );
-      if (reason === 'rate-limited') {
-        // A throttle is transient — the server's per-doc window clears on its
+      // Transient denials read as Local ("offline, retrying"); only unknown
+      // and hard (terminal) reasons show the terminal-looking Unavailable.
+      const deniedState = LONG_BACKOFF_DENIAL_REASONS.has(reason)
+        ? DocumentSyncState.Local
+        : DocumentSyncState.Unavailable;
+      this.updateSyncStatus(documentId, deniedState);
+      this.projectStateService.updateSyncState(documentId, deniedState);
+      if (LONG_BACKOFF_DENIAL_REASONS.has(reason)) {
+        // A throttle (`rate-limited`) or server-side failure (`error`) is
+        // transient — the per-doc window / backend incident clears on its
         // own — so unlike a hard denial it is NOT terminal. We keep retrying
         // with the long floored backoff (applied in handleDisconnected) until
         // the normal max-attempts breaker stops us. We deliberately do NOT
-        // disconnect here: the server closes the socket with 4029 right after
-        // this frame, and handleDisconnected (which that close triggers) is
-        // what kills y-websocket's internal reconnect loop and schedules the
-        // long backoff. The previous "terminal after one rate-limit" policy
-        // left the document permanently un-synced whenever a retry happened to
-        // land in a still-full window, which bricked the e2e renders.
+        // disconnect here: the server closes the socket right after this
+        // frame, and handleDisconnected (which that close triggers) is what
+        // kills y-websocket's internal reconnect loop and schedules the long
+        // backoff. The previous "terminal after one rate-limit" policy left
+        // the document permanently un-synced whenever a retry happened to
+        // land in a still-full window, which bricked the e2e renders — and
+        // terminal `error` permanently benched healthy clients during
+        // transient backend incidents.
         this.logger.warn(
           'DocumentService',
-          `Rate-limited for ${documentId}; backing off and retrying (not terminal)`
+          `Denied (${reason}) for ${documentId}; backing off and retrying (not terminal)`
         );
         return;
       }
@@ -1516,11 +1522,15 @@ export class DocumentService {
 
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           let delay: number;
-          if (deniedReason === 'rate-limited') {
-            // Honour the server's cooldown with a long, floored, jittered
-            // backoff instead of the tight exponential loop. Not terminal: a
-            // transient throttle clears on its own, so repeated rate-limits
-            // keep using this long backoff until the max-attempts breaker.
+          if (
+            deniedReason !== null &&
+            LONG_BACKOFF_DENIAL_REASONS.has(deniedReason)
+          ) {
+            // Honour the server's cooldown (rate-limited) or give a failing
+            // backend room to recover (error) with a long, floored, jittered
+            // backoff instead of the tight exponential loop. Not terminal:
+            // these clear on their own, so repeated denials keep using this
+            // long backoff until the max-attempts breaker.
             deniedReason = null;
             delay = rateLimitBackoff();
           } else {

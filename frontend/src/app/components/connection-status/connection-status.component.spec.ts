@@ -19,7 +19,11 @@ describe('ConnectionStatusComponent', () => {
 
     fixture = TestBed.createComponent(ConnectionStatusComponent);
     component = fixture.componentInstance;
-    fixture.componentRef.setInput('syncState', DocumentSyncState.Synced);
+    // Start from Local, not Synced: the offline-display debounce only holds
+    // transitions AWAY from a displayed Synced state, so starting Local lets
+    // every test's state apply immediately. The debounce itself is covered by
+    // the dedicated "offline display debounce" suite below.
+    fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
     fixture.detectChanges();
   });
 
@@ -298,6 +302,53 @@ describe('ConnectionStatusComponent', () => {
 
       const statusText = fixture.nativeElement.querySelector('.status-text');
       expect(statusText?.textContent?.trim()).toBe('Offline Mode');
+    });
+  });
+
+  describe('offline display debounce', () => {
+    const DEBOUNCE_MS = 40;
+
+    const sleep = (ms: number) =>
+      new Promise(resolve => setTimeout(resolve, ms));
+
+    beforeEach(async () => {
+      fixture.componentRef.setInput('offlineDebounceMs', DEBOUNCE_MS);
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Synced);
+      await fixture.whenStable();
+    });
+
+    it('holds the connected display through a brief reconnect blip', async () => {
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Syncing);
+      await fixture.whenStable();
+
+      // Inside the debounce window the indicator still reads as connected —
+      // this is the "flashes offline when changing tabs" fix.
+      expect(component.displayAsOffline()).toBe(false);
+
+      // The blip resolves before the window elapses: never shows offline.
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Synced);
+      await fixture.whenStable();
+      await sleep(DEBOUNCE_MS + 20);
+      await fixture.whenStable();
+      expect(component.displayAsOffline()).toBe(false);
+    });
+
+    it('shows offline once the disconnection outlasts the window', async () => {
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
+      await fixture.whenStable();
+      expect(component.displayAsOffline()).toBe(false);
+
+      await sleep(DEBOUNCE_MS + 20);
+      await fixture.whenStable();
+      expect(component.displayAsOffline()).toBe(true);
+    });
+
+    it('shows a hard failure (Unavailable) immediately, without debounce', async () => {
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Unavailable);
+      await fixture.whenStable();
+
+      const statusText = fixture.nativeElement.querySelector('.status-text');
+      expect(statusText?.textContent?.trim()).toBe('Connection Failed');
     });
   });
 });
