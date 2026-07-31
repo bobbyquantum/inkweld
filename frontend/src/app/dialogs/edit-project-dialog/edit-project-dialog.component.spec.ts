@@ -593,21 +593,39 @@ describe('EditProjectDialogComponent', () => {
       consoleWarnSpy.mockRestore();
     });
 
-    it('should handle error during project update', async () => {
-      const updateError = new Error('Update failed');
+    it('applies changes locally and closes when the project-record update fails', async () => {
+      // The record update only persists title/description — the cover is a
+      // media blob + coverMediaId in Yjs meta. A "Project not found" (or any
+      // other record failure) must not discard those: local state still
+      // updates, the dialog closes, and the failure surfaces as a soft
+      // warning instead of a hard error.
+      const updateError = new Error('Project not found');
       unifiedProjectService.updateProject.mockRejectedValue(updateError);
+      projectService.uploadProjectCover.mockResolvedValue('cover-123.jpg');
+      component.coverImage = mockCoverFile;
       component.model.set({ title: 'Valid Title', description: '' });
+
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
       await component.onSave();
 
       expect(unifiedProjectService.updateProject).toHaveBeenCalled();
-      expect(projectService.uploadProjectCover).not.toHaveBeenCalled();
+      expect(projectService.uploadProjectCover).toHaveBeenCalled();
+      // Local/Yjs state still updated with the new cover.
+      expect(projectStateService.updateProject).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Valid Title' }),
+        'cover-123'
+      );
       expect(snackBar.open).toHaveBeenCalledWith(
-        `Failed to update project: ${updateError.message}`,
+        expect.stringContaining('Project not found'),
         'Close',
         expect.any(Object)
       );
-      expect(dialogRef.close).not.toHaveBeenCalled();
+      expect(dialogRef.close).toHaveBeenCalled();
+
+      consoleErrorSpy.mockRestore();
     });
   });
 });

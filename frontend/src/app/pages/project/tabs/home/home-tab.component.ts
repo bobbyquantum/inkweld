@@ -135,7 +135,7 @@ export class HomeTabComponent {
     // Upload the cover image
     this.projectService
       .uploadProjectCover(username, slug, imageBlob)
-      .then(async () => {
+      .then(coverFilename => {
         this.logger.debug('HomeTab', 'Cover image uploaded successfully');
         this.snackBar.open(
           this.transloco.translate('project.homeTab.coverSaved'),
@@ -143,16 +143,16 @@ export class HomeTabComponent {
           { duration: 3000 }
         );
 
-        // Refresh the project to get the updated cover image
-        try {
-          const updatedProject =
-            await this.projectService.getProjectByUsernameAndSlug(
-              username,
-              slug
-            );
-          this.projectState.updateProject(updatedProject);
-        } catch (error) {
-          console.error('Failed to refresh project after cover upload:', error);
+        // Propagate the new cover via Yjs project meta (offline-first: this
+        // is what the cover components render from). The filename stem is the
+        // coverMediaId, matching the edit-project dialog's convention. No
+        // server round-trip needed — the previous implementation refreshed
+        // through the server-only ProjectService, which broke in local mode
+        // and dropped the coverMediaId entirely.
+        const coverMediaId = coverFilename.replace(/\.[^.]+$/, '');
+        const project = this.projectState.project();
+        if (project) {
+          this.projectState.updateProject(project, coverMediaId);
         }
       })
       .catch((error: unknown) => {
