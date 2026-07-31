@@ -97,6 +97,13 @@ test.describe('Project Cover', () => {
     ).toBeVisible();
   });
 
+  // Route interception is bypassed by the Angular service worker in prod
+  // builds (E2E_MODE=prod in CI): SW-mediated fetches never reach
+  // page.route, so the 404 simulation silently doesn't apply and the test
+  // asserts against a healthy server. Blocking service workers restores
+  // interception in both dev and prod modes.
+  test.use({ serviceWorkers: 'block' });
+
   test('keeps the cover and warns softly when the server has lost the project record', async ({
     authenticatedPage: page,
   }) => {
