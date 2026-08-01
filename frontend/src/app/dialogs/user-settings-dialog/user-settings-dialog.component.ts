@@ -6,6 +6,7 @@ import {
   Input,
   type OnDestroy,
   type OnInit,
+  signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -59,7 +60,11 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
 
   @Input() selectedCategory: SettingsCategory = 'account';
   previousCategory: SettingsCategory = 'account';
-  isMobile = false;
+  // Signal required: BreakpointObserver does not notify the zoneless
+  // scheduler (it wraps emissions in NgZone.run, a no-op in zoneless), so a
+  // plain property would go stale when the viewport crosses a breakpoint
+  // while the dialog is open.
+  readonly isMobile = signal(false);
   private readonly destroyed = new Subject<void>();
 
   ngOnInit() {
@@ -67,7 +72,7 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
       .observe([Breakpoints.HandsetPortrait, Breakpoints.TabletPortrait])
       .pipe(takeUntil(this.destroyed))
       .subscribe(result => {
-        this.isMobile = result.matches;
+        this.isMobile.set(result.matches);
       });
   }
 

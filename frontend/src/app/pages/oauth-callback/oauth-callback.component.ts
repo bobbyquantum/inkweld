@@ -4,6 +4,7 @@ import {
   Component,
   inject,
   type OnInit,
+  signal,
 } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -29,7 +30,11 @@ export class OAuthCallbackComponent implements OnInit {
   private readonly userService = inject(UserService);
   private readonly transloco = inject(TranslocoService);
 
-  errorMessage = '';
+  // Signal required: the exchange-failure path assigns this from an async
+  // continuation (catch after `await`) with no other state writes in the
+  // flow, so a plain property would never re-render in zoneless mode and the
+  // user would stare at the spinner forever.
+  readonly errorMessage = signal('');
 
   ngOnInit(): void {
     void this.handleCallback();
@@ -40,13 +45,13 @@ export class OAuthCallbackComponent implements OnInit {
     const error = this.route.snapshot.queryParamMap.get('error');
 
     if (error) {
-      this.errorMessage = this.getErrorMessage(error);
+      this.errorMessage.set(this.getErrorMessage(error));
       return;
     }
 
     if (!code) {
-      this.errorMessage = this.transloco.translate(
-        'auth.oauthCallback.signInFailed'
+      this.errorMessage.set(
+        this.transloco.translate('auth.oauthCallback.signInFailed')
       );
       return;
     }
@@ -73,7 +78,7 @@ export class OAuthCallbackComponent implements OnInit {
     } catch {
       // Clear any partially stored token on failure
       this.authTokenService.clearToken();
-      this.errorMessage = this.transloco.translate('errors.unknown');
+      this.errorMessage.set(this.transloco.translate('errors.unknown'));
     }
   }
 

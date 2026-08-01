@@ -21,6 +21,7 @@ import {
 } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { LocalStorageService } from '../../services/local/local-storage.service';
 import { UnifiedProjectService } from '../../services/local/unified-project.service';
 import { ProjectService } from '../../services/project/project.service';
@@ -43,6 +44,7 @@ describe('EditProjectDialogComponent', () => {
   let unifiedProjectService: MockedObject<UnifiedProjectService>;
   let localStorageService: MockedObject<LocalStorageService>;
   let projectStateService: MockedObject<ProjectStateService>;
+  let dialogGateway: MockedObject<DialogGatewayService>;
 
   const mockUser: User = {
     username: 'testuser',
@@ -118,6 +120,12 @@ describe('EditProjectDialogComponent', () => {
       getSyncState: vi.fn().mockReturnValue('synced'),
     } as any;
 
+    // Mock DialogGatewayService (media selector + AI generation dialogs)
+    dialogGateway = {
+      openMediaSelectorDialog: vi.fn(),
+      openImageGenerationDialog: vi.fn(),
+    } as any;
+
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), EditProjectDialogComponent],
       providers: [
@@ -131,6 +139,7 @@ describe('EditProjectDialogComponent', () => {
         { provide: UnifiedProjectService, useValue: unifiedProjectService },
         { provide: LocalStorageService, useValue: localStorageService },
         { provide: ProjectStateService, useValue: projectStateService },
+        { provide: DialogGatewayService, useValue: dialogGateway },
         { provide: MatSnackBar, useValue: snackBar },
       ],
     }).compileComponents();
@@ -286,8 +295,8 @@ describe('EditProjectDialogComponent', () => {
 
       component.onCoverImageSelected(mockEvent);
 
-      expect(component.showCropper).toBe(true);
-      expect(component.imageChangedEvent).toBe(mockEvent);
+      expect(component.showCropper()).toBe(true);
+      expect(component.imageChangedEvent()).toBe(mockEvent);
       expect(component.pendingFileName).toBe('cover.png');
       expect(snackBar.open).not.toHaveBeenCalled();
     });
@@ -301,7 +310,7 @@ describe('EditProjectDialogComponent', () => {
 
       component.onCoverImageSelected(mockEvent);
 
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
       expect(snackBar.open).toHaveBeenCalledWith(
         expect.stringContaining('Invalid image file'),
         'Close',
@@ -317,8 +326,8 @@ describe('EditProjectDialogComponent', () => {
 
       component.onCoverImageSelected(mockEvent);
 
-      expect(component.showCropper).toBe(false);
-      expect(component.imageChangedEvent).toBeNull();
+      expect(component.showCropper()).toBe(false);
+      expect(component.imageChangedEvent()).toBeNull();
       expect(snackBar.open).not.toHaveBeenCalled();
     });
   });
@@ -326,24 +335,24 @@ describe('EditProjectDialogComponent', () => {
   describe('image cropper functionality', () => {
     it('should apply cropped image correctly', () => {
       const croppedBlob = new Blob(['cropped data'], { type: 'image/png' });
-      component.croppedBlob = croppedBlob;
+      component.croppedBlob.set(croppedBlob);
       component.pendingFileName = 'test.png';
-      component.croppedImage = 'blob:test-url';
-      component.showCropper = true;
+      component.croppedImage.set('blob:test-url');
+      component.showCropper.set(true);
 
       component.applyCroppedImage();
 
       expect(component.coverImage).toBeDefined();
       expect(component.coverImage instanceof File).toBe(true);
       expect(component.coverImageUrl).toBe('blob:test-url');
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
     });
 
     it('should cancel cropping and reset state', () => {
-      component.showCropper = true;
-      component.imageChangedEvent = {} as Event;
-      component.croppedBlob = new Blob();
-      component.croppedImage = 'test';
+      component.showCropper.set(true);
+      component.imageChangedEvent.set({} as Event);
+      component.croppedBlob.set(new Blob());
+      component.croppedImage.set('test');
 
       // Mock the coverImageInput
       const coverInput = document.createElement('input');
@@ -352,37 +361,37 @@ describe('EditProjectDialogComponent', () => {
 
       component.cancelCropping();
 
-      expect(component.showCropper).toBe(false);
-      expect(component.imageChangedEvent).toBeNull();
-      expect(component.croppedBlob).toBeNull();
-      expect(component.croppedImage).toBeNull();
+      expect(component.showCropper()).toBe(false);
+      expect(component.imageChangedEvent()).toBeNull();
+      expect(component.croppedBlob()).toBeNull();
+      expect(component.croppedImage()).toBeNull();
     });
 
     it('should reset cropper state correctly', () => {
-      component.imageChangedEvent = {} as Event;
-      component.croppedImage = 'test';
-      component.croppedBlob = new Blob();
+      component.imageChangedEvent.set({} as Event);
+      component.croppedImage.set('test');
+      component.croppedBlob.set(new Blob());
       component.hasImageLoaded = true;
       component.isCropperReady = true;
       component.pendingFileName = 'test.png';
 
       component.resetCropperState();
 
-      expect(component.imageChangedEvent).toBeNull();
-      expect(component.croppedImage).toBeNull();
-      expect(component.croppedBlob).toBeNull();
+      expect(component.imageChangedEvent()).toBeNull();
+      expect(component.croppedImage()).toBeNull();
+      expect(component.croppedBlob()).toBeNull();
       expect(component.hasImageLoaded).toBe(false);
       expect(component.isCropperReady).toBe(false);
       expect(component.pendingFileName).toBe('');
     });
 
     it('should handle image load failure', () => {
-      component.showCropper = true;
+      component.showCropper.set(true);
 
       component.onLoadImageFailed();
 
       expect(component.hasLoadFailed).toBe(true);
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
       expect(snackBar.open).toHaveBeenCalledWith(
         expect.stringContaining('Failed to load image'),
         'Close',
@@ -626,6 +635,115 @@ describe('EditProjectDialogComponent', () => {
       expect(dialogRef.close).toHaveBeenCalled();
 
       consoleErrorSpy.mockRestore();
+    });
+  });
+
+  /**
+   * Zoneless change-detection regression tests.
+   *
+   * The app runs zoneless (provideZonelessChangeDetection). Both flows below
+   * assign cropper state from async continuations (after `await`), which does
+   * NOT schedule change detection for plain component properties. The state
+   * changed but the template never re-rendered, so the cropper view silently
+   * never appeared. These tests rely on Angular's own scheduler (no manual
+   * fixture.detectChanges() after the async call) and assert on the DOM.
+   */
+  describe('media library / AI cover selection (zoneless regression)', () => {
+    const mediaSelection = {
+      selected: {
+        mediaId: 'lib-1',
+        filename: 'library-cover.png',
+        mimeType: 'image/png',
+        size: 3,
+        createdAt: new Date().toISOString(),
+      },
+      blob: new Blob(['png-bytes'], { type: 'image/png' }),
+    };
+
+    it('renders the cropper view after selecting a cover from the media library', async () => {
+      fixture.autoDetectChanges();
+      dialogGateway.openMediaSelectorDialog.mockResolvedValue(mediaSelection);
+
+      await component.openMediaLibrarySelector();
+      await fixture.whenStable();
+
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('image-cropper')).not.toBeNull();
+      expect(el.querySelector('.cropper-title')?.textContent).toContain(
+        'Crop Cover Image'
+      );
+      expect(component.showCropper()).toBe(true);
+      expect(component.imageBase64()).toContain('data:image/png;base64,');
+      expect(component.pendingFileName).toBe('library-cover.png');
+    });
+
+    it('renders the cropper view after generating a cover with AI', async () => {
+      fixture.autoDetectChanges();
+      dialogGateway.openImageGenerationDialog.mockResolvedValue({
+        saved: true,
+        imageData: 'data:image/png;base64,iVBORw0KGgo=',
+      });
+
+      await component.openGenerateCoverDialog();
+      await fixture.whenStable();
+
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('image-cropper')).not.toBeNull();
+      expect(component.showCropper()).toBe(true);
+      expect(component.imageBase64()).toBe(
+        'data:image/png;base64,iVBORw0KGgo='
+      );
+      expect(component.pendingFileName).toBe('generated-cover.png');
+    });
+
+    it('keeps the normal dialog view when the media selector is cancelled', async () => {
+      fixture.autoDetectChanges();
+      dialogGateway.openMediaSelectorDialog.mockResolvedValue(undefined);
+
+      await component.openMediaLibrarySelector();
+      await fixture.whenStable();
+
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('image-cropper')).toBeNull();
+      expect(el.querySelector('#edit-project-title-input')).not.toBeNull();
+      expect(component.showCropper()).toBe(false);
+    });
+
+    it('cover buttons are type="button" so they do not submit the form and close the dialog', () => {
+      // Regression: the cover buttons live inside the <form>. Without an
+      // explicit type they default to type="submit" — clicking one fired
+      // onSave(), showed "Project updated successfully" and closed the
+      // dialog, so the cropper flow silently never happened.
+      const el = fixture.nativeElement as HTMLElement;
+      const buttons = Array.from(
+        el.querySelectorAll<HTMLButtonElement>('.cover-buttons button')
+      );
+      expect(buttons.length).toBeGreaterThanOrEqual(2);
+      for (const button of buttons) {
+        expect(button.type).toBe('button');
+      }
+    });
+
+    it('clicking "Select from Library" opens the selector without saving or closing', async () => {
+      fixture.autoDetectChanges();
+      dialogGateway.openMediaSelectorDialog.mockResolvedValue(undefined);
+
+      const el = fixture.nativeElement as HTMLElement;
+      const buttons = Array.from(
+        el.querySelectorAll<HTMLButtonElement>('.cover-buttons button')
+      );
+      const libraryButton = buttons.find(b =>
+        b.textContent?.includes('Select from Library')
+      );
+      expect(libraryButton).toBeDefined();
+
+      libraryButton!.click();
+      await fixture.whenStable();
+
+      expect(dialogGateway.openMediaSelectorDialog).toHaveBeenCalled();
+      // The form must NOT have been submitted by the click.
+      expect(unifiedProjectService.updateProject).not.toHaveBeenCalled();
+      expect(dialogRef.close).not.toHaveBeenCalled();
     });
   });
 });

@@ -104,15 +104,20 @@ export class EditProjectDialogComponent implements OnInit {
   coverImageUrl?: SafeUrl;
   private hasCoverImage = false;
 
-  // Image cropper properties
-  imageChangedEvent: Event | null = null;
-  imageBase64: string | undefined = undefined;
-  croppedImage: SafeUrl | null = null;
-  croppedBlob: Blob | null = null;
+  // Image cropper state. The template-bound properties MUST be signals: the
+  // app is zoneless, and the media-library / AI-generation flows assign them
+  // from async continuations (after `await`). Plain property writes there
+  // never schedule change detection, so the cropper view silently never
+  // appears. (The file-upload flow only worked because template event
+  // bindings schedule change detection themselves.)
+  readonly imageChangedEvent = signal<Event | null>(null);
+  readonly imageBase64 = signal<string | undefined>(undefined);
+  readonly croppedImage = signal<SafeUrl | null>(null);
+  readonly croppedBlob = signal<Blob | null>(null);
+  readonly showCropper = signal(false);
   isCropperReady = false;
   hasImageLoaded = false;
   hasLoadFailed = false;
-  showCropper = false;
   pendingFileName = '';
 
   // Project cover aspect ratio is 2:3 (width:height) for portrait book covers
@@ -218,9 +223,9 @@ export class EditProjectDialogComponent implements OnInit {
       const file = input.files[0];
       if (this.isValidImageFile(file)) {
         this.resetCropperState();
-        this.imageChangedEvent = event;
+        this.imageChangedEvent.set(event);
         this.pendingFileName = file.name;
-        this.showCropper = true;
+        this.showCropper.set(true);
       } else {
         this.showError(
           this.transloco.translate('dialogs.editProject.invalidImage')
@@ -231,10 +236,10 @@ export class EditProjectDialogComponent implements OnInit {
 
   imageCropped(event: ImageCroppedEvent): void {
     if (event.objectUrl && event.blob) {
-      this.croppedImage = this.sanitizer.bypassSecurityTrustUrl(
-        event.objectUrl
+      this.croppedImage.set(
+        this.sanitizer.bypassSecurityTrustUrl(event.objectUrl)
       );
-      this.croppedBlob = event.blob;
+      this.croppedBlob.set(event.blob);
     }
   }
 
@@ -249,15 +254,15 @@ export class EditProjectDialogComponent implements OnInit {
 
   onLoadImageFailed(): void {
     this.hasLoadFailed = true;
-    this.showCropper = false;
+    this.showCropper.set(false);
     this.showError(this.transloco.translate('dialogs.editProject.loadFailed'));
   }
 
   resetCropperState(): void {
-    this.imageChangedEvent = null;
-    this.imageBase64 = undefined;
-    this.croppedImage = null;
-    this.croppedBlob = null;
+    this.imageChangedEvent.set(null);
+    this.imageBase64.set(undefined);
+    this.croppedImage.set(null);
+    this.croppedBlob.set(null);
     this.hasImageLoaded = false;
     this.isCropperReady = false;
     this.hasLoadFailed = false;
@@ -265,20 +270,22 @@ export class EditProjectDialogComponent implements OnInit {
   }
 
   applyCroppedImage(): void {
-    if (this.croppedBlob && this.croppedImage) {
+    const croppedBlob = this.croppedBlob();
+    const croppedImage = this.croppedImage();
+    if (croppedBlob && croppedImage) {
       // Create a File from the cropped blob
-      const file = new File([this.croppedBlob], this.pendingFileName, {
-        type: this.croppedBlob.type || 'image/png',
+      const file = new File([croppedBlob], this.pendingFileName, {
+        type: croppedBlob.type || 'image/png',
       });
       this.coverImage = file;
-      this.coverImageUrl = this.croppedImage;
-      this.showCropper = false;
+      this.coverImageUrl = croppedImage;
+      this.showCropper.set(false);
       this.resetCropperState();
     }
   }
 
   cancelCropping(): void {
-    this.showCropper = false;
+    this.showCropper.set(false);
     this.resetCropperState();
     // Reset the file input
     if (this.coverImageInput) {
@@ -305,15 +312,13 @@ export class EditProjectDialogComponent implements OnInit {
       const base64 = await this.blobToBase64(result.blob);
       const filename = result.selected?.filename || 'selected-cover.png';
 
-      // Reset cropper state first
+      // Reset cropper state first, then set the data BEFORE showing the
+      // cropper. Signal writes schedule change detection in zoneless mode —
+      // without them this async continuation never re-renders the template.
       this.resetCropperState();
-
-      // Set the data BEFORE showing the cropper
       this.pendingFileName = filename;
-      this.imageBase64 = base64;
-
-      // Show the cropper
-      this.showCropper = true;
+      this.imageBase64.set(base64);
+      this.showCropper.set(true);
     }
   }
 
@@ -331,20 +336,17 @@ export class EditProjectDialogComponent implements OnInit {
       forCover: true,
     });
     if (result?.saved && result.imageData) {
-      // Show the cropper to let user crop the generated image to the correct cover dimensions
-      // Reset cropper state first
+      // Show the cropper to let user crop the generated image to the correct
+      // cover dimensions. Signal writes schedule change detection in zoneless
+      // mode — without them this async continuation never re-renders.
       this.resetCropperState();
-
-      // Set the data BEFORE showing the cropper
       this.pendingFileName = 'generated-cover.png';
 
       // The imageData from the dialog is a data URL (data:image/png;base64,...)
       // ngx-image-cropper's imageBase64 expects just the base64 string without the prefix
       // However, it also accepts the full data URL, so we pass it directly
-      this.imageBase64 = result.imageData;
-
-      // Show the cropper
-      this.showCropper = true;
+      this.imageBase64.set(result.imageData);
+      this.showCropper.set(true);
     }
   }
 

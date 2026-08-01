@@ -10,8 +10,11 @@
 </div>
 <mat-divider></mat-divider>
 <mat-dialog-content>
-  <div class="settings-container" [class.mobile]="isMobile">
-    <mat-nav-list class="settings-nav" role="tablist" [class.mobile]="isMobile">
+  <div class="settings-container" [class.mobile]="isMobile()">
+    <mat-nav-list
+      class="settings-nav"
+      role="tablist"
+      [class.mobile]="isMobile()">
       <a
         mat-list-item
         role="tab"
@@ -64,7 +67,7 @@
       </a>
     </mat-nav-list>
 
-    <div class="settings-content" [class.mobile]="isMobile" role="tabpanel">
+    <div class="settings-content" [class.mobile]="isMobile()" role="tabpanel">
       @switch (selectedCategory) {
         @case ('account') {
           <div
