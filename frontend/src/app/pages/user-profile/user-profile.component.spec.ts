@@ -149,7 +149,7 @@ describe('UserProfileComponent', () => {
       const newFixture = TestBed.createComponent(UserProfileComponent);
       newFixture.detectChanges();
 
-      expect(newFixture.componentInstance.isMobile).toBe(true);
+      expect(newFixture.componentInstance.isMobile()).toBe(true);
     });
   });
 

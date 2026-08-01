@@ -56,7 +56,10 @@ export class UserProfileComponent implements OnInit, OnDestroy {
 
   username: string | null = null;
   profileUser: User | null = null;
-  isMobile = false;
+  // Signal required: BreakpointObserver does not notify the zoneless
+  // scheduler (it wraps emissions in NgZone.run, a no-op in zoneless), so a
+  // plain property would go stale when the viewport crosses a breakpoint.
+  readonly isMobile = signal(false);
   readonly isLoading = signal(true);
   loadError = false;
   isOwner = false;
@@ -84,7 +87,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
       .observe([Breakpoints.XSmall, Breakpoints.Small])
       .pipe(takeUntil(this.destroy$))
       .subscribe(result => {
-        this.isMobile = result.matches;
+        this.isMobile.set(result.matches);
       });
   }
 
