@@ -146,7 +146,7 @@ test.describe('Delete project from cover kebab menu', () => {
     const slug = generateUniqueSlug('shared-delete');
     const project = await page.evaluate(
       async ({ apiUrl, ownerToken, slug }) => {
-        const res = await fetch(`${apiUrl}/api/v1/projects/`, {
+        const res = await fetch(`${apiUrl}/api/v1/projects`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
