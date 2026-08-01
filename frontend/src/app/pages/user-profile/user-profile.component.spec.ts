@@ -119,7 +119,7 @@ describe('UserProfileComponent', () => {
   });
 
   it('should extract username from route params', () => {
-    expect(component.username).toBe('testuser');
+    expect(component.username()).toBe('testuser');
   });
 
   describe('breakpoint observer', () => {
@@ -149,7 +149,7 @@ describe('UserProfileComponent', () => {
       const newFixture = TestBed.createComponent(UserProfileComponent);
       newFixture.detectChanges();
 
-      expect(newFixture.componentInstance.isMobile).toBe(true);
+      expect(newFixture.componentInstance.isMobile()).toBe(true);
     });
   });
 

@@ -180,7 +180,7 @@ describe('UserAvatarComponent', () => {
 
       expect(mockLocalStorageService.getUserAvatarUrl).not.toHaveBeenCalled();
       expect(mockUserService.getUserAvatar).not.toHaveBeenCalled();
-      expect(component['error']).toBe(true);
+      expect(component['error']()).toBe(true);
     });
 
     it('should try server request when hasAvatar is true', async () => {
@@ -216,7 +216,7 @@ describe('UserAvatarComponent', () => {
       // Wait for the observable subscription to complete (throwError fires synchronously)
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      expect(component['error']).toBe(true);
+      expect(component['error']()).toBe(true);
       expect(component['isLoading']()).toBe(false);
     });
   });

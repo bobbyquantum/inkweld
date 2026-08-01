@@ -1,5 +1,4 @@
 import {
-  ChangeDetectorRef,
   computed,
   Directive,
   type ElementRef,
@@ -29,7 +28,6 @@ export abstract class BaseImageDialogComponent {
   protected readonly dialogGateway = inject(DialogGatewayService);
   protected readonly snackBar = inject(MatSnackBar);
   protected readonly sanitizer = inject(DomSanitizer);
-  protected readonly cdr = inject(ChangeDetectorRef);
   protected readonly systemConfig = inject(SystemConfigService);
   protected readonly projectState = inject(ProjectStateService);
   protected readonly transloco = inject(TranslocoService);
@@ -48,15 +46,15 @@ export abstract class BaseImageDialogComponent {
   description = '';
 
   // Image cropper state
-  imageChangedEvent: Event | null = null;
-  imageBase64: string | undefined = undefined;
-  croppedImage: SafeUrl | null = null;
-  croppedBlob: Blob | null = null;
-  isCropperReady = false;
-  hasImageLoaded = false;
-  hasLoadFailed = false;
-  showCropper = false;
-  pendingFileName = '';
+  readonly imageChangedEvent = signal<Event | null>(null);
+  readonly imageBase64 = signal<string | undefined>(undefined);
+  readonly croppedImage = signal<SafeUrl | null>(null);
+  readonly croppedBlob = signal<Blob | null>(null);
+  readonly isCropperReady = signal(false);
+  readonly hasImageLoaded = signal(false);
+  readonly hasLoadFailed = signal(false);
+  readonly showCropper = signal(false);
+  readonly pendingFileName = signal('');
   readonly isLoading = signal(false);
 
   abstract readonly aspectRatio: number;
@@ -69,9 +67,9 @@ export abstract class BaseImageDialogComponent {
       const file = input.files[0];
       if (this.isValidImageFile(file)) {
         this.resetCropperState();
-        this.imageChangedEvent = event;
-        this.pendingFileName = file.name;
-        this.showCropper = true;
+        this.imageChangedEvent.set(event);
+        this.pendingFileName.set(file.name);
+        this.showCropper.set(true);
       } else {
         this.showError(
           this.transloco.translate('dialogs.baseImage.invalidImage')
@@ -104,10 +102,9 @@ export abstract class BaseImageDialogComponent {
       const filename = result.selected?.filename || 'selected-image.png';
 
       this.resetCropperState();
-      this.pendingFileName = filename;
-      this.imageBase64 = base64;
-      this.showCropper = true;
-      this.cdr.detectChanges();
+      this.pendingFileName.set(filename);
+      this.imageBase64.set(base64);
+      this.showCropper.set(true);
     }
   }
 
@@ -137,42 +134,42 @@ export abstract class BaseImageDialogComponent {
 
   imageCropped(event: ImageCroppedEvent): void {
     if (event.objectUrl && event.blob) {
-      this.croppedImage = this.sanitizer.bypassSecurityTrustUrl(
-        event.objectUrl
+      this.croppedImage.set(
+        this.sanitizer.bypassSecurityTrustUrl(event.objectUrl)
       );
-      this.croppedBlob = event.blob;
+      this.croppedBlob.set(event.blob);
     }
   }
 
   onImageLoaded(_image: LoadedImage): void {
-    this.hasImageLoaded = true;
+    this.hasImageLoaded.set(true);
   }
 
   onCropperReady(): void {
-    this.isCropperReady = true;
+    this.isCropperReady.set(true);
   }
 
   onLoadImageFailed(): void {
-    this.hasLoadFailed = true;
-    this.showCropper = false;
+    this.hasLoadFailed.set(true);
+    this.showCropper.set(false);
     this.showError(this.transloco.translate('dialogs.baseImage.loadFailed'));
   }
 
   resetCropperState(): void {
-    this.imageChangedEvent = null;
-    this.imageBase64 = undefined;
-    this.croppedImage = null;
-    this.croppedBlob = null;
-    this.hasImageLoaded = false;
-    this.isCropperReady = false;
-    this.hasLoadFailed = false;
-    this.pendingFileName = '';
+    this.imageChangedEvent.set(null);
+    this.imageBase64.set(undefined);
+    this.croppedImage.set(null);
+    this.croppedBlob.set(null);
+    this.hasImageLoaded.set(false);
+    this.isCropperReady.set(false);
+    this.hasLoadFailed.set(false);
+    this.pendingFileName.set('');
   }
 
   abstract applyCroppedImage(): void;
 
   cancelCropping(): void {
-    this.showCropper = false;
+    this.showCropper.set(false);
     this.resetCropperState();
     if (this.fileInput) {
       this.fileInput.nativeElement.value = '';

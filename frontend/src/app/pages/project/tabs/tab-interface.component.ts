@@ -4,7 +4,6 @@ import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import {
   type AfterViewInit,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   effect,
   type ElementRef,
@@ -71,7 +70,7 @@ const TAB_TYPE_ICONS: Partial<Record<AppTab['type'], string>> = {
   selector: 'app-tab-interface',
   templateUrl: './tab-interface.component.html',
   styleUrls: ['./tab-interface.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     Tabs,
     TabList,
@@ -97,7 +96,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly router = inject(Router);
   protected readonly route = inject(ActivatedRoute);
   protected readonly dialog = inject(MatDialog);
-  private readonly cdr = inject(ChangeDetectorRef);
   protected readonly dialogGateway = inject(DialogGatewayService);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly logger = inject(LoggerService);
@@ -238,8 +236,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         if (urlUsername === project.username && urlSlug === project.slug) {
           this.updateSelectedTabFromUrl();
           this.initialSyncDone = true;
-          this.cdr.detectChanges(); // Trigger change detection after initial sync
-          // Scroll to reveal the active tab after sync
           setTimeout(() => this.scrollToActiveTab(), 0);
         }
       }
@@ -324,7 +320,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         // Avoid redundant sync if initial sync is happening via effect
         if (this.initialSyncDone) {
           this.updateSelectedTabFromUrl();
-          this.cdr.detectChanges(); // Trigger change detection after URL update
         }
       });
 
@@ -567,13 +562,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onTabChange(index: number): void {
-    // Update the project state - navigation will be handled by the effect
     this.projectState.selectTab(index);
-
-    // Trigger change detection
-    this.cdr.detectChanges();
-
-    // Navigation is now handled by the effect that watches projectState.selectedTabIndex
   }
 
   onTabDrop(event: CdkDragDrop<AppTab[]>): void {
@@ -682,9 +671,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Open the document in the state service - this will trigger the effect to handle navigation
     this.projectState.openDocument(document);
-
-    // Force synchronous change detection to update the view
-    this.cdr.detectChanges();
   }
 
   onImportRequested(): void {

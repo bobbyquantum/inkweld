@@ -60,7 +60,7 @@ export interface WorldbuildingImageDialogResult {
     ImageCropperComponent,
   ],
   templateUrl: './worldbuilding-image-dialog.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./worldbuilding-image-dialog.component.scss'],
 })
 export class WorldbuildingImageDialogComponent
@@ -144,11 +144,11 @@ export class WorldbuildingImageDialogComponent
   // --- Apply Cropped Image ---
 
   applyCroppedImage(): void {
-    if (this.croppedBlob && this.croppedImage) {
-      void this.blobToBase64(this.croppedBlob).then(base64 => {
+    if (this.croppedBlob() && this.croppedImage()) {
+      void this.blobToBase64(this.croppedBlob()!).then(base64 => {
         this.dialogRef.close({
           imageData: base64,
-          imageBlob: this.croppedBlob,
+          imageBlob: this.croppedBlob()!,
         });
       });
     }

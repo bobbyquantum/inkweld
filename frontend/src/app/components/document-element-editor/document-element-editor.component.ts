@@ -2,7 +2,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
 import {
   type AfterViewChecked,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   computed,
   effect,
@@ -193,7 +192,6 @@ export class DocumentElementEditorComponent
   private editorScrollCleanup: (() => void) | null = null;
   private editorUpdateSub: Subscription | null = null;
   protected editorKey = 0; // Increments when switching tabs to force ngx-editor recreation
-  private readonly cdr = inject(ChangeDetectorRef);
 
   /** Auto-Review panel state */
   autoReviewPanelOpen = signal(false);
@@ -489,14 +487,6 @@ export class DocumentElementEditorComponent
                 this.refreshAutoReviewPanel();
               }
             });
-
-            // Force change detection to update the view
-            this.cdr.detectChanges();
-
-            // Workaround for ngx-editor zoneless compatibility (NG0100 on image selection)
-            // When clicking on images, ngx-editor's ImageViewComponent updates 'selected' state
-            // during change detection, causing NG0100. We schedule a detectChanges after clicks.
-            this.setupImageClickHandler();
           })
           .catch((error: unknown) => {
             console.error(
@@ -708,36 +698,6 @@ export class DocumentElementEditorComponent
         `Editor set to ${canWrite ? 'editable' : 'read-only'} mode`
       );
     }
-  }
-
-  /**
-   * Workaround for ngx-editor zoneless compatibility issue.
-   *
-   * ngx-editor's ImageViewComponent updates its 'selected' state during Angular's
-   * change detection cycle when you click on an image. In zoneless mode, this causes
-   * NG0100: ExpressionChangedAfterItHasBeenCheckedError.
-   *
-   * This workaround adds a click listener to the editor that detects clicks on images
-   * and schedules a change detection cycle after a microtask, allowing ngx-editor's
-   * internal state to settle before Angular checks for changes.
-   */
-  private setupImageClickHandler(): void {
-    const editorDom = this.editor?.view?.dom;
-    if (!editorDom) return;
-
-    editorDom.addEventListener('click', event => {
-      const target = event.target as HTMLElement;
-      // Check if clicked on an image or image wrapper
-      if (
-        target.tagName === 'IMG' ||
-        target.closest('.ngx-editor-image-view-wrapper')
-      ) {
-        // Schedule change detection after ngx-editor's internal state updates
-        queueMicrotask(() => {
-          this.cdr.detectChanges();
-        });
-      }
-    });
   }
 
   /**

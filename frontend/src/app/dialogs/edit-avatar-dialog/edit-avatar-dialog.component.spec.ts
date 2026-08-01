@@ -69,33 +69,33 @@ describe('EditAvatarDialogComponent', () => {
     Object.defineProperty(input, 'files', { value: [file] });
     const event = { target: input } as unknown as Event;
     component.fileChangeEvent(event);
-    expect(component.imageChangedEvent).toBe(event);
-    expect(component.fileName).toBe('test.png');
+    expect(component.imageChangedEvent()).toBe(event);
+    expect(component.fileName()).toBe('test.png');
   });
 
   it('resetState should clear state', () => {
-    component.imageChangedEvent = {} as Event;
-    component.croppedImage = 'url';
-    component.croppedBlob = new Blob();
-    component.hasImageLoaded = true;
-    component.isCropperReady = true;
-    component.hasLoadFailed = true;
+    component.imageChangedEvent.set({} as Event);
+    component.croppedImage.set('url');
+    component.croppedBlob.set(new Blob());
+    component.hasImageLoaded.set(true);
+    component.isCropperReady.set(true);
+    component.hasLoadFailed.set(true);
     component.resetState();
-    expect(component.imageChangedEvent).toBeNull();
-    expect(component.croppedImage).toBeNull();
-    expect(component.croppedBlob).toBeNull();
-    expect(component.hasImageLoaded).toBeFalsy();
-    expect(component.isCropperReady).toBeFalsy();
-    expect(component.hasLoadFailed).toBeFalsy();
+    expect(component.imageChangedEvent()).toBeNull();
+    expect(component.croppedImage()).toBeNull();
+    expect(component.croppedBlob()).toBeNull();
+    expect(component.hasImageLoaded()).toBeFalsy();
+    expect(component.isCropperReady()).toBeFalsy();
+    expect(component.hasLoadFailed()).toBeFalsy();
   });
 
   it('imageCropped should set croppedImage and croppedBlob', () => {
     const blob = new Blob([''], { type: 'image/png' });
     const event = { objectUrl: 'url', blob } as unknown as ImageCroppedEvent;
     component.imageCropped(event);
-    expect(component.croppedBlob).toBe(blob);
+    expect(component.croppedBlob()).toBe(blob);
     // sanitized URL has based string
-    const sanitized = component.croppedImage as {
+    const sanitized = component.croppedImage() as {
       changingThisBreaksApplicationSecurity: string;
     };
     expect(sanitized.changingThisBreaksApplicationSecurity).toContain('url');
@@ -103,18 +103,18 @@ describe('EditAvatarDialogComponent', () => {
 
   it('onImageLoaded should set hasImageLoaded', () => {
     component.onImageLoaded({} as unknown as LoadedImage);
-    expect(component.hasImageLoaded).toBeTruthy();
+    expect(component.hasImageLoaded()).toBeTruthy();
   });
 
   it('onCropperReady should set isCropperReady', () => {
     component.onCropperReady();
-    expect(component.isCropperReady).toBeTruthy();
+    expect(component.isCropperReady()).toBeTruthy();
   });
 
   it('onLoadImageFailed should set hasLoadFailed to true and alert', () => {
     vi.spyOn(window, 'alert').mockImplementation(() => {});
     component.onLoadImageFailed();
-    expect(component.hasLoadFailed).toBeTruthy();
+    expect(component.hasLoadFailed()).toBeTruthy();
     expect(window.alert).toHaveBeenCalledWith(
       'Failed to load image. Please try another file.'
     );
@@ -128,8 +128,8 @@ describe('EditAvatarDialogComponent', () => {
 
     it('should upload avatar and close dialog on success in server mode', async () => {
       const blob = new Blob([''], { type: 'image/png' });
-      component.croppedBlob = blob;
-      component.fileName = 'test.png';
+      component.croppedBlob.set(blob);
+      component.fileName.set('test.png');
       setupServiceMock.getMode.mockReturnValue('server');
       userServiceMock.uploadAvatar.mockReturnValue(of(null));
 
@@ -147,8 +147,8 @@ describe('EditAvatarDialogComponent', () => {
 
     it('should save to offline storage only in offline mode', async () => {
       const blob = new Blob([''], { type: 'image/png' });
-      component.croppedBlob = blob;
-      component.fileName = 'test.png';
+      component.croppedBlob.set(blob);
+      component.fileName.set('test.png');
       setupServiceMock.getMode.mockReturnValue('local');
 
       await component.submit();
@@ -163,8 +163,8 @@ describe('EditAvatarDialogComponent', () => {
 
     it('should show alert and not close dialog on error', async () => {
       const blob = new Blob([''], { type: 'image/png' });
-      component.croppedBlob = blob;
-      component.fileName = 'test.png';
+      component.croppedBlob.set(blob);
+      component.fileName.set('test.png');
       setupServiceMock.getMode.mockReturnValue('server');
       userServiceMock.uploadAvatar.mockReturnValue(
         throwError(() => new Error('err'))
@@ -181,8 +181,8 @@ describe('EditAvatarDialogComponent', () => {
 
     it('should show alert when no user is logged in', async () => {
       const blob = new Blob([''], { type: 'image/png' });
-      component.croppedBlob = blob;
-      component.fileName = 'test.png';
+      component.croppedBlob.set(blob);
+      component.fileName.set('test.png');
       setupServiceMock.getMode.mockReturnValue('server');
       unifiedUserServiceMock.currentUser.mockReturnValue(null);
       vi.spyOn(window, 'alert').mockImplementation(() => {});

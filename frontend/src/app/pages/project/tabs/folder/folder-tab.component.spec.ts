@@ -145,7 +145,7 @@ describe('FolderTabComponent', () => {
     fixture.detectChanges();
 
     // Check that the component has the full folder ID set correctly
-    expect((component as any).fullElementId).toBe(
+    expect((component as any).fullElementId()).toBe(
       'testuser:test-project:folder1'
     );
   });
@@ -161,7 +161,7 @@ describe('FolderTabComponent', () => {
 
     // Element ID should be updated
     expect(component['elementId']).toBe('folder2');
-    expect((component as any).fullElementId).toBe(
+    expect((component as any).fullElementId()).toBe(
       'testuser:test-project:folder2'
     );
   });
@@ -178,7 +178,7 @@ describe('FolderTabComponent', () => {
     fixture.detectChanges();
 
     // Should use the full ID as is, without prepending project info
-    expect((component as any).fullElementId).toBe(
+    expect((component as any).fullElementId()).toBe(
       'otheruser:other-project:folder3'
     );
   });
@@ -193,7 +193,7 @@ describe('FolderTabComponent', () => {
     fixture.detectChanges();
 
     // Should build the full ID using project info
-    expect((component as any).fullElementId).toBe(
+    expect((component as any).fullElementId()).toBe(
       'testuser:test-project:simple-folder-id'
     );
   });
@@ -209,7 +209,7 @@ describe('FolderTabComponent', () => {
 
     // Should have an empty ID
     expect(component['elementId']).toBe('');
-    expect((component as any).fullElementId).toBe('');
+    expect((component as any).fullElementId()).toBe('');
   });
 
   it('should handle missing project gracefully', async () => {
@@ -223,7 +223,7 @@ describe('FolderTabComponent', () => {
     fixture.detectChanges();
 
     // Should fall back to just the element ID
-    expect((component as any).fullElementId).toBe('folder1');
+    expect((component as any).fullElementId()).toBe('folder1');
   });
 
   it('should provide the element ID via getElementId method', () => {
@@ -235,7 +235,7 @@ describe('FolderTabComponent', () => {
     fixture.detectChanges();
     await new Promise(resolve => setTimeout(resolve, 10));
     fixture.detectChanges();
-    expect((component as any).bareElementId).toBe('folder42');
+    expect((component as any).bareElementId()).toBe('folder42');
   });
 
   it('should derive bareElementId from a colon-prefixed tab id', async () => {
@@ -245,7 +245,7 @@ describe('FolderTabComponent', () => {
     fixture.detectChanges();
     await new Promise(resolve => setTimeout(resolve, 10));
     fixture.detectChanges();
-    expect((component as any).bareElementId).toBe('nested');
+    expect((component as any).bareElementId()).toBe('nested');
   });
 
   it('should fall back to raw element id when no project context exists', async () => {
@@ -254,7 +254,7 @@ describe('FolderTabComponent', () => {
     fixture.detectChanges();
     await new Promise(resolve => setTimeout(resolve, 10));
     fixture.detectChanges();
-    expect((component as any).bareElementId).toBe('lone-folder');
+    expect((component as any).bareElementId()).toBe('lone-folder');
   });
 
   it('should clean up subscription on destroy', () => {

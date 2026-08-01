@@ -1,7 +1,6 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   inject,
   type OnDestroy,
@@ -39,7 +38,7 @@ import { debounceTime } from 'rxjs/operators';
     WritingStatsWidgetComponent,
   ],
   templateUrl: './user-profile.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./user-profile.component.scss'],
 })
 export class UserProfileComponent implements OnInit, OnDestroy {
@@ -49,30 +48,26 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   protected projectService = inject(UnifiedProjectService);
   protected breakpointObserver = inject(BreakpointObserver);
   private readonly dialogGateway = inject(DialogGatewayService);
-  private readonly cdr = inject(ChangeDetectorRef);
 
   @ViewChild(UserAvatarComponent)
   private readonly avatarComponent!: UserAvatarComponent;
 
-  username: string | null = null;
-  profileUser: User | null = null;
-  isMobile = false;
+  readonly username = signal<string | null>(null);
+  readonly profileUser = signal<User | null>(null);
+  readonly isMobile = signal(false);
   readonly isLoading = signal(true);
-  loadError = false;
-  isOwner = false;
+  readonly loadError = signal(false);
+  readonly isOwner = signal(false);
 
   private readonly destroy$ = new Subject<void>();
 
   ngOnInit(): void {
     this.setupBreakpointObserver();
     this.route.paramMap
-      .pipe(
-        debounceTime(10), // Prevent rapid succession processing
-        takeUntil(this.destroy$)
-      )
+      .pipe(debounceTime(10), takeUntil(this.destroy$))
       .subscribe(params => {
-        this.username = params.get('username');
-        if (this.username) {
+        this.username.set(params.get('username'));
+        if (this.username()) {
           void this.loadUserProfile();
           void this.loadUserProjects();
         }
@@ -84,29 +79,26 @@ export class UserProfileComponent implements OnInit, OnDestroy {
       .observe([Breakpoints.XSmall, Breakpoints.Small])
       .pipe(takeUntil(this.destroy$))
       .subscribe(result => {
-        this.isMobile = result.matches;
+        this.isMobile.set(result.matches);
       });
   }
 
   private loadUserProfile() {
     this.isLoading.set(true);
-    this.loadError = false;
+    this.loadError.set(false);
 
-    // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
     setTimeout(() => {
       try {
-        // For now, we'll use the current user as a placeholder
-        // In a real implementation, we would fetch the profile for the specific username
-        this.profileUser = this.userService.currentUser();
-        this.isOwner =
-          this.profileUser?.username ===
-          this.userService.currentUser().username;
+        const user = this.userService.currentUser();
+        this.profileUser.set(user);
+        this.isOwner.set(
+          user?.username === this.userService.currentUser().username
+        );
       } catch (error) {
         console.error('Failed to load user profile:', error);
-        this.loadError = true;
+        this.loadError.set(true);
       } finally {
         this.isLoading.set(false);
-        this.cdr.detectChanges();
       }
     });
   }
