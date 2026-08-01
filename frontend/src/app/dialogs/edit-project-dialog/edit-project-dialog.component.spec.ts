@@ -22,7 +22,6 @@ import {
 } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { LocalStorageService } from '../../services/local/local-storage.service';
 import { UnifiedProjectService } from '../../services/local/unified-project.service';
 import { ProjectService } from '../../services/project/project.service';
@@ -494,8 +493,7 @@ describe('EditProjectDialogComponent', () => {
 
   describe('openGenerateCoverDialog', () => {
     it('surfaces an error when generation claims success without image data', async () => {
-      const gateway = TestBed.inject(DialogGatewayService);
-      vi.spyOn(gateway, 'openImageGenerationDialog').mockResolvedValue({
+      dialogGateway.openImageGenerationDialog.mockResolvedValue({
         saved: true,
         imageData: undefined,
       });
@@ -503,7 +501,7 @@ describe('EditProjectDialogComponent', () => {
       await component.openGenerateCoverDialog();
 
       // Never a silent no-op: the cropper is not shown and the user is told.
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
       expect(snackBar.open).toHaveBeenCalledWith(
         'Failed to load image. Please try another file.',
         'Close',
