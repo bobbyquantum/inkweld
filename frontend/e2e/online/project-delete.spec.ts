@@ -6,11 +6,13 @@
  * - The confirmation dialog requires typing the project slug
  * - Cancelling leaves the project intact
  * - Confirming deletes the project and removes its card from the list
+ * - The delete option is hidden on shared (collaborated) project covers
  *
  * IMPORTANT: These tests destroy project data, so each test creates its
  * own throwaway project and deletes it within the same test.
  */
 import { generateUniqueSlug } from '../common';
+import { TEST_PASSWORDS } from '../common/test-credentials';
 import { expect, test } from './fixtures';
 
 test.describe('Delete project from cover kebab menu', () => {
@@ -99,36 +101,112 @@ test.describe('Delete project from cover kebab menu', () => {
 
   test('delete option is hidden on shared (collaborated) project covers', async ({
     authenticatedPage: page,
+    browser,
+    request,
   }) => {
-    // Ensure home is loaded; collaborated projects (if any) should not expose
-    // a Delete option in their kebab menu since the user does not own them.
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    // Provision a real shared project so the shared-badge branch is guaranteed
+    // to execute: the authenticatedPage user owns a project and invites a
+    // freshly registered collaborator, who then loads home and inspects the
+    // shared card.
+    const apiUrl = new URL(page.url()).origin;
+    const ownerToken = await page.evaluate(() =>
+      localStorage.getItem('srv:server-1:auth_token')
+    );
+    expect(ownerToken).toBeTruthy();
 
-    const cardCount = await page.getByTestId('project-card').count();
-    // If there are no projects at all there is nothing to assert on; skip.
-    test.skip(cardCount === 0, 'no project cards present to inspect');
+    // Register a second user (the collaborator) via the API.
+    const collaboratorUsername = `collab-${Date.now()}`;
+    const collaboratorPassword = TEST_PASSWORDS.USER;
+    const registerRes = await request.post(`${apiUrl}/api/v1/auth/register`, {
+      data: { username: collaboratorUsername, password: collaboratorPassword },
+    });
+    expect(registerRes.ok()).toBeTruthy();
+    const collaboratorToken = ((await registerRes.json()) as { token: string })
+      .token;
 
-    // For each card, verify that either the delete item is absent OR
-    // (if present) it is an owned project. Shared cards have a shared badge.
-    for (let i = 0; i < cardCount; i++) {
-      const card = page.getByTestId('project-card').nth(i);
-      const isShared = await card
-        .locator('.shared-badge')
-        .count()
-        .then(c => c > 0);
+    // Owner creates a project via the API. The response includes the owner's
+    // username, which is needed to invite a collaborator.
+    const slug = generateUniqueSlug('shared-delete');
+    const projectRes = await request.post(`${apiUrl}/api/v1/projects/`, {
+      headers: { Authorization: `Bearer ${ownerToken}` },
+      data: { slug, title: 'Shared Delete Test' },
+    });
+    expect(projectRes.ok()).toBeTruthy();
+    const project = (await projectRes.json()) as {
+      id: string;
+      username: string;
+    };
 
-      await card.locator('[data-testid="project-card-kebab"]').click();
-      const deleteVisible = await page
-        .getByTestId('project-card-delete')
-        .isVisible()
-        .catch(() => false);
-
-      if (isShared) {
-        expect(deleteVisible).toBe(false);
+    // Owner invites the collaborator (viewer role).
+    const inviteRes = await request.post(
+      `${apiUrl}/api/v1/collaboration/${project.username}/${slug}/collaborators`,
+      {
+        headers: { Authorization: `Bearer ${ownerToken}` },
+        data: { username: collaboratorUsername, role: 'viewer' },
       }
-      // Close the menu before iterating to the next card.
-      await page.keyboard.press('Escape').catch(() => {});
+    );
+    expect(inviteRes.ok()).toBeTruthy();
+
+    // Collaborator accepts the invitation.
+    const acceptRes = await request.post(
+      `${apiUrl}/api/v1/collaboration/invitations/${project.id}/accept`,
+      {
+        headers: { Authorization: `Bearer ${collaboratorToken}` },
+      }
+    );
+    expect(acceptRes.ok()).toBeTruthy();
+
+    // Load home as the collaborator in a fresh context and wait for the
+    // shared card to appear.
+    const collabContext = await browser.newContext();
+    const collabPage = await collabContext.newPage();
+    try {
+      await collabPage.addInitScript(
+        ({
+          authToken,
+          serverUrl,
+        }: {
+          authToken: string;
+          serverUrl: string;
+        }) => {
+          const now = Date.now();
+          localStorage.setItem(
+            'inkweld-app-config',
+            JSON.stringify({
+              version: 2,
+              activeConfigId: 'server-1',
+              configurations: [
+                {
+                  id: 'server-1',
+                  type: 'server',
+                  displayName: 'Test Server',
+                  serverUrl,
+                  addedAt: now,
+                  lastUsedAt: now,
+                },
+              ],
+            })
+          );
+          localStorage.setItem('srv:server-1:auth_token', authToken);
+        },
+        { authToken: collaboratorToken, serverUrl: apiUrl }
+      );
+      await collabPage.goto('/');
+      await collabPage.waitForLoadState('networkidle');
+
+      // The shared project should appear as a card with a shared badge.
+      const sharedCard = collabPage
+        .getByTestId('project-card')
+        .filter({ hasText: 'Shared Delete Test' })
+        .first();
+      await expect(sharedCard).toBeVisible();
+      await expect(sharedCard.locator('.shared-badge')).toBeVisible();
+
+      // Open its kebab menu; the Delete option must not be present.
+      await sharedCard.locator('[data-testid="project-card-kebab"]').click();
+      await expect(collabPage.getByTestId('project-card-delete')).toBeHidden();
+    } finally {
+      await collabContext.close();
     }
   });
 });
