@@ -244,13 +244,27 @@ test.describe('Delete project from cover kebab menu', () => {
         .filter({ hasText: 'Shared Delete Test' })
         .first();
       await expect(sharedCard).toBeVisible();
-      await expect(sharedCard.locator('.shared-badge')).toBeVisible();
+      await expect(sharedCard.getByTestId('shared-badge')).toBeVisible();
 
       // Open its kebab menu; the Delete option must not be present.
-      await sharedCard.locator('[data-testid="project-card-kebab"]').click();
+      await sharedCard.getByTestId('project-card-kebab').click();
       await expect(collabPage.getByTestId('project-card-delete')).toBeHidden();
     } finally {
       await collabContext.close();
+
+      // Best-effort cleanup: delete the project created for this test so the
+      // online test backend doesn't accumulate orphan data across runs.
+      await page
+        .evaluate(
+          async ({ apiUrl, ownerToken, ownerName, slug }) => {
+            await fetch(`${apiUrl}/api/v1/projects/${ownerName}/${slug}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${ownerToken}` },
+            });
+          },
+          { apiUrl, ownerToken, ownerName: project.username, slug }
+        )
+        .catch(() => {});
     }
   });
 });
