@@ -50,7 +50,7 @@
 
   <!-- Pinned elements section (shown above tree when there are pins) -->
   @if (pinnedElements().length > 0) {
-    <div class="pinned-section">
+    <div class="pinned-section" data-testid="pinned-section">
       <div class="pinned-section-header">
         <mat-icon class="pinned-section-icon">push_pin</mat-icon>
         <span class="pinned-section-label">{{
@@ -219,7 +219,7 @@
 
 <!-- Context menu -->
 <ng-template #contextMenu let-node="node">
-  <div class="context-menu" cdkMenu>
+  <div class="context-menu" cdkMenu data-testid="context-menu">
     @if (!node.expandable) {
       <button
         type="button"

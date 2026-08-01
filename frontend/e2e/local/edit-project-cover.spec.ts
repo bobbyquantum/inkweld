@@ -50,18 +50,18 @@ test.describe('Edit Project Dialog - select cover from library', () => {
       await page.waitForURL(/\/.+\/.+/);
       await page.waitForLoadState('domcontentloaded');
 
-      await page.locator('.cover-image-wrapper').click();
-      await expect(page.locator('app-edit-project-dialog')).toBeVisible();
+      await page.getByTestId('project-cover-edit').click();
+      await expect(page.getByTestId('edit-project-dialog')).toBeVisible();
     });
 
-    const editDialog = page.locator('app-edit-project-dialog');
+    const editDialog = page.getByTestId('edit-project-dialog');
 
     await test.step('choose the image via Select from Library', async () => {
       await editDialog
         .getByRole('button', { name: 'Select from Library' })
         .click();
 
-      const mediaDialog = page.locator('app-media-selector-dialog');
+      const mediaDialog = page.getByTestId('media-selector-dialog');
       await expect(mediaDialog).toBeVisible();
 
       await mediaDialog
@@ -83,7 +83,7 @@ test.describe('Edit Project Dialog - select cover from library', () => {
       await expect(
         editDialog.getByRole('heading', { name: 'Crop Cover Image' })
       ).toBeVisible();
-      await expect(editDialog.locator('image-cropper')).toBeVisible();
+      await expect(editDialog.getByTestId('cover-cropper')).toBeVisible();
     });
 
     await test.step('apply the crop and see the cover preview', async () => {
@@ -95,7 +95,7 @@ test.describe('Edit Project Dialog - select cover from library', () => {
       await expect(applyButton).toBeEnabled();
       await applyButton.click();
 
-      await expect(editDialog.locator('img.cover-preview')).toBeVisible();
+      await expect(editDialog.getByTestId('cover-preview')).toBeVisible();
     });
   });
 });

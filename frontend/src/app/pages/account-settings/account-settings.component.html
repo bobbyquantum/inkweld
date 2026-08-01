@@ -36,7 +36,7 @@
           </mat-card-actions>
         </mat-card>
       } @else if (!hasSessions()) {
-        <mat-card class="empty-card">
+        <mat-card class="empty-card" data-testid="account-empty-card">
           <mat-card-content>
             <mat-icon>check_circle</mat-icon>
             <h3>{{ 'settings.authorizedAppsTab.noApps' | transloco }}</h3>
@@ -44,7 +44,7 @@
           </mat-card-content>
         </mat-card>
       } @else {
-        <mat-accordion>
+        <mat-accordion data-testid="sessions-accordion">
           @for (session of sessions(); track session.id) {
             <mat-expansion-panel (opened)="loadSessionDetails(session.id)">
               <mat-expansion-panel-header>

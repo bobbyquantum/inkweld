@@ -61,7 +61,7 @@ test.describe('Quick Open', () => {
 
     await test.step('clear button clears the search input', async () => {
       await search.fill('test query');
-      const clearButton = page.locator('.clear-button');
+      const clearButton = page.getByTestId('quick-open-clear-button');
       await expect(clearButton).toBeVisible();
       await clearButton.click();
       await expect(search).toHaveValue('');

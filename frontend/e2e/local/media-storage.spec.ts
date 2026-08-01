@@ -205,7 +205,7 @@ test.describe('Local Media Storage', () => {
       if (hasCoverButton) {
         await editCoverButton.click();
       } else {
-        const coverElement = page.locator('app-project-cover');
+        const coverElement = page.getByTestId('project-cover');
         const hasCover = await coverElement.isVisible().catch(() => false);
         if (hasCover) {
           await coverElement.click();
@@ -220,7 +220,7 @@ test.describe('Local Media Storage', () => {
     });
 
     await test.step('project cover component renders', async () => {
-      const coverComponent = page.locator('app-project-cover').first();
+      const coverComponent = page.getByTestId('project-cover').first();
       await expect(coverComponent).toBeVisible();
     });
 

@@ -11,7 +11,7 @@
   <div class="content-container" [class.is-mobile]="isMobile()">
     <!-- Header section with logo and search bar (always visible) -->
     @if (isAuthenticated()) {
-      <div class="header-section">
+      <div class="header-section" data-testid="header-section">
         <div
           class="search-container"
           [class.mobile-search-mode]="mobileSearchActive()">
@@ -366,7 +366,7 @@
               </div>
             } @else {
               <!-- Responsive cover grid with unified projects -->
-              <div class="covers-grid">
+              <div class="covers-grid" data-testid="covers-grid">
                 @for (item of allProjects(); track item.project.id) {
                   <button
                     type="button"

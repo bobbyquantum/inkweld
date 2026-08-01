@@ -110,7 +110,7 @@ test.describe('Comments — Online Mode', () => {
     await test.step('adds a comment that persists as a non-local highlight', async () => {
       await addCommentToFirstParagraph(page, 'Lifecycle comment');
 
-      const highlight = page.locator('.comment-highlight').first();
+      const highlight = page.getByTestId('comment-highlight').first();
       await expect(highlight).toBeVisible();
       await expect(highlight).toHaveAttribute('data-comment-id', /.+/);
 
@@ -119,7 +119,7 @@ test.describe('Comments — Online Mode', () => {
     });
 
     await test.step('opens popover with server data and action buttons', async () => {
-      const highlight = page.locator('.comment-highlight').first();
+      const highlight = page.getByTestId('comment-highlight').first();
       await highlight.click();
 
       const popover = page.getByTestId('comment-popover');
@@ -136,7 +136,7 @@ test.describe('Comments — Online Mode', () => {
       await expect(popover).toBeVisible();
       await page.getByTestId('comment-close-btn').click();
       await expect(popover).not.toBeVisible();
-      await expect(page.locator('.comment-highlight').first()).toBeVisible();
+      await expect(page.getByTestId('comment-highlight').first()).toBeVisible();
     });
 
     await test.step('lists the comment thread in the panel', async () => {
@@ -151,7 +151,7 @@ test.describe('Comments — Online Mode', () => {
     });
 
     await test.step('replies to the comment thread', async () => {
-      const highlight = page.locator('.comment-highlight').first();
+      const highlight = page.getByTestId('comment-highlight').first();
       await expect(highlight).toBeVisible();
       await highlight.scrollIntoViewIfNeeded();
 
@@ -186,7 +186,7 @@ test.describe('Comments — Online Mode', () => {
       await page.getByTestId('comment-resolve-btn').click();
       await expect(page.getByTestId('comment-popover')).not.toBeVisible();
       await expect(
-        page.locator('.comment-highlight--resolved').first()
+        page.locator('[data-comment-resolved="true"]').first()
       ).toBeVisible();
     });
 
@@ -208,7 +208,9 @@ test.describe('Comments — Online Mode', () => {
 
       // Find the new (non-resolved) highlight and click it.
       const newHighlight = page
-        .locator('.comment-highlight:not(.comment-highlight--resolved)')
+        .locator(
+          '[data-testid="comment-highlight"]:not([data-comment-resolved="true"])'
+        )
         .first();
       await expect(newHighlight).toBeVisible();
       await newHighlight.click();
@@ -217,7 +219,9 @@ test.describe('Comments — Online Mode', () => {
       await page.getByTestId('comment-delete-btn').click();
       await expect(page.getByTestId('comment-popover')).not.toBeVisible();
       await expect(
-        page.locator('.comment-highlight:not(.comment-highlight--resolved)')
+        page.locator(
+          '[data-testid="comment-highlight"]:not([data-comment-resolved="true"])'
+        )
       ).not.toBeVisible();
     });
   });

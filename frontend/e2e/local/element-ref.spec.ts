@@ -56,7 +56,7 @@ async function insertFirstElementRef(page: Page): Promise<Locator> {
   await firstResult.press('Enter');
   await expect(popup).not.toBeVisible();
 
-  const elementRef = page.locator('.element-ref').first();
+  const elementRef = page.getByTestId('element-ref').first();
   await expect(elementRef).toBeVisible();
   return elementRef;
 }
@@ -122,12 +122,12 @@ test.describe('Element Reference (@mentions)', () => {
       'worldbuilding-demo'
     );
     await page.waitForURL(new RegExp(`/testuser/${slug}`));
-    await expect(page.locator('app-project-tree')).toBeVisible();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Open the README document (exists in all templates).
     await page
       .click('text="README"')
-      .catch(() => page.locator('.tree-node-item').first().click());
+      .catch(() => page.locator('[role="treeitem"]').first().click());
 
     const editor = page.locator('.ProseMirror').first();
     await expect(editor).toBeVisible();
@@ -188,7 +188,7 @@ test.describe('Element Reference (@mentions)', () => {
     });
 
     await test.step('inserted element-ref has data attribute and aria-label', async () => {
-      const elementRef = page.locator('.element-ref').first();
+      const elementRef = page.getByTestId('element-ref').first();
       await expect(elementRef).toHaveAttribute('data-element-ref', 'true');
 
       const ariaLabel = await elementRef.getAttribute('aria-label');
@@ -212,7 +212,7 @@ test.describe('Element Reference (@mentions)', () => {
     await page.keyboard.type(' and ');
     await insertFirstElementRef(page);
 
-    const refsAfterInsert = await page.locator('.element-ref').count();
+    const refsAfterInsert = await page.getByTestId('element-ref').count();
     expect(refsAfterInsert).toBeGreaterThanOrEqual(2);
 
     await test.step('right-click shows context menu with navigate/edit/delete', async () => {
@@ -246,13 +246,15 @@ test.describe('Element Reference (@mentions)', () => {
     });
 
     await test.step('delete removes the element reference from the document', async () => {
-      const beforeCount = await page.locator('.element-ref').count();
+      const beforeCount = await page.getByTestId('element-ref').count();
 
       await triggerContextMenu(page, firstRef);
       await expect(contextMenu).toBeVisible();
       await page.locator('[data-testid="context-menu-delete"]').click();
 
-      await expect(page.locator('.element-ref')).toHaveCount(beforeCount - 1);
+      await expect(page.getByTestId('element-ref')).toHaveCount(
+        beforeCount - 1
+      );
     });
   });
 });

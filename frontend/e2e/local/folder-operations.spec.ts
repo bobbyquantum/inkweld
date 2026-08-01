@@ -20,7 +20,7 @@ test.describe('Folder Operations', () => {
     await page.getByTestId('project-card').first().click();
     await page.waitForURL(/\/.+\/.+/);
 
-    await page.waitForSelector('app-project-tree', { state: 'visible' });
+    await page.getByTestId('project-tree').waitFor({ state: 'visible' });
     await page.waitForTimeout(500);
 
     await page.click('[data-testid="create-new-element"]');
@@ -58,7 +58,7 @@ test.describe('Folder Operations', () => {
   }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await page.getByTestId('empty-state').waitFor({ state: 'visible' });
 
     await createProjectWithTwoSteps(
       page,
@@ -69,7 +69,7 @@ test.describe('Folder Operations', () => {
     );
 
     await page.waitForURL(/\/testuser\/folder-demo-test/);
-    await page.waitForSelector('app-project-tree', { state: 'visible' });
+    await page.getByTestId('project-tree').waitFor({ state: 'visible' });
     await page.waitForTimeout(500);
 
     await test.step('expand button reveals child items inside the folder', async () => {
@@ -87,10 +87,10 @@ test.describe('Folder Operations', () => {
       const folder = page.locator('[data-testid="element-Chronicles"]');
       if (await folder.isVisible().catch(() => false)) {
         await folder.click({ button: 'right' });
-        await expect(page.locator('.context-menu')).toBeVisible();
+        await expect(page.getByTestId('context-menu')).toBeVisible();
         // Dismiss the menu before the next step so it doesn't intercept clicks.
         await page.keyboard.press('Escape');
-        await expect(page.locator('.context-menu')).not.toBeVisible();
+        await expect(page.getByTestId('context-menu')).not.toBeVisible();
       }
     });
 

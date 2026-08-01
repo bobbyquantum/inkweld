@@ -32,7 +32,7 @@
   }
 
   @if (isLoading()) {
-    <div class="loading-container">
+    <div class="loading-container" data-testid="ai-settings-loading">
       <mat-spinner diameter="40"></mat-spinner>
       <p>{{ 'admin.aiSettings.loading' | transloco }}</p>
     </div>
@@ -56,7 +56,7 @@
     </mat-card>
   } @else {
     <!-- Global Enable Toggle -->
-    <mat-card class="settings-card">
+    <mat-card class="settings-card" data-testid="settings-card">
       <mat-card-header>
         <mat-icon mat-card-avatar>auto_awesome</mat-icon>
         <mat-card-title>{{
@@ -88,7 +88,9 @@
     <!-- Model List -->
     @if (imageGenerationEnabled()) {
       <!-- Image Profiles Section -->
-      <mat-card class="settings-card profiles-section-card">
+      <mat-card
+        class="settings-card profiles-section-card"
+        data-testid="profiles-section-card">
         <mat-card-header>
           <mat-icon mat-card-avatar>tune</mat-icon>
           <mat-card-title>{{
@@ -226,7 +228,7 @@
       </mat-card>
 
       <!-- Custom Image Sizes -->
-      <mat-card class="settings-card">
+      <mat-card class="settings-card" data-testid="settings-card">
         <mat-card-header>
           <mat-icon mat-card-avatar>photo_size_select_large</mat-icon>
           <mat-card-title>{{

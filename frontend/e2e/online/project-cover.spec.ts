@@ -152,7 +152,7 @@ test.describe('Project Cover (mobile)', () => {
 
     await openEditProjectDialog(page);
 
-    const dialog = page.getByTestId('edit-project-dialog');
+    const dialog = page.getByTestId('edit-project-dialog-layout');
     // The two-column layout stacks on phones.
     await expect(dialog).toHaveCSS('flex-direction', 'column');
     // No horizontal overflow and the actions are reachable.

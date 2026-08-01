@@ -69,6 +69,7 @@ export const autoReviewMarkSpec: MarkSpec = {
 
     const domAttrs: Record<string, string> = {
       class: classes,
+      'data-testid': 'auto-review-highlight',
       'data-auto-review-id': attrs.id || '',
       'data-auto-review-message': attrs.message || '',
       'data-auto-review-suggestion': attrs.suggestion || '',

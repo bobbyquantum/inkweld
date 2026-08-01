@@ -1,10 +1,11 @@
-<div class="activity-tab">
+<div class="activity-tab" data-testid="activity-tab">
   <header class="tab-header">
     <h2>
       <mat-icon>history</mat-icon> {{ 'project.activity.title' | transloco }}
     </h2>
     <button
       mat-icon-button
+      data-testid="activity-refresh-button"
       [matTooltip]="'project.activity.refresh' | transloco"
       [disabled]="loading()"
       (click)="loadInitial()">
@@ -17,7 +18,7 @@
       <mat-spinner diameter="40" />
     </div>
   } @else if (error()) {
-    <div class="error-state">
+    <div class="error-state" data-testid="activity-error-state">
       <mat-icon class="error-icon">error_outline</mat-icon>
       <h3>{{ 'project.activity.loadFailed' | transloco }}</h3>
       <p>{{ error() }}</p>
@@ -26,7 +27,7 @@
       </button>
     </div>
   } @else if (isEmpty()) {
-    <div class="empty-state">
+    <div class="empty-state" data-testid="activity-empty-state">
       <mat-icon>history_toggle_off</mat-icon>
       <h3>{{ 'project.activity.noActivity' | transloco }}</h3>
       <p>{{ 'project.activity.noActivityHint' | transloco }}</p>
@@ -34,7 +35,7 @@
   } @else {
     <ol class="event-list">
       @for (event of events(); track event.id) {
-        <li class="event-item">
+        <li class="event-item" data-testid="event-item">
           <div class="event-icon">
             <mat-icon>{{ iconFor(event.eventType) }}</mat-icon>
           </div>

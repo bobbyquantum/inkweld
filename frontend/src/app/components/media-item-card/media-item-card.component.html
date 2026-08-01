@@ -26,6 +26,7 @@
 <!-- Hover overlay with projected action/info content -->
 <div
   class="card-overlay"
+  data-testid="card-overlay"
   (click)="isImage() && cardClick.emit()"
   (keydown.enter)="isImage() && cardClick.emit()"
   (keydown.space)="isImage() && cardClick.emit(); $event.preventDefault()"

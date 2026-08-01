@@ -74,19 +74,21 @@ async function navigateToAiProviders(page: Page): Promise<void> {
 test.describe('Admin AI Settings Screenshots', () => {
   test.beforeEach(async ({ adminPage }) => {
     await navigateToAdminAiViaMenu(adminPage);
-    await adminPage.waitForSelector('.settings-card, .loading-container');
+    await adminPage.waitForSelector(
+      '[data-testid="settings-card"], [data-testid="ai-settings-loading"]'
+    );
 
-    const loadingContainer = adminPage.locator('.loading-container');
+    const loadingContainer = adminPage.getByTestId('ai-settings-loading');
     if (await loadingContainer.isVisible()) {
       await loadingContainer.waitFor({ state: 'hidden' });
     }
 
-    await adminPage.waitForSelector('.settings-card');
+    await adminPage.waitForSelector('[data-testid="settings-card"]');
   });
 
   test('AI settings screenshots — light mode', async ({ adminPage }) => {
     await applyColorScheme(adminPage, 'light');
-    await expect(adminPage.locator('.settings-card').first()).toBeVisible();
+    await expect(adminPage.getByTestId('settings-card').first()).toBeVisible();
 
     await test.step('settings page overview', async () => {
       await adminPage.screenshot({
@@ -96,7 +98,9 @@ test.describe('Admin AI Settings Screenshots', () => {
     });
 
     await test.step('provider cards — all providers + openai card', async () => {
-      const providerCards = adminPage.locator('.provider-card');
+      const providerCards = adminPage.locator(
+        '[data-testid^="ai-provider-card-"]'
+      );
       const cardCount = await providerCards.count();
 
       if (cardCount > 0) {
@@ -121,7 +125,9 @@ test.describe('Admin AI Settings Screenshots', () => {
       await navigateToAiProviders(adminPage);
       await applyColorScheme(adminPage, 'light');
 
-      const openaiCard = adminPage.locator('.provider-card').first();
+      const openaiCard = adminPage
+        .locator('[data-testid^="ai-provider-card-"]')
+        .first();
       await openaiCard.screenshot({
         path: path.join(SCREENSHOTS_DIR, 'admin-ai-openai-model-config.png'),
       });
@@ -129,7 +135,9 @@ test.describe('Admin AI Settings Screenshots', () => {
 
     await test.step('openrouter provider model config (ai-providers page)', async () => {
       // Already on the ai-providers page from previous step.
-      const providerCards = adminPage.locator('.provider-card');
+      const providerCards = adminPage.locator(
+        '[data-testid^="ai-provider-card-"]'
+      );
       const cardCount = await providerCards.count();
 
       if (cardCount >= 2) {
@@ -159,7 +167,7 @@ test.describe('Admin AI Settings Screenshots', () => {
 
   test('AI settings screenshots — dark mode', async ({ adminPage }) => {
     await applyColorScheme(adminPage, 'dark');
-    await expect(adminPage.locator('.settings-card').first()).toBeVisible();
+    await expect(adminPage.getByTestId('settings-card').first()).toBeVisible();
 
     await adminPage.screenshot({
       path: path.join(SCREENSHOTS_DIR, 'admin-ai-settings-dark.png'),
@@ -171,9 +179,11 @@ test.describe('Admin AI Settings Screenshots', () => {
 test.describe('Image Model Profiles Screenshots', () => {
   test.beforeEach(async ({ adminPage }) => {
     await navigateToAdminAiViaMenu(adminPage);
-    await adminPage.waitForSelector('.settings-card, .loading-container');
+    await adminPage.waitForSelector(
+      '[data-testid="settings-card"], [data-testid="ai-settings-loading"]'
+    );
 
-    const loadingContainer = adminPage.locator('.loading-container');
+    const loadingContainer = adminPage.getByTestId('ai-settings-loading');
     if (await loadingContainer.isVisible()) {
       await loadingContainer.waitFor({ state: 'hidden' });
     }
@@ -184,12 +194,14 @@ test.describe('Image Model Profiles Screenshots', () => {
     suffix: 'light' | 'dark'
   ): Promise<void> {
     await test.step('profiles grid section', async () => {
-      const profilesSection = adminPage.locator('.profiles-section-card');
+      const profilesSection = adminPage.getByTestId('profiles-section-card');
       if (await profilesSection.isVisible()) {
         await profilesSection.scrollIntoViewIfNeeded();
         await adminPage.waitForTimeout(300);
 
-        await adminPage.waitForSelector('.profiles-grid, .empty-state');
+        await adminPage.waitForSelector(
+          '[data-testid="profiles-grid"], [data-testid="profiles-empty-state"]'
+        );
 
         await profilesSection.screenshot({
           path: path.join(
@@ -231,13 +243,13 @@ test.describe('Image Model Profiles Screenshots', () => {
 
   test('image profiles screenshots — light mode', async ({ adminPage }) => {
     await applyColorScheme(adminPage, 'light');
-    await expect(adminPage.locator('.settings-card').first()).toBeVisible();
+    await expect(adminPage.getByTestId('settings-card').first()).toBeVisible();
     await captureProfileScreenshots(adminPage, 'light');
   });
 
   test('image profiles screenshots — dark mode', async ({ adminPage }) => {
     await applyColorScheme(adminPage, 'dark');
-    await expect(adminPage.locator('.settings-card').first()).toBeVisible();
+    await expect(adminPage.getByTestId('settings-card').first()).toBeVisible();
     await captureProfileScreenshots(adminPage, 'dark');
   });
 });

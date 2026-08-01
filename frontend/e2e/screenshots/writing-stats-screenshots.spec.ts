@@ -60,7 +60,7 @@ test.describe('Writing Stats & Activity Screenshots', () => {
 
     await test.step('light', async () => {
       await waitForWidget(page);
-      const widget = page.locator('app-writing-stats-widget .stats-widget');
+      const widget = page.getByTestId('stats-widget');
       await expect(widget).toBeVisible();
       await widget.screenshot({
         path: join(SCREENSHOTS_DIR, 'writing-stats-widget-light.png'),
@@ -71,7 +71,7 @@ test.describe('Writing Stats & Activity Screenshots', () => {
       await page.emulateMedia({ colorScheme: 'dark' });
       await page.reload({ waitUntil: 'domcontentloaded' });
       await waitForWidget(page);
-      const widget = page.locator('app-writing-stats-widget .stats-widget');
+      const widget = page.getByTestId('stats-widget');
       await expect(widget).toBeVisible();
       await widget.screenshot({
         path: join(SCREENSHOTS_DIR, 'writing-stats-widget-dark.png'),

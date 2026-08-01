@@ -25,6 +25,7 @@ import { MatIconModule } from '@angular/material/icon';
   imports: [MatIconModule],
   templateUrl: './media-item-card.component.html',
   styleUrl: './media-item-card.component.scss',
+  host: { 'data-testid': 'media-item-card' },
 })
 export class MediaItemCardComponent {
   /** Blob URL for the image */

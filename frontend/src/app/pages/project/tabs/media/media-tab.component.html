@@ -49,7 +49,7 @@
 </div>
 
 <!-- Scrollable gallery + filter panel -->
-<mat-sidenav-container class="media-container">
+<mat-sidenav-container class="media-container" data-testid="media-container">
   <mat-sidenav
     #filterSidenav
     position="end"
@@ -338,7 +338,7 @@
 </mat-sidenav-container>
 
 <!-- Fixed status bar -->
-<div class="media-status-bar">
+<div class="media-status-bar" data-testid="media-status-bar">
   <span>{{ filteredItems().length }} {{ 'media.tab.items' | transloco }}</span>
   <span class="separator">·</span>
   <span>{{ filteredSize() | fileSize }}</span>

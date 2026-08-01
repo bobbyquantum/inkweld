@@ -357,11 +357,9 @@ test.describe('Relationships Tab', () => {
         .first();
       await typeCard.getByTestId('delete-type-button').click();
 
-      await expect(page.locator('app-confirmation-dialog')).toBeVisible();
-      await page
-        .locator('app-confirmation-dialog button:has-text("Delete")')
-        .click();
-      await expect(page.locator('app-confirmation-dialog')).not.toBeVisible();
+      await expect(page.getByTestId('confirmation-dialog')).toBeVisible();
+      await page.getByTestId('confirm-delete-button').click();
+      await expect(page.getByTestId('confirmation-dialog')).not.toBeVisible();
 
       await expect(
         page

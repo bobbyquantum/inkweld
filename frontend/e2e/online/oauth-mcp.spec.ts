@@ -227,7 +227,7 @@ test.describe('OAuth Consent Screen', () => {
 
       await expect(page.getByText('OAuth Consent Project')).toBeVisible();
       const projectCheckbox = page
-        .locator('.project-item')
+        .getByTestId('project-item')
         .filter({ hasText: 'OAuth Consent Project' })
         .getByRole('checkbox');
       await projectCheckbox.click();
@@ -350,7 +350,7 @@ test.describe('Full OAuth Token Exchange', () => {
     // Step 5: Select project and authorize
     await expect(page.getByText('Token Test Project')).toBeVisible();
     const checkbox = page
-      .locator('.project-item')
+      .getByTestId('project-item')
       .filter({ hasText: 'Token Test Project' })
       .getByRole('checkbox');
     await checkbox.click();

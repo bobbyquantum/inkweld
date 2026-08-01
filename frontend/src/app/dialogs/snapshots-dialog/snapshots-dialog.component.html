@@ -53,7 +53,9 @@
           [attr.data-testid]="'snapshot-' + snapshot.id">
           <!-- Snapshot Info -->
           <div class="snapshot-info">
-            <div class="snapshot-name">{{ snapshot.name }}</div>
+            <div class="snapshot-name" data-testid="snapshot-name">
+              {{ snapshot.name }}
+            </div>
 
             @if (snapshot.description) {
               <div class="snapshot-description">{{ snapshot.description }}</div>

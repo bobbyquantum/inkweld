@@ -38,7 +38,9 @@ test.describe('Relationship Chart Screenshots', () => {
   ): Promise<void> {
     await page.goto('/');
 
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await page.waitForSelector('[data-testid="empty-state"]', {
+      state: 'visible',
+    });
 
     await createProjectWithTwoSteps(
       page,

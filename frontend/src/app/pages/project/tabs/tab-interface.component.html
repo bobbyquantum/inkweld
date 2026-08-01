@@ -1,4 +1,4 @@
-<div class="tab-bar-container">
+<div class="tab-bar-container" data-testid="tab-bar-container">
   <!-- Left scroll arrow -->
   @if (canScrollLeft()) {
     <button
@@ -70,7 +70,7 @@
 
 <!-- Tab Context Menu -->
 <ng-template #tabContextMenu>
-  <div class="tab-context-menu" cdkMenu>
+  <div class="tab-context-menu" cdkMenu data-testid="tab-context-menu">
     <!-- Only show rename for document/folder tabs (not for system tabs) and users with write access -->
     @if (
       contextTab && contextTab.type !== 'system' && projectState.canWrite()

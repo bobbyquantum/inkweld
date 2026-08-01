@@ -25,7 +25,7 @@ async function setupProjectAndSettings(
 ) {
   await page.goto('/');
 
-  await expect(page.locator('.empty-state')).toBeVisible();
+  await expect(page.getByTestId('empty-state')).toBeVisible();
 
   await createProjectWithTwoSteps(page, projectTitle, projectSlug);
   await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
