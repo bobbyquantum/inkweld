@@ -1,0 +1,1207 @@
+[
+  {
+    "title": "App Shell & Setup",
+    "description": "Bookshelf, project home, create-project flow, and the first-run setup wizard.",
+    "screenshots": [
+      {
+        "file": "bookshelf-desktop-light.png",
+        "dir": "generated",
+        "label": "Project bookshelf — desktop, light"
+      },
+      {
+        "file": "bookshelf-desktop-dark.png",
+        "dir": "generated",
+        "label": "Project bookshelf — desktop, dark"
+      },
+      {
+        "file": "bookshelf-mobile-light.png",
+        "dir": "generated",
+        "label": "Project bookshelf — mobile, light"
+      },
+      {
+        "file": "bookshelf-mobile-dark.png",
+        "dir": "generated",
+        "label": "Project bookshelf — mobile, dark"
+      },
+      {
+        "file": "project-home-desktop-light.png",
+        "dir": "generated",
+        "label": "Project home tab — desktop, light"
+      },
+      {
+        "file": "project-home-desktop-dark.png",
+        "dir": "generated",
+        "label": "Project home tab — desktop, dark"
+      },
+      {
+        "file": "create-button-nav-light.png",
+        "dir": "generated",
+        "label": "Create button in nav bar — light"
+      },
+      {
+        "file": "create-button-nav-dark.png",
+        "dir": "generated",
+        "label": "Create button in nav bar — dark"
+      },
+      {
+        "file": "create-project-templates-light.png",
+        "dir": "generated",
+        "label": "Create project — template picker, light"
+      },
+      {
+        "file": "create-project-templates-dark.png",
+        "dir": "generated",
+        "label": "Create project — template picker, dark"
+      },
+      {
+        "file": "create-project-details-light.png",
+        "dir": "generated",
+        "label": "Create project — details form, light"
+      },
+      {
+        "file": "create-project-details-dark.png",
+        "dir": "generated",
+        "label": "Create project — details form, dark"
+      }
+    ]
+  },
+  {
+    "title": "First-Run Setup Wizard",
+    "description": "The mode-selection and profile/server-configuration screens shown on first launch.",
+    "screenshots": [
+      {
+        "file": "setup-mode-selection-light.png",
+        "dir": "generated",
+        "label": "Setup — mode selection, light"
+      },
+      {
+        "file": "setup-mode-selection-dark.png",
+        "dir": "generated",
+        "label": "Setup — mode selection, dark"
+      },
+      {
+        "file": "setup-offline-light.png",
+        "dir": "generated",
+        "label": "Setup — offline profile form, light"
+      },
+      {
+        "file": "setup-offline-dark.png",
+        "dir": "generated",
+        "label": "Setup — offline profile form, dark"
+      },
+      {
+        "file": "setup-server-light.png",
+        "dir": "generated",
+        "label": "Setup — server connection, light"
+      },
+      {
+        "file": "setup-server-dark.png",
+        "dir": "generated",
+        "label": "Setup — server connection, dark"
+      },
+      {
+        "file": "setup-mode-selection-mobile-light.png",
+        "dir": "generated",
+        "label": "Setup — mode selection, mobile, light"
+      },
+      {
+        "file": "setup-mode-selection-mobile-dark.png",
+        "dir": "generated",
+        "label": "Setup — mode selection, mobile, dark"
+      },
+      {
+        "file": "setup-offline-mobile-light.png",
+        "dir": "generated",
+        "label": "Setup — offline profile, mobile, light"
+      },
+      {
+        "file": "setup-offline-mobile-dark.png",
+        "dir": "generated",
+        "label": "Setup — offline profile, mobile, dark"
+      }
+    ]
+  },
+  {
+    "title": "Editor",
+    "description": "The main prose editor on desktop and mobile, in both color schemes.",
+    "screenshots": [
+      {
+        "file": "editor-desktop-light.png",
+        "dir": "generated",
+        "label": "Editor — desktop, light"
+      },
+      {
+        "file": "editor-desktop-dark.png",
+        "dir": "generated",
+        "label": "Editor — desktop, dark"
+      },
+      {
+        "file": "editor-mobile-light.png",
+        "dir": "generated",
+        "label": "Editor — mobile, light"
+      },
+      {
+        "file": "editor-mobile-dark.png",
+        "dir": "generated",
+        "label": "Editor — mobile, dark"
+      }
+    ]
+  },
+  {
+    "title": "About Page",
+    "description": "The /about page with version info and library credits.",
+    "screenshots": [
+      {
+        "file": "about-page-desktop-light.png",
+        "dir": "generated",
+        "label": "About page — desktop, light"
+      },
+      {
+        "file": "about-page-desktop-dark.png",
+        "dir": "generated",
+        "label": "About page — desktop, dark"
+      },
+      {
+        "file": "about-libraries-card-light.png",
+        "dir": "generated",
+        "label": "About — libraries card, light"
+      },
+      {
+        "file": "about-libraries-card-dark.png",
+        "dir": "generated",
+        "label": "About — libraries card, dark"
+      },
+      {
+        "file": "about-page-mobile-light.png",
+        "dir": "generated",
+        "label": "About page — mobile, light"
+      },
+      {
+        "file": "about-page-mobile-dark.png",
+        "dir": "generated",
+        "label": "About page — mobile, dark"
+      }
+    ]
+  },
+  {
+    "title": "Writing Stats",
+    "description": "The user-profile writing-stats widget (online-only, mocked stats endpoints).",
+    "screenshots": [
+      {
+        "file": "writing-stats-widget-light.png",
+        "dir": "generated",
+        "label": "Writing-stats widget — light"
+      },
+      {
+        "file": "writing-stats-widget-dark.png",
+        "dir": "generated",
+        "label": "Writing-stats widget — dark"
+      }
+    ]
+  },
+  {
+    "title": "Element Type Chooser & Dialogs",
+    "description": "The create-element type chooser, the folder/tab context menus, and the new-document naming dialog.",
+    "screenshots": [
+      {
+        "file": "element-type-chooser-light.png",
+        "dir": "generated",
+        "label": "Element type chooser dialog — light"
+      },
+      {
+        "file": "element-type-chooser-dark.png",
+        "dir": "generated",
+        "label": "Element type chooser dialog — dark"
+      },
+      {
+        "file": "folder-context-menu-light.png",
+        "dir": "generated",
+        "label": "Folder context menu — light"
+      },
+      {
+        "file": "folder-context-menu-dark.png",
+        "dir": "generated",
+        "label": "Folder context menu — dark"
+      },
+      {
+        "file": "tab-context-menu-light.png",
+        "dir": "generated",
+        "label": "Document tab context menu — light"
+      },
+      {
+        "file": "tab-context-menu-dark.png",
+        "dir": "generated",
+        "label": "Document tab context menu — dark"
+      },
+      {
+        "file": "new-document-dialog-light.png",
+        "dir": "generated",
+        "label": "New document naming dialog — light"
+      },
+      {
+        "file": "new-document-dialog-dark.png",
+        "dir": "generated",
+        "label": "New document naming dialog — dark"
+      }
+    ]
+  },
+  {
+    "title": "Media Library",
+    "description": "The media tab with seeded images, search, filters, empty state, and mobile views.",
+    "screenshots": [
+      {
+        "file": "media-tab-desktop-light.png",
+        "dir": "generated",
+        "label": "Media tab — desktop, light"
+      },
+      {
+        "file": "media-tab-dark.png",
+        "dir": "generated",
+        "label": "Media tab — desktop, dark"
+      },
+      {
+        "file": "media-tab-filtered-light.png",
+        "dir": "generated",
+        "label": "Media tab — filtered by inline images"
+      },
+      {
+        "file": "media-tab-empty-light.png",
+        "dir": "generated",
+        "label": "Media tab — empty state"
+      },
+      {
+        "file": "media-tab-mobile-light.png",
+        "dir": "generated",
+        "label": "Media tab — mobile, light"
+      },
+      {
+        "file": "media-tab-light.png",
+        "dir": "features",
+        "label": "Media tab overview — light"
+      },
+      {
+        "file": "media-tab-dark.png",
+        "dir": "features",
+        "label": "Media tab overview — dark"
+      },
+      {
+        "file": "media-gallery-light.png",
+        "dir": "features",
+        "label": "Media gallery grid — light"
+      },
+      {
+        "file": "media-gallery-dark.png",
+        "dir": "features",
+        "label": "Media gallery grid — dark"
+      },
+      {
+        "file": "media-search-light.png",
+        "dir": "features",
+        "label": "Media search results — light"
+      },
+      {
+        "file": "media-search-dark.png",
+        "dir": "features",
+        "label": "Media search results — dark"
+      },
+      {
+        "file": "media-filter-panel-light.png",
+        "dir": "features",
+        "label": "Media filter panel — light"
+      },
+      {
+        "file": "media-filter-panel-dark.png",
+        "dir": "features",
+        "label": "Media filter panel — dark"
+      },
+      {
+        "file": "media-empty-light.png",
+        "dir": "features",
+        "label": "Media empty state — light"
+      },
+      {
+        "file": "media-empty-dark.png",
+        "dir": "features",
+        "label": "Media empty state — dark"
+      }
+    ]
+  },
+  {
+    "title": "Element References (@mentions)",
+    "description": "The @mention flow: popup, search, link, tooltip, context menu, edit mode, backlinks, and feature showcase.",
+    "screenshots": [
+      {
+        "file": "element-ref-01-popup-light.png",
+        "dir": "features",
+        "label": "@mention — popup open, light"
+      },
+      {
+        "file": "element-ref-01-popup-dark.png",
+        "dir": "features",
+        "label": "@mention — popup open, dark"
+      },
+      {
+        "file": "element-ref-02-search-light.png",
+        "dir": "features",
+        "label": "@mention — search results, light"
+      },
+      {
+        "file": "element-ref-02-search-dark.png",
+        "dir": "features",
+        "label": "@mention — search results, dark"
+      },
+      {
+        "file": "element-ref-03-link-light.png",
+        "dir": "features",
+        "label": "@mention — inserted link, light"
+      },
+      {
+        "file": "element-ref-03-link-dark.png",
+        "dir": "features",
+        "label": "@mention — inserted link, dark"
+      },
+      {
+        "file": "element-ref-04-tooltip-light.png",
+        "dir": "features",
+        "label": "@mention — hover tooltip, light"
+      },
+      {
+        "file": "element-ref-04-tooltip-dark.png",
+        "dir": "features",
+        "label": "@mention — hover tooltip, dark"
+      },
+      {
+        "file": "element-ref-character-search-light.png",
+        "dir": "features",
+        "label": "@mention — character search, light"
+      },
+      {
+        "file": "element-ref-character-search-dark.png",
+        "dir": "features",
+        "label": "@mention — character search, dark"
+      },
+      {
+        "file": "element-ref-character-link-light.png",
+        "dir": "features",
+        "label": "@mention — character link in text, light"
+      },
+      {
+        "file": "element-ref-character-link-dark.png",
+        "dir": "features",
+        "label": "@mention — character link in text, dark"
+      },
+      {
+        "file": "element-ref-character-tooltip-light.png",
+        "dir": "features",
+        "label": "@mention — character tooltip, light"
+      },
+      {
+        "file": "element-ref-character-tooltip-dark.png",
+        "dir": "features",
+        "label": "@mention — character tooltip, dark"
+      },
+      {
+        "file": "element-ref-editor-light.png",
+        "dir": "features",
+        "label": "Editor with element reference — light"
+      },
+      {
+        "file": "element-ref-editor-dark.png",
+        "dir": "features",
+        "label": "Editor with element reference — dark"
+      },
+      {
+        "file": "element-ref-tooltip-light.png",
+        "dir": "features",
+        "label": "Element reference tooltip (full page) — light"
+      },
+      {
+        "file": "element-ref-tooltip-dark.png",
+        "dir": "features",
+        "label": "Element reference tooltip (full page) — dark"
+      },
+      {
+        "file": "element-ref-context-menu-light.png",
+        "dir": "features",
+        "label": "Element reference context menu — light"
+      },
+      {
+        "file": "element-ref-context-menu-dark.png",
+        "dir": "features",
+        "label": "Element reference context menu — dark"
+      },
+      {
+        "file": "element-ref-edit-mode-light.png",
+        "dir": "features",
+        "label": "Element reference edit mode — light"
+      },
+      {
+        "file": "element-ref-feature.png",
+        "dir": "features",
+        "label": "@mention feature showcase"
+      },
+      {
+        "file": "element-ref-backlinks-character-light.png",
+        "dir": "features",
+        "label": "Backlinks — character view, light"
+      },
+      {
+        "file": "element-ref-backlinks-character-dark.png",
+        "dir": "features",
+        "label": "Backlinks — character view, dark"
+      },
+      {
+        "file": "element-ref-backlinks-worldbuilding-light.png",
+        "dir": "features",
+        "label": "Backlinks — worldbuilding editor, light"
+      },
+      {
+        "file": "element-ref-backlinks-worldbuilding-dark.png",
+        "dir": "features",
+        "label": "Backlinks — worldbuilding editor, dark"
+      },
+      {
+        "file": "element-ref-backlinks-panel-light.png",
+        "dir": "features",
+        "label": "Backlinks — meta panel, light"
+      },
+      {
+        "file": "element-ref-backlinks-panel-dark.png",
+        "dir": "features",
+        "label": "Backlinks — meta panel, dark"
+      }
+    ]
+  },
+  {
+    "title": "Worldbuilding Editor (Desktop)",
+    "description": "The worldbuilding editor sidenav layout: identity, schema fields, relationships, media, status bar.",
+    "screenshots": [
+      {
+        "file": "worldbuilding-editor-overview-light.png",
+        "dir": "features",
+        "label": "Worldbuilding editor overview — light"
+      },
+      {
+        "file": "worldbuilding-editor-overview-dark.png",
+        "dir": "features",
+        "label": "Worldbuilding editor overview — dark"
+      },
+      {
+        "file": "worldbuilding-editor-fields-light.png",
+        "dir": "features",
+        "label": "Worldbuilding editor — schema fields, light"
+      },
+      {
+        "file": "worldbuilding-editor-fields-dark.png",
+        "dir": "features",
+        "label": "Worldbuilding editor — schema fields, dark"
+      },
+      {
+        "file": "worldbuilding-editor-relationships-light.png",
+        "dir": "features",
+        "label": "Worldbuilding editor — relationships, light"
+      },
+      {
+        "file": "worldbuilding-editor-relationships-dark.png",
+        "dir": "features",
+        "label": "Worldbuilding editor — relationships, dark"
+      },
+      {
+        "file": "worldbuilding-editor-media-light.png",
+        "dir": "features",
+        "label": "Worldbuilding editor — media section, light"
+      },
+      {
+        "file": "worldbuilding-editor-media-dark.png",
+        "dir": "features",
+        "label": "Worldbuilding editor — media section, dark"
+      },
+      {
+        "file": "worldbuilding-editor-statusbar-light.png",
+        "dir": "features",
+        "label": "Editor status bar — light"
+      },
+      {
+        "file": "worldbuilding-editor-statusbar-dark.png",
+        "dir": "features",
+        "label": "Editor status bar — dark"
+      },
+      {
+        "file": "worldbuilding-editor-sidenav-light.png",
+        "dir": "features",
+        "label": "Worldbuilding sidenav — light"
+      },
+      {
+        "file": "worldbuilding-editor-sidenav-dark.png",
+        "dir": "features",
+        "label": "Worldbuilding sidenav — dark"
+      }
+    ]
+  },
+  {
+    "title": "Worldbuilding Editor (Mobile)",
+    "description": "The accordion layout used on phones and small tablets across several viewport sizes.",
+    "screenshots": [
+      {
+        "file": "worldbuilding-accordion-iPhoneSE.png",
+        "dir": "features/mobile",
+        "label": "Mobile accordion — iPhone SE (375×667)"
+      },
+      {
+        "file": "worldbuilding-tab-fields-iPhoneSE.png",
+        "dir": "features/mobile",
+        "label": "Mobile tab fields — iPhone SE"
+      },
+      {
+        "file": "worldbuilding-accordion-iPhone14Pro.png",
+        "dir": "features/mobile",
+        "label": "Mobile accordion — iPhone 14 Pro (393×852)"
+      },
+      {
+        "file": "worldbuilding-tab-fields-iPhone14Pro.png",
+        "dir": "features/mobile",
+        "label": "Mobile tab fields — iPhone 14 Pro"
+      },
+      {
+        "file": "worldbuilding-accordion-galaxyS21.png",
+        "dir": "features/mobile",
+        "label": "Mobile accordion — Galaxy S21 (360×800)"
+      },
+      {
+        "file": "worldbuilding-tab-fields-galaxyS21.png",
+        "dir": "features/mobile",
+        "label": "Mobile tab fields — Galaxy S21"
+      },
+      {
+        "file": "worldbuilding-accordion-smallTablet.png",
+        "dir": "features/mobile",
+        "label": "Mobile accordion — small tablet (600×900)"
+      },
+      {
+        "file": "worldbuilding-tab-fields-smallTablet.png",
+        "dir": "features/mobile",
+        "label": "Mobile tab fields — small tablet"
+      },
+      {
+        "file": "worldbuilding-accordion-dark.png",
+        "dir": "features/mobile",
+        "label": "Mobile accordion — dark mode"
+      },
+      {
+        "file": "worldbuilding-tab-fields-dark.png",
+        "dir": "features/mobile",
+        "label": "Mobile tab fields — dark mode"
+      }
+    ]
+  },
+  {
+    "title": "Relationships Tab & Chart",
+    "description": "Relationship-type management, per-character relationship panels, the relationship chart, and add/edit dialogs.",
+    "screenshots": [
+      {
+        "file": "relationships-tab-overview-light.png",
+        "dir": "features",
+        "label": "Relationships tab overview — light"
+      },
+      {
+        "file": "relationships-tab-overview-dark.png",
+        "dir": "features",
+        "label": "Relationships tab overview — dark"
+      },
+      {
+        "file": "relationships-types-light.png",
+        "dir": "features",
+        "label": "Relationship types grid — light"
+      },
+      {
+        "file": "relationships-types-dark.png",
+        "dir": "features",
+        "label": "Relationship types grid — dark"
+      },
+      {
+        "file": "relationships-card-details-light.png",
+        "dir": "features",
+        "label": "Relationship type card details — light"
+      },
+      {
+        "file": "relationships-type-card-dark.png",
+        "dir": "features",
+        "label": "Relationship type card — dark"
+      },
+      {
+        "file": "relationships-action-menu-light.png",
+        "dir": "features",
+        "label": "Relationship type action menu — light"
+      },
+      {
+        "file": "relationships-edit-dialog-light.png",
+        "dir": "features",
+        "label": "Edit relationship type dialog — light"
+      },
+      {
+        "file": "relationships-edit-dialog-dark.png",
+        "dir": "features",
+        "label": "Edit relationship type dialog — dark"
+      },
+      {
+        "file": "relationships-create-dialog-light.png",
+        "dir": "features",
+        "label": "Create relationship type dialog — light"
+      },
+      {
+        "file": "relationships-new-dialog-light.png",
+        "dir": "features",
+        "label": "New relationship type dialog — light"
+      },
+      {
+        "file": "relationships-feature-showcase.png",
+        "dir": "features",
+        "label": "Relationships feature showcase"
+      },
+      {
+        "file": "relationships-types-grid.png",
+        "dir": "features",
+        "label": "Relationship types grid (showcase)"
+      },
+      {
+        "file": "character-relationships-panel-light.png",
+        "dir": "features",
+        "label": "Character relationships panel — light"
+      },
+      {
+        "file": "character-relationships-panel-dark.png",
+        "dir": "features",
+        "label": "Character relationships panel — dark"
+      },
+      {
+        "file": "character-relationships-overview-light.png",
+        "dir": "features",
+        "label": "Character relationships overview — light"
+      },
+      {
+        "file": "character-relationships-overview-dark.png",
+        "dir": "features",
+        "label": "Character relationships overview — dark"
+      },
+      {
+        "file": "add-relationship-dialog-light.png",
+        "dir": "features",
+        "label": "Add relationship dialog — light"
+      },
+      {
+        "file": "add-relationship-dialog-dark.png",
+        "dir": "features",
+        "label": "Add relationship dialog — dark"
+      },
+      {
+        "file": "relationships-empty-state-light.png",
+        "dir": "features",
+        "label": "Relationships empty state — light"
+      },
+      {
+        "file": "character-parent-relationship-light.png",
+        "dir": "features",
+        "label": "Parent relationship panel — light"
+      },
+      {
+        "file": "character-parent-overview-light.png",
+        "dir": "features",
+        "label": "Parent relationship overview — light"
+      },
+      {
+        "file": "character-child-relationship-light.png",
+        "dir": "features",
+        "label": "Child relationship panel — light"
+      },
+      {
+        "file": "character-child-overview-light.png",
+        "dir": "features",
+        "label": "Child relationship overview — light"
+      },
+      {
+        "file": "character-parent-relationship-dark.png",
+        "dir": "features",
+        "label": "Parent relationship panel — dark"
+      },
+      {
+        "file": "character-parent-overview-dark.png",
+        "dir": "features",
+        "label": "Parent relationship overview — dark"
+      },
+      {
+        "file": "character-child-relationship-dark.png",
+        "dir": "features",
+        "label": "Child relationship panel — dark"
+      },
+      {
+        "file": "character-child-overview-dark.png",
+        "dir": "features",
+        "label": "Child relationship overview — dark"
+      },
+      {
+        "file": "character-multiple-relationships-light.png",
+        "dir": "features",
+        "label": "Multiple relationships on one character — light"
+      },
+      {
+        "file": "character-multiple-relationships-overview-light.png",
+        "dir": "features",
+        "label": "Multiple relationships overview — light"
+      },
+      {
+        "file": "character-multiple-relationships-dark.png",
+        "dir": "features",
+        "label": "Multiple relationships on one character — dark"
+      },
+      {
+        "file": "character-multiple-relationships-overview-dark.png",
+        "dir": "features",
+        "label": "Multiple relationships overview — dark"
+      },
+      {
+        "file": "debug-dialog-state.png",
+        "dir": "features",
+        "label": "Debug — add-relationship dialog state"
+      },
+      {
+        "file": "relationship-chart-overview-light.png",
+        "dir": "features",
+        "label": "Relationship chart overview — light"
+      },
+      {
+        "file": "relationship-chart-overview-dark.png",
+        "dir": "features",
+        "label": "Relationship chart overview — dark"
+      },
+      {
+        "file": "relationship-chart-sidebar-light.png",
+        "dir": "features",
+        "label": "Relationship chart sidebar — light"
+      },
+      {
+        "file": "relationship-chart-sidebar-dark.png",
+        "dir": "features",
+        "label": "Relationship chart sidebar — dark"
+      }
+    ]
+  },
+  {
+    "title": "Tags",
+    "description": "Tag management: empty state, create dialog, populated list, and edit dialog.",
+    "screenshots": [
+      {
+        "file": "tags-empty-light.png",
+        "dir": "features",
+        "label": "Tags empty state — light"
+      },
+      {
+        "file": "tags-empty-dark.png",
+        "dir": "features",
+        "label": "Tags empty state — dark"
+      },
+      {
+        "file": "tags-create-dialog-light.png",
+        "dir": "features",
+        "label": "Create tag dialog — light"
+      },
+      {
+        "file": "tags-create-dialog-dark.png",
+        "dir": "features",
+        "label": "Create tag dialog — dark"
+      },
+      {
+        "file": "tags-list-light.png",
+        "dir": "features",
+        "label": "Tags list — light"
+      },
+      {
+        "file": "tags-list-dark.png",
+        "dir": "features",
+        "label": "Tags list — dark"
+      },
+      {
+        "file": "tags-edit-dialog-light.png",
+        "dir": "features",
+        "label": "Edit tag dialog — light"
+      },
+      {
+        "file": "tags-edit-dialog-dark.png",
+        "dir": "features",
+        "label": "Edit tag dialog — dark"
+      },
+      {
+        "file": "tags-tab-light.png",
+        "dir": "generated",
+        "label": "Tags tab — light"
+      },
+      {
+        "file": "tags-tab-dark.png",
+        "dir": "generated",
+        "label": "Tags tab — dark"
+      },
+      {
+        "file": "tag-edit-dialog-light.png",
+        "dir": "generated",
+        "label": "Tag edit dialog — light"
+      },
+      {
+        "file": "tag-edit-dialog-dark.png",
+        "dir": "generated",
+        "label": "Tag edit dialog — dark"
+      }
+    ]
+  },
+  {
+    "title": "Templates",
+    "description": "The Element Templates tab: overview, list, controls, card menu, actions, and create dialog.",
+    "screenshots": [
+      {
+        "file": "templates-overview-light.png",
+        "dir": "features",
+        "label": "Templates overview — light"
+      },
+      {
+        "file": "templates-overview-dark.png",
+        "dir": "features",
+        "label": "Templates overview — dark"
+      },
+      {
+        "file": "templates-grid-light.png",
+        "dir": "features",
+        "label": "Templates list section — light"
+      },
+      {
+        "file": "templates-create-button-light.png",
+        "dir": "features",
+        "label": "Templates header / create button — light"
+      },
+      {
+        "file": "templates-card-menu-light.png",
+        "dir": "features",
+        "label": "Template card menu — light"
+      },
+      {
+        "file": "templates-card-menu-dark.png",
+        "dir": "features",
+        "label": "Template card menu — dark"
+      },
+      {
+        "file": "templates-clone-menu-light.png",
+        "dir": "features",
+        "label": "Template row actions — light"
+      },
+      {
+        "file": "templates-clone-menu-dark.png",
+        "dir": "features",
+        "label": "Template row actions — dark"
+      },
+      {
+        "file": "templates-create-dialog-light.png",
+        "dir": "features",
+        "label": "Create template dialog — light"
+      },
+      {
+        "file": "templates-create-dialog-dark.png",
+        "dir": "features",
+        "label": "Create template dialog — dark"
+      }
+    ]
+  },
+  {
+    "title": "Publish Style Editor",
+    "description": "The Style editor inside the publish-plan tab: preset picker, dropdown, body text, chapter, and worldbuilding sections.",
+    "screenshots": [
+      {
+        "file": "publish-style-overview-light.png",
+        "dir": "features",
+        "label": "Publish style overview — light"
+      },
+      {
+        "file": "publish-style-overview-dark.png",
+        "dir": "features",
+        "label": "Publish style overview — dark"
+      },
+      {
+        "file": "publish-style-preset-picker-light.png",
+        "dir": "features",
+        "label": "Style preset picker — light"
+      },
+      {
+        "file": "publish-style-preset-picker-dark.png",
+        "dir": "features",
+        "label": "Style preset picker — dark"
+      },
+      {
+        "file": "publish-style-preset-list-light.png",
+        "dir": "features",
+        "label": "Style preset dropdown — light"
+      },
+      {
+        "file": "publish-style-preset-list-dark.png",
+        "dir": "features",
+        "label": "Style preset dropdown — dark"
+      },
+      {
+        "file": "publish-style-body-text-light.png",
+        "dir": "features",
+        "label": "Style — body text section — light"
+      },
+      {
+        "file": "publish-style-body-text-dark.png",
+        "dir": "features",
+        "label": "Style — body text section — dark"
+      },
+      {
+        "file": "publish-style-chapter-light.png",
+        "dir": "features",
+        "label": "Style — chapter title section — light"
+      },
+      {
+        "file": "publish-style-chapter-dark.png",
+        "dir": "features",
+        "label": "Style — chapter title section — dark"
+      },
+      {
+        "file": "publish-style-worldbuilding-light.png",
+        "dir": "features",
+        "label": "Style — worldbuilding section — light"
+      },
+      {
+        "file": "publish-style-worldbuilding-dark.png",
+        "dir": "features",
+        "label": "Style — worldbuilding section — dark"
+      }
+    ]
+  },
+  {
+    "title": "Project Rename & Danger Zone",
+    "description": "The project rename card, expanded form, danger zone, and delete card.",
+    "screenshots": [
+      {
+        "file": "project-rename-card-light.png",
+        "dir": "features",
+        "label": "Rename card (collapsed) — light"
+      },
+      {
+        "file": "project-rename-card-dark.png",
+        "dir": "features",
+        "label": "Rename card (collapsed) — dark"
+      },
+      {
+        "file": "project-rename-form-light.png",
+        "dir": "features",
+        "label": "Rename form expanded — light"
+      },
+      {
+        "file": "project-rename-form-dark.png",
+        "dir": "features",
+        "label": "Rename form expanded — dark"
+      },
+      {
+        "file": "project-rename-filled-light.png",
+        "dir": "features",
+        "label": "Rename form filled — light"
+      },
+      {
+        "file": "danger-zone-overview-light.png",
+        "dir": "features",
+        "label": "Danger zone overview — light"
+      },
+      {
+        "file": "danger-zone-overview-dark.png",
+        "dir": "features",
+        "label": "Danger zone overview — dark"
+      },
+      {
+        "file": "project-delete-card-light.png",
+        "dir": "features",
+        "label": "Delete project card — light"
+      },
+      {
+        "file": "project-delete-card-dark.png",
+        "dir": "features",
+        "label": "Delete project card — dark"
+      }
+    ]
+  },
+  {
+    "title": "Quick Open",
+    "description": "The Quick Open dialog (Ctrl+P) showing recent files and filtered search.",
+    "screenshots": [
+      {
+        "file": "quick-open-dialog-light.png",
+        "dir": "features",
+        "label": "Quick Open dialog — light"
+      },
+      {
+        "file": "quick-open-dialog-dark.png",
+        "dir": "features",
+        "label": "Quick Open dialog — dark"
+      },
+      {
+        "file": "quick-open-search-light.png",
+        "dir": "features",
+        "label": "Quick Open search — light"
+      },
+      {
+        "file": "quick-open-search-dark.png",
+        "dir": "features",
+        "label": "Quick Open search — dark"
+      }
+    ]
+  },
+  {
+    "title": "Canvas Tab",
+    "description": "The Canvas element type: overview, sidebar (layers), and toolbar with drawn shapes.",
+    "screenshots": [
+      {
+        "file": "canvas-tab-overview-light.png",
+        "dir": "features",
+        "label": "Canvas overview — light"
+      },
+      {
+        "file": "canvas-tab-overview-dark.png",
+        "dir": "features",
+        "label": "Canvas overview — dark"
+      },
+      {
+        "file": "canvas-tab-sidebar-light.png",
+        "dir": "features",
+        "label": "Canvas sidebar (layers) — light"
+      },
+      {
+        "file": "canvas-tab-sidebar-dark.png",
+        "dir": "features",
+        "label": "Canvas sidebar (layers) — dark"
+      },
+      {
+        "file": "canvas-tab-toolbar-light.png",
+        "dir": "features",
+        "label": "Canvas toolbar — light"
+      },
+      {
+        "file": "canvas-tab-toolbar-dark.png",
+        "dir": "features",
+        "label": "Canvas toolbar — dark"
+      }
+    ]
+  },
+  {
+    "title": "Timeline Tab",
+    "description": "The Timeline element type with tracks, events, and an era, plus the toolbar.",
+    "screenshots": [
+      {
+        "file": "timeline-tab-overview-light.png",
+        "dir": "features",
+        "label": "Timeline canvas overview — light"
+      },
+      {
+        "file": "timeline-tab-overview-dark.png",
+        "dir": "features",
+        "label": "Timeline canvas overview — dark"
+      },
+      {
+        "file": "timeline-tab-toolbar-light.png",
+        "dir": "features",
+        "label": "Timeline toolbar — light"
+      },
+      {
+        "file": "timeline-tab-toolbar-dark.png",
+        "dir": "features",
+        "label": "Timeline toolbar — dark"
+      }
+    ]
+  },
+  {
+    "title": "Admin — AI Settings & Image Generation",
+    "description": "Admin AI settings page, provider cards, model configs, image model profiles, and the image generation dialog.",
+    "screenshots": [
+      {
+        "file": "admin-ai-settings-light.png",
+        "dir": "features",
+        "label": "Admin AI settings — light"
+      },
+      {
+        "file": "admin-ai-settings-dark.png",
+        "dir": "features",
+        "label": "Admin AI settings — dark"
+      },
+      {
+        "file": "admin-ai-all-providers.png",
+        "dir": "features",
+        "label": "AI provider cards (all)"
+      },
+      {
+        "file": "admin-ai-openai-card.png",
+        "dir": "features",
+        "label": "OpenAI provider card"
+      },
+      {
+        "file": "admin-ai-openai-model-config.png",
+        "dir": "features",
+        "label": "OpenAI model config"
+      },
+      {
+        "file": "admin-ai-openrouter-model-config.png",
+        "dir": "features",
+        "label": "OpenRouter model config"
+      },
+      {
+        "file": "admin-ai-image-profiles-light.png",
+        "dir": "features",
+        "label": "Image model profiles grid — light"
+      },
+      {
+        "file": "admin-ai-image-profiles-dark.png",
+        "dir": "features",
+        "label": "Image model profiles grid — dark"
+      },
+      {
+        "file": "admin-ai-image-profile-dialog-light.png",
+        "dir": "features",
+        "label": "Image profile creation dialog — light"
+      },
+      {
+        "file": "admin-ai-image-profile-dialog-dark.png",
+        "dir": "features",
+        "label": "Image profile creation dialog — dark"
+      },
+      {
+        "file": "image-generation-dialog-light.png",
+        "dir": "features",
+        "label": "Image generation dialog — light"
+      },
+      {
+        "file": "image-generation-dialog-dark.png",
+        "dir": "features",
+        "label": "Image generation dialog — dark"
+      }
+    ]
+  },
+  {
+    "title": "Admin — Kill Switch",
+    "description": "The AI kill-switch settings page and the focused kill-switch card.",
+    "screenshots": [
+      {
+        "file": "admin-kill-switch-settings-light.png",
+        "dir": "features",
+        "label": "Kill switch settings page — light"
+      },
+      {
+        "file": "admin-kill-switch-settings-dark.png",
+        "dir": "features",
+        "label": "Kill switch settings page — dark"
+      },
+      {
+        "file": "admin-kill-switch-card-light.png",
+        "dir": "features",
+        "label": "Kill switch card — light"
+      },
+      {
+        "file": "admin-kill-switch-card-dark.png",
+        "dir": "features",
+        "label": "Kill switch card — dark"
+      }
+    ]
+  }
+]
