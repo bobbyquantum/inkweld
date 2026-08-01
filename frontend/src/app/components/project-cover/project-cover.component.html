@@ -4,6 +4,7 @@
       [src]="coverUrl"
       [alt]="projectTitle + ' cover'"
       class="cover-image"
+      data-testid="project-cover-image"
       (error)="$any($event.target).style.display = 'none'" />
   } @else if (project) {
     <div class="no-cover-container">

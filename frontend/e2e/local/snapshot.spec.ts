@@ -74,7 +74,9 @@ test.describe('Document Snapshots', () => {
     await expect(editor).toBeVisible();
     await editor.click();
     await editor.fill('Original content before snapshot.');
-    await expect(page.locator('.sync-status')).toContainText('local');
+    await expect(page.getByTestId('document-sync-status')).toContainText(
+      'local'
+    );
 
     await test.step('create snapshot is listed and clears empty state', async () => {
       await openSnapshotsDialog(page);
@@ -84,7 +86,7 @@ test.describe('Document Snapshots', () => {
 
       const snapshotItem = page.locator('[data-testid^="snapshot-"]').first();
       await expect(snapshotItem).toBeVisible();
-      await expect(snapshotItem.locator('.snapshot-name')).toContainText(
+      await expect(snapshotItem.getByTestId('snapshot-name')).toContainText(
         'Original'
       );
       await expect(page.getByText('No snapshots yet')).not.toBeVisible();
@@ -97,7 +99,9 @@ test.describe('Document Snapshots', () => {
       await page.keyboard.press('Control+A');
       await page.keyboard.type('Modified content after snapshot.');
       await expect(editor).toContainText('Modified content after snapshot.');
-      await expect(page.locator('.sync-status')).toContainText('local');
+      await expect(page.getByTestId('document-sync-status')).toContainText(
+        'local'
+      );
 
       await openSnapshotsDialog(page);
 
@@ -167,7 +171,7 @@ test.describe('Worldbuilding Snapshots', () => {
       await createSnapshot(page, 'Original Location');
 
       const snapshotItem = page.locator('[data-testid^="snapshot-"]').first();
-      await expect(snapshotItem.locator('.snapshot-name')).toContainText(
+      await expect(snapshotItem.getByTestId('snapshot-name')).toContainText(
         'Original Location'
       );
       await expect(page.getByText('No snapshots yet')).not.toBeVisible();
@@ -216,7 +220,9 @@ test.describe('Auto-Snapshots', () => {
     // keyboard.type triggers real input events through ProseMirror's Yjs binding,
     // which is what marks the doc dirty for auto-snapshot creation.
     await page.keyboard.type('Content that should trigger an auto-snapshot.');
-    await expect(page.locator('.sync-status')).toContainText('local');
+    await expect(page.getByTestId('document-sync-status')).toContainText(
+      'local'
+    );
 
     // Small delay so the ydoc update event has fired and markDirty was called
     // before canDeactivate runs on navigation.
@@ -235,7 +241,7 @@ test.describe('Auto-Snapshots', () => {
 
     const snapshotItem = page.locator('[data-testid^="snapshot-"]').first();
     await expect(snapshotItem).toBeVisible();
-    await expect(snapshotItem.locator('.snapshot-name')).toContainText(
+    await expect(snapshotItem.getByTestId('snapshot-name')).toContainText(
       'Auto-save'
     );
 

@@ -26,7 +26,7 @@
         <p>{{ 'messages.loading' | transloco }}</p>
       </div>
     } @else if (!hasAnnouncements) {
-      <div class="empty-state">
+      <div class="empty-state" data-testid="messages-empty-state">
         <mat-icon class="empty-icon">inbox</mat-icon>
         <h2>{{ 'messages.noMessages' | transloco }}</h2>
         <p>{{ 'messages.noMessagesHint' | transloco }}</p>

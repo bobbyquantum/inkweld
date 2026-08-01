@@ -109,6 +109,13 @@ export class HomeTabComponent {
         // Handle the dialog result from ImageGenerationDialogResult
         if (result?.saved && result.imageData) {
           this.saveCoverImage(project.username, project.slug, result.imageData);
+        } else if (result?.saved) {
+          // saved without usable image data — never fail silently.
+          this.snackBar.open(
+            this.transloco.translate('project.homeTab.coverSaveFailed'),
+            this.transloco.translate('close'),
+            { duration: 5000 }
+          );
         }
       });
     }
@@ -129,8 +136,21 @@ export class HomeTabComponent {
       slug
     );
 
-    // Convert base64 to Blob
-    const imageBlob = base64ToBlob(imageData);
+    // Convert data URL to Blob. Guarded: a malformed/non-base64 payload used
+    // to throw inside the dialog .then() chain — an unhandled rejection the
+    // user experienced as "nothing happened".
+    let imageBlob: Blob;
+    try {
+      imageBlob = base64ToBlob(imageData);
+    } catch (error) {
+      console.error('Cover image data is not a valid data URL:', error);
+      this.snackBar.open(
+        this.transloco.translate('project.homeTab.coverSaveFailed'),
+        this.transloco.translate('close'),
+        { duration: 5000 }
+      );
+      return;
+    }
 
     // Upload the cover image
     this.projectService

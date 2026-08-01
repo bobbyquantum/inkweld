@@ -77,6 +77,7 @@ export const commentMarkSpec: MarkSpec = {
 
     const domAttrs: Record<string, string> = {
       class: classes,
+      'data-testid': 'comment-highlight',
       'data-comment-id': attrs.commentId || '',
       'data-comment-author': attrs.authorName || '',
       'data-comment-preview': attrs.preview || '',

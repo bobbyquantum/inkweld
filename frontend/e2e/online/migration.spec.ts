@@ -246,7 +246,9 @@ test.describe('Offline to Server Migration', () => {
       await editor.fill(testContent);
 
       // Wait for content to persist to IndexedDB
-      await expect(offlinePage.locator('.sync-status')).toContainText('synced');
+      await expect(
+        offlinePage.getByTestId('document-sync-status')
+      ).toContainText('synced');
     }
 
     // Step 3: Migrate to server via Profile Manager
@@ -373,7 +375,9 @@ test.describe('Offline to Server Migration', () => {
         .or(offlinePage.locator('[contenteditable="true"]'));
 
       // Wait for document to load and sync from server
-      await expect(offlinePage.locator('.sync-status')).toContainText('synced');
+      await expect(
+        offlinePage.getByTestId('document-sync-status')
+      ).toContainText('synced');
 
       // Check if content persisted
       await expect(editorAfterMigration).toContainText(
@@ -531,7 +535,7 @@ test.describe('Offline to Server Migration', () => {
 
     // Click on the local profile item to switch to local mode
     const localProfileButton = offlinePage
-      .locator('button.profile-item')
+      .locator('[data-testid^="profile-item-"]')
       .filter({ hasText: /Local Mode/i })
       .first();
     await localProfileButton.click();
@@ -642,7 +646,7 @@ test.describe('Offline to Server Migration', () => {
     await expect(projectCheckbox).toBeVisible();
 
     // The project should show conflict warning icon
-    const conflictIcon = offlinePage.locator('.conflict-icon').first();
+    const conflictIcon = offlinePage.getByTestId('conflict-icon').first();
     await expect(conflictIcon).toBeVisible();
 
     // The rename input should be visible for the conflicting project
@@ -679,7 +683,7 @@ test.describe('Offline to Server Migration', () => {
 
     // Wait for validation - should show check icon
     await offlinePage.waitForTimeout(1000);
-    const validIcon = offlinePage.locator('.valid-icon').first();
+    const validIcon = offlinePage.getByTestId('valid-icon').first();
     await expect(validIcon).toBeVisible();
 
     // Migrate button should now be enabled
@@ -731,7 +735,7 @@ test.describe('Offline to Server Migration', () => {
 
     // Switch to local mode
     const localProfileSwitch = offlinePage
-      .locator('button.profile-item')
+      .locator('[data-testid^="profile-item-"]')
       .filter({ hasText: /Local Mode/i })
       .first();
     await localProfileSwitch.click();
@@ -750,7 +754,7 @@ test.describe('Offline to Server Migration', () => {
     // Now switch back to server mode
     await openProfileManager(offlinePage);
     const serverProfileSwitch = offlinePage
-      .locator('button.profile-item')
+      .locator('[data-testid^="profile-item-"]')
       .filter({ hasText: /localhost/i })
       .first();
     await serverProfileSwitch.click();

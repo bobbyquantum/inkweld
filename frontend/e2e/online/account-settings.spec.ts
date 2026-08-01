@@ -37,8 +37,8 @@ test.describe('Account Settings Page', () => {
 
     // Should show empty state or the connected apps section
     // A fresh test user should have no connected OAuth apps
-    const emptyState = page.locator('.empty-card, .empty-state');
-    const sessionsList = page.locator('mat-accordion, .sessions-list');
+    const emptyState = page.getByTestId('account-empty-card');
+    const sessionsList = page.getByTestId('sessions-accordion');
 
     // Either empty state or sessions list should be visible
     await expect(emptyState.or(sessionsList).first()).toBeVisible();

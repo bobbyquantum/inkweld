@@ -19,7 +19,7 @@ import { expect, test } from './fixtures';
 /** Wait for the project shell + tree to be hydrated. */
 async function waitForProjectReady(page: Page, slug: string): Promise<void> {
   await page.waitForURL(new RegExp(`testuser/${slug}`));
-  await page.waitForSelector('app-project-tree', { state: 'visible' });
+  await page.getByTestId('project-tree').waitFor({ state: 'visible' });
   // Give IndexedDB a moment to hydrate.
   await page.waitForTimeout(500);
 }
@@ -32,7 +32,7 @@ async function togglePinViaContextMenu(
   const node = page.locator(`[data-testid="element-${elementName}"]`);
   await node.waitFor({ state: 'visible' });
   await node.click({ button: 'right' });
-  await page.waitForSelector('.context-menu', { state: 'visible' });
+  await page.getByTestId('context-menu').waitFor({ state: 'visible' });
   await page.locator('[data-testid="context-menu-pin"]').click();
   // Allow the Yjs write + IndexedDB flush to complete.
   await page.waitForTimeout(500);
@@ -54,7 +54,7 @@ test.describe('Pinning', () => {
     let titleBefore: string | null = null;
 
     await test.step('initial state: no pinned section, Home tab shows empty title baseline', async () => {
-      await expect(page.locator('.pinned-section')).not.toBeVisible();
+      await expect(page.getByTestId('pinned-section')).not.toBeVisible();
 
       await page.locator('[data-testid="toolbar-home-button"]').click();
       await page.waitForTimeout(300);
@@ -74,7 +74,7 @@ test.describe('Pinning', () => {
 
       await togglePinViaContextMenu(page, 'README');
 
-      await expect(page.locator('.pinned-section')).toBeVisible();
+      await expect(page.getByTestId('pinned-section')).toBeVisible();
       await expect(page.locator('[data-testid="pinned-README"]')).toBeVisible();
 
       await page.locator('[data-testid="toolbar-home-button"]').click();
@@ -101,7 +101,7 @@ test.describe('Pinning', () => {
       await page.reload();
       await waitForProjectReady(page, 'pin-lifecycle');
 
-      await expect(page.locator('.pinned-section')).toBeVisible();
+      await expect(page.getByTestId('pinned-section')).toBeVisible();
       await expect(page.locator('[data-testid="pinned-README"]')).toBeVisible();
 
       await page.locator('[data-testid="toolbar-home-button"]').click();
@@ -117,7 +117,7 @@ test.describe('Pinning', () => {
 
       await togglePinViaContextMenu(page, 'README');
 
-      await expect(page.locator('.pinned-section')).not.toBeVisible();
+      await expect(page.getByTestId('pinned-section')).not.toBeVisible();
 
       await page.locator('[data-testid="toolbar-home-button"]').click();
       await page.waitForTimeout(300);

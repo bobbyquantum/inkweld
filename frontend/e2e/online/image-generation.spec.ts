@@ -16,7 +16,7 @@ async function waitForDialogReady(page: Page): Promise<void> {
     page.locator('[data-testid="image-gen-dialog-content"]')
   ).toBeVisible();
   await expect(page.locator('mat-dialog-container mat-spinner')).toBeHidden();
-  await expect(page.locator('.image-generation-stepper')).toBeVisible();
+  await expect(page.getByTestId('image-generation-stepper')).toBeVisible();
 }
 
 const FAKE_API_KEYS = {
@@ -266,7 +266,7 @@ test.describe('Image Generation - Admin Profile Management', () => {
       const profilesGrid = adminPage.locator('[data-testid="profiles-grid"]');
       await expect(profilesGrid).toBeVisible();
 
-      const profileItem = adminPage.locator('.profile-item', {
+      const profileItem = adminPage.locator('[data-testid^="profile-item-"]', {
         hasText: testProfileName,
       });
       await expect(profileItem).toBeVisible();

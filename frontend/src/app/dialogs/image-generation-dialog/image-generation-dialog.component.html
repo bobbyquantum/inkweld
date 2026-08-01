@@ -52,7 +52,8 @@
       [linear]="false"
       [selectedIndex]="stepperIndex()"
       (selectionChange)="onStepChange($event)"
-      class="image-generation-stepper">
+      class="image-generation-stepper"
+      data-testid="image-generation-stepper">
       <!-- Step 1: Select Context -->
       <mat-step
         [label]="'media.imageGeneration.contextStep' | transloco"

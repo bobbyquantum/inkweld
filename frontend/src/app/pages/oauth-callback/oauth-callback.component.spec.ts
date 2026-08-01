@@ -117,7 +117,7 @@ describe('OAuthCallbackComponent', () => {
       queryParams.set('error', 'github_auth_failed');
       createComponent();
 
-      expect(component.errorMessage).toBe(
+      expect(component.errorMessage()).toBe(
         'Something went wrong. Please try again.'
       );
     });
@@ -126,7 +126,7 @@ describe('OAuthCallbackComponent', () => {
       queryParams.set('error', 'account_disabled');
       createComponent();
 
-      expect(component.errorMessage).toBe(
+      expect(component.errorMessage()).toBe(
         'Something went wrong. Please try again.'
       );
     });
@@ -135,7 +135,7 @@ describe('OAuthCallbackComponent', () => {
       queryParams.set('error', 'some_unknown_error');
       createComponent();
 
-      expect(component.errorMessage).toBe(
+      expect(component.errorMessage()).toBe(
         'Something went wrong. Please try again.'
       );
     });
@@ -143,7 +143,7 @@ describe('OAuthCallbackComponent', () => {
     it('should show error when no code or error param present', () => {
       createComponent();
 
-      expect(component.errorMessage).toBe('Sign-in failed');
+      expect(component.errorMessage()).toBe('Sign-in failed');
     });
 
     it('should clear token and show error when code exchange fails', async () => {
@@ -155,9 +155,30 @@ describe('OAuthCallbackComponent', () => {
       await flushPromises();
 
       expect(mockAuthTokenService.clearToken).toHaveBeenCalled();
-      expect(component.errorMessage).toBe(
+      expect(component.errorMessage()).toBe(
         'Something went wrong. Please try again.'
       );
+    });
+
+    it('renders the error UI when code exchange fails (zoneless regression)', async () => {
+      // Zoneless regression: the failure path assigned errorMessage (a plain
+      // property) from an async continuation with no other state writes, so
+      // the template never re-rendered and the spinner stayed up forever.
+      // Rely on Angular's scheduler (no manual detectChanges after the async
+      // work) and assert on the DOM.
+      mockHttp.post.mockReturnValue(
+        throwError(() => new Error('Network error'))
+      );
+      queryParams.set('code', 'bad-code');
+      createComponent();
+      fixture.autoDetectChanges();
+      await flushPromises();
+      await fixture.whenStable();
+
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('.error')).not.toBeNull();
+      expect(el.textContent).toContain('Sign-in failed');
+      expect(el.querySelector('mat-spinner')).toBeNull();
     });
 
     it('should clear token when user loading fails', async () => {
@@ -169,7 +190,7 @@ describe('OAuthCallbackComponent', () => {
       await flushPromises();
 
       expect(mockAuthTokenService.clearToken).toHaveBeenCalled();
-      expect(component.errorMessage).toBe(
+      expect(component.errorMessage()).toBe(
         'Something went wrong. Please try again.'
       );
     });
@@ -182,7 +203,7 @@ describe('OAuthCallbackComponent', () => {
       mockHttp.post.mockReturnValue(new Subject());
       createComponent();
 
-      expect(component.errorMessage).toBe('');
+      expect(component.errorMessage()).toBe('');
       const spinner = fixture.nativeElement.querySelector('mat-spinner');
       expect(spinner).toBeTruthy();
     });

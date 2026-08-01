@@ -1,6 +1,6 @@
-<div class="settings-container">
+<div class="settings-container" data-testid="settings-container">
   @if (isLoading()) {
-    <div class="loading-container">
+    <div class="loading-container" data-testid="settings-loading">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else if (error()) {

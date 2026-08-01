@@ -1,8 +1,8 @@
 <div class="callback-container">
-  @if (errorMessage) {
+  @if (errorMessage()) {
     <div class="error">
       <h2>{{ 'auth.oauthCallback.signInFailed' | transloco }}</h2>
-      <p>{{ errorMessage }}</p>
+      <p>{{ errorMessage() }}</p>
       <a href="/">{{ 'auth.oauthCallback.returnHome' | transloco }}</a>
     </div>
   } @else {

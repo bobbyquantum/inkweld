@@ -257,6 +257,16 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     await this.activationService.initialize();
 
     if (!this.activationService.isActivated(`${username}/${slug}`)) {
+      // Tell the user WHY they were bounced — a silent redirect here reads
+      // as the app mysteriously "going back to the main screen" (e.g. after
+      // clearing browser data, activations are per-device and gone).
+      this.snackBar.open(
+        this.transloco.translate('project.snackbar.notActivated', {
+          project: `${username}/${slug}`,
+        }),
+        this.transloco.translate('close'),
+        { duration: 6000 }
+      );
       this.router.navigate(['/']).catch(() => {});
       return;
     }

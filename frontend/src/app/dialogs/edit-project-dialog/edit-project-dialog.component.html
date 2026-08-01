@@ -1,6 +1,6 @@
 <mat-dialog-content class="dialog-content">
   <!-- Image Cropper View -->
-  @if (showCropper) {
+  @if (showCropper()) {
     <div class="cropper-view">
       <h3 class="cropper-title">
         {{ 'dialogs.editProject.cropTitle' | transloco }}
@@ -10,8 +10,9 @@
       </p>
       <div class="cropper-container">
         <image-cropper
-          [imageChangedEvent]="imageChangedEvent"
-          [imageBase64]="imageBase64"
+          data-testid="cover-cropper"
+          [imageChangedEvent]="imageChangedEvent()"
+          [imageBase64]="imageBase64()"
           [maintainAspectRatio]="true"
           [aspectRatio]="coverAspectRatio"
           [roundCropper]="false"
@@ -31,7 +32,7 @@
     </div>
   } @else {
     <!-- Normal Dialog View -->
-    <div class="dialog-layout">
+    <div class="dialog-layout" data-testid="edit-project-dialog-layout">
       <!-- Left column: Cover image -->
       <div class="cover-column">
         @if (coverImageUrl && !isLoadingCover()) {
@@ -39,7 +40,8 @@
             <img
               [src]="coverImageUrl"
               [alt]="'dialogs.editProject.coverAlt' | transloco"
-              class="cover-preview" />
+              class="cover-preview"
+              data-testid="cover-preview" />
             <button
               mat-mini-fab
               color="warn"
@@ -106,6 +108,7 @@
             <h3>{{ 'dialogs.editProject.coverHeading' | transloco }}</h3>
             <div class="cover-buttons">
               <button
+                type="button"
                 mat-stroked-button
                 color="primary"
                 (click)="openCoverImageSelector()"
@@ -114,6 +117,7 @@
                 {{ 'dialogs.editProject.uploadImage' | transloco }}
               </button>
               <button
+                type="button"
                 mat-stroked-button
                 color="primary"
                 (click)="openMediaLibrarySelector()"
@@ -123,6 +127,7 @@
               </button>
               @if (aiGenerationStatus().status !== 'hidden') {
                 <button
+                  type="button"
                   mat-stroked-button
                   color="primary"
                   (click)="openGenerateCoverDialog()"
@@ -157,7 +162,7 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  @if (showCropper) {
+  @if (showCropper()) {
     <button mat-button (click)="cancelCropping()">
       {{ 'cancel' | transloco }}
     </button>
@@ -165,7 +170,7 @@
       mat-raised-button
       color="primary"
       (click)="applyCroppedImage()"
-      [disabled]="!croppedBlob">
+      [disabled]="!croppedBlob()">
       {{ 'apply' | transloco }}
     </button>
   } @else {

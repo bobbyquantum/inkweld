@@ -203,7 +203,7 @@ test.describe('Worldbuilding Templates', () => {
       await page.getByTestId('create-new-element').click();
 
       const customHeroOption = page
-        .locator('.type-card')
+        .locator('[data-testid^="element-type-"]')
         .filter({ hasText: 'Hero Template' });
       await expect(customHeroOption).toBeVisible();
 

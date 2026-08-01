@@ -172,6 +172,7 @@
     "enterPrompt": "Please enter a prompt",
     "noProjectContext": "No project context",
     "noImageSelected": "No image selected",
+    "imageDataUnavailable": "Couldn't load the generated image data — try regenerating, or find it in the Media tab",
     "backgroundContinue": "Generation will continue in the background. Check Media tab for results.",
     "noData": "No data available",
     "sizes": {

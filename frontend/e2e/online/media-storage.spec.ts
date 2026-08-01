@@ -36,11 +36,11 @@ test.describe('Online Media Storage', () => {
       await page.waitForURL(new RegExp(uniqueSlug));
       await page.waitForLoadState('networkidle');
       expect(page.url()).toContain(uniqueSlug);
-      await expect(page.locator('app-project-tree')).toBeVisible();
+      await expect(page.getByTestId('project-tree')).toBeVisible();
     });
 
     await test.step('renders project cover component (placeholder when no image)', async () => {
-      const coverComponent = page.locator('app-project-cover');
+      const coverComponent = page.getByTestId('project-cover');
       await expect(coverComponent).toBeVisible();
     });
 
@@ -58,7 +58,7 @@ test.describe('Online Media Storage', () => {
       await page.waitForLoadState('networkidle');
 
       expect(page.url()).toBe(projectUrl);
-      await expect(page.locator('app-project-cover')).toBeVisible();
+      await expect(page.getByTestId('project-cover')).toBeVisible();
       // Cover requests may or may not be made; just assert the count is a number.
       expect(typeof coverRequests.length).toBe('number');
     });

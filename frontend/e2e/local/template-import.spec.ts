@@ -85,13 +85,13 @@ test.describe('Template Worldbuilding Import', () => {
     await test.step('Elara identity panel has imported description and tags', async () => {
       await openTreeElement(page, 'Elara Nightwhisper');
 
-      const descriptionField = page.locator(
-        'app-identity-panel textarea[placeholder*="description"]'
-      );
+      const descriptionField = page
+        .getByTestId('identity-panel')
+        .locator('textarea[placeholder*="description"]');
       await expect(descriptionField).toBeVisible();
       await expect(descriptionField).toHaveValue(/brilliant half-elf scholar/);
 
-      const tagGrid = page.locator('app-identity-panel [role="grid"]');
+      const tagGrid = page.getByTestId('identity-panel').getByRole('grid');
       await expect(tagGrid).toBeVisible();
       await expect(
         tagGrid.locator('[role="gridcell"]').filter({ hasText: 'Protagonist' })
@@ -128,7 +128,7 @@ test.describe('Template Worldbuilding Import', () => {
     });
 
     await test.step('Elara References panel lists template backlinks', async () => {
-      const metaPanel = page.locator('app-meta-panel');
+      const metaPanel = page.getByTestId('meta-panel');
       await expect(metaPanel).toBeVisible();
 
       await expect(metaPanel.getByText('References')).toBeVisible();

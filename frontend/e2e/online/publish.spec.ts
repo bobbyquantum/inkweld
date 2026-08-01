@@ -244,11 +244,15 @@ test.describe('Online Publishing Workflow', () => {
 
     const editor = page.locator('.ProseMirror').first();
     await expect(editor).toBeVisible();
-    await expect(page.locator('.sync-status')).toContainText('synced');
+    await expect(page.getByTestId('document-sync-status')).toContainText(
+      'synced'
+    );
 
     await editor.click();
     await editor.pressSequentially(testContent, { delay: 5 });
-    await expect(page.locator('.sync-status')).toContainText('synced');
+    await expect(page.getByTestId('document-sync-status')).toContainText(
+      'synced'
+    );
 
     // y-indexeddb debounces writes ~1s; storeState needs to complete before
     // PDF generation can read the document. Pad to be safe.

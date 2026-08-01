@@ -283,7 +283,7 @@ describe('MediaSelectorDialogComponent', () => {
     expect(component.isLoading()).toBe(false);
   });
 
-  it('should not close dialog when blob is null on confirm', async () => {
+  it('tries a server download and surfaces an error when the blob is unavailable on confirm', async () => {
     fixture.detectChanges();
     await flushPromises();
     await flushPromises();
@@ -292,10 +292,15 @@ describe('MediaSelectorDialogComponent', () => {
     const items = component.mediaItems();
     component.selectItem(items[0]);
 
-    localStorageService.getMedia.mockResolvedValueOnce(null);
+    // Blob missing locally both before and after the download attempt —
+    // confirm must NOT silently do nothing: it tries the server, then shows
+    // an error and keeps the dialog open.
+    localStorageService.getMedia.mockResolvedValue(null);
     await component.confirm();
 
+    expect(mediaSyncService.downloadFromServer).toHaveBeenCalled();
     expect(dialogRef.close).not.toHaveBeenCalled();
+    expect(component.error()).toBe('Failed to load the selected image');
   });
 
   describe('multiSelect mode', () => {

@@ -55,9 +55,12 @@ async function setupWorldbuildingAtMobile(
   await page.goto('/');
 
   // Wait for empty state or project list
-  await page.waitForSelector('.empty-state, [data-testid="project-card"]', {
-    state: 'visible',
-  });
+  await page.waitForSelector(
+    '[data-testid="empty-state"], [data-testid="project-card"]',
+    {
+      state: 'visible',
+    }
+  );
 
   await createProjectWithTwoSteps(page, 'Mobile Test Project', projectSlug);
   await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
@@ -151,7 +154,7 @@ async function seedIdentityImage(page: Page): Promise<void> {
     return canvas.toDataURL('image/png');
   });
 
-  const identityPanel = page.locator('app-identity-panel');
+  const identityPanel = page.getByTestId('identity-panel');
   await expect(identityPanel).toBeVisible();
 
   await identityPanel.evaluate((host, imageDataUrl) => {
@@ -279,7 +282,7 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
       await test.step('accordion overview screenshot', async () => {
         await expect(page.getByTestId('accordion-identity')).toBeVisible();
         await expect(page.getByTestId('accordion-relationships')).toBeVisible();
-        await expect(page.locator('app-identity-panel')).toBeVisible();
+        await expect(page.getByTestId('identity-panel')).toBeVisible();
 
         await page.screenshot({
           path: join(
@@ -357,7 +360,7 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
 
     await test.step('accordion overview screenshot', async () => {
       await expect(page.getByTestId('accordion-identity')).toBeVisible();
-      await expect(page.locator('app-identity-panel')).toBeVisible();
+      await expect(page.getByTestId('identity-panel')).toBeVisible();
 
       await page.screenshot({
         path: join(screenshotsDir, 'worldbuilding-accordion-dark.png'),

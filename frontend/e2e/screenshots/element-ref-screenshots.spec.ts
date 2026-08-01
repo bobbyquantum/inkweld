@@ -40,7 +40,9 @@ test.describe('Element Reference Screenshots', () => {
     projectTitle: string
   ) {
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await page.waitForSelector('[data-testid="empty-state"]', {
+      state: 'visible',
+    });
 
     await createProjectWithTwoSteps(
       page,
@@ -64,7 +66,7 @@ test.describe('Element Reference Screenshots', () => {
     }
 
     await page.click('text="The Moonveil Accord"').catch(() => {
-      return page.locator('.tree-node-item').first().click();
+      return page.locator('[role="treeitem"]').first().click();
     });
 
     const editor = page.locator('.ProseMirror').first();
@@ -81,7 +83,9 @@ test.describe('Element Reference Screenshots', () => {
     characterName: string
   ) {
     await page.goto('/');
-    await page.waitForSelector('.empty-state', { state: 'visible' });
+    await page.waitForSelector('[data-testid="empty-state"]', {
+      state: 'visible',
+    });
 
     await createProjectWithTwoSteps(
       page,
@@ -115,7 +119,7 @@ test.describe('Element Reference Screenshots', () => {
     }
 
     await page.click('text="The Moonveil Accord"').catch(() => {
-      return page.locator('.tree-node-item').first().click();
+      return page.locator('[role="treeitem"]').first().click();
     });
 
     const editor = page.locator('.ProseMirror').first();
@@ -266,17 +270,17 @@ test.describe('Element Reference Screenshots', () => {
       );
 
       // Step 4: tooltip
-      const elementRef = page.locator('.element-ref').first();
+      const elementRef = page.getByTestId('element-ref').first();
       if (await elementRef.isVisible().catch(() => false)) {
         await elementRef.hover();
         await page
-          .locator('.element-ref-tooltip')
+          .getByTestId('element-ref-tooltip')
           .waitFor({ state: 'visible' })
           .catch(() => {});
 
         await captureElementScreenshot(
           page,
-          [elementRef, page.locator('.element-ref-tooltip')],
+          [elementRef, page.getByTestId('element-ref-tooltip')],
           join(
             screenshotsDir,
             `element-ref-04-tooltip-${flowScenario.mode}.png`
@@ -390,17 +394,17 @@ test.describe('Element Reference Screenshots', () => {
       );
 
       // ---- Character tooltip (cropped) ----
-      const characterRef = page.locator('.element-ref').first();
+      const characterRef = page.getByTestId('element-ref').first();
       if (await characterRef.isVisible().catch(() => false)) {
         await characterRef.hover();
         await page
-          .locator('.element-ref-tooltip')
+          .getByTestId('element-ref-tooltip')
           .waitFor({ state: 'visible' })
           .catch(() => {});
 
         await captureElementScreenshot(
           page,
-          [characterRef, page.locator('.element-ref-tooltip')],
+          [characterRef, page.getByTestId('element-ref-tooltip')],
           join(
             screenshotsDir,
             `element-ref-character-tooltip-${refScenario.mode}.png`
@@ -412,7 +416,7 @@ test.describe('Element Reference Screenshots', () => {
       // ---- Editor focused view artifact ----
       // Move cursor outside any tooltip context.
       await editor.click();
-      const editorContainer = page.locator('.document-editor').first();
+      const editorContainer = page.getByTestId('document-editor').first();
       if (await editorContainer.isVisible().catch(() => false)) {
         await editorContainer.screenshot({
           path: join(
@@ -433,7 +437,7 @@ test.describe('Element Reference Screenshots', () => {
       // ---- Tooltip full-page screenshot ----
       if (await characterRef.isVisible().catch(() => false)) {
         await characterRef.hover();
-        const tooltip = page.locator('.element-ref-tooltip');
+        const tooltip = page.getByTestId('element-ref-tooltip');
         await tooltip.waitFor({ state: 'visible' }).catch(() => {});
         await page.waitForTimeout(200);
 
@@ -625,7 +629,7 @@ test.describe('Element Reference Screenshots', () => {
         );
       }
 
-      const metaPanel = page.locator('app-meta-panel');
+      const metaPanel = page.getByTestId('meta-panel');
       if (await metaPanel.isVisible().catch(() => false)) {
         await captureElementScreenshot(
           page,
