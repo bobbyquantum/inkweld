@@ -132,6 +132,11 @@ const config: Config = {
           label: 'Features',
         },
         {
+          to: '/screenshots',
+          position: 'left',
+          label: 'Screenshots',
+        },
+        {
           type: 'docSidebar',
           sidebarId: 'projectSidebar',
           position: 'left',
@@ -165,6 +170,10 @@ const config: Config = {
             {
               label: 'Features',
               to: '/features',
+            },
+            {
+              label: 'Screenshot Gallery',
+              to: '/screenshots',
             },
             {
               label: 'Installation',
