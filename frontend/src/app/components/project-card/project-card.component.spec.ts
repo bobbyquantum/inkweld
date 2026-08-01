@@ -420,6 +420,45 @@ describe('ProjectCardComponent', () => {
     });
   });
 
+  describe('delete menu item', () => {
+    it('should render the delete menu item for owned (non-shared) projects', async () => {
+      fixture.componentRef.setInput('isShared', false);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      // Open the mat-menu by clicking the kebab trigger.
+      const kebab = fixture.nativeElement.querySelector(
+        '[data-testid="project-card-kebab"]'
+      );
+      kebab.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const deleteItem = document.querySelector(
+        '[data-testid="project-card-delete"]'
+      );
+      expect(deleteItem).toBeTruthy();
+    });
+
+    it('should not render the delete menu item for shared projects', async () => {
+      fixture.componentRef.setInput('isShared', true);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const kebab = fixture.nativeElement.querySelector(
+        '[data-testid="project-card-kebab"]'
+      );
+      kebab.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const deleteItem = document.querySelector(
+        '[data-testid="project-card-delete"]'
+      );
+      expect(deleteItem).toBeNull();
+    });
+  });
+
   describe('kebab actions', () => {
     it('should emit activateRequested when requestActivate is called', () => {
       const spy = vi.spyOn(component.activateRequested, 'emit');
@@ -430,6 +469,12 @@ describe('ProjectCardComponent', () => {
     it('should emit deactivateRequested when requestDeactivate is called', () => {
       const spy = vi.spyOn(component.deactivateRequested, 'emit');
       component.requestDeactivate();
+      expect(spy).toHaveBeenCalledOnce();
+    });
+
+    it('should emit deleteRequested when requestDelete is called', () => {
+      const spy = vi.spyOn(component.deleteRequested, 'emit');
+      component.requestDelete();
       expect(spy).toHaveBeenCalledOnce();
     });
 

@@ -79,6 +79,13 @@ export class ProjectCardComponent implements AfterViewInit, OnDestroy {
   @Output()
   public deactivateRequested = new EventEmitter<void>();
 
+  /**
+   * Emitted when the user picks "Delete project" from the kebab menu.
+   * Only shown for owned (non-shared) projects.
+   */
+  @Output()
+  public deleteRequested = new EventEmitter<void>();
+
   /** Project key for looking up sync status */
   readonly projectKey = input<string>();
 
@@ -99,6 +106,11 @@ export class ProjectCardComponent implements AfterViewInit, OnDestroy {
   /** Emit a request to deactivate this project on the device. */
   requestDeactivate(): void {
     this.deactivateRequested.emit();
+  }
+
+  /** Emit a request to delete this project. */
+  requestDelete(): void {
+    this.deleteRequested.emit();
   }
 
   // Long-press tracking

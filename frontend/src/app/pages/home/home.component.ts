@@ -586,6 +586,61 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Handle "Delete project" chosen from a card/tile kebab menu.
+   * Opens a typed-confirmation dialog, then deletes the project
+   * on the server (and purges local data + deactivates on success).
+   */
+  onProjectDeleteRequested(project: Project): void {
+    void this.promptDeleteProject(project);
+  }
+
+  /**
+   * Open the delete confirmation dialog and run the full delete on confirm.
+   * Requires the user to type the project slug to confirm.
+   */
+  private async promptDeleteProject(project: Project): Promise<void> {
+    const confirmed = await this.dialogGateway.openConfirmationDialog({
+      title: this.transloco.translate('home.dialogs.deleteTitle'),
+      message: this.transloco.translate('home.dialogs.deleteMessage', {
+        title: project.title,
+        slug: project.slug,
+      }),
+      confirmText: this.transloco.translate('home.dialogs.delete'),
+      cancelText: this.transloco.translate('cancel'),
+      requireConfirmationText: project.slug,
+    });
+
+    if (!confirmed) return;
+
+    const projectKey = `${project.username}/${project.slug}`;
+    try {
+      await this.projectService.deleteProject(project.username, project.slug);
+
+      // Best-effort: deactivate on this device and purge local data so
+      // stale Yjs databases / sync state / media don't linger.
+      await this.activationService.deactivate(projectKey).catch(() => {});
+      await this.purgeProjectLocalData(project);
+
+      this.snackBar.open(
+        this.transloco.translate('home.snackbar.deleted', {
+          title: project.title,
+        }),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
+
+      // Reload collaboration data to keep the project list consistent.
+      await this.loadCollaborationData().catch(() => {});
+    } catch {
+      this.snackBar.open(
+        this.transloco.translate('home.snackbar.deleteFailed'),
+        this.transloco.translate('dismiss'),
+        { duration: 5000 }
+      );
+    }
+  }
+
+  /**
    * Cancel the current sync operation
    */
   cancelSync(): void {

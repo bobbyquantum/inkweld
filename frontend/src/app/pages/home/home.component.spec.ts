@@ -193,6 +193,7 @@ describe('HomeComponent', () => {
       projects: mockProjectsSignal,
       initialized: mockProjectInitialized,
       loadProjects: vi.fn().mockResolvedValue(undefined),
+      deleteProject: vi.fn().mockResolvedValue(undefined),
     };
 
     // Setup mock collaboration service
@@ -224,6 +225,7 @@ describe('HomeComponent', () => {
     // Setup mock dialog gateway service
     dialogGateway = {
       openImportProjectDialog: vi.fn().mockResolvedValue(undefined),
+      openConfirmationDialog: vi.fn().mockResolvedValue(false),
     };
 
     // Setup mock cover sync service
@@ -1126,6 +1128,82 @@ describe('HomeComponent', () => {
             'testuser/test-project'
           );
         });
+      });
+    });
+
+    describe('onProjectDeleteRequested', () => {
+      it('should not delete when the confirmation dialog is cancelled', async () => {
+        (
+          dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValueOnce(false);
+
+        component.onProjectDeleteRequested(mockProjects[0]);
+        // Allow the async confirmation promise to settle.
+        await Promise.resolve();
+
+        expect(projectService.deleteProject).not.toHaveBeenCalled();
+      });
+
+      it('should open the confirmation dialog requiring the slug', async () => {
+        (
+          dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValueOnce(false);
+
+        component.onProjectDeleteRequested(mockProjects[0]);
+        await Promise.resolve();
+
+        expect(dialogGateway.openConfirmationDialog).toHaveBeenCalledWith(
+          expect.objectContaining({
+            requireConfirmationText: 'test-project',
+          })
+        );
+      });
+
+      it('should delete, deactivate, and purge when confirmed', async () => {
+        (
+          dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValueOnce(true);
+        // Spy on the private purge method to confirm it runs without breaking flow.
+        const purgeSpy = vi
+          .spyOn(component as any, 'purgeProjectLocalData')
+          .mockResolvedValue(undefined);
+
+        component.onProjectDeleteRequested(mockProjects[0]);
+
+        await vi.waitFor(() => {
+          expect(projectService.deleteProject).toHaveBeenCalledWith(
+            'testuser',
+            'test-project'
+          );
+          expect(mockActivationService.deactivate).toHaveBeenCalledWith(
+            'testuser/test-project'
+          );
+          expect(purgeSpy).toHaveBeenCalledWith(mockProjects[0]);
+        });
+        purgeSpy.mockRestore();
+      });
+
+      it('should show an error snackbar when deletion fails', async () => {
+        (
+          dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValueOnce(true);
+        projectService.deleteProject = vi
+          .fn()
+          .mockRejectedValue(new Error('boom'));
+        const consoleSpy = vi
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
+
+        component.onProjectDeleteRequested(mockProjects[0]);
+
+        await vi.waitFor(() => {
+          expect(snackBar.open).toHaveBeenCalledWith(
+            'Failed to delete project',
+            'Dismiss',
+            { duration: 5000 }
+          );
+        });
+        consoleSpy.mockRestore();
       });
     });
 
