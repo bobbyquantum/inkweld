@@ -32,7 +32,9 @@ async function setupMediaTab(
   projectTitle: string
 ): Promise<void> {
   await page.goto('/');
-  await page.waitForSelector('.empty-state', { state: 'visible' });
+  await page.waitForSelector('[data-testid="empty-state"]', {
+    state: 'visible',
+  });
 
   await createProjectWithTwoSteps(page, projectTitle, projectSlug);
   await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));

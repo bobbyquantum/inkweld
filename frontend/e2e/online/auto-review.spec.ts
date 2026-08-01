@@ -130,7 +130,7 @@ async function fillEditorAndReview(page: Page, text: string): Promise<void> {
   // Wait for highlights to appear in the editor (Yjs sync from backend).
   await expect
     .poll(
-      async () => (await page.locator('.auto-review-highlight').count()) > 0,
+      async () => (await page.getByTestId('auto-review-highlight').count()) > 0,
       { timeout: 90_000, intervals: [500, 1000, 2000] }
     )
     .toBeTruthy();
@@ -294,7 +294,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
 
     // The highlight should have the `auto-review-highlight` class and a
     // stable id stored in the `data-auto-review-id` attribute.
-    const highlight = page.locator('.auto-review-highlight').first();
+    const highlight = page.getByTestId('auto-review-highlight').first();
     await expect(highlight).toBeVisible();
     await expect(highlight).toHaveAttribute('data-auto-review-id', /.+/);
     await expect(highlight).toContainText('This are');
@@ -339,7 +339,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
       await expect
         .poll(
           async () =>
-            (await page.locator('.auto-review-highlight').count()) === 0,
+            (await page.getByTestId('auto-review-highlight').count()) === 0,
           { timeout: 30_000, intervals: [250, 500, 1000] }
         )
         .toBeTruthy();
@@ -379,7 +379,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
       await expect
         .poll(
           async () =>
-            (await page.locator('.auto-review-highlight').count()) === 0,
+            (await page.getByTestId('auto-review-highlight').count()) === 0,
           { timeout: 30_000, intervals: [250, 500, 1000] }
         )
         .toBeTruthy();
@@ -408,7 +408,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
 
       await fillEditorAndReview(page, 'This are a test.');
 
-      const highlight = page.locator('.auto-review-highlight').first();
+      const highlight = page.getByTestId('auto-review-highlight').first();
       await expect(highlight).toBeVisible();
       await highlight.click();
 
@@ -437,13 +437,13 @@ test.describe('AI Auto-Review — Online Mode', () => {
 
       await fillEditorAndReview(page, 'This are a test.');
 
-      await page.locator('.auto-review-highlight').first().click();
+      await page.getByTestId('auto-review-highlight').first().click();
       await page.getByTestId('auto-review-popover-accept').click();
 
       await expect
         .poll(
           async () =>
-            (await page.locator('.auto-review-highlight').count()) === 0,
+            (await page.getByTestId('auto-review-highlight').count()) === 0,
           { timeout: 30_000, intervals: [250, 500, 1000] }
         )
         .toBeTruthy();
@@ -462,13 +462,13 @@ test.describe('AI Auto-Review — Online Mode', () => {
 
       await fillEditorAndReview(page, 'This are a test.');
 
-      await page.locator('.auto-review-highlight').first().click();
+      await page.getByTestId('auto-review-highlight').first().click();
       await page.getByTestId('auto-review-popover-reject').click();
 
       await expect
         .poll(
           async () =>
-            (await page.locator('.auto-review-highlight').count()) === 0,
+            (await page.getByTestId('auto-review-highlight').count()) === 0,
           { timeout: 30_000, intervals: [250, 500, 1000] }
         )
         .toBeTruthy();
@@ -503,7 +503,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
       await expect
         .poll(
           async () =>
-            (await page.locator('.auto-review-highlight').count()) === 0,
+            (await page.getByTestId('auto-review-highlight').count()) === 0,
           { timeout: 30_000, intervals: [250, 500, 1000] }
         )
         .toBeTruthy();
@@ -537,14 +537,14 @@ test.describe('AI Auto-Review — Online Mode', () => {
       await expect
         .poll(
           async () =>
-            (await page.locator('.auto-review-highlight').count()) > 0,
+            (await page.getByTestId('auto-review-highlight').count()) > 0,
           { timeout: 60_000, intervals: [250, 500, 1000] }
         )
         .toBeTruthy();
 
       // The id may have changed (regenerated server-side), but the
       // highlight should still reference "This are".
-      const highlight = page.locator('.auto-review-highlight').first();
+      const highlight = page.getByTestId('auto-review-highlight').first();
       await expect(highlight).toContainText('This are');
     }
   );

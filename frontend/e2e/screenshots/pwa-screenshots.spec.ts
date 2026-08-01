@@ -76,7 +76,7 @@ test.describe('PWA Screenshots', () => {
   }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
-    await expect(page.locator('.covers-grid')).toBeVisible();
+    await expect(page.getByTestId('covers-grid')).toBeVisible();
     await expect(
       page.locator('[data-testid="project-card"]').first()
     ).toBeVisible();
@@ -98,7 +98,7 @@ test.describe('PWA Screenshots', () => {
       });
     });
 
-    await expect(page.locator('.covers-grid')).toBeVisible();
+    await expect(page.getByTestId('covers-grid')).toBeVisible();
   });
 
   test('capture project bookshelf - mobile light & dark', async ({
@@ -109,7 +109,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.reload({ waitUntil: 'domcontentloaded' });
 
-    await expect(page.locator('.covers-grid')).toBeVisible();
+    await expect(page.getByTestId('covers-grid')).toBeVisible();
     const projectCards = page.locator('[data-testid="project-card"]');
     await expect(projectCards.first()).toBeVisible();
 
@@ -129,7 +129,7 @@ test.describe('PWA Screenshots', () => {
       });
     });
 
-    await expect(page.locator('.covers-grid')).toBeVisible();
+    await expect(page.getByTestId('covers-grid')).toBeVisible();
   });
 
   test('capture project home - desktop light & dark', async ({
@@ -138,7 +138,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await expect(page.locator('.empty-state')).toBeVisible();
+    await expect(page.getByTestId('empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -149,7 +149,7 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.waitForURL(/\/demouser\/my-novel/);
-    await expect(page.locator('.home-tab-content')).toBeVisible();
+    await expect(page.getByTestId('home-tab-content')).toBeVisible();
 
     await test.step('light', async () => {
       await applyColorScheme(page, 'light');
@@ -167,7 +167,7 @@ test.describe('PWA Screenshots', () => {
       });
     });
 
-    await expect(page.locator('.home-tab-content')).toBeVisible();
+    await expect(page.getByTestId('home-tab-content')).toBeVisible();
   });
 
   test('capture element type chooser dialog - light & dark', async ({
@@ -176,7 +176,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await expect(page.locator('.empty-state')).toBeVisible();
+    await expect(page.getByTestId('empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -187,7 +187,7 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.waitForURL(/\/demouser\/my-novel/);
-    await expect(page.locator('app-project-tree')).toBeVisible();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Click the "Create" button at the bottom of the tree
     await page.click('[data-testid="create-new-element"]');
@@ -218,7 +218,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await expect(page.locator('.empty-state')).toBeVisible();
+    await expect(page.getByTestId('empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -229,10 +229,10 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.waitForURL(/\/demouser\/my-novel/);
-    await expect(page.locator('app-project-tree')).toBeVisible();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     const folder = page.locator('[data-testid="element-Chronicles"]');
-    const menu = page.locator('.context-menu');
+    const menu = page.getByTestId('context-menu');
 
     for (const scheme of ['light', 'dark'] as const) {
       await test.step(scheme, async () => {
@@ -258,7 +258,7 @@ test.describe('PWA Screenshots', () => {
       });
     }
 
-    await expect(page.locator('app-project-tree')).toBeVisible();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
   });
 
   test('capture tags tab and tag edit dialog - light & dark', async ({
@@ -267,7 +267,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await expect(page.locator('.empty-state')).toBeVisible();
+    await expect(page.getByTestId('empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -278,7 +278,7 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.waitForURL(/\/demouser\/my-novel/);
-    await expect(page.locator('app-project-tree')).toBeVisible();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Open settings → tags
     await page.click('[data-testid="sidebar-settings-button"]');
@@ -325,7 +325,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await expect(page.locator('.empty-state')).toBeVisible();
+    await expect(page.getByTestId('empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -336,7 +336,7 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.waitForURL(/\/demouser\/my-novel/);
-    await expect(page.locator('app-project-tree')).toBeVisible();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Open create dialog and proceed to naming step
     await page.click('[data-testid="create-new-element"]');
@@ -372,7 +372,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await expect(page.locator('.empty-state')).toBeVisible();
+    await expect(page.getByTestId('empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -383,7 +383,7 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.waitForURL(/\/demouser\/my-novel/);
-    await expect(page.locator('app-project-tree')).toBeVisible();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Expand Chronicles folder and open document to create a tab
     const expandButton = page
@@ -396,8 +396,8 @@ test.describe('PWA Screenshots', () => {
     ).toBeVisible();
 
     const docTab = page.locator('[data-testid="tab-The Moonveil Accord"]');
-    const tabBar = page.locator('.tab-bar-container');
-    const menu = page.locator('.tab-context-menu');
+    const tabBar = page.getByTestId('tab-bar-container');
+    const menu = page.getByTestId('tab-context-menu');
 
     for (const scheme of ['light', 'dark'] as const) {
       await test.step(scheme, async () => {
@@ -420,7 +420,7 @@ test.describe('PWA Screenshots', () => {
       });
     }
 
-    await expect(page.locator('app-project-tree')).toBeVisible();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
   });
 
   test('capture project editor - desktop light & dark', async ({
@@ -429,7 +429,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await expect(page.locator('.empty-state')).toBeVisible();
+    await expect(page.getByTestId('empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -440,7 +440,7 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.waitForURL(/\/demouser\/my-novel/);
-    await expect(page.locator('app-project-tree')).toBeVisible();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     const openMoonveilDoc = async () => {
       // Expand Chronicles folder and open the document
@@ -482,7 +482,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 375, height: 667 });
 
     await page.goto('/');
-    await expect(page.locator('.empty-state')).toBeVisible();
+    await expect(page.getByTestId('empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -497,7 +497,7 @@ test.describe('PWA Screenshots', () => {
     const openMobileMoonveilDoc = async () => {
       // Open hamburger menu to reveal project tree on mobile (no-op
       // if it's already open from a prior visit / reload).
-      const tree = page.locator('app-project-tree');
+      const tree = page.getByTestId('project-tree');
       if (!(await tree.isVisible().catch(() => false))) {
         await expect(
           page
@@ -569,7 +569,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
 
     await page.goto('/');
-    await expect(page.locator('.empty-state')).toBeVisible();
+    await expect(page.getByTestId('empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(
       page,
@@ -619,7 +619,7 @@ test.describe('PWA Screenshots', () => {
 
     await page.goto(`/demouser/media-showcase/media`);
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('.media-grid')).toBeVisible();
+    await expect(page.getByTestId('media-grid')).toBeVisible();
 
     await test.step('light', async () => {
       await applyColorScheme(page, 'light');
@@ -637,7 +637,7 @@ test.describe('PWA Screenshots', () => {
       });
     });
 
-    await expect(page.locator('.media-grid')).toBeVisible();
+    await expect(page.getByTestId('media-grid')).toBeVisible();
   });
 
   test('capture media tab - filtered by inline images', async ({
@@ -646,7 +646,7 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
 
     await page.goto('/');
-    await expect(page.locator('.empty-state')).toBeVisible();
+    await expect(page.getByTestId('empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(page, 'Filtered Media', 'filtered-media');
     await page.waitForURL(/\/demouser\/filtered-media/);
@@ -684,7 +684,7 @@ test.describe('PWA Screenshots', () => {
 
     await page.goto(`/demouser/filtered-media/media`);
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('.media-grid')).toBeVisible();
+    await expect(page.getByTestId('media-grid')).toBeVisible();
 
     // Open the filter panel, then click "Inline Images" category
     await page.click('[data-testid="media-filter-button"]');
@@ -705,28 +705,28 @@ test.describe('PWA Screenshots', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto('/');
-    await expect(page.locator('.empty-state')).toBeVisible();
+    await expect(page.getByTestId('empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(page, 'Empty Media', 'empty-media');
     await page.waitForURL(/\/demouser\/empty-media/);
 
     await page.goto(`/demouser/empty-media/media`);
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('.empty-card')).toBeVisible();
+    await expect(page.getByTestId('empty-card')).toBeVisible();
 
     await page.screenshot({
       path: join(SCREENSHOTS_DIR, 'media-tab-empty-light.png'),
       fullPage: true,
     });
 
-    await expect(page.locator('.empty-card')).toBeVisible();
+    await expect(page.getByTestId('empty-card')).toBeVisible();
   });
 
   test('capture media tab - mobile view', async ({ offlinePage: page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
 
     await page.goto('/');
-    await expect(page.locator('.empty-state')).toBeVisible();
+    await expect(page.getByTestId('empty-state')).toBeVisible();
 
     await createProjectWithTwoSteps(page, 'Mobile Media', 'mobile-media');
     await page.waitForURL(/\/demouser\/mobile-media/);
@@ -757,14 +757,14 @@ test.describe('PWA Screenshots', () => {
 
     await page.goto(`/demouser/mobile-media/media`);
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('.media-grid')).toBeVisible();
+    await expect(page.getByTestId('media-grid')).toBeVisible();
 
     await page.screenshot({
       path: join(SCREENSHOTS_DIR, 'media-tab-mobile-light.png'),
       fullPage: true,
     });
 
-    await expect(page.locator('.media-grid')).toBeVisible();
+    await expect(page.getByTestId('media-grid')).toBeVisible();
   });
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -776,8 +776,8 @@ test.describe('PWA Screenshots', () => {
   }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
-    await expect(page.locator('.covers-grid')).toBeVisible();
-    const headerSection = page.locator('.header-section');
+    await expect(page.getByTestId('covers-grid')).toBeVisible();
+    const headerSection = page.getByTestId('header-section');
     await expect(headerSection).toBeVisible();
 
     await test.step('light', async () => {
@@ -794,7 +794,7 @@ test.describe('PWA Screenshots', () => {
       });
     });
 
-    await expect(page.locator('.header-section')).toBeVisible();
+    await expect(page.getByTestId('header-section')).toBeVisible();
   });
 
   test('capture create project flow - templates & details (light & dark)', async ({
@@ -808,11 +808,11 @@ test.describe('PWA Screenshots', () => {
 
         // Navigate fresh to the create-project page each iteration
         await page.goto('/');
-        await expect(page.locator('.covers-grid')).toBeVisible();
+        await expect(page.getByTestId('covers-grid')).toBeVisible();
         await page.click('.create-btn');
         await page.getByTestId('create-new-project-menu-item').click();
         await page.waitForURL(/\/create-project/);
-        await expect(page.locator('.template-grid')).toBeVisible();
+        await expect(page.getByTestId('template-grid')).toBeVisible();
 
         // Step 1: template selection screenshot
         await page.screenshot({

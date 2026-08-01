@@ -10,6 +10,7 @@
       </p>
       <div class="cropper-container">
         <image-cropper
+          data-testid="cover-cropper"
           [imageChangedEvent]="imageChangedEvent()"
           [imageBase64]="imageBase64()"
           [maintainAspectRatio]="true"
@@ -31,7 +32,7 @@
     </div>
   } @else {
     <!-- Normal Dialog View -->
-    <div class="dialog-layout" data-testid="edit-project-dialog">
+    <div class="dialog-layout" data-testid="edit-project-dialog-layout">
       <!-- Left column: Cover image -->
       <div class="cover-column">
         @if (coverImageUrl && !isLoadingCover()) {
@@ -39,7 +40,8 @@
             <img
               [src]="coverImageUrl"
               [alt]="'dialogs.editProject.coverAlt' | transloco"
-              class="cover-preview" />
+              class="cover-preview"
+              data-testid="cover-preview" />
             <button
               mat-mini-fab
               color="warn"

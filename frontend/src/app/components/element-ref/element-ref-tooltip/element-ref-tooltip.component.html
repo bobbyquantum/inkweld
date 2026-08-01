@@ -1,6 +1,7 @@
 @if (isVisible()) {
   <div
     class="element-ref-tooltip tooltip-container"
+    data-testid="element-ref-tooltip"
     [class.tooltip-above]="showAbove()"
     [style.left.px]="tooltipPosition().x"
     [style.top.px]="tooltipPosition().y"

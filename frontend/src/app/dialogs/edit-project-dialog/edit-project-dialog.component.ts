@@ -60,6 +60,7 @@ interface EditProjectFormValue {
     TranslocoModule,
     ImageCropperComponent,
   ],
+  host: { 'data-testid': 'edit-project-dialog' },
 })
 export class EditProjectDialogComponent implements OnInit {
   private readonly dialogRef = inject(MatDialogRef<EditProjectDialogComponent>);

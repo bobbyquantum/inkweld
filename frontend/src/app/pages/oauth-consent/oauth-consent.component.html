@@ -103,7 +103,10 @@
             } @else {
               <div class="project-list">
                 @for (grant of projectGrants(); track grant.project.id) {
-                  <div class="project-item" [class.selected]="grant.selected">
+                  <div
+                    class="project-item"
+                    data-testid="project-item"
+                    [class.selected]="grant.selected">
                     <mat-checkbox
                       [checked]="grant.selected"
                       (change)="toggleProject(grant)"

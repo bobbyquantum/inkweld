@@ -1,6 +1,9 @@
 <div class="content-container" [class.is-mobile]="isMobile()">
   <!-- Toolbar -->
-  <mat-toolbar color="primary" class="profile-toolbar">
+  <mat-toolbar
+    color="primary"
+    class="profile-toolbar"
+    data-testid="profile-toolbar">
     <button mat-icon-button (click)="navigateHome()">
       <mat-icon>arrow_back</mat-icon>
     </button>

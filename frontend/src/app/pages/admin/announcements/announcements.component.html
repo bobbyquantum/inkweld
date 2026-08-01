@@ -17,7 +17,7 @@
       <p>Loading announcements...</p>
     </div>
   } @else if (announcements().length === 0) {
-    <div class="empty-state">
+    <div class="empty-state" data-testid="announcements-empty-state">
       <mat-icon class="empty-icon">campaign</mat-icon>
       <h2>No announcements yet</h2>
       <p>Create your first announcement to notify users about updates.</p>

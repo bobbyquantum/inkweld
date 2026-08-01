@@ -28,6 +28,7 @@ export type ProjectCoverVariant = 'card' | 'list' | 'small';
   templateUrl: './project-cover.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./project-cover.component.scss'],
+  host: { 'data-testid': 'project-cover' },
 })
 export class ProjectCoverComponent implements OnChanges, OnDestroy {
   private readonly localStorage = inject(LocalStorageService);

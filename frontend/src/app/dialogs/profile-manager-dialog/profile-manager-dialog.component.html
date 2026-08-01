@@ -534,6 +534,7 @@
                       <div class="slug-conflict-row">
                         <mat-icon
                           class="conflict-icon"
+                          data-testid="conflict-icon"
                           [matTooltip]="
                             'dialogs.profileManager.slugExists' | transloco
                           ">
@@ -558,6 +559,7 @@
                           @if (wouldSlugConflict(newSlug)) {
                             <mat-icon
                               class="conflict-icon"
+                              data-testid="conflict-icon"
                               [matTooltip]="
                                 'dialogs.profileManager.slugAlsoConflicts'
                                   | transloco
@@ -565,7 +567,9 @@
                               error
                             </mat-icon>
                           } @else if (isValidSlug(newSlug)) {
-                            <mat-icon class="valid-icon">
+                            <mat-icon
+                              class="valid-icon"
+                              data-testid="valid-icon">
                               check_circle
                             </mat-icon>
                           }

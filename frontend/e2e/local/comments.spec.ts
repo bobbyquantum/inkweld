@@ -96,7 +96,7 @@ test.describe('Comments — Local Mode', () => {
     await test.step('Ctrl+Alt+M adds a local comment with highlight attrs', async () => {
       await addCommentViaShortcut(page, 'Lifecycle test comment');
 
-      const highlight = page.locator('.comment-highlight').first();
+      const highlight = page.getByTestId('comment-highlight').first();
       await expect(highlight).toBeVisible();
       await expect(highlight).toHaveAttribute('data-comment-id', /.+/);
       await expect(highlight).toHaveAttribute(
@@ -106,7 +106,7 @@ test.describe('Comments — Local Mode', () => {
     });
 
     await test.step('clicking the highlight opens the popover with a close button', async () => {
-      await page.locator('.comment-highlight').first().click();
+      await page.getByTestId('comment-highlight').first().click();
       await expect(page.getByTestId('comment-popover')).toBeVisible();
       await expect(page.getByTestId('comment-close-btn')).toBeVisible();
     });
@@ -114,7 +114,7 @@ test.describe('Comments — Local Mode', () => {
     await test.step('close button dismisses the popover but keeps the highlight', async () => {
       await page.getByTestId('comment-close-btn').click();
       await expect(page.getByTestId('comment-popover')).not.toBeVisible();
-      await expect(page.locator('.comment-highlight').first()).toBeVisible();
+      await expect(page.getByTestId('comment-highlight').first()).toBeVisible();
     });
   });
 
@@ -135,7 +135,7 @@ test.describe('Comments — Local Mode', () => {
       await expect(page.getByTestId('comment-panel')).not.toBeVisible();
 
       await addCommentViaShortcut(page, 'Panel test comment');
-      await expect(page.locator('.comment-highlight').first()).toBeVisible();
+      await expect(page.getByTestId('comment-highlight').first()).toBeVisible();
 
       await page.getByTestId('toolbar-comments').click();
       await expect(page.getByTestId('comment-panel')).toBeVisible();
@@ -155,7 +155,7 @@ test.describe('Comments — Local Mode', () => {
     await openEditorInProject(page, 'comment-delete');
     await addCommentViaShortcut(page, 'Delete me', 0);
 
-    const highlight = page.locator('.comment-highlight').first();
+    const highlight = page.getByTestId('comment-highlight').first();
     await expect(highlight).toBeVisible();
     await highlight.click();
 
@@ -163,14 +163,14 @@ test.describe('Comments — Local Mode', () => {
     await page.getByTestId('comment-delete-btn').click();
 
     await expect(page.getByTestId('comment-popover')).not.toBeVisible();
-    await expect(page.locator('.comment-highlight')).toHaveCount(0);
+    await expect(page.getByTestId('comment-highlight')).toHaveCount(0);
   });
 
   test('resolve a comment via the popover', async ({ localPage: page }) => {
     await openEditorInProject(page, 'comment-resolve');
     await addCommentViaShortcut(page, 'Resolve me', 0);
 
-    const highlight = page.locator('.comment-highlight').first();
+    const highlight = page.getByTestId('comment-highlight').first();
     await expect(highlight).toBeVisible();
     await highlight.click();
 
@@ -179,7 +179,7 @@ test.describe('Comments — Local Mode', () => {
 
     await expect(page.getByTestId('comment-popover')).not.toBeVisible();
     await expect(
-      page.locator('.comment-highlight--resolved').first()
+      page.locator('[data-comment-resolved="true"]').first()
     ).toBeVisible();
   });
 });

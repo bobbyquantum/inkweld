@@ -83,9 +83,7 @@ test.describe('Admin Kill Switch Screenshots', () => {
     await enableKillSwitchMock(adminPage);
     await navigateToAdminSettingsViaMenu(adminPage);
 
-    await expect(
-      adminPage.locator('.settings-container, .loading-container').first()
-    ).toBeVisible();
+    await expect(adminPage.getByTestId('settings-container')).toBeVisible();
 
     const loadingSpinner = adminPage.locator('mat-spinner');
     if (await loadingSpinner.isVisible()) {
@@ -107,7 +105,7 @@ test.describe('Admin Kill Switch Screenshots', () => {
     });
 
     await test.step('focused kill-switch card', async () => {
-      const killSwitchCard = adminPage.locator('.kill-switch-card');
+      const killSwitchCard = adminPage.getByTestId('kill-switch-card');
       if (await killSwitchCard.isVisible()) {
         await killSwitchCard.screenshot({
           path: path.join(SCREENSHOTS_DIR, 'admin-kill-switch-card-light.png'),
@@ -115,9 +113,7 @@ test.describe('Admin Kill Switch Screenshots', () => {
       }
     });
 
-    await expect(
-      adminPage.locator('.settings-container').first()
-    ).toBeVisible();
+    await expect(adminPage.getByTestId('settings-container')).toBeVisible();
   });
 
   test('Admin kill switch screenshots — dark mode', async ({ adminPage }) => {
@@ -131,7 +127,7 @@ test.describe('Admin Kill Switch Screenshots', () => {
     });
 
     await test.step('focused kill-switch card', async () => {
-      const killSwitchCard = adminPage.locator('.kill-switch-card');
+      const killSwitchCard = adminPage.getByTestId('kill-switch-card');
       if (await killSwitchCard.isVisible()) {
         await killSwitchCard.screenshot({
           path: path.join(SCREENSHOTS_DIR, 'admin-kill-switch-card-dark.png'),
@@ -139,8 +135,6 @@ test.describe('Admin Kill Switch Screenshots', () => {
       }
     });
 
-    await expect(
-      adminPage.locator('.settings-container').first()
-    ).toBeVisible();
+    await expect(adminPage.getByTestId('settings-container')).toBeVisible();
   });
 });

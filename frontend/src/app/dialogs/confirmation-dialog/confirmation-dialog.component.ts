@@ -25,6 +25,7 @@ export interface ConfirmationDialogData {
   templateUrl: './confirmation-dialog.component.html',
   styleUrls: ['./confirmation-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
+  host: { 'data-testid': 'confirmation-dialog' },
   imports: [
     MatDialogModule,
     MatButtonModule,

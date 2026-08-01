@@ -93,6 +93,7 @@ export const elementRefNodeSpec: NodeSpec = {
 
     const domAttrs: Record<string, string> = {
       'data-element-ref': 'true',
+      'data-testid': 'element-ref',
       'data-element-id': attrs.elementId || '',
       'data-element-type': attrs.elementType || '',
       'data-original-name': attrs.originalName || '',

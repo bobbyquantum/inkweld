@@ -165,7 +165,7 @@ test.describe('Admin Announcements', () => {
     });
 
     await test.step('shows either empty state or announcements list', async () => {
-      const emptyState = adminPage.locator('.empty-state');
+      const emptyState = adminPage.getByTestId('announcements-empty-state');
       const announcementsList = adminPage.locator(
         '[data-testid="admin-announcements-list"]'
       );
@@ -295,7 +295,7 @@ test.describe('User Messages', () => {
         authenticatedPage.locator('[data-testid="messages-page"]')
       ).toBeVisible();
 
-      const emptyState = authenticatedPage.locator('.empty-state');
+      const emptyState = authenticatedPage.getByTestId('messages-empty-state');
       const messagesList = authenticatedPage.locator(
         '[data-testid="messages-list"]'
       );

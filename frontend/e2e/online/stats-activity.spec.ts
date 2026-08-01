@@ -30,20 +30,18 @@ test.describe('Stats + Activity — Online Mode', () => {
     await page.getByTestId('sidebar-activity-button').click();
 
     // Wait for the activity-tab component to mount.
-    await expect(page.locator('.activity-tab')).toBeVisible({
+    await expect(page.getByTestId('activity-tab')).toBeVisible({
       timeout: 15_000,
     });
 
     // Project bootstrap emits at least one activity event (e.g. element_created
     // for the README seed file). We don't assert which event type appears first
     // since ordering depends on backend timing.
-    const items = page.locator('.activity-tab .event-item');
+    const items = page.getByTestId('event-item');
     await expect(items.first()).toBeVisible({ timeout: 15_000 });
 
     // Sanity: refresh button works and feed survives.
-    await page
-      .locator('.activity-tab .tab-header button[mat-icon-button]')
-      .click();
+    await page.getByTestId('activity-refresh-button').click();
     await expect(items.first()).toBeVisible({ timeout: 15_000 });
   });
 
@@ -72,7 +70,7 @@ test.describe('Stats + Activity — Online Mode', () => {
 
     await page.getByTestId('sidebar-activity-button').click();
 
-    const errorState = page.locator('.activity-tab .error-state');
+    const errorState = page.getByTestId('activity-error-state');
     await expect(errorState).toBeVisible({ timeout: 15_000 });
     await expect(errorState).toContainText(/could not load activity/i);
 
@@ -87,9 +85,9 @@ test.describe('Stats + Activity — Online Mode', () => {
     await errorState.getByRole('button', { name: /retry/i }).click();
 
     await expect(errorState).toHaveCount(0, { timeout: 15_000 });
-    const populated = page.locator(
-      '.activity-tab .event-item, .activity-tab .empty-state'
-    );
+    const populated = page
+      .getByTestId('event-item')
+      .or(page.getByTestId('activity-empty-state'));
     await expect(populated.first()).toBeVisible({ timeout: 15_000 });
   });
 
@@ -98,14 +96,14 @@ test.describe('Stats + Activity — Online Mode', () => {
   }) => {
     // Navigate to the signed-in user's own profile page where the widget lives.
     await page.goto(`/${page.testCredentials.username}`);
-    const widget = page.locator('app-writing-stats-widget .stats-widget');
+    const widget = page.getByTestId('stats-widget');
     await expect(widget).toBeVisible({ timeout: 15_000 });
 
     // Window label is "Last 30 days" by default.
     await expect(widget).toContainText(/last 30 days/i);
 
     // Three labelled stats are always rendered: words, active days, projects.
-    await expect(widget.locator('.stat-label')).toContainText(
+    await expect(widget.getByTestId('stat-label')).toContainText(
       ['words', 'active days', 'projects'],
       { timeout: 5_000 }
     );
@@ -125,19 +123,17 @@ test.describe('Stats + Activity — Online Mode', () => {
     await page.goto(`/${page.testCredentials.username}`);
 
     // Wait for the loading card to disappear (errored() supersedes loading()).
-    await expect(
-      page.locator('app-writing-stats-widget .stats-widget.loading')
-    ).toHaveCount(0, { timeout: 15_000 });
+    await expect(page.getByTestId('stats-widget-loading')).toHaveCount(0, {
+      timeout: 15_000,
+    });
 
     // The card should not appear at all (errored() branch renders an empty
     // template, by design).
-    await expect(
-      page.locator('app-writing-stats-widget .stats-widget')
-    ).toHaveCount(0);
+    await expect(page.getByTestId('stats-widget')).toHaveCount(0);
 
     // Sanity: the profile page itself still loaded correctly.
     // The user-profile page renders a toolbar with an "User Profile" heading.
-    await expect(page.locator('.profile-toolbar')).toBeVisible({
+    await expect(page.getByTestId('profile-toolbar')).toBeVisible({
       timeout: 15_000,
     });
   });

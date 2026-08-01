@@ -75,6 +75,7 @@ interface MediaItem extends MediaInfo {
     MatTooltipModule,
     TranslocoModule,
   ],
+  host: { 'data-testid': 'media-selector-dialog' },
 })
 export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
   private readonly dialogRef = inject(

@@ -65,6 +65,7 @@ const MAX_ZOOM = 5;
   templateUrl: './image-viewer-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './image-viewer-dialog.component.scss',
+  host: { 'data-testid': 'image-viewer-dialog' },
 })
 export class ImageViewerDialogComponent {
   dialogRef = inject(

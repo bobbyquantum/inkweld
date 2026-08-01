@@ -77,7 +77,7 @@ test.describe('Media Tab', () => {
       await mediaButton.click();
       await page.waitForURL(/\/media$/);
 
-      await expect(page.locator('.media-container')).toBeVisible();
+      await expect(page.getByTestId('media-container')).toBeVisible();
       await expect(page.getByTestId('media-search-input')).toBeVisible();
     });
 
@@ -143,14 +143,14 @@ test.describe('Media Tab', () => {
     await page.waitForLoadState('domcontentloaded');
     await expect(page.getByTestId('media-grid')).toBeVisible();
 
-    const mediaItems = page.locator('app-media-item-card');
+    const mediaItems = page.getByTestId('media-item-card');
 
     await test.step('grid displays all 5 seeded items', async () => {
       await expect(mediaItems).toHaveCount(5);
     });
 
     await test.step('status bar shows item count', async () => {
-      const statusBar = page.locator('.media-status-bar');
+      const statusBar = page.getByTestId('media-status-bar');
       await expect(statusBar).toBeVisible();
       await expect(statusBar).toContainText('5 items');
     });
@@ -230,12 +230,12 @@ test.describe('Media Tab', () => {
       // Either the .card-preview or .card-overlay opens the viewer; whichever
       // is on top depends on hover state. Use the overlay (top during hover).
       await mediaItems.first().hover();
-      await mediaItems.first().locator('.card-overlay').click();
-      await expect(page.locator('app-image-viewer-dialog')).toBeVisible();
+      await mediaItems.first().getByTestId('card-overlay').click();
+      await expect(page.getByTestId('image-viewer-dialog')).toBeVisible();
 
       // Close the dialog and reset search
       await page.keyboard.press('Escape');
-      await expect(page.locator('app-image-viewer-dialog')).not.toBeVisible();
+      await expect(page.getByTestId('image-viewer-dialog')).not.toBeVisible();
       await page.getByTestId('media-search-clear').click();
       await expect(mediaItems).toHaveCount(5);
     });
@@ -269,7 +269,7 @@ test.describe('Media Tab', () => {
       await card.hover();
       await card.locator('button:has(mat-icon:text("delete"))').click();
 
-      await expect(page.locator('app-confirmation-dialog')).toBeVisible();
+      await expect(page.getByTestId('confirmation-dialog')).toBeVisible();
       await page.getByTestId('confirm-delete-button').click();
 
       // Search now matches nothing → empty state for that query

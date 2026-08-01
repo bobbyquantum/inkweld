@@ -102,7 +102,9 @@ test.describe('Snapshot restore preserves elementRef chips', () => {
     await editor.pressSequentially(' arrived.', { delay: 10 });
 
     // Wait for the change to sync to the server before snapshotting.
-    await expect(page.locator('.sync-status')).toContainText(/synced|local/);
+    await expect(page.getByTestId('document-sync-status')).toContainText(
+      /synced|local/
+    );
 
     // 5) Create a snapshot.
     await page.getByTestId('toolbar-snapshots').click();
@@ -135,7 +137,9 @@ test.describe('Snapshot restore preserves elementRef chips', () => {
     await expect(editor).toContainText('Chip is gone now.');
 
     // Wait for the mutation to persist.
-    await expect(page.locator('.sync-status')).toContainText(/synced|local/);
+    await expect(page.getByTestId('document-sync-status')).toContainText(
+      /synced|local/
+    );
 
     // 7) Restore the snapshot.
     await page.getByTestId('toolbar-snapshots').click();
