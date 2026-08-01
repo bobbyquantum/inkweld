@@ -397,13 +397,33 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
       const selected = this.selectedItem();
       if (!selected) return;
 
-      // Get the blob for the selected item
-      const blob = await this.localStorage.getMedia(
+      // Get the blob for the selected item. Server-listed items may not be
+      // downloaded yet — fetch on demand rather than silently doing nothing
+      // (the old `if (!blob) return;` made Select a dead button for them).
+      let blob = await this.localStorage.getMedia(
         this.projectKey,
         selected.mediaId
       );
 
-      if (!blob) return;
+      if (!blob && selected.filename) {
+        try {
+          await this.mediaSync.downloadFromServer(
+            this.projectKey,
+            selected.filename
+          );
+          blob = await this.localStorage.getMedia(
+            this.projectKey,
+            selected.mediaId
+          );
+        } catch (err) {
+          console.error('Failed to download selected media:', err);
+        }
+      }
+
+      if (!blob) {
+        this.error.set('Failed to load the selected image');
+        return;
+      }
 
       this.dialogRef.close({
         selected,

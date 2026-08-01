@@ -23,10 +23,10 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslocoModule } from '@jsverse/transloco';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { firstValueFrom } from 'rxjs';
 
 import { ElementType } from '../../../../api-client';
-import { environment } from '../../../../environments/environment';
 import { LocalStorageService } from '../../../services/local/local-storage.service';
 import { DocumentService } from '../../../services/project/document.service';
 import { ProjectStateService } from '../../../services/project/project-state.service';
@@ -84,6 +84,7 @@ export class ElementRefTooltipComponent {
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly projectState = inject(ProjectStateService);
   private readonly http = inject(HttpClient);
+  private readonly storageContext = inject(StorageContextService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly documentService = inject(DocumentService);
 
@@ -206,7 +207,7 @@ export class ElementRefTooltipComponent {
         return;
       }
 
-      const apiUrl = `${environment.apiUrl}/api/v1/media/${username}/${slug}/${filename}`;
+      const apiUrl = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}/${filename}`;
       const blob = await firstValueFrom(
         this.http.get(apiUrl, { responseType: 'blob' })
       );

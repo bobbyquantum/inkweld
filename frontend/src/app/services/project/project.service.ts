@@ -756,16 +756,19 @@ export class ProjectService {
         coverFilename = response.coverImage;
       } catch (e) {
         const formatted = this.formatError(e);
-        // For recoverable network/server errors, save locally and queue sync
-        if (formatted.canUseCache) {
-          const localFilename = `cover-${Date.now()}.jpg`;
-          const mediaId = localFilename.replace(/\.[^.]+$/, '');
-          await this.localStorage.saveMedia(projectKey, mediaId, coverImage);
-          await this.projectSync.markPendingUpload(projectKey, 'cover');
-          return localFilename;
-        }
-        // Non-recoverable errors should propagate
-        throw formatted;
+        // Local-first: the cover blob is the user's data, so ANY server
+        // failure falls back to saving it locally and queueing a sync —
+        // including 404 (the server no longer has the project record; losing
+        // the cover over that would punish the user for a server-side
+        // problem) and 401 (the pending upload syncs after re-auth).
+        console.warn(
+          `Cover upload to server failed (${formatted.message}); saving locally and queueing sync`
+        );
+        const localFilename = `cover-${Date.now()}.jpg`;
+        const mediaId = localFilename.replace(/\.[^.]+$/, '');
+        await this.localStorage.saveMedia(projectKey, mediaId, coverImage);
+        await this.projectSync.markPendingUpload(projectKey, 'cover');
+        return localFilename;
       }
 
       // Cache the cover image to IndexedDB using the server filename as mediaId

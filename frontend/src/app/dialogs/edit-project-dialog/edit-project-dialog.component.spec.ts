@@ -6,6 +6,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { type ProjectsService } from '@inkweld/api/projects.service';
 import { type Project, type User } from '@inkweld/index';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { type LoadedImage } from 'ngx-image-cropper';
 import { of } from 'rxjs';
 import {
@@ -488,6 +489,26 @@ describe('EditProjectDialogComponent', () => {
       component.project = { ...mockProject, slug: undefined } as any; // Missing slug
       await component.removeCoverImage();
       expect(projectService.deleteProjectCover).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('openGenerateCoverDialog', () => {
+    it('surfaces an error when generation claims success without image data', async () => {
+      const gateway = TestBed.inject(DialogGatewayService);
+      vi.spyOn(gateway, 'openImageGenerationDialog').mockResolvedValue({
+        saved: true,
+        imageData: undefined,
+      });
+
+      await component.openGenerateCoverDialog();
+
+      // Never a silent no-op: the cropper is not shown and the user is told.
+      expect(component.showCropper).toBe(false);
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to load image. Please try another file.',
+        'Close',
+        expect.any(Object)
+      );
     });
   });
 

@@ -57,6 +57,37 @@
   }
 }
 
+/* Mobile: stack the cover above the form and let the cropper shrink —
+   the desktop two-column row + the cropper's 500px min-width otherwise
+   overflow a phone viewport and make the dialog unusable. */
+@media (max-width: 599px) {
+  .dialog-layout {
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .cover-column {
+    height: 220px !important;
+    margin: 16px auto 0;
+  }
+
+  .form-column {
+    min-height: 0 !important;
+    padding: 16px !important;
+  }
+
+  .cropper-view {
+    min-width: 0 !important;
+    padding: 16px !important;
+  }
+
+  .dialog-content {
+    /* dvh: keep the actions bar reachable when mobile browser chrome
+       collapses/expands */
+    max-height: calc(100dvh - 120px);
+  }
+}
+
 /* Left column: Cover image (1:1.6 aspect ratio for portrait book cover) */
 .cover-column {
   background-color: rgba(0, 0, 0, 0.03);

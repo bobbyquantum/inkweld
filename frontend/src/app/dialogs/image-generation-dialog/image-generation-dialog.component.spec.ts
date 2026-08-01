@@ -22,6 +22,7 @@ import {
   type GenerationJob,
   ImageGenerationService,
 } from '../../services/ai/image-generation.service';
+import { LocalStorageService } from '../../services/local/local-storage.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import {
@@ -363,8 +364,8 @@ describe('ImageGenerationDialogComponent', () => {
       expect(url).toBe('https://example.com/image.png');
     });
 
-    it('should close dialog with saved result when saveAndClose is called', () => {
-      component.saveAndClose();
+    it('should close dialog with saved result when saveAndClose is called', async () => {
+      await component.saveAndClose();
 
       expect(dialogRef.close).toHaveBeenCalledWith({
         saved: true,
@@ -377,6 +378,74 @@ describe('ImageGenerationDialogComponent', () => {
       component.cancel();
 
       expect(dialogRef.close).toHaveBeenCalledWith({ saved: false });
+    });
+
+    it('resolves url-only images to a data URL via the saved local media blob', async () => {
+      // Providers like fal.ai / Workers AI return a hosted url, not b64Json.
+      // Consumers decode imageData as base64, so saveAndClose must resolve a
+      // data URL from the blob the generation service already saved locally.
+      const urlJob: GenerationJob = {
+        ...mockCompletedJob,
+        images: [{ url: 'https://cdn.example.com/img.png', index: 0 }],
+        savedMediaIds: ['media-1'],
+      };
+      generationService.getJob.mockReturnValue(urlJob);
+      const localStorageService = TestBed.inject(LocalStorageService);
+      const blob = new Blob(['fake-image-bytes'], { type: 'image/png' });
+      const getMediaSpy = vi
+        .spyOn(localStorageService, 'getMedia')
+        .mockResolvedValue(blob);
+
+      await component.saveAndClose();
+
+      expect(getMediaSpy).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'media-1'
+      );
+      expect(dialogRef.close).toHaveBeenCalledWith(
+        expect.objectContaining({
+          saved: true,
+          imageData: expect.stringMatching(/^data:/),
+        })
+      );
+    });
+
+    it('refuses to close claiming success when no image data can be resolved', async () => {
+      // Misaligned savedMediaIds (a save failed, compacting the array) must
+      // not be trusted by index; with the fetch fallback also failing there
+      // is no usable payload — the dialog must NOT close with saved: true.
+      const urlJob: GenerationJob = {
+        ...mockCompletedJob,
+        images: [
+          { url: 'https://cdn.example.com/a.png', index: 0 },
+          { url: 'https://cdn.example.com/b.png', index: 1 },
+        ],
+        savedMediaIds: ['only-one-saved'],
+      };
+      generationService.getJob.mockReturnValue(urlJob);
+      const localStorageService = TestBed.inject(LocalStorageService);
+      const getMediaSpy = vi
+        .spyOn(localStorageService, 'getMedia')
+        .mockResolvedValue(null);
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockRejectedValue(new Error('unreachable'));
+      // The component's MatSnackBarModule import shadows the TestBed-level
+      // MatSnackBar mock, so spy on the component's actual instance.
+      const snackSpy = vi.spyOn(
+        (component as unknown as { snackBar: { open: () => unknown } })
+          .snackBar,
+        'open'
+      );
+
+      await component.saveAndClose();
+
+      // Index misaligned → local media not trusted by index.
+      expect(getMediaSpy).not.toHaveBeenCalled();
+      expect(dialogRef.close).not.toHaveBeenCalled();
+      expect(snackSpy).toHaveBeenCalled();
+
+      fetchSpy.mockRestore();
     });
   });
 
@@ -1076,7 +1145,7 @@ describe('ImageGenerationDialogComponent', () => {
       generationService.getJob.mockReturnValue(emptyJob);
       component.generate();
 
-      component.saveAndClose();
+      await component.saveAndClose();
 
       // Should not close dialog when no image is selected
       expect(dialogRef.close).not.toHaveBeenCalled();

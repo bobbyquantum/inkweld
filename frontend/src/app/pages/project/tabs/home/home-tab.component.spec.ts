@@ -419,6 +419,50 @@ describe('HomeTabComponent', () => {
     );
   });
 
+  it('shows an error snackbar when the dialog claims success without image data', async () => {
+    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue({
+      saved: true,
+      imageData: undefined,
+    });
+
+    component.onGenerateCoverClick();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(projectService.uploadProjectCover).not.toHaveBeenCalled();
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'Failed to save cover image',
+      'Close',
+      { duration: 5000 }
+    );
+  });
+
+  it('shows an error snackbar when the image data is not a valid data URL', async () => {
+    // A raw provider URL leaking through as imageData used to throw inside
+    // the promise chain — an unhandled rejection the user saw as nothing
+    // happening at all.
+    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue({
+      saved: true,
+      imageData: 'https://cdn.example.com/not-base64.png',
+    });
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+
+    component.onGenerateCoverClick();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(projectService.uploadProjectCover).not.toHaveBeenCalled();
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'Failed to save cover image',
+      'Close',
+      { duration: 5000 }
+    );
+
+    consoleErrorSpy.mockRestore();
+  });
+
   it('should report a generated cover image upload failure', async () => {
     const consoleErrorSpy = vi
       .spyOn(console, 'error')

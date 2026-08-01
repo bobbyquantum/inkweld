@@ -1,8 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { firstValueFrom } from 'rxjs';
 
-import { environment } from '../../../environments/environment';
 import { LocalStorageService, type MediaInfo } from './local-storage.service';
 import { ProjectSyncService } from './project-sync.service';
 
@@ -112,6 +112,7 @@ export class MediaSyncService {
   private readonly http = inject(HttpClient);
   private readonly localStorage = inject(LocalStorageService);
   private readonly projectSync = inject(ProjectSyncService);
+  private readonly storageContext = inject(StorageContextService);
 
   /** Cache of sync states per project */
   private readonly syncStates = new Map<
@@ -151,7 +152,7 @@ export class MediaSyncService {
    */
   private getMediaUrl(projectKey: string): string {
     const { username, slug } = this.parseProjectKey(projectKey);
-    return `${environment.apiUrl}/api/v1/media/${username}/${slug}`;
+    return `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}`;
   }
 
   /**
@@ -386,7 +387,7 @@ export class MediaSyncService {
         `${mediaId}.${this.getExtension(blob.type)}`
       );
 
-      const uploadUrl = `${environment.apiUrl}/api/v1/media/${username}/${slug}`;
+      const uploadUrl = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}`;
       await firstValueFrom(this.http.post(uploadUrl, formData));
 
       // Clear from pending uploads
