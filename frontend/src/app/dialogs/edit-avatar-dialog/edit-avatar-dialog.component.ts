@@ -17,7 +17,6 @@ import { UserService } from '@services/user/user.service';
 import {
   type ImageCroppedEvent,
   ImageCropperComponent,
-  type LoadedImage,
 } from 'ngx-image-cropper';
 import { firstValueFrom } from 'rxjs';
 
@@ -32,7 +31,7 @@ import { firstValueFrom } from 'rxjs';
     ImageCropperComponent,
   ],
   templateUrl: './edit-avatar-dialog.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./edit-avatar-dialog.component.scss'],
 })
 export class EditAvatarDialogComponent {
@@ -44,58 +43,57 @@ export class EditAvatarDialogComponent {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly transloco = inject(TranslocoService);
 
-  imageChangedEvent: Event | null = null;
-  croppedImage: SafeUrl | null = null;
-  croppedBlob: Blob | null = null;
-  fileName = '';
+  readonly imageChangedEvent = signal<Event | null>(null);
+  readonly croppedImage = signal<SafeUrl | null>(null);
+  readonly croppedBlob = signal<Blob | null>(null);
+  readonly fileName = signal('');
   readonly isSubmitting = signal(false);
-  isCropperReady = false;
-  hasImageLoaded = false;
-  hasLoadFailed = false;
+  readonly isCropperReady = signal(false);
+  readonly hasImageLoaded = signal(false);
+  readonly hasLoadFailed = signal(false);
 
   fileChangeEvent(event: Event): void {
     this.resetState();
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.imageChangedEvent = event;
-      this.fileName = input.files[0].name;
+      this.imageChangedEvent.set(event);
+      this.fileName.set(input.files[0].name);
     }
   }
 
   imageCropped(event: ImageCroppedEvent) {
     if (event.objectUrl && event.blob) {
-      this.croppedImage = this.sanitizer.bypassSecurityTrustUrl(
-        event.objectUrl
+      this.croppedImage.set(
+        this.sanitizer.bypassSecurityTrustUrl(event.objectUrl) // NOSONAR — URL from ngx-image-cropper output
       );
-      this.croppedBlob = event.blob;
+      this.croppedBlob.set(event.blob);
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onImageLoaded(image: LoadedImage) {
-    this.hasImageLoaded = true;
+  onImageLoaded(): void {
+    this.hasImageLoaded.set(true);
   }
 
   onCropperReady() {
-    this.isCropperReady = true;
+    this.isCropperReady.set(true);
   }
 
   onLoadImageFailed() {
-    this.hasLoadFailed = true;
+    this.hasLoadFailed.set(true);
     alert(this.transloco.translate('dialogs.baseImage.loadFailed'));
   }
 
   resetState() {
-    this.imageChangedEvent = null;
-    this.croppedImage = null;
-    this.croppedBlob = null;
-    this.hasImageLoaded = false;
-    this.isCropperReady = false;
-    this.hasLoadFailed = false;
+    this.imageChangedEvent.set(null);
+    this.croppedImage.set(null);
+    this.croppedBlob.set(null);
+    this.hasImageLoaded.set(false);
+    this.isCropperReady.set(false);
+    this.hasLoadFailed.set(false);
   }
 
   async submit(): Promise<void> {
-    if (!this.croppedBlob || !this.fileName) {
+    if (!this.croppedBlob() || !this.fileName()) {
       return;
     }
     this.isSubmitting.set(true);
@@ -107,20 +105,18 @@ export class EditAvatarDialogComponent {
         throw new Error('No user logged in');
       }
 
+      const blob = this.croppedBlob()!;
+
       if (mode === 'local') {
-        // In offline mode, save directly to IndexedDB
-        await this.localStorage.saveUserAvatar(username, this.croppedBlob);
+        await this.localStorage.saveUserAvatar(username, blob);
       } else {
-        // In server mode, upload to server and cache locally
-        const file = new File([this.croppedBlob], this.fileName, {
-          type: this.croppedBlob.type || 'image/png',
+        const file = new File([blob], this.fileName(), {
+          type: blob.type || 'image/png',
         });
         await firstValueFrom(this.userService.uploadAvatar(file));
-        // Also cache locally for offline access
-        await this.localStorage.saveUserAvatar(username, this.croppedBlob);
+        await this.localStorage.saveUserAvatar(username, blob);
       }
 
-      // Update the current user's hasAvatar flag so avatar component reloads properly
       const currentUser = this.unifiedUserService.currentUser();
       if (currentUser) {
         await this.userService.setCurrentUser({

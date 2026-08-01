@@ -7,6 +7,7 @@
   "dark": "Dark",
   "dialogTitle": "Settings",
   "userProfileTitle": "User Profile",
+  "editAvatarFor": "Edit avatar for {{username}}",
   "accountSettingsAria": "Account settings",
   "account": "Account",
   "authorizedAppsAria": "Authorized Apps settings",

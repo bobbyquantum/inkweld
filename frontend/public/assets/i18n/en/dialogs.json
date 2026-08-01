@@ -93,7 +93,8 @@
     "selectFromLibrary": "Select from Library",
     "generateWithAI": "Generate with AI",
     "selectFileAria": "Select image file",
-    "insert": "Insert"
+    "insert": "Insert",
+    "processingFailed": "Failed to process generated image. Please try again."
   },
   "editProject": {
     "cropTitle": "Crop Cover Image",

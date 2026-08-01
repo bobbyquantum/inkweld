@@ -169,6 +169,28 @@ test.describe('Image Insert', () => {
       await expect(editorImage.first()).toBeVisible();
     });
 
+    await test.step('clicking the image shows resize handles', async () => {
+      const pageErrors: string[] = [];
+      page.on('pageerror', err => pageErrors.push(err.message));
+
+      const editorImage = page.locator(
+        'ngx-editor .ProseMirror img[data-media-id]'
+      );
+      await editorImage.first().click();
+
+      // The resize handle wrapper gets the NgxEditor__Resizer--Active class
+      // when the image node is selected via ProseMirror's selectNode().
+      await expect(
+        page.locator('ngx-editor .NgxEditor__Resizer--Active')
+      ).toBeVisible();
+
+      // Wait for any pageerror event to fire by checking after a microtask
+      // flush — no fixed timeout needed since pageerror is dispatched
+      // synchronously on uncaught exceptions.
+      await page.evaluate(() => Promise.resolve());
+      expect(pageErrors).toEqual([]);
+    });
+
     await test.step('image persists after a full page reload', async () => {
       await page.reload();
       await page.waitForLoadState('domcontentloaded');

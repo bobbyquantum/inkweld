@@ -112,9 +112,9 @@ describe('BaseImageDialogComponent', () => {
 
       component.onFileSelected(event);
 
-      expect(component.showCropper).toBe(true);
-      expect(component.pendingFileName).toBe('image.png');
-      expect(component.imageChangedEvent).toBe(event);
+      expect(component.showCropper()).toBe(true);
+      expect(component.pendingFileName()).toBe('image.png');
+      expect(component.imageChangedEvent()).toBe(event);
     });
 
     it('should accept valid JPEG file', () => {
@@ -123,8 +123,8 @@ describe('BaseImageDialogComponent', () => {
 
       component.onFileSelected(event);
 
-      expect(component.showCropper).toBe(true);
-      expect(component.pendingFileName).toBe('photo.jpg');
+      expect(component.showCropper()).toBe(true);
+      expect(component.pendingFileName()).toBe('photo.jpg');
     });
 
     it('should accept valid JPG file', () => {
@@ -133,7 +133,7 @@ describe('BaseImageDialogComponent', () => {
 
       component.onFileSelected(event);
 
-      expect(component.showCropper).toBe(true);
+      expect(component.showCropper()).toBe(true);
     });
 
     it('should reject invalid file type', () => {
@@ -144,7 +144,7 @@ describe('BaseImageDialogComponent', () => {
 
       component.onFileSelected(event);
 
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
       expect(snackBarMock.open).toHaveBeenCalledWith(
         'Invalid image file. Please select a JPEG or PNG file.',
         'Close',
@@ -158,24 +158,24 @@ describe('BaseImageDialogComponent', () => {
 
       component.onFileSelected(event);
 
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
       expect(snackBarMock.open).toHaveBeenCalled();
     });
 
     it('should select a new file after a previous selection resets state', () => {
-      component.imageChangedEvent = {} as Event;
-      component.pendingFileName = 'old.png';
-      component.showCropper = true;
-      component.hasImageLoaded = true;
+      component.imageChangedEvent.set({} as Event);
+      component.pendingFileName.set('old.png');
+      component.showCropper.set(true);
+      component.hasImageLoaded.set(true);
 
       const file = new File(['test'], 'new.png', { type: 'image/png' });
       const event = { target: { files: [file] } } as unknown as Event;
 
       component.onFileSelected(event);
 
-      expect(component.pendingFileName).toBe('new.png');
-      expect(component.hasImageLoaded).toBe(false);
-      expect(component.isCropperReady).toBe(false);
+      expect(component.pendingFileName()).toBe('new.png');
+      expect(component.hasImageLoaded()).toBe(false);
+      expect(component.isCropperReady()).toBe(false);
     });
 
     it('should handle empty files array', () => {
@@ -183,7 +183,7 @@ describe('BaseImageDialogComponent', () => {
 
       component.onFileSelected(event);
 
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
     });
 
     it('should handle null files', () => {
@@ -191,42 +191,41 @@ describe('BaseImageDialogComponent', () => {
 
       component.onFileSelected(event);
 
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
     });
   });
 
   describe('cropper state lifecycle', () => {
     it('should start with default cropper state', () => {
-      expect(component.imageChangedEvent).toBeNull();
-      expect(component.imageBase64).toBeUndefined();
-      expect(component.croppedImage).toBeNull();
-      expect(component.croppedBlob).toBeNull();
-      expect(component.isCropperReady).toBe(false);
-      expect(component.hasImageLoaded).toBe(false);
-      expect(component.hasLoadFailed).toBe(false);
-      expect(component.showCropper).toBe(false);
-      expect(component.pendingFileName).toBe('');
+      expect(component.imageChangedEvent()).toBeNull();
+      expect(component.imageBase64()).toBeUndefined();
+      expect(component.croppedImage()).toBeNull();
+      expect(component.croppedBlob()).toBeNull();
+      expect(component.isCropperReady()).toBe(false);
+      expect(component.hasImageLoaded()).toBe(false);
+      expect(component.hasLoadFailed()).toBe(false);
+      expect(component.pendingFileName()).toBe('');
     });
 
     it('onCropperReady should set isCropperReady to true', () => {
-      expect(component.isCropperReady).toBe(false);
+      expect(component.isCropperReady()).toBe(false);
       component.onCropperReady();
-      expect(component.isCropperReady).toBe(true);
+      expect(component.isCropperReady()).toBe(true);
     });
 
     it('onImageLoaded should set hasImageLoaded to true', () => {
-      expect(component.hasImageLoaded).toBe(false);
+      expect(component.hasImageLoaded()).toBe(false);
       component.onImageLoaded({} as LoadedImage);
-      expect(component.hasImageLoaded).toBe(true);
+      expect(component.hasImageLoaded()).toBe(true);
     });
 
     it('onLoadImageFailed should set hasLoadFailed, hide cropper, show error', () => {
-      component.showCropper = true;
+      component.showCropper.set(true);
 
       component.onLoadImageFailed();
 
-      expect(component.hasLoadFailed).toBe(true);
-      expect(component.showCropper).toBe(false);
+      expect(component.hasLoadFailed()).toBe(true);
+      expect(component.showCropper()).toBe(false);
       expect(snackBarMock.open).toHaveBeenCalledWith(
         'Failed to load image. Please try another file.',
         'Close',
@@ -235,25 +234,25 @@ describe('BaseImageDialogComponent', () => {
     });
 
     it('resetCropperState should reset all cropper state', () => {
-      component.imageChangedEvent = {} as Event;
-      component.imageBase64 = 'base64data';
-      component.croppedImage = 'safe-url';
-      component.croppedBlob = new Blob(['test']);
-      component.hasImageLoaded = true;
-      component.isCropperReady = true;
-      component.hasLoadFailed = true;
-      component.pendingFileName = 'test.png';
+      component.imageChangedEvent.set({} as Event);
+      component.imageBase64.set('base64data');
+      component.croppedImage.set('safe-url');
+      component.croppedBlob.set(new Blob(['test']));
+      component.hasImageLoaded.set(true);
+      component.isCropperReady.set(true);
+      component.hasLoadFailed.set(true);
+      component.pendingFileName.set('test.png');
 
       component.resetCropperState();
 
-      expect(component.imageChangedEvent).toBeNull();
-      expect(component.imageBase64).toBeUndefined();
-      expect(component.croppedImage).toBeNull();
-      expect(component.croppedBlob).toBeNull();
-      expect(component.hasImageLoaded).toBe(false);
-      expect(component.isCropperReady).toBe(false);
-      expect(component.hasLoadFailed).toBe(false);
-      expect(component.pendingFileName).toBe('');
+      expect(component.imageChangedEvent()).toBeNull();
+      expect(component.imageBase64()).toBeUndefined();
+      expect(component.croppedImage()).toBeNull();
+      expect(component.croppedBlob()).toBeNull();
+      expect(component.hasImageLoaded()).toBe(false);
+      expect(component.isCropperReady()).toBe(false);
+      expect(component.hasLoadFailed()).toBe(false);
+      expect(component.pendingFileName()).toBe('');
     });
   });
 
@@ -267,7 +266,7 @@ describe('BaseImageDialogComponent', () => {
 
       component.imageCropped(event);
 
-      expect(component.croppedBlob).toBe(blob);
+      expect(component.croppedBlob()).toBe(blob);
       expect(sanitizerMock.bypassSecurityTrustUrl).toHaveBeenCalledWith(
         'blob:test-url'
       );
@@ -278,8 +277,8 @@ describe('BaseImageDialogComponent', () => {
 
       component.imageCropped(event);
 
-      expect(component.croppedBlob).toBeNull();
-      expect(component.croppedImage).toBeNull();
+      expect(component.croppedBlob()).toBeNull();
+      expect(component.croppedImage()).toBeNull();
     });
   });
 
@@ -362,20 +361,20 @@ describe('BaseImageDialogComponent', () => {
 
   describe('cancelCropping', () => {
     it('should hide cropper and reset state', () => {
-      component.showCropper = true;
-      component.croppedBlob = new Blob(['test']);
-      component.pendingFileName = 'test.png';
-      component.hasImageLoaded = true;
+      component.showCropper.set(true);
+      component.croppedBlob.set(new Blob(['test']));
+      component.pendingFileName.set('test.png');
+      component.hasImageLoaded.set(true);
       component.fileInput = {
         nativeElement: { value: 'selected-file' },
       } as unknown as any;
 
       component.cancelCropping();
 
-      expect(component.showCropper).toBe(false);
-      expect(component.croppedBlob).toBeNull();
-      expect(component.pendingFileName).toBe('');
-      expect(component.hasImageLoaded).toBe(false);
+      expect(component.showCropper()).toBe(false);
+      expect(component.croppedBlob()).toBeNull();
+      expect(component.pendingFileName()).toBe('');
+      expect(component.hasImageLoaded()).toBe(false);
       expect(component.fileInput.nativeElement.value).toBe('');
     });
   });
@@ -386,7 +385,7 @@ describe('BaseImageDialogComponent', () => {
 
       await component.openMediaLibrary();
 
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
     });
 
     it('should set image from media library result', async () => {
@@ -398,9 +397,9 @@ describe('BaseImageDialogComponent', () => {
 
       await component.openMediaLibrary();
 
-      expect(component.showCropper).toBe(true);
-      expect(component.pendingFileName).toBe('library-image.png');
-      expect(component.imageBase64).toContain('base64,');
+      expect(component.showCropper()).toBe(true);
+      expect(component.pendingFileName()).toBe('library-image.png');
+      expect(component.imageBase64()).toContain('base64,');
     });
   });
 

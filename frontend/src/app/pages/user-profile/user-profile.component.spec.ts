@@ -119,7 +119,7 @@ describe('UserProfileComponent', () => {
   });
 
   it('should extract username from route params', () => {
-    expect(component.username).toBe('testuser');
+    expect(component.username()).toBe('testuser');
   });
 
   describe('breakpoint observer', () => {

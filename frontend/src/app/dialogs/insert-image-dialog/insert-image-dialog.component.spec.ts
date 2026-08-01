@@ -112,64 +112,64 @@ describe('InsertImageDialogComponent', () => {
 
   describe('cancelCropping', () => {
     it('should hide cropper and reset state', () => {
-      component.showCropper = true;
-      component.croppedBlob = new Blob(['test']);
-      component.pendingFileName = 'test.png';
+      component.showCropper.set(true);
+      component.croppedBlob.set(new Blob(['test']));
+      component.pendingFileName.set('test.png');
 
       component.cancelCropping();
 
-      expect(component.showCropper).toBe(false);
-      expect(component.croppedBlob).toBeNull();
-      expect(component.pendingFileName).toBe('');
+      expect(component.showCropper()).toBe(false);
+      expect(component.croppedBlob()).toBeNull();
+      expect(component.pendingFileName()).toBe('');
     });
   });
 
   describe('resetCropperState', () => {
     it('should reset all cropper state', () => {
-      component.imageChangedEvent = {} as Event;
-      component.imageBase64 = 'base64data';
-      component.croppedImage = 'cropped';
-      component.croppedBlob = new Blob(['test']);
-      component.hasImageLoaded = true;
-      component.isCropperReady = true;
-      component.hasLoadFailed = true;
-      component.pendingFileName = 'test.png';
+      component.imageChangedEvent.set({} as Event);
+      component.imageBase64.set('base64data');
+      component.croppedImage.set('cropped');
+      component.croppedBlob.set(new Blob(['test']));
+      component.hasImageLoaded.set(true);
+      component.isCropperReady.set(true);
+      component.hasLoadFailed.set(true);
+      component.pendingFileName.set('test.png');
 
       component.resetCropperState();
 
-      expect(component.imageChangedEvent).toBeNull();
-      expect(component.imageBase64).toBeUndefined();
-      expect(component.croppedImage).toBeNull();
-      expect(component.croppedBlob).toBeNull();
-      expect(component.hasImageLoaded).toBe(false);
-      expect(component.isCropperReady).toBe(false);
-      expect(component.hasLoadFailed).toBe(false);
-      expect(component.pendingFileName).toBe('');
+      expect(component.imageChangedEvent()).toBeNull();
+      expect(component.imageBase64()).toBeUndefined();
+      expect(component.croppedImage()).toBeNull();
+      expect(component.croppedBlob()).toBeNull();
+      expect(component.hasImageLoaded()).toBe(false);
+      expect(component.isCropperReady()).toBe(false);
+      expect(component.hasLoadFailed()).toBe(false);
+      expect(component.pendingFileName()).toBe('');
     });
   });
 
   describe('onCropperReady', () => {
     it('should set isCropperReady to true', () => {
-      expect(component.isCropperReady).toBe(false);
+      expect(component.isCropperReady()).toBe(false);
       component.onCropperReady();
-      expect(component.isCropperReady).toBe(true);
+      expect(component.isCropperReady()).toBe(true);
     });
   });
 
   describe('onImageLoaded', () => {
     it('should set hasImageLoaded to true', () => {
-      expect(component.hasImageLoaded).toBe(false);
+      expect(component.hasImageLoaded()).toBe(false);
       component.onImageLoaded({} as unknown as LoadedImage);
-      expect(component.hasImageLoaded).toBe(true);
+      expect(component.hasImageLoaded()).toBe(true);
     });
   });
 
   describe('onLoadImageFailed', () => {
     it('should set hasLoadFailed and show error', () => {
-      component.showCropper = true;
+      component.showCropper.set(true);
       component.onLoadImageFailed();
-      expect(component.hasLoadFailed).toBe(true);
-      expect(component.showCropper).toBe(false);
+      expect(component.hasLoadFailed()).toBe(true);
+      expect(component.showCropper()).toBe(false);
       expect(snackBarMock.open).toHaveBeenCalledWith(
         'Failed to load image. Please try another file.',
         'Close',
@@ -181,7 +181,7 @@ describe('InsertImageDialogComponent', () => {
   describe('applyCroppedImage', () => {
     it('should close dialog with result when croppedBlob exists', () => {
       const testBlob = new Blob(['test'], { type: 'image/png' });
-      component.croppedBlob = testBlob;
+      component.croppedBlob.set(testBlob);
 
       component.applyCroppedImage();
 
@@ -194,7 +194,7 @@ describe('InsertImageDialogComponent', () => {
     });
 
     it('should not close dialog when croppedBlob is null', () => {
-      component.croppedBlob = null;
+      component.croppedBlob.set(null);
       component.applyCroppedImage();
       expect(dialogRefMock.close).not.toHaveBeenCalled();
     });
@@ -218,9 +218,9 @@ describe('InsertImageDialogComponent', () => {
 
       component.onFileSelected(event);
 
-      expect(component.showCropper).toBe(true);
-      expect(component.pendingFileName).toBe('test.png');
-      expect(component.imageChangedEvent).toBe(event);
+      expect(component.showCropper()).toBe(true);
+      expect(component.pendingFileName()).toBe('test.png');
+      expect(component.imageChangedEvent()).toBe(event);
     });
 
     it('should reject invalid file type', () => {
@@ -231,7 +231,7 @@ describe('InsertImageDialogComponent', () => {
 
       component.onFileSelected(event);
 
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
       expect(snackBarMock.open).toHaveBeenCalledWith(
         'Invalid image file. Please select a JPEG or PNG file.',
         'Close',
@@ -246,7 +246,7 @@ describe('InsertImageDialogComponent', () => {
 
       component.onFileSelected(event);
 
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
     });
   });
 
@@ -256,7 +256,7 @@ describe('InsertImageDialogComponent', () => {
 
       await component.openMediaLibrary();
 
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
     });
   });
 
@@ -266,7 +266,7 @@ describe('InsertImageDialogComponent', () => {
 
       await component.openGenerateDialog();
 
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
     });
 
     it('should do nothing when result is not saved', async () => {
@@ -276,7 +276,7 @@ describe('InsertImageDialogComponent', () => {
 
       await component.openGenerateDialog();
 
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
     });
   });
 
@@ -290,8 +290,8 @@ describe('InsertImageDialogComponent', () => {
 
       component.imageCropped(event);
 
-      expect(component.croppedBlob).toBe(blob);
-      expect(component.croppedImage).toBeTruthy();
+      expect(component.croppedBlob()).toBe(blob);
+      expect(component.croppedImage()).toBeTruthy();
     });
 
     it('should not set cropped image when event has no blob', () => {
@@ -299,7 +299,7 @@ describe('InsertImageDialogComponent', () => {
 
       component.imageCropped(event);
 
-      expect(component.croppedBlob).toBeNull();
+      expect(component.croppedBlob()).toBeNull();
     });
   });
 });

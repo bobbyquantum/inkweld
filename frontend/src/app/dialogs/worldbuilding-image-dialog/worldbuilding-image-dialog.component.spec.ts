@@ -113,8 +113,8 @@ describe('WorldbuildingImageDialogComponent', () => {
 
       component.onFileSelected(mockEvent);
 
-      expect(component.showCropper).toBe(true);
-      expect(component.pendingFileName).toBe('test.png');
+      expect(component.showCropper()).toBe(true);
+      expect(component.pendingFileName()).toBe('test.png');
     });
 
     it('should show error for invalid file type', () => {
@@ -127,7 +127,7 @@ describe('WorldbuildingImageDialogComponent', () => {
 
       component.onFileSelected(mockEvent);
 
-      expect(component.showCropper).toBe(false);
+      expect(component.showCropper()).toBe(false);
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         'Invalid image file. Please select a JPEG or PNG file.',
         'Close',
@@ -159,8 +159,8 @@ describe('WorldbuildingImageDialogComponent', () => {
 
       await component.openMediaLibrary();
 
-      expect(component.showCropper).toBe(true);
-      expect(component.pendingFileName).toBe('selected.png');
+      expect(component.showCropper()).toBe(true);
+      expect(component.pendingFileName()).toBe('selected.png');
     });
   });
 
@@ -222,24 +222,24 @@ describe('WorldbuildingImageDialogComponent', () => {
 
   describe('cropper', () => {
     it('should reset cropper state on cancel', () => {
-      component.showCropper = true;
-      component.pendingFileName = 'test.png';
-      component.croppedBlob = new Blob(['test']);
+      component.showCropper.set(true);
+      component.pendingFileName.set('test.png');
+      component.croppedBlob.set(new Blob(['test']));
       const mockFileInput = { value: 'test' } as HTMLInputElement;
       component.fileInput = { nativeElement: mockFileInput };
 
       component.cancelCropping();
 
-      expect(component.showCropper).toBe(false);
-      expect(component.pendingFileName).toBe('');
-      expect(component.croppedBlob).toBeNull();
+      expect(component.showCropper()).toBe(false);
+      expect(component.pendingFileName()).toBe('');
+      expect(component.croppedBlob()).toBeNull();
       expect(mockFileInput.value).toBe('');
     });
 
     it('should apply cropped image and close dialog', async () => {
       const mockBlob = new Blob(['test'], { type: 'image/png' });
-      component.croppedBlob = mockBlob;
-      component.croppedImage = 'object:url';
+      component.croppedBlob.set(mockBlob);
+      component.croppedImage.set('object:url');
 
       // Stub the async FileReader-based conversion so the close() call is
       // deterministic instead of racing a 100ms macrotask (flaky under load).

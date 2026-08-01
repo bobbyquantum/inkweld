@@ -1,5 +1,5 @@
 <h2 mat-dialog-title>
-  @if (showCropper) {
+  @if (showCropper()) {
     {{ 'worldbuilding.imageDialog.cropTitle' | transloco }}
   } @else {
     {{
@@ -9,16 +9,15 @@
 </h2>
 
 <mat-dialog-content class="dialog-content">
-  @if (showCropper) {
-    <!-- Cropper View -->
+  @if (showCropper()) {
     <div class="cropper-view">
       <p class="cropper-subtitle">
         {{ 'worldbuilding.imageDialog.cropSubtitle' | transloco }}
       </p>
       <div class="cropper-container">
         <image-cropper
-          [imageChangedEvent]="imageChangedEvent"
-          [imageBase64]="imageBase64"
+          [imageChangedEvent]="imageChangedEvent()"
+          [imageBase64]="imageBase64()"
           [maintainAspectRatio]="true"
           [aspectRatio]="aspectRatio"
           [roundCropper]="false"
@@ -37,9 +36,7 @@
       </div>
     </div>
   } @else {
-    <!-- Main View -->
     <div class="main-view">
-      <!-- Current Image Preview -->
       <div class="image-preview">
         @if (currentImageUrl && hasCurrentImage) {
           <img
@@ -54,7 +51,6 @@
         }
       </div>
 
-      <!-- Action Buttons -->
       <div class="action-buttons">
         <button
           mat-stroked-button
@@ -105,14 +101,12 @@
     </div>
   }
 
-  <!-- Loading indicator -->
   @if (isLoading()) {
     <mat-progress-bar
       mode="indeterminate"
       class="loading-bar"></mat-progress-bar>
   }
 
-  <!-- Hidden file input -->
   <input
     #fileInput
     type="file"
@@ -126,7 +120,7 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  @if (showCropper) {
+  @if (showCropper()) {
     <button mat-button (click)="cancelCropping()">
       {{ 'back' | transloco }}
     </button>
@@ -134,7 +128,7 @@
       mat-raised-button
       color="primary"
       (click)="applyCroppedImage()"
-      [disabled]="!croppedBlob">
+      [disabled]="!croppedBlob()">
       {{ 'worldbuilding.imageDialog.apply' | transloco }}
     </button>
   } @else {

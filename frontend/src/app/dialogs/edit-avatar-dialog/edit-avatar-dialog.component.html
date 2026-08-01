@@ -9,8 +9,8 @@
       <mat-icon>add_photo_alternate</mat-icon>
       {{ 'upload' | transloco }}
     </button>
-    @if (fileName) {
-      <span class="file-name">{{ fileName }}</span>
+    @if (fileName()) {
+      <span class="file-name">{{ fileName() }}</span>
     }
     <input
       type="file"
@@ -21,10 +21,10 @@
       style="display: none"
       [attr.aria-label]="'upload' | transloco" />
   </div>
-  @if (imageChangedEvent) {
+  @if (imageChangedEvent()) {
     <div class="cropper-container">
       <image-cropper
-        [imageChangedEvent]="imageChangedEvent"
+        [imageChangedEvent]="imageChangedEvent()"
         [maintainAspectRatio]="true"
         [aspectRatio]="1"
         [roundCropper]="true"
@@ -35,16 +35,16 @@
         [cropperMinHeight]="100"
         [onlyScaleDown]="true"
         (imageCropped)="imageCropped($event)"
-        (imageLoaded)="onImageLoaded($event)"
+        (imageLoaded)="onImageLoaded()"
         (cropperReady)="onCropperReady()"
         (loadImageFailed)="onLoadImageFailed()">
       </image-cropper>
-      @if (croppedImage) {
+      @if (croppedImage()) {
         <div class="preview-container">
           <h3>{{ 'preview' | transloco }}</h3>
           <div class="avatar-preview-wrapper">
             <img
-              [src]="croppedImage"
+              [src]="croppedImage()!"
               alt="Cropped Avatar"
               class="avatar-preview" />
           </div>
@@ -64,7 +64,7 @@
     mat-raised-button
     color="primary"
     (click)="submit()"
-    [disabled]="isSubmitting() || !croppedBlob">
+    [disabled]="isSubmitting() || !croppedBlob()">
     {{ isSubmitting() ? ('loading' | transloco) : ('save' | transloco) }}
   </button>
 </div>

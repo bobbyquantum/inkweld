@@ -23,7 +23,7 @@
   }
 
   <!-- Error State -->
-  @if (!isLoading() && loadError) {
+  @if (!isLoading() && loadError()) {
     <div class="error-state">
       <mat-icon class="error-icon">error_outline</mat-icon>
       <h2>{{ 'errors.loadFailed' | transloco }}</h2>
@@ -36,18 +36,20 @@
   }
 
   <!-- User Profile Content -->
-  @if (!isLoading() && !loadError && profileUser) {
+  @if (!isLoading() && !loadError() && profileUser(); as user) {
     <div class="user-profile-container">
       <div class="user-profile-header">
-        @if (isOwner) {
+        @if (isOwner()) {
           <button
             type="button"
             class="user-avatar-container editable"
-            [attr.aria-label]="'Edit avatar for ' + profileUser.username"
+            [attr.aria-label]="
+              'settings.editAvatarFor' | transloco: { username: user.username }
+            "
             (click)="openEditAvatarDialog()">
             <app-user-avatar
-              [username]="profileUser.username"
-              [hasAvatar]="profileUser.hasAvatar"
+              [username]="user.username"
+              [hasAvatar]="user.hasAvatar"
               size="large">
             </app-user-avatar>
             <mat-icon class="edit-avatar-icon">edit</mat-icon>
@@ -55,15 +57,15 @@
         } @else {
           <div class="user-avatar-container">
             <app-user-avatar
-              [username]="profileUser.username"
-              [hasAvatar]="profileUser.hasAvatar"
+              [username]="user.username"
+              [hasAvatar]="user.hasAvatar"
               size="large">
             </app-user-avatar>
           </div>
         }
         <div class="user-info-container">
-          <h1 class="user-display-name">{{ profileUser.name }}</h1>
-          <h2 class="user-username">{{ '@' + profileUser.username }}</h2>
+          <h1 class="user-display-name">{{ user.name }}</h1>
+          <h2 class="user-username">{{ '@' + user.username }}</h2>
           <div class="user-stats">
             <div class="stat-item">
               <mat-icon>book</mat-icon>
@@ -76,7 +78,7 @@
         </div>
       </div>
       <mat-divider></mat-divider>
-      @if (isOwner) {
+      @if (isOwner()) {
         <app-writing-stats-widget />
       }
       <div class="user-content">

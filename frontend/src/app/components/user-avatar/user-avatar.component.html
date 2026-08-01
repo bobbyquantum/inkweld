@@ -1,11 +1,11 @@
 <div class="avatar" [class]="size">
   @if (isLoading()) {
     <div class="skeleton"></div>
-  } @else if (error || !avatarUrl) {
-    @if (fallbackAvatarUrl) {
+  } @else if (error() || !avatarUrl()) {
+    @if (fallbackAvatarUrl()) {
       <img
         class="rounded-full"
-        [src]="fallbackAvatarUrl"
+        [src]="fallbackAvatarUrl()!"
         [alt]="username + ' avatar'"
         [title]="username + ' avatar'" />
     } @else {
@@ -28,7 +28,7 @@
   } @else {
     <img
       class="rounded-full"
-      [src]="avatarUrl"
+      [src]="avatarUrl()!"
       [alt]="username + ' avatar'"
       [title]="username + ' avatar'" />
   }

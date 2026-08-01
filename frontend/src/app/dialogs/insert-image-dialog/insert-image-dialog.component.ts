@@ -14,25 +14,14 @@ import { ImageCropperComponent } from 'ngx-image-cropper';
 
 import { BaseImageDialogComponent } from '../base-image-dialog';
 
-/**
- * Data passed to the dialog
- */
 export interface InsertImageDialogData {
-  /** Project username for media library access */
   username: string;
-  /** Project slug for media library access */
   slug: string;
-  /** Optional description for AI prompt */
   description?: string;
 }
 
-/**
- * Result returned from the dialog
- */
 export interface InsertImageDialogResult {
-  /** The media ID for insertion (e.g., "img-xxx") */
   mediaId: string;
-  /** The image blob for storage */
   imageBlob: Blob;
 }
 
@@ -48,7 +37,7 @@ export interface InsertImageDialogResult {
     ImageCropperComponent,
   ],
   templateUrl: './insert-image-dialog.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./insert-image-dialog.component.scss'],
 })
 export class InsertImageDialogComponent
@@ -57,7 +46,6 @@ export class InsertImageDialogComponent
 {
   private readonly dialogData = inject<InsertImageDialogData>(MAT_DIALOG_DATA);
 
-  // Free aspect ratio for document images (no fixed ratio)
   readonly aspectRatio = 0;
   readonly maintainAspectRatio = false;
 
@@ -66,8 +54,6 @@ export class InsertImageDialogComponent
     this.slug = this.dialogData.slug;
     this.description = this.dialogData.description ?? '';
   }
-
-  // --- AI Generation ---
 
   async openGenerateDialog(): Promise<void> {
     const result = await this.dialogGateway.openImageGenerationDialog({
@@ -84,24 +70,23 @@ export class InsertImageDialogComponent
       const base64 = await this.blobToBase64(blob);
 
       this.resetCropperState();
-      this.pendingFileName = 'ai-generated-image.png';
-      this.imageBase64 = base64;
-      this.showCropper = true;
-      this.cdr.detectChanges();
+      this.pendingFileName.set('ai-generated-image.png');
+      this.imageBase64.set(base64);
+      this.showCropper.set(true);
     } catch (err) {
       console.error('[InsertImageDialog] Failed to process image:', err);
-      this.showError('Failed to process generated image. Please try again.');
+      this.showError(
+        this.transloco.translate('dialogs.insertImage.processingFailed')
+      );
     }
   }
 
-  // --- Apply Cropped Image ---
-
   applyCroppedImage(): void {
-    if (this.croppedBlob) {
+    if (this.croppedBlob()) {
       const mediaId = `img-${crypto.randomUUID()}`;
       this.dialogRef.close({
         mediaId,
-        imageBlob: this.croppedBlob,
+        imageBlob: this.croppedBlob()!,
       });
     }
   }
