@@ -65,7 +65,7 @@ export class EditAvatarDialogComponent {
   imageCropped(event: ImageCroppedEvent) {
     if (event.objectUrl && event.blob) {
       this.croppedImage.set(
-        this.sanitizer.bypassSecurityTrustUrl(event.objectUrl)
+        this.sanitizer.bypassSecurityTrustUrl(event.objectUrl) // NOSONAR — URL from ngx-image-cropper output
       );
       this.croppedBlob.set(event.blob);
     }

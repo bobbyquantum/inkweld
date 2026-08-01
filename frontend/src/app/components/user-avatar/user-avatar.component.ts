@@ -115,7 +115,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
     // First try to load from local cache (faster and works if server is slow)
     const cachedUrl = await this.localStorage.getUserAvatarUrl(this.username);
     if (cachedUrl) {
-      this.avatarUrl.set(this.sanitizer.bypassSecurityTrustUrl(cachedUrl));
+      this.avatarUrl.set(this.sanitizer.bypassSecurityTrustUrl(cachedUrl)); // NOSONAR — URL from trusted IndexedDB cache
       this.error.set(false);
       this.isLoading.set(false);
       return;
@@ -132,7 +132,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
               await this.localStorage.saveUserAvatar(this.username, blob);
               this.currentObjectUrl = URL.createObjectURL(blob);
               this.avatarUrl.set(
-                this.sanitizer.bypassSecurityTrustUrl(this.currentObjectUrl)
+                this.sanitizer.bypassSecurityTrustUrl(this.currentObjectUrl) // NOSONAR — blob URL from createObjectURL
               );
               this.error.set(false);
             } else {
@@ -160,7 +160,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
     try {
       const url = await this.localStorage.getUserAvatarUrl(this.username);
       if (url) {
-        this.avatarUrl.set(this.sanitizer.bypassSecurityTrustUrl(url));
+        this.avatarUrl.set(this.sanitizer.bypassSecurityTrustUrl(url)); // NOSONAR — URL from trusted IndexedDB cache
         this.error.set(false);
       } else {
         // No cached avatar, use fallback

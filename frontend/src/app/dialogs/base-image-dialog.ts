@@ -135,7 +135,7 @@ export abstract class BaseImageDialogComponent {
   imageCropped(event: ImageCroppedEvent): void {
     if (event.objectUrl && event.blob) {
       this.croppedImage.set(
-        this.sanitizer.bypassSecurityTrustUrl(event.objectUrl)
+        this.sanitizer.bypassSecurityTrustUrl(event.objectUrl) // NOSONAR — URL from ngx-image-cropper output
       );
       this.croppedBlob.set(event.blob);
     }
