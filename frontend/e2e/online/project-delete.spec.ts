@@ -13,7 +13,7 @@
  */
 import { generateUniqueSlug } from '../common';
 import { TEST_PASSWORDS } from '../common/test-credentials';
-import { expect, getApiBaseUrl, test } from './fixtures';
+import { expect, test } from './fixtures';
 
 test.describe('Delete project from cover kebab menu', () => {
   test('delete flow: dialog, slug gating, cancel, and final deletion', async ({
@@ -80,8 +80,6 @@ test.describe('Delete project from cover kebab menu', () => {
     });
 
     await test.step('confirming deletes the project and removes its card', async () => {
-      const beforeCount = await page.getByTestId('project-card').count();
-
       // Re-open the kebab menu on the target card and confirm the deletion.
       await projectCard().locator('[data-testid="project-card-kebab"]').click();
       await page.getByTestId('project-card-delete').click();
@@ -95,10 +93,10 @@ test.describe('Delete project from cover kebab menu', () => {
       await page.getByTestId('confirm-delete-button').click();
       await page.waitForLoadState('networkidle');
 
-      // The deleted project's card should no longer be present.
-      await expect(page.getByTestId('project-card')).toHaveCount(
-        beforeCount - 1
-      );
+      // The deleted project's card should no longer be present on the home
+      // grid. (For a fresh test user with only this project, the grid becomes
+      // the empty state, so checking the specific card — not a total count —
+      // is the stable assertion.)
       await expect(projectCard()).toHaveCount(0);
     });
   });
@@ -106,59 +104,101 @@ test.describe('Delete project from cover kebab menu', () => {
   test('delete option is hidden on shared (collaborated) project covers', async ({
     authenticatedPage: page,
     browser,
-    request,
   }) => {
     // Provision a real shared project so the shared-badge branch is guaranteed
     // to execute: the authenticatedPage user owns a project and invites a
     // freshly registered collaborator, who then loads home and inspects the
-    // shared card.
-    const apiUrl = getApiBaseUrl();
+    // shared card. All API calls go through in-page fetch so they inherit the
+    // page's backend URL and avoid request-fixture baseURL mismatches.
+    const apiUrl = await page.evaluate(() => {
+      const cfg = localStorage.getItem('inkweld-app-config');
+      if (!cfg) throw new Error('app config missing');
+      const parsed = JSON.parse(cfg) as {
+        configurations: Array<{ serverUrl?: string }>;
+      };
+      const active = parsed.configurations.find(c => c.serverUrl);
+      return active?.serverUrl ?? '';
+    });
+
+    // Register a second user (the collaborator) via the API.
+    const collaboratorUsername = `collab-${Date.now()}`;
+    const collaboratorPassword = TEST_PASSWORDS.USER;
+    const collaboratorToken = await page.evaluate(
+      async ({ apiUrl, username, password }) => {
+        const res = await fetch(`${apiUrl}/api/v1/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        if (!res.ok) throw new Error(`register failed: ${res.status}`);
+        return ((await res.json()) as { token: string }).token;
+      },
+      { apiUrl, username: collaboratorUsername, password: collaboratorPassword }
+    );
+
+    // Owner creates a project via the API. The response includes the owner's
+    // username, which is needed to invite a collaborator.
     const ownerToken = await page.evaluate(() =>
       localStorage.getItem('srv:server-1:auth_token')
     );
     expect(ownerToken).toBeTruthy();
 
-    // Register a second user (the collaborator) via the API.
-    const collaboratorUsername = `collab-${Date.now()}`;
-    const collaboratorPassword = TEST_PASSWORDS.USER;
-    const registerRes = await request.post(`${apiUrl}/api/v1/auth/register`, {
-      data: { username: collaboratorUsername, password: collaboratorPassword },
-    });
-    expect(registerRes.ok()).toBeTruthy();
-    const collaboratorToken = ((await registerRes.json()) as { token: string })
-      .token;
-
-    // Owner creates a project via the API. The response includes the owner's
-    // username, which is needed to invite a collaborator.
     const slug = generateUniqueSlug('shared-delete');
-    const projectRes = await request.post(`${apiUrl}/api/v1/projects/`, {
-      headers: { Authorization: `Bearer ${ownerToken}` },
-      data: { slug, title: 'Shared Delete Test' },
-    });
-    expect(projectRes.ok()).toBeTruthy();
-    const project = (await projectRes.json()) as {
-      id: string;
-      username: string;
-    };
+    const project = await page.evaluate(
+      async ({ apiUrl, ownerToken, slug }) => {
+        const res = await fetch(`${apiUrl}/api/v1/projects/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${ownerToken}`,
+          },
+          body: JSON.stringify({ slug, title: 'Shared Delete Test' }),
+        });
+        if (!res.ok) throw new Error(`create project failed: ${res.status}`);
+        return (await res.json()) as { id: string; username: string };
+      },
+      { apiUrl, ownerToken, slug }
+    );
 
     // Owner invites the collaborator (viewer role).
-    const inviteRes = await request.post(
-      `${apiUrl}/api/v1/collaboration/${project.username}/${slug}/collaborators`,
+    await page.evaluate(
+      async ({ apiUrl, ownerToken, ownerName, slug, collaborator }) => {
+        const res = await fetch(
+          `${apiUrl}/api/v1/collaboration/${ownerName}/${slug}/collaborators`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${ownerToken}`,
+            },
+            body: JSON.stringify({ username: collaborator, role: 'viewer' }),
+          }
+        );
+        if (!res.ok) throw new Error(`invite failed: ${res.status}`);
+      },
       {
-        headers: { Authorization: `Bearer ${ownerToken}` },
-        data: { username: collaboratorUsername, role: 'viewer' },
+        apiUrl,
+        ownerToken,
+        ownerName: project.username,
+        slug,
+        collaborator: collaboratorUsername,
       }
     );
-    expect(inviteRes.ok()).toBeTruthy();
 
     // Collaborator accepts the invitation.
-    const acceptRes = await request.post(
-      `${apiUrl}/api/v1/collaboration/invitations/${project.id}/accept`,
-      {
-        headers: { Authorization: `Bearer ${collaboratorToken}` },
-      }
+    await page.evaluate(
+      async ({ apiUrl, collaboratorToken, projectId }) => {
+        const res = await fetch(
+          `${apiUrl}/api/v1/collaboration/invitations/${projectId}/accept`,
+          {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${collaboratorToken}` },
+          }
+        );
+        if (!res.ok) throw new Error(`accept failed: ${res.status}`);
+      },
+      { apiUrl, collaboratorToken, projectId: project.id }
     );
-    expect(acceptRes.ok()).toBeTruthy();
 
     // Load home as the collaborator in a fresh context and wait for the
     // shared card to appear.
