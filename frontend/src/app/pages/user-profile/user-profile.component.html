@@ -43,7 +43,9 @@
           <button
             type="button"
             class="user-avatar-container editable"
-            [attr.aria-label]="'Edit avatar for ' + user.username"
+            [attr.aria-label]="
+              'settings.editAvatarFor' | transloco: { username: user.username }
+            "
             (click)="openEditAvatarDialog()">
             <app-user-avatar
               [username]="user.username"

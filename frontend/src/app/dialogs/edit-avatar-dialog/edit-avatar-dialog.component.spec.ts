@@ -5,7 +5,7 @@ import { SetupService } from '@services/core/setup.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
-import { type ImageCroppedEvent, type LoadedImage } from 'ngx-image-cropper';
+import { type ImageCroppedEvent } from 'ngx-image-cropper';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
@@ -102,7 +102,7 @@ describe('EditAvatarDialogComponent', () => {
   });
 
   it('onImageLoaded should set hasImageLoaded', () => {
-    component.onImageLoaded({} as unknown as LoadedImage);
+    component.onImageLoaded();
     expect(component.hasImageLoaded()).toBeTruthy();
   });
 

@@ -75,7 +75,9 @@ export class InsertImageDialogComponent
       this.showCropper.set(true);
     } catch (err) {
       console.error('[InsertImageDialog] Failed to process image:', err);
-      this.showError('Failed to process generated image. Please try again.');
+      this.showError(
+        this.transloco.translate('dialogs.insertImage.processingFailed')
+      );
     }
   }
 

@@ -17,7 +17,6 @@ import { UserService } from '@services/user/user.service';
 import {
   type ImageCroppedEvent,
   ImageCropperComponent,
-  type LoadedImage,
 } from 'ngx-image-cropper';
 import { firstValueFrom } from 'rxjs';
 
@@ -71,8 +70,7 @@ export class EditAvatarDialogComponent {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onImageLoaded(image: LoadedImage) {
+  onImageLoaded(): void {
     this.hasImageLoaded.set(true);
   }
 
