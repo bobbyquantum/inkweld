@@ -13,18 +13,26 @@
  */
 import { generateUniqueSlug } from '../common';
 import { TEST_PASSWORDS } from '../common/test-credentials';
-import { expect, test } from './fixtures';
+import { expect, getApiBaseUrl, test } from './fixtures';
 
 test.describe('Delete project from cover kebab menu', () => {
   test('delete flow: dialog, slug gating, cancel, and final deletion', async ({
     authenticatedPage: page,
   }) => {
     const slug = generateUniqueSlug('cover-delete');
+    const projectTitle = 'Cover Delete Test';
+
+    /** Locate the specific card for the throwaway project by its title. */
+    const projectCard = () =>
+      page
+        .getByTestId('project-card')
+        .filter({ hasText: projectTitle })
+        .first();
 
     await test.step('create a throwaway project and return to home', async () => {
       await page.goto('/create-project');
       await page.getByRole('button', { name: /next/i }).click();
-      await page.getByTestId('project-title-input').fill('Cover Delete Test');
+      await page.getByTestId('project-title-input').fill(projectTitle);
       await page.getByTestId('project-slug-input').fill(slug);
       await page.getByTestId('create-project-button').click();
       await page.waitForURL(new RegExp(slug));
@@ -32,12 +40,11 @@ test.describe('Delete project from cover kebab menu', () => {
 
       await page.goto('/');
       await page.waitForLoadState('networkidle');
-      await expect(page.getByTestId('project-card').first()).toBeVisible();
+      await expect(projectCard()).toBeVisible();
     });
 
     await test.step('kebab menu exposes a Delete option', async () => {
-      // Open the kebab menu on the first project card.
-      await page.locator('[data-testid="project-card-kebab"]').first().click();
+      await projectCard().locator('[data-testid="project-card-kebab"]').click();
       await expect(page.getByTestId('project-card-delete')).toBeVisible();
     });
 
@@ -69,15 +76,14 @@ test.describe('Delete project from cover kebab menu', () => {
       // Reload to confirm the project still exists on the server.
       await page.goto('/');
       await page.waitForLoadState('networkidle');
-      const cards = page.getByTestId('project-card');
-      await expect(cards.first()).toBeVisible();
-      const beforeCount = await cards.count();
-      expect(beforeCount).toBeGreaterThan(0);
+      await expect(projectCard()).toBeVisible();
     });
 
     await test.step('confirming deletes the project and removes its card', async () => {
-      // Re-open the kebab menu and confirm the deletion this time.
-      await page.locator('[data-testid="project-card-kebab"]').first().click();
+      const beforeCount = await page.getByTestId('project-card').count();
+
+      // Re-open the kebab menu on the target card and confirm the deletion.
+      await projectCard().locator('[data-testid="project-card-kebab"]').click();
       await page.getByTestId('project-card-delete').click();
 
       const dialog = page.locator('mat-dialog-container');
@@ -86,8 +92,6 @@ test.describe('Delete project from cover kebab menu', () => {
       await input.waitFor({ state: 'visible' });
       await input.fill(slug);
 
-      const beforeCount = await page.getByTestId('project-card').count();
-
       await page.getByTestId('confirm-delete-button').click();
       await page.waitForLoadState('networkidle');
 
@@ -95,7 +99,7 @@ test.describe('Delete project from cover kebab menu', () => {
       await expect(page.getByTestId('project-card')).toHaveCount(
         beforeCount - 1
       );
-      await expect(page.getByText('Cover Delete Test')).not.toBeVisible();
+      await expect(projectCard()).toHaveCount(0);
     });
   });
 
@@ -108,7 +112,7 @@ test.describe('Delete project from cover kebab menu', () => {
     // to execute: the authenticatedPage user owns a project and invites a
     // freshly registered collaborator, who then loads home and inspects the
     // shared card.
-    const apiUrl = new URL(page.url()).origin;
+    const apiUrl = getApiBaseUrl();
     const ownerToken = await page.evaluate(() =>
       localStorage.getItem('srv:server-1:auth_token')
     );
