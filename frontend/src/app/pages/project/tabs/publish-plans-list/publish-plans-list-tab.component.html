@@ -40,8 +40,10 @@
             </div>
             <div class="plan-meta">
               <span class="plan-items">{{
-                'publish.plansList.itemsCount'
-                  | transloco: { count: plan.items.length }
+                (plan.items.length === 1
+                  ? 'publish.plansList.itemsCount'
+                  : 'publish.plansList.itemsCountPlural'
+                ) | transloco: { count: plan.items.length }
               }}</span>
             </div>
           </button>

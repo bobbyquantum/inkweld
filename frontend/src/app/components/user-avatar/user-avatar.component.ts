@@ -32,7 +32,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
   private readonly transloco = inject(TranslocoService);
 
   protected get avatarAlt(): string {
-    return this.transloco.translate('common.userAvatar', {
+    return this.transloco.translate('userAvatar', {
       username: this.username,
     });
   }

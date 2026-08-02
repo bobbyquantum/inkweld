@@ -90,5 +90,8 @@
   "emptyFolder": "Empty folder",
   "userAvatar": "{{username}} avatar",
   "presenceTooltip": "{{username}} ({{status}})",
-  "presenceStatusEditing": "editing"
+  "presenceStatusEditing": "editing",
+  "presenceStatusActive": "active",
+  "presenceStatusIdle": "idle",
+  "presenceStatusOffline": "offline"
 }

@@ -14,8 +14,10 @@
   } @else {
     <div class="media-panel-header">
       <span class="media-count">{{
-        'worldbuilding.mediaPanel.taggedCount'
-          | transloco: { count: taggedMediaIds().length }
+        (taggedMediaIds().length === 1
+          ? 'worldbuilding.mediaPanel.taggedCountOne'
+          : 'worldbuilding.mediaPanel.taggedCount'
+        ) | transloco: { count: taggedMediaIds().length }
       }}</span>
       <button
         mat-stroked-button

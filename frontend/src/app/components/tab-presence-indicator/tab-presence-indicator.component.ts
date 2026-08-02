@@ -60,14 +60,16 @@ export class TabPresenceIndicatorComponent {
       .join(', ')
   );
 
-  protected tooltipFor(user: PresenceSession): string {
-    const suffix =
-      user.status === 'editing'
-        ? this.transloco.translate('common.presenceStatusEditing')
-        : user.status;
-    return this.transloco.translate('common.presenceTooltip', {
+  tooltipFor(user: PresenceSession): string {
+    const statusKey = `presenceStatus${this.capitalize(user.status)}`;
+    const suffix = this.transloco.translate(statusKey);
+    return this.transloco.translate('presenceTooltip', {
       username: user.user.username,
       status: suffix,
     });
+  }
+
+  private capitalize(status: string): string {
+    return status.charAt(0).toUpperCase() + status.slice(1);
   }
 }

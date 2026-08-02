@@ -90,4 +90,54 @@ describe('TabPresenceIndicatorComponent', () => {
     );
     expect(overflow?.textContent?.trim()).toBe('+2');
   });
+
+  it('translates the editing status in the tooltip', () => {
+    usersAtLocationResult.set([session('s1', 'alice')]);
+    const fixture = TestBed.createComponent(TabPresenceIndicatorComponent);
+    fixture.componentRef.setInput('location', {
+      kind: 'timeline',
+      elementId: 'abc',
+    });
+    fixture.detectChanges();
+
+    const editingSession: PresenceSession = {
+      ...session('s1', 'alice'),
+      status: 'editing',
+    };
+    expect(fixture.componentInstance.tooltipFor(editingSession)).toBe(
+      'alice (editing)'
+    );
+  });
+
+  it('translates the active status in the tooltip', () => {
+    const fixture = TestBed.createComponent(TabPresenceIndicatorComponent);
+    fixture.componentRef.setInput('location', {
+      kind: 'timeline',
+      elementId: 'abc',
+    });
+    fixture.detectChanges();
+
+    expect(
+      fixture.componentInstance.tooltipFor({
+        ...session('s2', 'bob'),
+        status: 'active',
+      })
+    ).toBe('bob (active)');
+  });
+
+  it('translates the idle status in the tooltip', () => {
+    const fixture = TestBed.createComponent(TabPresenceIndicatorComponent);
+    fixture.componentRef.setInput('location', {
+      kind: 'timeline',
+      elementId: 'abc',
+    });
+    fixture.detectChanges();
+
+    expect(
+      fixture.componentInstance.tooltipFor({
+        ...session('s3', 'carol'),
+        status: 'idle',
+      })
+    ).toBe('carol (idle)');
+  });
 });

@@ -68,6 +68,7 @@
             <button
               mat-icon-button
               [matTooltip]="'timeline.timeSystemSettings.edit' | transloco"
+              [attr.aria-label]="'timeline.timeSystemSettings.edit' | transloco"
               (click)="onEdit(system)"
               [attr.data-testid]="'time-systems-edit-' + system.id">
               <mat-icon>edit</mat-icon>
@@ -75,6 +76,9 @@
             <button
               mat-icon-button
               [matTooltip]="'timeline.timeSystemSettings.remove' | transloco"
+              [attr.aria-label]="
+                'timeline.timeSystemSettings.remove' | transloco
+              "
               (click)="onRemove(system)"
               [attr.data-testid]="'time-systems-remove-' + system.id">
               <mat-icon>delete_outline</mat-icon>

@@ -679,7 +679,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       // Show starting message
       this.snackBar.open(
         this.transloco.translate('publish.planEditor.generatingFormat', {
-          format: plan.format,
+          format: this.getFormatDisplayName(plan.format),
         }),
         undefined,
         { duration: 2000 }
@@ -710,7 +710,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
 
   private handlePublishResult(
     result: PublishingResult,
-    plan: { format: string; id: string }
+    plan: Pick<PublishPlan, 'format' | 'id'>
   ): void {
     const savedFile: PublishedFile | undefined = result.savedFile;
     const blob: Blob | undefined = result.blob;
@@ -720,13 +720,18 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     } else if (result.success) {
       const stats = result.stats;
       const message = stats
-        ? this.transloco.translate('publish.planEditor.generatedWithStats', {
-            format: plan.format,
-            words: stats.wordCount.toLocaleString(),
-            chapters: stats.chapterCount,
-          })
+        ? this.transloco.translate(
+            stats.wordCount === 1 && stats.chapterCount === 1
+              ? 'publish.planEditor.generatedWithStats'
+              : 'publish.planEditor.generatedWithStatsPlural',
+            {
+              format: this.getFormatDisplayName(plan.format),
+              words: stats.wordCount.toLocaleString(),
+              chapters: stats.chapterCount,
+            }
+          )
         : this.transloco.translate('publish.planEditor.generatedSuccessfully', {
-            format: plan.format,
+            format: this.getFormatDisplayName(plan.format),
           });
       this.snackBar.open(message, this.transloco.translate('ok'), {
         duration: 5000,

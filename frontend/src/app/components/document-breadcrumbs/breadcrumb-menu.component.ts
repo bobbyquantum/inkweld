@@ -77,9 +77,7 @@ interface MenuRow {
               [type]="row.element.type"
               [schemaId]="row.element.schemaId"
               [metadata]="row.element.metadata" />
-            <span>{{
-              row.element.name || ('common.untitled' | transloco)
-            }}</span>
+            <span>{{ row.element.name || ('untitled' | transloco) }}</span>
             <mat-icon class="breadcrumb-flyout-chevron" matMenuIcon>
               chevron_right
             </mat-icon>
@@ -100,9 +98,7 @@ interface MenuRow {
               [type]="row.element.type"
               [schemaId]="row.element.schemaId"
               [metadata]="row.element.metadata" />
-            <span>{{
-              row.element.name || ('common.untitled' | transloco)
-            }}</span>
+            <span>{{ row.element.name || ('untitled' | transloco) }}</span>
           </button>
         }
       } @empty {
@@ -111,7 +107,7 @@ interface MenuRow {
             [isExpandable]="true"
             [isExpanded]="false"
             [type]="ElementType.Folder" />
-          <span>{{ 'common.emptyFolder' | transloco }}</span>
+          <span>{{ 'emptyFolder' | transloco }}</span>
         </div>
       }
     </mat-menu>

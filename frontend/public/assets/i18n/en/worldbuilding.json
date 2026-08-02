@@ -39,6 +39,7 @@
     "empty": "No media tagged with this element yet.",
     "tagMedia": "Tag Media",
     "taggedCount": "{{count}} tagged media",
+    "taggedCountOne": "{{count}} tagged media item",
     "tagMore": "Tag More",
     "removeTag": "Remove tag",
     "removeTagFrom": "Remove tag from {{mediaId}}"

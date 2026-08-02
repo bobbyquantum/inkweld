@@ -144,8 +144,10 @@
                   <mat-icon class="panel-title-icon">list</mat-icon>
                   {{ 'publish.planEditor.contents' | transloco }}
                   <span class="item-count">{{
-                    'publish.plansList.itemsCount'
-                      | transloco: { count: plan.items.length }
+                    (plan.items.length === 1
+                      ? 'publish.plansList.itemsCount'
+                      : 'publish.plansList.itemsCountPlural'
+                    ) | transloco: { count: plan.items.length }
                   }}</span>
                 </mat-panel-title>
               </mat-expansion-panel-header>

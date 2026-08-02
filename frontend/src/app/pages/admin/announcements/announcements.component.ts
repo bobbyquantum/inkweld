@@ -91,24 +91,34 @@ export class AdminAnnouncementsComponent implements OnInit {
     }
   }
 
-  getStatusLabel(announcement: Announcement): string {
+  getStatusKey(announcement: Announcement): string {
     if (!announcement.publishedAt) {
-      return this.transloco.translate('admin.announcements.statusDraft');
+      return 'draft';
     }
     const publishedAt = new Date(announcement.publishedAt);
     const now = new Date();
     if (publishedAt > now) {
-      return this.transloco.translate('admin.announcements.statusScheduled');
+      return 'scheduled';
     }
     if (announcement.expiresAt && new Date(announcement.expiresAt) < now) {
-      return this.transloco.translate('admin.announcements.statusExpired');
+      return 'expired';
     }
-    return this.transloco.translate('admin.announcements.statusPublished');
+    return 'published';
+  }
+
+  getStatusLabel(announcement: Announcement): string {
+    const key = this.getStatusKey(announcement);
+    return this.transloco.translate(
+      `admin.announcements.status${this.capitalize(key)}`
+    );
   }
 
   getStatusClass(announcement: Announcement): string {
-    const status = this.getStatusLabel(announcement);
-    return `status-${status.toLowerCase()}`;
+    return `status-${this.getStatusKey(announcement)}`;
+  }
+
+  private capitalize(value: string): string {
+    return value.charAt(0).toUpperCase() + value.slice(1);
   }
 
   async openCreateDialog(): Promise<void> {

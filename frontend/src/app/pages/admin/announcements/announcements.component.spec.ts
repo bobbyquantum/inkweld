@@ -150,6 +150,44 @@ describe('AdminAnnouncementsComponent', () => {
     });
   });
 
+  describe('getStatusKey', () => {
+    it('should return draft for unpublished announcement', () => {
+      const announcement = createMockAnnouncement({ publishedAt: null });
+      expect(component.getStatusKey(announcement)).toBe('draft');
+    });
+
+    it('should return scheduled for future publishedAt', () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 1);
+      const announcement = createMockAnnouncement({
+        publishedAt: futureDate.toISOString(),
+      });
+      expect(component.getStatusKey(announcement)).toBe('scheduled');
+    });
+
+    it('should return expired for past expiresAt', () => {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 1);
+      const announcement = createMockAnnouncement({
+        publishedAt: new Date(Date.now() - 86400000).toISOString(),
+        expiresAt: pastDate.toISOString(),
+      });
+      expect(component.getStatusKey(announcement)).toBe('expired');
+    });
+
+    it('should return published for currently active announcement', () => {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 1);
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 1);
+      const announcement = createMockAnnouncement({
+        publishedAt: pastDate.toISOString(),
+        expiresAt: futureDate.toISOString(),
+      });
+      expect(component.getStatusKey(announcement)).toBe('published');
+    });
+  });
+
   describe('getStatusClass', () => {
     it('should return status-draft for draft announcements', () => {
       const announcement = createMockAnnouncement({ publishedAt: null });

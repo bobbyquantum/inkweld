@@ -3,7 +3,8 @@
     "title": "Publishing",
     "newPlan": "New Plan",
     "openPlan": "Open publish plan: {{name}}",
-    "itemsCount": "{{count}} items",
+    "itemsCount": "{{count}} item",
+    "itemsCountPlural": "{{count}} items",
     "publishHistory": "Publish history",
     "showHistory": "Show publish history for {{name}}",
     "deletePlan": "Delete plan",
@@ -58,7 +59,8 @@
     "downloadFailed": "Download failed",
     "deleteFailed": "Delete failed",
     "errorPrefix": "Error: {{message}}",
-    "generatedWithStats": "{{format}} generated: {{words}} words, {{chapters}} chapters",
+    "generatedWithStats": "{{format}} generated: {{words}} word, {{chapters}} chapter",
+    "generatedWithStatsPlural": "{{format}} generated: {{words}} words, {{chapters}} chapters",
     "generatedSuccessfully": "{{format}} generated successfully!"
   },
   "preview": {
