@@ -123,6 +123,19 @@
                         <span>{{ 'home.activateAction' | transloco }}</span>
                       </button>
                     }
+
+                    @if (!item.isShared) {
+                      <button
+                        mat-menu-item
+                        type="button"
+                        (click)="requestDelete(item.project)"
+                        [attr.data-testid]="
+                          'project-tile-delete-' + item.project.slug
+                        ">
+                        <mat-icon>delete</mat-icon>
+                        <span>{{ 'home.deleteAction' | transloco }}</span>
+                      </button>
+                    }
                   </mat-menu>
                 </div>
               }

@@ -202,7 +202,8 @@
           [activationRequired]="activationService.isActivationRequired()"
           (projectSelected)="selectProject($event)"
           (activateRequested)="onProjectActivateRequested($event)"
-          (deactivateRequested)="onProjectDeactivateRequested($event)">
+          (deactivateRequested)="onProjectDeactivateRequested($event)"
+          (deleteRequested)="onProjectDeleteRequested($event)">
         </app-side-nav>
         @if (isMobile() && sideNavOpen()) {
           <button

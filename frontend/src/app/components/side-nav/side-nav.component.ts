@@ -84,6 +84,8 @@ export class SideNavComponent {
   @Output() deactivateRequested = new EventEmitter<Project>();
   /** Emitted when the user requests activation via the tile hover/kebab. */
   @Output() activateRequested = new EventEmitter<Project>();
+  /** Emitted when the user picks "Delete project" from the tile kebab menu. */
+  @Output() deleteRequested = new EventEmitter<Project>();
 
   /** Build the project key for a project. */
   projectKey(project: Project): string {
@@ -108,6 +110,10 @@ export class SideNavComponent {
 
   requestDeactivate(project: Project): void {
     this.deactivateRequested.emit(project);
+  }
+
+  requestDelete(project: Project): void {
+    this.deleteRequested.emit(project);
   }
 
   /** Get sync status for a project by username/slug key */
