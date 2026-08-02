@@ -754,6 +754,53 @@ describe('PublishPlanTabComponent', () => {
         expect.any(Object)
       );
     });
+
+    it('should use singular form for one word and one chapter', async () => {
+      mockPublishService.publish.mockResolvedValue({
+        success: true,
+        stats: { wordCount: 1, chapterCount: 1 },
+      });
+      component.addElement('elem-1');
+
+      await component.generatePublication();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('1 word, 1 chapter'),
+        'OK',
+        expect.any(Object)
+      );
+    });
+
+    it('should show success message without stats when no savedFile', async () => {
+      mockPublishService.publish.mockResolvedValue({
+        success: true,
+      });
+      component.addElement('elem-1');
+
+      await component.generatePublication();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('generated successfully'),
+        'OK',
+        expect.any(Object)
+      );
+    });
+
+    it('should show generating format notification', async () => {
+      mockPublishService.publish.mockResolvedValue({
+        success: true,
+        stats: { wordCount: 100, chapterCount: 3 },
+      });
+      component.addElement('elem-1');
+
+      await component.generatePublication();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('Generating'),
+        undefined,
+        expect.any(Object)
+      );
+    });
   });
 
   describe('section toggles', () => {
