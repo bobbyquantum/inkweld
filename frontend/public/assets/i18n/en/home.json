@@ -28,6 +28,7 @@
   "projectMenu": "Project options",
   "deactivateAction": "Deactivate on this device",
   "activateAction": "Download to this device",
+  "deleteAction": "Delete project",
   "cancelSyncTooltip": "Cancel sync ({{progress}}% complete)",
   "tooltips": {
     "onlineOnly": "Only available in online mode",
@@ -43,6 +44,8 @@
     "activateFailed": "Failed to activate project",
     "deactivated": "\"{{title}}\" deactivated",
     "deactivateFailed": "Failed to deactivate project",
+    "deleted": "\"{{title}}\" deleted",
+    "deleteFailed": "Failed to delete project",
     "syncCancelled": "Sync cancelled",
     "projectImported": "Project imported successfully!",
     "view": "View",
@@ -57,7 +60,10 @@
     "activate": "Activate",
     "deactivateTitle": "Deactivate Project",
     "deactivateMessage": "Deactivate \"{{title}}\"? All local data for this project will be removed from this device. You can reactivate it anytime.",
-    "deactivate": "Deactivate"
+    "deactivate": "Deactivate",
+    "deleteTitle": "Delete Project",
+    "deleteMessage": "To confirm deletion of \"{{title}}\", please type the project slug \"{{slug}}\" below. This permanently deletes the project on the server and removes all local data. This action cannot be undone.",
+    "delete": "Delete"
   },
   "writingStats": {
     "title": "Writing Stats",
