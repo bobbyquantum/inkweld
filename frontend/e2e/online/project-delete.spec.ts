@@ -279,7 +279,7 @@ test.describe('Delete project from cover kebab menu', () => {
 
     await test.step('create a throwaway project and return to home', async () => {
       await page.goto('/create-project');
-      await page.getByRole('button', { name: /next/i }).click();
+      await page.getByTestId('next-button').click();
       await page.getByTestId('project-title-input').fill(projectTitle);
       await page.getByTestId('project-slug-input').fill(slug);
       await page.getByTestId('create-project-button').click();
@@ -301,13 +301,14 @@ test.describe('Delete project from cover kebab menu', () => {
     await test.step('clicking Delete opens a confirmation dialog gated on the slug', async () => {
       await page.getByTestId(`project-tile-delete-${slug}`).click();
 
-      const dialog = page.locator('mat-dialog-container');
-      await expect(dialog).toBeVisible();
-      await expect(dialog.getByText(new RegExp(slug)).first()).toBeVisible();
+      await expect(page.getByTestId('confirmation-dialog-title')).toBeVisible();
+      await expect(page.getByTestId('confirm-dialog-message')).toContainText(
+        slug
+      );
 
       await expect(page.getByTestId('confirm-delete-button')).toBeDisabled();
 
-      const input = dialog.getByTestId('confirm-dialog-input');
+      const input = page.getByTestId('confirm-dialog-input');
       await input.waitFor({ state: 'visible' });
       await input.fill('wrong-slug');
       await expect(page.getByTestId('confirm-delete-button')).toBeDisabled();
@@ -318,8 +319,9 @@ test.describe('Delete project from cover kebab menu', () => {
 
     await test.step('cancel keeps the project tile in the side-nav', async () => {
       await page.getByTestId('cancel-dialog-button').click();
-      const dialog = page.locator('mat-dialog-container');
-      await expect(dialog).not.toBeVisible();
+      await expect(
+        page.getByTestId('confirmation-dialog-title')
+      ).not.toBeVisible();
 
       await page.goto('/');
       await page.waitForLoadState('networkidle');
@@ -330,9 +332,8 @@ test.describe('Delete project from cover kebab menu', () => {
       await page.locator(`[data-testid="project-tile-kebab-${slug}"]`).click();
       await page.getByTestId(`project-tile-delete-${slug}`).click();
 
-      const dialog = page.locator('mat-dialog-container');
-      await expect(dialog).toBeVisible();
-      const input = dialog.getByTestId('confirm-dialog-input');
+      await expect(page.getByTestId('confirmation-dialog-title')).toBeVisible();
+      const input = page.getByTestId('confirm-dialog-input');
       await input.waitFor({ state: 'visible' });
       await input.fill(slug);
 
