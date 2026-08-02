@@ -898,6 +898,40 @@ describe('PublishPlanTabComponent', () => {
       );
     });
 
+    it('should show snackbar on download failure', async () => {
+      mockProjectState.project.set({
+        title: 'Test',
+        username: 'user',
+        slug: 'proj',
+        coverImage: null,
+      });
+      mockPublishedFilesService.downloadFile.mockRejectedValue(
+        new Error('Network error')
+      );
+      await component.downloadPublishedFile('f1');
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Network error',
+        'Dismiss',
+        expect.any(Object)
+      );
+    });
+
+    it('should show snackbar on download failure without Error message', async () => {
+      mockProjectState.project.set({
+        title: 'Test',
+        username: 'user',
+        slug: 'proj',
+        coverImage: null,
+      });
+      mockPublishedFilesService.downloadFile.mockRejectedValue('oops');
+      await component.downloadPublishedFile('f1');
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Download failed',
+        'Dismiss',
+        expect.any(Object)
+      );
+    });
+
     it('should delete published file', async () => {
       mockProjectState.project.set({
         title: 'Test',
@@ -909,6 +943,40 @@ describe('PublishPlanTabComponent', () => {
       expect(mockPublishedFilesService.deleteFile).toHaveBeenCalledWith(
         'user/proj',
         'f1'
+      );
+    });
+
+    it('should show snackbar on delete failure', async () => {
+      mockProjectState.project.set({
+        title: 'Test',
+        username: 'user',
+        slug: 'proj',
+        coverImage: null,
+      });
+      mockPublishedFilesService.deleteFile.mockRejectedValue(
+        new Error('Permission denied')
+      );
+      await component.deletePublishedFile('f1');
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Permission denied',
+        'Dismiss',
+        expect.any(Object)
+      );
+    });
+
+    it('should show snackbar on delete failure without Error message', async () => {
+      mockProjectState.project.set({
+        title: 'Test',
+        username: 'user',
+        slug: 'proj',
+        coverImage: null,
+      });
+      mockPublishedFilesService.deleteFile.mockRejectedValue(null);
+      await component.deletePublishedFile('f1');
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Delete failed',
+        'Dismiss',
+        expect.any(Object)
       );
     });
 
