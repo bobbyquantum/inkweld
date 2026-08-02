@@ -332,6 +332,12 @@ describe('SideNavComponent', () => {
       expect(spy).toHaveBeenCalledWith(project);
     });
 
+    it('should emit deleteRequested when requestDelete is called', () => {
+      const spy = vi.spyOn(component.deleteRequested, 'emit');
+      component.requestDelete(project);
+      expect(spy).toHaveBeenCalledWith(project);
+    });
+
     it('should stop propagation when kebab is clicked', () => {
       const event = new MouseEvent('click', {
         bubbles: true,

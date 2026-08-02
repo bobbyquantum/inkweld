@@ -1,6 +1,8 @@
-<h2 mat-dialog-title>{{ data.title }}</h2>
+<h2 mat-dialog-title data-testid="confirmation-dialog-title">
+  {{ data.title }}
+</h2>
 <mat-dialog-content>
-  <p>{{ data.message }}</p>
+  <p data-testid="confirm-dialog-message">{{ data.message }}</p>
 
   @if (data.details && data.details.length > 0) {
     <ul class="details-list">

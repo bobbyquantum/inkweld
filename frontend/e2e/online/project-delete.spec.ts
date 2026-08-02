@@ -7,6 +7,7 @@
  * - Cancelling leaves the project intact
  * - Confirming deletes the project and removes its card from the list
  * - The delete option is hidden on shared (collaborated) project covers
+ * - The delete menu item also appears on the side-nav tile kebab menu
  *
  * IMPORTANT: These tests destroy project data, so each test creates its
  * own throwaway project and deletes it within the same test.
@@ -266,5 +267,80 @@ test.describe('Delete project from cover kebab menu', () => {
         )
         .catch(() => {});
     }
+  });
+
+  test('delete flow from side-nav tile kebab menu', async ({
+    authenticatedPage: page,
+  }) => {
+    const slug = generateUniqueSlug('sidenav-delete');
+    const projectTitle = 'SideNav Delete Test';
+
+    const projectTile = () => page.locator(`[data-testid="project-${slug}"]`);
+
+    await test.step('create a throwaway project and return to home', async () => {
+      await page.goto('/create-project');
+      await page.getByTestId('next-button').click();
+      await page.getByTestId('project-title-input').fill(projectTitle);
+      await page.getByTestId('project-slug-input').fill(slug);
+      await page.getByTestId('create-project-button').click();
+      await page.waitForURL(new RegExp(slug));
+      await page.waitForLoadState('networkidle');
+
+      await page.goto('/');
+      await page.waitForLoadState('networkidle');
+      await expect(projectTile()).toBeVisible();
+    });
+
+    await test.step('side-nav kebab menu exposes a Delete option', async () => {
+      await page.locator(`[data-testid="project-tile-kebab-${slug}"]`).click();
+      await expect(
+        page.getByTestId(`project-tile-delete-${slug}`)
+      ).toBeVisible();
+    });
+
+    await test.step('clicking Delete opens a confirmation dialog gated on the slug', async () => {
+      await page.getByTestId(`project-tile-delete-${slug}`).click();
+
+      await expect(page.getByTestId('confirmation-dialog-title')).toBeVisible();
+      await expect(page.getByTestId('confirm-dialog-message')).toContainText(
+        slug
+      );
+
+      await expect(page.getByTestId('confirm-delete-button')).toBeDisabled();
+
+      const input = page.getByTestId('confirm-dialog-input');
+      await input.waitFor({ state: 'visible' });
+      await input.fill('wrong-slug');
+      await expect(page.getByTestId('confirm-delete-button')).toBeDisabled();
+
+      await input.fill(slug);
+      await expect(page.getByTestId('confirm-delete-button')).toBeEnabled();
+    });
+
+    await test.step('cancel keeps the project tile in the side-nav', async () => {
+      await page.getByTestId('cancel-dialog-button').click();
+      await expect(
+        page.getByTestId('confirmation-dialog-title')
+      ).not.toBeVisible();
+
+      await page.goto('/');
+      await page.waitForLoadState('networkidle');
+      await expect(projectTile()).toBeVisible();
+    });
+
+    await test.step('confirming deletes the project and removes its tile', async () => {
+      await page.locator(`[data-testid="project-tile-kebab-${slug}"]`).click();
+      await page.getByTestId(`project-tile-delete-${slug}`).click();
+
+      await expect(page.getByTestId('confirmation-dialog-title')).toBeVisible();
+      const input = page.getByTestId('confirm-dialog-input');
+      await input.waitFor({ state: 'visible' });
+      await input.fill(slug);
+
+      await page.getByTestId('confirm-delete-button').click();
+      await page.waitForLoadState('networkidle');
+
+      await expect(projectTile()).toHaveCount(0);
+    });
   });
 });
