@@ -31,7 +31,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly transloco = inject(TranslocoService);
 
-  protected get avatarAlt(): string {
+  get avatarAlt(): string {
     return this.transloco.translate('userAvatar', {
       username: this.username,
     });

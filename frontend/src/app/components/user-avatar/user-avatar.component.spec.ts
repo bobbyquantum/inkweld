@@ -12,6 +12,7 @@ import { UserAvatarComponent } from './user-avatar.component';
 
 describe('UserAvatarComponent', () => {
   let component: UserAvatarComponent;
+  let fixture: ReturnType<typeof TestBed.createComponent<UserAvatarComponent>>;
   let mockUserService: { getUserAvatar: ReturnType<typeof vi.fn> };
   let mockUnifiedUserService: { getMode: ReturnType<typeof vi.fn> };
   let mockLocalStorageService: {
@@ -71,7 +72,7 @@ describe('UserAvatarComponent', () => {
       ],
     }).compileComponents();
 
-    const fixture = TestBed.createComponent(UserAvatarComponent);
+    fixture = TestBed.createComponent(UserAvatarComponent);
     component = fixture.componentInstance;
   });
 
@@ -84,6 +85,11 @@ describe('UserAvatarComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should produce an alt text from the username', () => {
+    fixture.componentRef.setInput('username', 'alice');
+    expect(component.avatarAlt).toBe('alice avatar');
   });
 
   describe('loadAvatar', () => {
