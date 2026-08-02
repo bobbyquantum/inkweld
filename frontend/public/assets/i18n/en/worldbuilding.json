@@ -30,7 +30,18 @@
     "changeImage": "Change image",
     "descriptionLabel": "Description",
     "descriptionAria": "Description",
-    "descriptionPlaceholder": "Brief description (shown in tooltips)"
+    "descriptionPlaceholder": "Brief description (shown in tooltips)",
+    "descriptionHint": "Used for tooltips and previews",
+    "tagsLabel": "Tags",
+    "tagsHint": "Organize with tags"
+  },
+  "mediaPanel": {
+    "empty": "No media tagged with this element yet.",
+    "tagMedia": "Tag Media",
+    "taggedCount": "{{count}} tagged media",
+    "tagMore": "Tag More",
+    "removeTag": "Remove tag",
+    "removeTagFrom": "Remove tag from {{mediaId}}"
   },
   "elementSelector": {
     "addElement": "Add Element",

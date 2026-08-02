@@ -26,7 +26,7 @@
               class="plan-name-input"
               [value]="plan.name"
               (input)="updateName($event)"
-              aria-label="Plan name"
+              [attr.aria-label]="'publish.planEditor.planName' | transloco"
               data-testid="plan-name-input" />
           </div>
 
@@ -44,7 +44,7 @@
                 tabindex="0"
                 [attr.data-testid]="'nav-' + section.key">
                 <mat-icon matListItemIcon>{{ section.icon }}</mat-icon>
-                <span matListItemTitle>{{ section.label }}</span>
+                <span matListItemTitle>{{ section.labelKey | transloco }}</span>
               </a>
             }
           </mat-nav-list>
@@ -113,7 +113,7 @@
               class="plan-name-input"
               [value]="plan.name"
               (input)="updateName($event)"
-              aria-label="Plan name"
+              [attr.aria-label]="'publish.planEditor.planName' | transloco"
               data-testid="plan-name-input" />
           </div>
 
@@ -127,7 +127,7 @@
               <mat-expansion-panel-header>
                 <mat-panel-title>
                   <mat-icon class="panel-title-icon">menu_book</mat-icon>
-                  Metadata
+                  {{ 'publish.planEditor.metadata' | transloco }}
                 </mat-panel-title>
               </mat-expansion-panel-header>
               <ng-container *ngTemplateOutlet="metadataTemplate" />
@@ -142,8 +142,11 @@
               <mat-expansion-panel-header>
                 <mat-panel-title>
                   <mat-icon class="panel-title-icon">list</mat-icon>
-                  Contents
-                  <span class="item-count">{{ plan.items.length }} items</span>
+                  {{ 'publish.planEditor.contents' | transloco }}
+                  <span class="item-count">{{
+                    'publish.plansList.itemsCount'
+                      | transloco: { count: plan.items.length }
+                  }}</span>
                 </mat-panel-title>
               </mat-expansion-panel-header>
               <ng-container *ngTemplateOutlet="contentsTemplate" />
@@ -158,7 +161,7 @@
               <mat-expansion-panel-header>
                 <mat-panel-title>
                   <mat-icon class="panel-title-icon">format_paint</mat-icon>
-                  Style
+                  {{ 'publish.planEditor.style' | transloco }}
                 </mat-panel-title>
               </mat-expansion-panel-header>
               <ng-container *ngTemplateOutlet="formattingTemplate" />
@@ -169,7 +172,7 @@
               <mat-expansion-panel-header>
                 <mat-panel-title>
                   <mat-icon class="panel-title-icon">visibility</mat-icon>
-                  Preview
+                  {{ 'publish.planEditor.preview' | transloco }}
                 </mat-panel-title>
               </mat-expansion-panel-header>
               <app-publish-preview
@@ -184,7 +187,7 @@
               <mat-expansion-panel-header>
                 <mat-panel-title>
                   <mat-icon class="panel-title-icon">publish</mat-icon>
-                  Publish
+                  {{ 'publish.planEditor.publish' | transloco }}
                 </mat-panel-title>
               </mat-expansion-panel-header>
               <ng-container *ngTemplateOutlet="publishTemplate" />
@@ -197,7 +200,7 @@
 } @else {
   <div class="publish-plan-editor loading">
     <mat-icon>hourglass_empty</mat-icon>
-    <p>Loading publish plan...</p>
+    <p>{{ 'publish.planEditor.loadingPlan' | transloco }}</p>
   </div>
 }
 
@@ -208,7 +211,9 @@
   @if (plan(); as plan) {
     <div class="form-grid">
       <mat-form-field appearance="outline">
-        <mat-label>Format</mat-label>
+        <mat-label>{{
+          'publish.planEditor.formatLabel' | transloco
+        }}</mat-label>
         <mat-select
           [value]="plan.format"
           (selectionChange)="updateFormatSelect($event)"
@@ -222,47 +227,57 @@
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Book Title</mat-label>
+        <mat-label>{{
+          'publish.planEditor.bookTitleLabel' | transloco
+        }}</mat-label>
         <input
           matInput
           id="publish-plan-title-input"
           [value]="plan.metadata.title"
           (input)="updateMetadata('title', $event)"
           data-testid="book-title-input"
-          aria-label="Book title" />
+          [attr.aria-label]="'publish.planEditor.bookTitleAria' | transloco" />
       </mat-form-field>
 
       <mat-form-field appearance="outline">
-        <mat-label>Author</mat-label>
+        <mat-label>{{
+          'publish.planEditor.authorLabel' | transloco
+        }}</mat-label>
         <input
           matInput
           id="publish-plan-author-input"
           [value]="plan.metadata.author"
           (input)="updateMetadata('author', $event)"
           data-testid="author-input"
-          aria-label="Author" />
+          [attr.aria-label]="'publish.planEditor.authorAria' | transloco" />
       </mat-form-field>
 
       <mat-form-field appearance="outline">
-        <mat-label>Language</mat-label>
+        <mat-label>{{
+          'publish.planEditor.languageLabel' | transloco
+        }}</mat-label>
         <input
           matInput
           id="publish-plan-language-input"
           [value]="plan.metadata.language"
           (input)="updateMetadata('language', $event)"
-          aria-label="Language" />
-        <mat-hint>e.g., en, es, fr</mat-hint>
+          [attr.aria-label]="'publish.planEditor.languageAria' | transloco" />
+        <mat-hint>{{ 'publish.planEditor.languageHint' | transloco }}</mat-hint>
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Description</mat-label>
+        <mat-label>{{
+          'publish.planEditor.descriptionLabel' | transloco
+        }}</mat-label>
         <textarea
           matInput
           [value]="plan.metadata.description ?? ''"
           (input)="updateMetadata('description', $event)"
           rows="3"
           id="publish-plan-description-input"
-          aria-label="Description"></textarea>
+          [attr.aria-label]="
+            'publish.planEditor.descriptionAria' | transloco
+          "></textarea>
       </mat-form-field>
     </div>
   }
@@ -284,9 +299,9 @@
       @if (plan.items.length === 0) {
         <div class="empty-state" data-testid="empty-content-state">
           <mat-icon>library_books</mat-icon>
-          <p>No items added yet</p>
+          <p>{{ 'publish.planEditor.noItems' | transloco }}</p>
           <p class="hint">
-            Drag documents from the project tree, or add everything at once
+            {{ 'publish.planEditor.noItemsHint' | transloco }}
           </p>
           @if (documentElements().length > 0) {
             <button
@@ -296,7 +311,7 @@
               (click)="addEverything()"
               data-testid="add-everything-button">
               <mat-icon>playlist_add</mat-icon>
-              Add everything
+              {{ 'publish.planEditor.addEverything' | transloco }}
             </button>
           }
         </div>
@@ -317,7 +332,7 @@
               mat-icon-button
               (click)="moveItemUp(i)"
               [disabled]="i === 0"
-              matTooltip="Move up"
+              [matTooltip]="'publish.planEditor.moveUp' | transloco"
               data-testid="move-up-button">
               <mat-icon>arrow_upward</mat-icon>
             </button>
@@ -325,7 +340,7 @@
               mat-icon-button
               (click)="moveItemDown(i)"
               [disabled]="i === plan.items.length - 1"
-              matTooltip="Move down"
+              [matTooltip]="'publish.planEditor.moveDown' | transloco"
               data-testid="move-down-button">
               <mat-icon>arrow_downward</mat-icon>
             </button>
@@ -333,7 +348,7 @@
               mat-icon-button
               color="warn"
               (click)="removeItem(item.id)"
-              matTooltip="Remove item"
+              [matTooltip]="'publish.planEditor.removeItem' | transloco"
               data-testid="remove-item-button">
               <mat-icon>delete</mat-icon>
             </button>
@@ -351,27 +366,35 @@
       <mat-checkbox
         [checked]="plan.options.includeToc"
         (change)="updateOptionCheckbox('includeToc', $event)">
-        Include Table of Contents
+        {{ 'publish.planEditor.includeToc' | transloco }}
       </mat-checkbox>
 
       <mat-checkbox
         [checked]="plan.options.includeCover"
         (change)="updateOptionCheckbox('includeCover', $event)">
-        Include Cover Page
+        {{ 'publish.planEditor.includeCover' | transloco }}
       </mat-checkbox>
 
       @if (plan.options.includeCover) {
         <div class="cover-image-section">
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Cover Image</mat-label>
+            <mat-label>{{
+              'publish.planEditor.coverImageLabel' | transloco
+            }}</mat-label>
             <input
               matInput
               id="publish-plan-cover-image-input"
               [value]="plan.options.coverImage ?? projectCoverImage() ?? ''"
               (input)="updateOption('coverImage', $event)"
-              placeholder="Uses project cover by default"
-              aria-label="Cover image URL" />
-            <mat-hint>Leave blank to use the project cover image</mat-hint>
+              [attr.placeholder]="
+                'publish.planEditor.coverImagePlaceholder' | transloco
+              "
+              [attr.aria-label]="
+                'publish.planEditor.coverImageAria' | transloco
+              " />
+            <mat-hint>{{
+              'publish.planEditor.coverImageHint' | transloco
+            }}</mat-hint>
           </mat-form-field>
           @if (projectState.project(); as proj) {
             @if (proj.coverImage) {
@@ -409,7 +432,7 @@
             disabled
             data-testid="generate-button-loading">
             <mat-icon class="spinning">sync</mat-icon>
-            Generating...
+            {{ 'publish.planEditor.generating' | transloco }}
           </button>
         } @else {
           <button
@@ -420,19 +443,24 @@
             [disabled]="plan.items.length === 0"
             data-testid="generate-button">
             <mat-icon>download</mat-icon>
-            Generate {{ getFormatDisplayName(plan.format) }}
+            {{
+              'publish.planEditor.generate'
+                | transloco: { format: getFormatDisplayName(plan.format) }
+            }}
           </button>
         }
         @if (plan.items.length === 0) {
           <p class="generate-hint" data-testid="generate-hint">
-            Add at least one document to generate the publication
+            {{ 'publish.planEditor.generateHint' | transloco }}
           </p>
         }
       </div>
 
       <!-- Previous versions -->
       @if (publishedFiles().length > 0) {
-        <h3 class="published-heading">Previous versions</h3>
+        <h3 class="published-heading">
+          {{ 'publish.planEditor.previousVersions' | transloco }}
+        </h3>
         <div class="published-list" data-testid="published-files-list">
           @for (file of publishedFiles(); track file.id) {
             <div class="published-item" data-testid="published-item">
@@ -450,7 +478,7 @@
                 <button
                   mat-icon-button
                   (click)="downloadPublishedFile(file.id)"
-                  matTooltip="Download"
+                  [matTooltip]="'publish.planEditor.download' | transloco"
                   data-testid="download-published-button">
                   <mat-icon>download</mat-icon>
                 </button>
@@ -458,7 +486,7 @@
                   mat-icon-button
                   color="warn"
                   (click)="deletePublishedFile(file.id)"
-                  matTooltip="Delete"
+                  [matTooltip]="'delete' | transloco"
                   data-testid="delete-published-button">
                   <mat-icon>delete</mat-icon>
                 </button>
@@ -468,8 +496,10 @@
         </div>
       } @else {
         <div class="published-empty" data-testid="published-empty">
-          <p>No published versions yet</p>
-          <p class="hint">Generate to create the first version</p>
+          <p>{{ 'publish.planEditor.noPublishedVersions' | transloco }}</p>
+          <p class="hint">
+            {{ 'publish.planEditor.noPublishedHint' | transloco }}
+          </p>
         </div>
       }
     </div>

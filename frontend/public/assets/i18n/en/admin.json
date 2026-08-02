@@ -133,7 +133,12 @@
     "deleteTitle": "Delete Announcement",
     "deleteMessage": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
     "deleted": "Announcement deleted",
-    "deleteFailed": "Failed to delete announcement"
+    "deleteFailed": "Failed to delete announcement",
+    "statusDraft": "Draft",
+    "statusScheduled": "Scheduled",
+    "statusExpired": "Expired",
+    "statusPublished": "Published",
+    "deleteAction": "Delete"
   },
   "announcementEditor": {
     "editTitle": "Edit Announcement",

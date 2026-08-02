@@ -1041,7 +1041,7 @@ describe('PublishPlanTabComponent - no plan', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [PublishPlanTabComponent],
+      imports: [translocoTestProvider(), PublishPlanTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },

@@ -11,6 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MediaItemCardComponent } from '@components/media-item-card/media-item-card.component';
+import { TranslocoModule } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { MediaTagService } from '@services/media-tag/media-tag.service';
@@ -28,6 +29,7 @@ import { MediaTagService } from '@services/media-tag/media-tag.service';
     MatIconModule,
     MatTooltipModule,
     MediaItemCardComponent,
+    TranslocoModule,
   ],
   templateUrl: './media-panel.component.html',
   styleUrl: './media-panel.component.scss',

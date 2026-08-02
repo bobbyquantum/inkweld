@@ -587,15 +587,13 @@ TestBed.configureTestingModule({
 
 The test provider uses `TranslocoTestingModule.forRoot()` with `preloadLangs: true` for synchronous loading. Translations are inlined in the provider file to avoid JSON import resolution issues in the test build.
 
-### Current translation coverage (pilot)
+### Current translation coverage
 
-Only the following components are translated:
-- `AppComponent` (app shell)
-- `LoginDialogComponent`
-- `HomeComponent`
-- `GeneralSettingsComponent` (language switcher only)
+Translation coverage is near-complete. Out of 144 components in `frontend/src/app/`, the vast majority now use Transloco keys (`| transloco` pipe in templates and `TranslocoService.translate()` in TS) instead of hardcoded English strings. Originally only four components were translated as a pilot; coverage has since been extended across the app.
 
-All other components still use hardcoded English strings. To extend coverage, follow the patterns above.
+Components with **no user-facing strings** (structural/icon-only) intentionally do not use Transloco — e.g. `AriaTabPanelComponent`, `TreeNodeIconComponent`, `FolderTabComponent`. These need no translation.
+
+To extend coverage to any remaining components, follow the patterns above.
 
 ---
 

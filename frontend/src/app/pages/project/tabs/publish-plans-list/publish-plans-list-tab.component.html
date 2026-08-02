@@ -4,7 +4,7 @@
   <header class="list-header">
     <div class="header-left">
       <mat-icon class="header-icon">auto_stories</mat-icon>
-      <h2>Publishing</h2>
+      <h2>{{ 'publish.plansList.title' | transloco }}</h2>
     </div>
     <button
       mat-flat-button
@@ -12,7 +12,7 @@
       (click)="createPublishPlan()"
       data-testid="create-publish-plan-button">
       <mat-icon>add</mat-icon>
-      New Plan
+      {{ 'publish.plansList.newPlan' | transloco }}
     </button>
   </header>
 
@@ -24,7 +24,9 @@
             type="button"
             class="plan-card-content"
             (click)="openPublishPlan(plan)"
-            [attr.aria-label]="'Open publish plan: ' + plan.name">
+            [attr.aria-label]="
+              'publish.plansList.openPlan' | transloco: { name: plan.name }
+            ">
             <div class="plan-card-header">
               <mat-icon class="plan-icon">menu_book</mat-icon>
               <div class="plan-details">
@@ -37,15 +39,20 @@
               </div>
             </div>
             <div class="plan-meta">
-              <span class="plan-items">{{ plan.items.length }} items</span>
+              <span class="plan-items">{{
+                'publish.plansList.itemsCount'
+                  | transloco: { count: plan.items.length }
+              }}</span>
             </div>
           </button>
           <div class="plan-card-actions">
             <button
               mat-icon-button
               (click)="toggleHistory(plan.id)"
-              matTooltip="Publish history"
-              [attr.aria-label]="'Show publish history for ' + plan.name"
+              [matTooltip]="'publish.plansList.publishHistory' | transloco"
+              [attr.aria-label]="
+                'publish.plansList.showHistory' | transloco: { name: plan.name }
+              "
               [attr.aria-expanded]="expandedPlanId() === plan.id"
               [attr.aria-controls]="'history-' + plan.id"
               data-testid="toggle-history-button">
@@ -57,8 +64,11 @@
               mat-icon-button
               color="warn"
               (click)="deletePublishPlan($event, plan)"
-              matTooltip="Delete plan"
-              [attr.aria-label]="'Delete ' + plan.name"
+              [matTooltip]="'publish.plansList.deletePlan' | transloco"
+              [attr.aria-label]="
+                'publish.plansList.deletePlanName'
+                  | transloco: { name: plan.name }
+              "
               data-testid="delete-plan-button">
               <mat-icon>delete</mat-icon>
             </button>
@@ -87,7 +97,9 @@
                   }
                 </div>
               } @else {
-                <p class="no-history">No publish history yet</p>
+                <p class="no-history">
+                  {{ 'publish.plansList.noHistory' | transloco }}
+                </p>
               }
             </div>
           }
@@ -97,9 +109,9 @@
   } @else {
     <div class="empty-state" data-testid="empty-plans-state">
       <mat-icon>auto_stories</mat-icon>
-      <h3>No publish plans yet</h3>
+      <h3>{{ 'publish.plansList.noPlans' | transloco }}</h3>
       <p>
-        Create a plan to export your project as EPUB, PDF, HTML, or Markdown.
+        {{ 'publish.plansList.noPlansHint' | transloco }}
       </p>
       <button
         mat-flat-button
@@ -107,7 +119,7 @@
         (click)="createPublishPlan()"
         data-testid="empty-create-plan-button">
         <mat-icon>add</mat-icon>
-        Create Your First Plan
+        {{ 'publish.plansList.createFirstPlan' | transloco }}
       </button>
     </div>
   }

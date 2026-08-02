@@ -37,6 +37,7 @@ import {
   type PublishCompleteDialogResult,
 } from '@dialogs/publish-complete-dialog/publish-complete-dialog.component';
 import { ElementType } from '@inkweld/index';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   BackmatterType,
   ChapterNumbering,
@@ -90,6 +91,7 @@ type PlanSection =
     PublishStyleEditorComponent,
     DatePipe,
     FileSizePipe,
+    TranslocoModule,
   ],
 })
 export class PublishPlanTabComponent implements OnInit, OnDestroy {
@@ -100,6 +102,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   private readonly publishedFilesService = inject(PublishedFilesService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly transloco = inject(TranslocoService);
   private paramSubscription: Subscription | null = null;
   private readonly resizeCleanup: (() => void) | null = null;
 
@@ -129,13 +132,29 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   protected readonly sections: {
     key: PlanSection;
     icon: string;
-    label: string;
+    labelKey: string;
   }[] = [
-    { key: 'metadata', icon: 'menu_book', label: 'Metadata' },
-    { key: 'contents', icon: 'list', label: 'Contents' },
-    { key: 'formatting', icon: 'format_paint', label: 'Style' },
-    { key: 'preview', icon: 'visibility', label: 'Preview' },
-    { key: 'publish', icon: 'publish', label: 'Publish' },
+    {
+      key: 'metadata',
+      icon: 'menu_book',
+      labelKey: 'publish.planEditor.metadata',
+    },
+    { key: 'contents', icon: 'list', labelKey: 'publish.planEditor.contents' },
+    {
+      key: 'formatting',
+      icon: 'format_paint',
+      labelKey: 'publish.planEditor.style',
+    },
+    {
+      key: 'preview',
+      icon: 'visibility',
+      labelKey: 'publish.planEditor.preview',
+    },
+    {
+      key: 'publish',
+      icon: 'publish',
+      labelKey: 'publish.planEditor.publish',
+    },
   ];
 
   /** Expandable sections (accordion mode) */
@@ -601,8 +620,13 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     try {
       await this.publishedFilesService.downloadFile(projectKey, fileId);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Download failed';
-      this.snackBar.open(msg, 'Dismiss', { duration: 5000 });
+      const msg =
+        error instanceof Error
+          ? error.message
+          : this.transloco.translate('publish.planEditor.downloadFailed');
+      this.snackBar.open(msg, this.transloco.translate('dismiss'), {
+        duration: 5000,
+      });
     }
   }
 
@@ -614,8 +638,13 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     try {
       await this.publishedFilesService.deleteFile(projectKey, fileId);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Delete failed';
-      this.snackBar.open(msg, 'Dismiss', { duration: 5000 });
+      const msg =
+        error instanceof Error
+          ? error.message
+          : this.transloco.translate('publish.planEditor.deleteFailed');
+      this.snackBar.open(msg, this.transloco.translate('dismiss'), {
+        duration: 5000,
+      });
     }
   }
 
@@ -648,9 +677,13 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
 
     try {
       // Show starting message
-      this.snackBar.open(`Generating ${plan.format}...`, undefined, {
-        duration: 2000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('publish.planEditor.generatingFormat', {
+          format: plan.format,
+        }),
+        undefined,
+        { duration: 2000 }
+      );
 
       // Call the publish service with skipDownload so dialog can handle it
       const result: PublishingResult = await this.publishService.publish(
@@ -663,7 +696,13 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       this.handlePublishResult(result, plan);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      this.snackBar.open(`Error: ${message}`, 'Dismiss', { duration: 10000 });
+      this.snackBar.open(
+        this.transloco.translate('publish.planEditor.errorPrefix', {
+          message,
+        }),
+        this.transloco.translate('dismiss'),
+        { duration: 10000 }
+      );
     } finally {
       this.isGenerating.set(false);
     }
@@ -681,17 +720,31 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     } else if (result.success) {
       const stats = result.stats;
       const message = stats
-        ? `${plan.format} generated: ${stats.wordCount.toLocaleString()} words, ${stats.chapterCount} chapters`
-        : `${plan.format} generated successfully!`;
-      this.snackBar.open(message, 'OK', { duration: 5000 });
+        ? this.transloco.translate('publish.planEditor.generatedWithStats', {
+            format: plan.format,
+            words: stats.wordCount.toLocaleString(),
+            chapters: stats.chapterCount,
+          })
+        : this.transloco.translate('publish.planEditor.generatedSuccessfully', {
+            format: plan.format,
+          });
+      this.snackBar.open(message, this.transloco.translate('ok'), {
+        duration: 5000,
+      });
     } else if (result.cancelled) {
-      this.snackBar.open('Generation cancelled', undefined, {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('publish.planEditor.generationCancelled'),
+        undefined,
+        { duration: 3000 }
+      );
     } else {
-      this.snackBar.open(`Error: ${result.error}`, 'Dismiss', {
-        duration: 10000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('publish.planEditor.errorPrefix', {
+          message: result.error,
+        }),
+        this.transloco.translate('dismiss'),
+        { duration: 10000 }
+      );
     }
   }
 

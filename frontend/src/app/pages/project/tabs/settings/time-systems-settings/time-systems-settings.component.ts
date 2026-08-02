@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TimeSystemEditPageComponent } from '@components/time-system-edit/time-system-edit-page.component';
+import { TranslocoModule } from '@jsverse/transloco';
 import type { TimeSystem } from '@models/time-system';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
@@ -43,6 +44,7 @@ type EditingState =
     MatMenuModule,
     MatTooltipModule,
     TimeSystemEditPageComponent,
+    TranslocoModule,
   ],
   templateUrl: './time-systems-settings.component.html',
   styleUrls: ['./time-systems-settings.component.scss'],

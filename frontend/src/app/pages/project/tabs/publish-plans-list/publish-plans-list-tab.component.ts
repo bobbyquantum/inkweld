@@ -12,6 +12,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   createDefaultPublishPlan,
   PublishFormat,
@@ -35,6 +36,7 @@ import { FileSizePipe } from '../../../../pipes/file-size.pipe';
     MatMenuModule,
     MatTooltipModule,
     FileSizePipe,
+    TranslocoModule,
   ],
 })
 export class PublishPlansListTabComponent implements OnInit {
@@ -43,6 +45,7 @@ export class PublishPlansListTabComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly publishedFilesService = inject(PublishedFilesService);
+  private readonly transloco = inject(TranslocoService);
 
   /** All publish plans */
   protected plans = computed(() => this.projectState.publishPlans());
@@ -115,15 +118,24 @@ export class PublishPlansListTabComponent implements OnInit {
     event.stopPropagation();
 
     const confirmed = await this.dialogGateway.openConfirmationDialog({
-      title: 'Delete Publish Plan',
-      message: `Are you sure you want to delete "${plan.name}"?`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: this.transloco.translate('publish.plansList.deleteDialogTitle'),
+      message: this.transloco.translate(
+        'publish.plansList.deleteDialogMessage',
+        { name: plan.name }
+      ),
+      confirmText: this.transloco.translate('delete'),
+      cancelText: this.transloco.translate('cancel'),
     });
 
     if (confirmed) {
       this.projectState.deletePublishPlan(plan.id);
-      this.snackBar.open(`Deleted "${plan.name}"`, 'Close', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('publish.plansList.deletedSnackbar', {
+          name: plan.name,
+        }),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
     }
   }
 
