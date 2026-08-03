@@ -177,6 +177,14 @@ const getDocRoute = createRoute({
       },
       description: 'Document not found',
     },
+    500: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Internal server error',
+    },
   },
 });
 
@@ -200,15 +208,21 @@ documentRoutes.openapi(getDocRoute, async (c) => {
     return c.json({ error: 'Access denied' }, 403);
   }
 
-  // Return placeholder - full implementation would query the element from Yjs
-  return c.json(
-    {
-      id: docId,
-      name: 'Document',
-      type: 'ITEM',
-    },
-    200
-  );
+  // Look up the document element from Yjs
+  try {
+    const elements = await yjsService.getElements(username, slug);
+    const document = elements.find((e) => e.id === docId && e.type === 'ITEM');
+
+    if (!document) {
+      documentLog.warn(`Document ${docId} not found in project ${username}/${slug}`);
+      return c.json({ error: 'Document not found' }, 404);
+    }
+
+    return c.json(document, 200);
+  } catch (error) {
+    documentLog.error('Error fetching document', error);
+    return c.json({ error: 'Failed to fetch document' }, 500);
+  }
 });
 
 // Render document as HTML
