@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { SwUpdate, type VersionReadyEvent } from '@angular/service-worker';
+import { TranslocoService } from '@jsverse/transloco';
 import { ConfirmationDialogComponent } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
 import { filter } from 'rxjs/operators';
 
@@ -14,6 +15,7 @@ export class UpdateService {
   private readonly swUpdate = inject(SwUpdate, { optional: true });
   private readonly dialog = inject(MatDialog);
   private readonly logger = inject(LoggerService);
+  private readonly transloco = inject(TranslocoService);
 
   /** Whether an update is available and waiting to be applied */
   readonly updateAvailable = signal(false);
@@ -48,10 +50,10 @@ export class UpdateService {
           dialogOpen = true;
           const ref = this.dialog.open(ConfirmationDialogComponent, {
             data: {
-              title: 'Update Available',
-              message: 'A new version of Inkweld is available. Update now?',
-              confirmText: 'Update',
-              cancelText: 'Later',
+              title: this.transloco.translate('dialogs.update.title'),
+              message: this.transloco.translate('dialogs.update.message'),
+              confirmText: this.transloco.translate('dialogs.update.confirm'),
+              cancelText: this.transloco.translate('dialogs.update.cancel'),
             },
           });
           ref.afterClosed().subscribe(result => {

@@ -167,6 +167,7 @@ describe('UpdateService without SwUpdate', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         UpdateService,
         { provide: MatDialog, useValue: dialogMock },
