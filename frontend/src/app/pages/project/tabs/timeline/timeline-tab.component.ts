@@ -1015,7 +1015,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
         AutoBuildDialogResult
       >(TimelineAutoBuildDialogComponent, { data: dialogData });
       const result = await firstValueFrom(ref.afterClosed());
-      if (!result || result.kind !== 'build' || result.selected.length === 0) {
+      if (result?.kind !== 'build' || result.selected.length === 0) {
         return;
       }
 

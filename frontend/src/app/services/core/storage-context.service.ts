@@ -461,8 +461,10 @@ export class StorageContextService {
     const currentConfig = this.configSignal();
     if (!currentConfig) return;
 
-    const config = currentConfig.configurations.find(c => c.id === configId);
-    if (!config) {
+    const configExists = currentConfig.configurations.some(
+      c => c.id === configId
+    );
+    if (!configExists) {
       console.warn(`[StorageContext] Config not found: ${configId}`);
       return;
     }

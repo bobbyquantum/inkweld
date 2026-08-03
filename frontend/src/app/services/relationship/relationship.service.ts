@@ -13,6 +13,7 @@
 
 import { computed, inject, Injectable, NgZone, signal } from '@angular/core';
 import {
+  type DocumentReferenceContext,
   type ElementRelationship,
   type ElementRelationshipView,
   getRelationshipLabel,
@@ -124,7 +125,7 @@ export class RelationshipService {
     options?: {
       note?: string;
       displayText?: string;
-      documentContext?: ElementRelationship['documentContext'];
+      documentContext?: DocumentReferenceContext;
     }
   ): ElementRelationship {
     const now = new Date().toISOString();
@@ -441,9 +442,9 @@ export class RelationshipService {
    */
   removeCustomType(typeId: string): boolean {
     const types = this.syncProvider.getCustomRelationshipTypes();
-    const type = types.find(t => t.id === typeId);
+    const typeExists = types.some(t => t.id === typeId);
 
-    if (!type) {
+    if (!typeExists) {
       this.logger.warn(
         'RelationshipService',
         `Cannot remove type ${typeId}: not found`

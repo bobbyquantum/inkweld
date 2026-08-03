@@ -9,7 +9,7 @@
 
 import { effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { type AutoBuildCandidate } from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.models';
-import { ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { type ElementTypeSchema, type FieldSchema } from '@models/schema-types';
 import {
   normalizeTimePoint,
@@ -407,29 +407,52 @@ export class TimelineService {
         );
         if (!data) continue;
 
-        for (const field of dateFields) {
-          const raw = readNestedValue(data, field.key);
-          if (raw === null || raw === undefined || raw === '') continue;
-          if (typeof raw !== 'string') continue;
-          const point = parseTimePoint(raw, system);
-          if (!point) continue;
-          const key = `${element.id}::${field.key}`;
-          candidates.push({
-            elementId: element.id,
-            elementName: element.name,
-            fieldKey: field.key,
-            fieldLabel: field.label,
-            rawValue: raw,
-            timePoint: point,
-            alreadyOnTimeline: existingKeys.has(key),
-          });
-        }
+        this.collectCandidatesForElement(
+          element,
+          dateFields,
+          data,
+          system,
+          existingKeys,
+          candidates
+        );
       }
 
       return candidates;
     } catch (err) {
       this.logger.error('Timeline', 'Scan auto-build candidates failed', err);
       return null;
+    }
+  }
+
+  private collectCandidatesForElement(
+    element: Element,
+    dateFields: FieldSchema[],
+    data: Record<string, unknown>,
+    system: TimeSystem,
+    existingKeys: Set<string>,
+    candidates: AutoBuildCandidate[]
+  ): void {
+    for (const field of dateFields) {
+      const raw = readNestedValue(data, field.key);
+      if (
+        raw === null ||
+        raw === undefined ||
+        raw === '' ||
+        typeof raw !== 'string'
+      )
+        continue;
+      const point = parseTimePoint(raw, system);
+      if (!point) continue;
+      const key = `${element.id}::${field.key}`;
+      candidates.push({
+        elementId: element.id,
+        elementName: element.name,
+        fieldKey: field.key,
+        fieldLabel: field.label,
+        rawValue: raw,
+        timePoint: point,
+        alreadyOnTimeline: existingKeys.has(key),
+      });
     }
   }
 
