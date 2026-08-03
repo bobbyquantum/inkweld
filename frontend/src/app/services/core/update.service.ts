@@ -1,8 +1,8 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { SwUpdate, type VersionReadyEvent } from '@angular/service-worker';
-import { TranslocoService } from '@jsverse/transloco';
 import { ConfirmationDialogComponent } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
+import { TranslocoService } from '@jsverse/transloco';
 import { filter } from 'rxjs/operators';
 
 import { LoggerService } from './logger.service';
