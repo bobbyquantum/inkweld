@@ -719,20 +719,28 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       this.showPublishDialog(savedFile, blob);
     } else if (result.success) {
       const stats = result.stats;
-      const message = stats
-        ? this.transloco.translate(
-            stats.wordCount === 1 && stats.chapterCount === 1
-              ? 'publish.planEditor.generatedWithStats'
-              : 'publish.planEditor.generatedWithStatsPlural',
-            {
-              format: this.getFormatDisplayName(plan.format),
-              words: stats.wordCount.toLocaleString(),
-              chapters: stats.chapterCount,
-            }
-          )
-        : this.transloco.translate('publish.planEditor.generatedSuccessfully', {
+      let message: string;
+      if (stats) {
+        const isSingular = stats.wordCount === 1 && stats.chapterCount === 1;
+        let statsKey: string;
+        if (isSingular) {
+          statsKey = 'publish.planEditor.generatedWithStats';
+        } else {
+          statsKey = 'publish.planEditor.generatedWithStatsPlural';
+        }
+        message = this.transloco.translate(statsKey, {
+          format: this.getFormatDisplayName(plan.format),
+          words: stats.wordCount.toLocaleString(),
+          chapters: stats.chapterCount,
+        });
+      } else {
+        message = this.transloco.translate(
+          'publish.planEditor.generatedSuccessfully',
+          {
             format: this.getFormatDisplayName(plan.format),
-          });
+          }
+        );
+      }
       this.snackBar.open(message, this.transloco.translate('ok'), {
         duration: 5000,
       });
