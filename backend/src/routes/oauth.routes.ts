@@ -1159,9 +1159,9 @@ oauthRoutes.openapi(addGrantRoute, async (c) => {
 
   // Verify the project belongs to the user
   const userProjects = await projectService.findByUserId(db, user.id);
-  const project = userProjects.find((p) => p.id === projectId);
+  const projectExists = userProjects.some((p) => p.id === projectId);
 
-  if (!project) {
+  if (!projectExists) {
     return c.json(
       { error: 'invalid_request', error_description: 'Project not found or not owned by you' },
       400

@@ -184,7 +184,8 @@ export class SyncQueueService {
 
     this.logger.info(
       'SyncQueueService',
-      `Starting sync of ${projects.length} projects${priorityDocumentId ? ` (priority: ${priorityDocumentId})` : ''}`
+      `Starting sync of ${projects.length} projects` +
+        (priorityDocumentId ? ` (priority: ${priorityDocumentId})` : '')
     );
 
     // Store priority document ID for use during document sync

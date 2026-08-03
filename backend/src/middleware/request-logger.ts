@@ -31,7 +31,7 @@ function generateCorrelationId(): string {
 /**
  * Paths to skip logging (health checks, static assets)
  */
-const SKIP_PATHS = [
+const SKIP_PATHS = new Set<string>([
   '/health',
   '/api/v1/health',
   '/favicon.ico',
@@ -39,7 +39,7 @@ const SKIP_PATHS = [
   '/manifest.json',
   '/ngsw.json',
   '/ngsw-worker.js',
-];
+]);
 
 /**
  * Check if a path should skip detailed logging
@@ -47,7 +47,7 @@ const SKIP_PATHS = [
  */
 function _shouldSkipLogging(path: string): boolean {
   // Skip exact matches
-  if (SKIP_PATHS.includes(path)) return true;
+  if (SKIP_PATHS.has(path)) return true;
 
   // Skip static asset paths
   if (path.startsWith('/assets/')) return true;

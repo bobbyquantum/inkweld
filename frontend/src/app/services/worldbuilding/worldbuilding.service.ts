@@ -772,8 +772,8 @@ export class WorldbuildingService {
    * All templates are now deletable since they're stored per-project.
    */
   deleteTemplate(schemaId: string): void {
-    const schema = this.schemasCache.find(s => s.id === schemaId);
-    if (!schema) {
+    const schemaExists = this.schemasCache.some(s => s.id === schemaId);
+    if (!schemaExists) {
       throw new Error(`Template with ID ${schemaId} not found`);
     }
 
