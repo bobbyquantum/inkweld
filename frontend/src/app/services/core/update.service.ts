@@ -32,6 +32,9 @@ export class UpdateService {
         'Service Worker Update Service initialized'
       );
 
+      // Track whether a dialog is already open so repeated VERSION_READY
+      // events (multiple updates while the app stays open) don't stack dialogs.
+      let dialogOpen = false;
       this.swUpdate.versionUpdates
         .pipe(
           filter(
@@ -41,7 +44,22 @@ export class UpdateService {
         .subscribe(evt => {
           this.logger.info('UpdateService', 'New version available!', evt);
           this.updateAvailable.set(true);
-          this.showUpdateDialog();
+          if (dialogOpen) return;
+          dialogOpen = true;
+          const ref = this.dialog.open(ConfirmationDialogComponent, {
+            data: {
+              title: 'Update Available',
+              message: 'A new version of Inkweld is available. Update now?',
+              confirmText: 'Update',
+              cancelText: 'Later',
+            },
+          });
+          ref.afterClosed().subscribe(result => {
+            dialogOpen = false;
+            if (result) {
+              globalThis.location.reload();
+            }
+          });
         });
 
       // Subscribe to unrecoverable state — the SW's cache has been
@@ -95,22 +113,5 @@ export class UpdateService {
    */
   applyUpdate(): void {
     globalThis.location.reload();
-  }
-
-  private showUpdateDialog(): void {
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-      data: {
-        title: 'Update Available',
-        message: 'A new version of Inkweld is available. Update now?',
-        confirmText: 'Update',
-        cancelText: 'Later',
-      },
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        globalThis.location.reload();
-      }
-    });
   }
 }
