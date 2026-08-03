@@ -678,7 +678,7 @@
                   <input
                     matInput
                     id="settings-invite-username-input"
-                    [(ngModel)]="inviteUsername"
+                    [formField]="inviteForm.inviteUsername"
                     placeholder="Enter username to invite"
                     data-testid="invite-username-input"
                     aria-label="Username" />
@@ -688,7 +688,7 @@
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Role</mat-label>
                   <mat-select
-                    [(ngModel)]="inviteRole"
+                    [formField]="inviteForm.inviteRole"
                     data-testid="invite-role-select">
                     @for (opt of roleOptions; track opt.value) {
                       <mat-option [value]="opt.value">
@@ -711,7 +711,9 @@
                   <button
                     mat-raised-button
                     color="primary"
-                    [disabled]="!inviteUsername.trim() || isInviting()"
+                    [disabled]="
+                      !inviteModel().inviteUsername.trim() || isInviting()
+                    "
                     (click)="inviteCollaborator()"
                     data-testid="send-invite-button">
                     @if (isInviting()) {
@@ -1027,10 +1029,9 @@
               <input
                 matInput
                 id="settings-rename-slug-input"
-                [(ngModel)]="newProjectSlug"
+                [formField]="renameForm.newProjectSlug"
                 placeholder="my-new-project-name"
                 data-testid="new-slug-input"
-                [pattern]="'^[a-z0-9-]+$'"
                 (keyup.enter)="renameProject()"
                 aria-label="New project slug" />
               <mat-hint>Lowercase letters, numbers, and hyphens only</mat-hint>
