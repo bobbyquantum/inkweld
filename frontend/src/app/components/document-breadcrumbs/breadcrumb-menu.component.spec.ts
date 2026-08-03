@@ -7,6 +7,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { BreadcrumbMenuComponent } from './breadcrumb-menu.component';
 
 function makeElement(
@@ -40,7 +41,7 @@ describe('BreadcrumbMenuComponent', () => {
     openElementMock = vi.fn();
 
     await TestBed.configureTestingModule({
-      imports: [BreadcrumbMenuComponent],
+      imports: [translocoTestProvider(), BreadcrumbMenuComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([{ path: '**', children: [] }]),

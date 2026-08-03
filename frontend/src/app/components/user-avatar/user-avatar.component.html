@@ -6,8 +6,8 @@
       <img
         class="rounded-full"
         [src]="fallbackAvatarUrl()!"
-        [alt]="username + ' avatar'"
-        [title]="username + ' avatar'" />
+        [alt]="avatarAlt"
+        [title]="avatarAlt" />
     } @else {
       <svg
         class="rounded-full"
@@ -29,7 +29,7 @@
     <img
       class="rounded-full"
       [src]="avatarUrl()!"
-      [alt]="username + ' avatar'"
-      [title]="username + ' avatar'" />
+      [alt]="avatarAlt"
+      [title]="avatarAlt" />
   }
 </div>

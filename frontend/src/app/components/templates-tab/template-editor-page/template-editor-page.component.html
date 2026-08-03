@@ -2,8 +2,8 @@
   <header class="header">
     <button
       mat-icon-button
-      aria-label="Back to templates"
-      matTooltip="Back to templates"
+      [attr.aria-label]="'templates.editor.backToTemplates' | transloco"
+      [matTooltip]="'templates.editor.backToTemplates' | transloco"
       (click)="cancel()"
       data-testid="template-editor-back">
       <mat-icon>arrow_back</mat-icon>
@@ -11,27 +11,31 @@
     <div class="title-block">
       <h1>
         <mat-icon>edit</mat-icon>
-        Edit Template
+        {{ 'templates.editor.title' | transloco }}
       </h1>
       <p class="hint">
-        Define the structure, tabs, and fields for this template.
+        {{ 'templates.editor.hint' | transloco }}
       </p>
     </div>
   </header>
 
   <!-- Basic Information Section -->
   <section class="section">
-    <h3>Basic Information</h3>
+    <h3>{{ 'templates.editor.basicInfo' | transloco }}</h3>
     <form>
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Template Name</mat-label>
+        <mat-label>{{
+          'templates.editor.templateNameLabel' | transloco
+        }}</mat-label>
         <input
           matInput
           id="template-name"
-          aria-label="Template Name"
+          [attr.aria-label]="'templates.editor.templateNameAria' | transloco"
           [formField]="basicForm.name"
           data-testid="template-name-input"
-          placeholder="e.g., Character" />
+          [attr.placeholder]="
+            'templates.editor.templateNamePlaceholder' | transloco
+          " />
         @if (basicForm.name().touched() && basicForm.name().invalid()) {
           @for (error of basicForm.name().errors(); track error) {
             <mat-error>{{ error.message }}</mat-error>
@@ -40,7 +44,7 @@
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Icon</mat-label>
+        <mat-label>{{ 'templates.editor.iconLabel' | transloco }}</mat-label>
         <mat-select
           [formField]="basicForm.icon"
           data-testid="template-icon-input">
@@ -54,14 +58,18 @@
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Description</mat-label>
+        <mat-label>{{
+          'templates.editor.descriptionLabel' | transloco
+        }}</mat-label>
         <textarea
           matInput
           id="template-description"
-          aria-label="Description"
+          [attr.aria-label]="'templates.editor.descriptionAria' | transloco"
           [formField]="basicForm.description"
           data-testid="template-description-input"
-          placeholder="Describe this template..."
+          [attr.placeholder]="
+            'templates.editor.descriptionPlaceholder' | transloco
+          "
           rows="3"></textarea>
       </mat-form-field>
     </form>
@@ -70,21 +78,21 @@
   <!-- Tabs Section -->
   <section class="section">
     <div class="section-header">
-      <h3>Tabs</h3>
+      <h3>{{ 'templates.editor.tabsHeading' | transloco }}</h3>
       <button
         mat-raised-button
         color="primary"
         data-testid="add-tab-button"
         (click)="addTab()">
         <mat-icon>add</mat-icon>
-        Add Tab
+        {{ 'templates.editor.addTab' | transloco }}
       </button>
     </div>
 
     @if (tabs().length === 0) {
       <div class="empty-state">
         <mat-icon>tab</mat-icon>
-        <p>No tabs yet. Add a tab to organize fields.</p>
+        <p>{{ 'templates.editor.noTabs' | transloco }}</p>
       </div>
     } @else {
       <div class="tabs-editor">
@@ -98,7 +106,10 @@
               class="tab-item"
               cdkDrag
               [class.selected]="selectedTabIndex() === i">
-              <mat-icon class="drag-handle" cdkDragHandle aria-label="Drag tab"
+              <mat-icon
+                class="drag-handle"
+                cdkDragHandle
+                [attr.aria-label]="'templates.editor.dragTab' | transloco"
                 >drag_indicator</mat-icon
               >
               <button
@@ -110,7 +121,9 @@
               <button
                 mat-icon-button
                 class="tab-close-button"
-                [attr.aria-label]="'Remove tab ' + tab.label"
+                [attr.aria-label]="
+                  'templates.editor.removeTab' | transloco: { label: tab.label }
+                "
                 (click)="removeTab(i)"
                 [disabled]="tabs().length === 1">
                 <mat-icon>close</mat-icon>
@@ -129,11 +142,15 @@
             <div class="tab-editor-content">
               <!-- Tab Properties -->
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Tab Label</mat-label>
+                <mat-label>{{
+                  'templates.editor.tabLabelLabel' | transloco
+                }}</mat-label>
                 <input
                   matInput
                   id="tab-label"
-                  aria-label="Tab Label"
+                  [attr.aria-label]="
+                    'templates.editor.tabLabelAria' | transloco
+                  "
                   data-testid="tab-label-input"
                   [value]="currentTab.label"
                   (input)="
@@ -141,11 +158,15 @@
                       label: $any($event.target).value,
                     })
                   "
-                  placeholder="e.g., Basic Info" />
+                  [attr.placeholder]="
+                    'templates.editor.tabLabelPlaceholder' | transloco
+                  " />
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Tab Icon</mat-label>
+                <mat-label>{{
+                  'templates.editor.tabIconLabel' | transloco
+                }}</mat-label>
                 <mat-select
                   [value]="currentTab.icon || 'article'"
                   (selectionChange)="
@@ -163,21 +184,21 @@
               <!-- Fields Section -->
               <div class="fields-section">
                 <div class="section-header">
-                  <h5>Fields</h5>
+                  <h5>{{ 'templates.editor.fieldsHeading' | transloco }}</h5>
                   <button
                     mat-raised-button
                     color="accent"
                     data-testid="add-field-button"
                     (click)="addField(selectedTabIndex())">
                     <mat-icon>add</mat-icon>
-                    Add Field
+                    {{ 'templates.editor.addField' | transloco }}
                   </button>
                 </div>
 
                 @if (currentTab.fields.length === 0) {
                   <div class="empty-state">
                     <mat-icon>input</mat-icon>
-                    <p>No fields yet. Add fields to this tab.</p>
+                    <p>{{ 'templates.editor.noFields' | transloco }}</p>
                   </div>
                 } @else {
                   <div
@@ -198,13 +219,18 @@
                             <mat-icon
                               class="drag-handle"
                               cdkDragHandle
-                              aria-label="Drag field"
+                              [attr.aria-label]="
+                                'templates.editor.dragField' | transloco
+                              "
                               (click)="$event.stopPropagation()"
                               (keydown)="$event.stopPropagation()">
                               drag_indicator
                             </mat-icon>
                             <mat-icon>input</mat-icon>
-                            <span>{{ field.label || 'Untitled Field' }}</span>
+                            <span>{{
+                              field.label ||
+                                ('templates.editor.untitledField' | transloco)
+                            }}</span>
                             <mat-chip class="field-type-chip">{{
                               field.type
                             }}</mat-chip>
@@ -215,7 +241,9 @@
                           <mat-form-field
                             appearance="outline"
                             class="full-width">
-                            <mat-label>Field Key</mat-label>
+                            <mat-label>{{
+                              'templates.editor.fieldKeyLabel' | transloco
+                            }}</mat-label>
                             <input
                               matInput
                               [attr.id]="'field-key-' + field.id"
@@ -226,13 +254,18 @@
                                   key: $any($event.target).value,
                                 })
                               "
-                              placeholder="e.g., fullName" />
+                              [attr.placeholder]="
+                                'templates.editor.fieldKeyPlaceholder'
+                                  | transloco
+                              " />
                           </mat-form-field>
 
                           <mat-form-field
                             appearance="outline"
                             class="full-width">
-                            <mat-label>Field Label</mat-label>
+                            <mat-label>{{
+                              'templates.editor.fieldLabelLabel' | transloco
+                            }}</mat-label>
                             <input
                               matInput
                               [attr.id]="'field-label-' + field.id"
@@ -243,13 +276,18 @@
                                   label: $any($event.target).value,
                                 })
                               "
-                              placeholder="e.g., Full Name" />
+                              [attr.placeholder]="
+                                'templates.editor.fieldLabelPlaceholder'
+                                  | transloco
+                              " />
                           </mat-form-field>
 
                           <mat-form-field
                             appearance="outline"
                             class="full-width">
-                            <mat-label>Field Type</mat-label>
+                            <mat-label>{{
+                              'templates.editor.fieldTypeLabel' | transloco
+                            }}</mat-label>
                             <mat-select
                               [value]="field.type"
                               data-testid="field-type-select"
@@ -273,7 +311,9 @@
                           <mat-form-field
                             appearance="outline"
                             class="full-width">
-                            <mat-label>Placeholder</mat-label>
+                            <mat-label>{{
+                              'templates.editor.placeholderLabel' | transloco
+                            }}</mat-label>
                             <input
                               matInput
                               [attr.id]="'field-placeholder-' + field.id"
@@ -283,24 +323,34 @@
                                   placeholder: $any($event.target).value,
                                 })
                               "
-                              placeholder="e.g., Enter name..." />
+                              [attr.placeholder]="
+                                'templates.editor.placeholderPlaceholder'
+                                  | transloco
+                              " />
                           </mat-form-field>
 
                           <mat-form-field
                             appearance="outline"
                             class="full-width">
-                            <mat-label>Description</mat-label>
+                            <mat-label>{{
+                              'templates.editor.descriptionLabel' | transloco
+                            }}</mat-label>
                             <textarea
                               matInput
                               [attr.id]="'field-description-' + field.id"
-                              aria-label="Description"
+                              [attr.aria-label]="
+                                'templates.editor.descriptionAria' | transloco
+                              "
                               [value]="field.description || ''"
                               (input)="
                                 updateField(selectedTabIndex(), j, {
                                   description: $any($event.target).value,
                                 })
                               "
-                              placeholder="Help text for this field..."
+                              [attr.placeholder]="
+                                'templates.editor.helpTextPlaceholder'
+                                  | transloco
+                              "
                               rows="2"></textarea>
                           </mat-form-field>
 
@@ -309,7 +359,7 @@
                             color="warn"
                             (click)="removeField(selectedTabIndex(), j)">
                             <mat-icon>delete</mat-icon>
-                            Remove Field
+                            {{ 'templates.editor.removeField' | transloco }}
                           </button>
                         </div>
                       </mat-expansion-panel>
@@ -336,7 +386,7 @@
       type="button"
       (click)="cancel()"
       data-testid="template-editor-cancel">
-      Cancel
+      {{ 'cancel' | transloco }}
     </button>
     <button
       mat-flat-button
@@ -346,9 +396,9 @@
       data-testid="save-template-button"
       [disabled]="basicForm().invalid() || isSaving()">
       @if (isSaving()) {
-        <span>Saving...</span>
+        <span>{{ 'templates.editor.saving' | transloco }}</span>
       } @else {
-        <span>Save Changes</span>
+        <span>{{ 'templates.editor.saveChanges' | transloco }}</span>
       }
     </button>
   </footer>

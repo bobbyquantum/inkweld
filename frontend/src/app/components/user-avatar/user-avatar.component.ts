@@ -10,6 +10,7 @@ import {
   type SimpleChanges,
 } from '@angular/core';
 import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
@@ -18,7 +19,7 @@ import { type Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-user-avatar',
-  imports: [],
+  imports: [TranslocoModule],
   templateUrl: './user-avatar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./user-avatar.component.scss'],
@@ -28,6 +29,13 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
   private readonly userService = inject(UserService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly transloco = inject(TranslocoService);
+
+  get avatarAlt(): string {
+    return this.transloco.translate('userAvatar', {
+      username: this.username,
+    });
+  }
 
   @Input() username!: string;
   @Input() size: 'small' | 'medium' | 'large' = 'medium';

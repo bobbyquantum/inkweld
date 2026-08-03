@@ -133,5 +133,16 @@
     "previewLabel": "Preview:",
     "saveChanges": "Save changes",
     "createSystem": "Create system"
+  },
+  "timeSystemSettings": {
+    "title": "Time Systems",
+    "hint": "Calendars used by this project's timelines. Add a template or design your own.",
+    "installTemplate": "Install template",
+    "allTemplatesInstalled": "All templates installed",
+    "designCustomSystem": "Design custom system",
+    "noTimeSystems": "No time systems installed.",
+    "noTimeSystemsHint": "Install a template above or design a custom calendar to start building timelines.",
+    "edit": "Edit",
+    "remove": "Remove"
   }
 }

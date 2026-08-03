@@ -1,29 +1,29 @@
 <div class="announcements-page" data-testid="admin-announcements-page">
   <div class="page-header">
-    <h1>Announcements</h1>
+    <h1>{{ 'admin.announcements.title' | transloco }}</h1>
     <button
       mat-raised-button
       color="primary"
       (click)="openCreateDialog()"
       data-testid="create-announcement-btn">
       <mat-icon>add</mat-icon>
-      Create Announcement
+      {{ 'admin.announcements.create' | transloco }}
     </button>
   </div>
 
   @if (isLoading()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
-      <p>Loading announcements...</p>
+      <p>{{ 'admin.announcements.loading' | transloco }}</p>
     </div>
   } @else if (announcements().length === 0) {
     <div class="empty-state" data-testid="announcements-empty-state">
       <mat-icon class="empty-icon">campaign</mat-icon>
-      <h2>No announcements yet</h2>
-      <p>Create your first announcement to notify users about updates.</p>
+      <h2>{{ 'admin.announcements.noAnnouncements' | transloco }}</h2>
+      <p>{{ 'admin.announcements.noAnnouncementsHint' | transloco }}</p>
       <button mat-raised-button color="primary" (click)="openCreateDialog()">
         <mat-icon>add</mat-icon>
-        Create Announcement
+        {{ 'admin.announcements.create' | transloco }}
       </button>
     </div>
   } @else {
@@ -45,28 +45,32 @@
                 @if (announcement.isPublic) {
                   <mat-chip class="public-chip" data-testid="public-chip">
                     <mat-icon>public</mat-icon>
-                    Public
+                    {{ 'admin.announcements.public' | transloco }}
                   </mat-chip>
                 } @else {
                   <mat-chip class="private-chip" data-testid="private-chip">
                     <mat-icon>lock</mat-icon>
-                    Members Only
+                    {{ 'admin.announcements.membersOnly' | transloco }}
                   </mat-chip>
                 }
                 @if (announcement.priority === 'high') {
                   <mat-chip
                     class="priority-high"
                     data-testid="high-priority-chip"
-                    >High Priority</mat-chip
+                    >{{
+                      'admin.announcements.highPriority' | transloco
+                    }}</mat-chip
                   >
                 }
               </div>
             </div>
             <mat-card-title>{{ announcement.title }}</mat-card-title>
             <mat-card-subtitle>
-              Created: {{ announcement.createdAt | date: 'medium' }}
+              {{ 'admin.announcements.created' | transloco }}
+              {{ announcement.createdAt | date: 'medium' }}
               @if (announcement.publishedAt) {
-                • Published: {{ announcement.publishedAt | date: 'medium' }}
+                • {{ 'admin.announcements.published' | transloco }}
+                {{ announcement.publishedAt | date: 'medium' }}
               }
             </mat-card-subtitle>
           </mat-card-header>
@@ -83,36 +87,39 @@
                 mat-button
                 color="primary"
                 (click)="publishAnnouncement(announcement)"
-                matTooltip="Publish announcement">
+                [matTooltip]="'admin.announcements.publishTooltip' | transloco">
                 <mat-icon>publish</mat-icon>
-                Publish
+                {{ 'admin.announcements.publish' | transloco }}
               </button>
             } @else {
               <button
                 mat-button
                 (click)="unpublishAnnouncement(announcement)"
-                matTooltip="Convert to draft">
+                [matTooltip]="
+                  'admin.announcements.unpublishTooltip' | transloco
+                ">
                 <mat-icon>unpublished</mat-icon>
-                Unpublish
+                {{ 'admin.announcements.unpublish' | transloco }}
               </button>
             }
             <button
               mat-button
               (click)="openEditDialog(announcement)"
-              matTooltip="Edit announcement">
+              [matTooltip]="'admin.announcements.editTooltip' | transloco">
               <mat-icon>edit</mat-icon>
-              Edit
+              {{ 'edit' | transloco }}
             </button>
             <button
               mat-icon-button
               [matMenuTriggerFor]="menu"
-              matTooltip="More options">
+              [attr.aria-label]="'admin.announcements.moreOptions' | transloco"
+              [matTooltip]="'admin.announcements.moreOptions' | transloco">
               <mat-icon>more_vert</mat-icon>
             </button>
             <mat-menu #menu="matMenu">
               <button mat-menu-item (click)="confirmDelete(announcement)">
                 <mat-icon color="warn">delete</mat-icon>
-                <span>Delete</span>
+                <span>{{ 'delete' | transloco }}</span>
               </button>
             </mat-menu>
           </mat-card-actions>

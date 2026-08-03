@@ -4,10 +4,9 @@
     (done)="onEditorDone()" />
 } @else {
   <div class="header">
-    <h2>Time Systems</h2>
+    <h2>{{ 'timeline.timeSystemSettings.title' | transloco }}</h2>
     <p class="hint">
-      Calendars used by this project's timelines. Add a template or design your
-      own.
+      {{ 'timeline.timeSystemSettings.hint' | transloco }}
     </p>
   </div>
 
@@ -17,7 +16,7 @@
       [matMenuTriggerFor]="templateMenu"
       data-testid="time-systems-install-template">
       <mat-icon>library_add</mat-icon>
-      Install template
+      {{ 'timeline.timeSystemSettings.installTemplate' | transloco }}
     </button>
     <mat-menu #templateMenu>
       @for (tpl of availableTemplates(); track tpl.id) {
@@ -29,7 +28,9 @@
         </button>
       }
       @if (availableTemplates().length === 0) {
-        <div class="empty-menu">All templates installed</div>
+        <div class="empty-menu">
+          {{ 'timeline.timeSystemSettings.allTemplatesInstalled' | transloco }}
+        </div>
       }
     </mat-menu>
 
@@ -39,17 +40,16 @@
       (click)="onDesignNew()"
       data-testid="time-systems-design-new">
       <mat-icon>tune</mat-icon>
-      Design custom system
+      {{ 'timeline.timeSystemSettings.designCustomSystem' | transloco }}
     </button>
   </div>
 
   @if (systems().length === 0) {
     <div class="empty" data-testid="time-systems-empty">
       <mat-icon>schedule</mat-icon>
-      <p>No time systems installed.</p>
+      <p>{{ 'timeline.timeSystemSettings.noTimeSystems' | transloco }}</p>
       <p class="hint">
-        Install a template above or design a custom calendar to start building
-        timelines.
+        {{ 'timeline.timeSystemSettings.noTimeSystemsHint' | transloco }}
       </p>
     </div>
   } @else {
@@ -67,14 +67,18 @@
           <div class="system-actions">
             <button
               mat-icon-button
-              matTooltip="Edit"
+              [matTooltip]="'timeline.timeSystemSettings.edit' | transloco"
+              [attr.aria-label]="'timeline.timeSystemSettings.edit' | transloco"
               (click)="onEdit(system)"
               [attr.data-testid]="'time-systems-edit-' + system.id">
               <mat-icon>edit</mat-icon>
             </button>
             <button
               mat-icon-button
-              matTooltip="Remove"
+              [matTooltip]="'timeline.timeSystemSettings.remove' | transloco"
+              [attr.aria-label]="
+                'timeline.timeSystemSettings.remove' | transloco
+              "
               (click)="onRemove(system)"
               [attr.data-testid]="'time-systems-remove-' + system.id">
               <mat-icon>delete_outline</mat-icon>

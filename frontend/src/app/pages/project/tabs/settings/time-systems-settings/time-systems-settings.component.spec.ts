@@ -106,7 +106,7 @@ describe('TimeSystemsSettingsComponent', () => {
       openConfirmationDialog: vi.fn().mockResolvedValue(true),
     };
     await TestBed.configureTestingModule({
-      imports: [TimeSystemsSettingsComponent],
+      imports: [translocoTestProvider(), TimeSystemsSettingsComponent],
       providers: [
         { provide: TimeSystemLibraryService, useValue: libraryMock },
         { provide: DialogGatewayService, useValue: dialogsMock },

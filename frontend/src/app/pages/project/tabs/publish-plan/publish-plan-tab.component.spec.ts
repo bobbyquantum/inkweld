@@ -754,6 +754,53 @@ describe('PublishPlanTabComponent', () => {
         expect.any(Object)
       );
     });
+
+    it('should use singular form for one word and one chapter', async () => {
+      mockPublishService.publish.mockResolvedValue({
+        success: true,
+        stats: { wordCount: 1, chapterCount: 1 },
+      });
+      component.addElement('elem-1');
+
+      await component.generatePublication();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('1 word, 1 chapter'),
+        'OK',
+        expect.any(Object)
+      );
+    });
+
+    it('should show success message without stats when no savedFile', async () => {
+      mockPublishService.publish.mockResolvedValue({
+        success: true,
+      });
+      component.addElement('elem-1');
+
+      await component.generatePublication();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('generated successfully'),
+        'OK',
+        expect.any(Object)
+      );
+    });
+
+    it('should show generating format notification', async () => {
+      mockPublishService.publish.mockResolvedValue({
+        success: true,
+        stats: { wordCount: 100, chapterCount: 3 },
+      });
+      component.addElement('elem-1');
+
+      await component.generatePublication();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('Generating'),
+        undefined,
+        expect.any(Object)
+      );
+    });
   });
 
   describe('section toggles', () => {
@@ -851,6 +898,40 @@ describe('PublishPlanTabComponent', () => {
       );
     });
 
+    it('should show snackbar on download failure', async () => {
+      mockProjectState.project.set({
+        title: 'Test',
+        username: 'user',
+        slug: 'proj',
+        coverImage: null,
+      });
+      mockPublishedFilesService.downloadFile.mockRejectedValue(
+        new Error('Network error')
+      );
+      await component.downloadPublishedFile('f1');
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Network error',
+        'Dismiss',
+        expect.any(Object)
+      );
+    });
+
+    it('should show snackbar on download failure without Error message', async () => {
+      mockProjectState.project.set({
+        title: 'Test',
+        username: 'user',
+        slug: 'proj',
+        coverImage: null,
+      });
+      mockPublishedFilesService.downloadFile.mockRejectedValue('oops');
+      await component.downloadPublishedFile('f1');
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Download failed',
+        'Dismiss',
+        expect.any(Object)
+      );
+    });
+
     it('should delete published file', async () => {
       mockProjectState.project.set({
         title: 'Test',
@@ -862,6 +943,40 @@ describe('PublishPlanTabComponent', () => {
       expect(mockPublishedFilesService.deleteFile).toHaveBeenCalledWith(
         'user/proj',
         'f1'
+      );
+    });
+
+    it('should show snackbar on delete failure', async () => {
+      mockProjectState.project.set({
+        title: 'Test',
+        username: 'user',
+        slug: 'proj',
+        coverImage: null,
+      });
+      mockPublishedFilesService.deleteFile.mockRejectedValue(
+        new Error('Permission denied')
+      );
+      await component.deletePublishedFile('f1');
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Permission denied',
+        'Dismiss',
+        expect.any(Object)
+      );
+    });
+
+    it('should show snackbar on delete failure without Error message', async () => {
+      mockProjectState.project.set({
+        title: 'Test',
+        username: 'user',
+        slug: 'proj',
+        coverImage: null,
+      });
+      mockPublishedFilesService.deleteFile.mockRejectedValue(null);
+      await component.deletePublishedFile('f1');
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Delete failed',
+        'Dismiss',
+        expect.any(Object)
       );
     });
 
@@ -1041,7 +1156,7 @@ describe('PublishPlanTabComponent - no plan', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [PublishPlanTabComponent],
+      imports: [translocoTestProvider(), PublishPlanTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },

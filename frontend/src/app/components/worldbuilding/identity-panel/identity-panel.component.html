@@ -7,7 +7,11 @@
     class="collapse-toggle"
     mat-icon-button
     (click)="toggleExpanded()"
-    [matTooltip]="isExpanded() ? 'Collapse' : 'Expand'">
+    [matTooltip]="
+      isExpanded()
+        ? ('worldbuilding.identityPanel.collapse' | transloco)
+        : ('worldbuilding.identityPanel.expand' | transloco)
+    ">
     <mat-icon>{{ isExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
   </button>
 
@@ -32,7 +36,7 @@
               mat-icon-button
               class="rename-button"
               (click)="onRenameClick()"
-              matTooltip="Rename">
+              [matTooltip]="'worldbuilding.identityPanel.rename' | transloco">
               <mat-icon>edit</mat-icon>
             </button>
           }
@@ -58,22 +62,28 @@
               "
               [matTooltip]="
                 resolvedImageUrl()
-                  ? 'View full size'
+                  ? ('worldbuilding.identityPanel.viewFullSize' | transloco)
                   : canWrite()
-                    ? 'Click to set image'
-                    : 'No image available'
+                    ? ('worldbuilding.identityPanel.clickToSetImage'
+                      | transloco)
+                    : ('worldbuilding.identityPanel.noImage' | transloco)
               ">
               @if (isLoadingImage()) {
                 <mat-icon class="placeholder-icon spinning"
                   >hourglass_empty</mat-icon
                 >
-                <span class="placeholder-text">Loading...</span>
+                <span class="placeholder-text">{{
+                  'worldbuilding.identityPanel.loading' | transloco
+                }}</span>
               } @else if (resolvedImageUrl()) {
                 <img [src]="resolvedImageUrl()" [alt]="elementName()" />
               } @else {
                 <mat-icon class="placeholder-icon">image</mat-icon>
                 <span class="placeholder-text">{{
-                  canWrite() ? 'Add Image' : 'No Image'
+                  canWrite()
+                    ? ('worldbuilding.identityPanel.addImage' | transloco)
+                    : ('worldbuilding.identityPanel.noImagePlaceholder'
+                      | transloco)
                 }}</span>
               }
             </button>
@@ -82,7 +92,9 @@
                 mat-icon-button
                 class="view-image-button"
                 (click)="viewImage(); $event.stopPropagation()"
-                matTooltip="View full size">
+                [matTooltip]="
+                  'worldbuilding.identityPanel.viewFullSize' | transloco
+                ">
                 <mat-icon>visibility</mat-icon>
               </button>
             }
@@ -91,7 +103,9 @@
                 mat-icon-button
                 class="change-image-button"
                 (click)="onImageClick(); $event.stopPropagation()"
-                matTooltip="Change image">
+                [matTooltip]="
+                  'worldbuilding.identityPanel.changeImage' | transloco
+                ">
                 <mat-icon>edit</mat-icon>
               </button>
             }
@@ -101,18 +115,26 @@
         <!-- Description section -->
         <div class="description-section">
           <mat-form-field appearance="outline" class="description-field">
-            <mat-label>Description</mat-label>
+            <mat-label>{{
+              'worldbuilding.identityPanel.descriptionLabel' | transloco
+            }}</mat-label>
             <textarea
               matInput
               [ngModel]="description()"
               (ngModelChange)="onDescriptionChange($event)"
-              placeholder="Brief description (shown in tooltips)"
+              [placeholder]="
+                'worldbuilding.identityPanel.descriptionPlaceholder' | transloco
+              "
               rows="4"
               cdkTextareaAutosize
               [readonly]="!canWrite()"
               id="identity-panel-description-input"
-              aria-label="Description"></textarea>
-            <mat-hint>Used for tooltips and previews</mat-hint>
+              [attr.aria-label]="
+                'worldbuilding.identityPanel.descriptionAria' | transloco
+              "></textarea>
+            <mat-hint>{{
+              'worldbuilding.identityPanel.descriptionHint' | transloco
+            }}</mat-hint>
           </mat-form-field>
         </div>
 
@@ -120,8 +142,8 @@
         <div class="tags-section">
           <app-tag-chip-list
             [elementId]="elementId()"
-            label="Tags"
-            hint="Organize with tags"
+            [label]="'worldbuilding.identityPanel.tagsLabel' | transloco"
+            [hint]="'worldbuilding.identityPanel.tagsHint' | transloco"
             [compact]="true"
             [readonly]="!canWrite()">
           </app-tag-chip-list>

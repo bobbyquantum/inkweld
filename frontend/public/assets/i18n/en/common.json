@@ -85,5 +85,13 @@
   "scrollTabsRight": "Scroll tabs right",
   "unread": "Unread",
   "markAsRead": "Mark as read",
-  "someone": "Someone"
+  "someone": "Someone",
+  "untitled": "Untitled",
+  "emptyFolder": "Empty folder",
+  "userAvatar": "{{username}} avatar",
+  "presenceTooltip": "{{username}} ({{status}})",
+  "presenceStatusEditing": "editing",
+  "presenceStatusActive": "active",
+  "presenceStatusIdle": "idle",
+  "presenceStatusOffline": "offline"
 }

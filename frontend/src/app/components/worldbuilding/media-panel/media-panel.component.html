@@ -2,26 +2,29 @@
   @if (taggedMediaIds().length === 0) {
     <div class="media-panel-empty">
       <mat-icon>perm_media</mat-icon>
-      <p>No media tagged with this element yet.</p>
+      <p>{{ 'worldbuilding.mediaPanel.empty' | transloco }}</p>
       <button
         mat-stroked-button
         (click)="openMediaSelector()"
         data-testid="tag-media-button">
         <mat-icon>add_photo_alternate</mat-icon>
-        Tag Media
+        {{ 'worldbuilding.mediaPanel.tagMedia' | transloco }}
       </button>
     </div>
   } @else {
     <div class="media-panel-header">
-      <span class="media-count"
-        >{{ taggedMediaIds().length }} tagged media</span
-      >
+      <span class="media-count">{{
+        (taggedMediaIds().length === 1
+          ? 'worldbuilding.mediaPanel.taggedCountOne'
+          : 'worldbuilding.mediaPanel.taggedCount'
+        ) | transloco: { count: taggedMediaIds().length }
+      }}</span>
       <button
         mat-stroked-button
         (click)="openMediaSelector()"
         data-testid="tag-more-media-button">
         <mat-icon>add_photo_alternate</mat-icon>
-        Tag More
+        {{ 'worldbuilding.mediaPanel.tagMore' | transloco }}
       </button>
     </div>
     <div class="media-panel-grid" data-testid="media-panel-grid">
@@ -34,8 +37,11 @@
           <div cardTopRight>
             <button
               mat-icon-button
-              matTooltip="Remove tag"
-              [attr.aria-label]="'Remove tag from ' + mediaId"
+              [matTooltip]="'worldbuilding.mediaPanel.removeTag' | transloco"
+              [attr.aria-label]="
+                'worldbuilding.mediaPanel.removeTagFrom'
+                  | transloco: { mediaId }
+              "
               (click)="removeTag(mediaId); $event.stopPropagation()"
               data-testid="remove-media-tag">
               <mat-icon>close</mat-icon>

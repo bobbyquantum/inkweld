@@ -8,6 +8,7 @@ import {
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
 import { type PresenceLocation, type PresenceSession } from '@inkweld/presence';
+import { TranslocoService } from '@jsverse/transloco';
 import { PresenceService } from '@services/presence/presence.service';
 
 /**
@@ -26,6 +27,7 @@ import { PresenceService } from '@services/presence/presence.service';
 })
 export class TabPresenceIndicatorComponent {
   private readonly presence = inject(PresenceService);
+  private readonly transloco = inject(TranslocoService);
 
   /**
    * Location key (e.g. `timeline:<elementId>`). When set, only users
@@ -58,8 +60,16 @@ export class TabPresenceIndicatorComponent {
       .join(', ')
   );
 
-  protected tooltipFor(user: PresenceSession): string {
-    const suffix = user.status === 'editing' ? 'editing' : user.status;
-    return `${user.user.username} (${suffix})`;
+  tooltipFor(user: PresenceSession): string {
+    const statusKey = `presenceStatus${this.capitalize(user.status)}`;
+    const suffix = this.transloco.translate(statusKey);
+    return this.transloco.translate('presenceTooltip', {
+      username: user.user.username,
+      status: suffix,
+    });
+  }
+
+  private capitalize(status: string): string {
+    return status.charAt(0).toUpperCase() + status.slice(1);
   }
 }

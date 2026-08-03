@@ -20,6 +20,7 @@ import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
 } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   type Announcement,
   AnnouncementService,
@@ -46,6 +47,7 @@ import {
     MatSnackBarModule,
     MatTooltipModule,
     TitleCasePipe,
+    TranslocoModule,
   ],
   templateUrl: './announcements.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -55,6 +57,7 @@ export class AdminAnnouncementsComponent implements OnInit {
   private readonly announcementService = inject(AnnouncementService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
+  private readonly transloco = inject(TranslocoService);
 
   readonly announcements = this.announcementService.adminAnnouncements;
   readonly isLoading = this.announcementService.isLoadingAdmin;
@@ -68,9 +71,11 @@ export class AdminAnnouncementsComponent implements OnInit {
     try {
       await this.announcementService.loadAdminAnnouncements();
     } catch {
-      this.snackBar.open('Failed to load announcements', 'Dismiss', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.announcements.loadFailed'),
+        this.transloco.translate('dismiss'),
+        { duration: 5000 }
+      );
     }
   }
 
@@ -86,24 +91,34 @@ export class AdminAnnouncementsComponent implements OnInit {
     }
   }
 
-  getStatusLabel(announcement: Announcement): string {
+  getStatusKey(announcement: Announcement): string {
     if (!announcement.publishedAt) {
-      return 'Draft';
+      return 'draft';
     }
     const publishedAt = new Date(announcement.publishedAt);
     const now = new Date();
     if (publishedAt > now) {
-      return 'Scheduled';
+      return 'scheduled';
     }
     if (announcement.expiresAt && new Date(announcement.expiresAt) < now) {
-      return 'Expired';
+      return 'expired';
     }
-    return 'Published';
+    return 'published';
+  }
+
+  getStatusLabel(announcement: Announcement): string {
+    const key = this.getStatusKey(announcement);
+    return this.transloco.translate(
+      `admin.announcements.status${this.capitalize(key)}`
+    );
   }
 
   getStatusClass(announcement: Announcement): string {
-    const status = this.getStatusLabel(announcement);
-    return `status-${status.toLowerCase()}`;
+    return `status-${this.getStatusKey(announcement)}`;
+  }
+
+  private capitalize(value: string): string {
+    return value.charAt(0).toUpperCase() + value.slice(1);
   }
 
   async openCreateDialog(): Promise<void> {
@@ -119,9 +134,11 @@ export class AdminAnnouncementsComponent implements OnInit {
 
     const result = await firstValueFrom(dialogRef.afterClosed());
     if (result) {
-      this.snackBar.open('Announcement created', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.announcements.created_snackbar'),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
     }
   }
 
@@ -138,35 +155,45 @@ export class AdminAnnouncementsComponent implements OnInit {
 
     const result = await firstValueFrom(dialogRef.afterClosed());
     if (result) {
-      this.snackBar.open('Announcement updated', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.announcements.updated'),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
     }
   }
 
   async publishAnnouncement(announcement: Announcement): Promise<void> {
     try {
       await this.announcementService.publishAnnouncement(announcement.id);
-      this.snackBar.open('Announcement published', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.announcements.published_snackbar'),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
     } catch {
-      this.snackBar.open('Failed to publish announcement', 'Dismiss', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.announcements.publishFailed'),
+        this.transloco.translate('dismiss'),
+        { duration: 5000 }
+      );
     }
   }
 
   async unpublishAnnouncement(announcement: Announcement): Promise<void> {
     try {
       await this.announcementService.unpublishAnnouncement(announcement.id);
-      this.snackBar.open('Announcement unpublished', 'Dismiss', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.announcements.unpublished'),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
     } catch {
-      this.snackBar.open('Failed to unpublish announcement', 'Dismiss', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('admin.announcements.unpublishFailed'),
+        this.transloco.translate('dismiss'),
+        { duration: 5000 }
+      );
     }
   }
 
@@ -177,9 +204,11 @@ export class AdminAnnouncementsComponent implements OnInit {
       boolean
     >(ConfirmationDialogComponent, {
       data: {
-        title: 'Delete Announcement',
-        message: `Are you sure you want to delete "${announcement.title}"? This action cannot be undone.`,
-        confirmText: 'Delete',
+        title: this.transloco.translate('admin.announcements.deleteTitle'),
+        message: this.transloco.translate('admin.announcements.deleteMessage', {
+          title: announcement.title,
+        }),
+        confirmText: this.transloco.translate('delete'),
       },
     });
 
@@ -187,13 +216,17 @@ export class AdminAnnouncementsComponent implements OnInit {
     if (result) {
       try {
         await this.announcementService.deleteAnnouncement(announcement.id);
-        this.snackBar.open('Announcement deleted', 'Dismiss', {
-          duration: 3000,
-        });
+        this.snackBar.open(
+          this.transloco.translate('admin.announcements.deleted'),
+          this.transloco.translate('dismiss'),
+          { duration: 3000 }
+        );
       } catch {
-        this.snackBar.open('Failed to delete announcement', 'Dismiss', {
-          duration: 5000,
-        });
+        this.snackBar.open(
+          this.transloco.translate('admin.announcements.deleteFailed'),
+          this.transloco.translate('dismiss'),
+          { duration: 5000 }
+        );
       }
     }
   }

@@ -16,6 +16,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoModule } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
@@ -43,6 +44,7 @@ import { TagChipListComponent } from '../../tags/tag-chip-list.component';
     MatFormFieldModule,
     MatInputModule,
     MatTooltipModule,
+    TranslocoModule,
     TagChipListComponent,
   ],
   templateUrl: './identity-panel.component.html',
