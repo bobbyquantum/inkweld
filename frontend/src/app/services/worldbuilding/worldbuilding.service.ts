@@ -8,8 +8,8 @@ import * as Y from 'yjs';
 import type {
   BackgroundMode,
   BackgroundType,
+  ElementAppearance,
 } from '../../models/element-appearance';
-import { type ElementAppearance } from '../../models/element-appearance';
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { AuthTokenService } from '../auth/auth-token.service';

@@ -32,6 +32,9 @@ import { mediaIdFromReference } from '../../../utils/media-reference';
 /** Options for the background type picker. */
 const BACKGROUND_TYPES: BackgroundType[] = ['color', 'gradient', 'image'];
 
+/** The value slot being edited on a background setting. */
+type BackgroundSlot = 'value' | 'light' | 'dark';
+
 @Component({
   selector: 'app-appearance-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -75,7 +78,7 @@ export class AppearancePanelComponent {
     this.save$
       .pipe(takeUntil(this.destroy$), debounceTime(400))
       .subscribe(() => {
-        void this.persist();
+        this.persist();
       });
 
     effect(() => {
@@ -140,7 +143,7 @@ export class AppearancePanelComponent {
 
   setValue(
     region: AppearanceRegion,
-    slot: 'value' | 'light' | 'dark',
+    slot: BackgroundSlot,
     value: string
   ): void {
     this.patchSetting(region, { [slot]: value });
@@ -198,7 +201,7 @@ export class AppearancePanelComponent {
 
   async pickImage(
     region: AppearanceRegion,
-    slot: 'value' | 'light' | 'dark'
+    slot: BackgroundSlot
   ): Promise<void> {
     const result = await this.dialogGateway.openMediaSelectorDialog({
       username: this.username(),
@@ -221,10 +224,7 @@ export class AppearancePanelComponent {
     await this.localStorage.saveMedia(projectKey, mediaId, blob, reference);
   }
 
-  getSettingValue(
-    region: AppearanceRegion,
-    slot: 'value' | 'light' | 'dark'
-  ): string {
+  getSettingValue(region: AppearanceRegion, slot: BackgroundSlot): string {
     const setting = this.getSetting(region);
     return setting[slot] ?? '';
   }
