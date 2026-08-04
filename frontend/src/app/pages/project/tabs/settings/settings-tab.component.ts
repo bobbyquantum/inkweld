@@ -41,7 +41,7 @@ import {
   InvitationStatus,
   type McpPublicKey,
 } from '@inkweld/index';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
@@ -149,6 +149,7 @@ export class SettingsTabComponent implements OnDestroy {
   private readonly mediaSyncService = inject(MediaSyncService);
   private readonly systemConfigService = inject(SystemConfigService);
   private readonly exportService = inject(ProjectExportService);
+  private readonly transloco = inject(TranslocoService);
 
   // MCP Keys should only be visible when AI kill switch is OFF
   protected readonly isAiKillSwitchEnabled =
@@ -236,6 +237,8 @@ export class SettingsTabComponent implements OnDestroy {
   } | null>(null);
   protected readonly isLoadingStorageSize = signal(false);
   protected readonly storageSizeError = signal<string | null>(null);
+  /** Increments each time a storage-size request starts; guards stale responses. */
+  private storageSizeRequestId = 0;
 
   /**
    * Reactive sync state that automatically updates when background syncs
@@ -786,13 +789,17 @@ export class SettingsTabComponent implements OnDestroy {
 
   /**
    * Load the approximate server-side storage size for the current project.
+   * Uses a request id so a late response for a previous project can't
+   * overwrite the value shown for the current one.
    */
   async loadServerStorageSize(): Promise<void> {
     const project = this.projectState.project();
     if (!project || this.currentMode !== 'server') return;
 
+    const requestId = ++this.storageSizeRequestId;
     this.isLoadingStorageSize.set(true);
     this.storageSizeError.set(null);
+    this.serverStorageSize.set(null);
 
     try {
       const size = await firstValueFrom(
@@ -801,12 +808,18 @@ export class SettingsTabComponent implements OnDestroy {
           project.slug
         )
       );
+      if (requestId !== this.storageSizeRequestId) return;
       this.serverStorageSize.set(size);
     } catch (error) {
+      if (requestId !== this.storageSizeRequestId) return;
       console.error('Failed to load project storage size:', error);
-      this.storageSizeError.set('Failed to load storage size');
+      this.storageSizeError.set(
+        this.transloco.translate('settings.storageSize.loadFailed')
+      );
     } finally {
-      this.isLoadingStorageSize.set(false);
+      if (requestId === this.storageSizeRequestId) {
+        this.isLoadingStorageSize.set(false);
+      }
     }
   }
 

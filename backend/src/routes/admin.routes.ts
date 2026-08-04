@@ -6,6 +6,7 @@ import { getProjectStorageSize } from '../services/storage-size.service';
 import { emailService } from '../services/email.service';
 import { accountApprovedEmail, accountRejectedEmail } from '../services/email-templates';
 import { getBaseUrl } from '../services/url.service';
+import { mapWithConcurrency } from '../utils/concurrency';
 import type { AppContext } from '../types/context';
 import type { User } from '../db/schema';
 import { errorResponses, MessageResponseSchema } from '../schemas/common.schemas';
@@ -428,25 +429,26 @@ adminRoutes.openapi(listUserProjectsRoute, async (c) => {
   const authHeader = c.req.header('Authorization') ?? '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : '';
 
-  const sized = await Promise.all(
-    projects.map(async (p) => {
-      const size = await getProjectStorageSize(
-        username,
-        p.slug,
-        c.get('storage'),
-        c.env as never,
-        token
-      );
-      return {
-        id: p.id,
-        slug: p.slug,
-        title: p.title,
-        dataBytes: size.dataBytes,
-        mediaBytes: size.mediaBytes,
-        totalBytes: size.dataBytes + size.mediaBytes,
-      };
-    })
-  );
+  // Bound concurrency so a user with many projects doesn't fan out an
+  // unbounded number of storage calculations (each lists media and may page
+  // Durable Object storage) at once.
+  const sized = await mapWithConcurrency(projects, 5, async (p) => {
+    const size = await getProjectStorageSize(
+      username,
+      p.slug,
+      c.get('storage'),
+      c.env as never,
+      token
+    );
+    return {
+      id: p.id,
+      slug: p.slug,
+      title: p.title,
+      dataBytes: size.dataBytes,
+      mediaBytes: size.mediaBytes,
+      totalBytes: size.dataBytes + size.mediaBytes,
+    };
+  });
 
   const totalDataBytes = sized.reduce((sum, p) => sum + p.dataBytes, 0);
   const totalMediaBytes = sized.reduce((sum, p) => sum + p.mediaBytes, 0);

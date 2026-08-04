@@ -227,7 +227,9 @@
                           (click)="viewUserProjects(user)"
                           [attr.data-testid]="'view-projects-' + user.username">
                           <mat-icon>folder</mat-icon>
-                          <span>Projects &amp; storage</span>
+                          <span>{{
+                            'admin.users.projectsAndStorage' | transloco
+                          }}</span>
                         </button>
                         <button
                           mat-menu-item

@@ -135,5 +135,14 @@
   "projectTreeTab": {
     "confirmMoves": "Confirm element moves",
     "showBreadcrumbs": "Show breadcrumbs above editors"
+  },
+  "storageSize": {
+    "title": "Server Storage",
+    "loading": "Loading storage size...",
+    "dataLabel": "Documents &amp; data",
+    "mediaLabel": "Media",
+    "totalLabel": "Total",
+    "unavailable": "Storage size is available in server mode.",
+    "loadFailed": "Failed to load storage size"
   }
 }

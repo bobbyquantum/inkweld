@@ -12,7 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { AdminUserProjects } from '@inkweld/model/admin-user-projects';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AdminService } from '@services/admin/admin.service';
 
 import { formatBytes } from '../../utils/format-bytes';
@@ -33,10 +33,12 @@ export interface AdminUserProjectsDialogData {
     TranslocoModule,
   ],
   templateUrl: './admin-user-projects-dialog.component.html',
+  styleUrl: './admin-user-projects-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class AdminUserProjectsDialogComponent implements OnInit {
   private readonly adminService = inject(AdminService);
+  private readonly transloco = inject(TranslocoService);
 
   readonly userId: string;
   readonly username: string;
@@ -66,7 +68,7 @@ export class AdminUserProjectsDialogComponent implements OnInit {
       })
       .catch(err => {
         console.error('Failed to load user projects:', err);
-        this.error.set('Failed to load projects');
+        this.error.set(this.transloco.translate('admin.projects.loadFailed'));
         this.isLoading.set(false);
       });
   }

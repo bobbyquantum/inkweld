@@ -322,7 +322,7 @@
   <section class="settings-section" data-testid="server-storage-section">
     <h3>
       <mat-icon>storage</mat-icon>
-      Server Storage
+      {{ 'settings.storageSize.title' | transloco }}
     </h3>
 
     @if (currentMode === 'server' && projectKey()) {
@@ -332,24 +332,30 @@
             <div class="loading-state" data-testid="storage-size-loading">
               <mat-progress-spinner diameter="24" mode="indeterminate">
               </mat-progress-spinner>
-              <span>Loading storage size...</span>
+              <span>{{ 'settings.storageSize.loading' | transloco }}</span>
             </div>
           } @else if (serverStorageSize(); as size) {
             <div class="status-grid" data-testid="storage-size-values">
               <div class="status-item">
-                <span class="label">Documents &amp; data:</span>
+                <span class="label"
+                  >{{ 'settings.storageSize.dataLabel' | transloco }}:</span
+                >
                 <span class="value" data-testid="storage-size-data">{{
                   formatBytes(size.dataBytes)
                 }}</span>
               </div>
               <div class="status-item">
-                <span class="label">Media:</span>
+                <span class="label"
+                  >{{ 'settings.storageSize.mediaLabel' | transloco }}:</span
+                >
                 <span class="value" data-testid="storage-size-media">{{
                   formatBytes(size.mediaBytes)
                 }}</span>
               </div>
               <div class="status-item">
-                <span class="label">Total:</span>
+                <span class="label"
+                  >{{ 'settings.storageSize.totalLabel' | transloco }}:</span
+                >
                 <span class="value" data-testid="storage-size-total">{{
                   formatBytes(size.totalBytes)
                 }}</span>
@@ -365,7 +371,7 @@
         <mat-card-content>
           <div class="info-content">
             <mat-icon>info</mat-icon>
-            <div>Storage size is available in server mode.</div>
+            <div>{{ 'settings.storageSize.unavailable' | transloco }}</div>
           </div>
         </mat-card-content>
       </mat-card>

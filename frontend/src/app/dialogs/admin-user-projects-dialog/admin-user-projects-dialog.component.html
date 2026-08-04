@@ -1,42 +1,46 @@
 <h2 mat-dialog-title data-testid="admin-user-projects-title">
-  {{ username }} — Projects
+  {{ 'admin.projects.title' | transloco: { username } }}
 </h2>
 <mat-dialog-content>
   @if (isLoading()) {
     <div class="loading-state" data-testid="admin-user-projects-loading">
       <mat-spinner diameter="32"></mat-spinner>
-      <p>Loading projects...</p>
+      <p>{{ 'admin.projects.loading' | transloco }}</p>
     </div>
   } @else if (error()) {
     <div class="error-state">
       <mat-icon>error</mat-icon>
       <p>{{ error() }}</p>
       <button mat-raised-button color="primary" (click)="refresh()">
-        Retry
+        {{ 'admin.projects.retry' | transloco }}
       </button>
     </div>
   } @else if (data(); as result) {
     @if (result.projects.length === 0) {
       <div class="empty-state">
         <mat-icon>folder_open</mat-icon>
-        <p>This user has no projects.</p>
+        <p>{{ 'admin.projects.empty' | transloco }}</p>
       </div>
     } @else {
       <div class="totals" data-testid="admin-user-projects-totals">
         <div class="total-item">
-          <span class="label">Total data:</span>
+          <span class="label">{{
+            'admin.projects.totalData' | transloco
+          }}</span>
           <span class="value" data-testid="admin-user-projects-total-data">{{
             formatBytes(result.totalDataBytes)
           }}</span>
         </div>
         <div class="total-item">
-          <span class="label">Total media:</span>
+          <span class="label">{{
+            'admin.projects.totalMedia' | transloco
+          }}</span>
           <span class="value" data-testid="admin-user-projects-total-media">{{
             formatBytes(result.totalMediaBytes)
           }}</span>
         </div>
         <div class="total-item">
-          <span class="label">Total:</span>
+          <span class="label">{{ 'admin.projects.total' | transloco }}</span>
           <span class="value" data-testid="admin-user-projects-total">{{
             formatBytes(result.totalBytes)
           }}</span>
@@ -57,14 +61,20 @@
                 <span
                   class="size-chip"
                   [matTooltip]="
-                    'Documents &amp; data: ' + project.dataBytes + ' bytes'
+                    'admin.projects.dataTooltip'
+                      | transloco: { bytes: project.dataBytes }
                   ">
-                  {{ formatBytes(project.dataBytes) }} data
+                  {{ formatBytes(project.dataBytes) }}
+                  {{ 'admin.projects.dataUnit' | transloco }}
                 </span>
                 <span
                   class="size-chip"
-                  [matTooltip]="'Media: ' + project.mediaBytes + ' bytes'">
-                  {{ formatBytes(project.mediaBytes) }} media
+                  [matTooltip]="
+                    'admin.projects.mediaTooltip'
+                      | transloco: { bytes: project.mediaBytes }
+                  ">
+                  {{ formatBytes(project.mediaBytes) }}
+                  {{ 'admin.projects.mediaUnit' | transloco }}
                 </span>
                 <span class="size-chip total">
                   {{ formatBytes(project.totalBytes) }}
@@ -78,5 +88,7 @@
   }
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close>Close</button>
+  <button mat-button mat-dialog-close>
+    {{ 'admin.projects.close' | transloco }}
+  </button>
 </mat-dialog-actions>

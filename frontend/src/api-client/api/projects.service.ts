@@ -651,7 +651,8 @@ export class ProjectsService extends BaseService {
    * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
    * @param reportProgress flag to report request and response progress.
    */
-  public listUserProjects(    observe?: 'body',
+  public listUserProjects(
+    observe?: 'body',
     reportProgress?: boolean,
     options?: {
       httpHeaderAccept?: 'application/json';

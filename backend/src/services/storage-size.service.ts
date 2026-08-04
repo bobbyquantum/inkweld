@@ -42,9 +42,18 @@ function isCloudflareRuntime(_r2?: R2Bucket, env?: Partial<CloudflareSizeEnv>): 
   return Boolean(env?.YJS_PROJECTS);
 }
 
+/** Minimal structural subset needed to list a project's media files. */
+interface MediaLister {
+  listProjectFiles(
+    username: string,
+    slug: string,
+    prefix?: string
+  ): Promise<Array<{ filename: string; size: number }>>;
+}
+
 /** Sum the sizes of media-type files listed by the storage adapter. */
 async function getMediaBytes(
-  storage: ReturnType<typeof getStorageService>,
+  storage: MediaLister,
   username: string,
   slug: string
 ): Promise<number> {
@@ -112,14 +121,13 @@ export async function getProjectStorageSize(
   // On Bun/Node a fresh instance picks up config.dataPath at call time (the
   // shared singleton captures it at import time, which is fine in production
   // but harder to test). On Workers `getStorageService` wraps the R2 bucket.
-  const storage = isCloudflareRuntime(r2, env)
-    ? getStorageService(r2)
-    : getStorageService(undefined);
+  const cloudflare = isCloudflareRuntime(r2, env);
+  const storage = cloudflare ? getStorageService(r2) : new FileStorageService();
 
   const mediaBytes = await getMediaBytes(storage, username, slug).catch(() => 0);
 
   let dataBytes: number;
-  if (isCloudflareRuntime(r2, env)) {
+  if (cloudflare) {
     dataBytes = await getWorkerDataBytes(username, slug, env, authToken);
   } else {
     // On Bun/Node the whole project directory holds both the `.yjs` LevelDB
