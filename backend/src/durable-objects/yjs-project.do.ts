@@ -436,6 +436,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     if (path === '/api/storage-keys' && method === 'GET') {
       return this.handleGetStorageKeys(request);
     }
+    if (path === '/api/storage-size' && method === 'GET') {
+      return this.handleGetStorageSize();
+    }
     return new Response(JSON.stringify({ error: 'Not found' }), {
       status: 404,
       headers: { 'Content-Type': 'application/json' },
@@ -776,6 +779,32 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       });
     } catch (error) {
       projDOLog.error('storage-keys diagnostic failed', error);
+      return new Response(JSON.stringify({ error: 'Internal server error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  /**
+   * GET /api/storage-size - Approximate total bytes of this project's Yjs
+   * document data held in Durable Object storage. This Durable Object is
+   * scoped to exactly one project, so the total is project-scoped. Pages every
+   * key with bounded memory. Proxied externally at
+   * `/api/v1/ws/yjs/do/storage-size?documentId=...` (auth via Bearer header).
+   */
+  private async handleGetStorageSize(): Promise<Response> {
+    try {
+      const bytes = await this.docStorage.getTotalStorageBytes();
+      return new Response(
+        JSON.stringify({
+          projectId: this.projectId,
+          bytes,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    } catch (error) {
+      projDOLog.error('storage-size diagnostic failed', error);
       return new Response(JSON.stringify({ error: 'Internal server error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },

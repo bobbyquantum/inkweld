@@ -34,6 +34,7 @@ import {
 import { LoginDialogComponent } from '@dialogs/login-dialog/login-dialog.component';
 import { RegisterDialogComponent } from '@dialogs/register-dialog/register-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
+import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Project } from '@inkweld/index';
 import {
   type CollaboratedProject,
@@ -43,7 +44,11 @@ import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { StorageContextService } from '@services/core/storage-context.service';
+import { LocalProjectElementsService } from '@services/local/local-project-elements.service';
+import { LocalSnapshotService } from '@services/local/local-snapshot.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
+import { ProjectSyncService } from '@services/local/project-sync.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectServiceError } from '@services/project/project.service';
 import { CoverSyncService } from '@services/sync/cover-sync.service';
@@ -51,6 +56,8 @@ import { SyncQueueService } from '@services/sync/sync-queue.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { firstValueFrom, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+
+import { formatBytes } from '../../utils/format-bytes';
 
 interface HomeSearchFormValue {
   search: string;
@@ -96,7 +103,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   readonly syncQueueService = inject(SyncQueueService);
   private readonly coverSyncService = inject(CoverSyncService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly projectsService = inject(ProjectsService);
   readonly activationService = inject(ProjectActivationService);
+  private readonly projectSyncService = inject(ProjectSyncService);
+  private readonly localStorageService = inject(LocalStorageService);
+  private readonly localSnapshotService = inject(LocalSnapshotService);
+  private readonly localElementsService = inject(LocalProjectElementsService);
 
   /** True when the app is running in local-only mode (no backend). */
   protected readonly isLocalMode = this.storageContext.isLocalMode;
@@ -470,12 +482,49 @@ export class HomeComponent implements OnInit, OnDestroy {
       } satisfies ConfirmationDialogData,
     });
 
+    // Load the approximate size the project will occupy in local storage and
+    // surface it in the dialog (best-effort — failures are silently ignored).
+    void this.fetchActivationSize(project).then(size => {
+      const details = size
+        ? [
+            this.transloco.translate('home.dialogs.activateSize', {
+              sizeText: formatBytes(size.totalBytes),
+            }),
+          ]
+        : [];
+      dialogRef.componentInstance?.setDetails?.(details);
+    });
+
     dialogRef.afterClosed().subscribe((confirmed: boolean) => {
       if (confirmed) {
         void this.activateAndSync(project);
       }
     });
   }
+
+  /**
+   * Fetch the approximate server-side size (data + media) for a project so the
+   * activation dialog can tell the user roughly how much local storage the
+   * download will use. Returns null on any failure.
+   */
+  private async fetchActivationSize(
+    project: Project
+  ): Promise<{ totalBytes: number } | null> {
+    if (this.isLocalMode()) return null;
+    try {
+      return await firstValueFrom(
+        this.projectsService.getProjectStorageSize(
+          project.username,
+          project.slug
+        )
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Handle "Delete project" chosen from a card/tile kebab menu.
 
   /**
    * Open the deactivation confirmation dialog and purge on confirm.
@@ -552,25 +601,39 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Remove all local data for a project (Yjs databases, sync state, snapshots, media except cover).
+   * Remove all local data for a project: Yjs IndexedDB databases (prefixed
+   * elements + unprefixed prose documents + worldbuilding), media blobs, sync
+   * state/tombstones, and snapshots. The cover and the project list entry are
+   * intentionally left so the tile can still be rendered and re-activated.
    */
   private async purgeProjectLocalData(project: Project): Promise<void> {
     const username = project.username;
     const slug = project.slug;
     const prefix = this.storageContext.getPrefix();
-    const projectPrefix = `${prefix}${username}:${slug}:`;
-    const worldbuildingPrefix = `${prefix}worldbuilding:${username}:${slug}:`;
+    const projectKey = `${username}/${slug}`;
 
-    // Delete Yjs IndexedDB databases for this project
+    // Close the in-memory elements Y.Doc/provider so its IndexedDB connection
+    // doesn't block database deletion.
+    await this.localElementsService
+      .closeConnection(username, slug)
+      .catch(() => {});
+
+    // Delete every IndexedDB database that belongs to this project:
+    //  - prefixed elements/metadata:       {prefix}username:slug:elements
+    //  - unprefixed prose documents:       username:slug:{elementId}
+    //  - unprefixed worldbuilding:         worldbuilding:username:slug:{id}
+    //  - prefixed worldbuilding (legacy):  {prefix}worldbuilding:username:slug:{id}
     if ('databases' in indexedDB) {
       try {
         const allDbs = await indexedDB.databases();
+        const matches = (name: string): boolean =>
+          name.startsWith(`${prefix}${username}:${slug}:`) ||
+          name.startsWith(`${username}:${slug}:`) ||
+          name.startsWith(`worldbuilding:${username}:${slug}:`) ||
+          name.startsWith(`${prefix}worldbuilding:${username}:${slug}:`);
+
         for (const db of allDbs) {
-          if (
-            db.name &&
-            (db.name.startsWith(projectPrefix) ||
-              db.name.startsWith(worldbuildingPrefix))
-          ) {
+          if (db.name && matches(db.name)) {
             await new Promise<void>(resolve => {
               const req = indexedDB.deleteDatabase(db.name!);
               req.onsuccess = () => resolve();
@@ -583,6 +646,20 @@ export class HomeComponent implements OnInit, OnDestroy {
         // Best effort
       }
     }
+
+    // Media blobs (cover, images, published exports).
+    await this.localStorageService
+      .deleteProjectMedia(projectKey)
+      .catch(() => {});
+
+    // Sync state + tombstones.
+    await this.projectSyncService.deleteSyncState(projectKey).catch(() => {});
+    await this.projectSyncService.removeTombstone(projectKey).catch(() => {});
+
+    // Snapshots.
+    await this.localSnapshotService
+      .deleteAllForProject(projectKey)
+      .catch(() => {});
   }
 
   /**

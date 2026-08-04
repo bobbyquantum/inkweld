@@ -1,0 +1,74 @@
+<h2 mat-dialog-title data-testid="admin-user-projects-title">
+  {{ username }} — Projects
+</h2>
+<mat-dialog-content>
+  @if (isLoading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="32"></mat-spinner>
+      <p>Loading projects...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-state">
+      <mat-icon>error</mat-icon>
+      <p>{{ error() }}</p>
+      <button mat-raised-button color="primary" (click)="refresh()">
+        Retry
+      </button>
+    </div>
+  } @else if (data(); as result) {
+    @if (result.projects.length === 0) {
+      <div class="empty-state">
+        <mat-icon>folder_open</mat-icon>
+        <p>This user has no projects.</p>
+      </div>
+    } @else {
+      <div class="totals">
+        <div class="total-item">
+          <span class="label">Total data:</span>
+          <span class="value">{{ formatBytes(result.totalDataBytes) }}</span>
+        </div>
+        <div class="total-item">
+          <span class="label">Total media:</span>
+          <span class="value">{{ formatBytes(result.totalMediaBytes) }}</span>
+        </div>
+        <div class="total-item">
+          <span class="label">Total:</span>
+          <span class="value">{{ formatBytes(result.totalBytes) }}</span>
+        </div>
+      </div>
+
+      <div class="project-list">
+        @for (project of result.projects; track project.id) {
+          <mat-card class="project-card">
+            <mat-card-content>
+              <div class="project-info">
+                <span class="title">{{ project.title }}</span>
+                <span class="slug">{{ project.slug }}</span>
+              </div>
+              <div class="project-sizes">
+                <span
+                  class="size-chip"
+                  [matTooltip]="
+                    'Documents &amp; data: ' + project.dataBytes + ' bytes'
+                  ">
+                  {{ formatBytes(project.dataBytes) }} data
+                </span>
+                <span
+                  class="size-chip"
+                  [matTooltip]="'Media: ' + project.mediaBytes + ' bytes'">
+                  {{ formatBytes(project.mediaBytes) }} media
+                </span>
+                <span class="size-chip total">
+                  {{ formatBytes(project.totalBytes) }}
+                </span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    }
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Close</button>
+</mat-dialog-actions>

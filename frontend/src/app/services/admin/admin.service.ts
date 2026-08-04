@@ -1,6 +1,7 @@
 import { HttpClient, type HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { AdminService as ApiAdminService } from '@inkweld/index';
+import type { AdminUserProjects } from '@inkweld/model/admin-user-projects';
 import { catchError, firstValueFrom, throwError } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';
@@ -367,6 +368,17 @@ export class AdminService {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  /**
+   * List all projects owned by a user with approximate storage sizes (admin).
+   */
+  async listUserProjects(userId: string): Promise<AdminUserProjects> {
+    return firstValueFrom(
+      this.apiService
+        .adminListUserProjects(userId)
+        .pipe(catchError(this.handleError.bind(this)))
+    );
   }
 
   private handleError(error: HttpErrorResponse) {

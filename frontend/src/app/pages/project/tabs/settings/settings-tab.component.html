@@ -318,6 +318,54 @@
     </mat-card>
   }
 
+  <!-- Server Storage Size Section -->
+  <section class="settings-section">
+    <h3>
+      <mat-icon>storage</mat-icon>
+      Server Storage
+    </h3>
+
+    @if (currentMode === 'server' && projectKey()) {
+      <mat-card class="sync-card">
+        <mat-card-content>
+          @if (isLoadingStorageSize()) {
+            <div class="loading-state">
+              <mat-progress-spinner diameter="24" mode="indeterminate">
+              </mat-progress-spinner>
+              <span>Loading storage size...</span>
+            </div>
+          } @else if (serverStorageSize(); as size) {
+            <div class="status-grid">
+              <div class="status-item">
+                <span class="label">Documents &amp; data:</span>
+                <span class="value">{{ formatBytes(size.dataBytes) }}</span>
+              </div>
+              <div class="status-item">
+                <span class="label">Media:</span>
+                <span class="value">{{ formatBytes(size.mediaBytes) }}</span>
+              </div>
+              <div class="status-item">
+                <span class="label">Total:</span>
+                <span class="value">{{ formatBytes(size.totalBytes) }}</span>
+              </div>
+            </div>
+          } @else if (storageSizeError(); as err) {
+            <p class="error-text">{{ err }}</p>
+          }
+        </mat-card-content>
+      </mat-card>
+    } @else {
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="info-content">
+            <mat-icon>info</mat-icon>
+            <div>Storage size is available in server mode.</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+  </section>
+
   <!-- Media Sync Section -->
   <section class="settings-section">
     <h3>

@@ -128,6 +128,44 @@ export class FileStorageService {
   }
 
   /**
+   * Compute the total on-disk size (in bytes) of a project directory,
+   * including nested subdirectories such as the `.yjs` LevelDB store.
+   *
+   * Used to report the approximate size of a project's document/data storage
+   * on the Bun/Node filesystem runtime. Returns 0 when the directory does not
+   * exist yet.
+   */
+  async getProjectDirectorySize(username: string, projectSlug: string): Promise<number> {
+    const projectPath = this.getProjectPath(username, projectSlug);
+    let total = 0;
+
+    const walk = async (dir: string): Promise<void> => {
+      let entries;
+      try {
+        entries = await fs.readdir(dir, { withFileTypes: true });
+      } catch {
+        return; // Directory (or parent) doesn't exist yet
+      }
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          await walk(full);
+        } else if (entry.isFile()) {
+          try {
+            const stats = await fs.stat(full);
+            total += stats.size;
+          } catch {
+            // Best-effort — skip unreadable files
+          }
+        }
+      }
+    };
+
+    await walk(projectPath);
+    return total;
+  }
+
+  /**
    * Rename a project directory (when project slug changes)
    */
   async renameProjectDirectory(username: string, oldSlug: string, newSlug: string): Promise<void> {

@@ -1,6 +1,8 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { requireAdmin } from '../middleware/auth';
 import { userService } from '../services/user.service';
+import { projectService } from '../services/project.service';
+import { getProjectStorageSize } from '../services/storage-size.service';
 import { emailService } from '../services/email.service';
 import { accountApprovedEmail, accountRejectedEmail } from '../services/email-templates';
 import { getBaseUrl } from '../services/url.service';
@@ -361,6 +363,105 @@ adminRoutes.openapi(deleteUserRoute, async (c) => {
 
   await userService.deleteUser(db, userId);
   return c.json({ message: 'User deleted' }, 200);
+});
+
+// ---------------------------------------------------------------------------
+// List all projects for a user with approximate storage sizes (admin only)
+// ---------------------------------------------------------------------------
+const AdminProjectStorageSchema = z
+  .object({
+    id: z.string().openapi({ description: 'Project id' }),
+    slug: z.string().openapi({ description: 'Project slug' }),
+    title: z.string().openapi({ description: 'Project title' }),
+    dataBytes: z.number().openapi({ description: 'Approximate document/data size in bytes' }),
+    mediaBytes: z.number().openapi({ description: 'Approximate media size in bytes' }),
+    totalBytes: z.number().openapi({ description: 'dataBytes + mediaBytes' }),
+  })
+  .openapi('AdminProjectStorage');
+
+const AdminUserProjectsSchema = z
+  .object({
+    userId: z.string().openapi({ description: 'User id' }),
+    username: z.string().openapi({ description: 'User username' }),
+    projects: z.array(AdminProjectStorageSchema),
+    totalDataBytes: z.number().openapi({ description: 'Sum of dataBytes across projects' }),
+    totalMediaBytes: z.number().openapi({ description: 'Sum of mediaBytes across projects' }),
+    totalBytes: z.number().openapi({ description: 'Sum of totalBytes across projects' }),
+  })
+  .openapi('AdminUserProjects');
+
+const listUserProjectsRoute = createRoute({
+  method: 'get',
+  path: '/users/{userId}/projects',
+  tags: ['Admin'],
+  summary: "List a user's projects with storage sizes",
+  description: 'List every project owned by a user with approximate storage sizes (admin only)',
+  operationId: 'adminListUserProjects',
+  request: {
+    params: UserIdParamsSchema,
+  },
+  responses: {
+    200: {
+      description: 'User projects with storage sizes',
+      content: {
+        'application/json': {
+          schema: AdminUserProjectsSchema,
+        },
+      },
+    },
+    ...errorResponses.adminEntity('User'),
+  },
+});
+
+adminRoutes.openapi(listUserProjectsRoute, async (c) => {
+  const db = c.get('db');
+  const { userId } = c.req.valid('param');
+
+  const user = await userService.findById(db, userId);
+  if (!user) {
+    return c.json({ error: 'User not found' }, 404);
+  }
+
+  const username = user.username ?? '';
+  const projects = await projectService.findByUserId(db, userId);
+
+  const authHeader = c.req.header('Authorization') ?? '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : '';
+
+  const sized = await Promise.all(
+    projects.map(async (p) => {
+      const size = await getProjectStorageSize(
+        username,
+        p.slug,
+        c.get('storage'),
+        c.env as never,
+        token
+      );
+      return {
+        id: p.id,
+        slug: p.slug,
+        title: p.title,
+        dataBytes: size.dataBytes,
+        mediaBytes: size.mediaBytes,
+        totalBytes: size.dataBytes + size.mediaBytes,
+      };
+    })
+  );
+
+  const totalDataBytes = sized.reduce((sum, p) => sum + p.dataBytes, 0);
+  const totalMediaBytes = sized.reduce((sum, p) => sum + p.mediaBytes, 0);
+
+  return c.json(
+    {
+      userId,
+      username,
+      projects: sized,
+      totalDataBytes,
+      totalMediaBytes,
+      totalBytes: totalDataBytes + totalMediaBytes,
+    },
+    200
+  );
 });
 
 export default adminRoutes;

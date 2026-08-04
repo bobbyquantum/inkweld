@@ -63,4 +63,42 @@ describe('ConfirmationDialogComponent', () => {
     expect(buttons[0].textContent).toContain('Stay on Page');
     expect(buttons[1].textContent).toContain('Leave Page');
   });
+
+  it('should render details passed in data', async () => {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [translocoTestProvider(), ConfirmationDialogComponent],
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: MatDialogRef, useValue: dialogRef },
+        {
+          provide: MAT_DIALOG_DATA,
+          useValue: {
+            title: 'Confirm',
+            message: 'Are you sure?',
+            details: ['Some detail line'],
+          },
+        },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ConfirmationDialogComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.details-list')?.textContent).toContain(
+      'Some detail line'
+    );
+  });
+
+  it('should update details reactively via setDetails', () => {
+    component.setDetails(['Updated detail']);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.details-list')?.textContent).toContain(
+      'Updated detail'
+    );
+  });
 });

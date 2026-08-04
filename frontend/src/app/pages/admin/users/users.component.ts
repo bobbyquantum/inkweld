@@ -25,6 +25,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
+import { AdminUserProjectsDialogComponent } from '@dialogs/admin-user-projects-dialog/admin-user-projects-dialog.component';
 import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
@@ -307,6 +308,16 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
         { duration: 3000 }
       );
     }
+  }
+
+  /**
+   * Open a dialog showing all projects owned by a user with approximate sizes.
+   */
+  viewUserProjects(user: AdminUser): void {
+    this.dialog.open(AdminUserProjectsDialogComponent, {
+      data: { userId: user.id, username: user.username },
+      width: '600px',
+    });
   }
 
   async toggleAdmin(user: AdminUser): Promise<void> {
