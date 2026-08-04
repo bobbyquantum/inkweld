@@ -110,6 +110,7 @@
                   }}</mat-label>
                   <input
                     matInput
+                    [attr.id]="'appearance-' + region + '-light'"
                     [value]="getSettingValue(region, 'light')"
                     [disabled]="!canWrite()"
                     (input)="
@@ -123,6 +124,7 @@
                   }}</mat-label>
                   <input
                     matInput
+                    [attr.id]="'appearance-' + region + '-dark'"
                     [value]="getSettingValue(region, 'dark')"
                     [disabled]="!canWrite()"
                     (input)="
@@ -143,6 +145,7 @@
                 </mat-label>
                 <input
                   matInput
+                  [attr.id]="'appearance-' + region + '-value'"
                   [value]="getSettingValue(region, 'value')"
                   [disabled]="!canWrite()"
                   (input)="setValue(region, 'value', $any($event.target).value)"
