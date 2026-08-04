@@ -41,6 +41,28 @@
   overflow-y: auto;
   padding: 2em;
 
+  // Custom background: apply the resolved colour / gradient / image.
+  &.has-custom-background {
+    background-color: transparent;
+    background-image: var(--wb-bg);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  // Auto-adjusted image backgrounds get an overlay so overlaid content stays
+  // legible. We layer a semi-transparent base colour and blend it into the
+  // image: darken in light theme, lighten in dark theme.
+  &.wb-bg-overlay-light {
+    background-color: rgba(0, 0, 0, 0.25);
+    background-blend-mode: multiply;
+  }
+
+  &.wb-bg-overlay-dark {
+    background-color: rgba(255, 255, 255, 0.2);
+    background-blend-mode: screen;
+  }
+
   // Intermediate: tighter space but still sidenav
   @container wb-editor (max-width: 1100px) {
     width: 260px;
@@ -140,6 +162,27 @@
   min-height: 0;
   container-type: inline-size;
   container-name: wb-content;
+
+  // Custom background for the content region.
+  &.has-custom-background {
+    background-color: var(--sys-surface);
+    background-image: var(--wb-bg);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: local;
+  }
+
+  // Same auto-adjust overlay behaviour as the sidenav.
+  &.wb-bg-overlay-light {
+    background-color: rgba(0, 0, 0, 0.25);
+    background-blend-mode: multiply;
+  }
+
+  &.wb-bg-overlay-dark {
+    background-color: rgba(255, 255, 255, 0.2);
+    background-blend-mode: screen;
+  }
 }
 
 .section-content {

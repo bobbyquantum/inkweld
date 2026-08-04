@@ -5,7 +5,13 @@
   <div class="wb-layout">
     <!-- Sidenav navigation (desktop / tablet landscape) -->
     @if (useSidenav()) {
-      <nav class="wb-sidenav" data-testid="wb-sidenav">
+      <nav
+        class="wb-sidenav"
+        data-testid="wb-sidenav"
+        [class.has-custom-background]="!!menuBackground()"
+        [style.--wb-bg]="menuBackground()?.background"
+        [class.wb-bg-overlay-dark]="menuBackground()?.overlay === 'dark'"
+        [class.wb-bg-overlay-light]="menuBackground()?.overlay === 'light'">
         @if (identityPanel()?.resolvedImageUrl(); as imageUrl) {
           <button
             class="sidenav-thumbnail"
@@ -98,7 +104,12 @@
     }
 
     <!-- Content area -->
-    <div class="wb-content">
+    <div
+      class="wb-content"
+      [class.has-custom-background]="!!contentBackground()"
+      [style.--wb-bg]="contentBackground()?.background"
+      [class.wb-bg-overlay-dark]="contentBackground()?.overlay === 'dark'"
+      [class.wb-bg-overlay-light]="contentBackground()?.overlay === 'light'">
       @if (isInitialLoading()) {
         <div class="wb-loading-shell" data-testid="worldbuilding-loading-shell">
           @if (useSidenav()) {

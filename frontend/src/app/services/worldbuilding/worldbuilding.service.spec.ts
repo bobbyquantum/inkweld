@@ -308,6 +308,104 @@ describe('WorldbuildingService', () => {
     });
   });
 
+  describe('identity data + appearance', () => {
+    it('should save and retrieve identity appearance', async () => {
+      const elementId = 'test-element-appearance';
+
+      await service.saveIdentityData(
+        elementId,
+        {
+          appearance: {
+            menu: { type: 'color', mode: 'auto', value: '#4fd8eb' },
+            content: {
+              type: 'gradient',
+              mode: 'manual',
+              light: 'linear-gradient(#fff, #eee)',
+              dark: 'linear-gradient(#111, #222)',
+            },
+          },
+        },
+        username,
+        slug
+      );
+
+      const data = await service.getIdentityData(elementId, username, slug);
+      expect(data.appearance?.menu).toEqual({
+        type: 'color',
+        mode: 'auto',
+        value: '#4fd8eb',
+      });
+      expect(data.appearance?.content?.mode).toBe('manual');
+      expect(data.appearance?.content?.light).toContain('linear-gradient');
+      expect(data.appearance?.content?.dark).toContain('linear-gradient');
+    });
+
+    it('should not overwrite sibling regions when saving one region', async () => {
+      const elementId = 'test-element-appearance-merge';
+
+      await service.saveIdentityData(
+        elementId,
+        {
+          appearance: {
+            menu: { type: 'color', mode: 'auto', value: '#111111' },
+            content: { type: 'color', mode: 'auto', value: '#ffffff' },
+          },
+        },
+        username,
+        slug
+      );
+
+      // Update only the menu region.
+      await service.saveIdentityData(
+        elementId,
+        {
+          appearance: {
+            menu: { type: 'color', mode: 'auto', value: '#222222' },
+          },
+        },
+        username,
+        slug
+      );
+
+      const data = await service.getIdentityData(elementId, username, slug);
+      expect(data.appearance?.menu?.value).toBe('#222222');
+      // Content region preserved.
+      expect(data.appearance?.content?.value).toBe('#ffffff');
+    });
+
+    it('should observe appearance changes', async () => {
+      const elementId = 'test-element-appearance-observe';
+      const callback = vi.fn();
+
+      const unsubscribe = await service.observeIdentityChanges(
+        elementId,
+        callback,
+        username,
+        slug
+      );
+
+      await service.saveIdentityData(
+        elementId,
+        {
+          appearance: {
+            menu: { type: 'image', mode: 'auto', value: 'media://bg.png' },
+          },
+        },
+        username,
+        slug
+      );
+
+      expect(callback).toHaveBeenCalled();
+      const latest = callback.mock.calls[callback.mock.calls.length - 1][0] as {
+        appearance?: { menu?: { type?: string; value?: string } };
+      };
+      expect(latest.appearance?.menu?.type).toBe('image');
+      expect(latest.appearance?.menu?.value).toBe('media://bg.png');
+
+      unsubscribe();
+    });
+  });
+
   describe('getElementSchemaId / getSchemaForElement', () => {
     it('should return null for element with no schema ID', async () => {
       const elementId = 'element-no-schema';
