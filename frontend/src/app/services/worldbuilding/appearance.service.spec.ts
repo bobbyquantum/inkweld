@@ -10,14 +10,21 @@ describe('AppearanceService', () => {
   let service: AppearanceService;
   let themeSubject: BehaviorSubject<'light-theme' | 'dark-theme' | 'system'>;
 
+  const makeMatchMedia = (matches: boolean): MediaQueryList => ({
+    matches,
+    media: '(prefers-color-scheme: dark)',
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  });
+
   beforeEach(() => {
     themeSubject = new BehaviorSubject<'light-theme' | 'dark-theme' | 'system'>(
       'light-theme'
     );
-
-    // Default system dark mode off. Use stubGlobal so the global afterEach
-    // (vi.unstubAllGlobals) restores the full matchMedia mock for other specs.
-    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }));
 
     TestBed.configureTestingModule({
       providers: [
@@ -137,7 +144,7 @@ describe('AppearanceService', () => {
 
   describe('system theme', () => {
     it('should resolve dark mode from the system preference when theme is system', async () => {
-      const darkMatchMedia = vi.fn().mockReturnValue({ matches: true });
+      const darkMatchMedia = vi.fn().mockReturnValue(makeMatchMedia(true));
       vi.stubGlobal('matchMedia', darkMatchMedia);
 
       themeSubject.next('system');
