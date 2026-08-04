@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { safeSend, safeClose } from '../src/utils/ws-guards';
+import { safeSend, safeClose, type GuardableWebSocket } from '../src/utils/ws-guards';
 
 /**
  * Regression tests for the WebSocket guard helpers.
@@ -20,7 +20,7 @@ function makeSocket(initialState: number) {
     send: [],
     close: [],
   };
-  const ws = {
+  const ws: GuardableWebSocket = {
     readyState: initialState,
     send(msg: string) {
       if (this.readyState !== WebSocket.OPEN) {

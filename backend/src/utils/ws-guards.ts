@@ -8,6 +8,17 @@
  */
 
 /**
+ * The minimal WebSocket surface these guards depend on. The Cloudflare
+ * Workers `WebSocket` satisfies this, and so does a lightweight test double,
+ * so the guards stay unit-testable without importing `cloudflare:workers`.
+ */
+export interface GuardableWebSocket {
+  readyState: number;
+  send(message: string): void;
+  close(code?: number, reason?: string): void;
+}
+
+/**
  * Send a message only if the WebSocket is still open. Guards the async
  * auth path where `ws.send()` would otherwise throw on a socket that the
  * client closed while we were awaiting token verification / DB lookups.
@@ -19,7 +30,7 @@
  *   or the send threw. Callers use `false` to abort further per-connection
  *   work (document registration, session start).
  */
-export function safeSend(ws: WebSocket, message: string): boolean {
+export function safeSend(ws: GuardableWebSocket, message: string): boolean {
   if (ws.readyState !== WebSocket.OPEN) return false;
   try {
     ws.send(message);
@@ -34,7 +45,7 @@ export function safeSend(ws: WebSocket, message: string): boolean {
  * is already CLOSING/CLOSED is a no-op at worst, but guarding avoids
  * unnecessary exceptions in the async auth path.
  */
-export function safeClose(ws: WebSocket, code?: number, reason?: string): void {
+export function safeClose(ws: GuardableWebSocket, code?: number, reason?: string): void {
   if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) return;
   try {
     ws.close(code, reason);
