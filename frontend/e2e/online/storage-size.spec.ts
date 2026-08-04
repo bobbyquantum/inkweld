@@ -9,8 +9,11 @@
  *   3. The activation dialog (deactivated project) shows the approximate
  *      download size.
  */
-import { createProjectWithTwoSteps, generateUniqueSlug } from '../common';
+import { generateUniqueSlug } from '../common';
+import { createProjectWithTwoSteps } from '../common';
 import { expect, type Page, test } from './fixtures';
+
+const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
 
 function getProjectBaseUrl(page: Page): string {
   const pathParts = new URL(page.url()).pathname.split('/').filter(Boolean);
@@ -34,8 +37,9 @@ test.describe('Project Storage Size', () => {
     authenticatedPage: page,
   }) => {
     const slug = generateUniqueSlug('storage-settings');
+    const projectTitle = 'Storage Settings Project';
     await page.goto('/');
-    await createProjectWithTwoSteps(page, 'Storage Settings Project', slug);
+    await createProjectWithTwoSteps(page, projectTitle, slug);
     const baseUrl = getProjectBaseUrl(page);
 
     await navigateToServerStorageSection(page, baseUrl);
@@ -61,9 +65,12 @@ test.describe('Project Storage Size', () => {
     });
 
     await test.step('the storage-size endpoint responds 200 for the owner', async () => {
-      const apiBase = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
+      const token = await page.evaluate(() =>
+        localStorage.getItem('srv:server-1:auth_token')
+      );
       const apiResponse = await page.request.get(
-        `${apiBase}/api/v1/projects${baseUrl}/storage-size`
+        `${API_BASE}/api/v1/projects${baseUrl}/storage-size`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       expect(apiResponse.ok()).toBe(true);
       const body = (await apiResponse.json()) as {
@@ -97,9 +104,8 @@ test.describe('Project Storage Size', () => {
 
     await test.step('opens the projects & storage dialog', async () => {
       await adminCard.locator('[data-testid="user-menu-e2e-admin"]').click();
-      await adminCard
-        .locator('[data-testid="view-projects-e2e-admin"]')
-        .click();
+      // The menu item renders in a page-level overlay.
+      await page.getByTestId('view-projects-e2e-admin').click();
 
       await expect(page.getByTestId('admin-user-projects-title')).toBeVisible();
       await expect(page.getByTestId('admin-user-projects-list')).toBeVisible();
@@ -130,31 +136,34 @@ test.describe('Project Storage Size', () => {
     authenticatedPage: page,
   }) => {
     const slug = generateUniqueSlug('storage-activate');
+    const projectTitle = 'Storage Activate Project';
     await page.goto('/');
-    await createProjectWithTwoSteps(page, 'Storage Activate Project', slug);
+    await createProjectWithTwoSteps(page, projectTitle, slug);
 
-    // New projects are auto-activated. Deactivate it first so clicking the
-    // card prompts activation.
-    await page.goto('/');
-    await expect(page.getByTestId('project-card').first()).toBeVisible();
+    /** Locate the specific card for this project by its title. */
+    const card = () =>
+      page
+        .getByTestId('project-card')
+        .filter({ hasText: projectTitle })
+        .first();
 
     await test.step('deactivates the project', async () => {
-      const card = page
-        .locator('[data-testid="project-card"]')
-        .filter({ hasText: slug });
-      await expect(card).toBeVisible();
-      await card.locator('[data-testid="project-card-kebab"]').click();
-      await card.locator('[data-testid="project-card-deactivate"]').click();
+      await page.goto('/');
+      await expect(card()).toBeVisible();
+      await card().locator('[data-testid="project-card-kebab"]').click();
+      await page.getByTestId('project-card-deactivate').click();
+
       await expect(page.getByTestId('confirmation-dialog')).toBeVisible();
       await page.getByTestId('confirm-delete-button').click();
+
+      // Deactivating removes local data; the card should now prompt to sync.
+      await expect(
+        card().locator('[data-testid="download-hint"]')
+      ).toBeVisible();
     });
 
     await test.step('clicking the deactivated project shows activation dialog with size', async () => {
-      const card = page
-        .locator('[data-testid="project-card"]')
-        .filter({ hasText: slug });
-      await expect(card).toBeVisible();
-      await card.click();
+      await card().click();
 
       await expect(page.getByTestId('confirmation-dialog')).toBeVisible();
       const details = page.getByTestId('confirmation-dialog-details');
