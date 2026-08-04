@@ -50,6 +50,7 @@ import {
   frameMessageType,
 } from '../utils/yjs-document-utils';
 import { YjsDocStorage, COMPACT_THRESHOLD, snapshotKey } from './yjs-do-storage';
+import { safeSend, safeClose } from '../utils/ws-guards';
 import {
   decodeSnapshotMetrics,
   hasDocContent,
@@ -1742,7 +1743,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     message: string
   ): Promise<void> {
     if (message === PRESENCE_KEEPALIVE_PING) {
-      if (connInfo.authenticated) ws.send(PRESENCE_KEEPALIVE_PONG);
+      if (connInfo.authenticated) safeSend(ws, PRESENCE_KEEPALIVE_PONG);
       return;
     }
     if (connInfo.authenticated) {
@@ -2001,8 +2002,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     );
     if (!project) {
       projDOLog.warn(`Project not found: ${parsed.projectOwner}/${parsed.slug}`);
-      ws.send('access-denied:project-not-found');
-      ws.close(4003, 'Project not found');
+      safeSend(ws, 'access-denied:project-not-found');
+      safeClose(ws, 4003, 'Project not found');
       return null;
     }
 
@@ -2016,8 +2017,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       projDOLog.warn(
         `User ${sessionData.username} attempted to access project ${parsed.projectOwner}/${parsed.slug}`
       );
-      ws.send('access-denied:forbidden');
-      ws.close(4003, 'Access denied');
+      safeSend(ws, 'access-denied:forbidden');
+      safeClose(ws, 4003, 'Access denied');
       return null;
     }
 
@@ -2040,8 +2041,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       projDOLog.error(
         `User ${sessionData.username} attempted to access project owned by ${parsed.projectOwner}`
       );
-      ws.send('access-denied:forbidden');
-      ws.close(4003, 'Access denied');
+      safeSend(ws, 'access-denied:forbidden');
+      safeClose(ws, 4003, 'Access denied');
       return null;
     }
     return { canWrite: true, projectDbId: null };
@@ -2062,8 +2063,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       const sessionData = await this.verifyToken(token);
       if (!sessionData) {
         projDOLog.error(`Invalid auth token for ${connInfo.documentId}`);
-        ws.send('access-denied:invalid-token');
-        ws.close(4001, 'Invalid token');
+        safeSend(ws, 'access-denied:invalid-token');
+        safeClose(ws, 4001, 'Invalid token');
         return;
       }
 
@@ -2074,8 +2075,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       const parsed = this.parseDocumentOwner(connInfo.documentId);
       if (!parsed) {
         projDOLog.error(`Invalid documentId format: ${connInfo.documentId}`);
-        ws.send('access-denied:invalid-document');
-        ws.close(4002, 'Invalid document ID');
+        safeSend(ws, 'access-denied:invalid-document');
+        safeClose(ws, 4002, 'Invalid document ID');
         return;
       }
 
@@ -2108,7 +2109,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       );
 
       // Send success message
-      ws.send('authenticated');
+      if (!safeSend(ws, 'authenticated')) {
+        // Socket closed while we were authenticating. Abort — no document
+        // setup or session-start work for a dead connection. There is nothing
+        // to close (the client is already gone) so we just bail.
+        return;
+      }
 
       // ────────────────────────────────────────────────────────────────────
       // Rate-limit reconnections per documentId (server-side DoS immunity).
@@ -2124,14 +2130,26 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         projDOLog.warn(
           `Rate-limited WS reconnect for ${connInfo.documentId} (${rateLimit.retryAfterMs}ms cooldown remaining)`
         );
-        ws.send('access-denied:rate-limited');
-        ws.close(4029, 'access-denied:rate-limited');
+        safeSend(ws, 'access-denied:rate-limited');
+        safeClose(ws, 4029, 'access-denied:rate-limited');
         return;
       }
 
       // Now set up Yjs connection
       const sharedDoc = await this.getOrCreateDocument(connInfo.documentId);
       connInfo.sharedDoc = sharedDoc;
+
+      // The client may have disconnected while we awaited document setup.
+      // Re-check the socket before doing any further (possibly side-effecting)
+      // work — registering the connection or opening a writing session for a
+      // dead socket would be wasted work and could leave a stale entry.
+      if (ws.readyState !== WebSocket.OPEN) {
+        projDOLog.debug(
+          `WS closed before sync setup for ${connInfo.documentId}; skipping registration`
+        );
+        return;
+      }
+
       this.registerWebSocketForDocument(ws, sharedDoc, connInfo.documentId);
 
       // Open a writing session for this connection (best-effort).
@@ -2176,8 +2194,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       );
     } catch (error) {
       projDOLog.error(`Auth error for ${connInfo.documentId}:`, error);
-      ws.send('access-denied:error');
-      ws.close(4000, 'Authentication error');
+      safeSend(ws, 'access-denied:error');
+      safeClose(ws, 4000, 'Authentication error');
     }
   }
 
