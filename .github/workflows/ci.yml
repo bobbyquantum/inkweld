@@ -435,8 +435,12 @@ jobs:
             # Re-init the local D1 database so each attempt starts from a clean
             # state (a crashed workerd may have left partial rows behind).
             (cd backend && bun run init:d1-local)
+            # Disable set -e (GitHub Actions runs run: with -e) so a failed
+            # test run doesn't abort the script before the retry logic.
+            set +e
             (cd frontend && npm run e2e:wrangler:ci -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
             exit_code=$?
+            set -e
             if [ $exit_code -eq 0 ]; then
               echo "✅ wrangler e2e shard passed on attempt $attempt"
               exit 0
