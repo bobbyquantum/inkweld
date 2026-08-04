@@ -247,8 +247,8 @@ test.describe('Offline to Server Migration', () => {
 
       // Wait for content to persist to IndexedDB
       await expect(
-        offlinePage.getByTestId('document-sync-status')
-      ).toContainText('synced');
+        offlinePage.getByTestId('document-sync-status').locator('.sync-dot')
+      ).toHaveClass(/synced/);
     }
 
     // Step 3: Migrate to server via Profile Manager
@@ -376,8 +376,8 @@ test.describe('Offline to Server Migration', () => {
 
       // Wait for document to load and sync from server
       await expect(
-        offlinePage.getByTestId('document-sync-status')
-      ).toContainText('synced');
+        offlinePage.getByTestId('document-sync-status').locator('.sync-dot')
+      ).toHaveClass(/synced/);
 
       // Check if content persisted
       await expect(editorAfterMigration).toContainText(
