@@ -299,6 +299,12 @@
         </mat-icon>
       </button>
     </span>
+    <span
+      class="sync-status"
+      data-testid="worldbuilding-sync-status"
+      [matTooltip]="syncTooltip()">
+      <span class="sync-dot {{ syncState() }}"></span>
+    </span>
     <span class="status-actions">
       <button
         mat-icon-button
@@ -309,10 +315,6 @@
         data-testid="toolbar-snapshots">
         <mat-icon>history</mat-icon>
       </button>
-    </span>
-    <span class="sync-status" data-testid="worldbuilding-sync-status">
-      <span class="sync-dot {{ syncState() }}"></span>
-      {{ syncState() }}
     </span>
   </div>
 </div>

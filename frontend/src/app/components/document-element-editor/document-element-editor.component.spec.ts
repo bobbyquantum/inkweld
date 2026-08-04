@@ -26,6 +26,7 @@ describe('DocumentElementEditorComponent', () => {
   let settingsServiceMock: Partial<SettingsService>;
   let dialogGatewayMock: Partial<DialogGatewayService>;
   let wordCountSignal: ReturnType<typeof signal<number>>;
+  let syncStatusSignal: ReturnType<typeof signal<DocumentSyncState>>;
 
   const mockProject: Project = {
     id: '1',
@@ -38,7 +39,7 @@ describe('DocumentElementEditorComponent', () => {
   };
 
   beforeEach(async () => {
-    const syncStatusSignal = signal(DocumentSyncState.Synced);
+    syncStatusSignal = signal(DocumentSyncState.Synced);
     wordCountSignal = signal(0);
     const isLoadingSignal = signal(false);
     const projectSignal = signal<Project | undefined>(mockProject);
@@ -134,6 +135,45 @@ describe('DocumentElementEditorComponent', () => {
 
       expect(component.syncState()).toBe(DocumentSyncState.Synced);
       expect(documentServiceMock.getSyncStatusSignal).toHaveBeenCalled();
+    });
+  });
+
+  describe('syncTooltip', () => {
+    it('should return synced tooltip when synced', () => {
+      component.documentId = 'testuser:test-project:doc-1';
+      fixture.detectChanges();
+
+      expect(component.syncTooltip()).toBe('Document synced');
+    });
+
+    it('should return syncing tooltip when syncing', () => {
+      syncStatusSignal.set(DocumentSyncState.Syncing);
+      fixture.detectChanges();
+
+      expect(component.syncTooltip()).toBe('Syncing…');
+    });
+
+    it('should return offline tooltip for local state', () => {
+      syncStatusSignal.set(DocumentSyncState.Local);
+      fixture.detectChanges();
+
+      expect(component.syncTooltip()).toBe('Offline - changes saved locally');
+    });
+
+    it('should return unavailable tooltip for unavailable state', () => {
+      syncStatusSignal.set(DocumentSyncState.Unavailable);
+      fixture.detectChanges();
+
+      expect(component.syncTooltip()).toBe('Unable to connect to server');
+    });
+
+    it('should append stats text when doc stats are available', () => {
+      component.docStatsTooltip.set('3 documents · 1.2 MB');
+      fixture.detectChanges();
+
+      expect(component.syncTooltip()).toBe(
+        'Document synced\n3 documents · 1.2 MB'
+      );
     });
   });
 

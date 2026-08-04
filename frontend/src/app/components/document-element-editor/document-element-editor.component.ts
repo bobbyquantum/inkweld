@@ -35,7 +35,8 @@ import { type InsertLinkDialogResult } from '@dialogs/insert-link-dialog/insert-
 import { type SnapshotsDialogData } from '@dialogs/snapshots-dialog/snapshots-dialog.component';
 import { type TagEditorDialogData } from '@dialogs/tag-editor-dialog/tag-editor-dialog.component';
 import { type AutoReviewMarkAttrs } from '@inkweld/prosemirror/schema';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { DocumentSyncState } from '@models/document-sync-state';
 import { type ResolvedTag } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { FindInDocumentService } from '@services/core/find-in-document.service';
@@ -209,6 +210,7 @@ export class DocumentElementEditorComponent
 
   private readonly docStatsService = inject(DocStatsService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly transloco = inject(TranslocoService);
   readonly docStatsTooltip = signal('');
 
   onDocSyncHover(): void {
@@ -219,6 +221,25 @@ export class DocumentElementEditorComponent
       this.docStatsTooltip.set(this.docStatsService.formatStats(stats));
     });
   }
+
+  readonly syncTooltip = computed(() => {
+    const stats = this.docStatsTooltip();
+    let base: string;
+    switch (this.syncState()) {
+      case DocumentSyncState.Synced:
+        base = this.transloco.translate('editor.document.syncSynced');
+        break;
+      case DocumentSyncState.Syncing:
+        base = this.transloco.translate('editor.document.syncSyncing');
+        break;
+      case DocumentSyncState.Local:
+        base = this.transloco.translate('editor.document.syncLocal');
+        break;
+      default:
+        base = this.transloco.translate('editor.document.syncUnavailable');
+    }
+    return stats ? `${base}\n${stats}` : base;
+  });
 
   readonly wordCount = computed(() => {
     return this.documentService.getWordCountSignal(this.documentIdSignal())();
