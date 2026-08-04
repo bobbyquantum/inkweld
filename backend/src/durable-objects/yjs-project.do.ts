@@ -50,7 +50,7 @@ import {
   frameMessageType,
 } from '../utils/yjs-document-utils';
 import { YjsDocStorage, COMPACT_THRESHOLD, snapshotKey } from './yjs-do-storage';
-import { safeSend, safeClose } from './ws-guards';
+import { safeSend, safeClose } from '../utils/ws-guards';
 import {
   decodeSnapshotMetrics,
   hasDocContent,

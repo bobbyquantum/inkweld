@@ -1,10 +1,10 @@
 /**
- * WebSocket guard helpers for the Yjs Durable Object.
+ * WebSocket guard helpers used by the Yjs Durable Object's async auth path.
  *
- * Extracted into a standalone module (rather than private methods on
- * `YjsProject`) so the guard logic is unit-testable in the Bun runtime —
- * the Durable Object class itself can't be imported there because it pulls
- * in `cloudflare:workers`. This mirrors the decoupling of `YjsDocStorage`.
+ * Kept in `src/utils` (not `src/durable-objects`) so it is unit-testable in
+ * the Bun runtime and included in Sonar analysis/coverage — the Durable
+ * Object class itself can't be imported in Bun because it pulls in
+ * `cloudflare:workers`, and `durable-objects/**` is excluded from Sonar.
  */
 
 /**

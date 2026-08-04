@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { safeSend, safeClose } from '../src/durable-objects/ws-guards';
+import { safeSend, safeClose } from '../src/utils/ws-guards';
 
 /**
  * Regression tests for the WebSocket guard helpers.
