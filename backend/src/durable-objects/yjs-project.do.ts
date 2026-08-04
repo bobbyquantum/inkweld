@@ -1764,7 +1764,16 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     // from storage to handle them is pure waste (and was a major source of
     // rows_read amplification, since presence frames fire frequently).
     if (frameMessageType(message) === Y_MESSAGE_PRESENCE) {
-      this.handlePresenceFrame(ws, connInfo, message);
+      // Guarded like the Yjs path below: an unhandled throw here would reject
+      // the async webSocketMessage and, in the workerd runtime, surface as an
+      // empty isolate crash (no JS stack) that takes the whole DO down — the
+      // recurring intermittent Wrangler e2e failure. Presence is best-effort;
+      // a malformed/edge frame must never kill the DO.
+      try {
+        this.handlePresenceFrame(ws, connInfo, message);
+      } catch (error) {
+        projDOLog.error('Error handling presence frame:', error);
+      }
       return;
     }
 
