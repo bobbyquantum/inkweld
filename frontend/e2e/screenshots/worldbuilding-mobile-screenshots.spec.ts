@@ -220,10 +220,20 @@ async function switchToAccordionLayout(
   await expect
     .poll(
       async () => {
+        // The editor is loaded via `@defer (on idle)` and rebuilds its form
+        // asynchronously. If a resize is dispatched while it is still
+        // settling, the layout flip is missed. Re-dispatch the resize event
+        // and only treat the accordion as present once the loading shell is
+        // gone AND the accordion panel is visible.
+        const shellHidden = await page
+          .getByTestId('worldbuilding-loading-shell')
+          .isHidden()
+          .catch(() => true);
+        if (!shellHidden) return false;
         await page.evaluate(() => window.dispatchEvent(new Event('resize')));
         return accordion.isVisible();
       },
-      { timeout: 45000, intervals: [250] }
+      { timeout: 60000, intervals: [250] }
     )
     .toBe(true);
 }
