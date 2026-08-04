@@ -427,10 +427,9 @@ cd backend && bun run generate:openapi && bun run generate:angular-client
 ```
 
 > **Note**: `bun run generate:angular-client` requires a Java runtime (the
-> OpenAPI generator is a JVM tool). If Java is unavailable, the manual fallback
-> is to add the new model files under `frontend/src/api-client/model/` (and
-> export them from `model/models.ts`) plus the new methods on the relevant
-> `api/*.service.ts`, matching the existing generated style.
+> OpenAPI generator is a JVM tool). Generate the client in a Java-enabled
+> environment. The generated `frontend/src/api-client/**` must not be edited by
+> hand — always regenerate from the OpenAPI spec.
 
 ---
 
