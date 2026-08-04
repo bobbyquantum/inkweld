@@ -15,11 +15,9 @@ describe('AppearanceService', () => {
       'light-theme'
     );
 
-    // Default system dark mode off.
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: vi.fn().mockReturnValue({ matches: false }),
-    });
+    // Default system dark mode off. Use stubGlobal so the global afterEach
+    // (vi.unstubAllGlobals) restores the full matchMedia mock for other specs.
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }));
 
     TestBed.configureTestingModule({
       providers: [
@@ -140,10 +138,7 @@ describe('AppearanceService', () => {
   describe('system theme', () => {
     it('should resolve dark mode from the system preference when theme is system', async () => {
       const darkMatchMedia = vi.fn().mockReturnValue({ matches: true });
-      Object.defineProperty(window, 'matchMedia', {
-        writable: true,
-        value: darkMatchMedia,
-      });
+      vi.stubGlobal('matchMedia', darkMatchMedia);
 
       themeSubject.next('system');
       // The isDarkMode signal updates on the next microtask.
