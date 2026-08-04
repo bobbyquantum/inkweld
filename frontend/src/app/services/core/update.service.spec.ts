@@ -112,6 +112,23 @@ describe('UpdateService', () => {
     expect(window.location.reload).toHaveBeenCalled();
   });
 
+  it('should not open a second dialog while one is already open', () => {
+    dialogMock.open.mockReturnValue({
+      afterClosed: vi.fn().mockReturnValue(new Subject<any>().asObservable()),
+    });
+
+    const event: VersionReadyEvent = {
+      type: 'VERSION_READY',
+      currentVersion: { hash: 'v1' },
+      latestVersion: { hash: 'v2' },
+    };
+
+    versionUpdatesSubject.next(event);
+    versionUpdatesSubject.next(event);
+
+    expect(dialogMock.open).toHaveBeenCalledTimes(1);
+  });
+
   it('should handle checkForUpdate error gracefully', async () => {
     swUpdateMock.checkForUpdate.mockRejectedValue(new Error('Network error'));
     const result = await service.checkForUpdate();
@@ -150,6 +167,7 @@ describe('UpdateService without SwUpdate', () => {
     };
 
     TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
       providers: [
         UpdateService,
         { provide: MatDialog, useValue: dialogMock },

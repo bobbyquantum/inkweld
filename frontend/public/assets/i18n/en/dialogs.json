@@ -404,5 +404,11 @@
     "invalidImage": "Invalid image file. Please select a JPEG or PNG file.",
     "selectImage": "Select Image",
     "loadFailed": "Failed to load image. Please try another file."
+  },
+  "update": {
+    "title": "Update Available",
+    "message": "A new version of Inkweld is available. Update now?",
+    "confirm": "Update",
+    "cancel": "Later"
   }
 }

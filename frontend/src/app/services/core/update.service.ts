@@ -2,6 +2,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { SwUpdate, type VersionReadyEvent } from '@angular/service-worker';
 import { ConfirmationDialogComponent } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
+import { TranslocoService } from '@jsverse/transloco';
 import { filter } from 'rxjs/operators';
 
 import { LoggerService } from './logger.service';
@@ -14,6 +15,7 @@ export class UpdateService {
   private readonly swUpdate = inject(SwUpdate, { optional: true });
   private readonly dialog = inject(MatDialog);
   private readonly logger = inject(LoggerService);
+  private readonly transloco = inject(TranslocoService, { optional: true });
 
   /** Whether an update is available and waiting to be applied */
   readonly updateAvailable = signal(false);
@@ -32,6 +34,9 @@ export class UpdateService {
         'Service Worker Update Service initialized'
       );
 
+      // Track whether a dialog is already open so repeated VERSION_READY
+      // events (multiple updates while the app stays open) don't stack dialogs.
+      let dialogOpen = false;
       this.swUpdate.versionUpdates
         .pipe(
           filter(
@@ -41,7 +46,25 @@ export class UpdateService {
         .subscribe(evt => {
           this.logger.info('UpdateService', 'New version available!', evt);
           this.updateAvailable.set(true);
-          this.showUpdateDialog();
+          if (dialogOpen) return;
+          dialogOpen = true;
+          const ref = this.dialog.open(ConfirmationDialogComponent, {
+            data: {
+              title: this.t('dialogs.update.title', 'Update Available'),
+              message: this.t(
+                'dialogs.update.message',
+                'A new version of Inkweld is available. Update now?'
+              ),
+              confirmText: this.t('dialogs.update.confirm', 'Update'),
+              cancelText: this.t('dialogs.update.cancel', 'Later'),
+            },
+          });
+          ref.afterClosed().subscribe(result => {
+            dialogOpen = false;
+            if (result) {
+              globalThis.location.reload();
+            }
+          });
         });
 
       // Subscribe to unrecoverable state — the SW's cache has been
@@ -97,20 +120,11 @@ export class UpdateService {
     globalThis.location.reload();
   }
 
-  private showUpdateDialog(): void {
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-      data: {
-        title: 'Update Available',
-        message: 'A new version of Inkweld is available. Update now?',
-        confirmText: 'Update',
-        cancelText: 'Later',
-      },
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        globalThis.location.reload();
-      }
-    });
+  /**
+   * Resolve a translation key, falling back to the provided English string
+   * when Transloco is unavailable (e.g. in tests or if the provider is missing).
+   */
+  private t(key: string, fallback: string): string {
+    return this.transloco?.translate(key) ?? fallback;
   }
 }
