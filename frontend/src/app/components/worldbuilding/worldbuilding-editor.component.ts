@@ -49,6 +49,7 @@ import { DialogGatewayService } from '../../services/core/dialog-gateway.service
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { ElementSyncProviderFactory } from '../../services/sync/element-sync-provider.factory';
 import { TagService } from '../../services/tag/tag.service';
+import { AppearanceService } from '../../services/worldbuilding/appearance.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
@@ -94,6 +95,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   private readonly tagService = inject(TagService);
   private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
   private readonly transloco = inject(TranslocoService);
+  private readonly appearanceService = inject(AppearanceService);
 
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);
@@ -168,6 +170,21 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   /** Reference to the identity panel for accessing its resolved image URL */
   identityPanel = viewChild(IdentityPanelComponent);
+
+  /**
+   * Resolved menu background derived from the element's appearance config
+   * and the active theme. `null` means no custom background.
+   */
+  readonly menuBackground = computed(() => {
+    const appearance = this.identityPanel()?.appearance();
+    return this.appearanceService.resolveRegion(appearance?.menu, 'menu');
+  });
+
+  /** Resolved content background (see {@link menuBackground}). */
+  readonly contentBackground = computed(() => {
+    const appearance = this.identityPanel()?.appearance();
+    return this.appearanceService.resolveRegion(appearance?.content, 'content');
+  });
 
   /** Reference to the meta panel for controlling expanded state on mobile */
   metaPanel = viewChild(MetaPanelComponent);

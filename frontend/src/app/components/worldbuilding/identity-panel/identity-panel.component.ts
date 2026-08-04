@@ -17,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule } from '@jsverse/transloco';
+import { type ElementAppearance } from '@models/element-appearance';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
@@ -26,7 +27,12 @@ import {
 } from '@services/worldbuilding/worldbuilding.service';
 import { debounceTime, firstValueFrom, Subject, takeUntil } from 'rxjs';
 
+import {
+  mediaIdFromReference,
+  mediaReferenceFilename,
+} from '../../../utils/media-reference';
 import { TagChipListComponent } from '../../tags/tag-chip-list.component';
+import { AppearancePanelComponent } from '../appearance-panel/appearance-panel.component';
 
 /**
  * Identity panel for worldbuilding elements.
@@ -46,6 +52,7 @@ import { TagChipListComponent } from '../../tags/tag-chip-list.component';
     MatTooltipModule,
     TranslocoModule,
     TagChipListComponent,
+    AppearancePanelComponent,
   ],
   templateUrl: './identity-panel.component.html',
   styleUrls: ['./identity-panel.component.scss'],
@@ -73,6 +80,13 @@ export class IdentityPanelComponent implements OnDestroy {
   identity = signal<WorldbuildingIdentity>({});
   description = signal<string>('');
   isExpanded = signal(true);
+
+  /**
+   * The element's appearance configuration (menu / content backgrounds),
+   * kept in sync with realtime identity changes so the editor can apply
+   * backgrounds live.
+   */
+  readonly appearance = signal<ElementAppearance | undefined>(undefined);
 
   /**
    * Resolved image URL for display.
@@ -155,12 +169,9 @@ export class IdentityPanelComponent implements OnDestroy {
     }
 
     const projectKey = `${username}/${slug}`;
-    // Extract filename from media://filename.png
-    const filename = imageUrl.substring('media://'.length);
-    // Use filename without extension as mediaId for IndexedDB
-    const mediaId = filename.includes('.')
-      ? filename.substring(0, filename.lastIndexOf('.'))
-      : filename;
+    // Extract filename + mediaId from media://filename.png reference
+    const filename = mediaReferenceFilename(imageUrl);
+    const mediaId = mediaIdFromReference(imageUrl);
 
     try {
       // Check if we have it cached in IndexedDB
@@ -224,6 +235,7 @@ export class IdentityPanelComponent implements OnDestroy {
       if (data) {
         this.identity.set(data);
         this.description.set(data.description ?? '');
+        this.appearance.set(data.appearance);
       }
     } finally {
       this.isIdentityLoading.set(false);
@@ -241,6 +253,7 @@ export class IdentityPanelComponent implements OnDestroy {
         elementId,
         (data: WorldbuildingIdentity) => {
           this.identity.set(data);
+          this.appearance.set(data.appearance);
           // Only update description if different to avoid cursor jumps
           if (data.description !== this.description()) {
             this.description.set(data.description ?? '');

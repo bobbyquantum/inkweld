@@ -8,6 +8,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { TagService } from '@services/tag/tag.service';
+import type { WorldbuildingIdentity } from '@services/worldbuilding/worldbuilding.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { type MockedObject, vi } from 'vitest';
 
@@ -96,6 +97,40 @@ describe('IdentityPanelComponent', () => {
       'testuser',
       'test-project'
     );
+  });
+
+  it('should expose the appearance config from loaded identity data', async () => {
+    worldbuildingService.getIdentityData.mockResolvedValue({
+      appearance: {
+        menu: { type: 'color', mode: 'auto', value: '#123456' },
+      },
+    });
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(component.appearance()?.menu?.value).toBe('#123456');
+  });
+
+  it('should update appearance from realtime sync', async () => {
+    let observer!: (data: WorldbuildingIdentity) => void;
+    worldbuildingService.observeIdentityChanges.mockImplementation(
+      (_id, cb) => {
+        observer = cb;
+        return Promise.resolve(() => {});
+      }
+    );
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    observer({
+      appearance: {
+        content: { type: 'gradient', mode: 'manual', light: 'a', dark: 'b' },
+      },
+    });
+
+    expect(component.appearance()?.content?.mode).toBe('manual');
   });
 
   it('should emit renameRequested when rename button is clicked', async () => {

@@ -80,6 +80,27 @@
     "selectFileAria": "Select image file",
     "apply": "Apply"
   },
+  "appearance": {
+    "title": "Appearance",
+    "menuLabel": "Left menu background",
+    "contentLabel": "Content background",
+    "enabled": "Custom",
+    "type": "Type",
+    "typeOptions": {
+      "color": "Solid colour",
+      "gradient": "Gradient",
+      "image": "Image"
+    },
+    "mode": "Theme",
+    "modeAuto": "Auto (adjusts with app theme)",
+    "modeManual": "Manual (light / dark)",
+    "light": "Light",
+    "dark": "Dark",
+    "color": "Colour",
+    "gradient": "Gradient",
+    "pickImage": "Pick image",
+    "imageHint": "Images auto-adjust their brightness for light/dark mode, or pick separate images per theme in manual mode."
+  },
   "tab": {
     "notSynced": "This document has not been synced to your browser yet.",
     "notSyncedHint": "Reconnect to the server and try again once the document has finished syncing.",
