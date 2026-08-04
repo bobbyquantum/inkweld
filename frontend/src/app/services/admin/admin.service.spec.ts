@@ -74,6 +74,7 @@ describe('AdminService', () => {
     adminDisableUser: Mock;
     adminSetUserAdmin: Mock;
     adminDeleteUser: Mock;
+    adminListUserProjects: Mock;
   };
   let loggerMock: { error: Mock };
 
@@ -87,6 +88,7 @@ describe('AdminService', () => {
       adminDisableUser: vi.fn(),
       adminSetUserAdmin: vi.fn(),
       adminDeleteUser: vi.fn(),
+      adminListUserProjects: vi.fn(),
     };
 
     loggerMock = {
@@ -283,6 +285,40 @@ describe('AdminService', () => {
         AdminServiceError
       );
       expect(service.error()?.code).toBe('UNAUTHORIZED');
+    });
+  });
+
+  describe('listUserProjects', () => {
+    it('should fetch a user project list with sizes', async () => {
+      const projectsResult = {
+        userId: 'u1',
+        username: 'alice',
+        projects: [],
+        totalDataBytes: 0,
+        totalMediaBytes: 0,
+        totalBytes: 0,
+      };
+      apiMock.adminListUserProjects.mockReturnValue(of(projectsResult));
+
+      const result = await service.listUserProjects('u1');
+
+      expect(apiMock.adminListUserProjects).toHaveBeenCalledWith('u1');
+      expect(result).toEqual(projectsResult);
+    });
+
+    it('should surface API errors', async () => {
+      const httpError = new HttpErrorResponse({
+        status: 500,
+        statusText: 'Server Error',
+      });
+      apiMock.adminListUserProjects.mockReturnValue(
+        throwError(() => httpError)
+      );
+
+      await expect(service.listUserProjects('u1')).rejects.toThrow(
+        AdminServiceError
+      );
+      expect(service.error()?.code).toBe('SERVER_ERROR');
     });
   });
 

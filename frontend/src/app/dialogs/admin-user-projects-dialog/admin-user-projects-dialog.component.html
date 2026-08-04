@@ -3,7 +3,7 @@
 </h2>
 <mat-dialog-content>
   @if (isLoading()) {
-    <div class="loading-state">
+    <div class="loading-state" data-testid="admin-user-projects-loading">
       <mat-spinner diameter="32"></mat-spinner>
       <p>Loading projects...</p>
     </div>
@@ -22,24 +22,32 @@
         <p>This user has no projects.</p>
       </div>
     } @else {
-      <div class="totals">
+      <div class="totals" data-testid="admin-user-projects-totals">
         <div class="total-item">
           <span class="label">Total data:</span>
-          <span class="value">{{ formatBytes(result.totalDataBytes) }}</span>
+          <span class="value" data-testid="admin-user-projects-total-data">{{
+            formatBytes(result.totalDataBytes)
+          }}</span>
         </div>
         <div class="total-item">
           <span class="label">Total media:</span>
-          <span class="value">{{ formatBytes(result.totalMediaBytes) }}</span>
+          <span class="value" data-testid="admin-user-projects-total-media">{{
+            formatBytes(result.totalMediaBytes)
+          }}</span>
         </div>
         <div class="total-item">
           <span class="label">Total:</span>
-          <span class="value">{{ formatBytes(result.totalBytes) }}</span>
+          <span class="value" data-testid="admin-user-projects-total">{{
+            formatBytes(result.totalBytes)
+          }}</span>
         </div>
       </div>
 
-      <div class="project-list">
+      <div class="project-list" data-testid="admin-user-projects-list">
         @for (project of result.projects; track project.id) {
-          <mat-card class="project-card">
+          <mat-card
+            class="project-card"
+            [attr.data-testid]="'admin-user-project-' + project.slug">
             <mat-card-content>
               <div class="project-info">
                 <span class="title">{{ project.title }}</span>

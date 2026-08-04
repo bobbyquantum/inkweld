@@ -319,7 +319,7 @@
   }
 
   <!-- Server Storage Size Section -->
-  <section class="settings-section">
+  <section class="settings-section" data-testid="server-storage-section">
     <h3>
       <mat-icon>storage</mat-icon>
       Server Storage
@@ -329,24 +329,30 @@
       <mat-card class="sync-card">
         <mat-card-content>
           @if (isLoadingStorageSize()) {
-            <div class="loading-state">
+            <div class="loading-state" data-testid="storage-size-loading">
               <mat-progress-spinner diameter="24" mode="indeterminate">
               </mat-progress-spinner>
               <span>Loading storage size...</span>
             </div>
           } @else if (serverStorageSize(); as size) {
-            <div class="status-grid">
+            <div class="status-grid" data-testid="storage-size-values">
               <div class="status-item">
                 <span class="label">Documents &amp; data:</span>
-                <span class="value">{{ formatBytes(size.dataBytes) }}</span>
+                <span class="value" data-testid="storage-size-data">{{
+                  formatBytes(size.dataBytes)
+                }}</span>
               </div>
               <div class="status-item">
                 <span class="label">Media:</span>
-                <span class="value">{{ formatBytes(size.mediaBytes) }}</span>
+                <span class="value" data-testid="storage-size-media">{{
+                  formatBytes(size.mediaBytes)
+                }}</span>
               </div>
               <div class="status-item">
                 <span class="label">Total:</span>
-                <span class="value">{{ formatBytes(size.totalBytes) }}</span>
+                <span class="value" data-testid="storage-size-total">{{
+                  formatBytes(size.totalBytes)
+                }}</span>
               </div>
             </div>
           } @else if (storageSizeError(); as err) {
