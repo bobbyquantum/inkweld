@@ -10,6 +10,7 @@ import {
   enablePasswordLoginForTests,
 } from './server-test-helper';
 import { TEST_PASSWORDS } from './test-credentials';
+import { yjsService } from '../src/services/yjs.service';
 
 describe('Document Routes', () => {
   let ownerUserId: string;
@@ -63,6 +64,10 @@ describe('Document Routes', () => {
     expect(response.status).toBe(201);
     const project = (await json()) as { slug: string };
     projectSlug = project.slug;
+
+    // Seed a real element into the project's Yjs elements document so the
+    // GET /docs/:docId route has real data to return.
+    await seedElement(ownerUsername, projectSlug, 'doc-test-element', 'Chapter One');
   });
 
   afterAll(async () => {
@@ -118,13 +123,27 @@ describe('Document Routes', () => {
       expect(response.status).toBe(404);
     });
 
-    it('should return 200 for valid project and docId', async () => {
+    it('should return 200 with real element metadata for a known document', async () => {
       const { response, json } = await client.request(
-        `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/some-doc`
+        `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/doc-test-element`
       );
       expect(response.status).toBe(200);
-      const data = (await json()) as { id: string };
-      expect(data).toHaveProperty('id', 'some-doc');
+      const data = (await json()) as {
+        id: string;
+        name: string;
+        type: string;
+      };
+      // Real element data is returned rather than a fabricated placeholder
+      expect(data).toHaveProperty('id', 'doc-test-element');
+      expect(data).toHaveProperty('name', 'Chapter One');
+      expect(data).toHaveProperty('type', 'ITEM');
+    });
+
+    it('should return 404 for a non-existent document id', async () => {
+      const { response } = await client.request(
+        `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/nonexistent-doc`
+      );
+      expect(response.status).toBe(404);
     });
   });
 
@@ -169,3 +188,32 @@ describe('Document Routes', () => {
     });
   });
 });
+
+/**
+ * Seed a single ITEM element into the project's Yjs elements document.
+ */
+async function seedElement(
+  username: string,
+  slug: string,
+  id: string,
+  name: string
+): Promise<void> {
+  const docId = `${username}:${slug}:elements/`;
+  const sharedDoc = await yjsService.getDocument(docId);
+  sharedDoc.doc.transact(() => {
+    const elements = sharedDoc.doc.getArray<Record<string, unknown>>('elements');
+    elements.push([
+      {
+        id,
+        name,
+        type: 'ITEM',
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      },
+    ]);
+  });
+}
