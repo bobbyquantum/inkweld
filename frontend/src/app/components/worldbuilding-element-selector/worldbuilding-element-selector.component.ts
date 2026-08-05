@@ -287,9 +287,7 @@ export class WorldbuildingElementSelectorComponent implements OnInit {
    * @param schemaId The schema ID (e.g., 'character-v1')
    */
   getTypeIcon(schemaId: string): string {
-    return (
-      this.worldbuildingService.getSchemaById(schemaId)?.icon ?? 'category'
-    );
+    return this.worldbuildingService.getSchemaIcon(schemaId);
   }
 
   /**

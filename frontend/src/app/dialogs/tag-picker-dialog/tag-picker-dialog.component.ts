@@ -220,10 +220,7 @@ export class TagPickerDialogComponent {
   }
 
   private getTypeIcon(schemaId: string | undefined): string {
-    if (!schemaId) return 'category';
-    return (
-      this.worldbuildingService.getSchemaById(schemaId)?.icon ?? 'category'
-    );
+    return this.worldbuildingService.getSchemaIcon(schemaId);
   }
 
   private getTypeLabel(el: Element): string {

@@ -396,15 +396,6 @@
     "updatedAt": "2025-06-01T00:00:00.000Z"
   },
   {
-    "id": "rel-ironhold-council",
-    "sourceElementId": "settle-ironhold",
-    "targetElementId": "org-council",
-    "relationshipTypeId": "part-of",
-    "note": "Ironhold houses the Council of Hammers' seat.",
-    "createdAt": "2025-06-01T00:00:00.000Z",
-    "updatedAt": "2025-06-01T00:00:00.000Z"
-  },
-  {
     "id": "rel-woodfolk-thornwood",
     "sourceElementId": "ethnicity-woodfolk",
     "targetElementId": "loc-thornwood",
@@ -622,8 +613,8 @@
   },
   {
     "id": "rel-aetheria-thornwood",
-    "sourceElementId": "planet-aetheria",
-    "targetElementId": "loc-thornwood",
+    "sourceElementId": "loc-thornwood",
+    "targetElementId": "planet-aetheria",
     "relationshipTypeId": "located-in",
     "note": "Thornwood lies upon Aetheria.",
     "createdAt": "2025-06-01T00:00:00.000Z",

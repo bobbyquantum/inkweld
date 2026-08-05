@@ -20,6 +20,7 @@ describe('WorldbuildingElementSelectorComponent', () => {
     getIdentityData: ReturnType<typeof vi.fn>;
     getWorldbuildingData: ReturnType<typeof vi.fn>;
     getSchemaById: ReturnType<typeof vi.fn>;
+    getSchemaIcon: ReturnType<typeof vi.fn>;
   };
   let mockDialog: {
     open: ReturnType<typeof vi.fn>;
@@ -97,6 +98,18 @@ describe('WorldbuildingElementSelectorComponent', () => {
           'concept-v1': 'lightbulb',
         };
         return icons[schemaId] ? { icon: icons[schemaId] } : null;
+      }),
+      getSchemaIcon: vi.fn().mockImplementation((schemaId: string) => {
+        const icons: Record<string, string> = {
+          'character-v1': 'person',
+          'location-v1': 'place',
+          'wb-item-v1': 'inventory_2',
+          'species-v1': 'pets',
+          'faction-v1': 'groups',
+          'event-v1': 'event',
+          'concept-v1': 'lightbulb',
+        };
+        return icons[schemaId] ?? 'category';
       }),
     };
 

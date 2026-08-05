@@ -187,10 +187,7 @@ export class ElementPickerDialogComponent {
    * Get icon for element type based on schemaId
    */
   getTypeIcon(schemaId: string | undefined): string {
-    if (!schemaId) return 'category';
-    return (
-      this.worldbuildingService.getSchemaById(schemaId)?.icon ?? 'category'
-    );
+    return this.worldbuildingService.getSchemaIcon(schemaId);
   }
 
   /**

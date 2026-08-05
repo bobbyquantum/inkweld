@@ -205,7 +205,6 @@
         "settlement-v1",
         "geographic-feature-v1",
         "region-v1",
-        "country-v1",
         "landmark-v1",
         "planet-v1",
         "plane-v1"
@@ -320,7 +319,6 @@
         "settlement-v1",
         "geographic-feature-v1",
         "region-v1",
-        "country-v1",
         "landmark-v1",
         "planet-v1",
         "plane-v1"
@@ -497,13 +495,6 @@
         "country-v1",
         "landmark-v1",
         "planet-v1",
-        "plane-v1",
-        "location-v1",
-        "settlement-v1",
-        "region-v1",
-        "country-v1",
-        "building-v1",
-        "planet-v1",
         "plane-v1"
       ]
     }
@@ -567,8 +558,7 @@
         "profession-v1",
         "title-v1",
         "language-v1",
-        "ethnicity-v1",
-        "species-v1"
+        "ethnicity-v1"
       ]
     },
     "targetEndpoint": {
@@ -690,12 +680,10 @@
         "building-v1",
         "landmark-v1",
         "location-v1",
-        "building-v1",
         "settlement-v1",
         "geographic-feature-v1",
         "region-v1",
         "country-v1",
-        "landmark-v1",
         "planet-v1",
         "plane-v1"
       ]
@@ -1056,8 +1044,7 @@
         "country-v1",
         "landmark-v1",
         "planet-v1",
-        "plane-v1",
-        "settlement-v1"
+        "plane-v1"
       ]
     }
   },
@@ -1272,7 +1259,6 @@
         "landmark-v1",
         "planet-v1",
         "plane-v1",
-        "settlement-v1",
         "organization-v1"
       ]
     },
@@ -1375,8 +1361,7 @@
         "country-v1",
         "landmark-v1",
         "planet-v1",
-        "plane-v1",
-        "settlement-v1"
+        "plane-v1"
       ]
     }
   }
