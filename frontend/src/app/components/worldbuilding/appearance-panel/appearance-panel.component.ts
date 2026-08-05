@@ -22,6 +22,7 @@ import {
   type BackgroundType,
   type ElementAppearance,
 } from '@models/element-appearance';
+import { APPEARANCE_DELETE } from '@models/element-appearance';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
@@ -74,6 +75,8 @@ export class AppearancePanelComponent {
   private readonly destroy$ = new Subject<void>();
   private unsubscribeObserver: (() => void) | null = null;
   private hasLocalEdit = false;
+  /** Keys ("region" or "region.slot") pending explicit deletion on next save. */
+  private pendingDeletes: Record<string, true> = {};
 
   constructor() {
     this.save$
@@ -128,6 +131,11 @@ export class AppearancePanelComponent {
   // Editing
   // ---------------------------------------------------------------------------
 
+  /** Whether a region has a custom background configured. */
+  isEnabled(region: AppearanceRegion): boolean {
+    return this.appearance()[region] !== undefined;
+  }
+
   /** Get the working setting for a region, defaulting when unset. */
   getSetting(region: AppearanceRegion): BackgroundSetting {
     const stored = this.appearance()[region];
@@ -156,8 +164,16 @@ export class AppearancePanelComponent {
       const next = { ...a };
       if (enabled) {
         next[region] = { type: 'color', mode: 'auto' };
+        // Re-enabling cancels any pending deletion for this region/slots.
+        delete this.pendingDeletes[region];
+        for (const key of Object.keys(this.pendingDeletes)) {
+          if (key.startsWith(`${region}.`)) delete this.pendingDeletes[key];
+        }
       } else {
         delete next[region];
+        // Record an explicit deletion so the persisted Yjs map drops the
+        // region (a missing key alone means "leave unchanged").
+        this.pendingDeletes[region] = true;
       }
       return next;
     });
@@ -172,14 +188,21 @@ export class AppearancePanelComponent {
     this.appearance.update(a => {
       const current = a[region] ?? { type: 'color', mode: 'auto' };
       const nextSetting: BackgroundSetting = { ...current, ...patch };
-      // Trim empty string values so a cleared field doesn't persist blanks.
+      // Trim empty string values so a cleared field doesn't persist blanks,
+      // and record an explicit deletion so the stored value is removed.
       const clean: BackgroundSetting = {
         type: nextSetting.type,
         mode: nextSetting.mode,
       };
       for (const k of ['value', 'light', 'dark'] as const) {
         const v = nextSetting[k];
-        if (v !== undefined && v !== '') clean[k] = v;
+        if (v !== undefined && v !== '') {
+          clean[k] = v;
+          // A fresh value cancels any pending deletion for this slot.
+          delete this.pendingDeletes[`${region}.${k}`];
+        } else if (v === '') {
+          this.pendingDeletes[`${region}.${k}`] = true;
+        }
       }
       return { ...a, [region]: clean };
     });
@@ -188,9 +211,30 @@ export class AppearancePanelComponent {
 
   private persist(): void {
     const appearance = this.appearance();
+    const payload: ElementAppearance = { ...appearance };
+
+    // Fold pending deletions into the payload so the backend removes the
+    // corresponding Yjs keys.
+    for (const key of Object.keys(this.pendingDeletes)) {
+      const [region, slot] = key.split('.');
+      const regionKey = region as AppearanceRegion;
+      if (!slot) {
+        (payload as Record<string, unknown>)[regionKey] = APPEARANCE_DELETE;
+      } else {
+        const existing = payload[regionKey];
+        const base: Record<string, unknown> =
+          existing && typeof existing === 'object'
+            ? { ...(existing as unknown as Record<string, unknown>) }
+            : {};
+        base[slot] = APPEARANCE_DELETE;
+        (payload as Record<string, unknown>)[regionKey] = base;
+      }
+    }
+    this.pendingDeletes = {};
+
     void this.worldbuildingService.saveIdentityData(
       this.elementId(),
-      { appearance },
+      { appearance: payload },
       this.username(),
       this.slug()
     );

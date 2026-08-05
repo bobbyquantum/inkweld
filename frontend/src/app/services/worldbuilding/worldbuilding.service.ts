@@ -5,6 +5,7 @@ import type {
   BackgroundType,
   ElementAppearance,
 } from '@models/element-appearance';
+import { APPEARANCE_DELETE } from '@models/element-appearance';
 import { Subject, type Subscription } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { type WebsocketProvider } from 'y-websocket';
@@ -507,7 +508,7 @@ export class WorldbuildingService {
       map.set(key, nested);
     }
     for (const [k, v] of Object.entries(value)) {
-      if (v === undefined || v === null) {
+      if (v === undefined || v === null || v === APPEARANCE_DELETE) {
         nested.delete(k);
       } else if (v && typeof v === 'object' && !Array.isArray(v)) {
         this.setNestedYjsMap(nested, k, v as Record<string, unknown>);

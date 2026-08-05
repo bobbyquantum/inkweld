@@ -55,3 +55,14 @@ export function isBackgroundEmpty(setting?: BackgroundSetting): boolean {
   }
   return !setting.value;
 }
+
+/**
+ * Sentinel written into the persistence payload to represent an explicit
+ * delete of a region or value slot.
+ *
+ * `setNestedYjsMap` treats a *missing* key as "leave unchanged" (so saving one
+ * region doesn't wipe its sibling). When the user clears a value or disables a
+ * region, the panel emits this sentinel for the removed key so the backend
+ * deletes it from the Yjs map instead of silently keeping the old value.
+ */
+export const APPEARANCE_DELETE = '\u0000__appearance_delete__\u0000';
