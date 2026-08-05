@@ -33,6 +33,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DocumentSyncState } from '@models/document-sync-state';
 import { type ResolvedTag } from '@models/tag.model';
+import { AppearanceService } from '@services/worldbuilding/appearance.service';
 
 import {
   type Element as ApiElement,
@@ -49,7 +50,6 @@ import { DialogGatewayService } from '../../services/core/dialog-gateway.service
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { ElementSyncProviderFactory } from '../../services/sync/element-sync-provider.factory';
 import { TagService } from '../../services/tag/tag.service';
-import { AppearanceService } from '../../services/worldbuilding/appearance.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';

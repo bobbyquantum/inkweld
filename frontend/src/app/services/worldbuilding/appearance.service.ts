@@ -1,14 +1,13 @@
 import { inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ThemeService } from '@themes/theme.service';
-import { map } from 'rxjs';
-
 import {
   type AppearanceRegion,
   type BackgroundSetting,
   type BackgroundType,
   isBackgroundEmpty,
-} from '../../models/element-appearance';
+} from '@models/element-appearance';
+import { ThemeService } from '@themes/theme.service';
+import { map } from 'rxjs';
 
 /**
  * A resolved background ready to bind as CSS custom properties.

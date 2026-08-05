@@ -15,6 +15,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoService } from '@jsverse/transloco';
 import {
   type AppearanceRegion,
   type BackgroundMode,
@@ -61,6 +62,7 @@ export class AppearancePanelComponent {
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly localStorage = inject(LocalStorageService);
+  private readonly transloco = inject(TranslocoService);
 
   /** Current appearance config for this element. */
   readonly appearance = signal<ElementAppearance>({});
@@ -207,7 +209,9 @@ export class AppearancePanelComponent {
       username: this.username(),
       slug: this.slug(),
       filterType: 'image',
-      title: 'Select background image',
+      title: this.transloco.translate(
+        'worldbuilding.appearance.pickImageTitle'
+      ),
     });
     if (result?.selected && result.blob) {
       const filename = result.selected.filename || 'background.png';
