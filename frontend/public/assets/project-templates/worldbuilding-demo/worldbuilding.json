@@ -18,20 +18,60 @@
       "appearance.hairColor": "Silver-white",
       "appearance.distinguishingFeatures": "Delicately pointed ears, usually hidden beneath her hair. A faded scar on her left palm from a magical accident in her youth. Often has ink stains on her fingers.",
       "appearance.clothing": "Favors practical robes in deep blues and grays, always with numerous pockets for books and writing supplies. Wears reading spectacles that may or may not be magical.",
-      "personality.traits": ["Intensely curious", "Secretly compassionate", "Socially awkward", "Perfectionist"],
-      "personality.strengths": ["Encyclopedic knowledge", "Fluent in twelve languages", "Patient researcher", "Surprisingly good with a quarterstaff"],
-      "personality.weaknesses": ["Difficulty trusting others", "Obsessive about her research", "Neglects her own needs", "Terrible cook"],
-      "personality.fears": ["Losing her memories", "Outliving everyone she cares about", "The truth about Moonveil being disappointing"],
-      "personality.goals": ["Find the Library of Moonveil", "Publish her complete history of the Arcane Wars", "Make a genuine friend"],
-      "personality.motivations": ["Preserving knowledge for future generations", "Understanding her own heritage"],
+      "personality.traits": [
+        "Intensely curious",
+        "Secretly compassionate",
+        "Socially awkward",
+        "Perfectionist"
+      ],
+      "personality.strengths": [
+        "Encyclopedic knowledge",
+        "Fluent in twelve languages",
+        "Patient researcher",
+        "Surprisingly good with a quarterstaff"
+      ],
+      "personality.weaknesses": [
+        "Difficulty trusting others",
+        "Obsessive about her research",
+        "Neglects her own needs",
+        "Terrible cook"
+      ],
+      "personality.fears": [
+        "Losing her memories",
+        "Outliving everyone she cares about",
+        "The truth about Moonveil being disappointing"
+      ],
+      "personality.goals": [
+        "Find the Library of Moonveil",
+        "Publish her complete history of the Arcane Wars",
+        "Make a genuine friend"
+      ],
+      "personality.motivations": [
+        "Preserving knowledge for future generations",
+        "Understanding her own heritage"
+      ],
       "background.dateOfBirth": "1198-5-12",
       "background.birthplace": "A small elven enclave near Thornwood Forest",
       "background.family": "Mother (deceased) - Lirael Nightwhisper, elven archivist. Father (deceased) - Marcus Webb, human merchant. No known siblings.",
       "background.education": "Formally trained at Cloudspire Academy. Self-taught in numerous additional fields. Apprenticed under the legendary historian Aldric the Grey.",
       "background.history": "Born during a time of relative peace, Elara showed an early aptitude for magic and scholarship. After her parents' deaths (her mother to illness, her father to old age), she threw herself into research as a way to cope. She discovered references to the Library of Moonveil fifty years ago and has been searching ever since.",
-      "abilities.skills": ["Ancient languages", "Magical theory", "Historical analysis", "Artifact identification", "Calligraphy"],
-      "abilities.powers": ["Minor illusion magic", "Enhanced memory", "Magical detection"],
-      "abilities.equipment": ["Enchanted spectacles (enhanced reading)", "Bottomless satchel", "Moonstone pendant (family heirloom)"]
+      "abilities.skills": [
+        "Ancient languages",
+        "Magical theory",
+        "Historical analysis",
+        "Artifact identification",
+        "Calligraphy"
+      ],
+      "abilities.powers": [
+        "Minor illusion magic",
+        "Enhanced memory",
+        "Magical detection"
+      ],
+      "abilities.equipment": [
+        "Enchanted spectacles (enhanced reading)",
+        "Bottomless satchel",
+        "Moonstone pendant (family heirloom)"
+      ]
     }
   },
   {
@@ -53,20 +93,59 @@
       "appearance.hairColor": "Dark brown, shoulder-length",
       "appearance.distinguishingFeatures": "A network of small scars on his forearms from years of forestwork. A distinctive falcon tattoo on his right shoulder from his military days. Weather-beaten features.",
       "appearance.clothing": "Practical forest greens and browns. Wears well-worn leather armor and a hooded cloak that blends with the foliage. Never without his bow.",
-      "personality.traits": ["Protective", "Observant", "Gruff exterior, warm heart", "Man of few words"],
-      "personality.strengths": ["Expert tracker", "Survival specialist", "Deadly accurate archer", "Calm under pressure"],
-      "personality.weaknesses": ["Struggles with authority", "Haunted by past", "Difficulty expressing emotions", "Stubborn"],
-      "personality.fears": ["Being forced to fight in another war", "Failing to protect the forest", "His past catching up with him"],
-      "personality.goals": ["Protect Thornwood and its secrets", "Find peace with his past", "Train a successor"],
-      "personality.motivations": ["Atoning for past sins", "Love of the natural world"],
+      "personality.traits": [
+        "Protective",
+        "Observant",
+        "Gruff exterior, warm heart",
+        "Man of few words"
+      ],
+      "personality.strengths": [
+        "Expert tracker",
+        "Survival specialist",
+        "Deadly accurate archer",
+        "Calm under pressure"
+      ],
+      "personality.weaknesses": [
+        "Struggles with authority",
+        "Haunted by past",
+        "Difficulty expressing emotions",
+        "Stubborn"
+      ],
+      "personality.fears": [
+        "Being forced to fight in another war",
+        "Failing to protect the forest",
+        "His past catching up with him"
+      ],
+      "personality.goals": [
+        "Protect Thornwood and its secrets",
+        "Find peace with his past",
+        "Train a successor"
+      ],
+      "personality.motivations": [
+        "Atoning for past sins",
+        "Love of the natural world"
+      ],
       "background.dateOfBirth": "1195-9-3",
       "background.birthplace": "Silverhollow",
       "background.family": "Estranged from family. Parents still live in Silverhollow but believe him dead. Has a younger sister, Clara, who runs the family trading post.",
       "background.education": "Military training in the King's Rangers. Self-taught forest lore. Learned herb craft from a forest witch.",
       "background.history": "Born to a merchant family, Theron joined the military seeking adventure. The Border Wars changed him. After witnessing his commander order the burning of a village, he deserted and fled into Thornwood. The forest witch Grandmother Moss took him in and taught him its ways. He's served as its guardian for ten years.",
-      "abilities.skills": ["Archery", "Tracking", "Wilderness survival", "Herbalism", "Animal handling"],
-      "abilities.powers": ["Uncanny sense for danger", "Can communicate with forest animals (limited)"],
-      "abilities.equipment": ["Thornwood bow (enchanted, never breaks)", "Hunting knife", "Healer's kit"]
+      "abilities.skills": [
+        "Archery",
+        "Tracking",
+        "Wilderness survival",
+        "Herbalism",
+        "Animal handling"
+      ],
+      "abilities.powers": [
+        "Uncanny sense for danger",
+        "Can communicate with forest animals (limited)"
+      ],
+      "abilities.equipment": [
+        "Thornwood bow (enchanted, never breaks)",
+        "Hunting knife",
+        "Healer's kit"
+      ]
     }
   },
   {
@@ -88,20 +167,60 @@
       "appearance.hairColor": "Copper-red, usually braided",
       "appearance.distinguishingFeatures": "Intricate geometric tattoos on her arms denoting master smithing achievements. Burn scars on her hands that she wears proudly. A missing tip of her left ring finger.",
       "appearance.clothing": "Practical smith's attire - leather apron, heavy gloves, sturdy boots. Off-duty, favors comfortable tunics in warm colors. Always wears a gold locket.",
-      "personality.traits": ["Hardworking", "Fiercely independent", "Secretly artistic", "Loyal to a fault"],
-      "personality.strengths": ["Master craftsman", "Physically strong", "Excellent negotiator", "Keeps her word"],
-      "personality.weaknesses": ["Stubborn pride", "Keeps too many secrets", "Difficulty asking for help", "Prone to overworking"],
-      "personality.fears": ["Being forced to return home", "Her forge being destroyed", "Someone discovering her secret"],
-      "personality.goals": ["Build a weapon that will be remembered for ages", "Find a worthy apprentice", "Make peace with her past"],
-      "personality.motivations": ["Proving herself on her own terms", "Protecting her adopted community"],
+      "personality.traits": [
+        "Hardworking",
+        "Fiercely independent",
+        "Secretly artistic",
+        "Loyal to a fault"
+      ],
+      "personality.strengths": [
+        "Master craftsman",
+        "Physically strong",
+        "Excellent negotiator",
+        "Keeps her word"
+      ],
+      "personality.weaknesses": [
+        "Stubborn pride",
+        "Keeps too many secrets",
+        "Difficulty asking for help",
+        "Prone to overworking"
+      ],
+      "personality.fears": [
+        "Being forced to return home",
+        "Her forge being destroyed",
+        "Someone discovering her secret"
+      ],
+      "personality.goals": [
+        "Build a weapon that will be remembered for ages",
+        "Find a worthy apprentice",
+        "Make peace with her past"
+      ],
+      "personality.motivations": [
+        "Proving herself on her own terms",
+        "Protecting her adopted community"
+      ],
       "background.dateOfBirth": "1198-11-18",
       "background.birthplace": "Ironhold, in the Stonehart Mountains",
       "background.family": "The Stonehart clan are renowned weaponsmiths. Her father Borin is the current Forge Master. Her mother Hilda manages the clan's business affairs. She has three older brothers who never took her seriously.",
       "background.education": "Trained from childhood in the family forges. Completed her masterwork at age 25, the youngest in clan history. Secretly studied forbidden techniques in ancient texts.",
       "background.history": "Mira discovered that her clan's renowned weapons were being sold to those who would use them for conquest. When she tried to expose this, she was silenced and nearly killed. She fled with knowledge of the ancient techniques and set up shop in Silverhollow, far from dwarven territory.",
-      "abilities.skills": ["Master smithing", "Metallurgy", "Gem cutting", "Weapon appraisal", "Basic enchantment"],
-      "abilities.powers": ["Can sense flaws in metal", "Fire resistance", "Rune inscription"],
-      "abilities.equipment": ["Ancestral hammer (hidden)", "Master's tools", "The gold locket (contains something important)"]
+      "abilities.skills": [
+        "Master smithing",
+        "Metallurgy",
+        "Gem cutting",
+        "Weapon appraisal",
+        "Basic enchantment"
+      ],
+      "abilities.powers": [
+        "Can sense flaws in metal",
+        "Fire resistance",
+        "Rune inscription"
+      ],
+      "abilities.equipment": [
+        "Ancestral hammer (hidden)",
+        "Master's tools",
+        "The gold locket (contains something important)"
+      ]
     }
   },
   {
@@ -118,14 +237,31 @@
       "summary": "A prosperous trade town nestled at the border of Thornwood Forest. Known for quality craftsmanship and as a waypoint for travelers heading into the wilds.",
       "notes": "Silverhollow gets its name from the silver mines that were exhausted centuries ago. Now it thrives on trade, crafts, and its reputation as a safe haven.",
       "appearance": "The town is built in a natural hollow, with buildings of grey stone and dark timber arranged in concentric rings around a central marketplace. Silver-capped weather vanes glint on rooftops. The surrounding palisade is more decorative than defensive these days.",
-      "landmarks": ["The Silver Fountain (town center)", "Stonehart Forge", "The Wanderer's Rest inn", "Old Mine Memorial"],
+      "landmarks": [
+        "The Silver Fountain (town center)",
+        "Stonehart Forge",
+        "The Wanderer's Rest inn",
+        "Old Mine Memorial"
+      ],
       "atmosphere": "Busy but welcoming. The sound of hammers from the forge district mixes with merchants' calls. Smoke rises from chimneys, and the scent of fresh bread wafts from bakeries. Travelers from many lands pass through, giving it a cosmopolitan feel despite its size.",
       "culture.government": "Town Council (elected)",
       "culture.economy": "Trade hub, craftsmanship (especially metalwork), forest products",
-      "culture.customs": ["Festival of Silver Moon (autumn celebration)", "Founding Day market", "Apprentice trials at midsummer"],
-      "culture.languages": ["Common", "Trade Cant", "Forest Tongue (some)"],
+      "culture.customs": [
+        "Festival of Silver Moon (autumn celebration)",
+        "Founding Day market",
+        "Apprentice trials at midsummer"
+      ],
+      "culture.languages": [
+        "Common",
+        "Trade Cant",
+        "Forest Tongue (some)"
+      ],
       "history.founded": "Approximately 400 years ago",
-      "history.events": ["The Silver Rush (founding era)", "The Great Fire of 312", "The Thornwood Accord (peace treaty with forest folk)"],
+      "history.events": [
+        "The Silver Rush (founding era)",
+        "The Great Fire of 312",
+        "The Thornwood Accord (peace treaty with forest folk)"
+      ],
       "history.background": "Founded by miners seeking silver, the town outlasted its mines through adaptability. When the silver ran out, the people turned to trade and crafts. The Thornwood Accord, negotiated 200 years ago, established peaceful relations with the forest's denizens and opened profitable trade routes."
     }
   },
@@ -143,14 +279,31 @@
       "summary": "An ancient, sprawling forest that predates human memory. Beautiful and dangerous in equal measure, it holds secrets from ages past.",
       "notes": "The forest is semi-sentient. Those who respect it may pass safely; those who don't often disappear. It's said the trees can move when no one is watching.",
       "appearance": "Massive ancient trees with silver-barked trunks and deep green canopy. Mist clings to the forest floor most mornings. Bioluminescent fungi light the paths at night. The deeper you go, the larger and more twisted the trees become.",
-      "landmarks": ["The Heart Grove (sacred center)", "Moonwell Spring", "The Grandmother's Cottage", "Stone Circle of the Ancients"],
+      "landmarks": [
+        "The Heart Grove (sacred center)",
+        "Moonwell Spring",
+        "The Grandmother's Cottage",
+        "Stone Circle of the Ancients"
+      ],
       "atmosphere": "Otherworldly and watchful. The forest seems to breathe. Sounds are muffled, and time feels different under the canopy. Beautiful but unsettling to outsiders. Those attuned to nature find it peaceful.",
       "culture.government": "The Thornwood Council (dryads, treants, rangers)",
       "culture.economy": "Gift economy among forest folk; controlled trade with outsiders for herbs and rare materials",
-      "culture.customs": ["Offerings at the forest edge", "Speaking no ill of the trees", "The Midsummer Gathering"],
-      "culture.languages": ["Forest Tongue", "Old Sylvan", "Animal speech"],
+      "culture.customs": [
+        "Offerings at the forest edge",
+        "Speaking no ill of the trees",
+        "The Midsummer Gathering"
+      ],
+      "culture.languages": [
+        "Forest Tongue",
+        "Old Sylvan",
+        "Animal speech"
+      ],
       "history.founded": "Primordial - the forest has existed since before recorded history",
-      "history.events": ["The Sundering (magical catastrophe, ancient)", "The Thornwood Accord (200 years ago)", "The Night of Walking Trees (70 years ago)"],
+      "history.events": [
+        "The Sundering (magical catastrophe, ancient)",
+        "The Thornwood Accord (200 years ago)",
+        "The Night of Walking Trees (70 years ago)"
+      ],
       "history.background": "The forest is a remnant of the great primordial woods that once covered the continent. It survived the Sundering through the sacrifice of its most powerful guardians. It's said the Library of Moonveil is hidden somewhere in its depths."
     }
   },
@@ -168,15 +321,936 @@
       "summary": "The most prestigious magical academy in the realm. Built on a massive floating platform, it literally rises above worldly concerns.",
       "notes": "Admission is by examination only, regardless of wealth or status. Many powerful mages, including Elara Nightwhisper, studied here.",
       "appearance": "A cluster of gleaming white towers connected by crystal bridges, floating serenely above the mountain peaks. The central spire reaches impossibly high, its top often wreathed in clouds. Magic makes the whole structure shimmer slightly.",
-      "landmarks": ["The Grand Library", "The Astral Observatory", "The Practical Hall", "The Binding Garden"],
+      "landmarks": [
+        "The Grand Library",
+        "The Astral Observatory",
+        "The Practical Hall",
+        "The Binding Garden"
+      ],
       "atmosphere": "Intellectually charged and slightly ethereal. The air hums with latent magic. Students debate in courtyards while impossible experiments happen in towers. Time works strangely here - some say a year at Cloudspire equals only a month in the outside world.",
       "culture.government": "The Archmage Council (seven master mages)",
       "culture.economy": "Funded by tuition, magical contracts, and ancient endowments",
-      "culture.customs": ["The Entrance Trials", "Thesis Defense by magical demonstration", "The Starfall Ball (annual)"],
-      "culture.languages": ["High Arcane", "Common", "Most major languages represented"],
+      "culture.customs": [
+        "The Entrance Trials",
+        "Thesis Defense by magical demonstration",
+        "The Starfall Ball (annual)"
+      ],
+      "culture.languages": [
+        "High Arcane",
+        "Common",
+        "Most major languages represented"
+      ],
       "history.founded": "Approximately 800 years ago",
-      "history.events": ["The Lifting (when the academy ascended)", "The Demon Breach of 445", "The Great Reformation (100 years ago)"],
+      "history.events": [
+        "The Lifting (when the academy ascended)",
+        "The Demon Breach of 445",
+        "The Great Reformation (100 years ago)"
+      ],
       "history.background": "Founded by the legendary Archmage Aldric the Grey, Cloudspire was originally a mountaintop fortress. When war threatened, Aldric raised the entire complex into the sky to ensure knowledge would survive. It has floated ever since, accessible only by magic or the rare visiting airship."
+    }
+  },
+  {
+    "elementId": "spec-moonshadow",
+    "schemaId": "species-v1",
+    "data": {
+      "description": "A shy, silver-furred fox whose pelt glows faintly under moonlight. Beloved foragers of the Thornwood's edges.",
+      "name": "Moonshadow Fox",
+      "classification": "Mammal",
+      "sapient": false,
+      "lifespan": "Up to 30 years",
+      "habitat": "Forests and wooded edges, especially Thornwood",
+      "diet": "Omnivore",
+      "rarity": "Uncommon",
+      "summary": "A shy, silver-furred fox that only emerges at night. Its fur is prized for making cloaks that shimmer like moonlight.",
+      "appearance.size": "Small — roughly the size of a housecat",
+      "appearance.physiology": "Slender build with oversized ears; fur is deep silver with faint luminescent tips that intensify under moonlight.",
+      "appearance.coloring": "Silver-grey with white chest and tail tip; eyes are pale lavender.",
+      "appearance.variations": "Darkwood variant with charcoal fur found deeper in the forest.",
+      "behaviour.socialStructure": "Solitary or mated pairs; young disperse after a year.",
+      "behaviour.behaviour": "Timid around strangers but curious about magic; follows spellcasters through the woods at a distance.",
+      "behaviour.language": "Silent — communicates through chirps and tail signals.",
+      "behaviour.domestication": "Nearly impossible to tame, though druids occasionally earn their trust.",
+      "relations.subspecies": [],
+      "relations.related": [
+        "Thornwood fox (common ancestor)"
+      ],
+      "relations.notes": "The moonshadow fox is considered a good omen by the Woodfolk."
+    }
+  },
+  {
+    "elementId": "spec-thornfolk",
+    "schemaId": "species-v1",
+    "data": {
+      "description": "Sapient, moss-covered forest folk with twig-like limbs. Patient and long-lived, they guard the deep glades of Thornwood.",
+      "name": "Thornfolk",
+      "classification": "Plant",
+      "sapient": true,
+      "lifespan": "Several centuries",
+      "habitat": "Deep forests, especially the Heart Grove",
+      "diet": "Photosynthetic",
+      "rarity": "Rare",
+      "summary": "Slow-moving plant-people rooted in the oldest woods. They speak rarely but remember everything.",
+      "appearance.size": "Human-sized, up to 2m",
+      "appearance.physiology": "Bark-like skin, twig fingers, and small blossoms that bloom seasonally in their hair.",
+      "appearance.coloring": "Mossy greens and browns; blossoms shift with the seasons.",
+      "appearance.variations": "Elder Thornfolk grow stone-like bark and are nearly indistinguishable from trees when still.",
+      "behaviour.socialStructure": "Loose groves of 5-20 individuals, each grove led by an Elder.",
+      "behaviour.behaviour": "Extremely patient and deliberate; speak in a language of rustling leaves.",
+      "behaviour.culture": "Value memory and stewardship of the land above all. They keep the old songs of the forest.",
+      "behaviour.language": "Sylvan dialects and the Forest Tongue",
+      "behaviour.domestication": "Not applicable — fully sapient.",
+      "relations.subspecies": [],
+      "relations.related": [
+        "Elder Thornfolk"
+      ],
+      "relations.notes": "Theron Blackwood has negotiated peace between the Thornfolk and Silverhollow."
+    }
+  },
+  {
+    "elementId": "org-council",
+    "schemaId": "organization-v1",
+    "data": {
+      "description": "An ancient guild of dwarf smiths that controls the trade of masterwork metalwork. Mira Stonehart fled their judgment.",
+      "name": "Council of Hammers",
+      "type": "Guild",
+      "motto": "The Hammer Remembers",
+      "founding": "Over 1,000 years ago",
+      "size": "Roughly 2,000 members across the mountain halls",
+      "alignment": "Lawful Neutral",
+      "summary": "The most prestigious smithing guild in the known world. Its laws govern every forge from Ironhold to the far west.",
+      "leadership.leader": "Borin Stonehart, Forge Master (also Mira's father)",
+      "leadership.hierarchy": "Forge Master at the top, followed by the Circle of Anvils (12 masters), then journeymen and apprentices.",
+      "leadership.prominent": [
+        "Borin Stonehart",
+        "Hilda Stonehart"
+      ],
+      "structure.ranks": [
+        "Apprentice",
+        "Journeyman",
+        "Master",
+        "Circle of Anvils",
+        "Forge Master"
+      ],
+      "structure.divisions": [
+        "Weaponsmiths",
+        "Armourers",
+        "Jewellers",
+        "Rune-scribes"
+      ],
+      "structure.membership": "By apprenticeship only; each member must forge a masterwork to be admitted.",
+      "holdings.territory": "The mountain halls of the Stonehart range",
+      "holdings.bases": [
+        "Ironhold",
+        "The Great Forge",
+        "Anvil Hall"
+      ],
+      "holdings.resources": "Control of most high-grade ore mines and the secret of quenching steel in dragon's blood.",
+      "agenda.goals": [
+        "Preserve ancient forging techniques",
+        "Control the price of masterwork arms"
+      ],
+      "agenda.activities": "Trains apprentices, arbitrates smithing disputes, and hunts down \"unauthorised\" masters like Mira.",
+      "agenda.secrets": "The Council secretly sold weapons to the warlords during the Border Wars — the reason Mira fled.",
+      "history.background": "Founded after the Sundering by the legendary smith Karag Hammerfall, the Council united the scattered dwarf clans under one code of craft.",
+      "history.majorEvents": [
+        "The Sundering (origin)",
+        "The founding of Ironhold",
+        "The sale of weapons during the Border Wars"
+      ]
+    }
+  },
+  {
+    "elementId": "org-church",
+    "schemaId": "organization-v1",
+    "data": {
+      "description": "The organised worship of Lunara, goddess of the silver moon. A gentle faith of night vigils and moonlit festivals.",
+      "name": "Church of the Silver Moon",
+      "type": "Religion",
+      "motto": "By Her Light, We See",
+      "founding": "Approximately 600 years ago",
+      "size": "Thousands of adherents across Eldoria",
+      "alignment": "Lawful Good",
+      "summary": "The dominant faith of Eldoria, devoted to Lunara. Its clergy are known for healing and quiet counsel.",
+      "leadership.leader": "High Priestess Selene Voss",
+      "leadership.hierarchy": "High Priestess, then the Moon Circle (council of 13), then priests and acolytes.",
+      "leadership.prominent": [
+        "Selene Voss"
+      ],
+      "structure.ranks": [
+        "Acolyte",
+        "Priest",
+        "Moon Circle",
+        "High Priestess"
+      ],
+      "structure.divisions": [
+        "Order of the Veil (healers)",
+        "Order of the Lantern (scholars)"
+      ],
+      "structure.membership": "Open to all who keep the night vigils.",
+      "holdings.territory": "Temples in most Eldorian towns",
+      "holdings.bases": [
+        "The Moon Temple of Silverhollow"
+      ],
+      "holdings.resources": "Tithings, pilgrimage offerings, and endowments from noble patrons.",
+      "agenda.goals": [
+        "Comfort the grieving",
+        "Heal the sick",
+        "Keep the Festival of the Silver Moon"
+      ],
+      "agenda.activities": "Night vigils, moonlit healings, and the care of orphanages.",
+      "agenda.secrets": "The Church quietly funds the search for the Library of Moonveil, believing Lunara's greatest secret lies within.",
+      "history.background": "Grew from a small circle of moon-watchers into the realm's most trusted faith. The Church sheltered refugees during the Thornwood War.",
+      "history.majorEvents": [
+        "The first moon vigil",
+        "The founding of the Moon Temple",
+        "Refugee sheltering during the Thornwood War"
+      ]
+    }
+  },
+  {
+    "elementId": "deity-lunara",
+    "schemaId": "deity-v1",
+    "data": {
+      "description": "Goddess of the silver moon, dreams, and quiet knowledge. Patron of scholars, healers, and those who walk at night.",
+      "name": "Lunara, Lady of the Silver Moon",
+      "domains": [
+        "Moonlight",
+        "Dreams",
+        "Knowledge",
+        "Healing"
+      ],
+      "portfolio": "The silver moon, hidden knowledge, dreams and prophecy, comfort for the lost.",
+      "rank": "Greater Deity",
+      "alignment": "Lawful Good",
+      "symbol": "A crescent moon cradling a single star",
+      "summary": "The gentle goddess of the night sky. She is said to whisper truths to those who keep the night vigils.",
+      "worship.followers": "Scholars, healers, night watchmen, poets, and the grieving.",
+      "worship.rituals": [
+        "The Night Vigil",
+        "The Moonwater Blessing",
+        "The Festival of the Silver Moon"
+      ],
+      "worship.sacredPlaces": [
+        "The Moon Temple of Silverhollow",
+        "The Silver Fountain",
+        "High places where the moon is unobstructed"
+      ],
+      "worship.holyTexts": [
+        "The Book of Quiet Hours",
+        "The Lullabies of Lunara"
+      ],
+      "worship.tenets": "Comfort the lost. Guard the knowledge of the night. Let no truth be hoarded from those who seek it sincerely.",
+      "relations.family": "Daughter of the ancient sky goddess Aeloria; sister to Solara, goddess of the sun.",
+      "relations.allies": [
+        "Aeloria",
+        "The Thornfolk Elders"
+      ],
+      "relations.enemies": [
+        "The Veiled King, god of forgetting"
+      ],
+      "relations.avatars": [
+        "The White Doe (forest form)",
+        "The Silver Herald (dream messenger)"
+      ],
+      "history.origin": "Born from the first moonrise after the Sundering, when the shattered sky healed into the silver disc.",
+      "history.myths": "It is said she once traded her memories for a lost child's life, and now keeps the world's forgotten stories instead of her own.",
+      "history.notes": "Elara Nightwhisper believes the Library of Moonveil is guarded by one of Lunara's avatars."
+    }
+  },
+  {
+    "elementId": "magic-weave",
+    "schemaId": "magic-system-v1",
+    "data": {
+      "description": "The underlying structure of magic in the world — a tapestry of threads that spellcasters learn to pull.",
+      "name": "The Weave of Arcana",
+      "type": "Hard Magic",
+      "source": "The resonance between the material world and the Verdant Court",
+      "prevalence": "Common",
+      "summary": "Magic works by weaving threads of arcane resonance. Every spell is a pattern; every pattern has a cost.",
+      "rules.mechanics": "Spellcasters perceive magic as threads of light. Casting a spell requires shaping threads into a pattern while chanting the pattern's true name. The pattern holds until its energy is spent or dispelled.",
+      "rules.costs": [
+        "Personal energy (casting strain)",
+        "Materials for complex patterns",
+        "Time — bigger patterns take longer"
+      ],
+      "rules.limits": [
+        "No magic works inside the Dead Hollows",
+        "Patterns unravel near running water",
+        "A caster cannot weave while bleeding"
+      ],
+      "rules.schools": [
+        "Evocation",
+        "Illusion",
+        "Divination",
+        "Restoration",
+        "Weaving (ritual)"
+      ],
+      "practitioners.who": "Anyone with the spark — roughly one in a thousand. The spark can be inherited or awakened by trauma.",
+      "practitioners.training": "Formal training at Cloudspire Academy; informal apprenticeship elsewhere.",
+      "practitioners.institutions": [
+        "Cloudspire Academy"
+      ],
+      "history.origin": "The Weave was damaged in the Sundering and healed imperfectly — which is why magic has a tendency to \"knot\" in some places.",
+      "history.events": [
+        "The Sundering (the Weave was torn)",
+        "The Great Reformation of Cloudspire"
+      ],
+      "history.notes": "Elara's thesis on pre-Sundering weaving techniques is still the definitive text."
+    }
+  },
+  {
+    "elementId": "spell-moonlight",
+    "schemaId": "spell-v1",
+    "data": {
+      "description": "A gentle evocation that sheds soft, silvery light and soothes the anxious mind of the caster's chosen target.",
+      "name": "Moonlight Whisper",
+      "school": "Evocation (Restoration cross-tuned)",
+      "level": "Cantrip",
+      "castingTime": "1 action",
+      "range": "Touch",
+      "duration": "1 hour",
+      "components": "Verbal (a soft hum) and a pinch of moonsilver dust",
+      "summary": "Creates a globe of gentle moonlight and whispers a calming word to one creature, granting clarity.",
+      "effect.description": "The caster's hand glows with soft silver light, illuminating a 30-foot radius. If used on a willing creature, they feel their fears quiet and gain a clearer mind for the duration.",
+      "effect.higherLevels": "At higher circles, the light reveals hidden writing and dispels minor illusions."
+    }
+  },
+  {
+    "elementId": "lore-library",
+    "schemaId": "lore-v1",
+    "data": {
+      "description": "The legendary lost library of the pre-Sundering world, said to hold every book that ever existed. Its location is unknown.",
+      "name": "The Library of Moonveil",
+      "type": "Tome",
+      "author": "Unknown — said to be compiled by the moon goddess herself",
+      "language": "All languages",
+      "date": "Pre-Sundering",
+      "copies": "Unique",
+      "summary": "The greatest library ever built, hidden at the end of the Sundering. Elara Nightwhisper has searched for it for fifty years.",
+      "content.summary": "Contains every book, scroll, and inscription from before the Sundering — including the true history of magic and the original Weave patterns.",
+      "content.excerpts": [
+        "\"The first moon rose over a broken world, and in its light, the lost were found.\""
+      ],
+      "content.themes": [
+        "Preservation of knowledge",
+        "The cost of forgetting"
+      ],
+      "significance.importance": "The single most important repository of pre-Sundering knowledge. Its location would reshape politics, magic, and religion.",
+      "significance.location": "Unknown — rumoured to be hidden somewhere in Thornwood Forest, guarded by a white doe.",
+      "significance.notes": "The Church of the Silver Moon quietly funds Elara's search."
+    }
+  },
+  {
+    "elementId": "myth-first-accord",
+    "schemaId": "myth-v1",
+    "data": {
+      "description": "The oldest story told in Eldoria: how the mortal peoples made peace with the forest after the Sundering.",
+      "name": "The Legend of the First Accord",
+      "type": "Legend",
+      "originEra": "Immediately after the Sundering",
+      "veracity": "Partly True",
+      "spread": "Told across Eldoria and the Silver Vales",
+      "summary": "A tale of how a mortal hunter and a forest spirit ended the war between fire and leaf by sharing a single cup of rainwater.",
+      "narrative.story": "After the Sundering, the forest was wounded and angry. Trees marched on the mortal villages. The hunter Vale offered the forest a cup of rainwater, and the spirit of the woods drank from it. In sharing, they understood one another — and the First Accord was made: the forest would shelter the mortals, and the mortals would never fell a living tree without asking.",
+      "narrative.characters": [
+        "Vale the Hunter",
+        "The Thornwood Spirit"
+      ],
+      "narrative.elements": [
+        "The cup of rainwater",
+        "The first silver leaf"
+      ],
+      "significance.cultural": "Justifies the Thornwood Accord and the Woodfolk's custom of asking the forest's leave before taking anything.",
+      "significance.variations": [
+        "The Woodfolk version features the Thornfolk Elder instead of a human hunter"
+      ],
+      "significance.truth": "Historians believe a real treaty was signed near the Heart Grove; the magical details are likely embellishment."
+    }
+  },
+  {
+    "elementId": "geo-starfall",
+    "schemaId": "geographic-feature-v1",
+    "data": {
+      "description": "A towering mountain range that marks the eastern border of Eldoria, rich in moonsilver and legend.",
+      "name": "Starfall Mountains",
+      "type": "Mountain",
+      "location": "Eastern Eldoria, beneath the floating Cloudspire Academy",
+      "size": "Over 800 km of peaks, tallest over 6,000 m",
+      "significance": "Source of moonsilver and home to Ironhold and the dwarf clans",
+      "summary": "The jagged range that divides Eldoria from the wastes beyond. Its peaks catch the first light of the moon.",
+      "description.appearance": "Steep granite peaks dusted with glittering moonsilver veins that shine at night like fallen stars.",
+      "description.character": "Harsh and dangerous: rockslides, thin air, and snowstorms that come without warning. The lower slopes are rich in game and ore.",
+      "description.features": [
+        "The Great Forge (a natural chimney of hot air)",
+        "The Moonfall Pass",
+        "The abandoned Dwarf Road"
+      ],
+      "significance.cultural": "Sacred to the dwarf clans; the Church of the Silver Moon believes Lunara's tears fell here to form the moonsilver veins.",
+      "significance.resources": [
+        "Moonsilver",
+        "Iron ore",
+        "Hot springs"
+      ],
+      "significance.notes": "Cloudspire Academy floats above the highest peak, accessible by magic or airship."
+    }
+  },
+  {
+    "elementId": "region-vales",
+    "schemaId": "region-v1",
+    "data": {
+      "description": "The fertile, river-laced lowlands of central Eldoria where most of the realm's people live.",
+      "name": "The Silver Vales",
+      "type": "Region",
+      "climate": "Temperate with soft, misty winters",
+      "terrain": "Rolling hills, river valleys, and scattered woodland",
+      "population": "Around 400,000",
+      "summary": "The heartland of Eldoria — farmland, market towns, and the quiet rivers that carry its trade.",
+      "description.overview": "The Vales are the breadbasket of Eldoria: amber wheat in summer, silver mist in autumn, and rivers that never freeze.",
+      "description.features": [
+        "The Moonveil River",
+        "The Silverhollow Vale",
+        "The Thornwood border"
+      ],
+      "description.settlements": [
+        "Silverhollow",
+        "The market towns of the Vales"
+      ],
+      "description.resources": [
+        "Grain",
+        "Timber",
+        "River fish"
+      ],
+      "politics.control": "Mostly under the Crown of Eldoria, with local town councils holding significant autonomy.",
+      "politics.relations": "Tensions with the mountain clans over timber rights; warm relations with Thornwood's guardians.",
+      "politics.notes": "The Vales were the frontline of the Thornwood War.",
+      "history.background": "Settled in the centuries after the Sundering when the forest receded from the lowlands. The Vales have been fought over a dozen times since.",
+      "history.events": [
+        "The Thornwood War",
+        "The founding of Silverhollow",
+        "The Great Fire of 312"
+      ]
+    }
+  },
+  {
+    "elementId": "country-eldoria",
+    "schemaId": "country-v1",
+    "data": {
+      "description": "The foremost human kingdom of the known world, a constitutional monarchy of farms, crafts, and quiet faith.",
+      "name": "Eldoria",
+      "government": "Constitutional Monarchy",
+      "capital": "Silverhollow (disputed — the royal seat is the Castle of Dawn)",
+      "ruler": "Queen Anwen the Steadfast",
+      "population": "Approximately 1.5 million",
+      "motto": "The Dawn Remembers",
+      "summary": "A stable, prosperous kingdom known for craftsmanship, scholarship, and its gentle moonlit faith.",
+      "geography.location": "Central continent, bordered by the Starfall Mountains to the east and Thornwood to the west.",
+      "geography.borders": "Starfall Mountains (east), Thornwood Forest (west), the Frostmarch (north), the Sea of Glass (south).",
+      "geography.terrain": "Rolling vales, river plains, and temperate forests; harsh mountains to the east.",
+      "geography.regions": [
+        "The Silver Vales",
+        "The Starfall Foothills"
+      ],
+      "society.demographics": "Predominantly human; dwarf and half-elf minorities, plus scattered Woodfolk groves.",
+      "society.languages": [
+        "Common",
+        "Forest Tongue"
+      ],
+      "society.religions": [
+        "Church of the Silver Moon",
+        "Old Woodfolk faiths"
+      ],
+      "society.economy": "Grain, crafted goods, and moonsilver trade; Silverhollow is the crafting capital.",
+      "society.culture": "Reserved, courteous, and deeply superstitious about the forest. Festivals honour the moon and the harvest.",
+      "society.military": "A professional standing army of 20,000, plus local militias and the Royal Rangers.",
+      "politics.government": "The Queen rules with the assent of the Assembly of Vales; town councils manage local matters.",
+      "politics.foreignRelations": "Uneasy peace with the mountain clans; an alliance of convenience with Cloudspire Academy.",
+      "politics.factions": [
+        "The Crown Party",
+        "The Assembly of Vales",
+        "The Church of the Silver Moon"
+      ],
+      "politics.laws": "The Charter of Dawn guarantees trial by peers and free movement between towns.",
+      "history.founding": "Founded from the ruins of three pre-Sundering city-states by the first Queen, Elowen the Gatherer.",
+      "history.timeline": [
+        "Founding of Eldoria",
+        "The Thornwood War",
+        "The Moonveil Accord",
+        "The Great Reformation of Cloudspire"
+      ],
+      "history.notes": "The Moonveil Accord, signed 200 years ago, remains the cornerstone of Eldorian foreign policy."
+    }
+  },
+  {
+    "elementId": "settle-ironhold",
+    "schemaId": "settlement-v1",
+    "data": {
+      "description": "The greatest dwarven city of the Starfall Mountains, carved into the mountain itself around the Great Forge.",
+      "name": "Ironhold",
+      "type": "City",
+      "population": "Around 60,000 dwarves",
+      "founded": "Approximately 900 years ago",
+      "status": "Thriving",
+      "summary": "A vast underground city of forges and halls, heart of the Council of Hammers and home of the Stonehart clan.",
+      "geography.location": "Within Mount Starfall, the tallest peak of the range.",
+      "geography.climate": "Constant warm, dry air from the Great Forge.",
+      "geography.terrain": "Carved granite halls, deep mine shafts, and terraced gardens lit by glowing crystal.",
+      "geography.layout": "The Great Forge at the centre, ringed by the Hall of Ancestors, the Merchant Ring, and the residential deeps.",
+      "geography.landmarks": [
+        "The Great Forge",
+        "The Hall of Ancestors",
+        "The Starfall Gate"
+      ],
+      "society.government": "The Forge Master and the Council of Hammers",
+      "society.economy": "Smelting, masterwork weapons, moonsilver jewellery, and the trade in dragon's blood steel.",
+      "society.population": "Mostly dwarves; a small quarter of humans and half-elves who trade or study smithing.",
+      "society.culture": [
+        "The Rite of the Masterwork",
+        "Anvil Day"
+      ],
+      "society.laws": "The Code of the Hammer: no smith may sell flawed work knowingly.",
+      "society.leaders": [
+        "Borin Stonehart"
+      ],
+      "history.founding": "Founded when Karag Hammerfall found the Great Forge, a natural chimney of fire, and built his hall around it.",
+      "history.events": [
+        "The founding by Karag Hammerfall",
+        "The secession of Mira Stonehart"
+      ],
+      "history.notes": "Mira was born here and is still wanted by the Council for leaving without leave."
+    }
+  },
+  {
+    "elementId": "ethnicity-woodfolk",
+    "schemaId": "ethnicity-v1",
+    "data": {
+      "description": "The forest-dwelling people of the Thornwood: herbalists, hunters, and keepers of the old songs.",
+      "name": "The Woodfolk",
+      "region": "Thornwood Forest and its edges",
+      "population": "Around 8,000 scattered in family groves",
+      "languages": [
+        "Forest Tongue",
+        "Common"
+      ],
+      "status": "Minority",
+      "summary": "A reclusive people who live in harmony with the forest. They taught Theron Blackwood the ways of the wood.",
+      "culture.appearance": "Practical leathers and woven bark-cloth, dyed with forest pigments; braided hair adorned with feathers and seeds.",
+      "culture.values": "Reciprocity with nature above all: take only what is given, give back what is taken.",
+      "culture.customs": [
+        "Asking the forest's leave before gathering",
+        "The Midsummer Gathering",
+        "Trading silence: a gift given without words"
+      ],
+      "culture.cuisine": "Root stews, smoked venison, and the celebrated thornberry wine.",
+      "culture.arts": "Wood carving, bone flutes, and songs that mimic the calls of birds.",
+      "culture.family": "Family groves of 20-50; children are raised by the whole grove.",
+      "history.origin": "The Woodfolk descend from the pre-Sundering peoples who sheltered inside the forest during the catastrophe.",
+      "history.relations": "Allies of the Thornfolk; wary but increasingly friendly with Silverhollow after the Thornwood Accord.",
+      "history.notes": "Grandmother Moss, the forest witch who trained Theron, is the eldest known Woodfolk elder."
+    }
+  },
+  {
+    "elementId": "tradition-festival",
+    "schemaId": "tradition-v1",
+    "data": {
+      "description": "Eldoria's most beloved festival: a night of lanterns, feasting, and quiet remembrance held on the first full moon of autumn.",
+      "name": "Festival of the Silver Moon",
+      "type": "Festival",
+      "season": "First full moon of autumn",
+      "significance": "Honours Lunara and the memory of the Accord; marks the harvest's end.",
+      "summary": "The whole realm lights lanterns at dusk and keeps vigil, telling stories of the past year and sharing harvest food.",
+      "practice.participants": "Everyone — the festival is celebrated in every town, village, and grove.",
+      "practice.procedure": "At dusk, every lantern is lit. Families share the harvest feast, then gather in town squares to tell stories. At moonrise, the silver toast is drunk and the night vigils begin.",
+      "practice.items": [
+        "Paper lanterns",
+        "Moonsilver tokens",
+        "Harvest bread"
+      ],
+      "practice.observances": "No work after moonrise. No unkind words about the dead, who are said to walk with Lunara that night.",
+      "history.origin": "Began as a Woodfolk rite of remembrance; adopted realm-wide after the Moonveil Accord as a festival of peace.",
+      "history.variations": [
+        "In Ironhold, the festival becomes the Forge Moon — a night of showing masterworks"
+      ],
+      "history.notes": "Silverhollow's festival is the largest; its lanterns reflect in the Silver Fountain."
+    }
+  },
+  {
+    "elementId": "lang-forest-tongue",
+    "schemaId": "language-v1",
+    "data": {
+      "description": "The lyrical language of the Thornwood, spoken by Woodfolk, Thornfolk, and many rangers.",
+      "name": "Forest Tongue",
+      "family": "Sylvan-derived",
+      "script": "Runemark (carved) — rarely written, usually sung",
+      "speakers": "Around 10,000 fluent speakers",
+      "status": "Living",
+      "summary": "A soft, tonal language designed for quiet speech and song. It has no word for \"war\" — only \"the long disagreement\".",
+      "phonology.consonants": "Soft stops and liquids; no harsh fricatives. Sounds resemble rustling leaves and flowing water.",
+      "phonology.vowels": "Five vowels, each with a tonal variant that changes meaning.",
+      "phonology.tones": "Meaning shifts with tone: a falling tone is a statement, a rising tone a question, a wavering tone a feeling.",
+      "phonology.notes": "Whispering is considered proper for strangers; only family speaks at full voice.",
+      "grammar.structure": "Verb-final (SOV), like many Sylvan languages.",
+      "grammar.nouns": "Three genders: leaf, stone, and wind. Nouns change with the season spoken in.",
+      "grammar.verbs": "Verbs conjugate by the speaker's relationship to the listener, not by tense alone.",
+      "grammar.notes": "The \"gift tense\" is used when offering something; refusing a gift tense sentence is a grave insult.",
+      "vocabulary.words": [
+        "Ashala — the quiet between two friends",
+        "Mirren — the moment leaves turn in autumn"
+      ],
+      "vocabulary.phrases": [
+        "\"The forest remembers your name\" — a greeting of respect",
+        "\"The long disagreement\" — euphemism for war"
+      ],
+      "vocabulary.naming": "Names are two syllables: a nature-word and a relation-word (e.g., Ash-mir, \"quiet autumn\")."
+    }
+  },
+  {
+    "elementId": "conflict-thornwar",
+    "schemaId": "conflict-v1",
+    "data": {
+      "description": "A four-year war between Eldoria and the mountain clans over the timber of the eastern woods. Ended by the Moonveil Accord.",
+      "name": "The Thornwood War",
+      "type": "War",
+      "startDate": "1215 M.R. (Moonveil Reckoning)",
+      "endDate": "1219 M.R.",
+      "status": "Concluded",
+      "outcome": "Stalemate resolved by the Moonveil Accord",
+      "summary": "Fought over logging rights in the eastern woods, the war devastated the border vales before peace was brokered at Cloudspire.",
+      "causes.causes": [
+        "Eldorian over-logging of the eastern woods",
+        "The mountain clans' demand for timber to fuel the forges"
+      ],
+      "causes.factions": [
+        "The Crown of Eldoria",
+        "The Council of Hammers",
+        "The Forest Guardians (Woodfolk and Thornfolk)"
+      ],
+      "causes.stakes": "Control of the eastern timberlands and the moonsilver trade routes.",
+      "course.majorEvents": [
+        "The Burning of the Vales",
+        "The Battle of Moonfall Pass",
+        "The Siege of Silverhollow",
+        "The Cloudspire Peace Talks"
+      ],
+      "course.tactics": "Scorched-earth campaigns by the clans; defensive guerilla warfare by the forest guardians.",
+      "course.casualties": "Over 30,000 soldiers and civilians; the eastern vales were left fallow for a decade.",
+      "aftermath.consequences": [
+        "The Moonveil Accord",
+        "The founding of the Ranger Corps",
+        "A lasting peace between Eldoria and the clans"
+      ],
+      "aftermath.treaties": "The Moonveil Accord (1219 M.R.) — signed at Cloudspire Academy, brokered by the Archmage Council.",
+      "aftermath.legacy": "Theron Blackwood deserted during this war; the scars of it still shape border politics."
+    }
+  },
+  {
+    "elementId": "event-accord",
+    "schemaId": "event-v1",
+    "data": {
+      "description": "The treaty that ended the Thornwood War, signed at Cloudspire Academy before the Archmage Council.",
+      "name": "Signing of the Moonveil Accord",
+      "type": "Treaty",
+      "date": "1219 M.R., 6th Moon, 1st Night",
+      "duration": "Fourteen days of negotiation",
+      "location": "Cloudspire Academy, Grand Hall",
+      "summary": "The peace treaty between Eldoria and the mountain clans, brokered by the Archmage Council. It established the Ranger Corps and the timber quotas.",
+      "details.description": "After four years of war, the Archmage Council invited both sides to neutral ground at Cloudspire. Queen Anwen's grandmother and Forge Master Borin's predecessor signed under the witness of the moon.",
+      "details.participants": [
+        "Queen Elara II of Eldoria",
+        "Forge Master Durnin Ironhand",
+        "The Archmage Council"
+      ],
+      "details.causes": [
+        "War exhaustion",
+        "The ruin of the eastern vales",
+        "The forest guardians' refusal to back either side"
+      ],
+      "details.consequences": [
+        "The Ranger Corps founded",
+        "Timber quotas established",
+        "Fifty years of peace"
+      ],
+      "significance.impact": "Ended the deadliest war of the century and created the institutions that still keep the peace.",
+      "significance.remembered": "Commemorated by the Festival of the Silver Moon and the annual Ranger Oath."
+    }
+  },
+  {
+    "elementId": "item-moonblade",
+    "schemaId": "wb-item-v1",
+    "data": {
+      "description": "A slender, crescent-shaped blade that glows softly under moonlight. The pommel holds a starfall crystal that hums faintly.",
+      "name": "Moonblade of Lunara",
+      "type": "Artifact",
+      "rarity": "Legendary",
+      "materials": "Moonsilver, starfall crystal",
+      "value": "Priceless — royal heirloom",
+      "owner": "The Crown of Eldoria (displayed at the Castle of Dawn)",
+      "origin.created": "Unknown; dated to the founding of Eldoria",
+      "origin.creator": "Attributed to the dwarf smith Karag Hammerfall, blessed by Lunara",
+      "origin.history": "Carried by Queen Elowen the Gatherer during the founding wars. It has never drawn blood in anger — tradition holds it is a blade of witness, not war.",
+      "uses.purpose": "Ceremonial and symbolic: used at coronations and the signing of treaties.",
+      "uses.properties": [
+        "Glows under moonlight",
+        "Reveals truth spoken in its light",
+        "Cannot be lifted by one who has broken an oath"
+      ],
+      "uses.effects": "In moonlight, it whispers the true name of any oathbreaker present.",
+      "variants.related": [
+        "The Moonblade's scabbard, the Silver Sheath"
+      ],
+      "variants.notes": "A copy hangs in the Moon Temple of Silverhollow; the true blade remains with the Crown."
+    }
+  },
+  {
+    "elementId": "mat-moonsilver",
+    "schemaId": "material-v1",
+    "data": {
+      "description": "A pale, luminous metal that only occurs in the Starfall Mountains. It holds enchantment better than any other known material.",
+      "name": "Moonsilver",
+      "type": "Metal",
+      "rarity": "Rare",
+      "origin": "Veins in the Starfall Mountains, believed to be Lunara's tears",
+      "summary": "A light, durable silver metal that glows faintly in the dark. The finest material for enchanted items.",
+      "properties.hardness": "Comparable to steel, but lighter and never tarnishes",
+      "properties.density": "About a third lighter than steel",
+      "properties.magical": "Retains enchantments perfectly; resonates with moonlight, making lunar magic more potent",
+      "properties.reactivity": "Reacts violently to dragon's blood — a trade secret of the dwarf smiths",
+      "properties.other": "Cold to the touch even in summer; whistles softly when struck",
+      "uses.applications": [
+        "Enchanted weapons",
+        "Temple bells",
+        "Royal regalia",
+        "The Moonblade of Lunara"
+      ],
+      "uses.trade": "The Council of Hammers controls most mines; a single ingot buys a year of a family's living.",
+      "uses.cultural": "Sacred to the Church of the Silver Moon; moonsilver tokens are exchanged as vows.",
+      "sources.locations": [
+        "Starfall Mountains",
+        "The abandoned Dwarf Road"
+      ],
+      "sources.extraction": "Mined in narrow veins; the extraction is dangerous and slow, which keeps the price high."
+    }
+  },
+  {
+    "elementId": "tech-cloudrunners",
+    "schemaId": "technology-v1",
+    "data": {
+      "description": "Enchanted airships that ride the wind using levitation crystals and great silk sails. The pride of Cloudspire Academy.",
+      "name": "Cloud Runners",
+      "field": "Transportation",
+      "era": "In use for the last 200 years",
+      "inventors": "The Archmage Council of Cloudspire Academy",
+      "summary": "Sleek airships built around levitation crystals, used for trade, mail, and the defence of the academy.",
+      "principles.howItWorks": "A levitation crystal is set in the keel and keyed to the captain's voice. The crystal lifts the hull; enchanted sails catch both wind and ambient magic for thrust.",
+      "principles.components": [
+        "Levitation crystal",
+        "Enchanted silk sails",
+        "Moonsteel rigging"
+      ],
+      "principles.materials": [
+        "Moonsilver",
+        "Starfall crystal",
+        "Silk from the eastern looms"
+      ],
+      "applications.uses": [
+        "Passenger trade between cities",
+        "Royal mail",
+        "Cloudspire defence patrols"
+      ],
+      "applications.impact": "Cut travel time across Eldoria from weeks to days and made Cloudspire truly unreachable except by air.",
+      "applications.limitations": [
+        "Cannot fly in the Dead Hollows",
+        "Crystal must be re-keyed each generation",
+        "Expensive — fewer than thirty exist"
+      ],
+      "history.discovery": "Discovered when an apprentice mage accidentally levitated a lecture hall. The Archmage Council spent fifty years perfecting the design.",
+      "history.milestones": [
+        "First flight across the Moonfall Pass",
+        "The Starwing's record voyage to the Sea of Glass"
+      ]
+    }
+  },
+  {
+    "elementId": "cond-moonmadness",
+    "schemaId": "condition-v1",
+    "data": {
+      "description": "A rare affliction of those who sleep beneath the full moon in places where the Weave is knotted. Twisted dreams, luminous eyes, and a craving for moonlight.",
+      "name": "Moon Madness",
+      "type": "Affliction",
+      "origin": "Magical — exposure to knotted Weave under a full moon",
+      "contagious": false,
+      "rarity": "Rare",
+      "summary": "Sufferers sleepwalk by moonlight, speak in riddles, and slowly forget their own names. The Church of the Silver Moon considers it a blessing of Lunara; physicians disagree.",
+      "effects.symptoms": [
+        "Luminous silver eyes",
+        "Nocturnal wandering",
+        "Speech in riddles and prophecy",
+        "Progressive memory loss"
+      ],
+      "effects.stages": [
+        "First phase: vivid dreams and sleeplessness",
+        "Second phase: sleepwalking and riddle-speech",
+        "Third phase: full loss of identity"
+      ],
+      "effects.duration": "Permanent unless treated within the first month",
+      "causes.causes": [
+        "Sleeping under a full moon in a Weave knot",
+        "Drinking water that fell as moonlight (debated)"
+      ],
+      "causes.transmission": "Not contagious, but some believe it can be \"caught\" by sharing a sufferer's dreams.",
+      "causes.treatment": "The Moonwater Blessing of the Church of the Silver Moon is the only known cure; it must be administered before the second phase.",
+      "history.background": "Cases spike after the Festival of the Silver Moon. The Church maintains a sanatorium in Silverhollow for the incurable.",
+      "history.notableCases": [
+        "The Poet of Moonfall Pass, who wrote his best work in the second phase"
+      ]
+    }
+  },
+  {
+    "elementId": "prof-ranger",
+    "schemaId": "profession-v1",
+    "data": {
+      "description": "The guardians of Eldoria's wilds: trackers, wardens, and the first line of defence against the forest's dangers.",
+      "name": "Forest Ranger",
+      "field": "Protection / Wilderness",
+      "status": "Middle Class",
+      "demand": "Always in demand",
+      "summary": "Rangers patrol the forests and borders, enforce the timber quotas, guide travellers, and keep the peace between town and wild.",
+      "duties.description": "Rangers walk the old paths, maintain watchtowers, track poachers and monsters, and serve as the Crown's eyes in the wild.",
+      "duties.skills": [
+        "Tracking",
+        "Archery",
+        "Survival",
+        "First aid",
+        "Forest law"
+      ],
+      "duties.tools": [
+        "Longbow",
+        "Hunting knife",
+        "Warden's badge",
+        "Healer's kit"
+      ],
+      "duties.dangers": [
+        "Wild beasts",
+        "Poachers' ambushes",
+        "Weave knots that trap travellers"
+      ],
+      "training.requirements": "Must pass the Ranger Trials: a week alone in the forest with nothing but a knife and a bow.",
+      "training.path": "Two years as an apprentice ranger under a senior warden, then the Trials.",
+      "training.guilds": [
+        "The Ranger Corps (founded by the Moonveil Accord)"
+      ],
+      "notables.practitioners": [
+        "Theron Blackwood"
+      ],
+      "notables.notes": "Theron is the de facto warden of Thornwood, though he holds no official rank."
+    }
+  },
+  {
+    "elementId": "title-guardian",
+    "schemaId": "title-v1",
+    "data": {
+      "description": "The title given to the protector of Thornwood Forest, held by Theron Blackwood since the death of Grandmother Moss.",
+      "name": "Guardian of Thornwood",
+      "rank": "High — second only to the forest spirits themselves",
+      "grantedBy": "The Thornfolk Elders, with the blessing of the Woodfolk",
+      "precedence": "Outranks all Eldorian titles within the forest's bounds",
+      "origin": "An ancient title, as old as the First Accord",
+      "summary": "The Guardian is the mortal voice of the forest: part warden, part ambassador, part myth.",
+      "privileges.privileges": [
+        "Right to speak for the forest",
+        "Immunity from Eldorian law within the forest",
+        "The forest's protection"
+      ],
+      "privileges.obligations": [
+        "Protect all who dwell in Thornwood",
+        "Keep the old songs",
+        "Never harm a living tree"
+      ],
+      "privileges.address": "\"Warden\" or \"Keeper of the Wood\"",
+      "history.conferral": "Passed when the previous Guardian dies or the forest chooses a new one. The choosing is a mystery — the Elders simply know.",
+      "history.holders": [
+        "Grandmother Moss",
+        "Theron Blackwood (current)"
+      ],
+      "history.notes": "Theron was chosen after saving the Heart Grove from a logging expedition — a deed the forest remembered."
+    }
+  },
+  {
+    "elementId": "vehicle-starwing",
+    "schemaId": "vehicle-v1",
+    "data": {
+      "description": "The fastest Cloud Runner ever built, used for royal mail and the annual Cloudspire supply run.",
+      "name": "The Starwing",
+      "type": "Airships",
+      "capacity": "12 passengers or 2 tons of cargo",
+      "speed": "Reaches 200 km/h in good winds",
+      "propulsion": "Levitation crystal and enchanted silk sails",
+      "era": "Built 1189 M.R., still in service",
+      "summary": "A sleek, silver-hulled Cloud Runner famous for its record voyage to the Sea of Glass and back in nine days.",
+      "details.crew": "Captain, first mate, and two riggers",
+      "details.cargo": "Mail holds, passenger cabins, and a small galley",
+      "details.armament": "A single storm-lance for defence against sky predators",
+      "details.construction": "Moonsilver frame, silk sails, and a starfall crystal keel-keyed to its captain",
+      "history.notable": [
+        "Record voyage to the Sea of Glass (1189)",
+        "The Moonfall Pass rescue (1196)"
+      ],
+      "history.notes": "The Starwing is the last Cloud Runner captained by a Cloudspire graduate rather than a licensed merchant."
+    }
+  },
+  {
+    "elementId": "planet-aetheria",
+    "schemaId": "planet-v1",
+    "data": {
+      "description": "The world itself — a blue-green planet orbited by two moons, known to the ancients as the Gem of the Firmament.",
+      "name": "Aetheria",
+      "system": "The Sunstone system",
+      "type": "Terrestrial",
+      "size": "Comparable to a mid-sized habitable world",
+      "inhabitants": "Humans, dwarves, elves, Thornfolk, and countless other peoples",
+      "summary": "The planet the known world rests upon, wrapped in the Weave of Arcana and circled by the moons of light and shadow.",
+      "description.terrain": "One great ocean, several continents, and mountain ranges that reach into the clouds.",
+      "description.climate": "Temperate overall, with a long magical winter in the north during the shadow moon's dominance.",
+      "description.ecosystem": "Rich and diverse; magic has shaped life, from the moonshadow fox to the great sky-whales of the southern latitudes.",
+      "description.civilization": "Multiple kingdoms and cultures, bound by trade routes, the Weave, and the memory of the Sundering.",
+      "astronomy.orbit": "Orbits the Sunstone star in 365 days; rotation gives a 24-hour day.",
+      "astronomy.moons": [
+        "Lunara's Moon (silver)",
+        "The Shadow Moon (dark, only visible in the north)"
+      ],
+      "astronomy.notes": "Some scholars believe the Shadow Moon is not a moon at all, but a wound in the sky from the Sundering."
+    }
+  },
+  {
+    "elementId": "plane-verdant",
+    "schemaId": "plane-v1",
+    "data": {
+      "description": "The lush, dreamlike plane of the fey — a reflection of the natural world where the seasons change in days and rivers flow uphill.",
+      "name": "The Verdant Court",
+      "type": "Pocket Dimension",
+      "accessibility": "Reached through rare wild gates beneath ancient trees, or by dreaming in the Heart Grove",
+      "inhabitants": "Fey, Thornfolk dreamers, and the court of the Summer King",
+      "summary": "The fey realm that mirrors the forests of the material world. Time flows strangely here, and every promise made binds the maker.",
+      "nature.physical": "Impossibly lush forests, meadows of singing flowers, and rivers of honeyed water. The land reshapes itself to match the mood of its visitors.",
+      "nature.time": "A day in the Court can be a season outside, or the reverse — the fey keep their own calendar.",
+      "nature.magic": "Magic is wild and free: spells cast here are more powerful but harder to control.",
+      "nature.dangers": [
+        "The forgetting mist",
+        "The Summer King's bargains",
+        "Becoming \"part of the scenery\""
+      ],
+      "inhabitants.societies": "The fey live in loose courts led by the Summer King and the Winter Queen, who trade seasons like currency.",
+      "inhabitants.settlements": [
+        "The Sunken Gardens",
+        "The Court of Whispers"
+      ],
+      "inhabitants.notes": "The Thornfolk believe the Verdant Court is where they go when they stand still too long.",
+      "portals.entrances": [
+        "Wild gates beneath ancient trees",
+        "The Heart Grove of Thornwood",
+        "Certain dreams"
+      ],
+      "portals.rules": "Gates open at the solstices. Entering requires an invitation; leaving requires a promise kept.",
+      "portals.notes": "The Library of Moonveil is sometimes said to be not in the material world at all, but in a forgotten wing of the Court."
     }
   }
 ]

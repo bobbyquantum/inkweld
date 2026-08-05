@@ -22,6 +22,7 @@ import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { type TagDefinition } from '@models/tag.model';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 
 /**
  * A unified selectable item — either an element or a project tag.
@@ -96,6 +97,7 @@ export class TagPickerDialogComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly tagService = inject(TagService);
   private readonly transloco = inject(TranslocoService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
 
   /** Search text */
   readonly searchText = signal('');
@@ -219,24 +221,9 @@ export class TagPickerDialogComponent {
 
   private getTypeIcon(schemaId: string | undefined): string {
     if (!schemaId) return 'category';
-    const base = schemaId.replace(/-v\d+$/, '').toLowerCase();
-    switch (base) {
-      case 'character':
-        return 'person';
-      case 'location':
-        return 'place';
-      case 'item':
-      case 'wb-item':
-        return 'inventory_2';
-      case 'faction':
-        return 'groups';
-      case 'event':
-        return 'event';
-      case 'concept':
-        return 'lightbulb';
-      default:
-        return 'category';
-    }
+    return (
+      this.worldbuildingService.getSchemaById(schemaId)?.icon ?? 'category'
+    );
   }
 
   private getTypeLabel(el: Element): string {

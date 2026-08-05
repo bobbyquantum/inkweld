@@ -287,24 +287,9 @@ export class WorldbuildingElementSelectorComponent implements OnInit {
    * @param schemaId The schema ID (e.g., 'character-v1')
    */
   getTypeIcon(schemaId: string): string {
-    const typeWithoutVersion = schemaId.replace(/-v\d+$/, '');
-    switch (typeWithoutVersion.toLowerCase()) {
-      case 'character':
-        return 'person';
-      case 'location':
-        return 'place';
-      case 'item':
-      case 'wb-item': // Handle wb-item-v1 schema
-        return 'inventory_2';
-      case 'faction':
-        return 'groups';
-      case 'event':
-        return 'event';
-      case 'concept':
-        return 'lightbulb';
-      default:
-        return 'category';
-    }
+    return (
+      this.worldbuildingService.getSchemaById(schemaId)?.icon ?? 'category'
+    );
   }
 
   /**

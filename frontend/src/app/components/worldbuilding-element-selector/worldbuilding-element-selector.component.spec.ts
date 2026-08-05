@@ -19,6 +19,7 @@ describe('WorldbuildingElementSelectorComponent', () => {
   let mockWorldbuildingService: {
     getIdentityData: ReturnType<typeof vi.fn>;
     getWorldbuildingData: ReturnType<typeof vi.fn>;
+    getSchemaById: ReturnType<typeof vi.fn>;
   };
   let mockDialog: {
     open: ReturnType<typeof vi.fn>;
@@ -84,6 +85,18 @@ describe('WorldbuildingElementSelectorComponent', () => {
       getWorldbuildingData: vi.fn().mockResolvedValue({
         occupation: 'Knight',
         age: 25,
+      }),
+      getSchemaById: vi.fn().mockImplementation((schemaId: string) => {
+        const icons: Record<string, string> = {
+          'character-v1': 'person',
+          'location-v1': 'place',
+          'wb-item-v1': 'inventory_2',
+          'species-v1': 'pets',
+          'faction-v1': 'groups',
+          'event-v1': 'event',
+          'concept-v1': 'lightbulb',
+        };
+        return icons[schemaId] ? { icon: icons[schemaId] } : null;
       }),
     };
 
@@ -281,16 +294,16 @@ describe('WorldbuildingElementSelectorComponent', () => {
     expect(dialogData.excludeIds).toContain('char-1');
   });
 
-  it('should return correct type icons', () => {
+  it('should return correct type icons from the schema library', () => {
     // Test with schemaId format (e.g., 'character-v1')
     expect(component.getTypeIcon('character-v1')).toBe('person');
     expect(component.getTypeIcon('location-v1')).toBe('place');
     expect(component.getTypeIcon('wb-item-v1')).toBe('inventory_2');
     expect(component.getTypeIcon('faction-v1')).toBe('groups');
     expect(component.getTypeIcon('unknown-v1')).toBe('category');
-    // Also test without version suffix
-    expect(component.getTypeIcon('character')).toBe('person');
-    expect(component.getTypeIcon('location')).toBe('place');
+    // New element types resolve their configured icon
+    expect(component.getTypeIcon('species-v1')).toBe('pets');
+    expect(component.getTypeIcon('deity-v1')).toBe('category');
     // Cover remaining icon types
     expect(component.getTypeIcon('event-v1')).toBe('event');
     expect(component.getTypeIcon('concept-v1')).toBe('lightbulb');
