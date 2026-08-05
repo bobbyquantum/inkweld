@@ -12,13 +12,19 @@
         {
           "type": "paragraph",
           "content": [
-            { "type": "text", "text": "This project comes pre-configured with worldbuilding templates and relationship types to help you build your world." }
+            { "type": "text", "text": "This project comes pre-configured with 29 worldbuilding element types and 54 relationship types to help you build your world." }
           ]
         },
         {
           "type": "heading",
           "attrs": { "level": 2 },
-          "content": [{ "type": "text", "text": "Included Templates" }]
+          "content": [{ "type": "text", "text": "Element Types" }]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Create an element by right-clicking a folder and choosing \"New Worldbuilding Entry\". The built-in types include:" }
+          ]
         },
         {
           "type": "bullet_list",
@@ -28,7 +34,7 @@
               "content": [
                 {
                   "type": "paragraph",
-                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Character" }, { "type": "text", "text": " - Create detailed character profiles with appearance, personality, and background" }]
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Character" }, { "type": "text", "text": " - detailed profiles with appearance, personality, background, abilities, and an optional Deity tab" }]
                 }
               ]
             },
@@ -37,7 +43,7 @@
               "content": [
                 {
                   "type": "paragraph",
-                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Location" }, { "type": "text", "text": " - Document places with culture, history, and geography" }]
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Location" }, { "type": "text", "text": " - general places; also see Building, Settlement, Region, Country, Landmark, Planet, Plane" }]
                 }
               ]
             },
@@ -46,7 +52,61 @@
               "content": [
                 {
                   "type": "paragraph",
-                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Item" }, { "type": "text", "text": " - Catalog objects, artifacts, and other items" }]
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Item" }, { "type": "text", "text": " - objects, artifacts, weapons, food, currency, and the general-purpose fallback" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Species" }, { "type": "text", "text": " - plants, animals, and sapient races with appearance, behaviour, and culture" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Organization" }, { "type": "text", "text": " - countries, governments, religions, guilds, companies, and clans" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Deity" }, { "type": "text", "text": " - gods and goddesses with domains, worship, and divine relations" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Magic System" }, { "type": "text", "text": " - rules and mechanics of magic; pair with Spell entries" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Language" }, { "type": "text", "text": " - conlangs with phonology, grammar, and vocabulary" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "And 20 more" }, { "type": "text", "text": " - Technology, Material, Spell, Condition, Profession, Title, Tradition, Ethnicity, Conflict, Event, Myth, Lore, Vehicle, and more" }]
                 }
               ]
             }
@@ -65,7 +125,7 @@
               "content": [
                 {
                   "type": "paragraph",
-                  "content": [{ "type": "text", "text": "Right-click in the sidebar to create characters, locations, or other worldbuilding elements" }]
+                  "content": [{ "type": "text", "text": "Right-click in the sidebar to create characters, locations, or any other worldbuilding element" }]
                 }
               ]
             },

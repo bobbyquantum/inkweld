@@ -22,6 +22,7 @@ import { type Element } from '@inkweld/model/element';
 import { type ElementType } from '@inkweld/model/element-type';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 
 /**
  * Dialog data for element picker
@@ -74,6 +75,7 @@ export class ElementPickerDialogComponent {
   private readonly data = inject<ElementPickerDialogData>(MAT_DIALOG_DATA);
   private readonly projectState = inject(ProjectStateService);
   private readonly transloco = inject(TranslocoService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
 
   /** Search text */
   readonly searchText = signal('');
@@ -186,25 +188,9 @@ export class ElementPickerDialogComponent {
    */
   getTypeIcon(schemaId: string | undefined): string {
     if (!schemaId) return 'category';
-
-    const typeWithoutVersion = schemaId.replace(/-v\d+$/, '');
-    switch (typeWithoutVersion.toLowerCase()) {
-      case 'character':
-        return 'person';
-      case 'location':
-        return 'place';
-      case 'item':
-      case 'wb-item':
-        return 'inventory_2';
-      case 'faction':
-        return 'groups';
-      case 'event':
-        return 'event';
-      case 'concept':
-        return 'lightbulb';
-      default:
-        return 'category';
-    }
+    return (
+      this.worldbuildingService.getSchemaById(schemaId)?.icon ?? 'category'
+    );
   }
 
   /**

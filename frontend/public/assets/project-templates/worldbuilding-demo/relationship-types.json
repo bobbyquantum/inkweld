@@ -7,8 +7,12 @@
     "category": "Reference",
     "icon": "link",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": [] },
-    "targetEndpoint": { "allowedSchemas": [] }
+    "sourceEndpoint": {
+      "allowedSchemas": []
+    },
+    "targetEndpoint": {
+      "allowedSchemas": []
+    }
   },
   {
     "id": "mentioned",
@@ -18,8 +22,12 @@
     "category": "Reference",
     "icon": "chat",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": [] },
-    "targetEndpoint": { "allowedSchemas": [] }
+    "sourceEndpoint": {
+      "allowedSchemas": []
+    },
+    "targetEndpoint": {
+      "allowedSchemas": []
+    }
   },
   {
     "id": "parent",
@@ -29,8 +37,18 @@
     "category": "Familial",
     "icon": "family_restroom",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"], "maxCount": null },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"], "maxCount": 2 }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ],
+      "maxCount": null
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ],
+      "maxCount": 2
+    }
   },
   {
     "id": "mother",
@@ -40,8 +58,18 @@
     "category": "Familial",
     "icon": "face_3",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"], "maxCount": null },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"], "maxCount": 1 }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ],
+      "maxCount": null
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ],
+      "maxCount": 1
+    }
   },
   {
     "id": "father",
@@ -51,8 +79,18 @@
     "category": "Familial",
     "icon": "face",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"], "maxCount": null },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"], "maxCount": 1 }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ],
+      "maxCount": null
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ],
+      "maxCount": 1
+    }
   },
   {
     "id": "sibling",
@@ -62,8 +100,16 @@
     "category": "Familial",
     "icon": "people",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    }
   },
   {
     "id": "brother",
@@ -73,8 +119,16 @@
     "category": "Familial",
     "icon": "face",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    }
   },
   {
     "id": "sister",
@@ -84,8 +138,16 @@
     "category": "Familial",
     "icon": "face_3",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    }
   },
   {
     "id": "spouse",
@@ -95,8 +157,16 @@
     "category": "Familial",
     "icon": "favorite",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    }
   },
   {
     "id": "ancestor",
@@ -106,8 +176,16 @@
     "category": "Familial",
     "icon": "account_tree",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    }
   },
   {
     "id": "employer",
@@ -117,8 +195,30 @@
     "category": "Professional",
     "icon": "business",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1", "location-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "country-v1",
+        "location-v1",
+        "building-v1",
+        "settlement-v1",
+        "geographic-feature-v1",
+        "region-v1",
+        "country-v1",
+        "landmark-v1",
+        "planet-v1",
+        "plane-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    }
   },
   {
     "id": "colleague",
@@ -128,8 +228,22 @@
     "category": "Professional",
     "icon": "groups",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    }
   },
   {
     "id": "mentor",
@@ -139,8 +253,22 @@
     "category": "Professional",
     "icon": "school",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    }
   },
   {
     "id": "member-of",
@@ -150,8 +278,22 @@
     "category": "Professional",
     "icon": "badge",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": [] },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "organization-v1",
+        "country-v1",
+        "ethnicity-v1",
+        "deity-v1"
+      ]
+    }
   },
   {
     "id": "leader",
@@ -161,8 +303,29 @@
     "category": "Professional",
     "icon": "military_tech",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": [] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "organization-v1",
+        "country-v1",
+        "location-v1",
+        "building-v1",
+        "settlement-v1",
+        "geographic-feature-v1",
+        "region-v1",
+        "country-v1",
+        "landmark-v1",
+        "planet-v1",
+        "plane-v1"
+      ]
+    }
   },
   {
     "id": "friend",
@@ -172,8 +335,22 @@
     "category": "Social",
     "icon": "handshake",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    }
   },
   {
     "id": "enemy",
@@ -183,8 +360,22 @@
     "category": "Social",
     "icon": "swords",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    }
   },
   {
     "id": "ally",
@@ -194,8 +385,22 @@
     "category": "Social",
     "icon": "shield",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    }
   },
   {
     "id": "rival",
@@ -205,8 +410,22 @@
     "category": "Social",
     "icon": "sports_martial_arts",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    }
   },
   {
     "id": "romantic-interest",
@@ -216,8 +435,16 @@
     "category": "Social",
     "icon": "heart_broken",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    }
   },
   {
     "id": "located-in",
@@ -227,8 +454,59 @@
     "category": "Spatial",
     "icon": "place",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": [] },
-    "targetEndpoint": { "allowedSchemas": ["location-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "location-v1",
+        "wb-item-v1",
+        "species-v1",
+        "organization-v1",
+        "deity-v1",
+        "language-v1",
+        "material-v1",
+        "technology-v1",
+        "magic-system-v1",
+        "spell-v1",
+        "condition-v1",
+        "profession-v1",
+        "title-v1",
+        "tradition-v1",
+        "ethnicity-v1",
+        "conflict-v1",
+        "myth-v1",
+        "vehicle-v1",
+        "event-v1",
+        "lore-v1",
+        "building-v1",
+        "settlement-v1",
+        "geographic-feature-v1",
+        "region-v1",
+        "country-v1",
+        "landmark-v1",
+        "planet-v1",
+        "plane-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "location-v1",
+        "building-v1",
+        "settlement-v1",
+        "geographic-feature-v1",
+        "region-v1",
+        "country-v1",
+        "landmark-v1",
+        "planet-v1",
+        "plane-v1",
+        "location-v1",
+        "settlement-v1",
+        "region-v1",
+        "country-v1",
+        "building-v1",
+        "planet-v1",
+        "plane-v1"
+      ]
+    }
   },
   {
     "id": "lives-in",
@@ -238,8 +516,25 @@
     "category": "Spatial",
     "icon": "home",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["location-v1"], "maxCount": 1 }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "location-v1",
+        "settlement-v1",
+        "region-v1",
+        "country-v1",
+        "building-v1",
+        "planet-v1",
+        "plane-v1"
+      ]
+    }
   },
   {
     "id": "originated-from",
@@ -249,8 +544,44 @@
     "category": "Spatial",
     "icon": "flag",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1", "wb-item-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["location-v1"], "maxCount": 1 }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1",
+        "wb-item-v1",
+        "material-v1",
+        "technology-v1",
+        "spell-v1",
+        "lore-v1",
+        "building-v1",
+        "landmark-v1",
+        "vehicle-v1",
+        "tradition-v1",
+        "myth-v1",
+        "event-v1",
+        "conflict-v1",
+        "magic-system-v1",
+        "condition-v1",
+        "profession-v1",
+        "title-v1",
+        "language-v1",
+        "ethnicity-v1",
+        "species-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "location-v1",
+        "settlement-v1",
+        "region-v1",
+        "country-v1",
+        "building-v1",
+        "planet-v1",
+        "plane-v1"
+      ]
+    }
   },
   {
     "id": "adjacent-to",
@@ -260,8 +591,32 @@
     "category": "Spatial",
     "icon": "compare_arrows",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["location-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["location-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "location-v1",
+        "building-v1",
+        "settlement-v1",
+        "geographic-feature-v1",
+        "region-v1",
+        "country-v1",
+        "landmark-v1",
+        "planet-v1",
+        "plane-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "location-v1",
+        "building-v1",
+        "settlement-v1",
+        "geographic-feature-v1",
+        "region-v1",
+        "country-v1",
+        "landmark-v1",
+        "planet-v1",
+        "plane-v1"
+      ]
+    }
   },
   {
     "id": "happened-before",
@@ -271,8 +626,12 @@
     "category": "Temporal",
     "icon": "history",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": [] },
-    "targetEndpoint": { "allowedSchemas": [] }
+    "sourceEndpoint": {
+      "allowedSchemas": []
+    },
+    "targetEndpoint": {
+      "allowedSchemas": []
+    }
   },
   {
     "id": "caused",
@@ -282,8 +641,12 @@
     "category": "Temporal",
     "icon": "bolt",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": [] },
-    "targetEndpoint": { "allowedSchemas": [] }
+    "sourceEndpoint": {
+      "allowedSchemas": []
+    },
+    "targetEndpoint": {
+      "allowedSchemas": []
+    }
   },
   {
     "id": "contemporary",
@@ -293,8 +656,12 @@
     "category": "Temporal",
     "icon": "schedule",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": [] },
-    "targetEndpoint": { "allowedSchemas": [] }
+    "sourceEndpoint": {
+      "allowedSchemas": []
+    },
+    "targetEndpoint": {
+      "allowedSchemas": []
+    }
   },
   {
     "id": "owns",
@@ -304,8 +671,35 @@
     "category": "Ownership",
     "icon": "inventory_2",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["wb-item-v1", "location-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1",
+        "country-v1",
+        "ethnicity-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "wb-item-v1",
+        "vehicle-v1",
+        "material-v1",
+        "technology-v1",
+        "building-v1",
+        "landmark-v1",
+        "location-v1",
+        "building-v1",
+        "settlement-v1",
+        "geographic-feature-v1",
+        "region-v1",
+        "country-v1",
+        "landmark-v1",
+        "planet-v1",
+        "plane-v1"
+      ]
+    }
   },
   {
     "id": "created",
@@ -315,8 +709,37 @@
     "category": "Ownership",
     "icon": "construction",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["wb-item-v1"] }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "wb-item-v1",
+        "material-v1",
+        "technology-v1",
+        "spell-v1",
+        "lore-v1",
+        "building-v1",
+        "landmark-v1",
+        "vehicle-v1",
+        "tradition-v1",
+        "myth-v1",
+        "event-v1",
+        "conflict-v1",
+        "magic-system-v1",
+        "condition-v1",
+        "profession-v1",
+        "title-v1",
+        "language-v1",
+        "ethnicity-v1",
+        "species-v1"
+      ]
+    }
   },
   {
     "id": "wields",
@@ -326,7 +749,635 @@
     "category": "Ownership",
     "icon": "gavel",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
-    "targetEndpoint": { "allowedSchemas": ["wb-item-v1"], "maxCount": 1 }
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "wb-item-v1"
+      ]
+    }
+  },
+  {
+    "id": "governed-by",
+    "name": "Governed by",
+    "inverseLabel": "Governs",
+    "showInverse": true,
+    "category": "Political",
+    "icon": "account_balance",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "organization-v1",
+        "country-v1",
+        "settlement-v1",
+        "region-v1",
+        "building-v1",
+        "landmark-v1",
+        "planet-v1",
+        "plane-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "organization-v1",
+        "country-v1"
+      ]
+    }
+  },
+  {
+    "id": "capital-of",
+    "name": "Capital of",
+    "inverseLabel": "Has capital",
+    "showInverse": true,
+    "category": "Political",
+    "icon": "location_city",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "settlement-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "country-v1",
+        "organization-v1"
+      ]
+    }
+  },
+  {
+    "id": "subordinate-to",
+    "name": "Subordinate to",
+    "inverseLabel": "Commands",
+    "showInverse": true,
+    "category": "Political",
+    "icon": "south_west",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "organization-v1",
+        "country-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "organization-v1",
+        "country-v1"
+      ]
+    }
+  },
+  {
+    "id": "at-war-with",
+    "name": "At war with",
+    "inverseLabel": "At war with",
+    "showInverse": true,
+    "category": "Conflict",
+    "icon": "swords",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "organization-v1",
+        "country-v1",
+        "ethnicity-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "organization-v1",
+        "country-v1",
+        "ethnicity-v1"
+      ]
+    }
+  },
+  {
+    "id": "allied-with",
+    "name": "Allied with",
+    "inverseLabel": "Allied with",
+    "showInverse": true,
+    "category": "Political",
+    "icon": "handshake",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "organization-v1",
+        "country-v1",
+        "ethnicity-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "organization-v1",
+        "country-v1",
+        "ethnicity-v1"
+      ]
+    }
+  },
+  {
+    "id": "part-of",
+    "name": "Part of",
+    "inverseLabel": "Contains",
+    "showInverse": true,
+    "category": "Political",
+    "icon": "account_tree",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "location-v1",
+        "wb-item-v1",
+        "species-v1",
+        "organization-v1",
+        "deity-v1",
+        "language-v1",
+        "material-v1",
+        "technology-v1",
+        "magic-system-v1",
+        "spell-v1",
+        "condition-v1",
+        "profession-v1",
+        "title-v1",
+        "tradition-v1",
+        "ethnicity-v1",
+        "conflict-v1",
+        "myth-v1",
+        "vehicle-v1",
+        "event-v1",
+        "lore-v1",
+        "building-v1",
+        "settlement-v1",
+        "geographic-feature-v1",
+        "region-v1",
+        "country-v1",
+        "landmark-v1",
+        "planet-v1",
+        "plane-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "location-v1",
+        "wb-item-v1",
+        "species-v1",
+        "organization-v1",
+        "deity-v1",
+        "language-v1",
+        "material-v1",
+        "technology-v1",
+        "magic-system-v1",
+        "spell-v1",
+        "condition-v1",
+        "profession-v1",
+        "title-v1",
+        "tradition-v1",
+        "ethnicity-v1",
+        "conflict-v1",
+        "myth-v1",
+        "vehicle-v1",
+        "event-v1",
+        "lore-v1",
+        "building-v1",
+        "settlement-v1",
+        "geographic-feature-v1",
+        "region-v1",
+        "country-v1",
+        "landmark-v1",
+        "planet-v1",
+        "plane-v1"
+      ]
+    }
+  },
+  {
+    "id": "worships",
+    "name": "Worships",
+    "inverseLabel": "Worshipped by",
+    "showInverse": true,
+    "category": "Religious",
+    "icon": "church",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "country-v1",
+        "ethnicity-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "deity-v1"
+      ]
+    }
+  },
+  {
+    "id": "worshipped-at",
+    "name": "Worshipped at",
+    "inverseLabel": "Site of worship",
+    "showInverse": true,
+    "category": "Religious",
+    "icon": "temple_buddhist",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "deity-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "location-v1",
+        "building-v1",
+        "settlement-v1",
+        "landmark-v1"
+      ]
+    }
+  },
+  {
+    "id": "subspecies-of",
+    "name": "Subspecies of",
+    "inverseLabel": "Parent species",
+    "showInverse": true,
+    "category": "Biological",
+    "icon": "account_tree",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "species-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "species-v1"
+      ]
+    }
+  },
+  {
+    "id": "evolved-from",
+    "name": "Evolved from",
+    "inverseLabel": "Ancestor of",
+    "showInverse": true,
+    "category": "Biological",
+    "icon": "biotech",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "species-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "species-v1"
+      ]
+    }
+  },
+  {
+    "id": "native-to",
+    "name": "Native to",
+    "inverseLabel": "Home of",
+    "showInverse": true,
+    "category": "Biological",
+    "icon": "terrain",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "species-v1",
+        "ethnicity-v1",
+        "character-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "location-v1",
+        "building-v1",
+        "settlement-v1",
+        "geographic-feature-v1",
+        "region-v1",
+        "country-v1",
+        "landmark-v1",
+        "planet-v1",
+        "plane-v1",
+        "settlement-v1"
+      ]
+    }
+  },
+  {
+    "id": "invented-by",
+    "name": "Invented by",
+    "inverseLabel": "Invented",
+    "showInverse": true,
+    "category": "Scholarly",
+    "icon": "lightbulb",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "technology-v1",
+        "spell-v1",
+        "magic-system-v1",
+        "material-v1",
+        "vehicle-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    }
+  },
+  {
+    "id": "founded-by",
+    "name": "Founded by",
+    "inverseLabel": "Founded",
+    "showInverse": true,
+    "category": "Scholarly",
+    "icon": "flag",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "organization-v1",
+        "country-v1",
+        "settlement-v1",
+        "region-v1",
+        "building-v1",
+        "landmark-v1",
+        "conflict-v1",
+        "event-v1",
+        "tradition-v1",
+        "myth-v1",
+        "lore-v1",
+        "magic-system-v1",
+        "ethnicity-v1",
+        "deity-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    }
+  },
+  {
+    "id": "written-by",
+    "name": "Written by",
+    "inverseLabel": "Wrote",
+    "showInverse": true,
+    "category": "Scholarly",
+    "icon": "edit_note",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "lore-v1",
+        "myth-v1",
+        "language-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    }
+  },
+  {
+    "id": "practitioner-of",
+    "name": "Practitioner of",
+    "inverseLabel": "Practised by",
+    "showInverse": true,
+    "category": "Scholarly",
+    "icon": "school",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "magic-system-v1",
+        "spell-v1",
+        "profession-v1",
+        "title-v1"
+      ]
+    }
+  },
+  {
+    "id": "speaker-of",
+    "name": "Speaker of",
+    "inverseLabel": "Spoken by",
+    "showInverse": true,
+    "category": "Scholarly",
+    "icon": "forum",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "ethnicity-v1",
+        "organization-v1",
+        "country-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "language-v1"
+      ]
+    }
+  },
+  {
+    "id": "holds-title",
+    "name": "Holds title",
+    "inverseLabel": "Held by",
+    "showInverse": true,
+    "category": "Scholarly",
+    "icon": "military_tech",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "title-v1"
+      ]
+    }
+  },
+  {
+    "id": "cast-by",
+    "name": "Cast by",
+    "inverseLabel": "Casts",
+    "showInverse": true,
+    "category": "Magical",
+    "icon": "auto_awesome",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "spell-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    }
+  },
+  {
+    "id": "afflicted-by",
+    "name": "Afflicted by",
+    "inverseLabel": "Afflicts",
+    "showInverse": true,
+    "category": "Magical",
+    "icon": "sick",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "species-v1",
+        "deity-v1",
+        "organization-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "condition-v1"
+      ]
+    }
+  },
+  {
+    "id": "produces",
+    "name": "Produces",
+    "inverseLabel": "Produced by",
+    "showInverse": true,
+    "category": "Economic",
+    "icon": "factory",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "location-v1",
+        "building-v1",
+        "settlement-v1",
+        "geographic-feature-v1",
+        "region-v1",
+        "country-v1",
+        "landmark-v1",
+        "planet-v1",
+        "plane-v1",
+        "settlement-v1",
+        "organization-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "material-v1",
+        "wb-item-v1",
+        "technology-v1"
+      ]
+    }
+  },
+  {
+    "id": "trades-in",
+    "name": "Trades in",
+    "inverseLabel": "Traded by",
+    "showInverse": true,
+    "category": "Economic",
+    "icon": "currency_exchange",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "organization-v1",
+        "country-v1",
+        "settlement-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "wb-item-v1",
+        "material-v1",
+        "technology-v1"
+      ]
+    }
+  },
+  {
+    "id": "drives",
+    "name": "Drives",
+    "inverseLabel": "Driven by",
+    "showInverse": true,
+    "category": "Transport",
+    "icon": "directions_car",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "vehicle-v1"
+      ]
+    }
+  },
+  {
+    "id": "participant-in",
+    "name": "Participant in",
+    "inverseLabel": "Participants",
+    "showInverse": true,
+    "category": "Temporal",
+    "icon": "event",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1",
+        "organization-v1",
+        "country-v1",
+        "species-v1",
+        "ethnicity-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "conflict-v1",
+        "event-v1",
+        "tradition-v1"
+      ]
+    }
+  },
+  {
+    "id": "occurred-at",
+    "name": "Occurred at",
+    "inverseLabel": "Site of",
+    "showInverse": true,
+    "category": "Spatial",
+    "icon": "place",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "event-v1",
+        "conflict-v1"
+      ]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "location-v1",
+        "building-v1",
+        "settlement-v1",
+        "geographic-feature-v1",
+        "region-v1",
+        "country-v1",
+        "landmark-v1",
+        "planet-v1",
+        "plane-v1",
+        "settlement-v1"
+      ]
+    }
   }
 ]

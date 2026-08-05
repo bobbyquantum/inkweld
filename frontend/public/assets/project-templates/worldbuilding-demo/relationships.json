@@ -86,7 +86,9 @@
     "targetElementId": "char-elara",
     "relationshipTypeId": "referenced-in",
     "displayText": "Elara Nightwhisper",
-    "documentContext": { "documentId": "readme-001" },
+    "documentContext": {
+      "documentId": "readme-001"
+    },
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
   },
@@ -96,7 +98,9 @@
     "targetElementId": "char-theron",
     "relationshipTypeId": "referenced-in",
     "displayText": "Theron Blackwood",
-    "documentContext": { "documentId": "readme-001" },
+    "documentContext": {
+      "documentId": "readme-001"
+    },
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
   },
@@ -106,7 +110,9 @@
     "targetElementId": "char-mira",
     "relationshipTypeId": "referenced-in",
     "displayText": "Mira Stonehart",
-    "documentContext": { "documentId": "readme-001" },
+    "documentContext": {
+      "documentId": "readme-001"
+    },
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
   },
@@ -116,7 +122,9 @@
     "targetElementId": "loc-silverhollow",
     "relationshipTypeId": "referenced-in",
     "displayText": "Silverhollow",
-    "documentContext": { "documentId": "readme-001" },
+    "documentContext": {
+      "documentId": "readme-001"
+    },
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
   },
@@ -126,7 +134,9 @@
     "targetElementId": "loc-thornwood",
     "relationshipTypeId": "referenced-in",
     "displayText": "Thornwood Forest",
-    "documentContext": { "documentId": "readme-001" },
+    "documentContext": {
+      "documentId": "readme-001"
+    },
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
   },
@@ -136,7 +146,9 @@
     "targetElementId": "loc-cloudspire",
     "relationshipTypeId": "referenced-in",
     "displayText": "Cloudspire Academy",
-    "documentContext": { "documentId": "readme-001" },
+    "documentContext": {
+      "documentId": "readme-001"
+    },
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
   },
@@ -146,7 +158,9 @@
     "targetElementId": "char-theron",
     "relationshipTypeId": "referenced-in",
     "displayText": "Theron Blackwood",
-    "documentContext": { "documentId": "doc-moonveil-accord" },
+    "documentContext": {
+      "documentId": "doc-moonveil-accord"
+    },
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
   },
@@ -156,7 +170,9 @@
     "targetElementId": "loc-thornwood",
     "relationshipTypeId": "referenced-in",
     "displayText": "Thornwood",
-    "documentContext": { "documentId": "doc-moonveil-accord" },
+    "documentContext": {
+      "documentId": "doc-moonveil-accord"
+    },
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
   },
@@ -166,7 +182,9 @@
     "targetElementId": "loc-silverhollow",
     "relationshipTypeId": "referenced-in",
     "displayText": "Silverhollow",
-    "documentContext": { "documentId": "doc-moonveil-accord" },
+    "documentContext": {
+      "documentId": "doc-moonveil-accord"
+    },
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
   },
@@ -176,7 +194,9 @@
     "targetElementId": "char-elara",
     "relationshipTypeId": "referenced-in",
     "displayText": "Elara Nightwhisper",
-    "documentContext": { "documentId": "doc-moonveil-accord" },
+    "documentContext": {
+      "documentId": "doc-moonveil-accord"
+    },
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
   },
@@ -186,7 +206,9 @@
     "targetElementId": "loc-cloudspire",
     "relationshipTypeId": "referenced-in",
     "displayText": "Cloudspire Academy",
-    "documentContext": { "documentId": "doc-moonveil-accord" },
+    "documentContext": {
+      "documentId": "doc-moonveil-accord"
+    },
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
   },
@@ -196,8 +218,496 @@
     "targetElementId": "char-mira",
     "relationshipTypeId": "referenced-in",
     "displayText": "Mira Stonehart",
-    "documentContext": { "documentId": "doc-moonveil-accord" },
+    "documentContext": {
+      "documentId": "doc-moonveil-accord"
+    },
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-spec-fox-thornwood",
+    "sourceElementId": "spec-moonshadow",
+    "targetElementId": "loc-thornwood",
+    "relationshipTypeId": "native-to",
+    "note": "Moonshadow foxes are found throughout Thornwood and its edges.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-thornfolk-thornwood",
+    "sourceElementId": "spec-thornfolk",
+    "targetElementId": "loc-thornwood",
+    "relationshipTypeId": "native-to",
+    "note": "The Thornfolk are the ancient guardians of the deep forest.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-thornfolk-theron",
+    "sourceElementId": "char-theron",
+    "targetElementId": "spec-thornfolk",
+    "relationshipTypeId": "ally",
+    "note": "Theron has negotiated peace between the Thornfolk and Silverhollow.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-council-mira",
+    "sourceElementId": "org-council",
+    "targetElementId": "char-mira",
+    "relationshipTypeId": "enemy",
+    "note": "The Council of Hammers has placed a bounty on Mira's return.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-council-ironhold",
+    "sourceElementId": "org-council",
+    "targetElementId": "settle-ironhold",
+    "relationshipTypeId": "part-of",
+    "note": "Ironhold is the seat of the Council of Hammers.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-church-lunara",
+    "sourceElementId": "org-church",
+    "targetElementId": "deity-lunara",
+    "relationshipTypeId": "worships",
+    "note": "The Church of the Silver Moon is devoted to Lunara.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-lunara-elara",
+    "sourceElementId": "char-elara",
+    "targetElementId": "deity-lunara",
+    "relationshipTypeId": "worships",
+    "note": "Elara is a quiet adherent of the moon faith.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-lunara-festival",
+    "sourceElementId": "tradition-festival",
+    "targetElementId": "deity-lunara",
+    "relationshipTypeId": "founded-by",
+    "note": "The Festival of the Silver Moon honours Lunara.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-magic-spell",
+    "sourceElementId": "spell-moonlight",
+    "targetElementId": "magic-weave",
+    "relationshipTypeId": "part-of",
+    "note": "Moonlight Whisper is woven from the Weave of Arcana.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-elara-magic",
+    "sourceElementId": "char-elara",
+    "targetElementId": "magic-weave",
+    "relationshipTypeId": "practitioner-of",
+    "note": "Elara is one of the foremost scholars of the Weave.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-elara-library",
+    "sourceElementId": "char-elara",
+    "targetElementId": "lore-library",
+    "relationshipTypeId": "mentioned",
+    "note": "Elara has spent fifty years searching for the Library of Moonveil.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-library-myth",
+    "sourceElementId": "lore-library",
+    "targetElementId": "myth-first-accord",
+    "relationshipTypeId": "mentioned",
+    "note": "The Legend of the First Accord mentions a hidden library.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-starfall-ironhold",
+    "sourceElementId": "settle-ironhold",
+    "targetElementId": "geo-starfall",
+    "relationshipTypeId": "located-in",
+    "note": "Ironhold is carved into Mount Starfall.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-starfall-cloudspire",
+    "sourceElementId": "loc-cloudspire",
+    "targetElementId": "geo-starfall",
+    "relationshipTypeId": "located-in",
+    "note": "Cloudspire Academy floats above the Starfall Mountains.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-moonsilver-starfall",
+    "sourceElementId": "geo-starfall",
+    "targetElementId": "mat-moonsilver",
+    "relationshipTypeId": "produces",
+    "note": "Moonsilver is mined from veins in the Starfall Mountains.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-vale-silverhollow",
+    "sourceElementId": "loc-silverhollow",
+    "targetElementId": "region-vales",
+    "relationshipTypeId": "located-in",
+    "note": "Silverhollow lies in the heart of the Silver Vales.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-vale-eldoria",
+    "sourceElementId": "region-vales",
+    "targetElementId": "country-eldoria",
+    "relationshipTypeId": "part-of",
+    "note": "The Silver Vales are the heartland of Eldoria.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-eldoria-council",
+    "sourceElementId": "country-eldoria",
+    "targetElementId": "org-council",
+    "relationshipTypeId": "at-war-with",
+    "note": "Eldoria fought the Council of Hammers' clans in the Thornwood War.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-eldoria-church",
+    "sourceElementId": "country-eldoria",
+    "targetElementId": "org-church",
+    "relationshipTypeId": "governed-by",
+    "note": "Eldoria's people are guided by the Church of the Silver Moon.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-ironhold-council",
+    "sourceElementId": "settle-ironhold",
+    "targetElementId": "org-council",
+    "relationshipTypeId": "part-of",
+    "note": "Ironhold houses the Council of Hammers' seat.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-woodfolk-thornwood",
+    "sourceElementId": "ethnicity-woodfolk",
+    "targetElementId": "loc-thornwood",
+    "relationshipTypeId": "native-to",
+    "note": "The Woodfolk have lived in Thornwood for generations.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-woodfolk-tongue",
+    "sourceElementId": "ethnicity-woodfolk",
+    "targetElementId": "lang-forest-tongue",
+    "relationshipTypeId": "speaker-of",
+    "note": "The Woodfolk speak the Forest Tongue.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-tongue-theron",
+    "sourceElementId": "char-theron",
+    "targetElementId": "lang-forest-tongue",
+    "relationshipTypeId": "speaker-of",
+    "note": "Theron learned the Forest Tongue from Grandmother Moss.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-war-accord-event",
+    "sourceElementId": "conflict-thornwar",
+    "targetElementId": "event-accord",
+    "relationshipTypeId": "caused",
+    "note": "The Thornwood War ended with the Moonveil Accord.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-war-theron",
+    "sourceElementId": "char-theron",
+    "targetElementId": "conflict-thornwar",
+    "relationshipTypeId": "participant-in",
+    "note": "Theron fought in the war as a soldier before deserting.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-war-eldoria",
+    "sourceElementId": "country-eldoria",
+    "targetElementId": "conflict-thornwar",
+    "relationshipTypeId": "participant-in",
+    "note": "Eldoria was one of the war's principal parties.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-accord-cloudspire",
+    "sourceElementId": "event-accord",
+    "targetElementId": "loc-cloudspire",
+    "relationshipTypeId": "occurred-at",
+    "note": "The Accord was signed at Cloudspire Academy.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-blade-lunara",
+    "sourceElementId": "deity-lunara",
+    "targetElementId": "item-moonblade",
+    "relationshipTypeId": "created",
+    "note": "The Moonblade was a gift from Lunara.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-blade-eldoria",
+    "sourceElementId": "country-eldoria",
+    "targetElementId": "item-moonblade",
+    "relationshipTypeId": "owns",
+    "note": "The Moonblade belongs to the Crown of Eldoria.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-moonsilver-blade",
+    "sourceElementId": "mat-moonsilver",
+    "targetElementId": "item-moonblade",
+    "relationshipTypeId": "part-of",
+    "note": "The Moonblade is forged of moonsilver.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-cloudrunner-starwing",
+    "sourceElementId": "vehicle-starwing",
+    "targetElementId": "tech-cloudrunners",
+    "relationshipTypeId": "part-of",
+    "note": "The Starwing is a Cloud Runner airship.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-starwing-cloudspire",
+    "sourceElementId": "vehicle-starwing",
+    "targetElementId": "loc-cloudspire",
+    "relationshipTypeId": "located-in",
+    "note": "The Starwing is based at Cloudspire Academy.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-moonmadness-lunara",
+    "sourceElementId": "deity-lunara",
+    "targetElementId": "cond-moonmadness",
+    "relationshipTypeId": "caused",
+    "note": "The Church believes Moon Madness is a blessing of Lunara.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-moonmadness-silverhollow",
+    "sourceElementId": "cond-moonmadness",
+    "targetElementId": "loc-silverhollow",
+    "relationshipTypeId": "originated-from",
+    "note": "The Church maintains a sanatorium for the afflicted in Silverhollow.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-ranger-theron",
+    "sourceElementId": "char-theron",
+    "targetElementId": "prof-ranger",
+    "relationshipTypeId": "practitioner-of",
+    "note": "Theron is a Forest Ranger of exceptional skill.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-guardian-theron",
+    "sourceElementId": "char-theron",
+    "targetElementId": "title-guardian",
+    "relationshipTypeId": "holds-title",
+    "note": "Theron holds the title of Guardian of Thornwood.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-accord-ranger",
+    "sourceElementId": "event-accord",
+    "targetElementId": "prof-ranger",
+    "relationshipTypeId": "caused",
+    "note": "The Ranger Corps was founded by the Moonveil Accord.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-eldoria-ironhold",
+    "sourceElementId": "country-eldoria",
+    "targetElementId": "settle-ironhold",
+    "relationshipTypeId": "part-of",
+    "note": "Ironhold lies within Eldoria's nominal borders, though the clans claim autonomy.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-ironhold-mira",
+    "sourceElementId": "char-mira",
+    "targetElementId": "settle-ironhold",
+    "relationshipTypeId": "originated-from",
+    "note": "Mira was born in Ironhold before fleeing.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-woodfolk-elara",
+    "sourceElementId": "char-elara",
+    "targetElementId": "ethnicity-woodfolk",
+    "relationshipTypeId": "member-of",
+    "note": "Elara was raised near a Woodfolk grove at Thornwood's edge.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-accord-festival",
+    "sourceElementId": "tradition-festival",
+    "targetElementId": "event-accord",
+    "relationshipTypeId": "caused",
+    "note": "The Festival of the Silver Moon commemorates the Accord's signing.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-fox-lunara",
+    "sourceElementId": "spec-moonshadow",
+    "targetElementId": "deity-lunara",
+    "relationshipTypeId": "mentioned",
+    "note": "Moonshadow foxes are said to be Lunara's messengers.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-verdent-thornfolk",
+    "sourceElementId": "spec-thornfolk",
+    "targetElementId": "plane-verdant",
+    "relationshipTypeId": "located-in",
+    "note": "The Thornfolk believe they are rooted in the Verdant Court.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-verdent-elara",
+    "sourceElementId": "char-elara",
+    "targetElementId": "plane-verdant",
+    "relationshipTypeId": "mentioned",
+    "note": "Elara suspects the Library of Moonveil lies in a forgotten wing of the Verdant Court.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-aetheria-thornwood",
+    "sourceElementId": "planet-aetheria",
+    "targetElementId": "loc-thornwood",
+    "relationshipTypeId": "located-in",
+    "note": "Thornwood lies upon Aetheria.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-aetheria-eldoria",
+    "sourceElementId": "country-eldoria",
+    "targetElementId": "planet-aetheria",
+    "relationshipTypeId": "located-in",
+    "note": "Eldoria is a kingdom of Aetheria.",
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-readme-deity-lunara",
+    "sourceElementId": "readme-001",
+    "targetElementId": "deity-lunara",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Lunara, Lady of the Silver Moon",
+    "documentContext": {
+      "documentId": "readme-001"
+    },
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-readme-magic-weave",
+    "sourceElementId": "readme-001",
+    "targetElementId": "magic-weave",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "The Weave of Arcana",
+    "documentContext": {
+      "documentId": "readme-001"
+    },
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-readme-spec-thornfolk",
+    "sourceElementId": "readme-001",
+    "targetElementId": "spec-thornfolk",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Thornfolk",
+    "documentContext": {
+      "documentId": "readme-001"
+    },
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-readme-country-eldoria",
+    "sourceElementId": "readme-001",
+    "targetElementId": "country-eldoria",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Eldoria",
+    "documentContext": {
+      "documentId": "readme-001"
+    },
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-readme-tradition-festival",
+    "sourceElementId": "readme-001",
+    "targetElementId": "tradition-festival",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Festival of the Silver Moon",
+    "documentContext": {
+      "documentId": "readme-001"
+    },
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-readme-conflict-thornwar",
+    "sourceElementId": "readme-001",
+    "targetElementId": "conflict-thornwar",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "The Thornwood War",
+    "documentContext": {
+      "documentId": "readme-001"
+    },
+    "createdAt": "2025-06-01T00:00:00.000Z",
+    "updatedAt": "2025-06-01T00:00:00.000Z"
   }
 ]

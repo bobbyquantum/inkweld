@@ -9,6 +9,7 @@ import { type Element, ElementType } from '@inkweld/index';
 import { type TagDefinition } from '@models/tag.model';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -109,6 +110,20 @@ describe('TagPickerDialogComponent', () => {
         {
           provide: TagService,
           useValue: { allTags: signal(mockTags) },
+        },
+        {
+          provide: WorldbuildingService,
+          useValue: {
+            getSchemaById: (schemaId: string) => {
+              const icons: Record<string, string> = {
+                'character-v1': 'person',
+                'location-v1': 'place',
+                'wb-item-v1': 'inventory_2',
+                'species-v1': 'pets',
+              };
+              return icons[schemaId] ? { icon: icons[schemaId] } : null;
+            },
+          },
         },
       ],
     });
@@ -279,6 +294,115 @@ describe('TagPickerDialogComponent', () => {
         .availableItems()
         .find(i => i.name === 'Magic Sword');
       expect(item?.icon).toBe('inventory_2');
+    });
+
+    it('should use schema icon for new element types', () => {
+      setup();
+      // Rebuild component with a species element to verify schema lookup path
+      TestBed.resetTestingModule();
+      const speciesEl: Element = {
+        id: 'el-4',
+        name: 'Fox',
+        type: ElementType.Worldbuilding,
+        schemaId: 'species-v1',
+        parentId: null,
+        order: 5,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      };
+      dialogRef = {
+        close: vi.fn(),
+      } as unknown as MatDialogRef<TagPickerDialogComponent>;
+      TestBed.configureTestingModule({
+        imports: [
+          translocoTestProvider(),
+          TagPickerDialogComponent,
+          MatDialogModule,
+        ],
+        providers: [
+          provideZonelessChangeDetection(),
+          { provide: MatDialogRef, useValue: dialogRef },
+          { provide: MAT_DIALOG_DATA, useValue: {} },
+          {
+            provide: ProjectStateService,
+            useValue: { elements: signal([...mockElements, speciesEl]) },
+          },
+          {
+            provide: TagService,
+            useValue: { allTags: signal(mockTags) },
+          },
+          {
+            provide: WorldbuildingService,
+            useValue: {
+              getSchemaById: (schemaId: string) => {
+                const icons: Record<string, string> = {
+                  'character-v1': 'person',
+                  'location-v1': 'place',
+                  'wb-item-v1': 'inventory_2',
+                  'species-v1': 'pets',
+                };
+                return icons[schemaId] ? { icon: icons[schemaId] } : null;
+              },
+            },
+          },
+        ],
+      });
+      const fixture = TestBed.createComponent(TagPickerDialogComponent);
+      const c = fixture.componentInstance;
+      fixture.detectChanges();
+      const item = c.availableItems().find(i => i.name === 'Fox');
+      expect(item?.icon).toBe('pets');
+    });
+
+    it('should fall back to category for unknown schemas', () => {
+      setup();
+      TestBed.resetTestingModule();
+      const unknownEl: Element = {
+        id: 'el-5',
+        name: 'Unknown',
+        type: ElementType.Worldbuilding,
+        schemaId: 'mystery-v9',
+        parentId: null,
+        order: 6,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      };
+      dialogRef = {
+        close: vi.fn(),
+      } as unknown as MatDialogRef<TagPickerDialogComponent>;
+      TestBed.configureTestingModule({
+        imports: [
+          translocoTestProvider(),
+          TagPickerDialogComponent,
+          MatDialogModule,
+        ],
+        providers: [
+          provideZonelessChangeDetection(),
+          { provide: MatDialogRef, useValue: dialogRef },
+          { provide: MAT_DIALOG_DATA, useValue: {} },
+          {
+            provide: ProjectStateService,
+            useValue: { elements: signal([...mockElements, unknownEl]) },
+          },
+          {
+            provide: TagService,
+            useValue: { allTags: signal(mockTags) },
+          },
+          {
+            provide: WorldbuildingService,
+            useValue: { getSchemaById: () => null },
+          },
+        ],
+      });
+      const fixture = TestBed.createComponent(TagPickerDialogComponent);
+      const c = fixture.componentInstance;
+      fixture.detectChanges();
+      const item = c.availableItems().find(i => i.name === 'Unknown');
+      expect(item?.icon).toBe('category');
     });
 
     it('should return document as type label for Item type', () => {
