@@ -74,9 +74,9 @@ test.describe('Document Snapshots', () => {
     await expect(editor).toBeVisible();
     await editor.click();
     await editor.fill('Original content before snapshot.');
-    await expect(page.getByTestId('document-sync-status')).toContainText(
-      'local'
-    );
+    await expect(
+      page.getByTestId('document-sync-status').getByTestId('document-sync-dot')
+    ).toHaveClass(/local/);
 
     await test.step('create snapshot is listed and clears empty state', async () => {
       await openSnapshotsDialog(page);
@@ -99,9 +99,11 @@ test.describe('Document Snapshots', () => {
       await page.keyboard.press('Control+A');
       await page.keyboard.type('Modified content after snapshot.');
       await expect(editor).toContainText('Modified content after snapshot.');
-      await expect(page.getByTestId('document-sync-status')).toContainText(
-        'local'
-      );
+      await expect(
+        page
+          .getByTestId('document-sync-status')
+          .getByTestId('document-sync-dot')
+      ).toHaveClass(/local/);
 
       await openSnapshotsDialog(page);
 
@@ -220,9 +222,9 @@ test.describe('Auto-Snapshots', () => {
     // keyboard.type triggers real input events through ProseMirror's Yjs binding,
     // which is what marks the doc dirty for auto-snapshot creation.
     await page.keyboard.type('Content that should trigger an auto-snapshot.');
-    await expect(page.getByTestId('document-sync-status')).toContainText(
-      'local'
-    );
+    await expect(
+      page.getByTestId('document-sync-status').getByTestId('document-sync-dot')
+    ).toHaveClass(/local/);
 
     // Small delay so the ydoc update event has fired and markDirty was called
     // before canDeactivate runs on navigation.

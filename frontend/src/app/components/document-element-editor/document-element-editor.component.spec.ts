@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { type Element, type Project } from '@inkweld/index';
+import { TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
@@ -26,6 +27,7 @@ describe('DocumentElementEditorComponent', () => {
   let settingsServiceMock: Partial<SettingsService>;
   let dialogGatewayMock: Partial<DialogGatewayService>;
   let wordCountSignal: ReturnType<typeof signal<number>>;
+  let syncStatusSignal: ReturnType<typeof signal<DocumentSyncState>>;
 
   const mockProject: Project = {
     id: '1',
@@ -38,7 +40,7 @@ describe('DocumentElementEditorComponent', () => {
   };
 
   beforeEach(async () => {
-    const syncStatusSignal = signal(DocumentSyncState.Synced);
+    syncStatusSignal = signal(DocumentSyncState.Synced);
     wordCountSignal = signal(0);
     const isLoadingSignal = signal(false);
     const projectSignal = signal<Project | undefined>(mockProject);
@@ -134,6 +136,72 @@ describe('DocumentElementEditorComponent', () => {
 
       expect(component.syncState()).toBe(DocumentSyncState.Synced);
       expect(documentServiceMock.getSyncStatusSignal).toHaveBeenCalled();
+    });
+  });
+
+  describe('syncTooltip', () => {
+    it('should return synced tooltip when synced', () => {
+      component.documentId = 'testuser:test-project:doc-1';
+      fixture.detectChanges();
+
+      expect(component.syncTooltip()).toBe('Document synced');
+    });
+
+    it('should return syncing tooltip when syncing', () => {
+      syncStatusSignal.set(DocumentSyncState.Syncing);
+      fixture.detectChanges();
+
+      expect(component.syncTooltip()).toBe('Syncing…');
+    });
+
+    it('should return offline tooltip for local state', () => {
+      syncStatusSignal.set(DocumentSyncState.Local);
+      fixture.detectChanges();
+
+      expect(component.syncTooltip()).toBe('Offline - changes saved locally');
+    });
+
+    it('should return unavailable tooltip for unavailable state', () => {
+      syncStatusSignal.set(DocumentSyncState.Unavailable);
+      fixture.detectChanges();
+
+      expect(component.syncTooltip()).toBe('Unable to connect to server');
+    });
+
+    it('should append stats text when doc stats are available', () => {
+      component.documentId = 'testuser:test-project:doc-1';
+      component.docStatsTooltip.set('3 documents · 1.2 MB');
+      fixture.detectChanges();
+
+      expect(component.syncTooltip()).toBe(
+        'Document synced\n3 documents · 1.2 MB'
+      );
+    });
+
+    it('should clear stats text when document changes', () => {
+      component.documentId = 'testuser:test-project:doc-1';
+      component.docStatsTooltip.set('3 documents · 1.2 MB');
+      fixture.detectChanges();
+
+      component.documentId = 'testuser:test-project:doc-2';
+      fixture.detectChanges();
+
+      expect(component.docStatsTooltip()).toBe('');
+    });
+
+    it('should recompute the tooltip after a language change', () => {
+      component.documentId = 'testuser:test-project:doc-1';
+      fixture.detectChanges();
+      const before = component.syncTooltip();
+
+      const transloco = TestBed.inject(TranslocoService);
+      const translateSpy = vi.spyOn(transloco, 'translate');
+      transloco.setActiveLang('en');
+      fixture.detectChanges();
+      component.syncTooltip();
+
+      expect(translateSpy).toHaveBeenCalled();
+      expect(component.syncTooltip()).toBe(before);
     });
   });
 

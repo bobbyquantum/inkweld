@@ -13,6 +13,10 @@
     "tags": "Tags",
     "openSnapshots": "Open document snapshots",
     "snapshots": "Document snapshots",
+    "syncSynced": "Document synced",
+    "syncSyncing": "Syncing…",
+    "syncLocal": "Offline - changes saved locally",
+    "syncUnavailable": "Unable to connect to server",
     "addItem": "Add item",
     "removeItem": "Remove {{label}} item {{index}}",
     "addLabel": "Add {{label}}"

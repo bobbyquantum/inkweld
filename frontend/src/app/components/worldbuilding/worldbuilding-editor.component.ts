@@ -30,7 +30,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { DocumentSyncState } from '@models/document-sync-state';
 import { type ResolvedTag } from '@models/tag.model';
 
 import {
@@ -92,6 +93,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly tagService = inject(TagService);
   private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
+  private readonly transloco = inject(TranslocoService);
 
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);
@@ -133,6 +135,22 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     this.syncProviderFactory.getProvider().syncState$,
     { initialValue: this.syncProviderFactory.getProvider().getSyncState() }
   );
+
+  /** Sync status tooltip text derived from the current sync state */
+  readonly syncTooltip = computed(() => {
+    // Track active language so the tooltip recomputes on language change.
+    void this.transloco.activeLang();
+    switch (this.syncState()) {
+      case DocumentSyncState.Synced:
+        return this.transloco.translate('worldbuilding.editor.syncSynced');
+      case DocumentSyncState.Syncing:
+        return this.transloco.translate('worldbuilding.editor.syncSyncing');
+      case DocumentSyncState.Local:
+        return this.transloco.translate('worldbuilding.editor.syncLocal');
+      default:
+        return this.transloco.translate('worldbuilding.editor.syncUnavailable');
+    }
+  });
 
   /** Resolved tags for this element (raw elementId used for worldbuilding) */
   readonly elementTags = computed((): ResolvedTag[] =>

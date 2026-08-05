@@ -3,17 +3,20 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormArray, ReactiveFormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { BehaviorSubject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { type Element, ElementType } from '../../../api-client';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { DocumentSyncState } from '../../models/document-sync-state';
 import {
   type ElementTypeSchema,
   type TabSchema,
 } from '../../models/schema-types';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
+import { ElementSyncProviderFactory } from '../../services/sync/element-sync-provider.factory';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { WorldbuildingEditorComponent } from './worldbuilding-editor.component';
 
@@ -36,6 +39,7 @@ describe('WorldbuildingEditorComponent', () => {
     canWrite: ReturnType<typeof signal<boolean>>;
     renameNode: ReturnType<typeof vi.fn>;
   };
+  let syncStateSubject: BehaviorSubject<DocumentSyncState>;
 
   const mockCharacterSchema: ElementTypeSchema = {
     id: 'character',
@@ -149,6 +153,59 @@ describe('WorldbuildingEditorComponent', () => {
       open: vi.fn(),
     };
 
+    const empty = <T>() => new BehaviorSubject<T>([] as T);
+    const none = <T>() => new BehaviorSubject<T | null>(null);
+    syncStateSubject = new BehaviorSubject<DocumentSyncState>(
+      DocumentSyncState.Synced
+    );
+    const provider = {
+      syncState$: syncStateSubject,
+      getSyncState: () => syncStateSubject.getValue(),
+      elements$: empty<Element[]>(),
+      getElements: () => [],
+      publishPlans$: empty<unknown[]>(),
+      getPublishPlans: () => [],
+      relationships$: empty<unknown[]>(),
+      getRelationships: () => [],
+      customRelationshipTypes$: empty<unknown[]>(),
+      getCustomRelationshipTypes: () => [],
+      schemas$: empty<unknown[]>(),
+      getSchemas: () => [],
+      timeSystems$: empty<unknown[]>(),
+      getTimeSystems: () => [],
+      elementTags$: empty<unknown[]>(),
+      getElementTags: () => [],
+      customTags$: empty<unknown[]>(),
+      getCustomTags: () => [],
+      mediaTags$: empty<unknown[]>(),
+      getMediaTags: () => [],
+      mediaProjectTags$: empty<unknown[]>(),
+      getMediaProjectTags: () => [],
+      projectMeta$: none<unknown>(),
+      getProjectMeta: () => undefined,
+      lastConnectionError$: none<string>(),
+      errors$: empty<string>(),
+      remotePresence$: empty<unknown[]>(),
+      updateElements: vi.fn(),
+      updatePublishPlans: vi.fn(),
+      updateRelationships: vi.fn(),
+      updateCustomRelationshipTypes: vi.fn(),
+      updateSchemas: vi.fn(),
+      updateTimeSystems: vi.fn(),
+      updateElementTags: vi.fn(),
+      updateCustomTags: vi.fn(),
+      updateMediaTags: vi.fn(),
+      updateMediaProjectTags: vi.fn(),
+      updateProjectMeta: vi.fn(),
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      isConnected: vi.fn(() => false),
+      setLocalPresence: vi.fn(),
+    };
+    const syncFactoryMock = {
+      getProvider: vi.fn().mockReturnValue(provider),
+    };
+
     await TestBed.configureTestingModule({
       imports: [
         translocoTestProvider(),
@@ -162,6 +219,7 @@ describe('WorldbuildingEditorComponent', () => {
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: DialogGatewayService, useValue: dialogGatewayMock },
         { provide: MatDialog, useValue: matDialogMock },
+        { provide: ElementSyncProviderFactory, useValue: syncFactoryMock },
       ],
     }).compileComponents();
 
@@ -180,6 +238,27 @@ describe('WorldbuildingEditorComponent', () => {
 
   it('should create', () => {
     expect(component).toBeDefined();
+  });
+
+  describe('syncTooltip', () => {
+    it('should return synced tooltip when synced', () => {
+      expect(component.syncTooltip()).toBe('Document synced');
+    });
+
+    it('should return syncing tooltip when syncing', () => {
+      syncStateSubject.next(DocumentSyncState.Syncing);
+      expect(component.syncTooltip()).toBe('Syncing…');
+    });
+
+    it('should return offline tooltip for local state', () => {
+      syncStateSubject.next(DocumentSyncState.Local);
+      expect(component.syncTooltip()).toBe('Offline - changes saved locally');
+    });
+
+    it('should return unavailable tooltip for unavailable state', () => {
+      syncStateSubject.next(DocumentSyncState.Unavailable);
+      expect(component.syncTooltip()).toBe('Unable to connect to server');
+    });
   });
 
   describe('getTabs', () => {

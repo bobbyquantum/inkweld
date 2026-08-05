@@ -231,7 +231,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   /** Vertical height per stacked label lane above the event area. */
   protected readonly labelLaneHeight = 18;
   /** Half-width of an instant-event diamond, in pixels. */
-  protected readonly diamondHalf = 7;
+  protected readonly diamondHalf = 9;
   /** Approximate per-character width used for label-overlap calculation. */
   private readonly labelCharWidth = 6.5;
   /** Minimum gap (px) required between adjacent labels in the same lane. */

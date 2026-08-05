@@ -313,14 +313,17 @@
     margin-left: auto;
 
     .snapshots-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       width: 24px;
       height: 24px;
-      line-height: 24px;
+      line-height: 1;
 
       mat-icon {
-        font-size: 16px;
-        width: 16px;
-        height: 16px;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
       }
     }
   }
@@ -328,6 +331,7 @@
   .sync-status {
     display: flex;
     align-items: center;
+    margin-right: 8px;
 
     .sync-dot {
       width: 8px;

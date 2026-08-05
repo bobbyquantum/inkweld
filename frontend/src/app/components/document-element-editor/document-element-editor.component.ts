@@ -35,7 +35,8 @@ import { type InsertLinkDialogResult } from '@dialogs/insert-link-dialog/insert-
 import { type SnapshotsDialogData } from '@dialogs/snapshots-dialog/snapshots-dialog.component';
 import { type TagEditorDialogData } from '@dialogs/tag-editor-dialog/tag-editor-dialog.component';
 import { type AutoReviewMarkAttrs } from '@inkweld/prosemirror/schema';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { DocumentSyncState } from '@models/document-sync-state';
 import { type ResolvedTag } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { FindInDocumentService } from '@services/core/find-in-document.service';
@@ -130,6 +131,7 @@ export class DocumentElementEditorComponent
   @Input() set documentId(id: string) {
     this._documentId = id;
     this.documentIdSignal.set(id);
+    this.docStatsTooltip.set('');
   }
   get documentId(): string {
     return this._documentId;
@@ -209,6 +211,7 @@ export class DocumentElementEditorComponent
 
   private readonly docStatsService = inject(DocStatsService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly transloco = inject(TranslocoService);
   readonly docStatsTooltip = signal('');
 
   onDocSyncHover(): void {
@@ -216,9 +219,33 @@ export class DocumentElementEditorComponent
     const docId = this.documentIdSignal();
     if (!docId || docId === 'invalid') return;
     void this.docStatsService.fetchStats(docId).then(stats => {
-      this.docStatsTooltip.set(this.docStatsService.formatStats(stats));
+      // Only apply the result if the active document hasn't changed while the
+      // async fetch was in flight, so the tooltip never shows another doc's data.
+      if (docId === this.documentIdSignal()) {
+        this.docStatsTooltip.set(this.docStatsService.formatStats(stats));
+      }
     });
   }
+
+  readonly syncTooltip = computed(() => {
+    void this.transloco.activeLang();
+    const stats = this.docStatsTooltip();
+    let base: string;
+    switch (this.syncState()) {
+      case DocumentSyncState.Synced:
+        base = this.transloco.translate('editor.document.syncSynced');
+        break;
+      case DocumentSyncState.Syncing:
+        base = this.transloco.translate('editor.document.syncSyncing');
+        break;
+      case DocumentSyncState.Local:
+        base = this.transloco.translate('editor.document.syncLocal');
+        break;
+      default:
+        base = this.transloco.translate('editor.document.syncUnavailable');
+    }
+    return stats ? `${base}\n${stats}` : base;
+  });
 
   readonly wordCount = computed(() => {
     return this.documentService.getWordCountSignal(this.documentIdSignal())();
