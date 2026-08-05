@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { type Element, type Project } from '@inkweld/index';
+import { TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
@@ -186,6 +187,21 @@ describe('DocumentElementEditorComponent', () => {
       fixture.detectChanges();
 
       expect(component.docStatsTooltip()).toBe('');
+    });
+
+    it('should recompute the tooltip after a language change', () => {
+      component.documentId = 'testuser:test-project:doc-1';
+      fixture.detectChanges();
+      const before = component.syncTooltip();
+
+      const transloco = TestBed.inject(TranslocoService);
+      const translateSpy = vi.spyOn(transloco, 'translate');
+      transloco.setActiveLang('en');
+      fixture.detectChanges();
+      component.syncTooltip();
+
+      expect(translateSpy).toHaveBeenCalled();
+      expect(component.syncTooltip()).toBe(before);
     });
   });
 

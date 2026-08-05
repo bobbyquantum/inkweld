@@ -228,6 +228,7 @@ export class DocumentElementEditorComponent
   }
 
   readonly syncTooltip = computed(() => {
+    void this.transloco.activeLang();
     const stats = this.docStatsTooltip();
     let base: string;
     switch (this.syncState()) {

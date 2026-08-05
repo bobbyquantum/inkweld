@@ -138,6 +138,8 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   /** Sync status tooltip text derived from the current sync state */
   readonly syncTooltip = computed(() => {
+    // Track active language so the tooltip recomputes on language change.
+    void this.transloco.activeLang();
     switch (this.syncState()) {
       case DocumentSyncState.Synced:
         return this.transloco.translate('worldbuilding.editor.syncSynced');
