@@ -532,8 +532,8 @@ export class WorldbuildingService {
       });
     };
 
-    identityMap.observe(observer);
-    return () => identityMap.unobserve(observer);
+    identityMap.observeDeep(observer);
+    return () => identityMap.unobserveDeep(observer);
   }
 
   /**

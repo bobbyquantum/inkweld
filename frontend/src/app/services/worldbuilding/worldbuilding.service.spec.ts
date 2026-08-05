@@ -404,6 +404,53 @@ describe('WorldbuildingService', () => {
 
       unsubscribe();
     });
+
+    it('should observe deep appearance changes (nested value update)', async () => {
+      const elementId = 'test-element-appearance-deep';
+      const callback = vi.fn();
+
+      // Initial save so the nested appearance Y.Maps exist.
+      await service.saveIdentityData(
+        elementId,
+        {
+          appearance: {
+            menu: { type: 'color', mode: 'auto', value: '#111111' },
+          },
+        },
+        username,
+        slug
+      );
+
+      const unsubscribe = await service.observeIdentityChanges(
+        elementId,
+        callback,
+        username,
+        slug
+      );
+      callback.mockClear();
+
+      // Change only a nested leaf value. With observeDeep, this must still
+      // notify the observer even though the top-level identity map key is
+      // unchanged.
+      await service.saveIdentityData(
+        elementId,
+        {
+          appearance: {
+            menu: { type: 'color', mode: 'auto', value: '#222222' },
+          },
+        },
+        username,
+        slug
+      );
+
+      expect(callback).toHaveBeenCalled();
+      const latest = callback.mock.calls[callback.mock.calls.length - 1][0] as {
+        appearance?: { menu?: { value?: string } };
+      };
+      expect(latest.appearance?.menu?.value).toBe('#222222');
+
+      unsubscribe();
+    });
   });
 
   describe('getElementSchemaId / getSchemaForElement', () => {
