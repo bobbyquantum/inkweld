@@ -432,8 +432,12 @@ jobs:
           attempt=1
           while [ $attempt -le $max_attempts ]; do
             echo "▶ wrangler e2e shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }} (attempt $attempt/$max_attempts)"
-            # Re-init the local D1 database so each attempt starts from a clean
-            # state (a crashed workerd may have left partial rows behind).
+            # Remove any leftover local D1 persistence so each attempt starts
+            # from a truly clean database (init:d1-local only runs migrations
+            # and tolerates already-applied tables, so it won't clear rows a
+            # crashed workerd left behind).
+            rm -rf backend/.wrangler/state/v3/d1
+            # Re-init the local D1 database for a clean state.
             (cd backend && bun run init:d1-local)
             # Disable set -e (GitHub Actions runs run: with -e) so a failed
             # test run doesn't abort the script before the retry logic.
