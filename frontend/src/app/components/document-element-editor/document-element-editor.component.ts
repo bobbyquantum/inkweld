@@ -131,6 +131,7 @@ export class DocumentElementEditorComponent
   @Input() set documentId(id: string) {
     this._documentId = id;
     this.documentIdSignal.set(id);
+    this.docStatsTooltip.set('');
   }
   get documentId(): string {
     return this._documentId;
@@ -218,7 +219,11 @@ export class DocumentElementEditorComponent
     const docId = this.documentIdSignal();
     if (!docId || docId === 'invalid') return;
     void this.docStatsService.fetchStats(docId).then(stats => {
-      this.docStatsTooltip.set(this.docStatsService.formatStats(stats));
+      // Only apply the result if the active document hasn't changed while the
+      // async fetch was in flight, so the tooltip never shows another doc's data.
+      if (docId === this.documentIdSignal()) {
+        this.docStatsTooltip.set(this.docStatsService.formatStats(stats));
+      }
     });
   }
 

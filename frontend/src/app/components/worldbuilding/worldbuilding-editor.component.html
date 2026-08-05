@@ -302,8 +302,12 @@
     <span
       class="sync-status"
       data-testid="worldbuilding-sync-status"
+      tabindex="0"
+      [attr.aria-label]="syncTooltip()"
       [matTooltip]="syncTooltip()">
-      <span class="sync-dot {{ syncState() }}"></span>
+      <span
+        class="sync-dot {{ syncState() }}"
+        data-testid="worldbuilding-sync-dot"></span>
     </span>
     <span class="status-actions">
       <button

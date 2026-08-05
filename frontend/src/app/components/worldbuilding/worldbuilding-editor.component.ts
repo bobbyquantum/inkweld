@@ -31,6 +31,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { DocumentSyncState } from '@models/document-sync-state';
 import { type ResolvedTag } from '@models/tag.model';
 
 import {
@@ -39,7 +40,6 @@ import {
 } from '../../../api-client';
 import { type SnapshotsDialogData } from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
 import { type TagEditorDialogData } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
-import { DocumentSyncState } from '../../models/document-sync-state';
 import {
   type ElementTypeSchema,
   type FieldSchema,

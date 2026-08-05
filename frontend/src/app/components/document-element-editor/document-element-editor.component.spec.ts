@@ -168,12 +168,24 @@ describe('DocumentElementEditorComponent', () => {
     });
 
     it('should append stats text when doc stats are available', () => {
+      component.documentId = 'testuser:test-project:doc-1';
       component.docStatsTooltip.set('3 documents · 1.2 MB');
       fixture.detectChanges();
 
       expect(component.syncTooltip()).toBe(
         'Document synced\n3 documents · 1.2 MB'
       );
+    });
+
+    it('should clear stats text when document changes', () => {
+      component.documentId = 'testuser:test-project:doc-1';
+      component.docStatsTooltip.set('3 documents · 1.2 MB');
+      fixture.detectChanges();
+
+      component.documentId = 'testuser:test-project:doc-2';
+      fixture.detectChanges();
+
+      expect(component.docStatsTooltip()).toBe('');
     });
   });
 

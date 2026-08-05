@@ -245,13 +245,13 @@ test.describe('Online Publishing Workflow', () => {
     const editor = page.locator('.ProseMirror').first();
     await expect(editor).toBeVisible();
     await expect(
-      page.getByTestId('document-sync-status').locator('.sync-dot')
+      page.getByTestId('document-sync-status').getByTestId('document-sync-dot')
     ).toHaveClass(/synced/);
 
     await editor.click();
     await editor.pressSequentially(testContent, { delay: 5 });
     await expect(
-      page.getByTestId('document-sync-status').locator('.sync-dot')
+      page.getByTestId('document-sync-status').getByTestId('document-sync-dot')
     ).toHaveClass(/synced/);
 
     // y-indexeddb debounces writes ~1s; storeState needs to complete before

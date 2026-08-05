@@ -96,10 +96,10 @@ test.describe('Online Publish Style Editor', () => {
       .first();
     await expect(editor).toBeVisible();
     const syncStatus = page.getByTestId('document-sync-status');
-    await expect(syncStatus.locator('.sync-dot')).toHaveClass(/synced/);
+    await expect(syncStatus.getByTestId('document-sync-dot')).toHaveClass(/synced/);
     await editor.click();
     await editor.pressSequentially(testContent, { delay: 5 });
-    await expect(syncStatus.locator('.sync-dot')).toHaveClass(/synced/);
+    await expect(syncStatus.getByTestId('document-sync-dot')).toHaveClass(/synced/);
     await page.waitForTimeout(2000);
 
     await createPublishPlan(page);
@@ -245,7 +245,7 @@ test.describe('Online Publish Style Editor', () => {
       page.getByTestId('document-editor').locator('.ProseMirror').first()
     ).toBeVisible();
     await expect(
-      page.getByTestId('document-sync-status').locator('.sync-dot')
+      page.getByTestId('document-sync-status').getByTestId('document-sync-dot')
     ).toHaveClass(/synced/);
 
     await createPublishPlan(page);
