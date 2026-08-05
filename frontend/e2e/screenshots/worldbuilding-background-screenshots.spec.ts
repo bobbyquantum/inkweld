@@ -90,7 +90,36 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
       .getByRole('combobox')
       .first();
     await typeSelect.click();
-    await page.getByRole('option', { name: type }).click();
+    await page
+      .getByTestId(`appearance-${region}-option-${type.toLowerCase()}`)
+      .click();
+  }
+
+  /**
+   * Wait until the target region's computed background reflects a non-empty
+   * value (solid colour or gradient) so the editor is in a stable state.
+   */
+  async function waitForBackgroundRendered(
+    page: Page,
+    region: 'menu' | 'content'
+  ): Promise<void> {
+    const regionEl =
+      region === 'menu'
+        ? page.getByTestId('wb-sidenav')
+        : page.getByTestId('wb-content');
+    await expect(regionEl).toHaveClass(/has-custom-background/);
+    // Wait for the applied CSS custom property to render a real value.
+    const regionTestId = region === 'menu' ? 'wb-sidenav' : 'wb-content';
+    await expect
+      .poll(() =>
+        page.evaluate(testId => {
+          const el = document.querySelector(`[data-testid="${testId}"]`);
+          return el
+            ? getComputedStyle(el).getPropertyValue('--wb-bg').trim()
+            : '';
+        }, regionTestId)
+      )
+      .not.toBe('');
   }
 
   /**
@@ -103,8 +132,7 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
   ): Promise<void> {
     await enableRegion(page, region);
     await page.getByTestId(`appearance-${region}-value`).fill(colour);
-    // Wait for the debounced save to flush so the background is applied.
-    await page.waitForTimeout(600);
+    await waitForBackgroundRendered(page, region);
   }
 
   /**
@@ -118,7 +146,7 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
     await enableRegion(page, region);
     await selectType(page, region, 'Gradient');
     await page.getByTestId(`appearance-${region}-value`).fill(gradient);
-    await page.waitForTimeout(600);
+    await waitForBackgroundRendered(page, region);
   }
 
   async function openAppearancePanel(page: Page): Promise<void> {

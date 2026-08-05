@@ -108,6 +108,9 @@ export class IdentityPanelComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly descriptionChange$ = new Subject<string>();
   private unsubscribeObserver: (() => void) | null = null;
+  private elementSequence = 0;
+  /** Tracks whether a realtime update arrived for a given element sequence. */
+  private readonly receivedRealtime: Record<number, boolean> = {};
 
   constructor() {
     // Setup description debounce
@@ -121,8 +124,9 @@ export class IdentityPanelComponent implements OnDestroy {
     effect(() => {
       const id = this.elementId();
       if (id) {
-        void this.loadIdentityData(id);
-        void this.setupRealtimeSync(id);
+        const sequence = ++this.elementSequence;
+        void this.setupRealtimeSync(id, sequence);
+        void this.loadIdentityData(id, sequence);
       }
     });
 
@@ -223,7 +227,10 @@ export class IdentityPanelComponent implements OnDestroy {
     }
   }
 
-  private async loadIdentityData(elementId: string): Promise<void> {
+  private async loadIdentityData(
+    elementId: string,
+    sequence: number
+  ): Promise<void> {
     this.isIdentityLoading.set(true);
     try {
       const data = await this.worldbuildingService.getIdentityData(
@@ -232,17 +239,30 @@ export class IdentityPanelComponent implements OnDestroy {
         this.slug()
       );
 
+      // Discard an obsolete initial snapshot if the element changed or a newer
+      // realtime update was already applied while loading.
+      if (
+        sequence !== this.elementSequence ||
+        this.receivedRealtime[sequence]
+      ) {
+        return;
+      }
       if (data) {
         this.identity.set(data);
         this.description.set(data.description ?? '');
         this.appearance.set(data.appearance);
       }
     } finally {
-      this.isIdentityLoading.set(false);
+      if (sequence === this.elementSequence) {
+        this.isIdentityLoading.set(false);
+      }
     }
   }
 
-  private async setupRealtimeSync(elementId: string): Promise<void> {
+  private async setupRealtimeSync(
+    elementId: string,
+    sequence: number
+  ): Promise<void> {
     // Cleanup previous observer
     if (this.unsubscribeObserver) {
       this.unsubscribeObserver();
@@ -252,6 +272,8 @@ export class IdentityPanelComponent implements OnDestroy {
       await this.worldbuildingService.observeIdentityChanges(
         elementId,
         (data: WorldbuildingIdentity) => {
+          if (sequence !== this.elementSequence) return;
+          this.receivedRealtime[sequence] = true;
           this.identity.set(data);
           this.appearance.set(data.appearance);
           // Only update description if different to avoid cursor jumps

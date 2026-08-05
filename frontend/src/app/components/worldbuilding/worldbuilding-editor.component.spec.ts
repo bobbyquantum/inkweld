@@ -924,6 +924,22 @@ describe('WorldbuildingEditorComponent', () => {
         expect(() => component.ngOnDestroy()).not.toThrow();
       });
     });
+
+    it('should revoke cached blob URLs on destroy', () => {
+      const revokeSpy = vi
+        .spyOn(URL, 'revokeObjectURL')
+        .mockImplementation(() => {});
+      component['resolvedImageUrls'].set({
+        'media://bg.png': 'blob:abc',
+        'https://x/y.png': 'https://x/y.png',
+      });
+
+      component.ngOnDestroy();
+
+      expect(revokeSpy).toHaveBeenCalledWith('blob:abc');
+      expect(revokeSpy).not.toHaveBeenCalledWith('https://x/y.png');
+      revokeSpy.mockRestore();
+    });
   });
 
   describe('background resolution', () => {

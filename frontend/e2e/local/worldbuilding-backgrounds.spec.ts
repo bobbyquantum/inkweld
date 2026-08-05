@@ -12,13 +12,27 @@
  */
 import { type Page } from '@playwright/test';
 
-import { createProjectWithTwoSteps } from '../common/test-helpers';
+import {
+  countIndexedDBUpdates,
+  createProjectWithTwoSteps,
+  waitForIndexedDBFlush,
+  waitForIndexedDBPersisted,
+  waitForIndexedDBStable,
+} from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 const MENU_COLOUR = '#4fd8eb';
 const MENU_COLOUR_RGB = 'rgb(79, 216, 235)';
 const CONTENT_GRADIENT =
   'linear-gradient(135deg, #97f0ff 0%, #cde7ec 50%, #ffffff 100%)';
+const ELEMENT_ID = 'char-elara';
+const USERNAME = 'testuser';
+const SLUG = 'wb-bg-demo';
+const APPEARANCE_DB = `worldbuilding:${USERNAME}:${SLUG}:${ELEMENT_ID}`;
+
+function appearanceRegionTestId(region: 'menu' | 'content'): string {
+  return `appearance-${region}`;
+}
 
 async function openCharacter(page: Page): Promise<void> {
   await page.getByTestId('project-tree').waitFor({ state: 'visible' });
@@ -69,16 +83,14 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
     const content = page.getByTestId('wb-content');
 
     await test.step('toggles start unchecked when unconfigured', async () => {
-      await expect(menuToggle).not.toHaveClass(/mat-mdc-slide-toggle-checked/);
-      await expect(contentToggle).not.toHaveClass(
-        /mat-mdc-slide-toggle-checked/
-      );
+      await expect(menuToggle).toHaveAttribute('aria-checked', 'false');
+      await expect(contentToggle).toHaveAttribute('aria-checked', 'false');
       await expect(sidenav).not.toHaveClass(/has-custom-background/);
     });
 
     await test.step('solid colour applies to the sidenav', async () => {
       await menuToggle.click();
-      await expect(menuToggle).toHaveClass(/mat-mdc-slide-toggle-checked/);
+      await expect(menuToggle).toHaveAttribute('aria-checked', 'true');
       await page.getByTestId('appearance-menu-value').fill(MENU_COLOUR);
 
       await expect(sidenav).toHaveClass(/has-custom-background/);
@@ -87,14 +99,14 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
 
     await test.step('gradient applies to the content area', async () => {
       await contentToggle.click();
-      await expect(contentToggle).toHaveClass(/mat-mdc-slide-toggle-checked/);
+      await expect(contentToggle).toHaveAttribute('aria-checked', 'true');
 
       const typeSelect = page
-        .getByTestId('appearance-content')
+        .getByTestId(appearanceRegionTestId('content'))
         .getByRole('combobox')
         .first();
       await typeSelect.click();
-      await page.getByRole('option', { name: 'Gradient' }).click();
+      await page.getByTestId('appearance-content-option-gradient').click();
 
       await page.getByTestId('appearance-content-value').fill(CONTENT_GRADIENT);
 
@@ -105,8 +117,11 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
     });
 
     await test.step('backgrounds persist across reload', async () => {
-      // Allow the debounced identity save to flush before reloading.
-      await page.waitForTimeout(700);
+      // Wait for the debounced save to flush to IndexedDB before reloading.
+      await waitForIndexedDBPersisted(page, APPEARANCE_DB, [
+        MENU_COLOUR,
+        'linear-gradient',
+      ]);
       await page.reload();
       await openCharacter(page);
 
@@ -116,12 +131,23 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
       await expect
         .poll(() => contentBgImage(page))
         .toContain('linear-gradient');
-      await expect(menuToggle).toHaveClass(/mat-mdc-slide-toggle-checked/);
+      await expect(menuToggle).toHaveAttribute('aria-checked', 'true');
     });
 
     await test.step('disabling a region removes its background', async () => {
+      // Let any trailing save from the reload settle, then capture the
+      // persisted update baseline before disabling the menu region.
+      await waitForIndexedDBStable(page, APPEARANCE_DB);
+      const updatesBaseline = await countIndexedDBUpdates(page, APPEARANCE_DB);
       await menuToggle.click();
-      await expect(menuToggle).not.toHaveClass(/mat-mdc-slide-toggle-checked/);
+      await expect(menuToggle).toHaveAttribute('aria-checked', 'false');
+      // Wait for the debounced deletion to flush to IndexedDB, then reload to
+      // prove the menu background stays removed after persistence.
+      await waitForIndexedDBFlush(page, APPEARANCE_DB, updatesBaseline);
+      await page.reload();
+      await openCharacter(page);
+
+      await expect(menuToggle).toHaveAttribute('aria-checked', 'false');
       await expect(sidenav).not.toHaveClass(/has-custom-background/);
       // Content background remains untouched.
       await expect(content).toHaveClass(/has-custom-background/);

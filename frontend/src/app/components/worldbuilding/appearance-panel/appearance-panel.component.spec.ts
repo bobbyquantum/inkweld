@@ -180,6 +180,59 @@ describe('AppearancePanelComponent', () => {
       // Local edit is preserved.
       expect(component.getSetting('menu').type).toBe('gradient');
     });
+
+    it('should re-allow remote updates after the debounced save persists', async () => {
+      vi.useFakeTimers();
+      let observer!: (data: { appearance?: ElementAppearance }) => void;
+      worldbuildingService.observeIdentityChanges.mockImplementation(
+        (_id, cb) => {
+          observer = cb;
+          return Promise.resolve(() => {});
+        }
+      );
+
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      component.setType('menu', 'gradient');
+      // Flush the debounced save (400ms) so hasLocalEdit is reset.
+      await vi.advanceTimersByTimeAsync(500);
+      // Remote updates should now be applied again.
+      const remoteAppearance: ElementAppearance = {
+        content: { type: 'color', mode: 'auto', value: '#00ff00' },
+      };
+      observer({ appearance: remoteAppearance });
+      expect(component.appearance()).toEqual(remoteAppearance);
+      vi.useRealTimers();
+    });
+
+    it('should scope local-edit state to the active element', async () => {
+      let observer!: (data: { appearance?: ElementAppearance }) => void;
+      worldbuildingService.observeIdentityChanges.mockImplementation(
+        (_id, cb) => {
+          observer = cb;
+          return Promise.resolve(() => {});
+        }
+      );
+
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      // Edit element 1.
+      component.setType('menu', 'gradient');
+
+      // Switch to a different element.
+      fixture.componentRef.setInput('elementId', 'el-2');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      // Remote updates for the new element are no longer blocked.
+      const remoteAppearance: ElementAppearance = {
+        content: { type: 'color', mode: 'auto', value: '#00ff00' },
+      };
+      observer({ appearance: remoteAppearance });
+      expect(component.appearance()).toEqual(remoteAppearance);
+    });
   });
 
   describe('image picking', () => {

@@ -20,6 +20,7 @@
           [checked]="isEnabled(region)"
           [disabled]="!canWrite()"
           (change)="setEnabled(region, $event.checked)"
+          [attr.aria-checked]="isEnabled(region)"
           [attr.data-testid]="'appearance-' + region + '-toggle'">
           {{ 'worldbuilding.appearance.enabled' | transloco }}
         </mat-slide-toggle>
@@ -36,7 +37,11 @@
               [disabled]="!canWrite()"
               (selectionChange)="setType(region, $event.value)">
               @for (type of types; track type) {
-                <mat-option [value]="type">
+                <mat-option
+                  [value]="type"
+                  [attr.data-testid]="
+                    'appearance-' + region + '-option-' + type
+                  ">
                   {{
                     'worldbuilding.appearance.typeOptions.' + type | transloco
                   }}

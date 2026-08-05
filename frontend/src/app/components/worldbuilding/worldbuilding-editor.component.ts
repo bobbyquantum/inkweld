@@ -329,6 +329,11 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (this.resizeCleanup) {
       this.resizeCleanup();
     }
+    for (const url of Object.values(this.resolvedImageUrls())) {
+      if (url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    }
   }
 
   private async loadElementData(elementId: string): Promise<void> {
