@@ -28,8 +28,9 @@ function mockNamespace(response: Response, calls: string[] = []): MockNamespace 
       calls.push(`get:${id}`);
       return {
         fetch: async (input: Request | string) => {
-          const url = typeof input === 'string' ? input : (input as Request).url;
-          calls.push(`fetch:${url}`);
+          const request = typeof input === 'string' ? new Request(input) : input;
+          calls.push(`fetch:${request.url}`);
+          calls.push(`authorization:${request.headers.get('Authorization') ?? ''}`);
           return response;
         },
       };
@@ -105,6 +106,7 @@ describe('getProjectStorageSize', () => {
     expect(calls.some((c) => c === 'idFromName:bob:novel')).toBe(true);
     expect(calls.some((c) => c === 'get:bob:novel')).toBe(true);
     expect(calls.some((c) => c.includes('documentId=bob%3Anovel%3Aelements'))).toBe(true);
+    expect(calls.some((c) => c === 'authorization:Bearer a-token')).toBe(true);
   });
 
   it('returns 0 data bytes when the Workers DO returns a non-OK response', async () => {

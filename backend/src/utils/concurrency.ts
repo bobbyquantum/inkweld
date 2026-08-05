@@ -11,7 +11,9 @@ export async function mapWithConcurrency<T, R>(
   limit: number,
   mapper: (item: T) => Promise<R>
 ): Promise<R[]> {
-  if (limit < 1) throw new Error('Concurrency limit must be >= 1');
+  if (!Number.isInteger(limit) || limit < 1) {
+    throw new Error('Concurrency limit must be a positive integer');
+  }
   const results: R[] = new Array(items.length);
   let nextIndex = 0;
 

@@ -27,10 +27,12 @@ describe('mapWithConcurrency', () => {
     expect(maxActive).toBeLessThanOrEqual(2);
   });
 
-  it('throws for a limit below 1', async () => {
+  it('throws for a non-positive-integer limit', async () => {
     await expect(mapWithConcurrency([1], 0, (n) => Promise.resolve(n))).rejects.toThrow(
-      'Concurrency limit must be >= 1'
+      'Concurrency limit must be a positive integer'
     );
+    await expect(mapWithConcurrency([1], 1.5, (n) => Promise.resolve(n))).rejects.toThrow();
+    await expect(mapWithConcurrency([1], Number.NaN, (n) => Promise.resolve(n))).rejects.toThrow();
   });
 
   it('propagates mapper errors', async () => {

@@ -139,7 +139,7 @@
   "storageSize": {
     "title": "Server Storage",
     "loading": "Loading storage size...",
-    "dataLabel": "Documents &amp; data",
+    "dataLabel": "Documents & data",
     "mediaLabel": "Media",
     "totalLabel": "Total",
     "unavailable": "Storage size is available in server mode.",

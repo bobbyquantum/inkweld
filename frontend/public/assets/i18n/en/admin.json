@@ -58,7 +58,7 @@
     "deleteMessage": "Are you sure you want to permanently delete {{name}}? This action cannot be undone.",
     "deleted": "{{name}} has been deleted",
     "deleteFailed": "Failed to delete user",
-    "projectsAndStorage": "Projects &amp; storage"
+    "projectsAndStorage": "Projects & storage"
   },
   "projects": {
     "title": "{{username}} — Projects",
@@ -71,7 +71,7 @@
     "total": "Total",
     "dataUnit": "data",
     "mediaUnit": "media",
-    "dataTooltip": "Documents &amp; data: {{bytes}} bytes",
+    "dataTooltip": "Documents & data: {{bytes}} bytes",
     "mediaTooltip": "Media: {{bytes}} bytes",
     "close": "Close"
   },
