@@ -112,7 +112,7 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🟡 | Zen mode (distraction-free) | |
 | ✅ | 🟡 | Document snapshots | Version history for documents |
 | ✅ | 🟡 | Comments/Annotations | Inline feedback with threaded replies and resolution |
-| ⬜ | 🟢 | Writing statistics | Daily/weekly word counts, session stats, goals |
+| ✅ | 🟢 | Writing statistics | Daily word counts and session stats across projects, shown on your profile |
 
 ### Worldbuilding
 | Status | Priority | Feature | Notes |
@@ -122,8 +122,8 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🔥 | Element references (@mentions) | |
 | ✅ | 🟡 | Tags on documents & elements | Categorize and organize content |
 | ✅ | 🟡 | Tags on images | Extend tagging to media library |
+| ✅ | 🟡 | Custom calendar systems | Fantasy calendars with custom months/years |
 | ⬜ | 🟡 | Random generators | Names, locations, prompts for inspiration |
-| ⬜ | 🟡 | Custom calendar systems | Fantasy calendars with custom months/years |
 | ⬜ | 🟢 | Language/Conlang tools | Vocabulary lists, alphabets |
 | ⬜ | 🟢 | Secrets/GM notes | Per-element spoiler hiding from some collaborators |
 | ⬜ | 🟢 | Reference images panel | Side-by-side images while writing |
@@ -149,7 +149,7 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🟡 | Project sharing | Invite collaborators with role-based access |
 | ✅ | 🟡 | Local-first architecture | Works offline, syncs when connected |
 | ✅ | 🟡 | Migrate local to server | Start offline, add sync server later |
-| ⬜ | 🟢 | Activity feed | See recent changes by collaborators |
+| ✅ | 🟢 | Activity feed | Per-project feed of recent changes by collaborators |
 
 
 ### Relationship Charts
@@ -188,7 +188,7 @@ Then open `http://localhost:8333` in your browser.
 | Status | Priority | Feature | Notes |
 |--------|----------|---------|-------|
 | ✅ | 🔥 | Timeline element type | New element for chronological visualization |
-| ✅ | 🔥 | Time systems | Define custom calendars and date formats |
+| ✅ | 🔥 | Time systems | Define custom calendars and date formats (see Custom calendar systems) |
 | ✅ | 🔥 | Timeline fields on elements | Add dates to worldbuilding elements |
 | ✅ | 🔥 | Auto-build from elements | Generate timeline from element date fields |
 | ✅ | 🟡 | Events system | Add events directly to timeline with element references |
@@ -215,7 +215,6 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🟡 | User approval system | |
 | ✅ | 🔥 | Password reset via email | Forgot/reset flow with emailed token links (only when password login is enabled) |
 | ✅ | 🟡 | GitHub OAuth | Optional GitHub sign-in |
-| ⬜ | 🟡 | Two-factor auth | |
 
 ### DevOps & Admin
 | Status | Priority | Feature | Notes |
