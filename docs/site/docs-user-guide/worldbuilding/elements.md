@@ -348,7 +348,7 @@ _A gradient applied to the content area._
 
 ![Custom menu and content backgrounds in dark mode](/img/features/worldbuilding-backgrounds/worldbuilding-background-both-dark.png)
 
-_Both regions customised in dark mode._
+_Both regions use custom backgrounds in dark mode._
 
 Backgrounds are stored with the element and sync to collaborators in real time, like the rest of the identity data.
 

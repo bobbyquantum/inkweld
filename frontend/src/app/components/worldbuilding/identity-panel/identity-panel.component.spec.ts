@@ -133,6 +133,42 @@ describe('IdentityPanelComponent', () => {
     expect(component.appearance()?.content?.mode).toBe('manual');
   });
 
+  it('should not let a late initial snapshot overwrite a newer realtime update', async () => {
+    let observer!: (data: WorldbuildingIdentity) => void;
+    worldbuildingService.observeIdentityChanges.mockImplementation(
+      (_id, cb) => {
+        observer = cb;
+        return Promise.resolve(() => {});
+      }
+    );
+
+    // Keep the initial getIdentityData pending.
+    let resolveSnapshot!: (v: WorldbuildingIdentity) => void;
+    worldbuildingService.getIdentityData.mockImplementation(
+      () => new Promise<WorldbuildingIdentity>(res => (resolveSnapshot = res))
+    );
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    // A realtime update arrives before the initial snapshot resolves.
+    observer({
+      appearance: {
+        content: { type: 'gradient', mode: 'manual', light: 'a', dark: 'b' },
+      },
+    });
+    expect(component.appearance()?.content?.mode).toBe('manual');
+
+    // The stale initial snapshot resolves afterwards and must not clobber it.
+    resolveSnapshot({
+      appearance: { menu: { type: 'color', mode: 'auto', value: '#000' } },
+    });
+    await Promise.resolve();
+
+    expect(component.appearance()?.content?.mode).toBe('manual');
+    expect(component.appearance()?.menu).toBeUndefined();
+  });
+
   it('should emit renameRequested when rename button is clicked', async () => {
     fixture.detectChanges();
     await fixture.whenStable();

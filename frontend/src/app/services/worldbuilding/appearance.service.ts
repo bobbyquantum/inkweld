@@ -1,3 +1,4 @@
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -6,9 +7,15 @@ import {
   type BackgroundType,
   isBackgroundEmpty,
 } from '@models/element-appearance';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { ThemeService } from '@themes/theme.service';
-import { map } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
+
+import {
+  mediaIdFromReference,
+  mediaReferenceFilename,
+} from '../../utils/media-reference';
 
 /**
  * A resolved background ready to bind as CSS custom properties.
@@ -48,15 +55,18 @@ export class AppearanceService {
   );
 
   private readonly localStorage = inject(LocalStorageService);
+  private readonly http = inject(HttpClient);
+  private readonly storageContext = inject(StorageContextService);
 
   /**
    * Resolve an image reference to a loadable URL.
    *
    * `media://` references are application-internal and cannot be loaded by the
    * browser directly, so they are resolved to a cached blob URL from IndexedDB.
-   * Non-`media://` references (http/https/data/blob) are returned as-is when
-   * they use a safe scheme. Returns `null` when the reference cannot be
-   * resolved to a renderable URL.
+   * On a cache miss the media is downloaded from the server and cached so a
+   * collaborator or a fresh browser can render it. Non-`media://` references
+   * (http/https/data/blob) are returned as-is when they use a safe scheme.
+   * Returns `null` when the reference cannot be resolved to a renderable URL.
    */
   async resolveImageReference(
     reference: string,
@@ -69,16 +79,27 @@ export class AppearanceService {
         : null;
     }
 
-    const filename = reference.substring('media://'.length);
-    const mediaId = filename.includes('.')
-      ? filename.substring(0, filename.lastIndexOf('.'))
-      : filename;
+    const filename = mediaReferenceFilename(reference);
+    const mediaId = mediaIdFromReference(reference);
+    const projectKey = `${username}/${slug}`;
 
     try {
-      return await this.localStorage.getMediaUrl(
-        `${username}/${slug}`,
+      const cachedUrl = await this.localStorage.getMediaUrl(
+        projectKey,
         mediaId
       );
+      if (cachedUrl) {
+        return cachedUrl;
+      }
+
+      if (!username || !slug) return null;
+
+      const apiUrl = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}/${filename}`;
+      const blob = await firstValueFrom(
+        this.http.get(apiUrl, { responseType: 'blob' })
+      );
+      await this.localStorage.saveMedia(projectKey, mediaId, blob, filename);
+      return this.localStorage.getMediaUrl(projectKey, mediaId);
     } catch {
       return null;
     }

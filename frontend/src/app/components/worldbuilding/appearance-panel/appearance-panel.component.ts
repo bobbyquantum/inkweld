@@ -75,6 +75,8 @@ export class AppearancePanelComponent {
   private readonly destroy$ = new Subject<void>();
   private unsubscribeObserver: (() => void) | null = null;
   private hasLocalEdit = false;
+  private editGeneration = 0;
+  private elementSequence = 0;
   /** Keys ("region" or "region.slot") pending explicit deletion on next save. */
   private pendingDeletes: Record<string, true> = {};
 
@@ -82,12 +84,16 @@ export class AppearancePanelComponent {
     this.save$
       .pipe(takeUntil(this.destroy$), debounceTime(400))
       .subscribe(() => {
-        this.persist();
+        void this.persist();
       });
 
     effect(() => {
       const id = this.elementId();
       if (id) {
+        this.elementSequence++;
+        this.hasLocalEdit = false;
+        this.editGeneration = 0;
+        this.pendingDeletes = {};
         void this.load(id);
         void this.observe(id);
       }
@@ -99,19 +105,20 @@ export class AppearancePanelComponent {
   // ---------------------------------------------------------------------------
 
   private async load(elementId: string): Promise<void> {
-    // If the user already edited before the (async) load resolved, don't
-    // clobber their in-flight edits with the stored value.
-    if (this.hasLocalEdit) return;
+    const sequence = this.elementSequence;
     const data = await this.worldbuildingService.getIdentityData(
       elementId,
       this.username(),
       this.slug()
     );
-    if (this.hasLocalEdit) return;
+    // Discard the result if the active element changed or the user has already
+    // edited before the (async) load resolved.
+    if (sequence !== this.elementSequence || this.hasLocalEdit) return;
     this.appearance.set(data.appearance ?? {});
   }
 
   private async observe(elementId: string): Promise<void> {
+    const sequence = this.elementSequence;
     if (this.unsubscribeObserver) {
       this.unsubscribeObserver();
     }
@@ -119,7 +126,9 @@ export class AppearancePanelComponent {
       await this.worldbuildingService.observeIdentityChanges(
         elementId,
         data => {
-          if (this.hasLocalEdit) return;
+          // Ignore remote updates for a stale element or while the user has
+          // local edits in-flight.
+          if (sequence !== this.elementSequence || this.hasLocalEdit) return;
           this.appearance.set(data.appearance ?? {});
         },
         this.username(),
@@ -160,6 +169,7 @@ export class AppearancePanelComponent {
 
   setEnabled(region: AppearanceRegion, enabled: boolean): void {
     this.hasLocalEdit = true;
+    this.editGeneration++;
     this.appearance.update(a => {
       const next = { ...a };
       if (enabled) {
@@ -185,6 +195,7 @@ export class AppearancePanelComponent {
     patch: Partial<BackgroundSetting>
   ): void {
     this.hasLocalEdit = true;
+    this.editGeneration++;
     this.appearance.update(a => {
       const current = a[region] ?? { type: 'color', mode: 'auto' };
       const nextSetting: BackgroundSetting = { ...current, ...patch };
@@ -209,7 +220,7 @@ export class AppearancePanelComponent {
     this.save$.next();
   }
 
-  private persist(): void {
+  private async persist(): Promise<void> {
     const appearance = this.appearance();
     const payload: ElementAppearance = { ...appearance };
 
@@ -232,12 +243,21 @@ export class AppearancePanelComponent {
     }
     this.pendingDeletes = {};
 
-    void this.worldbuildingService.saveIdentityData(
-      this.elementId(),
-      { appearance: payload },
-      this.username(),
-      this.slug()
-    );
+    const saveEditGeneration = this.editGeneration;
+    try {
+      await this.worldbuildingService.saveIdentityData(
+        this.elementId(),
+        { appearance: payload },
+        this.username(),
+        this.slug()
+      );
+    } finally {
+      // The local edit has been flushed; re-allow realtime updates for the
+      // current element, unless the user edited again while saving.
+      if (saveEditGeneration === this.editGeneration) {
+        this.hasLocalEdit = false;
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------

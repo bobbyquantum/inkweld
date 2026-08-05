@@ -4,6 +4,145 @@ import { join } from 'node:path';
 import { expect, type Page } from '@playwright/test';
 
 /**
+ * Poll the y-indexeddb `updates` object store for a database until the
+ * concatenated Yjs update bytes contain all of the given UTF-8 strings.
+ *
+ * y-indexeddb persists every Yjs document update as a raw `Uint8Array` in an
+ * auto-incremented `updates` store keyed by the document name. The Yjs state
+ * encodes each value verbatim, so once a value has been written and flushed it
+ * appears as a UTF-8 substring of the stored bytes. This lets tests synchronise
+ * on real persistence (instead of a fixed debounce wait) before reloading.
+ *
+ * @param page - Playwright page
+ * @param dbName - IndexedDB database name (e.g. `worldbuilding:user:slug:id`)
+ * @param expected - Substrings that must all be present in the persisted bytes
+ */
+export async function waitForIndexedDBPersisted(
+  page: Page,
+  dbName: string,
+  expected: string[]
+): Promise<void> {
+  await expect
+    .poll(async () => {
+      const present = await page.evaluate(
+        async ({ name, needles }) => {
+          const text = new TextDecoder('utf-8');
+          const open = indexedDB.open(name);
+          try {
+            const db = await new Promise<IDBDatabase>((resolve, reject) => {
+              open.onsuccess = () => resolve(open.result);
+              open.onerror = () =>
+                reject(open.error ?? new Error('open failed'));
+            });
+            const store = db
+              .transaction('updates', 'readonly')
+              .objectStore('updates');
+            const records = await new Promise<Uint8Array[]>(
+              (resolve, reject) => {
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result as Uint8Array[]);
+                req.onerror = () =>
+                  reject(req.error ?? new Error('get failed'));
+              }
+            );
+            db.close();
+            const all = text.decode(
+              records.reduce((acc, r) => {
+                const merged = new Uint8Array(acc.length + r.length);
+                merged.set(acc);
+                merged.set(r, acc.length);
+                return merged;
+              }, new Uint8Array(0))
+            );
+            return needles.every(n => all.includes(n));
+          } catch {
+            return false;
+          }
+        },
+        { name: dbName, needles: expected }
+      );
+      return present;
+    })
+    .toBe(true);
+}
+
+/**
+ * Return the number of `updates` records currently stored for a y-indexeddb
+ * database. y-indexeddb appends one record per applied update, so this count
+ * grows whenever a Yjs change is persisted.
+ */
+export async function countIndexedDBUpdates(
+  page: Page,
+  dbName: string
+): Promise<number> {
+  return page.evaluate(async name => {
+    const open = indexedDB.open(name);
+    try {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        open.onsuccess = () => resolve(open.result);
+        open.onerror = () => reject(open.error ?? new Error('open failed'));
+      });
+      const store = db
+        .transaction('updates', 'readonly')
+        .objectStore('updates');
+      const count = await new Promise<number>((resolve, reject) => {
+        const req = store.count();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error ?? new Error('count failed'));
+      });
+      db.close();
+      return count;
+    } catch {
+      return 0;
+    }
+  }, dbName);
+}
+
+/**
+ * Poll until additional Yjs updates have been persisted to a database,
+ * confirming that a debounced save flushed (e.g. a background deletion). A
+ * deletion is encoded structurally in Yjs and cannot be detected by searching
+ * for a removed substring (old records are append-only), so we wait for the
+ * persisted update count to grow past the given baseline.
+ *
+ * @param page - Playwright page
+ * @param dbName - IndexedDB database name
+ * @param baseline - Update count captured before the save being awaited
+ */
+export async function waitForIndexedDBFlush(
+  page: Page,
+  dbName: string,
+  baseline: number
+): Promise<void> {
+  await expect
+    .poll(() => countIndexedDBUpdates(page, dbName))
+    .toBeGreaterThan(baseline);
+}
+
+/**
+ * Wait until the persisted update count for a database stops changing, i.e.
+ * any in-flight debounced saves have settled. Use this before capturing a
+ * baseline so a trailing save from an earlier step isn't mistaken for the one
+ * the test is about to trigger.
+ */
+export async function waitForIndexedDBStable(
+  page: Page,
+  dbName: string
+): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        const first = await countIndexedDBUpdates(page, dbName);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const second = await countIndexedDBUpdates(page, dbName);
+        return first === second ? second : -1;
+      },
+      { intervals: [600] }
+    )
+    .toBeGreaterThanOrEqual(0);
+}
+
+/**
  * Press a keyboard shortcut using the Control modifier key.
  *
  * All E2E test pages override `navigator.platform` to `'Linux x86_64'` via
