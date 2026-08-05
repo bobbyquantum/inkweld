@@ -167,13 +167,19 @@ test.describe('Toolbar Overflow', () => {
       await constrainToolbarWidth(page, width);
       await expect(overflowBtn).toBeVisible();
 
-      const overflowBox = await overflowBtn.boundingBox();
       const commentsBox = await commentsBtn.boundingBox();
-      expect(overflowBox).not.toBeNull();
       expect(commentsBox).not.toBeNull();
-      expect(overflowBox!.x + overflowBox!.width).toBeLessThanOrEqual(
-        commentsBox!.x
-      );
+
+      // Poll the collision predicate: the toolbar recalculates over two
+      // animation frames, so a single geometry read can race the layout.
+      await expect
+        .poll(async () => {
+          const overflowBox = await overflowBtn.boundingBox();
+          return overflowBox
+            ? overflowBox.x + overflowBox.width
+            : Number.POSITIVE_INFINITY;
+        })
+        .toBeLessThanOrEqual(commentsBox!.x);
     }
   });
 
