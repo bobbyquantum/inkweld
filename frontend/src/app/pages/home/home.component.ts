@@ -482,17 +482,28 @@ export class HomeComponent implements OnInit, OnDestroy {
       } satisfies ConfirmationDialogData,
     });
 
+    // Show a "Calculating..." indicator immediately while the size is fetched
+    // (only in server mode where the fetch actually runs).
+    if (!this.isLocalMode()) {
+      dialogRef.componentInstance?.setDetails?.([
+        this.transloco.translate('home.dialogs.calculatingSize'),
+      ]);
+    }
+
     // Load the approximate size the project will occupy in local storage and
-    // surface it in the dialog (best-effort — failures are silently ignored).
+    // surface it in the dialog. On failure, show an error message.
     void this.fetchActivationSize(project).then(size => {
-      const details = size
-        ? [
-            this.transloco.translate('home.dialogs.activateSize', {
-              sizeText: formatBytes(size.totalBytes),
-            }),
-          ]
-        : [];
-      dialogRef.componentInstance?.setDetails?.(details);
+      if (size) {
+        dialogRef.componentInstance?.setDetails?.([
+          this.transloco.translate('home.dialogs.activateSize', {
+            sizeText: formatBytes(size.totalBytes),
+          }),
+        ]);
+      } else if (!this.isLocalMode()) {
+        dialogRef.componentInstance?.setDetails?.([
+          this.transloco.translate('home.dialogs.sizeUnavailable'),
+        ]);
+      }
     });
 
     dialogRef.afterClosed().subscribe((confirmed: boolean) => {

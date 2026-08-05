@@ -972,20 +972,20 @@ describe('HomeComponent', () => {
 
         component.onProjectClick(mockProjects[0], event);
 
-        expect(matDialog.open).toHaveBeenCalled();
+        // Should show "Calculating..." immediately.
+        expect(componentInstance.setDetails).toHaveBeenCalledWith([
+          'Calculating approximate size...',
+        ]);
+
         // Wait for the async size fetch to resolve and update the dialog.
         await vi.waitFor(() => {
-          expect(projectsService.getProjectStorageSize).toHaveBeenCalledWith(
-            mockProjects[0].username,
-            mockProjects[0].slug
-          );
           expect(componentInstance.setDetails).toHaveBeenCalledWith([
             'Approximate size to download: 300 B',
           ]);
         });
       });
 
-      it('should not set details when the size fetch fails', async () => {
+      it('should show error message when the size fetch fails', async () => {
         projectsService.getProjectStorageSize.mockReturnValue(
           throwError(() => new Error('boom'))
         );
@@ -1001,10 +1001,16 @@ describe('HomeComponent', () => {
 
         component.onProjectClick(mockProjects[0], event);
 
+        // Should show "Calculating..." immediately.
+        expect(componentInstance.setDetails).toHaveBeenCalledWith([
+          'Calculating approximate size...',
+        ]);
+
         await vi.waitFor(() => {
-          expect(projectsService.getProjectStorageSize).toHaveBeenCalled();
+          expect(componentInstance.setDetails).toHaveBeenCalledWith([
+            'Could not calculate size',
+          ]);
         });
-        expect(componentInstance.setDetails).not.toHaveBeenCalled();
       });
 
       it('should activate and sync when activation dialog confirmed', async () => {
