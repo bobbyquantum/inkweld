@@ -2,6 +2,7 @@ import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { of, Subject } from 'rxjs';
 import {
   afterEach,
@@ -531,6 +532,57 @@ describe('EditorToolbarComponent', () => {
         const overflow = component.overflowGroups();
         expect(overflow.has('insert')).toBe(true);
         expect(overflow.has('history')).toBe(false);
+      });
+
+      it('should budget for flex gaps so the row never bleeds into the pinned-toggle reservation', () => {
+        vi.useFakeTimers();
+        const el = component.toolbarEl.nativeElement;
+
+        // jsdom reports no padding, so available = 300 - 44 = 256.
+        Object.defineProperty(el, 'offsetWidth', {
+          value: 300,
+          configurable: true,
+        });
+
+        // 6 groups * 42 = 252 of cached width fits in 256 on its own, but
+        // once the 4px flex gaps between the 12 children (44px) are budgeted
+        // the row no longer fits and the lowest-priority group must move
+        // into the overflow menu.
+        vi.spyOn(el, 'querySelector').mockImplementation((sel: string) => {
+          if (sel.includes('data-toolbar-group')) {
+            return {
+              offsetWidth: 42,
+              classList: { contains: () => false },
+            } as unknown as Element;
+          }
+          if (sel.includes('data-toolbar-divider')) {
+            return { offsetWidth: 0 } as unknown as Element;
+          }
+          return null;
+        });
+
+        component.recalculateOverflow();
+        vi.runAllTimers();
+
+        expect(component.isOverflowed('insert')).toBe(true);
+        expect(component.isOverflowed('history')).toBe(false);
+      });
+
+      it('should recalculate overflow when the auto-review feature flag flips', async () => {
+        const config = TestBed.inject(SystemConfigService);
+        const spy = vi.spyOn(component, 'recalculateOverflow');
+
+        const features = config.systemFeatures();
+        (
+          config as unknown as {
+            systemFeaturesSignal: { set: (value: unknown) => void };
+          }
+        ).systemFeaturesSignal.set({ ...features, aiAutoReview: true });
+
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        expect(spy).toHaveBeenCalled();
       });
 
       it('should clear overflow when all groups fit (using cache)', () => {
