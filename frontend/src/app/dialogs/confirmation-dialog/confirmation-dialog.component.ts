@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -41,6 +46,17 @@ export class ConfirmationDialogComponent {
     MatDialogRef<ConfirmationDialogComponent>
   );
   protected confirmationInput = '';
+
+  /** Reactive detail lines so callers can update them after the dialog opens. */
+  protected readonly details = signal<string[]>(this.data.details ?? []);
+
+  /**
+   * Replace the detail lines shown below the message. Useful for async content
+   * (e.g. loading a storage size before rendering it).
+   */
+  setDetails(details: string[]): void {
+    this.details.set(details);
+  }
 
   onCancel(): void {
     this.dialogRef.close(false);

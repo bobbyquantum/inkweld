@@ -278,6 +278,13 @@ describe('SettingsTabComponent', () => {
 
     projectsService = {
       updateProject: vi.fn().mockReturnValue(of({ slug: 'new-slug' })),
+      getProjectStorageSize: vi.fn().mockReturnValue(
+        of({
+          dataBytes: 100,
+          mediaBytes: 200,
+          totalBytes: 300,
+        })
+      ),
     };
 
     router = {
@@ -679,6 +686,66 @@ describe('SettingsTabComponent', () => {
       const keyToDelete = { id: 'key-1' } as McpPublicKey;
       await component.deleteKey(keyToDelete);
       expect(mcpKeysService.deleteMcpKey).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Server Storage', () => {
+    it('should load server storage size', async () => {
+      await component.loadServerStorageSize();
+
+      expect(projectsService.getProjectStorageSize).toHaveBeenCalledWith(
+        'testuser',
+        'test-project'
+      );
+      expect(component['serverStorageSize']()).toEqual({
+        dataBytes: 100,
+        mediaBytes: 200,
+        totalBytes: 300,
+      });
+      expect(component['isLoadingStorageSize']()).toBe(false);
+      expect(component['storageSizeError']()).toBeNull();
+    });
+
+    it('should set an error when loading storage size fails', async () => {
+      projectsService.getProjectStorageSize = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('boom')));
+
+      await component.loadServerStorageSize();
+
+      expect(component['serverStorageSize']()).toBeNull();
+      expect(component['storageSizeError']()).toBe(
+        'Failed to load storage size'
+      );
+      expect(component['isLoadingStorageSize']()).toBe(false);
+    });
+
+    it('should ignore a stale response from a previous project', async () => {
+      // First request resolves later than the second.
+      let resolveFirst!: (v: unknown) => void;
+      projectsService.getProjectStorageSize = vi
+        .fn()
+        .mockReturnValueOnce(new Promise(resolve => (resolveFirst = resolve)))
+        .mockReturnValueOnce(
+          of({ dataBytes: 7, mediaBytes: 8, totalBytes: 15 })
+        );
+
+      const first = component.loadServerStorageSize();
+      const second = component.loadServerStorageSize();
+      await second;
+      resolveFirst({
+        dataBytes: 1,
+        mediaBytes: 2,
+        totalBytes: 3,
+      });
+      await first;
+
+      // The stale (first) response must not overwrite the current value.
+      expect(component['serverStorageSize']()).toEqual({
+        dataBytes: 7,
+        mediaBytes: 8,
+        totalBytes: 15,
+      });
     });
   });
 

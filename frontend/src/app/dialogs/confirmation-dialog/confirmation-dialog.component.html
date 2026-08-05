@@ -4,9 +4,9 @@
 <mat-dialog-content>
   <p data-testid="confirm-dialog-message">{{ data.message }}</p>
 
-  @if (data.details && data.details.length > 0) {
-    <ul class="details-list">
-      @for (detail of data.details; track detail) {
+  @if (details() && details().length > 0) {
+    <ul class="details-list" data-testid="confirmation-dialog-details">
+      @for (detail of details(); track detail) {
         <li>{{ detail }}</li>
       }
     </ul>

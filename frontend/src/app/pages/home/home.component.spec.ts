@@ -15,6 +15,7 @@ import { type ProjectCardComponent } from '@components/project-card/project-card
 import { LoginDialogComponent } from '@dialogs/login-dialog/login-dialog.component';
 import { RegisterDialogComponent } from '@dialogs/register-dialog/register-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
+import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Project, type User } from '@inkweld/index';
 import {
   type CollaboratedProject,
@@ -64,6 +65,9 @@ describe('HomeComponent', () => {
   let matDialog: MockedObject<MatDialog>;
   let snackBar: MockedObject<MatSnackBar>;
   let coverSyncService: { syncCovers: ReturnType<typeof vi.fn> };
+  let projectsService: {
+    getProjectStorageSize: ReturnType<typeof vi.fn>;
+  };
   let mockSyncQueueService: {
     isSyncing: ReturnType<typeof signal<boolean>>;
     syncAllProjects: ReturnType<typeof vi.fn>;
@@ -232,7 +236,15 @@ describe('HomeComponent', () => {
     coverSyncService = {
       syncCovers: vi.fn().mockResolvedValue(undefined),
     };
-
+    projectsService = {
+      getProjectStorageSize: vi.fn().mockReturnValue(
+        of({
+          dataBytes: 100,
+          mediaBytes: 200,
+          totalBytes: 300,
+        })
+      ),
+    };
     mockSyncQueueService = {
       isSyncing: signal(false),
       syncAllProjects: vi.fn().mockResolvedValue(undefined),
@@ -273,6 +285,7 @@ describe('HomeComponent', () => {
         { provide: MatDialog, useValue: matDialog },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: CoverSyncService, useValue: coverSyncService },
+        { provide: ProjectsService, useValue: projectsService },
         { provide: SyncQueueService, useValue: mockSyncQueueService },
         {
           provide: StorageContextService,
@@ -943,6 +956,55 @@ describe('HomeComponent', () => {
           unknown
         >;
         expect(dialogData['title']).toBe('Activate Project');
+      });
+
+      it('should show approximate download size in the activation dialog', async () => {
+        mockActivationService.isActivated.mockReturnValue(false);
+        const event = new MouseEvent('click');
+        const afterClosedSubject = { subscribe: vi.fn() };
+        const componentInstance = {
+          setDetails: vi.fn(),
+        };
+        matDialog.open.mockReturnValue({
+          componentInstance,
+          afterClosed: () => afterClosedSubject,
+        } as unknown as MatDialogRef<unknown>);
+
+        component.onProjectClick(mockProjects[0], event);
+
+        expect(matDialog.open).toHaveBeenCalled();
+        // Wait for the async size fetch to resolve and update the dialog.
+        await vi.waitFor(() => {
+          expect(projectsService.getProjectStorageSize).toHaveBeenCalledWith(
+            mockProjects[0].username,
+            mockProjects[0].slug
+          );
+          expect(componentInstance.setDetails).toHaveBeenCalledWith([
+            'Approximate size to download: 300 B',
+          ]);
+        });
+      });
+
+      it('should not set details when the size fetch fails', async () => {
+        projectsService.getProjectStorageSize.mockReturnValue(
+          throwError(() => new Error('boom'))
+        );
+        mockActivationService.isActivated.mockReturnValue(false);
+        const event = new MouseEvent('click');
+        const componentInstance = {
+          setDetails: vi.fn(),
+        };
+        matDialog.open.mockReturnValue({
+          componentInstance,
+          afterClosed: () => ({ subscribe: vi.fn() }),
+        } as unknown as MatDialogRef<unknown>);
+
+        component.onProjectClick(mockProjects[0], event);
+
+        await vi.waitFor(() => {
+          expect(projectsService.getProjectStorageSize).toHaveBeenCalled();
+        });
+        expect(componentInstance.setDetails).not.toHaveBeenCalled();
       });
 
       it('should activate and sync when activation dialog confirmed', async () => {

@@ -41,7 +41,7 @@ import {
   InvitationStatus,
   type McpPublicKey,
 } from '@inkweld/index';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
@@ -51,6 +51,7 @@ import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { firstValueFrom } from 'rxjs';
 
+import { formatBytes } from '../../../../utils/format-bytes';
 import { TimeSystemsSettingsComponent } from './time-systems-settings/time-systems-settings.component';
 
 /**
@@ -148,6 +149,7 @@ export class SettingsTabComponent implements OnDestroy {
   private readonly mediaSyncService = inject(MediaSyncService);
   private readonly systemConfigService = inject(SystemConfigService);
   private readonly exportService = inject(ProjectExportService);
+  private readonly transloco = inject(TranslocoService);
 
   // MCP Keys should only be visible when AI kill switch is OFF
   protected readonly isAiKillSwitchEnabled =
@@ -227,6 +229,17 @@ export class SettingsTabComponent implements OnDestroy {
     return `${project.username}/${project.slug}`;
   });
 
+  // Server-side storage size for this project (server mode only)
+  protected readonly serverStorageSize = signal<{
+    dataBytes: number;
+    mediaBytes: number;
+    totalBytes: number;
+  } | null>(null);
+  protected readonly isLoadingStorageSize = signal(false);
+  protected readonly storageSizeError = signal<string | null>(null);
+  /** Increments each time a storage-size request starts; guards stale responses. */
+  private storageSizeRequestId = 0;
+
   /**
    * Reactive sync state that automatically updates when background syncs
    * (periodic, WebSocket, initial) modify the MediaSyncService's internal state.
@@ -245,6 +258,7 @@ export class SettingsTabComponent implements OnDestroy {
         void this.checkMediaSyncStatus();
         void this.loadMcpKeys();
         void this.loadCollaborators();
+        void this.loadServerStorageSize();
       }
     });
 
@@ -773,6 +787,42 @@ export class SettingsTabComponent implements OnDestroy {
   // Media Sync
   // =====================
 
+  /**
+   * Load the approximate server-side storage size for the current project.
+   * Uses a request id so a late response for a previous project can't
+   * overwrite the value shown for the current one.
+   */
+  async loadServerStorageSize(): Promise<void> {
+    const project = this.projectState.project();
+    if (!project || this.currentMode !== 'server') return;
+
+    const requestId = ++this.storageSizeRequestId;
+    this.isLoadingStorageSize.set(true);
+    this.storageSizeError.set(null);
+    this.serverStorageSize.set(null);
+
+    try {
+      const size = await firstValueFrom(
+        this.projectsService.getProjectStorageSize(
+          project.username,
+          project.slug
+        )
+      );
+      if (requestId !== this.storageSizeRequestId) return;
+      this.serverStorageSize.set(size);
+    } catch (error) {
+      if (requestId !== this.storageSizeRequestId) return;
+      console.error('Failed to load project storage size:', error);
+      this.storageSizeError.set(
+        this.transloco.translate('settings.storageSize.loadFailed')
+      );
+    } finally {
+      if (requestId === this.storageSizeRequestId) {
+        this.isLoadingStorageSize.set(false);
+      }
+    }
+  }
+
   async checkMediaSyncStatus(): Promise<void> {
     const key = this.projectKey();
     if (!key) return;
@@ -828,13 +878,7 @@ export class SettingsTabComponent implements OnDestroy {
   }
 
   formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (
-      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
-    );
+    return formatBytes(bytes);
   }
 
   getServerTotalSize(): number {

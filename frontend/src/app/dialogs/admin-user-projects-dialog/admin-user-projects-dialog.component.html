@@ -1,0 +1,94 @@
+<h2 mat-dialog-title data-testid="admin-user-projects-title">
+  {{ 'admin.projects.title' | transloco: { username } }}
+</h2>
+<mat-dialog-content>
+  @if (isLoading()) {
+    <div class="loading-state" data-testid="admin-user-projects-loading">
+      <mat-spinner diameter="32"></mat-spinner>
+      <p>{{ 'admin.projects.loading' | transloco }}</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-state">
+      <mat-icon>error</mat-icon>
+      <p>{{ error() }}</p>
+      <button mat-raised-button color="primary" (click)="refresh()">
+        {{ 'admin.projects.retry' | transloco }}
+      </button>
+    </div>
+  } @else if (data(); as result) {
+    @if (result.projects.length === 0) {
+      <div class="empty-state">
+        <mat-icon>folder_open</mat-icon>
+        <p>{{ 'admin.projects.empty' | transloco }}</p>
+      </div>
+    } @else {
+      <div class="totals" data-testid="admin-user-projects-totals">
+        <div class="total-item">
+          <span class="label">{{
+            'admin.projects.totalData' | transloco
+          }}</span>
+          <span class="value" data-testid="admin-user-projects-total-data">{{
+            formatBytes(result.totalDataBytes)
+          }}</span>
+        </div>
+        <div class="total-item">
+          <span class="label">{{
+            'admin.projects.totalMedia' | transloco
+          }}</span>
+          <span class="value" data-testid="admin-user-projects-total-media">{{
+            formatBytes(result.totalMediaBytes)
+          }}</span>
+        </div>
+        <div class="total-item">
+          <span class="label">{{ 'admin.projects.total' | transloco }}</span>
+          <span class="value" data-testid="admin-user-projects-total">{{
+            formatBytes(result.totalBytes)
+          }}</span>
+        </div>
+      </div>
+
+      <div class="project-list" data-testid="admin-user-projects-list">
+        @for (project of result.projects; track project.id) {
+          <mat-card
+            class="project-card"
+            [attr.data-testid]="'admin-user-project-' + project.slug">
+            <mat-card-content>
+              <div class="project-info">
+                <span class="title">{{ project.title }}</span>
+                <span class="slug">{{ project.slug }}</span>
+              </div>
+              <div class="project-sizes">
+                <span
+                  class="size-chip"
+                  [matTooltip]="
+                    'admin.projects.dataTooltip'
+                      | transloco: { bytes: project.dataBytes }
+                  ">
+                  {{ formatBytes(project.dataBytes) }}
+                  {{ 'admin.projects.dataUnit' | transloco }}
+                </span>
+                <span
+                  class="size-chip"
+                  [matTooltip]="
+                    'admin.projects.mediaTooltip'
+                      | transloco: { bytes: project.mediaBytes }
+                  ">
+                  {{ formatBytes(project.mediaBytes) }}
+                  {{ 'admin.projects.mediaUnit' | transloco }}
+                </span>
+                <span class="size-chip total">
+                  {{ formatBytes(project.totalBytes) }}
+                </span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    }
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>
+    {{ 'admin.projects.close' | transloco }}
+  </button>
+</mat-dialog-actions>

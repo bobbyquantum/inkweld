@@ -5,6 +5,7 @@ import { userService } from '../services/user.service';
 import { collaborationService } from '../services/collaboration.service';
 import { fileStorageService } from '../services/file-storage.service';
 import { yjsService } from '../services/yjs.service';
+import { getProjectStorageSize } from '../services/storage-size.service';
 import {
   UnauthorizedError,
   ForbiddenError,
@@ -418,6 +419,75 @@ projectRoutes.openapi(deleteProjectRoute, async (c) => {
   await projectService.delete(db, project.id, project.userId, project.slug);
 
   return c.json({ message: 'Project deleted successfully' }, 200);
+});
+
+// Project storage size route
+const getStorageSizeRoute = createRoute({
+  method: 'get',
+  path: '/:username/:slug/storage-size',
+  tags: ['Projects'],
+  operationId: 'getProjectStorageSize',
+  summary: 'Get approximate project storage size',
+  description:
+    'Returns the approximate server-side storage used by a project, split into ' +
+    'document/data bytes and media bytes.',
+  request: {
+    params: ProjectPathParamsSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z
+            .object({
+              dataBytes: z
+                .number()
+                .openapi({ description: 'Approximate Yjs document/data size in bytes' }),
+              mediaBytes: z.number().openapi({ description: 'Approximate media size in bytes' }),
+              totalBytes: z.number().openapi({ description: 'dataBytes + mediaBytes' }),
+            })
+            .openapi('ProjectStorageSize'),
+        },
+      },
+      description: 'Project storage size',
+    },
+    ...errorResponses.authEntity('Project'),
+  },
+});
+
+projectRoutes.openapi(getStorageSizeRoute, async (c) => {
+  const db = c.get('db');
+  const username = c.req.param('username');
+  const slug = c.req.param('slug');
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    throw new UnauthorizedError('Not authenticated');
+  }
+
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
+  if (!project) {
+    throw new NotFoundError('Project not found');
+  }
+
+  const access = await collaborationService.checkAccess(db, project.id, contextUser.id);
+  if (!access.canRead) {
+    throw new ForbiddenError('Access denied');
+  }
+
+  // Forward the caller's Authorization header so the Cloudflare DO HTTP API can
+  // verify it. On Bun/Node this header is unused by the size computation.
+  const authHeader = c.req.header('Authorization') ?? '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : '';
+
+  const size = await getProjectStorageSize(username, slug, c.get('storage'), c.env as never, token);
+  return c.json(
+    {
+      dataBytes: size.dataBytes,
+      mediaBytes: size.mediaBytes,
+      totalBytes: size.dataBytes + size.mediaBytes,
+    },
+    200
+  );
 });
 
 // Check tombstones route - for sync to detect deleted projects

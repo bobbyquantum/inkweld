@@ -604,6 +604,24 @@ export class YjsDocStorage {
   }
 
   /**
+   * Read-only: total bytes held by the Durable Object's storage across every
+   * key. A Durable Object is scoped to a single project, so this is the
+   * approximate size of all Yjs document data for that project. Pages through
+   * all keys with bounded memory (values are discarded page-by-page) so it is
+   * safe on documents with very large histories. Used for admin/settings size
+   * reporting.
+   */
+  async getTotalStorageBytes(): Promise<number> {
+    let total = 0;
+    await pagePrefix(this.storage, '', (page) => {
+      for (const value of page.values()) {
+        total += toBytes(value).byteLength;
+      }
+    });
+    return total;
+  }
+
+  /**
    * Persist a Yjs wire frame. Only sync frames are stored — awareness/presence
    * are ephemeral and persisting them grew the update log without bound.
    * Returns the key written, or null if the frame was filtered out.

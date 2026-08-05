@@ -224,6 +224,15 @@
                         <mat-divider></mat-divider>
                         <button
                           mat-menu-item
+                          (click)="viewUserProjects(user)"
+                          [attr.data-testid]="'view-projects-' + user.username">
+                          <mat-icon>folder</mat-icon>
+                          <span>{{
+                            'admin.users.projectsAndStorage' | transloco
+                          }}</span>
+                        </button>
+                        <button
+                          mat-menu-item
                           class="danger"
                           (click)="deleteUser(user)"
                           [disabled]="isCurrentUser(user)"

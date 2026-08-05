@@ -426,6 +426,11 @@ Passkeys use the W3C WebAuthn API for passwordless, discoverable-credential (use
 cd backend && bun run generate:openapi && bun run generate:angular-client
 ```
 
+> **Note**: `bun run generate:angular-client` requires a Java runtime (the
+> OpenAPI generator is a JVM tool). Generate the client in a Java-enabled
+> environment. The generated `frontend/src/api-client/**` must not be edited by
+> hand — always regenerate from the OpenAPI spec.
+
 ---
 
 ## Debugging Tips

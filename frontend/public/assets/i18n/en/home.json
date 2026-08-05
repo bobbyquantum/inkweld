@@ -57,6 +57,7 @@
   "dialogs": {
     "activateTitle": "Activate Project",
     "activateMessage": "Activate \"{{title}}\" on this device? This will download all project data.",
+    "activateSize": "Approximate size to download: {{sizeText}}",
     "activate": "Activate",
     "deactivateTitle": "Deactivate Project",
     "deactivateMessage": "Deactivate \"{{title}}\"? All local data for this project will be removed from this device. You can reactivate it anytime.",

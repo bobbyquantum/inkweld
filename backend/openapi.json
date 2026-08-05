@@ -312,6 +312,82 @@
           "message"
         ]
       },
+      "AdminUserProjects": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "User id"
+          },
+          "username": {
+            "type": "string",
+            "description": "User username"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminProjectStorage"
+            }
+          },
+          "totalDataBytes": {
+            "type": "number",
+            "description": "Sum of dataBytes across projects"
+          },
+          "totalMediaBytes": {
+            "type": "number",
+            "description": "Sum of mediaBytes across projects"
+          },
+          "totalBytes": {
+            "type": "number",
+            "description": "Sum of totalBytes across projects"
+          }
+        },
+        "required": [
+          "userId",
+          "username",
+          "projects",
+          "totalDataBytes",
+          "totalMediaBytes",
+          "totalBytes"
+        ]
+      },
+      "AdminProjectStorage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Project id"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Project slug"
+          },
+          "title": {
+            "type": "string",
+            "description": "Project title"
+          },
+          "dataBytes": {
+            "type": "number",
+            "description": "Approximate document/data size in bytes"
+          },
+          "mediaBytes": {
+            "type": "number",
+            "description": "Approximate media size in bytes"
+          },
+          "totalBytes": {
+            "type": "number",
+            "description": "dataBytes + mediaBytes"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "dataBytes",
+          "mediaBytes",
+          "totalBytes"
+        ]
+      },
       "SystemStats": {
         "type": "object",
         "properties": {
@@ -539,6 +615,28 @@
             "example": "0.2.0"
           }
         }
+      },
+      "ProjectStorageSize": {
+        "type": "object",
+        "properties": {
+          "dataBytes": {
+            "type": "number",
+            "description": "Approximate Yjs document/data size in bytes"
+          },
+          "mediaBytes": {
+            "type": "number",
+            "description": "Approximate media size in bytes"
+          },
+          "totalBytes": {
+            "type": "number",
+            "description": "dataBytes + mediaBytes"
+          }
+        },
+        "required": [
+          "dataBytes",
+          "mediaBytes",
+          "totalBytes"
+        ]
       },
       "CheckTombstonesResponse": {
         "type": "object",
@@ -5702,6 +5800,71 @@
         }
       }
     },
+    "/api/v1/admin/users/{userId}/projects": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List a user's projects with storage sizes",
+        "description": "List every project owned by a user with approximate storage sizes (admin only)",
+        "operationId": "adminListUserProjects",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "User ID"
+            },
+            "required": true,
+            "description": "User ID",
+            "name": "userId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User projects with storage sizes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserProjects"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/config/keys": {
       "get": {
         "tags": [
@@ -6619,6 +6782,82 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/storage-size": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "operationId": "getProjectStorageSize",
+        "summary": "Get approximate project storage size",
+        "description": "Returns the approximate server-side storage used by a project, split into document/data bytes and media bytes.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project storage size",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectStorageSize"
                 }
               }
             }
