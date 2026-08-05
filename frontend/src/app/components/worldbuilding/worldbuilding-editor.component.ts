@@ -186,6 +186,57 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     return this.appearanceService.resolveRegion(appearance?.content, 'content');
   });
 
+  /**
+   * Cache of resolved blob URLs for `media://` background image references,
+   * keyed by the raw reference. Populated asynchronously by {@link resolveBgImage}.
+   */
+  private readonly resolvedImageUrls = signal<Record<string, string>>({});
+
+  /**
+   * Resolve any `media://` image references used by the current backgrounds so
+   * they render as loadable blob URLs. Runs whenever the backgrounds change.
+   */
+  protected readonly resolveBackgroundImages = effect(() => {
+    for (const bg of [this.menuBackground(), this.contentBackground()]) {
+      const ref = this.extractImageRef(bg?.background);
+      if (ref?.startsWith('media://') && !this.resolvedImageUrls()[ref]) {
+        void this.resolveBgImage(ref);
+      }
+    }
+  });
+
+  private async resolveBgImage(ref: string): Promise<void> {
+    const url = await this.appearanceService.resolveImageReference(
+      ref,
+      this.username(),
+      this.slug()
+    );
+    if (url) {
+      this.resolvedImageUrls.update(m => ({ ...m, [ref]: url }));
+    }
+  }
+
+  private extractImageRef(background: string | undefined): string | null {
+    if (!background) return null;
+    const match = /url\('(.*)'\)/.exec(background);
+    return match?.[1] ?? null;
+  }
+
+  /**
+   * Build the CSS value to bind to `--wb-bg` for a resolved background,
+   * substituting any cached blob URL for `media://` image references so the
+   * browser can actually load the image.
+   */
+  protected backgroundCss(
+    bg: ReturnType<AppearanceService['resolveRegion']>
+  ): string | null {
+    if (!bg) return null;
+    if (bg.type !== 'image') return bg.background;
+    const ref = this.extractImageRef(bg.background);
+    const resolved = ref ? this.resolvedImageUrls()[ref] : undefined;
+    return resolved ? `url('${resolved}')` : bg.background;
+  }
+
   /** Reference to the meta panel for controlling expanded state on mobile */
   metaPanel = viewChild(MetaPanelComponent);
 

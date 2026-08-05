@@ -108,6 +108,19 @@ describe('AppearancePanelComponent', () => {
     vi.useRealTimers();
   });
 
+  it('should report isEnabled only for configured regions', () => {
+    fixture.detectChanges();
+    expect(component.isEnabled('menu')).toBe(false);
+    expect(component.isEnabled('content')).toBe(false);
+
+    component.setEnabled('menu', true);
+    expect(component.isEnabled('menu')).toBe(true);
+    expect(component.isEnabled('content')).toBe(false);
+
+    component.setEnabled('menu', false);
+    expect(component.isEnabled('menu')).toBe(false);
+  });
+
   it('should persist the trimmed appearance on debounced save', async () => {
     vi.useFakeTimers();
     fixture.detectChanges();

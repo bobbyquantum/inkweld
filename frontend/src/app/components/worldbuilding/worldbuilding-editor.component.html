@@ -9,7 +9,7 @@
         class="wb-sidenav"
         data-testid="wb-sidenav"
         [class.has-custom-background]="!!menuBackground()"
-        [style.--wb-bg]="menuBackground()?.background"
+        [style.--wb-bg]="backgroundCss(menuBackground())"
         [class.wb-bg-overlay-dark]="menuBackground()?.overlay === 'dark'"
         [class.wb-bg-overlay-light]="menuBackground()?.overlay === 'light'">
         @if (identityPanel()?.resolvedImageUrl(); as imageUrl) {
@@ -106,8 +106,9 @@
     <!-- Content area -->
     <div
       class="wb-content"
+      data-testid="wb-content"
       [class.has-custom-background]="!!contentBackground()"
-      [style.--wb-bg]="contentBackground()?.background"
+      [style.--wb-bg]="backgroundCss(contentBackground())"
       [class.wb-bg-overlay-dark]="contentBackground()?.overlay === 'dark'"
       [class.wb-bg-overlay-light]="contentBackground()?.overlay === 'light'">
       @if (isInitialLoading()) {

@@ -6,6 +6,7 @@ import {
   type BackgroundType,
   isBackgroundEmpty,
 } from '@models/element-appearance';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import { ThemeService } from '@themes/theme.service';
 import { map } from 'rxjs';
 
@@ -45,6 +46,43 @@ export class AppearanceService {
     ),
     { initialValue: this.themeService.isDarkMode() }
   );
+
+  private readonly localStorage = inject(LocalStorageService);
+
+  /**
+   * Resolve an image reference to a loadable URL.
+   *
+   * `media://` references are application-internal and cannot be loaded by the
+   * browser directly, so they are resolved to a cached blob URL from IndexedDB.
+   * Non-`media://` references (http/https/data/blob) are returned as-is when
+   * they use a safe scheme. Returns `null` when the reference cannot be
+   * resolved to a renderable URL.
+   */
+  async resolveImageReference(
+    reference: string,
+    username: string,
+    slug: string
+  ): Promise<string | null> {
+    if (!reference.startsWith('media://')) {
+      return /^(https?:|blob:|data:image\/)/i.test(reference)
+        ? reference
+        : null;
+    }
+
+    const filename = reference.substring('media://'.length);
+    const mediaId = filename.includes('.')
+      ? filename.substring(0, filename.lastIndexOf('.'))
+      : filename;
+
+    try {
+      return await this.localStorage.getMediaUrl(
+        `${username}/${slug}`,
+        mediaId
+      );
+    } catch {
+      return null;
+    }
+  }
 
   /**
    * Resolve a region's background setting into an object suitable for

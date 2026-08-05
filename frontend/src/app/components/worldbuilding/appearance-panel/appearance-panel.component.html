@@ -17,7 +17,7 @@
           }}
         </span>
         <mat-slide-toggle
-          [checked]="setting.type !== undefined"
+          [checked]="isEnabled(region)"
           [disabled]="!canWrite()"
           (change)="setEnabled(region, $event.checked)"
           [attr.data-testid]="'appearance-' + region + '-toggle'">
@@ -25,7 +25,7 @@
         </mat-slide-toggle>
       </div>
 
-      @if (setting.type !== undefined) {
+      @if (isEnabled(region)) {
         <div class="region-controls">
           <mat-form-field appearance="outline" class="control-type">
             <mat-label>{{
