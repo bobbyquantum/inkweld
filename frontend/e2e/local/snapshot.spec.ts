@@ -100,7 +100,9 @@ test.describe('Document Snapshots', () => {
       await page.keyboard.type('Modified content after snapshot.');
       await expect(editor).toContainText('Modified content after snapshot.');
       await expect(
-        page.getByTestId('document-sync-status').getByTestId('document-sync-dot')
+        page
+          .getByTestId('document-sync-status')
+          .getByTestId('document-sync-dot')
       ).toHaveClass(/local/);
 
       await openSnapshotsDialog(page);

@@ -247,7 +247,9 @@ test.describe('Offline to Server Migration', () => {
 
       // Wait for content to persist to IndexedDB
       await expect(
-        offlinePage.getByTestId('document-sync-status').getByTestId('document-sync-dot')
+        offlinePage
+          .getByTestId('document-sync-status')
+          .getByTestId('document-sync-dot')
       ).toHaveClass(/synced/);
     }
 
@@ -376,7 +378,9 @@ test.describe('Offline to Server Migration', () => {
 
       // Wait for document to load and sync from server
       await expect(
-        offlinePage.getByTestId('document-sync-status').getByTestId('document-sync-dot')
+        offlinePage
+          .getByTestId('document-sync-status')
+          .getByTestId('document-sync-dot')
       ).toHaveClass(/synced/);
 
       // Check if content persisted
