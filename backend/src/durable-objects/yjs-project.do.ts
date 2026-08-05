@@ -1714,26 +1714,44 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * was a major source of rows_read amplification.
    */
   async webSocketMessage(ws: WebSocket, message: ArrayBuffer | string): Promise<void> {
-    // Peek at binary message type before rehydrating so presence frames can
-    // skip the expensive document load.
-    const isPresenceFrame =
-      typeof message !== 'string' && frameMessageType(message) === Y_MESSAGE_PRESENCE;
+    let connInfo: ConnectionInfo | null = null;
+    try {
+      // Peek at binary message type before rehydrating so presence frames can
+      // skip the expensive document load.
+      const isPresenceFrame =
+        typeof message !== 'string' && frameMessageType(message) === Y_MESSAGE_PRESENCE;
 
-    const connInfo = await this.rehydrateConnection(ws, /* skipDocLoad */ isPresenceFrame);
-    if (!connInfo) {
-      projDOLog.warn('Received message from unknown connection');
+      connInfo = await this.rehydrateConnection(ws, /* skipDocLoad */ isPresenceFrame);
+      if (!connInfo) {
+        projDOLog.warn('Received message from unknown connection');
+        try {
+          ws.close(4000, 'Unknown connection');
+        } catch {
+          // already closed
+        }
+        return;
+      }
+
+      if (typeof message === 'string') {
+        await this.handleTextMessage(ws, connInfo, message);
+      } else {
+        this.handleBinaryMessage(ws, connInfo, message);
+      }
+    } catch (error) {
+      // Any rejection here (storage read, token verify, deserialize) would
+      // otherwise be an unhandled rejection of this async DO handler, which
+      // the workerd runtime surfaces as an empty isolate crash that takes the
+      // whole DO down — the recurring intermittent Wrangler e2e failure. A
+      // single bad message must never kill the DO; log and drop it.
+      projDOLog.error(
+        `Error handling WebSocket message for ${connInfo?.documentId ?? '<unknown>'}`,
+        error
+      );
       try {
-        ws.close(4000, 'Unknown connection');
+        ws.close(4000, 'Message handling error');
       } catch {
         // already closed
       }
-      return;
-    }
-
-    if (typeof message === 'string') {
-      await this.handleTextMessage(ws, connInfo, message);
-    } else {
-      this.handleBinaryMessage(ws, connInfo, message);
     }
   }
 
@@ -1764,7 +1782,16 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     // from storage to handle them is pure waste (and was a major source of
     // rows_read amplification, since presence frames fire frequently).
     if (frameMessageType(message) === Y_MESSAGE_PRESENCE) {
-      this.handlePresenceFrame(ws, connInfo, message);
+      // Guarded like the Yjs path below: an unhandled throw here would reject
+      // the async webSocketMessage and, in the workerd runtime, surface as an
+      // empty isolate crash (no JS stack) that takes the whole DO down — the
+      // recurring intermittent Wrangler e2e failure. Presence is best-effort;
+      // a malformed/edge frame must never kill the DO.
+      try {
+        this.handlePresenceFrame(ws, connInfo, message);
+      } catch (error) {
+        projDOLog.error('Error handling presence frame:', error);
+      }
       return;
     }
 
@@ -2259,35 +2286,46 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * Handle WebSocket close
    */
   async webSocketClose(ws: WebSocket) {
-    // Rehydrate so the cleanup path can find the connection even if the
-    // DO hibernated between the upgrade and the close event.
-    //
-    // skipDocLoad: the client is already gone. Loading the full update
-    // history from storage here is pure waste and was a major contributor
-    // to the sustained row-read storm — every close event re-read every
-    // update row for the document, only to throw the doc away moments
-    // later during cleanup.
-    await this.rehydrateConnection(ws, /* skipDocLoad */ true);
-
-    // Finalize the writing session BEFORE cleanup so we read the final word
-    // count while the doc is still in connInfo. Fire-and-forget.
-    const connInfo = this.connections.get(ws);
-    if (connInfo) {
-      void this.tryFinalizeSession(connInfo);
-    }
-
-    this.cleanupConnection(ws);
-
-    // Close WebSocket from server side
     try {
-      ws.close(1000, 'Server acknowledged close');
-    } catch {
-      // Already closed
-    }
+      // Rehydrate so the cleanup path can find the connection even if the
+      // DO hibernated between the upgrade and the close event.
+      //
+      // skipDocLoad: the client is already gone. Loading the full update
+      // history from storage here is pure waste and was a major contributor
+      // to the sustained row-read storm — every close event re-read every
+      // update row for the document, only to throw the doc away moments
+      // later during cleanup.
+      await this.rehydrateConnection(ws, /* skipDocLoad */ true);
 
-    const allSockets = this.state.getWebSockets();
-    if (allSockets.length === 0) {
-      projDOLog.debug(`No connections for project ${this.projectId} - can hibernate`);
+      // Finalize the writing session BEFORE cleanup so we read the final word
+      // count while the doc is still in connInfo. Fire-and-forget.
+      const connInfo = this.connections.get(ws);
+      if (connInfo) {
+        void this.tryFinalizeSession(connInfo);
+      }
+
+      this.cleanupConnection(ws);
+
+      // Close WebSocket from server side
+      try {
+        ws.close(1000, 'Server acknowledged close');
+      } catch {
+        // Already closed
+      }
+
+      const allSockets = this.state.getWebSockets();
+      if (allSockets.length === 0) {
+        projDOLog.debug(`No connections for project ${this.projectId} - can hibernate`);
+      }
+    } catch (error) {
+      // A rejection here (e.g. rehydrateConnection storage read) would
+      // otherwise crash the whole DO isolate in workerd with an empty error.
+      projDOLog.error(`Error in webSocketClose for ${this.projectId}`, error);
+      try {
+        this.cleanupConnection(ws);
+      } catch {
+        // already cleaned up
+      }
     }
   }
 
@@ -2295,16 +2333,25 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * Handle WebSocket errors
    */
   async webSocketError(ws: WebSocket) {
-    projDOLog.error(`WebSocket error for project ${this.projectId}`);
-    // skipDocLoad: same rationale as webSocketClose — the client is gone
-    // (or about to be), loading the doc only amplifies storage reads.
-    await this.rehydrateConnection(ws, /* skipDocLoad */ true);
-    const connInfo = this.connections.get(ws);
-    if (connInfo) {
-      projDOLog.error(`Error was for document: ${connInfo.documentId}`);
-      void this.tryFinalizeSession(connInfo);
+    try {
+      projDOLog.error(`WebSocket error for project ${this.projectId}`);
+      // skipDocLoad: same rationale as webSocketClose — the client is gone
+      // (or about to be), loading the doc only amplifies storage reads.
+      await this.rehydrateConnection(ws, /* skipDocLoad */ true);
+      const connInfo = this.connections.get(ws);
+      if (connInfo) {
+        projDOLog.error(`Error was for document: ${connInfo.documentId}`);
+        void this.tryFinalizeSession(connInfo);
+      }
+      this.cleanupConnection(ws);
+    } catch (error) {
+      projDOLog.error(`Error in webSocketError for ${this.projectId}`, error);
+      try {
+        this.cleanupConnection(ws);
+      } catch {
+        // already cleaned up
+      }
     }
-    this.cleanupConnection(ws);
   }
 
   /**
