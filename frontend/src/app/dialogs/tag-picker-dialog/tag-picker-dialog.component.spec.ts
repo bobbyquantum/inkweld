@@ -123,6 +123,15 @@ describe('TagPickerDialogComponent', () => {
               };
               return icons[schemaId] ? { icon: icons[schemaId] } : null;
             },
+            getSchemaIcon: (schemaId: string) => {
+              const icons: Record<string, string> = {
+                'character-v1': 'person',
+                'location-v1': 'place',
+                'wb-item-v1': 'inventory_2',
+                'species-v1': 'pets',
+              };
+              return icons[schemaId] ?? 'category';
+            },
           },
         },
       ],
@@ -345,6 +354,15 @@ describe('TagPickerDialogComponent', () => {
                 };
                 return icons[schemaId] ? { icon: icons[schemaId] } : null;
               },
+              getSchemaIcon: (schemaId: string) => {
+                const icons: Record<string, string> = {
+                  'character-v1': 'person',
+                  'location-v1': 'place',
+                  'wb-item-v1': 'inventory_2',
+                  'species-v1': 'pets',
+                };
+                return icons[schemaId] ?? 'category';
+              },
             },
           },
         ],
@@ -394,7 +412,10 @@ describe('TagPickerDialogComponent', () => {
           },
           {
             provide: WorldbuildingService,
-            useValue: { getSchemaById: () => null },
+            useValue: {
+              getSchemaById: () => null,
+              getSchemaIcon: () => 'category',
+            },
           },
         ],
       });

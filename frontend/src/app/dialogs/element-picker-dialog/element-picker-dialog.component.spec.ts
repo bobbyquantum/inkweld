@@ -17,7 +17,10 @@ describe('ElementPickerDialogComponent', () => {
   let fixture: ComponentFixture<ElementPickerDialogComponent>;
   let mockDialogRef: { close: ReturnType<typeof vi.fn> };
   let mockProjectState: { elements: ReturnType<typeof vi.fn> };
-  let mockWorldbuildingService: { getSchemaById: ReturnType<typeof vi.fn> };
+  let mockWorldbuildingService: {
+    getSchemaById: ReturnType<typeof vi.fn>;
+    getSchemaIcon: ReturnType<typeof vi.fn>;
+  };
 
   const mockElements = [
     {
@@ -97,6 +100,19 @@ describe('ElementPickerDialogComponent', () => {
           'concept-v1': 'lightbulb',
         };
         return icons[schemaId] ? { icon: icons[schemaId] } : null;
+      }),
+      getSchemaIcon: vi.fn().mockImplementation((schemaId: string) => {
+        const icons: Record<string, string> = {
+          'character-v1': 'person',
+          'location-v1': 'place',
+          'wb-item-v1': 'inventory_2',
+          'species-v1': 'pets',
+          'deity-v1': 'ac_unit',
+          'faction-v1': 'groups',
+          'event-v1': 'event',
+          'concept-v1': 'lightbulb',
+        };
+        return icons[schemaId] ?? 'category';
       }),
     };
 

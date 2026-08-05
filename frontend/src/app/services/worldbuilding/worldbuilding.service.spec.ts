@@ -497,6 +497,24 @@ describe('WorldbuildingService', () => {
     });
   });
 
+  describe('getSchemaIcon', () => {
+    it('should return the category fallback for an undefined schema id', () => {
+      expect(service.getSchemaIcon(undefined)).toBe('category');
+    });
+
+    it('should return the category fallback for an unknown schema id', () => {
+      expect(service.getSchemaIcon('nonexistent-schema')).toBe('category');
+    });
+
+    it('should return the configured icon for a known schema', () => {
+      service.saveSchemaToLibrary(mockCharacterSchema);
+
+      expect(service.getSchemaIcon('character-v1')).toBe(
+        mockCharacterSchema.icon
+      );
+    });
+  });
+
   describe('cloneTemplate', () => {
     it('should clone an existing template with new ID', () => {
       // Save original template

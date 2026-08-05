@@ -106,7 +106,7 @@
               "content": [
                 {
                   "type": "paragraph",
-                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "And 20 more" }, { "type": "text", "text": " - Technology, Material, Spell, Condition, Profession, Title, Tradition, Ethnicity, Conflict, Event, Myth, Lore, Vehicle, and more" }]
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "And 21 more" }, { "type": "text", "text": " - Technology, Material, Spell, Condition, Profession, Title, Tradition, Ethnicity, Conflict, Event, Myth, Lore, Vehicle, and more" }]
                 }
               ]
             }
