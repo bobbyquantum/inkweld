@@ -1,15 +1,15 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
+import type {
+  BackgroundMode,
+  BackgroundType,
+  ElementAppearance,
+} from '@models/element-appearance';
 import { Subject, type Subscription } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import type {
-  BackgroundMode,
-  BackgroundType,
-  ElementAppearance,
-} from '../../models/element-appearance';
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { AuthTokenService } from '../auth/auth-token.service';

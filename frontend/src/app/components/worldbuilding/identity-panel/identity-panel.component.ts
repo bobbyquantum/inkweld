@@ -16,6 +16,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { AppearancePanelComponent } from '@components/worldbuilding/appearance-panel/appearance-panel.component';
 import { TranslocoModule } from '@jsverse/transloco';
 import { type ElementAppearance } from '@models/element-appearance';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -32,7 +33,6 @@ import {
   mediaReferenceFilename,
 } from '../../../utils/media-reference';
 import { TagChipListComponent } from '../../tags/tag-chip-list.component';
-import { AppearancePanelComponent } from '../appearance-panel/appearance-panel.component';
 
 /**
  * Identity panel for worldbuilding elements.
