@@ -867,74 +867,14 @@
     "name": "Part of",
     "inverseLabel": "Contains",
     "showInverse": true,
-    "category": "Political",
+    "category": "structural",
     "icon": "account_tree",
     "isBuiltIn": false,
     "sourceEndpoint": {
-      "allowedSchemas": [
-        "character-v1",
-        "location-v1",
-        "wb-item-v1",
-        "species-v1",
-        "organization-v1",
-        "deity-v1",
-        "language-v1",
-        "material-v1",
-        "technology-v1",
-        "magic-system-v1",
-        "spell-v1",
-        "condition-v1",
-        "profession-v1",
-        "title-v1",
-        "tradition-v1",
-        "ethnicity-v1",
-        "conflict-v1",
-        "myth-v1",
-        "vehicle-v1",
-        "event-v1",
-        "lore-v1",
-        "building-v1",
-        "settlement-v1",
-        "geographic-feature-v1",
-        "region-v1",
-        "country-v1",
-        "landmark-v1",
-        "planet-v1",
-        "plane-v1"
-      ]
+      "allowedSchemas": []
     },
     "targetEndpoint": {
-      "allowedSchemas": [
-        "character-v1",
-        "location-v1",
-        "wb-item-v1",
-        "species-v1",
-        "organization-v1",
-        "deity-v1",
-        "language-v1",
-        "material-v1",
-        "technology-v1",
-        "magic-system-v1",
-        "spell-v1",
-        "condition-v1",
-        "profession-v1",
-        "title-v1",
-        "tradition-v1",
-        "ethnicity-v1",
-        "conflict-v1",
-        "myth-v1",
-        "vehicle-v1",
-        "event-v1",
-        "lore-v1",
-        "building-v1",
-        "settlement-v1",
-        "geographic-feature-v1",
-        "region-v1",
-        "country-v1",
-        "landmark-v1",
-        "planet-v1",
-        "plane-v1"
-      ]
+      "allowedSchemas": []
     }
   },
   {
@@ -1214,7 +1154,10 @@
     },
     "targetEndpoint": {
       "allowedSchemas": [
-        "character-v1"
+        "character-v1",
+        "organization-v1",
+        "deity-v1",
+        "species-v1"
       ]
     }
   },
