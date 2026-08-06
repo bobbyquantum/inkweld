@@ -91,6 +91,7 @@ export class RelationshipsTabComponent {
   protected readonly allTypes = this.relationshipService.allTypes;
 
   readonly relationshipTypes = computed(() => {
+    void this.transloco.activeLang();
     const types = this.allTypes();
     const views = types.map(type => this.toView(type));
 

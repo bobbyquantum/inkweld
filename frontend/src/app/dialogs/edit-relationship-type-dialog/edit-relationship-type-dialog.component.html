@@ -104,7 +104,7 @@
         data-testid="rel-category-select">
         @for (cat of categoryOptions; track cat.value) {
           <mat-option [value]="cat.value">{{
-            categoryLabel(cat.labelKey)
+            cat.labelKey | transloco
           }}</mat-option>
         }
       </mat-select>

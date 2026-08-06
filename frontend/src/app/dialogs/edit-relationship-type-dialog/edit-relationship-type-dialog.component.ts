@@ -24,7 +24,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { TranslocoModule } from '@jsverse/transloco';
 import {
   RelationshipCategory,
   type RelationshipTypeDefinition,
@@ -248,17 +248,11 @@ export class EditRelationshipTypeDialogComponent implements AfterViewInit {
     MatDialogRef<EditRelationshipTypeDialogComponent>
   );
   readonly data = inject<EditRelationshipTypeDialogData>(MAT_DIALOG_DATA);
-  private readonly transloco = inject(TranslocoService);
 
   // ── Exposed constants for the template ──────────────────────────────────────
   readonly iconOptions = RELATIONSHIP_ICON_OPTIONS;
   readonly colorOptions = RELATIONSHIP_COLOR_OPTIONS;
   readonly categoryOptions = CATEGORY_OPTIONS;
-
-  /** Resolve a category option's display label through Transloco. */
-  categoryLabel(labelKey: string): string {
-    return this.transloco.translate(labelKey);
-  }
 
   // Refs to seed the text inputs once on init. We deliberately do NOT bind
   // [value] on these <input> elements: in zoneless mode a [value] binding
