@@ -103,7 +103,9 @@
         (ngModelChange)="category.set($event)"
         data-testid="rel-category-select">
         @for (cat of categoryOptions; track cat.value) {
-          <mat-option [value]="cat.value">{{ cat.label }}</mat-option>
+          <mat-option [value]="cat.value">{{
+            categoryLabel(cat.labelKey)
+          }}</mat-option>
         }
       </mat-select>
     </mat-form-field>

@@ -24,7 +24,7 @@ import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DocumentSyncState } from '@models/document-sync-state';
 import {
   getCategoryIcon,
-  getCategoryLabel,
+  getCategoryLabelKey,
   type RelationshipCategory,
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
@@ -141,7 +141,9 @@ export class RelationshipsTabComponent {
       showInverse: type.showInverse,
       icon: type.icon ?? getCategoryIcon(type.category),
       category: type.category,
-      categoryLabel: getCategoryLabel(type.category),
+      categoryLabel: this.transloco.translate(
+        getCategoryLabelKey(type.category)
+      ),
       color: type.color,
       sourceConstraints: this.formatConstraints(type.sourceEndpoint),
       targetConstraints: this.formatConstraints(type.targetEndpoint),

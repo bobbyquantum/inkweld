@@ -24,7 +24,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   RelationshipCategory,
   type RelationshipTypeDefinition,
@@ -132,25 +132,76 @@ export const RELATIONSHIP_COLOR_OPTIONS = [
 
 export const CATEGORY_OPTIONS: {
   value: RelationshipCategory;
-  label: string;
+  labelKey: string;
 }[] = [
-  { value: RelationshipCategory.Familial, label: 'Family' },
-  { value: RelationshipCategory.Social, label: 'Social' },
-  { value: RelationshipCategory.Professional, label: 'Professional' },
-  { value: RelationshipCategory.Spatial, label: 'Location' },
-  { value: RelationshipCategory.Temporal, label: 'Timeline' },
-  { value: RelationshipCategory.Ownership, label: 'Ownership' },
-  { value: RelationshipCategory.Political, label: 'Political' },
-  { value: RelationshipCategory.Structural, label: 'Structure' },
-  { value: RelationshipCategory.Conflict, label: 'Conflict' },
-  { value: RelationshipCategory.Religious, label: 'Religious' },
-  { value: RelationshipCategory.Biological, label: 'Biological' },
-  { value: RelationshipCategory.Scholarly, label: 'Scholarly' },
-  { value: RelationshipCategory.Magical, label: 'Magical' },
-  { value: RelationshipCategory.Economic, label: 'Economic' },
-  { value: RelationshipCategory.Transport, label: 'Transport' },
-  { value: RelationshipCategory.Reference, label: 'Reference' },
-  { value: RelationshipCategory.Custom, label: 'Other' },
+  {
+    value: RelationshipCategory.Familial,
+    labelKey: 'relationships.categories.familial',
+  },
+  {
+    value: RelationshipCategory.Social,
+    labelKey: 'relationships.categories.social',
+  },
+  {
+    value: RelationshipCategory.Professional,
+    labelKey: 'relationships.categories.professional',
+  },
+  {
+    value: RelationshipCategory.Spatial,
+    labelKey: 'relationships.categories.spatial',
+  },
+  {
+    value: RelationshipCategory.Temporal,
+    labelKey: 'relationships.categories.temporal',
+  },
+  {
+    value: RelationshipCategory.Ownership,
+    labelKey: 'relationships.categories.ownership',
+  },
+  {
+    value: RelationshipCategory.Political,
+    labelKey: 'relationships.categories.political',
+  },
+  {
+    value: RelationshipCategory.Structural,
+    labelKey: 'relationships.categories.structural',
+  },
+  {
+    value: RelationshipCategory.Conflict,
+    labelKey: 'relationships.categories.conflict',
+  },
+  {
+    value: RelationshipCategory.Religious,
+    labelKey: 'relationships.categories.religious',
+  },
+  {
+    value: RelationshipCategory.Biological,
+    labelKey: 'relationships.categories.biological',
+  },
+  {
+    value: RelationshipCategory.Scholarly,
+    labelKey: 'relationships.categories.scholarly',
+  },
+  {
+    value: RelationshipCategory.Magical,
+    labelKey: 'relationships.categories.magical',
+  },
+  {
+    value: RelationshipCategory.Economic,
+    labelKey: 'relationships.categories.economic',
+  },
+  {
+    value: RelationshipCategory.Transport,
+    labelKey: 'relationships.categories.transport',
+  },
+  {
+    value: RelationshipCategory.Reference,
+    labelKey: 'relationships.categories.reference',
+  },
+  {
+    value: RelationshipCategory.Custom,
+    labelKey: 'relationships.categories.custom',
+  },
 ];
 
 // ─── Dialog data / result interfaces ─────────────────────────────────────────
@@ -197,11 +248,17 @@ export class EditRelationshipTypeDialogComponent implements AfterViewInit {
     MatDialogRef<EditRelationshipTypeDialogComponent>
   );
   readonly data = inject<EditRelationshipTypeDialogData>(MAT_DIALOG_DATA);
+  private readonly transloco = inject(TranslocoService);
 
   // ── Exposed constants for the template ──────────────────────────────────────
   readonly iconOptions = RELATIONSHIP_ICON_OPTIONS;
   readonly colorOptions = RELATIONSHIP_COLOR_OPTIONS;
   readonly categoryOptions = CATEGORY_OPTIONS;
+
+  /** Resolve a category option's display label through Transloco. */
+  categoryLabel(labelKey: string): string {
+    return this.transloco.translate(labelKey);
+  }
 
   // Refs to seed the text inputs once on init. We deliberately do NOT bind
   // [value] on these <input> elements: in zoneless mode a [value] binding

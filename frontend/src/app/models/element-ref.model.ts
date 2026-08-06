@@ -412,40 +412,80 @@ export function getRelationshipLabel(
 
 /**
  * Display metadata for each built-in relationship category.
+ * Labels are Transloco keys resolved at the UI boundary.
  */
 const CATEGORY_META: Record<
   RelationshipCategory,
-  { icon: string; label: string }
+  { icon: string; labelKey: string }
 > = {
-  [RelationshipCategory.Reference]: { icon: 'link', label: 'References' },
-  [RelationshipCategory.Familial]: { icon: 'family_restroom', label: 'Family' },
-  [RelationshipCategory.Social]: { icon: 'people', label: 'Social' },
-  [RelationshipCategory.Professional]: { icon: 'work', label: 'Professional' },
-  [RelationshipCategory.Spatial]: { icon: 'place', label: 'Location' },
-  [RelationshipCategory.Temporal]: { icon: 'schedule', label: 'Timeline' },
-  [RelationshipCategory.Ownership]: { icon: 'inventory_2', label: 'Ownership' },
+  [RelationshipCategory.Reference]: {
+    icon: 'link',
+    labelKey: 'relationships.categories.reference',
+  },
+  [RelationshipCategory.Familial]: {
+    icon: 'family_restroom',
+    labelKey: 'relationships.categories.familial',
+  },
+  [RelationshipCategory.Social]: {
+    icon: 'people',
+    labelKey: 'relationships.categories.social',
+  },
+  [RelationshipCategory.Professional]: {
+    icon: 'work',
+    labelKey: 'relationships.categories.professional',
+  },
+  [RelationshipCategory.Spatial]: {
+    icon: 'place',
+    labelKey: 'relationships.categories.spatial',
+  },
+  [RelationshipCategory.Temporal]: {
+    icon: 'schedule',
+    labelKey: 'relationships.categories.temporal',
+  },
+  [RelationshipCategory.Ownership]: {
+    icon: 'inventory_2',
+    labelKey: 'relationships.categories.ownership',
+  },
   [RelationshipCategory.Political]: {
     icon: 'account_balance',
-    label: 'Political',
+    labelKey: 'relationships.categories.political',
   },
   [RelationshipCategory.Structural]: {
     icon: 'account_tree',
-    label: 'Structure',
+    labelKey: 'relationships.categories.structural',
   },
-  [RelationshipCategory.Conflict]: { icon: 'gavel', label: 'Conflict' },
-  [RelationshipCategory.Religious]: { icon: 'church', label: 'Religious' },
-  [RelationshipCategory.Biological]: { icon: 'pets', label: 'Biological' },
-  [RelationshipCategory.Scholarly]: { icon: 'school', label: 'Scholarly' },
-  [RelationshipCategory.Magical]: { icon: 'auto_awesome', label: 'Magical' },
+  [RelationshipCategory.Conflict]: {
+    icon: 'gavel',
+    labelKey: 'relationships.categories.conflict',
+  },
+  [RelationshipCategory.Religious]: {
+    icon: 'church',
+    labelKey: 'relationships.categories.religious',
+  },
+  [RelationshipCategory.Biological]: {
+    icon: 'pets',
+    labelKey: 'relationships.categories.biological',
+  },
+  [RelationshipCategory.Scholarly]: {
+    icon: 'school',
+    labelKey: 'relationships.categories.scholarly',
+  },
+  [RelationshipCategory.Magical]: {
+    icon: 'auto_awesome',
+    labelKey: 'relationships.categories.magical',
+  },
   [RelationshipCategory.Economic]: {
     icon: 'currency_exchange',
-    label: 'Economic',
+    labelKey: 'relationships.categories.economic',
   },
   [RelationshipCategory.Transport]: {
     icon: 'directions_car',
-    label: 'Transport',
+    labelKey: 'relationships.categories.transport',
   },
-  [RelationshipCategory.Custom]: { icon: 'tune', label: 'Other' },
+  [RelationshipCategory.Custom]: {
+    icon: 'tune',
+    labelKey: 'relationships.categories.custom',
+  },
 };
 
 /**
@@ -456,8 +496,9 @@ export function getCategoryIcon(category: RelationshipCategory): string {
 }
 
 /**
- * Get a human-readable label for a relationship category
+ * Get the Transloco key for a relationship category's display label.
+ * Resolve with TranslocoService at the UI boundary.
  */
-export function getCategoryLabel(category: RelationshipCategory): string {
-  return CATEGORY_META[category]?.label ?? 'Other';
+export function getCategoryLabelKey(category: RelationshipCategory): string {
+  return CATEGORY_META[category]?.labelKey ?? 'relationships.categories.custom';
 }

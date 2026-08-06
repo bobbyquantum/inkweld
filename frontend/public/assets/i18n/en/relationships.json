@@ -82,6 +82,25 @@
       "other": "Other"
     }
   },
+  "categories": {
+    "reference": "References",
+    "familial": "Family",
+    "social": "Social",
+    "professional": "Professional",
+    "spatial": "Location",
+    "temporal": "Timeline",
+    "ownership": "Ownership",
+    "political": "Political",
+    "structural": "Structure",
+    "conflict": "Conflict",
+    "religious": "Religious",
+    "biological": "Biological",
+    "scholarly": "Scholarly",
+    "magical": "Magical",
+    "economic": "Economic",
+    "transport": "Transport",
+    "custom": "Other"
+  },
   "metaPanel": {
     "expandPanel": "Expand relationships panel",
     "noRelationships": "No relationships",
