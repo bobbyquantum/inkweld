@@ -21,8 +21,14 @@ while read local_ref local_oid remote_ref remote_oid; do
   [ "$local_oid" = "0000000000000000000000000000000000000000" ] && continue
 
   if [ "$remote_oid" = "0000000000000000000000000000000000000000" ]; then
-    # New branch — lint commits not yet on any remote
-    from_flag="--from=HEAD~$(git log --oneline "$local_oid" --not --remotes | wc -l | tr -d ' ')~1"
+    # New branch — lint exactly the commits not yet on any remote.
+    # commitlint's --from is an exclusive bound (it lints from..to), so the
+    # lower bound is the parent of the oldest new commit (oid~N); the old
+    # HEAD~N~1 form linted one pre-existing commit too, which blocked every
+    # new-branch push whenever an older commit violated a commitlint rule.
+    new_count=$(git log --oneline "$local_oid" --not --remotes | wc -l | tr -d ' ')
+    [ "$new_count" -eq 0 ] && continue
+    from_flag="--from=$local_oid~$new_count"
   else
     from_flag="--from=$remote_oid"
   fi
