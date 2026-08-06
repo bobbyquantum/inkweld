@@ -45,6 +45,9 @@ type Command = (
  */
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
 
+/** The `.editor-toolbar` flex container `gap`, mirrored from the SCSS. */
+const FLEX_GAP_PX = 4;
+
 /**
  * Heading levels supported by the editor (1-6)
  */
@@ -182,6 +185,14 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
         this.updateSelectionState();
       }
     });
+
+    // The auto-review toggle changes the toolbar's reserved right padding
+    // (52px → 96px) without changing its border-box size, so the
+    // ResizeObserver never fires; recalculate manually when it flips.
+    effect(() => {
+      this.systemConfig.isAiAutoReviewEnabled();
+      this.recalculateOverflow();
+    });
   }
 
   ngAfterViewInit(): void {
@@ -209,12 +220,30 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
         const dividerEl = container.querySelector<HTMLElement>(
           `[data-toolbar-divider="${name}"]`
         );
-        const w = (groupEl?.offsetWidth ?? 0) + (dividerEl?.offsetWidth ?? 0);
+        const w = this.measuredWidth(groupEl) + this.measuredWidth(dividerEl);
         if (w > 0) {
           this.groupNaturalWidths.set(name, w);
         }
       }
     });
+  }
+
+  /**
+   * Layout width of an element including horizontal margins. `offsetWidth`
+   * alone misses the divider's `0 4px` margins, which would under-measure
+   * each group+divider pair by 8px and let the rendered row bleed into the
+   * padding-right reserved for the pinned comments/auto-review toggles.
+   */
+  private measuredWidth(el: HTMLElement | null): number {
+    if (!el) return 0;
+    let margins = 0;
+    if (el instanceof HTMLElement) {
+      const style = getComputedStyle(el);
+      margins =
+        (Number.parseFloat(style.marginLeft) || 0) +
+        (Number.parseFloat(style.marginRight) || 0);
+    }
+    return el.offsetWidth + margins;
   }
 
   ngOnDestroy(): void {
@@ -288,7 +317,7 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
       );
 
       if (groupEl && !groupEl.classList.contains('toolbar-group--hidden')) {
-        const w = (groupEl.offsetWidth ?? 0) + (dividerEl?.offsetWidth ?? 0);
+        const w = this.measuredWidth(groupEl) + this.measuredWidth(dividerEl);
         if (w > 0) {
           this.groupNaturalWidths.set(name, w);
         }
@@ -308,23 +337,31 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
     const availableWidth =
       containerWidth - paddingLeft - paddingRight - overflowBtnWidth;
 
-    let totalGroupWidth = 0;
+    let cachedGroupWidth = 0;
     for (const name of this.groupPriority) {
-      totalGroupWidth += this.groupNaturalWidths.get(name) ?? 0;
+      cachedGroupWidth += this.groupNaturalWidths.get(name) ?? 0;
     }
 
-    if (totalGroupWidth === 0) {
+    if (cachedGroupWidth === 0) {
       // Cache not yet populated — nothing to do
       return;
     }
 
-    if (totalGroupWidth <= availableWidth) {
+    // The container's 4px `gap` separates every pair of flex children, so
+    // the rendered row is wider than the sum of the cached group widths:
+    // with all six groups visible there are 12 children (11 gaps). Without
+    // this allowance the row's tail (the overflow button) bleeds into the
+    // padding-right reserved for the pinned comments/auto-review toggles.
+    const allVisibleWidth =
+      cachedGroupWidth + FLEX_GAP_PX * (this.groupPriority.length * 2 - 1);
+
+    if (allVisibleWidth <= availableWidth) {
       this.ngZone.run(() => this.overflowGroups.set(new Set()));
       return;
     }
 
     const newOverflow = this.computeOverflowSet(
-      totalGroupWidth,
+      allVisibleWidth,
       availableWidth
     );
 
@@ -340,7 +377,8 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Given the total cached width and available width, pick the set of
+   * Given the all-visible width (cached widths plus the flex gaps between
+   * the 12 children) and the available width, pick the set of
    * lowest-priority groups to move into the overflow menu so the rest fit.
    */
   private computeOverflowSet(
@@ -353,7 +391,9 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
       if (remaining <= availableWidth) break;
       const name = this.groupPriority[i];
       newOverflow.add(name);
-      remaining -= this.groupNaturalWidths.get(name) ?? 0;
+      // Hiding a group removes two flex children (group + divider) and
+      // therefore two 4px gaps.
+      remaining -= (this.groupNaturalWidths.get(name) ?? 0) + FLEX_GAP_PX * 2;
     }
     return newOverflow;
   }

@@ -152,6 +152,37 @@ test.describe('Toolbar Overflow', () => {
     });
   });
 
+  test('narrow toolbar: overflow button never collides with the pinned comments toggle', async ({
+    localPageWithProject: page,
+  }) => {
+    await openEditorInProject(page, 'Collision Test');
+
+    const overflowBtn = page.getByTestId('toolbar-overflow-btn');
+    const commentsBtn = page.getByTestId('toolbar-comments');
+
+    // Sweep the intermediate widths where the old gap-less width maths
+    // pushed the tail of the flex row into the padding-right reserved for
+    // the pinned comments/auto-review toggles.
+    for (const width of [640, 680, 700, 720]) {
+      await constrainToolbarWidth(page, width);
+      await expect(overflowBtn).toBeVisible();
+
+      const commentsBox = await commentsBtn.boundingBox();
+      expect(commentsBox).not.toBeNull();
+
+      // Poll the collision predicate: the toolbar recalculates over two
+      // animation frames, so a single geometry read can race the layout.
+      await expect
+        .poll(async () => {
+          const overflowBox = await overflowBtn.boundingBox();
+          return overflowBox
+            ? overflowBox.x + overflowBox.width
+            : Number.POSITIVE_INFINITY;
+        })
+        .toBeLessThanOrEqual(commentsBox!.x);
+    }
+  });
+
   test('dynamic resize: overflow appears on constrain, disappears on release', async ({
     localPageWithProject: page,
   }) => {
