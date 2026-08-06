@@ -411,89 +411,53 @@ export function getRelationshipLabel(
 }
 
 /**
+ * Display metadata for each built-in relationship category.
+ */
+const CATEGORY_META: Record<
+  RelationshipCategory,
+  { icon: string; label: string }
+> = {
+  [RelationshipCategory.Reference]: { icon: 'link', label: 'References' },
+  [RelationshipCategory.Familial]: { icon: 'family_restroom', label: 'Family' },
+  [RelationshipCategory.Social]: { icon: 'people', label: 'Social' },
+  [RelationshipCategory.Professional]: { icon: 'work', label: 'Professional' },
+  [RelationshipCategory.Spatial]: { icon: 'place', label: 'Location' },
+  [RelationshipCategory.Temporal]: { icon: 'schedule', label: 'Timeline' },
+  [RelationshipCategory.Ownership]: { icon: 'inventory_2', label: 'Ownership' },
+  [RelationshipCategory.Political]: {
+    icon: 'account_balance',
+    label: 'Political',
+  },
+  [RelationshipCategory.Structural]: {
+    icon: 'account_tree',
+    label: 'Structure',
+  },
+  [RelationshipCategory.Conflict]: { icon: 'gavel', label: 'Conflict' },
+  [RelationshipCategory.Religious]: { icon: 'church', label: 'Religious' },
+  [RelationshipCategory.Biological]: { icon: 'pets', label: 'Biological' },
+  [RelationshipCategory.Scholarly]: { icon: 'school', label: 'Scholarly' },
+  [RelationshipCategory.Magical]: { icon: 'auto_awesome', label: 'Magical' },
+  [RelationshipCategory.Economic]: {
+    icon: 'currency_exchange',
+    label: 'Economic',
+  },
+  [RelationshipCategory.Transport]: {
+    icon: 'directions_car',
+    label: 'Transport',
+  },
+  [RelationshipCategory.Custom]: { icon: 'tune', label: 'Other' },
+};
+
+/**
  * Get the default icon for a relationship category
  */
 export function getCategoryIcon(category: RelationshipCategory): string {
-  switch (category) {
-    case RelationshipCategory.Reference:
-      return 'link';
-    case RelationshipCategory.Familial:
-      return 'family_restroom';
-    case RelationshipCategory.Social:
-      return 'people';
-    case RelationshipCategory.Professional:
-      return 'work';
-    case RelationshipCategory.Spatial:
-      return 'place';
-    case RelationshipCategory.Temporal:
-      return 'schedule';
-    case RelationshipCategory.Ownership:
-      return 'inventory_2';
-    case RelationshipCategory.Political:
-      return 'account_balance';
-    case RelationshipCategory.Structural:
-      return 'account_tree';
-    case RelationshipCategory.Conflict:
-      return 'gavel';
-    case RelationshipCategory.Religious:
-      return 'church';
-    case RelationshipCategory.Biological:
-      return 'pets';
-    case RelationshipCategory.Scholarly:
-      return 'school';
-    case RelationshipCategory.Magical:
-      return 'auto_awesome';
-    case RelationshipCategory.Economic:
-      return 'currency_exchange';
-    case RelationshipCategory.Transport:
-      return 'directions_car';
-    case RelationshipCategory.Custom:
-      return 'tune';
-    default:
-      return 'link';
-  }
+  return CATEGORY_META[category]?.icon ?? 'link';
 }
 
 /**
  * Get a human-readable label for a relationship category
  */
 export function getCategoryLabel(category: RelationshipCategory): string {
-  switch (category) {
-    case RelationshipCategory.Reference:
-      return 'References';
-    case RelationshipCategory.Familial:
-      return 'Family';
-    case RelationshipCategory.Social:
-      return 'Social';
-    case RelationshipCategory.Professional:
-      return 'Professional';
-    case RelationshipCategory.Spatial:
-      return 'Location';
-    case RelationshipCategory.Temporal:
-      return 'Timeline';
-    case RelationshipCategory.Ownership:
-      return 'Ownership';
-    case RelationshipCategory.Political:
-      return 'Political';
-    case RelationshipCategory.Structural:
-      return 'Structure';
-    case RelationshipCategory.Conflict:
-      return 'Conflict';
-    case RelationshipCategory.Religious:
-      return 'Religious';
-    case RelationshipCategory.Biological:
-      return 'Biological';
-    case RelationshipCategory.Scholarly:
-      return 'Scholarly';
-    case RelationshipCategory.Magical:
-      return 'Magical';
-    case RelationshipCategory.Economic:
-      return 'Economic';
-    case RelationshipCategory.Transport:
-      return 'Transport';
-    case RelationshipCategory.Custom:
-      return 'Other';
-    default:
-      return 'Other';
-  }
+  return CATEGORY_META[category]?.label ?? 'Other';
 }
