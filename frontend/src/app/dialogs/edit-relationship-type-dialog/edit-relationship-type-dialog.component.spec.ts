@@ -86,11 +86,11 @@ describe('EditRelationshipTypeDialogComponent', () => {
     expect(values).toContain(RelationshipCategory.Transport);
   });
 
-  it('should display "Other" for the Custom category', () => {
+  it('should map the Custom category to the "Other" translation key', () => {
     const custom = CATEGORY_OPTIONS.find(
       c => c.value === RelationshipCategory.Custom
     );
-    expect(custom?.label).toBe('Other');
+    expect(custom?.labelKey).toBe('relationships.categories.custom');
   });
 
   // ── Create mode ────────────────────────────────────────────────────────────

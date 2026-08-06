@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getCategoryIcon,
-  getCategoryLabel,
+  getCategoryLabelKey,
   RelationshipCategory,
 } from './element-ref.model';
 
@@ -18,7 +18,7 @@ describe('RelationshipCategory helpers', () => {
   it('should map every category to a non-empty label', () => {
     const categories = Object.values(RelationshipCategory);
     for (const category of categories) {
-      expect(getCategoryLabel(category), category).toBeTruthy();
+      expect(getCategoryLabelKey(category), category).toBeTruthy();
     }
   });
 
@@ -105,78 +105,110 @@ describe('RelationshipCategory helpers', () => {
   });
 
   it('should return "References" for the Reference category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Reference)).toBe('References');
+    expect(getCategoryLabelKey(RelationshipCategory.Reference)).toBe(
+      'relationships.categories.reference'
+    );
   });
 
   it('should return "Family" for the Familial category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Familial)).toBe('Family');
+    expect(getCategoryLabelKey(RelationshipCategory.Familial)).toBe(
+      'relationships.categories.familial'
+    );
   });
 
   it('should return "Social" for the Social category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Social)).toBe('Social');
+    expect(getCategoryLabelKey(RelationshipCategory.Social)).toBe(
+      'relationships.categories.social'
+    );
   });
 
   it('should return "Professional" for the Professional category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Professional)).toBe(
-      'Professional'
+    expect(getCategoryLabelKey(RelationshipCategory.Professional)).toBe(
+      'relationships.categories.professional'
     );
   });
 
   it('should return "Location" for the Spatial category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Spatial)).toBe('Location');
+    expect(getCategoryLabelKey(RelationshipCategory.Spatial)).toBe(
+      'relationships.categories.spatial'
+    );
   });
 
   it('should return "Timeline" for the Temporal category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Temporal)).toBe('Timeline');
+    expect(getCategoryLabelKey(RelationshipCategory.Temporal)).toBe(
+      'relationships.categories.temporal'
+    );
   });
 
   it('should return "Ownership" for the Ownership category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Ownership)).toBe('Ownership');
+    expect(getCategoryLabelKey(RelationshipCategory.Ownership)).toBe(
+      'relationships.categories.ownership'
+    );
   });
 
   it('should return "Political" for the Political category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Political)).toBe('Political');
+    expect(getCategoryLabelKey(RelationshipCategory.Political)).toBe(
+      'relationships.categories.political'
+    );
   });
 
   it('should return "Structure" for the Structural category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Structural)).toBe('Structure');
+    expect(getCategoryLabelKey(RelationshipCategory.Structural)).toBe(
+      'relationships.categories.structural'
+    );
   });
 
   it('should return "Conflict" for the Conflict category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Conflict)).toBe('Conflict');
+    expect(getCategoryLabelKey(RelationshipCategory.Conflict)).toBe(
+      'relationships.categories.conflict'
+    );
   });
 
   it('should return "Religious" for the Religious category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Religious)).toBe('Religious');
+    expect(getCategoryLabelKey(RelationshipCategory.Religious)).toBe(
+      'relationships.categories.religious'
+    );
   });
 
   it('should return "Biological" for the Biological category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Biological)).toBe(
-      'Biological'
+    expect(getCategoryLabelKey(RelationshipCategory.Biological)).toBe(
+      'relationships.categories.biological'
     );
   });
 
   it('should return "Scholarly" for the Scholarly category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Scholarly)).toBe('Scholarly');
+    expect(getCategoryLabelKey(RelationshipCategory.Scholarly)).toBe(
+      'relationships.categories.scholarly'
+    );
   });
 
   it('should return "Magical" for the Magical category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Magical)).toBe('Magical');
+    expect(getCategoryLabelKey(RelationshipCategory.Magical)).toBe(
+      'relationships.categories.magical'
+    );
   });
 
   it('should return "Economic" for the Economic category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Economic)).toBe('Economic');
+    expect(getCategoryLabelKey(RelationshipCategory.Economic)).toBe(
+      'relationships.categories.economic'
+    );
   });
 
   it('should return "Transport" for the Transport category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Transport)).toBe('Transport');
+    expect(getCategoryLabelKey(RelationshipCategory.Transport)).toBe(
+      'relationships.categories.transport'
+    );
   });
 
   it('should return "Other" for the Custom category', () => {
-    expect(getCategoryLabel(RelationshipCategory.Custom)).toBe('Other');
+    expect(getCategoryLabelKey(RelationshipCategory.Custom)).toBe(
+      'relationships.categories.custom'
+    );
   });
 
   it('should return "Other" for an unknown category', () => {
-    expect(getCategoryLabel('unknown' as RelationshipCategory)).toBe('Other');
+    expect(getCategoryLabelKey('unknown' as RelationshipCategory)).toBe(
+      'relationships.categories.custom'
+    );
   });
 });
