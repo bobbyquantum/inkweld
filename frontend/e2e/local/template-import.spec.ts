@@ -60,7 +60,7 @@ test.describe('Template Worldbuilding Import', () => {
       await expect(fullNameField).toHaveValue('Elara Nightwhisper');
 
       await expect(
-        page.getByRole('textbox', { name: 'Species', exact: true })
+        page.getByTestId('field-species').locator('input')
       ).toHaveValue('Half-Elf');
     });
 

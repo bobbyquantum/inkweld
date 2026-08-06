@@ -30,6 +30,24 @@ export enum RelationshipCategory {
   Temporal = 'temporal',
   /** Ownership/possession relationships */
   Ownership = 'ownership',
+  /** Political relationships (governs, allied with, part of) */
+  Political = 'political',
+  /** Structural containment relationships (part of) */
+  Structural = 'structural',
+  /** Conflict relationships (at war with) */
+  Conflict = 'conflict',
+  /** Religious relationships (worships, worshipped at) */
+  Religious = 'religious',
+  /** Biological relationships (subspecies of, evolved from) */
+  Biological = 'biological',
+  /** Scholarly relationships (invented by, written by) */
+  Scholarly = 'scholarly',
+  /** Magical relationships (cast by, afflicted by) */
+  Magical = 'magical',
+  /** Economic relationships (produces, trades in) */
+  Economic = 'economic',
+  /** Transport relationships (drives) */
+  Transport = 'transport',
   /** User-defined custom relationship type */
   Custom = 'custom',
 }
@@ -411,6 +429,24 @@ export function getCategoryIcon(category: RelationshipCategory): string {
       return 'schedule';
     case RelationshipCategory.Ownership:
       return 'inventory_2';
+    case RelationshipCategory.Political:
+      return 'account_balance';
+    case RelationshipCategory.Structural:
+      return 'account_tree';
+    case RelationshipCategory.Conflict:
+      return 'gavel';
+    case RelationshipCategory.Religious:
+      return 'church';
+    case RelationshipCategory.Biological:
+      return 'pets';
+    case RelationshipCategory.Scholarly:
+      return 'school';
+    case RelationshipCategory.Magical:
+      return 'auto_awesome';
+    case RelationshipCategory.Economic:
+      return 'currency_exchange';
+    case RelationshipCategory.Transport:
+      return 'directions_car';
     case RelationshipCategory.Custom:
       return 'tune';
     default:
@@ -437,6 +473,24 @@ export function getCategoryLabel(category: RelationshipCategory): string {
       return 'Timeline';
     case RelationshipCategory.Ownership:
       return 'Ownership';
+    case RelationshipCategory.Political:
+      return 'Political';
+    case RelationshipCategory.Structural:
+      return 'Structure';
+    case RelationshipCategory.Conflict:
+      return 'Conflict';
+    case RelationshipCategory.Religious:
+      return 'Religious';
+    case RelationshipCategory.Biological:
+      return 'Biological';
+    case RelationshipCategory.Scholarly:
+      return 'Scholarly';
+    case RelationshipCategory.Magical:
+      return 'Magical';
+    case RelationshipCategory.Economic:
+      return 'Economic';
+    case RelationshipCategory.Transport:
+      return 'Transport';
     case RelationshipCategory.Custom:
       return 'Other';
     default:
