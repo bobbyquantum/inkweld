@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   input,
+  type OnDestroy,
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -53,7 +54,7 @@ type BackgroundSlot = 'value' | 'light' | 'dark';
   templateUrl: './appearance-panel.component.html',
   styleUrl: './appearance-panel.component.scss',
 })
-export class AppearancePanelComponent {
+export class AppearancePanelComponent implements OnDestroy {
   elementId = input.required<string>();
   username = input.required<string>();
   slug = input.required<string>();
@@ -98,6 +99,15 @@ export class AppearancePanelComponent {
         void this.observe(id);
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    if (this.unsubscribeObserver) {
+      this.unsubscribeObserver();
+      this.unsubscribeObserver = null;
+    }
   }
 
   // ---------------------------------------------------------------------------
