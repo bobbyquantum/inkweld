@@ -233,6 +233,20 @@ describe('AppearancePanelComponent', () => {
       observer({ appearance: remoteAppearance });
       expect(component.appearance()).toEqual(remoteAppearance);
     });
+
+    it('should unsubscribe the identity observer on destroy', async () => {
+      const unsubscribe = vi.fn();
+      worldbuildingService.observeIdentityChanges.mockResolvedValue(
+        unsubscribe
+      );
+
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      fixture.destroy();
+
+      expect(unsubscribe).toHaveBeenCalled();
+    });
   });
 
   describe('image picking', () => {
