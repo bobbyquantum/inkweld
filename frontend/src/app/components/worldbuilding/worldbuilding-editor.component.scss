@@ -53,15 +53,16 @@
 
   // Auto-adjusted image backgrounds get an overlay so overlaid content stays
   // legible. We layer a semi-transparent base colour and blend it into the
-  // image: darken in light theme, lighten in dark theme.
+  // image: darken in dark mode (so light text stays readable) and lighten in
+  // light mode (so dark text stays readable).
   &.wb-bg-overlay-light {
-    background-color: rgba(0, 0, 0, 0.25);
-    background-blend-mode: multiply;
+    background-color: rgba(255, 255, 255, 0.2);
+    background-blend-mode: screen;
   }
 
   &.wb-bg-overlay-dark {
-    background-color: rgba(255, 255, 255, 0.2);
-    background-blend-mode: screen;
+    background-color: rgba(0, 0, 0, 0.25);
+    background-blend-mode: multiply;
   }
 
   // Intermediate: tighter space but still sidenav
@@ -134,6 +135,17 @@
       margin-bottom: 2px;
       transition: background-color 0.2s ease;
 
+      // Non-selected items get a subtle surface so they stay visible and
+      // obviously clickable over a custom background image, while remaining
+      // transparent on the default (no-background) surface.
+      &:not(.active) {
+        background-color: color-mix(
+          in srgb,
+          var(--sys-surface) 50%,
+          transparent
+        );
+      }
+
       &.active {
         background: var(--sys-secondary-container);
         color: var(--sys-on-secondary-container);
@@ -173,15 +185,16 @@
     background-attachment: local;
   }
 
-  // Same auto-adjust overlay behaviour as the sidenav.
+  // Same auto-adjust overlay behaviour as the sidenav: darken in dark mode,
+  // lighten in light mode.
   &.wb-bg-overlay-light {
-    background-color: rgba(0, 0, 0, 0.25);
-    background-blend-mode: multiply;
+    background-color: rgba(255, 255, 255, 0.2);
+    background-blend-mode: screen;
   }
 
   &.wb-bg-overlay-dark {
-    background-color: rgba(255, 255, 255, 0.2);
-    background-blend-mode: screen;
+    background-color: rgba(0, 0, 0, 0.25);
+    background-blend-mode: multiply;
   }
 }
 
