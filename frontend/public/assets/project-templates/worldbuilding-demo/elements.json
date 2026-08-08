@@ -164,83 +164,6 @@
     "metadata": {}
   },
   {
-    "id": "folder-orgs",
-    "name": "Organizations",
-    "type": "FOLDER",
-    "order": 7,
-    "level": 0,
-    "parentId": null,
-    "expandable": true,
-    "version": 0,
-    "metadata": {}
-  },
-  {
-    "id": "folder-deities",
-    "name": "Deities & Religion",
-    "type": "FOLDER",
-    "order": 8,
-    "level": 0,
-    "parentId": null,
-    "expandable": true,
-    "version": 0,
-    "metadata": {}
-  },
-  {
-    "id": "folder-magic",
-    "name": "Magic & Lore",
-    "type": "FOLDER",
-    "order": 9,
-    "level": 0,
-    "parentId": null,
-    "expandable": true,
-    "version": 0,
-    "metadata": {}
-  },
-  {
-    "id": "folder-geo",
-    "name": "Geography",
-    "type": "FOLDER",
-    "order": 10,
-    "level": 0,
-    "parentId": null,
-    "expandable": true,
-    "version": 0,
-    "metadata": {}
-  },
-  {
-    "id": "folder-culture",
-    "name": "Culture & History",
-    "type": "FOLDER",
-    "order": 11,
-    "level": 0,
-    "parentId": null,
-    "expandable": true,
-    "version": 0,
-    "metadata": {}
-  },
-  {
-    "id": "folder-people",
-    "name": "People & Ways",
-    "type": "FOLDER",
-    "order": 12,
-    "level": 0,
-    "parentId": null,
-    "expandable": true,
-    "version": 0,
-    "metadata": {}
-  },
-  {
-    "id": "folder-things",
-    "name": "Things & Materials",
-    "type": "FOLDER",
-    "order": 13,
-    "level": 0,
-    "parentId": null,
-    "expandable": true,
-    "version": 0,
-    "metadata": {}
-  },
-  {
     "id": "spec-moonshadow",
     "name": "Moonshadow Fox",
     "type": "WORLDBUILDING",
@@ -261,6 +184,17 @@
     "level": 1,
     "parentId": "folder-species",
     "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "folder-orgs",
+    "name": "Organizations",
+    "type": "FOLDER",
+    "order": 7,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
     "version": 0,
     "metadata": {}
   },
@@ -289,6 +223,17 @@
     "metadata": {}
   },
   {
+    "id": "folder-deities",
+    "name": "Deities & Religion",
+    "type": "FOLDER",
+    "order": 8,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
     "id": "deity-lunara",
     "name": "Lunara, Lady of the Silver Moon",
     "type": "WORLDBUILDING",
@@ -297,6 +242,17 @@
     "level": 1,
     "parentId": "folder-deities",
     "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "folder-magic",
+    "name": "Magic & Lore",
+    "type": "FOLDER",
+    "order": 9,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
     "version": 0,
     "metadata": {}
   },
@@ -349,6 +305,17 @@
     "metadata": {}
   },
   {
+    "id": "folder-geo",
+    "name": "Geography",
+    "type": "FOLDER",
+    "order": 10,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
     "id": "geo-starfall",
     "name": "Starfall Mountains",
     "type": "WORLDBUILDING",
@@ -393,6 +360,41 @@
     "level": 1,
     "parentId": "folder-geo",
     "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "planet-aetheria",
+    "name": "Aetheria",
+    "type": "WORLDBUILDING",
+    "schemaId": "planet-v1",
+    "order": 4,
+    "level": 1,
+    "parentId": "folder-geo",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "plane-verdant",
+    "name": "The Verdant Court",
+    "type": "WORLDBUILDING",
+    "schemaId": "plane-v1",
+    "order": 5,
+    "level": 1,
+    "parentId": "folder-geo",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "folder-culture",
+    "name": "Culture & History",
+    "type": "FOLDER",
+    "order": 11,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
     "version": 0,
     "metadata": {}
   },
@@ -457,6 +459,52 @@
     "metadata": {}
   },
   {
+    "id": "folder-people",
+    "name": "People & Ways",
+    "type": "FOLDER",
+    "order": 12,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "prof-ranger",
+    "name": "Forest Ranger",
+    "type": "WORLDBUILDING",
+    "schemaId": "profession-v1",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-people",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "title-guardian",
+    "name": "Guardian of Thornwood",
+    "type": "WORLDBUILDING",
+    "schemaId": "title-v1",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-people",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "folder-things",
+    "name": "Things & Materials",
+    "type": "FOLDER",
+    "order": 13,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
     "id": "item-moonblade",
     "name": "Moonblade of Lunara",
     "type": "WORLDBUILDING",
@@ -505,30 +553,6 @@
     "metadata": {}
   },
   {
-    "id": "prof-ranger",
-    "name": "Forest Ranger",
-    "type": "WORLDBUILDING",
-    "schemaId": "profession-v1",
-    "order": 0,
-    "level": 1,
-    "parentId": "folder-people",
-    "expandable": false,
-    "version": 0,
-    "metadata": {}
-  },
-  {
-    "id": "title-guardian",
-    "name": "Guardian of Thornwood",
-    "type": "WORLDBUILDING",
-    "schemaId": "title-v1",
-    "order": 1,
-    "level": 1,
-    "parentId": "folder-people",
-    "expandable": false,
-    "version": 0,
-    "metadata": {}
-  },
-  {
     "id": "vehicle-starwing",
     "name": "The Starwing",
     "type": "WORLDBUILDING",
@@ -536,30 +560,6 @@
     "order": 4,
     "level": 1,
     "parentId": "folder-things",
-    "expandable": false,
-    "version": 0,
-    "metadata": {}
-  },
-  {
-    "id": "planet-aetheria",
-    "name": "Aetheria",
-    "type": "WORLDBUILDING",
-    "schemaId": "planet-v1",
-    "order": 4,
-    "level": 1,
-    "parentId": "folder-geo",
-    "expandable": false,
-    "version": 0,
-    "metadata": {}
-  },
-  {
-    "id": "plane-verdant",
-    "name": "The Verdant Court",
-    "type": "WORLDBUILDING",
-    "schemaId": "plane-v1",
-    "order": 5,
-    "level": 1,
-    "parentId": "folder-geo",
     "expandable": false,
     "version": 0,
     "metadata": {}
