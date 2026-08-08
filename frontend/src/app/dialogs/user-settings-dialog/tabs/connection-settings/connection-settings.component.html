@@ -85,9 +85,8 @@
         <input
           matInput
           id="connection-server-url-input"
-          [(ngModel)]="newServerUrl"
+          [formField]="serverUrlForm.newServerUrl"
           placeholder="https://inkweld.example.com"
-          [disabled]="isConnecting() || showAuthForm()"
           type="url"
           data-testid="server-url-input"
           aria-label="Server URL" />
@@ -100,7 +99,11 @@
         <button
           mat-stroked-button
           (click)="testConnection()"
-          [disabled]="isConnecting() || !newServerUrl.trim() || showAuthForm()">
+          [disabled]="
+            isConnecting() ||
+            !serverUrlModel().newServerUrl.trim() ||
+            showAuthForm()
+          ">
           @if (isConnecting()) {
             <mat-spinner diameter="20"></mat-spinner>
           }
@@ -114,7 +117,11 @@
           mat-raised-button
           color="primary"
           (click)="startMigration()"
-          [disabled]="isConnecting() || !newServerUrl.trim() || showAuthForm()"
+          [disabled]="
+            isConnecting() ||
+            !serverUrlModel().newServerUrl.trim() ||
+            showAuthForm()
+          "
           data-testid="connect-to-server-button">
           @if (isConnecting()) {
             <mat-spinner diameter="20"></mat-spinner>

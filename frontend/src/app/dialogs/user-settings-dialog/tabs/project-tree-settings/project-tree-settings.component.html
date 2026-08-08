@@ -1,9 +1,12 @@
 <section class="settings-section">
-  <mat-checkbox [(ngModel)]="confirmElementMoves">
+  <mat-checkbox
+    [checked]="confirmElementMoves"
+    (change)="setConfirmElementMoves($event.checked)">
     Confirm element moves
   </mat-checkbox>
   <mat-checkbox
-    [(ngModel)]="showBreadcrumbs"
+    [checked]="showBreadcrumbs"
+    (change)="setShowBreadcrumbs($event.checked)"
     data-testid="show-breadcrumbs-toggle">
     Show breadcrumbs above editors
   </mat-checkbox>

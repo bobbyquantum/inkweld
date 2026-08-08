@@ -1,14 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { SettingsService } from '@services/core/settings.service';
 
 @Component({
   selector: 'app-project-tree-settings',
-  imports: [FormsModule, MatCheckboxModule, MatFormFieldModule],
+  imports: [MatCheckboxModule, MatFormFieldModule],
   templateUrl: './project-tree-settings.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './project-tree-settings.component.scss',
 })
 export class ProjectTreeSettingsComponent {
@@ -21,19 +20,18 @@ export class ProjectTreeSettingsComponent {
     );
   }
 
-  set confirmElementMoves(value: boolean) {
-    if (typeof value === 'boolean') {
-      this.settingsService.setSetting<boolean>('confirmElementMoves', value);
-    } else {
-      this.settingsService.setSetting<boolean>('confirmElementMoves', false);
-    }
+  setConfirmElementMoves(value: boolean): void {
+    this.settingsService.setSetting<boolean>(
+      'confirmElementMoves',
+      typeof value === 'boolean' ? value : false
+    );
   }
 
   get showBreadcrumbs(): boolean {
     return this.settingsService.showBreadcrumbs();
   }
 
-  set showBreadcrumbs(value: boolean) {
+  setShowBreadcrumbs(value: boolean): void {
     this.settingsService.setShowBreadcrumbs(
       typeof value === 'boolean' && value
     );

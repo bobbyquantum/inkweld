@@ -105,13 +105,13 @@ describe('ConnectionSettingsComponent', () => {
 
   describe('switchToServerMode', () => {
     it('should show error when server URL is empty', async () => {
-      component['newServerUrl'] = '';
+      component['serverUrlModel'].set({ newServerUrl: '' });
       await component.switchToServerMode();
       expect(component['connectionError']()).toBe('Please enter a server URL');
     });
 
     it('should show error when server URL is whitespace only', async () => {
-      component['newServerUrl'] = '   ';
+      component['serverUrlModel'].set({ newServerUrl: '   ' });
       await component.switchToServerMode();
       expect(component['connectionError']()).toBe('Please enter a server URL');
     });
@@ -119,13 +119,15 @@ describe('ConnectionSettingsComponent', () => {
 
   describe('testConnection', () => {
     it('should show error when server URL is empty', async () => {
-      component['newServerUrl'] = '';
+      component['serverUrlModel'].set({ newServerUrl: '' });
       await component.testConnection();
       expect(component['connectionError']()).toBe('Please enter a server URL');
     });
 
     it('should show success when connection succeeds', async () => {
-      component['newServerUrl'] = 'http://localhost:8333';
+      component['serverUrlModel'].set({
+        newServerUrl: 'http://localhost:8333',
+      });
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
 
       await component.testConnection();
@@ -139,7 +141,9 @@ describe('ConnectionSettingsComponent', () => {
     });
 
     it('should show error when server responds with error', async () => {
-      component['newServerUrl'] = 'http://localhost:8333';
+      component['serverUrlModel'].set({
+        newServerUrl: 'http://localhost:8333',
+      });
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
 
       await component.testConnection();
@@ -154,7 +158,9 @@ describe('ConnectionSettingsComponent', () => {
       const consoleSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      component['newServerUrl'] = 'http://localhost:8333';
+      component['serverUrlModel'].set({
+        newServerUrl: 'http://localhost:8333',
+      });
       vi.stubGlobal(
         'fetch',
         vi.fn().mockRejectedValue(new Error('Network error'))
@@ -241,7 +247,9 @@ describe('ConnectionSettingsComponent', () => {
     });
 
     it('should call registerOnServer when in register mode', async () => {
-      component['newServerUrl'] = 'http://localhost:8333';
+      component['serverUrlModel'].set({
+        newServerUrl: 'http://localhost:8333',
+      });
       component['authMode'].set('register');
       component['username'].set('testuser');
       component['password'].set('password');
@@ -273,7 +281,9 @@ describe('ConnectionSettingsComponent', () => {
     });
 
     it('should call loginToServer when in login mode', async () => {
-      component['newServerUrl'] = 'http://localhost:8333';
+      component['serverUrlModel'].set({
+        newServerUrl: 'http://localhost:8333',
+      });
       component['authMode'].set('login');
       component['username'].set('testuser');
       component['password'].set('password');
@@ -296,7 +306,9 @@ describe('ConnectionSettingsComponent', () => {
     });
 
     it('should show failure message when migration has failed projects', async () => {
-      component['newServerUrl'] = 'http://localhost:8333';
+      component['serverUrlModel'].set({
+        newServerUrl: 'http://localhost:8333',
+      });
       component['authMode'].set('login');
       component['username'].set('testuser');
       component['password'].set('password');
@@ -323,7 +335,9 @@ describe('ConnectionSettingsComponent', () => {
       const consoleSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      component['newServerUrl'] = 'http://localhost:8333';
+      component['serverUrlModel'].set({
+        newServerUrl: 'http://localhost:8333',
+      });
       component['authMode'].set('login');
       component['username'].set('testuser');
       component['password'].set('password');
@@ -344,7 +358,9 @@ describe('ConnectionSettingsComponent', () => {
       const consoleSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      component['newServerUrl'] = 'http://localhost:8333';
+      component['serverUrlModel'].set({
+        newServerUrl: 'http://localhost:8333',
+      });
       component['authMode'].set('login');
       component['username'].set('testuser');
       component['password'].set('password');
@@ -429,7 +445,9 @@ describe('ConnectionSettingsComponent', () => {
       const consoleSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      component['newServerUrl'] = 'http://localhost:8333';
+      component['serverUrlModel'].set({
+        newServerUrl: 'http://localhost:8333',
+      });
 
       setupService.configureServerMode.mockRejectedValue(
         new Error('Config failed')
@@ -445,7 +463,9 @@ describe('ConnectionSettingsComponent', () => {
     });
 
     it('should show confirmation when migrating offline projects', async () => {
-      component['newServerUrl'] = 'http://localhost:8333';
+      component['serverUrlModel'].set({
+        newServerUrl: 'http://localhost:8333',
+      });
       migrationService.hasLocalProjects.mockReturnValue(true);
       migrationService.getLocalProjectsCount.mockReturnValue(2);
 
@@ -463,7 +483,9 @@ describe('ConnectionSettingsComponent', () => {
     });
 
     it('should not start migration if user cancels', async () => {
-      component['newServerUrl'] = 'http://localhost:8333';
+      component['serverUrlModel'].set({
+        newServerUrl: 'http://localhost:8333',
+      });
       migrationService.hasLocalProjects.mockReturnValue(true);
       migrationService.getLocalProjectsCount.mockReturnValue(2);
 
@@ -482,7 +504,9 @@ describe('ConnectionSettingsComponent', () => {
 
     it('should show confirmation when changing servers in server mode', async () => {
       component['currentMode'] = 'server';
-      component['newServerUrl'] = 'http://different-server:8333';
+      component['serverUrlModel'].set({
+        newServerUrl: 'http://different-server:8333',
+      });
       migrationService.hasLocalProjects.mockReturnValue(false);
 
       // Mock dialog to return confirmed
@@ -514,7 +538,7 @@ describe('ConnectionSettingsComponent', () => {
 
   describe('startMigration', () => {
     it('should show error when server URL is empty', async () => {
-      component['newServerUrl'] = '';
+      component['serverUrlModel'].set({ newServerUrl: '' });
       await component.startMigration();
       expect(component['connectionError']()).toBe('Please enter a server URL');
     });

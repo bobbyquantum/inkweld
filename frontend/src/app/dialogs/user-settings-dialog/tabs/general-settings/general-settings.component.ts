@@ -4,8 +4,8 @@ import {
   inject,
   type OnDestroy,
   type OnInit,
+  signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { type ThemeOption, ThemeService } from '@themes/theme.service';
@@ -13,7 +13,7 @@ import { type Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-general-settings',
-  imports: [MatFormFieldModule, MatSelectModule, FormsModule],
+  imports: [MatFormFieldModule, MatSelectModule],
   templateUrl: './general-settings.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './general-settings.component.scss',
@@ -21,7 +21,7 @@ import { type Subscription } from 'rxjs';
 export class GeneralSettingsComponent implements OnInit, OnDestroy {
   private readonly themeService = inject(ThemeService);
 
-  selectedTheme!: ThemeOption;
+  readonly selectedTheme = signal<ThemeOption>('system');
 
   private themeSubscription!: Subscription;
 
@@ -29,7 +29,7 @@ export class GeneralSettingsComponent implements OnInit, OnDestroy {
     this.themeSubscription = this.themeService
       .getCurrentTheme()
       .subscribe(theme => {
-        this.selectedTheme = theme;
+        this.selectedTheme.set(theme);
       });
   }
 
@@ -39,7 +39,8 @@ export class GeneralSettingsComponent implements OnInit, OnDestroy {
     }
   }
 
-  onThemeChange() {
-    this.themeService.update(this.selectedTheme);
+  onThemeChange(value: ThemeOption) {
+    this.selectedTheme.set(value);
+    this.themeService.update(value);
   }
 }

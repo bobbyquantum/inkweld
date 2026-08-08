@@ -6,7 +6,7 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { form, FormField } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
@@ -20,10 +20,15 @@ import { type UserAuthProvider } from '@inkweld/model/user';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 
+interface AccountSettingsFormValue {
+  displayName: string;
+  email: string;
+}
+
 @Component({
   selector: 'app-account-settings',
   imports: [
-    FormsModule,
+    FormField,
     MatButtonModule,
     MatChipsModule,
     MatDividerModule,
@@ -47,13 +52,18 @@ export class AccountSettingsComponent implements OnInit {
   readonly isSaving = signal(false);
   readonly authProvider = signal<UserAuthProvider | undefined>(undefined);
 
-  displayName = '';
-  email = '';
+  readonly model = signal<AccountSettingsFormValue>({
+    displayName: '',
+    email: '',
+  });
+  readonly form = form(this.model);
 
   ngOnInit(): void {
     const user = this.userService.currentUser();
-    this.displayName = user.name ?? '';
-    this.email = user.email ?? '';
+    this.model.set({
+      displayName: user.name ?? '',
+      email: user.email ?? '',
+    });
     this.authProvider.set(user.authProvider);
   }
 
@@ -64,8 +74,8 @@ export class AccountSettingsComponent implements OnInit {
       const data: { name?: string; email?: string } = {};
 
       const currentUser = this.userService.currentUser();
-      const newName = this.displayName.trim();
-      const newEmail = this.email.trim();
+      const newName = this.model().displayName.trim();
+      const newEmail = this.model().email.trim();
 
       // Only send changed fields
       if (newName !== (currentUser.name ?? '')) {

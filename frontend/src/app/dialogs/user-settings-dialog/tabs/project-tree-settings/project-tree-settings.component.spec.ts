@@ -1,7 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { SettingsService } from '@services/core/settings.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 
@@ -34,7 +32,6 @@ describe('ProjectTreeSettingsComponent', () => {
     });
 
     await TestBed.configureTestingModule({
-      imports: [ProjectTreeSettingsComponent, FormsModule, MatCheckboxModule],
       providers: [
         provideZonelessChangeDetection(),
         SettingsService,
@@ -78,7 +75,7 @@ describe('ProjectTreeSettingsComponent', () => {
     });
 
     it('should update setting when value is set', () => {
-      component.confirmElementMoves = true;
+      component.setConfirmElementMoves(true);
       expect(settingsService.getSetting('confirmElementMoves', false)).toBe(
         true
       );
@@ -88,8 +85,7 @@ describe('ProjectTreeSettingsComponent', () => {
     });
 
     it('should not update setting when non-boolean value is set', () => {
-      // @ts-expect-error Testing invalid type
-      component.confirmElementMoves = 'invalid';
+      component.setConfirmElementMoves('invalid' as unknown as boolean);
       expect(settingsService.getSetting('confirmElementMoves', false)).toBe(
         false
       );
@@ -110,13 +106,13 @@ describe('ProjectTreeSettingsComponent', () => {
     });
 
     it('should persist and update the signal when toggled', () => {
-      component.showBreadcrumbs = false;
+      component.setShowBreadcrumbs(false);
       expect(settingsService.showBreadcrumbs()).toBe(false);
       expect(JSON.parse(localStorageMock['userSettings']).showBreadcrumbs).toBe(
         false
       );
 
-      component.showBreadcrumbs = true;
+      component.setShowBreadcrumbs(true);
       expect(settingsService.showBreadcrumbs()).toBe(true);
       expect(JSON.parse(localStorageMock['userSettings']).showBreadcrumbs).toBe(
         true
@@ -124,8 +120,7 @@ describe('ProjectTreeSettingsComponent', () => {
     });
 
     it('should treat non-boolean values as false', () => {
-      // @ts-expect-error Testing invalid type
-      component.showBreadcrumbs = 'invalid';
+      component.setShowBreadcrumbs('invalid' as unknown as boolean);
       expect(settingsService.showBreadcrumbs()).toBe(false);
     });
   });

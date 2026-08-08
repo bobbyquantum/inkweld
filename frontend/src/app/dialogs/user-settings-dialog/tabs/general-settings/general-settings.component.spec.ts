@@ -1,6 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { type ThemeOption, ThemeService } from '@themes/theme.service';
@@ -24,12 +23,7 @@ describe('GeneralSettingsComponent', () => {
     } as unknown as MockedObject<ThemeService>;
 
     await TestBed.configureTestingModule({
-      imports: [
-        FormsModule,
-        MatFormFieldModule,
-        MatSelectModule,
-        GeneralSettingsComponent,
-      ],
+      imports: [MatFormFieldModule, MatSelectModule, GeneralSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ThemeService, useValue: mockThemeService },
@@ -48,18 +42,18 @@ describe('GeneralSettingsComponent', () => {
   describe('Theme handling', () => {
     it('should initialize with the theme from the ThemeService', () => {
       expect(mockThemeService.getCurrentTheme).toHaveBeenCalled();
-      expect(component.selectedTheme).toBe('light-theme');
+      expect(component.selectedTheme()).toBe('light-theme');
     });
 
     it('should update the theme when selection changes', () => {
-      component.selectedTheme = 'dark-theme';
-      component.onThemeChange();
+      component.selectedTheme.set('dark-theme');
+      component.onThemeChange('dark-theme');
       expect(mockThemeService.update).toHaveBeenCalledWith('dark-theme');
     });
 
     it('should handle system theme option', () => {
-      component.selectedTheme = 'system';
-      component.onThemeChange();
+      component.selectedTheme.set('system');
+      component.onThemeChange('system');
       expect(mockThemeService.update).toHaveBeenCalledWith('system');
     });
   });

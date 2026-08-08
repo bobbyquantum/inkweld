@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { SettingsService } from '@services/core/settings.service';
@@ -7,9 +6,9 @@ import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
 
 @Component({
   selector: 'app-project-settings',
-  imports: [FormsModule, MatCheckboxModule, MatFormFieldModule],
+  imports: [MatCheckboxModule, MatFormFieldModule],
   templateUrl: './project-settings.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './project-settings.component.scss',
 })
 export class ProjectSettingsComponent {
@@ -20,35 +19,31 @@ export class ProjectSettingsComponent {
     return this.settingsService.getSetting<boolean>('zenModeFullscreen', true);
   }
 
-  set zenModeFullscreen(value: boolean) {
-    if (typeof value === 'boolean') {
-      this.settingsService.setSetting<boolean>('zenModeFullscreen', value);
-    } else {
-      this.settingsService.setSetting<boolean>('zenModeFullscreen', true);
-    }
+  setZenModeFullscreen(value: boolean): void {
+    this.settingsService.setSetting<boolean>(
+      'zenModeFullscreen',
+      typeof value === 'boolean' ? value : true
+    );
   }
 
   get useTabsDesktop(): boolean {
     return this.settingsService.getSetting<boolean>('useTabsDesktop', true);
   }
 
-  set useTabsDesktop(value: boolean) {
-    if (typeof value === 'boolean') {
-      this.settingsService.setSetting<boolean>('useTabsDesktop', value);
-    } else {
-      this.settingsService.setSetting<boolean>('useTabsDesktop', true);
-    }
+  setUseTabsDesktop(value: boolean): void {
+    this.settingsService.setSetting<boolean>(
+      'useTabsDesktop',
+      typeof value === 'boolean' ? value : true
+    );
   }
 
   get autoSnapshots(): boolean {
     return this.autoSnapshotService.isEnabled();
   }
 
-  set autoSnapshots(value: boolean) {
-    if (typeof value === 'boolean') {
-      this.autoSnapshotService.setEnabled(value);
-    } else {
-      this.autoSnapshotService.setEnabled(true);
-    }
+  setAutoSnapshots(value: boolean): void {
+    this.autoSnapshotService.setEnabled(
+      typeof value === 'boolean' ? value : true
+    );
   }
 }

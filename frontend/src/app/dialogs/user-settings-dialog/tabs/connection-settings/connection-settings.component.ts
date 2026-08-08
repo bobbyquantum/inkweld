@@ -5,7 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { form, FormField } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
@@ -34,6 +34,7 @@ import {
 @Component({
   selector: 'app-connection-settings',
   imports: [
+    FormField,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
@@ -41,7 +42,6 @@ import {
     MatCardModule,
     MatProgressSpinnerModule,
     MatProgressBarModule,
-    FormsModule,
   ],
   templateUrl: './connection-settings.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -59,7 +59,10 @@ export class ConnectionSettingsComponent {
 
   protected currentMode = this.setupService.getMode();
   protected currentServerUrl = this.setupService.getServerUrl() || '';
-  protected newServerUrl = '';
+  readonly serverUrlModel = signal<{ newServerUrl: string }>({
+    newServerUrl: '',
+  });
+  readonly serverUrlForm = form(this.serverUrlModel);
   protected isConnecting = signal(false);
   protected connectionError = signal<string | null>(null);
 
@@ -116,7 +119,7 @@ export class ConnectionSettingsComponent {
   }
 
   async switchToServerMode() {
-    if (!this.newServerUrl.trim()) {
+    if (!this.serverUrlModel().newServerUrl.trim()) {
       this.connectionError.set('Please enter a server URL');
       return;
     }
@@ -125,9 +128,11 @@ export class ConnectionSettingsComponent {
     this.connectionError.set(null);
 
     try {
-      await this.setupService.configureServerMode(this.newServerUrl.trim());
-      this.currentServerUrl = this.newServerUrl.trim();
-      this.newServerUrl = '';
+      await this.setupService.configureServerMode(
+        this.serverUrlModel().newServerUrl.trim()
+      );
+      this.currentServerUrl = this.serverUrlModel().newServerUrl.trim();
+      this.serverUrlModel.set({ newServerUrl: '' });
       this.currentMode = 'server';
 
       // Reload the page to reinitialize with new server
@@ -147,7 +152,7 @@ export class ConnectionSettingsComponent {
   }
 
   async testConnection() {
-    if (!this.newServerUrl.trim()) {
+    if (!this.serverUrlModel().newServerUrl.trim()) {
       this.connectionError.set('Please enter a server URL');
       return;
     }
@@ -156,7 +161,9 @@ export class ConnectionSettingsComponent {
     this.connectionError.set(null);
 
     try {
-      const response = await fetch(`${this.newServerUrl.trim()}/api/v1/health`);
+      const response = await fetch(
+        `${this.serverUrlModel().newServerUrl.trim()}/api/v1/health`
+      );
       if (response.ok) {
         this.snackBar.open('Connection successful!', 'Close', {
           duration: 3000,
@@ -176,7 +183,7 @@ export class ConnectionSettingsComponent {
    * Start migration process - shows auth form if local projects exist
    */
   async startMigration() {
-    if (!this.newServerUrl.trim()) {
+    if (!this.serverUrlModel().newServerUrl.trim()) {
       this.connectionError.set('Please enter a server URL');
       return;
     }
@@ -256,7 +263,9 @@ export class ConnectionSettingsComponent {
         'Before configureServerMode, current mode:',
         this.setupService.getMode()
       );
-      await this.setupService.configureServerMode(this.newServerUrl.trim());
+      await this.setupService.configureServerMode(
+        this.serverUrlModel().newServerUrl.trim()
+      );
       this.logger.debug(
         'Migration',
         'After configureServerMode, new mode:',
@@ -279,7 +288,9 @@ export class ConnectionSettingsComponent {
       );
 
       // Start migration
-      await this.migrationService.migrateToServer(this.newServerUrl.trim());
+      await this.migrationService.migrateToServer(
+        this.serverUrlModel().newServerUrl.trim()
+      );
 
       // Hide auth form
       this.showAuthForm.set(false);
@@ -298,7 +309,7 @@ export class ConnectionSettingsComponent {
         // Configure server mode BEFORE cleanup
         // Note: We skip the health check since we just successfully authenticated and migrated
         this.logger.debug('Migration', 'Configuring server mode...');
-        const serverUrl = this.newServerUrl.trim();
+        const serverUrl = this.serverUrlModel().newServerUrl.trim();
         const config = {
           mode: 'server' as const,
           serverUrl: serverUrl,

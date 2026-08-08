@@ -76,8 +76,8 @@ describe('AccountSettingsComponent (dialog tab)', () => {
   });
 
   it('should populate fields from current user on init', () => {
-    expect(component.displayName).toBe('Test User');
-    expect(component.email).toBe('test@example.com');
+    expect(component.model().displayName).toBe('Test User');
+    expect(component.model().email).toBe('test@example.com');
   });
 
   it('should reflect local mode from system config', () => {
@@ -99,7 +99,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
     });
 
     it('should save only changed name', async () => {
-      component.displayName = 'New Name';
+      component.form.displayName().value.set('New Name');
       await component.saveProfile();
 
       expect(mockUserService.updateProfile).toHaveBeenCalledWith({
@@ -113,7 +113,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
     });
 
     it('should save only changed email', async () => {
-      component.email = 'new@example.com';
+      component.form.email().value.set('new@example.com');
       await component.saveProfile();
 
       expect(mockUserService.updateProfile).toHaveBeenCalledWith({
@@ -122,8 +122,8 @@ describe('AccountSettingsComponent (dialog tab)', () => {
     });
 
     it('should save both name and email when both changed', async () => {
-      component.displayName = 'New Name';
-      component.email = 'new@example.com';
+      component.form.displayName().value.set('New Name');
+      component.form.email().value.set('new@example.com');
       await component.saveProfile();
 
       expect(mockUserService.updateProfile).toHaveBeenCalledWith({
@@ -134,8 +134,8 @@ describe('AccountSettingsComponent (dialog tab)', () => {
 
     it('should not send email in local mode even if changed', async () => {
       mockSystemConfig.isLocalMode.mockReturnValue(true);
-      component.displayName = 'New Name';
-      component.email = 'new@example.com';
+      component.form.displayName().value.set('New Name');
+      component.form.email().value.set('new@example.com');
       await component.saveProfile();
 
       expect(mockUserService.updateProfile).toHaveBeenCalledWith({
@@ -147,7 +147,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       mockUserService.updateProfile.mockRejectedValue(
         new Error('Network error')
       );
-      component.displayName = 'New Name';
+      component.form.displayName().value.set('New Name');
       await component.saveProfile();
 
       expect(mockSnackBar.open).toHaveBeenCalledWith(
@@ -165,7 +165,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
         enabled: true,
       });
 
-      component.displayName = 'New Name';
+      component.form.displayName().value.set('New Name');
       const savePromise = component.saveProfile();
 
       // isSaving is set synchronously before any await
