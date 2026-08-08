@@ -48,6 +48,13 @@
 .control-mode,
 .control-value {
   width: 100%;
+
+  // Give the outline fields a subtle semi-transparent surface so they stay
+  // readable over a custom background image while remaining transparent on the
+  // default surface.
+  ::ng-deep .mat-mdc-text-field-wrapper {
+    background-color: color-mix(in srgb, var(--sys-surface) 50%, transparent);
+  }
 }
 
 .value-row {
