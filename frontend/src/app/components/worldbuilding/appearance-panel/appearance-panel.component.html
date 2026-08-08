@@ -1,0 +1,168 @@
+<div class="appearance-panel" data-testid="appearance-panel">
+  <h3 class="appearance-title">
+    <mat-icon>palette</mat-icon>
+    {{ 'worldbuilding.appearance.title' | transloco }}
+  </h3>
+
+  @for (region of regions; track region) {
+    @let setting = getSetting(region);
+    <div class="appearance-region" [attr.data-testid]="'appearance-' + region">
+      <div class="region-header">
+        <span class="region-label">
+          {{
+            (region === 'menu'
+              ? 'worldbuilding.appearance.menuLabel'
+              : 'worldbuilding.appearance.contentLabel'
+            ) | transloco
+          }}
+        </span>
+        <mat-slide-toggle
+          [checked]="isEnabled(region)"
+          [disabled]="!canWrite()"
+          (change)="setEnabled(region, $event.checked)"
+          [attr.aria-checked]="isEnabled(region)"
+          [attr.data-testid]="'appearance-' + region + '-toggle'">
+          {{ 'worldbuilding.appearance.enabled' | transloco }}
+        </mat-slide-toggle>
+      </div>
+
+      @if (isEnabled(region)) {
+        <div class="region-controls">
+          <mat-form-field appearance="outline" class="control-type">
+            <mat-label>{{
+              'worldbuilding.appearance.type' | transloco
+            }}</mat-label>
+            <mat-select
+              [value]="setting.type"
+              [disabled]="!canWrite()"
+              (selectionChange)="setType(region, $event.value)">
+              @for (type of types; track type) {
+                <mat-option
+                  [value]="type"
+                  [attr.data-testid]="
+                    'appearance-' + region + '-option-' + type
+                  ">
+                  {{
+                    'worldbuilding.appearance.typeOptions.' + type | transloco
+                  }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="control-mode">
+            <mat-label>{{
+              'worldbuilding.appearance.mode' | transloco
+            }}</mat-label>
+            <mat-select
+              [value]="setting.mode"
+              [disabled]="!canWrite()"
+              (selectionChange)="setMode(region, $event.value)">
+              <mat-option value="auto">
+                {{ 'worldbuilding.appearance.modeAuto' | transloco }}
+              </mat-option>
+              <mat-option value="manual">
+                {{ 'worldbuilding.appearance.modeManual' | transloco }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          @if (setting.type === 'image') {
+            <div class="image-picker">
+              @if (setting.mode === 'manual') {
+                @for (slot of manualSlots; track slot) {
+                  <div class="image-field">
+                    <button
+                      mat-stroked-button
+                      type="button"
+                      [disabled]="!canWrite()"
+                      (click)="pickImage(region, slot)"
+                      [attr.data-testid]="
+                        'appearance-' + region + '-image-' + slot
+                      ">
+                      <mat-icon>image</mat-icon>
+                      {{
+                        (slot === 'light'
+                          ? 'worldbuilding.appearance.light'
+                          : 'worldbuilding.appearance.dark'
+                        ) | transloco
+                      }}
+                    </button>
+                  </div>
+                }
+              } @else {
+                <div class="image-field">
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="!canWrite()"
+                    (click)="pickImage(region, 'value')"
+                    [attr.data-testid]="
+                      'appearance-' + region + '-image-value'
+                    ">
+                    <mat-icon>image</mat-icon>
+                    {{ 'worldbuilding.appearance.pickImage' | transloco }}
+                  </button>
+                </div>
+              }
+            </div>
+          } @else {
+            @if (setting.mode === 'manual') {
+              <div class="value-row">
+                <mat-form-field appearance="outline" class="control-value">
+                  <mat-label>{{
+                    'worldbuilding.appearance.light' | transloco
+                  }}</mat-label>
+                  <input
+                    matInput
+                    [attr.id]="'appearance-' + region + '-light'"
+                    [value]="getSettingValue(region, 'light')"
+                    [disabled]="!canWrite()"
+                    (input)="
+                      setValue(region, 'light', $any($event.target).value)
+                    "
+                    [attr.data-testid]="'appearance-' + region + '-light'" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="control-value">
+                  <mat-label>{{
+                    'worldbuilding.appearance.dark' | transloco
+                  }}</mat-label>
+                  <input
+                    matInput
+                    [attr.id]="'appearance-' + region + '-dark'"
+                    [value]="getSettingValue(region, 'dark')"
+                    [disabled]="!canWrite()"
+                    (input)="
+                      setValue(region, 'dark', $any($event.target).value)
+                    "
+                    [attr.data-testid]="'appearance-' + region + '-dark'" />
+                </mat-form-field>
+              </div>
+            } @else {
+              <mat-form-field appearance="outline" class="control-value">
+                <mat-label>
+                  {{
+                    (setting.type === 'color'
+                      ? 'worldbuilding.appearance.color'
+                      : 'worldbuilding.appearance.gradient'
+                    ) | transloco
+                  }}
+                </mat-label>
+                <input
+                  matInput
+                  [attr.id]="'appearance-' + region + '-value'"
+                  [value]="getSettingValue(region, 'value')"
+                  [disabled]="!canWrite()"
+                  (input)="setValue(region, 'value', $any($event.target).value)"
+                  [placeholder]="
+                    'worldbuilding.appearance.valuePlaceholder' | transloco
+                  "
+                  [attr.data-testid]="'appearance-' + region + '-value'" />
+              </mat-form-field>
+            }
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

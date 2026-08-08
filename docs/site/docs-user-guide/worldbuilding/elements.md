@@ -326,6 +326,32 @@ The Identity section holds the element's core identity:
   alt="The sidenav navigation showing Identity, schema tabs, Relationships, and Media links"
 />
 
+### Custom Backgrounds
+
+The Identity tab includes an **Appearance** panel that lets you give the editor's two regions — the left-hand menu (sidenav) and the right-hand content area — their own background. This is a per-element setting, so each character, location, or item can have a distinct look.
+
+For each region you can:
+
+- **Enable** the custom background with the toggle.
+- Choose a **type**: solid colour, gradient, or an image from your media library.
+- Choose a **theme mode**:
+  - **Auto** — a single value that the editor adjusts for the active light/dark theme (images are automatically brightened or darkened so overlaid text stays readable).
+  - **Manual** — separate values for the light theme and the dark theme.
+
+![Solid colour menu background](/img/features/worldbuilding-backgrounds/worldbuilding-background-menu-solid.png)
+
+_A solid colour applied to the left-hand menu._
+
+![Gradient content background](/img/features/worldbuilding-backgrounds/worldbuilding-background-content-gradient.png)
+
+_A gradient applied to the content area._
+
+![Custom menu and content backgrounds in dark mode](/img/features/worldbuilding-backgrounds/worldbuilding-background-both-dark.png)
+
+_Both regions use custom backgrounds in dark mode._
+
+Backgrounds are stored with the element and sync to collaborators in real time, like the rest of the identity data.
+
 ### Schema Tab Fields
 
 Each template tab renders its fields as a form. Field types include text inputs, textareas, selects, multi-selects, numbers, dates, checkboxes, and arrays.

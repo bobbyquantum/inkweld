@@ -33,6 +33,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DocumentSyncState } from '@models/document-sync-state';
 import { type ResolvedTag } from '@models/tag.model';
+import { AppearanceService } from '@services/worldbuilding/appearance.service';
 
 import {
   type Element as ApiElement,
@@ -94,6 +95,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   private readonly tagService = inject(TagService);
   private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
   private readonly transloco = inject(TranslocoService);
+  private readonly appearanceService = inject(AppearanceService);
 
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);
@@ -168,6 +170,72 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   /** Reference to the identity panel for accessing its resolved image URL */
   identityPanel = viewChild(IdentityPanelComponent);
+
+  /**
+   * Resolved menu background derived from the element's appearance config
+   * and the active theme. `null` means no custom background.
+   */
+  readonly menuBackground = computed(() => {
+    const appearance = this.identityPanel()?.appearance();
+    return this.appearanceService.resolveRegion(appearance?.menu, 'menu');
+  });
+
+  /** Resolved content background (see {@link menuBackground}). */
+  readonly contentBackground = computed(() => {
+    const appearance = this.identityPanel()?.appearance();
+    return this.appearanceService.resolveRegion(appearance?.content, 'content');
+  });
+
+  /**
+   * Cache of resolved blob URLs for `media://` background image references,
+   * keyed by the raw reference. Populated asynchronously by {@link resolveBgImage}.
+   */
+  private readonly resolvedImageUrls = signal<Record<string, string>>({});
+
+  /**
+   * Resolve any `media://` image references used by the current backgrounds so
+   * they render as loadable blob URLs. Runs whenever the backgrounds change.
+   */
+  protected readonly resolveBackgroundImages = effect(() => {
+    for (const bg of [this.menuBackground(), this.contentBackground()]) {
+      const ref = this.extractImageRef(bg?.background);
+      if (ref?.startsWith('media://') && !this.resolvedImageUrls()[ref]) {
+        void this.resolveBgImage(ref);
+      }
+    }
+  });
+
+  private async resolveBgImage(ref: string): Promise<void> {
+    const url = await this.appearanceService.resolveImageReference(
+      ref,
+      this.username(),
+      this.slug()
+    );
+    if (url) {
+      this.resolvedImageUrls.update(m => ({ ...m, [ref]: url }));
+    }
+  }
+
+  private extractImageRef(background: string | undefined): string | null {
+    if (!background) return null;
+    const match = /url\('(.*)'\)/.exec(background);
+    return match?.[1] ?? null;
+  }
+
+  /**
+   * Build the CSS value to bind to `--wb-bg` for a resolved background,
+   * substituting any cached blob URL for `media://` image references so the
+   * browser can actually load the image.
+   */
+  protected backgroundCss(
+    bg: ReturnType<AppearanceService['resolveRegion']>
+  ): string | null {
+    if (!bg) return null;
+    if (bg.type !== 'image') return bg.background;
+    const ref = this.extractImageRef(bg.background);
+    const resolved = ref ? this.resolvedImageUrls()[ref] : undefined;
+    return resolved ? `url('${resolved}')` : bg.background;
+  }
 
   /** Reference to the meta panel for controlling expanded state on mobile */
   metaPanel = viewChild(MetaPanelComponent);
@@ -260,6 +328,11 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     }
     if (this.resizeCleanup) {
       this.resizeCleanup();
+    }
+    for (const url of Object.values(this.resolvedImageUrls())) {
+      if (url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
     }
   }
 

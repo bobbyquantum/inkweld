@@ -16,7 +16,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { AppearancePanelComponent } from '@components/worldbuilding/appearance-panel/appearance-panel.component';
 import { TranslocoModule } from '@jsverse/transloco';
+import { type ElementAppearance } from '@models/element-appearance';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
@@ -26,6 +28,10 @@ import {
 } from '@services/worldbuilding/worldbuilding.service';
 import { debounceTime, firstValueFrom, Subject, takeUntil } from 'rxjs';
 
+import {
+  mediaIdFromReference,
+  mediaReferenceFilename,
+} from '../../../utils/media-reference';
 import { TagChipListComponent } from '../../tags/tag-chip-list.component';
 
 /**
@@ -46,6 +52,7 @@ import { TagChipListComponent } from '../../tags/tag-chip-list.component';
     MatTooltipModule,
     TranslocoModule,
     TagChipListComponent,
+    AppearancePanelComponent,
   ],
   templateUrl: './identity-panel.component.html',
   styleUrls: ['./identity-panel.component.scss'],
@@ -75,6 +82,13 @@ export class IdentityPanelComponent implements OnDestroy {
   isExpanded = signal(true);
 
   /**
+   * The element's appearance configuration (menu / content backgrounds),
+   * kept in sync with realtime identity changes so the editor can apply
+   * backgrounds live.
+   */
+  readonly appearance = signal<ElementAppearance | undefined>(undefined);
+
+  /**
    * Resolved image URL for display.
    * Handles media:// URLs by providing a resolved blob URL.
    */
@@ -94,6 +108,9 @@ export class IdentityPanelComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly descriptionChange$ = new Subject<string>();
   private unsubscribeObserver: (() => void) | null = null;
+  private elementSequence = 0;
+  /** Tracks whether a realtime update arrived for a given element sequence. */
+  private readonly receivedRealtime: Record<number, boolean> = {};
 
   constructor() {
     // Setup description debounce
@@ -107,8 +124,9 @@ export class IdentityPanelComponent implements OnDestroy {
     effect(() => {
       const id = this.elementId();
       if (id) {
-        void this.loadIdentityData(id);
-        void this.setupRealtimeSync(id);
+        const sequence = ++this.elementSequence;
+        void this.setupRealtimeSync(id, sequence);
+        void this.loadIdentityData(id, sequence);
       }
     });
 
@@ -155,12 +173,9 @@ export class IdentityPanelComponent implements OnDestroy {
     }
 
     const projectKey = `${username}/${slug}`;
-    // Extract filename from media://filename.png
-    const filename = imageUrl.substring('media://'.length);
-    // Use filename without extension as mediaId for IndexedDB
-    const mediaId = filename.includes('.')
-      ? filename.substring(0, filename.lastIndexOf('.'))
-      : filename;
+    // Extract filename + mediaId from media://filename.png reference
+    const filename = mediaReferenceFilename(imageUrl);
+    const mediaId = mediaIdFromReference(imageUrl);
 
     try {
       // Check if we have it cached in IndexedDB
@@ -169,7 +184,10 @@ export class IdentityPanelComponent implements OnDestroy {
         mediaId
       );
       if (cachedUrl) {
-        // Verify the blob URL is still valid by trying to fetch it
+        // Verify the blob URL is still valid by trying to fetch it. A stale
+        // URL is re-created from the stored blob; the media itself is never
+        // deleted here so a transient fetch failure can't wipe it from the
+        // library.
         try {
           const response = await fetch(cachedUrl);
           if (
@@ -178,14 +196,18 @@ export class IdentityPanelComponent implements OnDestroy {
           ) {
             this.resolvedImageUrl.set(cachedUrl);
             return;
-          } else {
-            // Revoke the stale URL and delete from cache
-            this.localStorage.revokeUrl(projectKey, mediaId);
-            await this.localStorage.deleteMedia(projectKey, mediaId);
           }
         } catch {
-          this.localStorage.revokeUrl(projectKey, mediaId);
-          await this.localStorage.deleteMedia(projectKey, mediaId);
+          // Fall through and re-create the URL below.
+        }
+        this.localStorage.revokeUrl(projectKey, mediaId);
+        const freshUrl = await this.localStorage.getMediaUrl(
+          projectKey,
+          mediaId
+        );
+        if (freshUrl) {
+          this.resolvedImageUrl.set(freshUrl);
+          return;
         }
       }
 
@@ -212,7 +234,10 @@ export class IdentityPanelComponent implements OnDestroy {
     }
   }
 
-  private async loadIdentityData(elementId: string): Promise<void> {
+  private async loadIdentityData(
+    elementId: string,
+    sequence: number
+  ): Promise<void> {
     this.isIdentityLoading.set(true);
     try {
       const data = await this.worldbuildingService.getIdentityData(
@@ -221,16 +246,30 @@ export class IdentityPanelComponent implements OnDestroy {
         this.slug()
       );
 
+      // Discard an obsolete initial snapshot if the element changed or a newer
+      // realtime update was already applied while loading.
+      if (
+        sequence !== this.elementSequence ||
+        this.receivedRealtime[sequence]
+      ) {
+        return;
+      }
       if (data) {
         this.identity.set(data);
         this.description.set(data.description ?? '');
+        this.appearance.set(data.appearance);
       }
     } finally {
-      this.isIdentityLoading.set(false);
+      if (sequence === this.elementSequence) {
+        this.isIdentityLoading.set(false);
+      }
     }
   }
 
-  private async setupRealtimeSync(elementId: string): Promise<void> {
+  private async setupRealtimeSync(
+    elementId: string,
+    sequence: number
+  ): Promise<void> {
     // Cleanup previous observer
     if (this.unsubscribeObserver) {
       this.unsubscribeObserver();
@@ -240,7 +279,10 @@ export class IdentityPanelComponent implements OnDestroy {
       await this.worldbuildingService.observeIdentityChanges(
         elementId,
         (data: WorldbuildingIdentity) => {
+          if (sequence !== this.elementSequence) return;
+          this.receivedRealtime[sequence] = true;
           this.identity.set(data);
+          this.appearance.set(data.appearance);
           // Only update description if different to avoid cursor jumps
           if (data.description !== this.description()) {
             this.description.set(data.description ?? '');

@@ -1,5 +1,11 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
+import type {
+  BackgroundMode,
+  BackgroundType,
+  ElementAppearance,
+} from '@models/element-appearance';
+import { APPEARANCE_DELETE } from '@models/element-appearance';
 import { Subject, type Subscription } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { type WebsocketProvider } from 'y-websocket';
@@ -35,6 +41,8 @@ export interface WorldbuildingIdentity {
   image?: string;
   /** Short description for tooltips and previews */
   description?: string;
+  /** Per-element background appearance (menu / content regions) */
+  appearance?: ElementAppearance;
 }
 
 @Injectable({
@@ -396,7 +404,41 @@ export class WorldbuildingService {
     return {
       image: identityMap.get('image') as string | undefined,
       description: identityMap.get('description') as string | undefined,
+      appearance: this.readAppearance(identityMap),
     };
+  }
+
+  private readAppearance(map: Y.Map<unknown>): ElementAppearance | undefined {
+    const raw = map.get('appearance');
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+    // The appearance is stored as a nested Y.Map; normalise to a plain
+    // object so we can read each region.
+    const source =
+      raw instanceof Y.Map
+        ? (raw.toJSON() as Record<string, unknown>)
+        : (raw as Record<string, unknown>);
+    const result: ElementAppearance = {};
+    for (const region of ['menu', 'content'] as const) {
+      const setting = source[region];
+      if (setting && typeof setting === 'object' && !Array.isArray(setting)) {
+        const s = setting as Record<string, unknown>;
+        const type = s['type'] as BackgroundType;
+        const mode = s['mode'] as BackgroundMode;
+        if (
+          (type === 'color' || type === 'gradient' || type === 'image') &&
+          (mode === 'auto' || mode === 'manual')
+        ) {
+          result[region] = {
+            type,
+            mode,
+            value: s['value'] as string | undefined,
+            light: s['light'] as string | undefined,
+            dark: s['dark'] as string | undefined,
+          };
+        }
+      }
+    }
+    return result.menu || result.content ? result : undefined;
   }
 
   /**
@@ -423,7 +465,47 @@ export class WorldbuildingService {
       if (data.description !== undefined) {
         identityMap.set('description', data.description);
       }
+      if (data.appearance !== undefined) {
+        this.setNestedYjsMap(
+          identityMap,
+          'appearance',
+          data.appearance as unknown as Record<string, unknown>
+        );
+      }
     });
+  }
+
+  /**
+   * Store a nested object on a Y.Map as a nested Y.Map so each field syncs
+   * individually (rather than the whole object being replaced).
+   *
+   * Missing keys are left untouched so a partial update (e.g. saving only
+   * the `menu` region) does not wipe sibling data (e.g. `content`). The
+   * identity panel is responsible for passing the full region object it
+   * intends to write, including an empty region object to clear it.
+   */
+  private setNestedYjsMap(
+    map: Y.Map<unknown>,
+    key: string,
+    value: Record<string, unknown>
+  ): void {
+    const existing = map.get(key);
+    let nested: Y.Map<unknown>;
+    if (existing instanceof Y.Map) {
+      nested = existing;
+    } else {
+      nested = new Y.Map();
+      map.set(key, nested);
+    }
+    for (const [k, v] of Object.entries(value)) {
+      if (v === undefined || v === null || v === APPEARANCE_DELETE) {
+        nested.delete(k);
+      } else if (v && typeof v === 'object' && !Array.isArray(v)) {
+        this.setNestedYjsMap(nested, k, v as Record<string, unknown>);
+      } else {
+        nested.set(k, v);
+      }
+    }
   }
 
   /**
@@ -447,11 +529,12 @@ export class WorldbuildingService {
       callback({
         image: identityMap.get('image') as string | undefined,
         description: identityMap.get('description') as string | undefined,
+        appearance: this.readAppearance(identityMap),
       });
     };
 
-    identityMap.observe(observer);
-    return () => identityMap.unobserve(observer);
+    identityMap.observeDeep(observer);
+    return () => identityMap.unobserveDeep(observer);
   }
 
   /**

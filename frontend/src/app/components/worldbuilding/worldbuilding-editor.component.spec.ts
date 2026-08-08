@@ -924,6 +924,42 @@ describe('WorldbuildingEditorComponent', () => {
         expect(() => component.ngOnDestroy()).not.toThrow();
       });
     });
+
+    it('should revoke cached blob URLs on destroy', () => {
+      const revokeSpy = vi
+        .spyOn(URL, 'revokeObjectURL')
+        .mockImplementation(() => {});
+      component['resolvedImageUrls'].set({
+        'media://bg.png': 'blob:abc',
+        'https://x/y.png': 'https://x/y.png',
+      });
+
+      component.ngOnDestroy();
+
+      expect(revokeSpy).toHaveBeenCalledWith('blob:abc');
+      expect(revokeSpy).not.toHaveBeenCalledWith('https://x/y.png');
+      revokeSpy.mockRestore();
+    });
+  });
+
+  describe('background resolution', () => {
+    it('should expose null backgrounds when the identity panel has no appearance', () => {
+      fixture.detectChanges();
+      const panel = component.identityPanel();
+      panel?.appearance.set(undefined);
+      expect(component.menuBackground()).toBeNull();
+      expect(component.contentBackground()).toBeNull();
+    });
+
+    it('should resolve the menu background from the identity appearance', () => {
+      fixture.detectChanges();
+      const panel = component.identityPanel();
+      panel?.appearance.set({
+        menu: { type: 'color', mode: 'auto', value: '#123456' },
+      });
+      expect(component.menuBackground()?.background).toBe('#123456');
+      expect(component.contentBackground()).toBeNull();
+    });
   });
 
   describe('initializeIfNeeded', () => {

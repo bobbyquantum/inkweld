@@ -148,6 +148,16 @@
             [readonly]="!canWrite()">
           </app-tag-chip-list>
         </div>
+
+        <!-- Appearance section -->
+        <div class="appearance-section">
+          <app-appearance-panel
+            [elementId]="elementId()"
+            [username]="username()"
+            [slug]="slug()"
+            [canWrite]="canWrite()">
+          </app-appearance-panel>
+        </div>
       }
     </div>
   } @else {
