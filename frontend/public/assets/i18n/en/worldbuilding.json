@@ -101,6 +101,7 @@
     "pickImage": "Pick image",
     "pickImageTitle": "Select background image",
     "valuePlaceholder": "e.g. #4fd8eb or linear-gradient(...)",
+    "gradientAngle": "Angle",
     "imageHint": "Images auto-adjust their brightness for light/dark mode, or pick separate images per theme in manual mode."
   },
   "tab": {

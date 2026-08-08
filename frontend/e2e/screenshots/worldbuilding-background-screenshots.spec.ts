@@ -127,12 +127,16 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
     colour: string
   ): Promise<void> {
     await enableRegion(page, region);
-    await page.getByTestId(`appearance-${region}-value`).fill(colour);
+    await page
+      .getByTestId(`appearance-${region}`)
+      .getByTestId('color-picker-hex')
+      .fill(colour);
     await waitForBackgroundRendered(page, region);
   }
 
   /**
    * Configure a gradient background for a region via the Appearance panel.
+   * Parses the CSS gradient string and drives the visual designer.
    */
   async function setGradient(
     page: Page,
@@ -141,7 +145,25 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
   ): Promise<void> {
     await enableRegion(page, region);
     await selectType(page, region, 'Gradient');
-    await page.getByTestId(`appearance-${region}-value`).fill(gradient);
+
+    const angleMatch = /linear-gradient\(\s*(\d+)deg/i.exec(gradient);
+    const angle = angleMatch ? angleMatch[1] : '180';
+    const stops = [...gradient.matchAll(/(#[0-9a-f]{3,8})\s*(\d+)?%/gi)].map(
+      m => ({ color: m[1], position: m[2] ?? '' })
+    );
+
+    const designer = page
+      .getByTestId(`appearance-${region}`)
+      .getByTestId('gradient-designer');
+    // The designer starts with two stops; add more if the target has more.
+    for (let i = 2; i < stops.length; i++) {
+      await designer.getByTestId('gradient-add-stop').click();
+    }
+    for (let i = 0; i < stops.length; i++) {
+      await designer.getByTestId('gradient-stop').nth(i).click();
+      await designer.getByTestId('gradient-stop-color').fill(stops[i].color);
+    }
+    await designer.getByTestId('gradient-angle').fill(angle);
     await waitForBackgroundRendered(page, region);
   }
 

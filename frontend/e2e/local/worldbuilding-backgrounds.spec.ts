@@ -91,7 +91,10 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
     await test.step('solid colour applies to the sidenav', async () => {
       await menuToggle.click();
       await expect(menuToggle).toHaveAttribute('aria-checked', 'true');
-      await page.getByTestId('appearance-menu-value').fill(MENU_COLOUR);
+      await page
+        .getByTestId('appearance-menu')
+        .getByTestId('color-picker-hex')
+        .fill(MENU_COLOUR);
 
       await expect(sidenav).toHaveClass(/has-custom-background/);
       await expect.poll(() => sidenavBgColor(page)).toBe(MENU_COLOUR_RGB);
@@ -108,7 +111,16 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
       await typeSelect.click();
       await page.getByTestId('appearance-content-option-gradient').click();
 
-      await page.getByTestId('appearance-content-value').fill(CONTENT_GRADIENT);
+      const gradient = page
+        .getByTestId('appearance-content')
+        .getByTestId('gradient-designer');
+      // Stop 0 is selected by default; set its colour.
+      await gradient.getByTestId('gradient-stop-color').fill('#97f0ff');
+      // Select stop 1 and set its colour.
+      await gradient.getByTestId('gradient-stop').nth(1).click();
+      await gradient.getByTestId('gradient-stop-color').fill('#ffffff');
+      // Set the angle.
+      await gradient.getByTestId('gradient-angle').fill('135');
 
       await expect(content).toHaveClass(/has-custom-background/);
       await expect

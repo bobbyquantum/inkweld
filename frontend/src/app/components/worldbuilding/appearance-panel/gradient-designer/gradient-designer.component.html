@@ -1,0 +1,67 @@
+<div class="gradient-designer" data-testid="gradient-designer">
+  <!-- Preview bar with draggable stops -->
+  <div
+    class="gradient-bar"
+    [style.background]="preview()"
+    (pointerdown)="onBarPointer($event)"
+    (pointermove)="onBarPointer($event)"
+    data-testid="gradient-bar">
+    @for (stop of stops(); track $index) {
+      <div
+        class="gradient-stop"
+        [class.selected]="$index === selectedIndex()"
+        [style.left.%]="stop.position"
+        [style.background]="stop.color"
+        (pointerdown)="selectStop($index); $event.stopPropagation()"
+        data-testid="gradient-stop"></div>
+    }
+  </div>
+
+  <!-- Angle slider -->
+  <div class="angle-row">
+    <label for="gradient-angle">{{
+      'worldbuilding.appearance.gradientAngle' | transloco
+    }}</label>
+    <input
+      id="gradient-angle"
+      type="range"
+      min="0"
+      max="360"
+      step="1"
+      [value]="angle()"
+      [disabled]="disabled()"
+      (input)="onAngleInput($event)"
+      data-testid="gradient-angle" />
+    <span class="angle-value">{{ angle() }}°</span>
+  </div>
+
+  <!-- Selected stop editor -->
+  @if (stops()[selectedIndex()]; as stop) {
+    <div class="stop-editor">
+      <mat-form-field appearance="outline" class="stop-color">
+        <input
+          matInput
+          [value]="stop.color"
+          [disabled]="disabled()"
+          (input)="onStopColorInput($event, selectedIndex())"
+          data-testid="gradient-stop-color" />
+      </mat-form-field>
+      <button
+        mat-icon-button
+        type="button"
+        [disabled]="disabled() || stops().length <= 2"
+        (click)="removeStop()"
+        data-testid="gradient-remove-stop">
+        <mat-icon>remove</mat-icon>
+      </button>
+      <button
+        mat-icon-button
+        type="button"
+        [disabled]="disabled()"
+        (click)="addStop()"
+        data-testid="gradient-add-stop">
+        <mat-icon>add</mat-icon>
+      </button>
+    </div>
+  }
+</div>

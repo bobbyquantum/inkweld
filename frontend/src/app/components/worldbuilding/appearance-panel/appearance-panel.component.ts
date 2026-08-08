@@ -30,6 +30,8 @@ import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.serv
 import { debounceTime, Subject, takeUntil } from 'rxjs';
 
 import { mediaIdFromReference } from '../../../utils/media-reference';
+import { ColorPickerComponent } from './color-picker/color-picker.component';
+import { GradientDesignerComponent } from './gradient-designer/gradient-designer.component';
 
 /** Options for the background type picker. */
 const BACKGROUND_TYPES: BackgroundType[] = ['color', 'gradient', 'image'];
@@ -62,6 +64,8 @@ interface SaveSnapshot {
     MatSlideToggleModule,
     MatTooltipModule,
     TranslocoModule,
+    ColorPickerComponent,
+    GradientDesignerComponent,
   ],
   templateUrl: './appearance-panel.component.html',
   styleUrl: './appearance-panel.component.scss',

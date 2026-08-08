@@ -139,26 +139,35 @@
                 </mat-form-field>
               </div>
             } @else {
-              <mat-form-field appearance="outline" class="control-value">
-                <mat-label>
-                  {{
-                    (setting.type === 'color'
-                      ? 'worldbuilding.appearance.color'
-                      : 'worldbuilding.appearance.gradient'
-                    ) | transloco
-                  }}
-                </mat-label>
-                <input
-                  matInput
-                  [attr.id]="'appearance-' + region + '-value'"
+              @if (setting.type === 'color') {
+                <app-color-picker
                   [value]="getSettingValue(region, 'value')"
                   [disabled]="!canWrite()"
-                  (input)="setValue(region, 'value', $any($event.target).value)"
-                  [placeholder]="
-                    'worldbuilding.appearance.valuePlaceholder' | transloco
-                  "
-                  [attr.data-testid]="'appearance-' + region + '-value'" />
-              </mat-form-field>
+                  (valueChange)="setValue(region, 'value', $event)" />
+              } @else if (setting.type === 'gradient') {
+                <app-gradient-designer
+                  [value]="getSettingValue(region, 'value')"
+                  [disabled]="!canWrite()"
+                  (valueChange)="setValue(region, 'value', $event)" />
+              } @else {
+                <mat-form-field appearance="outline" class="control-value">
+                  <mat-label>
+                    {{ 'worldbuilding.appearance.color' | transloco }}
+                  </mat-label>
+                  <input
+                    matInput
+                    [attr.id]="'appearance-' + region + '-value'"
+                    [value]="getSettingValue(region, 'value')"
+                    [disabled]="!canWrite()"
+                    (input)="
+                      setValue(region, 'value', $any($event.target).value)
+                    "
+                    [placeholder]="
+                      'worldbuilding.appearance.valuePlaceholder' | transloco
+                    "
+                    [attr.data-testid]="'appearance-' + region + '-value'" />
+                </mat-form-field>
+              }
             }
           }
         </div>
