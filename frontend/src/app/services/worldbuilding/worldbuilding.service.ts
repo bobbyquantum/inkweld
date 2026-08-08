@@ -136,6 +136,16 @@ export class WorldbuildingService {
   }
 
   /**
+   * Resolve the Material icon for a worldbuilding schema, falling back to
+   * the generic `category` icon for unknown or missing schema IDs.
+   * @param schemaId - The schema ID to resolve (e.g. 'character-v1')
+   */
+  getSchemaIcon(schemaId: string | undefined): string {
+    if (!schemaId) return 'category';
+    return this.getSchemaById(schemaId)?.icon ?? 'category';
+  }
+
+  /**
    * Set up real-time collaboration for a worldbuilding element
    * @param elementId - The element ID
    * @param username - Project username

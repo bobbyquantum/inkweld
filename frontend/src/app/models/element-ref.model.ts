@@ -30,6 +30,24 @@ export enum RelationshipCategory {
   Temporal = 'temporal',
   /** Ownership/possession relationships */
   Ownership = 'ownership',
+  /** Political relationships (governs, allied with, part of) */
+  Political = 'political',
+  /** Structural containment relationships (part of) */
+  Structural = 'structural',
+  /** Conflict relationships (at war with) */
+  Conflict = 'conflict',
+  /** Religious relationships (worships, worshipped at) */
+  Religious = 'religious',
+  /** Biological relationships (subspecies of, evolved from) */
+  Biological = 'biological',
+  /** Scholarly relationships (invented by, written by) */
+  Scholarly = 'scholarly',
+  /** Magical relationships (cast by, afflicted by) */
+  Magical = 'magical',
+  /** Economic relationships (produces, trades in) */
+  Economic = 'economic',
+  /** Transport relationships (drives) */
+  Transport = 'transport',
   /** User-defined custom relationship type */
   Custom = 'custom',
 }
@@ -393,53 +411,94 @@ export function getRelationshipLabel(
 }
 
 /**
+ * Display metadata for each built-in relationship category.
+ * Labels are Transloco keys resolved at the UI boundary.
+ */
+const CATEGORY_META: Record<
+  RelationshipCategory,
+  { icon: string; labelKey: string }
+> = {
+  [RelationshipCategory.Reference]: {
+    icon: 'link',
+    labelKey: 'relationships.categories.reference',
+  },
+  [RelationshipCategory.Familial]: {
+    icon: 'family_restroom',
+    labelKey: 'relationships.categories.familial',
+  },
+  [RelationshipCategory.Social]: {
+    icon: 'people',
+    labelKey: 'relationships.categories.social',
+  },
+  [RelationshipCategory.Professional]: {
+    icon: 'work',
+    labelKey: 'relationships.categories.professional',
+  },
+  [RelationshipCategory.Spatial]: {
+    icon: 'place',
+    labelKey: 'relationships.categories.spatial',
+  },
+  [RelationshipCategory.Temporal]: {
+    icon: 'schedule',
+    labelKey: 'relationships.categories.temporal',
+  },
+  [RelationshipCategory.Ownership]: {
+    icon: 'inventory_2',
+    labelKey: 'relationships.categories.ownership',
+  },
+  [RelationshipCategory.Political]: {
+    icon: 'account_balance',
+    labelKey: 'relationships.categories.political',
+  },
+  [RelationshipCategory.Structural]: {
+    icon: 'account_tree',
+    labelKey: 'relationships.categories.structural',
+  },
+  [RelationshipCategory.Conflict]: {
+    icon: 'gavel',
+    labelKey: 'relationships.categories.conflict',
+  },
+  [RelationshipCategory.Religious]: {
+    icon: 'church',
+    labelKey: 'relationships.categories.religious',
+  },
+  [RelationshipCategory.Biological]: {
+    icon: 'pets',
+    labelKey: 'relationships.categories.biological',
+  },
+  [RelationshipCategory.Scholarly]: {
+    icon: 'school',
+    labelKey: 'relationships.categories.scholarly',
+  },
+  [RelationshipCategory.Magical]: {
+    icon: 'auto_awesome',
+    labelKey: 'relationships.categories.magical',
+  },
+  [RelationshipCategory.Economic]: {
+    icon: 'currency_exchange',
+    labelKey: 'relationships.categories.economic',
+  },
+  [RelationshipCategory.Transport]: {
+    icon: 'directions_car',
+    labelKey: 'relationships.categories.transport',
+  },
+  [RelationshipCategory.Custom]: {
+    icon: 'tune',
+    labelKey: 'relationships.categories.custom',
+  },
+};
+
+/**
  * Get the default icon for a relationship category
  */
 export function getCategoryIcon(category: RelationshipCategory): string {
-  switch (category) {
-    case RelationshipCategory.Reference:
-      return 'link';
-    case RelationshipCategory.Familial:
-      return 'family_restroom';
-    case RelationshipCategory.Social:
-      return 'people';
-    case RelationshipCategory.Professional:
-      return 'work';
-    case RelationshipCategory.Spatial:
-      return 'place';
-    case RelationshipCategory.Temporal:
-      return 'schedule';
-    case RelationshipCategory.Ownership:
-      return 'inventory_2';
-    case RelationshipCategory.Custom:
-      return 'tune';
-    default:
-      return 'link';
-  }
+  return CATEGORY_META[category]?.icon ?? 'link';
 }
 
 /**
- * Get a human-readable label for a relationship category
+ * Get the Transloco key for a relationship category's display label.
+ * Resolve with TranslocoService at the UI boundary.
  */
-export function getCategoryLabel(category: RelationshipCategory): string {
-  switch (category) {
-    case RelationshipCategory.Reference:
-      return 'References';
-    case RelationshipCategory.Familial:
-      return 'Family';
-    case RelationshipCategory.Social:
-      return 'Social';
-    case RelationshipCategory.Professional:
-      return 'Professional';
-    case RelationshipCategory.Spatial:
-      return 'Location';
-    case RelationshipCategory.Temporal:
-      return 'Timeline';
-    case RelationshipCategory.Ownership:
-      return 'Ownership';
-    case RelationshipCategory.Custom:
-      return 'Other';
-    default:
-      return 'Other';
-  }
+export function getCategoryLabelKey(category: RelationshipCategory): string {
+  return CATEGORY_META[category]?.labelKey ?? 'relationships.categories.custom';
 }

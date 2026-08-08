@@ -59,7 +59,9 @@ test.describe('Template Worldbuilding Import', () => {
       await expect(fullNameField).toBeVisible();
       await expect(fullNameField).toHaveValue('Elara Nightwhisper');
 
-      await expect(page.getByLabel('Species')).toHaveValue('Half-Elf');
+      await expect(
+        page.getByTestId('field-species').locator('input')
+      ).toHaveValue('Half-Elf');
     });
 
     await test.step('multiple characters each have unique imported data', async () => {

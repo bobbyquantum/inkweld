@@ -11,6 +11,8 @@ import ThemedImage from '@site/src/components/ThemedImage';
 
 Inkweld's worldbuilding system is built around **elements**—structured entries that you create to represent anything in your story world. Characters, locations, factions, items, creatures, magic systems—they're all elements, and you define their structure using **templates**.
 
+New projects start with a set of built-in templates covering 29 common element types. See [Element Types](./element-types) for the full list — or clone and customize them, or design your own from scratch.
+
 ## What Are Elements?
 
 Elements are worldbuilding entries with structured data. Unlike free-form documents, elements have:
@@ -382,4 +384,4 @@ The Identity & Details panel is expanded by default. Tap any panel header to exp
 
 ---
 
-**Next:** [Element References](./element-references) - Link your elements with @mentions.
+**Next:** [Element Types](./element-types) - Explore the 29 built-in element types and what each one is for.

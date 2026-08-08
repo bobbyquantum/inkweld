@@ -136,6 +136,94 @@
           "content": [
             { "type": "text", "text": "Feel free to modify, expand, or completely replace this demo content with your own ideas!" }
           ]
+        },
+        {
+          "type": "heading",
+          "attrs": { "level": 2 },
+          "content": [{ "type": "text", "text": "Explore the Expanded Element Types" }]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "This demo also showcases the expanded element types available in the worldbuilding templates — deities, magic systems, species, countries, traditions, and more:" }
+          ]
+        },
+        {
+          "type": "bullet_list",
+          "content": [
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "elementRef", "attrs": { "elementId": "deity-lunara", "elementType": "WORLDBUILDING", "displayText": "Lunara, Lady of the Silver Moon", "originalName": "Lunara, Lady of the Silver Moon", "relationshipTypeId": "referenced-in" } },
+                    { "type": "text", "text": " — a deity with domains, worship, and divine relations" }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "elementRef", "attrs": { "elementId": "magic-weave", "elementType": "WORLDBUILDING", "displayText": "The Weave of Arcana", "originalName": "The Weave of Arcana", "relationshipTypeId": "referenced-in" } },
+                    { "type": "text", "text": " — a magic system with rules, costs, and practitioners" }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "elementRef", "attrs": { "elementId": "spec-thornfolk", "elementType": "WORLDBUILDING", "displayText": "Thornfolk", "originalName": "Thornfolk", "relationshipTypeId": "referenced-in" } },
+                    { "type": "text", "text": " — a sapient species with appearance, behaviour, and culture" }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "elementRef", "attrs": { "elementId": "country-eldoria", "elementType": "WORLDBUILDING", "displayText": "Eldoria", "originalName": "Eldoria", "relationshipTypeId": "referenced-in" } },
+                    { "type": "text", "text": " — a country with geography, society, politics, and history" }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "elementRef", "attrs": { "elementId": "tradition-festival", "elementType": "WORLDBUILDING", "displayText": "Festival of the Silver Moon", "originalName": "Festival of the Silver Moon", "relationshipTypeId": "referenced-in" } },
+                    { "type": "text", "text": " — a tradition with practice and history" }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "elementRef", "attrs": { "elementId": "conflict-thornwar", "elementType": "WORLDBUILDING", "displayText": "The Thornwood War", "originalName": "The Thornwood War", "relationshipTypeId": "referenced-in" } },
+                    { "type": "text", "text": " — a conflict with causes, course, and aftermath" }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
