@@ -184,7 +184,10 @@ export class IdentityPanelComponent implements OnDestroy {
         mediaId
       );
       if (cachedUrl) {
-        // Verify the blob URL is still valid by trying to fetch it
+        // Verify the blob URL is still valid by trying to fetch it. A stale
+        // URL is re-created from the stored blob; the media itself is never
+        // deleted here so a transient fetch failure can't wipe it from the
+        // library.
         try {
           const response = await fetch(cachedUrl);
           if (
@@ -193,14 +196,18 @@ export class IdentityPanelComponent implements OnDestroy {
           ) {
             this.resolvedImageUrl.set(cachedUrl);
             return;
-          } else {
-            // Revoke the stale URL and delete from cache
-            this.localStorage.revokeUrl(projectKey, mediaId);
-            await this.localStorage.deleteMedia(projectKey, mediaId);
           }
         } catch {
-          this.localStorage.revokeUrl(projectKey, mediaId);
-          await this.localStorage.deleteMedia(projectKey, mediaId);
+          // Fall through and re-create the URL below.
+        }
+        this.localStorage.revokeUrl(projectKey, mediaId);
+        const freshUrl = await this.localStorage.getMediaUrl(
+          projectKey,
+          mediaId
+        );
+        if (freshUrl) {
+          this.resolvedImageUrl.set(freshUrl);
+          return;
         }
       }
 

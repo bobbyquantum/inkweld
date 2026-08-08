@@ -141,6 +141,55 @@ describe('AppearancePanelComponent', () => {
     vi.useRealTimers();
   });
 
+  it('should write a queued save to the element it was created for', async () => {
+    vi.useFakeTimers();
+    fixture.detectChanges();
+    // Edit element 1, then switch to element 2 before the debounce fires.
+    component.setValue('content', 'value', '#abcdef');
+    fixture.componentRef.setInput('elementId', 'el-2');
+    fixture.detectChanges();
+
+    await vi.advanceTimersByTimeAsync(500);
+
+    // The queued save must target el-1 (where the edit was made), not el-2.
+    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
+      'el-1',
+      expect.objectContaining({
+        appearance: {
+          content: { type: 'color', mode: 'auto', value: '#abcdef' },
+        },
+      }),
+      'user',
+      'project'
+    );
+    vi.useRealTimers();
+  });
+
+  it('should retain deletion markers when persistence fails', async () => {
+    vi.useFakeTimers();
+    worldbuildingService.saveIdentityData.mockRejectedValueOnce(
+      new Error('boom')
+    );
+    fixture.detectChanges();
+
+    // Disable the menu region (records a deletion marker).
+    component.setEnabled('menu', true);
+    component.setEnabled('menu', false);
+    await vi.advanceTimersByTimeAsync(500);
+
+    // First save failed; a subsequent save must still send APPEARANCE_DELETE.
+    component.setValue('content', 'value', '#123456');
+    await vi.advanceTimersByTimeAsync(500);
+
+    const calls = worldbuildingService.saveIdentityData.mock.calls;
+    const lastCall = calls[calls.length - 1];
+    const payload = lastCall[1] as { appearance: Record<string, unknown> };
+    expect(payload.appearance['menu']).toBe(
+      '\u0000__appearance_delete__\u0000'
+    );
+    vi.useRealTimers();
+  });
+
   describe('observe', () => {
     it('should apply remote appearance when it arrives', async () => {
       const remoteAppearance: ElementAppearance = {
