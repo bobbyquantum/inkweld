@@ -37,6 +37,18 @@ const BACKGROUND_TYPES: BackgroundType[] = ['color', 'gradient', 'image'];
 /** The value slot being edited on a background setting. */
 type BackgroundSlot = 'value' | 'light' | 'dark';
 
+/**
+ * A snapshot of everything needed to persist an appearance edit, captured at
+ * queue time so a debounced save is isolated from later element changes.
+ */
+interface SaveSnapshot {
+  elementId: string;
+  username: string;
+  slug: string;
+  appearance: ElementAppearance;
+  pendingDeletes: Record<string, true>;
+}
+
 @Component({
   selector: 'app-appearance-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -72,7 +84,7 @@ export class AppearancePanelComponent implements OnDestroy {
   readonly types = BACKGROUND_TYPES;
   readonly manualSlots: Array<'light' | 'dark'> = ['light', 'dark'];
 
-  private readonly save$ = new Subject<void>();
+  private readonly save$ = new Subject<SaveSnapshot>();
   private readonly destroy$ = new Subject<void>();
   private unsubscribeObserver: (() => void) | null = null;
   private hasLocalEdit = false;
@@ -84,8 +96,8 @@ export class AppearancePanelComponent implements OnDestroy {
   constructor() {
     this.save$
       .pipe(takeUntil(this.destroy$), debounceTime(400))
-      .subscribe(() => {
-        void this.persist();
+      .subscribe(snapshot => {
+        void this.persist(snapshot);
       });
 
     effect(() => {
@@ -95,6 +107,9 @@ export class AppearancePanelComponent implements OnDestroy {
         this.hasLocalEdit = false;
         this.editGeneration = 0;
         this.pendingDeletes = {};
+        // Clear the displayed appearance while the next element loads so a
+        // stale value from the previous element isn't shown.
+        this.appearance.set({});
         void this.load(id);
         void this.observe(id);
       }
@@ -197,7 +212,7 @@ export class AppearancePanelComponent implements OnDestroy {
       }
       return next;
     });
-    this.save$.next();
+    this.queueSave();
   }
 
   private patchSetting(
@@ -227,16 +242,31 @@ export class AppearancePanelComponent implements OnDestroy {
       }
       return { ...a, [region]: clean };
     });
-    this.save$.next();
+    this.queueSave();
   }
 
-  private async persist(): Promise<void> {
-    const appearance = this.appearance();
-    const payload: ElementAppearance = { ...appearance };
+  /**
+   * Queue a debounced save, capturing the element identity and the current
+   * appearance + deletion snapshot at queue time. This isolates the save from
+   * later element changes: if the user switches elements before the debounce
+   * fires, the queued save still writes to the element it was created for.
+   */
+  private queueSave(): void {
+    this.save$.next({
+      elementId: this.elementId(),
+      username: this.username(),
+      slug: this.slug(),
+      appearance: { ...this.appearance() },
+      pendingDeletes: { ...this.pendingDeletes },
+    });
+  }
 
-    // Fold pending deletions into the payload so the backend removes the
-    // corresponding Yjs keys.
-    for (const key of Object.keys(this.pendingDeletes)) {
+  private async persist(snapshot: SaveSnapshot): Promise<void> {
+    const payload: ElementAppearance = { ...snapshot.appearance };
+
+    // Fold the snapshot's deletion markers into the payload so the backend
+    // removes the corresponding Yjs keys.
+    for (const key of Object.keys(snapshot.pendingDeletes)) {
       const [region, slot] = key.split('.');
       const regionKey = region as AppearanceRegion;
       if (!slot) {
@@ -251,16 +281,25 @@ export class AppearancePanelComponent implements OnDestroy {
         (payload as Record<string, unknown>)[regionKey] = base;
       }
     }
-    this.pendingDeletes = {};
 
     const saveEditGeneration = this.editGeneration;
     try {
       await this.worldbuildingService.saveIdentityData(
-        this.elementId(),
+        snapshot.elementId,
         { appearance: payload },
-        this.username(),
-        this.slug()
+        snapshot.username,
+        snapshot.slug
       );
+      // Persistence succeeded: drop the deletion markers that were folded in.
+      for (const key of Object.keys(snapshot.pendingDeletes)) {
+        delete this.pendingDeletes[key];
+      }
+    } catch {
+      // Persistence failed: restore the deletion markers so a later save still
+      // sends APPEARANCE_DELETE for the removed regions/slots.
+      for (const key of Object.keys(snapshot.pendingDeletes)) {
+        this.pendingDeletes[key] = true;
+      }
     } finally {
       // The local edit has been flushed; re-allow realtime updates for the
       // current element, unless the user edited again while saving.

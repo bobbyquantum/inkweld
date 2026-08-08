@@ -109,15 +109,11 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
         : page.getByTestId('wb-content');
     await expect(regionEl).toHaveClass(/has-custom-background/);
     // Wait for the applied CSS custom property to render a real value.
-    const regionTestId = region === 'menu' ? 'wb-sidenav' : 'wb-content';
     await expect
       .poll(() =>
-        page.evaluate(testId => {
-          const el = document.querySelector(`[data-testid="${testId}"]`);
-          return el
-            ? getComputedStyle(el).getPropertyValue('--wb-bg').trim()
-            : '';
-        }, regionTestId)
+        regionEl.evaluate(el =>
+          getComputedStyle(el).getPropertyValue('--wb-bg').trim()
+        )
       )
       .not.toBe('');
   }

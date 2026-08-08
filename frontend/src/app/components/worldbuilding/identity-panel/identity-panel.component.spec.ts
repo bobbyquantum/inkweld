@@ -345,4 +345,49 @@ describe('IdentityPanelComponent', () => {
       expect(component.resolvedImageUrl()).toBeNull();
     });
   });
+
+  describe('resolveImageUrl media:// handling', () => {
+    type IdentityPanelPrivateApi = {
+      resolveImageUrl: (url: string) => Promise<void>;
+    };
+    const resolveImageUrl = (comp: IdentityPanelComponent, url: string) =>
+      (comp as unknown as IdentityPanelPrivateApi).resolveImageUrl(url);
+
+    it('should not delete media when a cached blob URL fails to fetch', async () => {
+      // A cached URL exists but fetch() rejects (e.g. transient failure).
+      localStorageService.getMediaUrl
+        .mockResolvedValueOnce('blob:stale')
+        .mockResolvedValueOnce('blob:fresh');
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
+
+      fixture.detectChanges();
+      await resolveImageUrl(component, 'media://img-elara');
+
+      // The media must NOT be deleted from the library.
+      expect(localStorageService.deleteMedia).not.toHaveBeenCalled();
+      // A fresh URL is re-created from the stored blob.
+      expect(component.resolvedImageUrl()).toBe('blob:fresh');
+      vi.unstubAllGlobals();
+    });
+
+    it('should not delete media when a cached blob URL returns a non-image', async () => {
+      localStorageService.getMediaUrl
+        .mockResolvedValueOnce('blob:stale')
+        .mockResolvedValueOnce('blob:fresh');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: true,
+          headers: { get: () => 'text/html' },
+        })
+      );
+
+      fixture.detectChanges();
+      await resolveImageUrl(component, 'media://img-elara');
+
+      expect(localStorageService.deleteMedia).not.toHaveBeenCalled();
+      expect(component.resolvedImageUrl()).toBe('blob:fresh');
+      vi.unstubAllGlobals();
+    });
+  });
 });
