@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
@@ -82,7 +84,9 @@ jobs:
               `- **Preview:** ${url}\n\n` +
               `This is a frontend-only preview (no backend). It runs in local/offline mode; ` +
               `point it at an existing server at runtime through the setup flow if needed. ` +
-              `The preview is destroyed when the PR is closed or the \`deploy:preview:frontend\` label is removed.`;
+              `On PR close or label removal, the cleanup workflow attempts to delete this branch's ` +
+              `Pages deployments; note that Cloudflare keeps the latest deployment for a branch, so ` +
+              `the preview URL may remain reachable after cleanup.`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,

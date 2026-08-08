@@ -27,28 +27,34 @@ jobs:
           PAGES_PROJECT: ${{ vars.PAGES_PROJECT || 'inkweld-frontend-preview' }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          set -euo pipefail
           export BRANCH="pr-$PR_NUMBER"
           echo "Deleting Pages deployments for branch '$BRANCH' in project '$PAGES_PROJECT'..."
           DEPLOYMENTS=$(npx -y wrangler pages deployment list \
             --project-name "$PAGES_PROJECT" \
-            --json 2>/dev/null || echo "[]")
+            --json)
           echo "$DEPLOYMENTS" | node -e '
             const fs = require("fs");
             const branch = process.env.BRANCH;
             const project = process.env.PAGES_PROJECT;
             let list = [];
-            try { list = JSON.parse(fs.readFileSync(0, "utf8")); } catch { list = []; }
+            try { list = JSON.parse(fs.readFileSync(0, "utf8")); } catch { process.exit(2); }
             const ids = list.filter((d) => d.Branch === branch).map((d) => d.Id);
             if (ids.length === 0) {
               console.log("No deployments found for branch " + branch);
               process.exit(0);
             }
+            let failed = false;
             for (const id of ids) {
               const r = require("child_process").spawnSync(
                 "npx", ["-y", "wrangler", "pages", "deployment", "delete", id,
                   "--project-name", project, "--force"],
                 { stdio: "inherit", shell: true }
               );
-              if (r.status !== 0) console.log("Failed to delete deployment " + id);
+              if (r.status !== 0) {
+                console.error("Failed to delete deployment " + id);
+                failed = true;
+              }
             }
+            if (failed) process.exit(1);
           '
