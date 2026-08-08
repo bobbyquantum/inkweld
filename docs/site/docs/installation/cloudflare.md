@@ -210,17 +210,51 @@ The deploy commands:
 4. Deploy both frontend and backend
 
 :::info About Preview Environments
-Inkweld provides **one preview environment and one production environment**, rather than per-branch previews.
+Inkweld provides **one shared preview environment** and **one production environment**, plus optional **per-PR frontend previews** triggered by a label.
 
-**Why not per-branch previews?** Cloudflare Pages automatically creates preview deployments for each branch, but these use random URLs (e.g., `abc123.inkweld-frontend.pages.dev`) instead of your custom domain. Since Inkweld's backend authentication and API routing require consistent URLs, per-branch previews would not function correctly.
+The shared **preview** environment is what `cloudflare:preview:deploy` deploys to. It always points at your custom (or workers.dev) domain, so it can only show one branch at a time. This is the environment used for testing feature branches before merging and, via the `deploy-cloudflare.yml` workflow, the latest `main`.
+
+**Per-PR previews** are separate. When you add the `deploy:preview:frontend` label to a pull request, GitHub Actions deploys the frontend to Cloudflare Pages under a stable `pr-<number>` branch, giving each PR a predictable URL:
+
+- Frontend: `https://pr-<number>.inkweld-frontend-preview.pages.dev`
+
+Per-PR previews are **frontend-only** — no backend is provisioned. The build ships with an empty `apiUrl`, so the app starts in local/offline mode; you can point it at an existing server at runtime through the setup flow. This keeps the preview lightweight and avoids exposing any Cloudflare account details. When the PR is closed or the `deploy:preview:frontend` label is removed, a cleanup workflow attempts to delete this branch's Pages deployments. See [Per-PR previews](#per-pr-previews) below.
 
 **Manual deployments always go live:** When you run `cloudflare:preview:deploy` or `cloudflare:prod:deploy` from any branch, the deployment will immediately go live on your custom domain. A warning is shown if you're not on the `main` branch, but the deployment proceeds normally.
 
-This means you can only preview one branch at a time per environment. For a typical workflow:
+For a typical workflow:
 
 - Use **preview** environment for testing feature branches before merging
+- Use **per-PR previews** to review many PRs in parallel without stepping on each other
 - Use **production** environment for your live application from `main`
   :::
+
+## Per-PR Previews
+
+Per-PR previews give every labeled pull request its own frontend deployment on Cloudflare Pages so you can review many PRs at once.
+
+### How it works
+
+- Adding the `deploy:preview:frontend` label to a PR triggers `.github/workflows/deploy-pr-preview.yml`.
+- The workflow writes a frontend-only `environment.preview.ts` (empty `apiUrl`/`wssUrl`), builds the Angular app, and deploys it to Cloudflare Pages on the `pr-<number>` branch (stable URL).
+- It comments the preview URL back on the PR.
+- `.github/workflows/cleanup-pr-preview.yml` lists that branch's Pages deployments and deletes each one when the PR is closed or the label is removed. Cloudflare does not allow deleting the latest deployment for a branch, so the branch's most recent preview URL may remain reachable after cleanup.
+
+### Required configuration
+
+Per-PR previews use the same Cloudflare secrets as the shared preview (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`). No extra variables are required.
+
+Optionally override the Pages project name with a `PAGES_PROJECT` variable (default: `inkweld-frontend-preview`). The per-PR frontend URL is derived as `https://pr-<number>.<PAGES_PROJECT>.pages.dev`.
+
+### Usage
+
+1. Add the `deploy:preview:frontend` label to a pull request.
+2. GitHub Actions deploys a frontend-only preview and comments the URL on the PR.
+3. Review the preview. Multiple PRs can be deployed at once.
+4. Remove the label or close the PR to trigger the cleanup workflow, which attempts to delete the branch's Pages deployments. Because Cloudflare keeps the latest deployment for a branch, the most recent preview URL may remain reachable.
+
+> **Note:** Per-PR previews are frontend-only. They start in local/offline mode; to exercise backend features, point the preview at an existing server at runtime through the setup flow. No data is persisted by the preview itself.
+
 
 ## Manual Setup
 

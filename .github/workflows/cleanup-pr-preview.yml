@@ -1,0 +1,60 @@
+name: Cleanup PR Preview
+
+on:
+  pull_request:
+    types: [unlabeled, closed]
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    name: Cleanup PR #${{ github.event.pull_request.number }} Preview
+    if: github.event.action == 'closed' || github.event.label.name == 'deploy:preview:frontend'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+
+      - name: Delete Pages deployments for this PR branch
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PAGES_PROJECT: ${{ vars.PAGES_PROJECT || 'inkweld-frontend-preview' }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          export BRANCH="pr-$PR_NUMBER"
+          echo "Deleting Pages deployments for branch '$BRANCH' in project '$PAGES_PROJECT'..."
+          DEPLOYMENTS=$(npx -y wrangler pages deployment list \
+            --project-name "$PAGES_PROJECT" \
+            --json)
+          echo "$DEPLOYMENTS" | node -e '
+            const fs = require("fs");
+            const branch = process.env.BRANCH;
+            const project = process.env.PAGES_PROJECT;
+            let list = [];
+            try { list = JSON.parse(fs.readFileSync(0, "utf8")); } catch { process.exit(2); }
+            const ids = list.filter((d) => d.Branch === branch).map((d) => d.Id);
+            if (ids.length === 0) {
+              console.log("No deployments found for branch " + branch);
+              process.exit(0);
+            }
+            let failed = false;
+            for (const id of ids) {
+              const r = require("child_process").spawnSync(
+                "npx", ["-y", "wrangler", "pages", "deployment", "delete", id,
+                  "--project-name", project, "--force"],
+                { stdio: "inherit", shell: true }
+              );
+              if (r.status !== 0) {
+                console.error("Failed to delete deployment " + id);
+                failed = true;
+              }
+            }
+            if (failed) process.exit(1);
+          '
