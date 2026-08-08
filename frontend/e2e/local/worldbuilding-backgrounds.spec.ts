@@ -23,8 +23,6 @@ import { expect, test } from './fixtures';
 
 const MENU_COLOUR = '#4fd8eb';
 const MENU_COLOUR_RGB = 'rgb(79, 216, 235)';
-const CONTENT_GRADIENT =
-  'linear-gradient(135deg, #97f0ff 0%, #cde7ec 50%, #ffffff 100%)';
 const ELEMENT_ID = 'char-elara';
 const USERNAME = 'testuser';
 const SLUG = 'wb-bg-demo';
