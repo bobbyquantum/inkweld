@@ -180,7 +180,7 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
       await stopLocators.nth(index).click();
       await designer.getByTestId('color-picker-trigger').first().click();
       const hexInput = page
-        .locator('.color-picker:not([data-testid]) .hex-text input')
+        .locator('.color-picker.open .hex-text input')
         .last();
       await hexInput.fill(color);
       await hexInput.press('Enter');

@@ -52,9 +52,7 @@ async function setGradientStopColor(
   color: string
 ): Promise<void> {
   await gradient.getByTestId('color-picker-trigger').first().click();
-  const hexInput = page
-    .locator('.color-picker:not([data-testid]) .hex-text input')
-    .last();
+  const hexInput = page.locator('.color-picker.open .hex-text input').last();
   await hexInput.fill(color);
   await hexInput.press('Enter');
   await page.keyboard.press('Escape');
