@@ -55,11 +55,9 @@ test.describe('Relationship Chart Screenshots', () => {
     await dismissToastIfPresent(page);
 
     // The Character Web chart lives inside the Characters folder.
-    const charactersFolder = page.getByRole('treeitem', {
-      name: 'Characters',
-    });
-    await expect(charactersFolder).toBeVisible();
-    await charactersFolder.locator('button').first().click();
+    const charactersExpand = page.getByTestId('expand-folder-Characters');
+    await expect(charactersExpand).toBeVisible();
+    await charactersExpand.click();
 
     await page.locator('[data-testid="element-Character Web"]').click();
 
