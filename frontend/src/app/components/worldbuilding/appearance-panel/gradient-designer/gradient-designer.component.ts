@@ -43,18 +43,17 @@ export function parseGradient(
   const stops: GradientStop[] = [];
   for (const part of body.split(',')) {
     const trimmedPart = part.trim();
-    const colorMatch =
-      /^(#[0-9a-f]{3,8}|rgba?\([^)]*\)|hsla?\([^)]*\)|hwb\([^)]*\)|[a-z]+)$/i.exec(
-        trimmedPart
-      );
-    if (colorMatch) {
-      stops.push({
-        color: normalizeHex(colorMatch[1]) ?? colorMatch[1],
-        position: 0,
-      });
+    // A bare color (no position) matches entirely; otherwise parse "color pos%".
+    if (/^#[0-9a-f]{3,8}$/i.test(trimmedPart)) {
+      stops.push({ color: trimmedPart, position: 0 });
       continue;
     }
-    const stopMatch = /^([#][0-9a-f]{3,8}|[a-z]+)\s*(\d+(?:\.\d+)?)%?$/i.exec(
+    const namedMatch = /^([a-z]+)$/i.exec(trimmedPart);
+    if (namedMatch) {
+      stops.push({ color: namedMatch[1], position: 0 });
+      continue;
+    }
+    const stopMatch = /^((?:#[0-9a-f]{3,8}|[a-z]+))\s*(\d+(?:\.\d+)?)%?$/i.exec(
       trimmedPart
     );
     if (!stopMatch) continue;
@@ -193,7 +192,7 @@ export class GradientDesignerComponent {
       const position =
         next.length === 1
           ? Math.min(100, last.position + 10)
-          : (next[next.length - 2].position + last.position) / 2;
+          : ((next.at(-2) as GradientStop).position + last.position) / 2;
       next.push({ color: last.color, position });
       return next;
     });
