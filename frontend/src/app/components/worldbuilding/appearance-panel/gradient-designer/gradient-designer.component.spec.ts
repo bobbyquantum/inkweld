@@ -110,25 +110,15 @@ describe('GradientDesignerComponent', () => {
     expect(component['selectedIndex']()).toBe(1);
   });
 
-  it('should not drag a stop on hover (no pointer capture)', () => {
-    fixture.detectChanges();
-    const before = component['stops']()[0].position;
-    component['onBarPointer']({
-      type: 'pointermove',
-      clientX: 0,
-      currentTarget: { getBoundingClientRect: () => ({ left: 0, width: 100 }) },
-    } as unknown as PointerEvent);
-    expect(component['stops']()[0].position).toBe(before);
-  });
-
-  it('should drag a stop while the pointer is captured', () => {
+  it('should drag a stop to the pointer position on pointerdown', () => {
     fixture.detectChanges();
     const el = {
       setPointerCapture: vi.fn(),
-      getBoundingClientRect: () => ({ left: 0, width: 100 }),
+      closest: () => ({
+        getBoundingClientRect: () => ({ left: 0, width: 100 }),
+      }),
     } as unknown as HTMLElement;
-    component['onBarPointer']({
-      type: 'pointerdown',
+    component['onStopPointerDown'](0, {
       pointerId: 1,
       clientX: 50,
       currentTarget: el,
@@ -136,21 +126,59 @@ describe('GradientDesignerComponent', () => {
     expect(component['stops']()[0].position).toBe(50);
   });
 
-  it('should update a stop colour from hex input', () => {
+  it('should move the dragged stop while the pointer moves', () => {
     fixture.detectChanges();
-    component['onStopColorInput'](
-      { target: { value: '#ff0000' } } as unknown as Event,
-      0
-    );
+    const el = {
+      setPointerCapture: vi.fn(),
+      closest: () => ({
+        getBoundingClientRect: () => ({ left: 0, width: 100 }),
+      }),
+    } as unknown as HTMLElement;
+    component['onStopPointerDown'](0, {
+      pointerId: 1,
+      clientX: 0,
+      currentTarget: el,
+    } as unknown as PointerEvent);
+    component['onStopPointerMove']({
+      clientX: 80,
+      currentTarget: el,
+    } as unknown as PointerEvent);
+    expect(component['stops']()[0].position).toBe(80);
+  });
+
+  it('should stop dragging on pointerup', () => {
+    fixture.detectChanges();
+    const el = {
+      setPointerCapture: vi.fn(),
+      closest: () => ({
+        getBoundingClientRect: () => ({ left: 0, width: 100 }),
+      }),
+    } as unknown as HTMLElement;
+    component['onStopPointerDown'](0, {
+      pointerId: 1,
+      clientX: 0,
+      currentTarget: el,
+    } as unknown as PointerEvent);
+    component['onStopPointerUp']({
+      currentTarget: el,
+    } as unknown as PointerEvent);
+    const before = component['stops']()[0].position;
+    component['onStopPointerMove']({
+      clientX: 90,
+      currentTarget: el,
+    } as unknown as PointerEvent);
+    expect(component['stops']()[0].position).toBe(before);
+  });
+
+  it('should update a stop colour from the chooser', () => {
+    fixture.detectChanges();
+    component['onStopColorChange'](0, '#ff0000');
     expect(component['stops']()[0].color).toBe('#ff0000');
   });
 
   it('should ignore an invalid stop colour', () => {
     fixture.detectChanges();
-    component['onStopColorInput'](
-      { target: { value: 'nope' } } as unknown as Event,
-      0
-    );
+    component['onStopColorChange'](0, 'nope');
     expect(component['stops']()[0].color).toBe('#4fd8eb');
   });
 

@@ -59,7 +59,14 @@
   align-items: center;
   gap: 8px;
 
-  .stop-color {
+  app-color-picker {
     flex: 1;
+  }
+
+  .stop-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
   }
 }

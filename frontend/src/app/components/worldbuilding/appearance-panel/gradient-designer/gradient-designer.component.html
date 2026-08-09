@@ -1,13 +1,9 @@
 <div class="gradient-designer" data-testid="gradient-designer">
-  <!-- Preview bar with draggable stops. Stops only move while the pointer is
-       captured (active drag), so hovering doesn't grab a handle. -->
+  <!-- Preview bar with draggable stops. Each stop captures the pointer and
+       moves along the bar while dragging. -->
   <div
     class="gradient-bar"
     [style.background]="preview()"
-    (pointerdown)="onBarPointer($event)"
-    (pointermove)="onBarPointer($event)"
-    (pointerup)="onBarPointer($event)"
-    (pointercancel)="onBarPointer($event)"
     data-testid="gradient-bar">
     @for (stop of stops(); track $index) {
       <div
@@ -15,8 +11,10 @@
         [class.selected]="$index === selectedIndex()"
         [style.left.%]="stop.position"
         [style.background]="stop.color"
-        (pointerdown)="selectStop($index); $event.stopPropagation()"
-        (pointermove)="$event.stopPropagation()"
+        (pointerdown)="onStopPointerDown($index, $event)"
+        (pointermove)="onStopPointerMove($event)"
+        (pointerup)="onStopPointerUp($event)"
+        (pointercancel)="onStopPointerUp($event)"
         data-testid="gradient-stop"></div>
     }
   </div>
@@ -39,37 +37,31 @@
     <span class="angle-value">{{ angle() }}°</span>
   </div>
 
-  <!-- Selected stop editor -->
+  <!-- Selected stop editor with a colour chooser -->
   @if (stops()[selectedIndex()]; as stop) {
     <div class="stop-editor">
-      <mat-form-field appearance="outline" class="stop-color">
-        <mat-label>{{
-          'worldbuilding.appearance.stopColor' | transloco
-        }}</mat-label>
-        <input
-          matInput
-          [attr.aria-label]="'worldbuilding.appearance.stopColor' | transloco"
-          [value]="stop.color"
-          [disabled]="disabled()"
-          (input)="onStopColorInput($event, selectedIndex())"
-          data-testid="gradient-stop-color" />
-      </mat-form-field>
-      <button
-        mat-icon-button
-        type="button"
-        [disabled]="disabled() || stops().length <= 2"
-        (click)="removeStop()"
-        data-testid="gradient-remove-stop">
-        <mat-icon>remove</mat-icon>
-      </button>
-      <button
-        mat-icon-button
-        type="button"
+      <app-color-picker
+        [value]="stop.color"
         [disabled]="disabled()"
-        (click)="addStop()"
-        data-testid="gradient-add-stop">
-        <mat-icon>add</mat-icon>
-      </button>
+        (valueChange)="onStopColorChange(selectedIndex(), $event)" />
+      <div class="stop-actions">
+        <button
+          mat-icon-button
+          type="button"
+          [disabled]="disabled() || stops().length <= 2"
+          (click)="removeStop()"
+          data-testid="gradient-remove-stop">
+          <mat-icon>remove</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          type="button"
+          [disabled]="disabled()"
+          (click)="addStop()"
+          data-testid="gradient-add-stop">
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
     </div>
   }
 </div>

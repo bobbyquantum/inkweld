@@ -15,6 +15,7 @@ import { MatInputModule } from '@angular/material/input';
 import { TranslocoModule } from '@jsverse/transloco';
 
 import { normalizeHex } from '../../../../utils/color';
+import { ColorPickerComponent } from '../color-picker/color-picker.component';
 
 /** A single gradient color stop. */
 export interface GradientStop {
@@ -95,6 +96,7 @@ export function serializeGradient(
     MatIconModule,
     MatInputModule,
     TranslocoModule,
+    ColorPickerComponent,
   ],
   templateUrl: './gradient-designer.component.html',
   styleUrl: './gradient-designer.component.scss',
@@ -110,7 +112,7 @@ export class GradientDesignerComponent {
   protected readonly stops = signal<GradientStop[]>([]);
   protected readonly angle = signal(180);
   protected selectedIndex = signal(0);
-  /** True while the pointer is captured for dragging a stop along the bar. */
+  /** True while a stop is being dragged along the bar. */
   private dragging = false;
 
   /** The CSS background for the preview bar. */
@@ -143,20 +145,34 @@ export class GradientDesignerComponent {
     this.emit();
   }
 
-  protected onBarPointer(event: PointerEvent): void {
-    // Only move the selected stop while actively dragging. The pointer is
-    // captured on pointerdown and released on pointerup/cancel; pointermove
-    // alone (hover) must not grab the handle.
-    if (event.type === 'pointerdown') {
-      this.dragging = true;
-      (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    } else if (event.type === 'pointerup' || event.type === 'pointercancel') {
-      this.dragging = false;
-      return;
-    } else if (!this.dragging) {
-      return;
-    }
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  /** Begin dragging the given stop. */
+  protected onStopPointerDown(index: number, event: PointerEvent): void {
+    this.selectedIndex.set(index);
+    this.dragging = true;
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    this.moveStopToPointer(event);
+  }
+
+  /** Move the dragged stop to match the pointer's position along the bar. */
+  protected onStopPointerMove(event: PointerEvent): void {
+    if (!this.dragging) return;
+    this.moveStopToPointer(event);
+  }
+
+  /** End dragging a stop. */
+  protected onStopPointerUp(event: PointerEvent): void {
+    if (!this.dragging) return;
+    this.dragging = false;
+    this.moveStopToPointer(event);
+  }
+
+  private moveStopToPointer(event: PointerEvent): void {
+    const current = event.currentTarget as Element | null;
+    const bar = current?.closest(
+      '[data-testid="gradient-bar"]'
+    ) as HTMLElement | null;
+    if (!bar) return;
+    const rect = bar.getBoundingClientRect();
     const position = Math.min(
       100,
       Math.max(0, ((event.clientX - rect.left) / rect.width) * 100)
@@ -172,8 +188,8 @@ export class GradientDesignerComponent {
     this.selectedIndex.set(index);
   }
 
-  protected onStopColorInput(event: Event, index: number): void {
-    const normalized = normalizeHex((event.target as HTMLInputElement).value);
+  protected onStopColorChange(index: number, color: string): void {
+    const normalized = normalizeHex(color);
     if (!normalized) return;
     this.stops.update(stops =>
       stops.map((s, i) => (i === index ? { ...s, color: normalized } : s))

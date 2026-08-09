@@ -170,18 +170,24 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
       .getByTestId(`appearance-${region}`)
       .getByTestId('gradient-designer');
     const stopLocators = designer.getByTestId('gradient-stop');
-    const colorInput = designer.getByTestId('gradient-stop-color');
     // The designer starts with two stops; add more if the target has more.
     for (let i = 2; i < targetStops.length; i++) {
       await designer.getByTestId('gradient-add-stop').click();
     }
-    // Stop 0 is auto-selected: fill its colour first, then select each later
-    // stop normally (force-clicking a stop drags it via the bar's pointermove).
+    // Stop 0 is auto-selected. Select each later stop and set its colour via
+    // the colour chooser in the stop editor.
+    const setStopColor = async (index: number, color: string) => {
+      await stopLocators.nth(index).click();
+      await designer.getByTestId('color-picker-trigger').first().click();
+      const hexInput = page
+        .locator('.color-picker:not([data-testid]) .hex-text input')
+        .last();
+      await hexInput.fill(color);
+      await hexInput.press('Enter');
+      await page.keyboard.press('Escape');
+    };
     for (let i = 0; i < targetStops.length; i++) {
-      if (i > 0) {
-        await stopLocators.nth(i).click();
-      }
-      await colorInput.fill(targetStops[i].color);
+      await setStopColor(i, targetStops[i].color);
     }
     await designer.getByTestId('gradient-angle').fill(angle);
     await waitForBackgroundRendered(page, region);

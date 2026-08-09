@@ -46,6 +46,20 @@ async function openCharacter(page: Page): Promise<void> {
   await expect(page.getByTestId('appearance-panel')).toBeVisible();
 }
 
+async function setGradientStopColor(
+  page: Page,
+  gradient: ReturnType<Page['getByTestId']>,
+  color: string
+): Promise<void> {
+  await gradient.getByTestId('color-picker-trigger').first().click();
+  const hexInput = page
+    .locator('.color-picker:not([data-testid]) .hex-text input')
+    .last();
+  await hexInput.fill(color);
+  await hexInput.press('Enter');
+  await page.keyboard.press('Escape');
+}
+
 function sidenavBgColor(page: Page): Promise<string> {
   return page.evaluate(() => {
     const el = document.querySelector('[data-testid="wb-sidenav"]');
@@ -115,10 +129,11 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
         .getByTestId('appearance-content')
         .getByTestId('gradient-designer');
       // Stop 0 is auto-selected by default; set its colour.
-      await gradient.getByTestId('gradient-stop-color').fill('#97f0ff');
-      // Select stop 1 normally and set its colour.
+      await gradient.getByTestId('gradient-stop').nth(0).click();
+      await setGradientStopColor(page, gradient, '#97f0ff');
+      // Select stop 1 and set its colour.
       await gradient.getByTestId('gradient-stop').nth(1).click();
-      await gradient.getByTestId('gradient-stop-color').fill('#ffffff');
+      await setGradientStopColor(page, gradient, '#ffffff');
       // Set the angle.
       await gradient.getByTestId('gradient-angle').fill('135');
 
