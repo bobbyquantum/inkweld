@@ -71,11 +71,25 @@ async function mcpCallTool(
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
+      'MCP-Protocol-Version': '2026-07-28',
+      'Mcp-Method': 'tools/call',
+      'Mcp-Name': toolName,
     },
     data: {
       jsonrpc: '2.0',
       method: 'tools/call',
-      params: { name: toolName, arguments: args },
+      params: {
+        name: toolName,
+        arguments: args,
+        _meta: {
+          'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+          'io.modelcontextprotocol/clientInfo': {
+            name: 'e2e-test',
+            version: '1.0.0',
+          },
+          'io.modelcontextprotocol/clientCapabilities': {},
+        },
+      },
       id: Date.now(),
     },
   });

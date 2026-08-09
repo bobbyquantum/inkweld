@@ -1,12 +1,34 @@
 /**
  * MCP (Model Context Protocol) type definitions
  *
- * Based on MCP specification revision 2025-06-18
- * https://modelcontextprotocol.io/specification/2025-06-18
+ * Based on MCP specification revision 2026-07-28 (stateless)
+ * https://modelcontextprotocol.io/specification/2026-07-28
+ *
+ * This revision made MCP stateless: there is no `initialize` handshake, no
+ * protocol-level session, and no `Mcp-Session-Id` header. Every request
+ * carries its protocol version and client capabilities in `_meta`, and the
+ * server identifies itself in each result's `_meta`.
  */
 
 import type { McpAccessKey, McpPermission } from '../services/mcp-key.service';
 import type { DurableObjectNamespace } from '../types/cloudflare';
+
+/**
+ * Protocol version this server implements (2026-07-28 "stateless" revision)
+ */
+export const MCP_PROTOCOL_VERSION = '2026-07-28';
+
+/**
+ * `_meta` key prefixes reserved for MCP use (see spec basic/index `_meta`).
+ */
+export const META_KEYS = {
+  protocolVersion: 'io.modelcontextprotocol/protocolVersion',
+  clientInfo: 'io.modelcontextprotocol/clientInfo',
+  clientCapabilities: 'io.modelcontextprotocol/clientCapabilities',
+  serverInfo: 'io.modelcontextprotocol/serverInfo',
+  logLevel: 'io.modelcontextprotocol/logLevel',
+  subscriptionId: 'io.modelcontextprotocol/subscriptionId',
+} as const;
 
 // ============================================
 // JSON-RPC Types
@@ -39,8 +61,13 @@ export const JSON_RPC_ERRORS = {
   METHOD_NOT_FOUND: -32601,
   INVALID_PARAMS: -32602,
   INTERNAL_ERROR: -32603,
-  // MCP-specific
-  RESOURCE_NOT_FOUND: -32002,
+  // MCP 2026-07-28 reserved error codes (-32020 to -32099)
+  HEADER_MISMATCH: -32020,
+  MISSING_REQUIRED_CLIENT_CAPABILITY: -32021,
+  UNSUPPORTED_PROTOCOL_VERSION: -32022,
+  // Resource-not-found now aligns with JSON-RPC Invalid Params (-32602).
+  // Retained for backwards compatibility; clients SHOULD still accept -32002.
+  RESOURCE_NOT_FOUND: -32602,
 } as const;
 
 /**
@@ -49,9 +76,11 @@ export const JSON_RPC_ERRORS = {
  */
 export class McpRpcError extends Error {
   code: number;
-  constructor(code: number, message: string) {
+  data?: unknown;
+  constructor(code: number, message: string, data?: unknown) {
     super(message);
     this.code = code;
+    this.data = data;
   }
 }
 
@@ -92,6 +121,81 @@ export interface McpInitializeResult {
   protocolVersion: string;
   serverInfo: McpServerInfo;
   capabilities: McpCapabilities;
+}
+
+// ============================================
+// Stateless (2026-07-28) Types
+// ============================================
+
+/**
+ * Per-request `_meta` metadata. In the stateless protocol every request carries
+ * its protocol version, client info, and client capabilities here.
+ */
+export interface McpRequestMeta {
+  [META_KEYS.protocolVersion]?: string;
+  [META_KEYS.clientInfo]?: McpClientInfo;
+  [META_KEYS.clientCapabilities]?: Record<string, unknown>;
+  [META_KEYS.logLevel]?: string;
+  [META_KEYS.subscriptionId]?: string | number;
+  /** OpenTelemetry trace context */
+  traceparent?: string;
+  tracestate?: string;
+  baggage?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Result type discriminator required on all 2026-07-28 results.
+ */
+export type McpResultType = 'complete' | 'input_required' | (string & {});
+
+/**
+ * `server/discover` response payload (2026-07-28).
+ */
+export interface McpDiscoverResult {
+  resultType: 'complete';
+  supportedVersions: string[];
+  capabilities: McpCapabilities;
+  _meta?: { [META_KEYS.serverInfo]?: McpServerInfo };
+  instructions?: string;
+  ttlMs?: number;
+  cacheScope?: 'public' | 'private';
+}
+
+/**
+ * Parse the request `_meta` object from JSON-RPC params.
+ */
+export function getRequestMeta(params?: Record<string, unknown>): McpRequestMeta | undefined {
+  if (!params || typeof params !== 'object') return undefined;
+  const meta = (params as Record<string, unknown>)._meta;
+  if (!meta || typeof meta !== 'object') return undefined;
+  return meta as McpRequestMeta;
+}
+
+/**
+ * The server's identity to embed in result `_meta`.
+ */
+export function serverMeta(): { _meta: { [META_KEYS.serverInfo]: McpServerInfo } } {
+  return {
+    _meta: {
+      [META_KEYS.serverInfo]: {
+        name: 'inkweld-mcp',
+        version: '1.0.0',
+      },
+    },
+  };
+}
+
+/**
+ * Wrap a result object with the required `resultType: 'complete'` field and
+ * the server identity `_meta`, per the stateless spec.
+ */
+export function toCompleteResult(result: Record<string, unknown>): Record<string, unknown> {
+  return {
+    resultType: 'complete' as McpResultType,
+    ...result,
+    ...serverMeta(),
+  };
 }
 
 // ============================================
@@ -234,9 +338,7 @@ export interface McpPromptResult {
 interface McpContextBase {
   /** Client IP address */
   clientIp?: string;
-  /** Whether the session is initialized */
-  initialized: boolean;
-  /** Client info from initialization */
+  /** Client info from the request `_meta` (stateless protocol) */
   clientInfo?: McpClientInfo;
   /** Auth token for passing to Durable Objects */
   authToken?: string;
@@ -407,9 +509,7 @@ export interface LegacyMcpContext {
   slug: string;
   /** Client IP address */
   clientIp?: string;
-  /** Whether the session is initialized */
-  initialized: boolean;
-  /** Client info from initialization */
+  /** Client info from the request `_meta` (stateless protocol) */
   clientInfo?: McpClientInfo;
 }
 
@@ -504,7 +604,7 @@ export function createErrorResponse(
   return {
     jsonrpc: '2.0',
     id,
-    error: { code, message, data },
+    error: { code, message, ...(data !== undefined ? { data } : {}) },
   };
 }
 

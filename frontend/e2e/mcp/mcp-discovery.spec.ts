@@ -186,13 +186,23 @@ test.describe('MCP Endpoint Authentication', () => {
     request,
   }) => {
     const response = await request.post(`${API_BASE}/api/v1/ai/mcp`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'MCP-Protocol-Version': '2026-07-28',
+        'Mcp-Method': 'server/discover',
+      },
       data: {
         jsonrpc: '2.0',
-        method: 'initialize',
+        method: 'server/discover',
         params: {
-          protocolVersion: '2025-06-18',
-          capabilities: {},
-          clientInfo: { name: 'test', version: '1.0.0' },
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+            'io.modelcontextprotocol/clientInfo': {
+              name: 'test',
+              version: '1.0.0',
+            },
+            'io.modelcontextprotocol/clientCapabilities': {},
+          },
         },
         id: 1,
       },
@@ -211,14 +221,21 @@ test.describe('MCP Endpoint Authentication', () => {
       headers: {
         Authorization: 'Bearer invalid_token_format',
         'Content-Type': 'application/json',
+        'MCP-Protocol-Version': '2026-07-28',
+        'Mcp-Method': 'server/discover',
       },
       data: {
         jsonrpc: '2.0',
-        method: 'initialize',
+        method: 'server/discover',
         params: {
-          protocolVersion: '2025-06-18',
-          capabilities: {},
-          clientInfo: { name: 'test', version: '1.0.0' },
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+            'io.modelcontextprotocol/clientInfo': {
+              name: 'test',
+              version: '1.0.0',
+            },
+            'io.modelcontextprotocol/clientCapabilities': {},
+          },
         },
         id: 1,
       },
@@ -227,49 +244,28 @@ test.describe('MCP Endpoint Authentication', () => {
   });
 
   test('should reject revoked API key', async ({ request }) => {
-    // Register user and create project
+    // Register a single user and create a project
+    const username = `revoketest${Date.now()}`;
     const regResponse = await request.post(`${API_BASE}/api/v1/auth/register`, {
-      data: {
-        username: `revoke-test-${Date.now()}`,
-        password: TEST_PASSWORDS.USER,
-      },
+      data: { username, password: TEST_PASSWORDS.USER },
     });
-    const { token: _authToken } = (await regResponse.json()) as {
+    expect(regResponse.ok()).toBeTruthy();
+    const { token: authToken } = (await regResponse.json()) as {
       token: string;
     };
-    const _username = `revoke-test-${Date.now()}`;
-
-    // Need to use the same username
-    const regResponse2 = await request.post(
-      `${API_BASE}/api/v1/auth/register`,
-      {
-        data: {
-          username: `revoketest${Date.now()}`,
-          password: TEST_PASSWORDS.USER,
-        },
-      }
-    );
-    const { token: authToken2 } = (await regResponse2.json()) as {
-      token: string;
-    };
-
-    // Get the user's actual username from profile
-    const meResponse = await request.get(`${API_BASE}/api/v1/auth/me`, {
-      headers: { Authorization: `Bearer ${authToken2}` },
-    });
-    const user = (await meResponse.json()) as { username: string };
 
     const slug = `revkey-${Date.now()}`;
-    await request.post(`${API_BASE}/api/v1/projects`, {
-      headers: { Authorization: `Bearer ${authToken2}` },
+    const projectResponse = await request.post(`${API_BASE}/api/v1/projects`, {
+      headers: { Authorization: `Bearer ${authToken}` },
       data: { title: 'Revoke Key Test', slug },
     });
+    expect(projectResponse.ok()).toBeTruthy();
 
     // Create and then revoke a key
     const keyResponse = await request.post(
-      `${API_BASE}/api/v1/mcp-keys/${user.username}/${slug}/keys`,
+      `${API_BASE}/api/v1/mcp-keys/${username}/${slug}/keys`,
       {
-        headers: { Authorization: `Bearer ${authToken2}` },
+        headers: { Authorization: `Bearer ${authToken}` },
         data: {
           name: 'Key to Revoke',
           permissions: ['read:project'],
@@ -284,9 +280,9 @@ test.describe('MCP Endpoint Authentication', () => {
 
     // Revoke it
     await request.post(
-      `${API_BASE}/api/v1/mcp-keys/${user.username}/${slug}/keys/${keyData.key.id}/revoke`,
+      `${API_BASE}/api/v1/mcp-keys/${username}/${slug}/keys/${keyData.key.id}/revoke`,
       {
-        headers: { Authorization: `Bearer ${authToken2}` },
+        headers: { Authorization: `Bearer ${authToken}` },
       }
     );
 
@@ -295,14 +291,21 @@ test.describe('MCP Endpoint Authentication', () => {
       headers: {
         Authorization: `Bearer ${keyData.fullKey}`,
         'Content-Type': 'application/json',
+        'MCP-Protocol-Version': '2026-07-28',
+        'Mcp-Method': 'server/discover',
       },
       data: {
         jsonrpc: '2.0',
-        method: 'initialize',
+        method: 'server/discover',
         params: {
-          protocolVersion: '2025-06-18',
-          capabilities: {},
-          clientInfo: { name: 'test', version: '1.0.0' },
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+            'io.modelcontextprotocol/clientInfo': {
+              name: 'test',
+              version: '1.0.0',
+            },
+            'io.modelcontextprotocol/clientCapabilities': {},
+          },
         },
         id: 1,
       },
@@ -310,14 +313,19 @@ test.describe('MCP Endpoint Authentication', () => {
     expect(mcpResponse.status()).toBe(401);
   });
 
-  test('should support SSE GET for keepalive', async ({ request }) => {
+  test('should return 405 for GET (SSE stream endpoint removed)', async ({
+    request,
+  }) => {
     const response = await request.get(`${API_BASE}/api/v1/ai/mcp`);
-    // SSE endpoint should return 200 with event stream
-    expect(response.status()).toBe(200);
+    // The 2026-07-28 stateless revision removed the GET SSE stream endpoint.
+    expect(response.status()).toBe(405);
   });
 
-  test('should support DELETE for session termination', async ({ request }) => {
+  test('should return 405 for DELETE (session termination removed)', async ({
+    request,
+  }) => {
     const response = await request.delete(`${API_BASE}/api/v1/ai/mcp`);
-    expect(response.status()).toBe(204);
+    // Protocol-level sessions were removed in 2026-07-28.
+    expect(response.status()).toBe(405);
   });
 });

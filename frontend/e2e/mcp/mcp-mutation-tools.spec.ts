@@ -921,7 +921,7 @@ test.describe('update_document_content', () => {
     expect(textOutput).toContain('new chapter begins');
   });
 
-  test('should update document content with text format', async ({
+  test('should update document content with markdown format', async ({
     mcpContext,
     apiRequest,
   }) => {
@@ -932,7 +932,7 @@ test.describe('update_document_content', () => {
       'create_element',
       {
         project: mcpContext.projectKey,
-        name: 'Text Format Document',
+        name: 'Markdown Format Document',
         type: 'ITEM',
       }
     );
@@ -944,7 +944,7 @@ test.describe('update_document_content', () => {
     const elementId = createContent.structuredContent?.element?.id;
     expect(elementId).toBeTruthy();
 
-    // 2. Update with plain text format
+    // 2. Update with markdown format (write side accepts prosemirror_xml or markdown)
     const updateResult = await mcpCallTool(
       apiRequest,
       mcpContext.mcpApiKey,
@@ -953,7 +953,7 @@ test.describe('update_document_content', () => {
         project: mcpContext.projectKey,
         elementId,
         content: 'First paragraph here.\n\nSecond paragraph here.',
-        format: 'text',
+        format: 'markdown',
       }
     );
     expect(updateResult.error).toBeUndefined();
@@ -962,7 +962,7 @@ test.describe('update_document_content', () => {
       structuredContent?: { success?: boolean; format?: string };
     };
     expect(updateContent.structuredContent?.success).toBe(true);
-    expect(updateContent.structuredContent?.format).toBe('text');
+    expect(updateContent.structuredContent?.format).toBe('markdown');
 
     // 3. Verify content
     const readResult = await mcpCallTool(

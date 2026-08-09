@@ -9,7 +9,6 @@ import type { Context } from 'hono';
 import type { AppContext, DatabaseInstance } from '../types/context';
 import {
   type McpInitializeParams,
-  type McpInitializeResult,
   type McpResource,
   type McpResourceContents,
   type McpTool,
@@ -20,15 +19,33 @@ import {
   JSON_RPC_ERRORS,
   McpRpcError,
   hasPermission,
+  MCP_PROTOCOL_VERSION,
+  META_KEYS,
+  getRequestMeta,
+  toCompleteResult,
 } from './mcp.types';
 import { logger } from '../services/logger.service';
 
 const mcpLog = logger.child('MCP');
 
-// Protocol version we support
-const PROTOCOL_VERSION = '2025-06-18';
-const SERVER_NAME = 'inkweld-mcp';
-const SERVER_VERSION = '1.0.0';
+// Protocol version we support (2026-07-28 stateless revision)
+const PROTOCOL_VERSION = MCP_PROTOCOL_VERSION;
+
+/**
+ * The server capabilities advertised by `server/discover` and included in
+ * results. In the stateless protocol these no longer vary per-connection.
+ */
+const SERVER_CAPABILITIES = {
+  resources: {
+    listChanged: false,
+  },
+  tools: {
+    listChanged: false,
+  },
+  prompts: {
+    listChanged: false,
+  },
+};
 
 // ============================================
 // Resource Registry
@@ -80,45 +97,84 @@ export function registerTool(handler: ToolHandler): void {
 // ============================================
 
 /**
- * Handle initialize request
+ * Validate the per-request `_meta` protocol fields.
+ *
+ * Every modern request MUST include `io.modelcontextprotocol/protocolVersion`
+ * and `io.modelcontextprotocol/clientCapabilities` in `_meta`. A request
+ * missing a required field is malformed and is rejected with
+ * `Invalid Params` (-32602) and HTTP 400. An unsupported version is rejected
+ * with `UnsupportedProtocolVersionError` (-32022) and HTTP 400.
+ *
+ * @throws McpRpcError when the request is missing required `_meta` fields,
+ *   carries an unsupported version, or the version header/body mismatch.
  */
-async function handleInitialize(
-  c: Context<AppContext>,
-  params: McpInitializeParams
-): Promise<McpInitializeResult> {
-  const mcpContext = c.get('mcpContext');
+function validateRequestMeta(
+  params: Record<string, unknown> | undefined,
+  headerVersion?: string | null
+): string {
+  const meta = getRequestMeta(params);
+  const bodyVersion = meta?.[META_KEYS.protocolVersion];
+  const hasClientCapabilities = meta?.[META_KEYS.clientCapabilities] !== undefined;
 
-  // Update context with client info
-  if (mcpContext) {
-    mcpContext.initialized = true;
-    mcpContext.clientInfo = params.clientInfo;
+  if (headerVersion && bodyVersion && headerVersion !== bodyVersion) {
+    throw new McpRpcError(
+      JSON_RPC_ERRORS.HEADER_MISMATCH,
+      `Header mismatch: MCP-Protocol-Version header '${headerVersion}' does not match body _meta value '${bodyVersion}'`,
+      { field: 'MCP-Protocol-Version', header: headerVersion, body: bodyVersion }
+    );
   }
 
-  return {
-    protocolVersion: PROTOCOL_VERSION,
-    serverInfo: {
-      name: SERVER_NAME,
-      version: SERVER_VERSION,
-    },
-    capabilities: {
-      resources: {
-        subscribe: false, // future work: implement subscriptions
-        listChanged: false,
-      },
-      tools: {
-        listChanged: false,
-      },
-      prompts: {
-        listChanged: false,
-      },
-    },
-  };
+  // Body is the source of truth per the spec; the header (when present) must
+  // already have been validated by the transport layer.
+  if (!bodyVersion) {
+    throw new McpRpcError(
+      JSON_RPC_ERRORS.INVALID_PARAMS,
+      'Missing required _meta field: io.modelcontextprotocol/protocolVersion'
+    );
+  }
+
+  if (!hasClientCapabilities) {
+    throw new McpRpcError(
+      JSON_RPC_ERRORS.INVALID_PARAMS,
+      'Missing required _meta field: io.modelcontextprotocol/clientCapabilities'
+    );
+  }
+
+  if (bodyVersion !== PROTOCOL_VERSION) {
+    throw new McpRpcError(
+      JSON_RPC_ERRORS.UNSUPPORTED_PROTOCOL_VERSION,
+      'Unsupported protocol version',
+      {
+        supported: [PROTOCOL_VERSION],
+        requested: bodyVersion,
+      }
+    );
+  }
+
+  return bodyVersion;
+}
+
+/**
+ * Handle `server/discover` (2026-07-28).
+ *
+ * Advertises the server's supported protocol versions, capabilities, and
+ * identity so a client can select a version before sending other requests.
+ */
+function handleDiscover(): Record<string, unknown> {
+  return toCompleteResult({
+    supportedVersions: [PROTOCOL_VERSION],
+    capabilities: SERVER_CAPABILITIES,
+    instructions:
+      'Inkweld MCP server: read and edit creative-writing projects, documents, worldbuilding and schemas. Tools operate on projects addressed by `username/slug`.',
+    ttlMs: 3600000,
+    cacheScope: 'public',
+  });
 }
 
 /**
  * Handle resources/list request
  */
-async function handleResourcesList(c: Context<AppContext>): Promise<{ resources: McpResource[] }> {
+async function handleResourcesList(c: Context<AppContext>): Promise<Record<string, unknown>> {
   const mcpContext = c.get('mcpContext');
   const db = c.get('db');
 
@@ -141,7 +197,7 @@ async function handleResourcesList(c: Context<AppContext>): Promise<{ resources:
   }
 
   mcpLog.info(`[resources/list] Done, total ${allResources.length} resources`);
-  return { resources: allResources };
+  return toCompleteResult({ resources: allResources });
 }
 
 /**
@@ -150,7 +206,7 @@ async function handleResourcesList(c: Context<AppContext>): Promise<{ resources:
 async function handleResourcesRead(
   c: Context<AppContext>,
   params: { uri: string }
-): Promise<{ contents: McpResourceContents[] }> {
+): Promise<Record<string, unknown>> {
   const mcpContext = c.get('mcpContext');
   const db = c.get('db');
 
@@ -164,7 +220,7 @@ async function handleResourcesRead(
   for (const handler of resourceHandlers) {
     const content = await handler.readResource(mcpContext, db, uri);
     if (content) {
-      return { contents: [content] };
+      return toCompleteResult({ contents: [content] });
     }
   }
 
@@ -174,7 +230,7 @@ async function handleResourcesRead(
 /**
  * Handle tools/list request
  */
-async function handleToolsList(c: Context<AppContext>): Promise<{ tools: McpTool[] }> {
+async function handleToolsList(c: Context<AppContext>): Promise<Record<string, unknown>> {
   const mcpContext = c.get('mcpContext');
 
   if (!mcpContext) {
@@ -193,7 +249,7 @@ async function handleToolsList(c: Context<AppContext>): Promise<{ tools: McpTool
     }
   }
 
-  return { tools };
+  return toCompleteResult({ tools });
 }
 
 /**
@@ -228,7 +284,12 @@ async function handleToolsCall(
   }
 
   // Execute tool
-  return handler.execute(mcpContext, db, args);
+  const toolResult = await handler.execute(mcpContext, db, args);
+  // Wrap tool results in the required `resultType: 'complete'` envelope.
+  if (toolResult && typeof toolResult === 'object') {
+    return toCompleteResult(toolResult as Record<string, unknown>);
+  }
+  return toCompleteResult({});
 }
 
 // ============================================
@@ -236,10 +297,10 @@ async function handleToolsCall(
 // ============================================
 
 /**
- * Generate a secure session ID for MCP Streamable HTTP transport
+ * Generate a secure session ID for legacy (pre-2026-07-28) MCP clients that
+ * use the `initialize` handshake and expect an `Mcp-Session-Id` header.
  */
 function generateSessionId(): string {
-  // Use crypto-safe random for session ID
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
   return Array.from(bytes)
@@ -250,10 +311,12 @@ function generateSessionId(): string {
 /**
  * Main MCP JSON-RPC handler for Streamable HTTP transport
  *
- * Implements MCP protocol version 2025-06-18:
- * - Returns Mcp-Session-Id header on initialize response
+ * Implements MCP protocol version 2026-07-28 (stateless):
+ * - No `initialize` handshake and no `Mcp-Session-Id` header
+ * - Every request carries its protocol version in `_meta`
+ * - `server/discover` advertises supported versions
  * - Returns 202 Accepted for notifications
- * - Validates MCP-Protocol-Version header when present
+ * - Unknown RPC methods return 404 with a JSON-RPC -32601 error
  */
 export async function handleMcpRequest(c: Context<AppContext>): Promise<Response> {
   let requestId: string | number | undefined = undefined;
@@ -287,30 +350,66 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
     }
 
     requestId = request.id;
-    const { method, params = {} } = request;
+    const { method, params } = request;
+    const paramRecord = (params ?? {}) as Record<string, unknown>;
 
     mcpLog.info(`[START] ${method} (id: ${requestId})`);
 
     // Check if this is a notification (no id = no response expected)
     const isNotification = requestId === undefined;
 
+    // The 2026-07-28 Streamable HTTP transport returns 202 Accepted with no
+    // body for any notification POST (the core protocol defines no
+    // client-sent notifications over this transport).
+    if (isNotification) {
+      mcpLog.info(`[END] notification ${method} (accepted)`);
+      return new Response(null, { status: 202 });
+    }
+
+    // Dual-era detection: modern clients carry their protocol version in
+    // `_meta`; legacy clients (e.g. MCP Inspector 0.22.0, which predates the
+    // stateless revision) use the `initialize` handshake. The spec endorses
+    // serving both concurrently.
+    const requestMeta = getRequestMeta(paramRecord);
+    const isModernRequest = requestMeta?.[META_KEYS.protocolVersion] !== undefined;
+
+    if (!isModernRequest) {
+      // Legacy-era request. `initialize` is answered with the classic
+      // initialize result (and an Mcp-Session-Id header). Other methods are
+      // served statelessly without `_meta` requirements below.
+      if (method === 'initialize' || method === 'notifications/initialized') {
+        const initializeParams = paramRecord as McpInitializeParams;
+        const sessionId = generateSessionId();
+        return c.json(
+          {
+            jsonrpc: '2.0',
+            id: requestId,
+            result: {
+              protocolVersion: initializeParams.protocolVersion || PROTOCOL_VERSION,
+              capabilities: SERVER_CAPABILITIES,
+              serverInfo: { name: 'inkweld-mcp', version: '1.0.0' },
+            },
+          },
+          200,
+          { 'Mcp-Session-Id': sessionId }
+        );
+      }
+      // Legacy ping is answered leniently.
+      if (method === 'ping') {
+        return c.json({ jsonrpc: '2.0', id: requestId, result: {} });
+      }
+      mcpLog.info(`[START] legacy ${method} (id: ${requestId})`);
+    } else {
+      // Validate the per-request `_meta` protocol fields carried in `_meta`.
+      validateRequestMeta(paramRecord, c.req.header('MCP-Protocol-Version'));
+    }
+
     // Route to appropriate handler
     let result: unknown;
-    let isInitialize = false;
 
     switch (method) {
-      case 'initialize':
-        result = await handleInitialize(c, params as unknown as McpInitializeParams);
-        isInitialize = true;
-        break;
-
-      case 'initialized':
-      case 'notifications/initialized':
-        // Client acknowledges initialization - return 202 Accepted for notifications
-        if (isNotification) {
-          return new Response(null, { status: 202 });
-        }
-        result = {};
+      case 'server/discover':
+        result = handleDiscover();
         break;
 
       case 'resources/list':
@@ -318,13 +417,22 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
         break;
 
       case 'resources/read':
-        result = await handleResourcesRead(c, params as { uri: string });
+        result = await handleResourcesRead(c, paramRecord as { uri: string });
         break;
 
       case 'resources/templates/list':
         // Future work: implement resource templates
-        result = { resourceTemplates: [] };
+        result = toCompleteResult({ resourceTemplates: [] });
         break;
+
+      case 'prompts/list':
+        // No prompt templates are defined by this server yet.
+        result = toCompleteResult({ prompts: [] });
+        break;
+
+      case 'prompts/get':
+        // No prompt templates are defined by this server yet.
+        throw new McpRpcError(JSON_RPC_ERRORS.INVALID_PARAMS, 'Prompt not found');
 
       case 'tools/list':
         result = await handleToolsList(c);
@@ -333,14 +441,13 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
       case 'tools/call':
         result = await handleToolsCall(
           c,
-          params as { name: string; arguments?: Record<string, unknown> }
+          paramRecord as { name: string; arguments?: Record<string, unknown> }
         );
         break;
 
-      case 'ping':
-        result = {};
-        break;
-
+      // Removed in the stateless protocol: `initialize`, `notifications/initialized`,
+      // `ping`, `notifications/roots/list_changed`, `logging/setLevel`. Unknown
+      // methods return 404 with a JSON-RPC -32601 error per the spec.
       default:
         mcpLog.info(`[END] unknown method (${Date.now() - startTime}ms)`);
         return c.json(
@@ -348,24 +455,17 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
             requestId ?? 0,
             JSON_RPC_ERRORS.METHOD_NOT_FOUND,
             `Unknown method: ${method}`
-          )
+          ),
+          404
         );
     }
 
     const elapsed = Date.now() - startTime;
     mcpLog.info(`[END] ${method} (${elapsed}ms)`);
 
-    // Build response with appropriate headers
+    // Build response with appropriate headers. No Mcp-Session-Id is minted:
+    // the protocol is stateless.
     const responseBody = createSuccessResponse(requestId ?? 0, result);
-
-    // For initialize, return Mcp-Session-Id header
-    if (isInitialize) {
-      const sessionId = generateSessionId();
-      mcpLog.debug(`MCP session initialized: ${sessionId}`);
-      return c.json(responseBody, 200, {
-        'Mcp-Session-Id': sessionId,
-      });
-    }
 
     return c.json(responseBody);
   } catch (err) {
@@ -374,7 +474,19 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
 
     // Handle canonical MCP RPC errors (thrown by handlers)
     if (err instanceof McpRpcError) {
-      return c.json(createErrorResponse(requestId ?? 0, err.code, err.message));
+      const isMetaValidationFailure =
+        err.code === JSON_RPC_ERRORS.UNSUPPORTED_PROTOCOL_VERSION ||
+        err.code === JSON_RPC_ERRORS.HEADER_MISMATCH ||
+        err.code === JSON_RPC_ERRORS.MISSING_REQUIRED_CLIENT_CAPABILITY ||
+        // A request missing a required `_meta` field is malformed; per the
+        // spec this is HTTP 400 (Invalid Params).
+        (err.code === JSON_RPC_ERRORS.INVALID_PARAMS &&
+          typeof err.message === 'string' &&
+          err.message.startsWith('Missing required _meta'));
+      return c.json(
+        createErrorResponse(requestId ?? 0, err.code, err.message, err.data),
+        isMetaValidationFailure ? 400 : undefined
+      );
     }
 
     // Handle unexpected errors — sanitize message to avoid leaking internals

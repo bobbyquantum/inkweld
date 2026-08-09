@@ -10128,10 +10128,10 @@
           "MCP"
         ],
         "operationId": "mcpSse",
-        "description": "MCP SSE endpoint for server-initiated messages. Opens a stream that stays alive for server-to-client events.",
+        "description": "The 2026-07-28 stateless MCP revision removed the GET SSE stream endpoint. Returns 405 Method Not Allowed.",
         "responses": {
-          "200": {
-            "description": "SSE stream opened successfully"
+          "405": {
+            "description": "Method Not Allowed"
           }
         }
       },
@@ -10140,10 +10140,10 @@
           "MCP"
         ],
         "operationId": "mcpDeleteSession",
-        "description": "Terminate an MCP session. Returns 204 on success.",
+        "description": "The 2026-07-28 stateless MCP revision removed protocol-level sessions. Returns 405 Method Not Allowed.",
         "responses": {
-          "204": {
-            "description": "Session terminated successfully"
+          "405": {
+            "description": "Method Not Allowed"
           }
         }
       },
@@ -10152,7 +10152,7 @@
           "MCP"
         ],
         "operationId": "mcpJsonRpc",
-        "description": "MCP Streamable HTTP endpoint. Send JSON-RPC messages via POST. Authenticate with Bearer token or X-API-Key header.",
+        "description": "MCP Streamable HTTP endpoint (stateless, protocol 2026-07-28). Send JSON-RPC messages via POST. Authenticate with Bearer token or X-API-Key header. Each request carries its protocol version in _meta.",
         "requestBody": {
           "content": {
             "application/json": {

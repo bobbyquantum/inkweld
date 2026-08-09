@@ -118,13 +118,23 @@ test.describe('OAuth Discovery, DCR, and MCP unauth', () => {
 
     await test.step('rejects unauthenticated MCP request with 401 + WWW-Authenticate', async () => {
       const response = await page.request.post(`${API_BASE}/api/v1/ai/mcp`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'MCP-Protocol-Version': '2026-07-28',
+          'Mcp-Method': 'server/discover',
+        },
         data: {
           jsonrpc: '2.0',
-          method: 'initialize',
+          method: 'server/discover',
           params: {
-            protocolVersion: '2025-06-18',
-            capabilities: {},
-            clientInfo: { name: 'test', version: '1.0.0' },
+            _meta: {
+              'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+              'io.modelcontextprotocol/clientInfo': {
+                name: 'test',
+                version: '1.0.0',
+              },
+              'io.modelcontextprotocol/clientCapabilities': {},
+            },
           },
           id: 1,
         },
@@ -397,14 +407,21 @@ test.describe('Full OAuth Token Exchange', () => {
       headers: {
         Authorization: `Bearer ${tokens.access_token}`,
         'Content-Type': 'application/json',
+        'MCP-Protocol-Version': '2026-07-28',
+        'Mcp-Method': 'server/discover',
       },
       data: {
         jsonrpc: '2.0',
-        method: 'initialize',
+        method: 'server/discover',
         params: {
-          protocolVersion: '2025-06-18',
-          capabilities: {},
-          clientInfo: { name: 'e2e-test', version: '1.0.0' },
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+            'io.modelcontextprotocol/clientInfo': {
+              name: 'e2e-test',
+              version: '1.0.0',
+            },
+            'io.modelcontextprotocol/clientCapabilities': {},
+          },
         },
         id: 1,
       },
@@ -413,12 +430,17 @@ test.describe('Full OAuth Token Exchange', () => {
 
     const mcpResult = (await mcpResponse.json()) as {
       jsonrpc: string;
-      result?: { protocolVersion: string; serverInfo: unknown };
+      result?: {
+        supportedVersions: string[];
+        resultType: string;
+        _meta: unknown;
+      };
       id: number;
     };
     expect(mcpResult.jsonrpc).toBe('2.0');
     expect(mcpResult.result).toBeDefined();
-    expect(mcpResult.result?.protocolVersion).toBe('2025-06-18');
+    expect(mcpResult.result?.resultType).toBe('complete');
+    expect(mcpResult.result?.supportedVersions).toContain('2026-07-28');
     expect(mcpResult.id).toBe(1);
 
     // Step 8: Refresh the token

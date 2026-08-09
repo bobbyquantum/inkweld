@@ -47,7 +47,7 @@ export class MCPService extends BaseService {
   }
 
   /**
-   * Terminate an MCP session. Returns 204 on success.
+   * MCP endpoint DELETE is not supported (stateless 2026-07-28). Returns 405 Method Not Allowed.
    * @endpoint delete /api/v1/ai/mcp
    * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
    * @param reportProgress flag to report request and response progress.
@@ -145,7 +145,7 @@ export class MCPService extends BaseService {
   }
 
   /**
-   * MCP Streamable HTTP endpoint. Send JSON-RPC messages via POST. Authenticate with Bearer token or X-API-Key header.
+   * MCP Streamable HTTP endpoint (stateless, protocol 2026-07-28). Send JSON-RPC messages via POST. Authenticate with Bearer token or X-API-Key header. Each request carries its protocol version in _meta.
    * @endpoint post /api/v1/ai/mcp
    * @param jsonRpcRequest
    * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -261,7 +261,7 @@ export class MCPService extends BaseService {
   }
 
   /**
-   * MCP SSE endpoint for server-initiated messages. Opens a stream that stays alive for server-to-client events.
+   * MCP endpoint GET is not supported (stateless 2026-07-28). Returns 405 Method Not Allowed.
    * @endpoint get /api/v1/ai/mcp
    * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
    * @param reportProgress flag to report request and response progress.

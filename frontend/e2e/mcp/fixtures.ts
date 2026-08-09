@@ -120,24 +120,51 @@ async function createMcpKey(
 }
 
 /**
- * Send a JSON-RPC request to the MCP endpoint
+ * Send a JSON-RPC request to the MCP endpoint (stateless protocol 2026-07-28).
+ *
+ * Every request carries its protocol version, client info, and client
+ * capabilities in `_meta`; there is no `initialize` handshake or session.
  */
+export const MCP_PROTOCOL_VERSION = '2026-07-28';
+
 export async function mcpRequest(
   request: APIRequestContext,
   token: string,
   method: string,
   params: Record<string, unknown> = {},
-  id: number = 1
+  id: number = 1,
+  metaOverride: Record<string, unknown> = {}
 ): Promise<JsonRpcResponse> {
+  const meta = {
+    'io.modelcontextprotocol/protocolVersion': MCP_PROTOCOL_VERSION,
+    'io.modelcontextprotocol/clientInfo': {
+      name: 'e2e-test',
+      version: '1.0.0',
+    },
+    'io.modelcontextprotocol/clientCapabilities': {},
+    ...metaOverride,
+  };
   const response = await request.post(`${API_BASE}/api/v1/ai/mcp`, {
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
+      'MCP-Protocol-Version':
+        meta['io.modelcontextprotocol/protocolVersion'] ?? MCP_PROTOCOL_VERSION,
+      'Mcp-Method': method,
+      'Mcp-Name':
+        typeof params.name === 'string'
+          ? params.name
+          : typeof params.uri === 'string'
+            ? params.uri
+            : method,
     },
     data: {
       jsonrpc: '2.0',
       method,
-      params,
+      params: {
+        ...params,
+        _meta: meta,
+      },
       id,
     },
   });
@@ -145,17 +172,13 @@ export async function mcpRequest(
 }
 
 /**
- * Initialize an MCP session and return the response
+ * Discover the MCP server's supported versions and capabilities.
  */
-export async function mcpInitialize(
+export async function mcpDiscover(
   request: APIRequestContext,
   token: string
 ): Promise<JsonRpcResponse> {
-  return mcpRequest(request, token, 'initialize', {
-    protocolVersion: '2025-06-18',
-    capabilities: {},
-    clientInfo: { name: 'e2e-test', version: '1.0.0' },
-  });
+  return mcpRequest(request, token, 'server/discover', {});
 }
 
 /**
@@ -231,27 +254,35 @@ export async function performOAuthFlow(
   }
 
   // Step 4: Submit consent
-  const consentResponse = await request.post(`${API_BASE}/oauth/authorize`, {
-    headers: {
-      Authorization: `Bearer ${authToken}`,
-      'Content-Type': 'application/json',
-    },
-    data: {
-      client_id: client.client_id,
-      redirect_uri: 'http://localhost:3000/callback',
-      response_type: 'code',
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
-      scope: 'mcp',
-      state: 'e2e-test',
-      grants: [
-        {
-          projectId: grantProjectId,
-          role: 'fullAccess',
-        },
-      ],
-    },
+  // The consent endpoint reads the authorization params (client_id,
+  // redirect_uri, response_type, code_challenge, ...) from the QUERY STRING and
+  // only the `grants` from the JSON body.
+  const consentParams = new URLSearchParams({
+    client_id: client.client_id,
+    redirect_uri: 'http://localhost:3000/callback',
+    response_type: 'code',
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256',
+    scope: 'mcp',
+    state: 'e2e-test',
   });
+  const consentResponse = await request.post(
+    `${API_BASE}/oauth/authorize?${consentParams.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        'Content-Type': 'application/json',
+      },
+      data: {
+        grants: [
+          {
+            projectId: grantProjectId,
+            role: 'admin',
+          },
+        ],
+      },
+    }
+  );
 
   // Extract auth code from redirect URL
   let authCode: string;
@@ -261,10 +292,14 @@ export async function performOAuthFlow(
     authCode = url.searchParams.get('code') || '';
   } else if (consentResponse.ok()) {
     const consentData = (await consentResponse.json()) as {
+      redirectUri?: string;
       redirect_uri?: string;
       code?: string;
     };
-    if (consentData.redirect_uri) {
+    if (consentData.redirectUri) {
+      const url = new URL(consentData.redirectUri);
+      authCode = url.searchParams.get('code') || '';
+    } else if (consentData.redirect_uri) {
       const url = new URL(consentData.redirect_uri);
       authCode = url.searchParams.get('code') || '';
     } else {
@@ -340,9 +375,9 @@ export const test = base.extend<McpFixtures>({
       projectSlug
     );
 
-    // Initialize MCP session
-    const initResult = await mcpInitialize(request, mcpApiKey);
-    expect(initResult.error).toBeUndefined();
+    // Discover the MCP server (stateless protocol has no initialize handshake)
+    const discoverResult = await mcpDiscover(request, mcpApiKey);
+    expect(discoverResult.error).toBeUndefined();
 
     const context: McpTestContext = {
       authToken,

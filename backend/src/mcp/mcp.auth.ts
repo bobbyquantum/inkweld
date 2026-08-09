@@ -179,7 +179,6 @@ async function handleLegacyApiKey(
     username: user.username,
     slug: project.slug,
     clientIp,
-    initialized: false,
     authToken: doAuthToken,
     env,
   };
@@ -237,7 +236,6 @@ async function handleOAuthJwt(
     username: payload.username,
     grants,
     clientIp,
-    initialized: false,
     authToken: token,
     env: c.env as { YJS_PROJECTS?: DurableObjectNamespace; [key: string]: unknown },
   };

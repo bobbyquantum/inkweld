@@ -72,13 +72,23 @@ export default async function globalSetup(): Promise<void> {
     // Step 4: Verify MCP endpoint responds (unauthenticated = 401)
     console.log('4️⃣  Checking MCP endpoint...');
     const mcpResponse = await context.post('/api/v1/ai/mcp', {
+      headers: {
+        'Content-Type': 'application/json',
+        'MCP-Protocol-Version': '2026-07-28',
+        'Mcp-Method': 'server/discover',
+      },
       data: {
         jsonrpc: '2.0',
-        method: 'initialize',
+        method: 'server/discover',
         params: {
-          protocolVersion: '2025-06-18',
-          capabilities: {},
-          clientInfo: { name: 'setup-check', version: '1.0.0' },
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+            'io.modelcontextprotocol/clientInfo': {
+              name: 'setup-check',
+              version: '1.0.0',
+            },
+            'io.modelcontextprotocol/clientCapabilities': {},
+          },
         },
         id: 1,
       },

@@ -36,21 +36,17 @@ test.describe('Inspector connection', () => {
   }) => {
     await page.goto(INSPECTOR_WITH_PARAMS);
 
-    // Open Auth section and configure API key header
-    const authButton = page.getByTestId('auth-button');
-    await authButton.click();
+    // Open the Authentication section and configure an API key header.
+    // Inspector 0.22.0 auth UI: "Header Name"/"Header Value" inputs + "Add".
+    await page.getByRole('button', { name: 'Authentication' }).click();
 
-    // Add a custom header
-    const addButton = page.getByTestId('add-header-button');
-    await addButton.click();
-
-    // Set header name to Authorization
-    const headerNameInput = page.getByTestId('header-name-input-0');
+    const headerNameInput = page.getByPlaceholder('Header Name');
     await headerNameInput.fill('Authorization');
 
-    // Set header value to Bearer <api-key>
-    const headerValueInput = page.getByTestId('header-value-input-0');
+    const headerValueInput = page.getByPlaceholder('Header Value');
     await headerValueInput.fill(`Bearer ${mcpContext.mcpApiKey}`);
+
+    await page.getByRole('button', { name: 'Add' }).click();
 
     // Click Connect
     const connectButton = page.getByRole('button', { name: 'Connect' });
@@ -69,7 +65,10 @@ test.describe('Inspector connection', () => {
 
     // Should show error indicator (red dot) or error state
     await expect(
-      page.locator('.bg-red-500').or(page.getByText(/error|unauthorized|401/i))
+      page
+        .locator('.bg-red-500')
+        .first()
+        .or(page.getByText(/Error Connecting|unauthorized|401/i).first())
     ).toBeVisible();
   });
 });
@@ -268,6 +267,7 @@ test.describe('Inspector disconnect', () => {
 
 /**
  * Helper to connect the MCP Inspector to our backend server.
+ * Inspector 0.22.0 auth UI: "Header Name"/"Header Value" inputs + "Add".
  */
 async function connectInspector(
   page: import('@playwright/test').Page,
@@ -275,20 +275,13 @@ async function connectInspector(
 ) {
   await page.goto(INSPECTOR_WITH_PARAMS);
 
-  // Open Auth section
-  const authButton = page.getByTestId('auth-button');
-  await authButton.click();
-
-  // Add custom header
-  const addButton = page.getByTestId('add-header-button');
-  await addButton.click();
+  // Open Authentication section
+  await page.getByRole('button', { name: 'Authentication' }).click();
 
   // Set Authorization header
-  const headerNameInput = page.getByTestId('header-name-input-0');
-  await headerNameInput.fill('Authorization');
-
-  const headerValueInput = page.getByTestId('header-value-input-0');
-  await headerValueInput.fill(`Bearer ${apiKey}`);
+  await page.getByPlaceholder('Header Name').fill('Authorization');
+  await page.getByPlaceholder('Header Value').fill(`Bearer ${apiKey}`);
+  await page.getByRole('button', { name: 'Add' }).click();
 
   // Connect
   const connectButton = page.getByRole('button', { name: 'Connect' });

@@ -1,17 +1,22 @@
 /**
  * MCP Streamable HTTP Transport Routes
  *
- * Implements the MCP Streamable HTTP transport (protocol version 2025-06-18):
+ * Implements the MCP Streamable HTTP transport (protocol version 2026-07-28,
+ * stateless):
  * - POST: Handle JSON-RPC requests, respond with application/json
- * - GET: Return 405 Method Not Allowed (no persistent SSE on Cloudflare Workers)
- * - DELETE: Terminate session (optional, returns 405 if not supported)
+ * - GET / DELETE: Return 405 Method Not Allowed (no SSE endpoint, no sessions)
+ * - Every request carries its protocol version in `_meta`
+ * - Required standard headers (MCP-Protocol-Version, Mcp-Method, Mcp-Name)
+ *   are validated against the body; mismatches return HeaderMismatch (-32020)
  *
- * @see https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#streamable-http
+ * @see https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http
  */
 
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import type { Context } from 'hono';
 import type { AppContext } from '../types/context';
 import { mcpAuth, handleMcpRequest } from '../mcp';
+import { createErrorResponse, JSON_RPC_ERRORS, META_KEYS, getRequestMeta } from '../mcp';
 
 const mcpRoutes = new OpenAPIHono<AppContext>();
 
@@ -56,7 +61,7 @@ const mcpJsonRpcRoute = createRoute({
   tags: ['MCP'],
   operationId: 'mcpJsonRpc',
   description:
-    'MCP Streamable HTTP endpoint. Send JSON-RPC messages via POST. Authenticate with Bearer token or X-API-Key header.',
+    'MCP Streamable HTTP endpoint (stateless, protocol 2026-07-28). Send JSON-RPC messages via POST. Authenticate with Bearer token or X-API-Key header. Each request carries its protocol version in _meta.',
   request: {
     body: {
       content: {
@@ -90,92 +95,151 @@ const mcpJsonRpcRoute = createRoute({
 });
 
 // ============================================
-// MCP Streamable HTTP GET Endpoint (SSE - Not Supported)
+// MCP Streamable HTTP GET / DELETE (Not Supported)
 // ============================================
+// The 2026-07-28 stateless revision removed the GET SSE stream endpoint and
+// the protocol-level session (Mcp-Session-Id) / DELETE termination. Servers
+// that support only this revision MUST respond 405 to GET and DELETE.
 
-const mcpSseRoute = createRoute({
+const mcpUnsupportedRoute = createRoute({
   method: 'get',
   path: '/',
   tags: ['MCP'],
   operationId: 'mcpSse',
   description:
-    'MCP SSE endpoint for server-initiated messages. Opens a stream that stays alive for server-to-client events.',
+    'The 2026-07-28 stateless MCP revision removed the GET SSE stream endpoint. Returns 405 Method Not Allowed.',
   responses: {
-    200: {
-      description: 'SSE stream opened successfully',
+    405: {
+      description: 'Method Not Allowed',
     },
   },
 });
 
-// ============================================
-// MCP Streamable HTTP DELETE Endpoint (Session Termination)
-// ============================================
+mcpRoutes.openapi(mcpUnsupportedRoute, (c) => {
+  return c.body(null, 405);
+});
 
 const mcpDeleteRoute = createRoute({
   method: 'delete',
   path: '/',
   tags: ['MCP'],
   operationId: 'mcpDeleteSession',
-  description: 'Terminate an MCP session. Returns 204 on success.',
+  description:
+    'The 2026-07-28 stateless MCP revision removed protocol-level sessions. Returns 405 Method Not Allowed.',
   responses: {
-    204: {
-      description: 'Session terminated successfully',
+    405: {
+      description: 'Method Not Allowed',
     },
   },
 });
 
-// GET - SSE endpoint for server-initiated messages
-// NOTE: Must be registered BEFORE auth middleware to handle independently
-// MCP Inspector requires this to be open before sending further requests
-mcpRoutes.openapi(mcpSseRoute, async (c) => {
-  // Set SSE headers
-  c.header('Content-Type', 'text/event-stream');
-  c.header('Cache-Control', 'no-cache');
-  c.header('Connection', 'keep-alive');
-  c.header('X-Accel-Buffering', 'no'); // Disable nginx buffering
-
-  // Create a readable stream that stays open
-  // On Cloudflare Workers, this will eventually timeout (30s) but that's OK
-  // The client just needs to know SSE is "supported"
-  const stream = new ReadableStream({
-    start(controller) {
-      // Send an initial comment to establish the connection
-      controller.enqueue(new TextEncoder().encode(': connected\n\n'));
-
-      // Keep-alive ping every 15 seconds
-      const interval = setInterval(() => {
-        try {
-          controller.enqueue(new TextEncoder().encode(': ping\n\n'));
-        } catch {
-          clearInterval(interval);
-        }
-      }, 15000);
-
-      // Store interval for cleanup (Cloudflare will handle timeout)
-    },
-    cancel() {
-      // SSE connection closed
-    },
-  });
-
-  return new Response(stream, {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-      'X-Accel-Buffering': 'no',
-    },
-  });
+mcpRoutes.openapi(mcpDeleteRoute, (c) => {
+  return c.body(null, 405);
 });
 
-// DELETE - Session termination (returns 204 No Content)
-// NOTE: Must be registered BEFORE auth middleware to handle independently
-// Since sessions are stateless (JWT tokens), we just acknowledge the termination
-mcpRoutes.openapi(mcpDeleteRoute, (c) => {
-  // No action needed - JWT sessions are stateless
-  // Client can discard the token on their end
-  return c.body(null, 204);
+// ============================================
+// Header validation middleware
+// ============================================
+
+/**
+ * Base64 sentinel marker used to encode `Mcp-Name` / `Mcp-Param-*` values that
+ * cannot be represented as plain ASCII header values.
+ */
+const BASE64_SENTINEL_PREFIX = '=?base64?';
+const BASE64_SENTINEL_SUFFIX = '?=';
+
+/**
+ * Decode a header value that may use the Base64 sentinel encoding.
+ */
+function decodeHeaderValue(value: string): string {
+  if (value.startsWith(BASE64_SENTINEL_PREFIX) && value.endsWith(BASE64_SENTINEL_SUFFIX)) {
+    const payload = value.slice(BASE64_SENTINEL_PREFIX.length, -BASE64_SENTINEL_SUFFIX.length);
+    try {
+      return atob(payload);
+    } catch {
+      return value;
+    }
+  }
+  return value;
+}
+
+/**
+ * Validate the standard MCP request headers (`MCP-Protocol-Version`,
+ * `Mcp-Method`, `Mcp-Name`) against the request body, per the 2026-07-28
+ * Streamable HTTP spec. Rejects mismatches with HTTP 400 + HeaderMismatch.
+ */
+function validateMcpHeaders(c: Context<AppContext>, body: Record<string, unknown>): boolean {
+  const params = (body.params ?? {}) as Record<string, unknown>;
+  const meta = getRequestMeta(params);
+  const method = typeof body.method === 'string' ? body.method : undefined;
+
+  // Notifications (no id) have no defined header requirements in this
+  // revision, so skip strict validation for them.
+  const isRequest = body.id !== undefined && body.id !== null;
+  if (!isRequest) {
+    return true;
+  }
+
+  // Legacy requests (no `_meta.protocolVersion`) use the pre-stateless
+  // handshake and do not send the modern standard headers; treat a request
+  // that omits MCP-Protocol-Version as a legacy-era request and skip strict
+  // header validation (spec: backward compatibility with handshake versions).
+  const isModernRequest = meta?.[META_KEYS.protocolVersion] !== undefined;
+  if (!isModernRequest) {
+    return true;
+  }
+
+  // MCP-Protocol-Version header is required and must match body _meta.
+  const headerVersion = c.req.header('MCP-Protocol-Version');
+  const bodyVersion = meta?.[META_KEYS.protocolVersion];
+  if (!headerVersion || !bodyVersion || headerVersion !== bodyVersion) {
+    return false;
+  }
+
+  // Mcp-Method header is required and must match body method.
+  const headerMethod = c.req.header('Mcp-Method');
+  if (!method || !headerMethod || headerMethod !== method) {
+    return false;
+  }
+
+  // Mcp-Name header is required for tools/call, resources/read, prompts/get.
+  if (method === 'tools/call' || method === 'resources/read' || method === 'prompts/get') {
+    const headerName = c.req.header('Mcp-Name');
+    const sourceValue =
+      typeof params.name === 'string'
+        ? params.name
+        : typeof params.uri === 'string'
+          ? params.uri
+          : undefined;
+    if (!headerName || sourceValue === undefined || decodeHeaderValue(headerName) !== sourceValue) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function headerMismatch(c: Context<AppContext>): Response {
+  return c.json(
+    createErrorResponse(0, JSON_RPC_ERRORS.HEADER_MISMATCH, 'MCP request header/body mismatch'),
+    400
+  );
+}
+
+// Validate standard headers on POST before handing off to the handler.
+mcpRoutes.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    const body = await c.req.json().catch(() => null);
+    if (
+      !body ||
+      typeof body !== 'object' ||
+      !validateMcpHeaders(c, body as Record<string, unknown>)
+    ) {
+      return headerMismatch(c);
+    }
+    return next();
+  }
+  return next();
 });
 
 // Apply MCP auth middleware only to POST requests

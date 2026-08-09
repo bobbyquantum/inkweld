@@ -19,6 +19,7 @@ import { MCP_PERMISSIONS } from '../../services/mcp-key.service';
 import { yjsService } from '../../services/yjs.service';
 import { YjsWorkerService } from '../../services/yjs-worker.service';
 import { getStorageService } from '../../services/storage.service';
+import { projectService } from '../../services/project.service';
 import { type Element } from '../../schemas/element.schemas';
 import { buildVisualTree, treeToText } from './tree-helpers';
 import { getRelationships as runtimeGetRelationships } from './yjs-runtime';
@@ -451,11 +452,15 @@ registerTool({
     const topResults = results.slice(0, limit);
 
     const filterSuffix = types.length > 0 ? ` (filtered by: ${types.join(', ')})` : '';
+    const namesText =
+      topResults.length > 0
+        ? `\n\n${topResults.map((r) => `- ${r.elementName} (${r.elementType})`).join('\n')}`
+        : '';
     return {
       content: [
         {
           type: 'text',
-          text: `Found ${results.length} elements matching "${query}"${filterSuffix}`,
+          text: `Found ${results.length} elements matching "${query}"${filterSuffix}${namesText}`,
         },
       ],
       structuredContent: {
@@ -1403,7 +1408,7 @@ registerTool({
   requiredPermissions: [MCP_PERMISSIONS.READ_PROJECT],
   async execute(
     ctx: McpContext,
-    _db: unknown,
+    db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
     const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.READ_PROJECT);
@@ -1426,12 +1431,36 @@ registerTool({
       // No metadata document, return basic info
     }
 
+    // Merge the project record (title, description, etc.) from the database.
+    // Yjs only holds user-authored metadata; the canonical title/description
+    // live in the projects table.
+    let dbFields: Record<string, unknown> = {};
+    if (db) {
+      try {
+        const projectRecord = await projectService.findByUsernameAndSlug(
+          db as never,
+          username,
+          slug
+        );
+        if (projectRecord) {
+          dbFields = {
+            title: projectRecord.title,
+            description: projectRecord.description,
+            coverImage: projectRecord.coverImage,
+          };
+        }
+      } catch {
+        // DB read is best-effort; fall through to Yjs-only metadata.
+      }
+    }
+
     // Add basic project info
     const projectInfo = {
       username,
       slug,
       projectId,
       projectKey: `${username}/${slug}`,
+      ...dbFields,
       ...metadata,
     };
 
