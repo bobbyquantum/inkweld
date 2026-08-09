@@ -213,7 +213,7 @@
                   type="number"
                   min="1"
                   max="128"
-                  [ngModel]="passwordMinLength()"
+                  [value]="passwordMinLength()"
                   (change)="savePasswordMinLength($any($event.target).value)"
                   [disabled]="isSaving()"
                   id="admin-password-min-length-input"
@@ -314,7 +314,7 @@
             matInput
             type="url"
             placeholder="https://inkweld.example.com"
-            [ngModel]="siteUrl()"
+            [value]="siteUrl()"
             (change)="saveSiteUrl($any($event.target).value)"
             [disabled]="isSaving()"
             id="admin-site-url-input"

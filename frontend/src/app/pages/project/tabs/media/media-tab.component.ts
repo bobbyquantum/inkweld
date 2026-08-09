@@ -12,7 +12,6 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormsModule } from '@angular/forms';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -96,7 +95,6 @@ export interface MediaItem extends MediaInfo {
   styleUrls: ['./media-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
-    FormsModule,
     MatBadgeModule,
     MatButtonModule,
     MatIconModule,

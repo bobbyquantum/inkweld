@@ -5,7 +5,6 @@ import {
   input,
   output,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -48,7 +47,6 @@ export interface FilterTag {
   selector: 'app-media-filter-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule,
     MatButtonModule,
     MatChipsModule,
     MatDatepickerModule,

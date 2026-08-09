@@ -10,7 +10,6 @@ import {
   Output,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import {
   MatAutocompleteModule,
   type MatAutocompleteSelectedEvent,
@@ -44,7 +43,6 @@ type TagAutocompleteValue = TagDefinition | { name: string; isNew: true };
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
-    FormsModule,
     MatChipsModule,
     MatFormFieldModule,
     MatInputModule,

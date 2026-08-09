@@ -10,8 +10,8 @@
       id="media-tab-search-input"
       aria-label="Search media, elements, or tags"
       placeholder="Search media, elements, or tags..."
-      [ngModel]="searchQuery()"
-      (ngModelChange)="searchQuery.set($event)"
+      [value]="searchQuery()"
+      (input)="searchQuery.set($event.target.value)"
       data-testid="media-search-input" />
     @if (searchQuery()) {
       <button

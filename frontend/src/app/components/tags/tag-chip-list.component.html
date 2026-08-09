@@ -30,8 +30,8 @@
           [matChipInputFor]="chipGrid"
           [matChipInputSeparatorKeyCodes]="separatorKeyCodes"
           (matChipInputTokenEnd)="addTagFromInput($event)"
-          [ngModel]="tagInputValue()"
-          (ngModelChange)="tagInputValue.set($event)"
+          [value]="tagInputValue()"
+          (input)="tagInputValue.set($event.target.value)"
           id="tag-chip-input" />
       }
     </mat-chip-grid>
