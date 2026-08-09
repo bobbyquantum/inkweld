@@ -46,7 +46,10 @@ export class AppearanceService {
     this.themeService.getCurrentTheme().pipe(
       map(theme => {
         if (theme === 'system') {
-          return globalThis.matchMedia('(prefers-color-scheme: dark)').matches;
+          return (
+            globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches ??
+            false
+          );
         }
         return theme === 'dark-theme';
       })

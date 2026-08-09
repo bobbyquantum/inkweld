@@ -181,6 +181,20 @@ describe('AppearanceService', () => {
         '(prefers-color-scheme: dark)'
       );
     });
+
+    it('should not throw when matchMedia is unavailable', async () => {
+      vi.stubGlobal('matchMedia', undefined);
+
+      themeSubject.next('system');
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const result = service.resolveRegion(
+        { type: 'image', mode: 'auto', value: 'media://bg.png' },
+        'menu'
+      );
+      expect(result?.overlay).toBe('light');
+    });
   });
 
   describe('resolveImageReference', () => {
