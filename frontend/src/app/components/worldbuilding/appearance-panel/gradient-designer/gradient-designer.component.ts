@@ -160,6 +160,10 @@ export class GradientDesignerComponent {
   protected addStop(): void {
     this.stops.update(stops => {
       const next = [...stops];
+      if (next.length === 0) {
+        next.push({ color: '#ffffff', position: 0 });
+        return next;
+      }
       const last = next[next.length - 1];
       next.push({
         color: last.color,

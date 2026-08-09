@@ -1,43 +1,20 @@
 <div class="color-picker" data-testid="color-picker">
-  <div class="picker-canvas">
-    <!-- Saturation / value square -->
-    <div
-      class="sv-square"
-      [style.background]="hueColor()"
-      (pointerdown)="onSquarePointer($event)"
-      (pointermove)="onSquarePointer($event)"
-      data-testid="color-picker-sv">
-      <div
-        class="sv-cursor"
-        [style.left.%]="saturation()"
-        [style.top.%]="100 - brightness()"></div>
-    </div>
-
-    <!-- Hue wheel -->
-    <div
-      class="hue-wheel"
-      (pointerdown)="onWheelPointer($event)"
-      (pointermove)="onWheelPointer($event)"
-      data-testid="color-picker-wheel">
-      <div
-        class="hue-cursor"
-        [style.left.%]="50 + 50 * cos(hue())"
-        [style.top.%]="50 + 50 * sin(hue())"></div>
-    </div>
-  </div>
-
-  <div class="picker-footer">
-    <span
-      class="swatch"
-      [style.background]="selectedColor()"
-      data-testid="color-picker-swatch"></span>
-    <mat-form-field appearance="outline" class="hex-field">
-      <input
-        matInput
-        [value]="value()"
-        [disabled]="disabled()"
-        (input)="onHexInput($event)"
-        data-testid="color-picker-hex" />
-    </mat-form-field>
-  </div>
+  <button
+    type="button"
+    class="picker-trigger"
+    [class.disabled]="disabled()"
+    [style.background]="value() || 'transparent'"
+    [disabled]="disabled()"
+    [colorPicker]="value()"
+    [cpAlphaChannel]="'disabled'"
+    [cpOutputFormat]="'hex'"
+    [cpPosition]="'bottom right'"
+    [cpSaveClickOutside]="true"
+    [cpCloseClickOutside]="true"
+    (colorPickerChange)="onColorChange($event)"
+    data-testid="color-picker-trigger"
+    aria-label="Pick a colour"></button>
+  <span class="picker-label" data-testid="color-picker-value">{{
+    value()
+  }}</span>
 </div>

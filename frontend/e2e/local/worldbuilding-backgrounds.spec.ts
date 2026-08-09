@@ -89,10 +89,12 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
     await test.step('solid colour applies to the sidenav', async () => {
       await menuToggle.click();
       await expect(menuToggle).toHaveAttribute('aria-checked', 'true');
-      await page
-        .getByTestId('appearance-menu')
-        .getByTestId('color-picker-hex')
-        .fill(MENU_COLOUR);
+
+      const menuColour = page.getByTestId('appearance-menu');
+      await menuColour.getByTestId('color-picker-trigger').click();
+      const hexInput = page.locator('.color-picker .hex-text input').last();
+      await hexInput.fill(MENU_COLOUR);
+      await hexInput.press('Enter');
 
       await expect(sidenav).toHaveClass(/has-custom-background/);
       await expect.poll(() => sidenavBgColor(page)).toBe(MENU_COLOUR_RGB);

@@ -129,8 +129,11 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
     await enableRegion(page, region);
     await page
       .getByTestId(`appearance-${region}`)
-      .getByTestId('color-picker-hex')
-      .fill(colour);
+      .getByTestId('color-picker-trigger')
+      .click();
+    const hexInput = page.locator('.color-picker .hex-text input').last();
+    await hexInput.fill(colour);
+    await hexInput.press('Enter');
     await waitForBackgroundRendered(page, region);
   }
 
