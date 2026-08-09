@@ -132,16 +132,76 @@ export const RELATIONSHIP_COLOR_OPTIONS = [
 
 export const CATEGORY_OPTIONS: {
   value: RelationshipCategory;
-  label: string;
+  labelKey: string;
 }[] = [
-  { value: RelationshipCategory.Familial, label: 'Family' },
-  { value: RelationshipCategory.Social, label: 'Social' },
-  { value: RelationshipCategory.Professional, label: 'Professional' },
-  { value: RelationshipCategory.Spatial, label: 'Location' },
-  { value: RelationshipCategory.Temporal, label: 'Timeline' },
-  { value: RelationshipCategory.Ownership, label: 'Ownership' },
-  { value: RelationshipCategory.Reference, label: 'Reference' },
-  { value: RelationshipCategory.Custom, label: 'Other' },
+  {
+    value: RelationshipCategory.Familial,
+    labelKey: 'relationships.categories.familial',
+  },
+  {
+    value: RelationshipCategory.Social,
+    labelKey: 'relationships.categories.social',
+  },
+  {
+    value: RelationshipCategory.Professional,
+    labelKey: 'relationships.categories.professional',
+  },
+  {
+    value: RelationshipCategory.Spatial,
+    labelKey: 'relationships.categories.spatial',
+  },
+  {
+    value: RelationshipCategory.Temporal,
+    labelKey: 'relationships.categories.temporal',
+  },
+  {
+    value: RelationshipCategory.Ownership,
+    labelKey: 'relationships.categories.ownership',
+  },
+  {
+    value: RelationshipCategory.Political,
+    labelKey: 'relationships.categories.political',
+  },
+  {
+    value: RelationshipCategory.Structural,
+    labelKey: 'relationships.categories.structural',
+  },
+  {
+    value: RelationshipCategory.Conflict,
+    labelKey: 'relationships.categories.conflict',
+  },
+  {
+    value: RelationshipCategory.Religious,
+    labelKey: 'relationships.categories.religious',
+  },
+  {
+    value: RelationshipCategory.Biological,
+    labelKey: 'relationships.categories.biological',
+  },
+  {
+    value: RelationshipCategory.Scholarly,
+    labelKey: 'relationships.categories.scholarly',
+  },
+  {
+    value: RelationshipCategory.Magical,
+    labelKey: 'relationships.categories.magical',
+  },
+  {
+    value: RelationshipCategory.Economic,
+    labelKey: 'relationships.categories.economic',
+  },
+  {
+    value: RelationshipCategory.Transport,
+    labelKey: 'relationships.categories.transport',
+  },
+  {
+    value: RelationshipCategory.Reference,
+    labelKey: 'relationships.categories.reference',
+  },
+  {
+    value: RelationshipCategory.Custom,
+    labelKey: 'relationships.categories.custom',
+  },
 ];
 
 // ─── Dialog data / result interfaces ─────────────────────────────────────────

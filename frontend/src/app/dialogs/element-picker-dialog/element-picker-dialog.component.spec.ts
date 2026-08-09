@@ -6,6 +6,7 @@ import { type Element } from '../../../api-client/model/element';
 import { ElementType } from '../../../api-client/model/element-type';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ProjectStateService } from '../../services/project/project-state.service';
+import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import {
   ElementPickerDialogComponent,
   type ElementPickerDialogData,
@@ -16,6 +17,10 @@ describe('ElementPickerDialogComponent', () => {
   let fixture: ComponentFixture<ElementPickerDialogComponent>;
   let mockDialogRef: { close: ReturnType<typeof vi.fn> };
   let mockProjectState: { elements: ReturnType<typeof vi.fn> };
+  let mockWorldbuildingService: {
+    getSchemaById: ReturnType<typeof vi.fn>;
+    getSchemaIcon: ReturnType<typeof vi.fn>;
+  };
 
   const mockElements = [
     {
@@ -82,12 +87,42 @@ describe('ElementPickerDialogComponent', () => {
       elements: vi.fn().mockReturnValue(mockElements),
     };
 
+    mockWorldbuildingService = {
+      getSchemaById: vi.fn().mockImplementation((schemaId: string) => {
+        const icons: Record<string, string> = {
+          'character-v1': 'person',
+          'location-v1': 'place',
+          'wb-item-v1': 'inventory_2',
+          'species-v1': 'pets',
+          'deity-v1': 'ac_unit',
+          'faction-v1': 'groups',
+          'event-v1': 'event',
+          'concept-v1': 'lightbulb',
+        };
+        return icons[schemaId] ? { icon: icons[schemaId] } : null;
+      }),
+      getSchemaIcon: vi.fn().mockImplementation((schemaId: string) => {
+        const icons: Record<string, string> = {
+          'character-v1': 'person',
+          'location-v1': 'place',
+          'wb-item-v1': 'inventory_2',
+          'species-v1': 'pets',
+          'deity-v1': 'ac_unit',
+          'faction-v1': 'groups',
+          'event-v1': 'event',
+          'concept-v1': 'lightbulb',
+        };
+        return icons[schemaId] ?? 'category';
+      }),
+    };
+
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), ElementPickerDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: defaultDialogData },
         { provide: ProjectStateService, useValue: mockProjectState },
+        { provide: WorldbuildingService, useValue: mockWorldbuildingService },
       ],
     }).compileComponents();
 
@@ -120,6 +155,7 @@ describe('ElementPickerDialogComponent', () => {
           useValue: { filterType: ElementType.Worldbuilding },
         },
         { provide: ProjectStateService, useValue: mockProjectState },
+        { provide: WorldbuildingService, useValue: mockWorldbuildingService },
       ],
     }).compileComponents();
 
@@ -142,6 +178,7 @@ describe('ElementPickerDialogComponent', () => {
           useValue: { excludeIds: ['char-1', 'loc-1'] },
         },
         { provide: ProjectStateService, useValue: mockProjectState },
+        { provide: WorldbuildingService, useValue: mockWorldbuildingService },
       ],
     }).compileComponents();
 
@@ -198,6 +235,7 @@ describe('ElementPickerDialogComponent', () => {
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: { maxSelections: 2 } },
         { provide: ProjectStateService, useValue: mockProjectState },
+        { provide: WorldbuildingService, useValue: mockWorldbuildingService },
       ],
     }).compileComponents();
 
@@ -241,10 +279,12 @@ describe('ElementPickerDialogComponent', () => {
     expect(mockDialogRef.close).toHaveBeenCalledWith(null);
   });
 
-  it('should return correct type icons', () => {
+  it('should return correct type icons from the schema library', () => {
     expect(component.getTypeIcon('character-v1')).toBe('person');
     expect(component.getTypeIcon('location-v1')).toBe('place');
     expect(component.getTypeIcon('wb-item-v1')).toBe('inventory_2');
+    expect(component.getTypeIcon('species-v1')).toBe('pets');
+    expect(component.getTypeIcon('deity-v1')).toBe('ac_unit');
     expect(component.getTypeIcon('faction-v1')).toBe('groups');
     expect(component.getTypeIcon('event-v1')).toBe('event');
     expect(component.getTypeIcon('concept-v1')).toBe('lightbulb');

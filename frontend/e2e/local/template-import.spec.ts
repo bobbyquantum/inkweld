@@ -59,7 +59,9 @@ test.describe('Template Worldbuilding Import', () => {
       await expect(fullNameField).toBeVisible();
       await expect(fullNameField).toHaveValue('Elara Nightwhisper');
 
-      await expect(page.getByLabel('Species')).toHaveValue('Half-Elf');
+      await expect(
+        page.getByTestId('field-species').locator('input')
+      ).toHaveValue('Half-Elf');
     });
 
     await test.step('multiple characters each have unique imported data', async () => {
@@ -140,6 +142,7 @@ test.describe('Template Worldbuilding Import', () => {
       // Regression: the demo's Moonveil Reckoning time system must persist
       // on project creation, otherwise the timeline gets stuck on the
       // setup overlay instead of rendering authored events/eras.
+      await expandTreeFolder(page, 'Chronicles');
       await openTreeElement(page, 'Moonveil Chronicle');
 
       await expect(page.getByTestId('timeline-canvas')).toBeVisible();

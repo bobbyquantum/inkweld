@@ -70,18 +70,27 @@ describe('EditRelationshipTypeDialogComponent', () => {
     expect(RELATIONSHIP_COLOR_OPTIONS).toHaveLength(16);
   });
 
-  it('should export all 8 categories', () => {
-    expect(CATEGORY_OPTIONS).toHaveLength(8);
+  it('should export all 17 categories', () => {
+    expect(CATEGORY_OPTIONS).toHaveLength(17);
     const values = CATEGORY_OPTIONS.map(c => c.value);
     expect(values).toContain(RelationshipCategory.Custom);
     expect(values).toContain(RelationshipCategory.Familial);
+    expect(values).toContain(RelationshipCategory.Political);
+    expect(values).toContain(RelationshipCategory.Structural);
+    expect(values).toContain(RelationshipCategory.Conflict);
+    expect(values).toContain(RelationshipCategory.Religious);
+    expect(values).toContain(RelationshipCategory.Biological);
+    expect(values).toContain(RelationshipCategory.Scholarly);
+    expect(values).toContain(RelationshipCategory.Magical);
+    expect(values).toContain(RelationshipCategory.Economic);
+    expect(values).toContain(RelationshipCategory.Transport);
   });
 
-  it('should display "Other" for the Custom category', () => {
+  it('should map the Custom category to the "Other" translation key', () => {
     const custom = CATEGORY_OPTIONS.find(
       c => c.value === RelationshipCategory.Custom
     );
-    expect(custom?.label).toBe('Other');
+    expect(custom?.labelKey).toBe('relationships.categories.custom');
   });
 
   // ── Create mode ────────────────────────────────────────────────────────────

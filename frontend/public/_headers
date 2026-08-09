@@ -15,6 +15,11 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+# Project templates change with every release — must not be cached
+# (no-store definitively overrides the immutable /assets/* rule above)
+/assets/project-templates/*
+  Cache-Control: no-store
+
 # version.txt changes every deploy — must not be cached immutably
 /assets/version.txt
   Cache-Control: no-cache

@@ -33,6 +33,19 @@
     "metadata": {}
   },
   {
+    "id": "timeline-moonveil",
+    "name": "Moonveil Chronicle",
+    "type": "TIMELINE",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-chronicles",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "timelineConfig": "{\"version\":1,\"timeSystemId\":\"moonveil-reckoning\",\"tracks\":[{\"id\":\"tr-main\",\"name\":\"Main events\",\"color\":\"var(--timeline-color-1)\",\"visible\":true,\"order\":0},{\"id\":\"tr-chars\",\"name\":\"Characters\",\"color\":\"var(--timeline-color-2)\",\"visible\":true,\"order\":1},{\"id\":\"tr-politics\",\"name\":\"Politics\",\"color\":\"var(--timeline-color-3)\",\"visible\":true,\"order\":2}],\"events\":[{\"id\":\"ev-elara-birth\",\"trackId\":\"tr-chars\",\"title\":\"Elara is born\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1198\",\"5\",\"12\"]},\"linkedElementId\":\"char-elara\",\"color\":\"var(--timeline-color-2)\"},{\"id\":\"ev-theron-birth\",\"trackId\":\"tr-chars\",\"title\":\"Theron is born\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1195\",\"9\",\"3\"]},\"linkedElementId\":\"char-theron\",\"color\":\"var(--timeline-color-2)\"},{\"id\":\"ev-accord\",\"trackId\":\"tr-main\",\"title\":\"The Moonveil Accord\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1220\",\"6\",\"1\"]},\"end\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1220\",\"6\",\"14\"]},\"description\":\"Treaty signed between the houses at Cloudspire Academy.\",\"color\":\"var(--timeline-color-1)\"},{\"id\":\"ev-cloudspire\",\"trackId\":\"tr-politics\",\"title\":\"Cloudspire founded\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1150\",\"1\",\"1\"]},\"linkedElementId\":\"loc-cloudspire\",\"color\":\"var(--timeline-color-3)\"},{\"id\":\"ev-war\",\"trackId\":\"tr-politics\",\"title\":\"Thornwood War\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1215\",\"3\",\"1\"]},\"end\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1219\",\"11\",\"28\"]},\"linkedElementId\":\"loc-thornwood\",\"color\":\"var(--timeline-color-4)\"}],\"eras\":[{\"id\":\"era-silver\",\"name\":\"Silver Age\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1100\",\"1\",\"1\"]},\"end\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1210\",\"12\",\"28\"]},\"color\":\"var(--timeline-color-5)\"},{\"id\":\"era-accord\",\"name\":\"Accord Era\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1220\",\"1\",\"1\"]},\"end\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1260\",\"12\",\"28\"]},\"color\":\"var(--timeline-color-6)\"}]}"
+    }
+  },
+  {
     "id": "folder-characters",
     "name": "Characters",
     "type": "FOLDER",
@@ -78,6 +91,19 @@
     "expandable": false,
     "version": 0,
     "metadata": {}
+  },
+  {
+    "id": "chart-character-web",
+    "name": "Character Web",
+    "type": "RELATIONSHIP_CHART",
+    "order": 3,
+    "level": 1,
+    "parentId": "folder-characters",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "chartConfig": "{\"elementId\":\"chart-character-web\",\"layout\":\"force\",\"filters\":{\"mode\":\"curated\",\"includedElementIds\":[\"char-elara\",\"char-theron\",\"char-mira\",\"loc-silverhollow\",\"loc-thornwood\",\"loc-cloudspire\"],\"relationshipTypeIds\":[],\"schemaIds\":[],\"elementTypes\":[],\"showOrphans\":false}}"
+    }
   },
   {
     "id": "folder-locations",
@@ -127,29 +153,415 @@
     "metadata": {}
   },
   {
-    "id": "chart-character-web",
-    "name": "Character Web",
-    "type": "RELATIONSHIP_CHART",
-    "order": 4,
+    "id": "folder-species",
+    "name": "Species & Creatures",
+    "type": "FOLDER",
+    "order": 6,
     "level": 0,
     "parentId": null,
-    "expandable": false,
+    "expandable": true,
     "version": 0,
-    "metadata": {
-      "chartConfig": "{\"elementId\":\"chart-character-web\",\"layout\":\"force\",\"filters\":{\"mode\":\"curated\",\"includedElementIds\":[\"char-elara\",\"char-theron\",\"char-mira\",\"loc-silverhollow\",\"loc-thornwood\",\"loc-cloudspire\"],\"relationshipTypeIds\":[],\"schemaIds\":[],\"elementTypes\":[],\"showOrphans\":false}}"
-    }
+    "metadata": {}
   },
   {
-    "id": "timeline-moonveil",
-    "name": "Moonveil Chronicle",
-    "type": "TIMELINE",
-    "order": 5,
-    "level": 0,
-    "parentId": null,
+    "id": "spec-moonshadow",
+    "name": "Moonshadow Fox",
+    "type": "WORLDBUILDING",
+    "schemaId": "species-v1",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-species",
     "expandable": false,
     "version": 0,
-    "metadata": {
-      "timelineConfig": "{\"version\":1,\"timeSystemId\":\"moonveil-reckoning\",\"tracks\":[{\"id\":\"tr-main\",\"name\":\"Main events\",\"color\":\"var(--timeline-color-1)\",\"visible\":true,\"order\":0},{\"id\":\"tr-chars\",\"name\":\"Characters\",\"color\":\"var(--timeline-color-2)\",\"visible\":true,\"order\":1},{\"id\":\"tr-politics\",\"name\":\"Politics\",\"color\":\"var(--timeline-color-3)\",\"visible\":true,\"order\":2}],\"events\":[{\"id\":\"ev-elara-birth\",\"trackId\":\"tr-chars\",\"title\":\"Elara is born\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1198\",\"5\",\"12\"]},\"linkedElementId\":\"char-elara\",\"color\":\"var(--timeline-color-2)\"},{\"id\":\"ev-theron-birth\",\"trackId\":\"tr-chars\",\"title\":\"Theron is born\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1195\",\"9\",\"3\"]},\"linkedElementId\":\"char-theron\",\"color\":\"var(--timeline-color-2)\"},{\"id\":\"ev-accord\",\"trackId\":\"tr-main\",\"title\":\"The Moonveil Accord\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1220\",\"6\",\"1\"]},\"end\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1220\",\"6\",\"14\"]},\"description\":\"Treaty signed between the houses at Cloudspire Academy.\",\"color\":\"var(--timeline-color-1)\"},{\"id\":\"ev-cloudspire\",\"trackId\":\"tr-politics\",\"title\":\"Cloudspire founded\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1150\",\"1\",\"1\"]},\"linkedElementId\":\"loc-cloudspire\",\"color\":\"var(--timeline-color-3)\"},{\"id\":\"ev-war\",\"trackId\":\"tr-politics\",\"title\":\"Thornwood War\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1215\",\"3\",\"1\"]},\"end\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1219\",\"11\",\"28\"]},\"linkedElementId\":\"loc-thornwood\",\"color\":\"var(--timeline-color-4)\"}],\"eras\":[{\"id\":\"era-silver\",\"name\":\"Silver Age\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1100\",\"1\",\"1\"]},\"end\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1210\",\"12\",\"28\"]},\"color\":\"var(--timeline-color-5)\"},{\"id\":\"era-accord\",\"name\":\"Accord Era\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1220\",\"1\",\"1\"]},\"end\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1260\",\"12\",\"28\"]},\"color\":\"var(--timeline-color-6)\"}]}"
-    }
+    "metadata": {}
+  },
+  {
+    "id": "spec-thornfolk",
+    "name": "Thornfolk",
+    "type": "WORLDBUILDING",
+    "schemaId": "species-v1",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-species",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "folder-orgs",
+    "name": "Organizations",
+    "type": "FOLDER",
+    "order": 7,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "org-council",
+    "name": "Council of Hammers",
+    "type": "WORLDBUILDING",
+    "schemaId": "organization-v1",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-orgs",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "org-church",
+    "name": "Church of the Silver Moon",
+    "type": "WORLDBUILDING",
+    "schemaId": "organization-v1",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-orgs",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "folder-deities",
+    "name": "Deities & Religion",
+    "type": "FOLDER",
+    "order": 8,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "deity-lunara",
+    "name": "Lunara, Lady of the Silver Moon",
+    "type": "WORLDBUILDING",
+    "schemaId": "deity-v1",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-deities",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "folder-magic",
+    "name": "Magic & Lore",
+    "type": "FOLDER",
+    "order": 9,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "magic-weave",
+    "name": "The Weave of Arcana",
+    "type": "WORLDBUILDING",
+    "schemaId": "magic-system-v1",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-magic",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "spell-moonlight",
+    "name": "Moonlight Whisper",
+    "type": "WORLDBUILDING",
+    "schemaId": "spell-v1",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-magic",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "lore-library",
+    "name": "The Library of Moonveil",
+    "type": "WORLDBUILDING",
+    "schemaId": "lore-v1",
+    "order": 2,
+    "level": 1,
+    "parentId": "folder-magic",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "myth-first-accord",
+    "name": "The Legend of the First Accord",
+    "type": "WORLDBUILDING",
+    "schemaId": "myth-v1",
+    "order": 3,
+    "level": 1,
+    "parentId": "folder-magic",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "folder-geo",
+    "name": "Geography",
+    "type": "FOLDER",
+    "order": 10,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "geo-starfall",
+    "name": "Starfall Mountains",
+    "type": "WORLDBUILDING",
+    "schemaId": "geographic-feature-v1",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-geo",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "region-vales",
+    "name": "The Silver Vales",
+    "type": "WORLDBUILDING",
+    "schemaId": "region-v1",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-geo",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "country-eldoria",
+    "name": "Eldoria",
+    "type": "WORLDBUILDING",
+    "schemaId": "country-v1",
+    "order": 2,
+    "level": 1,
+    "parentId": "folder-geo",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "settle-ironhold",
+    "name": "Ironhold",
+    "type": "WORLDBUILDING",
+    "schemaId": "settlement-v1",
+    "order": 3,
+    "level": 1,
+    "parentId": "folder-geo",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "planet-aetheria",
+    "name": "Aetheria",
+    "type": "WORLDBUILDING",
+    "schemaId": "planet-v1",
+    "order": 4,
+    "level": 1,
+    "parentId": "folder-geo",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "plane-verdant",
+    "name": "The Verdant Court",
+    "type": "WORLDBUILDING",
+    "schemaId": "plane-v1",
+    "order": 5,
+    "level": 1,
+    "parentId": "folder-geo",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "folder-culture",
+    "name": "Culture & History",
+    "type": "FOLDER",
+    "order": 11,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "ethnicity-woodfolk",
+    "name": "The Woodfolk",
+    "type": "WORLDBUILDING",
+    "schemaId": "ethnicity-v1",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-culture",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "tradition-festival",
+    "name": "Festival of the Silver Moon",
+    "type": "WORLDBUILDING",
+    "schemaId": "tradition-v1",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-culture",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "lang-forest-tongue",
+    "name": "Forest Tongue",
+    "type": "WORLDBUILDING",
+    "schemaId": "language-v1",
+    "order": 2,
+    "level": 1,
+    "parentId": "folder-culture",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "conflict-thornwar",
+    "name": "The Thornwood War",
+    "type": "WORLDBUILDING",
+    "schemaId": "conflict-v1",
+    "order": 3,
+    "level": 1,
+    "parentId": "folder-culture",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "event-accord",
+    "name": "Signing of the Moonveil Accord",
+    "type": "WORLDBUILDING",
+    "schemaId": "event-v1",
+    "order": 4,
+    "level": 1,
+    "parentId": "folder-culture",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "folder-people",
+    "name": "People & Ways",
+    "type": "FOLDER",
+    "order": 12,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "prof-ranger",
+    "name": "Forest Ranger",
+    "type": "WORLDBUILDING",
+    "schemaId": "profession-v1",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-people",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "title-guardian",
+    "name": "Guardian of Thornwood",
+    "type": "WORLDBUILDING",
+    "schemaId": "title-v1",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-people",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "folder-things",
+    "name": "Things & Materials",
+    "type": "FOLDER",
+    "order": 13,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "item-moonblade",
+    "name": "Moonblade of Lunara",
+    "type": "WORLDBUILDING",
+    "schemaId": "wb-item-v1",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-things",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "mat-moonsilver",
+    "name": "Moonsilver",
+    "type": "WORLDBUILDING",
+    "schemaId": "material-v1",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-things",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "tech-cloudrunners",
+    "name": "Cloud Runners",
+    "type": "WORLDBUILDING",
+    "schemaId": "technology-v1",
+    "order": 2,
+    "level": 1,
+    "parentId": "folder-things",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "cond-moonmadness",
+    "name": "Moon Madness",
+    "type": "WORLDBUILDING",
+    "schemaId": "condition-v1",
+    "order": 3,
+    "level": 1,
+    "parentId": "folder-things",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "vehicle-starwing",
+    "name": "The Starwing",
+    "type": "WORLDBUILDING",
+    "schemaId": "vehicle-v1",
+    "order": 4,
+    "level": 1,
+    "parentId": "folder-things",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
   }
 ]
