@@ -36,20 +36,31 @@ export function parseGradient(
   let body = inner;
   const angleMatch = /^\s*([-+]?\d+(?:\.\d+)?deg)\s*,\s*/i.exec(inner);
   if (angleMatch) {
-    angle = parseFloat(angleMatch[1]) || 180;
+    angle = Number.parseFloat(angleMatch[1]) || 180;
     body = inner.slice(angleMatch[0].length);
   }
 
   const stops: GradientStop[] = [];
   for (const part of body.split(',')) {
-    const stopMatch =
-      /^\s*(#[0-9a-f]{3,8}|rgba?\([^)]*\)|hsla?\([^)]*\)|[a-z]+)\s*(\d+(?:\.\d+)?)?%?\s*$/i.exec(
-        part
+    const trimmedPart = part.trim();
+    const colorMatch =
+      /^(#[0-9a-f]{3,8}|rgba?\([^)]*\)|hsla?\([^)]*\)|hwb\([^)]*\)|[a-z]+)$/i.exec(
+        trimmedPart
       );
+    if (colorMatch) {
+      stops.push({
+        color: normalizeHex(colorMatch[1]) ?? colorMatch[1],
+        position: 0,
+      });
+      continue;
+    }
+    const stopMatch = /^([#][0-9a-f]{3,8}|[a-z]+)\s*(\d+(?:\.\d+)?)%?$/i.exec(
+      trimmedPart
+    );
     if (!stopMatch) continue;
     const color = normalizeHex(stopMatch[1]) ?? stopMatch[1];
-    const position = stopMatch[2] ? parseFloat(stopMatch[2]) : undefined;
-    stops.push({ color, position: position ?? 0 });
+    const position = Number.parseFloat(stopMatch[2]);
+    stops.push({ color, position });
   }
 
   if (stops.length < 2) return null;
@@ -164,7 +175,7 @@ export class GradientDesignerComponent {
         next.push({ color: '#ffffff', position: 0 });
         return next;
       }
-      const last = next[next.length - 1];
+      const last = next.at(-1) as GradientStop;
       next.push({
         color: last.color,
         position: Math.min(100, last.position + 10),

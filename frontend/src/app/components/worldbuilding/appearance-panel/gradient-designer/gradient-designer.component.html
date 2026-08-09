@@ -39,8 +39,12 @@
   @if (stops()[selectedIndex()]; as stop) {
     <div class="stop-editor">
       <mat-form-field appearance="outline" class="stop-color">
+        <mat-label>{{
+          'worldbuilding.appearance.stopColor' | transloco
+        }}</mat-label>
         <input
           matInput
+          [attr.aria-label]="'worldbuilding.appearance.stopColor' | transloco"
           [value]="stop.color"
           [disabled]="disabled()"
           (input)="onStopColorInput($event, selectedIndex())"
