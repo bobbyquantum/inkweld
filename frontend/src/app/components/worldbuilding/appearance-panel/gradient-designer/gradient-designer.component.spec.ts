@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import {
+  GradientDesignerComponent,
   type GradientStop,
   parseGradient,
   serializeGradient,
@@ -42,5 +46,132 @@ describe('gradient parse/serialize', () => {
     expect(serializeGradient(stops, 135)).toBe(
       'linear-gradient(135deg, #97f0ff 0%, #ffffff 100%)'
     );
+  });
+});
+
+describe('GradientDesignerComponent', () => {
+  let component: GradientDesignerComponent;
+  let fixture: ComponentFixture<GradientDesignerComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [GradientDesignerComponent, translocoTestProvider()],
+      providers: [provideZonelessChangeDetection()],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(GradientDesignerComponent);
+    component = fixture.componentInstance;
+    fixture.componentRef.setInput('value', '');
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  it('should default to two stops and 180deg for an empty value', () => {
+    fixture.detectChanges();
+    expect(component['stops']().length).toBe(2);
+    expect(component['angle']()).toBe(180);
+  });
+
+  it('should sync stops and angle from a parsed value', () => {
+    fixture.componentRef.setInput(
+      'value',
+      'linear-gradient(135deg, #97f0ff 0%, #ffffff 100%)'
+    );
+    fixture.detectChanges();
+    expect(component['stops']()).toEqual([
+      { color: '#97f0ff', position: 0 },
+      { color: '#ffffff', position: 100 },
+    ]);
+    expect(component['angle']()).toBe(135);
+  });
+
+  it('should emit a preview on change', () => {
+    fixture.detectChanges();
+    const emit = vi.fn();
+    component.valueChange.subscribe(emit);
+    component['emit']();
+    expect(emit).toHaveBeenCalledWith(
+      'linear-gradient(180deg, #4fd8eb 0%, #ffffff 100%)'
+    );
+  });
+
+  it('should update the angle from the slider', () => {
+    fixture.detectChanges();
+    component['onAngleInput']({
+      target: { value: '45' },
+    } as unknown as Event);
+    expect(component['angle']()).toBe(45);
+  });
+
+  it('should select a stop by index', () => {
+    component['selectStop'](1);
+    expect(component['selectedIndex']()).toBe(1);
+  });
+
+  it('should not drag a stop on hover (no pointer capture)', () => {
+    fixture.detectChanges();
+    const before = component['stops']()[0].position;
+    component['onBarPointer']({
+      type: 'pointermove',
+      clientX: 0,
+      currentTarget: { getBoundingClientRect: () => ({ left: 0, width: 100 }) },
+    } as unknown as PointerEvent);
+    expect(component['stops']()[0].position).toBe(before);
+  });
+
+  it('should drag a stop while the pointer is captured', () => {
+    fixture.detectChanges();
+    const el = {
+      setPointerCapture: vi.fn(),
+      getBoundingClientRect: () => ({ left: 0, width: 100 }),
+    } as unknown as HTMLElement;
+    component['onBarPointer']({
+      type: 'pointerdown',
+      pointerId: 1,
+      clientX: 50,
+      currentTarget: el,
+    } as unknown as PointerEvent);
+    expect(component['stops']()[0].position).toBe(50);
+  });
+
+  it('should update a stop colour from hex input', () => {
+    fixture.detectChanges();
+    component['onStopColorInput'](
+      { target: { value: '#ff0000' } } as unknown as Event,
+      0
+    );
+    expect(component['stops']()[0].color).toBe('#ff0000');
+  });
+
+  it('should ignore an invalid stop colour', () => {
+    fixture.detectChanges();
+    component['onStopColorInput'](
+      { target: { value: 'nope' } } as unknown as Event,
+      0
+    );
+    expect(component['stops']()[0].color).toBe('#4fd8eb');
+  });
+
+  it('should add a stop at the midpoint', () => {
+    fixture.detectChanges();
+    component['addStop']();
+    expect(component['stops']().length).toBe(3);
+    expect(component['stops']()[2].position).toBe(50);
+  });
+
+  it('should not remove a stop when there are only two', () => {
+    fixture.detectChanges();
+    component['removeStop']();
+    expect(component['stops']().length).toBe(2);
+  });
+
+  it('should remove the selected stop when there are more than two', () => {
+    fixture.detectChanges();
+    component['addStop']();
+    component['selectStop'](1);
+    component['removeStop']();
+    expect(component['stops']().length).toBe(2);
   });
 });

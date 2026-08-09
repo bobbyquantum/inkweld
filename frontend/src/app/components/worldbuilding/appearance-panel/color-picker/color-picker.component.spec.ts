@@ -1,0 +1,38 @@
+import { provideZonelessChangeDetection } from '@angular/core';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
+
+import { ColorPickerComponent } from './color-picker.component';
+
+describe('ColorPickerComponent', () => {
+  let component: ColorPickerComponent;
+  let fixture: ComponentFixture<ColorPickerComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [ColorPickerComponent],
+      providers: [provideZonelessChangeDetection()],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ColorPickerComponent);
+    component = fixture.componentInstance;
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  it('should emit the colour on change', () => {
+    const emit = vi.fn();
+    component.valueChange.subscribe(emit);
+    component['onColorChange']('#4fd8eb');
+    expect(emit).toHaveBeenCalledWith('#4fd8eb');
+  });
+
+  it('should not emit an empty colour', () => {
+    const emit = vi.fn();
+    component.valueChange.subscribe(emit);
+    component['onColorChange']('');
+    expect(emit).not.toHaveBeenCalled();
+  });
+});
