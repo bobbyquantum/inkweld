@@ -3,11 +3,17 @@
   align-items: center;
   gap: 12px;
   width: 100%;
+  padding: 0 12px;
+  height: 56px;
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--sys-surface) 50%, transparent);
+  box-sizing: border-box;
 }
 
 .picker-trigger {
-  width: 48px;
-  height: 32px;
+  width: 44px;
+  height: 28px;
   border: 1px solid var(--sys-outline-variant);
   border-radius: 6px;
   cursor: pointer;
