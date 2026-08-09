@@ -142,6 +142,7 @@ test.describe('Template Worldbuilding Import', () => {
       // Regression: the demo's Moonveil Reckoning time system must persist
       // on project creation, otherwise the timeline gets stuck on the
       // setup overlay instead of rendering authored events/eras.
+      await expandTreeFolder(page, 'Chronicles');
       await openTreeElement(page, 'Moonveil Chronicle');
 
       await expect(page.getByTestId('timeline-canvas')).toBeVisible();
