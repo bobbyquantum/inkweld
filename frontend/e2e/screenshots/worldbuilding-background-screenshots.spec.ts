@@ -93,6 +93,11 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
     await page
       .getByTestId(`appearance-${region}-option-${type.toLowerCase()}`)
       .click();
+    await expect(
+      page
+        .getByTestId(`appearance-${region}`)
+        .getByTestId(type === 'Gradient' ? 'gradient-designer' : 'color-picker')
+    ).toBeVisible();
   }
 
   /**
@@ -131,9 +136,15 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
       .getByTestId(`appearance-${region}`)
       .getByTestId('color-picker-trigger')
       .click();
-    const hexInput = page.locator('.color-picker .hex-text input').last();
+    const hexInput = page
+      .locator('.color-picker:not([data-testid]) .hex-text input')
+      .last();
     await hexInput.fill(colour);
     await hexInput.press('Enter');
+    // Ensure the colour dialog closes so it can't intercept later clicks.
+    await expect(
+      page.locator('.color-picker:not([data-testid])')
+    ).not.toBeVisible();
     await waitForBackgroundRendered(page, region);
   }
 
@@ -151,20 +162,26 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
 
     const angleMatch = /linear-gradient\(\s*(\d+)deg/i.exec(gradient);
     const angle = angleMatch ? angleMatch[1] : '180';
-    const stops = [...gradient.matchAll(/(#[0-9a-f]{3,8})\s*(\d+)?%/gi)].map(
-      m => ({ color: m[1], position: m[2] ?? '' })
-    );
+    const targetStops = [
+      ...gradient.matchAll(/(#[0-9a-f]{3,8})\s*(\d+)?%/gi),
+    ].map(m => ({ color: m[1], position: m[2] ?? '' }));
 
     const designer = page
       .getByTestId(`appearance-${region}`)
       .getByTestId('gradient-designer');
+    const stopLocators = designer.getByTestId('gradient-stop');
+    const colorInput = designer.getByTestId('gradient-stop-color');
     // The designer starts with two stops; add more if the target has more.
-    for (let i = 2; i < stops.length; i++) {
+    for (let i = 2; i < targetStops.length; i++) {
       await designer.getByTestId('gradient-add-stop').click();
     }
-    for (let i = 0; i < stops.length; i++) {
-      await designer.getByTestId('gradient-stop').nth(i).click();
-      await designer.getByTestId('gradient-stop-color').fill(stops[i].color);
+    // Stop 0 is auto-selected: fill its colour first, then select each later
+    // stop normally (force-clicking a stop drags it via the bar's pointermove).
+    for (let i = 0; i < targetStops.length; i++) {
+      if (i > 0) {
+        await stopLocators.nth(i).click();
+      }
+      await colorInput.fill(targetStops[i].color);
     }
     await designer.getByTestId('gradient-angle').fill(angle);
     await waitForBackgroundRendered(page, region);

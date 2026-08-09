@@ -114,9 +114,9 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
       const gradient = page
         .getByTestId('appearance-content')
         .getByTestId('gradient-designer');
-      // Stop 0 is selected by default; set its colour.
+      // Stop 0 is auto-selected by default; set its colour.
       await gradient.getByTestId('gradient-stop-color').fill('#97f0ff');
-      // Select stop 1 and set its colour.
+      // Select stop 1 normally and set its colour.
       await gradient.getByTestId('gradient-stop').nth(1).click();
       await gradient.getByTestId('gradient-stop-color').fill('#ffffff');
       // Set the angle.

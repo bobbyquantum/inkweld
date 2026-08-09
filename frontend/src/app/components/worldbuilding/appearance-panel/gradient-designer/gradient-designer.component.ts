@@ -176,10 +176,11 @@ export class GradientDesignerComponent {
         return next;
       }
       const last = next.at(-1) as GradientStop;
-      next.push({
-        color: last.color,
-        position: Math.min(100, last.position + 10),
-      });
+      const position =
+        next.length === 1
+          ? Math.min(100, last.position + 10)
+          : (next[next.length - 2].position + last.position) / 2;
+      next.push({ color: last.color, position });
       return next;
     });
     this.selectedIndex.set(this.stops().length - 1);

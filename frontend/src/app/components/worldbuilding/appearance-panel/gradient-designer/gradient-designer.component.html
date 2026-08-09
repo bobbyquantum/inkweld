@@ -13,6 +13,7 @@
         [style.left.%]="stop.position"
         [style.background]="stop.color"
         (pointerdown)="selectStop($index); $event.stopPropagation()"
+        (pointermove)="$event.stopPropagation()"
         data-testid="gradient-stop"></div>
     }
   </div>
