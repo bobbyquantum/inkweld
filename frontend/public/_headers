@@ -15,6 +15,11 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+# Project templates change with every release — must not be cached immutably
+# (the browser HTTP cache would otherwise serve stale template JSON for a year)
+/assets/project-templates/*
+  Cache-Control: no-cache, must-revalidate
+
 # version.txt changes every deploy — must not be cached immutably
 /assets/version.txt
   Cache-Control: no-cache
