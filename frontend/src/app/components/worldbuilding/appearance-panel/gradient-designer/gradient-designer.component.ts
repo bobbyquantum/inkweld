@@ -111,6 +111,8 @@ export class GradientDesignerComponent {
   protected readonly stops = signal<GradientStop[]>([]);
   protected readonly angle = signal(180);
   protected selectedIndex = signal(0);
+  /** True while the pointer is captured for dragging a stop along the bar. */
+  private dragging = false;
 
   /** The CSS background for the preview bar. */
   protected readonly preview = computed(() =>
@@ -143,6 +145,18 @@ export class GradientDesignerComponent {
   }
 
   protected onBarPointer(event: PointerEvent): void {
+    // Only move the selected stop while actively dragging. The pointer is
+    // captured on pointerdown and released on pointerup/cancel; pointermove
+    // alone (hover) must not grab the handle.
+    if (event.type === 'pointerdown') {
+      this.dragging = true;
+      (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    } else if (event.type === 'pointerup' || event.type === 'pointercancel') {
+      this.dragging = false;
+      return;
+    } else if (!this.dragging) {
+      return;
+    }
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const position = Math.min(
       100,

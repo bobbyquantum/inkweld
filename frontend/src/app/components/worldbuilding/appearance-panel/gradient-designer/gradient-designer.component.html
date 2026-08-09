@@ -1,10 +1,13 @@
 <div class="gradient-designer" data-testid="gradient-designer">
-  <!-- Preview bar with draggable stops -->
+  <!-- Preview bar with draggable stops. Stops only move while the pointer is
+       captured (active drag), so hovering doesn't grab a handle. -->
   <div
     class="gradient-bar"
     [style.background]="preview()"
     (pointerdown)="onBarPointer($event)"
     (pointermove)="onBarPointer($event)"
+    (pointerup)="onBarPointer($event)"
+    (pointercancel)="onBarPointer($event)"
     data-testid="gradient-bar">
     @for (stop of stops(); track $index) {
       <div
