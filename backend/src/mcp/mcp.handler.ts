@@ -385,10 +385,7 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
     }
 
     // Route to appropriate handler
-    const routed = await dispatchMethod(c, requestId, method, paramRecord, startTime);
-    if (routed instanceof Response) {
-      return routed;
-    }
+    const routed = await dispatchMethod(c, method, paramRecord);
 
     const elapsed = Date.now() - startTime;
     mcpLog.info(`[END] ${method} (${elapsed}ms)`);
@@ -402,34 +399,60 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
     const elapsed = Date.now() - startTime;
     mcpLog.error('MCP', `[ERROR] (${elapsed}ms)`, { error: err });
 
-    // Handle canonical MCP RPC errors (thrown by handlers)
-    if (err instanceof McpRpcError) {
-      // A request missing a required `_meta` field is malformed; per the spec
-      // this is HTTP 400 (Invalid Params). Detect it via the data discriminator
-      // rather than string-matching the message.
-      const missingRequiredField =
-        err.code === JSON_RPC_ERRORS.INVALID_PARAMS &&
-        (err.data as Record<string, unknown> | undefined)?.requiredField !== undefined;
-      const isMetaValidationFailure =
-        err.code === JSON_RPC_ERRORS.UNSUPPORTED_PROTOCOL_VERSION ||
-        err.code === JSON_RPC_ERRORS.HEADER_MISMATCH ||
-        err.code === JSON_RPC_ERRORS.MISSING_REQUIRED_CLIENT_CAPABILITY ||
-        missingRequiredField;
-      return c.json(
-        createErrorResponse(requestId ?? 0, err.code, err.message, err.data),
-        isMetaValidationFailure ? 400 : undefined
-      );
-    }
+    return handleHandlerError(c, requestId, err);
+  }
+}
 
-    // Handle unexpected errors — sanitize message to avoid leaking internals
+/**
+ * Convert an error thrown while handling a request into a JSON-RPC response.
+ * Unknown methods answer 404; MCP RPC errors keep their code (with a 400
+ * status for meta-validation failures); anything else is sanitized to a
+ * generic internal error.
+ */
+function handleHandlerError(
+  c: Context<AppContext>,
+  requestId: string | number | undefined,
+  err: unknown
+): Response {
+  // Unknown RPC methods are answered with HTTP 404 + a JSON-RPC -32601 error.
+  if (err instanceof McpMethodNotFoundError) {
     return c.json(
       createErrorResponse(
         requestId ?? 0,
-        JSON_RPC_ERRORS.INTERNAL_ERROR,
-        err instanceof Error ? err.message : 'Internal server error'
-      )
+        JSON_RPC_ERRORS.METHOD_NOT_FOUND,
+        `Unknown method: ${err.method}`
+      ),
+      404
     );
   }
+
+  // Handle canonical MCP RPC errors (thrown by handlers)
+  if (err instanceof McpRpcError) {
+    // A request missing a required `_meta` field is malformed; per the spec
+    // this is HTTP 400 (Invalid Params). Detect it via the data discriminator
+    // rather than string-matching the message.
+    const missingRequiredField =
+      err.code === JSON_RPC_ERRORS.INVALID_PARAMS &&
+      (err.data as Record<string, unknown> | undefined)?.requiredField !== undefined;
+    const isMetaValidationFailure =
+      err.code === JSON_RPC_ERRORS.UNSUPPORTED_PROTOCOL_VERSION ||
+      err.code === JSON_RPC_ERRORS.HEADER_MISMATCH ||
+      err.code === JSON_RPC_ERRORS.MISSING_REQUIRED_CLIENT_CAPABILITY ||
+      missingRequiredField;
+    return c.json(
+      createErrorResponse(requestId ?? 0, err.code, err.message, err.data),
+      isMetaValidationFailure ? 400 : undefined
+    );
+  }
+
+  // Handle unexpected errors — sanitize message to avoid leaking internals
+  return c.json(
+    createErrorResponse(
+      requestId ?? 0,
+      JSON_RPC_ERRORS.INTERNAL_ERROR,
+      err instanceof Error ? err.message : 'Internal server error'
+    )
+  );
 }
 
 /**
@@ -469,16 +492,15 @@ function handleLegacyRequest(
 }
 
 /**
- * Route a request to its method handler. Returns a JSON-RPC result, or a
- * `Response` for the unknown-method case (HTTP 404 with -32601).
+ * Route a request to its method handler and return the JSON-RPC result.
+ * Unknown methods throw `McpMethodNotFoundError`, which the caller converts
+ * into an HTTP 404 response with a `-32601` error.
  */
 async function dispatchMethod(
   c: Context<AppContext>,
-  requestId: string | number | undefined,
   method: string,
-  paramRecord: Record<string, unknown>,
-  startTime: number
-): Promise<unknown | Response> {
+  paramRecord: Record<string, unknown>
+): Promise<unknown> {
   switch (method) {
     case 'server/discover':
       return handleDiscover();
@@ -514,14 +536,19 @@ async function dispatchMethod(
     // `ping`, `notifications/roots/list_changed`, `logging/setLevel`. Unknown
     // methods return 404 with a JSON-RPC -32601 error per the spec.
     default:
-      mcpLog.info(`[END] unknown method (${Date.now() - startTime}ms)`);
-      return c.json(
-        createErrorResponse(
-          requestId ?? 0,
-          JSON_RPC_ERRORS.METHOD_NOT_FOUND,
-          `Unknown method: ${method}`
-        ),
-        404
-      );
+      mcpLog.info(`[END] unknown method`);
+      throw new McpMethodNotFoundError(method);
+  }
+}
+
+/**
+ * Raised for RPC methods this server does not implement. The caller answers
+ * with HTTP 404 and a JSON-RPC `-32601` (Method not found) error.
+ */
+class McpMethodNotFoundError extends Error {
+  method: string;
+  constructor(method: string) {
+    super(`Unknown method: ${method}`);
+    this.method = method;
   }
 }
