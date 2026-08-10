@@ -7,13 +7,21 @@
  */
 
 import type { McpContext, McpResource, McpResourceContents } from '../mcp.types';
-import { getAllProjects } from '../mcp.types';
-import { McpRpcError, JSON_RPC_ERRORS } from '../mcp.types';
+import { McpRpcError, JSON_RPC_ERRORS, getAllProjects } from '../mcp.types';
 import { registerResourceHandler } from '../mcp.handler';
 import { getElements, getWorldbuildingDoc } from '../tools/yjs-runtime';
 import { logger } from '../../services/logger.service';
 
 const _mcpResourceLog = logger.child('MCP-Resources');
+
+/**
+ * Permission required to read each project sub-resource.
+ */
+const SUB_RESOURCE_PERMISSIONS: Record<'elements' | 'worldbuilding' | 'schemas', string> = {
+  elements: 'read:elements',
+  worldbuilding: 'read:worldbuilding',
+  schemas: 'read:schemas',
+};
 
 /**
  * Projects resource handler
@@ -138,11 +146,7 @@ const projectsResourceHandler = {
       }
 
       const permissionForResource =
-        subResource === 'elements'
-          ? 'read:elements'
-          : subResource === 'worldbuilding'
-            ? 'read:worldbuilding'
-            : 'read:schemas';
+        SUB_RESOURCE_PERMISSIONS[subResource as keyof typeof SUB_RESOURCE_PERMISSIONS];
       if (!project.permissions.includes(permissionForResource)) {
         throw new McpRpcError(
           JSON_RPC_ERRORS.INVALID_REQUEST,
@@ -150,94 +154,119 @@ const projectsResourceHandler = {
         );
       }
 
-      try {
-        if (subResource === 'elements') {
-          const elements = await getElements(ctx, username, slug);
-          return {
-            uri,
-            mimeType: 'application/json',
-            text: JSON.stringify(
-              {
-                total: elements.length,
-                elements: elements.map((el) => ({
-                  id: el.id,
-                  name: el.name,
-                  type: el.type,
-                  level: el.level,
-                })),
-              },
-              null,
-              2
-            ),
-          };
-        }
-
-        if (subResource === 'worldbuilding') {
-          const elements = await getElements(ctx, username, slug);
-          const worldbuilding: Record<string, unknown> = {};
-          // Bound the read to avoid an unbounded N+1 document load on large
-          // projects, and process with limited concurrency.
-          const MAX_ELEMENTS = 200;
-          const CONCURRENCY = 8;
-          const sample = elements.slice(0, MAX_ELEMENTS);
-          let index = 0;
-          const worker = async () => {
-            while (index < sample.length) {
-              const el = sample[index++];
-              try {
-                const doc = await getWorldbuildingDoc(ctx, username, slug, el.id);
-                const data = doc.toJSON();
-                if (Object.keys(data).length > 0) {
-                  worldbuilding[el.id] = { name: el.name, data };
-                }
-              } catch (err) {
-                // No worldbuilding doc for this element is expected; log real
-                // failures at debug level so they are not silently hidden.
-                _mcpResourceLog.debug(
-                  `[resources/read] No worldbuilding doc for element ${el.id} in ${username}/${slug}`,
-                  { error: err }
-                );
-              }
-            }
-          };
-          await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-          return {
-            uri,
-            mimeType: 'application/json',
-            text: JSON.stringify(
-              {
-                totalEntries: Object.keys(worldbuilding).length,
-                truncated: elements.length > MAX_ELEMENTS,
-                worldbuilding,
-              },
-              null,
-              2
-            ),
-          };
-        }
-
-        // schemas: no dedicated Yjs doc in the unified runtime; return a
-        // stable empty listing so the advertised sub-resource resolves.
-        return {
-          uri,
-          mimeType: 'application/json',
-          text: JSON.stringify({ total: 0, schemas: [] }, null, 2),
-        };
-      } catch (err) {
-        _mcpResourceLog.error(`[resources/read] Failed to read ${subResource} for ${uri}`, {
-          error: err,
-        });
-        return {
-          uri,
-          mimeType: 'application/json',
-          text: JSON.stringify({ uri, error: `Failed to read project ${subResource}` }, null, 2),
-        };
-      }
+      return readSubResource(ctx, uri, username, slug, subResource);
     }
 
     return null;
   },
 };
+
+/**
+ * Read a project sub-resource (elements / worldbuilding / schemas).
+ */
+async function readSubResource(
+  ctx: McpContext,
+  uri: string,
+  username: string,
+  slug: string,
+  subResource: string
+): Promise<McpResourceContents> {
+  try {
+    if (subResource === 'elements') {
+      const elements = await getElements(ctx, username, slug);
+      return {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(
+          {
+            total: elements.length,
+            elements: elements.map((el) => ({
+              id: el.id,
+              name: el.name,
+              type: el.type,
+              level: el.level,
+            })),
+          },
+          null,
+          2
+        ),
+      };
+    }
+
+    if (subResource === 'worldbuilding') {
+      return readWorldbuilding(ctx, uri, username, slug);
+    }
+
+    // schemas: no dedicated Yjs doc in the unified runtime; return a stable
+    // empty listing so the advertised sub-resource resolves.
+    return {
+      uri,
+      mimeType: 'application/json',
+      text: JSON.stringify({ total: 0, schemas: [] }, null, 2),
+    };
+  } catch (err) {
+    _mcpResourceLog.error(`[resources/read] Failed to read ${subResource} for ${uri}`, {
+      error: err,
+    });
+    return {
+      uri,
+      mimeType: 'application/json',
+      text: JSON.stringify({ uri, error: `Failed to read project ${subResource}` }, null, 2),
+    };
+  }
+}
+
+/**
+ * Read the worldbuilding sub-resource. Bounds the read to avoid an unbounded
+ * N+1 document load on large projects and processes with limited concurrency.
+ */
+async function readWorldbuilding(
+  ctx: McpContext,
+  uri: string,
+  username: string,
+  slug: string
+): Promise<McpResourceContents> {
+  const MAX_ELEMENTS = 200;
+  const CONCURRENCY = 8;
+
+  const elements = await getElements(ctx, username, slug);
+  const worldbuilding: Record<string, unknown> = {};
+  const sample = elements.slice(0, MAX_ELEMENTS);
+  let index = 0;
+  const worker = async () => {
+    while (index < sample.length) {
+      const el = sample[index++];
+      try {
+        const doc = await getWorldbuildingDoc(ctx, username, slug, el.id);
+        const data = doc.toJSON();
+        if (Object.keys(data).length > 0) {
+          worldbuilding[el.id] = { name: el.name, data };
+        }
+      } catch (err) {
+        // No worldbuilding doc for this element is expected; log real
+        // failures at debug level so they are not silently hidden.
+        _mcpResourceLog.debug(
+          `[resources/read] No worldbuilding doc for element ${el.id} in ${username}/${slug}`,
+          { error: err }
+        );
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  return {
+    uri,
+    mimeType: 'application/json',
+    text: JSON.stringify(
+      {
+        totalEntries: Object.keys(worldbuilding).length,
+        truncated: elements.length > MAX_ELEMENTS,
+        worldbuilding,
+      },
+      null,
+      2
+    ),
+  };
+}
 
 /**
  * Summarize permissions into human-readable form

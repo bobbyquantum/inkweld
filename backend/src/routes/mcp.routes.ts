@@ -15,8 +15,14 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import type { Context } from 'hono';
 import type { AppContext } from '../types/context';
-import { mcpAuth, handleMcpRequest } from '../mcp';
-import { createErrorResponse, JSON_RPC_ERRORS, META_KEYS, getRequestMeta } from '../mcp';
+import {
+  mcpAuth,
+  handleMcpRequest,
+  createErrorResponse,
+  JSON_RPC_ERRORS,
+  META_KEYS,
+  getRequestMeta,
+} from '../mcp';
 
 const mcpRoutes = new OpenAPIHono<AppContext>();
 
@@ -177,7 +183,7 @@ function decodeHeaderValue(value: string): string {
     const payload = value.slice(BASE64_SENTINEL_PREFIX.length, -BASE64_SENTINEL_SUFFIX.length);
     try {
       const binary = atob(payload);
-      const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+      const bytes = Uint8Array.from(binary, (ch) => ch.codePointAt(0) ?? 0);
       return new TextDecoder().decode(bytes);
     } catch {
       return value;
@@ -228,12 +234,12 @@ function validateMcpHeaders(c: Context<AppContext>, body: Record<string, unknown
   // Mcp-Name header is required for tools/call, resources/read, prompts/get.
   if (method === 'tools/call' || method === 'resources/read' || method === 'prompts/get') {
     const headerName = c.req.header('Mcp-Name');
-    const sourceValue =
-      typeof params.name === 'string'
-        ? params.name
-        : typeof params.uri === 'string'
-          ? params.uri
-          : undefined;
+    let sourceValue: string | undefined;
+    if (typeof params.name === 'string') {
+      sourceValue = params.name;
+    } else if (typeof params.uri === 'string') {
+      sourceValue = params.uri;
+    }
     if (!headerName || sourceValue === undefined || decodeHeaderValue(headerName) !== sourceValue) {
       return false;
     }

@@ -452,10 +452,8 @@ registerTool({
     const topResults = results.slice(0, limit);
 
     const filterSuffix = types.length > 0 ? ` (filtered by: ${types.join(', ')})` : '';
-    const namesText =
-      topResults.length > 0
-        ? `\n\n${topResults.map((r) => `- ${r.elementName} (${r.elementType})`).join('\n')}`
-        : '';
+    const matchedLines = topResults.map((r) => `- ${r.elementName} (${r.elementType})`).join('\n');
+    const namesText = topResults.length > 0 ? `\n\n${matchedLines}` : '';
     return {
       content: [
         {

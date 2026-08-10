@@ -369,29 +369,14 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
     const isModernRequest = requestMeta?.[META_KEYS.protocolVersion] !== undefined;
 
     if (!isModernRequest) {
-      // Legacy-era request. `initialize` is answered with the classic
-      // initialize result (and an Mcp-Session-Id header). Other methods are
-      // served statelessly without `_meta` requirements below.
-      if (method === 'initialize' || method === 'notifications/initialized') {
-        const initializeParams = paramRecord as unknown as McpInitializeParams;
-        const sessionId = generateSessionId();
-        return c.json(
-          {
-            jsonrpc: '2.0',
-            id: requestId,
-            result: {
-              protocolVersion: initializeParams.protocolVersion || PROTOCOL_VERSION,
-              capabilities: SERVER_CAPABILITIES,
-              serverInfo: { name: 'inkweld-mcp', version: '1.0.0' },
-            },
-          },
-          200,
-          { 'Mcp-Session-Id': sessionId }
-        );
-      }
-      // Legacy ping is answered leniently.
-      if (method === 'ping') {
-        return c.json({ jsonrpc: '2.0', id: requestId, result: {} });
+      const legacyResponse = handleLegacyRequest(
+        c,
+        requestId as string | number,
+        method,
+        paramRecord
+      );
+      if (legacyResponse) {
+        return legacyResponse;
       }
       mcpLog.info(`[START] legacy ${method} (id: ${requestId})`);
     } else {
@@ -400,59 +385,9 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
     }
 
     // Route to appropriate handler
-    let result: unknown;
-
-    switch (method) {
-      case 'server/discover':
-        result = handleDiscover();
-        break;
-
-      case 'resources/list':
-        result = await handleResourcesList(c);
-        break;
-
-      case 'resources/read':
-        result = await handleResourcesRead(c, paramRecord as { uri: string });
-        break;
-
-      case 'resources/templates/list':
-        // Future work: implement resource templates
-        result = toCompleteResult({ resourceTemplates: [] });
-        break;
-
-      case 'prompts/list':
-        // No prompt templates are defined by this server yet.
-        result = toCompleteResult({ prompts: [] });
-        break;
-
-      case 'prompts/get':
-        // No prompt templates are defined by this server yet.
-        throw new McpRpcError(JSON_RPC_ERRORS.INVALID_PARAMS, 'Prompt not found');
-
-      case 'tools/list':
-        result = await handleToolsList(c);
-        break;
-
-      case 'tools/call':
-        result = await handleToolsCall(
-          c,
-          paramRecord as { name: string; arguments?: Record<string, unknown> }
-        );
-        break;
-
-      // Removed in the stateless protocol: `initialize`, `notifications/initialized`,
-      // `ping`, `notifications/roots/list_changed`, `logging/setLevel`. Unknown
-      // methods return 404 with a JSON-RPC -32601 error per the spec.
-      default:
-        mcpLog.info(`[END] unknown method (${Date.now() - startTime}ms)`);
-        return c.json(
-          createErrorResponse(
-            requestId ?? 0,
-            JSON_RPC_ERRORS.METHOD_NOT_FOUND,
-            `Unknown method: ${method}`
-          ),
-          404
-        );
+    const routed = await dispatchMethod(c, requestId, method, paramRecord, startTime);
+    if (routed instanceof Response) {
+      return routed;
     }
 
     const elapsed = Date.now() - startTime;
@@ -460,7 +395,7 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
 
     // Build response with appropriate headers. No Mcp-Session-Id is minted:
     // the protocol is stateless.
-    const responseBody = createSuccessResponse(requestId ?? 0, result);
+    const responseBody = createSuccessResponse(requestId ?? 0, routed);
 
     return c.json(responseBody);
   } catch (err) {
@@ -494,5 +429,99 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
         err instanceof Error ? err.message : 'Internal server error'
       )
     );
+  }
+}
+
+/**
+ * Answer a legacy (pre-2026-07-28) request, or return `null` when the request
+ * should continue through the normal dispatch path.
+ */
+function handleLegacyRequest(
+  c: Context<AppContext>,
+  requestId: string | number,
+  method: string,
+  paramRecord: Record<string, unknown>
+): Response | null {
+  // `initialize` is answered with the classic initialize result (and an
+  // Mcp-Session-Id header).
+  if (method === 'initialize' || method === 'notifications/initialized') {
+    const initializeParams = paramRecord as unknown as McpInitializeParams;
+    const sessionId = generateSessionId();
+    return c.json(
+      {
+        jsonrpc: '2.0',
+        id: requestId,
+        result: {
+          protocolVersion: initializeParams.protocolVersion || PROTOCOL_VERSION,
+          capabilities: SERVER_CAPABILITIES,
+          serverInfo: { name: 'inkweld-mcp', version: '1.0.0' },
+        },
+      },
+      200,
+      { 'Mcp-Session-Id': sessionId }
+    );
+  }
+  // Legacy ping is answered leniently.
+  if (method === 'ping') {
+    return c.json({ jsonrpc: '2.0', id: requestId, result: {} });
+  }
+  return null;
+}
+
+/**
+ * Route a request to its method handler. Returns a JSON-RPC result, or a
+ * `Response` for the unknown-method case (HTTP 404 with -32601).
+ */
+async function dispatchMethod(
+  c: Context<AppContext>,
+  requestId: string | number | undefined,
+  method: string,
+  paramRecord: Record<string, unknown>,
+  startTime: number
+): Promise<unknown | Response> {
+  switch (method) {
+    case 'server/discover':
+      return handleDiscover();
+
+    case 'resources/list':
+      return await handleResourcesList(c);
+
+    case 'resources/read':
+      return await handleResourcesRead(c, paramRecord as { uri: string });
+
+    case 'resources/templates/list':
+      // Future work: implement resource templates
+      return toCompleteResult({ resourceTemplates: [] });
+
+    case 'prompts/list':
+      // No prompt templates are defined by this server yet.
+      return toCompleteResult({ prompts: [] });
+
+    case 'prompts/get':
+      // No prompt templates are defined by this server yet.
+      throw new McpRpcError(JSON_RPC_ERRORS.INVALID_PARAMS, 'Prompt not found');
+
+    case 'tools/list':
+      return await handleToolsList(c);
+
+    case 'tools/call':
+      return await handleToolsCall(
+        c,
+        paramRecord as { name: string; arguments?: Record<string, unknown> }
+      );
+
+    // Removed in the stateless protocol: `initialize`, `notifications/initialized`,
+    // `ping`, `notifications/roots/list_changed`, `logging/setLevel`. Unknown
+    // methods return 404 with a JSON-RPC -32601 error per the spec.
+    default:
+      mcpLog.info(`[END] unknown method (${Date.now() - startTime}ms)`);
+      return c.json(
+        createErrorResponse(
+          requestId ?? 0,
+          JSON_RPC_ERRORS.METHOD_NOT_FOUND,
+          `Unknown method: ${method}`
+        ),
+        404
+      );
   }
 }
