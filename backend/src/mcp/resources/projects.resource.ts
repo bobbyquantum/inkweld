@@ -8,6 +8,7 @@
 
 import type { McpContext, McpResource, McpResourceContents } from '../mcp.types';
 import { getAllProjects } from '../mcp.types';
+import { McpRpcError, JSON_RPC_ERRORS } from '../mcp.types';
 import { registerResourceHandler } from '../mcp.handler';
 import { getElements, getWorldbuildingDoc } from '../tools/yjs-runtime';
 import { logger } from '../../services/logger.service';
@@ -143,19 +144,10 @@ const projectsResourceHandler = {
             ? 'read:worldbuilding'
             : 'read:schemas';
       if (!project.permissions.includes(permissionForResource)) {
-        return {
-          uri,
-          mimeType: 'application/json',
-          text: JSON.stringify(
-            {
-              uri,
-              error: `Permission denied: missing ${permissionForResource}`,
-              message: 'This API key or grant does not grant access to this resource.',
-            },
-            null,
-            2
-          ),
-        };
+        throw new McpRpcError(
+          JSON_RPC_ERRORS.INVALID_REQUEST,
+          `Permission denied: missing ${permissionForResource} for resource ${uri}`
+        );
       }
 
       try {
@@ -183,23 +175,39 @@ const projectsResourceHandler = {
         if (subResource === 'worldbuilding') {
           const elements = await getElements(ctx, username, slug);
           const worldbuilding: Record<string, unknown> = {};
-          for (const el of elements) {
-            try {
-              const doc = await getWorldbuildingDoc(ctx, username, slug, el.id);
-              const data = doc.toJSON();
-              if (Object.keys(data).length > 0) {
-                worldbuilding[el.id] = { name: el.name, data };
+          // Bound the read to avoid an unbounded N+1 document load on large
+          // projects, and process with limited concurrency.
+          const MAX_ELEMENTS = 200;
+          const CONCURRENCY = 8;
+          const sample = elements.slice(0, MAX_ELEMENTS);
+          let index = 0;
+          const worker = async () => {
+            while (index < sample.length) {
+              const el = sample[index++];
+              try {
+                const doc = await getWorldbuildingDoc(ctx, username, slug, el.id);
+                const data = doc.toJSON();
+                if (Object.keys(data).length > 0) {
+                  worldbuilding[el.id] = { name: el.name, data };
+                }
+              } catch (err) {
+                // No worldbuilding doc for this element is expected; log real
+                // failures at debug level so they are not silently hidden.
+                _mcpResourceLog.debug(
+                  `[resources/read] No worldbuilding doc for element ${el.id} in ${username}/${slug}`,
+                  { error: err }
+                );
               }
-            } catch {
-              // element has no worldbuilding doc — skip
             }
-          }
+          };
+          await Promise.all(Array.from({ length: CONCURRENCY }, worker));
           return {
             uri,
             mimeType: 'application/json',
             text: JSON.stringify(
               {
                 totalEntries: Object.keys(worldbuilding).length,
+                truncated: elements.length > MAX_ELEMENTS,
                 worldbuilding,
               },
               null,

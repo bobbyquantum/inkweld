@@ -1460,8 +1460,10 @@ registerTool({
       slug,
       projectId,
       projectKey: `${username}/${slug}`,
-      ...dbFields,
       ...metadata,
+      // The DB record is canonical for title/description (spread last so it
+      // wins over any Yjs-authored metadata with the same keys).
+      ...dbFields,
     };
 
     return {

@@ -125,18 +125,22 @@ function validateRequestMeta(
   }
 
   // Body is the source of truth per the spec; the header (when present) must
-  // already have been validated by the transport layer.
+  // already have been validated by the transport layer. A request missing a
+  // required `_meta` field is malformed -> Invalid Params (-32602) per spec,
+  // carried on HTTP as 400 (see the catch handler below).
   if (!bodyVersion) {
     throw new McpRpcError(
       JSON_RPC_ERRORS.INVALID_PARAMS,
-      'Missing required _meta field: io.modelcontextprotocol/protocolVersion'
+      'Missing required _meta field: io.modelcontextprotocol/protocolVersion',
+      { requiredField: META_KEYS.protocolVersion }
     );
   }
 
   if (!hasClientCapabilities) {
     throw new McpRpcError(
       JSON_RPC_ERRORS.INVALID_PARAMS,
-      'Missing required _meta field: io.modelcontextprotocol/clientCapabilities'
+      'Missing required _meta field: io.modelcontextprotocol/clientCapabilities',
+      { requiredField: META_KEYS.clientCapabilities }
     );
   }
 
@@ -325,15 +329,6 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
   mcpLog.info('[HANDLER] Request received');
 
   try {
-    // Check MCP-Protocol-Version header if present
-    const clientProtocolVersion = c.req.header('MCP-Protocol-Version');
-    if (clientProtocolVersion && clientProtocolVersion !== PROTOCOL_VERSION) {
-      // Log but don't reject - be lenient for compatibility
-      mcpLog.debug(
-        `Client protocol version ${clientProtocolVersion} differs from ${PROTOCOL_VERSION}`
-      );
-    }
-
     mcpLog.info('[HANDLER] Parsing body...');
 
     // Parse request body
@@ -378,7 +373,7 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
       // initialize result (and an Mcp-Session-Id header). Other methods are
       // served statelessly without `_meta` requirements below.
       if (method === 'initialize' || method === 'notifications/initialized') {
-        const initializeParams = paramRecord as McpInitializeParams;
+        const initializeParams = paramRecord as unknown as McpInitializeParams;
         const sessionId = generateSessionId();
         return c.json(
           {
@@ -474,15 +469,17 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
 
     // Handle canonical MCP RPC errors (thrown by handlers)
     if (err instanceof McpRpcError) {
+      // A request missing a required `_meta` field is malformed; per the spec
+      // this is HTTP 400 (Invalid Params). Detect it via the data discriminator
+      // rather than string-matching the message.
+      const missingRequiredField =
+        err.code === JSON_RPC_ERRORS.INVALID_PARAMS &&
+        (err.data as Record<string, unknown> | undefined)?.requiredField !== undefined;
       const isMetaValidationFailure =
         err.code === JSON_RPC_ERRORS.UNSUPPORTED_PROTOCOL_VERSION ||
         err.code === JSON_RPC_ERRORS.HEADER_MISMATCH ||
         err.code === JSON_RPC_ERRORS.MISSING_REQUIRED_CLIENT_CAPABILITY ||
-        // A request missing a required `_meta` field is malformed; per the
-        // spec this is HTTP 400 (Invalid Params).
-        (err.code === JSON_RPC_ERRORS.INVALID_PARAMS &&
-          typeof err.message === 'string' &&
-          err.message.startsWith('Missing required _meta'));
+        missingRequiredField;
       return c.json(
         createErrorResponse(requestId ?? 0, err.code, err.message, err.data),
         isMetaValidationFailure ? 400 : undefined

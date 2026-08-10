@@ -39,12 +39,19 @@ AI Client (Claude, etc.)
 | **Protocol Version** | `2026-07-28`                                   |
 | **Auth**             | Bearer token (OAuth JWT or legacy API key)     |
 
-The server implements the **stateless** MCP protocol (`2026-07-28`): there is no
-`initialize` handshake and no `Mcp-Session-Id` header. Every request carries its
-protocol version, client info, and client capabilities in `_meta`, and the server
-identifies itself in each result's `_meta`. `GET`/`DELETE` on the endpoint return
-`405 Method Not Allowed`. Use `server/discover` to learn the supported protocol
-versions and capabilities before sending other requests.
+The server implements the **stateless** MCP protocol (`2026-07-28`): modern
+clients have no `initialize` handshake and no `Mcp-Session-Id` header. Every
+request carries its protocol version, client info, and client capabilities in
+`_meta`, and the server identifies itself in each result's `_meta`.
+`GET`/`DELETE` on the endpoint return `405 Method Not Allowed`. Stateless
+`2026-07-28` clients should call `server/discover` first to learn the supported
+protocol versions and capabilities.
+
+For backward compatibility, the server is **dual-era**: legacy clients (those
+using the pre-stateless `initialize` handshake, e.g. MCP Inspector 0.22.0) are
+still served the classic initialize response with an `Mcp-Session-Id` header,
+while requests that carry their protocol version in `_meta` are served
+statelessly.
 
 ### Available Tools
 

@@ -63,6 +63,25 @@ const mcpJsonRpcRoute = createRoute({
   description:
     'MCP Streamable HTTP endpoint (stateless, protocol 2026-07-28). Send JSON-RPC messages via POST. Authenticate with Bearer token or X-API-Key header. Each request carries its protocol version in _meta.',
   request: {
+    headers: z.object({
+      'MCP-Protocol-Version': z.string().optional().openapi({
+        example: '2026-07-28',
+        description:
+          'MCP protocol version, must match _meta.io.modelcontextprotocol/protocolVersion',
+      }),
+      'Mcp-Method': z.string().optional().openapi({
+        example: 'server/discover',
+        description: 'The JSON-RPC method, must match the request body method',
+      }),
+      'Mcp-Name': z.string().optional().openapi({
+        description:
+          'The tool/prompt name or resource URI (required for tools/call, resources/read, prompts/get)',
+      }),
+      Authorization: z
+        .string()
+        .optional()
+        .openapi({ description: 'Bearer token (OAuth JWT or legacy API key)' }),
+    }),
     body: {
       content: {
         'application/json': {
@@ -150,12 +169,16 @@ const BASE64_SENTINEL_SUFFIX = '?=';
 
 /**
  * Decode a header value that may use the Base64 sentinel encoding.
+ * The base64 payload is the UTF-8 bytes of the original value, so decode it
+ * as UTF-8 (not a raw binary string) to avoid mojibake for non-ASCII names.
  */
 function decodeHeaderValue(value: string): string {
   if (value.startsWith(BASE64_SENTINEL_PREFIX) && value.endsWith(BASE64_SENTINEL_SUFFIX)) {
     const payload = value.slice(BASE64_SENTINEL_PREFIX.length, -BASE64_SENTINEL_SUFFIX.length);
     try {
-      return atob(payload);
+      const binary = atob(payload);
+      const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
     } catch {
       return value;
     }
@@ -219,12 +242,23 @@ function validateMcpHeaders(c: Context<AppContext>, body: Record<string, unknown
   return true;
 }
 
-function headerMismatch(c: Context<AppContext>): Response {
+function headerMismatch(c: Context<AppContext>, id: string | number = 0): Response {
   return c.json(
-    createErrorResponse(0, JSON_RPC_ERRORS.HEADER_MISMATCH, 'MCP request header/body mismatch'),
+    createErrorResponse(id, JSON_RPC_ERRORS.HEADER_MISMATCH, 'MCP request header/body mismatch'),
     400
   );
 }
+
+// Apply MCP auth middleware only to POST requests. Auth runs first so that
+// unauthenticated callers receive 401 (not header-validation 400s) and the
+// untrusted body is not parsed before identity is established.
+mcpRoutes.use('/', async (c, next) => {
+  // Only apply auth to POST requests
+  if (c.req.method === 'POST') {
+    return mcpAuth(c, next);
+  }
+  return next();
+});
 
 // Validate standard headers on POST before handing off to the handler.
 mcpRoutes.use('/', async (c, next) => {
@@ -235,18 +269,10 @@ mcpRoutes.use('/', async (c, next) => {
       typeof body !== 'object' ||
       !validateMcpHeaders(c, body as Record<string, unknown>)
     ) {
-      return headerMismatch(c);
+      const rawId = (body as Record<string, unknown>)?.id;
+      return headerMismatch(c, typeof rawId === 'string' || typeof rawId === 'number' ? rawId : 0);
     }
     return next();
-  }
-  return next();
-});
-
-// Apply MCP auth middleware only to POST requests
-mcpRoutes.use('/', async (c, next) => {
-  // Only apply auth to POST requests
-  if (c.req.method === 'POST') {
-    return mcpAuth(c, next);
   }
   return next();
 });

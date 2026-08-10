@@ -10153,6 +10153,50 @@
         ],
         "operationId": "mcpJsonRpc",
         "description": "MCP Streamable HTTP endpoint (stateless, protocol 2026-07-28). Send JSON-RPC messages via POST. Authenticate with Bearer token or X-API-Key header. Each request carries its protocol version in _meta.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "2026-07-28",
+              "description": "MCP protocol version, must match _meta.io.modelcontextprotocol/protocolVersion"
+            },
+            "required": false,
+            "description": "MCP protocol version, must match _meta.io.modelcontextprotocol/protocolVersion",
+            "name": "MCP-Protocol-Version",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "server/discover",
+              "description": "The JSON-RPC method, must match the request body method"
+            },
+            "required": false,
+            "description": "The JSON-RPC method, must match the request body method",
+            "name": "Mcp-Method",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The tool/prompt name or resource URI (required for tools/call, resources/read, prompts/get)"
+            },
+            "required": false,
+            "description": "The tool/prompt name or resource URI (required for tools/call, resources/read, prompts/get)",
+            "name": "Mcp-Name",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Bearer token (OAuth JWT or legacy API key)"
+            },
+            "required": false,
+            "description": "Bearer token (OAuth JWT or legacy API key)",
+            "name": "Authorization",
+            "in": "header"
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {

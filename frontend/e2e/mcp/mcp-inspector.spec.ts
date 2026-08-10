@@ -77,9 +77,9 @@ test.describe('Inspector connection', () => {
     await expect(
       page
         .locator('.bg-red-500')
+        .or(page.getByText(/Error Connecting|unauthorized|401/i))
+        .or(page.getByText(/Disconnected/i))
         .first()
-        .or(page.getByText(/Error Connecting|unauthorized|401/i).first())
-        .or(page.getByText(/Disconnected/i).first())
     ).toBeVisible();
   });
 });
@@ -181,11 +181,12 @@ test.describe('Inspector tool browsing', () => {
     if (await runButton.isVisible()) {
       await runButton.click();
 
-      // Wait for results to appear - the completed call shows up in the
-      // History list (a `tools/call` entry) and the result panel.
+      // The completed call appears in History and the response panel shows the
+      // tool's actual output — the project key for get_project_tree.
       await expect(
         page.getByText('tools/call', { exact: false }).first()
       ).toBeVisible();
+      await expect(page.getByText(mcpContext.projectKey).first()).toBeVisible();
     }
   });
 });
@@ -221,13 +222,8 @@ test.describe('Inspector resource browsing', () => {
     if (await readButton.isVisible()) {
       await readButton.click();
 
-      // Should show resource contents
-      await expect(
-        page
-          .getByText(mcpContext.projectSlug)
-          .first()
-          .or(page.getByText(/content/i).first())
-      ).toBeVisible();
+      // The resource contents include the project key for the authorized project.
+      await expect(page.getByText(mcpContext.projectKey).first()).toBeVisible();
     }
   });
 });

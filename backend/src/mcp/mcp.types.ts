@@ -188,13 +188,16 @@ export function serverMeta(): { _meta: { [META_KEYS.serverInfo]: McpServerInfo }
 
 /**
  * Wrap a result object with the required `resultType: 'complete'` field and
- * the server identity `_meta`, per the stateless spec.
+ * the server identity `_meta`, per the stateless spec. Any `_meta` already
+ * present on the result (e.g. tool-provided metadata) is merged in rather
+ * than discarded.
  */
 export function toCompleteResult(result: Record<string, unknown>): Record<string, unknown> {
+  const existingMeta = (result._meta ?? {}) as Record<string, unknown>;
   return {
     resultType: 'complete' as McpResultType,
     ...result,
-    ...serverMeta(),
+    _meta: { ...existingMeta, ...serverMeta()._meta },
   };
 }
 
