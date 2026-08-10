@@ -70,7 +70,7 @@ describe('GradientDesignerComponent', () => {
 
   it('should default to two stops and 180deg for an empty value', () => {
     fixture.detectChanges();
-    expect(component['stops']().length).toBe(2);
+    expect(component['stops']()).toHaveLength(2);
     expect(component['angle']()).toBe(180);
   });
 
@@ -170,6 +170,34 @@ describe('GradientDesignerComponent', () => {
     expect(component['stops']()[0].position).toBe(before);
   });
 
+  it('should not drag a stop past its neighbour', () => {
+    fixture.detectChanges();
+    const el = {
+      setPointerCapture: vi.fn(),
+      closest: () => ({
+        getBoundingClientRect: () => ({ left: 0, width: 100 }),
+      }),
+    } as unknown as HTMLElement;
+    // Select stop 0 and try to drag it past stop 1 (at 100%).
+    component['onStopPointerDown'](0, {
+      pointerId: 1,
+      clientX: 90,
+      currentTarget: el,
+    } as unknown as PointerEvent);
+    expect(component['stops']()[0].position).toBeLessThanOrEqual(
+      component['stops']()[1].position
+    );
+    // Select stop 1 and try to drag it before stop 0 (at 0%).
+    component['onStopPointerDown'](1, {
+      pointerId: 2,
+      clientX: 10,
+      currentTarget: el,
+    } as unknown as PointerEvent);
+    expect(component['stops']()[0].position).toBeLessThanOrEqual(
+      component['stops']()[1].position
+    );
+  });
+
   it('should update a stop colour from the chooser', () => {
     fixture.detectChanges();
     component['onStopColorChange'](0, '#ff0000');
@@ -185,14 +213,14 @@ describe('GradientDesignerComponent', () => {
   it('should add a stop at the midpoint', () => {
     fixture.detectChanges();
     component['addStop']();
-    expect(component['stops']().length).toBe(3);
+    expect(component['stops']()).toHaveLength(3);
     expect(component['stops']()[2].position).toBe(50);
   });
 
   it('should not remove a stop when there are only two', () => {
     fixture.detectChanges();
     component['removeStop']();
-    expect(component['stops']().length).toBe(2);
+    expect(component['stops']()).toHaveLength(2);
   });
 
   it('should remove the selected stop when there are more than two', () => {
@@ -200,6 +228,6 @@ describe('GradientDesignerComponent', () => {
     component['addStop']();
     component['selectStop'](1);
     component['removeStop']();
-    expect(component['stops']().length).toBe(2);
+    expect(component['stops']()).toHaveLength(2);
   });
 });

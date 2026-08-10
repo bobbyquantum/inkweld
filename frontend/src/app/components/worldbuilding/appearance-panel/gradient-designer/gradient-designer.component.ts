@@ -173,14 +173,16 @@ export class GradientDesignerComponent {
     ) as HTMLElement | null;
     if (!bar) return;
     const rect = bar.getBoundingClientRect();
-    const position = Math.min(
-      100,
-      Math.max(0, ((event.clientX - rect.left) / rect.width) * 100)
-    );
+    const raw = ((event.clientX - rect.left) / rect.width) * 100;
     const idx = this.selectedIndex();
-    this.stops.update(stops =>
-      stops.map((s, i) => (i === idx ? { ...s, position } : s))
-    );
+    this.stops.update(stops => {
+      const prev = idx > 0 ? stops[idx - 1].position : 0;
+      const next = idx < stops.length - 1 ? stops[idx + 1].position : 100;
+      // Keep the stop between its neighbours so dragging can't reorder or
+      // overlap stops (which previously caused a hard visual cut-off).
+      const position = Math.min(next, Math.max(prev, raw));
+      return stops.map((s, i) => (i === idx ? { ...s, position } : s));
+    });
     this.emit();
   }
 
