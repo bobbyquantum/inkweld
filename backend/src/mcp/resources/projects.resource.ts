@@ -6,8 +6,14 @@
  * For legacy auth: lists the single project the API key has access to
  */
 
-import type { McpContext, McpResource, McpResourceContents } from '../mcp.types';
-import { McpRpcError, JSON_RPC_ERRORS, getAllProjects } from '../mcp.types';
+import {
+  type McpContext,
+  type McpResource,
+  type McpResourceContents,
+  McpRpcError,
+  JSON_RPC_ERRORS,
+  getAllProjects,
+} from '../mcp.types';
 import { registerResourceHandler } from '../mcp.handler';
 import { getElements, getWorldbuildingDoc } from '../tools/yjs-runtime';
 import { logger } from '../../services/logger.service';
