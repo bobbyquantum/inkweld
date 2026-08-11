@@ -1,14 +1,5 @@
 <div class="color-picker" data-testid="color-picker">
-  <button
-    type="button"
-    class="picker-trigger"
-    [class.disabled]="disabled()"
-    [style.background]="value() || 'transparent'"
-    [disabled]="disabled()"
-    (click)="openPicker()"
-    data-testid="color-picker-trigger"
-    aria-label="Pick a colour"></button>
-  <span class="picker-label" data-testid="color-picker-value">{{
-    value()
-  }}</span>
+  <app-hsv-picker
+    [value]="value()"
+    (valueChange)="onColorChange($event)"></app-hsv-picker>
 </div>

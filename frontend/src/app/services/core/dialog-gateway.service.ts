@@ -9,10 +9,6 @@ import {
   type AddRelationshipDialogResult,
 } from '../../dialogs/add-relationship-dialog/add-relationship-dialog.component';
 import {
-  ColourChooserDialogComponent,
-  type ColourChooserDialogData,
-} from '../../dialogs/colour-chooser-dialog/colour-chooser-dialog.component';
-import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
 } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
@@ -90,18 +86,6 @@ export class DialogGatewayService {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       data,
       disableClose: true,
-    });
-    return firstValueFrom(dialogRef.afterClosed());
-  }
-
-  openColourChooserDialog(
-    data: ColourChooserDialogData
-  ): Promise<string | undefined> {
-    const dialogRef = this.dialog.open(ColourChooserDialogComponent, {
-      data,
-      width: '380px',
-      maxWidth: '90vw',
-      disableClose: false,
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

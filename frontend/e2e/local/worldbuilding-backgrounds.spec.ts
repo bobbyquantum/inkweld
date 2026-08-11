@@ -46,14 +46,15 @@ async function openCharacter(page: Page): Promise<void> {
   await expect(page.getByTestId('appearance-panel')).toBeVisible();
 }
 
-async function setColourViaDialog(page: Page, colour: string): Promise<void> {
-  await page.getByTestId('colour-chooser-swatch').waitFor({ state: 'visible' });
-  await page.getByTestId('colour-chooser-swatch').click();
-  const hexInput = page.locator('.color-picker.open .hex-text input').last();
-  await hexInput.fill(colour);
-  await hexInput.press('Enter');
-  await page.getByTestId('colour-chooser-apply').click();
-  await expect(page.getByTestId('colour-chooser-apply')).not.toBeVisible();
+async function setColour(
+  page: Page,
+  container: ReturnType<Page['getByTestId']>,
+  colour: string
+): Promise<void> {
+  const hex = container.getByTestId('hsv-hex');
+  await hex.waitFor({ state: 'visible' });
+  await hex.fill(colour);
+  await hex.press('Enter');
 }
 
 async function setGradientStopColor(
@@ -61,8 +62,7 @@ async function setGradientStopColor(
   gradient: ReturnType<Page['getByTestId']>,
   color: string
 ): Promise<void> {
-  await gradient.getByTestId('color-picker-trigger').first().click();
-  await setColourViaDialog(page, color);
+  await setColour(page, gradient, color);
 }
 
 function sidenavBgColor(page: Page): Promise<string> {
@@ -110,8 +110,7 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
       await expect(menuToggle).toHaveAttribute('aria-checked', 'true');
 
       const menuColour = page.getByTestId('appearance-menu');
-      await menuColour.getByTestId('color-picker-trigger').click();
-      await setColourViaDialog(page, MENU_COLOUR);
+      await setColour(page, menuColour, MENU_COLOUR);
 
       await expect(sidenav).toHaveClass(/has-custom-background/);
       await expect.poll(() => sidenavBgColor(page)).toBe(MENU_COLOUR_RGB);

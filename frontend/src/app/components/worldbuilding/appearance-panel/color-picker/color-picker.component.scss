@@ -3,31 +3,8 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 0 12px;
-  height: 56px;
-  border: 1px solid var(--sys-outline-variant);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--sys-surface) 50%, transparent);
-  box-sizing: border-box;
-}
 
-.picker-trigger {
-  width: 44px;
-  height: 28px;
-  border: 1px solid var(--sys-outline-variant);
-  border-radius: 6px;
-  cursor: pointer;
-  flex-shrink: 0;
-  padding: 0;
-
-  &.disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
+  app-hsv-picker {
+    width: 100%;
   }
-}
-
-.picker-label {
-  font-size: 13px;
-  font-family: var(--sys-mono-font, monospace);
-  color: var(--sys-on-surface-variant);
 }

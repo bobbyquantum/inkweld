@@ -132,25 +132,20 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
     colour: string
   ): Promise<void> {
     await enableRegion(page, region);
-    await page
-      .getByTestId(`appearance-${region}`)
-      .getByTestId('color-picker-trigger')
-      .click();
-    await setColourViaDialog(page, colour);
+    await setColour(page, page.getByTestId(`appearance-${region}`), colour);
     await waitForBackgroundRendered(page, region);
   }
 
-  /** Set a colour through the modal colour chooser dialog. */
-  async function setColourViaDialog(page: Page, colour: string): Promise<void> {
-    await page
-      .getByTestId('colour-chooser-swatch')
-      .waitFor({ state: 'visible' });
-    await page.getByTestId('colour-chooser-swatch').click();
-    const hexInput = page.locator('.color-picker.open .hex-text input').last();
-    await hexInput.fill(colour);
-    await hexInput.press('Enter');
-    await page.getByTestId('colour-chooser-apply').click();
-    await expect(page.getByTestId('colour-chooser-apply')).not.toBeVisible();
+  /** Set a colour through the inline HSV picker. */
+  async function setColour(
+    page: Page,
+    container: ReturnType<Page['getByTestId']>,
+    colour: string
+  ): Promise<void> {
+    const hex = container.getByTestId('hsv-hex');
+    await hex.waitFor({ state: 'visible' });
+    await hex.fill(colour);
+    await hex.press('Enter');
   }
 
   /**
@@ -183,8 +178,7 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
     // the colour chooser in the stop editor.
     const setStopColor = async (index: number, color: string) => {
       await stopLocators.nth(index).click();
-      await designer.getByTestId('color-picker-trigger').first().click();
-      await setColourViaDialog(page, color);
+      await setColour(page, designer, color);
     };
     for (let i = 0; i < targetStops.length; i++) {
       await setStopColor(i, targetStops[i].color);

@@ -1,30 +1,24 @@
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
-  inject,
   input,
   output,
 } from '@angular/core';
-import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+
+import { HsvPickerComponent } from './hsv-picker.component';
 
 /**
- * A colour chooser for a solid background colour.
- *
- * Opens a normal modal colour dialog (matching the app's other dialogs) so the
- * picker stays in place and doesn't suffer popup positioning issues inside the
- * editor. Emits a normalized hex string.
+ * A colour chooser for a solid background colour, embedded inline in the panel
+ * (no popup/dialog). Emits a normalized hex string.
  */
 @Component({
   selector: 'app-color-picker',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
+  imports: [HsvPickerComponent],
   templateUrl: './color-picker.component.html',
   styleUrl: './color-picker.component.scss',
 })
 export class ColorPickerComponent {
-  private readonly dialogGateway = inject(DialogGatewayService);
-
   /** Current color as a `#rrggbb` string. */
   value = input<string>('');
   disabled = input<boolean>(false);
@@ -32,11 +26,7 @@ export class ColorPickerComponent {
   /** Emits the normalized `#rrggbb` color whenever the user changes it. */
   readonly valueChange = output<string>();
 
-  protected async openPicker(): Promise<void> {
-    if (this.disabled()) return;
-    const colour = await this.dialogGateway.openColourChooserDialog({
-      colour: this.value(),
-    });
+  protected onColorChange(colour: string): void {
     if (colour) {
       this.valueChange.emit(colour);
     }
