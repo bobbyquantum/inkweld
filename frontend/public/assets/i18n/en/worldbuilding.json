@@ -100,6 +100,7 @@
     "gradient": "Gradient",
     "pickImage": "Pick image",
     "pickImageTitle": "Select background image",
+    "pickColour": "Pick a colour",
     "valuePlaceholder": "e.g. #4fd8eb or linear-gradient(...)",
     "gradientAngle": "Angle",
     "stopColor": "Colour",

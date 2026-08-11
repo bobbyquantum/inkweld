@@ -114,39 +114,47 @@
 
         <!-- Description section -->
         <div class="description-section">
-          <mat-form-field appearance="outline" class="description-field">
-            <mat-label>{{
-              'worldbuilding.identityPanel.descriptionLabel' | transloco
-            }}</mat-label>
-            <textarea
-              matInput
-              [ngModel]="description()"
-              (ngModelChange)="onDescriptionChange($event)"
-              [placeholder]="
-                'worldbuilding.identityPanel.descriptionPlaceholder' | transloco
-              "
-              rows="4"
-              cdkTextareaAutosize
-              [readonly]="!canWrite()"
-              id="identity-panel-description-input"
-              [attr.aria-label]="
-                'worldbuilding.identityPanel.descriptionAria' | transloco
-              "></textarea>
-            <mat-hint>{{
-              'worldbuilding.identityPanel.descriptionHint' | transloco
-            }}</mat-hint>
-          </mat-form-field>
+          <app-glass-card
+            [title]="'worldbuilding.identityPanel.descriptionLabel' | transloco"
+            class="identity-glass">
+            <mat-form-field appearance="outline" class="description-field">
+              <mat-label>{{
+                'worldbuilding.identityPanel.descriptionLabel' | transloco
+              }}</mat-label>
+              <textarea
+                matInput
+                [ngModel]="description()"
+                (ngModelChange)="onDescriptionChange($event)"
+                [placeholder]="
+                  'worldbuilding.identityPanel.descriptionPlaceholder'
+                    | transloco
+                "
+                rows="4"
+                cdkTextareaAutosize
+                [readonly]="!canWrite()"
+                id="identity-panel-description-input"
+                [attr.aria-label]="
+                  'worldbuilding.identityPanel.descriptionAria' | transloco
+                "></textarea>
+              <mat-hint>{{
+                'worldbuilding.identityPanel.descriptionHint' | transloco
+              }}</mat-hint>
+            </mat-form-field>
+          </app-glass-card>
         </div>
 
         <!-- Tags section -->
         <div class="tags-section">
-          <app-tag-chip-list
-            [elementId]="elementId()"
-            [label]="'worldbuilding.identityPanel.tagsLabel' | transloco"
-            [hint]="'worldbuilding.identityPanel.tagsHint' | transloco"
-            [compact]="true"
-            [readonly]="!canWrite()">
-          </app-tag-chip-list>
+          <app-glass-card
+            [title]="'worldbuilding.identityPanel.tagsLabel' | transloco"
+            class="identity-glass">
+            <app-tag-chip-list
+              [elementId]="elementId()"
+              [hint]="'worldbuilding.identityPanel.tagsHint' | transloco"
+              [compact]="true"
+              [readonly]="!canWrite()">
+            </app-tag-chip-list>
+          </app-glass-card>
         </div>
 
         <!-- Appearance section -->

@@ -136,16 +136,21 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
       .getByTestId(`appearance-${region}`)
       .getByTestId('color-picker-trigger')
       .click();
-    const hexInput = page
-      .locator('.color-picker:not([data-testid]) .hex-text input')
-      .last();
+    await setColourViaDialog(page, colour);
+    await waitForBackgroundRendered(page, region);
+  }
+
+  /** Set a colour through the modal colour chooser dialog. */
+  async function setColourViaDialog(page: Page, colour: string): Promise<void> {
+    await page
+      .getByTestId('colour-chooser-swatch')
+      .waitFor({ state: 'visible' });
+    await page.getByTestId('colour-chooser-swatch').click();
+    const hexInput = page.locator('.color-picker.open .hex-text input').last();
     await hexInput.fill(colour);
     await hexInput.press('Enter');
-    // Ensure the colour dialog closes so it can't intercept later clicks.
-    await expect(
-      page.locator('.color-picker:not([data-testid])')
-    ).not.toBeVisible();
-    await waitForBackgroundRendered(page, region);
+    await page.getByTestId('colour-chooser-apply').click();
+    await expect(page.getByTestId('colour-chooser-apply')).not.toBeVisible();
   }
 
   /**
@@ -179,12 +184,7 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
     const setStopColor = async (index: number, color: string) => {
       await stopLocators.nth(index).click();
       await designer.getByTestId('color-picker-trigger').first().click();
-      const hexInput = page
-        .locator('.color-picker.open .hex-text input')
-        .last();
-      await hexInput.fill(color);
-      await hexInput.press('Enter');
-      await page.keyboard.press('Escape');
+      await setColourViaDialog(page, color);
     };
     for (let i = 0; i < targetStops.length; i++) {
       await setStopColor(i, targetStops[i].color);

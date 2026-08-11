@@ -358,9 +358,25 @@ mat-accordion {
 .field-container {
   grid-column: span 12;
 
+  // Glass card treatment so the per-element background shows through while the
+  // form fields stay readable (matches the appearance panel cards).
+  border: 1px solid
+    color-mix(in srgb, var(--sys-outline-variant) 60%, transparent);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: color-mix(
+    in srgb,
+    var(--sys-surface-container-low) 55%,
+    transparent
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-sizing: border-box;
+
   // Narrow container: always full width
   @container wb-content (max-width: 600px) {
     grid-column: span 1 !important;
+    padding: 8px 10px;
   }
 }
 

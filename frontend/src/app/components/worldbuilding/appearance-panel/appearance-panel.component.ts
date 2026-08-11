@@ -15,6 +15,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { GlassCardComponent } from '@components/glass-card/glass-card.component';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   type AppearanceRegion,
@@ -64,6 +65,7 @@ interface SaveSnapshot {
     MatSlideToggleModule,
     MatTooltipModule,
     TranslocoModule,
+    GlassCardComponent,
     ColorPickerComponent,
     GradientDesignerComponent,
   ],

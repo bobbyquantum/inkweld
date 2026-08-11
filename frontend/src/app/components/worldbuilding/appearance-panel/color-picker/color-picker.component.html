@@ -5,13 +5,7 @@
     [class.disabled]="disabled()"
     [style.background]="value() || 'transparent'"
     [disabled]="disabled()"
-    [colorPicker]="value()"
-    [cpAlphaChannel]="'disabled'"
-    [cpOutputFormat]="'hex'"
-    [cpPosition]="'bottom right'"
-    [cpSaveClickOutside]="true"
-    [cpCloseClickOutside]="true"
-    (colorPickerChange)="onColorChange($event)"
+    (click)="openPicker()"
     data-testid="color-picker-trigger"
     aria-label="Pick a colour"></button>
   <span class="picker-label" data-testid="color-picker-value">{{

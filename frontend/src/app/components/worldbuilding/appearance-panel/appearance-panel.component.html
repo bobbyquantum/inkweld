@@ -6,16 +6,17 @@
 
   @for (region of regions; track region) {
     @let setting = getSetting(region);
-    <div class="appearance-region" [attr.data-testid]="'appearance-' + region">
+    <app-glass-card
+      [icon]="region === 'menu' ? 'menu' : 'view_quilt'"
+      [title]="
+        (region === 'menu'
+          ? 'worldbuilding.appearance.menuLabel'
+          : 'worldbuilding.appearance.contentLabel'
+        ) | transloco
+      "
+      class="appearance-region"
+      [attr.data-testid]="'appearance-' + region">
       <div class="region-header">
-        <span class="region-label">
-          {{
-            (region === 'menu'
-              ? 'worldbuilding.appearance.menuLabel'
-              : 'worldbuilding.appearance.contentLabel'
-            ) | transloco
-          }}
-        </span>
         <mat-slide-toggle
           [checked]="isEnabled(region)"
           [disabled]="!canWrite()"
@@ -149,29 +150,11 @@
                   [value]="getSettingValue(region, 'value')"
                   [disabled]="!canWrite()"
                   (valueChange)="setValue(region, 'value', $event)" />
-              } @else {
-                <mat-form-field appearance="outline" class="control-value">
-                  <mat-label>
-                    {{ 'worldbuilding.appearance.color' | transloco }}
-                  </mat-label>
-                  <input
-                    matInput
-                    [attr.id]="'appearance-' + region + '-value'"
-                    [value]="getSettingValue(region, 'value')"
-                    [disabled]="!canWrite()"
-                    (input)="
-                      setValue(region, 'value', $any($event.target).value)
-                    "
-                    [placeholder]="
-                      'worldbuilding.appearance.valuePlaceholder' | transloco
-                    "
-                    [attr.data-testid]="'appearance-' + region + '-value'" />
-                </mat-form-field>
               }
             }
           }
         </div>
       }
-    </div>
+    </app-glass-card>
   }
 </div>

@@ -1,0 +1,25 @@
+mat-dialog-content {
+  min-width: 260px;
+  overflow: visible;
+}
+
+.colour-chooser-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.swatch {
+  width: 48px;
+  height: 32px;
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.colour-value {
+  font-size: 13px;
+  font-family: var(--sys-mono-font, monospace);
+  color: var(--sys-on-surface-variant);
+}

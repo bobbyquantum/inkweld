@@ -16,6 +16,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { GlassCardComponent } from '@components/glass-card/glass-card.component';
 import { AppearancePanelComponent } from '@components/worldbuilding/appearance-panel/appearance-panel.component';
 import { TranslocoModule } from '@jsverse/transloco';
 import { type ElementAppearance } from '@models/element-appearance';
@@ -53,6 +54,7 @@ import { TagChipListComponent } from '../../tags/tag-chip-list.component';
     TranslocoModule,
     TagChipListComponent,
     AppearancePanelComponent,
+    GlassCardComponent,
   ],
   templateUrl: './identity-panel.component.html',
   styleUrls: ['./identity-panel.component.scss'],

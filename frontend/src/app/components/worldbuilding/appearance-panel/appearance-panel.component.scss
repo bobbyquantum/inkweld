@@ -16,13 +16,21 @@
 }
 
 .appearance-region {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--sys-outline-variant);
-  border-radius: 10px;
-  background: var(--sys-surface-container-low);
+  display: block;
+
+  // Make the region a glass card that lets a custom background show through.
+  --glass-card-bg: color-mix(
+    in srgb,
+    var(--sys-surface-container-low) 65%,
+    transparent
+  );
+  --glass-card-border: var(--sys-outline-variant);
+
+  ::ng-deep .glass-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 
 .region-header {

@@ -5,6 +5,7 @@ import {
   inject,
   type OnInit,
   signal,
+  ViewContainerRef,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -35,6 +36,13 @@ import { UnifiedUserService } from './services/user/unified-user.service';
   styleUrl: './app.component.scss',
 })
 export class AppComponent implements OnInit {
+  /**
+   * Exposed for ngx-color-picker's `cpUseRootViewContainer`, so its popup is
+   * created at the app root — outside the worldbuilding editor, which uses
+   * `container-type` that would otherwise break the popup's fixed positioning.
+   */
+  readonly viewContainerRef = inject(ViewContainerRef);
+
   protected readonly offlineMode = signal(false);
   protected readonly themeService = inject(ThemeService);
   protected readonly setupService = inject(SetupService);
