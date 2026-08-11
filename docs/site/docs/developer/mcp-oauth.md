@@ -32,55 +32,69 @@ AI Client (Claude, etc.)
 
 ## MCP Endpoint
 
-| Property | Value |
-|---|---|
-| **URL** | `/api/v1/ai/mcp` |
-| **Transport** | Streamable HTTP (POST for JSON-RPC, GET for SSE) |
-| **Protocol Version** | `2025-06-18` |
-| **Auth** | Bearer token (OAuth JWT or legacy API key) |
+| Property             | Value                                          |
+| -------------------- | ---------------------------------------------- |
+| **URL**              | `/api/v1/ai/mcp`                               |
+| **Transport**        | Streamable HTTP (stateless, POST for JSON-RPC) |
+| **Protocol Version** | `2026-07-28`                                   |
+| **Auth**             | Bearer token (OAuth JWT or legacy API key)     |
+
+The server implements the **stateless** MCP protocol (`2026-07-28`): modern
+clients have no `initialize` handshake and no `Mcp-Session-Id` header. Every
+request carries its protocol version, client info, and client capabilities in
+`_meta`, and the server identifies itself in each result's `_meta`.
+`GET`/`DELETE` on the endpoint return `405 Method Not Allowed`. Stateless
+`2026-07-28` clients should call `server/discover` first to learn the supported
+protocol versions and capabilities.
+
+For backward compatibility, the server is **dual-era**: legacy clients (those
+using the pre-stateless `initialize` handshake, e.g. MCP Inspector 0.22.0) are
+still served the classic initialize response with an `Mcp-Session-Id` header,
+while requests that carry their protocol version in `_meta` are served
+statelessly.
 
 ### Available Tools
 
 #### Read Operations
 
-| Tool | Description |
-|---|---|
-| `get_project_tree` | Get the element tree structure for a project |
-| `search_elements` | Full-text search across project elements |
-| `search_worldbuilding` | Search worldbuilding content with optional full data |
-| `search_relationships` | Find relationships for a specific element |
-| `get_element_full` | Get complete element data including worldbuilding |
-| `get_document_content` | Get prose content from a document element |
-| `get_relationships_graph` | Get all relationships as a graph structure |
-| `get_project_metadata` | Get project metadata and settings |
-| `get_publish_plans` | Get saved publish/export configurations |
-| `list_project_media` | List project media files and media:// URLs |
-| `list_image_profiles` | List enabled image profiles and profile IDs for generation |
-| `get_media_content` | Read media:// content as image, text, or base64 |
+| Tool                      | Description                                                |
+| ------------------------- | ---------------------------------------------------------- |
+| `get_project_tree`        | Get the element tree structure for a project               |
+| `search_elements`         | Full-text search across project elements                   |
+| `search_worldbuilding`    | Search worldbuilding content with optional full data       |
+| `search_relationships`    | Find relationships for a specific element                  |
+| `get_element_full`        | Get complete element data including worldbuilding          |
+| `get_document_content`    | Get prose content from a document element                  |
+| `get_relationships_graph` | Get all relationships as a graph structure                 |
+| `get_project_metadata`    | Get project metadata and settings                          |
+| `get_publish_plans`       | Get saved publish/export configurations                    |
+| `list_project_media`      | List project media files and media:// URLs                 |
+| `list_image_profiles`     | List enabled image profiles and profile IDs for generation |
+| `get_media_content`       | Read media:// content as image, text, or base64            |
 
 #### Write Operations
 
-| Tool | Description |
-|---|---|
-| `create_element` | Create new story elements |
-| `update_element` | Modify existing elements |
-| `delete_element` | Remove elements from the tree |
-| `move_elements` | Move elements to a new parent |
-| `reorder_element` | Change element position within siblings |
-| `sort_elements` | Sort children alphabetically |
-| `update_worldbuilding` | Update worldbuilding data for an element |
-| `update_document_content` | Replace prose content of a document element |
-| `create_relationship` | Create relationships between elements |
-| `delete_relationship` | Remove a relationship |
-| `tag_element` | Add, remove, or set tags on an element |
-| `create_snapshot` | Create a snapshot of a document's current state |
+| Tool                      | Description                                     |
+| ------------------------- | ----------------------------------------------- |
+| `create_element`          | Create new story elements                       |
+| `update_element`          | Modify existing elements                        |
+| `delete_element`          | Remove elements from the tree                   |
+| `move_elements`           | Move elements to a new parent                   |
+| `reorder_element`         | Change element position within siblings         |
+| `sort_elements`           | Sort children alphabetically                    |
+| `update_worldbuilding`    | Update worldbuilding data for an element        |
+| `update_document_content` | Replace prose content of a document element     |
+| `create_relationship`     | Create relationships between elements           |
+| `delete_relationship`     | Remove a relationship                           |
+| `tag_element`             | Add, remove, or set tags on an element          |
+| `create_snapshot`         | Create a snapshot of a document's current state |
 
 When creating a worldbuilding entry via `create_element`, pass `schemaId` along with `type: "WORLDBUILDING"` so the element is template-bound (for example, `character-v1` or `location-v1`). If `schemaId` is omitted, the element is treated as generic worldbuilding.
 
 #### Image Operations
 
-| Tool | Description |
-|---|---|
+| Tool          | Description                                                                                                                               |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `apply_image` | Unified image tool: generate (AI), upload (base64), or reference existing media — and optionally assign to project cover or element image |
 
 Call `list_image_profiles` first and pass `profileId` when using `source: "generate"`.
@@ -100,11 +114,11 @@ Use tools like `search_elements`, `add_element`, and `update_element` to work wi
 
 ### Discovery Endpoints
 
-| Endpoint | RFC | Purpose |
-|---|---|---|
-| `/.well-known/oauth-protected-resource` | RFC 9728 | Protected Resource Metadata |
-| `/.well-known/oauth-authorization-server` | RFC 8414 | Authorization Server Metadata |
-| `/.well-known/openid-configuration` | OIDC | OpenID Connect discovery (fallback) |
+| Endpoint                                  | RFC      | Purpose                             |
+| ----------------------------------------- | -------- | ----------------------------------- |
+| `/.well-known/oauth-protected-resource`   | RFC 9728 | Protected Resource Metadata         |
+| `/.well-known/oauth-authorization-server` | RFC 8414 | Authorization Server Metadata       |
+| `/.well-known/openid-configuration`       | OIDC     | OpenID Connect discovery (fallback) |
 
 ### Supported Standards
 
@@ -115,26 +129,26 @@ Use tools like `search_elements`, `add_element`, and `update_element` to work wi
 
 ### Scopes
 
-| Scope | Description |
-|---|---|
-| `mcp:tools` | Access to MCP tools |
-| `mcp:resources` | Access to MCP resources |
-| `read:project` | Read project metadata |
-| `read:elements` | Read story elements |
-| `read:worldbuilding` | Read worldbuilding data |
-| `read:schemas` | Read element schemas |
-| `write:elements` | Create/modify elements |
+| Scope                 | Description               |
+| --------------------- | ------------------------- |
+| `mcp:tools`           | Access to MCP tools       |
+| `mcp:resources`       | Access to MCP resources   |
+| `read:project`        | Read project metadata     |
+| `read:elements`       | Read story elements       |
+| `read:worldbuilding`  | Read worldbuilding data   |
+| `read:schemas`        | Read element schemas      |
+| `write:elements`      | Create/modify elements    |
 | `write:worldbuilding` | Modify worldbuilding data |
 
 ### Grant Model
 
 During the consent flow, users select which projects to share and choose an access level per project:
 
-| Role | Permissions |
-|---|---|
+| Role       | Permissions                                                           |
+| ---------- | --------------------------------------------------------------------- |
 | **Viewer** | `read:project`, `read:elements`, `read:worldbuilding`, `read:schemas` |
-| **Editor** | All viewer permissions + `write:elements`, `write:worldbuilding` |
-| **Admin** | All permissions |
+| **Editor** | All viewer permissions + `write:elements`, `write:worldbuilding`      |
+| **Admin**  | All permissions                                                       |
 
 ## Dual-Runtime Support
 
@@ -158,18 +172,18 @@ Users can manage authorized OAuth clients at `/settings`:
 
 ### Required Environment Variables
 
-| Variable | Purpose |
-|---|---|
-| `DATABASE_KEY` | JWT signing secret (min 32 chars) |
-| `BASE_URL` | Server base URL (issuer for JWTs) |
+| Variable          | Purpose                                              |
+| ----------------- | ---------------------------------------------------- |
+| `DATABASE_KEY`    | JWT signing secret (min 32 chars)                    |
+| `BASE_URL`        | Server base URL (issuer for JWTs)                    |
 | `ALLOWED_ORIGINS` | Comma-separated frontend URLs (for consent redirect) |
 
 ### Token Lifetimes
 
-| Token | Lifetime |
-|---|---|
-| Access Token | 1 hour |
-| Refresh Token | 30 days |
+| Token              | Lifetime  |
+| ------------------ | --------- |
+| Access Token       | 1 hour    |
+| Refresh Token      | 30 days   |
 | Authorization Code | 5 minutes |
 
 ## Legacy API Key Auth

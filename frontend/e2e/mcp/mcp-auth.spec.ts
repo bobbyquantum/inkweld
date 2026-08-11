@@ -2,8 +2,9 @@ import { TEST_PASSWORDS } from '../common/test-credentials';
 import {
   API_BASE,
   expect,
+  MCP_PROTOCOL_VERSION,
   mcpCallTool,
-  mcpInitialize,
+  mcpDiscover,
   mcpRequest,
   performOAuthFlow,
   test,
@@ -13,32 +14,39 @@ import {
  * MCP Authentication E2E Tests
  *
  * Tests API key auth, full OAuth PKCE flow, and token refresh
- * against the real MCP server.
+ * against the real MCP server (stateless protocol 2026-07-28).
  */
 test.describe('API Key Authentication', () => {
-  test('should initialize MCP session with valid API key', async ({
+  test('should discover MCP server with valid API key', async ({
     mcpContext,
     apiRequest,
   }) => {
-    const result = await mcpInitialize(apiRequest, mcpContext.mcpApiKey);
+    const result = await mcpDiscover(apiRequest, mcpContext.mcpApiKey);
 
     expect(result.error).toBeUndefined();
     expect(result.result).toBeDefined();
 
-    const initResult = result.result as {
-      protocolVersion: string;
-      serverInfo: { name: string; version: string };
+    const discover = result.result as {
+      resultType: string;
+      supportedVersions: string[];
       capabilities: Record<string, unknown>;
+      _meta: {
+        'io.modelcontextprotocol/serverInfo': { name: string; version: string };
+      };
     };
-    expect(initResult.protocolVersion).toBe('2025-06-18');
-    expect(initResult.serverInfo.name).toBe('inkweld-mcp');
-    expect(initResult.serverInfo.version).toBe('1.0.0');
-    expect(initResult.capabilities['resources']).toBeDefined();
-    expect(initResult.capabilities['tools']).toBeDefined();
-    expect(initResult.capabilities['prompts']).toBeDefined();
+    expect(discover.resultType).toBe('complete');
+    expect(discover.supportedVersions).toContain(MCP_PROTOCOL_VERSION);
+    expect(discover.capabilities['resources']).toBeDefined();
+    expect(discover.capabilities['tools']).toBeDefined();
+    expect(discover._meta['io.modelcontextprotocol/serverInfo'].name).toBe(
+      'inkweld-mcp'
+    );
+    expect(discover._meta['io.modelcontextprotocol/serverInfo'].version).toBe(
+      '1.0.0'
+    );
   });
 
-  test('should return Mcp-Session-Id header on initialize', async ({
+  test('should not mint an Mcp-Session-Id header on discover', async ({
     mcpContext,
     apiRequest,
   }) => {
@@ -46,14 +54,21 @@ test.describe('API Key Authentication', () => {
       headers: {
         Authorization: `Bearer ${mcpContext.mcpApiKey}`,
         'Content-Type': 'application/json',
+        'MCP-Protocol-Version': MCP_PROTOCOL_VERSION,
+        'Mcp-Method': 'server/discover',
       },
       data: {
         jsonrpc: '2.0',
-        method: 'initialize',
+        method: 'server/discover',
         params: {
-          protocolVersion: '2025-06-18',
-          capabilities: {},
-          clientInfo: { name: 'e2e-test', version: '1.0.0' },
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': MCP_PROTOCOL_VERSION,
+            'io.modelcontextprotocol/clientInfo': {
+              name: 'e2e-test',
+              version: '1.0.0',
+            },
+            'io.modelcontextprotocol/clientCapabilities': {},
+          },
         },
         id: 1,
       },
@@ -61,31 +76,50 @@ test.describe('API Key Authentication', () => {
 
     expect(response.ok()).toBeTruthy();
     const sessionId = response.headers()['mcp-session-id'];
-    expect(sessionId).toBeDefined();
-    expect(typeof sessionId).toBe('string');
-    expect(sessionId.length).toBeGreaterThan(0);
+    expect(sessionId).toBeUndefined();
   });
 
-  test('should handle ping method', async ({ mcpContext, apiRequest }) => {
-    const result = await mcpRequest(apiRequest, mcpContext.mcpApiKey, 'ping');
+  test('should reject unsupported protocol version', async ({
+    mcpContext,
+    apiRequest,
+  }) => {
+    const result = await mcpRequest(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'tools/list',
+      {},
+      1,
+      {
+        'io.modelcontextprotocol/protocolVersion': '2025-11-25',
+      }
+    );
 
-    expect(result.error).toBeUndefined();
-    expect(result.result).toEqual({});
+    expect(result.error).toBeDefined();
+    expect(result.error!.code).toBe(-32022); // UnsupportedProtocolVersion
   });
 
   test('should return 202 for notifications', async ({
     mcpContext,
     apiRequest,
   }) => {
-    // Notifications have no id field
+    // Notifications have no id field. In the stateless protocol the core has
+    // no client-sent notifications, but the transport still accepts a
+    // notification POST with 202.
     const response = await apiRequest.post(`${API_BASE}/api/v1/ai/mcp`, {
       headers: {
         Authorization: `Bearer ${mcpContext.mcpApiKey}`,
         'Content-Type': 'application/json',
+        'MCP-Protocol-Version': MCP_PROTOCOL_VERSION,
       },
       data: {
         jsonrpc: '2.0',
-        method: 'notifications/initialized',
+        method: 'notifications/cancelled',
+        params: {
+          requestId: 999,
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': MCP_PROTOCOL_VERSION,
+          },
+        },
       },
     });
 
@@ -111,10 +145,18 @@ test.describe('API Key Authentication', () => {
       headers: {
         'X-API-Key': mcpContext.mcpApiKey,
         'Content-Type': 'application/json',
+        'MCP-Protocol-Version': MCP_PROTOCOL_VERSION,
+        'Mcp-Method': 'server/discover',
       },
       data: {
         jsonrpc: '2.0',
-        method: 'ping',
+        method: 'server/discover',
+        params: {
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': MCP_PROTOCOL_VERSION,
+            'io.modelcontextprotocol/clientCapabilities': {},
+          },
+        },
         id: 1,
       },
     });
@@ -124,7 +166,10 @@ test.describe('API Key Authentication', () => {
       result?: unknown;
       error?: unknown;
     };
-    expect(body.result).toEqual({});
+    expect(body.error).toBeUndefined();
+    expect(
+      (body.result as { supportedVersions: string[] }).supportedVersions
+    ).toContain(MCP_PROTOCOL_VERSION);
   });
 });
 
@@ -144,12 +189,14 @@ test.describe('OAuth PKCE Authorization Flow', () => {
     expect(oauth.refreshToken).toBeDefined();
     expect(oauth.clientId).toBeDefined();
 
-    // Use the OAuth token for MCP initialization
-    const initResult = await mcpInitialize(apiRequest, oauth.accessToken);
-    expect(initResult.error).toBeUndefined();
+    // Use the OAuth token for MCP discovery
+    const discoverResult = await mcpDiscover(apiRequest, oauth.accessToken);
+    expect(discoverResult.error).toBeUndefined();
 
-    const result = initResult.result as { protocolVersion: string };
-    expect(result.protocolVersion).toBe('2025-06-18');
+    const result = discoverResult.result as {
+      supportedVersions: string[];
+    };
+    expect(result.supportedVersions).toContain(MCP_PROTOCOL_VERSION);
   });
 
   test('should refresh OAuth token', async ({ mcpContext, apiRequest }) => {
@@ -177,7 +224,11 @@ test.describe('OAuth PKCE Authorization Flow', () => {
     expect(refreshed.refresh_token).not.toBe(oauth.refreshToken);
 
     // New token should work for MCP
-    const result = await mcpRequest(apiRequest, refreshed.access_token, 'ping');
+    const result = await mcpRequest(
+      apiRequest,
+      refreshed.access_token,
+      'server/discover'
+    );
     expect(result.error).toBeUndefined();
   });
 
@@ -227,9 +278,6 @@ test.describe('Read-Only API Key Permissions', () => {
       }
     );
     const { fullKey } = (await keyResp.json()) as { fullKey: string };
-
-    // Initialize
-    await mcpInitialize(apiRequest, fullKey);
 
     // Try a write operation - should fail
     const result = await mcpCallTool(apiRequest, fullKey, 'create_element', {

@@ -24,13 +24,16 @@ import { getPort } from './e2e/common/free-port';
  */
 
 export default (async () => {
-  const [backendPort, inspectorUiPort, inspectorProxyPort] = await Promise.all([
+  const [backendPort, inspectorUiPort] = await Promise.all([
     getPort('PLAYWRIGHT_BACKEND_PORT'),
     getPort('PLAYWRIGHT_MCP_INSPECTOR_UI_PORT'),
-    getPort('PLAYWRIGHT_MCP_INSPECTOR_PROXY_PORT'),
   ]);
   const backendUrl = `http://localhost:${backendPort}`;
   const inspectorUiUrl = `http://localhost:${inspectorUiPort}`;
+  // The Inspector 0.22.0 client always connects to its proxy on 6277 (the
+  // SDK default) when MCP_PROXY_PORT is not in the URL, so the proxy port is
+  // fixed here and mirrored in ALLOWED_ORIGINS + the webserver SERVER_PORT.
+  const inspectorProxyPort = 6277;
 
   // Expose ports to globalSetup and test workers via environment variables
   process.env['API_BASE_URL'] = backendUrl;
@@ -101,6 +104,9 @@ export default (async () => {
           DATA_PATH: './test-data/e2e-mcp',
           AI_KILL_SWITCH: 'false',
           AI_IMAGE_ENABLED: 'false',
+          // The MCP e2e fixtures register/login users via the password API, so
+          // opt in to password login (production defaults to passwordless-first).
+          PASSWORD_LOGIN_ENABLED: 'true',
           DEFAULT_ADMIN_USERNAME: 'mcp-admin',
           DEFAULT_ADMIN_PASSWORD: TEST_PASSWORDS.MCP_ADMIN,
           // Set BASE_URL for OAuth metadata endpoints
@@ -109,7 +115,10 @@ export default (async () => {
       },
       {
         // MCP Inspector (UI + proxy)
-        command: 'npx -y @modelcontextprotocol/inspector',
+        // Pinned to 0.22.0: the e2e spec targets this UI (Streamable HTTP
+        // transport select + #sse-url-input). v2.x redesigned the UI and is
+        // stdio-only, which would break the inspector specs.
+        command: 'npx -y @modelcontextprotocol/inspector@0.22.0',
         url: inspectorUiUrl,
         reuseExistingServer: false,
         timeout: 60000,
@@ -120,7 +129,11 @@ export default (async () => {
           // Prevent auto-opening browser
           MCP_AUTO_OPEN_ENABLED: 'false',
           CLIENT_PORT: String(inspectorUiPort),
-          SERVER_PORT: String(inspectorProxyPort),
+          // The Inspector 0.22.0 client defaults its proxy connection to port
+          // 6277 (DEFAULT_MCP_PROXY_LISTEN_PORT) when the MCP_PROXY_PORT query
+          // param is absent. The e2e spec loads the Inspector without that
+          // param, so the proxy MUST run on 6277 for the client to reach it.
+          SERVER_PORT: '6277',
         },
       },
     ],

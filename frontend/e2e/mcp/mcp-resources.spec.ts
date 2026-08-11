@@ -258,16 +258,25 @@ test.describe('prompts', () => {
   });
 });
 
-test.describe('ping', () => {
-  test('should respond to ping', async ({ mcpContext, apiRequest }) => {
+test.describe('server/discover', () => {
+  test('should respond to server/discover with supported versions', async ({
+    mcpContext,
+    apiRequest,
+  }) => {
     const result = await mcpRequest(
       apiRequest,
       mcpContext.mcpApiKey,
-      'ping',
+      'server/discover',
       {}
     );
 
     expect(result.error).toBeUndefined();
     expect(result.result).toBeDefined();
+    const discover = result.result as {
+      resultType: string;
+      supportedVersions: string[];
+    };
+    expect(discover.resultType).toBe('complete');
+    expect(discover.supportedVersions).toContain('2026-07-28');
   });
 });
