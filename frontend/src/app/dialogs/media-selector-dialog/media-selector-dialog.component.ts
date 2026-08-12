@@ -7,7 +7,6 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -63,7 +62,6 @@ interface MediaItem extends MediaInfo {
   styleUrls: ['./media-selector-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
-    FormsModule,
     MatDialogModule,
     MatButtonModule,
     MatFormFieldModule,

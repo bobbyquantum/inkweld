@@ -101,8 +101,8 @@
             <mat-label>Description</mat-label>
             <textarea
               matInput
-              [ngModel]="description()"
-              (ngModelChange)="onDescriptionChange($event)"
+              [value]="description()"
+              (input)="onDescriptionChange($any($event.target).value)"
               placeholder="Brief description (shown in tooltips)"
               rows="4"
               cdkTextareaAutosize

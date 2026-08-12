@@ -99,7 +99,8 @@
                 <input
                   matInput
                   id="setup-server-url-input"
-                  [(ngModel)]="serverUrl"
+                  [value]="serverUrl"
+                  (input)="serverUrl = $any($event.target).value"
                   placeholder="http://localhost:8333"
                   type="url"
                   required
@@ -124,7 +125,8 @@
                 <input
                   matInput
                   id="setup-local-username-input"
-                  [(ngModel)]="userName"
+                  [value]="userName"
+                  (input)="userName = $any($event.target).value"
                   placeholder="local"
                   data-testid="local-username-input"
                   aria-label="Username" />
@@ -142,7 +144,8 @@
                 <input
                   matInput
                   id="setup-local-display-name-input"
-                  [(ngModel)]="displayName"
+                  [value]="displayName"
+                  (input)="displayName = $any($event.target).value"
                   placeholder="Local User"
                   data-testid="local-displayname-input"
                   aria-label="Display name" />

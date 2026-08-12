@@ -11,7 +11,7 @@
       aria-label="Search media, elements, or tags"
       placeholder="Search media, elements, or tags..."
       [value]="searchQuery()"
-      (input)="searchQuery.set($event.target.value)"
+      (input)="searchQuery.set($any($event.target).value)"
       data-testid="media-search-input" />
     @if (searchQuery()) {
       <button

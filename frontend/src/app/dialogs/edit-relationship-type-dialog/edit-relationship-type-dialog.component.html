@@ -78,8 +78,8 @@
     <mat-form-field appearance="outline">
       <mat-label>Category</mat-label>
       <mat-select
-        [ngModel]="category()"
-        (ngModelChange)="category.set($event)"
+        [value]="category()"
+        (selectionChange)="category.set($any($event).value)"
         data-testid="rel-category-select">
         @for (cat of categoryOptions; track cat.value) {
           <mat-option [value]="cat.value">{{ cat.label }}</mat-option>
@@ -89,8 +89,8 @@
 
     <div class="toggle-row">
       <mat-slide-toggle
-        [ngModel]="showInverse()"
-        (ngModelChange)="showInverse.set($event)"
+        [checked]="showInverse()"
+        (change)="showInverse.set($any($event).checked)"
         data-testid="rel-show-inverse-toggle">
         Show inverse label
       </mat-slide-toggle>
@@ -126,8 +126,8 @@
   <div class="section-label">Source — allowed element types</div>
   <div class="endpoint-section" data-testid="source-endpoint-section">
     <mat-slide-toggle
-      [ngModel]="sourceAnyType()"
-      (ngModelChange)="sourceAnyType.set($event)"
+      [checked]="sourceAnyType()"
+      (change)="sourceAnyType.set($any($event).checked)"
       data-testid="source-any-type-toggle">
       Any element type
     </mat-slide-toggle>
@@ -138,7 +138,7 @@
           <div class="schema-item">
             <mat-checkbox
               [checked]="isSourceSchemaSelected(schema.id)"
-              (change)="toggleSourceSchema(schema.id, $event.checked)"
+              (change)="toggleSourceSchema(schema.id, $any($event).checked)"
               [attr.data-testid]="'source-schema-' + schema.id">
               <span class="schema-label">
                 <mat-icon class="schema-icon">{{ schema.icon }}</mat-icon>
@@ -169,8 +169,8 @@
   <div class="section-label">Target — allowed element types</div>
   <div class="endpoint-section" data-testid="target-endpoint-section">
     <mat-slide-toggle
-      [ngModel]="targetAnyType()"
-      (ngModelChange)="targetAnyType.set($event)"
+      [checked]="targetAnyType()"
+      (change)="targetAnyType.set($any($event).checked)"
       data-testid="target-any-type-toggle">
       Any element type
     </mat-slide-toggle>
@@ -181,7 +181,7 @@
           <div class="schema-item">
             <mat-checkbox
               [checked]="isTargetSchemaSelected(schema.id)"
-              (change)="toggleTargetSchema(schema.id, $event.checked)"
+              (change)="toggleTargetSchema(schema.id, $any($event).checked)"
               [attr.data-testid]="'target-schema-' + schema.id">
               <span class="schema-label">
                 <mat-icon class="schema-icon">{{ schema.icon }}</mat-icon>

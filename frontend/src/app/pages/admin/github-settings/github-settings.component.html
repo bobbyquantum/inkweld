@@ -110,8 +110,8 @@
                     matInput
                     id="github-client-id-input"
                     aria-label="Client ID"
-                    [ngModel]="clientId()"
-                    (ngModelChange)="clientId.set($event)"
+                    [value]="clientId()"
+                    (input)="clientId.set($any($event.target).value)"
                     placeholder="Ov23li..."
                     data-testid="github-client-id-input" />
                 </mat-form-field>
@@ -123,8 +123,8 @@
                     type="password"
                     id="github-client-secret-input"
                     aria-label="Client Secret"
-                    [ngModel]="clientSecret()"
-                    (ngModelChange)="clientSecret.set($event)"
+                    [value]="clientSecret()"
+                    (input)="clientSecret.set($any($event.target).value)"
                     [placeholder]="
                       isConfigured()
                         ? 'Leave blank to keep current'
@@ -142,8 +142,8 @@
                     matInput
                     id="github-callback-url-input"
                     aria-label="Callback URL"
-                    [ngModel]="callbackUrl()"
-                    (ngModelChange)="callbackUrl.set($event)"
+                    [value]="callbackUrl()"
+                    (input)="callbackUrl.set($any($event.target).value)"
                     [placeholder]="defaultCallbackUrl"
                     data-testid="github-callback-url-input" />
                   <mat-hint

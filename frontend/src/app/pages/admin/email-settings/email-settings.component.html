@@ -49,8 +49,8 @@
             <input
               matInput
               id="smtp-host"
-              [ngModel]="host()"
-              (ngModelChange)="host.set($event)"
+              [value]="host()"
+              (input)="host.set($any($event.target).value)"
               placeholder="smtp.example.com"
               data-testid="smtp-host-input"
               aria-label="SMTP host" />
@@ -62,8 +62,8 @@
               <input
                 matInput
                 id="smtp-port"
-                [ngModel]="port()"
-                (ngModelChange)="port.set($event)"
+                [value]="port()"
+                (input)="port.set($any($event.target).value)"
                 placeholder="587"
                 data-testid="smtp-port-input"
                 aria-label="SMTP port" />
@@ -72,8 +72,8 @@
             <mat-form-field appearance="outline">
               <mat-label>Encryption</mat-label>
               <mat-select
-                [ngModel]="encryption()"
-                (ngModelChange)="encryption.set($event)"
+                [value]="encryption()"
+                (selectionChange)="encryption.set($any($event).value)"
                 data-testid="smtp-encryption-select">
                 @for (opt of encryptionOptions; track opt.value) {
                   <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
@@ -87,8 +87,8 @@
             <input
               matInput
               id="smtp-username"
-              [ngModel]="username()"
-              (ngModelChange)="username.set($event)"
+              [value]="username()"
+              (input)="username.set($any($event.target).value)"
               placeholder="user@example.com"
               data-testid="smtp-username-input"
               aria-label="SMTP username" />
@@ -100,8 +100,8 @@
               matInput
               id="smtp-password"
               type="password"
-              [ngModel]="password()"
-              (ngModelChange)="password.set($event)"
+              [value]="password()"
+              (input)="password.set($any($event.target).value)"
               placeholder="Leave blank to keep current"
               data-testid="smtp-password-input"
               aria-label="SMTP password" />
@@ -117,8 +117,8 @@
             <input
               matInput
               id="email-from"
-              [ngModel]="fromAddress()"
-              (ngModelChange)="fromAddress.set($event)"
+              [value]="fromAddress()"
+              (input)="fromAddress.set($any($event.target).value)"
               placeholder="noreply@example.com"
               data-testid="email-from-input"
               aria-label="From address" />
@@ -129,8 +129,8 @@
             <input
               matInput
               id="email-from-name"
-              [ngModel]="fromName()"
-              (ngModelChange)="fromName.set($event)"
+              [value]="fromName()"
+              (input)="fromName.set($any($event.target).value)"
               placeholder="Inkweld"
               data-testid="email-from-name-input"
               aria-label="From name" />

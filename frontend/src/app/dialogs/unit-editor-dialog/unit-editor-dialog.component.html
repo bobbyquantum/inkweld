@@ -8,8 +8,8 @@
       matInput
       id="unit-editor-name"
       aria-label="Name"
-      [ngModel]="name()"
-      (ngModelChange)="name.set($event)"
+      [value]="name()"
+      (input)="name.set($any($event.target).value)"
       data-testid="unit-editor-name"
       cdkFocusInitial />
   </mat-form-field>
@@ -24,14 +24,17 @@
         type="number"
         min="1"
         step="1"
-        [ngModel]="subdivision()"
-        (ngModelChange)="subdivision.set($event)"
+        [value]="subdivision()"
+        (input)="subdivision.set($any($event.target).value)"
         data-testid="unit-editor-subdivision" />
     </mat-form-field>
   }
 
   <div class="flags-row">
-    <mat-checkbox [(ngModel)]="allowZero" data-testid="unit-editor-allow-zero">
+    <mat-checkbox
+      [checked]="allowZero"
+      (change)="allowZero = $any($event).checked"
+      data-testid="unit-editor-allow-zero">
       Allow zero
     </mat-checkbox>
     <mat-form-field
@@ -39,7 +42,10 @@
       class="input-mode"
       subscriptSizing="dynamic">
       <mat-label>Input</mat-label>
-      <mat-select [(ngModel)]="inputMode" data-testid="unit-editor-input-mode">
+      <mat-select
+        [value]="inputMode"
+        (selectionChange)="inputMode = $event.value"
+        data-testid="unit-editor-input-mode">
         <mat-option value="numeric">Numeric</mat-option>
         <mat-option value="dropdown">Dropdown</mat-option>
       </mat-select>
@@ -71,8 +77,8 @@
             matInput
             [attr.id]="'unit-editor-override-value-' + idx"
             type="number"
-            [(ngModel)]="row.value"
-            (ngModelChange)="onValueChange(row.id, $event)"
+            [value]="row.value"
+            (input)="onValueChange(row.id, $any($event.target).value)"
             [attr.data-testid]="'unit-editor-override-value-' + idx" />
         </mat-form-field>
         <mat-form-field
@@ -83,8 +89,8 @@
           <input
             matInput
             [attr.id]="'unit-editor-override-name-' + idx"
-            [(ngModel)]="row.alias"
-            (ngModelChange)="onAliasChange(row.id, $event)"
+            [value]="row.alias"
+            (input)="onAliasChange(row.id, $any($event.target).value)"
             [attr.data-testid]="'unit-editor-override-name-' + idx" />
         </mat-form-field>
         @if (hasChildUnit) {
@@ -100,8 +106,8 @@
               min="1"
               step="1"
               [placeholder]="defaultSubdivisionPlaceholder"
-              [(ngModel)]="row.subdivision"
-              (ngModelChange)="onSubdivisionChange(row.id, $event)"
+              [value]="row.subdivision"
+              (input)="onSubdivisionChange(row.id, $any($event.target).value)"
               [attr.data-testid]="'unit-editor-override-subdivision-' + idx" />
           </mat-form-field>
         }

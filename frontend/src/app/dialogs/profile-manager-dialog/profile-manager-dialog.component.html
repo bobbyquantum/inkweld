@@ -127,8 +127,8 @@
           <input
             matInput
             id="new-server-url"
-            [ngModel]="newServerUrl()"
-            (ngModelChange)="newServerUrl.set($event)"
+            [value]="newServerUrl()"
+            (input)="newServerUrl.set($any($event.target).value)"
             placeholder="https://inkweld.example.com"
             [disabled]="isConnecting()"
             type="url"
@@ -150,8 +150,8 @@
           <input
             matInput
             id="new-server-name"
-            [ngModel]="newServerName()"
-            (ngModelChange)="newServerName.set($event)"
+            [value]="newServerName()"
+            (input)="newServerName.set($any($event.target).value)"
             placeholder="My Inkweld Server"
             [disabled]="isConnecting()"
             type="text"
@@ -203,8 +203,8 @@
           <input
             matInput
             id="local-username"
-            [ngModel]="localUsername()"
-            (ngModelChange)="localUsername.set($event)"
+            [value]="localUsername()"
+            (input)="localUsername.set($any($event.target).value)"
             placeholder="myusername"
             type="text"
             data-testid="local-username-input"
@@ -222,8 +222,8 @@
           <input
             matInput
             id="local-display-name"
-            [ngModel]="localDisplayName()"
-            (ngModelChange)="localDisplayName.set($event)"
+            [value]="localDisplayName()"
+            (input)="localDisplayName.set($any($event.target).value)"
             placeholder="My Name"
             type="text"
             data-testid="local-displayname-input"
@@ -287,8 +287,8 @@
                 <input
                   matInput
                   id="migration-username"
-                  [ngModel]="username()"
-                  (ngModelChange)="username.set($event)"
+                  [value]="username()"
+                  (input)="username.set($any($event.target).value)"
                   [disabled]="isAuthenticating()"
                   type="text"
                   data-testid="migration-username-input"
@@ -300,8 +300,8 @@
                 <input
                   matInput
                   id="migration-password"
-                  [ngModel]="password()"
-                  (ngModelChange)="password.set($event)"
+                  [value]="password()"
+                  (input)="password.set($any($event.target).value)"
                   [disabled]="isAuthenticating()"
                   type="password"
                   data-testid="migration-password-input"

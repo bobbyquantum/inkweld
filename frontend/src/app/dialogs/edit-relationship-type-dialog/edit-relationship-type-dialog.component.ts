@@ -9,7 +9,6 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
@@ -168,7 +167,6 @@ export type EditRelationshipTypeDialogResult = Omit<
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     CommonModule,
-    FormsModule,
     MatButtonModule,
     MatCheckboxModule,
     MatChipsModule,

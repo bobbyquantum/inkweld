@@ -31,7 +31,7 @@
           [matChipInputSeparatorKeyCodes]="separatorKeyCodes"
           (matChipInputTokenEnd)="addTagFromInput($event)"
           [value]="tagInputValue()"
-          (input)="tagInputValue.set($event.target.value)"
+          (input)="tagInputValue.set($any($event.target).value)"
           id="tag-chip-input" />
       }
     </mat-chip-grid>

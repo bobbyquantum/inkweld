@@ -43,8 +43,8 @@
         matInput
         id="media-selector-search-input"
         placeholder="Search media..."
-        [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set($event)"
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
         aria-label="Search media" />
       @if (searchQuery()) {
         <button matSuffix mat-icon-button (click)="clearSearch()">
