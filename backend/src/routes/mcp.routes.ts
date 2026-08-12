@@ -118,6 +118,14 @@ const mcpJsonRpcRoute = createRoute({
       },
       description: 'Invalid or missing authorization',
     },
+    403: {
+      content: {
+        'application/json': {
+          schema: JsonRpcResponseSchema,
+        },
+      },
+      description: 'MCP access is disabled (AI kill switch on or MCP_ENABLED false)',
+    },
   },
 });
 

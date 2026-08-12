@@ -10,7 +10,7 @@ Inkweld exposes your projects to AI assistants through the [Model Context Protoc
 
 Most tools accept a URL pointing at the Inkweld MCP endpoint. You can find your server's exact URL in **Project Settings → MCP Access**, or construct it as:
 
-```
+```text
 https://<your-server>/api/v1/ai/mcp
 ```
 
@@ -19,8 +19,10 @@ Replace `<your-server>` with your deployment host (e.g. `api.inkweld.app` or `ap
 :::tip Legacy API keys
 If a tool doesn't support OAuth, your administrator can enable **Legacy MCP API Keys** in **Admin Settings**. When enabled, the project settings page shows a "Legacy API Keys" section where you can create a long-lived, project-scoped `iw_proj_...` token to use instead.
 
-> ⚠️ **Treat legacy keys like passwords.** Never commit a key to source control, paste it into a shared chat, or leave it in a client config file that others can read. Prefer environment or input variables where your client supports them. If you think a key has been exposed, revoke it immediately from **Project Settings → MCP Access → Legacy API Keys** and create a new one.
-> :::
+:::warning Treat legacy keys like passwords
+Never commit a key to source control, paste it into a shared chat, or leave it in a client config file that others can read. Prefer environment or input variables where your client supports them. If you think a key has been exposed, revoke it immediately from **Project Settings → MCP Access → Legacy API Keys** and create a new one.
+:::
+:::
 
 ## Hermes
 
@@ -72,7 +74,7 @@ For a legacy API key, add an `Authorization` header (prefer an environment varia
 
 Claude Desktop connects to remote MCP servers through **Settings → Connectors → Add connector**. Choose the **Remote MCP server** option and enter the Inkweld MCP endpoint URL:
 
-```
+```text
 https://api.inkweld.app/api/v1/ai/mcp
 ```
 
@@ -120,7 +122,7 @@ Add a server to `.vscode/mcp.json`:
 
 ## Continue
 
-Add the server to your Continue `mcpServers` configuration (e.g. `~/.continue/config.json` or `config.yaml`):
+Add the server to your Continue `mcpServers` configuration (e.g. `config.yaml` in your Continue config directory, or a file under `.continue/mcpServers/`):
 
 ```yaml
 mcpServers:

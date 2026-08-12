@@ -10241,6 +10241,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "MCP access is disabled (AI kill switch on or MCP_ENABLED false)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonRpcResponse"
+                }
+              }
+            }
           }
         }
       }

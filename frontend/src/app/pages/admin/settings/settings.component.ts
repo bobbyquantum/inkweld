@@ -549,14 +549,14 @@ export class AdminSettingsComponent implements OnInit {
             ? 'admin.settings.legacyMcpEnabledMsg'
             : 'admin.settings.legacyMcpDisabledMsg'
         ),
-        'Close',
+        this.transloco.translate('close'),
         { duration: 2500 }
       );
     } catch (err) {
       console.error('Failed to save legacy MCP setting:', err);
       this.snackBar.open(
         this.transloco.translate('admin.settings.saveFailed'),
-        'Close',
+        this.transloco.translate('close'),
         {
           duration: 3000,
         }
@@ -588,14 +588,14 @@ export class AdminSettingsComponent implements OnInit {
             ? 'admin.settings.mcpEnabledMsg'
             : 'admin.settings.mcpDisabledMsg'
         ),
-        'Close',
+        this.transloco.translate('close'),
         { duration: 2500 }
       );
     } catch (err) {
       console.error('Failed to save MCP setting:', err);
       this.snackBar.open(
         this.transloco.translate('admin.settings.saveFailed'),
-        'Close',
+        this.transloco.translate('close'),
         {
           duration: 3000,
         }
