@@ -153,7 +153,7 @@ test.describe('Worldbuilding Snapshots', () => {
     // Open the first non-meta schema tab so the form fields are visible.
     const firstSchemaTab = page
       .locator(
-        '[data-testid^="nav-"]:not([data-testid="nav-identity"]):not([data-testid="nav-relationships"]):not([data-testid="nav-media"])'
+        '[data-testid^="nav-"]:not([data-testid="nav-identity"]):not([data-testid="nav-relationships"]):not([data-testid="nav-media"]):not([data-testid="nav-styling"])'
       )
       .first();
     await firstSchemaTab.click();

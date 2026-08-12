@@ -1,3 +1,4 @@
+import { TextFieldModule } from '@angular/cdk/text-field';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import {
@@ -17,7 +18,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { GlassCardComponent } from '@components/glass-card/glass-card.component';
-import { AppearancePanelComponent } from '@components/worldbuilding/appearance-panel/appearance-panel.component';
 import { TranslocoModule } from '@jsverse/transloco';
 import { type ElementAppearance } from '@models/element-appearance';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -46,6 +46,7 @@ import { TagChipListComponent } from '../../tags/tag-chip-list.component';
   imports: [
     CommonModule,
     FormsModule,
+    TextFieldModule,
     MatButtonModule,
     MatIconModule,
     MatFormFieldModule,
@@ -53,7 +54,6 @@ import { TagChipListComponent } from '../../tags/tag-chip-list.component';
     MatTooltipModule,
     TranslocoModule,
     TagChipListComponent,
-    AppearancePanelComponent,
     GlassCardComponent,
   ],
   templateUrl: './identity-panel.component.html',
@@ -63,6 +63,7 @@ export class IdentityPanelComponent implements OnDestroy {
   // Inputs
   elementId = input.required<string>();
   elementName = input.required<string>();
+  elementIcon = input<string>('category');
   username = input.required<string>();
   slug = input.required<string>();
   canWrite = input<boolean>(true);

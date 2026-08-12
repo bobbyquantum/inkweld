@@ -1,3 +1,4 @@
+import { TextFieldModule } from '@angular/cdk/text-field';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -52,6 +53,7 @@ import { ElementSyncProviderFactory } from '../../services/sync/element-sync-pro
 import { TagService } from '../../services/tag/tag.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
+import { AppearancePanelComponent } from './appearance-panel/appearance-panel.component';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
 import { MediaPanelComponent } from './media-panel/media-panel.component';
 
@@ -65,6 +67,7 @@ import { MediaPanelComponent } from './media-panel/media-panel.component';
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    TextFieldModule,
     MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
@@ -77,6 +80,7 @@ import { MediaPanelComponent } from './media-panel/media-panel.component';
     MetaPanelComponent,
     IdentityPanelComponent,
     MediaPanelComponent,
+    AppearancePanelComponent,
     TranslocoModule,
   ],
   templateUrl: './worldbuilding-editor.component.html',
@@ -130,6 +134,12 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     const elements = this.projectState.elements();
     const element = elements.find(e => e.id === this.elementId());
     return element?.name || 'Untitled';
+  });
+
+  /** Material icon for the element, derived from its schema. */
+  elementIcon = computed(() => {
+    const schema = this.schema();
+    return schema?.icon || 'category';
   });
 
   /** Sync state from the project elements provider */
@@ -601,7 +611,8 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       !!section &&
       section !== 'identity' &&
       section !== 'relationships' &&
-      section !== 'media'
+      section !== 'media' &&
+      section !== 'styling'
     );
   }
 
@@ -609,6 +620,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   getSectionLabel(section: string): string {
     if (section === 'identity') return 'Identity & Details';
     if (section === 'relationships') return 'Relationships';
+    if (section === 'styling') return 'Styling';
     const tab = this.getTabs().find(t => t.key === section);
     return tab?.label || section;
   }

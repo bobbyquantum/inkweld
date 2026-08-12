@@ -99,6 +99,24 @@
               'worldbuilding.editor.media' | transloco
             }}</span>
           </a>
+
+          @if (projectState.canWrite()) {
+            <a
+              mat-list-item
+              (click)="selectSection('styling')"
+              (keydown.enter)="selectSection('styling')"
+              [attr.aria-current]="
+                selectedSection() === 'styling' ? 'true' : null
+              "
+              [class.active]="selectedSection() === 'styling'"
+              tabindex="0"
+              data-testid="nav-styling">
+              <mat-icon matListItemIcon>palette</mat-icon>
+              <span matListItemTitle>{{
+                'worldbuilding.editor.styling' | transloco
+              }}</span>
+            </a>
+          }
         </mat-nav-list>
       </nav>
     }
@@ -149,6 +167,7 @@
           <app-identity-panel
             [elementId]="elementId()"
             [elementName]="elementName()"
+            [elementIcon]="elementIcon()"
             [username]="username()"
             [slug]="slug()"
             [canWrite]="projectState.canWrite()"
@@ -174,6 +193,17 @@
               [username]="username()"
               [slug]="slug()">
             </app-media-panel>
+          </div>
+        }
+
+        @if (selectedSection() === 'styling' && projectState.canWrite()) {
+          <div class="section-content styling-inline">
+            <app-appearance-panel
+              [elementId]="elementId()"
+              [username]="username()"
+              [slug]="slug()"
+              [canWrite]="projectState.canWrite()">
+            </app-appearance-panel>
           </div>
         }
 
@@ -224,6 +254,7 @@
               <app-identity-panel
                 [elementId]="elementId()"
                 [elementName]="elementName()"
+                [elementIcon]="elementIcon()"
                 [username]="username()"
                 [slug]="slug()"
                 [canWrite]="projectState.canWrite()"
@@ -294,6 +325,26 @@
               </app-media-panel>
             </div>
           </mat-expansion-panel>
+
+          <!-- Styling panel (editors only) -->
+          @if (projectState.canWrite()) {
+            <mat-expansion-panel data-testid="accordion-styling">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon class="panel-title-icon">palette</mat-icon>
+                  {{ 'worldbuilding.editor.styling' | transloco }}
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <div class="styling-inline">
+                <app-appearance-panel
+                  [elementId]="elementId()"
+                  [username]="username()"
+                  [slug]="slug()"
+                  [canWrite]="projectState.canWrite()">
+                </app-appearance-panel>
+              </div>
+            </mat-expansion-panel>
+          }
         </mat-accordion>
       }
     </div>
@@ -380,7 +431,10 @@
                   [attr.aria-label]="field.label"
                   [formControl]="getControl(field.key)"
                   [placeholder]="field.placeholder || ''"
-                  [rows]="field.rows || 3"></textarea>
+                  [rows]="field.rows || 3"
+                  cdkTextareaAutosize
+                  [cdkAutosizeMinRows]="field.rows || 3"
+                  [cdkAutosizeMaxRows]="12"></textarea>
                 @if (field.description) {
                   <mat-hint>{{ field.description }}</mat-hint>
                 }

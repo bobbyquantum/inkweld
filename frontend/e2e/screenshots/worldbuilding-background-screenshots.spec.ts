@@ -77,21 +77,17 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
   }
 
   /**
-   * Select a background type (color/gradient/image) for a region. The type
-   * select is the first combobox inside the region's controls.
+   * Select a background type (color/gradient/image) for a region via the radio
+   * list inside the region's controls.
    */
   async function selectType(
     page: Page,
     region: 'menu' | 'content',
     type: string
   ): Promise<void> {
-    const typeSelect = page
-      .getByTestId(`appearance-${region}`)
-      .getByRole('combobox')
-      .first();
-    await typeSelect.click();
     await page
       .getByTestId(`appearance-${region}-option-${type.toLowerCase()}`)
+      .locator('label')
       .click();
     await expect(
       page
@@ -213,8 +209,7 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
   }
 
   async function openAppearancePanel(page: Page): Promise<void> {
-    await page.getByTestId('nav-identity').click();
-    await expect(page.getByTestId('identity-panel')).toBeVisible();
+    await page.getByTestId('nav-styling').click();
     await expect(page.getByTestId('appearance-panel')).toBeVisible();
   }
 

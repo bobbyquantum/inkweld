@@ -688,6 +688,11 @@ describe('WorldbuildingEditorComponent', () => {
         expect(component.isTabSection()).toBe(false);
       });
 
+      it('should return false for styling section', () => {
+        component.selectedSection.set('styling');
+        expect(component.isTabSection()).toBe(false);
+      });
+
       it('should return true for a schema tab section', () => {
         component.selectedSection.set('basic');
         expect(component.isTabSection()).toBe(true);
@@ -705,6 +710,10 @@ describe('WorldbuildingEditorComponent', () => {
         expect(component.getSectionLabel('relationships')).toBe(
           'Relationships'
         );
+      });
+
+      it('should return "Styling" for styling section', () => {
+        expect(component.getSectionLabel('styling')).toBe('Styling');
       });
 
       it('should return tab label for a tab section', () => {
@@ -804,6 +813,29 @@ describe('WorldbuildingEditorComponent', () => {
 
         expect(component.useSidenav()).toBe(false);
         expect(component.selectedSection()).toBe('identity');
+      });
+
+      it('should show the styling nav item for editors', async () => {
+        await recreateComponentForViewport(1280, true);
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(
+          fixture.nativeElement.querySelector('[data-testid="nav-styling"]')
+        ).toBeTruthy();
+      });
+
+      it('should hide the styling nav item for read-only users', async () => {
+        mockProjectState.canWrite.set(false);
+        await recreateComponentForViewport(1280, true);
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(
+          fixture.nativeElement.querySelector('[data-testid="nav-styling"]')
+        ).toBeNull();
       });
 
       it('should render a fields card in accordion mode', async () => {

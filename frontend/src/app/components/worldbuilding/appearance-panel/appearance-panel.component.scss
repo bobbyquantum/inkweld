@@ -52,7 +52,6 @@
   gap: 10px;
 }
 
-.control-type,
 .control-mode,
 .control-value {
   width: 100%;
@@ -65,10 +64,40 @@
   }
 }
 
+.type-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .control-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sys-on-surface-variant);
+  }
+
+  mat-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
 .value-row {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.manual-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.manual-slot-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sys-on-surface-variant);
 }
 
 .image-picker {

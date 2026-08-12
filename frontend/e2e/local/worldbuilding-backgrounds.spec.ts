@@ -29,10 +29,6 @@ const APPEARANCE_DB = `worldbuilding:${USERNAME}:${SLUG}:${ELEMENT_ID}`;
 /** The colour actually chosen via the picker in the first test step. */
 let menuChosenColour = '#4fd8eb';
 
-function appearanceRegionTestId(region: 'menu' | 'content'): string {
-  return `appearance-${region}`;
-}
-
 async function openCharacter(page: Page): Promise<void> {
   await page.getByTestId('project-tree').waitFor({ state: 'visible' });
   await page.getByTestId('element-Characters').click();
@@ -43,7 +39,7 @@ async function openCharacter(page: Page): Promise<void> {
   await page.waitForURL(/\/worldbuilding\//);
   await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
   await expect(page.getByTestId('wb-sidenav')).toBeVisible();
-  await page.getByTestId('nav-identity').click();
+  await page.getByTestId('nav-styling').click();
   await expect(page.getByTestId('appearance-panel')).toBeVisible();
 }
 
@@ -57,15 +53,19 @@ async function setColour(
   await sat.scrollIntoViewIfNeeded();
   const box = await sat.boundingBox();
   if (!box) throw new Error('saturation board not visible');
+  // Capture the initial preview so we can wait for it to change after the click.
+  const initial = (
+    await container.locator('.ngx-color-preview .rgbacode').textContent()
+  )?.trim();
   await page.mouse.click(box.x + box.width * 0.7, box.y + box.height * 0.3);
-  // Return the picker's own live preview hex so assertions can match exactly.
+  // Wait for the picker's live preview to change from its initial value.
   await expect
     .poll(async () =>
       (
         await container.locator('.ngx-color-preview .rgbacode').textContent()
       )?.trim()
     )
-    .not.toBeNull();
+    .not.toBe(initial);
   const preview = (
     await container.locator('.ngx-color-preview .rgbacode').textContent()
   )?.trim();
@@ -153,13 +153,10 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
       await contentToggle.click();
       await expect(contentToggle).toHaveAttribute('aria-checked', 'true');
 
-      const typeSelect = page
-        .getByTestId(appearanceRegionTestId('content'))
-        .getByRole('combobox')
-        .first();
-      await typeSelect.click();
-      await page.getByTestId('appearance-content-option-gradient').click();
-
+      await page
+        .getByTestId('appearance-content-option-gradient')
+        .locator('label')
+        .click();
       const gradient = page
         .getByTestId('appearance-content')
         .getByTestId('gradient-designer')

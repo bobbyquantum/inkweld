@@ -31,6 +31,9 @@
         <!-- Name section -->
         <div class="name-section">
           <app-glass-card class="name-glass" [title]="''">
+            <mat-icon class="element-icon" aria-hidden="true">{{
+              elementIcon()
+            }}</mat-icon>
             <span class="element-name">{{ elementName() }}</span>
             @if (canWrite()) {
               <button
@@ -114,11 +117,9 @@
           </div>
         }
 
-        <!-- Description section -->
-        <div class="description-section">
-          <app-glass-card
-            [title]="'worldbuilding.identityPanel.descriptionLabel' | transloco"
-            class="identity-glass">
+        <!-- Description + tags section (single card) -->
+        <div class="description-tags-section">
+          <app-glass-card class="identity-glass">
             <mat-form-field appearance="outline" class="description-field">
               <mat-label>{{
                 'worldbuilding.identityPanel.descriptionLabel' | transloco
@@ -142,14 +143,6 @@
                 'worldbuilding.identityPanel.descriptionHint' | transloco
               }}</mat-hint>
             </mat-form-field>
-          </app-glass-card>
-        </div>
-
-        <!-- Tags section -->
-        <div class="tags-section">
-          <app-glass-card
-            [title]="'worldbuilding.identityPanel.tagsLabel' | transloco"
-            class="identity-glass">
             <app-tag-chip-list
               [elementId]="elementId()"
               [hint]="'worldbuilding.identityPanel.tagsHint' | transloco"
@@ -157,16 +150,6 @@
               [readonly]="!canWrite()">
             </app-tag-chip-list>
           </app-glass-card>
-        </div>
-
-        <!-- Appearance section -->
-        <div class="appearance-section">
-          <app-appearance-panel
-            [elementId]="elementId()"
-            [username]="username()"
-            [slug]="slug()"
-            [canWrite]="canWrite()">
-          </app-appearance-panel>
         </div>
       }
     </div>

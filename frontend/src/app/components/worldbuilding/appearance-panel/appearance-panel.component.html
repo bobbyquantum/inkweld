@@ -29,16 +29,16 @@
 
       @if (isEnabled(region)) {
         <div class="region-controls">
-          <mat-form-field appearance="outline" class="control-type">
-            <mat-label>{{
+          <div class="type-radio-group">
+            <span class="control-label">{{
               'worldbuilding.appearance.type' | transloco
-            }}</mat-label>
-            <mat-select
+            }}</span>
+            <mat-radio-group
               [value]="setting.type"
               [disabled]="!canWrite()"
-              (selectionChange)="setType(region, $event.value)">
+              (change)="setType(region, $event.value)">
               @for (type of types; track type) {
-                <mat-option
+                <mat-radio-button
                   [value]="type"
                   [attr.data-testid]="
                     'appearance-' + region + '-option-' + type
@@ -46,10 +46,10 @@
                   {{
                     'worldbuilding.appearance.typeOptions.' + type | transloco
                   }}
-                </mat-option>
+                </mat-radio-button>
               }
-            </mat-select>
-          </mat-form-field>
+            </mat-radio-group>
+          </div>
 
           <mat-form-field appearance="outline" class="control-mode">
             <mat-label>{{
@@ -110,34 +110,26 @@
           } @else {
             @if (setting.mode === 'manual') {
               <div class="value-row">
-                <mat-form-field appearance="outline" class="control-value">
-                  <mat-label>{{
+                <div class="manual-slot">
+                  <span class="manual-slot-label">{{
                     'worldbuilding.appearance.light' | transloco
-                  }}</mat-label>
-                  <input
-                    matInput
-                    [attr.id]="'appearance-' + region + '-light'"
+                  }}</span>
+                  <app-color-picker
                     [value]="getSettingValue(region, 'light')"
                     [disabled]="!canWrite()"
-                    (input)="
-                      setValue(region, 'light', $any($event.target).value)
-                    "
+                    (valueChange)="setValue(region, 'light', $event)"
                     [attr.data-testid]="'appearance-' + region + '-light'" />
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="control-value">
-                  <mat-label>{{
+                </div>
+                <div class="manual-slot">
+                  <span class="manual-slot-label">{{
                     'worldbuilding.appearance.dark' | transloco
-                  }}</mat-label>
-                  <input
-                    matInput
-                    [attr.id]="'appearance-' + region + '-dark'"
+                  }}</span>
+                  <app-color-picker
                     [value]="getSettingValue(region, 'dark')"
                     [disabled]="!canWrite()"
-                    (input)="
-                      setValue(region, 'dark', $any($event.target).value)
-                    "
+                    (valueChange)="setValue(region, 'dark', $event)"
                     [attr.data-testid]="'appearance-' + region + '-dark'" />
-                </mat-form-field>
+                </div>
               </div>
             } @else {
               @if (setting.type === 'color') {

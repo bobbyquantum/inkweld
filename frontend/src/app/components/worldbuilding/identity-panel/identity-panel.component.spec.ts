@@ -88,6 +88,15 @@ describe('IdentityPanelComponent', () => {
     expect(nameElement?.textContent).toContain('Test Element');
   });
 
+  it('should display the element icon next to the name', async () => {
+    fixture.componentRef.setInput('elementIcon', 'person');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const icon = fixture.nativeElement.querySelector('.element-icon');
+    expect(icon?.textContent).toContain('person');
+  });
+
   it('should load identity data on init', async () => {
     fixture.detectChanges();
     await fixture.whenStable();

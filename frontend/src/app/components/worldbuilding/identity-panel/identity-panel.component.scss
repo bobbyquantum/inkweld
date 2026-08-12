@@ -65,12 +65,7 @@
       min-width: 0; // Allow text to truncate instead of overflow
     }
 
-    .description-section {
-      flex: 1 1 100%;
-      min-width: 0;
-    }
-
-    .tags-section {
+    .description-tags-section {
       flex: 1 1 100%;
       min-width: 0;
     }
@@ -317,6 +312,11 @@
   }
 }
 
+.element-icon {
+  color: var(--sys-primary);
+  flex-shrink: 0;
+}
+
 .element-name {
   font-size: 18px;
   font-weight: 500;
@@ -350,10 +350,16 @@
   --glass-card-border: var(--sys-outline-variant);
 }
 
-// Description section
-.description-section {
+// Description + tags section (single card)
+.description-tags-section {
   width: 100%;
   min-width: 0;
+
+  ::ng-deep .glass-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
 }
 
 .description-field {
@@ -366,29 +372,6 @@
     @media (max-width: 759px) {
       min-height: 60px;
     }
-  }
-}
-
-// Tags section
-.tags-section {
-  width: 100%;
-  margin-top: 8px;
-
-  @media (max-width: 759px) {
-    flex: 1 1 100%;
-    margin-top: 0;
-    min-width: 0;
-  }
-}
-
-// Appearance section
-.appearance-section {
-  width: 100%;
-  margin-top: 8px;
-
-  @media (max-width: 759px) {
-    flex: 1 1 100%;
-    min-width: 0;
   }
 }
 
