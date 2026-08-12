@@ -36,4 +36,10 @@ describe('ColorPickerComponent', () => {
     component['onColorChange']('');
     expect(emit).not.toHaveBeenCalled();
   });
+
+  it('should add a disabled class when disabled', () => {
+    fixture.componentRef.setInput('disabled', true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.classList).toContain('disabled');
+  });
 });

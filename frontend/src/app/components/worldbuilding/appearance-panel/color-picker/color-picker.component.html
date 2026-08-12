@@ -1,5 +1,10 @@
 <div class="color-picker" data-testid="color-picker">
-  <app-hsv-picker
-    [value]="value()"
-    (valueChange)="onColorChange($event)"></app-hsv-picker>
+  <ngx-input-color
+    [ngModel]="value()"
+    (ngModelChange)="onColorChange($event)"
+    [simpleMode]="false"
+    [theme]="'light'"
+    [outputType]="'HEX'"
+    [useAlphaChannel]="false"
+    data-testid="color-picker-input"></ngx-input-color>
 </div>

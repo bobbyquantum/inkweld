@@ -21,12 +21,13 @@ import {
 } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
-const MENU_COLOUR = '#4fd8eb';
-const MENU_COLOUR_RGB = 'rgb(79, 216, 235)';
 const ELEMENT_ID = 'char-elara';
 const USERNAME = 'testuser';
 const SLUG = 'wb-bg-demo';
 const APPEARANCE_DB = `worldbuilding:${USERNAME}:${SLUG}:${ELEMENT_ID}`;
+
+/** The colour actually chosen via the picker in the first test step. */
+let menuChosenColour = '#4fd8eb';
 
 function appearanceRegionTestId(region: 'menu' | 'content'): string {
   return `appearance-${region}`;
@@ -48,13 +49,29 @@ async function openCharacter(page: Page): Promise<void> {
 
 async function setColour(
   page: Page,
-  container: ReturnType<Page['getByTestId']>,
-  colour: string
-): Promise<void> {
-  const hex = container.getByTestId('hsv-hex');
-  await hex.waitFor({ state: 'visible' });
-  await hex.fill(colour);
-  await hex.press('Enter');
+  container: ReturnType<Page['getByTestId']>
+): Promise<string> {
+  // Drive ngx-input-color's saturation board: clicking it selects a colour.
+  const sat = container.locator('saturation');
+  await sat.waitFor({ state: 'visible' });
+  await sat.scrollIntoViewIfNeeded();
+  const box = await sat.boundingBox();
+  if (!box) throw new Error('saturation board not visible');
+  await page.mouse.click(box.x + box.width * 0.7, box.y + box.height * 0.3);
+  // Return the picker's own live preview hex so assertions can match exactly.
+  await expect
+    .poll(async () =>
+      (
+        await container.locator('.ngx-color-preview .rgbacode').textContent()
+      )?.trim()
+    )
+    .not.toBeNull();
+  const preview = (
+    await container.locator('.ngx-color-preview .rgbacode').textContent()
+  )?.trim();
+  if (!preview) throw new Error('no colour preview');
+  // The picker shows uppercase; the app normalises to lowercase.
+  return preview.toLowerCase();
 }
 
 async function setGradientStopColor(
@@ -62,7 +79,22 @@ async function setGradientStopColor(
   gradient: ReturnType<Page['getByTestId']>,
   color: string
 ): Promise<void> {
-  await setColour(page, gradient, color);
+  // ngx-input-gradient's stop editor has a plain text colour input.
+  const input = gradient.locator('input[name="color"]');
+  await input.waitFor({ state: 'visible' });
+  await input.scrollIntoViewIfNeeded();
+  await input.fill(color);
+  await input.press('Enter');
+  // Wait for the gradient to propagate through the debounced store.
+  await page.waitForTimeout(1200);
+}
+
+function hexToRgb(hex: string): string {
+  const h = hex.replace('#', '');
+  const r = Number.parseInt(h.slice(0, 2), 16);
+  const g = Number.parseInt(h.slice(2, 4), 16);
+  const b = Number.parseInt(h.slice(4, 6), 16);
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
 function sidenavBgColor(page: Page): Promise<string> {
@@ -110,10 +142,11 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
       await expect(menuToggle).toHaveAttribute('aria-checked', 'true');
 
       const menuColour = page.getByTestId('appearance-menu');
-      await setColour(page, menuColour, MENU_COLOUR);
+      const chosen = await setColour(page, menuColour);
+      menuChosenColour = chosen;
 
       await expect(sidenav).toHaveClass(/has-custom-background/);
-      await expect.poll(() => sidenavBgColor(page)).toBe(MENU_COLOUR_RGB);
+      await expect.poll(() => sidenavBgColor(page)).toBe(hexToRgb(chosen));
     });
 
     await test.step('gradient applies to the content area', async () => {
@@ -129,15 +162,26 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
 
       const gradient = page
         .getByTestId('appearance-content')
-        .getByTestId('gradient-designer');
+        .getByTestId('gradient-designer')
+        .locator('ngx-input-gradient');
       // Stop 0 is auto-selected by default; set its colour.
-      await gradient.getByTestId('gradient-stop').nth(0).click();
       await setGradientStopColor(page, gradient, '#97f0ff');
-      // Select stop 1 and set its colour.
-      await gradient.getByTestId('gradient-stop').nth(1).click();
-      await setGradientStopColor(page, gradient, '#ffffff');
-      // Set the angle.
-      await gradient.getByTestId('gradient-angle').fill('135');
+      // Click the range slider at ~40% to add a third stop, then colour it.
+      const slider = gradient.locator('range-slider .slider').first();
+      await slider.scrollIntoViewIfNeeded();
+      const sliderBox = await slider.boundingBox();
+      if (!sliderBox) throw new Error('gradient slider not visible');
+      await page.mouse.click(
+        sliderBox.x + sliderBox.width * 0.4,
+        sliderBox.y + sliderBox.height / 2
+      );
+      await expect(gradient.locator('range-slider .thumb')).toHaveCount(3);
+      await setGradientStopColor(page, gradient, '#ffd166');
+      // Set the rotation angle.
+      const rotation = gradient.locator('input[name="rotation"]');
+      await rotation.scrollIntoViewIfNeeded();
+      await rotation.fill('135');
+      await rotation.press('Enter');
 
       await expect(content).toHaveClass(/has-custom-background/);
       await expect
@@ -148,14 +192,16 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
     await test.step('backgrounds persist across reload', async () => {
       // Wait for the debounced save to flush to IndexedDB before reloading.
       await waitForIndexedDBPersisted(page, APPEARANCE_DB, [
-        MENU_COLOUR,
+        menuChosenColour,
         'linear-gradient',
       ]);
       await page.reload();
       await openCharacter(page);
 
       await expect(sidenav).toHaveClass(/has-custom-background/);
-      await expect.poll(() => sidenavBgColor(page)).toBe(MENU_COLOUR_RGB);
+      await expect
+        .poll(() => sidenavBgColor(page))
+        .toBe(hexToRgb(menuChosenColour));
       await expect(content).toHaveClass(/has-custom-background/);
       await expect
         .poll(() => contentBgImage(page))

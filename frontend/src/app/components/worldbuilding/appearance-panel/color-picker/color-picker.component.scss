@@ -1,10 +1,13 @@
-.color-picker {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+:host {
+  display: block;
   width: 100%;
+}
 
-  app-hsv-picker {
-    width: 100%;
-  }
+.color-picker {
+  width: 100%;
+}
+
+:host.disabled {
+  pointer-events: none;
+  opacity: 0.6;
 }

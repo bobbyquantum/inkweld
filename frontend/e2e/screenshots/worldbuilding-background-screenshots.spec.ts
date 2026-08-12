@@ -136,21 +136,26 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
     await waitForBackgroundRendered(page, region);
   }
 
-  /** Set a colour through the inline HSV picker. */
+  /** Set a colour through ngx-input-color's saturation board. */
   async function setColour(
     page: Page,
     container: ReturnType<Page['getByTestId']>,
-    colour: string
+    _colour: string
   ): Promise<void> {
-    const hex = container.getByTestId('hsv-hex');
-    await hex.waitFor({ state: 'visible' });
-    await hex.fill(colour);
-    await hex.press('Enter');
+    const sat = container.locator('saturation');
+    await sat.waitFor({ state: 'visible' });
+    await sat.scrollIntoViewIfNeeded();
+    const box = await sat.boundingBox();
+    if (!box) throw new Error('saturation board not visible');
+    await page.mouse.click(box.x + box.width * 0.7, box.y + box.height * 0.3);
+    await waitForBackgroundRendered(page, 'menu');
   }
 
   /**
    * Configure a gradient background for a region via the Appearance panel.
-   * Parses the CSS gradient string and drives the visual designer.
+   * Uses the ngx gradient picker's stop editor to set each stop's colour and
+   * the rotation input for the angle. Extra stops beyond the first two are
+   * added by clicking the range slider.
    */
   async function setGradient(
     page: Page,
@@ -168,22 +173,42 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
 
     const designer = page
       .getByTestId(`appearance-${region}`)
-      .getByTestId('gradient-designer');
-    const stopLocators = designer.getByTestId('gradient-stop');
+      .getByTestId('gradient-designer')
+      .locator('ngx-input-gradient');
+    const thumbs = designer.locator('range-slider .thumb');
     // The designer starts with two stops; add more if the target has more.
-    for (let i = 2; i < targetStops.length; i++) {
-      await designer.getByTestId('gradient-add-stop').click();
+    if (targetStops.length > 2) {
+      const slider = designer.locator('range-slider .slider').first();
+      await slider.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+      const sliderBox = await slider.boundingBox();
+      if (!sliderBox) throw new Error('gradient slider not visible');
+      for (let i = 2; i < targetStops.length; i++) {
+        const frac = 0.2 + (0.6 * (i - 2)) / (targetStops.length - 2);
+        await page.mouse.click(
+          sliderBox.x + sliderBox.width * frac,
+          sliderBox.y + sliderBox.height / 2
+        );
+        await page.waitForTimeout(300);
+        await expect(thumbs).toHaveCount(i + 1);
+      }
     }
-    // Stop 0 is auto-selected. Select each later stop and set its colour via
-    // the colour chooser in the stop editor.
+    // Stop 0 is auto-selected. Select each later stop via its thumb and set
+    // its colour through the stop editor's text input.
     const setStopColor = async (index: number, color: string) => {
-      await stopLocators.nth(index).click();
-      await setColour(page, designer, color);
+      if (index > 0) await thumbs.nth(index).click();
+      const colorInput = designer.locator('input[name="color"]');
+      await colorInput.scrollIntoViewIfNeeded();
+      await colorInput.fill(color);
+      await colorInput.press('Enter');
     };
     for (let i = 0; i < targetStops.length; i++) {
       await setStopColor(i, targetStops[i].color);
     }
-    await designer.getByTestId('gradient-angle').fill(angle);
+    const rotation = designer.locator('input[name="rotation"]');
+    await rotation.scrollIntoViewIfNeeded();
+    await rotation.fill(angle);
+    await rotation.press('Enter');
     await waitForBackgroundRendered(page, region);
   }
 

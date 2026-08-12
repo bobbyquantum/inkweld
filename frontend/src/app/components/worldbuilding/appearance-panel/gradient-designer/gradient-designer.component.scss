@@ -1,72 +1,18 @@
-.gradient-designer {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+:host {
+  display: block;
   width: 100%;
 }
 
-.gradient-bar {
-  position: relative;
-  height: 40px;
-  border-radius: 8px;
-  border: 1px solid var(--sys-outline-variant);
-  cursor: crosshair;
-  touch-action: none;
-}
+.gradient-designer {
+  width: 100%;
 
-.gradient-stop {
-  position: absolute;
-  top: 50%;
-  width: 18px;
-  height: 18px;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
-  cursor: grab;
-  touch-action: none;
-
-  &.selected {
-    border-color: var(--sys-primary);
-    box-shadow: 0 0 0 2px var(--sys-primary);
+  ngx-input-gradient {
+    display: block;
+    width: 100%;
   }
 }
 
-.angle-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  label {
-    font-size: 13px;
-    color: var(--sys-on-surface-variant);
-    white-space: nowrap;
-  }
-
-  input[type='range'] {
-    flex: 1;
-  }
-
-  .angle-value {
-    font-size: 13px;
-    min-width: 40px;
-    text-align: right;
-  }
-}
-
-.stop-editor {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  app-color-picker {
-    flex: 1;
-  }
-
-  .stop-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
-  }
+:host.disabled {
+  pointer-events: none;
+  opacity: 0.6;
 }
