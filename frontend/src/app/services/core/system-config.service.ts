@@ -50,6 +50,7 @@ const LOCAL_DEFAULTS: SystemFeatures = {
   passwordLoginEnabled: true,
   emailRecoveryEnabled: false,
   legacyMcpEnabled: true,
+  mcpEnabled: true,
 };
 
 /** Default system features when server is unavailable (degraded mode) */
@@ -70,6 +71,7 @@ const SERVER_UNAVAILABLE_DEFAULTS: SystemFeatures = {
   passwordLoginEnabled: true,
   emailRecoveryEnabled: false,
   legacyMcpEnabled: false,
+  mcpEnabled: false,
 };
 
 @Injectable({
@@ -99,6 +101,8 @@ export class SystemConfigService {
     // Pessimistic initial state — legacy MCP keys are hidden until we learn
     // the admin has opted in.
     legacyMcpEnabled: false,
+    // Pessimistic initial state — assume MCP off until we hear otherwise.
+    mcpEnabled: false,
   });
 
   /** Tracks if the config was loaded successfully (true) or failed/using defaults (false) */
@@ -162,6 +166,15 @@ export class SystemConfigService {
    */
   public readonly isLegacyMcpEnabled = computed(
     () => this.systemFeaturesSignal().legacyMcpEnabled ?? false
+  );
+  /**
+   * Whether MCP (Model Context Protocol) access is enabled. When false, the
+   * MCP section/tab in project settings is hidden and the server rejects MCP
+   * requests. The AI kill switch still takes precedence: when the kill switch
+   * is on, MCP is unavailable regardless of this flag.
+   */
+  public readonly isMcpEnabled = computed(
+    () => this.systemFeaturesSignal().mcpEnabled ?? false
   );
   public readonly isConfigLoaded = this.isLoaded.asReadonly();
 

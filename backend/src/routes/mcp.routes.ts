@@ -23,6 +23,8 @@ import {
   META_KEYS,
   getRequestMeta,
 } from '../mcp';
+import { configService } from '../services/config.service';
+import { config } from '../config/env';
 
 const mcpRoutes = new OpenAPIHono<AppContext>();
 
@@ -254,6 +256,34 @@ function headerMismatch(c: Context<AppContext>, id: string | number = 0): Respon
     400
   );
 }
+
+// Gate the MCP endpoint on the AI kill switch (master) and the MCP_ENABLED
+// toggle. When MCP is unavailable the endpoint answers 403 with a JSON-RPC
+// error so clients can't use the server regardless of the UI hiding the tab.
+// This runs before auth so disabled-MCP is signalled consistently even to
+// unauthenticated callers.
+mcpRoutes.use('/', async (c, next) => {
+  if (c.req.method !== 'POST') {
+    return next();
+  }
+  const db = c.get('db');
+  const killSwitch = await configService.getBoolean(db, 'AI_KILL_SWITCH');
+  const killSwitchOn = config.aiKillSwitch.lockedByEnv ? config.aiKillSwitch.enabled : killSwitch;
+  const mcpEnabled = await configService.getBoolean(db, 'MCP_ENABLED');
+  if (killSwitchOn || !mcpEnabled) {
+    return c.json(
+      createErrorResponse(
+        0,
+        JSON_RPC_ERRORS.INVALID_REQUEST,
+        killSwitchOn
+          ? 'MCP access is disabled by the AI kill switch'
+          : 'MCP access is disabled by the administrator'
+      ),
+      403
+    );
+  }
+  return next();
+});
 
 // Apply MCP auth middleware only to POST requests. Auth runs first so that
 // unauthenticated callers receive 401 (not header-validation 400s) and the

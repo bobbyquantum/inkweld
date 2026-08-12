@@ -169,6 +169,21 @@ export const CONFIG_KEYS = {
     type: 'boolean' as const,
   },
 
+  // MCP (Model Context Protocol) access as a whole. Distinct from the AI kill
+  // switch: the kill switch is the master (when ON it forces MCP off regardless
+  // of this flag), and when the kill switch is OFF this flag decides whether the
+  // MCP endpoint is available at all. Defaults to true so MCP is available by
+  // default whenever the AI kill switch is off.
+  MCP_ENABLED: {
+    category: 'auth' as ConfigCategory,
+    description:
+      'Enable MCP (Model Context Protocol) access to projects. The AI kill switch takes ' +
+      'precedence: when the kill switch is on, MCP is disabled regardless of this flag.',
+    encrypted: false,
+    envVar: 'MCP_ENABLED',
+    type: 'boolean' as const,
+  },
+
   // GitHub OAuth settings
   GITHUB_ENABLED: {
     category: 'github' as ConfigCategory,

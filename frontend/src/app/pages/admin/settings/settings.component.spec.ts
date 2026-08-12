@@ -39,6 +39,7 @@ function flushAllConfigRequests(
     PASSWORD_LOGIN_ENABLED: 'true',
     EMAIL_RECOVERY_ENABLED: 'false',
     LEGACY_MCP_ENABLED: 'false',
+    MCP_ENABLED: 'true',
   };
   const values = { ...defaults, ...overrides };
 
@@ -60,6 +61,7 @@ describe('AdminSettingsComponent', () => {
     isAiKillSwitchLockedByEnv: ReturnType<typeof vi.fn>;
     refreshSystemFeatures: ReturnType<typeof vi.fn>;
     isEmailEnabled: ReturnType<typeof vi.fn>;
+    isAiKillSwitchEnabled: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -73,6 +75,7 @@ describe('AdminSettingsComponent', () => {
       isAiKillSwitchLockedByEnv: vi.fn().mockReturnValue(false),
       refreshSystemFeatures: vi.fn(),
       isEmailEnabled: vi.fn().mockReturnValue(true),
+      isAiKillSwitchEnabled: vi.fn().mockReturnValue(false),
     };
 
     await TestBed.configureTestingModule({
@@ -775,6 +778,57 @@ describe('AdminSettingsComponent', () => {
 
       await togglePromise;
       expect(component.legacyMcpEnabled()).toBe(false);
+      expect(component.isSaving()).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('toggleMcp', () => {
+    it('disables MCP access and refreshes system features', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { MCP_ENABLED: 'true' });
+      await flushMicrotasks();
+
+      const togglePromise = component.toggleMcp(false);
+      const putReq = httpMock.expectOne('/api/v1/admin/config/MCP_ENABLED');
+      expect(putReq.request.body).toEqual({ value: 'false' });
+      putReq.flush(null);
+
+      await togglePromise;
+      expect(component.mcpEnabled()).toBe(false);
+      expect(mockSystemConfigService.refreshSystemFeatures).toHaveBeenCalled();
+    });
+
+    it('enables MCP access and refreshes system features', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { MCP_ENABLED: 'false' });
+      await flushMicrotasks();
+
+      const togglePromise = component.toggleMcp(true);
+      const putReq = httpMock.expectOne('/api/v1/admin/config/MCP_ENABLED');
+      expect(putReq.request.body).toEqual({ value: 'true' });
+      putReq.flush(null);
+
+      await togglePromise;
+      expect(component.mcpEnabled()).toBe(true);
+      expect(mockSystemConfigService.refreshSystemFeatures).toHaveBeenCalled();
+    });
+
+    it('reverts state when the save fails', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { MCP_ENABLED: 'true' });
+      await flushMicrotasks();
+
+      const togglePromise = component.toggleMcp(false);
+      const putReq = httpMock.expectOne('/api/v1/admin/config/MCP_ENABLED');
+      putReq.error(new ProgressEvent('error'), { status: 500 });
+
+      await togglePromise;
+      expect(component.mcpEnabled()).toBe(true);
       expect(component.isSaving()).toBe(false);
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();

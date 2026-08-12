@@ -817,12 +817,10 @@
   <section class="settings-section">
     <h3>
       <mat-icon>key</mat-icon>
-      MCP Access
+      {{ 'settings.mcp.title' | transloco }}
     </h3>
     <p class="section-description">
-      Connect external tools (like AI assistants) to your project via the Model
-      Context Protocol (MCP). Most tools sign in through your browser with OAuth
-      — no API key required.
+      {{ 'settings.mcp.description' | transloco }}
     </p>
 
     @if (isAiKillSwitchEnabled()) {
@@ -831,9 +829,8 @@
           <div class="info-content">
             <mat-icon>block</mat-icon>
             <div>
-              <strong>AI features are disabled by the administrator.</strong>
-              MCP access is unavailable while this setting is active. Contact
-              your administrator for more information.
+              <strong>{{ 'settings.mcp.aiDisabled' | transloco }}</strong>
+              {{ 'settings.mcp.aiDisabledDesc' | transloco }}
             </div>
           </div>
         </mat-card-content>
@@ -845,12 +842,9 @@
           <div class="info-content">
             <mat-icon>link</mat-icon>
             <div>
-              <strong>MCP Endpoint URL</strong>
+              <strong>{{ 'settings.mcp.endpointTitle' | transloco }}</strong>
               <p class="mcp-instructions-text">
-                Add this URL to an MCP-capable tool (Cursor, Windsurf, Claude
-                Code, or Claude Desktop via a custom connector) as a Streamable
-                HTTP MCP server. On first use the tool will open your browser to
-                sign in and pick which projects to share.
+                {{ 'settings.mcp.endpointDesc' | transloco }}
               </p>
               <div class="mcp-url-display" data-testid="mcp-url-display">
                 <code class="mcp-url">{{ getMcpEndpointUrl() }}</code>
@@ -864,8 +858,7 @@
               </div>
               @if (isLegacyMcpEnabled()) {
                 <p class="mcp-instructions-hint">
-                  For scripts or tools that don't support OAuth, you can create
-                  a legacy API key below instead.
+                  {{ 'settings.mcp.legacyHint' | transloco }}
                 </p>
               }
             </div>
@@ -878,7 +871,7 @@
           <div class="loading-state">
             <mat-progress-spinner diameter="32" mode="indeterminate">
             </mat-progress-spinner>
-            <span>Loading API keys...</span>
+            <span>{{ 'settings.mcp.loadingKeys' | transloco }}</span>
           </div>
         } @else if (keysError()) {
           <mat-card class="error-card">
@@ -890,24 +883,26 @@
                 color="primary"
                 (click)="loadMcpKeys()"
                 data-testid="mcp-keys-retry-button">
-                Retry
+                {{ 'settings.mcp.retry' | transloco }}
               </button>
             </mat-card-content>
           </mat-card>
         } @else {
-          <h4 class="legacy-keys-heading">Legacy API Keys</h4>
+          <h4 class="legacy-keys-heading">
+            {{ 'settings.mcp.legacyKeysHeading' | transloco }}
+          </h4>
           <p class="legacy-keys-description">
-            Long-lived tokens for tools and scripts that don't support OAuth.
-            Each key is scoped to this project only.
+            {{ 'settings.mcp.legacyKeysDesc' | transloco }}
           </p>
 
           <!-- Existing Keys List -->
           @if (mcpKeys().length > 0) {
             <mat-card class="keys-card">
               <mat-card-header>
-                <mat-card-title
-                  >Active Keys ({{ getActiveKeysCount() }})</mat-card-title
-                >
+                <mat-card-title>{{
+                  'settings.mcp.activeKeys'
+                    | transloco: { count: getActiveKeysCount() }
+                }}</mat-card-title>
               </mat-card-header>
               <mat-card-content>
                 <div class="keys-list">
@@ -920,24 +915,37 @@
                         <div class="key-header">
                           <strong>{{ key.name }}</strong>
                           @if (key.revoked) {
-                            <span class="revoked-badge">Revoked</span>
+                            <span class="revoked-badge">{{
+                              'settings.mcp.revoked' | transloco
+                            }}</span>
                           }
                         </div>
                         <div class="key-meta">
                           <span class="key-prefix">{{ key.keyPrefix }}...</span>
                           <span class="key-created">
-                            Created: {{ formatDate(key.createdAt) }}
+                            {{
+                              'settings.mcp.created'
+                                | transloco: { date: formatDate(key.createdAt) }
+                            }}
                           </span>
                           @if (key.expiresAt) {
                             <span
                               class="key-expires"
                               [class.warning]="key.expiresAt < currentTime()">
-                              Expires: {{ formatDate(key.expiresAt) }}
+                              {{
+                                'settings.mcp.expires'
+                                  | transloco
+                                    : { date: formatDate(key.expiresAt) }
+                              }}
                             </span>
                           }
                           @if (key.lastUsedAt) {
                             <span class="key-used">
-                              Last used: {{ formatDate(key.lastUsedAt) }}
+                              {{
+                                'settings.mcp.lastUsed'
+                                  | transloco
+                                    : { date: formatDate(key.lastUsedAt) }
+                              }}
                             </span>
                           }
                         </div>
@@ -952,7 +960,7 @@
                           <button
                             mat-icon-button
                             color="warn"
-                            matTooltip="Revoke key"
+                            [matTooltip]="'settings.mcp.revoke' | transloco"
                             (click)="revokeKey(key)"
                             data-testid="revoke-key-button">
                             <mat-icon>block</mat-icon>
@@ -961,7 +969,7 @@
                         <button
                           mat-icon-button
                           color="warn"
-                          matTooltip="Delete key"
+                          [matTooltip]="'settings.mcp.delete' | transloco"
                           (click)="deleteKey(key)"
                           data-testid="delete-key-button">
                           <mat-icon>delete</mat-icon>
@@ -980,19 +988,19 @@
               <mat-card-header>
                 <mat-card-title>
                   <mat-icon>check_circle</mat-icon>
-                  API Key Created
+                  {{ 'settings.mcp.keyCreated' | transloco }}
                 </mat-card-title>
               </mat-card-header>
               <mat-card-content>
                 <p class="warning-text">
                   <mat-icon>warning</mat-icon>
-                  Copy this key now! It will not be shown again.
+                  {{ 'settings.mcp.copyWarning' | transloco }}
                 </p>
                 <div class="key-display">
                   <code class="full-key">{{ newlyCreatedKey() }}</code>
                   <button
                     mat-icon-button
-                    matTooltip="Copy to clipboard"
+                    [matTooltip]="'settings.mcp.copy' | transloco"
                     (click)="copyKeyToClipboard(newlyCreatedKey()!)"
                     data-testid="copy-key-button">
                     <mat-icon>content_copy</mat-icon>
@@ -1004,7 +1012,7 @@
                   (click)="dismissNewKey()"
                   class="dismiss-button"
                   data-testid="dismiss-new-key-button">
-                  I've copied the key
+                  {{ 'settings.mcp.copiedKey' | transloco }}
                 </button>
               </mat-card-content>
             </mat-card>
@@ -1018,7 +1026,7 @@
               (click)="openCreateKeyDialog()"
               data-testid="create-key-button">
               <mat-icon>add</mat-icon>
-              Create Legacy API Key
+              {{ 'settings.mcp.createKey' | transloco }}
             </button>
           }
         }

@@ -64,6 +64,10 @@ export interface SystemFeatures {
      * Whether legacy MCP API keys (long-lived project-scoped tokens) are enabled. When false (default) the \"Legacy API Keys\" section in project settings is hidden and only OAuth-based MCP connections are offered.
      */
     legacyMcpEnabled: boolean;
+    /**
+     * Whether MCP (Model Context Protocol) access is enabled. The AI kill switch takes precedence: when the kill switch is on, MCP is disabled regardless of this flag.
+     */
+    mcpEnabled: boolean;
 }
 export enum SystemFeaturesAppMode {
     Online = 'ONLINE',

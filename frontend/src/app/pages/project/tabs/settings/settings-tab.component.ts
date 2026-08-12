@@ -117,7 +117,7 @@ export class SettingsTabComponent implements OnDestroy {
         icon: 'group',
         label: 'Collaboration',
       });
-      if (!this.isAiKillSwitchEnabled()) {
+      if (!this.isAiKillSwitchEnabled() && this.isMcpEnabled()) {
         sections.push({ key: 'mcp', icon: 'key', label: 'MCP' });
       }
       sections.push({ key: 'danger', icon: 'warning', label: 'Danger Zone' });
@@ -157,6 +157,8 @@ export class SettingsTabComponent implements OnDestroy {
   // Legacy MCP API keys are hidden unless the admin has enabled them.
   protected readonly isLegacyMcpEnabled =
     this.systemConfigService.isLegacyMcpEnabled;
+  // MCP access as a whole (the AI kill switch still takes precedence).
+  protected readonly isMcpEnabled = this.systemConfigService.isMcpEnabled;
   private readonly dialog = inject(MatDialog);
 
   // Current mode (server or offline)
@@ -352,7 +354,7 @@ export class SettingsTabComponent implements OnDestroy {
       this.mcpKeys.set(keys);
     } catch (error) {
       console.error('Failed to load MCP keys:', error);
-      this.keysError.set('Failed to load API keys');
+      this.keysError.set(this.transloco.translate('settings.mcp.loadFailed'));
     } finally {
       this.isLoadingKeys.set(false);
     }

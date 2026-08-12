@@ -88,12 +88,19 @@ export class AdminSettingsComponent implements OnInit {
   // MCP connection is the only one surfaced until an admin opts in.
   readonly legacyMcpEnabled = signal(false);
 
+  // MCP access as a whole — default ON. The AI kill switch takes precedence.
+  readonly mcpEnabled = signal(true);
+
   /**
    * True when the server has outbound email (SMTP) configured. When false,
    * email-based recovery is non-functional even if the toggle is on, so we
    * disable the toggle and show a warning.
    */
   readonly isEmailEnabled = this.systemConfigService.isEmailEnabled;
+
+  /** Whether the AI kill switch is on (overrides the MCP toggle). */
+  readonly isAiKillSwitchEnabled =
+    this.systemConfigService.isAiKillSwitchEnabled;
 
   /**
    * Hide the Password Policy card when password login is disabled — the
@@ -125,6 +132,7 @@ export class AdminSettingsComponent implements OnInit {
         passwordLoginEnabled,
         emailRecoveryEnabled,
         legacyMcpEnabled,
+        mcpEnabled,
       ] = await Promise.all([
         this.configService.getConfig('USER_APPROVAL_REQUIRED'),
         this.configService.getConfig('AI_KILL_SWITCH'),
@@ -139,6 +147,7 @@ export class AdminSettingsComponent implements OnInit {
         this.configService.getConfig('PASSWORD_LOGIN_ENABLED'),
         this.configService.getConfig('EMAIL_RECOVERY_ENABLED'),
         this.configService.getConfig('LEGACY_MCP_ENABLED'),
+        this.configService.getConfig('MCP_ENABLED'),
       ]);
 
       this.userApprovalRequired.set(userApproval?.value === 'true');
@@ -170,6 +179,7 @@ export class AdminSettingsComponent implements OnInit {
       this.passwordLoginEnabled.set(passwordLoginEnabled?.value === 'true');
       this.emailRecoveryEnabled.set(emailRecoveryEnabled?.value === 'true');
       this.legacyMcpEnabled.set(legacyMcpEnabled?.value === 'true');
+      this.mcpEnabled.set(mcpEnabled?.value !== 'false');
 
       // For AI kill switch, also check the system config for lockedByEnv status
       const aiKillSwitchValue = aiKillSwitch?.value !== 'false'; // Default to true
@@ -534,14 +544,63 @@ export class AdminSettingsComponent implements OnInit {
       this.legacyMcpEnabled.set(enabled);
       this.systemConfigService.refreshSystemFeatures();
       this.snackBar.open(
-        enabled ? 'Legacy MCP keys enabled' : 'Legacy MCP keys disabled',
+        this.transloco.translate(
+          enabled
+            ? 'admin.settings.legacyMcpEnabledMsg'
+            : 'admin.settings.legacyMcpDisabledMsg'
+        ),
         'Close',
         { duration: 2500 }
       );
     } catch (err) {
       console.error('Failed to save legacy MCP setting:', err);
-      this.snackBar.open('Failed to save setting', 'Close', { duration: 3000 });
+      this.snackBar.open(
+        this.transloco.translate('admin.settings.saveFailed'),
+        'Close',
+        {
+          duration: 3000,
+        }
+      );
       this.legacyMcpEnabled.set(!enabled);
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  /**
+   * Toggle MCP (Model Context Protocol) access as a whole. Disabling hides the
+   * MCP section in project settings and makes the server reject MCP requests.
+   * The AI kill switch still takes precedence over this flag.
+   */
+  async toggleMcp(enabled: boolean): Promise<void> {
+    this.isSaving.set(true);
+
+    try {
+      await this.configService.setConfig(
+        'MCP_ENABLED',
+        enabled ? 'true' : 'false'
+      );
+      this.mcpEnabled.set(enabled);
+      this.systemConfigService.refreshSystemFeatures();
+      this.snackBar.open(
+        this.transloco.translate(
+          enabled
+            ? 'admin.settings.mcpEnabledMsg'
+            : 'admin.settings.mcpDisabledMsg'
+        ),
+        'Close',
+        { duration: 2500 }
+      );
+    } catch (err) {
+      console.error('Failed to save MCP setting:', err);
+      this.snackBar.open(
+        this.transloco.translate('admin.settings.saveFailed'),
+        'Close',
+        {
+          duration: 3000,
+        }
+      );
+      this.mcpEnabled.set(!enabled);
     } finally {
       this.isSaving.set(false);
     }

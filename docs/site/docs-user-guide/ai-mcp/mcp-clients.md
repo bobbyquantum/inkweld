@@ -18,20 +18,23 @@ Replace `<your-server>` with your deployment host (e.g. `api.inkweld.app` or `ap
 
 :::tip Legacy API keys
 If a tool doesn't support OAuth, your administrator can enable **Legacy MCP API Keys** in **Admin Settings**. When enabled, the project settings page shows a "Legacy API Keys" section where you can create a long-lived, project-scoped `iw_proj_...` token to use instead.
-:::
+
+> ⚠️ **Treat legacy keys like passwords.** Never commit a key to source control, paste it into a shared chat, or leave it in a client config file that others can read. Prefer environment or input variables where your client supports them. If you think a key has been exposed, revoke it immediately from **Project Settings → MCP Access → Legacy API Keys** and create a new one.
+> :::
 
 ## Hermes
 
-[Hermes](https://github.com/anomalyco/hermes) connects via its `mcp` command with an OAuth flow:
+[Hermes](https://github.com/NousResearch/hermes-agent) (v0.20.0, v2026.8.3) connects via its `mcp` command with an OAuth flow:
 
 ```bash
 hermes mcp add inkweld --url https://api.inkweld.app/api/v1/ai/mcp --auth oauth
 ```
 
-To use a legacy API key instead:
+To use a legacy API key instead, use `--auth header` and map the `Authorization` header to a `Bearer iw_proj_...` value:
 
 ```bash
-hermes mcp add inkweld --url https://api.inkweld.app/api/v1/ai/mcp --auth bearer
+hermes mcp add inkweld --url https://api.inkweld.app/api/v1/ai/mcp --auth header \
+  --header "Authorization: Bearer iw_proj_your_key_here"
 ```
 
 ## Claude Code
@@ -49,7 +52,7 @@ Add a Streamable HTTP server to `~/.claude.json` under `mcpServers`:
 }
 ```
 
-For a legacy API key, add an `Authorization` header:
+For a legacy API key, add an `Authorization` header (prefer an environment variable for the token):
 
 ```json
 {
@@ -58,7 +61,7 @@ For a legacy API key, add an `Authorization` header:
       "type": "http",
       "url": "https://api.inkweld.app/api/v1/ai/mcp",
       "headers": {
-        "Authorization": "Bearer iw_proj_your_key_here"
+        "Authorization": "Bearer ${INKWELD_MCP_KEY}"
       }
     }
   }
@@ -67,23 +70,13 @@ For a legacy API key, add an `Authorization` header:
 
 ## Claude Desktop
 
-Claude Desktop uses a local MCP gateway. Configure it in `claude_desktop_config.json`:
+Claude Desktop connects to remote MCP servers through **Settings → Connectors → Add connector**. Choose the **Remote MCP server** option and enter the Inkweld MCP endpoint URL:
 
-```json
-{
-  "mcpServers": {
-    "inkweld": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/inspector",
-        "connect",
-        "https://api.inkweld.app/api/v1/ai/mcp"
-      ]
-    }
-  }
-}
 ```
+https://api.inkweld.app/api/v1/ai/mcp
+```
+
+On first use, Claude Desktop opens your browser to sign in with OAuth and pick which projects to share. Note that Claude Desktop's remote connector UI does **not** support static `iw_proj_...` bearer tokens — use the OAuth flow.
 
 ## Cursor
 
@@ -97,20 +90,20 @@ For a legacy API key, set the **Authorization** header to `Bearer iw_proj_your_k
 
 ## Windsurf
 
-Windsurf uses a `.mcp.json` file in your project root:
+Windsurf stores MCP server configuration in `~/.codeium/windsurf/mcp_config.json` (or `%USERPROFILE%\.codeium\windsurf\mcp_config.json` on Windows). For a remote HTTP server, use the `serverUrl` property:
 
 ```json
 {
   "mcpServers": {
     "inkweld": {
       "type": "http",
-      "url": "https://api.inkweld.app/api/v1/ai/mcp"
+      "serverUrl": "https://api.inkweld.app/api/v1/ai/mcp"
     }
   }
 }
 ```
 
-## VS Code (Copilot / Continue)
+## VS Code
 
 Add a server to `.vscode/mcp.json`:
 
@@ -123,6 +116,17 @@ Add a server to `.vscode/mcp.json`:
     }
   }
 }
+```
+
+## Continue
+
+Add the server to your Continue `mcpServers` configuration (e.g. `~/.continue/config.json` or `config.yaml`):
+
+```yaml
+mcpServers:
+  - name: inkweld
+    type: streamable-http
+    url: https://api.inkweld.app/api/v1/ai/mcp
 ```
 
 ## Generic Streamable HTTP client

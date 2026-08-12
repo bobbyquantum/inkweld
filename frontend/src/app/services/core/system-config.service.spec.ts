@@ -39,6 +39,7 @@ describe('SystemConfigService', () => {
     passwordLoginEnabled: true,
     emailRecoveryEnabled: false,
     legacyMcpEnabled: false,
+    mcpEnabled: true,
   };
 
   beforeEach(() => {
@@ -148,6 +149,7 @@ describe('SystemConfigService', () => {
         passwordLoginEnabled: true,
         emailRecoveryEnabled: false,
         legacyMcpEnabled: true,
+        mcpEnabled: true,
       });
 
       expect(offlineService.isConfigLoaded()).toBe(true);
@@ -200,6 +202,7 @@ describe('SystemConfigService', () => {
             passwordLoginEnabled: true,
             emailRecoveryEnabled: false,
             legacyMcpEnabled: false,
+            mcpEnabled: false,
           });
           expect(errorService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -247,6 +250,7 @@ describe('SystemConfigService', () => {
         passwordLoginEnabled: true,
         emailRecoveryEnabled: false,
         legacyMcpEnabled: false,
+        mcpEnabled: true,
       };
 
       // Wait for initial load
@@ -617,6 +621,7 @@ describe('SystemConfigService', () => {
             passwordLoginEnabled: true,
             emailRecoveryEnabled: false,
             legacyMcpEnabled: false,
+            mcpEnabled: false,
           });
           expect(testService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -664,6 +669,7 @@ describe('SystemConfigService', () => {
               passwordLoginEnabled: true,
               emailRecoveryEnabled: false,
               legacyMcpEnabled: false,
+              mcpEnabled: false,
             });
             expect(service.isConfigLoaded()).toBe(true);
             expect(consoleWarnSpy).toHaveBeenCalledWith(

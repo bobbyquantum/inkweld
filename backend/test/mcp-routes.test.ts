@@ -12,6 +12,7 @@ import { getDatabase } from '../src/db/index';
 import { users, projects } from '../src/db/schema/index';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
+import { configService } from '../src/services/config.service';
 import { startTestServer, stopTestServer, enablePasswordLoginForTests } from './server-test-helper';
 
 let testServer: { port: number; baseUrl: string };
@@ -97,6 +98,11 @@ beforeAll(async () => {
   }
   const { fullKey } = (await keyRes.json()) as { fullKey: string };
   apiKey = fullKey;
+
+  // Ensure MCP is available for these tests (the AI kill switch defaults to ON
+  // and would otherwise 403 every request).
+  await configService.set(db, 'AI_KILL_SWITCH', 'false');
+  await configService.set(db, 'MCP_ENABLED', 'true');
 });
 
 afterAll(async () => {
@@ -187,5 +193,25 @@ describe('MCP stateless endpoint (2026-07-28)', () => {
     };
     expect(json.error).toBeUndefined();
     expect(json.result?.supportedVersions).toContain(VERSION);
+  });
+
+  it('returns 403 when MCP is disabled via MCP_ENABLED', async () => {
+    await configService.set(db, 'MCP_ENABLED', 'false');
+    try {
+      const res = await postMcp(rpcBody('server/discover'), standardHeaders('server/discover'));
+      expect(res.status).toBe(403);
+    } finally {
+      await configService.set(db, 'MCP_ENABLED', 'true');
+    }
+  });
+
+  it('returns 403 when the AI kill switch is on (even if MCP_ENABLED is true)', async () => {
+    await configService.set(db, 'AI_KILL_SWITCH', 'true');
+    try {
+      const res = await postMcp(rpcBody('server/discover'), standardHeaders('server/discover'));
+      expect(res.status).toBe(403);
+    } finally {
+      await configService.set(db, 'AI_KILL_SWITCH', 'false');
+    }
   });
 });

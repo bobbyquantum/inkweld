@@ -108,6 +108,12 @@ const SystemFeaturesSchema = z
         'false (default) the "Legacy API Keys" section in project settings is hidden and only ' +
         'OAuth-based MCP connections are offered.',
     }),
+    mcpEnabled: z.boolean().openapi({
+      example: true,
+      description:
+        'Whether MCP (Model Context Protocol) access is enabled. The AI kill switch takes ' +
+        'precedence: when the kill switch is on, MCP is disabled regardless of this flag.',
+    }),
   })
   .openapi('SystemFeatures');
 
@@ -235,6 +241,10 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
   // recommended MCP connection method).
   const legacyMcpEnabled = await configService.getBoolean(db, 'LEGACY_MCP_ENABLED');
 
+  // Whether MCP access is enabled as a whole (default ON). The AI kill switch
+  // still takes precedence.
+  const mcpEnabled = await configService.getBoolean(db, 'MCP_ENABLED');
+
   return c.json({
     aiKillSwitch,
     aiKillSwitchLockedByEnv: lockedByEnv,
@@ -250,6 +260,7 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     passwordLoginEnabled,
     emailRecoveryEnabled,
     legacyMcpEnabled,
+    mcpEnabled,
   });
 });
 
