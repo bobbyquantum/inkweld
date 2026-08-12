@@ -296,18 +296,24 @@
 
 // Name section
 .name-section {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: center;
+  width: 100%;
+  min-width: 0;
+}
 
-  @media (min-width: 760px) {
+.name-glass {
+  width: 100%;
+  --glass-card-bg: color-mix(
+    in srgb,
+    var(--sys-surface-container-low) 70%,
+    transparent
+  );
+  --glass-card-border: var(--sys-outline-variant);
+
+  ::ng-deep .glass-card-body {
+    display: flex;
+    align-items: center;
     justify-content: center;
-    text-align: center;
-  }
-
-  @media (max-width: 759px) {
-    justify-content: flex-start;
+    gap: 8px;
   }
 }
 
@@ -331,6 +337,17 @@
   &:hover {
     opacity: 1;
   }
+}
+
+// Glass cards use the theme surface (not a hard-coded white) so they read
+// correctly in dark mode while still letting a custom background show through.
+.identity-glass {
+  --glass-card-bg: color-mix(
+    in srgb,
+    var(--sys-surface-container-low) 70%,
+    transparent
+  );
+  --glass-card-border: var(--sys-outline-variant);
 }
 
 // Description section

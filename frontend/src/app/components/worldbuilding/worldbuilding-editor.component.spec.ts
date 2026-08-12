@@ -715,6 +715,27 @@ describe('WorldbuildingEditorComponent', () => {
         expect(component.getSectionLabel('unknown')).toBe('unknown');
       });
     });
+
+    describe('rendered tab section', () => {
+      it('should show a desktop-only section title above a single fields card', async () => {
+        component.selectedSection.set('basic');
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        const title = fixture.nativeElement.querySelector(
+          '[data-testid="tab-section-title"]'
+        );
+        expect(title?.textContent).toContain('Basic Info');
+
+        const card = fixture.nativeElement.querySelector(
+          '[data-testid="tab-fields-card"]'
+        );
+        expect(card).toBeTruthy();
+        // All fields live inside the single card.
+        expect(card.querySelectorAll('.field-container').length).toBe(8);
+      });
+    });
     describe('layout mode', () => {
       let originalInnerWidth: number;
       let originalMatchMedia: typeof window.matchMedia;
@@ -783,6 +804,37 @@ describe('WorldbuildingEditorComponent', () => {
 
         expect(component.useSidenav()).toBe(false);
         expect(component.selectedSection()).toBe('identity');
+      });
+
+      it('should render a fields card in accordion mode', async () => {
+        component['schema'].set(mockCharacterSchema);
+        await recreateComponentForViewport(759, false);
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        const accordion = fixture.nativeElement.querySelector(
+          '[data-testid="wb-accordion"]'
+        );
+        expect(accordion).toBeTruthy();
+        expect(
+          accordion.querySelector('[data-testid="tab-fields-card"]')
+        ).toBeTruthy();
+      });
+
+      it('should mark the accordion with the custom menu background', async () => {
+        await recreateComponentForViewport(759, false);
+        fixture.detectChanges();
+        const panel = component.identityPanel();
+        panel?.appearance.set({
+          menu: { type: 'color', mode: 'auto', value: '#123456' },
+        });
+        fixture.detectChanges();
+
+        const accordion = fixture.nativeElement.querySelector(
+          '[data-testid="wb-accordion"]'
+        );
+        expect(accordion.classList).toContain('has-custom-background');
       });
     });
 

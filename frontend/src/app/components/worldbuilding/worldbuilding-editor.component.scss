@@ -211,6 +211,44 @@
 .tab-section-content {
   overflow-y: auto;
   height: 100%;
+  padding: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+// Desktop-only title for a selected section/tab.
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--sys-on-surface);
+  margin: 0 0 1rem;
+
+  .section-title-icon {
+    color: var(--sys-primary);
+  }
+}
+
+// A single card wrapping all of a section's fields so they read as one
+// grouped form surface, while letting any custom content background show
+// through (matches the appearance panel cards).
+.tab-fields-card {
+  border: 1px solid
+    color-mix(in srgb, var(--sys-outline-variant) 60%, transparent);
+  border-radius: 12px;
+  background: color-mix(
+    in srgb,
+    var(--sys-surface-container-low) 55%,
+    transparent
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 // ==========================================
@@ -318,6 +356,53 @@
 mat-accordion {
   display: block;
 
+  // In mobile/accordion mode, the accordion carries the element's menu
+  // background (the same colours used by the sidenav). Each panel's header
+  // face is tinted with that background so the section list echoes the
+  // element's side menu styling.
+  &.has-custom-background {
+    background: var(--wb-bg);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 12px;
+    padding: 4px;
+
+    ::ng-deep .mat-expansion-panel {
+      background: transparent;
+
+      .mat-expansion-panel-header {
+        background: color-mix(
+          in srgb,
+          var(--sys-surface-container-low) 55%,
+          transparent
+        );
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border-radius: 10px;
+      }
+
+      &.mat-expanded .mat-expansion-panel-header {
+        background: color-mix(
+          in srgb,
+          var(--sys-secondary-container) 85%,
+          transparent
+        );
+        color: var(--sys-on-secondary-container);
+      }
+    }
+  }
+
+  &.wb-bg-overlay-light {
+    background-color: rgba(255, 255, 255, 0.2);
+    background-blend-mode: screen;
+  }
+
+  &.wb-bg-overlay-dark {
+    background-color: rgba(0, 0, 0, 0.25);
+    background-blend-mode: multiply;
+  }
+
   .panel-title-icon {
     margin-right: 8px;
     font-size: 20px;
@@ -342,9 +427,6 @@ mat-accordion {
   grid-template-columns: repeat(12, 1fr);
   gap: 1rem;
   min-height: 0;
-  max-width: 900px;
-  width: 100%;
-  margin: 0 auto;
   box-sizing: border-box;
 
   // Narrow container: reduce padding and single column
@@ -358,25 +440,9 @@ mat-accordion {
 .field-container {
   grid-column: span 12;
 
-  // Glass card treatment so the per-element background shows through while the
-  // form fields stay readable (matches the appearance panel cards).
-  border: 1px solid
-    color-mix(in srgb, var(--sys-outline-variant) 60%, transparent);
-  border-radius: 12px;
-  padding: 12px 14px;
-  background: color-mix(
-    in srgb,
-    var(--sys-surface-container-low) 55%,
-    transparent
-  );
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-sizing: border-box;
-
   // Narrow container: always full width
   @container wb-content (max-width: 600px) {
     grid-column: span 1 !important;
-    padding: 8px 10px;
   }
 }
 

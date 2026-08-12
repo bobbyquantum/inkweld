@@ -30,16 +30,18 @@
       } @else {
         <!-- Name section -->
         <div class="name-section">
-          <span class="element-name">{{ elementName() }}</span>
-          @if (canWrite()) {
-            <button
-              mat-icon-button
-              class="rename-button"
-              (click)="onRenameClick()"
-              [matTooltip]="'worldbuilding.identityPanel.rename' | transloco">
-              <mat-icon>edit</mat-icon>
-            </button>
-          }
+          <app-glass-card class="name-glass" [title]="''">
+            <span class="element-name">{{ elementName() }}</span>
+            @if (canWrite()) {
+              <button
+                mat-icon-button
+                class="rename-button"
+                (click)="onRenameClick()"
+                [matTooltip]="'worldbuilding.identityPanel.rename' | transloco">
+                <mat-icon>edit</mat-icon>
+              </button>
+            }
+          </app-glass-card>
         </div>
 
         <!-- Image section -->
