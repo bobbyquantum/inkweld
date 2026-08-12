@@ -49,6 +49,7 @@ const LOCAL_DEFAULTS: SystemFeatures = {
   // email server. The flags only really matter in server mode.
   passwordLoginEnabled: true,
   emailRecoveryEnabled: false,
+  legacyMcpEnabled: true,
 };
 
 /** Default system features when server is unavailable (degraded mode) */
@@ -68,6 +69,7 @@ const SERVER_UNAVAILABLE_DEFAULTS: SystemFeatures = {
   // returns; the real values will be replaced once the API call succeeds.
   passwordLoginEnabled: true,
   emailRecoveryEnabled: false,
+  legacyMcpEnabled: false,
 };
 
 @Injectable({
@@ -94,6 +96,9 @@ export class SystemConfigService {
     // in passwordless deployments.
     passwordLoginEnabled: false,
     emailRecoveryEnabled: false,
+    // Pessimistic initial state — legacy MCP keys are hidden until we learn
+    // the admin has opted in.
+    legacyMcpEnabled: false,
   });
 
   /** Tracks if the config was loaded successfully (true) or failed/using defaults (false) */
@@ -149,6 +154,14 @@ export class SystemConfigService {
    */
   public readonly isEmailRecoveryEnabled = computed(
     () => this.systemFeaturesSignal().emailRecoveryEnabled ?? false
+  );
+  /**
+   * Whether legacy MCP API keys (long-lived project-scoped tokens) are enabled
+   * on the server. When false, the "Legacy API Keys" section in project
+   * settings is hidden and only OAuth-based MCP connections are offered.
+   */
+  public readonly isLegacyMcpEnabled = computed(
+    () => this.systemFeaturesSignal().legacyMcpEnabled ?? false
   );
   public readonly isConfigLoaded = this.isLoaded.asReadonly();
 

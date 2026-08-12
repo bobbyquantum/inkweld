@@ -119,6 +119,17 @@ const sidebars: SidebarsConfig = {
       },
       items: ['settings/user-settings', 'settings/project-settings'],
     },
+    {
+      type: 'category',
+      label: 'AI & MCP Integrations',
+      collapsed: false,
+      link: {
+        type: 'generated-index',
+        description:
+          'Connect Inkweld to AI assistants via the Model Context Protocol.',
+      },
+      items: ['ai-mcp/mcp-clients'],
+    },
   ],
 };
 

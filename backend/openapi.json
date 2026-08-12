@@ -1347,6 +1347,11 @@
             "type": "boolean",
             "example": false,
             "description": "Whether email-based recovery is enabled. When passwords are off, this controls the magic-link passkey-enrolment recovery flow. When passwords are on, this gates the forgot-password reset email."
+          },
+          "legacyMcpEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether legacy MCP API keys (long-lived project-scoped tokens) are enabled. When false (default) the \"Legacy API Keys\" section in project settings is hidden and only OAuth-based MCP connections are offered."
           }
         },
         "required": [
@@ -1361,7 +1366,8 @@
           "passwordPolicy",
           "passkeysEnabled",
           "passwordLoginEnabled",
-          "emailRecoveryEnabled"
+          "emailRecoveryEnabled",
+          "legacyMcpEnabled"
         ]
       },
       "LintStatus": {

@@ -84,6 +84,10 @@ export class AdminSettingsComponent implements OnInit {
   readonly passwordLoginEnabled = signal(false);
   readonly emailRecoveryEnabled = signal(false);
 
+  // Legacy MCP API keys — default OFF (hidden) so the recommended OAuth-based
+  // MCP connection is the only one surfaced until an admin opts in.
+  readonly legacyMcpEnabled = signal(false);
+
   /**
    * True when the server has outbound email (SMTP) configured. When false,
    * email-based recovery is non-functional even if the toggle is on, so we
@@ -120,6 +124,7 @@ export class AdminSettingsComponent implements OnInit {
         passkeysEnabled,
         passwordLoginEnabled,
         emailRecoveryEnabled,
+        legacyMcpEnabled,
       ] = await Promise.all([
         this.configService.getConfig('USER_APPROVAL_REQUIRED'),
         this.configService.getConfig('AI_KILL_SWITCH'),
@@ -133,6 +138,7 @@ export class AdminSettingsComponent implements OnInit {
         this.configService.getConfig('PASSKEYS_ENABLED'),
         this.configService.getConfig('PASSWORD_LOGIN_ENABLED'),
         this.configService.getConfig('EMAIL_RECOVERY_ENABLED'),
+        this.configService.getConfig('LEGACY_MCP_ENABLED'),
       ]);
 
       this.userApprovalRequired.set(userApproval?.value === 'true');
@@ -163,6 +169,7 @@ export class AdminSettingsComponent implements OnInit {
       // accidentally enable email flows on a server with no SMTP configured.
       this.passwordLoginEnabled.set(passwordLoginEnabled?.value === 'true');
       this.emailRecoveryEnabled.set(emailRecoveryEnabled?.value === 'true');
+      this.legacyMcpEnabled.set(legacyMcpEnabled?.value === 'true');
 
       // For AI kill switch, also check the system config for lockedByEnv status
       const aiKillSwitchValue = aiKillSwitch?.value !== 'false'; // Default to true
@@ -506,6 +513,35 @@ export class AdminSettingsComponent implements OnInit {
       console.error('Failed to save email recovery setting:', err);
       this.snackBar.open('Failed to save setting', 'Close', { duration: 3000 });
       this.emailRecoveryEnabled.set(!enabled);
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  /**
+   * Toggle legacy MCP API keys. Enabling exposes the "Legacy API Keys" section
+   * in project settings so tools without OAuth support can connect with a
+   * long-lived project-scoped token.
+   */
+  async toggleLegacyMcp(enabled: boolean): Promise<void> {
+    this.isSaving.set(true);
+
+    try {
+      await this.configService.setConfig(
+        'LEGACY_MCP_ENABLED',
+        enabled ? 'true' : 'false'
+      );
+      this.legacyMcpEnabled.set(enabled);
+      this.systemConfigService.refreshSystemFeatures();
+      this.snackBar.open(
+        enabled ? 'Legacy MCP keys enabled' : 'Legacy MCP keys disabled',
+        'Close',
+        { duration: 2500 }
+      );
+    } catch (err) {
+      console.error('Failed to save legacy MCP setting:', err);
+      this.snackBar.open('Failed to save setting', 'Close', { duration: 3000 });
+      this.legacyMcpEnabled.set(!enabled);
     } finally {
       this.isSaving.set(false);
     }

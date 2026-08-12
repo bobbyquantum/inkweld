@@ -862,161 +862,165 @@
                   <mat-icon>content_copy</mat-icon>
                 </button>
               </div>
-              <p class="mcp-instructions-hint">
-                For scripts or tools that don't support OAuth, you can create a
-                legacy API key below instead.
-              </p>
+              @if (isLegacyMcpEnabled()) {
+                <p class="mcp-instructions-hint">
+                  For scripts or tools that don't support OAuth, you can create
+                  a legacy API key below instead.
+                </p>
+              }
             </div>
           </div>
         </mat-card-content>
       </mat-card>
 
-      @if (isLoadingKeys()) {
-        <div class="loading-state">
-          <mat-progress-spinner diameter="32" mode="indeterminate">
-          </mat-progress-spinner>
-          <span>Loading API keys...</span>
-        </div>
-      } @else if (keysError()) {
-        <mat-card class="error-card">
-          <mat-card-content>
-            <mat-icon>error</mat-icon>
-            <span>{{ keysError() }}</span>
-            <button
-              mat-button
-              color="primary"
-              (click)="loadMcpKeys()"
-              data-testid="mcp-keys-retry-button">
-              Retry
-            </button>
-          </mat-card-content>
-        </mat-card>
-      } @else {
-        <h4 class="legacy-keys-heading">Legacy API Keys</h4>
-        <p class="legacy-keys-description">
-          Long-lived tokens for tools and scripts that don't support OAuth. Each
-          key is scoped to this project only.
-        </p>
-
-        <!-- Existing Keys List -->
-        @if (mcpKeys().length > 0) {
-          <mat-card class="keys-card">
-            <mat-card-header>
-              <mat-card-title
-                >Active Keys ({{ getActiveKeysCount() }})</mat-card-title
-              >
-            </mat-card-header>
+      @if (isLegacyMcpEnabled()) {
+        @if (isLoadingKeys()) {
+          <div class="loading-state">
+            <mat-progress-spinner diameter="32" mode="indeterminate">
+            </mat-progress-spinner>
+            <span>Loading API keys...</span>
+          </div>
+        } @else if (keysError()) {
+          <mat-card class="error-card">
             <mat-card-content>
-              <div class="keys-list">
-                @for (key of mcpKeys(); track key.id) {
-                  <div
-                    class="key-item"
-                    [class.revoked]="key.revoked"
-                    data-testid="mcp-key-item">
-                    <div class="key-info">
-                      <div class="key-header">
-                        <strong>{{ key.name }}</strong>
-                        @if (key.revoked) {
-                          <span class="revoked-badge">Revoked</span>
-                        }
-                      </div>
-                      <div class="key-meta">
-                        <span class="key-prefix">{{ key.keyPrefix }}...</span>
-                        <span class="key-created">
-                          Created: {{ formatDate(key.createdAt) }}
-                        </span>
-                        @if (key.expiresAt) {
-                          <span
-                            class="key-expires"
-                            [class.warning]="key.expiresAt < currentTime()">
-                            Expires: {{ formatDate(key.expiresAt) }}
-                          </span>
-                        }
-                        @if (key.lastUsedAt) {
-                          <span class="key-used">
-                            Last used: {{ formatDate(key.lastUsedAt) }}
-                          </span>
-                        }
-                      </div>
-                      <div class="key-permissions">
-                        @for (perm of key.permissions; track perm) {
-                          <span class="permission-chip">{{ perm }}</span>
-                        }
-                      </div>
-                    </div>
-                    <div class="key-actions">
-                      @if (!key.revoked) {
-                        <button
-                          mat-icon-button
-                          color="warn"
-                          matTooltip="Revoke key"
-                          (click)="revokeKey(key)"
-                          data-testid="revoke-key-button">
-                          <mat-icon>block</mat-icon>
-                        </button>
-                      }
-                      <button
-                        mat-icon-button
-                        color="warn"
-                        matTooltip="Delete key"
-                        (click)="deleteKey(key)"
-                        data-testid="delete-key-button">
-                        <mat-icon>delete</mat-icon>
-                      </button>
-                    </div>
-                  </div>
-                }
-              </div>
-            </mat-card-content>
-          </mat-card>
-        }
-
-        <!-- Newly Created Key Display -->
-        @if (newlyCreatedKey()) {
-          <mat-card class="new-key-card success">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>check_circle</mat-icon>
-                API Key Created
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <p class="warning-text">
-                <mat-icon>warning</mat-icon>
-                Copy this key now! It will not be shown again.
-              </p>
-              <div class="key-display">
-                <code class="full-key">{{ newlyCreatedKey() }}</code>
-                <button
-                  mat-icon-button
-                  matTooltip="Copy to clipboard"
-                  (click)="copyKeyToClipboard(newlyCreatedKey()!)"
-                  data-testid="copy-key-button">
-                  <mat-icon>content_copy</mat-icon>
-                </button>
-              </div>
+              <mat-icon>error</mat-icon>
+              <span>{{ keysError() }}</span>
               <button
-                mat-raised-button
+                mat-button
                 color="primary"
-                (click)="dismissNewKey()"
-                class="dismiss-button"
-                data-testid="dismiss-new-key-button">
-                I've copied the key
+                (click)="loadMcpKeys()"
+                data-testid="mcp-keys-retry-button">
+                Retry
               </button>
             </mat-card-content>
           </mat-card>
-        }
+        } @else {
+          <h4 class="legacy-keys-heading">Legacy API Keys</h4>
+          <p class="legacy-keys-description">
+            Long-lived tokens for tools and scripts that don't support OAuth.
+            Each key is scoped to this project only.
+          </p>
 
-        <!-- Create New Key Button -->
-        @if (!newlyCreatedKey()) {
-          <button
-            mat-raised-button
-            color="primary"
-            (click)="openCreateKeyDialog()"
-            data-testid="create-key-button">
-            <mat-icon>add</mat-icon>
-            Create Legacy API Key
-          </button>
+          <!-- Existing Keys List -->
+          @if (mcpKeys().length > 0) {
+            <mat-card class="keys-card">
+              <mat-card-header>
+                <mat-card-title
+                  >Active Keys ({{ getActiveKeysCount() }})</mat-card-title
+                >
+              </mat-card-header>
+              <mat-card-content>
+                <div class="keys-list">
+                  @for (key of mcpKeys(); track key.id) {
+                    <div
+                      class="key-item"
+                      [class.revoked]="key.revoked"
+                      data-testid="mcp-key-item">
+                      <div class="key-info">
+                        <div class="key-header">
+                          <strong>{{ key.name }}</strong>
+                          @if (key.revoked) {
+                            <span class="revoked-badge">Revoked</span>
+                          }
+                        </div>
+                        <div class="key-meta">
+                          <span class="key-prefix">{{ key.keyPrefix }}...</span>
+                          <span class="key-created">
+                            Created: {{ formatDate(key.createdAt) }}
+                          </span>
+                          @if (key.expiresAt) {
+                            <span
+                              class="key-expires"
+                              [class.warning]="key.expiresAt < currentTime()">
+                              Expires: {{ formatDate(key.expiresAt) }}
+                            </span>
+                          }
+                          @if (key.lastUsedAt) {
+                            <span class="key-used">
+                              Last used: {{ formatDate(key.lastUsedAt) }}
+                            </span>
+                          }
+                        </div>
+                        <div class="key-permissions">
+                          @for (perm of key.permissions; track perm) {
+                            <span class="permission-chip">{{ perm }}</span>
+                          }
+                        </div>
+                      </div>
+                      <div class="key-actions">
+                        @if (!key.revoked) {
+                          <button
+                            mat-icon-button
+                            color="warn"
+                            matTooltip="Revoke key"
+                            (click)="revokeKey(key)"
+                            data-testid="revoke-key-button">
+                            <mat-icon>block</mat-icon>
+                          </button>
+                        }
+                        <button
+                          mat-icon-button
+                          color="warn"
+                          matTooltip="Delete key"
+                          (click)="deleteKey(key)"
+                          data-testid="delete-key-button">
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+
+          <!-- Newly Created Key Display -->
+          @if (newlyCreatedKey()) {
+            <mat-card class="new-key-card success">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>check_circle</mat-icon>
+                  API Key Created
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <p class="warning-text">
+                  <mat-icon>warning</mat-icon>
+                  Copy this key now! It will not be shown again.
+                </p>
+                <div class="key-display">
+                  <code class="full-key">{{ newlyCreatedKey() }}</code>
+                  <button
+                    mat-icon-button
+                    matTooltip="Copy to clipboard"
+                    (click)="copyKeyToClipboard(newlyCreatedKey()!)"
+                    data-testid="copy-key-button">
+                    <mat-icon>content_copy</mat-icon>
+                  </button>
+                </div>
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="dismissNewKey()"
+                  class="dismiss-button"
+                  data-testid="dismiss-new-key-button">
+                  I've copied the key
+                </button>
+              </mat-card-content>
+            </mat-card>
+          }
+
+          <!-- Create New Key Button -->
+          @if (!newlyCreatedKey()) {
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="openCreateKeyDialog()"
+              data-testid="create-key-button">
+              <mat-icon>add</mat-icon>
+              Create Legacy API Key
+            </button>
+          }
         }
       }
     } @else {

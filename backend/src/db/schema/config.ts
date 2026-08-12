@@ -155,6 +155,20 @@ export const CONFIG_KEYS = {
     type: 'boolean' as const,
   },
 
+  // Legacy MCP API keys (iw_proj_...). Long-lived project-scoped tokens for
+  // tools and scripts that don't support the OAuth flow. Defaults to false so
+  // the recommended OAuth-based connection is the only one surfaced in the UI;
+  // admins can opt in to legacy keys for non-OAuth tooling.
+  LEGACY_MCP_ENABLED: {
+    category: 'auth' as ConfigCategory,
+    description:
+      'Enable legacy MCP API keys (long-lived project-scoped tokens) for tools that ' +
+      'do not support OAuth. When disabled, the "Legacy API Keys" section is hidden.',
+    encrypted: false,
+    envVar: 'LEGACY_MCP_ENABLED',
+    type: 'boolean' as const,
+  },
+
   // GitHub OAuth settings
   GITHUB_ENABLED: {
     category: 'github' as ConfigCategory,

@@ -101,6 +101,13 @@ const SystemFeaturesSchema = z
         'magic-link passkey-enrolment recovery flow. When passwords are on, this gates the ' +
         'forgot-password reset email.',
     }),
+    legacyMcpEnabled: z.boolean().openapi({
+      example: false,
+      description:
+        'Whether legacy MCP API keys (long-lived project-scoped tokens) are enabled. When ' +
+        'false (default) the "Legacy API Keys" section in project settings is hidden and only ' +
+        'OAuth-based MCP connections are offered.',
+    }),
   })
   .openapi('SystemFeatures');
 
@@ -224,6 +231,10 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
   const passwordLoginEnabled = await configService.getBoolean(db, 'PASSWORD_LOGIN_ENABLED');
   const emailRecoveryEnabled = await configService.getBoolean(db, 'EMAIL_RECOVERY_ENABLED');
 
+  // Whether legacy MCP API keys are enabled (default OFF — OAuth is the
+  // recommended MCP connection method).
+  const legacyMcpEnabled = await configService.getBoolean(db, 'LEGACY_MCP_ENABLED');
+
   return c.json({
     aiKillSwitch,
     aiKillSwitchLockedByEnv: lockedByEnv,
@@ -238,6 +249,7 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     passkeysEnabled,
     passwordLoginEnabled,
     emailRecoveryEnabled,
+    legacyMcpEnabled,
   });
 });
 

@@ -154,6 +154,9 @@ export class SettingsTabComponent implements OnDestroy {
   // MCP Keys should only be visible when AI kill switch is OFF
   protected readonly isAiKillSwitchEnabled =
     this.systemConfigService.isAiKillSwitchEnabled;
+  // Legacy MCP API keys are hidden unless the admin has enabled them.
+  protected readonly isLegacyMcpEnabled =
+    this.systemConfigService.isLegacyMcpEnabled;
   private readonly dialog = inject(MatDialog);
 
   // Current mode (server or offline)
@@ -326,11 +329,13 @@ export class SettingsTabComponent implements OnDestroy {
 
   async loadMcpKeys(): Promise<void> {
     const project = this.projectState.project();
-    // MCP keys are owner-only (not available to editors or viewers)
+    // MCP keys are owner-only (not available to editors or viewers) and the
+    // whole legacy-key section is hidden unless the admin has enabled it.
     if (
       !project ||
       this.currentMode !== 'server' ||
-      !this.projectState.isOwner()
+      !this.projectState.isOwner() ||
+      !this.isLegacyMcpEnabled()
     ) {
       this.mcpKeys.set([]);
       this.isLoadingKeys.set(false);

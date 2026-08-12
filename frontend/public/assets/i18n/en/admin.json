@@ -110,7 +110,9 @@
     "siteUrlAria": "Site URL",
     "siteUrlHint": "Used in password reset emails and welcome notifications",
     "settingSaved": "Setting saved",
-    "saveFailed": "Failed to save setting"
+    "saveFailed": "Failed to save setting",
+    "legacyMcp": "Legacy MCP API Keys",
+    "legacyMcpDesc": "Show the \"Legacy API Keys\" section in project settings for tools that do not support OAuth. When disabled (default), only OAuth-based MCP connections are offered."
   },
   "killSwitchDialog": {
     "title": "Enable AI Features?",

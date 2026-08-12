@@ -143,6 +143,10 @@ class ConfigService {
         // deliberate trust decision because it broadens the attack surface
         // beyond the device-bound passkey credential.
         return 'false';
+      case 'LEGACY_MCP_ENABLED':
+        // Default OFF — the recommended way to connect MCP tools is OAuth.
+        // Legacy long-lived API keys are hidden until an admin opts in.
+        return 'false';
       case 'AI_LINT_ENABLED':
         return envConfig.openai.enabled ? 'true' : 'false';
       case 'AI_IMAGE_ENABLED':
