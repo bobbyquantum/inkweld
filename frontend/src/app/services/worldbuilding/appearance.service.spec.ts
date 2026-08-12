@@ -63,19 +63,41 @@ describe('AppearanceService', () => {
   });
 
   it('should resolve a solid colour in auto mode', () => {
+    // Default theme is light, so an auto colour is lightened.
     const result = service.resolveRegion(
       { type: 'color', mode: 'auto', value: '#ff0000' },
       'menu'
     );
-    expect(result).toEqual({ type: 'color', background: '#ff0000' });
+    expect(result).toEqual({ type: 'color', background: '#ff4040' });
   });
 
-  it('should resolve a gradient unchanged', () => {
+  it('should lighten an auto colour in light theme', () => {
+    themeSubject.next('light-theme');
+    const result = service.resolveRegion(
+      { type: 'color', mode: 'auto', value: '#ff0000' },
+      'menu'
+    );
+    expect(result?.type).toBe('color');
+    expect(result?.background).toBe('#ff4040');
+  });
+
+  it('should darken an auto colour in dark theme', () => {
+    themeSubject.next('dark-theme');
+    const result = service.resolveRegion(
+      { type: 'color', mode: 'auto', value: '#ff0000' },
+      'menu'
+    );
+    expect(result?.type).toBe('color');
+    expect(result?.background).toBe('#bf0000');
+  });
+
+  it('should resolve a manual gradient unchanged', () => {
     const result = service.resolveRegion(
       {
         type: 'gradient',
-        mode: 'auto',
-        value: 'linear-gradient(#fff, #000)',
+        mode: 'manual',
+        light: 'linear-gradient(#fff, #000)',
+        dark: 'linear-gradient(#000, #fff)',
       },
       'content'
     );
@@ -83,6 +105,32 @@ describe('AppearanceService', () => {
       type: 'gradient',
       background: 'linear-gradient(#fff, #000)',
     });
+  });
+
+  it('should lighten an auto gradient in light theme', () => {
+    themeSubject.next('light-theme');
+    const result = service.resolveRegion(
+      {
+        type: 'gradient',
+        mode: 'auto',
+        value: 'linear-gradient(#ff0000, #0000ff)',
+      },
+      'content'
+    );
+    expect(result?.background).toBe('linear-gradient(#ff4040, #4040ff)');
+  });
+
+  it('should darken an auto gradient in dark theme', () => {
+    themeSubject.next('dark-theme');
+    const result = service.resolveRegion(
+      {
+        type: 'gradient',
+        mode: 'auto',
+        value: 'linear-gradient(#ff0000, #0000ff)',
+      },
+      'content'
+    );
+    expect(result?.background).toBe('linear-gradient(#bf0000, #0000bf)');
   });
 
   it('should return null for empty setting', () => {

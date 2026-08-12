@@ -8,6 +8,11 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
   padding: 14px 16px;
   box-sizing: border-box;
+  // Force the card onto its own compositing layer. Without this, Chromium can
+  // fail to repaint children (title, body) of sibling backdrop-filter cards
+  // until an interaction forces a repaint.
+  transform: translateZ(0);
+  isolation: isolate;
 }
 
 :host([data-transparent='true']) {

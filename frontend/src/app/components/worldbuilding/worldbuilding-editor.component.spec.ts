@@ -1039,7 +1039,12 @@ describe('WorldbuildingEditorComponent', () => {
       fixture.detectChanges();
       const panel = component.identityPanel();
       panel?.appearance.set({
-        menu: { type: 'color', mode: 'auto', value: '#123456' },
+        menu: {
+          type: 'color',
+          mode: 'manual',
+          light: '#123456',
+          dark: '#000000',
+        },
       });
       expect(component.menuBackground()?.background).toBe('#123456');
       expect(component.contentBackground()).toBeNull();

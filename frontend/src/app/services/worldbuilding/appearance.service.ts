@@ -12,6 +12,7 @@ import { LocalStorageService } from '@services/local/local-storage.service';
 import { ThemeService } from '@themes/theme.service';
 import { firstValueFrom, map } from 'rxjs';
 
+import { adjustGradient, adjustHex } from '../../utils/color';
 import {
   mediaIdFromReference,
   mediaReferenceFilename,
@@ -126,9 +127,26 @@ export class AppearanceService {
 
     const type = setting.type;
     if (type === 'color') {
+      // In auto mode a single colour is lightened in light theme and darkened
+      // in dark theme so it stays legible against the app surface. Manual mode
+      // already has theme-specific colours, so it is returned unchanged.
+      if (setting.mode === 'auto') {
+        const adjusted = adjustHex(value, this.isDarkMode() ? -0.25 : 0.25);
+        if (adjusted) {
+          return { type, background: adjusted };
+        }
+      }
       return { type, background: value };
     }
     if (type === 'gradient') {
+      // Auto mode adjusts every hex stop so the whole gradient stays legible
+      // in the active theme; manual mode is returned unchanged.
+      if (setting.mode === 'auto') {
+        return {
+          type,
+          background: adjustGradient(value, this.isDarkMode() ? -0.25 : 0.25),
+        };
+      }
       return { type, background: value };
     }
 
