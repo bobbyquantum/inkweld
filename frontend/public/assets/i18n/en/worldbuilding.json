@@ -108,7 +108,8 @@
     "valuePlaceholder": "e.g. #4fd8eb or linear-gradient(...)",
     "gradientAngle": "Angle",
     "stopColor": "Colour",
-    "imageHint": "Images auto-adjust their brightness for light/dark mode, or pick separate images per theme in manual mode."
+    "imageHint": "Images auto-adjust their brightness for light/dark mode, or pick separate images per theme in manual mode.",
+    "schemaImageHint": "Image backgrounds are chosen per element; pick a colour or gradient as the default."
   },
   "tab": {
     "notSynced": "This document has not been synced to your browser yet.",

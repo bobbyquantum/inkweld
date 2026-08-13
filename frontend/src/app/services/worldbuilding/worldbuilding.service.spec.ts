@@ -144,6 +144,9 @@ describe('WorldbuildingService', () => {
       name: '',
       age: 0,
     },
+    defaultAppearance: {
+      menu: { type: 'color', mode: 'auto', value: '#123456' },
+    },
   };
 
   beforeEach(() => {
@@ -826,6 +829,30 @@ describe('WorldbuildingService', () => {
         slug
       );
       expect(data2?.['createdDate']).toBe(createdDate);
+    });
+
+    it('should seed the identity appearance from the schema default', async () => {
+      const element = {
+        id: 'appearance-seed-element',
+        type: ElementType.Worldbuilding,
+        schemaId: 'character-v1',
+        name: 'Seeded Character',
+      } as Element;
+
+      service.saveSchemaToLibrary(mockCharacterSchema);
+
+      await service.initializeWorldbuildingElement(element, username, slug);
+
+      const identity = await service.getIdentityData(
+        'appearance-seed-element',
+        username,
+        slug
+      );
+      expect(identity.appearance?.menu).toEqual({
+        type: 'color',
+        mode: 'auto',
+        value: '#123456',
+      });
     });
   });
 

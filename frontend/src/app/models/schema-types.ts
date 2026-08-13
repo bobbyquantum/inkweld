@@ -3,6 +3,8 @@
  * Shared between services and components
  */
 
+import type { ElementAppearance } from './element-appearance';
+
 export enum FieldType {
   TEXT = 'text',
   TEXTAREA = 'textarea',
@@ -69,6 +71,8 @@ export interface ElementTypeSchema {
   tabs: TabSchema[];
   /** Default values for new elements */
   defaultValues?: Record<string, unknown>;
+  /** Default appearance (menu/content backgrounds) applied to new elements of this type. */
+  defaultAppearance?: ElementAppearance;
   /** Creation timestamp */
   createdAt?: string;
   /** Last update timestamp */

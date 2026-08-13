@@ -679,6 +679,16 @@ export class WorldbuildingService {
           });
         }
 
+        // Copy the schema's default appearance into the element's identity so
+        // new elements start themed; it can be overridden per element later.
+        if (schema.defaultAppearance) {
+          this.setNestedYjsMap(
+            connection.identityMap,
+            'appearance',
+            schema.defaultAppearance as unknown as Record<string, unknown>
+          );
+        }
+
         // Initialize fields based on schema (including nested structures)
         schema.tabs.forEach(tab => {
           tab.fields?.forEach(field => {
@@ -844,6 +854,7 @@ export class WorldbuildingService {
       version: 1,
       tabs: sourceSchema.tabs,
       defaultValues: sourceSchema.defaultValues,
+      defaultAppearance: sourceSchema.defaultAppearance,
       createdAt: now,
       updatedAt: now,
     };

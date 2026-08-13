@@ -1,0 +1,128 @@
+<div class="appearance-editor" data-testid="appearance-editor">
+  @for (region of regions; track region) {
+    @let setting = getSetting(region);
+    <app-glass-card
+      [icon]="region === 'menu' ? 'menu' : 'view_quilt'"
+      [title]="
+        (region === 'menu'
+          ? 'worldbuilding.appearance.menuLabel'
+          : 'worldbuilding.appearance.contentLabel'
+        ) | transloco
+      "
+      class="appearance-region"
+      [attr.data-testid]="'appearance-' + region">
+      <div class="region-header">
+        <mat-slide-toggle
+          [checked]="isEnabled(region)"
+          [disabled]="disabled()"
+          (change)="setEnabled(region, $event.checked)"
+          [attr.aria-checked]="isEnabled(region)"
+          [attr.data-testid]="'appearance-' + region + '-toggle'">
+          {{ 'worldbuilding.appearance.enabled' | transloco }}
+        </mat-slide-toggle>
+      </div>
+
+      @if (isEnabled(region)) {
+        <div class="region-controls">
+          <div class="type-radio-group">
+            <span class="control-label">{{
+              'worldbuilding.appearance.type' | transloco
+            }}</span>
+            <mat-radio-group
+              [value]="setting.type"
+              [disabled]="disabled()"
+              (change)="setType(region, $event.value)">
+              @for (type of types; track type) {
+                <mat-radio-button
+                  [value]="type"
+                  [attr.data-testid]="
+                    'appearance-' + region + '-option-' + type
+                  ">
+                  {{
+                    'worldbuilding.appearance.typeOptions.' + type | transloco
+                  }}
+                </mat-radio-button>
+              }
+            </mat-radio-group>
+          </div>
+
+          <div class="auto-row">
+            <mat-checkbox
+              [checked]="setting.mode === 'auto'"
+              [disabled]="disabled()"
+              (change)="setMode(region, $event.checked ? 'auto' : 'manual')"
+              [attr.data-testid]="'appearance-' + region + '-auto'">
+              {{ 'worldbuilding.appearance.autoAdjust' | transloco }}
+            </mat-checkbox>
+            <span class="auto-hint">{{
+              'worldbuilding.appearance.autoAdjustHint' | transloco
+            }}</span>
+          </div>
+
+          @if (setting.mode === 'auto') {
+            <div class="intensity-row">
+              <span class="control-label">{{
+                'worldbuilding.appearance.intensity' | transloco
+              }}</span>
+              <mat-slider
+                min="0"
+                max="100"
+                step="5"
+                [disabled]="disabled()"
+                [attr.data-testid]="'appearance-' + region + '-intensity'">
+                <input
+                  #intensityThumb
+                  matSliderThumb
+                  [value]="setting.intensity ?? 25"
+                  (input)="setIntensity(region, intensityThumb.value)" />
+              </mat-slider>
+            </div>
+          }
+
+          @if (setting.type === 'image') {
+            <p class="image-hint">
+              {{ 'worldbuilding.appearance.schemaImageHint' | transloco }}
+            </p>
+          } @else {
+            @if (setting.mode === 'manual') {
+              <div class="value-row">
+                <div class="manual-slot">
+                  <span class="manual-slot-label">{{
+                    'worldbuilding.appearance.light' | transloco
+                  }}</span>
+                  <app-color-picker
+                    [value]="getSettingValue(region, 'light')"
+                    [disabled]="disabled()"
+                    (valueChange)="setValue(region, 'light', $event)"
+                    [attr.data-testid]="'appearance-' + region + '-light'" />
+                </div>
+                <div class="manual-slot">
+                  <span class="manual-slot-label">{{
+                    'worldbuilding.appearance.dark' | transloco
+                  }}</span>
+                  <app-color-picker
+                    [value]="getSettingValue(region, 'dark')"
+                    [disabled]="disabled()"
+                    (valueChange)="setValue(region, 'dark', $event)"
+                    [attr.data-testid]="'appearance-' + region + '-dark'" />
+                </div>
+              </div>
+            } @else {
+              @if (setting.type === 'color') {
+                <app-color-picker
+                  [value]="getSettingValue(region, 'value')"
+                  [disabled]="disabled()"
+                  (valueChange)="setValue(region, 'value', $event)" />
+              } @else if (setting.type === 'gradient') {
+                <app-gradient-designer
+                  [value]="getSettingValue(region, 'value')"
+                  [disabled]="disabled()"
+                  (valueChange)="setValue(region, 'value', $event)" />
+              }
+            }
+          }
+        </div>
+      }
+    </app-glass-card>
+  }
+</div>

@@ -40,6 +40,8 @@
     "title": "Edit Template",
     "hint": "Define the structure, tabs, and fields for this template.",
     "basicInfo": "Basic Information",
+    "defaultAppearance": "Default appearance",
+    "defaultAppearanceHint": "New elements of this type start with these backgrounds.",
     "templateNameLabel": "Template Name",
     "templateNameAria": "Template Name",
     "templateNamePlaceholder": "e.g., Character",

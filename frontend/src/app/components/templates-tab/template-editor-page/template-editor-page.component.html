@@ -75,6 +75,20 @@
     </form>
   </section>
 
+  <!-- Default Appearance Section -->
+  <section class="section">
+    <div class="section-header">
+      <h3>{{ 'templates.editor.defaultAppearance' | transloco }}</h3>
+      <p class="hint">
+        {{ 'templates.editor.defaultAppearanceHint' | transloco }}
+      </p>
+    </div>
+    <app-appearance-editor
+      [value]="defaultAppearance() ?? {}"
+      (valueChange)="defaultAppearance.set($event)"
+      data-testid="template-default-appearance"></app-appearance-editor>
+  </section>
+
   <!-- Tabs Section -->
   <section class="section">
     <div class="section-header">

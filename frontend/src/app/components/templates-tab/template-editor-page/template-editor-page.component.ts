@@ -29,7 +29,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { AppearanceEditorComponent } from '@components/worldbuilding/appearance-panel/appearance-editor/appearance-editor.component';
 import { TranslocoModule } from '@jsverse/transloco';
+import { type ElementAppearance } from '@models/element-appearance';
 import {
   type ElementTypeSchema,
   type FieldSchema,
@@ -66,6 +68,7 @@ interface BasicFormValue {
     MatTooltipModule,
     DragDropModule,
     TranslocoModule,
+    AppearanceEditorComponent,
   ],
 })
 export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
@@ -128,6 +131,9 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   // Tabs as a reactive array
   readonly tabs = signal<TabSchema[]>([]);
 
+  // Default appearance for new elements of this type
+  readonly defaultAppearance = signal<ElementAppearance | undefined>(undefined);
+
   ngOnInit(): void {
     const schema = this.schema();
 
@@ -136,6 +142,8 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
       icon: schema.icon,
       description: schema.description || '',
     });
+
+    this.defaultAppearance.set(schema.defaultAppearance);
 
     // Deep clone tabs to avoid mutating the original schema
     const tabs: TabSchema[] = structuredClone(schema.tabs);
@@ -288,6 +296,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
       icon: formValue.icon,
       description: formValue.description,
       tabs: this.tabs(),
+      defaultAppearance: this.defaultAppearance(),
       version: this.schema().version + 1,
     };
 
