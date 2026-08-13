@@ -777,6 +777,9 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
       if (mediaId) needed.set(era.id, mediaId);
     }
     if (needed.size === 0) {
+      // Invalidate any in-flight resolution so a stale resolver cannot
+      // repopulate URLs for images that were just removed.
+      this.eraImageResolveRun++;
       this.eraImageUrls.set(new Map());
       return;
     }

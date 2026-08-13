@@ -1260,6 +1260,43 @@ describe('TimelineTabComponent', () => {
     });
   });
 
+  it('does not resurrect a removed era image when a resolution is pending', async () => {
+    fixture.detectChanges();
+    let resolveUrl: (url: string) => void = () => {};
+    mockLocalStorage.getMediaUrl.mockReturnValue(
+      new Promise<string>(resolve => {
+        resolveUrl = resolve;
+      })
+    );
+    const system = TIME_SYSTEM_TEMPLATES[0];
+    const era: TimelineEra = {
+      id: 'race-era',
+      name: 'Race Era',
+      start: { systemId: system.id, units: ['2020', '1', '1'] },
+      end: { systemId: system.id, units: ['2025', '1', '1'] },
+      color: '#ff0',
+      imageUrl: 'media:img-race',
+    };
+    timelineSignal.set({ ...defaultConfig, eras: [era] });
+    fixture.detectChanges();
+    await vi.waitFor(() => {
+      expect(mockLocalStorage.getMediaUrl).toHaveBeenCalled();
+    });
+
+    // Remove the image while the lookup is still in flight.
+    timelineSignal.set({
+      ...defaultConfig,
+      eras: [{ ...era, imageUrl: undefined }],
+    });
+    fixture.detectChanges();
+
+    resolveUrl('blob:stale');
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(component['eraImageUrls']().size).toBe(0);
+    expect(component['eraBands']()[0]?.imageUrl).toBeUndefined();
+  });
+
   it('era header height leaves room for a name row and a range row', () => {
     fixture.detectChanges();
     expect(component['eraHeaderHeight']).toBeGreaterThanOrEqual(40);
