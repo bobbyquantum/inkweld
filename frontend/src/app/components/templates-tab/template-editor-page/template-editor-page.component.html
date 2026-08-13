@@ -66,6 +66,37 @@
             </mat-select>
           </mat-form-field>
 
+          <div class="default-image-field" data-testid="template-default-image">
+            <span class="control-label">{{
+              'templates.editor.defaultImageLabel' | transloco
+            }}</span>
+            @if (defaultImage(); as image) {
+              <div class="default-image-preview">
+                <img
+                  [src]="image"
+                  [alt]="'templates.editor.defaultImageAlt' | transloco" />
+                <button
+                  mat-icon-button
+                  type="button"
+                  [attr.aria-label]="
+                    'templates.editor.clearDefaultImage' | transloco
+                  "
+                  (click)="clearDefaultImage()">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            } @else {
+              <button
+                mat-stroked-button
+                type="button"
+                (click)="pickDefaultImage()"
+                data-testid="template-default-image-pick">
+                <mat-icon>image</mat-icon>
+                {{ 'templates.editor.pickDefaultImage' | transloco }}
+              </button>
+            }
+          </div>
+
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{
               'templates.editor.descriptionLabel' | transloco

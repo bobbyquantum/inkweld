@@ -689,6 +689,11 @@ export class WorldbuildingService {
           );
         }
 
+        // Copy the schema's default identity image so new elements start with it.
+        if (schema.defaultImage) {
+          connection.identityMap.set('image', schema.defaultImage);
+        }
+
         // Initialize fields based on schema (including nested structures)
         schema.tabs.forEach(tab => {
           tab.fields?.forEach(field => {
@@ -855,6 +860,7 @@ export class WorldbuildingService {
       tabs: sourceSchema.tabs,
       defaultValues: sourceSchema.defaultValues,
       defaultAppearance: sourceSchema.defaultAppearance,
+      defaultImage: sourceSchema.defaultImage,
       createdAt: now,
       updatedAt: now,
     };

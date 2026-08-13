@@ -73,6 +73,8 @@ export interface ElementTypeSchema {
   defaultValues?: Record<string, unknown>;
   /** Default appearance (menu/content backgrounds) applied to new elements of this type. */
   defaultAppearance?: ElementAppearance;
+  /** Default identity image (media:// reference or URL) for new elements of this type. */
+  defaultImage?: string;
   /** Creation timestamp */
   createdAt?: string;
   /** Last update timestamp */

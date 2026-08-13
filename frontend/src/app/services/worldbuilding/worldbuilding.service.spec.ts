@@ -147,6 +147,7 @@ describe('WorldbuildingService', () => {
     defaultAppearance: {
       menu: { type: 'color', mode: 'auto', value: '#123456' },
     },
+    defaultImage: 'media://default.png',
   };
 
   beforeEach(() => {
@@ -853,6 +854,7 @@ describe('WorldbuildingService', () => {
         mode: 'auto',
         value: '#123456',
       });
+      expect(identity.image).toBe('media://default.png');
     });
   });
 

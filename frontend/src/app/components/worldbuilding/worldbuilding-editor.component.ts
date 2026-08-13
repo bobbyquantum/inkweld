@@ -199,6 +199,20 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   appearancePanel = viewChild(AppearancePanelComponent);
 
   /**
+   * In preview mode, seed the identity panel's appearance and image from the
+   * schema's defaults so the preview shows the configured styling.
+   */
+  protected readonly seedPreviewAppearance = effect(() => {
+    if (!this.previewMode()) return;
+    const panel = this.identityPanel();
+    const schema = this.previewSchema();
+    if (panel && schema) {
+      panel.appearance.set(schema.defaultAppearance);
+      panel.identity.set({ image: schema.defaultImage });
+    }
+  });
+
+  /**
    * Keep the identity panel's appearance in sync with the appearance panel so
    * the editor's backgrounds update live (e.g. while dragging the slider).
    */

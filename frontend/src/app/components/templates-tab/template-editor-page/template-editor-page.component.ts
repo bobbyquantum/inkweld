@@ -34,13 +34,15 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { AppearanceEditorComponent } from '@components/worldbuilding/appearance-panel/appearance-editor/appearance-editor.component';
 import { WorldbuildingEditorComponent } from '@components/worldbuilding/worldbuilding-editor.component';
 import { ElementType } from '@inkweld/index';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { type ElementAppearance } from '@models/element-appearance';
 import {
   type ElementTypeSchema,
   type FieldSchema,
   type TabSchema,
 } from '@models/schema-types';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 
 interface BasicFormValue {
   name: string;
@@ -79,6 +81,9 @@ interface BasicFormValue {
 })
 export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly projectState = inject(ProjectStateService);
+  private readonly transloco = inject(TranslocoService);
 
   /** Exposed for the preview template. */
   readonly ElementType = ElementType;
@@ -148,6 +153,9 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   // Default appearance for new elements of this type
   readonly defaultAppearance = signal<ElementAppearance | undefined>(undefined);
 
+  // Default identity image for new elements of this type
+  readonly defaultImage = signal<string | undefined>(undefined);
+
   /** A transient schema built from the current editor state, for the preview. */
   readonly previewSchema = computed<ElementTypeSchema>(() => ({
     id: this.schema().id,
@@ -157,6 +165,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     version: this.schema().version,
     tabs: this.tabs(),
     defaultAppearance: this.defaultAppearance(),
+    defaultImage: this.defaultImage(),
   }));
 
   ngOnInit(): void {
@@ -169,6 +178,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     });
 
     this.defaultAppearance.set(schema.defaultAppearance);
+    this.defaultImage.set(schema.defaultImage);
 
     // Deep clone tabs to avoid mutating the original schema
     const tabs: TabSchema[] = structuredClone(schema.tabs);
@@ -322,6 +332,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
       description: formValue.description,
       tabs: this.tabs(),
       defaultAppearance: this.defaultAppearance(),
+      defaultImage: this.defaultImage(),
       version: this.schema().version + 1,
     };
 
@@ -336,6 +347,28 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   /** Cancel editing */
   cancel(): void {
     this.done.emit(null);
+  }
+
+  /** Open the media selector to pick a default identity image. */
+  async pickDefaultImage(): Promise<void> {
+    const project = this.projectState.project();
+    if (!project) return;
+    const result = await this.dialogGateway.openMediaSelectorDialog({
+      username: project.username,
+      slug: project.slug,
+      filterType: 'image',
+      title: this.transloco.translate(
+        'templates.editor.defaultImagePickerTitle'
+      ),
+    });
+    if (result?.selected) {
+      this.defaultImage.set(`media://${result.selected.filename}`);
+    }
+  }
+
+  /** Clear the default identity image. */
+  clearDefaultImage(): void {
+    this.defaultImage.set(undefined);
   }
 
   /** Map the active editor tab to a mat-tab index. */

@@ -372,6 +372,22 @@ describe('TemplateEditorPageComponent', () => {
       });
     });
 
+    it('should include the default image on save', () => {
+      const emitted: (ElementTypeSchema | null)[] = [];
+      component.done.subscribe(v => emitted.push(v));
+
+      component.model.set({
+        name: 'Updated Character',
+        description: 'Updated description',
+        icon: 'star',
+      });
+      component.defaultImage.set('media://default.png');
+
+      component.save();
+
+      expect(emitted[0]?.defaultImage).toBe('media://default.png');
+    });
+
     it('should not emit when form is invalid', () => {
       const emitted: (ElementTypeSchema | null)[] = [];
       component.done.subscribe(v => emitted.push(v));
