@@ -125,16 +125,18 @@ export class AppearanceService {
     const value = this.pickValue(setting);
     if (value === undefined || value === '') return null;
 
-    // Auto mode lightens the value in light theme and darkens it in dark theme
-    // by a fraction derived from `intensity` (0-100), defaulting to 25.
-    const amount = setting.intensity ?? 25;
+    // Auto mode lightens the value in light theme and darkens it in dark theme.
+    // Intensity (0-100) is mapped through a power curve so low values do
+    // almost nothing while high values are intense. Defaults to 25.
+    const raw = (setting.intensity ?? 25) / 100;
+    const amount = raw * raw;
 
     const type = setting.type;
     if (type === 'color') {
       if (setting.mode === 'auto') {
         const adjusted = adjustHex(
           value,
-          (this.isDarkMode() ? -1 : 1) * (amount / 100)
+          (this.isDarkMode() ? -1 : 1) * amount
         );
         if (adjusted) {
           return { type, background: adjusted };
@@ -148,7 +150,7 @@ export class AppearanceService {
           type,
           background: adjustGradient(
             value,
-            (this.isDarkMode() ? -1 : 1) * (amount / 100)
+            (this.isDarkMode() ? -1 : 1) * amount
           ),
         };
       }

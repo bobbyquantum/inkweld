@@ -63,12 +63,13 @@ describe('AppearanceService', () => {
   });
 
   it('should resolve a solid colour in auto mode', () => {
-    // Default theme is light, so an auto colour is lightened.
+    // Default theme is light, so an auto colour is lightened. Default
+    // intensity 25 maps through a power curve to 0.0625.
     const result = service.resolveRegion(
       { type: 'color', mode: 'auto', value: '#ff0000' },
       'menu'
     );
-    expect(result).toEqual({ type: 'color', background: '#ff4040' });
+    expect(result).toEqual({ type: 'color', background: '#ff1010' });
   });
 
   it('should lighten an auto colour in light theme', () => {
@@ -78,7 +79,7 @@ describe('AppearanceService', () => {
       'menu'
     );
     expect(result?.type).toBe('color');
-    expect(result?.background).toBe('#ff4040');
+    expect(result?.background).toBe('#ff1010');
   });
 
   it('should darken an auto colour in dark theme', () => {
@@ -88,17 +89,23 @@ describe('AppearanceService', () => {
       'menu'
     );
     expect(result?.type).toBe('color');
-    expect(result?.background).toBe('#bf0000');
+    expect(result?.background).toBe('#ef0000');
   });
 
   it('should honour the auto intensity slider', () => {
     themeSubject.next('light-theme');
-    // Intensity 50 => lighten by 0.5.
+    // Intensity 50 => 0.5^2 = 0.25 lighten.
     const half = service.resolveRegion(
       { type: 'color', mode: 'auto', value: '#ff0000', intensity: 50 },
       'menu'
     );
-    expect(half?.background).toBe('#ff8080');
+    expect(half?.background).toBe('#ff4040');
+    // Intensity 100 => 1.0 lighten (white).
+    const full = service.resolveRegion(
+      { type: 'color', mode: 'auto', value: '#ff0000', intensity: 100 },
+      'menu'
+    );
+    expect(full?.background).toBe('#ffffff');
     // Intensity 0 => unchanged.
     const none = service.resolveRegion(
       { type: 'color', mode: 'auto', value: '#ff0000', intensity: 0 },
@@ -133,7 +140,7 @@ describe('AppearanceService', () => {
       },
       'content'
     );
-    expect(result?.background).toBe('linear-gradient(#ff4040, #4040ff)');
+    expect(result?.background).toBe('linear-gradient(#ff1010, #1010ff)');
   });
 
   it('should darken an auto gradient in dark theme', () => {
@@ -146,7 +153,7 @@ describe('AppearanceService', () => {
       },
       'content'
     );
-    expect(result?.background).toBe('linear-gradient(#bf0000, #0000bf)');
+    expect(result?.background).toBe('linear-gradient(#ef0000, #0000ef)');
   });
 
   it('should return null for empty setting', () => {

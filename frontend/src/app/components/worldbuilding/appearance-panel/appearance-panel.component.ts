@@ -6,6 +6,7 @@ import {
   inject,
   input,
   type OnDestroy,
+  output,
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -92,6 +93,9 @@ export class AppearancePanelComponent implements OnDestroy {
   /** Current appearance config for this element. */
   readonly appearance = signal<ElementAppearance>({});
 
+  /** Emits the current appearance whenever it changes (for live preview). */
+  readonly appearanceChange = output<ElementAppearance>();
+
   readonly regions: AppearanceRegion[] = ['menu', 'content'];
   readonly types = BACKGROUND_TYPES;
   readonly manualSlots: Array<'light' | 'dark'> = ['light', 'dark'];
@@ -125,6 +129,12 @@ export class AppearancePanelComponent implements OnDestroy {
         void this.load(id);
         void this.observe(id);
       }
+    });
+
+    // Emit the current appearance whenever it changes so the editor can apply
+    // backgrounds live (e.g. while dragging the intensity slider).
+    effect(() => {
+      this.appearanceChange.emit(this.appearance());
     });
   }
 

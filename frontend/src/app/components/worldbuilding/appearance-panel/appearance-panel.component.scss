@@ -29,7 +29,8 @@
   ::ng-deep .glass-card-body {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+    padding: 4px 2px;
   }
 }
 
@@ -79,10 +80,17 @@
 .intensity-row {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+
+  .control-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sys-on-surface-variant);
+  }
 
   mat-slider {
     width: 100%;
+    max-width: 240px;
   }
 }
 

@@ -99,13 +99,13 @@ function hexToRgb(hex: string): string {
 
 /**
  * The colour the app actually applies in auto mode (default intensity 25) for
- * the light theme: the chosen colour lightened by 0.25 toward white.
+ * the light theme: the chosen colour lightened by (0.25^2 = 0.0625) toward white.
  */
 function autoAppliedColour(hex: string): string {
   const c = (i: number) =>
     Number.parseInt(hex.replace('#', '').slice(i, i + 2), 16);
   const mix = (v: number) =>
-    Math.max(0, Math.min(255, Math.round(v + (255 - v) * 0.25)));
+    Math.max(0, Math.min(255, Math.round(v + (255 - v) * 0.0625)));
   const toHex = (n: number) => n.toString(16).padStart(2, '0');
   return `#${toHex(mix(c(0)))}${toHex(mix(c(2)))}${toHex(mix(c(4)))}`;
 }

@@ -33,6 +33,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DocumentSyncState } from '@models/document-sync-state';
+import { type ElementAppearance } from '@models/element-appearance';
 import { type ResolvedTag } from '@models/tag.model';
 import { AppearanceService } from '@services/worldbuilding/appearance.service';
 
@@ -180,6 +181,17 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   /** Reference to the identity panel for accessing its resolved image URL */
   identityPanel = viewChild(IdentityPanelComponent);
+
+  /** Reference to the appearance panel (Styling tab) for live preview sync. */
+  appearancePanel = viewChild(AppearancePanelComponent);
+
+  /**
+   * Keep the identity panel's appearance in sync with the appearance panel so
+   * the editor's backgrounds update live (e.g. while dragging the slider).
+   */
+  protected onAppearanceChange(appearance: ElementAppearance): void {
+    this.identityPanel()?.appearance.set(appearance);
+  }
 
   /**
    * Resolved menu background derived from the element's appearance config

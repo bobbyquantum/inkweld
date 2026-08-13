@@ -202,7 +202,8 @@
               [elementId]="elementId()"
               [username]="username()"
               [slug]="slug()"
-              [canWrite]="projectState.canWrite()">
+              [canWrite]="projectState.canWrite()"
+              (appearanceChange)="onAppearanceChange($event)">
             </app-appearance-panel>
           </div>
         }
@@ -340,7 +341,8 @@
                   [elementId]="elementId()"
                   [username]="username()"
                   [slug]="slug()"
-                  [canWrite]="projectState.canWrite()">
+                  [canWrite]="projectState.canWrite()"
+                  (appearanceChange)="onAppearanceChange($event)">
                 </app-appearance-panel>
               </div>
             </mat-expansion-panel>
