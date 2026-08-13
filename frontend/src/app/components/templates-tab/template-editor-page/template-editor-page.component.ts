@@ -28,6 +28,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AppearanceEditorComponent } from '@components/worldbuilding/appearance-panel/appearance-editor/appearance-editor.component';
 import { TranslocoModule } from '@jsverse/transloco';
@@ -63,6 +64,7 @@ interface BasicFormValue {
     MatInputModule,
     MatIconModule,
     MatSelectModule,
+    MatTabsModule,
     MatExpansionModule,
     MatChipsModule,
     MatTooltipModule,
@@ -85,8 +87,13 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
 
   readonly isSaving = signal(false);
   readonly selectedTabIndex = signal(0);
-  readonly validationError = signal<string | null>(null);
-  /** @internal Exposed for unit testing only. */
+  /** Which top-level editor tab is active: basic | fields | style | preview. */
+  readonly activeEditorTab = signal<'basic' | 'fields' | 'style' | 'preview'>(
+    'basic'
+  );
+  readonly validationError = signal<string | null>(
+    null
+  ); /** @internal Exposed for unit testing only. */
   _lastFieldId: string | null = null;
 
   // Available field types
@@ -311,6 +318,28 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   /** Cancel editing */
   cancel(): void {
     this.done.emit(null);
+  }
+
+  /** Map the active editor tab to a mat-tab index. */
+  tabIndex(): number {
+    const order: Array<'basic' | 'fields' | 'style' | 'preview'> = [
+      'basic',
+      'fields',
+      'style',
+      'preview',
+    ];
+    return order.indexOf(this.activeEditorTab());
+  }
+
+  /** Set the active editor tab from a mat-tab index. */
+  setTab(index: number): void {
+    const order: Array<'basic' | 'fields' | 'style' | 'preview'> = [
+      'basic',
+      'fields',
+      'style',
+      'preview',
+    ];
+    this.activeEditorTab.set(order[index] ?? 'basic');
   }
 
   private mutateTabs(fn: (tabs: TabSchema[]) => void): void {

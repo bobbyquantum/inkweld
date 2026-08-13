@@ -178,6 +178,8 @@ test.describe('Worldbuilding Templates', () => {
 
     await test.step('Date is exposed as a field type in the template editor', async () => {
       // We're still on the Hero Template edit page from the previous step.
+      // Switch to the Fields tab to reveal the field editor.
+      await page.getByRole('tab', { name: 'Fields' }).click();
       await page.getByTestId('add-field-button').click();
       const currentTabPanel = page.getByTestId('active-tab-editor');
       await currentTabPanel

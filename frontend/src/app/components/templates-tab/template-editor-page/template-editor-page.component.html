@@ -19,374 +19,443 @@
     </div>
   </header>
 
-  <!-- Basic Information Section -->
-  <section class="section">
-    <h3>{{ 'templates.editor.basicInfo' | transloco }}</h3>
-    <form>
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{
-          'templates.editor.templateNameLabel' | transloco
-        }}</mat-label>
-        <input
-          matInput
-          id="template-name"
-          [attr.aria-label]="'templates.editor.templateNameAria' | transloco"
-          [formField]="basicForm.name"
-          data-testid="template-name-input"
-          [attr.placeholder]="
-            'templates.editor.templateNamePlaceholder' | transloco
-          " />
-        @if (basicForm.name().touched() && basicForm.name().invalid()) {
-          @for (error of basicForm.name().errors(); track error) {
-            <mat-error>{{ error.message }}</mat-error>
-          }
-        }
-      </mat-form-field>
+  <mat-tab-group
+    [selectedIndex]="tabIndex()"
+    (selectedIndexChange)="setTab($event)"
+    class="editor-tabs"
+    data-testid="template-editor-tabs">
+    <!-- Basic -->
+    <mat-tab [label]="'templates.editor.tabBasic' | transloco">
+      <section class="section tab-body">
+        <form>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'templates.editor.templateNameLabel' | transloco
+            }}</mat-label>
+            <input
+              matInput
+              id="template-name"
+              [attr.aria-label]="
+                'templates.editor.templateNameAria' | transloco
+              "
+              [formField]="basicForm.name"
+              data-testid="template-name-input"
+              [attr.placeholder]="
+                'templates.editor.templateNamePlaceholder' | transloco
+              " />
+            @if (basicForm.name().touched() && basicForm.name().invalid()) {
+              @for (error of basicForm.name().errors(); track error) {
+                <mat-error>{{ error.message }}</mat-error>
+              }
+            }
+          </mat-form-field>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ 'templates.editor.iconLabel' | transloco }}</mat-label>
-        <mat-select
-          [formField]="basicForm.icon"
-          data-testid="template-icon-input">
-          @for (icon of availableIcons; track icon) {
-            <mat-option [value]="icon">
-              <mat-icon>{{ icon }}</mat-icon>
-              {{ icon }}
-            </mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'templates.editor.iconLabel' | transloco
+            }}</mat-label>
+            <mat-select
+              [formField]="basicForm.icon"
+              data-testid="template-icon-input">
+              @for (icon of availableIcons; track icon) {
+                <mat-option [value]="icon">
+                  <mat-icon>{{ icon }}</mat-icon>
+                  {{ icon }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{
-          'templates.editor.descriptionLabel' | transloco
-        }}</mat-label>
-        <textarea
-          matInput
-          id="template-description"
-          [attr.aria-label]="'templates.editor.descriptionAria' | transloco"
-          [formField]="basicForm.description"
-          data-testid="template-description-input"
-          [attr.placeholder]="
-            'templates.editor.descriptionPlaceholder' | transloco
-          "
-          rows="3"></textarea>
-      </mat-form-field>
-    </form>
-  </section>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'templates.editor.descriptionLabel' | transloco
+            }}</mat-label>
+            <textarea
+              matInput
+              id="template-description"
+              [attr.aria-label]="'templates.editor.descriptionAria' | transloco"
+              [formField]="basicForm.description"
+              data-testid="template-description-input"
+              [attr.placeholder]="
+                'templates.editor.descriptionPlaceholder' | transloco
+              "
+              rows="3"></textarea>
+          </mat-form-field>
+        </form>
+      </section>
+    </mat-tab>
 
-  <!-- Default Appearance Section -->
-  <section class="section">
-    <div class="section-header">
-      <h3>{{ 'templates.editor.defaultAppearance' | transloco }}</h3>
-      <p class="hint">
-        {{ 'templates.editor.defaultAppearanceHint' | transloco }}
-      </p>
-    </div>
-    <app-appearance-editor
-      [value]="defaultAppearance() ?? {}"
-      (valueChange)="defaultAppearance.set($event)"
-      data-testid="template-default-appearance"></app-appearance-editor>
-  </section>
+    <!-- Fields -->
+    <mat-tab [label]="'templates.editor.tabFields' | transloco">
+      <section class="section tab-body">
+        <div class="section-header">
+          <h3>{{ 'templates.editor.tabsHeading' | transloco }}</h3>
+          <button
+            mat-raised-button
+            color="primary"
+            data-testid="add-tab-button"
+            (click)="addTab()">
+            <mat-icon>add</mat-icon>
+            {{ 'templates.editor.addTab' | transloco }}
+          </button>
+        </div>
 
-  <!-- Tabs Section -->
-  <section class="section">
-    <div class="section-header">
-      <h3>{{ 'templates.editor.tabsHeading' | transloco }}</h3>
-      <button
-        mat-raised-button
-        color="primary"
-        data-testid="add-tab-button"
-        (click)="addTab()">
-        <mat-icon>add</mat-icon>
-        {{ 'templates.editor.addTab' | transloco }}
-      </button>
-    </div>
-
-    @if (tabs().length === 0) {
-      <div class="empty-state">
-        <mat-icon>tab</mat-icon>
-        <p>{{ 'templates.editor.noTabs' | transloco }}</p>
-      </div>
-    } @else {
-      <div class="tabs-editor">
-        <!-- Tab List -->
-        <ul
-          class="tabs-list"
-          cdkDropList
-          (cdkDropListDropped)="onTabsDrop($event)">
-          @for (tab of tabs(); track tab.key; let i = $index) {
-            <li
-              class="tab-item"
-              cdkDrag
-              [class.selected]="selectedTabIndex() === i">
-              <mat-icon
-                class="drag-handle"
-                cdkDragHandle
-                [attr.aria-label]="'templates.editor.dragTab' | transloco"
-                >drag_indicator</mat-icon
-              >
-              <button
-                class="tab-select-button"
-                (click)="selectedTabIndex.set(i)">
-                <mat-icon>{{ tab.icon || 'article' }}</mat-icon>
-                <span class="tab-label">{{ tab.label }}</span>
-              </button>
-              <button
-                mat-icon-button
-                class="tab-close-button"
-                [attr.aria-label]="
-                  'templates.editor.removeTab' | transloco: { label: tab.label }
-                "
-                (click)="removeTab(i)"
-                [disabled]="tabs().length === 1">
-                <mat-icon>close</mat-icon>
-              </button>
-            </li>
-          }
-        </ul>
-
-        <!-- Tab Editor -->
-        @if (tabs()[selectedTabIndex()]; as currentTab) {
-          <div class="tab-editor" data-testid="active-tab-editor">
-            <div class="tab-editor-header">
-              <h4>{{ currentTab.label }}</h4>
-            </div>
-
-            <div class="tab-editor-content">
-              <!-- Tab Properties -->
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{
-                  'templates.editor.tabLabelLabel' | transloco
-                }}</mat-label>
-                <input
-                  matInput
-                  id="tab-label"
-                  [attr.aria-label]="
-                    'templates.editor.tabLabelAria' | transloco
-                  "
-                  data-testid="tab-label-input"
-                  [value]="currentTab.label"
-                  (input)="
-                    updateTab(selectedTabIndex(), {
-                      label: $any($event.target).value,
-                    })
-                  "
-                  [attr.placeholder]="
-                    'templates.editor.tabLabelPlaceholder' | transloco
-                  " />
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{
-                  'templates.editor.tabIconLabel' | transloco
-                }}</mat-label>
-                <mat-select
-                  [value]="currentTab.icon || 'article'"
-                  (selectionChange)="
-                    updateTab(selectedTabIndex(), { icon: $event.value })
-                  ">
-                  @for (icon of availableIcons; track icon) {
-                    <mat-option [value]="icon">
-                      <mat-icon>{{ icon }}</mat-icon>
-                      {{ icon }}
-                    </mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-
-              <!-- Fields Section -->
-              <div class="fields-section">
-                <div class="section-header">
-                  <h5>{{ 'templates.editor.fieldsHeading' | transloco }}</h5>
+        @if (tabs().length === 0) {
+          <div class="empty-state">
+            <mat-icon>tab</mat-icon>
+            <p>{{ 'templates.editor.noTabs' | transloco }}</p>
+          </div>
+        } @else {
+          <div class="tabs-editor">
+            <!-- Tab List -->
+            <ul
+              class="tabs-list"
+              cdkDropList
+              (cdkDropListDropped)="onTabsDrop($event)">
+              @for (tab of tabs(); track tab.key; let i = $index) {
+                <li
+                  class="tab-item"
+                  cdkDrag
+                  [class.selected]="selectedTabIndex() === i">
+                  <mat-icon
+                    class="drag-handle"
+                    cdkDragHandle
+                    [attr.aria-label]="'templates.editor.dragTab' | transloco"
+                    >drag_indicator</mat-icon
+                  >
                   <button
-                    mat-raised-button
-                    color="accent"
-                    data-testid="add-field-button"
-                    (click)="addField(selectedTabIndex())">
-                    <mat-icon>add</mat-icon>
-                    {{ 'templates.editor.addField' | transloco }}
+                    class="tab-select-button"
+                    (click)="selectedTabIndex.set(i)">
+                    <mat-icon>{{ tab.icon || 'article' }}</mat-icon>
+                    <span class="tab-label">{{ tab.label }}</span>
                   </button>
+                  <button
+                    mat-icon-button
+                    class="tab-close-button"
+                    [attr.aria-label]="
+                      'templates.editor.removeTab'
+                        | transloco: { label: tab.label }
+                    "
+                    (click)="removeTab(i)"
+                    [disabled]="tabs().length === 1">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </li>
+              }
+            </ul>
+
+            <!-- Tab Editor -->
+            @if (tabs()[selectedTabIndex()]; as currentTab) {
+              <div class="tab-editor" data-testid="active-tab-editor">
+                <div class="tab-editor-header">
+                  <h4>{{ currentTab.label }}</h4>
                 </div>
 
-                @if (currentTab.fields.length === 0) {
-                  <div class="empty-state">
-                    <mat-icon>input</mat-icon>
-                    <p>{{ 'templates.editor.noFields' | transloco }}</p>
-                  </div>
-                } @else {
-                  <div
-                    class="fields-list"
-                    cdkDropList
-                    (cdkDropListDropped)="
-                      onFieldsDrop($event, selectedTabIndex())
-                    ">
-                    @for (
-                      field of currentTab.fields;
-                      track field.id;
-                      let j = $index
-                    ) {
-                      <mat-expansion-panel cdkDrag class="field-panel">
-                        <mat-expansion-panel-header
-                          data-testid="field-expansion-header">
-                          <mat-panel-title>
-                            <mat-icon
-                              class="drag-handle"
-                              cdkDragHandle
-                              [attr.aria-label]="
-                                'templates.editor.dragField' | transloco
-                              "
-                              (click)="$event.stopPropagation()"
-                              (keydown)="$event.stopPropagation()">
-                              drag_indicator
-                            </mat-icon>
-                            <mat-icon>input</mat-icon>
-                            <span>{{
-                              field.label ||
-                                ('templates.editor.untitledField' | transloco)
-                            }}</span>
-                            <mat-chip class="field-type-chip">{{
-                              field.type
-                            }}</mat-chip>
-                          </mat-panel-title>
-                        </mat-expansion-panel-header>
+                <div class="tab-editor-content">
+                  <!-- Tab Properties -->
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>{{
+                      'templates.editor.tabLabelLabel' | transloco
+                    }}</mat-label>
+                    <input
+                      matInput
+                      id="tab-label"
+                      [attr.aria-label]="
+                        'templates.editor.tabLabelAria' | transloco
+                      "
+                      data-testid="tab-label-input"
+                      [value]="currentTab.label"
+                      (input)="
+                        updateTab(selectedTabIndex(), {
+                          label: $any($event.target).value,
+                        })
+                      "
+                      [attr.placeholder]="
+                        'templates.editor.tabLabelPlaceholder' | transloco
+                      " />
+                  </mat-form-field>
 
-                        <div class="field-editor">
-                          <mat-form-field
-                            appearance="outline"
-                            class="full-width">
-                            <mat-label>{{
-                              'templates.editor.fieldKeyLabel' | transloco
-                            }}</mat-label>
-                            <input
-                              matInput
-                              [attr.id]="'field-key-' + field.id"
-                              data-testid="field-key-input"
-                              [value]="field.key"
-                              (input)="
-                                updateField(selectedTabIndex(), j, {
-                                  key: $any($event.target).value,
-                                })
-                              "
-                              [attr.placeholder]="
-                                'templates.editor.fieldKeyPlaceholder'
-                                  | transloco
-                              " />
-                          </mat-form-field>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>{{
+                      'templates.editor.tabIconLabel' | transloco
+                    }}</mat-label>
+                    <mat-select
+                      [value]="currentTab.icon || 'article'"
+                      (selectionChange)="
+                        updateTab(selectedTabIndex(), { icon: $event.value })
+                      ">
+                      @for (icon of availableIcons; track icon) {
+                        <mat-option [value]="icon">
+                          <mat-icon>{{ icon }}</mat-icon>
+                          {{ icon }}
+                        </mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
 
-                          <mat-form-field
-                            appearance="outline"
-                            class="full-width">
-                            <mat-label>{{
-                              'templates.editor.fieldLabelLabel' | transloco
-                            }}</mat-label>
-                            <input
-                              matInput
-                              [attr.id]="'field-label-' + field.id"
-                              data-testid="field-label-input"
-                              [value]="field.label"
-                              (input)="
-                                updateField(selectedTabIndex(), j, {
-                                  label: $any($event.target).value,
-                                })
-                              "
-                              [attr.placeholder]="
-                                'templates.editor.fieldLabelPlaceholder'
-                                  | transloco
-                              " />
-                          </mat-form-field>
+                  <!-- Fields Section -->
+                  <div class="fields-section">
+                    <div class="section-header">
+                      <h5>
+                        {{ 'templates.editor.fieldsHeading' | transloco }}
+                      </h5>
+                      <button
+                        mat-raised-button
+                        color="accent"
+                        data-testid="add-field-button"
+                        (click)="addField(selectedTabIndex())">
+                        <mat-icon>add</mat-icon>
+                        {{ 'templates.editor.addField' | transloco }}
+                      </button>
+                    </div>
 
-                          <mat-form-field
-                            appearance="outline"
-                            class="full-width">
-                            <mat-label>{{
-                              'templates.editor.fieldTypeLabel' | transloco
-                            }}</mat-label>
-                            <mat-select
-                              [value]="field.type"
-                              data-testid="field-type-select"
-                              (selectionChange)="
-                                updateField(selectedTabIndex(), j, {
-                                  type: $event.value,
-                                })
-                              ">
-                              @for (type of fieldTypes; track type.value) {
-                                <mat-option
-                                  [value]="type.value"
-                                  [attr.data-testid]="
-                                    'field-type-option-' + type.value
+                    @if (currentTab.fields.length === 0) {
+                      <div class="empty-state">
+                        <mat-icon>input</mat-icon>
+                        <p>{{ 'templates.editor.noFields' | transloco }}</p>
+                      </div>
+                    } @else {
+                      <div
+                        class="fields-list"
+                        cdkDropList
+                        (cdkDropListDropped)="
+                          onFieldsDrop($event, selectedTabIndex())
+                        ">
+                        @for (
+                          field of currentTab.fields;
+                          track field.id;
+                          let j = $index
+                        ) {
+                          <mat-expansion-panel cdkDrag class="field-panel">
+                            <mat-expansion-panel-header
+                              data-testid="field-expansion-header">
+                              <mat-panel-title>
+                                <mat-icon
+                                  class="drag-handle"
+                                  cdkDragHandle
+                                  [attr.aria-label]="
+                                    'templates.editor.dragField' | transloco
+                                  "
+                                  (click)="$event.stopPropagation()"
+                                  (keydown)="$event.stopPropagation()">
+                                  drag_indicator
+                                </mat-icon>
+                                <mat-icon>input</mat-icon>
+                                <span>{{
+                                  field.label ||
+                                    ('templates.editor.untitledField'
+                                      | transloco)
+                                }}</span>
+                                <mat-chip class="field-type-chip">{{
+                                  field.type
+                                }}</mat-chip>
+                              </mat-panel-title>
+                            </mat-expansion-panel-header>
+
+                            <div class="field-editor">
+                              <mat-form-field
+                                appearance="outline"
+                                class="full-width">
+                                <mat-label>{{
+                                  'templates.editor.fieldKeyLabel' | transloco
+                                }}</mat-label>
+                                <input
+                                  matInput
+                                  [attr.id]="'field-key-' + field.id"
+                                  data-testid="field-key-input"
+                                  [value]="field.key"
+                                  (input)="
+                                    updateField(selectedTabIndex(), j, {
+                                      key: $any($event.target).value,
+                                    })
+                                  "
+                                  [attr.placeholder]="
+                                    'templates.editor.fieldKeyPlaceholder'
+                                      | transloco
+                                  " />
+                              </mat-form-field>
+
+                              <mat-form-field
+                                appearance="outline"
+                                class="full-width">
+                                <mat-label>{{
+                                  'templates.editor.fieldLabelLabel' | transloco
+                                }}</mat-label>
+                                <input
+                                  matInput
+                                  [attr.id]="'field-label-' + field.id"
+                                  data-testid="field-label-input"
+                                  [value]="field.label"
+                                  (input)="
+                                    updateField(selectedTabIndex(), j, {
+                                      label: $any($event.target).value,
+                                    })
+                                  "
+                                  [attr.placeholder]="
+                                    'templates.editor.fieldLabelPlaceholder'
+                                      | transloco
+                                  " />
+                              </mat-form-field>
+
+                              <mat-form-field
+                                appearance="outline"
+                                class="full-width">
+                                <mat-label>{{
+                                  'templates.editor.fieldTypeLabel' | transloco
+                                }}</mat-label>
+                                <mat-select
+                                  [value]="field.type"
+                                  data-testid="field-type-select"
+                                  (selectionChange)="
+                                    updateField(selectedTabIndex(), j, {
+                                      type: $event.value,
+                                    })
                                   ">
-                                  {{ type.label }}
-                                </mat-option>
-                              }
-                            </mat-select>
-                          </mat-form-field>
+                                  @for (type of fieldTypes; track type.value) {
+                                    <mat-option
+                                      [value]="type.value"
+                                      [attr.data-testid]="
+                                        'field-type-option-' + type.value
+                                      ">
+                                      {{ type.label }}
+                                    </mat-option>
+                                  }
+                                </mat-select>
+                              </mat-form-field>
 
-                          <mat-form-field
-                            appearance="outline"
-                            class="full-width">
-                            <mat-label>{{
-                              'templates.editor.placeholderLabel' | transloco
-                            }}</mat-label>
-                            <input
-                              matInput
-                              [attr.id]="'field-placeholder-' + field.id"
-                              [value]="field.placeholder || ''"
-                              (input)="
-                                updateField(selectedTabIndex(), j, {
-                                  placeholder: $any($event.target).value,
-                                })
-                              "
-                              [attr.placeholder]="
-                                'templates.editor.placeholderPlaceholder'
-                                  | transloco
-                              " />
-                          </mat-form-field>
+                              <mat-form-field
+                                appearance="outline"
+                                class="full-width">
+                                <mat-label>{{
+                                  'templates.editor.placeholderLabel'
+                                    | transloco
+                                }}</mat-label>
+                                <input
+                                  matInput
+                                  [attr.id]="'field-placeholder-' + field.id"
+                                  [value]="field.placeholder || ''"
+                                  (input)="
+                                    updateField(selectedTabIndex(), j, {
+                                      placeholder: $any($event.target).value,
+                                    })
+                                  "
+                                  [attr.placeholder]="
+                                    'templates.editor.placeholderPlaceholder'
+                                      | transloco
+                                  " />
+                              </mat-form-field>
 
-                          <mat-form-field
-                            appearance="outline"
-                            class="full-width">
-                            <mat-label>{{
-                              'templates.editor.descriptionLabel' | transloco
-                            }}</mat-label>
-                            <textarea
-                              matInput
-                              [attr.id]="'field-description-' + field.id"
-                              [attr.aria-label]="
-                                'templates.editor.descriptionAria' | transloco
-                              "
-                              [value]="field.description || ''"
-                              (input)="
-                                updateField(selectedTabIndex(), j, {
-                                  description: $any($event.target).value,
-                                })
-                              "
-                              [attr.placeholder]="
-                                'templates.editor.helpTextPlaceholder'
-                                  | transloco
-                              "
-                              rows="2"></textarea>
-                          </mat-form-field>
+                              <mat-form-field
+                                appearance="outline"
+                                class="full-width">
+                                <mat-label>{{
+                                  'templates.editor.descriptionLabel'
+                                    | transloco
+                                }}</mat-label>
+                                <textarea
+                                  matInput
+                                  [attr.id]="'field-description-' + field.id"
+                                  [attr.aria-label]="
+                                    'templates.editor.descriptionAria'
+                                      | transloco
+                                  "
+                                  [value]="field.description || ''"
+                                  (input)="
+                                    updateField(selectedTabIndex(), j, {
+                                      description: $any($event.target).value,
+                                    })
+                                  "
+                                  [attr.placeholder]="
+                                    'templates.editor.helpTextPlaceholder'
+                                      | transloco
+                                  "
+                                  rows="2"></textarea>
+                              </mat-form-field>
 
-                          <button
-                            mat-stroked-button
-                            color="warn"
-                            (click)="removeField(selectedTabIndex(), j)">
-                            <mat-icon>delete</mat-icon>
-                            {{ 'templates.editor.removeField' | transloco }}
-                          </button>
-                        </div>
-                      </mat-expansion-panel>
+                              <button
+                                mat-stroked-button
+                                color="warn"
+                                (click)="removeField(selectedTabIndex(), j)">
+                                <mat-icon>delete</mat-icon>
+                                {{ 'templates.editor.removeField' | transloco }}
+                              </button>
+                            </div>
+                          </mat-expansion-panel>
+                        }
+                      </div>
                     }
                   </div>
-                }
+                </div>
               </div>
-            </div>
+            }
           </div>
         }
-      </div>
-    }
-  </section>
+      </section>
+    </mat-tab>
+
+    <!-- Style -->
+    <mat-tab [label]="'templates.editor.tabStyle' | transloco">
+      <section class="section tab-body">
+        <div class="section-header">
+          <h3>{{ 'templates.editor.defaultAppearance' | transloco }}</h3>
+          <p class="hint">
+            {{ 'templates.editor.defaultAppearanceHint' | transloco }}
+          </p>
+        </div>
+        <app-appearance-editor
+          [value]="defaultAppearance() ?? {}"
+          (valueChange)="defaultAppearance.set($event)"
+          data-testid="template-default-appearance"></app-appearance-editor>
+      </section>
+    </mat-tab>
+
+    <!-- Preview -->
+    <mat-tab [label]="'templates.editor.tabPreview' | transloco">
+      <section class="section tab-body">
+        <div class="preview-panel" data-testid="template-preview">
+          <div class="preview-header">
+            <mat-icon>{{ model().icon || 'category' }}</mat-icon>
+            <h3>{{ model().name || 'Untitled' }}</h3>
+          </div>
+          <p class="preview-description">{{ model().description }}</p>
+          @if (tabs().length === 0) {
+            <div class="empty-state">
+              <mat-icon>tab</mat-icon>
+              <p>{{ 'templates.editor.noTabs' | transloco }}</p>
+            </div>
+          } @else {
+            <div class="preview-tabs">
+              @for (tab of tabs(); track tab.key) {
+                <div class="preview-tab">
+                  <h4>
+                    <mat-icon>{{ tab.icon || 'article' }}</mat-icon>
+                    {{ tab.label }}
+                  </h4>
+                  @if (tab.fields.length === 0) {
+                    <p class="preview-empty">
+                      {{ 'templates.editor.noFields' | transloco }}
+                    </p>
+                  } @else {
+                    <ul>
+                      @for (field of tab.fields; track field.id) {
+                        <li>
+                          <mat-icon>input</mat-icon>
+                          <span>{{ field.label || field.key }}</span>
+                          <mat-chip class="field-type-chip">{{
+                            field.type
+                          }}</mat-chip>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </section>
+    </mat-tab>
+  </mat-tab-group>
 
   @if (validationError(); as error) {
     <div class="error" data-testid="template-editor-validation-error">

@@ -141,6 +141,15 @@ describe('TemplateEditorPageComponent', () => {
   });
 
   describe('tab management', () => {
+    it('should map editor tabs to indices and back', () => {
+      expect(component.tabIndex()).toBe(0);
+      component.setTab(2);
+      expect(component.activeEditorTab()).toBe('style');
+      expect(component.tabIndex()).toBe(2);
+      component.setTab(3);
+      expect(component.activeEditorTab()).toBe('preview');
+    });
+
     it('should add a new tab', () => {
       const initialTabCount = component.tabs().length;
 
