@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
+import { type TimelineEraDialogData } from '@dialogs/timeline-era-dialog/timeline-era-dialog.component';
 import {
   isValidTimePointFor,
   TIME_SYSTEM_TEMPLATES,
@@ -16,6 +17,9 @@ import {
 } from '@models/timeline.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
+import { SetupService } from '@services/core/setup.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
+import { MediaSyncService } from '@services/local/media-sync.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TimelineService } from '@services/timeline/timeline.service';
@@ -34,6 +38,8 @@ describe('TimelineTabComponent', () => {
     openRenameDialog: ReturnType<typeof vi.fn>;
     openConfirmationDialog: ReturnType<typeof vi.fn>;
   };
+  let mockLocalStorage: { getMediaUrl: ReturnType<typeof vi.fn> };
+  let mockMediaSync: { downloadAllFromServer: ReturnType<typeof vi.fn> };
 
   const defaultConfig: TimelineConfig = {
     ...createDefaultTimelineConfig('t-1'),
@@ -104,6 +110,11 @@ describe('TimelineTabComponent', () => {
       openConfirmationDialog: vi.fn(() => Promise.resolve(false)),
     };
 
+    mockLocalStorage = { getMediaUrl: vi.fn().mockResolvedValue(null) };
+    mockMediaSync = {
+      downloadAllFromServer: vi.fn().mockResolvedValue(undefined),
+    };
+
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), TimelineTabComponent],
       providers: [
@@ -114,6 +125,9 @@ describe('TimelineTabComponent', () => {
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: DialogGatewayService, useValue: mockDialogGateway },
         { provide: WorldbuildingService, useValue: {} },
+        { provide: LocalStorageService, useValue: mockLocalStorage },
+        { provide: MediaSyncService, useValue: mockMediaSync },
+        { provide: SetupService, useValue: { getMode: () => 'local' } },
         {
           provide: PresenceService,
           useValue: {
@@ -401,6 +415,33 @@ describe('TimelineTabComponent', () => {
     await component['onEraClick'](era);
     expect(mockTimelineService.updateEra).not.toHaveBeenCalled();
     expect(mockTimelineService.removeEra).not.toHaveBeenCalled();
+  });
+
+  it('passes project context to the era dialog and forwards imageUrl on save', async () => {
+    fixture.detectChanges();
+    const system = TIME_SYSTEM_TEMPLATES[0];
+    const era: TimelineEra = {
+      id: 'era-ctx',
+      name: 'Era',
+      start: { systemId: system.id, units: ['2020', '1', '1'] },
+      end: { systemId: system.id, units: ['2025', '6', '1'] },
+      color: '#ff0000',
+    };
+    const updatedEra = { ...era, imageUrl: 'media:img-bg' };
+    mockDialog.open.mockReturnValueOnce({
+      afterClosed: () => of({ kind: 'save' as const, era: updatedEra }),
+    });
+    await component['onEraClick'](era);
+
+    const dialogData = mockDialog.open.mock.calls[0][1]
+      .data as TimelineEraDialogData;
+    expect(dialogData.username).toBe('testuser');
+    expect(dialogData.slug).toBe('test-slug');
+
+    expect(mockTimelineService.updateEra).toHaveBeenCalledWith(
+      'era-ctx',
+      expect.objectContaining({ imageUrl: 'media:img-bg' })
+    );
   });
 
   // ─── Event click (update) ──────────────────────────────────────────────────
@@ -1173,6 +1214,56 @@ describe('TimelineTabComponent', () => {
     fixture.detectChanges();
     const bands = component['eraBands']();
     expect(bands.length).toBe(0);
+  });
+
+  it('eraBands formats a centred "start – end" range label', () => {
+    fixture.detectChanges();
+    const system = TIME_SYSTEM_TEMPLATES[0];
+    const era: TimelineEra = {
+      id: 'range-era',
+      name: 'Range Era',
+      start: { systemId: system.id, units: ['2020', '1', '1'] },
+      end: { systemId: system.id, units: ['2025', '1', '1'] },
+      color: '#ff0',
+    };
+    timelineSignal.set({ ...defaultConfig, eras: [era] });
+    fixture.detectChanges();
+    const bands = component['eraBands']();
+    expect(bands.length).toBe(1);
+    expect(bands[0].rangeLabel).toContain('–');
+    expect(bands[0].rangeLabel.length).toBeGreaterThan(1);
+  });
+
+  it('eraBands exposes a resolved background image URL', async () => {
+    fixture.detectChanges();
+    mockLocalStorage.getMediaUrl.mockResolvedValue('blob:era-bg');
+    const system = TIME_SYSTEM_TEMPLATES[0];
+    const era: TimelineEra = {
+      id: 'img-era',
+      name: 'Image Era',
+      start: { systemId: system.id, units: ['2020', '1', '1'] },
+      end: { systemId: system.id, units: ['2025', '1', '1'] },
+      color: '#ff0',
+      imageUrl: 'media:img-era-bg',
+    };
+    timelineSignal.set({ ...defaultConfig, eras: [era] });
+    fixture.detectChanges();
+    await vi.waitFor(() => {
+      expect(mockLocalStorage.getMediaUrl).toHaveBeenCalledWith(
+        'testuser/test-slug',
+        'img-era-bg'
+      );
+    });
+    await vi.waitFor(() => {
+      const bands = component['eraBands']();
+      expect(bands[0]?.imageUrl).toBe('blob:era-bg');
+    });
+  });
+
+  it('era header height leaves room for a name row and a range row', () => {
+    fixture.detectChanges();
+    expect(component['eraHeaderHeight']).toBeGreaterThanOrEqual(40);
+    expect(component['eraNameY']).toBeLessThan(component['eraRangeY']);
   });
 
   it('tickMarks computed returns marks when active system is set', () => {

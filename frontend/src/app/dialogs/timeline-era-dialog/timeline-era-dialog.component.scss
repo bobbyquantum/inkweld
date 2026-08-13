@@ -5,6 +5,23 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  // The dialog content is a scroll container whose top padding Material
+  // resets to 0 when a dialog title is present. Without headroom the
+  // floated label of the first (outline) form field is clipped at the
+  // content's top edge once the name input is focused with a value.
+  padding-top: 12px;
+}
+.image-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.image-preview {
+  width: 64px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--sys-outline-variant);
 }
 .section-label {
   font-size: 12px;

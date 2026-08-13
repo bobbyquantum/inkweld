@@ -2,6 +2,8 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { GREGORIAN_SYSTEM, RELATIVE_YEARS_SYSTEM } from '@models/time-system';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -16,6 +18,16 @@ const baseData: TimelineEraDialogData = {
   defaultColor: '#3f88c5',
   defaultStart: { systemId: 'gregorian', units: ['2000', '1', '1'] },
   defaultEnd: { systemId: 'gregorian', units: ['2000', '12', '30'] },
+  username: 'alice',
+  slug: 'my-novel',
+};
+
+const mockDialogGateway = {
+  openMediaSelectorDialog: vi.fn(),
+};
+
+const mockLocalStorage = {
+  getMediaUrl: vi.fn(),
 };
 
 async function createComponent(data: TimelineEraDialogData = baseData) {
@@ -26,6 +38,8 @@ async function createComponent(data: TimelineEraDialogData = baseData) {
       provideZonelessChangeDetection(),
       { provide: MAT_DIALOG_DATA, useValue: data },
       { provide: MatDialogRef, useValue: { close: closeSpy } },
+      { provide: DialogGatewayService, useValue: mockDialogGateway },
+      { provide: LocalStorageService, useValue: mockLocalStorage },
     ],
   }).compileComponents();
   const fixture = TestBed.createComponent(TimelineEraDialogComponent);
@@ -36,6 +50,8 @@ async function createComponent(data: TimelineEraDialogData = baseData) {
 describe('TimelineEraDialogComponent', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
+    vi.clearAllMocks();
+    mockLocalStorage.getMediaUrl.mockResolvedValue(null);
   });
 
   it('renders for creating a new era', async () => {
@@ -147,6 +163,28 @@ describe('TimelineEraDialogComponent', () => {
       expect(closeSpy).toHaveBeenCalledWith(
         expect.objectContaining({ kind: 'save' })
       );
+    });
+
+    it('flags dates outside the time system as invalid', async () => {
+      const { component, closeSpy } = await createComponent();
+      component.form.name().value.set('Bad Era');
+      component.form.color().value.set('#aabbcc');
+      component.model.update(m => ({
+        ...m,
+        startUnits: ['2000', '1', '1'],
+        // The Gregorian template uses uniform 30-day months; day 31 is
+        // outside the system and used to fail silently on save.
+        endUnits: ['2010', '12', '31'],
+      }));
+      await Promise.resolve();
+      expect(
+        component
+          .form()
+          .errors()
+          .some(e => e.kind === 'invalidPoint')
+      ).toBe(true);
+      (component as unknown as { onSave: () => void }).onSave();
+      expect(closeSpy).not.toHaveBeenCalled();
     });
 
     it('does not save when end is before start', async () => {
@@ -275,5 +313,142 @@ describe('TimelineEraDialogComponent', () => {
       '[data-testid^="timeline-era-start-unit-"]'
     );
     expect(unitFields.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // ─── Background image ──────────────────────────────────────────────────────
+
+  describe('background image', () => {
+    it('seeds imageUrl from an existing era', async () => {
+      const data: TimelineEraDialogData = {
+        ...baseData,
+        era: {
+          id: 'era-img',
+          name: 'Illustrated Era',
+          color: '#123456',
+          start: { systemId: 'gregorian', units: ['100', '1', '1'] },
+          end: { systemId: 'gregorian', units: ['200', '12', '31'] },
+          imageUrl: 'media:img-hero',
+        },
+      };
+      const { component } = await createComponent(data);
+      expect(component.model().imageUrl).toBe('media:img-hero');
+    });
+
+    it('resolves the preview of an existing era image from local media', async () => {
+      mockLocalStorage.getMediaUrl.mockResolvedValue('blob:existing');
+      const data: TimelineEraDialogData = {
+        ...baseData,
+        era: {
+          id: 'era-img',
+          name: 'Illustrated Era',
+          color: '#123456',
+          start: { systemId: 'gregorian', units: ['100', '1', '1'] },
+          end: { systemId: 'gregorian', units: ['200', '12', '31'] },
+          imageUrl: 'media:img-hero',
+        },
+      };
+      const { component } = await createComponent(data);
+      await vi.waitFor(() => {
+        expect(component['imagePreview']()).not.toBeNull();
+      });
+      expect(mockLocalStorage.getMediaUrl).toHaveBeenCalledWith(
+        'alice/my-novel',
+        'img-hero'
+      );
+    });
+
+    it('opens the media selector and stores the picked image as media: URL', async () => {
+      mockDialogGateway.openMediaSelectorDialog.mockResolvedValue({
+        selected: { mediaId: 'img-new', mimeType: 'image/png', size: 1 },
+        blob: new Blob(['x'], { type: 'image/png' }),
+      });
+      const { component } = await createComponent();
+      await (
+        component as unknown as { onChooseImage: () => Promise<void> }
+      ).onChooseImage();
+      expect(mockDialogGateway.openMediaSelectorDialog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          username: 'alice',
+          slug: 'my-novel',
+          filterType: 'image',
+        })
+      );
+      expect(component.model().imageUrl).toBe('media:img-new');
+      expect(component['imagePreview']()).not.toBeNull();
+    });
+
+    it('does nothing when the media selector is dismissed', async () => {
+      mockDialogGateway.openMediaSelectorDialog.mockResolvedValue(undefined);
+      const { component } = await createComponent();
+      await (
+        component as unknown as { onChooseImage: () => Promise<void> }
+      ).onChooseImage();
+      expect(component.model().imageUrl).toBe('');
+      expect(component['imagePreview']()).toBeNull();
+    });
+
+    it('does not open the media selector without project context', async () => {
+      const data: TimelineEraDialogData = {
+        era: null,
+        system: GREGORIAN_SYSTEM,
+        defaultStart: { systemId: 'gregorian', units: ['2000', '1', '1'] },
+        defaultEnd: { systemId: 'gregorian', units: ['2000', '12', '30'] },
+      };
+      const { component } = await createComponent(data);
+      await (
+        component as unknown as { onChooseImage: () => Promise<void> }
+      ).onChooseImage();
+      expect(mockDialogGateway.openMediaSelectorDialog).not.toHaveBeenCalled();
+    });
+
+    it('removes a selected image', async () => {
+      mockDialogGateway.openMediaSelectorDialog.mockResolvedValue({
+        selected: { mediaId: 'img-new', mimeType: 'image/png', size: 1 },
+        blob: new Blob(['x'], { type: 'image/png' }),
+      });
+      const { component } = await createComponent();
+      const c = component as unknown as {
+        onChooseImage: () => Promise<void>;
+        onRemoveImage: () => void;
+      };
+      await c.onChooseImage();
+      expect(component.model().imageUrl).toBe('media:img-new');
+      c.onRemoveImage();
+      expect(component.model().imageUrl).toBe('');
+      expect(component['imagePreview']()).toBeNull();
+    });
+
+    it('includes imageUrl in the saved era', async () => {
+      const { component, closeSpy } = await createComponent();
+      component.form.name().value.set('New Era');
+      component.form.color().value.set('#aabbcc');
+      component.model.update(m => ({
+        ...m,
+        startUnits: ['2000', '1', '1'],
+        endUnits: ['2010', '12', '30'],
+        imageUrl: 'media:img-hero',
+      }));
+      (component as unknown as { onSave: () => void }).onSave();
+      expect(closeSpy).toHaveBeenCalledWith({
+        kind: 'save',
+        era: expect.objectContaining({ imageUrl: 'media:img-hero' }),
+      });
+    });
+
+    it('omits imageUrl from the saved era when empty', async () => {
+      const { component, closeSpy } = await createComponent();
+      component.form.name().value.set('New Era');
+      component.form.color().value.set('#aabbcc');
+      component.model.update(m => ({
+        ...m,
+        startUnits: ['2000', '1', '1'],
+        endUnits: ['2010', '12', '30'],
+      }));
+      (component as unknown as { onSave: () => void }).onSave();
+      const result = closeSpy.mock.calls[0]?.[0] as {
+        era: { imageUrl?: string };
+      };
+      expect(result.era.imageUrl).toBeUndefined();
+    });
   });
 });

@@ -261,6 +261,11 @@ svg.timeline-svg:active {
   ry: 4px;
 }
 
+.era-header-image {
+  pointer-events: none;
+  opacity: 0.55;
+}
+
 .era-band {
   opacity: 0.18;
   cursor: grab;
@@ -270,10 +275,24 @@ svg.timeline-svg:active {
   }
 }
 
+// Washed-out background image behind the era band; must never intercept
+// the pointer events that drive era move/resize drags on the band rect.
+.era-band-image {
+  opacity: 0.16;
+  pointer-events: none;
+}
+
 .era-label {
   fill: var(--sys-on-surface);
   font-size: 12px;
   font-weight: 500;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+
+.era-range-label {
+  fill: var(--sys-on-surface-variant);
+  font-size: 10px;
   dominant-baseline: middle;
   pointer-events: none;
 }

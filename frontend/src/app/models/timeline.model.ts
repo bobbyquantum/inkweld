@@ -105,6 +105,12 @@ export interface TimelineEra {
   start: TimePoint;
   end: TimePoint;
   color: string;
+  /**
+   * Optional background image, stored as a `media:` URL referencing a
+   * project media asset (see `createMediaUrl`). Rendered in the era header
+   * chip and washed out behind the era band.
+   */
+  imageUrl?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

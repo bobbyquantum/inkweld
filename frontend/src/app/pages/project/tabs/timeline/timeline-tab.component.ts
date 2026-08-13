@@ -22,6 +22,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
+import { extractMediaId } from '@components/image-paste';
 import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
 import { TimelineAutoBuildDialogComponent } from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.component';
 import {
@@ -41,6 +42,7 @@ import {
 import { TranslocoModule } from '@jsverse/transloco';
 import {
   absoluteToTimePoint,
+  formatTimePoint,
   isValidTimePointFor,
   type TimePoint,
   timePointToAbsolute,
@@ -54,6 +56,9 @@ import {
 } from '@models/timeline.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
+import { SetupService } from '@services/core/setup.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
+import { MediaSyncService } from '@services/local/media-sync.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
@@ -152,8 +157,10 @@ interface EraBand {
   bandY: number;
   /** Height of the coloured band. */
   bandHeight: number;
-  /** Y for the era label inside the header strip. */
-  labelY: number;
+  /** Formatted "start – end" row shown under the era name. */
+  rangeLabel: string;
+  /** Resolved blob URL of the era background image, when set. */
+  imageUrl?: string;
   era: TimelineEra;
 }
 
@@ -197,6 +204,9 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   private readonly presence = inject(PresenceService);
   private readonly ngZone = inject(NgZone);
   private readonly worldbuilding = inject(WorldbuildingService);
+  private readonly localStorage = inject(LocalStorageService);
+  private readonly mediaSync = inject(MediaSyncService);
+  private readonly setup = inject(SetupService);
 
   /** Stable location broadcast via presence so peers see who is here. */
   protected readonly presenceLocation = computed(() => {
@@ -240,8 +250,15 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   private readonly eventAreaPadding = 4;
   /** @deprecated retained for backward-compat with older tests. */
   protected readonly trackHeight = 52;
-  /** Dedicated strip above the top axis showing era names. */
-  protected readonly eraHeaderHeight = 28;
+  /**
+   * Dedicated strip above the top axis showing era names. Tall enough for
+   * two centred rows: the era name and its formatted time range.
+   */
+  protected readonly eraHeaderHeight = 44;
+  /** Baseline Y of the era name row inside the header strip. */
+  protected readonly eraNameY = this.eraHeaderHeight / 2 - 8;
+  /** Baseline Y of the era time-range row inside the header strip. */
+  protected readonly eraRangeY = this.eraHeaderHeight / 2 + 8;
   /** Fixed top band: era header + top axis row. */
   protected readonly topBandHeight = this.eraHeaderHeight + this.axisHeight;
   /** Fixed bottom dateline row. */
@@ -737,6 +754,84 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     return this.safeTimePointToAbsolute(end, system) ?? fallback;
   }
 
+  /**
+   * Resolved background-image blob URLs keyed by era id. Era configs store
+   * `media:` URLs; blobs live in IndexedDB and are resolved asynchronously.
+   */
+  private readonly eraImageUrls = signal<ReadonlyMap<string, string>>(
+    new Map()
+  );
+
+  /** Monotonic guard so stale async resolutions never clobber newer ones. */
+  private eraImageResolveRun = 0;
+
+  /** True once a server sync has been attempted for missing era images. */
+  private eraImageSyncAttempted = false;
+
+  private readonly eraImageResolveEffect = effect(() => {
+    const eras = this.eras();
+    const needed = new Map<string, string>();
+    for (const era of eras) {
+      if (!era.imageUrl) continue;
+      const mediaId = extractMediaId(era.imageUrl);
+      if (mediaId) needed.set(era.id, mediaId);
+    }
+    if (needed.size === 0) {
+      this.eraImageUrls.set(new Map());
+      return;
+    }
+    const params = this.route.snapshot.paramMap;
+    const username = params.get('username');
+    const slug = params.get('slug');
+    if (!username || !slug) return;
+    void this.resolveEraImages(`${username}/${slug}`, needed);
+  });
+
+  private async resolveEraImages(
+    projectKey: string,
+    needed: ReadonlyMap<string, string>
+  ): Promise<void> {
+    const run = ++this.eraImageResolveRun;
+    const resolved = new Map<string, string>();
+    let missed = false;
+    for (const [eraId, mediaId] of needed) {
+      try {
+        const url = await this.localStorage.getMediaUrl(projectKey, mediaId);
+        if (url) resolved.set(eraId, url);
+        else missed = true;
+      } catch {
+        missed = true;
+      }
+    }
+
+    // Not cached locally — pull the project media down once and retry.
+    if (
+      missed &&
+      !this.eraImageSyncAttempted &&
+      this.setup.getMode() !== 'local'
+    ) {
+      this.eraImageSyncAttempted = true;
+      try {
+        await this.mediaSync.downloadAllFromServer(projectKey);
+        for (const [eraId, mediaId] of needed) {
+          if (resolved.has(eraId)) continue;
+          const url = await this.localStorage.getMediaUrl(projectKey, mediaId);
+          if (url) resolved.set(eraId, url);
+        }
+      } catch (err) {
+        this.logger.warn(
+          'Timeline',
+          'Media sync for era background images failed',
+          err
+        );
+      }
+    }
+
+    if (run === this.eraImageResolveRun) {
+      this.eraImageUrls.set(resolved);
+    }
+  }
+
   protected readonly eraBands = computed<EraBand[]>(() => {
     const system = this.activeSystem();
     if (!system) return [];
@@ -744,9 +839,9 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     const width = this.viewWidth();
     const available = Math.max(1, width - this.labelGutter);
     const preview = this.eraDragPreview();
+    const images = this.eraImageUrls();
     const bandY = 0;
     const bandHeight = this.tracksCanvasHeight();
-    const labelY = Math.max(0, this.eraHeaderHeight / 2);
     return this.eras().flatMap((era): EraBand[] => {
       if (!isValidTimePointFor(era.start, system)) return [];
       if (!isValidTimePointFor(era.end, system)) return [];
@@ -767,12 +862,28 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
           width: Math.max(1, Math.abs(x2 - x1)),
           bandY,
           bandHeight,
-          labelY,
+          rangeLabel: this.eraRangeLabel(effectiveStart, effectiveEnd, system),
+          imageUrl: images.get(era.id),
           era,
         },
       ];
     });
   });
+
+  /** Format an era's span as a single "start – end" display row. */
+  private eraRangeLabel(
+    start: TimePoint,
+    end: TimePoint,
+    system: TimeSystem
+  ): string {
+    try {
+      return `${formatTimePoint(start, system)} – ${formatTimePoint(end, system)}`;
+    } catch {
+      // Drag previews can transiently hold unformattable points; the band
+      // still renders, just without a range row for that frame.
+      return '';
+    }
+  }
 
   ngOnInit(): void {
     const elementId = this.route.snapshot.paramMap.get('tabId');
@@ -967,12 +1078,15 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     const firstTick = bounds.minTick + (bounds.maxTick - bounds.minTick) / 4n;
     const lastTick =
       bounds.minTick + ((bounds.maxTick - bounds.minTick) * 3n) / 4n;
+    const params = this.route.snapshot.paramMap;
     const data: TimelineEraDialogData = {
       era: null,
       system,
       defaultStart: absoluteToTimePoint(firstTick, system),
       defaultEnd: absoluteToTimePoint(lastTick, system),
       defaultColor: pickNextColor(this.eras().length),
+      username: params.get('username') ?? undefined,
+      slug: params.get('slug') ?? undefined,
     };
     const ref = this.dialog.open<
       TimelineEraDialogComponent,
@@ -1038,7 +1152,13 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   protected async onEraClick(era: TimelineEra): Promise<void> {
     const system = this.activeSystem();
     if (!system) return;
-    const data: TimelineEraDialogData = { era, system };
+    const params = this.route.snapshot.paramMap;
+    const data: TimelineEraDialogData = {
+      era,
+      system,
+      username: params.get('username') ?? undefined,
+      slug: params.get('slug') ?? undefined,
+    };
     const ref = this.dialog.open<
       TimelineEraDialogComponent,
       TimelineEraDialogData,
@@ -1054,6 +1174,8 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
         start: result.era.start,
         end: result.era.end,
         color: result.era.color,
+        // Explicit (possibly undefined) so removing the image clears it.
+        imageUrl: result.era.imageUrl,
       });
     }
   }
