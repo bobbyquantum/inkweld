@@ -273,10 +273,8 @@ test.describe('Timeline Tab', () => {
       await page.getByTestId('timeline-era-choose-image').click();
       const mediaDialog = page.getByTestId('media-selector-dialog');
       await expect(mediaDialog).toBeVisible();
-      await mediaDialog.getByRole('button', { name: /era-bg\.png/ }).click();
-      await mediaDialog
-        .getByRole('button', { name: 'Select', exact: true })
-        .click();
+      await page.getByTestId('media-selector-item-era-bg').click();
+      await page.getByTestId('media-selector-confirm').click();
       await expect(mediaDialog).not.toBeVisible();
 
       await expect(
@@ -290,7 +288,9 @@ test.describe('Timeline Tab', () => {
     });
 
     await test.step('era header is taller and renders the background image', async () => {
-      const chip = page.locator('.era-header-chip').first();
+      const chip = page
+        .locator('[data-testid^="timeline-era-header-chip-"]')
+        .first();
       await expect(chip).toBeVisible();
       const chipBox = await chip.boundingBox();
       expect(chipBox).not.toBeNull();
@@ -304,7 +304,7 @@ test.describe('Timeline Tab', () => {
 
     await test.step('name and time range rows are centred within the era span', async () => {
       const chipBox = await page
-        .locator('.era-header-chip')
+        .locator('[data-testid^="timeline-era-header-chip-"]')
         .first()
         .boundingBox();
       expect(chipBox).not.toBeNull();
@@ -345,8 +345,8 @@ test.describe('Timeline Tab', () => {
       // Focus the filled field — this floats the label. It used to be
       // clipped at the top edge of the dialog's scroll container.
       await nameInput.click();
-      const field = page.locator('mat-form-field', { has: nameInput });
-      const label = field.locator('.mdc-floating-label');
+      const field = page.getByTestId('timeline-era-name-field');
+      const label = field.locator('label');
       await expect(label).toHaveClass(/mdc-floating-label--float-above/);
 
       const content = page.locator('mat-dialog-content');

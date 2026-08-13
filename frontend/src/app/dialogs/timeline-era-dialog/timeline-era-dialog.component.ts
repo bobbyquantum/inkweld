@@ -27,7 +27,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
 import { createMediaUrl, extractMediaId } from '@components/image-paste';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   isValidTimePointFor,
   type TimePoint,
@@ -96,6 +96,7 @@ export class TimelineEraDialogComponent implements OnDestroy {
   private readonly dialogs = inject(DialogGatewayService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly transloco = inject(TranslocoService);
 
   protected readonly isGregorian = computed(
     () => this.data.system.id === 'gregorian'
@@ -239,7 +240,7 @@ export class TimelineEraDialogComponent implements OnDestroy {
       username: this.data.username,
       slug: this.data.slug,
       filterType: 'image',
-      title: 'Select Background Image',
+      title: this.transloco.translate('timeline.eraDialog.chooseImageTitle'),
     });
     if (!result?.blob || !result.selected) return;
     const selected = result.selected;
@@ -362,9 +363,6 @@ export class TimelineEraDialogComponent implements OnDestroy {
       ...(trimmedImageUrl ? { imageUrl: trimmedImageUrl } : {}),
     };
 
-    console.log('ERA-SAVE-DEBUG calling close', JSON.stringify(era));
     this.dialogRef.close({ kind: 'save', era });
-
-    console.log('ERA-SAVE-DEBUG close returned');
   }
 }

@@ -179,7 +179,8 @@
             [attr.y]="2"
             [attr.width]="band.width"
             [attr.height]="eraHeaderHeight - 4"
-            [attr.fill]="band.color" />
+            [attr.fill]="band.color"
+            [attr.data-testid]="'timeline-era-header-chip-' + band.id" />
           <text
             class="era-label"
             [attr.x]="band.x + band.width / 2"

@@ -66,6 +66,7 @@
     "colorPlaceholder": "e.g. var(--sys-tertiary-container) or #8b5cf6",
     "imageSection": "Background image",
     "chooseImage": "Choose from library",
+    "chooseImageTitle": "Select Background Image",
     "removeImage": "Remove",
     "imagePreviewAlt": "Background image preview",
     "nameRequired": "Name is required",
