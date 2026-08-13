@@ -547,64 +547,22 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   // Error message getters
   getUsernameErrorMessage(): string {
     const errors = this.form.username().errors();
-    const requiredErr = errors.find(e => e.kind === 'required');
-    if (requiredErr) {
-      return 'Username is required';
-    }
-    const minLengthErr = errors.find(e => e.kind === 'minLength');
-    if (minLengthErr) {
-      return 'Username must be at least 3 characters';
-    }
-    const takenErr = errors.find(e => e.kind === 'usernameTaken');
-    if (takenErr) {
-      return 'Username already taken. Please choose another.';
-    }
-    return '';
+    return errors[0]?.message ?? '';
   }
 
   getPasswordErrorMessage(): string {
     const errors = this.form.password().errors();
-    if (errors.some(e => e.kind === 'required')) {
-      return 'Password is required';
-    }
-    if (errors.some(e => e.kind === 'minLength')) {
-      return 'Password must be at least 8 characters';
-    }
-    if (errors.some(e => e.kind === 'uppercase')) {
-      return 'Password must contain at least one uppercase letter';
-    }
-    if (errors.some(e => e.kind === 'lowercase')) {
-      return 'Password must contain at least one lowercase letter';
-    }
-    if (errors.some(e => e.kind === 'number')) {
-      return 'Password must contain at least one number';
-    }
-    if (errors.some(e => e.kind === 'special')) {
-      return 'Password must contain at least one special character (@$!%*?&)';
-    }
-    return '';
+    return errors[0]?.message ?? '';
   }
 
   getConfirmPasswordErrorMessage(): string {
     const errors = this.form.confirmPassword().errors();
-    if (errors.some(e => e.kind === 'required')) {
-      return 'Please confirm your password';
-    }
-    if (errors.some(e => e.kind === 'passwordMismatch')) {
-      return 'Passwords do not match';
-    }
-    return '';
+    return errors[0]?.message ?? '';
   }
 
   getEmailErrorMessage(): string {
     const errors = this.form.email().errors();
-    if (errors.some(e => e.kind === 'required')) {
-      return 'Email address is required';
-    }
-    if (errors.some(e => e.kind === 'email')) {
-      return 'Please enter a valid email address';
-    }
-    return '';
+    return errors[0]?.message ?? '';
   }
 
   /**

@@ -49,6 +49,11 @@
           aria-label="System name"
           [formField]="form.name"
           data-testid="time-system-edit-name" />
+        @if (form.name().touched() && form.name().invalid()) {
+          @for (error of form.name().errors(); track error) {
+            <mat-error>{{ error.message }}</mat-error>
+          }
+        }
       </mat-form-field>
 
       <div class="section-label">
@@ -146,6 +151,11 @@
           aria-label="Display format"
           [formField]="form.format"
           data-testid="time-system-edit-format" />
+        @if (form.format().touched() && form.format().invalid()) {
+          @for (error of form.format().errors(); track error) {
+            <mat-error>{{ error.message }}</mat-error>
+          }
+        }
       </mat-form-field>
 
       <mat-form-field appearance="outline">
@@ -156,6 +166,13 @@
           aria-label="Parse separator"
           [formField]="form.parseSeparator"
           data-testid="time-system-edit-separator" />
+        @if (
+          form.parseSeparator().touched() && form.parseSeparator().invalid()
+        ) {
+          @for (error of form.parseSeparator().errors(); track error) {
+            <mat-error>{{ error.message }}</mat-error>
+          }
+        }
       </mat-form-field>
 
       <div class="preview" data-testid="time-system-edit-preview">
