@@ -29,6 +29,8 @@ export interface BackgroundSetting {
   mode: BackgroundMode;
   /** Auto mode: the single colour / gradient / image used in both themes. */
   value?: string;
+  /** Auto mode: how strongly the value is lightened (light) / darkened (dark). 0-100. */
+  intensity?: number;
   /** Manual mode: value used in the light theme. */
   light?: string;
   /** Manual mode: value used in the dark theme. */

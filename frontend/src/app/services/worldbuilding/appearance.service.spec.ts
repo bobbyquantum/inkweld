@@ -91,6 +91,22 @@ describe('AppearanceService', () => {
     expect(result?.background).toBe('#bf0000');
   });
 
+  it('should honour the auto intensity slider', () => {
+    themeSubject.next('light-theme');
+    // Intensity 50 => lighten by 0.5.
+    const half = service.resolveRegion(
+      { type: 'color', mode: 'auto', value: '#ff0000', intensity: 50 },
+      'menu'
+    );
+    expect(half?.background).toBe('#ff8080');
+    // Intensity 0 => unchanged.
+    const none = service.resolveRegion(
+      { type: 'color', mode: 'auto', value: '#ff0000', intensity: 0 },
+      'menu'
+    );
+    expect(none?.background).toBe('#ff0000');
+  });
+
   it('should resolve a manual gradient unchanged', () => {
     const result = service.resolveRegion(
       {

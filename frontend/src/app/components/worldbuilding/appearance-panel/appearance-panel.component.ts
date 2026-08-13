@@ -9,12 +9,14 @@ import {
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { GlassCardComponent } from '@components/glass-card/glass-card.component';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
@@ -59,11 +61,13 @@ interface SaveSnapshot {
   imports: [
     CommonModule,
     MatButtonModule,
+    MatCheckboxModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
     MatRadioModule,
     MatSelectModule,
+    MatSliderModule,
     MatSlideToggleModule,
     MatTooltipModule,
     TranslocoModule,
@@ -192,6 +196,10 @@ export class AppearancePanelComponent implements OnDestroy {
     this.patchSetting(region, { mode });
   }
 
+  setIntensity(region: AppearanceRegion, intensity: number | string): void {
+    this.patchSetting(region, { intensity: Number(intensity) });
+  }
+
   setValue(
     region: AppearanceRegion,
     slot: BackgroundSlot,
@@ -238,6 +246,9 @@ export class AppearancePanelComponent implements OnDestroy {
         type: nextSetting.type,
         mode: nextSetting.mode,
       };
+      if (nextSetting.intensity !== undefined) {
+        clean.intensity = nextSetting.intensity;
+      }
       for (const k of ['value', 'light', 'dark'] as const) {
         const v = nextSetting[k];
         if (v !== undefined && v !== '') {

@@ -125,13 +125,17 @@ export class AppearanceService {
     const value = this.pickValue(setting);
     if (value === undefined || value === '') return null;
 
+    // Auto mode lightens the value in light theme and darkens it in dark theme
+    // by a fraction derived from `intensity` (0-100), defaulting to 25.
+    const amount = setting.intensity ?? 25;
+
     const type = setting.type;
     if (type === 'color') {
-      // In auto mode a single colour is lightened in light theme and darkened
-      // in dark theme so it stays legible against the app surface. Manual mode
-      // already has theme-specific colours, so it is returned unchanged.
       if (setting.mode === 'auto') {
-        const adjusted = adjustHex(value, this.isDarkMode() ? -0.25 : 0.25);
+        const adjusted = adjustHex(
+          value,
+          (this.isDarkMode() ? -1 : 1) * (amount / 100)
+        );
         if (adjusted) {
           return { type, background: adjusted };
         }
@@ -139,12 +143,13 @@ export class AppearanceService {
       return { type, background: value };
     }
     if (type === 'gradient') {
-      // Auto mode adjusts every hex stop so the whole gradient stays legible
-      // in the active theme; manual mode is returned unchanged.
       if (setting.mode === 'auto') {
         return {
           type,
-          background: adjustGradient(value, this.isDarkMode() ? -0.25 : 0.25),
+          background: adjustGradient(
+            value,
+            (this.isDarkMode() ? -1 : 1) * (amount / 100)
+          ),
         };
       }
       return { type, background: value };

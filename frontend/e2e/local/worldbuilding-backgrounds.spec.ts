@@ -97,6 +97,19 @@ function hexToRgb(hex: string): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+/**
+ * The colour the app actually applies in auto mode (default intensity 25) for
+ * the light theme: the chosen colour lightened by 0.25 toward white.
+ */
+function autoAppliedColour(hex: string): string {
+  const c = (i: number) =>
+    Number.parseInt(hex.replace('#', '').slice(i, i + 2), 16);
+  const mix = (v: number) =>
+    Math.max(0, Math.min(255, Math.round(v + (255 - v) * 0.25)));
+  const toHex = (n: number) => n.toString(16).padStart(2, '0');
+  return `#${toHex(mix(c(0)))}${toHex(mix(c(2)))}${toHex(mix(c(4)))}`;
+}
+
 function sidenavBgColor(page: Page): Promise<string> {
   return page.evaluate(() => {
     const el = document.querySelector('[data-testid="wb-sidenav"]');
@@ -144,9 +157,11 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
       const menuColour = page.getByTestId('appearance-menu');
       const chosen = await setColour(page, menuColour);
       menuChosenColour = chosen;
+      // Auto mode lightens the chosen colour (default intensity 25) in light theme.
+      const applied = autoAppliedColour(chosen);
 
       await expect(sidenav).toHaveClass(/has-custom-background/);
-      await expect.poll(() => sidenavBgColor(page)).toBe(hexToRgb(chosen));
+      await expect.poll(() => sidenavBgColor(page)).toBe(hexToRgb(applied));
     });
 
     await test.step('gradient applies to the content area', async () => {
@@ -198,7 +213,7 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
       await expect(sidenav).toHaveClass(/has-custom-background/);
       await expect
         .poll(() => sidenavBgColor(page))
-        .toBe(hexToRgb(menuChosenColour));
+        .toBe(hexToRgb(autoAppliedColour(menuChosenColour)));
       await expect(content).toHaveClass(/has-custom-background/);
       await expect
         .poll(() => contentBgImage(page))

@@ -95,6 +95,12 @@ describe('AppearancePanelComponent', () => {
     expect(component.getSetting('menu').dark).toBe('#000000');
   });
 
+  it('should set the auto intensity', () => {
+    fixture.detectChanges();
+    component.setIntensity('menu', 60);
+    expect(component.getSetting('menu').intensity).toBe(60);
+  });
+
   it('should remove a region when disabled', async () => {
     vi.useFakeTimers();
     fixture.detectChanges();

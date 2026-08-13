@@ -51,22 +51,38 @@
             </mat-radio-group>
           </div>
 
-          <mat-form-field appearance="outline" class="control-mode">
-            <mat-label>{{
-              'worldbuilding.appearance.mode' | transloco
-            }}</mat-label>
-            <mat-select
-              [value]="setting.mode"
+          <div class="auto-row">
+            <mat-checkbox
+              [checked]="setting.mode === 'auto'"
               [disabled]="!canWrite()"
-              (selectionChange)="setMode(region, $event.value)">
-              <mat-option value="auto">
-                {{ 'worldbuilding.appearance.modeAuto' | transloco }}
-              </mat-option>
-              <mat-option value="manual">
-                {{ 'worldbuilding.appearance.modeManual' | transloco }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
+              (change)="setMode(region, $event.checked ? 'auto' : 'manual')"
+              [attr.data-testid]="'appearance-' + region + '-auto'">
+              {{ 'worldbuilding.appearance.autoAdjust' | transloco }}
+            </mat-checkbox>
+            <span class="auto-hint">{{
+              'worldbuilding.appearance.autoAdjustHint' | transloco
+            }}</span>
+          </div>
+
+          @if (setting.mode === 'auto') {
+            <div class="intensity-row">
+              <span class="control-label">{{
+                'worldbuilding.appearance.intensity' | transloco
+              }}</span>
+              <mat-slider
+                min="0"
+                max="100"
+                step="5"
+                [disabled]="!canWrite()"
+                [attr.data-testid]="'appearance-' + region + '-intensity'">
+                <input
+                  #intensityThumb
+                  matSliderThumb
+                  [value]="setting.intensity ?? 25"
+                  (input)="setIntensity(region, intensityThumb.value)" />
+              </mat-slider>
+            </div>
+          }
 
           @if (setting.type === 'image') {
             <div class="image-picker">
