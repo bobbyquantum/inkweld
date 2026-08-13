@@ -316,7 +316,12 @@ describe('WorldbuildingService', () => {
         elementId,
         {
           appearance: {
-            menu: { type: 'color', mode: 'auto', value: '#4fd8eb' },
+            menu: {
+              type: 'color',
+              mode: 'auto',
+              value: '#4fd8eb',
+              intensity: 60,
+            },
             content: {
               type: 'gradient',
               mode: 'manual',
@@ -334,6 +339,7 @@ describe('WorldbuildingService', () => {
         type: 'color',
         mode: 'auto',
         value: '#4fd8eb',
+        intensity: 60,
       });
       expect(data.appearance?.content?.mode).toBe('manual');
       expect(data.appearance?.content?.light).toContain('linear-gradient');

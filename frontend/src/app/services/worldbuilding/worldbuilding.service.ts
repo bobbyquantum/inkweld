@@ -444,6 +444,8 @@ export class WorldbuildingService {
             value: s['value'] as string | undefined,
             light: s['light'] as string | undefined,
             dark: s['dark'] as string | undefined,
+            intensity:
+              typeof s['intensity'] === 'number' ? s['intensity'] : undefined,
           };
         }
       }
