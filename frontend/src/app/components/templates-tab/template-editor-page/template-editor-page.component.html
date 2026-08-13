@@ -413,45 +413,12 @@
     <mat-tab [label]="'templates.editor.tabPreview' | transloco">
       <section class="section tab-body">
         <div class="preview-panel" data-testid="template-preview">
-          <div class="preview-header">
-            <mat-icon>{{ model().icon || 'category' }}</mat-icon>
-            <h3>{{ model().name || 'Untitled' }}</h3>
-          </div>
-          <p class="preview-description">{{ model().description }}</p>
-          @if (tabs().length === 0) {
-            <div class="empty-state">
-              <mat-icon>tab</mat-icon>
-              <p>{{ 'templates.editor.noTabs' | transloco }}</p>
-            </div>
-          } @else {
-            <div class="preview-tabs">
-              @for (tab of tabs(); track tab.key) {
-                <div class="preview-tab">
-                  <h4>
-                    <mat-icon>{{ tab.icon || 'article' }}</mat-icon>
-                    {{ tab.label }}
-                  </h4>
-                  @if (tab.fields.length === 0) {
-                    <p class="preview-empty">
-                      {{ 'templates.editor.noFields' | transloco }}
-                    </p>
-                  } @else {
-                    <ul>
-                      @for (field of tab.fields; track field.id) {
-                        <li>
-                          <mat-icon>input</mat-icon>
-                          <span>{{ field.label || field.key }}</span>
-                          <mat-chip class="field-type-chip">{{
-                            field.type
-                          }}</mat-chip>
-                        </li>
-                      }
-                    </ul>
-                  }
-                </div>
-              }
-            </div>
-          }
+          <app-worldbuilding-editor
+            [elementId]="'preview'"
+            [elementType]="ElementType.Worldbuilding"
+            [username]="'preview'"
+            [slug]="'preview'"
+            [previewSchema]="previewSchema()"></app-worldbuilding-editor>
         </div>
       </section>
     </mat-tab>

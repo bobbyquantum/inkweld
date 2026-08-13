@@ -240,6 +240,20 @@ describe('WorldbuildingEditorComponent', () => {
     expect(component).toBeDefined();
   });
 
+  it('should build the form from a preview schema without loading data', async () => {
+    fixture.componentRef.setInput('previewSchema', mockCharacterSchema);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(component.previewMode()).toBe(true);
+    expect(component.schema()).toBe(mockCharacterSchema);
+    expect(component.form().get('name')).toBeDefined();
+    expect(component.form().get('age')).toBeDefined();
+    expect(component.isInitialLoading()).toBe(false);
+    // Preview form is read-only.
+    expect(component.form().disabled).toBe(true);
+  });
+
   describe('syncTooltip', () => {
     it('should return synced tooltip when synced', () => {
       expect(component.syncTooltip()).toBe('Document synced');

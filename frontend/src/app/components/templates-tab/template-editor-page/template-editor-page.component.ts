@@ -7,6 +7,7 @@ import {
   type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
   inject,
   input,
@@ -31,6 +32,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AppearanceEditorComponent } from '@components/worldbuilding/appearance-panel/appearance-editor/appearance-editor.component';
+import { WorldbuildingEditorComponent } from '@components/worldbuilding/worldbuilding-editor.component';
+import { ElementType } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
 import { type ElementAppearance } from '@models/element-appearance';
 import {
@@ -71,10 +74,14 @@ interface BasicFormValue {
     DragDropModule,
     TranslocoModule,
     AppearanceEditorComponent,
+    WorldbuildingEditorComponent,
   ],
 })
 export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   private readonly destroyRef = inject(DestroyRef);
+
+  /** Exposed for the preview template. */
+  readonly ElementType = ElementType;
 
   /** The schema to edit. Required — pass a blank schema to create a new one. */
   readonly schema = input.required<ElementTypeSchema>();
@@ -140,6 +147,17 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
 
   // Default appearance for new elements of this type
   readonly defaultAppearance = signal<ElementAppearance | undefined>(undefined);
+
+  /** A transient schema built from the current editor state, for the preview. */
+  readonly previewSchema = computed<ElementTypeSchema>(() => ({
+    id: this.schema().id,
+    name: this.model().name || 'Untitled',
+    icon: this.model().icon || 'category',
+    description: this.model().description || '',
+    version: this.schema().version,
+    tabs: this.tabs(),
+    defaultAppearance: this.defaultAppearance(),
+  }));
 
   ngOnInit(): void {
     const schema = this.schema();

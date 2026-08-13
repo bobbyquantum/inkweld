@@ -94,6 +94,16 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   username = input.required<string>();
   slug = input.required<string>();
 
+  /**
+   * When set, the editor renders in preview mode using this schema directly
+   * (e.g. from the template designer's Preview tab) instead of loading a real
+   * element. No data is loaded, synced, or saved; the form is read-only.
+   */
+  previewSchema = input<ElementTypeSchema | null>(null);
+
+  /** True when rendering a transient schema preview (no element persistence). */
+  readonly previewMode = computed(() => this.previewSchema() !== null);
+
   private readonly worldbuildingService = inject(WorldbuildingService);
   protected readonly projectState = inject(ProjectStateService);
   private readonly dialogGateway = inject(DialogGatewayService);
@@ -132,6 +142,9 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   /** Computed element name from project state */
   elementName = computed(() => {
+    if (this.previewMode()) {
+      return this.previewSchema()?.name || 'Untitled';
+    }
     const elements = this.projectState.elements();
     const element = elements.find(e => e.id === this.elementId());
     return element?.name || 'Untitled';
@@ -304,6 +317,19 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       const username = this.username();
       const slug = this.slug();
 
+      // In preview mode, build the form from the transient schema and stop.
+      if (this.previewMode()) {
+        const schema = this.previewSchema();
+        this.schema.set(schema);
+        this.form.set(new FormGroup({}));
+        if (schema) {
+          this.buildFormFromSchema(schema);
+          this.form().disable({ emitEvent: false });
+        }
+        this.isInitialLoading.set(false);
+        return;
+      }
+
       // Only load when all required values are available
       if (id && username && slug) {
         this.selectedSection.set('identity');
@@ -336,7 +362,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     effect(onCleanup => {
       // Track the form value signal via the compatForm tree.
       this.formTree().value();
-      if (this.isUpdatingFromRemote) return;
+      if (this.isUpdatingFromRemote || this.previewMode()) return;
       const timer = setTimeout(() => {
         untracked(() => void this.saveData());
       }, 500);
