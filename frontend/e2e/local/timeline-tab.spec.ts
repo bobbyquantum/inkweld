@@ -354,9 +354,7 @@ test.describe('Timeline Tab', () => {
           .first()
       ).toBeVisible();
       await expect(
-        page
-          .locator('[data-testid^="timeline-era-header-handle-end-"]')
-          .first()
+        page.locator('[data-testid^="timeline-era-header-handle-end-"]').first()
       ).toBeVisible();
     });
 
