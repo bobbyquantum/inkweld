@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { form, FormField, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
@@ -85,10 +86,13 @@ export class LoginDialogComponent {
   readonly providersLoaded = signal(false);
 
   constructor() {
-    // Clear error when username is changed
+    // Clear error when username is changed.
+    // Use untracked() to read passwordError without making it a dependency
+    // — otherwise the effect would re-run when the error is set, clearing it
+    // immediately and the user would never see the message.
     effect(() => {
       const username = this.model().username;
-      if (this.passwordError()) {
+      if (untracked(this.passwordError)) {
         this.passwordError.set(null);
       }
       // If username is different from the last attempt, clear the lastAttemptedUsername
@@ -100,7 +104,7 @@ export class LoginDialogComponent {
     // Clear error when password is changed
     effect(() => {
       const password = this.model().password;
-      if (this.passwordError()) {
+      if (untracked(this.passwordError)) {
         this.passwordError.set(null);
       }
       // If password is different from the last attempt, clear the lastAttemptedPassword
