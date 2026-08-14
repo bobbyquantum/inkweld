@@ -153,7 +153,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private fullscreenListener?: () => void;
 
   // Sidebar width in pixels for the expanded desktop sidebar (single-outlet layout)
-  protected sidebarWidth = 300;
+  protected readonly sidebarWidth = signal(300);
   private resizing = false;
 
   constructor() {
@@ -167,7 +167,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       if (storedWidth) {
         const parsed = Number.parseFloat(storedWidth);
         if (Number.isFinite(parsed) && parsed > 0) {
-          this.sidebarWidth = parsed;
+          this.sidebarWidth.set(parsed);
         }
       }
     }
@@ -398,7 +398,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       touches && touches.length > 0
         ? touches[0].clientX
         : (event as MouseEvent).clientX;
-    this.sidebarWidth = Math.min(480, Math.max(200, clientX));
+    this.sidebarWidth.set(Math.min(480, Math.max(200, clientX)));
   };
 
   private onSidebarResizeEnd = (): void => {
@@ -408,7 +408,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     window.removeEventListener('touchmove', this.onSidebarResizeMove);
     window.removeEventListener('mouseup', this.onSidebarResizeEnd);
     window.removeEventListener('touchend', this.onSidebarResizeEnd);
-    localStorage.setItem('sidebarWidth', String(this.sidebarWidth));
+    localStorage.setItem('sidebarWidth', String(this.sidebarWidth()));
   };
 
   /** Returns the Material icon name for a pinned element based on its type. */

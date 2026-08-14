@@ -647,7 +647,7 @@ describe('ProjectComponent', () => {
       component['onSidebarResizeMove'](move);
       component['onSidebarResizeEnd']();
 
-      expect(component['sidebarWidth']).toBe(400);
+      expect(component['sidebarWidth']()).toBe(400);
       expect(localStorage.getItem('sidebarWidth')).toBe('400');
     });
 
@@ -659,10 +659,10 @@ describe('ProjectComponent', () => {
       } as unknown as MouseEvent);
 
       component['onSidebarResizeMove']({ clientX: 1000 } as MouseEvent);
-      expect(component['sidebarWidth']).toBe(480);
+      expect(component['sidebarWidth']()).toBe(480);
 
       component['onSidebarResizeMove']({ clientX: 50 } as MouseEvent);
-      expect(component['sidebarWidth']).toBe(200);
+      expect(component['sidebarWidth']()).toBe(200);
 
       component['onSidebarResizeEnd']();
       localStorage.removeItem('sidebarWidth');
@@ -678,7 +678,7 @@ describe('ProjectComponent', () => {
       } as unknown as MouseEvent);
       component['onSidebarResizeMove']({ clientX: 400 } as MouseEvent);
 
-      expect(component['sidebarWidth']).toBe(300);
+      expect(component['sidebarWidth']()).toBe(300);
       expect(localStorage.getItem('sidebarWidth')).toBeNull();
     });
 
@@ -688,7 +688,7 @@ describe('ProjectComponent', () => {
       const freshFixture = TestBed.createComponent(ProjectComponent);
       const freshComponent = freshFixture.componentInstance;
 
-      expect(freshComponent['sidebarWidth']).toBe(300);
+      expect(freshComponent['sidebarWidth']()).toBe(300);
 
       localStorage.removeItem('sidebarWidth');
       freshFixture.destroy();

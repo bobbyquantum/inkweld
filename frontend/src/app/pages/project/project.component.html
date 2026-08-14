@@ -289,7 +289,7 @@
             </div>
           } @else {
             <!-- Desktop expanded sidebar -->
-            <div class="desktop-sidebar" [style.width.px]="sidebarWidth">
+            <div class="desktop-sidebar" [style.width.px]="sidebarWidth()">
               @defer (on idle) {
                 <app-project-tree
                   [showCollapseButton]="true"
