@@ -795,6 +795,31 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     needed: ReadonlyMap<string, string>
   ): Promise<void> {
     const run = ++this.eraImageResolveRun;
+    const { resolved, missed } = await this.resolveEraImagesLocally(
+      projectKey,
+      needed
+    );
+
+    // Not cached locally — pull the project media down once and retry.
+    if (
+      missed &&
+      !this.eraImageSyncAttempted &&
+      this.setup.getMode() !== 'local'
+    ) {
+      this.eraImageSyncAttempted = true;
+      await this.resolveEraImagesWithSync(projectKey, needed, resolved);
+    }
+
+    if (run === this.eraImageResolveRun) {
+      this.eraImageUrls.set(resolved);
+    }
+  }
+
+  /** Resolve every era image from the local media cache. */
+  private async resolveEraImagesLocally(
+    projectKey: string,
+    needed: ReadonlyMap<string, string>
+  ): Promise<{ resolved: Map<string, string>; missed: boolean }> {
     const resolved = new Map<string, string>();
     let missed = false;
     for (const [eraId, mediaId] of needed) {
@@ -806,32 +831,28 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
         missed = true;
       }
     }
+    return { resolved, missed };
+  }
 
-    // Not cached locally — pull the project media down once and retry.
-    if (
-      missed &&
-      !this.eraImageSyncAttempted &&
-      this.setup.getMode() !== 'local'
-    ) {
-      this.eraImageSyncAttempted = true;
-      try {
-        await this.mediaSync.downloadAllFromServer(projectKey);
-        for (const [eraId, mediaId] of needed) {
-          if (resolved.has(eraId)) continue;
-          const url = await this.localStorage.getMediaUrl(projectKey, mediaId);
-          if (url) resolved.set(eraId, url);
-        }
-      } catch (err) {
-        this.logger.warn(
-          'Timeline',
-          'Media sync for era background images failed',
-          err
-        );
+  /** Pull project media from the server once, then retry unresolved images. */
+  private async resolveEraImagesWithSync(
+    projectKey: string,
+    needed: ReadonlyMap<string, string>,
+    resolved: Map<string, string>
+  ): Promise<void> {
+    try {
+      await this.mediaSync.downloadAllFromServer(projectKey);
+      for (const [eraId, mediaId] of needed) {
+        if (resolved.has(eraId)) continue;
+        const url = await this.localStorage.getMediaUrl(projectKey, mediaId);
+        if (url) resolved.set(eraId, url);
       }
-    }
-
-    if (run === this.eraImageResolveRun) {
-      this.eraImageUrls.set(resolved);
+    } catch (err) {
+      this.logger.warn(
+        'Timeline',
+        'Media sync for era background images failed',
+        err
+      );
     }
   }
 

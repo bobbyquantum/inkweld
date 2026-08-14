@@ -1196,7 +1196,7 @@ describe('TimelineTabComponent', () => {
     timelineSignal.set({ ...defaultConfig, eras: [era] });
     fixture.detectChanges();
     const bands = component['eraBands']();
-    expect(bands.length).toBe(1);
+    expect(bands).toHaveLength(1);
     expect(bands[0].id).toBe('band-era');
     expect(bands[0].width).toBeGreaterThan(0);
   });
@@ -1213,7 +1213,7 @@ describe('TimelineTabComponent', () => {
     timelineSignal.set({ ...defaultConfig, eras: [era] });
     fixture.detectChanges();
     const bands = component['eraBands']();
-    expect(bands.length).toBe(0);
+    expect(bands).toHaveLength(0);
   });
 
   it('eraBands formats a centred "start – end" range label', () => {
@@ -1229,7 +1229,7 @@ describe('TimelineTabComponent', () => {
     timelineSignal.set({ ...defaultConfig, eras: [era] });
     fixture.detectChanges();
     const bands = component['eraBands']();
-    expect(bands.length).toBe(1);
+    expect(bands).toHaveLength(1);
     expect(bands[0].rangeLabel).toContain('–');
     expect(bands[0].rangeLabel.length).toBeGreaterThan(1);
   });

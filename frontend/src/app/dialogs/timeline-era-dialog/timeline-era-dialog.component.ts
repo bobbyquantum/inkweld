@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   type OnDestroy,
+  type OnInit,
   signal,
 } from '@angular/core';
 import {
@@ -86,7 +87,7 @@ interface TimelineEraFormValue {
   templateUrl: './timeline-era-dialog.component.html',
   styleUrls: ['./timeline-era-dialog.component.scss'],
 })
-export class TimelineEraDialogComponent implements OnDestroy {
+export class TimelineEraDialogComponent implements OnInit, OnDestroy {
   protected readonly data = inject<TimelineEraDialogData>(MAT_DIALOG_DATA);
   private readonly dialogRef =
     inject<MatDialogRef<TimelineEraDialogComponent, TimelineEraDialogResult>>(
@@ -200,6 +201,9 @@ export class TimelineEraDialogComponent implements OnDestroy {
       this.startDateSignal.set(this.unitsToIsoDateFromModel('start'));
       this.endDateSignal.set(this.unitsToIsoDateFromModel('end'));
     });
+  }
+
+  ngOnInit(): void {
     void this.loadExistingImagePreview();
   }
 
