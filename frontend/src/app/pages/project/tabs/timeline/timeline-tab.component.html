@@ -180,7 +180,11 @@
             [attr.width]="band.width"
             [attr.height]="eraHeaderHeight - 4"
             [attr.fill]="band.color"
-            [attr.data-testid]="'timeline-era-header-chip-' + band.id" />
+            [attr.data-testid]="'timeline-era-header-chip-' + band.id"
+            (pointerdown)="onEraPointerDown($event, band.era, 'move')"
+            (pointermove)="onEraPointerMove($event)"
+            (pointerup)="onEraPointerUp($event, band.era)"
+            (pointercancel)="onEraPointerUp($event, band.era)" />
           <text
             class="era-label"
             [attr.x]="band.x + band.width / 2"
@@ -199,6 +203,28 @@
             [attr.data-testid]="'timeline-era-range-' + band.id">
             {{ band.rangeLabel }}
           </text>
+          <rect
+            class="era-handle era-header-handle era-header-handle-start"
+            [attr.x]="band.x - 3"
+            [attr.y]="2"
+            [attr.width]="6"
+            [attr.height]="eraHeaderHeight - 4"
+            [attr.data-testid]="'timeline-era-header-handle-start-' + band.id"
+            (pointerdown)="onEraPointerDown($event, band.era, 'resize-start')"
+            (pointermove)="onEraPointerMove($event)"
+            (pointerup)="onEraPointerUp($event, band.era)"
+            (pointercancel)="onEraPointerUp($event, band.era)" />
+          <rect
+            class="era-handle era-header-handle era-header-handle-end"
+            [attr.x]="band.x + band.width - 3"
+            [attr.y]="2"
+            [attr.width]="6"
+            [attr.height]="eraHeaderHeight - 4"
+            [attr.data-testid]="'timeline-era-header-handle-end-' + band.id"
+            (pointerdown)="onEraPointerDown($event, band.era, 'resize-end')"
+            (pointermove)="onEraPointerMove($event)"
+            (pointerup)="onEraPointerUp($event, band.era)"
+            (pointercancel)="onEraPointerUp($event, band.era)" />
         </g>
       }
 

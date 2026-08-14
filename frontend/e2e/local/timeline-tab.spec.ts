@@ -335,6 +335,31 @@ test.describe('Timeline Tab', () => {
       expect(href).toMatch(/^blob:/);
     });
 
+    await test.step('era header is clickable to edit and exposes resize handles', async () => {
+      // Clicking the header chip (not the band) must open the edit dialog.
+      await page
+        .locator('[data-testid^="timeline-era-header-chip-"]')
+        .first()
+        .click();
+      const nameInput = page.getByTestId('timeline-era-name');
+      await expect(nameInput).toBeVisible();
+      await expect(nameInput).toHaveValue('Age of Heroes');
+      await page.keyboard.press('Escape');
+      await expect(nameInput).toHaveCount(0);
+
+      // Resize handles are rendered on the header for drag-resizing.
+      await expect(
+        page
+          .locator('[data-testid^="timeline-era-header-handle-start-"]')
+          .first()
+      ).toBeVisible();
+      await expect(
+        page
+          .locator('[data-testid^="timeline-era-header-handle-end-"]')
+          .first()
+      ).toBeVisible();
+    });
+
     await test.step('edit era: floating name label stays visible when focused with a value', async () => {
       await page.locator('[data-testid^="timeline-era-body-"]').first().click();
 

@@ -256,9 +256,13 @@ svg.timeline-svg:active {
 
 .era-header-chip {
   opacity: 0.35;
-  pointer-events: none;
+  cursor: grab;
   rx: 4px;
   ry: 4px;
+
+  &:active {
+    cursor: grabbing;
+  }
 }
 
 .era-header-image {
