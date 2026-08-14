@@ -83,9 +83,44 @@
           }
 
           @if (setting.type === 'image') {
-            <p class="image-hint">
-              {{ 'worldbuilding.appearance.schemaImageHint' | transloco }}
-            </p>
+            <div class="image-picker">
+              @if (setting.mode === 'manual') {
+                @for (slot of manualSlots; track slot) {
+                  <div class="image-field">
+                    <button
+                      mat-stroked-button
+                      type="button"
+                      [disabled]="disabled()"
+                      (click)="imagePicker.emit({ region, slot })"
+                      [attr.data-testid]="
+                        'appearance-' + region + '-image-' + slot
+                      ">
+                      <mat-icon>image</mat-icon>
+                      {{
+                        (slot === 'light'
+                          ? 'worldbuilding.appearance.light'
+                          : 'worldbuilding.appearance.dark'
+                        ) | transloco
+                      }}
+                    </button>
+                  </div>
+                }
+              } @else {
+                <div class="image-field">
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="disabled()"
+                    (click)="imagePicker.emit({ region, slot: 'value' })"
+                    [attr.data-testid]="
+                      'appearance-' + region + '-image-value'
+                    ">
+                    <mat-icon>image</mat-icon>
+                    {{ 'worldbuilding.appearance.pickImage' | transloco }}
+                  </button>
+                </div>
+              }
+            </div>
           } @else {
             @if (setting.mode === 'manual') {
               <div class="value-row">

@@ -10,16 +10,20 @@ import {
   signal,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   APPEARANCE_DELETE,
   type AppearanceRegion,
   type ElementAppearance,
 } from '@models/element-appearance';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { debounceTime, Subject, takeUntil } from 'rxjs';
 
-import { AppearanceEditorComponent } from './appearance-editor/appearance-editor.component';
+import {
+  AppearanceEditorComponent,
+  type BackgroundSlot,
+} from './appearance-editor/appearance-editor.component';
 
 /**
  * A snapshot of everything needed to persist an appearance edit, captured at
@@ -60,6 +64,8 @@ export class AppearancePanelComponent implements OnDestroy {
   canWrite = input<boolean>(true);
 
   private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly transloco = inject(TranslocoService);
 
   /** Current appearance config for this element. */
   readonly appearance = signal<ElementAppearance>({});
@@ -128,6 +134,43 @@ export class AppearancePanelComponent implements OnDestroy {
       this.pendingDeletes[key] = true;
     }
     this.queueSave();
+  }
+
+  /** Open the project media selector to pick a background image. */
+  protected async onImagePicker(
+    region: AppearanceRegion,
+    slot: BackgroundSlot
+  ): Promise<void> {
+    const result = await this.dialogGateway.openMediaSelectorDialog({
+      username: this.username(),
+      slug: this.slug(),
+      filterType: 'image',
+      title: this.transloco.translate(
+        'worldbuilding.appearance.pickImageTitle'
+      ),
+    });
+    if (result?.selected) {
+      const reference = `media://${result.selected.filename}`;
+      this.onAppearanceEdited(
+        this.withValue(this.appearance(), region, slot, reference)
+      );
+    }
+  }
+
+  /** Return a copy of the appearance with the given slot set to `value`. */
+  private withValue(
+    appearance: ElementAppearance,
+    region: AppearanceRegion,
+    slot: BackgroundSlot,
+    value: string
+  ): ElementAppearance {
+    return {
+      ...appearance,
+      [region]: {
+        ...(appearance[region] ?? { type: 'image', mode: 'auto' }),
+        [slot]: value,
+      },
+    };
   }
 
   private async load(elementId: string): Promise<void> {

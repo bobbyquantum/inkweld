@@ -31,11 +31,17 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { AppearanceEditorComponent } from '@components/worldbuilding/appearance-panel/appearance-editor/appearance-editor.component';
+import {
+  AppearanceEditorComponent,
+  type BackgroundSlot,
+} from '@components/worldbuilding/appearance-panel/appearance-editor/appearance-editor.component';
 import { WorldbuildingEditorComponent } from '@components/worldbuilding/worldbuilding-editor.component';
 import { ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
-import { type ElementAppearance } from '@models/element-appearance';
+import {
+  type AppearanceRegion,
+  type ElementAppearance,
+} from '@models/element-appearance';
 import {
   type ElementTypeSchema,
   type FieldSchema,
@@ -370,6 +376,35 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   /** Clear the default identity image. */
   clearDefaultImage(): void {
     this.defaultImage.set(undefined);
+  }
+
+  /** Open the project media selector to pick a default background image. */
+  async pickAppearanceImage(
+    region: AppearanceRegion,
+    slot: BackgroundSlot
+  ): Promise<void> {
+    const project = this.projectState.project();
+    if (!project) return;
+    const result = await this.dialogGateway.openMediaSelectorDialog({
+      username: project.username,
+      slug: project.slug,
+      filterType: 'image',
+      title: this.transloco.translate(
+        'worldbuilding.appearance.pickImageTitle'
+      ),
+    });
+    if (result?.selected) {
+      const reference = `media://${result.selected.filename}`;
+      const current = this.defaultAppearance();
+      const regionSetting = current?.[region] ?? {
+        type: 'image',
+        mode: 'auto',
+      };
+      this.defaultAppearance.set({
+        ...current,
+        [region]: { ...regionSetting, [slot]: reference },
+      });
+    }
   }
 
   /** Map the active editor tab to a mat-tab index. */

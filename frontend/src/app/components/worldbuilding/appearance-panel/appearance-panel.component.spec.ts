@@ -1,6 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import type { ElementAppearance } from '@models/element-appearance';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { type MockedObject, vi } from 'vitest';
 
@@ -11,6 +12,7 @@ describe('AppearancePanelComponent', () => {
   let component: AppearancePanelComponent;
   let fixture: ComponentFixture<AppearancePanelComponent>;
   let worldbuildingService: MockedObject<WorldbuildingService>;
+  let dialogGateway: MockedObject<DialogGatewayService>;
 
   beforeEach(async () => {
     worldbuildingService = {
@@ -19,11 +21,16 @@ describe('AppearancePanelComponent', () => {
       observeIdentityChanges: vi.fn().mockResolvedValue(() => {}),
     } as unknown as MockedObject<WorldbuildingService>;
 
+    dialogGateway = {
+      openMediaSelectorDialog: vi.fn().mockResolvedValue(undefined),
+    } as unknown as MockedObject<DialogGatewayService>;
+
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), AppearancePanelComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: WorldbuildingService, useValue: worldbuildingService },
+        { provide: DialogGatewayService, useValue: dialogGateway },
       ],
     }).compileComponents();
 
@@ -87,6 +94,46 @@ describe('AppearancePanelComponent', () => {
     expect(emit).toHaveBeenCalledWith({
       menu: { type: 'color', mode: 'auto', value: '#123456' },
     });
+  });
+
+  it('should open the media selector and set a picked background image', async () => {
+    fixture.detectChanges();
+    dialogGateway.openMediaSelectorDialog.mockResolvedValue({
+      selected: {
+        mediaId: 'bg',
+        mimeType: 'image/png',
+        size: 1024,
+        createdAt: new Date().toISOString(),
+        filename: 'bg.png',
+      },
+      blob: new Blob(),
+    });
+    const emit = vi.fn();
+    component.appearanceChange.subscribe(emit);
+
+    await component['onImagePicker']('menu', 'value');
+    fixture.detectChanges();
+
+    expect(dialogGateway.openMediaSelectorDialog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        username: 'user',
+        slug: 'project',
+        filterType: 'image',
+      })
+    );
+    expect(component.appearance()).toEqual({
+      menu: { type: 'image', mode: 'auto', value: 'media://bg.png' },
+    });
+    expect(emit).toHaveBeenCalledWith({
+      menu: { type: 'image', mode: 'auto', value: 'media://bg.png' },
+    });
+  });
+
+  it('should not change appearance when the media picker is dismissed', async () => {
+    fixture.detectChanges();
+    dialogGateway.openMediaSelectorDialog.mockResolvedValue(undefined);
+    await component['onImagePicker']('content', 'value');
+    expect(component.appearance()).toEqual({});
   });
 
   it('should fold deletion markers into the persisted payload', async () => {

@@ -97,4 +97,15 @@ describe('AppearanceEditorComponent', () => {
       menu: { type: 'color', mode: 'auto', value: '#123456', intensity: 60 },
     });
   });
+
+  it('should emit an image pick request with region and slot', () => {
+    fixture.componentRef.setInput('value', {
+      content: { type: 'image', mode: 'auto' },
+    });
+    fixture.detectChanges();
+    const picked = vi.fn();
+    component.imagePicker.subscribe(picked);
+    component.imagePicker.emit({ region: 'content', slot: 'value' });
+    expect(picked).toHaveBeenCalledWith({ region: 'content', slot: 'value' });
+  });
 });

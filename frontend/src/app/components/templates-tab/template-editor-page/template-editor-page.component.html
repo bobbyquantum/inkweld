@@ -436,6 +436,7 @@
         <app-appearance-editor
           [value]="defaultAppearance() ?? {}"
           (valueChange)="defaultAppearance.set($event)"
+          (imagePicker)="pickAppearanceImage($event.region, $event.slot)"
           data-testid="template-default-appearance"></app-appearance-editor>
       </section>
     </mat-tab>

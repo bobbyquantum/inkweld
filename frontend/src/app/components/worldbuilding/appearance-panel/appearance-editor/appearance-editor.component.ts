@@ -32,7 +32,7 @@ import { GradientDesignerComponent } from '../gradient-designer/gradient-designe
 const BACKGROUND_TYPES: BackgroundType[] = ['color', 'gradient', 'image'];
 
 /** The value slot being edited on a background setting. */
-type BackgroundSlot = 'value' | 'light' | 'dark';
+export type BackgroundSlot = 'value' | 'light' | 'dark';
 
 /**
  * A pure, persistence-free editor for an element's background appearance.
@@ -45,6 +45,11 @@ type BackgroundSlot = 'value' | 'light' | 'dark';
  * When a region is disabled or a value slot is cleared, the corresponding key
  * is reported via the `deletes` output so a persistence layer can issue an
  * explicit removal (rather than leaving a stale value behind).
+ *
+ * Image backgrounds are chosen through a project media selector. The parent
+ * supplies this via the `imagePicker` output, which receives the target region
+ * and slot; the parent is responsible for opening the picker, caching any blob,
+ * and feeding the resulting `media://` reference back to `setValue`.
  */
 @Component({
   selector: 'app-appearance-editor',
@@ -78,6 +83,12 @@ export class AppearanceEditorComponent {
 
   /** Emits keys ("region" or "region.slot") that were explicitly cleared. */
   readonly deletes = output<Record<string, true>>();
+
+  /** Requests that the parent open a media picker for an image background slot. */
+  readonly imagePicker = output<{
+    region: AppearanceRegion;
+    slot: BackgroundSlot;
+  }>();
 
   readonly regions: AppearanceRegion[] = ['menu', 'content'];
   readonly types = BACKGROUND_TYPES;
