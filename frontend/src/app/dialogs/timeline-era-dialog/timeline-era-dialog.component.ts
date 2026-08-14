@@ -25,7 +25,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
 import { createMediaUrl, extractMediaId } from '@components/image-paste';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
@@ -95,7 +94,6 @@ export class TimelineEraDialogComponent implements OnDestroy {
     );
   private readonly dialogs = inject(DialogGatewayService);
   private readonly localStorage = inject(LocalStorageService);
-  private readonly sanitizer = inject(DomSanitizer);
   private readonly transloco = inject(TranslocoService);
 
   protected readonly isGregorian = computed(
@@ -144,12 +142,13 @@ export class TimelineEraDialogComponent implements OnDestroy {
   });
 
   /**
-   * Preview of the selected background image. Object URLs created by this
-   * dialog are tracked and revoked on destroy; URLs handed back by
-   * {@link LocalStorageService.getMediaUrl} belong to its shared cache and
-   * are intentionally never revoked here.
+   * Preview of the selected background image. Holds `blob:` URLs, which
+   * Angular's image-source sanitizer accepts without bypassing security.
+   * Object URLs created by this dialog are tracked and revoked on destroy;
+   * URLs handed back by {@link LocalStorageService.getMediaUrl} belong to
+   * its shared cache and are intentionally never revoked here.
    */
-  protected readonly imagePreview = signal<SafeUrl | null>(null);
+  protected readonly imagePreview = signal<string | null>(null);
   private previewObjectUrl: string | null = null;
 
   readonly form = form(this.model, schemaPath => {
@@ -225,7 +224,7 @@ export class TimelineEraDialogComponent implements OnDestroy {
       const url = await this.localStorage.getMediaUrl(projectKey, mediaId);
       if (url && this.model().imageUrl === imageUrl) {
         // Shared cache URL — owned by LocalStorageService, never revoked here.
-        this.imagePreview.set(this.sanitizer.bypassSecurityTrustUrl(url));
+        this.imagePreview.set(url);
       }
     } catch {
       // Preview is cosmetic; a missing blob must not break the dialog.
@@ -247,7 +246,7 @@ export class TimelineEraDialogComponent implements OnDestroy {
     this.revokePreviewUrl();
     const objectUrl = URL.createObjectURL(result.blob);
     this.previewObjectUrl = objectUrl;
-    this.imagePreview.set(this.sanitizer.bypassSecurityTrustUrl(objectUrl));
+    this.imagePreview.set(objectUrl);
     this.model.update(m => ({
       ...m,
       imageUrl: createMediaUrl(selected.mediaId),
