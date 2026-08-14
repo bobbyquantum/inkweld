@@ -50,6 +50,8 @@ import {
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 
+import { buildMediaReference } from '../../../utils/media-reference';
+
 interface BasicFormValue {
   name: string;
   icon: string;
@@ -369,7 +371,8 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
       ),
     });
     if (result?.selected) {
-      this.defaultImage.set(`media://${result.selected.filename}`);
+      const reference = buildMediaReference(result.selected);
+      this.defaultImage.set(reference);
     }
   }
 
@@ -394,7 +397,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
       ),
     });
     if (result?.selected) {
-      const reference = `media://${result.selected.filename}`;
+      const reference = buildMediaReference(result.selected);
       const current = this.defaultAppearance();
       const regionSetting = current?.[region] ?? {
         type: 'image',

@@ -17,9 +17,14 @@ import {
   type ElementAppearance,
 } from '@models/element-appearance';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { debounceTime, Subject, takeUntil } from 'rxjs';
 
+import {
+  buildMediaReference,
+  mediaIdFromReference,
+} from '../../../utils/media-reference';
 import {
   AppearanceEditorComponent,
   type BackgroundSlot,
@@ -65,6 +70,7 @@ export class AppearancePanelComponent implements OnDestroy {
 
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly localStorage = inject(LocalStorageService);
   private readonly transloco = inject(TranslocoService);
 
   /** Current appearance config for this element. */
@@ -153,7 +159,19 @@ export class AppearancePanelComponent implements OnDestroy {
       ),
     });
     if (result?.selected) {
-      const reference = `media://${result.selected.filename}`;
+      const reference = buildMediaReference(result.selected);
+      // Cache the blob under the derived mediaId so the background resolves
+      // immediately (no async server round-trip) instead of appearing late.
+      if (result.blob) {
+        const projectKey = `${this.username()}/${this.slug()}`;
+        const mediaId = mediaIdFromReference(reference);
+        await this.localStorage.saveMedia(
+          projectKey,
+          mediaId,
+          result.blob,
+          result.selected.filename
+        );
+      }
       this.onAppearanceEdited(
         this.withValue(this.appearance(), region, slot, reference)
       );
