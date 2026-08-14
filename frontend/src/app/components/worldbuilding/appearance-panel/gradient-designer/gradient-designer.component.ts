@@ -4,6 +4,7 @@ import {
   Component,
   input,
   output,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgxInputGradientComponent } from 'ngx-input-color/gradient-picker';
@@ -31,13 +32,16 @@ export class GradientDesignerComponent {
   /** Emits the serialized `linear-gradient(...)` string on change. */
   readonly valueChange = output<string>();
 
+  /**
+   * Same mount-timing workaround as ColorPickerComponent: the library measures
+   * thumb geometry during writeValue, so in this zoneless app the picker must
+   * mount after the first render to measure real dimensions instead of zero.
+   */
+  protected readonly renderReady = signal(false);
+
   constructor() {
-    // Mirrors ColorPickerComponent: the wrapped library positions its thumb
-    // handles from getBoundingClientRect() during writeValue, which runs before
-    // layout when a gradient is preset. Bouncing a window resize after the
-    // first render lets the library re-measure and place the thumbs correctly.
     afterNextRender(() => {
-      window.dispatchEvent(new Event('resize'));
+      this.renderReady.set(true);
     });
   }
 

@@ -4,6 +4,7 @@ import {
   Component,
   input,
   output,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgxInputColorComponent } from 'ngx-input-color/color-picker';
@@ -33,15 +34,18 @@ export class ColorPickerComponent {
   /** Emits the normalized `#rrggbb` color whenever the user changes it. */
   readonly valueChange = output<string>();
 
+  /**
+   * The wrapped library computes its saturation-board thumb position from a
+   * getBoundingClientRect() measurement taken during writeValue. If the picker
+   * mounts before layout settles (zoneless change detection), that measurement
+   * is zero and the thumb sticks to the top-left. We therefore defer mounting
+   * the library until after the first render so it measures real dimensions.
+   */
+  protected readonly renderReady = signal(false);
+
   constructor() {
-    // The wrapped library positions its slider/brightness-board thumbs from a
-    // live getBoundingClientRect() measurement taken during writeValue. On a
-    // fresh mount with a preset color that measurement runs before layout, so
-    // the thumbs land at the origin. After the first render we ask the library
-    // to re-measure by bouncing a window resize, which its internal sliders
-    // observe and use to recompute their thumb positions.
     afterNextRender(() => {
-      window.dispatchEvent(new Event('resize'));
+      this.renderReady.set(true);
     });
   }
 
