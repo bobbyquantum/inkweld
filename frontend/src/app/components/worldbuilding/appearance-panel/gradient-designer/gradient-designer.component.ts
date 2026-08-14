@@ -1,4 +1,5 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   input,
@@ -29,6 +30,16 @@ export class GradientDesignerComponent {
 
   /** Emits the serialized `linear-gradient(...)` string on change. */
   readonly valueChange = output<string>();
+
+  constructor() {
+    // Mirrors ColorPickerComponent: the wrapped library positions its thumb
+    // handles from getBoundingClientRect() during writeValue, which runs before
+    // layout when a gradient is preset. Bouncing a window resize after the
+    // first render lets the library re-measure and place the thumbs correctly.
+    afterNextRender(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+  }
 
   protected onGradientChange(gradient: string): void {
     if (gradient) {

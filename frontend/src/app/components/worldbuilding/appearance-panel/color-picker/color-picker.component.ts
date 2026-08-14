@@ -1,4 +1,5 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   input,
@@ -31,6 +32,18 @@ export class ColorPickerComponent {
 
   /** Emits the normalized `#rrggbb` color whenever the user changes it. */
   readonly valueChange = output<string>();
+
+  constructor() {
+    // The wrapped library positions its slider/brightness-board thumbs from a
+    // live getBoundingClientRect() measurement taken during writeValue. On a
+    // fresh mount with a preset color that measurement runs before layout, so
+    // the thumbs land at the origin. After the first render we ask the library
+    // to re-measure by bouncing a window resize, which its internal sliders
+    // observe and use to recompute their thumb positions.
+    afterNextRender(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+  }
 
   protected onColorChange(colour: string): void {
     const normalized = normalizeHex(colour);
