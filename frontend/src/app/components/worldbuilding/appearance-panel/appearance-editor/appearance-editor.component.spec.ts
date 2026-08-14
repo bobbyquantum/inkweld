@@ -10,6 +10,18 @@ describe('AppearanceEditorComponent', () => {
   let fixture: ComponentFixture<AppearanceEditorComponent>;
 
   beforeEach(async () => {
+    const matchMedia = vi.fn().mockReturnValue({
+      matches: false,
+      media: '(prefers-color-scheme: dark)',
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    });
+    vi.stubGlobal('matchMedia', matchMedia);
+
     await TestBed.configureTestingModule({
       imports: [AppearanceEditorComponent, translocoTestProvider()],
       providers: [provideZonelessChangeDetection()],
@@ -18,6 +30,10 @@ describe('AppearanceEditorComponent', () => {
     fixture = TestBed.createComponent(AppearanceEditorComponent);
     component = fixture.componentInstance;
     fixture.componentRef.setInput('value', {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('should create', () => {

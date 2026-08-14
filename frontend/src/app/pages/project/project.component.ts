@@ -41,11 +41,6 @@ import { DocumentService } from '@services/project/document.service';
 import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import {
-  AngularSplitModule,
-  SplitGutterDirective,
-  type SplitGutterInteractionEvent,
-} from 'angular-split';
 import { Subject, type Subscription, takeUntil } from 'rxjs';
 
 import { DocumentElementEditorComponent } from '../../components/document-element-editor/document-element-editor.component';
@@ -84,8 +79,6 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
     UserMenuComponent,
     RouterOutlet,
     TabInterfaceComponent,
-    AngularSplitModule,
-    SplitGutterDirective,
   ],
 })
 export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
@@ -159,23 +152,23 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private hasUnsavedChanges = false;
   private fullscreenListener?: () => void;
 
-  // Split size for desktop layout
-  protected splitSize = 25; // Default split size as percentage
-  protected splitSizeInPixels = 300; // Default split size in pixels
+  // Sidebar width in pixels for the expanded desktop sidebar (single-outlet layout)
+  protected sidebarWidth = 300;
+  private resizing = false;
 
   constructor() {
-    // Load saved split size and sidebar collapsed state early in initialization
+    // Load saved sidebar collapsed state and width early in initialization
     if (!this.isMobile()) {
-      const storedSplitSize = localStorage.getItem('splitSize');
-      if (storedSplitSize) {
-        const parsed = Number.parseFloat(storedSplitSize);
-        if (Number.isFinite(parsed)) {
-          this.splitSize = parsed;
-        }
-      }
       const storedCollapsed = localStorage.getItem('sidebarCollapsed');
       if (storedCollapsed === 'true') {
         this.sidebarCollapsed.set(true);
+      }
+      const storedWidth = localStorage.getItem('sidebarWidth');
+      if (storedWidth) {
+        const parsed = Number.parseFloat(storedWidth);
+        if (Number.isFinite(parsed) && parsed > 0) {
+          this.sidebarWidth = parsed;
+        }
       }
     }
 
@@ -385,25 +378,38 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  // Handle split drag end event
-  onSplitDragEnd(event: SplitGutterInteractionEvent) {
+  /** Begin resizing the expanded desktop sidebar width. */
+  public onSidebarResizeStart(event: MouseEvent | TouchEvent): void {
     if (this.isMobile()) return;
-
-    // Extract the first size which should be the sidebar
-    const sizeValue = event.sizes[0];
-
-    // Convert to number regardless of whether it's a string or number
-    const parsed =
-      typeof sizeValue === 'string'
-        ? Number.parseFloat(sizeValue)
-        : Number(sizeValue);
-
-    // Only persist valid finite values
-    if (Number.isFinite(parsed)) {
-      this.splitSize = parsed;
-      localStorage.setItem('splitSize', this.splitSize.toString());
-    }
+    event.preventDefault();
+    this.resizing = true;
+    window.addEventListener('mousemove', this.onSidebarResizeMove);
+    window.addEventListener('touchmove', this.onSidebarResizeMove, {
+      passive: false,
+    });
+    window.addEventListener('mouseup', this.onSidebarResizeEnd);
+    window.addEventListener('touchend', this.onSidebarResizeEnd);
   }
+
+  private onSidebarResizeMove = (event: MouseEvent | TouchEvent): void => {
+    if (!this.resizing) return;
+    const touches = (event as TouchEvent).touches;
+    const clientX =
+      touches && touches.length > 0
+        ? touches[0].clientX
+        : (event as MouseEvent).clientX;
+    this.sidebarWidth = Math.min(480, Math.max(200, clientX));
+  };
+
+  private onSidebarResizeEnd = (): void => {
+    if (!this.resizing) return;
+    this.resizing = false;
+    window.removeEventListener('mousemove', this.onSidebarResizeMove);
+    window.removeEventListener('touchmove', this.onSidebarResizeMove);
+    window.removeEventListener('mouseup', this.onSidebarResizeEnd);
+    window.removeEventListener('touchend', this.onSidebarResizeEnd);
+    localStorage.setItem('sidebarWidth', String(this.sidebarWidth));
+  };
 
   /** Returns the Material icon name for a pinned element based on its type. */
   public getIconForElement(element: Element): string {
@@ -645,10 +651,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     return null;
-  }
-
-  getGutterSize(): number {
-    return this.isMobile() ? 0 : 4;
   }
 
   public useTabsDesktop(): boolean {

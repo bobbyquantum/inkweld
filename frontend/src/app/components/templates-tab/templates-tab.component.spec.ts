@@ -20,6 +20,7 @@ describe('TemplatesTabComponent', () => {
   let mockProjectState: {
     project: ReturnType<typeof signal<Project | null>>;
     elements: ReturnType<typeof signal<any[]>>;
+    canWrite: ReturnType<typeof signal<boolean>>;
   };
   let mockWorldbuildingService: any;
   let mockSnackBar: any;
@@ -55,6 +56,7 @@ describe('TemplatesTabComponent', () => {
     mockProjectState = {
       project: signal<Project | null>(null),
       elements: signal([]),
+      canWrite: signal(true),
     };
 
     const initialSchemasSignal = signal<ElementTypeSchema[]>([]);
@@ -67,6 +69,12 @@ describe('TemplatesTabComponent', () => {
       cloneTemplate: vi.fn(),
       deleteTemplate: vi.fn(),
       updateTemplate: vi.fn(),
+      getSchemaForElement: vi.fn().mockResolvedValue(null),
+      getWorldbuildingData: vi.fn().mockResolvedValue({}),
+      getIdentityData: vi.fn().mockResolvedValue({}),
+      saveIdentityData: vi.fn().mockResolvedValue(undefined),
+      observeChanges: vi.fn().mockResolvedValue(() => {}),
+      observeIdentityChanges: vi.fn().mockResolvedValue(() => {}),
     };
 
     mockSnackBar = {
