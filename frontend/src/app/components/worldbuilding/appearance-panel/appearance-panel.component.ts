@@ -81,6 +81,8 @@ export class AppearancePanelComponent implements OnDestroy {
   private elementSequence = 0;
   /** Keys ("region" or "region.slot") pending explicit deletion on next save. */
   private pendingDeletes: Record<string, true> = {};
+  /** Most recent snapshot still awaiting a debounced save. */
+  private lastSnapshot: SaveSnapshot | null = null;
 
   constructor() {
     this.save$
@@ -118,6 +120,7 @@ export class AppearancePanelComponent implements OnDestroy {
       this.unsubscribeObserver();
       this.unsubscribeObserver = null;
     }
+    this.flushPendingSave();
   }
 
   /** Handle an edit from the appearance editor. */
@@ -212,13 +215,14 @@ export class AppearancePanelComponent implements OnDestroy {
    * fires, the queued save still writes to the element it was created for.
    */
   private queueSave(): void {
-    this.save$.next({
+    this.lastSnapshot = {
       elementId: this.elementId(),
       username: this.username(),
       slug: this.slug(),
       appearance: { ...this.appearance() },
       pendingDeletes: { ...this.pendingDeletes },
-    });
+    };
+    this.save$.next(this.lastSnapshot);
   }
 
   private async persist(snapshot: SaveSnapshot): Promise<void> {
@@ -261,11 +265,27 @@ export class AppearancePanelComponent implements OnDestroy {
         this.pendingDeletes[key] = true;
       }
     } finally {
+      if (this.lastSnapshot === snapshot) {
+        this.lastSnapshot = null;
+      }
       // The local edit has been flushed; re-allow realtime updates for the
       // current element, unless the user edited again while saving.
       if (saveEditGeneration === this.editGeneration) {
         this.hasLocalEdit = false;
       }
+    }
+  }
+
+  /**
+   * Persist any edit still sitting in the debounce window immediately, so a
+   * teardown (e.g. the responsive swap between the desktop Styling panel and
+   * the mobile accordion, which mounts a fresh instance) doesn't lose it.
+   */
+  private flushPendingSave(): void {
+    const snapshot = this.lastSnapshot;
+    this.lastSnapshot = null;
+    if (snapshot) {
+      void this.persist(snapshot);
     }
   }
 }

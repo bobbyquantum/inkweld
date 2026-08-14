@@ -104,6 +104,8 @@
     "gradient": "Gradient",
     "pickImage": "Pick image",
     "pickImageTitle": "Select background image",
+    "replaceImage": "Replace image",
+    "currentImage": "Current image",
     "pickColour": "Pick a colour",
     "valuePlaceholder": "e.g. #4fd8eb or linear-gradient(...)",
     "gradientAngle": "Angle",

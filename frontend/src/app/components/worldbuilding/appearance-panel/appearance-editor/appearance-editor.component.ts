@@ -25,6 +25,7 @@ import {
   type ElementAppearance,
 } from '@models/element-appearance';
 
+import { mediaReferenceFilename } from '../../../../utils/media-reference';
 import { ColorPickerComponent } from '../color-picker/color-picker.component';
 import { GradientDesignerComponent } from '../gradient-designer/gradient-designer.component';
 
@@ -196,5 +197,18 @@ export class AppearanceEditorComponent {
   ): string {
     const setting = this.getSetting(region);
     return setting[slot] ?? '';
+  }
+
+  /** The current image value for a slot, or '' when unset. */
+  protected getImageValue(
+    region: AppearanceRegion,
+    slot: BackgroundSlot
+  ): string {
+    return this.getSettingValue(region, slot);
+  }
+
+  /** Human-readable filename of a `media://` reference (or the raw ref). */
+  protected imageFilename(value: string): string {
+    return value ? mediaReferenceFilename(value) : '';
   }
 }

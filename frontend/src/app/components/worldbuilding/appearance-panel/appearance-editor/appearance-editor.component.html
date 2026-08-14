@@ -86,38 +86,69 @@
             <div class="image-picker">
               @if (setting.mode === 'manual') {
                 @for (slot of manualSlots; track slot) {
+                  @let currentImage = getImageValue(region, slot);
                   <div class="image-field">
-                    <button
-                      mat-stroked-button
-                      type="button"
-                      [disabled]="disabled()"
-                      (click)="imagePicker.emit({ region, slot })"
+                    <span class="manual-slot-label">{{
+                      (slot === 'light'
+                        ? 'worldbuilding.appearance.light'
+                        : 'worldbuilding.appearance.dark'
+                      ) | transloco
+                    }}</span>
+                    <div
+                      class="image-slot"
+                      [class.has-image]="currentImage"
                       [attr.data-testid]="
                         'appearance-' + region + '-image-' + slot
                       ">
                       <mat-icon>image</mat-icon>
-                      {{
-                        (slot === 'light'
-                          ? 'worldbuilding.appearance.light'
-                          : 'worldbuilding.appearance.dark'
-                        ) | transloco
-                      }}
-                    </button>
+                      @if (currentImage) {
+                        <span class="image-filename">{{
+                          imageFilename(currentImage)
+                        }}</span>
+                      }
+                      <button
+                        mat-stroked-button
+                        type="button"
+                        [disabled]="disabled()"
+                        (click)="imagePicker.emit({ region, slot })">
+                        {{
+                          (currentImage
+                            ? 'worldbuilding.appearance.replaceImage'
+                            : 'worldbuilding.appearance.pickImage'
+                          ) | transloco
+                        }}
+                      </button>
+                    </div>
                   </div>
                 }
               } @else {
+                @let currentImage = getImageValue(region, 'value');
                 <div class="image-field">
-                  <button
-                    mat-stroked-button
-                    type="button"
-                    [disabled]="disabled()"
-                    (click)="imagePicker.emit({ region, slot: 'value' })"
+                  <div
+                    class="image-slot"
+                    [class.has-image]="currentImage"
                     [attr.data-testid]="
                       'appearance-' + region + '-image-value'
                     ">
                     <mat-icon>image</mat-icon>
-                    {{ 'worldbuilding.appearance.pickImage' | transloco }}
-                  </button>
+                    @if (currentImage) {
+                      <span class="image-filename">{{
+                        imageFilename(currentImage)
+                      }}</span>
+                    }
+                    <button
+                      mat-stroked-button
+                      type="button"
+                      [disabled]="disabled()"
+                      (click)="imagePicker.emit({ region, slot: 'value' })">
+                      {{
+                        (currentImage
+                          ? 'worldbuilding.appearance.replaceImage'
+                          : 'worldbuilding.appearance.pickImage'
+                        ) | transloco
+                      }}
+                    </button>
+                  </div>
                 </div>
               }
             </div>

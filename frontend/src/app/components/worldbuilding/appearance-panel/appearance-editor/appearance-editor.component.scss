@@ -116,9 +116,36 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+  }
+
+  .image-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    border: 1px dashed var(--sys-outline-variant);
+    border-radius: 8px;
+
+    &.has-image {
+      border-style: solid;
+    }
+
+    > mat-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+      color: var(--sys-on-surface-variant);
+    }
+
+    .image-filename {
+      font-size: 13px;
+      color: var(--sys-on-surface-variant);
+      word-break: break-all;
+    }
 
     button {
       justify-content: flex-start;
+      align-self: flex-start;
     }
   }
 }

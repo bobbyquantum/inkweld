@@ -321,5 +321,36 @@ describe('AppearancePanelComponent', () => {
 
       expect(unsubscribe).toHaveBeenCalled();
     });
+
+    it('should flush a pending edit before the panel is destroyed', async () => {
+      vi.useFakeTimers();
+      fixture.detectChanges();
+
+      component['onAppearanceEdited']({
+        menu: { type: 'image', mode: 'auto', value: 'media://bg.png' },
+      });
+
+      // Tear down before the 400ms debounce would have fired.
+      fixture.destroy();
+
+      // Let the immediate flush save run.
+      await vi.advanceTimersByTimeAsync(1);
+
+      expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
+        'el-1',
+        expect.objectContaining({
+          appearance: {
+            menu: {
+              type: 'image',
+              mode: 'auto',
+              value: 'media://bg.png',
+            },
+          },
+        }),
+        'user',
+        'project'
+      );
+      vi.useRealTimers();
+    });
   });
 });
