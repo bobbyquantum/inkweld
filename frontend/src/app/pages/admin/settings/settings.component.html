@@ -160,6 +160,58 @@
       </mat-card-content>
     </mat-card>
 
+    <!-- MCP Access Card -->
+    <mat-card class="setting-card" data-testid="mcp-access-card">
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">{{
+              'admin.settings.mcpAccess' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.settings.mcpAccessDesc' | transloco
+            }}</span>
+            @if (isAiKillSwitchEnabled()) {
+              <span
+                class="env-locked-notice"
+                data-testid="mcp-access-kill-switch-warning">
+                <mat-icon>warning</mat-icon>
+                {{ 'admin.settings.mcpKillSwitchOverrides' | transloco }}
+              </span>
+            }
+          </div>
+          <mat-slide-toggle
+            [checked]="mcpEnabled()"
+            (change)="toggleMcp($event.checked)"
+            [disabled]="isSaving()"
+            color="primary"
+            data-testid="setting-toggle-mcp-access"></mat-slide-toggle>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Legacy MCP Card -->
+    <mat-card class="setting-card" data-testid="legacy-mcp-card">
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">{{
+              'admin.settings.legacyMcp' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.settings.legacyMcpDesc' | transloco
+            }}</span>
+          </div>
+          <mat-slide-toggle
+            [checked]="legacyMcpEnabled()"
+            (change)="toggleLegacyMcp($event.checked)"
+            [disabled]="isSaving() || !mcpEnabled()"
+            color="primary"
+            data-testid="setting-toggle-legacy-mcp"></mat-slide-toggle>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
     <!-- Require Email Card -->
     <mat-card class="setting-card" data-testid="require-email-card">
       <mat-card-content>

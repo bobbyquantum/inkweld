@@ -229,6 +229,8 @@ describe('SettingsTabComponent', () => {
 
     systemConfigService = {
       isAiKillSwitchEnabled: signal(false), // AI enabled (kill switch OFF)
+      isLegacyMcpEnabled: signal(true), // Legacy MCP keys enabled
+      isMcpEnabled: signal(true), // MCP access enabled
     };
 
     mediaSyncStateSignal = signal({

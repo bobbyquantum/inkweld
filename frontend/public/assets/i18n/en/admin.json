@@ -110,7 +110,16 @@
     "siteUrlAria": "Site URL",
     "siteUrlHint": "Used in password reset emails and welcome notifications",
     "settingSaved": "Setting saved",
-    "saveFailed": "Failed to save setting"
+    "saveFailed": "Failed to save setting",
+    "legacyMcp": "Legacy MCP API Keys",
+    "legacyMcpDesc": "Show the \"Legacy API Keys\" section in project settings for tools that do not support OAuth. When disabled (default), only OAuth-based MCP connections are offered.",
+    "mcpAccess": "MCP Access",
+    "mcpAccessDesc": "Allow external tools to connect to projects via the Model Context Protocol (MCP). The AI kill switch takes precedence: when it is on, MCP is disabled regardless of this setting.",
+    "mcpKillSwitchOverrides": "The AI kill switch is on, which disables MCP regardless of this toggle.",
+    "legacyMcpEnabledMsg": "Legacy MCP keys enabled",
+    "legacyMcpDisabledMsg": "Legacy MCP keys disabled",
+    "mcpEnabledMsg": "MCP access enabled",
+    "mcpDisabledMsg": "MCP access disabled"
   },
   "killSwitchDialog": {
     "title": "Enable AI Features?",

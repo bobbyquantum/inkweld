@@ -144,5 +144,31 @@
     "totalLabel": "Total",
     "unavailable": "Storage size is available in server mode.",
     "loadFailed": "Failed to load storage size"
+  },
+  "mcp": {
+    "title": "MCP Access",
+    "description": "Connect external tools (like AI assistants) to your project via the Model Context Protocol (MCP). Most tools sign in through your browser with OAuth — no API key required.",
+    "aiDisabled": "AI features are disabled by the administrator.",
+    "aiDisabledDesc": "MCP access is unavailable while this setting is active. Contact your administrator for more information.",
+    "endpointTitle": "MCP Endpoint URL",
+    "endpointDesc": "Add this URL to an MCP-capable tool (Cursor, Windsurf, Claude Code, or Claude Desktop via a custom connector) as a Streamable HTTP MCP server. On first use the tool will open your browser to sign in and pick which projects to share.",
+    "legacyHint": "For scripts or tools that don't support OAuth, you can create a legacy API key below instead.",
+    "loadingKeys": "Loading API keys...",
+    "retry": "Retry",
+    "legacyKeysHeading": "Legacy API Keys",
+    "legacyKeysDesc": "Long-lived tokens for tools and scripts that don't support OAuth. Each key is scoped to this project only.",
+    "activeKeys": "Active Keys ({{count}})",
+    "keyCreated": "API Key Created",
+    "copyWarning": "Copy this key now! It will not be shown again.",
+    "copiedKey": "I've copied the key",
+    "createKey": "Create Legacy API Key",
+    "loadFailed": "Failed to load API keys",
+    "revoke": "Revoke key",
+    "delete": "Delete key",
+    "copy": "Copy to clipboard",
+    "revoked": "Revoked",
+    "expires": "Expires: {{date}}",
+    "lastUsed": "Last used: {{date}}",
+    "created": "Created: {{date}}"
   }
 }
