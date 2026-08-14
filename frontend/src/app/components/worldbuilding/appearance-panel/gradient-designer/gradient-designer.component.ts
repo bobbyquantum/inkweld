@@ -1,8 +1,11 @@
 import {
-  afterNextRender,
+  type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
+  inject,
   input,
+  type OnDestroy,
   output,
   signal,
 } from '@angular/core';
@@ -24,7 +27,11 @@ import { NgxInputGradientComponent } from 'ngx-input-color/gradient-picker';
     '[class.disabled]': 'disabled()',
   },
 })
-export class GradientDesignerComponent {
+export class GradientDesignerComponent implements AfterViewInit, OnDestroy {
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  private resizeObserver?: ResizeObserver;
+
   /** Current gradient as a CSS `linear-gradient(...)` string. */
   value = input<string>('');
   disabled = input<boolean>(false);
@@ -34,15 +41,35 @@ export class GradientDesignerComponent {
 
   /**
    * Same mount-timing workaround as ColorPickerComponent: the library measures
-   * thumb geometry during writeValue, so in this zoneless app the picker must
-   * mount after the first render to measure real dimensions instead of zero.
+   * thumb geometry during writeValue, so we hold it back until the wrapper has
+   * a real width (in case it appears only after a lazily-switched tab) and then
+   * mount it once to measure tangible dimensions instead of zero.
    */
   protected readonly renderReady = signal(false);
 
-  constructor() {
-    afterNextRender(() => {
+  ngAfterViewInit(): void {
+    if (this.host.nativeElement.offsetWidth > 0) {
       this.renderReady.set(true);
+      return;
+    }
+    if (typeof ResizeObserver === 'undefined') {
+      // Non-browser environments (e.g. unit tests) have no layout; mount anyway.
+      this.renderReady.set(true);
+      return;
+    }
+    this.resizeObserver = new ResizeObserver(() => {
+      if (this.host.nativeElement.offsetWidth > 0) {
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = undefined;
+        this.renderReady.set(true);
+      }
     });
+    this.resizeObserver.observe(this.host.nativeElement);
+  }
+
+  ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = undefined;
   }
 
   protected onGradientChange(gradient: string): void {

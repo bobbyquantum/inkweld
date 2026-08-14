@@ -1,8 +1,11 @@
 import {
-  afterNextRender,
+  type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
+  inject,
   input,
+  type OnDestroy,
   output,
   signal,
 } from '@angular/core';
@@ -26,7 +29,11 @@ import { normalizeHex } from '../../../../utils/color';
     '[class.disabled]': 'disabled()',
   },
 })
-export class ColorPickerComponent {
+export class ColorPickerComponent implements AfterViewInit, OnDestroy {
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  private resizeObserver?: ResizeObserver;
+
   /** Current color as a `#rrggbb` string. */
   value = input<string>('');
   disabled = input<boolean>(false);
@@ -37,16 +44,36 @@ export class ColorPickerComponent {
   /**
    * The wrapped library computes its saturation-board thumb position from a
    * getBoundingClientRect() measurement taken during writeValue. If the picker
-   * mounts before layout settles (zoneless change detection), that measurement
-   * is zero and the thumb sticks to the top-left. We therefore defer mounting
-   * the library until after the first render so it measures real dimensions.
+   * mounts before it has any real layout (e.g. inside a lazily-switched tab)
+   * that measurement is zero and the thumb sticks to the top-left. We therefore
+   * hold the library back until the wrapper reports a real width, then mount it
+   * once, so writeValue always measures tangible dimensions.
    */
   protected readonly renderReady = signal(false);
 
-  constructor() {
-    afterNextRender(() => {
+  ngAfterViewInit(): void {
+    if (this.host.nativeElement.offsetWidth > 0) {
       this.renderReady.set(true);
+      return;
+    }
+    if (typeof ResizeObserver === 'undefined') {
+      // Non-browser environments (e.g. unit tests) have no layout; mount anyway.
+      this.renderReady.set(true);
+      return;
+    }
+    this.resizeObserver = new ResizeObserver(() => {
+      if (this.host.nativeElement.offsetWidth > 0) {
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = undefined;
+        this.renderReady.set(true);
+      }
     });
+    this.resizeObserver.observe(this.host.nativeElement);
+  }
+
+  ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = undefined;
   }
 
   protected onColorChange(colour: string): void {
