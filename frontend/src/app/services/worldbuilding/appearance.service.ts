@@ -125,36 +125,18 @@ export class AppearanceService {
     const value = this.pickValue(setting);
     if (value === undefined || value === '') return null;
 
-    // Auto mode lightens the value in light theme and darkens it in dark theme.
-    // Intensity (0-100) is mapped through a power curve so low values do
-    // almost nothing while high values are intense. Defaults to 25.
-    const raw = (setting.intensity ?? 25) / 100;
-    const amount = raw * raw;
-
     const type = setting.type;
     if (type === 'color') {
-      if (setting.mode === 'auto') {
-        const adjusted = adjustHex(
-          value,
-          (this.isDarkMode() ? -1 : 1) * amount
-        );
-        if (adjusted) {
-          return { type, background: adjusted };
-        }
-      }
-      return { type, background: value };
+      return {
+        type,
+        background: this.adjustForTheme(setting, value, adjustHex),
+      };
     }
     if (type === 'gradient') {
-      if (setting.mode === 'auto') {
-        return {
-          type,
-          background: adjustGradient(
-            value,
-            (this.isDarkMode() ? -1 : 1) * amount
-          ),
-        };
-      }
-      return { type, background: value };
+      return {
+        type,
+        background: this.adjustForTheme(setting, value, adjustGradient),
+      };
     }
 
     // Image. In auto mode the single image is brightened in light theme and
@@ -169,6 +151,22 @@ export class AppearanceService {
       };
     }
     return { type, background: `url('${value}')` };
+  }
+
+  /**
+   * In auto mode, lighten the value in light theme and darken it in dark theme
+   * by a fraction derived from `intensity` (0-100, power-curved). Manual mode
+   * returns the value unchanged.
+   */
+  private adjustForTheme(
+    setting: BackgroundSetting,
+    value: string,
+    adjust: (input: string, amount: number) => string | null
+  ): string {
+    if (setting.mode !== 'auto') return value;
+    const raw = (setting.intensity ?? 25) / 100;
+    const amount = (this.isDarkMode() ? -1 : 1) * raw * raw;
+    return adjust(value, amount) ?? value;
   }
 
   /**

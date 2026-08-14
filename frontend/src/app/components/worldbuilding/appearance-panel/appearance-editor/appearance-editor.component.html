@@ -61,9 +61,11 @@
 
           @if (setting.mode === 'auto') {
             <div class="intensity-row">
-              <span class="control-label">{{
-                'worldbuilding.appearance.intensity' | transloco
-              }}</span>
+              <label
+                class="control-label"
+                [attr.for]="'appearance-' + region + '-intensity'"
+                >{{ 'worldbuilding.appearance.intensity' | transloco }}</label
+              >
               <mat-slider
                 min="0"
                 max="100"
@@ -73,6 +75,7 @@
                 <input
                   #intensityThumb
                   matSliderThumb
+                  [attr.id]="'appearance-' + region + '-intensity'"
                   [value]="setting.intensity ?? 25"
                   (input)="setIntensity(region, intensityThumb.value)" />
               </mat-slider>

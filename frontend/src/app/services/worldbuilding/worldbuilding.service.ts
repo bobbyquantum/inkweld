@@ -1,11 +1,11 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
-import type {
-  BackgroundMode,
-  BackgroundType,
-  ElementAppearance,
+import {
+  APPEARANCE_DELETE,
+  type BackgroundMode,
+  type BackgroundType,
+  type ElementAppearance,
 } from '@models/element-appearance';
-import { APPEARANCE_DELETE } from '@models/element-appearance';
 import { Subject, type Subscription } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { type WebsocketProvider } from 'y-websocket';

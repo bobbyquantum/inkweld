@@ -12,10 +12,10 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoModule } from '@jsverse/transloco';
 import {
+  APPEARANCE_DELETE,
   type AppearanceRegion,
   type ElementAppearance,
 } from '@models/element-appearance';
-import { APPEARANCE_DELETE } from '@models/element-appearance';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { debounceTime, Subject, takeUntil } from 'rxjs';
 
