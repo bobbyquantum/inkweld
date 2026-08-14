@@ -85,8 +85,11 @@ async function setGradientStopColor(
   await input.scrollIntoViewIfNeeded();
   await input.fill(color);
   await input.press('Enter');
-  // Wait for the gradient to propagate through the debounced store.
-  await page.waitForTimeout(1200);
+  // Wait for the colour to propagate through the debounced store and render as
+  // part of the content background gradient.
+  await expect
+    .poll(async () => await contentBgImage(page))
+    .toContain(hexToRgb(color));
 }
 
 function hexToRgb(hex: string): string {

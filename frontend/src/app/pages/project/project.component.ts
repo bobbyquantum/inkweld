@@ -138,7 +138,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   // Define a consistent breakpoint value for the application
   private readonly MOBILE_BREAKPOINT = '(max-width: 759px)';
 
-  protected destroy$ = new Subject<void>();
+  protected readonly destroy$ = new Subject<void>();
   protected readonly errorEffect = effect(() => {
     const error = this.projectState.error();
     if (error) {

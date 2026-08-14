@@ -13,7 +13,7 @@
  * - Editor with a gradient content background
  */
 
-import { type Page } from '@playwright/test';
+import { type Locator, type Page } from '@playwright/test';
 import { join } from 'path';
 
 import {
@@ -27,12 +27,51 @@ import {
   getScreenshotsDir,
 } from './screenshot-helpers';
 
+/** True when two bounding boxes sit at (nearly) the same position and size. */
+type BoundingBox = NonNullable<Awaited<ReturnType<Locator['boundingBox']>>>;
+
+function boxesEqual(a: BoundingBox, b: BoundingBox): boolean {
+  return (
+    Math.abs(a.x - b.x) < 1 &&
+    Math.abs(a.y - b.y) < 1 &&
+    Math.abs(a.width - b.width) < 1 &&
+    Math.abs(a.height - b.height) < 1
+  );
+}
+
 test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
   const screenshotsDir = getScreenshotsDir('worldbuilding-backgrounds');
 
   test.beforeAll(async () => {
     await ensureDirectory(screenshotsDir);
   });
+
+  /**
+   * Read a locator's bounding box once it has moved into a stable, measurable
+   * position (e.g. after a programmatic scroll).
+   */
+  async function stableBoundingBox(
+    locator: Locator,
+    timeoutMs = 3000,
+    intervalMs = 50
+  ): Promise<BoundingBox | null> {
+    const deadline = Date.now() + timeoutMs;
+    let previous: BoundingBox | undefined;
+    while (Date.now() < deadline) {
+      const box = await locator.boundingBox();
+      const stable =
+        box !== null &&
+        box.width > 0 &&
+        box.height > 0 &&
+        (previous === undefined || boxesEqual(box, previous));
+      if (stable) {
+        return box;
+      }
+      previous = box ?? undefined;
+      await new Promise(r => setTimeout(r, intervalMs));
+    }
+    return null;
+  }
 
   async function setupProjectAndOpenCharacter(
     page: Page,
@@ -176,8 +215,9 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
     if (targetStops.length > 2) {
       const slider = designer.locator('range-slider .slider').first();
       await slider.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(300);
-      const sliderBox = await slider.boundingBox();
+      // Wait until the slider has scrolled into a stable, measurable position
+      // before reading its coordinates for the pointer clicks.
+      const sliderBox = await stableBoundingBox(slider);
       if (!sliderBox) throw new Error('gradient slider not visible');
       for (let i = 2; i < targetStops.length; i++) {
         const frac = 0.2 + (0.6 * (i - 2)) / (targetStops.length - 2);
@@ -185,7 +225,7 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
           sliderBox.x + sliderBox.width * frac,
           sliderBox.y + sliderBox.height / 2
         );
-        await page.waitForTimeout(300);
+        // toHaveCount auto-retries until the thumb has been added.
         await expect(thumbs).toHaveCount(i + 1);
       }
     }

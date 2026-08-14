@@ -692,20 +692,13 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     describe('isTabSection', () => {
-      it('should return false for identity section', () => {
-        component.selectedSection.set('identity');
-        expect(component.isTabSection()).toBe(false);
-      });
-
-      it('should return false for relationships section', () => {
-        component.selectedSection.set('relationships');
-        expect(component.isTabSection()).toBe(false);
-      });
-
-      it('should return false for styling section', () => {
-        component.selectedSection.set('styling');
-        expect(component.isTabSection()).toBe(false);
-      });
+      it.each([['identity'], ['relationships'], ['styling']])(
+        'should return false for %s section',
+        section => {
+          component.selectedSection.set(section);
+          expect(component.isTabSection()).toBe(false);
+        }
+      );
 
       it('should return true for a schema tab section', () => {
         component.selectedSection.set('basic');
@@ -756,7 +749,8 @@ describe('WorldbuildingEditorComponent', () => {
         );
         expect(card).toBeTruthy();
         // All fields live inside the single card.
-        expect(card.querySelectorAll('.field-container').length).toBe(8);
+        const fields = card.querySelectorAll('.field-container');
+        expect(fields).toHaveLength(8);
       });
     });
     describe('layout mode', () => {
