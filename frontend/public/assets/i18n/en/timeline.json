@@ -68,7 +68,7 @@
     "chooseImage": "Choose from library",
     "chooseImageTitle": "Select Background Image",
     "removeImage": "Remove",
-    "imagePreviewAlt": "Background preview",
+    "backgroundPreviewAlt": "Background preview",
     "nameRequired": "Name is required",
     "colorRequired": "Color is required",
     "required": "Required",
