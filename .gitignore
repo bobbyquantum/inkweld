@@ -34,3 +34,7 @@ opencode.json
 .vscode
 .cscode
 nohup.out
+
+# Process core dumps (e.g. from an OOM-aborted ng lint)
+core
+core.*
