@@ -31,6 +31,7 @@ export class GradientDesignerComponent implements AfterViewInit, OnDestroy {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   private resizeObserver?: ResizeObserver;
+  private fallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Current gradient as a CSS `linear-gradient(...)` string. */
   value = input<string>('');
@@ -65,11 +66,20 @@ export class GradientDesignerComponent implements AfterViewInit, OnDestroy {
       }
     });
     this.resizeObserver.observe(this.host.nativeElement);
+
+    // Fallback: if no real layout is ever reported (e.g. a global ResizeObserver
+    // that never fires in a test environment), mount after a short delay so the
+    // designer doesn't hang. Production browsers report a real size quickly.
+    this.fallbackTimer = setTimeout(() => this.renderReady.set(true), 100);
   }
 
   ngOnDestroy(): void {
     this.resizeObserver?.disconnect();
     this.resizeObserver = undefined;
+    if (this.fallbackTimer !== null) {
+      clearTimeout(this.fallbackTimer);
+      this.fallbackTimer = null;
+    }
   }
 
   protected onGradientChange(gradient: string): void {
