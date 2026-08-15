@@ -24,11 +24,20 @@ describe('GradientDesignerComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should render the ngx gradient picker', () => {
-    fixture.detectChanges();
-    expect(
-      fixture.nativeElement.querySelector('ngx-input-gradient')
-    ).toBeTruthy();
+  it('should render the ngx gradient picker', async () => {
+    vi.useFakeTimers();
+    try {
+      fixture.detectChanges();
+      // The picker defers its mount until it has real layout; the mount is
+      // triggered by a short timer fallback, so advance it and re-render.
+      await vi.advanceTimersByTimeAsync(200);
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector('ngx-input-gradient')
+      ).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('should emit the gradient string on change', () => {
