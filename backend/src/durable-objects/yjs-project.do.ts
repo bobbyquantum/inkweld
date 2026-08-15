@@ -329,16 +329,29 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * Handle incoming requests - routes to WebSocket or HTTP API
    */
   async fetch(request: Request): Promise<Response> {
-    const url = new URL(request.url);
-    const upgradeHeader = request.headers.get('Upgrade');
+    try {
+      const url = new URL(request.url);
+      const upgradeHeader = request.headers.get('Upgrade');
 
-    // Route to WebSocket handler if upgrade requested
-    if (upgradeHeader === 'websocket') {
-      return this.handleWebSocketUpgrade(request, url);
+      // Route to WebSocket handler if upgrade requested
+      if (upgradeHeader === 'websocket') {
+        return this.handleWebSocketUpgrade(request, url);
+      }
+
+      // Route to HTTP API handlers
+      return this.handleHttpApi(request, url);
+    } catch (error) {
+      // A rejection from either handler (WS upgrade or HTTP API) would
+      // otherwise reject the DO's `fetch`, which workerd surfaces as an empty
+      // isolate crash (no JS stack) that takes the whole DO down — the
+      // recurring intermittent Wrangler e2e failure. Never let a single bad
+      // request kill the DO; log and return a 500.
+      projDOLog.error(`Unhandled error in DO fetch for ${this.projectId}`, error);
+      return new Response(JSON.stringify({ error: 'Internal server error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
-
-    // Route to HTTP API handlers
-    return this.handleHttpApi(request, url);
   }
 
   /**
