@@ -183,7 +183,8 @@ jobs:
     permissions:
       contents: read
     needs: [test-frontend, test-backend, test-packages]
-    if: always()
+    # Skip SonarCloud analysis for Renovate dependency PRs (machine-generated).
+    if: ${{ always() && !startsWith(github.head_ref, 'renovate/') }}
     # Configure the 15-minute wait timer on the sonarcloud-analysis environment.
     environment:
       name: sonarcloud-analysis
