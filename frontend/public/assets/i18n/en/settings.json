@@ -67,7 +67,10 @@
     "allProjectsLabel": "Access all my projects",
     "defaultRoleLabel": "Default access level",
     "allProjectsUpdated": "Access settings updated",
-    "allProjectsUpdateFailed": "Failed to update access settings"
+    "allProjectsUpdateFailed": "Failed to update access settings",
+    "selectProjectAria": "Select the project to grant",
+    "grantRoleAria": "Access level for {{project}}",
+    "grantSelectionAria": "Grant access to {{project}}"
   },
   "connectionTab": {
     "title": "Connection Settings",

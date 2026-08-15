@@ -18,6 +18,9 @@
               [value]="defaultRole()"
               [disabled]="readonly() || allProjectsDisabled()"
               (selectionChange)="onDefaultRoleChange($event.value)"
+              [attr.aria-label]="
+                'settings.authorizedAppsTab.defaultRoleLabel' | transloco
+              "
               data-testid="project-grant-default-role-select">
               @for (role of roles; track role) {
                 <mat-option [value]="role">
@@ -43,6 +46,10 @@
             [checked]="grant.selected"
             [disabled]="readonly()"
             (change)="onSelectionChange(grant.projectId, $event.checked)"
+            [attr.aria-label]="
+              'settings.authorizedAppsTab.grantSelectionAria'
+                | transloco: { project: grant.projectTitle }
+            "
             class="grant-checkbox"></mat-checkbox>
           <div class="grant-project">
             <span class="project-title">{{ grant.projectTitle }}</span>
@@ -62,6 +69,10 @@
             [value]="grant.role"
             [disabled]="readonly()"
             (selectionChange)="onRoleChange(grant.projectId, $event.value)"
+            [attr.aria-label]="
+              'settings.authorizedAppsTab.grantRoleAria'
+                | transloco: { project: grant.projectTitle }
+            "
             data-testid="project-grant-role-select">
             @for (role of roles; track role) {
               <mat-option [value]="role">

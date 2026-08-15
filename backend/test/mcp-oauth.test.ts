@@ -536,6 +536,34 @@ describe('MCP OAuth Service - Session Management', () => {
       expect(details!.session.projectCount).toBe(2);
       expect(details!.grants).toHaveLength(2);
     });
+
+    it('revoking an all-projects session removes all grants even while accessAllProjects remains set', async () => {
+      const { sessionId } = await mcpOAuthService.createSession(db, {
+        userId: testUserId,
+        clientId: testClientId,
+        grants: [],
+        accessAllProjects: true,
+        defaultRole: 'viewer',
+        issuer: 'http://localhost:8333',
+      });
+
+      // Sanity check: before revocation the grants are expanded.
+      const before = await mcpOAuthService.getSessionGrants(db, sessionId);
+      expect(before).toHaveLength(2);
+
+      await mcpOAuthService.revokeSession(db, sessionId, 'Test revocation');
+
+      // Revocation prevents expansion: no grants are returned.
+      const after = await mcpOAuthService.getSessionGrants(db, sessionId);
+      expect(after).toHaveLength(0);
+
+      const [session] = await db
+        .select()
+        .from(mcpOAuthSessions)
+        .where(eq(mcpOAuthSessions.id, sessionId));
+      expect(session.revokedAt).not.toBeNull();
+      expect(session.accessAllProjects).toBe(true);
+    });
   });
 });
 

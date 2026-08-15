@@ -174,23 +174,35 @@ describe('OAuthConsentComponent', () => {
       await fixture.whenStable();
     });
 
-    it('should toggle project selection', () => {
-      const grant = component.projectGrants()[0];
-      expect(grant.selected).toBe(false);
+    it('should toggle project selection via the shared selection handler', () => {
+      expect(component.projectGrants()[0].selected).toBe(false);
 
-      component.toggleProject(grant);
+      component.onGrantSelectionChange({ projectId: 'proj-1', selected: true });
       expect(component.projectGrants()[0].selected).toBe(true);
 
-      component.toggleProject(component.projectGrants()[0]);
+      component.onGrantSelectionChange({
+        projectId: 'proj-1',
+        selected: false,
+      });
       expect(component.projectGrants()[0].selected).toBe(false);
     });
 
-    it('should update role for a project', () => {
-      const grant = component.projectGrants()[0];
-      component.updateRole(grant, ConsentRequestGrantsInnerRole.Editor);
+    it('should update role via the shared role handler', () => {
+      component.onGrantRoleChange({ projectId: 'proj-1', role: 'editor' });
 
       expect(component.projectGrants()[0].role).toBe(
         ConsentRequestGrantsInnerRole.Editor
+      );
+    });
+
+    it('should keep toggleProject behaviour (legacy wrapper)', () => {
+      const grant = component.projectGrants()[0];
+      component.toggleProject(grant);
+      expect(component.projectGrants()[0].selected).toBe(true);
+
+      component.updateRole(grant, ConsentRequestGrantsInnerRole.Admin);
+      expect(component.projectGrants()[0].role).toBe(
+        ConsentRequestGrantsInnerRole.Admin
       );
     });
 
@@ -210,8 +222,7 @@ describe('OAuthConsentComponent', () => {
     it('should compute hasSelection correctly', () => {
       expect(component.hasSelection()).toBe(false);
 
-      const grant = component.projectGrants()[0];
-      component.toggleProject(grant);
+      component.onGrantSelectionChange({ projectId: 'proj-1', selected: true });
 
       expect(component.hasSelection()).toBe(true);
     });
@@ -264,13 +275,9 @@ describe('OAuthConsentComponent', () => {
     });
 
     it('should submit consent with selected grants', async () => {
-      // Select first project with editor role
-      const grant = component.projectGrants()[0];
-      component.toggleProject(grant);
-      component.updateRole(
-        component.projectGrants()[0],
-        ConsentRequestGrantsInnerRole.Editor
-      );
+      // Select first project with editor role via the shared handlers
+      component.onGrantSelectionChange({ projectId: 'proj-1', selected: true });
+      component.onGrantRoleChange({ projectId: 'proj-1', role: 'editor' });
 
       // Mock window.location.href using Object.defineProperty
       const hrefSetter = vi.fn();

@@ -89,7 +89,9 @@ export const mcpOAuthSessions = sqliteTable(
      * true. Only meaningful when accessAllProjects is set. When null, falls
      * back to 'viewer'.
      */
-    defaultRole: text('default_role'),
+    defaultRole: text('default_role', {
+      enum: ['viewer', 'editor', 'admin'],
+    }),
   },
   (table) => [
     // Index for looking up sessions by user (for Connected Apps UI)

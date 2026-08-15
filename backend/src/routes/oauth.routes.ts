@@ -1204,6 +1204,7 @@ const updateAllProjectsRoute = createRoute({
       sessionId: z.string(),
     }),
     body: {
+      required: true,
       content: {
         'application/json': {
           schema: z

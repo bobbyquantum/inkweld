@@ -2149,7 +2149,7 @@ export class OAuthService extends BaseService {
    */
   public updateOAuthSessionSettings(
     sessionId: string,
-    updateOAuthSessionSettingsRequest?: UpdateOAuthSessionSettingsRequest,
+    updateOAuthSessionSettingsRequest: UpdateOAuthSessionSettingsRequest,
     observe?: 'body',
     reportProgress?: boolean,
     options?: {
@@ -2160,7 +2160,7 @@ export class OAuthService extends BaseService {
   ): Observable<DeletePublishedFile200Response>;
   public updateOAuthSessionSettings(
     sessionId: string,
-    updateOAuthSessionSettingsRequest?: UpdateOAuthSessionSettingsRequest,
+    updateOAuthSessionSettingsRequest: UpdateOAuthSessionSettingsRequest,
     observe?: 'response',
     reportProgress?: boolean,
     options?: {
@@ -2171,7 +2171,7 @@ export class OAuthService extends BaseService {
   ): Observable<HttpResponse<DeletePublishedFile200Response>>;
   public updateOAuthSessionSettings(
     sessionId: string,
-    updateOAuthSessionSettingsRequest?: UpdateOAuthSessionSettingsRequest,
+    updateOAuthSessionSettingsRequest: UpdateOAuthSessionSettingsRequest,
     observe?: 'events',
     reportProgress?: boolean,
     options?: {
@@ -2182,7 +2182,7 @@ export class OAuthService extends BaseService {
   ): Observable<HttpEvent<DeletePublishedFile200Response>>;
   public updateOAuthSessionSettings(
     sessionId: string,
-    updateOAuthSessionSettingsRequest?: UpdateOAuthSessionSettingsRequest,
+    updateOAuthSessionSettingsRequest: UpdateOAuthSessionSettingsRequest,
     observe: any = 'body',
     reportProgress: boolean = false,
     options?: {
@@ -2194,6 +2194,14 @@ export class OAuthService extends BaseService {
     if (sessionId === null || sessionId === undefined) {
       throw new Error(
         'Required parameter sessionId was null or undefined when calling updateOAuthSessionSettings.'
+      );
+    }
+    if (
+      updateOAuthSessionSettingsRequest === null ||
+      updateOAuthSessionSettingsRequest === undefined
+    ) {
+      throw new Error(
+        'Required parameter updateOAuthSessionSettingsRequest was null or undefined when calling updateOAuthSessionSettings.'
       );
     }
 

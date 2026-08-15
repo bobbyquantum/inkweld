@@ -912,6 +912,100 @@ describe('OAuth Session Management', () => {
     expect(response.status).toBe(404);
   });
 
+  it('PATCH /oauth/sessions/:sessionId/settings returns 404 for a session owned by another user', async () => {
+    // Register a client and complete a consent flow as a different user, so
+    // the session is not owned by the authenticated oauthrouteuser.
+    const OTHER_USER_ID = crypto.randomUUID();
+    const otherUsername = `otheruser${Date.now()}`;
+    const otherUserPassword = 'otherpass123';
+    const otherUserHashed = await bcrypt.hash(otherUserPassword, 10);
+    await db.insert(users).values({
+      id: OTHER_USER_ID,
+      username: otherUsername,
+      email: `${otherUsername}@example.com`,
+      password: otherUserHashed,
+      approved: true,
+      enabled: true,
+      isAdmin: false,
+    });
+
+    // The other user needs a project of their own to grant.
+    const otherProjectId = crypto.randomUUID();
+    await db.insert(projects).values({
+      id: otherProjectId,
+      title: 'Other User Project',
+      slug: `other-project-${Date.now()}`,
+      userId: OTHER_USER_ID,
+      createdDate: Date.now(),
+      updatedDate: Date.now(),
+    });
+
+    const { json: regJson } = await unauthClient.request('/oauth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_name: 'Route Test App',
+        redirect_uris: ['http://localhost:9999/callback'],
+        token_endpoint_auth_method: 'none',
+      }),
+    });
+    const regData = (await regJson()) as Record<string, unknown>;
+    const otherClientId = regData.client_id as string;
+
+    const otherClient = new TestClient(testServer.baseUrl);
+    await otherClient.login(otherUsername, otherUserPassword);
+
+    const codeVerifier = 'cross-user-code-verifier-long-enough-for-pkce';
+    const codeChallenge = await computeCodeChallenge(codeVerifier);
+    const params = new URLSearchParams({
+      client_id: otherClientId,
+      redirect_uri: 'http://localhost:9999/callback',
+      response_type: 'code',
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
+    });
+    const { json: authJson } = await otherClient.request(`/oauth/authorize?${params}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grants: [{ projectId: otherProjectId, role: 'viewer' }],
+      }),
+    });
+    const authData = (await authJson()) as Record<string, unknown>;
+    const code = new URL(authData.redirectUri as string).searchParams.get('code') as string;
+
+    await unauthClient.request('/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grant_type: 'authorization_code',
+        code,
+        code_verifier: codeVerifier,
+        redirect_uri: 'http://localhost:9999/callback',
+        client_id: otherClientId,
+      }),
+    });
+
+    // The other user's session id, looked up via their own session list.
+    const { json: otherSessionsJson } = await otherClient.request('/oauth/sessions');
+    const otherSessions = (await otherSessionsJson()) as Array<Record<string, unknown>>;
+    const otherSession = otherSessions.find(
+      (s) => (s.client as Record<string, unknown>).id === otherClientId
+    ) as { id: string } | undefined;
+    expect(otherSession).toBeDefined();
+
+    // Authenticated as oauthrouteuser, this session is not owned by us -> 404.
+    const { response } = await client.request(`/oauth/sessions/${otherSession!.id}/settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessAllProjects: true, defaultRole: 'admin' }),
+    });
+    expect(response.status).toBe(404);
+
+    await db.delete(projects).where(eq(projects.id, otherProjectId));
+    await db.delete(users).where(eq(users.id, OTHER_USER_ID));
+  });
+
   it('DELETE /oauth/sessions/:sessionId revokes the session', async () => {
     const { response, json } = await client.request(`/oauth/sessions/${sessionId}`, {
       method: 'DELETE',

@@ -11,7 +11,7 @@
  * project collaborators system for permission management.
  */
 
-import { eq, and, not, isNull, or, lt, inArray } from 'drizzle-orm';
+import { eq, and, not, isNull, or, lt, inArray, isNotNull, sql } from 'drizzle-orm';
 import { sign, verify } from 'hono/jwt';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { DatabaseInstance } from '../types/context';
@@ -562,7 +562,7 @@ class McpOAuthService {
         clientIp: data.clientIp,
         userAgent: data.userAgent,
         accessAllProjects: authCode.accessAllProjects,
-        defaultRole: (authCode.defaultRole as CollaboratorRole) ?? undefined,
+        defaultRole: authCode.defaultRole ?? undefined,
       },
       env
     );
@@ -951,12 +951,18 @@ class McpOAuthService {
       permissions: roleToMcpPermissions(c.role as CollaboratorRole),
     }));
 
+    // A revoked session grants no access, even if accessAllProjects is still
+    // set on the row (revocation removes collaborator entries and must also
+    // prevent the all-projects expansion).
+    if (session?.revokedAt) {
+      return [];
+    }
+
     // If the session grants access to all of the user's projects, expand to the
     // full project set at the default role, letting explicit per-project grants
     // act as overrides.
     if (session?.accessAllProjects) {
-      const defaultRole: CollaboratorRole =
-        (session.defaultRole as CollaboratorRole | null) ?? 'viewer';
+      const defaultRole: CollaboratorRole = session.defaultRole ?? 'viewer';
       const allProjects = await projectService.findByUserId(db, session.userId);
       const explicitByProject = new Map(explicit.map((g) => [g.projectId, g]));
       const merged = allProjects.map((p) => {
@@ -1125,26 +1131,41 @@ class McpOAuthService {
       .innerJoin(mcpOAuthClients, eq(mcpOAuthSessions.clientId, mcpOAuthClients.id))
       .where(and(eq(mcpOAuthSessions.userId, userId), isNull(mcpOAuthSessions.revokedAt)));
 
-    // Count projects for each session
-    const result: PublicOAuthSession[] = [];
-    for (const session of sessions) {
-      const grants = await this.getSessionGrants(db, session.id);
-      result.push({
-        id: session.id,
-        client: {
-          id: session.clientId,
-          name: session.clientName,
-          logoUri: session.logoUri,
-        },
-        createdAt: session.createdAt,
-        lastUsedAt: session.lastUsedAt,
-        projectCount: grants.length,
-        accessAllProjects: session.accessAllProjects,
-        defaultRole: (session.defaultRole as CollaboratorRole | null) ?? null,
-      });
-    }
+    // Explicit grant count per session, resolved in a single query instead of
+    // one getSessionGrants call per session.
+    const explicitCounts = await (db as D1DatabaseInstance)
+      .select({
+        sessionId: projectCollaborators.mcpSessionId,
+        count: sql<number>`count(*)`,
+      })
+      .from(projectCollaborators)
+      .where(
+        and(eq(projectCollaborators.userId, userId), isNotNull(projectCollaborators.mcpSessionId))
+      )
+      .groupBy(projectCollaborators.mcpSessionId);
 
-    return result;
+    const explicitCountBySession = new Map(
+      explicitCounts.map((r) => [r.sessionId as string, Number(r.count)])
+    );
+
+    // For all-projects sessions the project count equals the user's project set.
+    const allProjectsCount = (await projectService.findByUserId(db, userId)).length;
+
+    return sessions.map((session) => ({
+      id: session.id,
+      client: {
+        id: session.clientId,
+        name: session.clientName,
+        logoUri: session.logoUri,
+      },
+      createdAt: session.createdAt,
+      lastUsedAt: session.lastUsedAt,
+      projectCount: session.accessAllProjects
+        ? allProjectsCount
+        : (explicitCountBySession.get(session.id) ?? 0),
+      accessAllProjects: session.accessAllProjects,
+      defaultRole: session.defaultRole,
+    }));
   }
 
   /**
@@ -1220,7 +1241,7 @@ class McpOAuthService {
         lastUsedAt: session.lastUsedAt,
         projectCount: expandedGrants.length,
         accessAllProjects: session.accessAllProjects,
-        defaultRole: (session.defaultRole as CollaboratorRole | null) ?? null,
+        defaultRole: session.defaultRole,
       },
       grants: expandedGrants.map((g) => ({
         projectId: g.projectId,

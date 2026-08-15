@@ -212,22 +212,30 @@ export class OAuthConsentComponent implements OnInit {
 
   /** Toggle project selection */
   toggleProject(grant: ProjectGrant): void {
-    const grants = this.projectGrants();
-    const idx = grants.findIndex(g => g.project.id === grant.project.id);
-    if (idx >= 0) {
-      const updated = [...grants];
-      updated[idx] = { ...grants[idx], selected: !grants[idx].selected };
-      this.projectGrants.set(updated);
-    }
+    this.patchGrant(grant.project.id, g => ({
+      ...g,
+      selected: !g.selected,
+    }));
   }
 
   /** Update role for a project */
   updateRole(grant: ProjectGrant, role: ConsentRequestGrantsInnerRole): void {
+    this.patchGrant(grant.project.id, g => ({ ...g, role }));
+  }
+
+  /**
+   * Locate a grant by project ID and apply a partial update, preserving the
+   * surrounding array reference so signal equality checks behave predictably.
+   */
+  private patchGrant(
+    projectId: string,
+    updater: (grant: ProjectGrant) => ProjectGrant
+  ): void {
     const grants = this.projectGrants();
-    const idx = grants.findIndex(g => g.project.id === grant.project.id);
+    const idx = grants.findIndex(g => g.project.id === projectId);
     if (idx >= 0) {
       const updated = [...grants];
-      updated[idx] = { ...grants[idx], role };
+      updated[idx] = updater(grants[idx]);
       this.projectGrants.set(updated);
     }
   }
@@ -237,27 +245,15 @@ export class OAuthConsentComponent implements OnInit {
     projectId: string;
     selected: boolean;
   }): void {
-    const grants = this.projectGrants();
-    const idx = grants.findIndex(g => g.project.id === event.projectId);
-    if (idx >= 0) {
-      const updated = [...grants];
-      updated[idx] = { ...grants[idx], selected: event.selected };
-      this.projectGrants.set(updated);
-    }
+    this.patchGrant(event.projectId, g => ({ ...g, selected: event.selected }));
   }
 
   /** Shared component: change a project's role */
   onGrantRoleChange(event: { projectId: string; role: string }): void {
-    const grants = this.projectGrants();
-    const idx = grants.findIndex(g => g.project.id === event.projectId);
-    if (idx >= 0) {
-      const updated = [...grants];
-      updated[idx] = {
-        ...grants[idx],
-        role: event.role as ConsentRequestGrantsInnerRole,
-      };
-      this.projectGrants.set(updated);
-    }
+    this.patchGrant(event.projectId, g => ({
+      ...g,
+      role: event.role as ConsentRequestGrantsInnerRole,
+    }));
   }
 
   /** Shared component: change all-projects + default role */

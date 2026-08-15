@@ -70,7 +70,9 @@ export const mcpOAuthCodes = sqliteTable(
     accessAllProjects: integer('access_all_projects', { mode: 'boolean' }).notNull().default(false),
 
     /** Default role applied when accessAllProjects is true */
-    defaultRole: text('default_role'),
+    defaultRole: text('default_role', {
+      enum: ['viewer', 'editor', 'admin'],
+    }),
   },
   (table) => [
     // Index for code lookup during token exchange

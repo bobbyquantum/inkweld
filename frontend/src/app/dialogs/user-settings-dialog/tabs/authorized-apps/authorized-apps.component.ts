@@ -14,7 +14,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ProjectGrantListComponent } from '@components/project-grant-list/project-grant-list.component';
+import {
+  type GrantRole,
+  ProjectGrantListComponent,
+} from '@components/project-grant-list/project-grant-list.component';
 import {
   AddOAuthGrantRequestRole,
   OAuthService as OAuthApiService,
@@ -94,7 +97,7 @@ export class AuthorizedAppsComponent implements OnInit {
   readonly accessAllProjects = computed(
     () => this.expandedSession()?.session.accessAllProjects ?? false
   );
-  readonly defaultRole = computed(
+  readonly defaultRole = computed<GrantRole>(
     () => this.expandedSession()?.session.defaultRole ?? 'viewer'
   );
 

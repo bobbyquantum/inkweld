@@ -5,10 +5,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule } from '@angular/router';
 import { PasskeysSettingsComponent } from '@components/passkeys-settings/passkeys-settings.component';
+import { AuthorizedAppsComponent } from '@dialogs/user-settings-dialog/tabs/authorized-apps/authorized-apps.component';
 import { TranslocoModule } from '@jsverse/transloco';
 import { SystemConfigService } from '@services/core/system-config.service';
-
-import { AuthorizedAppsComponent } from '../../dialogs/user-settings-dialog/tabs/authorized-apps/authorized-apps.component';
 
 /**
  * Account Settings page (deep-linkable `/settings`).
