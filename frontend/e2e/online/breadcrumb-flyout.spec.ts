@@ -68,26 +68,40 @@ test.describe('Breadcrumb quick-nav flyout', () => {
     await page.getByRole('tab', { name: docA }).click();
     const breadcrumbs = page.getByTestId('document-breadcrumbs').locator('nav');
     await expect(breadcrumbs).toBeVisible();
-    // The virtual project-name root is the first segment.
-    await expect(breadcrumbs).toContainText(projectTitle);
+    // The virtual project-name root is the first clickable segment.
+    const rootSegment = breadcrumbs.getByTestId(
+      'breadcrumb-segment-__project__'
+    );
+    await expect(rootSegment).toBeVisible();
+    await expect(rootSegment).toContainText(projectTitle);
     await expect(breadcrumbs).toContainText(folderName);
     await expect(breadcrumbs).toContainText(docA);
 
-    // 6) Click the folder segment in the breadcrumb — should open the flyout
+    // 6) Click the project-name root — the flyout should list the project's
+    //    top-level elements (the folder).
+    await rootSegment.click();
+    let flyout = page.locator('.cdk-overlay-pane').last();
+    await expect(flyout).toBeVisible();
+    await expect(
+      flyout.getByRole('menuitem', { name: folderName })
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    // 7) Click the folder segment in the breadcrumb — should open the flyout
     //    listing the folder's children (Scene A and Scene B).
     const segmentButton = breadcrumbs.getByRole('button', { name: folderName });
     await expect(segmentButton).toBeVisible();
     await segmentButton.click();
 
     // The flyout renders in a cdk-overlay-pane.
-    const flyout = page.locator('.cdk-overlay-pane').last();
+    flyout = page.locator('.cdk-overlay-pane').last();
     await expect(flyout).toBeVisible();
 
     // Both child documents should be listed as menu items in the flyout.
     await expect(flyout.getByRole('menuitem', { name: docA })).toBeVisible();
     await expect(flyout.getByRole('menuitem', { name: docB })).toBeVisible();
 
-    // 7) Click "Scene B" in the flyout — should navigate to Scene B.
+    // 8) Click "Scene B" in the flyout — should navigate to Scene B.
     await flyout.getByRole('menuitem', { name: docB }).click();
 
     // The breadcrumb should now show Scene B as the current document.

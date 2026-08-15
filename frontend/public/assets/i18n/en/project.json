@@ -144,7 +144,8 @@
     "online": "online"
   },
   "breadcrumbs": {
-    "ariaLabel": "Document path"
+    "ariaLabel": "Document path",
+    "untitledProject": "Project"
   },
   "exitConfirm": {
     "title": "Unsynced Changes",
