@@ -431,6 +431,115 @@ describe('MCP OAuth Service - Session Management', () => {
       expect(grants[0].role).toBe('admin');
     });
   });
+
+  describe('all-projects access', () => {
+    it('should expand grants to all user projects at the default role', async () => {
+      const { sessionId } = await mcpOAuthService.createSession(db, {
+        userId: testUserId,
+        clientId: testClientId,
+        grants: [],
+        accessAllProjects: true,
+        defaultRole: 'editor',
+        issuer: 'http://localhost:8333',
+      });
+
+      const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
+      expect(grants.length).toBe(2);
+      expect(grants.find((g) => g.projectId === testProjectId)?.role).toBe('editor');
+      expect(grants.find((g) => g.projectId === testProject2Id)?.role).toBe('editor');
+      expect(grants.every((g) => g.permissions.includes('write:elements'))).toBe(true);
+    });
+
+    it('should not create explicit collaborator rows in all-projects mode', async () => {
+      const { sessionId } = await mcpOAuthService.createSession(db, {
+        userId: testUserId,
+        clientId: testClientId,
+        grants: [{ projectId: testProjectId, role: 'admin' }],
+        accessAllProjects: true,
+        defaultRole: 'viewer',
+        issuer: 'http://localhost:8333',
+      });
+
+      const collabs = await db
+        .select()
+        .from(projectCollaborators)
+        .where(eq(projectCollaborators.mcpSessionId, sessionId));
+      expect(collabs.length).toBe(0);
+
+      // Access is still expanded to all projects at the default role
+      const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
+      expect(grants.length).toBe(2);
+      expect(grants.find((g) => g.projectId === testProjectId)?.role).toBe('viewer');
+    });
+
+    it('should honour explicit per-project grants as overrides', async () => {
+      // Manually enable all-projects then add an explicit admin override.
+      const { sessionId } = await mcpOAuthService.createSession(db, {
+        userId: testUserId,
+        clientId: testClientId,
+        grants: [],
+        accessAllProjects: true,
+        defaultRole: 'viewer',
+        issuer: 'http://localhost:8333',
+      });
+
+      await mcpOAuthService.grantProjectAccess(
+        db,
+        sessionId,
+        testProjectId,
+        'admin',
+        testUserId
+      );
+
+      const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
+      expect(grants.find((g) => g.projectId === testProjectId)?.role).toBe('admin');
+      expect(grants.find((g) => g.projectId === testProject2Id)?.role).toBe('viewer');
+    });
+
+    it('updateAllProjectsSettings should toggle all-projects and set default role', async () => {
+      const { sessionId } = await mcpOAuthService.createSession(db, {
+        userId: testUserId,
+        clientId: testClientId,
+        grants: [{ projectId: testProjectId, role: 'viewer' }],
+        issuer: 'http://localhost:8333',
+      });
+
+      await mcpOAuthService.updateAllProjectsSettings(db, sessionId, true, 'admin');
+
+      const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
+      expect(grants.length).toBe(2);
+      // The explicit viewer grant on testProjectId remains as an override
+      expect(grants.find((g) => g.projectId === testProjectId)?.role).toBe('viewer');
+      expect(grants.find((g) => g.projectId === testProject2Id)?.role).toBe('admin');
+
+      // Disabling restores per-project-only access
+      await mcpOAuthService.updateAllProjectsSettings(db, sessionId, false);
+
+      const grantsAfter = await mcpOAuthService.getSessionGrants(db, sessionId);
+      expect(grantsAfter.length).toBe(1);
+      expect(grantsAfter[0].projectId).toBe(testProjectId);
+    });
+  });
+
+  describe('session details (all-projects)', () => {
+    it('getSessionDetails should expand grants for all-projects sessions', async () => {
+      const { sessionId } = await mcpOAuthService.createSession(db, {
+        userId: testUserId,
+        clientId: testClientId,
+        grants: [],
+        accessAllProjects: true,
+        defaultRole: 'editor',
+        issuer: 'http://localhost:8333',
+      });
+
+      const details = await mcpOAuthService.getSessionDetails(db, sessionId, testUserId);
+      expect(details).not.toBeNull();
+      expect(details!.session.accessAllProjects).toBe(true);
+      expect(details!.session.defaultRole).toBe('editor');
+      expect(details!.session.projectCount).toBe(2);
+      expect(details!.grants.length).toBe(2);
+    });
+  });
 });
 
 // Helper: compute S256 PKCE challenge from a code verifier

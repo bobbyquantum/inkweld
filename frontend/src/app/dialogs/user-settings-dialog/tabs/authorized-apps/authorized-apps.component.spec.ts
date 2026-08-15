@@ -68,6 +68,7 @@ describe('AuthorizedAppsComponent', () => {
     updateOAuthGrant: ReturnType<typeof vi.fn>;
     revokeOAuthGrant: ReturnType<typeof vi.fn>;
     addOAuthGrant: ReturnType<typeof vi.fn>;
+    updateOAuthSessionSettings: ReturnType<typeof vi.fn>;
   };
   let projectsServiceMock: {
     listUserProjects: ReturnType<typeof vi.fn>;
@@ -86,6 +87,9 @@ describe('AuthorizedAppsComponent', () => {
       updateOAuthGrant: vi.fn().mockReturnValue(of({ message: 'Updated' })),
       revokeOAuthGrant: vi.fn().mockReturnValue(of({ message: 'Revoked' })),
       addOAuthGrant: vi.fn().mockReturnValue(of({ message: 'Added' })),
+      updateOAuthSessionSettings: vi
+        .fn()
+        .mockReturnValue(of({ message: 'Updated' })),
     };
 
     projectsServiceMock = {
@@ -267,7 +271,7 @@ describe('AuthorizedAppsComponent', () => {
     const grant = details.grants[0];
     await component.updateGrantRole(
       'session-1',
-      grant,
+      grant.projectId,
       OAuthSessionDetailsGrantsInnerRole.Admin
     );
 
@@ -319,6 +323,25 @@ describe('AuthorizedAppsComponent', () => {
 
     expect(oauthServiceMock.revokeOAuthGrant).not.toHaveBeenCalled();
     expect(component.expandedSession()!.grants.length).toBe(2);
+  });
+
+  it('should update all-projects settings and reflect them locally', async () => {
+    const details = createMockSessionDetails();
+    oauthServiceMock.getOAuthSessionDetails.mockReturnValue(of(details));
+
+    await component.loadSessionDetails('session-1');
+
+    await component.onAllProjectsChange({
+      accessAllProjects: true,
+      defaultRole: 'admin',
+    });
+
+    expect(oauthServiceMock.updateOAuthSessionSettings).toHaveBeenCalledWith(
+      'session-1',
+      { accessAllProjects: true, defaultRole: 'admin' }
+    );
+    expect(component.accessAllProjects()).toBe(true);
+    expect(component.defaultRole()).toBe('admin');
   });
 
   it('should format dates correctly', () => {

@@ -120,6 +120,8 @@ const ConsentRequestSchema = z
         role: z.enum(['viewer', 'editor', 'admin']),
       })
     ),
+    accessAllProjects: z.boolean().optional(),
+    defaultRole: z.enum(['viewer', 'editor', 'admin']).optional(),
   })
   .openapi('ConsentRequest');
 
@@ -140,6 +142,8 @@ const PublicSessionSchema = z
     createdAt: z.number(),
     lastUsedAt: z.number().nullable(),
     projectCount: z.number(),
+    accessAllProjects: z.boolean().optional(),
+    defaultRole: z.enum(['viewer', 'editor', 'admin']).nullable().optional(),
   })
   .openapi('PublicOAuthSession');
 
@@ -683,6 +687,8 @@ oauthRoutes.openapi(submitConsentRoute, async (c) => {
       grants: body.grants,
       scope: authRequest.scope,
       state: authRequest.state,
+      accessAllProjects: body.accessAllProjects,
+      defaultRole: body.defaultRole,
     });
 
     // Build redirect URI with code
@@ -1183,6 +1189,65 @@ oauthRoutes.openapi(addGrantRoute, async (c) => {
   await mcpOAuthService.grantProjectAccess(db, sessionId, projectId, role, user.id);
 
   return c.json({ message: 'Grant added successfully' }, 201);
+});
+
+/**
+ * Update a session's "all projects" + default role settings
+ */
+const updateAllProjectsRoute = createRoute({
+  method: 'patch',
+  path: '/oauth/sessions/{sessionId}/settings',
+  tags: ['OAuth'],
+  operationId: 'updateOAuthSessionSettings',
+  request: {
+    params: z.object({
+      sessionId: z.string(),
+    }),
+    body: {
+      content: {
+        'application/json': {
+          schema: z
+            .object({
+              accessAllProjects: z.boolean(),
+              defaultRole: z.enum(['viewer', 'editor', 'admin']).optional(),
+            })
+            .openapi('UpdateOAuthSessionSettingsRequest'),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: z.object({ message: z.string() }) } },
+      description: 'Session settings updated',
+    },
+    404: {
+      content: { 'application/json': { schema: OAuthErrorSchema } },
+      description: 'Session not found',
+    },
+  },
+});
+
+oauthRoutes.openapi(updateAllProjectsRoute, async (c) => {
+  const db = c.get('db');
+  const user = c.get('user');
+  const { sessionId } = c.req.valid('param') as { sessionId: string };
+  const { accessAllProjects, defaultRole } = c.req.valid('json');
+
+  if (!user) {
+    throw new OAuthError('invalid_token', 'Not authenticated');
+  }
+
+  // Verify session belongs to user
+  const details = await mcpOAuthService.getSessionDetails(db, sessionId, user.id);
+
+  if (!details) {
+    return c.json({ error: 'not_found', error_description: 'Session not found' }, 404);
+  }
+
+  await mcpOAuthService.updateAllProjectsSettings(db, sessionId, accessAllProjects, defaultRole);
+
+  return c.json({ message: 'Session settings updated successfully' });
 });
 
 /**

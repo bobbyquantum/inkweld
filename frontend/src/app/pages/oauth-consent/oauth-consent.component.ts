@@ -7,14 +7,10 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
   ActivatedRoute,
@@ -22,9 +18,11 @@ import {
   Router,
   RouterLink,
 } from '@angular/router';
+import { ProjectGrantListComponent } from '@components/project-grant-list/project-grant-list.component';
 import {
   type AuthorizationInfo,
   type AuthorizationInfoProjectsInner,
+  ConsentRequestDefaultRole,
   ConsentRequestGrantsInnerRole,
   OAuthService as OAuthApiService,
 } from '@inkweld/index';
@@ -52,16 +50,13 @@ interface OAuthApiError {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
-    FormsModule,
     MatButtonModule,
     MatCardModule,
-    MatCheckboxModule,
-    MatFormFieldModule,
     MatIconModule,
     MatProgressBarModule,
-    MatSelectModule,
     RouterLink,
     TranslocoModule,
+    ProjectGrantListComponent,
   ],
 })
 export class OAuthConsentComponent implements OnInit {
@@ -101,25 +96,30 @@ export class OAuthConsentComponent implements OnInit {
   /** Project grants with selection state */
   projectGrants = signal<ProjectGrant[]>([]);
 
-  /** Available roles for selection */
-  readonly roles: { value: ConsentRequestGrantsInnerRole; label: string }[] = [
-    {
-      value: ConsentRequestGrantsInnerRole.Viewer,
-      label: 'auth.oauthConsent.viewOnly',
-    },
-    {
-      value: ConsentRequestGrantsInnerRole.Editor,
-      label: 'auth.oauthConsent.viewAndEdit',
-    },
-    {
-      value: ConsentRequestGrantsInnerRole.Admin,
-      label: 'auth.oauthConsent.fullAccess',
-    },
-  ];
+  /** Rows for the shared {@link ProjectGrantListComponent}. */
+  grantRows = computed(() =>
+    this.projectGrants().map(g => ({
+      projectId: g.project.id,
+      projectTitle: g.project.title,
+      projectSlug: g.project.slug,
+      role: g.role,
+      selected: g.selected,
+    }))
+  );
 
-  /** Whether at least one project is selected */
+  /** Whether the user granted access to all projects */
+  accessAllProjects = signal(false);
+
+  /** Default role applied in all-projects mode */
+  defaultRole = signal<ConsentRequestDefaultRole>(
+    ConsentRequestDefaultRole.Viewer
+  );
+
+  /** Whether at least one project is selected (when not all-projects) */
   hasSelection = computed(() => {
-    return this.projectGrants().some(g => g.selected);
+    return (
+      this.accessAllProjects() || this.projectGrants().some(g => g.selected)
+    );
   });
 
   /** Client display info */
@@ -232,6 +232,43 @@ export class OAuthConsentComponent implements OnInit {
     }
   }
 
+  /** Shared component: toggle a project's selection */
+  onGrantSelectionChange(event: {
+    projectId: string;
+    selected: boolean;
+  }): void {
+    const grants = this.projectGrants();
+    const idx = grants.findIndex(g => g.project.id === event.projectId);
+    if (idx >= 0) {
+      const updated = [...grants];
+      updated[idx] = { ...grants[idx], selected: event.selected };
+      this.projectGrants.set(updated);
+    }
+  }
+
+  /** Shared component: change a project's role */
+  onGrantRoleChange(event: { projectId: string; role: string }): void {
+    const grants = this.projectGrants();
+    const idx = grants.findIndex(g => g.project.id === event.projectId);
+    if (idx >= 0) {
+      const updated = [...grants];
+      updated[idx] = {
+        ...grants[idx],
+        role: event.role as ConsentRequestGrantsInnerRole,
+      };
+      this.projectGrants.set(updated);
+    }
+  }
+
+  /** Shared component: change all-projects + default role */
+  onAllProjectsChange(event: {
+    accessAllProjects: boolean;
+    defaultRole: string;
+  }): void {
+    this.accessAllProjects.set(event.accessAllProjects);
+    this.defaultRole.set(event.defaultRole as ConsentRequestDefaultRole);
+  }
+
   /** Submit consent (approve) */
   approve(): void {
     const params = this.queryParams();
@@ -244,7 +281,7 @@ export class OAuthConsentComponent implements OnInit {
         role: g.role,
       }));
 
-    if (selectedGrants.length === 0) {
+    if (selectedGrants.length === 0 && !this.accessAllProjects()) {
       this.snackBar.open(
         this.transloco.translate('auth.oauthConsent.selectAtLeastOne'),
         this.transloco.translate('dismiss'),
@@ -266,7 +303,11 @@ export class OAuthConsentComponent implements OnInit {
         params.codeChallengeMethod,
         params.scope,
         params.state,
-        { grants: selectedGrants }
+        {
+          grants: selectedGrants,
+          accessAllProjects: this.accessAllProjects(),
+          defaultRole: this.defaultRole(),
+        }
       )
       .subscribe({
         next: response => {

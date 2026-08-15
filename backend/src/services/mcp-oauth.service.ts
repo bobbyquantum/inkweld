@@ -11,7 +11,7 @@
  * project collaborators system for permission management.
  */
 
-import { eq, and, not, isNull, or, lt } from 'drizzle-orm';
+import { eq, and, not, isNull, or, lt, inArray } from 'drizzle-orm';
 import { sign, verify } from 'hono/jwt';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { DatabaseInstance } from '../types/context';
@@ -25,6 +25,7 @@ import {
 import {
   mcpOAuthSessions,
   type InsertMcpOAuthSession,
+  type McpOAuthSession,
   type PublicOAuthSession,
 } from '../db/schema/mcp-oauth-sessions';
 import {
@@ -40,6 +41,7 @@ import {
 import { projects } from '../db/schema/projects';
 import { users } from '../db/schema/users';
 import { logger } from './logger.service';
+import { projectService } from './project.service';
 import { config } from '../config/env';
 
 const oauthLog = logger.child('OAuth');
@@ -423,6 +425,8 @@ class McpOAuthService {
       grants: OAuthCodeGrant[];
       scope?: string;
       state?: string;
+      accessAllProjects?: boolean;
+      defaultRole?: CollaboratorRole;
     }
   ): Promise<string> {
     // Generate authorization code
@@ -440,6 +444,8 @@ class McpOAuthService {
       grants: JSON.stringify(data.grants),
       scope: data.scope ?? null,
       state: data.state ?? null,
+      accessAllProjects: data.accessAllProjects ?? false,
+      defaultRole: data.defaultRole ?? null,
       createdAt: now,
       expiresAt: now + AUTH_CODE_TTL,
     };
@@ -555,6 +561,8 @@ class McpOAuthService {
         issuer: data.issuer,
         clientIp: data.clientIp,
         userAgent: data.userAgent,
+        accessAllProjects: authCode.accessAllProjects,
+        defaultRole: (authCode.defaultRole as CollaboratorRole) ?? undefined,
       },
       env
     );
@@ -586,6 +594,8 @@ class McpOAuthService {
       clientIp?: string;
       userAgent?: string;
       issuer: string;
+      accessAllProjects?: boolean;
+      defaultRole?: CollaboratorRole;
     },
     env?: CloudflareEnv
   ): Promise<{ sessionId: string; tokens: TokenResult }> {
@@ -605,6 +615,8 @@ class McpOAuthService {
       lastUsedIp: data.clientIp ?? null,
       lastUsedUserAgent: data.userAgent ?? null,
       expiresAt: now + REFRESH_TOKEN_TTL * 1000,
+      accessAllProjects: data.accessAllProjects ?? false,
+      defaultRole: data.defaultRole ?? null,
     };
 
     await db.insert(mcpOAuthSessions).values(sessionData);
@@ -628,19 +640,24 @@ class McpOAuthService {
       await this.revokeSession(db, existing.id, 'Superseded by new session');
     }
 
-    // Create collaborator entries for each granted project
-    for (const grant of data.grants) {
-      await db.insert(projectCollaborators).values({
-        projectId: grant.projectId,
-        userId: data.userId,
-        mcpSessionId: sessionId,
-        collaboratorType: 'oauth_app',
-        role: grant.role,
-        status: 'accepted',
-        invitedBy: data.userId,
-        invitedAt: now,
-        acceptedAt: now,
-      });
+    // Create collaborator entries for each granted project.
+    // When accessAllProjects is set, no explicit rows are needed — access is
+    // derived from the session's defaultRole at request time. Explicit rows
+    // may still exist as per-project overrides.
+    if (!data.accessAllProjects) {
+      for (const grant of data.grants) {
+        await db.insert(projectCollaborators).values({
+          projectId: grant.projectId,
+          userId: data.userId,
+          mcpSessionId: sessionId,
+          collaboratorType: 'oauth_app',
+          role: grant.role,
+          status: 'accepted',
+          invitedBy: data.userId,
+          invitedAt: now,
+          acceptedAt: now,
+        });
+      }
     }
 
     // Generate access token
@@ -914,6 +931,8 @@ class McpOAuthService {
       permissions: string[];
     }>
   > {
+    const session = await this.lookupSession(db, sessionId);
+
     const collaborators = await (db as D1DatabaseInstance)
       .select({
         projectId: projectCollaborators.projectId,
@@ -926,13 +945,59 @@ class McpOAuthService {
       .innerJoin(users, eq(projects.userId, users.id))
       .where(eq(projectCollaborators.mcpSessionId, sessionId));
 
-    return collaborators.map((c) => ({
+    const explicit = collaborators.map((c) => ({
       projectId: c.projectId,
       projectSlug: c.projectSlug,
       ownerUsername: c.ownerUsername || '',
       role: c.role as CollaboratorRole,
       permissions: roleToMcpPermissions(c.role as CollaboratorRole),
     }));
+
+    // If the session grants access to all of the user's projects, expand to the
+    // full project set at the default role, letting explicit per-project grants
+    // act as overrides.
+    if (session?.accessAllProjects) {
+      const defaultRole: CollaboratorRole =
+        (session.defaultRole as CollaboratorRole | null) ?? 'viewer';
+      const allProjects = await projectService.findByUserId(db, session.userId);
+      const explicitByProject = new Map(explicit.map((g) => [g.projectId, g]));
+      const merged = allProjects.map((p) => {
+        const override = explicitByProject.get(p.id);
+        const role = override?.role ?? defaultRole;
+        return {
+          projectId: p.id,
+          projectSlug: p.slug,
+          ownerUsername: p.username,
+          role,
+          permissions: roleToMcpPermissions(role),
+        };
+      });
+      // Preserve explicit grants to projects no longer in the owner's list
+      // (shouldn't happen, but keeps behaviour predictable).
+      for (const g of explicit) {
+        if (!merged.some((m) => m.projectId === g.projectId)) {
+          merged.push(g);
+        }
+      }
+      return merged;
+    }
+
+    return explicit;
+  }
+
+  /**
+   * Look up a session by ID (including all-projects fields)
+   */
+  private async lookupSession(
+    db: DatabaseInstance,
+    sessionId: string
+  ): Promise<McpOAuthSession | undefined> {
+    const [session] = await db
+      .select()
+      .from(mcpOAuthSessions)
+      .where(eq(mcpOAuthSessions.id, sessionId))
+      .limit(1);
+    return session;
   }
 
   /**
@@ -1014,6 +1079,31 @@ class McpOAuthService {
     oauthLog.info(`Updated role to ${role} for project ${projectId}, session ${sessionId}`);
   }
 
+  /**
+   * Update the "all projects" + default role settings for a session.
+   * When accessAllProjects is enabled, the session gains access to all of the
+   * user's projects at the default role; explicit per-project grants remain
+   * as overrides. Disabling restores per-project-only access.
+   */
+  async updateAllProjectsSettings(
+    db: DatabaseInstance,
+    sessionId: string,
+    accessAllProjects: boolean,
+    defaultRole?: CollaboratorRole
+  ): Promise<void> {
+    await db
+      .update(mcpOAuthSessions)
+      .set({
+        accessAllProjects,
+        defaultRole: accessAllProjects ? (defaultRole ?? 'viewer') : null,
+      })
+      .where(eq(mcpOAuthSessions.id, sessionId));
+
+    oauthLog.info(
+      `Updated all-projects=${accessAllProjects} defaultRole=${defaultRole ?? 'viewer'} for session ${sessionId}`
+    );
+  }
+
   // ============================================
   // Connected Apps UI
   // ============================================
@@ -1030,6 +1120,8 @@ class McpOAuthService {
         logoUri: mcpOAuthClients.logoUri,
         createdAt: mcpOAuthSessions.createdAt,
         lastUsedAt: mcpOAuthSessions.lastUsedAt,
+        accessAllProjects: mcpOAuthSessions.accessAllProjects,
+        defaultRole: mcpOAuthSessions.defaultRole,
       })
       .from(mcpOAuthSessions)
       .innerJoin(mcpOAuthClients, eq(mcpOAuthSessions.clientId, mcpOAuthClients.id))
@@ -1049,6 +1141,8 @@ class McpOAuthService {
         createdAt: session.createdAt,
         lastUsedAt: session.lastUsedAt,
         projectCount: grants.length,
+        accessAllProjects: session.accessAllProjects,
+        defaultRole: (session.defaultRole as CollaboratorRole | null) ?? null,
       });
     }
 
@@ -1079,6 +1173,8 @@ class McpOAuthService {
         logoUri: mcpOAuthClients.logoUri,
         createdAt: mcpOAuthSessions.createdAt,
         lastUsedAt: mcpOAuthSessions.lastUsedAt,
+        accessAllProjects: mcpOAuthSessions.accessAllProjects,
+        defaultRole: mcpOAuthSessions.defaultRole,
       })
       .from(mcpOAuthSessions)
       .innerJoin(mcpOAuthClients, eq(mcpOAuthSessions.clientId, mcpOAuthClients.id))
@@ -1094,18 +1190,25 @@ class McpOAuthService {
     const session = sessions[0];
     if (!session) return null;
 
-    const grants = await (db as D1DatabaseInstance)
-      .select({
-        projectId: projectCollaborators.projectId,
-        projectTitle: projects.title,
-        projectSlug: projects.slug,
-        role: projectCollaborators.role,
-      })
-      .from(projectCollaborators)
-      .innerJoin(projects, eq(projectCollaborators.projectId, projects.id))
-      .where(eq(projectCollaborators.mcpSessionId, sessionId));
+    // Expanded grants honour all-projects mode: when accessAllProjects is set,
+    // this returns every project the user owns at the default role (with
+    // explicit per-project grants as overrides). Project titles are resolved
+    // in a follow-up query keyed by project ID.
+    const expandedGrants = await this.getSessionGrants(db, session.id);
 
-    const grantsWithCount = await this.getSessionGrants(db, session.id);
+    let titleMap = new Map<string, string>();
+    if (expandedGrants.length > 0) {
+      const projectsRows = await (db as D1DatabaseInstance)
+        .select({ id: projects.id, title: projects.title })
+        .from(projects)
+        .where(
+          inArray(
+            projects.id,
+            expandedGrants.map((g) => g.projectId)
+          )
+        );
+      titleMap = new Map(projectsRows.map((p) => [p.id, p.title]));
+    }
 
     return {
       session: {
@@ -1117,13 +1220,15 @@ class McpOAuthService {
         },
         createdAt: session.createdAt,
         lastUsedAt: session.lastUsedAt,
-        projectCount: grantsWithCount.length,
+        projectCount: expandedGrants.length,
+        accessAllProjects: session.accessAllProjects,
+        defaultRole: (session.defaultRole as CollaboratorRole | null) ?? null,
       },
-      grants: grants.map((g) => ({
+      grants: expandedGrants.map((g) => ({
         projectId: g.projectId,
-        projectTitle: g.projectTitle,
+        projectTitle: titleMap.get(g.projectId) ?? g.projectSlug,
         projectSlug: g.projectSlug,
-        role: g.role as CollaboratorRole,
+        role: g.role,
       })),
     };
   }

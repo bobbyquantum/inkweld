@@ -35,10 +35,10 @@ test.describe('Account Settings Page', () => {
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
 
-    // Should show empty state or the connected apps section
+    // Should show empty state or the connected apps list
     // A fresh test user should have no connected OAuth apps
-    const emptyState = page.getByTestId('account-empty-card');
-    const sessionsList = page.getByTestId('sessions-accordion');
+    const emptyState = page.getByTestId('authorized-apps-empty');
+    const sessionsList = page.getByTestId('authorized-apps-list');
 
     // Either empty state or sessions list should be visible
     await expect(emptyState.or(sessionsList).first()).toBeVisible();

@@ -176,65 +176,22 @@
                     {{ 'settings.authorizedAppsTab.noGrants' | transloco }}
                   </p>
                 } @else {
-                  <div class="grants-list">
-                    @for (
-                      grant of expandedSession()!.grants;
-                      track grant.projectId
-                    ) {
-                      <div class="grant-row" data-testid="authorized-app-grant">
-                        <div class="grant-project">
-                          <mat-icon class="grant-icon">description</mat-icon>
-                          <span class="grant-project-name">
-                            {{ grant.projectTitle }}
-                          </span>
-                          <span class="grant-project-slug">
-                            {{ grant.projectSlug }}
-                          </span>
-                        </div>
-                        <div class="grant-actions">
-                          <mat-select
-                            [value]="grant.role"
-                            (selectionChange)="
-                              updateGrantRole(session.id, grant, $event.value)
-                            "
-                            [disabled]="
-                              updatingGrantKey() ===
-                              grantKey(session.id, grant.projectId)
-                            "
-                            class="role-select"
-                            data-testid="authorized-app-role-select">
-                            @for (role of roles; track role) {
-                              <mat-option [value]="role">
-                                {{ role | titlecase }}
-                              </mat-option>
-                            }
-                          </mat-select>
-                          <button
-                            mat-icon-button
-                            color="warn"
-                            (click)="revokeGrant(session.id, grant)"
-                            [disabled]="
-                              revokingGrantKey() ===
-                              grantKey(session.id, grant.projectId)
-                            "
-                            [matTooltip]="
-                              'settings.authorizedAppsTab.revokeAccess'
-                                | transloco
-                            "
-                            data-testid="authorized-app-revoke-grant">
-                            @if (
-                              revokingGrantKey() ===
-                              grantKey(session.id, grant.projectId)
-                            ) {
-                              <mat-spinner diameter="18"></mat-spinner>
-                            } @else {
-                              <mat-icon>delete</mat-icon>
-                            }
-                          </button>
-                        </div>
-                      </div>
-                    }
-                  </div>
+                  <app-project-grant-list
+                    [grants]="grantRows()"
+                    [showRemove]="true"
+                    [showAllProjects]="true"
+                    [accessAllProjects]="accessAllProjects()"
+                    [defaultRole]="defaultRole()"
+                    [readonly]="
+                      savingAllProjects() ||
+                      updatingGrantKey() !== null ||
+                      revokingGrantKey() !== null
+                    "
+                    [allProjectsDisabled]="savingAllProjects()"
+                    (roleChange)="onGrantRoleChange($event)"
+                    (remove)="onGrantRemove($event)"
+                    (allProjectsChange)="onAllProjectsChange($event)">
+                  </app-project-grant-list>
                 }
               }
             </div>

@@ -11,4 +11,11 @@ import { ConsentRequestGrantsInner } from './consent-request-grants-inner';
 
 export interface ConsentRequest {
   grants: Array<ConsentRequestGrantsInner>;
+  accessAllProjects?: boolean;
+  defaultRole?: ConsentRequestDefaultRole;
+}
+export enum ConsentRequestDefaultRole {
+  Viewer = 'viewer',
+  Editor = 'editor',
+  Admin = 'admin',
 }

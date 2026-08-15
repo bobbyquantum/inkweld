@@ -75,6 +75,21 @@ export const mcpOAuthSessions = sqliteTable(
 
     /** Refresh token expiration (ms since epoch) */
     expiresAt: integer('expires_at'),
+
+    /**
+     * When true, this session has access to ALL of the user's projects
+     * (current and future) at the configured defaultRole, instead of an
+     * explicit per-project grant list. Explicit collaborator grants are still
+     * honoured as overrides when present.
+     */
+    accessAllProjects: integer('access_all_projects', { mode: 'boolean' }).notNull().default(false),
+
+    /**
+     * The default role applied to every project when accessAllProjects is
+     * true. Only meaningful when accessAllProjects is set. When null, falls
+     * back to 'viewer'.
+     */
+    defaultRole: text('default_role'),
   },
   (table) => [
     // Index for looking up sessions by user (for Connected Apps UI)
@@ -104,4 +119,8 @@ export interface PublicOAuthSession {
   createdAt: number;
   lastUsedAt: number | null;
   projectCount: number;
+  /** Whether this session has access to all of the user's projects */
+  accessAllProjects?: boolean;
+  /** Default role applied when accessAllProjects is true */
+  defaultRole?: 'viewer' | 'editor' | 'admin' | null;
 }

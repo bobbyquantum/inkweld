@@ -96,51 +96,17 @@
               </button>
             </div>
 
-            @if (projectGrants().length === 0) {
-              <p class="no-projects">
-                {{ 'auth.oauthConsent.noProjects' | transloco }}
-              </p>
-            } @else {
-              <div class="project-list">
-                @for (grant of projectGrants(); track grant.project.id) {
-                  <div
-                    class="project-item"
-                    data-testid="project-item"
-                    [class.selected]="grant.selected">
-                    <mat-checkbox
-                      [checked]="grant.selected"
-                      (change)="toggleProject(grant)"
-                      class="project-checkbox">
-                      <div class="project-info">
-                        <span class="project-title">{{
-                          grant.project.title
-                        }}</span>
-                        <span class="project-slug">{{
-                          grant.project.slug
-                        }}</span>
-                      </div>
-                    </mat-checkbox>
-
-                    @if (grant.selected) {
-                      <mat-form-field appearance="outline" class="role-select">
-                        <mat-label>{{
-                          'auth.oauthConsent.accessLevel' | transloco
-                        }}</mat-label>
-                        <mat-select
-                          [value]="grant.role"
-                          (selectionChange)="updateRole(grant, $event.value)">
-                          @for (role of roles; track role.value) {
-                            <mat-option [value]="role.value">{{
-                              role.label | transloco
-                            }}</mat-option>
-                          }
-                        </mat-select>
-                      </mat-form-field>
-                    }
-                  </div>
-                }
-              </div>
-            }
+            <app-project-grant-list
+              [grants]="grantRows()"
+              [showSelect]="true"
+              [showAllProjects]="true"
+              [accessAllProjects]="accessAllProjects()"
+              [defaultRole]="defaultRole()"
+              [readonly]="submitting()"
+              (selectionChange)="onGrantSelectionChange($event)"
+              (roleChange)="onGrantRoleChange($event)"
+              (allProjectsChange)="onAllProjectsChange($event)">
+            </app-project-grant-list>
           </div>
         </mat-card-content>
 

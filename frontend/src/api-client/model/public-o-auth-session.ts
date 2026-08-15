@@ -15,4 +15,11 @@ export interface PublicOAuthSession {
   createdAt: number;
   lastUsedAt: number | null;
   projectCount: number;
+  accessAllProjects?: boolean;
+  defaultRole?: PublicOAuthSessionDefaultRole | null;
+}
+export enum PublicOAuthSessionDefaultRole {
+  Viewer = 'viewer',
+  Editor = 'editor',
+  Admin = 'admin',
 }

@@ -63,7 +63,11 @@
     "revokeFailed": "Failed to revoke project access",
     "projectsLoadFailed": "Failed to load projects",
     "accessGranted": "Project access granted",
-    "grantFailed": "Failed to add project access"
+    "grantFailed": "Failed to add project access",
+    "allProjectsLabel": "Access all my projects",
+    "defaultRoleLabel": "Default access level",
+    "allProjectsUpdated": "Access settings updated",
+    "allProjectsUpdateFailed": "Failed to update access settings"
   },
   "connectionTab": {
     "title": "Connection Settings",

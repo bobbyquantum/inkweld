@@ -8,6 +8,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import {
   type AuthorizationInfo,
+  ConsentRequestDefaultRole,
   ConsentRequestGrantsInnerRole,
   OAuthService as OAuthApiService,
 } from '@inkweld/index';
@@ -274,6 +275,8 @@ describe('OAuthConsentComponent', () => {
           grants: [
             { projectId: 'proj-1', role: ConsentRequestGrantsInnerRole.Editor },
           ],
+          accessAllProjects: false,
+          defaultRole: ConsentRequestDefaultRole.Viewer,
         }
       );
 
@@ -314,6 +317,30 @@ describe('OAuthConsentComponent', () => {
         { duration: 5000 }
       );
       expect(component.submitting()).toBe(false);
+    });
+
+    it('should submit all-projects consent without explicit grants', async () => {
+      component.onAllProjectsChange({
+        accessAllProjects: true,
+        defaultRole: 'admin',
+      });
+      component.approve();
+      await fixture.whenStable();
+
+      expect(oauthService.submitConsent).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        {
+          grants: [],
+          accessAllProjects: true,
+          defaultRole: 'admin',
+        }
+      );
     });
   });
 
