@@ -316,6 +316,10 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
               );
             },
             onTextMessage: text => this.handlePostAuthText(text),
+            // Terminal close codes (44xx) are the backstop for the
+            // `access-denied` text frame: route them through the same
+            // classifier so a lost text frame can't leave the loop retrying.
+            onTerminalClose: reason => this.handleAccessDenied(reason),
           }
         );
 
@@ -1355,7 +1359,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
    * and close the socket. `rate-limited` and server-side `error` are
    * transient, so they are NOT terminal: we stop the provider (switching off
    * y-websocket's internal auto-reconnect loop, which doesn't know we were
-   * refused and would otherwise hammer the DO on its 100ms*2^n schedule —
+   * refused and would otherwise hammer the DO on its 200ms*2^n schedule —
    * each reconnect re-authing and re-saturating the per-doc window, i.e. the
    * reconnect storm) and let scheduleReconnect retry with the long floored
    * backoff for as long as it takes the server to recover.

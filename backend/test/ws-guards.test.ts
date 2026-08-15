@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { safeSend, safeClose, type GuardableWebSocket } from '../src/utils/ws-guards';
+import { WS_CLOSE_INVALID_TOKEN } from '../src/utils/ws-close-codes';
 
 /**
  * Regression tests for the WebSocket guard helpers.
@@ -76,19 +77,19 @@ describe('safeSend', () => {
 describe('safeClose', () => {
   it('closes an open socket with code and reason', () => {
     const { ws, calls } = makeSocket(WebSocket.OPEN);
-    safeClose(ws, 4001, 'Invalid token');
-    expect(calls.close).toEqual([[4001, 'Invalid token']]);
+    safeClose(ws, WS_CLOSE_INVALID_TOKEN, 'Invalid token');
+    expect(calls.close).toEqual([[WS_CLOSE_INVALID_TOKEN, 'Invalid token']]);
   });
 
   it('does not close a CLOSING socket', () => {
     const { ws, calls } = makeSocket(WebSocket.CLOSING);
-    safeClose(ws, 4001, 'Invalid token');
+    safeClose(ws, WS_CLOSE_INVALID_TOKEN, 'Invalid token');
     expect(calls.close).toEqual([]);
   });
 
   it('does not close a CLOSED socket', () => {
     const { ws, calls } = makeSocket(WebSocket.CLOSED);
-    safeClose(ws, 4001, 'Invalid token');
+    safeClose(ws, WS_CLOSE_INVALID_TOKEN, 'Invalid token');
     expect(calls.close).toEqual([]);
   });
 
@@ -97,7 +98,7 @@ describe('safeClose', () => {
     ws.close = () => {
       throw new Error('already closed');
     };
-    expect(() => safeClose(ws, 4001, 'x')).not.toThrow();
+    expect(() => safeClose(ws, WS_CLOSE_INVALID_TOKEN, 'x')).not.toThrow();
     expect(calls.close).toEqual([]);
   });
 });

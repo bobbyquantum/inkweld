@@ -52,6 +52,14 @@ import {
 import { YjsDocStorage, COMPACT_THRESHOLD, snapshotKey } from './yjs-do-storage';
 import { safeSend, safeClose } from '../utils/ws-guards';
 import {
+  WS_CLOSE_FORBIDDEN,
+  WS_CLOSE_INVALID_DOCUMENT,
+  WS_CLOSE_INVALID_TOKEN,
+  WS_CLOSE_PROJECT_NOT_FOUND,
+  WS_CLOSE_RATE_LIMITED,
+  WS_CLOSE_SERVER_ERROR,
+} from '../utils/ws-close-codes';
+import {
   decodeSnapshotMetrics,
   hasDocContent,
   isBlankStateVector,
@@ -1789,7 +1797,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       if (!connInfo) {
         projDOLog.warn('Received message from unknown connection');
         try {
-          ws.close(4000, 'Unknown connection');
+          // Transient (45xx): the client reconnects and re-authenticates, which
+          // is the correct recovery for a connection the DO can't re-attach.
+          ws.close(WS_CLOSE_SERVER_ERROR, 'Unknown connection');
         } catch {
           // already closed
         }
@@ -1812,7 +1822,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         error
       );
       try {
-        ws.close(4000, 'Message handling error');
+        // Transient (45xx): a single bad message must not make the client give
+        // up — it reconnects and resyncs.
+        ws.close(WS_CLOSE_SERVER_ERROR, 'Message handling error');
       } catch {
         // already closed
       }
@@ -2094,7 +2106,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     if (!project) {
       projDOLog.warn(`Project not found: ${parsed.projectOwner}/${parsed.slug}`);
       safeSend(ws, 'access-denied:project-not-found');
-      safeClose(ws, 4003, 'Project not found');
+      safeClose(ws, WS_CLOSE_PROJECT_NOT_FOUND, 'Project not found');
       return null;
     }
 
@@ -2109,7 +2121,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         `User ${sessionData.username} attempted to access project ${parsed.projectOwner}/${parsed.slug}`
       );
       safeSend(ws, 'access-denied:forbidden');
-      safeClose(ws, 4003, 'Access denied');
+      safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access denied');
       return null;
     }
 
@@ -2133,7 +2145,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         `User ${sessionData.username} attempted to access project owned by ${parsed.projectOwner}`
       );
       safeSend(ws, 'access-denied:forbidden');
-      safeClose(ws, 4003, 'Access denied');
+      safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access denied');
       return null;
     }
     return { canWrite: true, projectDbId: null };
@@ -2155,7 +2167,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       if (!sessionData) {
         projDOLog.error(`Invalid auth token for ${connInfo.documentId}`);
         safeSend(ws, 'access-denied:invalid-token');
-        safeClose(ws, 4001, 'Invalid token');
+        safeClose(ws, WS_CLOSE_INVALID_TOKEN, 'Invalid token');
         return;
       }
 
@@ -2167,7 +2179,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       if (!parsed) {
         projDOLog.error(`Invalid documentId format: ${connInfo.documentId}`);
         safeSend(ws, 'access-denied:invalid-document');
-        safeClose(ws, 4002, 'Invalid document ID');
+        safeClose(ws, WS_CLOSE_INVALID_DOCUMENT, 'Invalid document ID');
         return;
       }
 
@@ -2222,7 +2234,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
           `Rate-limited WS reconnect for ${connInfo.documentId} (${rateLimit.retryAfterMs}ms cooldown remaining)`
         );
         safeSend(ws, 'access-denied:rate-limited');
-        safeClose(ws, 4029, 'access-denied:rate-limited');
+        safeClose(ws, WS_CLOSE_RATE_LIMITED, 'access-denied:rate-limited');
         return;
       }
 
@@ -2286,7 +2298,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     } catch (error) {
       projDOLog.error(`Auth error for ${connInfo.documentId}:`, error);
       safeSend(ws, 'access-denied:error');
-      safeClose(ws, 4000, 'Authentication error');
+      safeClose(ws, WS_CLOSE_SERVER_ERROR, 'Authentication error');
     }
   }
 
