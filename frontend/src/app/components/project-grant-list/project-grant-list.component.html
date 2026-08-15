@@ -1,0 +1,105 @@
+<div class="project-grant-list">
+  @if (showAllProjects()) {
+    <div class="all-projects-block" data-testid="project-grant-all-projects">
+      <mat-checkbox
+        color="primary"
+        [checked]="accessAllProjects()"
+        [disabled]="readonly() || allProjectsDisabled()"
+        (change)="onAllProjectsToggle($event.checked)">
+        {{ 'settings.authorizedAppsTab.allProjectsLabel' | transloco }}
+      </mat-checkbox>
+      @if (accessAllProjects()) {
+        <div class="default-role-row">
+          <span class="default-role-label">{{
+            'settings.authorizedAppsTab.defaultRoleLabel' | transloco
+          }}</span>
+          <mat-form-field appearance="outline" class="role-select">
+            <mat-select
+              [value]="defaultRole()"
+              [disabled]="readonly() || allProjectsDisabled()"
+              (selectionChange)="onDefaultRoleChange($event.value)"
+              [attr.aria-label]="
+                'settings.authorizedAppsTab.defaultRoleLabel' | transloco
+              "
+              data-testid="project-grant-default-role-select">
+              @for (role of roles; track role) {
+                <mat-option [value]="role">
+                  {{ getRoleLabel(role) | transloco }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      }
+    </div>
+  }
+
+  @for (grant of grants(); track grant.projectId) {
+    <div
+      class="grant-row"
+      [class.readonly]="readonly()"
+      data-testid="project-grant-row">
+      <div class="grant-main">
+        @if (showSelect()) {
+          <mat-checkbox
+            color="primary"
+            [checked]="grant.selected"
+            [disabled]="readonly()"
+            (change)="onSelectionChange(grant.projectId, $event.checked)"
+            [attr.aria-label]="
+              'settings.authorizedAppsTab.grantSelectionAria'
+                | transloco: { project: grant.projectTitle }
+            "
+            class="grant-checkbox"></mat-checkbox>
+          <div class="grant-project">
+            <span class="project-title">{{ grant.projectTitle }}</span>
+            <span class="project-slug">{{ grant.projectSlug }}</span>
+          </div>
+        } @else {
+          <mat-icon class="grant-icon">description</mat-icon>
+          <div class="grant-project">
+            <span class="project-title">{{ grant.projectTitle }}</span>
+            <span class="project-slug">{{ grant.projectSlug }}</span>
+          </div>
+        }
+      </div>
+      <div class="grant-actions">
+        <mat-form-field appearance="outline" class="role-select">
+          <mat-select
+            [value]="grant.role"
+            [disabled]="readonly()"
+            (selectionChange)="onRoleChange(grant.projectId, $event.value)"
+            [attr.aria-label]="
+              'settings.authorizedAppsTab.grantRoleAria'
+                | transloco: { project: grant.projectTitle }
+            "
+            data-testid="project-grant-role-select">
+            @for (role of roles; track role) {
+              <mat-option [value]="role">
+                {{ getRoleLabel(role) | transloco }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        @if (showRemove()) {
+          <button
+            mat-icon-button
+            color="warn"
+            type="button"
+            [disabled]="readonly()"
+            (click)="remove.emit(grant.projectId)"
+            [attr.aria-label]="
+              'settings.authorizedAppsTab.revokeAccess' | transloco
+            "
+            data-testid="project-grant-remove">
+            <mat-icon>delete</mat-icon>
+          </button>
+        }
+      </div>
+    </div>
+  } @empty {
+    <p class="no-grants">
+      {{ 'settings.authorizedAppsTab.noGrants' | transloco }}
+    </p>
+  }
+</div>

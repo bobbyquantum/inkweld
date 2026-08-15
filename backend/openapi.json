@@ -4545,6 +4545,17 @@
                 "role"
               ]
             }
+          },
+          "accessAllProjects": {
+            "type": "boolean"
+          },
+          "defaultRole": {
+            "type": "string",
+            "enum": [
+              "viewer",
+              "editor",
+              "admin"
+            ]
           }
         },
         "required": [
@@ -4648,6 +4659,19 @@
           },
           "projectCount": {
             "type": "number"
+          },
+          "accessAllProjects": {
+            "type": "boolean"
+          },
+          "defaultRole": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "viewer",
+              "editor",
+              "admin",
+              null
+            ]
           }
         },
         "required": [
@@ -4719,6 +4743,25 @@
         "required": [
           "projectId",
           "role"
+        ]
+      },
+      "UpdateOAuthSessionSettingsRequest": {
+        "type": "object",
+        "properties": {
+          "accessAllProjects": {
+            "type": "boolean"
+          },
+          "defaultRole": {
+            "type": "string",
+            "enum": [
+              "viewer",
+              "editor",
+              "admin"
+            ]
+          }
+        },
+        "required": [
+          "accessAllProjects"
         ]
       }
     },
@@ -16219,6 +16262,64 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OAuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/sessions/{sessionId}/settings": {
+      "patch": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "updateOAuthSessionSettings",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOAuthSessionSettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session settings updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
                 }
               }
             }

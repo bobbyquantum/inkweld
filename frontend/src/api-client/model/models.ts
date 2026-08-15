@@ -188,6 +188,7 @@ export * from './update-collaborator-request';
 export * from './update-custom-image-sizes-request';
 export * from './update-image-model-profile-request';
 export * from './update-o-auth-grant-request';
+export * from './update-o-auth-session-settings-request';
 export * from './update-profile-request';
 export * from './update-project-request';
 export * from './update-published-file-request';

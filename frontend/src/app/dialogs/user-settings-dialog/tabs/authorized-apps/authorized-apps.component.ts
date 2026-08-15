@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   type OnInit,
   signal,
@@ -11,8 +12,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import {
+  type GrantRole,
+  ProjectGrantListComponent,
+} from '@components/project-grant-list/project-grant-list.component';
 import {
   AddOAuthGrantRequestRole,
   OAuthService as OAuthApiService,
@@ -22,7 +27,9 @@ import {
   type Project,
   ProjectsService,
   type PublicOAuthSession,
+  type PublicOAuthSessionDefaultRole,
   type UpdateOAuthGrantRequestRole,
+  type UpdateOAuthSessionSettingsRequestDefaultRole,
 } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -36,9 +43,9 @@ import { firstValueFrom } from 'rxjs';
     MatIconModule,
     MatProgressSpinnerModule,
     MatSelectModule,
-    MatSnackBarModule,
     MatTooltipModule,
     TranslocoModule,
+    ProjectGrantListComponent,
   ],
   templateUrl: './authorized-apps.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -59,6 +66,7 @@ export class AuthorizedAppsComponent implements OnInit {
   readonly revokingGrantKey = signal<string | null>(null);
   readonly updatingGrantKey = signal<string | null>(null);
   readonly addingProject = signal(false);
+  readonly savingAllProjects = signal(false);
 
   /** All user projects (loaded on demand for the "add project" dropdown) */
   readonly userProjects = signal<Project[]>([]);
@@ -74,6 +82,24 @@ export class AuthorizedAppsComponent implements OnInit {
 
   readonly roles = Object.values(OAuthSessionDetailsGrantsInnerRole);
   readonly addRoles = Object.values(AddOAuthGrantRequestRole);
+
+  /** Rows for the shared {@link ProjectGrantListComponent}. */
+  readonly grantRows = computed(() =>
+    (this.expandedSession()?.grants ?? []).map(g => ({
+      projectId: g.projectId,
+      projectTitle: g.projectTitle,
+      projectSlug: g.projectSlug,
+      role: g.role,
+    }))
+  );
+
+  /** All-projects state for the currently expanded session. */
+  readonly accessAllProjects = computed(
+    () => this.expandedSession()?.session.accessAllProjects ?? false
+  );
+  readonly defaultRole = computed<GrantRole>(
+    () => this.expandedSession()?.session.defaultRole ?? 'viewer'
+  );
 
   ngOnInit(): void {
     void this.loadSessions();
@@ -189,16 +215,30 @@ export class AuthorizedAppsComponent implements OnInit {
     }
   }
 
+  /** Shared component: change a grant's role. */
+  async onGrantRoleChange(event: {
+    projectId: string;
+    role: string;
+  }): Promise<void> {
+    const session = this.expandedSession();
+    if (!session) return;
+    await this.updateGrantRole(
+      session.session.id,
+      event.projectId,
+      event.role as OAuthSessionDetailsGrantsInnerRole
+    );
+  }
+
   async updateGrantRole(
     sessionId: string,
-    grant: OAuthSessionDetailsGrantsInner,
+    projectId: string,
     newRole: OAuthSessionDetailsGrantsInnerRole
   ): Promise<void> {
-    const key = `${sessionId}:${grant.projectId}`;
+    const key = `${sessionId}:${projectId}`;
     this.updatingGrantKey.set(key);
     try {
       await firstValueFrom(
-        this.oauthService.updateOAuthGrant(sessionId, grant.projectId, {
+        this.oauthService.updateOAuthGrant(sessionId, projectId, {
           role: newRole as unknown as UpdateOAuthGrantRequestRole,
         })
       );
@@ -208,7 +248,7 @@ export class AuthorizedAppsComponent implements OnInit {
         return {
           ...details,
           grants: details.grants.map(g =>
-            g.projectId === grant.projectId ? { ...g, role: newRole } : g
+            g.projectId === projectId ? { ...g, role: newRole } : g
           ),
         };
       });
@@ -232,6 +272,15 @@ export class AuthorizedAppsComponent implements OnInit {
     } finally {
       this.updatingGrantKey.set(null);
     }
+  }
+
+  /** Shared component: revoke a project grant. */
+  async onGrantRemove(projectId: string): Promise<void> {
+    const session = this.expandedSession();
+    if (!session) return;
+    const grant = session.grants.find(g => g.projectId === projectId);
+    if (!grant) return;
+    await this.revokeGrant(session.session.id, grant);
   }
 
   async revokeGrant(
@@ -285,6 +334,72 @@ export class AuthorizedAppsComponent implements OnInit {
       );
     } finally {
       this.revokingGrantKey.set(null);
+    }
+  }
+
+  /** Shared component: toggle all-projects + default role. */
+  async onAllProjectsChange(event: {
+    accessAllProjects: boolean;
+    defaultRole: string;
+  }): Promise<void> {
+    const session = this.expandedSession();
+    if (!session) return;
+
+    this.savingAllProjects.set(true);
+    try {
+      await firstValueFrom(
+        this.oauthService.updateOAuthSessionSettings(session.session.id, {
+          accessAllProjects: event.accessAllProjects,
+          defaultRole:
+            event.defaultRole as UpdateOAuthSessionSettingsRequestDefaultRole,
+        })
+      );
+      // Refresh session details so the grants list reflects the expanded
+      // all-projects set (the backend returns every owned project at the
+      // default role, with explicit grants as overrides).
+      const details = await firstValueFrom(
+        this.oauthService.getOAuthSessionDetails(
+          session.session.id,
+          'body',
+          false,
+          { transferCache: false }
+        )
+      );
+      this.expandedSession.set(details);
+
+      // Keep the session-list entry's all-projects state in sync.
+      const role = event.defaultRole as
+        PublicOAuthSessionDefaultRole | null | undefined;
+      this.sessions.update(s =>
+        s.map(sess =>
+          sess.id === session.session.id
+            ? {
+                ...sess,
+                accessAllProjects: event.accessAllProjects,
+                defaultRole: role,
+              }
+            : sess
+        )
+      );
+      this.snackBar.open(
+        this.transloco.translate(
+          'settings.authorizedAppsTab.allProjectsUpdated'
+        ),
+        this.transloco.translate('close'),
+        { duration: 2000 }
+      );
+    } catch {
+      this.snackBar.open(
+        this.transloco.translate(
+          'settings.authorizedAppsTab.allProjectsUpdateFailed'
+        ),
+        this.transloco.translate('close'),
+        {
+          duration: 3000,
+        }
+      );
+    } finally {
+      this.savingAllProjects.set(false);
     }
   }
 

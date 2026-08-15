@@ -6,6 +6,7 @@ import {
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import {
   AddOAuthGrantRequestRole,
   OAuthService as OAuthApiService,
@@ -68,6 +69,7 @@ describe('AuthorizedAppsComponent', () => {
     updateOAuthGrant: ReturnType<typeof vi.fn>;
     revokeOAuthGrant: ReturnType<typeof vi.fn>;
     addOAuthGrant: ReturnType<typeof vi.fn>;
+    updateOAuthSessionSettings: ReturnType<typeof vi.fn>;
   };
   let projectsServiceMock: {
     listUserProjects: ReturnType<typeof vi.fn>;
@@ -75,6 +77,7 @@ describe('AuthorizedAppsComponent', () => {
   let dialogGatewayMock: {
     openConfirmationDialog: ReturnType<typeof vi.fn>;
   };
+  let snackBarMock: { open: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     oauthServiceMock = {
@@ -86,6 +89,9 @@ describe('AuthorizedAppsComponent', () => {
       updateOAuthGrant: vi.fn().mockReturnValue(of({ message: 'Updated' })),
       revokeOAuthGrant: vi.fn().mockReturnValue(of({ message: 'Revoked' })),
       addOAuthGrant: vi.fn().mockReturnValue(of({ message: 'Added' })),
+      updateOAuthSessionSettings: vi
+        .fn()
+        .mockReturnValue(of({ message: 'Updated' })),
     };
 
     projectsServiceMock = {
@@ -102,6 +108,10 @@ describe('AuthorizedAppsComponent', () => {
       openConfirmationDialog: vi.fn().mockResolvedValue(true),
     };
 
+    snackBarMock = {
+      open: vi.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), AuthorizedAppsComponent],
       providers: [
@@ -111,6 +121,7 @@ describe('AuthorizedAppsComponent', () => {
         { provide: OAuthApiService, useValue: oauthServiceMock },
         { provide: ProjectsService, useValue: projectsServiceMock },
         { provide: DialogGatewayService, useValue: dialogGatewayMock },
+        { provide: MatSnackBar, useValue: snackBarMock },
       ],
     }).compileComponents();
 
@@ -215,7 +226,7 @@ describe('AuthorizedAppsComponent', () => {
     await component.revokeSession(session);
 
     expect(oauthServiceMock.revokeOAuthSession).not.toHaveBeenCalled();
-    expect(component.sessions().length).toBe(1);
+    expect(component.sessions()).toHaveLength(1);
   });
 
   it('should handle revoke session error', async () => {
@@ -231,7 +242,7 @@ describe('AuthorizedAppsComponent', () => {
     await component.revokeSession(session);
 
     // Session should still be there
-    expect(component.sessions().length).toBe(1);
+    expect(component.sessions()).toHaveLength(1);
     expect(component.revokingSessionId()).toBeNull();
   });
 
@@ -267,7 +278,7 @@ describe('AuthorizedAppsComponent', () => {
     const grant = details.grants[0];
     await component.updateGrantRole(
       'session-1',
-      grant,
+      grant.projectId,
       OAuthSessionDetailsGrantsInnerRole.Admin
     );
 
@@ -302,7 +313,7 @@ describe('AuthorizedAppsComponent', () => {
       'session-1',
       'proj-1'
     );
-    expect(component.expandedSession()!.grants.length).toBe(1);
+    expect(component.expandedSession()!.grants).toHaveLength(1);
     expect(component.sessions()[0].projectCount).toBe(1);
   });
 
@@ -318,7 +329,120 @@ describe('AuthorizedAppsComponent', () => {
     await component.revokeGrant('session-1', grant);
 
     expect(oauthServiceMock.revokeOAuthGrant).not.toHaveBeenCalled();
-    expect(component.expandedSession()!.grants.length).toBe(2);
+    expect(component.expandedSession()!.grants).toHaveLength(2);
+  });
+
+  it('should update all-projects settings and refresh session details', async () => {
+    const details = createMockSessionDetails();
+    const updatedDetails = createMockSessionDetails({
+      session: {
+        ...createMockSession(),
+        accessAllProjects: true,
+        defaultRole: 'admin' as never,
+      },
+    });
+    oauthServiceMock.getOAuthSessionDetails
+      .mockReturnValueOnce(of(details))
+      .mockReturnValue(of(updatedDetails));
+
+    await component.loadSessionDetails('session-1');
+
+    await component.onAllProjectsChange({
+      accessAllProjects: true,
+      defaultRole: 'admin',
+    });
+
+    expect(oauthServiceMock.updateOAuthSessionSettings).toHaveBeenCalledWith(
+      'session-1',
+      { accessAllProjects: true, defaultRole: 'admin' }
+    );
+    expect(oauthServiceMock.getOAuthSessionDetails).toHaveBeenCalledTimes(2);
+    expect(component.accessAllProjects()).toBe(true);
+    expect(component.defaultRole()).toBe('admin');
+  });
+
+  it('should expose computed grant rows and all-projects state from session details', async () => {
+    const details = createMockSessionDetails();
+    details.session.accessAllProjects = true;
+    details.session.defaultRole = 'admin' as never;
+    oauthServiceMock.getOAuthSessionDetails.mockReturnValue(of(details));
+
+    await component.loadSessionDetails('session-1');
+
+    expect(component.accessAllProjects()).toBe(true);
+    expect(component.defaultRole()).toBe('admin');
+    expect(component.grantRows()).toHaveLength(2);
+    expect(component.grantRows()[0]).toEqual(
+      expect.objectContaining({ projectId: 'proj-1', role: 'editor' })
+    );
+  });
+
+  it('onGrantRoleChange updates a grant role through the shared handler', async () => {
+    const details = createMockSessionDetails();
+    oauthServiceMock.getOAuthSessionDetails.mockReturnValue(of(details));
+
+    await component.loadSessionDetails('session-1');
+
+    await component.onGrantRoleChange({
+      projectId: 'proj-1',
+      role: 'admin',
+    });
+
+    expect(oauthServiceMock.updateOAuthGrant).toHaveBeenCalledWith(
+      'session-1',
+      'proj-1',
+      { role: OAuthSessionDetailsGrantsInnerRole.Admin }
+    );
+    expect(component.expandedSession()!.grants[0].role).toBe(
+      OAuthSessionDetailsGrantsInnerRole.Admin
+    );
+  });
+
+  it('onGrantRemove revokes a project grant via the shared handler', async () => {
+    const details = createMockSessionDetails();
+    oauthServiceMock.getOAuthSessionDetails.mockReturnValue(of(details));
+
+    await component.loadSessionDetails('session-1');
+
+    await component.onGrantRemove('proj-1');
+
+    expect(oauthServiceMock.revokeOAuthGrant).toHaveBeenCalledWith(
+      'session-1',
+      'proj-1'
+    );
+    expect(component.expandedSession()!.grants).toHaveLength(1);
+  });
+
+  it('onGrantRemove does nothing when the grant is not present', async () => {
+    const details = createMockSessionDetails();
+    oauthServiceMock.getOAuthSessionDetails.mockReturnValue(of(details));
+
+    await component.loadSessionDetails('session-1');
+
+    await component.onGrantRemove('non-existent');
+    expect(oauthServiceMock.revokeOAuthGrant).not.toHaveBeenCalled();
+  });
+
+  it('should handle all-projects update failure', async () => {
+    component.expandedSession.set(createMockSessionDetails());
+    oauthServiceMock.updateOAuthSessionSettings = vi
+      .fn()
+      .mockReturnValue(
+        throwError(() => new HttpErrorResponse({ status: 500 }))
+      );
+
+    await component.onAllProjectsChange({
+      accessAllProjects: true,
+      defaultRole: 'admin',
+    });
+
+    expect(oauthServiceMock.updateOAuthSessionSettings).toHaveBeenCalled();
+    expect(snackBarMock.open).toHaveBeenCalledWith(
+      'Failed to update access settings',
+      'Close',
+      { duration: 3000 }
+    );
+    expect(component.savingAllProjects()).toBe(false);
   });
 
   it('should format dates correctly', () => {
@@ -342,7 +466,7 @@ describe('AuthorizedAppsComponent', () => {
     expect(projectsServiceMock.listUserProjects).toHaveBeenCalled();
     expect(component.showAddProject()).toBe(true);
     // proj-1 and proj-2 are already granted, only proj-3 should be available
-    expect(component.availableProjects().length).toBe(1);
+    expect(component.availableProjects()).toHaveLength(1);
     expect(component.availableProjects()[0].id).toBe('proj-3');
   });
 
@@ -393,7 +517,7 @@ describe('AuthorizedAppsComponent', () => {
       projectId: 'proj-3',
       role: AddOAuthGrantRequestRole.Editor,
     });
-    expect(component.expandedSession()!.grants.length).toBe(3);
+    expect(component.expandedSession()!.grants).toHaveLength(3);
     expect(component.showAddProject()).toBe(false);
     expect(component.sessions()[0].projectCount).toBe(3);
   });

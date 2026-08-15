@@ -8,6 +8,22 @@ description: Add Inkweld to your favourite AI assistant or harness with copy-pas
 
 Inkweld exposes your projects to AI assistants through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). The recommended way to connect is **OAuth** — on first use the tool opens your browser to sign in and pick which projects to share, so no API key is needed.
 
+## What to expect
+
+When you connect a tool for the first time, the tool opens a browser window to Inkweld's **authorization page** (GitHub-style). You'll see the tool's name and logo, then pick which projects to share and the access level for each.
+
+You choose an access level per project:
+
+| Level             | Can do                         |
+| ----------------- | ------------------------------ |
+| **View only**     | Read project content           |
+| **View and edit** | Read and write project content |
+| **Full access**   | Everything on the project      |
+
+You can also grant the app **access to all your projects** (including future ones) at a single default level, instead of picking projects one by one.
+
+After authorizing, the connection is listed in **User Settings → Authorized Apps**, where you can change a project's access level, toggle all-projects access, add or remove projects, or disconnect the app entirely.
+
 Most tools accept a URL pointing at the Inkweld MCP endpoint. You can find your server's exact URL in **Project Settings → MCP Access**, or construct it as:
 
 ```text

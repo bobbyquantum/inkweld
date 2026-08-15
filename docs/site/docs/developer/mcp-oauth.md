@@ -150,6 +150,8 @@ During the consent flow, users select which projects to share and choose an acce
 | **Editor** | All viewer permissions + `write:elements`, `write:worldbuilding`      |
 | **Admin**  | All permissions                                                       |
 
+Users may instead choose **"Access all my projects"** plus a **default access level**. In that mode the session (`mcp_oauth_sessions.access_all_projects` / `default_role`) expands to every project the user owns (current and future) at the default role, instead of an explicit `project_collaborators` row per project. Explicit per-project grants are still honoured as overrides where present. This choice is carried from the consent page through the authorization code (`mcp_oauth_codes`) to the session.
+
 ## Dual-Runtime Support
 
 The MCP/OAuth system runs on both:
@@ -161,12 +163,15 @@ Environment variables (`BASE_URL`, `DATABASE_KEY`, etc.) are accessed via `c.env
 
 ## Connected Apps Management
 
-Users can manage authorized OAuth clients at `/settings`:
+Users manage authorized OAuth clients from **User Settings → Authorized Apps** (also deep-linkable at `/settings`). Both entry points render the same shared `ProjectGrantListComponent` used by the consent page, so there is a single implementation of the project + access-level UI:
 
 - View all connected apps
 - Change access levels per project
-- Revoke individual project access
+- Toggle **"Access all my projects"** and set a default access level
+- Add / revoke individual project access
 - Revoke an app entirely
+
+The OAuth consent page and the Authorized Apps management tab both use the shared `ProjectGrantListComponent` (`frontend/src/app/components/project-grant-list/`) so project-grant editing stays consistent across the two flows.
 
 ## Configuration
 

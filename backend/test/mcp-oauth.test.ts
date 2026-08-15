@@ -139,7 +139,7 @@ describe('MCP OAuth Service - Session Management', () => {
         .select()
         .from(projectCollaborators)
         .where(eq(projectCollaborators.mcpSessionId, sessionId));
-      expect(collabs.length).toBe(1);
+      expect(collabs).toHaveLength(1);
       expect(collabs[0].projectId).toBe(testProjectId);
       expect(collabs[0].collaboratorType).toBe('oauth_app');
       expect(collabs[0].role).toBe('editor');
@@ -161,7 +161,7 @@ describe('MCP OAuth Service - Session Management', () => {
         .select()
         .from(projectCollaborators)
         .where(eq(projectCollaborators.mcpSessionId, sessionId));
-      expect(collabs.length).toBe(2);
+      expect(collabs).toHaveLength(2);
 
       const projectIds = collabs.map((c) => c.projectId).sort((a, b) => a.localeCompare(b));
       expect(projectIds).toEqual(
@@ -226,7 +226,7 @@ describe('MCP OAuth Service - Session Management', () => {
         .select()
         .from(projectCollaborators)
         .where(eq(projectCollaborators.mcpSessionId, first.sessionId));
-      expect(firstCollabs.length).toBe(2);
+      expect(firstCollabs).toHaveLength(2);
 
       // Second session (relink)
       const second = await mcpOAuthService.createSession(db, {
@@ -241,14 +241,14 @@ describe('MCP OAuth Service - Session Management', () => {
         .select()
         .from(projectCollaborators)
         .where(eq(projectCollaborators.mcpSessionId, first.sessionId));
-      expect(firstCollabs.length).toBe(0);
+      expect(firstCollabs).toHaveLength(0);
 
       // Second session's collaborator entries should exist
       const secondCollabs = await db
         .select()
         .from(projectCollaborators)
         .where(eq(projectCollaborators.mcpSessionId, second.sessionId));
-      expect(secondCollabs.length).toBe(1);
+      expect(secondCollabs).toHaveLength(1);
       expect(secondCollabs[0].role).toBe('admin');
     });
 
@@ -287,13 +287,13 @@ describe('MCP OAuth Service - Session Management', () => {
         .select()
         .from(projectCollaborators)
         .where(eq(projectCollaborators.mcpSessionId, first.sessionId));
-      expect(firstCollabs.length).toBe(1);
+      expect(firstCollabs).toHaveLength(1);
 
       const secondCollabs = await db
         .select()
         .from(projectCollaborators)
         .where(eq(projectCollaborators.mcpSessionId, second.sessionId));
-      expect(secondCollabs.length).toBe(1);
+      expect(secondCollabs).toHaveLength(1);
     });
 
     it('should handle multiple relinks cleanly (only latest session active)', async () => {
@@ -324,12 +324,12 @@ describe('MCP OAuth Service - Session Management', () => {
       // Only the third session should be active
       const sessions = await db.select().from(mcpOAuthSessions);
       const activeSessions = sessions.filter((s) => s.revokedAt === null);
-      expect(activeSessions.length).toBe(1);
+      expect(activeSessions).toHaveLength(1);
       expect(activeSessions[0].id).toBe(third.sessionId);
 
       // Only the third session should have collaborator entries
       const allCollabs = await db.select().from(projectCollaborators);
-      expect(allCollabs.length).toBe(1);
+      expect(allCollabs).toHaveLength(1);
       expect(allCollabs[0].mcpSessionId).toBe(third.sessionId);
       expect(allCollabs[0].role).toBe('admin');
     });
@@ -357,7 +357,7 @@ describe('MCP OAuth Service - Session Management', () => {
         .select()
         .from(projectCollaborators)
         .where(eq(projectCollaborators.mcpSessionId, sessionId));
-      expect(collabs.length).toBe(0);
+      expect(collabs).toHaveLength(0);
     });
   });
 
@@ -374,7 +374,7 @@ describe('MCP OAuth Service - Session Management', () => {
       });
 
       const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
-      expect(grants.length).toBe(2);
+      expect(grants).toHaveLength(2);
       expect(grants.find((g) => g.projectId === testProjectId)?.role).toBe('editor');
       expect(grants.find((g) => g.projectId === testProject2Id)?.role).toBe('viewer');
     });
@@ -392,7 +392,7 @@ describe('MCP OAuth Service - Session Management', () => {
       await mcpOAuthService.grantProjectAccess(db, sessionId, testProject2Id, 'viewer', testUserId);
 
       const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
-      expect(grants.length).toBe(2);
+      expect(grants).toHaveLength(2);
     });
   });
 
@@ -411,7 +411,7 @@ describe('MCP OAuth Service - Session Management', () => {
       await mcpOAuthService.revokeProjectAccess(db, sessionId, testProject2Id);
 
       const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
-      expect(grants.length).toBe(1);
+      expect(grants).toHaveLength(1);
       expect(grants[0].projectId).toBe(testProjectId);
     });
   });
@@ -429,6 +429,140 @@ describe('MCP OAuth Service - Session Management', () => {
 
       const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
       expect(grants[0].role).toBe('admin');
+    });
+  });
+
+  describe('all-projects access', () => {
+    it('should expand grants to all user projects at the default role', async () => {
+      const { sessionId } = await mcpOAuthService.createSession(db, {
+        userId: testUserId,
+        clientId: testClientId,
+        grants: [],
+        accessAllProjects: true,
+        defaultRole: 'editor',
+        issuer: 'http://localhost:8333',
+      });
+
+      const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
+      expect(grants).toHaveLength(2);
+      expect(grants.find((g) => g.projectId === testProjectId)?.role).toBe('editor');
+      expect(grants.find((g) => g.projectId === testProject2Id)?.role).toBe('editor');
+      expect(grants.every((g) => g.permissions.includes('write:elements'))).toBe(true);
+    });
+
+    it('should keep explicit per-project grants as overrides in all-projects mode', async () => {
+      const { sessionId } = await mcpOAuthService.createSession(db, {
+        userId: testUserId,
+        clientId: testClientId,
+        grants: [{ projectId: testProjectId, role: 'admin' }],
+        accessAllProjects: true,
+        defaultRole: 'viewer',
+        issuer: 'http://localhost:8333',
+      });
+
+      // Explicit grants are persisted so they act as per-project overrides
+      const collabs = await db
+        .select()
+        .from(projectCollaborators)
+        .where(eq(projectCollaborators.mcpSessionId, sessionId));
+      expect(collabs).toHaveLength(1);
+
+      // Access is expanded to all projects; the explicit grant overrides the
+      // default role for that project.
+      const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
+      expect(grants).toHaveLength(2);
+      expect(grants.find((g) => g.projectId === testProjectId)?.role).toBe('admin');
+      expect(grants.find((g) => g.projectId === testProject2Id)?.role).toBe('viewer');
+    });
+
+    it('should honour explicit per-project grants as overrides', async () => {
+      // Manually enable all-projects then add an explicit admin override.
+      const { sessionId } = await mcpOAuthService.createSession(db, {
+        userId: testUserId,
+        clientId: testClientId,
+        grants: [],
+        accessAllProjects: true,
+        defaultRole: 'viewer',
+        issuer: 'http://localhost:8333',
+      });
+
+      await mcpOAuthService.grantProjectAccess(db, sessionId, testProjectId, 'admin', testUserId);
+
+      const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
+      expect(grants.find((g) => g.projectId === testProjectId)?.role).toBe('admin');
+      expect(grants.find((g) => g.projectId === testProject2Id)?.role).toBe('viewer');
+    });
+
+    it('updateAllProjectsSettings should toggle all-projects and set default role', async () => {
+      const { sessionId } = await mcpOAuthService.createSession(db, {
+        userId: testUserId,
+        clientId: testClientId,
+        grants: [{ projectId: testProjectId, role: 'viewer' }],
+        issuer: 'http://localhost:8333',
+      });
+
+      await mcpOAuthService.updateAllProjectsSettings(db, sessionId, true, 'admin');
+
+      const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
+      expect(grants).toHaveLength(2);
+      // The explicit viewer grant on testProjectId remains as an override
+      expect(grants.find((g) => g.projectId === testProjectId)?.role).toBe('viewer');
+      expect(grants.find((g) => g.projectId === testProject2Id)?.role).toBe('admin');
+
+      // Disabling restores per-project-only access
+      await mcpOAuthService.updateAllProjectsSettings(db, sessionId, false);
+
+      const grantsAfter = await mcpOAuthService.getSessionGrants(db, sessionId);
+      expect(grantsAfter).toHaveLength(1);
+      expect(grantsAfter[0].projectId).toBe(testProjectId);
+    });
+  });
+
+  describe('session details (all-projects)', () => {
+    it('getSessionDetails should expand grants for all-projects sessions', async () => {
+      const { sessionId } = await mcpOAuthService.createSession(db, {
+        userId: testUserId,
+        clientId: testClientId,
+        grants: [],
+        accessAllProjects: true,
+        defaultRole: 'editor',
+        issuer: 'http://localhost:8333',
+      });
+
+      const details = await mcpOAuthService.getSessionDetails(db, sessionId, testUserId);
+      expect(details).not.toBeNull();
+      expect(details!.session.accessAllProjects).toBe(true);
+      expect(details!.session.defaultRole).toBe('editor');
+      expect(details!.session.projectCount).toBe(2);
+      expect(details!.grants).toHaveLength(2);
+    });
+
+    it('revoking an all-projects session removes all grants even while accessAllProjects remains set', async () => {
+      const { sessionId } = await mcpOAuthService.createSession(db, {
+        userId: testUserId,
+        clientId: testClientId,
+        grants: [],
+        accessAllProjects: true,
+        defaultRole: 'viewer',
+        issuer: 'http://localhost:8333',
+      });
+
+      // Sanity check: before revocation the grants are expanded.
+      const before = await mcpOAuthService.getSessionGrants(db, sessionId);
+      expect(before).toHaveLength(2);
+
+      await mcpOAuthService.revokeSession(db, sessionId, 'Test revocation');
+
+      // Revocation prevents expansion: no grants are returned.
+      const after = await mcpOAuthService.getSessionGrants(db, sessionId);
+      expect(after).toHaveLength(0);
+
+      const [session] = await db
+        .select()
+        .from(mcpOAuthSessions)
+        .where(eq(mcpOAuthSessions.id, sessionId));
+      expect(session.revokedAt).not.toBeNull();
+      expect(session.accessAllProjects).toBe(true);
     });
   });
 });
@@ -636,7 +770,7 @@ describe('MCP OAuth Service - cleanup and utility methods', () => {
       .select()
       .from(mcpOAuthCodes)
       .where(eq(mcpOAuthCodes.codeHash, expiredHash));
-    expect(remaining.length).toBe(0);
+    expect(remaining).toHaveLength(0);
   });
 
   it('cleanupExpiredSessions should delete expired sessions', async () => {
@@ -658,7 +792,7 @@ describe('MCP OAuth Service - cleanup and utility methods', () => {
       .select()
       .from(mcpOAuthSessions)
       .where(eq(mcpOAuthSessions.id, expiredSessionId));
-    expect(remaining.length).toBe(0);
+    expect(remaining).toHaveLength(0);
   });
 
   it('getPublicClient should return null for unknown client', async () => {

@@ -8,6 +8,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import {
   type AuthorizationInfo,
+  ConsentRequestDefaultRole,
   ConsentRequestGrantsInnerRole,
   OAuthService as OAuthApiService,
 } from '@inkweld/index';
@@ -126,7 +127,7 @@ describe('OAuthConsentComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      expect(component.projectGrants().length).toBe(2);
+      expect(component.projectGrants()).toHaveLength(2);
       expect(component.projectGrants()[0].selected).toBe(false);
       expect(component.projectGrants()[0].role).toBe(
         ConsentRequestGrantsInnerRole.Viewer
@@ -173,23 +174,35 @@ describe('OAuthConsentComponent', () => {
       await fixture.whenStable();
     });
 
-    it('should toggle project selection', () => {
-      const grant = component.projectGrants()[0];
-      expect(grant.selected).toBe(false);
+    it('should toggle project selection via the shared selection handler', () => {
+      expect(component.projectGrants()[0].selected).toBe(false);
 
-      component.toggleProject(grant);
+      component.onGrantSelectionChange({ projectId: 'proj-1', selected: true });
       expect(component.projectGrants()[0].selected).toBe(true);
 
-      component.toggleProject(component.projectGrants()[0]);
+      component.onGrantSelectionChange({
+        projectId: 'proj-1',
+        selected: false,
+      });
       expect(component.projectGrants()[0].selected).toBe(false);
     });
 
-    it('should update role for a project', () => {
-      const grant = component.projectGrants()[0];
-      component.updateRole(grant, ConsentRequestGrantsInnerRole.Editor);
+    it('should update role via the shared role handler', () => {
+      component.onGrantRoleChange({ projectId: 'proj-1', role: 'editor' });
 
       expect(component.projectGrants()[0].role).toBe(
         ConsentRequestGrantsInnerRole.Editor
+      );
+    });
+
+    it('should keep toggleProject behaviour (legacy wrapper)', () => {
+      const grant = component.projectGrants()[0];
+      component.toggleProject(grant);
+      expect(component.projectGrants()[0].selected).toBe(true);
+
+      component.updateRole(grant, ConsentRequestGrantsInnerRole.Admin);
+      expect(component.projectGrants()[0].role).toBe(
+        ConsentRequestGrantsInnerRole.Admin
       );
     });
 
@@ -209,9 +222,37 @@ describe('OAuthConsentComponent', () => {
     it('should compute hasSelection correctly', () => {
       expect(component.hasSelection()).toBe(false);
 
-      const grant = component.projectGrants()[0];
-      component.toggleProject(grant);
+      component.onGrantSelectionChange({ projectId: 'proj-1', selected: true });
 
+      expect(component.hasSelection()).toBe(true);
+    });
+
+    it('should map project grants to shared grant rows', () => {
+      expect(component.grantRows()).toHaveLength(2);
+      expect(component.grantRows()[0]).toEqual(
+        expect.objectContaining({ projectId: 'proj-1', role: 'viewer' })
+      );
+    });
+
+    it('should handle shared selection changes', () => {
+      component.onGrantSelectionChange({ projectId: 'proj-2', selected: true });
+      expect(component.projectGrants()[1].selected).toBe(true);
+    });
+
+    it('should handle shared role changes', () => {
+      component.onGrantRoleChange({ projectId: 'proj-1', role: 'editor' });
+      expect(component.projectGrants()[0].role).toBe(
+        ConsentRequestGrantsInnerRole.Editor
+      );
+    });
+
+    it('should handle shared all-projects changes', () => {
+      component.onAllProjectsChange({
+        accessAllProjects: true,
+        defaultRole: 'admin',
+      });
+      expect(component.accessAllProjects()).toBe(true);
+      expect(component.defaultRole()).toBe('admin');
       expect(component.hasSelection()).toBe(true);
     });
   });
@@ -234,13 +275,9 @@ describe('OAuthConsentComponent', () => {
     });
 
     it('should submit consent with selected grants', async () => {
-      // Select first project with editor role
-      const grant = component.projectGrants()[0];
-      component.toggleProject(grant);
-      component.updateRole(
-        component.projectGrants()[0],
-        ConsentRequestGrantsInnerRole.Editor
-      );
+      // Select first project with editor role via the shared handlers
+      component.onGrantSelectionChange({ projectId: 'proj-1', selected: true });
+      component.onGrantRoleChange({ projectId: 'proj-1', role: 'editor' });
 
       // Mock window.location.href using Object.defineProperty
       const hrefSetter = vi.fn();
@@ -274,6 +311,8 @@ describe('OAuthConsentComponent', () => {
           grants: [
             { projectId: 'proj-1', role: ConsentRequestGrantsInnerRole.Editor },
           ],
+          accessAllProjects: false,
+          defaultRole: ConsentRequestDefaultRole.Viewer,
         }
       );
 
@@ -314,6 +353,30 @@ describe('OAuthConsentComponent', () => {
         { duration: 5000 }
       );
       expect(component.submitting()).toBe(false);
+    });
+
+    it('should submit all-projects consent without explicit grants', async () => {
+      component.onAllProjectsChange({
+        accessAllProjects: true,
+        defaultRole: 'admin',
+      });
+      component.approve();
+      await fixture.whenStable();
+
+      expect(oauthService.submitConsent).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        {
+          grants: [],
+          accessAllProjects: true,
+          defaultRole: 'admin',
+        }
+      );
     });
   });
 
