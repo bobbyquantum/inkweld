@@ -7,7 +7,7 @@
 </h2>
 <mat-dialog-content class="content">
   <form class="form">
-    <mat-form-field appearance="outline">
+    <mat-form-field appearance="outline" data-testid="timeline-era-name-field">
       <mat-label>{{ 'timeline.eraDialog.nameLabel' | transloco }}</mat-label>
       <input
         matInput
@@ -115,6 +115,15 @@
         {{ 'timeline.eraDialog.endAfterStart' | transloco }}
       </div>
     }
+    @if (
+      form()
+        .errors()
+        .some(e => e.kind === 'invalidPoint')
+    ) {
+      <div class="field-error" data-testid="timeline-era-invalid-error">
+        {{ 'timeline.eraDialog.invalidForSystem' | transloco }}
+      </div>
+    }
 
     <mat-form-field appearance="outline">
       <mat-label>{{ 'timeline.eraDialog.colorLabel' | transloco }}</mat-label>
@@ -126,6 +135,37 @@
         [placeholder]="'timeline.eraDialog.colorPlaceholder' | transloco"
         data-testid="timeline-era-color" />
     </mat-form-field>
+
+    <div class="section-label">
+      {{ 'timeline.eraDialog.imageSection' | transloco }}
+    </div>
+    <div class="image-row">
+      @if (imagePreview(); as preview) {
+        <img
+          class="image-preview"
+          [src]="preview"
+          [alt]="'timeline.eraDialog.backgroundPreviewAlt' | transloco"
+          data-testid="timeline-era-image-preview" />
+      }
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="onChooseImage()"
+        data-testid="timeline-era-choose-image">
+        <mat-icon>image</mat-icon>
+        {{ 'timeline.eraDialog.chooseImage' | transloco }}
+      </button>
+      @if (model().imageUrl) {
+        <button
+          mat-button
+          type="button"
+          color="warn"
+          (click)="onRemoveImage()"
+          data-testid="timeline-era-remove-image">
+          {{ 'timeline.eraDialog.removeImage' | transloco }}
+        </button>
+      }
+    </div>
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">

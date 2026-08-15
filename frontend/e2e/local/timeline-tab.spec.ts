@@ -17,6 +17,7 @@
 
 import { type Page } from '@playwright/test';
 
+import { DEMO_ASSETS, storeRealMediaInIndexedDB } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -228,6 +229,158 @@ test.describe('Timeline Tab', () => {
       await expect(
         page.locator('[data-testid^="timeline-event-body-"]').first()
       ).toBeVisible();
+    });
+  });
+
+  test('eras: taller header, centred name + range rows, background image from library', async ({
+    localPageWithProject: page,
+  }) => {
+    // The media selector dialog checks the server for extra items even in
+    // local mode; fulfill that endpoint with an empty list so the fixture's
+    // "no API calls in local mode" guard is not tripped.
+    await page.route('**/api/v1/media/**', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ items: [], total: 0 }),
+      });
+    });
+
+    await createTimelineAndOpen(page);
+
+    await test.step('seed an image into the project media library', async () => {
+      await storeRealMediaInIndexedDB(
+        page,
+        'testuser/test-project',
+        'era-bg',
+        DEMO_ASSETS.images.cyberCityscape,
+        'era-bg.png'
+      );
+    });
+
+    await test.step('add an era with a background image from the media library', async () => {
+      await page.getByTestId('timeline-add-era').click();
+
+      const nameInput = page.getByTestId('timeline-era-name');
+      await nameInput.waitFor({ state: 'visible' });
+      await nameInput.click();
+      await nameInput.fill('Age of Heroes');
+      await expect(nameInput).toHaveValue('Age of Heroes');
+      await page.getByTestId('timeline-era-start-date').fill('2024-01-01');
+      // Gregorian template uses uniform 30-day months, so day 31 is invalid.
+      await page.getByTestId('timeline-era-end-date').fill('2024-12-30');
+
+      await page.getByTestId('timeline-era-choose-image').click();
+      const mediaDialog = page.getByTestId('media-selector-dialog');
+      await expect(mediaDialog).toBeVisible();
+      await page.getByTestId('media-selector-item-era-bg').click();
+      await page.getByTestId('media-selector-confirm').click();
+      await expect(mediaDialog).not.toBeVisible();
+
+      await expect(
+        page.getByTestId('timeline-era-image-preview')
+      ).toBeVisible();
+
+      const save = page.getByTestId('timeline-era-save');
+      await expect(save).toBeEnabled();
+      await save.click();
+      await expect(nameInput).toHaveCount(0);
+    });
+
+    await test.step('era header is taller and renders the background image', async () => {
+      const chip = page
+        .locator('[data-testid^="timeline-era-header-chip-"]')
+        .first();
+      await expect(chip).toBeVisible();
+      const chipBox = await chip.boundingBox();
+      expect(chipBox).not.toBeNull();
+      // Header chip used to be 24px tall (28px strip); now a two-row layout.
+      expect(chipBox!.height).toBeGreaterThanOrEqual(36);
+
+      await expect(
+        page.locator('[data-testid^="timeline-era-header-image-"]').first()
+      ).toBeVisible();
+    });
+
+    await test.step('name and time range rows are centred within the era span', async () => {
+      const chipBox = await page
+        .locator('[data-testid^="timeline-era-header-chip-"]')
+        .first()
+        .boundingBox();
+      expect(chipBox).not.toBeNull();
+      const chipCenterX = chipBox!.x + chipBox!.width / 2;
+
+      for (const prefix of ['timeline-era-label-', 'timeline-era-range-']) {
+        const el = page.locator(`[data-testid^="${prefix}"]`).first();
+        await expect(el).toBeVisible();
+        const elBox = await el.boundingBox();
+        expect(elBox).not.toBeNull();
+        const elCenterX = elBox!.x + elBox!.width / 2;
+        expect(Math.abs(elCenterX - chipCenterX)).toBeLessThan(3);
+      }
+
+      const range = page
+        .locator('[data-testid^="timeline-era-range-"]')
+        .first();
+      await expect(range).toContainText('–');
+      await expect(range).toContainText('2024');
+    });
+
+    await test.step('era band renders the washed-out background image', async () => {
+      const bandImage = page
+        .locator('[data-testid^="timeline-era-band-image-"]')
+        .first();
+      await expect(bandImage).toBeVisible();
+      const href = await bandImage.getAttribute('href');
+      expect(href).toMatch(/^blob:/);
+    });
+
+    await test.step('era header is clickable to edit and exposes resize handles', async () => {
+      // Clicking the header chip (not the band) must open the edit dialog.
+      await page
+        .locator('[data-testid^="timeline-era-header-chip-"]')
+        .first()
+        .click();
+      const nameInput = page.getByTestId('timeline-era-name');
+      await expect(nameInput).toBeVisible();
+      await expect(nameInput).toHaveValue('Age of Heroes');
+      await page.keyboard.press('Escape');
+      await expect(nameInput).toHaveCount(0);
+
+      // Resize handles are rendered on the header for drag-resizing.
+      await expect(
+        page
+          .locator('[data-testid^="timeline-era-header-handle-start-"]')
+          .first()
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-testid^="timeline-era-header-handle-end-"]').first()
+      ).toBeVisible();
+    });
+
+    await test.step('edit era: floating name label stays visible when focused with a value', async () => {
+      await page.locator('[data-testid^="timeline-era-body-"]').first().click();
+
+      const nameInput = page.getByTestId('timeline-era-name');
+      await expect(nameInput).toBeVisible();
+      await expect(nameInput).toHaveValue('Age of Heroes');
+
+      // Focus the filled field — this floats the label. It used to be
+      // clipped at the top edge of the dialog's scroll container.
+      await nameInput.click();
+      const field = page.getByTestId('timeline-era-name-field');
+      const label = field.locator('label');
+      await expect(label).toHaveClass(/mdc-floating-label--float-above/);
+
+      const content = page.locator('mat-dialog-content');
+      const labelBox = await label.boundingBox();
+      const contentBox = await content.boundingBox();
+      expect(labelBox).not.toBeNull();
+      expect(contentBox).not.toBeNull();
+      expect(labelBox!.y).toBeGreaterThanOrEqual(contentBox!.y - 1);
+
+      await page.keyboard.press('Escape');
+      await expect(nameInput).toHaveCount(0);
     });
   });
 });

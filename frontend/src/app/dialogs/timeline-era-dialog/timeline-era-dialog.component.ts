@@ -4,6 +4,8 @@ import {
   computed,
   effect,
   inject,
+  type OnDestroy,
+  type OnInit,
   signal,
 } from '@angular/core';
 import {
@@ -24,7 +26,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { TranslocoModule } from '@jsverse/transloco';
+import { createMediaUrl, extractMediaId } from '@components/image-paste';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   isValidTimePointFor,
   type TimePoint,
@@ -33,6 +36,8 @@ import {
   unitInputModeFor,
 } from '@models/time-system';
 import type { TimelineEra } from '@models/timeline.model';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
 
 import {
   INT_RE,
@@ -48,6 +53,10 @@ export interface TimelineEraDialogData {
   defaultStart?: TimePoint;
   defaultEnd?: TimePoint;
   defaultColor?: string;
+  /** Project owner; required for the media-library background picker. */
+  username?: string;
+  /** Project slug; required for the media-library background picker. */
+  slug?: string;
 }
 
 export type TimelineEraDialogResult =
@@ -58,6 +67,8 @@ interface TimelineEraFormValue {
   startUnits: string[];
   endUnits: string[];
   color: string;
+  /** `media:` URL of the background image, or empty for none. */
+  imageUrl: string;
 }
 
 @Component({
@@ -76,12 +87,15 @@ interface TimelineEraFormValue {
   templateUrl: './timeline-era-dialog.component.html',
   styleUrls: ['./timeline-era-dialog.component.scss'],
 })
-export class TimelineEraDialogComponent {
+export class TimelineEraDialogComponent implements OnInit, OnDestroy {
   protected readonly data = inject<TimelineEraDialogData>(MAT_DIALOG_DATA);
   private readonly dialogRef =
     inject<MatDialogRef<TimelineEraDialogComponent, TimelineEraDialogResult>>(
       MatDialogRef
     );
+  private readonly dialogs = inject(DialogGatewayService);
+  private readonly localStorage = inject(LocalStorageService);
+  private readonly transloco = inject(TranslocoService);
 
   protected readonly isGregorian = computed(
     () => this.data.system.id === 'gregorian'
@@ -125,7 +139,18 @@ export class TimelineEraDialogComponent {
     startUnits: this.seed(this.data.era?.start ?? this.data.defaultStart),
     endUnits: this.seed(this.data.era?.end ?? this.data.defaultEnd),
     color: this.data.era?.color ?? this.data.defaultColor ?? '',
+    imageUrl: this.data.era?.imageUrl ?? '',
   });
+
+  /**
+   * Preview of the selected background image. Holds `blob:` URLs, which
+   * Angular's image-source sanitizer accepts without bypassing security.
+   * Object URLs created by this dialog are tracked and revoked on destroy;
+   * URLs handed back by {@link LocalStorageService.getMediaUrl} belong to
+   * its shared cache and are intentionally never revoked here.
+   */
+  protected readonly imagePreview = signal<string | null>(null);
+  private previewObjectUrl: string | null = null;
 
   readonly form = form(this.model, schemaPath => {
     required(schemaPath.name, { message: 'Name is required' });
@@ -157,7 +182,10 @@ export class TimelineEraDialogComponent {
         !isValidTimePointFor(start, this.data.system) ||
         !isValidTimePointFor(end, this.data.system)
       ) {
-        return null;
+        return {
+          kind: 'invalidPoint',
+          message: 'A date does not fit this time system',
+        };
       }
       return timePointToAbsoluteValue(end, this.data.system) <
         timePointToAbsoluteValue(start, this.data.system)
@@ -173,6 +201,74 @@ export class TimelineEraDialogComponent {
       this.startDateSignal.set(this.unitsToIsoDateFromModel('start'));
       this.endDateSignal.set(this.unitsToIsoDateFromModel('end'));
     });
+  }
+
+  ngOnInit(): void {
+    void this.loadExistingImagePreview();
+  }
+
+  ngOnDestroy(): void {
+    this.revokePreviewUrl();
+  }
+
+  /** Project key ("username/slug") used for media lookups, or null. */
+  private get projectKey(): string | null {
+    const { username, slug } = this.data;
+    return username && slug ? `${username}/${slug}` : null;
+  }
+
+  /** Resolve the stored `media:` URL of an edited era into a preview. */
+  private async loadExistingImagePreview(): Promise<void> {
+    const imageUrl = this.data.era?.imageUrl;
+    if (!imageUrl) return;
+    const projectKey = this.projectKey;
+    const mediaId = extractMediaId(imageUrl);
+    if (!projectKey || !mediaId) return;
+    try {
+      const url = await this.localStorage.getMediaUrl(projectKey, mediaId);
+      if (url && this.model().imageUrl === imageUrl) {
+        // Shared cache URL — owned by LocalStorageService, never revoked here.
+        this.imagePreview.set(url);
+      }
+    } catch {
+      // Preview is cosmetic; a missing blob must not break the dialog.
+    }
+  }
+
+  /** Open the media library and use the picked image as background. */
+  protected async onChooseImage(): Promise<void> {
+    const projectKey = this.projectKey;
+    if (!projectKey || !this.data.username || !this.data.slug) return;
+    const result = await this.dialogs.openMediaSelectorDialog({
+      username: this.data.username,
+      slug: this.data.slug,
+      filterType: 'image',
+      title: this.transloco.translate('timeline.eraDialog.chooseImageTitle'),
+    });
+    if (!result?.blob || !result.selected) return;
+    const selected = result.selected;
+    this.revokePreviewUrl();
+    const objectUrl = URL.createObjectURL(result.blob);
+    this.previewObjectUrl = objectUrl;
+    this.imagePreview.set(objectUrl);
+    this.model.update(m => ({
+      ...m,
+      imageUrl: createMediaUrl(selected.mediaId),
+    }));
+  }
+
+  /** Clear the background image selection. */
+  protected onRemoveImage(): void {
+    this.revokePreviewUrl();
+    this.imagePreview.set(null);
+    this.model.update(m => ({ ...m, imageUrl: '' }));
+  }
+
+  private revokePreviewUrl(): void {
+    if (this.previewObjectUrl) {
+      URL.revokeObjectURL(this.previewObjectUrl);
+      this.previewObjectUrl = null;
+    }
   }
 
   protected onStartDateChange(event: Event): void {
@@ -260,12 +356,14 @@ export class TimelineEraDialogComponent {
       return;
     }
 
+    const trimmedImageUrl = raw.imageUrl.trim();
     const era: TimelineEra = {
       id: this.data.era?.id ?? '',
       name: trimmedName,
       start,
       end,
       color: trimmedColor,
+      ...(trimmedImageUrl ? { imageUrl: trimmedImageUrl } : {}),
     };
 
     this.dialogRef.close({ kind: 'save', era });

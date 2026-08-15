@@ -68,6 +68,7 @@
           <button
             class="media-item"
             type="button"
+            [attr.data-testid]="'media-selector-item-' + item.mediaId"
             [class.selected]="isSelected(item)"
             [class.needs-download]="needsDownload(item)"
             (click)="selectItem(item)"
@@ -130,6 +131,7 @@
     mat-raised-button
     color="primary"
     [disabled]="!hasSelection()"
+    data-testid="media-selector-confirm"
     (click)="confirm()">
     @if (multiSelect && selectedCount() > 0) {
       {{ 'media.mediaSelector.selectButton' | transloco }} {{ selectedCount() }}
