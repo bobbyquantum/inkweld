@@ -61,7 +61,9 @@ reviews:
     labels: []
     drafts: false
     base_branches: []
-    ignore_usernames: []
+    ignore_usernames:
+      # Skip auto-review of Renovate dependency PRs (machine-generated).
+      - renovate[bot]
   finishing_touches:
     docstrings:
       enabled: true
