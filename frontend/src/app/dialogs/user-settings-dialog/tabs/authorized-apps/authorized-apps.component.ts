@@ -351,20 +351,22 @@ export class AuthorizedAppsComponent implements OnInit {
             event.defaultRole as UpdateOAuthSessionSettingsRequestDefaultRole,
         })
       );
-      // Update local session + session-list state
+      // Refresh session details so the grants list reflects the expanded
+      // all-projects set (the backend returns every owned project at the
+      // default role, with explicit grants as overrides).
+      const details = await firstValueFrom(
+        this.oauthService.getOAuthSessionDetails(
+          session.session.id,
+          'body',
+          false,
+          { transferCache: false }
+        )
+      );
+      this.expandedSession.set(details);
+
+      // Keep the session-list entry's all-projects state in sync.
       const role = event.defaultRole as
         PublicOAuthSessionDefaultRole | null | undefined;
-      this.expandedSession.update(details => {
-        if (!details) return null;
-        return {
-          ...details,
-          session: {
-            ...details.session,
-            accessAllProjects: event.accessAllProjects,
-            defaultRole: role,
-          },
-        };
-      });
       this.sessions.update(s =>
         s.map(sess =>
           sess.id === session.session.id

@@ -332,9 +332,18 @@ describe('AuthorizedAppsComponent', () => {
     expect(component.expandedSession()!.grants.length).toBe(2);
   });
 
-  it('should update all-projects settings and reflect them locally', async () => {
+  it('should update all-projects settings and refresh session details', async () => {
     const details = createMockSessionDetails();
-    oauthServiceMock.getOAuthSessionDetails.mockReturnValue(of(details));
+    const updatedDetails = createMockSessionDetails({
+      session: {
+        ...createMockSession(),
+        accessAllProjects: true,
+        defaultRole: 'admin' as never,
+      },
+    });
+    oauthServiceMock.getOAuthSessionDetails
+      .mockReturnValueOnce(of(details))
+      .mockReturnValue(of(updatedDetails));
 
     await component.loadSessionDetails('session-1');
 
@@ -347,6 +356,7 @@ describe('AuthorizedAppsComponent', () => {
       'session-1',
       { accessAllProjects: true, defaultRole: 'admin' }
     );
+    expect(oauthServiceMock.getOAuthSessionDetails).toHaveBeenCalledTimes(2);
     expect(component.accessAllProjects()).toBe(true);
     expect(component.defaultRole()).toBe('admin');
   });
