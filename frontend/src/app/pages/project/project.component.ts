@@ -391,7 +391,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     window.addEventListener('touchend', this.onSidebarResizeEnd);
   }
 
-  private onSidebarResizeMove = (event: MouseEvent | TouchEvent): void => {
+  private readonly onSidebarResizeMove = (
+    event: MouseEvent | TouchEvent
+  ): void => {
     if (!this.resizing) return;
     const touches = (event as TouchEvent).touches;
     const clientX =
@@ -401,7 +403,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     this.sidebarWidth.set(Math.min(480, Math.max(200, clientX)));
   };
 
-  private onSidebarResizeEnd = (): void => {
+  private readonly onSidebarResizeEnd = (): void => {
     if (!this.resizing) return;
     this.resizing = false;
     window.removeEventListener('mousemove', this.onSidebarResizeMove);

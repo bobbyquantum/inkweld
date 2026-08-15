@@ -104,6 +104,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   private routerSubscription: Subscription | null = null;
   private initialSyncDone = false; // Flag to ensure initial sync runs only once
   private lastProjectId: string | undefined; // Track project changes
+  private resizeObserver: ResizeObserver | undefined;
 
   // Scroll state for arrow visibility
   canScrollLeft = signal(false);
@@ -332,12 +333,23 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.routerSubscription) {
       this.routerSubscription.unsubscribe();
     }
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = undefined;
   }
 
   ngAfterViewInit(): void {
     // Initial scroll state check and scroll to active tab
     this.updateScrollState();
     setTimeout(() => this.scrollToActiveTab(), 0);
+
+    // Re-evaluate overflow when the tab bar's width changes (e.g. the sidebar
+    // is resized/dragged or the window shrinks), so the scroll arrows show and
+    // the fixed end actions (user menu) stay visible.
+    const el = this.tabNavBar?.nativeElement;
+    if (el && typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => this.updateScrollState());
+      this.resizeObserver.observe(el);
+    }
   }
 
   /** Check if scroll arrows should be visible */

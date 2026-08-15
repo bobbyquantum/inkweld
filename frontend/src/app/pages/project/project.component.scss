@@ -22,6 +22,7 @@
   display: flex;
   flex: 1;
   min-height: 0;
+  min-width: 0; // Allow shrinking so content (and the tab bar) can overflow internally
   width: 100%;
 }
 
@@ -377,6 +378,7 @@
 .desktop-content {
   flex: 1;
   min-height: 0;
+  min-width: 0; // Allow the content to shrink so the tab bar overflows internally
   display: flex;
   flex-direction: column;
   position: relative;

@@ -51,7 +51,7 @@
     "templateNamePlaceholder": "e.g., Character",
     "iconLabel": "Icon",
     "defaultImageLabel": "Default image",
-    "defaultImageAlt": "Default",
+    "defaultThumbAlt": "Default",
     "defaultImagePickerTitle": "Select default image",
     "pickDefaultImage": "Pick image",
     "clearDefaultImage": "Remove default image",
