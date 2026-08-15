@@ -17,7 +17,7 @@
         </button>
         <app-breadcrumb-menu
           #segMenu="appBreadcrumbMenu"
-          [parentId]="segment.id"
+          [parentId]="segment.id === projectRootId ? null : segment.id"
           [currentBranchId]="segment.nextBranchId" />
         <mat-icon class="breadcrumb-separator" aria-hidden="true">
           chevron_right

@@ -64,10 +64,12 @@ test.describe('Breadcrumb quick-nav flyout', () => {
     await page.locator('mat-dialog-container').waitFor({ state: 'hidden' });
 
     // 5) Switch to the "Scene A" tab — the breadcrumb should show
-    //    "ActOne > SceneA".
+    //    "Project Name > ActOne > SceneA".
     await page.getByRole('tab', { name: docA }).click();
     const breadcrumbs = page.getByTestId('document-breadcrumbs').locator('nav');
     await expect(breadcrumbs).toBeVisible();
+    // The virtual project-name root is the first segment.
+    await expect(breadcrumbs).toContainText(projectTitle);
     await expect(breadcrumbs).toContainText(folderName);
     await expect(breadcrumbs).toContainText(docA);
 
