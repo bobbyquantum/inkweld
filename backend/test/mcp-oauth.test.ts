@@ -450,7 +450,7 @@ describe('MCP OAuth Service - Session Management', () => {
       expect(grants.every((g) => g.permissions.includes('write:elements'))).toBe(true);
     });
 
-    it('should not create explicit collaborator rows in all-projects mode', async () => {
+    it('should keep explicit per-project grants as overrides in all-projects mode', async () => {
       const { sessionId } = await mcpOAuthService.createSession(db, {
         userId: testUserId,
         clientId: testClientId,
@@ -460,16 +460,19 @@ describe('MCP OAuth Service - Session Management', () => {
         issuer: 'http://localhost:8333',
       });
 
+      // Explicit grants are persisted so they act as per-project overrides
       const collabs = await db
         .select()
         .from(projectCollaborators)
         .where(eq(projectCollaborators.mcpSessionId, sessionId));
-      expect(collabs.length).toBe(0);
+      expect(collabs.length).toBe(1);
 
-      // Access is still expanded to all projects at the default role
+      // Access is expanded to all projects; the explicit grant overrides the
+      // default role for that project.
       const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
       expect(grants.length).toBe(2);
-      expect(grants.find((g) => g.projectId === testProjectId)?.role).toBe('viewer');
+      expect(grants.find((g) => g.projectId === testProjectId)?.role).toBe('admin');
+      expect(grants.find((g) => g.projectId === testProject2Id)?.role).toBe('viewer');
     });
 
     it('should honour explicit per-project grants as overrides', async () => {

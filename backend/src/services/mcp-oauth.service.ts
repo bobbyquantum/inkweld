@@ -640,24 +640,22 @@ class McpOAuthService {
       await this.revokeSession(db, existing.id, 'Superseded by new session');
     }
 
-    // Create collaborator entries for each granted project.
-    // When accessAllProjects is set, no explicit rows are needed — access is
-    // derived from the session's defaultRole at request time. Explicit rows
-    // may still exist as per-project overrides.
-    if (!data.accessAllProjects) {
-      for (const grant of data.grants) {
-        await db.insert(projectCollaborators).values({
-          projectId: grant.projectId,
-          userId: data.userId,
-          mcpSessionId: sessionId,
-          collaboratorType: 'oauth_app',
-          role: grant.role,
-          status: 'accepted',
-          invitedBy: data.userId,
-          invitedAt: now,
-          acceptedAt: now,
-        });
-      }
+    // Create collaborator entries for each explicitly granted project.
+    // These rows are honoured as per-project overrides even when the session
+    // also has accessAllProjects set (the default role applies to every other
+    // project the user owns, and explicit grants take precedence).
+    for (const grant of data.grants) {
+      await db.insert(projectCollaborators).values({
+        projectId: grant.projectId,
+        userId: data.userId,
+        mcpSessionId: sessionId,
+        collaboratorType: 'oauth_app',
+        role: grant.role,
+        status: 'accepted',
+        invitedBy: data.userId,
+        invitedAt: now,
+        acceptedAt: now,
+      });
     }
 
     // Generate access token
