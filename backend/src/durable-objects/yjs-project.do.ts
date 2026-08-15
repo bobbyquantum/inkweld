@@ -329,16 +329,29 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * Handle incoming requests - routes to WebSocket or HTTP API
    */
   async fetch(request: Request): Promise<Response> {
-    const url = new URL(request.url);
-    const upgradeHeader = request.headers.get('Upgrade');
+    try {
+      const url = new URL(request.url);
+      const upgradeHeader = request.headers.get('Upgrade');
 
-    // Route to WebSocket handler if upgrade requested
-    if (upgradeHeader === 'websocket') {
-      return this.handleWebSocketUpgrade(request, url);
+      // Route to WebSocket handler if upgrade requested
+      if (upgradeHeader === 'websocket') {
+        return this.handleWebSocketUpgrade(request, url);
+      }
+
+      // Route to HTTP API handlers
+      return this.handleHttpApi(request, url);
+    } catch (error) {
+      // A rejection from either handler (WS upgrade or HTTP API) would
+      // otherwise reject the DO's `fetch`, which workerd surfaces as an empty
+      // isolate crash (no JS stack) that takes the whole DO down — the
+      // recurring intermittent Wrangler e2e failure. Never let a single bad
+      // request kill the DO; log and return a 500.
+      projDOLog.error(`Unhandled error in DO fetch for ${this.projectId}`, error);
+      return new Response(JSON.stringify({ error: 'Internal server error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
-
-    // Route to HTTP API handlers
-    return this.handleHttpApi(request, url);
   }
 
   /**
@@ -1115,7 +1128,17 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       const next = this.buildElementSnapshot(sharedDoc);
       this.elementSnapshots.set(documentId, next);
 
-      void this.emitElementDiffEventsDO(prev, next, projectDbId, userId, dbInstance);
+      // Fire-and-forget activity event emission. `emitElementDiffEventsDO`
+      // guards the DB write path internally, but a rejection outside that try
+      // (or a non-thrown rejection from the awaited activityService calls)
+      // must not surface as an unhandled rejection — in workerd that crashes
+      // the whole DO isolate (empty `[WebServer] ERROR`, no JS stack), the
+      // recurring intermittent Wrangler e2e failure. Log and swallow.
+      void this.emitElementDiffEventsDO(prev, next, projectDbId, userId, dbInstance).catch(
+        (err) => {
+          projDOLog.error(`emitElementDiffEventsDO failed for ${documentId}`, err);
+        }
+      );
     });
   }
 
@@ -1280,14 +1303,26 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
 
     sharedDoc.notify((update: Uint8Array) => {
-      void this.docStorage.persist(documentId, update).then((key) => {
-        if (!key) return;
-        pendingSinceCompact++;
-        if (pendingSinceCompact >= COMPACT_THRESHOLD) {
-          pendingSinceCompact = 0;
-          void this.compactDocument(documentId, sharedDoc);
-        }
-      });
+      // Fire-and-forget durable persist. A rejection here MUST be caught:
+      // `persist()` only guards `storage.put`, but the key build
+      // (`persistUpdateKey`, `crypto.getRandomValues`) and any storage write
+      // that surfaces outside that try can still reject. In workerd an
+      // unhandled rejection in a DO async callback surfaces as an empty
+      // isolate crash (no JS stack) that takes the whole DO down — the
+      // recurring intermittent Wrangler e2e failure. Log and swallow.
+      void this.docStorage
+        .persist(documentId, update)
+        .then((key) => {
+          if (!key) return;
+          pendingSinceCompact++;
+          if (pendingSinceCompact >= COMPACT_THRESHOLD) {
+            pendingSinceCompact = 0;
+            void this.compactDocument(documentId, sharedDoc);
+          }
+        })
+        .catch((err) => {
+          projDOLog.error(`Failed to persist update for ${documentId}`, err);
+        });
       // A sync update to the elements doc may have (re-)introduced duplicate-id
       // rows (e.g. a dirty client reconnecting). Debounce a heal so the burst of
       // frames from one merge collapses to a single pass.
@@ -2327,10 +2362,17 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       await this.rehydrateConnection(ws, /* skipDocLoad */ true);
 
       // Finalize the writing session BEFORE cleanup so we read the final word
-      // count while the doc is still in connInfo. Fire-and-forget.
+      // count while the doc is still in connInfo. Fire-and-forget. `void`
+      // must be paired with `.catch` — tryFinalizeSession guards its DB work
+      // internally, but a rejection outside that try would otherwise be an
+      // unhandled rejection that crashes the whole DO isolate in workerd
+      // (empty `[WebServer] ERROR`), the recurring intermittent Wrangler e2e
+      // failure. Log and swallow.
       const connInfo = this.connections.get(ws);
       if (connInfo) {
-        void this.tryFinalizeSession(connInfo);
+        void this.tryFinalizeSession(connInfo).catch((err) => {
+          projDOLog.error(`tryFinalizeSession failed for ${connInfo.documentId}`, err);
+        });
       }
 
       this.cleanupConnection(ws);
@@ -2370,7 +2412,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       const connInfo = this.connections.get(ws);
       if (connInfo) {
         projDOLog.error(`Error was for document: ${connInfo.documentId}`);
-        void this.tryFinalizeSession(connInfo);
+        void this.tryFinalizeSession(connInfo).catch((err) => {
+          projDOLog.error(`tryFinalizeSession failed for ${connInfo.documentId}`, err);
+        });
       }
       this.cleanupConnection(ws);
     } catch (error) {

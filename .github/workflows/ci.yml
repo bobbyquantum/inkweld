@@ -421,42 +421,7 @@ jobs:
         run: cd frontend && npm run build
 
       - name: Run wrangler e2e tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
-        # A native workerd crash (e.g. "kj/async-io-unix.c++: disconnected:
-        # Connection reset by peer") kills the single shared `wrangler dev`
-        # backend, after which every remaining test fails with ECONNREFUSED —
-        # so per-test Playwright retries can never recover. Rerun the whole
-        # shard from a fresh workerd process.
-        shell: bash
-        run: |
-          max_attempts=3
-          attempt=1
-          while [ $attempt -le $max_attempts ]; do
-            echo "▶ wrangler e2e shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }} (attempt $attempt/$max_attempts)"
-            # Remove any leftover local D1 persistence so each attempt starts
-            # from a truly clean database (init:d1-local only runs migrations
-            # and tolerates already-applied tables, so it won't clear rows a
-            # crashed workerd left behind).
-            rm -rf backend/.wrangler/state/v3/d1
-            # Re-init the local D1 database for a clean state.
-            (cd backend && bun run init:d1-local)
-            # Disable set -e (GitHub Actions runs run: with -e) so a failed
-            # test run doesn't abort the script before the retry logic.
-            set +e
-            (cd frontend && npm run e2e:wrangler:ci -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
-            exit_code=$?
-            set -e
-            if [ $exit_code -eq 0 ]; then
-              echo "✅ wrangler e2e shard passed on attempt $attempt"
-              exit 0
-            fi
-            echo "⚠ wrangler e2e shard failed on attempt $attempt (exit $exit_code)"
-            if [ $attempt -lt $max_attempts ]; then
-              echo "   Retrying the whole shard (backend may have crashed)..."
-              sleep 10
-            fi
-            attempt=$((attempt + 1))
-          done
-          exit 1
+        run: cd frontend && npm run e2e:wrangler:ci -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           E2E_MODE: prod
 
