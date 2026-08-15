@@ -15,6 +15,7 @@ describe('DocumentBreadcrumbsComponent', () => {
   let component: DocumentBreadcrumbsComponent;
   let elementsSignal: ReturnType<typeof signal<Element[]>>;
   let showBreadcrumbsSignal: ReturnType<typeof signal<boolean>>;
+  let projectSignal: ReturnType<typeof signal<{ title: string } | undefined>>;
 
   function makeElement(
     id: string,
@@ -34,9 +35,13 @@ describe('DocumentBreadcrumbsComponent', () => {
   beforeEach(async () => {
     elementsSignal = signal<Element[]>([]);
     showBreadcrumbsSignal = signal<boolean>(true);
+    projectSignal = signal<{ title: string } | undefined>({
+      title: 'My Project',
+    });
 
     const projectStateMock = {
       elements: elementsSignal,
+      project: projectSignal,
     };
 
     const settingsMock = {
@@ -89,12 +94,15 @@ describe('DocumentBreadcrumbsComponent', () => {
 
     const segs = component.segments();
     expect(segs.map(s => s.name)).toEqual([
+      'My Project',
       'Part One',
       'Chapter Two',
       'Scene 3',
     ]);
-    expect(segs.map(s => s.isCurrent)).toEqual([false, false, true]);
-    expect(component.fullPath()).toBe('Part One › Chapter Two › Scene 3');
+    expect(segs.map(s => s.isCurrent)).toEqual([false, false, false, true]);
+    expect(component.fullPath()).toBe(
+      'My Project › Part One › Chapter Two › Scene 3'
+    );
   });
 
   it('exposes nextBranchId for each segment', () => {
@@ -107,7 +115,12 @@ describe('DocumentBreadcrumbsComponent', () => {
     fixture.detectChanges();
 
     const segs = component.segments();
-    expect(segs.map(s => s.nextBranchId)).toEqual(['mid', 'leaf', null]);
+    expect(segs.map(s => s.nextBranchId)).toEqual([
+      'root',
+      'mid',
+      'leaf',
+      null,
+    ]);
   });
 
   it('falls back to "Untitled" for elements without a name', () => {
@@ -131,7 +144,7 @@ describe('DocumentBreadcrumbsComponent', () => {
     const names = component.segments().map(s => s.name);
     expect(names).toContain('A');
     expect(names).toContain('B');
-    expect(names).toHaveLength(2);
+    expect(names).toHaveLength(3);
   });
 
   it('renders the current segment as a non-interactive span', () => {
@@ -152,6 +165,25 @@ describe('DocumentBreadcrumbsComponent', () => {
     expect(currentSpan.getAttribute('aria-current')).toBe('page');
   });
 
+  it('renders the virtual project-name root as the first clickable segment', () => {
+    elementsSignal.set([
+      makeElement('root', 'Folder', null, ElementType.Folder),
+      makeElement('leaf', 'Doc', 'root'),
+    ]);
+    fixture.componentRef.setInput('elementId', 'leaf');
+    fixture.detectChanges();
+
+    const nav = fixture.nativeElement.querySelector(
+      '[data-testid="document-breadcrumbs"]'
+    );
+    const buttons = nav.querySelectorAll('.breadcrumb-segment-button');
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0].textContent?.trim()).toBe('My Project');
+    expect(buttons[0].getAttribute('data-testid')).toBe(
+      'breadcrumb-segment-__project__'
+    );
+  });
+
   it('renders non-current segments as clickable buttons with flyout menus', () => {
     elementsSignal.set([
       makeElement('root', 'Folder', null, ElementType.Folder),
@@ -164,10 +196,10 @@ describe('DocumentBreadcrumbsComponent', () => {
       '[data-testid="document-breadcrumbs"]'
     );
     const buttons = nav.querySelectorAll('.breadcrumb-segment-button');
-    expect(buttons).toHaveLength(1);
-    expect(buttons[0].tagName.toLowerCase()).toBe('button');
-    expect(buttons[0].getAttribute('aria-haspopup')).toBe('menu');
-    expect(buttons[0].getAttribute('data-testid')).toBe(
+    expect(buttons).toHaveLength(2);
+    expect(buttons[1].tagName.toLowerCase()).toBe('button');
+    expect(buttons[1].getAttribute('aria-haspopup')).toBe('menu');
+    expect(buttons[1].getAttribute('data-testid')).toBe(
       'breadcrumb-segment-root'
     );
     // A breadcrumb menu component is rendered alongside each button
@@ -187,19 +219,21 @@ describe('DocumentBreadcrumbsComponent', () => {
       '[data-testid="document-breadcrumbs"]'
     );
     const segments = nav.querySelectorAll('.breadcrumb-segment');
-    expect(segments).toHaveLength(2);
+    expect(segments).toHaveLength(3);
     const separators = nav.querySelectorAll('.breadcrumb-separator');
-    expect(separators).toHaveLength(1);
+    expect(separators).toHaveLength(2);
   });
 
-  it('hides the breadcrumb entirely for top-level elements', () => {
+  it('renders the breadcrumb for top-level elements (project root + element)', () => {
     elementsSignal.set([makeElement('only', 'Top Doc')]);
     fixture.componentRef.setInput('elementId', 'only');
     fixture.detectChanges();
     const nav = fixture.nativeElement.querySelector(
       '[data-testid="document-breadcrumbs"]'
     );
-    expect(nav).toBeNull();
+    expect(nav).toBeTruthy();
+    expect(nav.textContent).toContain('My Project');
+    expect(nav.textContent).toContain('Top Doc');
   });
 
   it('hides the breadcrumb when the showBreadcrumbs setting is disabled', () => {
