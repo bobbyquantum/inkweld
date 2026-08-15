@@ -30,6 +30,7 @@ describe('WorldbuildingEditorComponent', () => {
     openRenameDialog: ReturnType<typeof vi.fn>;
     openTagEditorDialog: ReturnType<typeof vi.fn>;
     openSnapshotsDialog: ReturnType<typeof vi.fn>;
+    openConfirmationDialog: ReturnType<typeof vi.fn>;
   };
   let matDialogMock: {
     open: ReturnType<typeof vi.fn>;
@@ -148,6 +149,7 @@ describe('WorldbuildingEditorComponent', () => {
       openRenameDialog: vi.fn().mockResolvedValue(null),
       openTagEditorDialog: vi.fn().mockResolvedValue(undefined),
       openSnapshotsDialog: vi.fn().mockResolvedValue(undefined),
+      openConfirmationDialog: vi.fn().mockResolvedValue(true),
     };
     matDialogMock = {
       open: vi.fn(),
@@ -1152,16 +1154,44 @@ describe('WorldbuildingEditorComponent', () => {
       });
     });
 
-    it('should emit add/remove tab events', () => {
+    it('should emit an update-field event', () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onUpdateField']('basic', 'name', { label: 'Full name' });
+      expect(emit).toHaveBeenCalledWith({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: { label: 'Full name' },
+      });
+    });
+
+    it('should toggle field config open state', () => {
+      expect(component['fieldConfigOpen']('basic', 'name')).toBe(false);
+      component['toggleFieldConfig']('basic', 'name');
+      expect(component['fieldConfigOpen']('basic', 'name')).toBe(true);
+      component['toggleFieldConfig']('basic', 'name');
+      expect(component['fieldConfigOpen']('basic', 'name')).toBe(false);
+    });
+
+    it('should emit add/remove tab events', async () => {
       const emit = vi.fn();
       component.schemaEdit.subscribe(emit);
       component['onAddTab']();
-      component['onRemoveTab']('appearance');
+      await component['onRemoveTab']('appearance');
       expect(emit).toHaveBeenNthCalledWith(1, { type: 'add-tab' });
       expect(emit).toHaveBeenNthCalledWith(2, {
         type: 'remove-tab',
         tabKey: 'appearance',
       });
+    });
+
+    it('should not emit a remove-tab event when the user cancels', async () => {
+      dialogGatewayMock.openConfirmationDialog.mockResolvedValue(false);
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      await component['onRemoveTab']('appearance');
+      expect(emit).not.toHaveBeenCalled();
     });
 
     it('should not emit events when schema editing is disabled', () => {

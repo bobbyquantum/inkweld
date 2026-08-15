@@ -388,6 +388,15 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
         });
         break;
       }
+      case 'update-field': {
+        const tabIdx = tabs.findIndex(t => t.key === event.tabKey);
+        if (tabIdx < 0) break;
+        const fieldIdx = tabs[tabIdx].fields.findIndex(
+          f => f.key === event.fieldKey
+        );
+        if (fieldIdx >= 0) this.updateField(tabIdx, fieldIdx, event.patch);
+        break;
+      }
     }
     this.scheduleAutosave();
   }

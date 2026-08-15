@@ -77,6 +77,7 @@
           @for (tab of getTabs(); track tab.key) {
             <a
               mat-list-item
+              class="schema-tab-item"
               (click)="selectSection(tab.key)"
               (keydown.enter)="selectSection(tab.key)"
               [attr.aria-current]="
@@ -87,13 +88,15 @@
               tabindex="0"
               [attr.data-testid]="'nav-' + tab.key">
               <mat-icon matListItemIcon>{{ getTabIcon(tab) }}</mat-icon>
-              <span matListItemTitle>{{ tab.label }}</span>
+              <span matListItemTitle class="schema-tab-label">{{
+                tab.label
+              }}</span>
               @if (schemaEditingEnabled()) {
                 <span
                   class="schema-remove-tab"
                   role="button"
                   tabindex="0"
-                  (click)="onRemoveTab(tab.key)"
+                  (click)="onRemoveTab(tab.key); $event.stopPropagation()"
                   (keydown.enter)="onRemoveTab(tab.key)"
                   [attr.aria-label]="
                     'worldbuilding.schemaEdit.removeTab' | transloco
@@ -516,15 +519,17 @@
         data-testid="worldbuilding-sync-dot"></span>
     </span>
     <span class="status-actions">
-      <button
-        mat-icon-button
-        class="snapshots-btn"
-        (click)="openSnapshotsDialog()"
-        [attr.aria-label]="'worldbuilding.editor.openSnapshots' | transloco"
-        [matTooltip]="'worldbuilding.editor.snapshots' | transloco"
-        data-testid="toolbar-snapshots">
-        <mat-icon>history</mat-icon>
-      </button>
+      @if (!schemaEditingEnabled()) {
+        <button
+          mat-icon-button
+          class="snapshots-btn"
+          (click)="openSnapshotsDialog()"
+          [attr.aria-label]="'worldbuilding.editor.openSnapshots' | transloco"
+          [matTooltip]="'worldbuilding.editor.snapshots' | transloco"
+          data-testid="toolbar-snapshots">
+          <mat-icon>history</mat-icon>
+        </button>
+      }
     </span>
   </div>
 </div>
@@ -546,6 +551,15 @@
           @if (schemaEditingEnabled()) {
             <div class="schema-field-toolbar">
               <span class="field-index">{{ fi + 1 }}</span>
+              <button
+                mat-icon-button
+                type="button"
+                [class.active]="fieldConfigOpen(tabKey, field.key)"
+                (click)="toggleFieldConfig(tabKey, field.key)"
+                [attr.aria-label]="'Edit field'"
+                data-testid="field-edit">
+                <mat-icon>settings</mat-icon>
+              </button>
               <button
                 mat-icon-button
                 type="button"
@@ -574,6 +588,83 @@
                 <mat-icon>remove_circle</mat-icon>
               </button>
             </div>
+            @if (fieldConfigOpen(tabKey, field.key)) {
+              <div class="schema-field-config" data-testid="field-config">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{
+                    'templates.editor.fieldLabelLabel' | transloco
+                  }}</mat-label>
+                  <input
+                    matInput
+                    [attr.id]="'field-cfg-label-' + field.key"
+                    [value]="field.label"
+                    (input)="
+                      onUpdateField(tabKey, field.key, {
+                        label: $any($event.target).value,
+                      })
+                    "
+                    data-testid="field-config-label" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{
+                    'templates.editor.fieldTypeLabel' | transloco
+                  }}</mat-label>
+                  <mat-select
+                    [value]="field.type"
+                    (selectionChange)="
+                      onUpdateField(tabKey, field.key, {
+                        type: $event.value,
+                      })
+                    "
+                    data-testid="field-config-type">
+                    @for (type of getFieldTypes(); track type.value) {
+                      <mat-option
+                        [value]="type.value"
+                        [attr.data-testid]="'field-type-option-' + type.value">
+                        {{ type.label }}
+                      </mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{
+                    'templates.editor.placeholderLabel' | transloco
+                  }}</mat-label>
+                  <input
+                    matInput
+                    [attr.id]="'field-cfg-placeholder-' + field.key"
+                    [value]="field.placeholder || ''"
+                    (input)="
+                      onUpdateField(tabKey, field.key, {
+                        placeholder: $any($event.target).value,
+                      })
+                    "
+                    data-testid="field-config-placeholder" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{
+                    'templates.editor.descriptionLabel' | transloco
+                  }}</mat-label>
+                  <textarea
+                    matInput
+                    [attr.id]="'field-cfg-desc-' + field.key"
+                    [attr.aria-label]="
+                      'templates.editor.descriptionAria' | transloco
+                    "
+                    [value]="field.description || ''"
+                    (input)="
+                      onUpdateField(tabKey, field.key, {
+                        description: $any($event.target).value,
+                      })
+                    "
+                    rows="2"
+                    data-testid="field-config-description"></textarea>
+                </mat-form-field>
+              </div>
+            }
           }
           @switch (field.type) {
             @case ('text') {

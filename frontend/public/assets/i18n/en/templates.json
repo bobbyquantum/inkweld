@@ -41,6 +41,7 @@
     "hint": "Define the structure, tabs, and fields for this template.",
     "basicInfo": "Basic Information",
     "tabBasic": "Basic",
+    "schemaDetails": "Schema Details",
     "tabFields": "Fields",
     "tabStyle": "Style",
     "tabPreview": "Preview",

@@ -56,6 +56,10 @@ import { ElementSyncProviderFactory } from '../../services/sync/element-sync-pro
 import { TagService } from '../../services/tag/tag.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
+import { AppearanceEditorComponent } from './appearance-panel/appearance-editor/appearance-editor.component';
+import { AppearancePanelComponent } from './appearance-panel/appearance-panel.component';
+import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
+import { MediaPanelComponent } from './media-panel/media-panel.component';
 
 /**
  * An edit request emitted by the worldbuilding editor when it is in schema
@@ -68,11 +72,13 @@ export type SchemaEditEvent =
   | { type: 'remove-tab'; tabKey: string }
   | { type: 'add-field'; tabKey: string }
   | { type: 'remove-field'; tabKey: string; fieldKey: string }
-  | { type: 'move-field'; tabKey: string; fieldKey: string; delta: -1 | 1 };
-import { AppearanceEditorComponent } from './appearance-panel/appearance-editor/appearance-editor.component';
-import { AppearancePanelComponent } from './appearance-panel/appearance-panel.component';
-import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
-import { MediaPanelComponent } from './media-panel/media-panel.component';
+  | { type: 'move-field'; tabKey: string; fieldKey: string; delta: -1 | 1 }
+  | {
+      type: 'update-field';
+      tabKey: string;
+      fieldKey: string;
+      patch: Partial<FieldSchema>;
+    };
 
 /**
  * Main worldbuilding editor component that renders the dynamic
@@ -153,6 +159,9 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);
+
+  /** Keys ("tabKey:fieldKey") of fields whose inline config is open, in edit mode. */
+  protected readonly openFieldConfigs = signal<Set<string>>(new Set());
 
   /**
    * Signal holding the underlying reactive `FormGroup`. The structure is
@@ -764,8 +773,26 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     this.emitSchemaEdit({ type: 'add-tab' });
   }
 
-  protected onRemoveTab(tabKey: string): void {
-    this.emitSchemaEdit({ type: 'remove-tab', tabKey });
+  protected async onRemoveTab(tabKey: string): Promise<void> {
+    const confirmed = await this.dialogGateway.openConfirmationDialog({
+      title: this.transloco.translate(
+        'worldbuilding.schemaEdit.removeTabTitle'
+      ),
+      message: this.transloco.translate(
+        'worldbuilding.schemaEdit.removeTabConfirm',
+        { tab: this.getTabLabel(tabKey) }
+      ),
+      confirmText: this.transloco.translate('delete'),
+      cancelText: this.transloco.translate('cancel'),
+    });
+    if (confirmed) {
+      this.emitSchemaEdit({ type: 'remove-tab', tabKey });
+    }
+  }
+
+  /** Resolve a tab's display label by key (or the key itself). */
+  private getTabLabel(tabKey: string): string {
+    return this.getTabs().find(t => t.key === tabKey)?.label || tabKey;
   }
 
   protected onAddField(tabKey: string): void {
@@ -778,6 +805,48 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   protected onMoveField(tabKey: string, fieldKey: string, delta: -1 | 1): void {
     this.emitSchemaEdit({ type: 'move-field', tabKey, fieldKey, delta });
+  }
+
+  /** Emit a field config change (label/type/placeholder/description/options). */
+  protected onUpdateField(
+    tabKey: string,
+    fieldKey: string,
+    patch: Partial<FieldSchema>
+  ): void {
+    this.emitSchemaEdit({ type: 'update-field', tabKey, fieldKey, patch });
+  }
+
+  /** Field types offered in the inline field config. */
+  protected getFieldTypes(): { value: string; label: string }[] {
+    return [
+      { value: 'text', label: 'Text' },
+      { value: 'textarea', label: 'Text Area' },
+      { value: 'number', label: 'Number' },
+      { value: 'date', label: 'Date' },
+      { value: 'select', label: 'Select' },
+      { value: 'multiselect', label: 'Multi Select' },
+      { value: 'checkbox', label: 'Checkbox' },
+      { value: 'array', label: 'Array (Tags)' },
+    ];
+  }
+
+  /** Whether the inline config for a field is currently open. */
+  protected fieldConfigOpen(tabKey: string, fieldKey: string): boolean {
+    return this.openFieldConfigs().has(`${tabKey}:${fieldKey}`);
+  }
+
+  /** Toggle the inline config for a field. */
+  protected toggleFieldConfig(tabKey: string, fieldKey: string): void {
+    this.openFieldConfigs.update(set => {
+      const next = new Set(set);
+      const key = `${tabKey}:${fieldKey}`;
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
   }
 
   /** Emit a schema metadata change from the Schema Details section. */

@@ -739,33 +739,52 @@ form {
 // Schema edit affordances (interactive preview)
 // ---------------------------------------------------------------------------
 
-// Sidenav/accordion tab items in edit mode: revealed remove button.
-.schema-edit {
-  &.schema-remove-tab {
-    margin-left: auto;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    cursor: pointer;
-    color: var(--sys-on-surface-variant);
+// Sidenav/accordion tab items in edit mode: revealed remove button inline.
+.schema-tab-item {
+  .schema-tab-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-    &:hover {
-      background-color: color-mix(
-        in srgb,
-        var(--sys-on-surface) 12%,
-        transparent
-      );
-      color: var(--sys-error);
+  &.schema-edit {
+    ::ng-deep .mdc-list-item__content,
+    &.schema-remove-tab {
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
+  }
+}
 
-    mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-    }
+// The remove button inside a schema nav item.
+.schema-tab-item .schema-remove-tab,
+.schema-remove-tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--sys-on-surface-variant);
+
+  &:hover {
+    background-color: color-mix(
+      in srgb,
+      var(--sys-on-surface) 12%,
+      transparent
+    );
+    color: var(--sys-error);
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
   }
 }
 
@@ -826,5 +845,22 @@ form {
       width: 18px;
       height: 18px;
     }
+
+    &.active {
+      color: var(--sys-primary);
+      background-color: var(--sys-primary-container);
+    }
   }
+}
+
+// Inline field config editor (schema edit mode)
+.schema-field-config {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 8px;
+  background-color: var(--sys-surface-container-low);
 }

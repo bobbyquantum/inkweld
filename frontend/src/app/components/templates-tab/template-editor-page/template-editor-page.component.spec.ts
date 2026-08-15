@@ -368,6 +368,18 @@ describe('TemplateEditorPageComponent', () => {
       });
       expect(component.tabs()[0].fields.map(f => f.key)).toEqual(original);
     });
+
+    it('should update a field by key via onSchemaEdit', () => {
+      component['onSchemaEdit']({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: { label: 'Full name', placeholder: 'Enter name' },
+      });
+      const nameField = component.tabs()[0].fields.find(f => f.key === 'name');
+      expect(nameField?.label).toBe('Full name');
+      expect(nameField?.placeholder).toBe('Enter name');
+    });
   });
 
   describe('scheduleAutosave', () => {

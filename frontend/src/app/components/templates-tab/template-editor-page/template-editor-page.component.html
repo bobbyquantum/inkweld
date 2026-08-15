@@ -8,14 +8,6 @@
       data-testid="template-editor-back">
       <mat-icon>arrow_back</mat-icon>
     </button>
-
-    <div class="toolbar-title">
-      <mat-icon>{{ previewSchema()?.icon || 'category' }}</mat-icon>
-      <span>{{
-        previewSchema()?.name || ('templates.editor.title' | transloco)
-      }}</span>
-    </div>
-
     <span class="toolbar-spacer"></span>
     @if (isSaving()) {
       <span class="saving-indicator">

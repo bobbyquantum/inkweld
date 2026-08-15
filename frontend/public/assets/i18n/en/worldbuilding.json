@@ -122,10 +122,12 @@
     "elementId": "Element ID:",
     "notProvided": "Not provided"
   },
-  "schemaEdit": {
+"schemaEdit": {
     "addTab": "Add tab",
     "removeTab": "Remove tab",
+    "removeTabTitle": "Remove tab?",
+    "removeTabConfirm": "Remove the \"{{tab}}\" tab and all its fields?",
     "addField": "Add field",
-    "editingHint": "Editing schema — changes save automatically."
+    "editingHint": "Editing schema \u2014 changes save automatically."
   }
 }
