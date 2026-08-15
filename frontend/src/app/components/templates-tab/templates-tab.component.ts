@@ -395,4 +395,27 @@ export class TemplatesTabComponent {
       );
     }
   }
+
+  /**
+   * Live-save a schema after preview edits without leaving edit mode. Updates
+   * the schema being edited (so the next edit keeps the latest) and persists to
+   * the template library/backend, but does not reload or exit the editor.
+   */
+  onSchemaChange(schema: ElementTypeSchema): void {
+    const state = this.editingState();
+    if (state.mode !== 'edit') return;
+
+    // Reflect the latest schema so subsequent autosaves build on top of it.
+    this.editingState.update(s => (s.mode === 'edit' ? { ...s, schema } : s));
+
+    try {
+      if (state.templateId === null) {
+        this.worldbuildingService.saveSchemaToLibrary(schema);
+      } else {
+        this.worldbuildingService.updateTemplate(state.templateId, schema);
+      }
+    } catch (err) {
+      console.error('[TemplatesTab] Error autosaving template:', err);
+    }
+  }
 }

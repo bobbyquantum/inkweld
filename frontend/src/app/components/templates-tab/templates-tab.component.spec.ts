@@ -417,6 +417,48 @@ describe('TemplatesTabComponent', () => {
     });
   });
 
+  describe('onSchemaChange', () => {
+    it('should live-save an existing template without leaving edit mode', () => {
+      mockProjectState.project.set(mockProject);
+      mockWorldbuildingService.getSchema.mockReturnValue(mockCustomSchema);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
+      component.editTemplate(mockCustomTemplate);
+
+      const updatedSchema = { ...mockCustomSchema, name: 'Autosaved' };
+      component.onSchemaChange(updatedSchema);
+
+      expect(component.editingState().mode).toBe('edit');
+      expect(component.editingSchema()?.name).toBe('Autosaved');
+      expect(mockWorldbuildingService.updateTemplate).toHaveBeenCalledWith(
+        'custom-1',
+        updatedSchema
+      );
+    });
+
+    it('should live-save a new template to the library', () => {
+      mockProjectState.project.set(mockProject);
+      mockWorldbuildingService.saveSchemaToLibrary.mockReturnValue(undefined);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
+      component.createTemplate();
+
+      const schema = { ...component.editingSchema()!, name: 'Auto new' };
+      component.onSchemaChange(schema);
+
+      expect(component.editingState().mode).toBe('edit');
+      expect(mockWorldbuildingService.saveSchemaToLibrary).toHaveBeenCalledWith(
+        schema
+      );
+    });
+
+    it('should do nothing when not editing', () => {
+      component.onSchemaChange(mockCustomSchema);
+      expect(mockWorldbuildingService.updateTemplate).not.toHaveBeenCalled();
+      expect(
+        mockWorldbuildingService.saveSchemaToLibrary
+      ).not.toHaveBeenCalled();
+    });
+  });
+
   describe('computed properties', () => {
     it('should compute hasTemplates correctly', () => {
       expect(component.hasTemplates()).toBe(false);

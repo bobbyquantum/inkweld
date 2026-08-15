@@ -362,6 +362,46 @@ describe('TemplateEditorPageComponent', () => {
     });
   });
 
+  describe('scheduleAutosave', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should emit the assembled schema after the debounce', () => {
+      const emit = vi.fn();
+      component.schemaChange.subscribe(emit);
+      component['scheduleAutosave']();
+      expect(emit).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(700);
+      expect(emit).toHaveBeenCalledTimes(1);
+      const emitted = emit.mock.calls[0][0] as ElementTypeSchema;
+      expect(emitted.tabs).toEqual(component.tabs());
+    });
+
+    it('should reset the debounce on repeated calls', () => {
+      const emit = vi.fn();
+      component.schemaChange.subscribe(emit);
+      component['scheduleAutosave']();
+      vi.advanceTimersByTime(300);
+      component['scheduleAutosave']();
+      vi.advanceTimersByTime(300);
+      expect(emit).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(400);
+      expect(emit).toHaveBeenCalledTimes(1);
+    });
+
+    it('should schedule an autosave after a schema edit', () => {
+      const emit = vi.fn();
+      component.schemaChange.subscribe(emit);
+      component['onSchemaEdit']({ type: 'add-tab' });
+      vi.advanceTimersByTime(700);
+      expect(emit).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('form validation', () => {
     it('should require template name', () => {
       component.basicForm.name().value.set('');

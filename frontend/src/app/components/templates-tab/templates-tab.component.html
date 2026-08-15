@@ -1,5 +1,8 @@
 @if (editingState().mode === 'edit' && editingSchema(); as schema) {
-  <app-template-editor-page [schema]="schema" (done)="onEditorDone($event)" />
+  <app-template-editor-page
+    [schema]="schema"
+    (done)="onEditorDone($event)"
+    (schemaChange)="onSchemaChange($event)" />
 } @else {
   <div class="templates-tab" data-testid="templates-tab">
     <div class="header">

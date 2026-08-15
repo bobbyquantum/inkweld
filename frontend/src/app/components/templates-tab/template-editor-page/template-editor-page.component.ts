@@ -111,6 +111,9 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   /** Emitted when the editor is done (saved with the updated schema, or cancelled with null). */
   readonly done = output<ElementTypeSchema | null>();
 
+  /** Emitted (debounced) with the latest schema after preview edits, for live saving. */
+  readonly schemaChange = output<ElementTypeSchema>();
+
   @ViewChildren(MatExpansionPanel)
   expansionPanels!: QueryList<MatExpansionPanel>;
 
@@ -122,6 +125,9 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     null
   ); /** @internal Exposed for unit testing only. */
   _lastFieldId: string | null = null;
+
+  /** Pending timer id for the debounced live-save emit. */
+  private autosaveTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Available field types
   readonly fieldTypes = [
@@ -213,6 +219,20 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
       this.projectState.project();
       this.resolveDefaultImage(this.defaultImage());
     });
+  }
+
+  /**
+   * Debounce emitting the assembled current schema so parents can live-save
+   * without a modal save step. Fires on a trailing edge after edits stop.
+   */
+  protected scheduleAutosave(): void {
+    if (this.autosaveTimer !== null) {
+      clearTimeout(this.autosaveTimer);
+    }
+    this.autosaveTimer = setTimeout(() => {
+      this.autosaveTimer = null;
+      this.schemaChange.emit(this.buildUpdatedSchema());
+    }, 600);
   }
 
   ngOnInit(): void {
@@ -370,9 +390,20 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
 
     this.validationError.set(null);
 
-    const formValue = this.model();
+    const updatedSchema = this.buildUpdatedSchema();
 
-    const updatedSchema: ElementTypeSchema = {
+    this.isSaving.set(true);
+    try {
+      this.done.emit(updatedSchema);
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  /** Assemble the current editor state into a full schema for saving. */
+  private buildUpdatedSchema(): ElementTypeSchema {
+    const formValue = this.model();
+    return {
       ...this.schema(),
       name: formValue.name,
       icon: formValue.icon,
@@ -382,13 +413,6 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
       defaultImage: this.defaultImage(),
       version: this.schema().version + 1,
     };
-
-    this.isSaving.set(true);
-    try {
-      this.done.emit(updatedSchema);
-    } finally {
-      this.isSaving.set(false);
-    }
   }
 
   /** Cancel editing */
@@ -494,6 +518,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
         break;
       }
     }
+    this.scheduleAutosave();
   }
 
   /** Map the active editor tab to a mat-tab index. */
@@ -512,6 +537,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     const updatedTabs = [...this.tabs()];
     fn(updatedTabs);
     this.tabs.set(updatedTabs);
+    this.scheduleAutosave();
   }
 
   private createUniqueKey(prefix: string): string {
