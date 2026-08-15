@@ -140,16 +140,27 @@ describe('TemplateEditorPageComponent', () => {
     });
   });
 
-  describe('tab management', () => {
-    it('should map editor tabs to indices and back', () => {
-      expect(component.tabIndex()).toBe(0);
-      component.setTab(2);
-      expect(component.activeEditorTab()).toBe('style');
-      expect(component.tabIndex()).toBe(2);
-      component.setTab(3);
-      expect(component.activeEditorTab()).toBe('preview');
+  describe('schema editor inspector panel', () => {
+    it('should default to showing the info panel', () => {
+      expect(component.inspectorPanel()).toBe('info');
     });
 
+    it('should toggle the style panel on and clear on re-toggle', () => {
+      component['toggleInspector']('style');
+      expect(component.inspectorPanel()).toBe('style');
+      component['toggleInspector']('style');
+      expect(component.inspectorPanel()).toBeNull();
+    });
+
+    it('should switch between info and style panels', () => {
+      component['toggleInspector']('style');
+      expect(component.inspectorPanel()).toBe('style');
+      component['toggleInspector']('info');
+      expect(component.inspectorPanel()).toBe('info');
+    });
+  });
+
+  describe('tab management', () => {
     it('should add a new tab', () => {
       const initialTabCount = component.tabs().length;
 

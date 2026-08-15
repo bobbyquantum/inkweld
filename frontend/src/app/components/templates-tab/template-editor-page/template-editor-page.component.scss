@@ -1,29 +1,94 @@
 :host {
   display: block;
-  max-width: 900px;
+  width: 100%;
+  max-width: 1200px;
+  height: 100%;
+  margin: 0 auto;
   padding: 0;
-  padding-bottom: 80px;
+  box-sizing: border-box;
 }
 
-.page {
+.editor-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  height: 100%;
+  min-height: 0;
 }
 
-.header {
+// Top toolbar: back, title, inspector toggles.
+.editor-toolbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
-}
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--sys-outline-variant);
+  flex-shrink: 0;
 
-.title-block {
-  h1 {
+  .toolbar-title {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin: 0 0 4px;
-    font-size: 1.4rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    mat-icon {
+      color: var(--sys-primary);
+    }
+  }
+
+  .toolbar-spacer {
+    flex: 1;
+  }
+
+  button.mat-mdc-button.active {
+    color: var(--sys-primary);
+    background-color: var(--sys-primary-container);
+  }
+
+  .toolbar-error {
+    color: var(--sys-error);
+    font-size: 0.85rem;
+  }
+}
+
+// Main split: canvas + optional inspector sidebar.
+.editor-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.editor-canvas {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: block;
+}
+
+// Inspector sidebar with schema info / styling.
+.inspector {
+  width: 340px;
+  max-width: 40%;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-left: 1px solid var(--sys-outline-variant);
+  background-color: var(--sys-surface-container);
+  padding: 16px;
+
+  .inspector-pane {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+
+    h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
   }
 }
 
@@ -31,30 +96,6 @@
   color: var(--sys-on-surface-variant);
   font-size: 0.9rem;
   margin: 0;
-}
-
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.tab-body {
-  padding-top: 16px;
-}
-
-.editor-tabs {
-  ::ng-deep .mat-mdc-tab-body-wrapper {
-    min-height: 400px;
-  }
-}
-
-/* Preview panel */
-.preview-panel {
-  display: block;
-  border: 1px solid var(--sys-outline-variant);
-  border-radius: 8px;
-  overflow: hidden;
 }
 
 .section-header {

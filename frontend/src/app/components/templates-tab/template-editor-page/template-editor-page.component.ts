@@ -1,8 +1,4 @@
-import {
-  type CdkDragDrop,
-  DragDropModule,
-  moveItemInArray,
-} from '@angular/cdk/drag-drop';
+import { type CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
   type AfterViewInit,
   ChangeDetectionStrategy,
@@ -21,16 +17,11 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { form, FormField, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
-import {
-  MatExpansionModule,
-  MatExpansionPanel,
-} from '@angular/material/expansion';
+import { MatExpansionPanel } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   AppearanceEditorComponent,
@@ -85,11 +76,7 @@ type EditorTab = 'basic' | 'fields' | 'style' | 'preview';
     MatInputModule,
     MatIconModule,
     MatSelectModule,
-    MatTabsModule,
-    MatExpansionModule,
-    MatChipsModule,
     MatTooltipModule,
-    DragDropModule,
     TranslocoModule,
     AppearanceEditorComponent,
     WorldbuildingEditorComponent,
@@ -121,6 +108,8 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   readonly selectedTabIndex = signal(0);
   /** Which top-level editor tab is active: basic | fields | style | preview. */
   readonly activeEditorTab = signal<EditorTab>('basic');
+  /** Which inspector panel is open in the unified editor: info or style. */
+  readonly inspectorPanel = signal<'info' | 'style' | null>('info');
   readonly validationError = signal<string | null>(
     null
   ); /** @internal Exposed for unit testing only. */
@@ -531,6 +520,11 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   setTab(index: number): void {
     const order: EditorTab[] = ['basic', 'fields', 'style', 'preview'];
     this.activeEditorTab.set(order[index] ?? 'basic');
+  }
+
+  /** Toggle the inspector panel (info/style) in the unified editor, or clear it. */
+  protected toggleInspector(panel: 'info' | 'style'): void {
+    this.inspectorPanel.set(this.inspectorPanel() === panel ? null : panel);
   }
 
   private mutateTabs(fn: (tabs: TabSchema[]) => void): void {
