@@ -874,6 +874,44 @@ describe('OAuth Session Management', () => {
     expect(response.status).toBe(404);
   });
 
+  it('PATCH /oauth/sessions/:sessionId/settings enables all-projects access with a default role', async () => {
+    const { response, json } = await client.request(`/oauth/sessions/${sessionId}/settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessAllProjects: true, defaultRole: 'admin' }),
+    });
+    expect(response.status).toBe(200);
+    const data = (await json()) as Record<string, unknown>;
+    expect(data.message).toContain('updated');
+
+    // Session details should now report all-projects expanded grants
+    const { json: detailsJson } = await client.request(`/oauth/sessions/${sessionId}`);
+    const details = (await detailsJson()) as Record<string, unknown>;
+    expect((details.session as Record<string, unknown>).accessAllProjects).toBe(true);
+    expect((details.session as Record<string, unknown>).defaultRole).toBe('admin');
+    expect((details.grants as unknown[]).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('PATCH /oauth/sessions/:sessionId/settings disables all-projects access', async () => {
+    const { response, json } = await client.request(`/oauth/sessions/${sessionId}/settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessAllProjects: false }),
+    });
+    expect(response.status).toBe(200);
+    const data = (await json()) as Record<string, unknown>;
+    expect(data.message).toContain('updated');
+  });
+
+  it('PATCH /oauth/sessions/:sessionId/settings returns 404 for non-existent session', async () => {
+    const { response } = await client.request('/oauth/sessions/non-existent-id/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessAllProjects: true, defaultRole: 'viewer' }),
+    });
+    expect(response.status).toBe(404);
+  });
+
   it('DELETE /oauth/sessions/:sessionId revokes the session', async () => {
     const { response, json } = await client.request(`/oauth/sessions/${sessionId}`, {
       method: 'DELETE',

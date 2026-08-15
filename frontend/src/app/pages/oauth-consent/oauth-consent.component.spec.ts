@@ -215,6 +215,35 @@ describe('OAuthConsentComponent', () => {
 
       expect(component.hasSelection()).toBe(true);
     });
+
+    it('should map project grants to shared grant rows', () => {
+      expect(component.grantRows()).toHaveLength(2);
+      expect(component.grantRows()[0]).toEqual(
+        expect.objectContaining({ projectId: 'proj-1', role: 'viewer' })
+      );
+    });
+
+    it('should handle shared selection changes', () => {
+      component.onGrantSelectionChange({ projectId: 'proj-2', selected: true });
+      expect(component.projectGrants()[1].selected).toBe(true);
+    });
+
+    it('should handle shared role changes', () => {
+      component.onGrantRoleChange({ projectId: 'proj-1', role: 'editor' });
+      expect(component.projectGrants()[0].role).toBe(
+        ConsentRequestGrantsInnerRole.Editor
+      );
+    });
+
+    it('should handle shared all-projects changes', () => {
+      component.onAllProjectsChange({
+        accessAllProjects: true,
+        defaultRole: 'admin',
+      });
+      expect(component.accessAllProjects()).toBe(true);
+      expect(component.defaultRole()).toBe('admin');
+      expect(component.hasSelection()).toBe(true);
+    });
   });
 
   describe('consent submission', () => {

@@ -6,6 +6,7 @@ import {
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import {
   AddOAuthGrantRequestRole,
   OAuthService as OAuthApiService,
@@ -76,6 +77,7 @@ describe('AuthorizedAppsComponent', () => {
   let dialogGatewayMock: {
     openConfirmationDialog: ReturnType<typeof vi.fn>;
   };
+  let snackBarMock: { open: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     oauthServiceMock = {
@@ -106,6 +108,10 @@ describe('AuthorizedAppsComponent', () => {
       openConfirmationDialog: vi.fn().mockResolvedValue(true),
     };
 
+    snackBarMock = {
+      open: vi.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), AuthorizedAppsComponent],
       providers: [
@@ -115,6 +121,7 @@ describe('AuthorizedAppsComponent', () => {
         { provide: OAuthApiService, useValue: oauthServiceMock },
         { provide: ProjectsService, useValue: projectsServiceMock },
         { provide: DialogGatewayService, useValue: dialogGatewayMock },
+        { provide: MatSnackBar, useValue: snackBarMock },
       ],
     }).compileComponents();
 
@@ -342,6 +349,90 @@ describe('AuthorizedAppsComponent', () => {
     );
     expect(component.accessAllProjects()).toBe(true);
     expect(component.defaultRole()).toBe('admin');
+  });
+
+  it('should expose computed grant rows and all-projects state from session details', async () => {
+    const details = createMockSessionDetails();
+    details.session.accessAllProjects = true;
+    details.session.defaultRole = 'admin' as never;
+    oauthServiceMock.getOAuthSessionDetails.mockReturnValue(of(details));
+
+    await component.loadSessionDetails('session-1');
+
+    expect(component.accessAllProjects()).toBe(true);
+    expect(component.defaultRole()).toBe('admin');
+    expect(component.grantRows()).toHaveLength(2);
+    expect(component.grantRows()[0]).toEqual(
+      expect.objectContaining({ projectId: 'proj-1', role: 'editor' })
+    );
+  });
+
+  it('onGrantRoleChange updates a grant role through the shared handler', async () => {
+    const details = createMockSessionDetails();
+    oauthServiceMock.getOAuthSessionDetails.mockReturnValue(of(details));
+
+    await component.loadSessionDetails('session-1');
+
+    await component.onGrantRoleChange({
+      projectId: 'proj-1',
+      role: 'admin',
+    });
+
+    expect(oauthServiceMock.updateOAuthGrant).toHaveBeenCalledWith(
+      'session-1',
+      'proj-1',
+      { role: OAuthSessionDetailsGrantsInnerRole.Admin }
+    );
+    expect(component.expandedSession()!.grants[0].role).toBe(
+      OAuthSessionDetailsGrantsInnerRole.Admin
+    );
+  });
+
+  it('onGrantRemove revokes a project grant via the shared handler', async () => {
+    const details = createMockSessionDetails();
+    oauthServiceMock.getOAuthSessionDetails.mockReturnValue(of(details));
+
+    await component.loadSessionDetails('session-1');
+
+    await component.onGrantRemove('proj-1');
+
+    expect(oauthServiceMock.revokeOAuthGrant).toHaveBeenCalledWith(
+      'session-1',
+      'proj-1'
+    );
+    expect(component.expandedSession()!.grants).toHaveLength(1);
+  });
+
+  it('onGrantRemove does nothing when the grant is not present', async () => {
+    const details = createMockSessionDetails();
+    oauthServiceMock.getOAuthSessionDetails.mockReturnValue(of(details));
+
+    await component.loadSessionDetails('session-1');
+
+    await component.onGrantRemove('non-existent');
+    expect(oauthServiceMock.revokeOAuthGrant).not.toHaveBeenCalled();
+  });
+
+  it('should handle all-projects update failure', async () => {
+    component.expandedSession.set(createMockSessionDetails());
+    oauthServiceMock.updateOAuthSessionSettings = vi
+      .fn()
+      .mockReturnValue(
+        throwError(() => new HttpErrorResponse({ status: 500 }))
+      );
+
+    await component.onAllProjectsChange({
+      accessAllProjects: true,
+      defaultRole: 'admin',
+    });
+
+    expect(oauthServiceMock.updateOAuthSessionSettings).toHaveBeenCalled();
+    expect(snackBarMock.open).toHaveBeenCalledWith(
+      'Failed to update access settings',
+      'Close',
+      { duration: 3000 }
+    );
+    expect(component.savingAllProjects()).toBe(false);
   });
 
   it('should format dates correctly', () => {

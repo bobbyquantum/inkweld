@@ -12,7 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ProjectGrantListComponent } from '@components/project-grant-list/project-grant-list.component';
 import {
@@ -40,7 +40,6 @@ import { firstValueFrom } from 'rxjs';
     MatIconModule,
     MatProgressSpinnerModule,
     MatSelectModule,
-    MatSnackBarModule,
     MatTooltipModule,
     TranslocoModule,
     ProjectGrantListComponent,
