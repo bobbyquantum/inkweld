@@ -2,6 +2,7 @@ import { type CdkDragDrop } from '@angular/cdk/drag-drop';
 import { provideZonelessChangeDetection, type QueryList } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { type MatExpansionPanel } from '@angular/material/expansion';
+import { type ElementAppearance } from '@models/element-appearance';
 import {
   type ElementTypeSchema,
   type FieldSchema,
@@ -140,23 +141,19 @@ describe('TemplateEditorPageComponent', () => {
     });
   });
 
-  describe('schema editor inspector panel', () => {
-    it('should default to showing the info panel', () => {
-      expect(component.inspectorPanel()).toBe('info');
+  describe('schema info + appearance handlers', () => {
+    it('should update schema metadata from the Schema Details section', () => {
+      component['onSchemaInfoChange']({ name: 'Hero', icon: 'person' });
+      expect(component.model().name).toBe('Hero');
+      expect(component.model().icon).toBe('person');
     });
 
-    it('should toggle the style panel on and clear on re-toggle', () => {
-      component['toggleInspector']('style');
-      expect(component.inspectorPanel()).toBe('style');
-      component['toggleInspector']('style');
-      expect(component.inspectorPanel()).toBeNull();
-    });
-
-    it('should switch between info and style panels', () => {
-      component['toggleInspector']('style');
-      expect(component.inspectorPanel()).toBe('style');
-      component['toggleInspector']('info');
-      expect(component.inspectorPanel()).toBe('info');
+    it('should update the default appearance from the editor styling section', () => {
+      const appearance: ElementAppearance = {
+        menu: { type: 'color', mode: 'auto', value: '#123456' },
+      };
+      component['onDefaultAppearanceChange'](appearance);
+      expect(component.defaultAppearance()).toEqual(appearance);
     });
   });
 

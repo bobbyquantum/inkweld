@@ -782,6 +782,14 @@ form {
   border-style: dashed;
 }
 
+// Schema Details section (edit mode only)
+.schema-details-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 1.5rem;
+}
+
 // Field container in edit mode: dashed outline + hover toolbar.
 .field-container.schema-edit {
   position: relative;

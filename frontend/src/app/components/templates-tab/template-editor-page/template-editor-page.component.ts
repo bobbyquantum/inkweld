@@ -5,7 +5,6 @@ import {
   Component,
   computed,
   DestroyRef,
-  effect,
   inject,
   input,
   type OnInit,
@@ -18,44 +17,26 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { form, FormField, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionPanel } from '@angular/material/expansion';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import {
-  AppearanceEditorComponent,
-  type BackgroundSlot,
-} from '@components/worldbuilding/appearance-panel/appearance-editor/appearance-editor.component';
 import {
   type SchemaEditEvent,
   WorldbuildingEditorComponent,
 } from '@components/worldbuilding/worldbuilding-editor.component';
 import { ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
-import {
-  type AppearanceRegion,
-  type ElementAppearance,
-} from '@models/element-appearance';
+import { type ElementAppearance } from '@models/element-appearance';
 import {
   type ElementTypeSchema,
   type FieldSchema,
   type TabSchema,
 } from '@models/schema-types';
-import { DialogGatewayService } from '@services/core/dialog-gateway.service';
-import { ProjectStateService } from '@services/project/project-state.service';
-import { AppearanceService } from '@services/worldbuilding/appearance.service';
-
-import { buildMediaReference } from '../../../utils/media-reference';
 
 interface BasicFormValue {
   name: string;
   icon: string;
   description: string;
 }
-
-/** Which top-level editor tab is active. */
-type EditorTab = 'basic' | 'fields' | 'style' | 'preview';
 
 /**
  * Inline editor for an {@link ElementTypeSchema} (template).
@@ -72,22 +53,15 @@ type EditorTab = 'basic' | 'fields' | 'style' | 'preview';
   imports: [
     FormField,
     MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatIconModule,
-    MatSelectModule,
     MatTooltipModule,
     TranslocoModule,
-    AppearanceEditorComponent,
     WorldbuildingEditorComponent,
   ],
 })
 export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   private readonly destroyRef = inject(DestroyRef);
-  private readonly dialogGateway = inject(DialogGatewayService);
-  private readonly projectState = inject(ProjectStateService);
   private readonly transloco = inject(TranslocoService);
-  private readonly appearanceService = inject(AppearanceService);
 
   /** Exposed for the preview template. */
   readonly ElementType = ElementType;
@@ -106,10 +80,6 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
 
   readonly isSaving = signal(false);
   readonly selectedTabIndex = signal(0);
-  /** Which top-level editor tab is active: basic | fields | style | preview. */
-  readonly activeEditorTab = signal<EditorTab>('basic');
-  /** Which inspector panel is open in the unified editor: info or style. */
-  readonly inspectorPanel = signal<'info' | 'style' | null>('info');
   readonly validationError = signal<string | null>(
     null
   ); /** @internal Exposed for unit testing only. */
@@ -127,22 +97,6 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     { value: 'select', label: 'Select' },
     { value: 'array', label: 'Array (Tags)' },
     { value: 'checkbox', label: 'Checkbox' },
-  ];
-
-  // Available icons
-  readonly availableIcons = [
-    'person',
-    'place',
-    'category',
-    'map',
-    'diversity_1',
-    'auto_stories',
-    'groups',
-    'pets',
-    'settings',
-    'description',
-    'article',
-    'star',
   ];
 
   readonly model = signal<BasicFormValue>({
@@ -166,28 +120,6 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   // Default identity image for new elements of this type
   readonly defaultImage = signal<string | undefined>(undefined);
 
-  /**
-   * The default image resolved to a renderable URL (blob/data), since a
-   * raw `media://` reference can't be loaded straight into an <img>.
-   */
-  readonly resolvedDefaultImage = signal<string | null>(null);
-
-  /** Resolve the default image reference to a displayable URL for the preview. */
-  private resolveDefaultImage(ref: string | undefined): void {
-    if (!ref || !ref.startsWith('media://')) {
-      this.resolvedDefaultImage.set(ref ?? null);
-      return;
-    }
-    const project = this.projectState.project();
-    if (!project) {
-      this.resolvedDefaultImage.set(null);
-      return;
-    }
-    void this.appearanceService
-      .resolveImageReference(ref, project.username, project.slug)
-      .then(url => this.resolvedDefaultImage.set(url));
-  }
-
   /** A transient schema built from the current editor state, for the preview. */
   readonly previewSchema = computed<ElementTypeSchema>(() => ({
     id: this.schema().id,
@@ -200,15 +132,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     defaultImage: this.defaultImage(),
   }));
 
-  constructor() {
-    // Resolve the default image for preview whenever it (or the active project)
-    // changes.
-    effect(() => {
-      this.defaultImage();
-      this.projectState.project();
-      this.resolveDefaultImage(this.defaultImage());
-    });
-  }
+  constructor() {}
 
   /**
    * Debounce emitting the assembled current schema so parents can live-save
@@ -222,6 +146,15 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
       this.autosaveTimer = null;
       this.schemaChange.emit(this.buildUpdatedSchema());
     }, 600);
+  }
+
+  /** Flush any pending autosave immediately (e.g. on exit). */
+  protected flushAutosave(): void {
+    if (this.autosaveTimer !== null) {
+      clearTimeout(this.autosaveTimer);
+      this.autosaveTimer = null;
+      this.schemaChange.emit(this.buildUpdatedSchema());
+    }
   }
 
   ngOnInit(): void {
@@ -404,61 +337,10 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     };
   }
 
-  /** Cancel editing */
+  /** Cancel editing (flushes any pending autosave, then closes). */
   cancel(): void {
+    this.flushAutosave();
     this.done.emit(null);
-  }
-
-  /** Open the media selector to pick a default identity image. */
-  async pickDefaultImage(): Promise<void> {
-    const project = this.projectState.project();
-    if (!project) return;
-    const result = await this.dialogGateway.openMediaSelectorDialog({
-      username: project.username,
-      slug: project.slug,
-      filterType: 'image',
-      title: this.transloco.translate(
-        'templates.editor.defaultImagePickerTitle'
-      ),
-    });
-    if (result?.selected) {
-      const reference = buildMediaReference(result.selected);
-      this.defaultImage.set(reference);
-    }
-  }
-
-  /** Clear the default identity image. */
-  clearDefaultImage(): void {
-    this.defaultImage.set(undefined);
-  }
-
-  /** Open the project media selector to pick a default background image. */
-  async pickAppearanceImage(
-    region: AppearanceRegion,
-    slot: BackgroundSlot
-  ): Promise<void> {
-    const project = this.projectState.project();
-    if (!project) return;
-    const result = await this.dialogGateway.openMediaSelectorDialog({
-      username: project.username,
-      slug: project.slug,
-      filterType: 'image',
-      title: this.transloco.translate(
-        'worldbuilding.appearance.pickImageTitle'
-      ),
-    });
-    if (result?.selected) {
-      const reference = buildMediaReference(result.selected);
-      const current = this.defaultAppearance();
-      const regionSetting = current?.[region] ?? {
-        type: 'image',
-        mode: 'auto',
-      };
-      this.defaultAppearance.set({
-        ...current,
-        [region]: { ...regionSetting, [slot]: reference },
-      });
-    }
   }
 
   /**
@@ -510,21 +392,27 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     this.scheduleAutosave();
   }
 
-  /** Map the active editor tab to a mat-tab index. */
-  tabIndex(): number {
-    const order: EditorTab[] = ['basic', 'fields', 'style', 'preview'];
-    return order.indexOf(this.activeEditorTab());
+  /**
+   * Apply a schema metadata change (name/icon/description) from the editor's
+   * Schema Details section, then live-save.
+   */
+  protected onSchemaInfoChange(patch: {
+    name?: string;
+    icon?: string;
+    description?: string;
+  }): void {
+    this.model.update(m => ({
+      name: patch.name ?? m.name,
+      icon: patch.icon ?? m.icon,
+      description: patch.description ?? m.description,
+    }));
+    this.scheduleAutosave();
   }
 
-  /** Set the active editor tab from a mat-tab index. */
-  setTab(index: number): void {
-    const order: EditorTab[] = ['basic', 'fields', 'style', 'preview'];
-    this.activeEditorTab.set(order[index] ?? 'basic');
-  }
-
-  /** Toggle the inspector panel (info/style) in the unified editor, or clear it. */
-  protected toggleInspector(panel: 'info' | 'style'): void {
-    this.inspectorPanel.set(this.inspectorPanel() === panel ? null : panel);
+  /** Apply a default-appearance change from the editor's Styling section. */
+  protected onDefaultAppearanceChange(appearance: ElementAppearance): void {
+    this.defaultAppearance.set(appearance);
+    this.scheduleAutosave();
   }
 
   private mutateTabs(fn: (tabs: TabSchema[]) => void): void {

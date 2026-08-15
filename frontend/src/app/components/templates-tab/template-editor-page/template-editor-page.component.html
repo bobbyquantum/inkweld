@@ -10,46 +10,24 @@
     </button>
 
     <div class="toolbar-title">
-      <mat-icon>{{ model().icon || 'category' }}</mat-icon>
-      <span>{{ model().name || ('templates.editor.title' | transloco) }}</span>
+      <mat-icon>{{ previewSchema()?.icon || 'category' }}</mat-icon>
+      <span>{{
+        previewSchema()?.name || ('templates.editor.title' | transloco)
+      }}</span>
     </div>
 
     <span class="toolbar-spacer"></span>
-
-    <button
-      mat-button
-      type="button"
-      [class.active]="inspectorPanel() === 'info'"
-      (click)="toggleInspector('info')"
-      data-testid="toggle-info">
-      <mat-icon>info</mat-icon>
-      {{ 'templates.editor.tabBasic' | transloco }}
-    </button>
-    <button
-      mat-button
-      type="button"
-      [class.active]="inspectorPanel() === 'style'"
-      (click)="toggleInspector('style')"
-      data-testid="toggle-style">
-      <mat-icon>palette</mat-icon>
-      {{ 'templates.editor.tabStyle' | transloco }}
-    </button>
-
-    @if (validationError(); as error) {
-      <span
-        class="toolbar-error"
-        data-testid="template-editor-validation-error">
-        {{ error }}
+    @if (isSaving()) {
+      <span class="saving-indicator">
+        <mat-icon>cloud_done</mat-icon>
+        {{ 'templates.editor.saving' | transloco }}
       </span>
     }
   </header>
 
   <div class="editor-layout">
-    <!-- Interactive editor: the primary surface -->
-    <div
-      class="editor-canvas"
-      [class.panel-open]="inspectorPanel() !== null"
-      data-testid="template-preview">
+    <!-- Single unified editor: fields, schema details, and styling live inside it -->
+    <div class="editor-canvas" data-testid="template-preview">
       <app-worldbuilding-editor
         [elementId]="'preview'"
         [elementType]="ElementType.Worldbuilding"
@@ -57,145 +35,11 @@
         [slug]="'preview'"
         [previewSchema]="previewSchema()"
         [editMode]="true"
-        (schemaEdit)="onSchemaEdit($event)"></app-worldbuilding-editor>
+        (schemaEdit)="onSchemaEdit($event)"
+        (schemaInfoChange)="onSchemaInfoChange($event)"
+        (defaultAppearanceChange)="
+          onDefaultAppearanceChange($event)
+        "></app-worldbuilding-editor>
     </div>
-
-    <!-- Inspector: schema info + styling, surfaced within the editor -->
-    @if (inspectorPanel(); as panel) {
-      <aside class="inspector" data-testid="template-inspector">
-        @if (panel === 'info') {
-          <section class="inspector-pane">
-            <h3>{{ 'templates.editor.tabBasic' | transloco }}</h3>
-            <form>
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{
-                  'templates.editor.templateNameLabel' | transloco
-                }}</mat-label>
-                <input
-                  matInput
-                  id="template-name"
-                  [attr.aria-label]="
-                    'templates.editor.templateNameAria' | transloco
-                  "
-                  [formField]="basicForm.name"
-                  data-testid="template-name-input"
-                  [attr.placeholder]="
-                    'templates.editor.templateNamePlaceholder' | transloco
-                  " />
-                @if (basicForm.name().touched() && basicForm.name().invalid()) {
-                  @for (error of basicForm.name().errors(); track error) {
-                    <mat-error>{{ error.message }}</mat-error>
-                  }
-                }
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{
-                  'templates.editor.iconLabel' | transloco
-                }}</mat-label>
-                <mat-select
-                  [formField]="basicForm.icon"
-                  data-testid="template-icon-input">
-                  @for (icon of availableIcons; track icon) {
-                    <mat-option [value]="icon">
-                      <mat-icon>{{ icon }}</mat-icon>
-                      {{ icon }}
-                    </mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-
-              <div
-                class="default-image-field"
-                data-testid="template-default-image">
-                <span class="control-label">{{
-                  'templates.editor.defaultImageLabel' | transloco
-                }}</span>
-                @if (defaultImage(); as image) {
-                  <div class="default-image-preview">
-                    <img
-                      [src]="resolvedDefaultImage() ?? image"
-                      [alt]="'templates.editor.defaultThumbAlt' | transloco" />
-                    <button
-                      mat-icon-button
-                      type="button"
-                      [attr.aria-label]="
-                        'templates.editor.clearDefaultImage' | transloco
-                      "
-                      (click)="clearDefaultImage()">
-                      <mat-icon>close</mat-icon>
-                    </button>
-                  </div>
-                } @else {
-                  <button
-                    mat-stroked-button
-                    type="button"
-                    (click)="pickDefaultImage()"
-                    data-testid="template-default-image-pick">
-                    <mat-icon>image</mat-icon>
-                    {{ 'templates.editor.pickDefaultImage' | transloco }}
-                  </button>
-                }
-              </div>
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{
-                  'templates.editor.descriptionLabel' | transloco
-                }}</mat-label>
-                <textarea
-                  matInput
-                  id="template-description"
-                  [attr.aria-label]="
-                    'templates.editor.descriptionAria' | transloco
-                  "
-                  [formField]="basicForm.description"
-                  data-testid="template-description-input"
-                  [attr.placeholder]="
-                    'templates.editor.descriptionPlaceholder' | transloco
-                  "
-                  rows="3"></textarea>
-              </mat-form-field>
-            </form>
-          </section>
-        }
-
-        @if (panel === 'style') {
-          <section class="inspector-pane">
-            <h3>{{ 'templates.editor.defaultAppearance' | transloco }}</h3>
-            <p class="hint">
-              {{ 'templates.editor.defaultAppearanceHint' | transloco }}
-            </p>
-            <app-appearance-editor
-              [value]="defaultAppearance() ?? {}"
-              (valueChange)="defaultAppearance.set($event)"
-              (imagePicker)="pickAppearanceImage($event.region, $event.slot)"
-              data-testid="template-default-appearance"></app-appearance-editor>
-          </section>
-        }
-      </aside>
-    }
   </div>
-
-  <footer class="footer">
-    <button
-      mat-button
-      type="button"
-      (click)="cancel()"
-      data-testid="template-editor-cancel">
-      {{ 'cancel' | transloco }}
-    </button>
-    <button
-      mat-flat-button
-      color="primary"
-      type="button"
-      (click)="save()"
-      data-testid="save-template-button"
-      [disabled]="basicForm().invalid() || isSaving()">
-      @if (isSaving()) {
-        <span>{{ 'templates.editor.saving' | transloco }}</span>
-      } @else {
-        <span>{{ 'templates.editor.saveChanges' | transloco }}</span>
-      }
-    </button>
-  </footer>
 </div>

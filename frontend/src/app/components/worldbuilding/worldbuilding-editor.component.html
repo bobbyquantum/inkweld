@@ -55,6 +55,25 @@
             }}</span>
           </a>
 
+          @if (schemaEditingEnabled()) {
+            <a
+              mat-list-item
+              (click)="selectSection('schema-details')"
+              (keydown.enter)="selectSection('schema-details')"
+              [attr.aria-current]="
+                selectedSection() === 'schema-details' ? 'true' : null
+              "
+              [class.active]="selectedSection() === 'schema-details'"
+              [class.schema-edit]="true"
+              tabindex="0"
+              data-testid="nav-schema-details">
+              <mat-icon matListItemIcon>edit_note</mat-icon>
+              <span matListItemTitle>{{
+                'templates.editor.schemaDetails' | transloco
+              }}</span>
+            </a>
+          }
+
           @for (tab of getTabs(); track tab.key) {
             <a
               mat-list-item
@@ -226,13 +245,87 @@
 
         @if (selectedSection() === 'styling' && projectState.canWrite()) {
           <div class="section-content styling-inline">
-            <app-appearance-panel
-              [elementId]="elementId()"
-              [username]="username()"
-              [slug]="slug()"
-              [canWrite]="projectState.canWrite()"
-              (appearanceChange)="onAppearanceChange($event)">
-            </app-appearance-panel>
+            @if (schemaEditingEnabled()) {
+              <app-appearance-editor
+                [value]="previewSchema()?.defaultAppearance ?? {}"
+                (valueChange)="onDefaultAppearanceChange($event)"
+                data-testid="preview-default-appearance"></app-appearance-editor>
+            } @else {
+              <app-appearance-panel
+                [elementId]="elementId()"
+                [username]="username()"
+                [slug]="slug()"
+                [canWrite]="projectState.canWrite()"
+                (appearanceChange)="onAppearanceChange($event)">
+              </app-appearance-panel>
+            }
+          </div>
+        }
+
+        @if (selectedSection() === 'schema-details' && schemaEditingEnabled()) {
+          <div class="section-content tab-section-content">
+            <h2 class="section-title" data-testid="schema-details-title">
+              <mat-icon class="section-title-icon">edit_note</mat-icon>
+              {{ 'templates.editor.schemaDetails' | transloco }}
+            </h2>
+            <div class="schema-details-body">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{
+                  'templates.editor.templateNameLabel' | transloco
+                }}</mat-label>
+                <input
+                  matInput
+                  id="schema-name"
+                  [attr.aria-label]="
+                    'templates.editor.templateNameAria' | transloco
+                  "
+                  [value]="previewSchema()?.name ?? ''"
+                  (input)="
+                    onSchemaInfoChange({ name: $any($event.target).value })
+                  "
+                  data-testid="schema-name-input"
+                  [attr.placeholder]="
+                    'templates.editor.templateNamePlaceholder' | transloco
+                  " />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{
+                  'templates.editor.iconLabel' | transloco
+                }}</mat-label>
+                <mat-select
+                  [value]="previewSchema()?.icon ?? 'category'"
+                  (selectionChange)="onSchemaInfoChange({ icon: $event.value })"
+                  data-testid="schema-icon-input">
+                  @for (icon of getAvailableIcons(); track icon) {
+                    <mat-option [value]="icon">
+                      <mat-icon>{{ icon }}</mat-icon>
+                      {{ icon }}
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{
+                  'templates.editor.descriptionLabel' | transloco
+                }}</mat-label>
+                <textarea
+                  matInput
+                  id="schema-description"
+                  [attr.aria-label]="
+                    'templates.editor.descriptionAria' | transloco
+                  "
+                  [value]="previewSchema()?.description ?? ''"
+                  (input)="
+                    onSchemaInfoChange({
+                      description: $any($event.target).value,
+                    })
+                  "
+                  data-testid="schema-description-input"
+                  rows="3"></textarea>
+              </mat-form-field>
+            </div>
           </div>
         }
 
@@ -366,13 +459,20 @@
                 </mat-panel-title>
               </mat-expansion-panel-header>
               <div class="styling-inline">
-                <app-appearance-panel
-                  [elementId]="elementId()"
-                  [username]="username()"
-                  [slug]="slug()"
-                  [canWrite]="projectState.canWrite()"
-                  (appearanceChange)="onAppearanceChange($event)">
-                </app-appearance-panel>
+                @if (schemaEditingEnabled()) {
+                  <app-appearance-editor
+                    [value]="previewSchema()?.defaultAppearance ?? {}"
+                    (valueChange)="onDefaultAppearanceChange($event)"
+                    data-testid="preview-default-appearance-accordion"></app-appearance-editor>
+                } @else {
+                  <app-appearance-panel
+                    [elementId]="elementId()"
+                    [username]="username()"
+                    [slug]="slug()"
+                    [canWrite]="projectState.canWrite()"
+                    (appearanceChange)="onAppearanceChange($event)">
+                  </app-appearance-panel>
+                }
               </div>
             </mat-expansion-panel>
           }

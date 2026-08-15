@@ -69,6 +69,7 @@ export type SchemaEditEvent =
   | { type: 'add-field'; tabKey: string }
   | { type: 'remove-field'; tabKey: string; fieldKey: string }
   | { type: 'move-field'; tabKey: string; fieldKey: string; delta: -1 | 1 };
+import { AppearanceEditorComponent } from './appearance-panel/appearance-editor/appearance-editor.component';
 import { AppearancePanelComponent } from './appearance-panel/appearance-panel.component';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
 import { MediaPanelComponent } from './media-panel/media-panel.component';
@@ -98,6 +99,7 @@ import { MediaPanelComponent } from './media-panel/media-panel.component';
     IdentityPanelComponent,
     MediaPanelComponent,
     AppearancePanelComponent,
+    AppearanceEditorComponent,
     TranslocoModule,
   ],
   templateUrl: './worldbuilding-editor.component.html',
@@ -127,6 +129,16 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   /** Emits schema-editing intents when `editMode` is active. */
   readonly schemaEdit = output<SchemaEditEvent>();
+
+  /** Emits updated schema metadata (name/icon/description) from the Schema Details section. */
+  readonly schemaInfoChange = output<{
+    name?: string;
+    icon?: string;
+    description?: string;
+  }>();
+
+  /** Emits the schema's default appearance when edited from the Styling section. */
+  readonly defaultAppearanceChange = output<ElementAppearance>();
 
   /** True when rendering a transient schema preview (no element persistence). */
   readonly previewMode = computed(() => this.previewSchema() !== null);
@@ -691,7 +703,8 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       section !== 'identity' &&
       section !== 'relationships' &&
       section !== 'media' &&
-      section !== 'styling'
+      section !== 'styling' &&
+      section !== 'schema-details'
     );
   }
 
@@ -700,6 +713,9 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (section === 'identity') return 'Identity & Details';
     if (section === 'relationships') return 'Relationships';
     if (section === 'styling') return 'Styling';
+    if (section === 'schema-details') {
+      return this.transloco.translate('templates.editor.schemaDetails');
+    }
     const tab = this.getTabs().find(t => t.key === section);
     return tab?.label || section;
   }
@@ -729,6 +745,21 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     return this.editMode() && this.previewMode();
   }
 
+  /** Icons offered in the Schema Details picker. */
+  protected getAvailableIcons(): string[] {
+    return [
+      'person',
+      'place',
+      'category',
+      'menu_book',
+      'event',
+      'groups',
+      'public',
+      'auto_stories',
+      'watch_later',
+    ];
+  }
+
   protected onAddTab(): void {
     this.emitSchemaEdit({ type: 'add-tab' });
   }
@@ -747,6 +778,22 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   protected onMoveField(tabKey: string, fieldKey: string, delta: -1 | 1): void {
     this.emitSchemaEdit({ type: 'move-field', tabKey, fieldKey, delta });
+  }
+
+  /** Emit a schema metadata change from the Schema Details section. */
+  protected onSchemaInfoChange(patch: {
+    name?: string;
+    icon?: string;
+    description?: string;
+  }): void {
+    if (!this.schemaEditingEnabled()) return;
+    this.schemaInfoChange.emit(patch);
+  }
+
+  /** Emit an edited default appearance from the Styling section. */
+  protected onDefaultAppearanceChange(appearance: ElementAppearance): void {
+    if (!this.schemaEditingEnabled()) return;
+    this.defaultAppearanceChange.emit(appearance);
   }
 
   /** Count how many fields in a tab have been filled in by the user */

@@ -1172,5 +1172,36 @@ describe('WorldbuildingEditorComponent', () => {
       component['onAddField']('basic');
       expect(emit).not.toHaveBeenCalled();
     });
+
+    it('should emit a schema info change', () => {
+      const emit = vi.fn();
+      component.schemaInfoChange.subscribe(emit);
+      component['onSchemaInfoChange']({ name: 'Hero' });
+      expect(emit).toHaveBeenCalledWith({ name: 'Hero' });
+    });
+
+    it('should emit a default appearance change', () => {
+      const emit = vi.fn();
+      component.defaultAppearanceChange.subscribe(emit);
+      component['onDefaultAppearanceChange']({
+        menu: { type: 'color', mode: 'auto', value: '#123456' },
+      });
+      expect(emit).toHaveBeenCalledWith({
+        menu: { type: 'color', mode: 'auto', value: '#123456' },
+      });
+    });
+
+    it('should gate schema info/appearance emission behind edit mode', () => {
+      fixture.componentRef.setInput('editMode', false);
+      fixture.detectChanges();
+      const infoEmit = vi.fn();
+      const appEmit = vi.fn();
+      component.schemaInfoChange.subscribe(infoEmit);
+      component.defaultAppearanceChange.subscribe(appEmit);
+      component['onSchemaInfoChange']({ name: 'Hero' });
+      component['onDefaultAppearanceChange']({});
+      expect(infoEmit).not.toHaveBeenCalled();
+      expect(appEmit).not.toHaveBeenCalled();
+    });
   });
 });
