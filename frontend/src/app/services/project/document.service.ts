@@ -74,12 +74,13 @@ import { ProjectStateService } from './project-state.service';
  */
 const MAX_RECONNECT_ATTEMPTS = 5;
 /**
- * Initial reconnect delay. y-websocket's OWN internal loop starts at 100ms
- * (2^n × 100), which fires ~5 reconnects in the first 3 seconds — each one
- * hits the main Worker even when the DO returns 429/504. We suppress that
- * loop (see handleDisconnected) and drive reconnects ourselves starting at
- * 3s so the first retry is slow enough to let a transient DO failure recover
- * without burning Worker requests.
+ * Initial reconnect delay. y-websocket's OWN internal loop starts at 200ms
+ * after a dropped connection (2^n × 100, with the attempt counter incremented
+ * on every close since y-websocket 3.1) and fires ~5 reconnects in the first
+ * ~6 seconds — each one hits the main Worker even when the DO returns
+ * 429/504. We suppress that loop (see handleDisconnected) and drive
+ * reconnects ourselves starting at 3s so the first retry is slow enough to
+ * let a transient DO failure recover without burning Worker requests.
  */
 const INITIAL_RECONNECT_DELAY = 3_000;
 const MAX_RECONNECT_DELAY = 30_000;
@@ -1257,9 +1258,10 @@ export class DocumentService {
     let circuitBreakerTimeout: number | null = null;
     // Set before calling providerRef.disconnect() to suppress the
     // 'disconnected' re-entry that disconnect() triggers. y-websocket's
-    // own internal reconnect loop starts at 100ms (2^n × 100), so without
-    // this suppression the first 5 reconnects fire in ~3s — each hitting
-    // the main Worker. We kill that loop and drive reconnects ourselves.
+    // own internal reconnect loop starts at 200ms (2^n × 100, counter
+    // incremented per close since y-websocket 3.1), so without this
+    // suppression the first 5 reconnects fire in ~6s — each hitting the
+    // main Worker. We kill that loop and drive reconnects ourselves.
     let suppressReconnect = false;
     // Timestamp of the last 'connected' event, captured so we can measure
     // the session *duration* at disconnect time (not uptime + reconnect
@@ -1328,6 +1330,19 @@ export class DocumentService {
           'DocumentService',
           `Access denied (${reason}) for ${documentId}; not retrying`
         );
+        // Cancel any reconnect we already scheduled. Matters when the denial
+        // arrives via the `closed` event (terminal close code) WITHOUT the
+        // text frame: handleDisconnected ran first and scheduled a retry,
+        // which would otherwise resurrect a session the server killed for good.
+        if (reconnectTimeout) {
+          clearTimeout(reconnectTimeout);
+          reconnectTimeout = null;
+        }
+        if (circuitBreakerTimeout) {
+          clearTimeout(circuitBreakerTimeout);
+          circuitBreakerTimeout = null;
+        }
+        this.reconnectTimeouts.delete(documentId);
         // Stop y-websocket's internal reconnect loop too. suppressReconnect
         // guards the synchronous 'disconnected' this disconnect() emits.
         suppressReconnect = true;
@@ -1371,6 +1386,10 @@ export class DocumentService {
               `Unexpected text frame on ${documentId}: ${text}`
             );
           },
+          // Terminal close codes (44xx) are the backstop for the
+          // `access-denied` text frame: route them through the same
+          // classifier so a lost text frame can't leave the loop retrying.
+          onTerminalClose: reason => markDenied(reason),
         }
       );
 
@@ -1481,7 +1500,7 @@ export class DocumentService {
 
         // Re-entry guard: providerRef.disconnect() below fires another
         // 'disconnected' event synchronously. Suppress it so only OUR
-        // scheduled reconnect runs, not y-websocket's 100ms internal loop.
+        // scheduled reconnect runs, not y-websocket's 200ms internal loop.
         if (suppressReconnect) {
           suppressReconnect = false;
           return false;
@@ -1542,8 +1561,8 @@ export class DocumentService {
               )
             );
           }
-          // Kill y-websocket's internal reconnect loop (starts at 100ms,
-          // would fire ~5 retries in 3s, each hitting the Worker even when
+          // Kill y-websocket's internal reconnect loop (starts at 200ms,
+          // would fire ~5 retries in ~6s, each hitting the Worker even when
           // the DO returns 429/504). We drive the reconnect ourselves.
           suppressReconnect = true;
           providerRef.disconnect();
