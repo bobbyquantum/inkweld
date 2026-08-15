@@ -483,13 +483,7 @@ describe('MCP OAuth Service - Session Management', () => {
         issuer: 'http://localhost:8333',
       });
 
-      await mcpOAuthService.grantProjectAccess(
-        db,
-        sessionId,
-        testProjectId,
-        'admin',
-        testUserId
-      );
+      await mcpOAuthService.grantProjectAccess(db, sessionId, testProjectId, 'admin', testUserId);
 
       const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
       expect(grants.find((g) => g.projectId === testProjectId)?.role).toBe('admin');
