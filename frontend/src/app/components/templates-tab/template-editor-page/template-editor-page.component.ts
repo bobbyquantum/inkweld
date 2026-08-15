@@ -9,6 +9,7 @@ import {
   Component,
   computed,
   DestroyRef,
+  effect,
   inject,
   input,
   type OnInit,
@@ -49,6 +50,7 @@ import {
 } from '@models/schema-types';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { AppearanceService } from '@services/worldbuilding/appearance.service';
 
 import { buildMediaReference } from '../../../utils/media-reference';
 
@@ -95,6 +97,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly projectState = inject(ProjectStateService);
   private readonly transloco = inject(TranslocoService);
+  private readonly appearanceService = inject(AppearanceService);
 
   /** Exposed for the preview template. */
   readonly ElementType = ElementType;
@@ -165,6 +168,28 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   // Default identity image for new elements of this type
   readonly defaultImage = signal<string | undefined>(undefined);
 
+  /**
+   * The default image resolved to a renderable URL (blob/data), since a
+   * raw `media://` reference can't be loaded straight into an <img>.
+   */
+  readonly resolvedDefaultImage = signal<string | null>(null);
+
+  /** Resolve the default image reference to a displayable URL for the preview. */
+  private resolveDefaultImage(ref: string | undefined): void {
+    if (!ref || !ref.startsWith('media://')) {
+      this.resolvedDefaultImage.set(ref ?? null);
+      return;
+    }
+    const project = this.projectState.project();
+    if (!project) {
+      this.resolvedDefaultImage.set(null);
+      return;
+    }
+    void this.appearanceService
+      .resolveImageReference(ref, project.username, project.slug)
+      .then(url => this.resolvedDefaultImage.set(url));
+  }
+
   /** A transient schema built from the current editor state, for the preview. */
   readonly previewSchema = computed<ElementTypeSchema>(() => ({
     id: this.schema().id,
@@ -176,6 +201,16 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     defaultAppearance: this.defaultAppearance(),
     defaultImage: this.defaultImage(),
   }));
+
+  constructor() {
+    // Resolve the default image for preview whenever it (or the active project)
+    // changes.
+    effect(() => {
+      this.defaultImage();
+      this.projectState.project();
+      this.resolveDefaultImage(this.defaultImage());
+    });
+  }
 
   ngOnInit(): void {
     const schema = this.schema();

@@ -5,7 +5,7 @@ import {
 import { TestBed } from '@angular/core/testing';
 import { ThemeService } from '@themes/theme.service';
 import { BehaviorSubject } from 'rxjs';
-import { vi } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 
 import type { BackgroundSetting } from '../../models/element-appearance';
 import { StorageContextService } from '../core/storage-context.service';
@@ -60,6 +60,12 @@ describe('AppearanceService', () => {
 
     service = TestBed.inject(AppearanceService);
     httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    // Some tests stub globalThis.matchMedia (including to undefined); restore
+    // it so it doesn't leak into subsequently-run spec files.
+    vi.unstubAllGlobals();
   });
 
   it('should resolve a solid colour in auto mode', () => {

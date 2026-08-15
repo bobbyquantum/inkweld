@@ -73,7 +73,7 @@
             @if (defaultImage(); as image) {
               <div class="default-image-preview">
                 <img
-                  [src]="image"
+                  [src]="resolvedDefaultImage() ?? image"
                   [alt]="'templates.editor.defaultThumbAlt' | transloco" />
                 <button
                   mat-icon-button
