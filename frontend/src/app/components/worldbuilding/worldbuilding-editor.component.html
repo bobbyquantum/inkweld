@@ -10,6 +10,7 @@
         data-testid="wb-sidenav"
         [class.has-custom-background]="!!menuBackground()"
         [style.--wb-bg]="backgroundCss(menuBackground())"
+        [style.--wb-overlay]="menuBackground()?.overlayAlpha ?? null"
         [class.wb-bg-overlay-dark]="menuBackground()?.overlay === 'dark'"
         [class.wb-bg-overlay-light]="menuBackground()?.overlay === 'light'">
         @if (identityPanel()?.resolvedImageUrl(); as imageUrl) {
@@ -127,6 +128,7 @@
       data-testid="wb-content"
       [class.has-custom-background]="!!contentBackground()"
       [style.--wb-bg]="backgroundCss(contentBackground())"
+      [style.--wb-overlay]="contentBackground()?.overlayAlpha ?? null"
       [class.wb-bg-overlay-dark]="contentBackground()?.overlay === 'dark'"
       [class.wb-bg-overlay-light]="contentBackground()?.overlay === 'light'">
       @if (isInitialLoading()) {
@@ -239,6 +241,7 @@
           data-testid="wb-accordion"
           [class.has-custom-background]="!!menuBackground()"
           [style.--wb-bg]="backgroundCss(menuBackground())"
+          [style.--wb-overlay]="menuBackground()?.overlayAlpha ?? null"
           [class.wb-bg-overlay-dark]="menuBackground()?.overlay === 'dark'"
           [class.wb-bg-overlay-light]="menuBackground()?.overlay === 'light'">
           <!-- Identity panel -->

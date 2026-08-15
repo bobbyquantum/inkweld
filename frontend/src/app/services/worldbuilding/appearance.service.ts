@@ -27,6 +27,8 @@ export interface ResolvedBackground {
   type: BackgroundType;
   background: string;
   overlay?: 'dark' | 'light';
+  /** 0-1 overlay alpha, derived from the auto-adjust intensity. Only set when `overlay` is. */
+  overlayAlpha?: number;
 }
 
 /**
@@ -148,9 +150,24 @@ export class AppearanceService {
         type,
         background: `url('${value}')`,
         overlay: dark ? 'dark' : 'light',
+        overlayAlpha: this.overlayAlpha(setting, dark),
       };
     }
     return { type, background: `url('${value}')` };
+  }
+
+  /**
+   * The effective 0-1 overlay alpha for an auto-adjusted background image.
+   *
+   * The "Auto adjust" intensity slider (0-100) controls how strongly the image
+   * is lightened (light theme) or darkened (dark theme). Intensity 25 is the
+   * default and reproduces the original fixed overlay, so existing styling is
+   * unchanged and dragging the slider visibly scales the overlay up or down.
+   */
+  private overlayAlpha(setting: BackgroundSetting, dark: boolean): number {
+    const base = dark ? 0.25 : 0.2;
+    const factor = (setting.intensity ?? 25) / 25;
+    return Math.max(0, Math.min(0.6, base * factor));
   }
 
   /**

@@ -202,6 +202,7 @@ describe('AppearanceService', () => {
         type: 'image',
         background: "url('media://bg.png')",
         overlay: 'light',
+        overlayAlpha: 0.2,
       });
     });
 
@@ -215,7 +216,33 @@ describe('AppearanceService', () => {
         type: 'image',
         background: "url('media://bg.png')",
         overlay: 'dark',
+        overlayAlpha: 0.25,
       });
+    });
+
+    it('should scale the overlay alpha with intensity', () => {
+      themeSubject.next('dark-theme');
+      const low = service.resolveRegion(
+        { type: 'image', mode: 'auto', value: 'media://bg.png', intensity: 0 },
+        'menu'
+      );
+      const mid = service.resolveRegion(
+        { type: 'image', mode: 'auto', value: 'media://bg.png', intensity: 25 },
+        'menu'
+      );
+      const high = service.resolveRegion(
+        {
+          type: 'image',
+          mode: 'auto',
+          value: 'media://bg.png',
+          intensity: 100,
+        },
+        'menu'
+      );
+      expect(low?.overlayAlpha).toBe(0);
+      expect(mid?.overlayAlpha).toBe(0.25);
+      // Capped so it never fully obscures the image.
+      expect(high?.overlayAlpha).toBe(0.6);
     });
   });
 

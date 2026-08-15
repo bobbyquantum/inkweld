@@ -56,12 +56,12 @@
   // image: darken in dark mode (so light text stays readable) and lighten in
   // light mode (so dark text stays readable).
   &.wb-bg-overlay-light {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, var(--wb-overlay, 0.2));
     background-blend-mode: screen;
   }
 
   &.wb-bg-overlay-dark {
-    background-color: rgba(0, 0, 0, 0.25);
+    background-color: rgba(0, 0, 0, var(--wb-overlay, 0.25));
     background-blend-mode: multiply;
   }
 
@@ -188,12 +188,12 @@
   // Same auto-adjust overlay behaviour as the sidenav: darken in dark mode,
   // lighten in light mode.
   &.wb-bg-overlay-light {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, var(--wb-overlay, 0.2));
     background-blend-mode: screen;
   }
 
   &.wb-bg-overlay-dark {
-    background-color: rgba(0, 0, 0, 0.25);
+    background-color: rgba(0, 0, 0, var(--wb-overlay, 0.25));
     background-blend-mode: multiply;
   }
 }
@@ -406,12 +406,12 @@ mat-accordion {
   }
 
   &.wb-bg-overlay-light {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, var(--wb-overlay, 0.2));
     background-blend-mode: screen;
   }
 
   &.wb-bg-overlay-dark {
-    background-color: rgba(0, 0, 0, 0.25);
+    background-color: rgba(0, 0, 0, var(--wb-overlay, 0.25));
     background-blend-mode: multiply;
   }
 
