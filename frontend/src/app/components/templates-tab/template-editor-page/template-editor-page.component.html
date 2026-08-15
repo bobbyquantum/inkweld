@@ -450,7 +450,9 @@
             [elementType]="ElementType.Worldbuilding"
             [username]="'preview'"
             [slug]="'preview'"
-            [previewSchema]="previewSchema()"></app-worldbuilding-editor>
+            [previewSchema]="previewSchema()"
+            [editMode]="true"
+            (schemaEdit)="onSchemaEdit($event)"></app-worldbuilding-editor>
         </div>
       </section>
     </mat-tab>

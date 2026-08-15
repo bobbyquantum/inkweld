@@ -121,5 +121,11 @@
     "loadFailed": "Unable to load worldbuilding element.",
     "elementId": "Element ID:",
     "notProvided": "Not provided"
+  },
+  "schemaEdit": {
+    "addTab": "Add tab",
+    "removeTab": "Remove tab",
+    "addField": "Add field",
+    "editingHint": "Editing schema — changes save automatically."
   }
 }

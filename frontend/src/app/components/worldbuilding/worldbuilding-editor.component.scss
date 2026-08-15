@@ -734,3 +734,89 @@ form {
     opacity: 1;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Schema edit affordances (interactive preview)
+// ---------------------------------------------------------------------------
+
+// Sidenav/accordion tab items in edit mode: revealed remove button.
+.schema-edit {
+  &.schema-remove-tab {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--sys-on-surface-variant);
+
+    &:hover {
+      background-color: color-mix(
+        in srgb,
+        var(--sys-on-surface) 12%,
+        transparent
+      );
+      color: var(--sys-error);
+    }
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+.schema-add-tab {
+  margin: 8px 12px;
+  justify-content: center;
+  width: calc(100% - 24px);
+}
+
+.schema-add-field {
+  grid-column: 1 / -1;
+  justify-content: center;
+  width: 100%;
+  border-style: dashed;
+}
+
+// Field container in edit mode: dashed outline + hover toolbar.
+.field-container.schema-edit {
+  position: relative;
+  border: 1px dashed var(--sys-outline-variant);
+  border-radius: 8px;
+  padding: 6px;
+
+  &:hover {
+    border-color: var(--sys-primary);
+  }
+}
+
+.schema-field-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 4px;
+
+  .field-index {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--sys-on-surface-variant);
+    margin-right: auto;
+  }
+
+  button.mat-mdc-icon-button {
+    --mdc-icon-button-state-layer-size: 28px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}

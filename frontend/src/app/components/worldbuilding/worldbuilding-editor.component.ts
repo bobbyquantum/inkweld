@@ -1,3 +1,4 @@
+import { DragDropModule } from '@angular/cdk/drag-drop';
 import { TextFieldModule } from '@angular/cdk/text-field';
 import { CommonModule } from '@angular/common';
 import {
@@ -8,6 +9,7 @@ import {
   inject,
   input,
   type OnDestroy,
+  output,
   signal,
   untracked,
   viewChild,
@@ -54,6 +56,19 @@ import { ElementSyncProviderFactory } from '../../services/sync/element-sync-pro
 import { TagService } from '../../services/tag/tag.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
+
+/**
+ * An edit request emitted by the worldbuilding editor when it is in schema
+ * edit mode, so the owning template/schema editor can apply the change to its
+ * own schema state. Carries tab/field identifiers so the parent can locate the
+ * affected items by key (keys are unique across the template).
+ */
+export type SchemaEditEvent =
+  | { type: 'add-tab' }
+  | { type: 'remove-tab'; tabKey: string }
+  | { type: 'add-field'; tabKey: string }
+  | { type: 'remove-field'; tabKey: string; fieldKey: string }
+  | { type: 'move-field'; tabKey: string; fieldKey: string; delta: -1 | 1 };
 import { AppearancePanelComponent } from './appearance-panel/appearance-panel.component';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
 import { MediaPanelComponent } from './media-panel/media-panel.component';
@@ -69,6 +84,7 @@ import { MediaPanelComponent } from './media-panel/media-panel.component';
     CommonModule,
     ReactiveFormsModule,
     TextFieldModule,
+    DragDropModule,
     MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
@@ -100,6 +116,17 @@ export class WorldbuildingEditorComponent implements OnDestroy {
    * element. No data is loaded, synced, or saved; the form is read-only.
    */
   previewSchema = input<ElementTypeSchema | null>(null);
+
+  /**
+   * When true, the preview renders interactive schema-editing affordances
+   * (add/remove/reorder fields and tabs) and emits {@link SchemaEditEvent}s via
+   * `schemaEdit` for the owning template editor to apply. Ignored outside
+   * preview mode; the live element editor is unaffected.
+   */
+  editMode = input(false);
+
+  /** Emits schema-editing intents when `editMode` is active. */
+  readonly schemaEdit = output<SchemaEditEvent>();
 
   /** True when rendering a transient schema preview (no element persistence). */
   readonly previewMode = computed(() => this.previewSchema() !== null);
@@ -685,6 +712,41 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   getFieldsForTab(tabKey: string): FieldSchema[] {
     const tab = this.getTabs().find(t => t.key === tabKey);
     return tab?.fields || [];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Schema edit mode (preview only)
+  // ---------------------------------------------------------------------------
+
+  /** Emit a schema edit intent to the owning template editor. */
+  protected emitSchemaEdit(event: SchemaEditEvent): void {
+    if (!this.editMode() || !this.previewMode()) return;
+    this.schemaEdit.emit(event);
+  }
+
+  /** True when interactive schema editing is enabled in the preview. */
+  protected schemaEditingEnabled(): boolean {
+    return this.editMode() && this.previewMode();
+  }
+
+  protected onAddTab(): void {
+    this.emitSchemaEdit({ type: 'add-tab' });
+  }
+
+  protected onRemoveTab(tabKey: string): void {
+    this.emitSchemaEdit({ type: 'remove-tab', tabKey });
+  }
+
+  protected onAddField(tabKey: string): void {
+    this.emitSchemaEdit({ type: 'add-field', tabKey });
+  }
+
+  protected onRemoveField(tabKey: string, fieldKey: string): void {
+    this.emitSchemaEdit({ type: 'remove-field', tabKey, fieldKey });
+  }
+
+  protected onMoveField(tabKey: string, fieldKey: string, delta: -1 | 1): void {
+    this.emitSchemaEdit({ type: 'move-field', tabKey, fieldKey, delta });
   }
 
   /** Count how many fields in a tab have been filled in by the user */

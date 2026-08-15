@@ -64,11 +64,37 @@
                 selectedSection() === tab.key ? 'true' : null
               "
               [class.active]="selectedSection() === tab.key"
+              [class.schema-edit]="schemaEditingEnabled()"
               tabindex="0"
               [attr.data-testid]="'nav-' + tab.key">
               <mat-icon matListItemIcon>{{ getTabIcon(tab) }}</mat-icon>
               <span matListItemTitle>{{ tab.label }}</span>
+              @if (schemaEditingEnabled()) {
+                <span
+                  class="schema-remove-tab"
+                  role="button"
+                  tabindex="0"
+                  (click)="onRemoveTab(tab.key)"
+                  (keydown.enter)="onRemoveTab(tab.key)"
+                  [attr.aria-label]="
+                    'worldbuilding.schemaEdit.removeTab' | transloco
+                  "
+                  data-testid="remove-tab-button">
+                  <mat-icon>close</mat-icon>
+                </span>
+              }
             </a>
+          }
+          @if (schemaEditingEnabled()) {
+            <button
+              mat-stroked-button
+              type="button"
+              class="schema-add-tab"
+              (click)="onAddTab()"
+              data-testid="add-tab-button">
+              <mat-icon>add</mat-icon>
+              {{ 'worldbuilding.schemaEdit.addTab' | transloco }}
+            </button>
           }
 
           <a
@@ -407,11 +433,48 @@
 <ng-template #tabFieldsTemplate let-tabKey>
   <div class="tab-fields-card" data-testid="tab-fields-card">
     <div class="tab-content">
-      @for (field of getFieldsForTab(tabKey); track field.key) {
+      @for (
+        field of getFieldsForTab(tabKey);
+        track field.key;
+        let fi = $index
+      ) {
         <div
           class="field-container"
+          [class.schema-edit]="schemaEditingEnabled()"
           [attr.data-testid]="'field-' + field.key"
           [ngClass]="'span-' + (field.layout?.span || 12)">
+          @if (schemaEditingEnabled()) {
+            <div class="schema-field-toolbar">
+              <span class="field-index">{{ fi + 1 }}</span>
+              <button
+                mat-icon-button
+                type="button"
+                (click)="onMoveField(tabKey, field.key, -1)"
+                [disabled]="fi === 0"
+                [attr.aria-label]="'Move field up'"
+                data-testid="field-move-up">
+                <mat-icon>arrow_circle_up</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                type="button"
+                (click)="onMoveField(tabKey, field.key, 1)"
+                [disabled]="fi === getFieldsForTab(tabKey).length - 1"
+                [attr.aria-label]="'Move field down'"
+                data-testid="field-move-down">
+                <mat-icon>arrow_circle_down</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                type="button"
+                color="warn"
+                (click)="onRemoveField(tabKey, field.key)"
+                [attr.aria-label]="'Remove field'"
+                data-testid="field-remove">
+                <mat-icon>remove_circle</mat-icon>
+              </button>
+            </div>
+          }
           @switch (field.type) {
             @case ('text') {
               <mat-form-field appearance="outline" class="full-width">
@@ -569,6 +632,17 @@
             }
           }
         </div>
+      }
+      @if (schemaEditingEnabled()) {
+        <button
+          mat-stroked-button
+          type="button"
+          class="schema-add-field"
+          (click)="onAddField(tabKey)"
+          [attr.data-testid]="'add-field-' + tabKey">
+          <mat-icon>add</mat-icon>
+          {{ 'worldbuilding.schemaEdit.addField' | transloco }}
+        </button>
       }
     </div>
   </div>

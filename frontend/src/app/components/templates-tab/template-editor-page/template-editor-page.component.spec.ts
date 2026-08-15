@@ -295,6 +295,73 @@ describe('TemplateEditorPageComponent', () => {
     });
   });
 
+  describe('onSchemaEdit', () => {
+    it('should add a tab', () => {
+      const before = component.tabs().length;
+      component['onSchemaEdit']({ type: 'add-tab' });
+      expect(component.tabs().length).toBe(before + 1);
+    });
+
+    it('should remove a tab by key', () => {
+      component['onSchemaEdit']({ type: 'remove-tab', tabKey: 'basic' });
+      expect(component.tabs().some(t => t.key === 'basic')).toBe(false);
+    });
+
+    it('should ignore removing a tab with an unknown key', () => {
+      const before = component.tabs().length;
+      component['onSchemaEdit']({ type: 'remove-tab', tabKey: 'nope' });
+      expect(component.tabs().length).toBe(before);
+    });
+
+    it('should add a field to a tab by key', () => {
+      const before = component.tabs()[0].fields.length;
+      component['onSchemaEdit']({ type: 'add-field', tabKey: 'basic' });
+      expect(component.tabs()[0].fields).toHaveLength(before + 1);
+    });
+
+    it('should remove a field by tab and field key', () => {
+      const before = component.tabs()[0].fields.length;
+      component['onSchemaEdit']({
+        type: 'remove-field',
+        tabKey: 'basic',
+        fieldKey: 'age',
+      });
+      expect(component.tabs()[0].fields).toHaveLength(before - 1);
+      expect(component.tabs()[0].fields.some(f => f.key === 'age')).toBe(false);
+    });
+
+    it('should move a field up by delta', () => {
+      component['onSchemaEdit']({
+        type: 'move-field',
+        tabKey: 'basic',
+        fieldKey: 'age',
+        delta: -1,
+      });
+      expect(component.tabs()[0].fields[0].key).toBe('age');
+    });
+
+    it('should move a field down by delta', () => {
+      component['onSchemaEdit']({
+        type: 'move-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        delta: 1,
+      });
+      expect(component.tabs()[0].fields[1].key).toBe('name');
+    });
+
+    it('should ignore an out-of-range field move', () => {
+      const original = component.tabs()[0].fields.map(f => f.key);
+      component['onSchemaEdit']({
+        type: 'move-field',
+        tabKey: 'basic',
+        fieldKey: 'age',
+        delta: 1,
+      });
+      expect(component.tabs()[0].fields.map(f => f.key)).toEqual(original);
+    });
+  });
+
   describe('form validation', () => {
     it('should require template name', () => {
       component.basicForm.name().value.set('');

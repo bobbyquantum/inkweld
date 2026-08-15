@@ -36,7 +36,10 @@ import {
   AppearanceEditorComponent,
   type BackgroundSlot,
 } from '@components/worldbuilding/appearance-panel/appearance-editor/appearance-editor.component';
-import { WorldbuildingEditorComponent } from '@components/worldbuilding/worldbuilding-editor.component';
+import {
+  type SchemaEditEvent,
+  WorldbuildingEditorComponent,
+} from '@components/worldbuilding/worldbuilding-editor.component';
 import { ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
@@ -442,6 +445,54 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
         ...current,
         [region]: { ...regionSetting, [slot]: reference },
       });
+    }
+  }
+
+  /**
+   * Apply a schema-edit event from the interactive preview to the local schema
+   * state. The worldbuilding editor emits key-based intents; we resolve them to
+   * the tab/field indices and reuse the existing CRUD helpers.
+   */
+  protected onSchemaEdit(event: SchemaEditEvent): void {
+    const tabs = this.tabs();
+    switch (event.type) {
+      case 'add-tab':
+        this.addTab();
+        break;
+      case 'remove-tab': {
+        const idx = tabs.findIndex(t => t.key === event.tabKey);
+        if (idx >= 0) this.removeTab(idx);
+        break;
+      }
+      case 'add-field': {
+        const idx = tabs.findIndex(t => t.key === event.tabKey);
+        if (idx >= 0) this.addField(idx);
+        break;
+      }
+      case 'remove-field': {
+        const tabIdx = tabs.findIndex(t => t.key === event.tabKey);
+        if (tabIdx < 0) break;
+        const fieldIdx = tabs[tabIdx].fields.findIndex(
+          f => f.key === event.fieldKey
+        );
+        if (fieldIdx >= 0) this.removeField(tabIdx, fieldIdx);
+        break;
+      }
+      case 'move-field': {
+        const tabIdx = tabs.findIndex(t => t.key === event.tabKey);
+        if (tabIdx < 0) break;
+        const fields = tabs[tabIdx].fields;
+        const fieldIdx = fields.findIndex(f => f.key === event.fieldKey);
+        if (fieldIdx < 0) return;
+        const target = fieldIdx + event.delta;
+        if (target < 0 || target >= fields.length) return;
+        this.mutateTabs(next => {
+          const arr = next[tabIdx].fields;
+          const [moved] = arr.splice(fieldIdx, 1);
+          arr.splice(target, 0, moved);
+        });
+        break;
+      }
     }
   }
 

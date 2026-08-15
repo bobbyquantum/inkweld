@@ -1102,4 +1102,75 @@ describe('WorldbuildingEditorComponent', () => {
       expect(result).toEqual(mockCharacterSchema);
     });
   });
+
+  describe('schema edit mode', () => {
+    beforeEach(async () => {
+      fixture.componentRef.setInput('previewSchema', mockCharacterSchema);
+      fixture.componentRef.setInput('editMode', true);
+      fixture.detectChanges();
+      await fixture.whenStable();
+    });
+
+    it('should enable schema editing only in preview + edit mode', () => {
+      expect(component['schemaEditingEnabled']()).toBe(true);
+    });
+
+    it('should be disabled outside edit mode', async () => {
+      fixture.componentRef.setInput('editMode', false);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(component['schemaEditingEnabled']()).toBe(false);
+    });
+
+    it('should emit an add-field event', () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onAddField']('basic');
+      expect(emit).toHaveBeenCalledWith({ type: 'add-field', tabKey: 'basic' });
+    });
+
+    it('should emit a remove-field event', () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onRemoveField']('basic', 'name');
+      expect(emit).toHaveBeenCalledWith({
+        type: 'remove-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+      });
+    });
+
+    it('should emit a move-field event', () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onMoveField']('basic', 'age', 1);
+      expect(emit).toHaveBeenCalledWith({
+        type: 'move-field',
+        tabKey: 'basic',
+        fieldKey: 'age',
+        delta: 1,
+      });
+    });
+
+    it('should emit add/remove tab events', () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onAddTab']();
+      component['onRemoveTab']('appearance');
+      expect(emit).toHaveBeenNthCalledWith(1, { type: 'add-tab' });
+      expect(emit).toHaveBeenNthCalledWith(2, {
+        type: 'remove-tab',
+        tabKey: 'appearance',
+      });
+    });
+
+    it('should not emit events when schema editing is disabled', () => {
+      fixture.componentRef.setInput('editMode', false);
+      fixture.detectChanges();
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onAddField']('basic');
+      expect(emit).not.toHaveBeenCalled();
+    });
+  });
 });
