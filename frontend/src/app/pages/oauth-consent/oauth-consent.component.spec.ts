@@ -127,7 +127,7 @@ describe('OAuthConsentComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      expect(component.projectGrants().length).toBe(2);
+      expect(component.projectGrants()).toHaveLength(2);
       expect(component.projectGrants()[0].selected).toBe(false);
       expect(component.projectGrants()[0].role).toBe(
         ConsentRequestGrantsInnerRole.Viewer

@@ -53,7 +53,7 @@ describe('ProjectGrantListComponent', () => {
     const rows = fixture.nativeElement.querySelectorAll(
       '[data-testid="project-grant-role-select"]'
     );
-    expect(rows.length).toBe(2);
+    expect(rows).toHaveLength(2);
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('My Novel');
     expect(text).toContain('Short Stories');
@@ -83,7 +83,7 @@ describe('ProjectGrantListComponent', () => {
     const buttons = fixture.nativeElement.querySelectorAll(
       '[data-testid="project-grant-remove"]'
     );
-    expect(buttons.length).toBe(2);
+    expect(buttons).toHaveLength(2);
     buttons[0].click();
     expect(spy).toHaveBeenCalledWith('proj-1');
   });

@@ -226,7 +226,7 @@ describe('AuthorizedAppsComponent', () => {
     await component.revokeSession(session);
 
     expect(oauthServiceMock.revokeOAuthSession).not.toHaveBeenCalled();
-    expect(component.sessions().length).toBe(1);
+    expect(component.sessions()).toHaveLength(1);
   });
 
   it('should handle revoke session error', async () => {
@@ -242,7 +242,7 @@ describe('AuthorizedAppsComponent', () => {
     await component.revokeSession(session);
 
     // Session should still be there
-    expect(component.sessions().length).toBe(1);
+    expect(component.sessions()).toHaveLength(1);
     expect(component.revokingSessionId()).toBeNull();
   });
 
@@ -313,7 +313,7 @@ describe('AuthorizedAppsComponent', () => {
       'session-1',
       'proj-1'
     );
-    expect(component.expandedSession()!.grants.length).toBe(1);
+    expect(component.expandedSession()!.grants).toHaveLength(1);
     expect(component.sessions()[0].projectCount).toBe(1);
   });
 
@@ -329,7 +329,7 @@ describe('AuthorizedAppsComponent', () => {
     await component.revokeGrant('session-1', grant);
 
     expect(oauthServiceMock.revokeOAuthGrant).not.toHaveBeenCalled();
-    expect(component.expandedSession()!.grants.length).toBe(2);
+    expect(component.expandedSession()!.grants).toHaveLength(2);
   });
 
   it('should update all-projects settings and refresh session details', async () => {
@@ -466,7 +466,7 @@ describe('AuthorizedAppsComponent', () => {
     expect(projectsServiceMock.listUserProjects).toHaveBeenCalled();
     expect(component.showAddProject()).toBe(true);
     // proj-1 and proj-2 are already granted, only proj-3 should be available
-    expect(component.availableProjects().length).toBe(1);
+    expect(component.availableProjects()).toHaveLength(1);
     expect(component.availableProjects()[0].id).toBe('proj-3');
   });
 
@@ -517,7 +517,7 @@ describe('AuthorizedAppsComponent', () => {
       projectId: 'proj-3',
       role: AddOAuthGrantRequestRole.Editor,
     });
-    expect(component.expandedSession()!.grants.length).toBe(3);
+    expect(component.expandedSession()!.grants).toHaveLength(3);
     expect(component.showAddProject()).toBe(false);
     expect(component.sessions()[0].projectCount).toBe(3);
   });
