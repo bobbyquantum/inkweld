@@ -45,7 +45,7 @@ export class TemplateSnapshotService {
     return {
       name: schema.name,
       xmlContent: '',
-      worldbuildingData: { schema: JSON.parse(JSON.stringify(schema)) },
+      worldbuildingData: { schema: structuredClone(schema) },
       metadata: { kind: 'schema-template' },
     };
   }
