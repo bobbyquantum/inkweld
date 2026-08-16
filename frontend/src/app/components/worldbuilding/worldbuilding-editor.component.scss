@@ -768,15 +768,6 @@ form {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-
-  &.schema-edit {
-    ::ng-deep .mdc-list-item__content,
-    &.schema-remove-tab {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-  }
 }
 
 // The remove button inside a schema nav item.

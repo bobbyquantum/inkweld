@@ -95,6 +95,7 @@
                 <button
                   type="button"
                   class="schema-remove-tab"
+                  matListItemMeta
                   (click)="onRemoveTab(tab.key); $event.stopPropagation()"
                   (keydown.enter)="
                     onRemoveTab(tab.key); $event.stopPropagation()
