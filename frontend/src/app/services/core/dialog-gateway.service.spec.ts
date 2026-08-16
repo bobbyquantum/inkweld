@@ -242,7 +242,7 @@ describe('DialogGatewayService', () => {
     await service.openUserSettingsDialog();
 
     expect(dialogMock.open).toHaveBeenCalledWith(UserSettingsDialogComponent, {
-      width: '800px',
+      width: '1000px',
       maxWidth: '90vw',
       maxHeight: '90vh',
       panelClass: 'user-settings-dialog-panel',
@@ -256,7 +256,7 @@ describe('DialogGatewayService', () => {
     await service.openUserSettingsDialog('project-tree');
 
     expect(dialogMock.open).toHaveBeenCalledWith(UserSettingsDialogComponent, {
-      width: '800px',
+      width: '1000px',
       maxWidth: '90vw',
       maxHeight: '90vh',
       panelClass: 'user-settings-dialog-panel',
