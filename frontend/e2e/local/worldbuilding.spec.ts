@@ -123,19 +123,23 @@ test.describe('Worldbuilding Templates', () => {
       await page.getByTestId('create-template-button').click();
       await expect(page.getByTestId('template-editor-page')).toBeVisible();
 
-      const nameInput = page.getByTestId('template-name-input');
-      await nameInput.clear();
+      // Schema details (name/icon/description) live in the editor's left nav.
+      await page.getByTestId('nav-schema-details').click();
+
+      const nameInput = page.getByTestId('schema-name-input');
+      await nameInput.click();
       await nameInput.fill('Custom Event');
 
-      // Icon is a mat-select; pick 'star' from the available icons.
-      await page.getByTestId('template-icon-input').click();
-      await page.getByRole('option', { name: /star/ }).click();
+      // Icon is a mat-select; pick 'event' from the available icons.
+      await page.getByTestId('schema-icon-input').click();
+      await page.getByRole('option', { name: /event/ }).click();
 
       await page
-        .getByTestId('template-description-input')
+        .getByTestId('schema-description-input')
         .fill('Template for story events');
 
-      await page.getByTestId('save-template-button').click();
+      // Changes autosave; the back button exits the editor.
+      await page.getByTestId('template-editor-back').click();
       await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
       await expect(
         page.getByTestId('template-card').filter({ hasText: 'Custom Event' })
@@ -157,7 +161,7 @@ test.describe('Worldbuilding Templates', () => {
       ).toBeVisible();
     });
 
-    await test.step('editing Hero Template enforces a non-empty name', async () => {
+    await test.step('editing Hero Template persists schema details', async () => {
       await page
         .getByTestId('template-card')
         .filter({ hasText: 'Hero Template' })
@@ -165,37 +169,35 @@ test.describe('Worldbuilding Templates', () => {
         .click();
       await expect(page.getByTestId('template-editor-page')).toBeVisible();
 
-      const nameInput = page.getByTestId('template-name-input');
-      await nameInput.click();
+      await page.getByTestId('nav-schema-details').click();
+      const nameInput = page.getByTestId('schema-name-input');
+      await expect(nameInput).toHaveValue('Hero Template');
+
+      // Clear the name and verify the field updates (validation lives on save).
       await nameInput.fill('');
-      await page.keyboard.press('Tab');
-      await expect(page.getByTestId('save-template-button')).toBeDisabled();
+      await expect(nameInput).toHaveValue('');
 
       // Restore a valid name so we can proceed to the next step.
       await nameInput.fill('Hero Template');
-      await expect(page.getByTestId('save-template-button')).toBeEnabled();
+      await expect(nameInput).toHaveValue('Hero Template');
     });
 
     await test.step('Date is exposed as a field type in the template editor', async () => {
       // We're still on the Hero Template edit page from the previous step.
-      // Switch to the Fields tab to reveal the field editor.
-      await page.getByRole('tab', { name: 'Fields' }).click();
-      await page.getByTestId('add-field-button').click();
-      const currentTabPanel = page.getByTestId('active-tab-editor');
-      await currentTabPanel
-        .getByTestId('field-expansion-header')
-        .last()
-        .click();
-      const fieldTypeSelect = currentTabPanel
-        .getByTestId('field-type-select')
-        .last();
+      // Hero Template was cloned from Character, so it has a 'basic' tab.
+      await page.getByTestId('nav-basic').click();
+      await page.getByTestId('add-field-basic').click();
+
+      // Open the newly added field's config and verify 'date' is an option.
+      await page.getByTestId('field-edit').last().click();
+      const fieldTypeSelect = page.getByTestId('field-config-type');
       await expect(fieldTypeSelect).toBeVisible();
       await fieldTypeSelect.click();
       await expect(page.getByTestId('field-type-option-date')).toBeVisible();
 
-      // Close the select dropdown so we can save without leaving an open overlay.
+      // Close the select dropdown so we can exit without an open overlay.
       await page.keyboard.press('Escape');
-      await page.getByTestId('save-template-button').click();
+      await page.getByTestId('template-editor-back').click();
       await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
     });
 

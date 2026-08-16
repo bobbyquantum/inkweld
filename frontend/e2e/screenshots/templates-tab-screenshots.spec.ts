@@ -130,9 +130,7 @@ async function captureAllTemplateScreenshots(
       32
     );
 
-    await page.click(
-      '[data-testid="template-editor-page"] button:has-text("Cancel")'
-    );
+    await page.click('[data-testid="template-editor-back"]');
   });
 }
 
