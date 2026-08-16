@@ -35,6 +35,7 @@ import {
   RenameDialogComponent,
   type RenameDialogData,
 } from '../../dialogs/rename-dialog/rename-dialog.component';
+import { TemplateSnapshotsDialogComponent } from '../../dialogs/template-snapshots-dialog/template-snapshots-dialog.component';
 import { UserSettingsDialogComponent } from '../../dialogs/user-settings-dialog/user-settings-dialog.component';
 import { WorldbuildingImageDialogComponent } from '../../dialogs/worldbuilding-image-dialog/worldbuilding-image-dialog.component';
 import { ProjectActivationService } from '../local/project-activation.service';
@@ -428,6 +429,19 @@ describe('DialogGatewayService', () => {
         maxWidth: '95vw',
         maxHeight: '90vh',
         disableClose: false,
+      }
+    );
+  });
+
+  it('should open the template snapshots dialog', () => {
+    service.openTemplateSnapshotsDialog('char');
+
+    expect(dialogMock.open).toHaveBeenCalledWith(
+      TemplateSnapshotsDialogComponent,
+      {
+        data: { templateId: 'char' },
+        width: '550px',
+        autoFocus: false,
       }
     );
   });

@@ -354,51 +354,78 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
       case 'add-tab':
         this.addTab();
         break;
-      case 'remove-tab': {
-        const idx = tabs.findIndex(t => t.key === event.tabKey);
-        if (idx >= 0) this.removeTab(idx);
+      case 'remove-tab':
+        this.removeTabByKey(tabs, event.tabKey);
         break;
-      }
-      case 'add-field': {
-        const idx = tabs.findIndex(t => t.key === event.tabKey);
-        if (idx >= 0) this.addField(idx);
+      case 'add-field':
+        this.addFieldToTab(tabs, event.tabKey);
         break;
-      }
-      case 'remove-field': {
-        const tabIdx = tabs.findIndex(t => t.key === event.tabKey);
-        if (tabIdx < 0) break;
-        const fieldIdx = tabs[tabIdx].fields.findIndex(
-          f => f.key === event.fieldKey
+      case 'remove-field':
+        this.operateField(tabs, event.tabKey, event.fieldKey, (t, f) =>
+          this.removeField(t, f)
         );
-        if (fieldIdx >= 0) this.removeField(tabIdx, fieldIdx);
         break;
-      }
-      case 'move-field': {
-        const tabIdx = tabs.findIndex(t => t.key === event.tabKey);
-        if (tabIdx < 0) break;
-        const fields = tabs[tabIdx].fields;
-        const fieldIdx = fields.findIndex(f => f.key === event.fieldKey);
-        if (fieldIdx < 0) return;
-        const target = fieldIdx + event.delta;
-        if (target < 0 || target >= fields.length) return;
-        this.mutateTabs(next => {
-          const arr = next[tabIdx].fields;
-          const [moved] = arr.splice(fieldIdx, 1);
-          arr.splice(target, 0, moved);
-        });
-        break;
-      }
-      case 'update-field': {
-        const tabIdx = tabs.findIndex(t => t.key === event.tabKey);
-        if (tabIdx < 0) break;
-        const fieldIdx = tabs[tabIdx].fields.findIndex(
-          f => f.key === event.fieldKey
+      case 'update-field':
+        this.operateField(tabs, event.tabKey, event.fieldKey, (t, f) =>
+          this.updateField(
+            t,
+            f,
+            (event as { patch: Partial<FieldSchema> }).patch
+          )
         );
-        if (fieldIdx >= 0) this.updateField(tabIdx, fieldIdx, event.patch);
         break;
-      }
+      case 'move-field':
+        this.moveField(tabs, event.tabKey, event.fieldKey, event.delta);
+        break;
     }
+
     this.scheduleAutosave();
+  }
+
+  /** Remove a tab by key, if present. */
+  private removeTabByKey(tabs: TabSchema[], tabKey: string): void {
+    const idx = tabs.findIndex(t => t.key === tabKey);
+    if (idx >= 0) this.removeTab(idx);
+  }
+
+  /** Add a field to a tab by key, if present. */
+  private addFieldToTab(tabs: TabSchema[], tabKey: string): void {
+    const idx = tabs.findIndex(t => t.key === tabKey);
+    if (idx >= 0) this.addField(idx);
+  }
+
+  /** Resolve a tab+field pair by key and run an operation, if both exist. */
+  private operateField(
+    tabs: TabSchema[],
+    tabKey: string,
+    fieldKey: string,
+    op: (tabIndex: number, fieldIndex: number) => void
+  ): void {
+    const tabIdx = tabs.findIndex(t => t.key === tabKey);
+    if (tabIdx < 0) return;
+    const fieldIdx = tabs[tabIdx].fields.findIndex(f => f.key === fieldKey);
+    if (fieldIdx >= 0) op(tabIdx, fieldIdx);
+  }
+
+  /** Move a field up/down within its tab by one place, if in range. */
+  private moveField(
+    tabs: TabSchema[],
+    tabKey: string,
+    fieldKey: string,
+    delta: -1 | 1
+  ): void {
+    const tabIdx = tabs.findIndex(t => t.key === tabKey);
+    if (tabIdx < 0) return;
+    const fields = tabs[tabIdx].fields;
+    const fieldIdx = fields.findIndex(f => f.key === fieldKey);
+    if (fieldIdx < 0) return;
+    const target = fieldIdx + delta;
+    if (target < 0 || target >= fields.length) return;
+    this.mutateTabs(next => {
+      const arr = next[tabIdx].fields;
+      const [moved] = arr.splice(fieldIdx, 1);
+      arr.splice(target, 0, moved);
+    });
   }
 
   /**

@@ -307,7 +307,7 @@ describe('TemplateEditorPageComponent', () => {
     it('should add a tab', () => {
       const before = component.tabs().length;
       component['onSchemaEdit']({ type: 'add-tab' });
-      expect(component.tabs().length).toBe(before + 1);
+      expect(component.tabs()).toHaveLength(before + 1);
     });
 
     it('should remove a tab by key', () => {
@@ -318,7 +318,7 @@ describe('TemplateEditorPageComponent', () => {
     it('should ignore removing a tab with an unknown key', () => {
       const before = component.tabs().length;
       component['onSchemaEdit']({ type: 'remove-tab', tabKey: 'nope' });
-      expect(component.tabs().length).toBe(before);
+      expect(component.tabs()).toHaveLength(before);
     });
 
     it('should add a field to a tab by key', () => {

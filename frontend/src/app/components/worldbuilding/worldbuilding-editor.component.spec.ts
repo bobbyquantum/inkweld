@@ -31,6 +31,7 @@ describe('WorldbuildingEditorComponent', () => {
     openTagEditorDialog: ReturnType<typeof vi.fn>;
     openSnapshotsDialog: ReturnType<typeof vi.fn>;
     openConfirmationDialog: ReturnType<typeof vi.fn>;
+    openTemplateSnapshotsDialog: ReturnType<typeof vi.fn>;
   };
   let matDialogMock: {
     open: ReturnType<typeof vi.fn>;
@@ -150,6 +151,7 @@ describe('WorldbuildingEditorComponent', () => {
       openTagEditorDialog: vi.fn().mockResolvedValue(undefined),
       openSnapshotsDialog: vi.fn().mockResolvedValue(undefined),
       openConfirmationDialog: vi.fn().mockResolvedValue(true),
+      openTemplateSnapshotsDialog: vi.fn().mockResolvedValue(undefined),
     };
     matDialogMock = {
       open: vi.fn(),
@@ -1115,6 +1117,14 @@ describe('WorldbuildingEditorComponent', () => {
 
     it('should enable schema editing only in preview + edit mode', () => {
       expect(component['schemaEditingEnabled']()).toBe(true);
+    });
+
+    it('should open the template snapshots dialog in schema edit mode', () => {
+      component.openSnapshotsDialog();
+      expect(
+        dialogGatewayMock.openTemplateSnapshotsDialog
+      ).toHaveBeenCalledWith(mockCharacterSchema.id);
+      expect(dialogGatewayMock.openSnapshotsDialog).not.toHaveBeenCalled();
     });
 
     it('should be disabled outside edit mode', async () => {

@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import type { ElementAppearance } from '@models/element-appearance';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { type MockedObject, vi } from 'vitest';
 
@@ -13,6 +14,7 @@ describe('AppearancePanelComponent', () => {
   let fixture: ComponentFixture<AppearancePanelComponent>;
   let worldbuildingService: MockedObject<WorldbuildingService>;
   let dialogGateway: MockedObject<DialogGatewayService>;
+  let localStorageService: { saveMedia: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     worldbuildingService = {
@@ -25,12 +27,17 @@ describe('AppearancePanelComponent', () => {
       openMediaSelectorDialog: vi.fn().mockResolvedValue(undefined),
     } as unknown as MockedObject<DialogGatewayService>;
 
+    localStorageService = {
+      saveMedia: vi.fn().mockResolvedValue(undefined),
+    };
+
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), AppearancePanelComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: WorldbuildingService, useValue: worldbuildingService },
         { provide: DialogGatewayService, useValue: dialogGateway },
+        { provide: LocalStorageService, useValue: localStorageService },
       ],
     }).compileComponents();
 

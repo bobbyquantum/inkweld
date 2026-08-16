@@ -964,13 +964,20 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   }
 
   /**
-   * Open the snapshots dialog for this worldbuilding element
+   * Open the snapshots dialog: for a real element, the element's snapshots; in
+   * schema-edit mode, the template's snapshots.
    */
   openSnapshotsDialog(): void {
+    if (this.schemaEditingEnabled()) {
+      const schemaId = this.previewSchema()?.id;
+      if (schemaId) {
+        this.dialogGateway.openTemplateSnapshotsDialog(schemaId);
+        return;
+      }
+    }
     const data: SnapshotsDialogData = {
       documentId: this.elementId(),
     };
-
     this.dialogGateway.openSnapshotsDialog(data);
   }
 }

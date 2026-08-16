@@ -92,18 +92,19 @@
                 tab.label
               }}</span>
               @if (schemaEditingEnabled()) {
-                <span
+                <button
+                  type="button"
                   class="schema-remove-tab"
-                  role="button"
-                  tabindex="0"
                   (click)="onRemoveTab(tab.key); $event.stopPropagation()"
-                  (keydown.enter)="onRemoveTab(tab.key)"
+                  (keydown.enter)="
+                    onRemoveTab(tab.key); $event.stopPropagation()
+                  "
                   [attr.aria-label]="
                     'worldbuilding.schemaEdit.removeTab' | transloco
                   "
                   data-testid="remove-tab-button">
                   <mat-icon>close</mat-icon>
-                </span>
+                </button>
               }
             </a>
           }
@@ -519,7 +520,16 @@
         data-testid="worldbuilding-sync-dot"></span>
     </span>
     <span class="status-actions">
-      @if (!schemaEditingEnabled()) {
+      @if (schemaEditingEnabled()) {
+        <button
+          mat-icon-button
+          class="snapshots-btn"
+          (click)="openSnapshotsDialog()"
+          [matTooltip]="'worldbuilding.schemaEdit.snapshots' | transloco"
+          data-testid="toolbar-snapshots">
+          <mat-icon>history</mat-icon>
+        </button>
+      } @else {
         <button
           mat-icon-button
           class="snapshots-btn"

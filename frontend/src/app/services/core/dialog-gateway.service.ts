@@ -67,6 +67,7 @@ import {
   TagEditorDialogComponent,
   type TagEditorDialogData,
 } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
+import { TemplateSnapshotsDialogComponent } from '../../dialogs/template-snapshots-dialog/template-snapshots-dialog.component';
 import { UserSettingsDialogComponent } from '../../dialogs/user-settings-dialog/user-settings-dialog.component';
 import {
   WorldbuildingImageDialogComponent,
@@ -303,6 +304,14 @@ export class DialogGatewayService {
   openSnapshotsDialog(data: SnapshotsDialogData): void {
     this.dialog.open(SnapshotsDialogComponent, {
       data,
+      width: '550px',
+      autoFocus: false,
+    });
+  }
+
+  openTemplateSnapshotsDialog(templateId: string): void {
+    this.dialog.open(TemplateSnapshotsDialogComponent, {
+      data: { templateId },
       width: '550px',
       autoFocus: false,
     });

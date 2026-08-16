@@ -1,0 +1,69 @@
+<h2 mat-dialog-title>{{ 'dialogs.snapshots.title' | transloco }}</h2>
+
+<mat-dialog-content class="snapshots-content">
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-progress-spinner diameter="30"></mat-progress-spinner>
+    </div>
+  } @else if (error(); as error) {
+    <div class="error-state">{{ error }}</div>
+  } @else if (snapshots().length === 0) {
+    <div class="empty-state">
+      <mat-icon>photo_library</mat-icon>
+      <p>{{ 'dialogs.snapshots.noSnapshots' | transloco }}</p>
+    </div>
+  } @else {
+    <div class="snapshot-list">
+      @for (snapshot of snapshots(); track snapshot.id) {
+        <div
+          class="snapshot-item"
+          [attr.data-testid]="'snapshot-' + snapshot.id">
+          <div class="snapshot-info">
+            <span class="snapshot-name">{{ snapshot.name }}</span>
+            <span class="snapshot-date">{{
+              formatDate(snapshot.createdAt)
+            }}</span>
+            @if (snapshot.description) {
+              <span class="snapshot-desc">{{ snapshot.description }}</span>
+            }
+          </div>
+          <div class="snapshot-actions">
+            <button
+              mat-icon-button
+              [matTooltip]="'dialogs.snapshots.restore' | transloco"
+              (click)="restoreSnapshot(snapshot)"
+              data-testid="snapshot-restore">
+              <mat-icon>restore</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              [matTooltip]="'dialogs.snapshots.delete' | transloco"
+              (click)="deleteSnapshot(snapshot)"
+              data-testid="snapshot-delete">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    mat-button
+    type="button"
+    (click)="close()"
+    data-testid="snapshots-close">
+    {{ 'cancel' | transloco }}
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    (click)="createSnapshot()"
+    data-testid="snapshot-create">
+    <mat-icon>add</mat-icon>
+    {{ 'dialogs.snapshots.create' | transloco }}
+  </button>
+</mat-dialog-actions>
