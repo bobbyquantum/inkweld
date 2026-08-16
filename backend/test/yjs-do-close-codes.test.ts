@@ -31,10 +31,7 @@ mock.module('cloudflare:workers', () => ({
 // Workers global used by the DO constructor for the presence keepalive
 // auto-response.
 (globalThis as Record<string, unknown>).WebSocketRequestResponsePair = class {
-  constructor(
-    _request: string,
-    _response: string
-  ) {}
+  constructor(_request: string, _response: string) {}
 };
 
 const SECRET = 'test-database-key-long-enough-for-hmac-32';
@@ -101,11 +98,7 @@ async function signJwt(payload: Record<string, unknown>): Promise<string> {
     false,
     ['sign']
   );
-  const signature = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    encoder.encode(`${header}.${body}`)
-  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(`${header}.${body}`));
   const sigB64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
   return `${header}.${body}.${sigB64}`;
 }
@@ -274,9 +267,7 @@ describe('YjsProject DO denial close codes', () => {
       username: 'alice',
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
-    spyOn(projectService, 'findByUsernameAndSlug').mockRejectedValue(
-      new Error('D1 exploded')
-    );
+    spyOn(projectService, 'findByUsernameAndSlug').mockRejectedValue(new Error('D1 exploded'));
 
     await callAuth(doInstance, ws, makeConnInfo('alice:proj:elements'), token);
 
