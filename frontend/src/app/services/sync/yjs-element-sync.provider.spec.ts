@@ -1260,7 +1260,11 @@ describe('YjsElementSyncProvider', () => {
 
         // The factory constructs the provider after the IndexedDB
         // whenSynced microtask; wait for the patched connect() to run.
-        await vi.waitFor(() => expect(created).not.toBeNull());
+        // Generous timeout: coverage instrumentation slows microtask
+        // draining on CI runners considerably.
+        await vi.waitFor(() => expect(created).not.toBeNull(), {
+          timeout: 10_000,
+        });
         const wsProvider = created as unknown as CapturedProvider;
 
         // Walk the auth handshake: 'connected' triggers the token send,
