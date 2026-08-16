@@ -86,10 +86,11 @@ async function setGradientStopColor(
   await input.fill(color);
   await input.press('Enter');
   // Wait for the colour to propagate through the debounced store and render as
-  // part of the content background gradient.
+  // part of the content background gradient. In auto mode the app lightens the
+  // colour in the light theme, so compare against the auto-applied colour.
   await expect
     .poll(async () => await contentBgImage(page))
-    .toContain(hexToRgb(color));
+    .toContain(hexToRgb(autoAppliedColour(color)));
 }
 
 function hexToRgb(hex: string): string {

@@ -126,7 +126,7 @@ jobs:
         run: node --version && bun --version
 
       - name: Run frontend tests
-        run: cd frontend && npm run test:coverage
+        run: cd frontend && NODE_OPTIONS="--max-old-space-size=8192" npm run test:coverage
 
       - name: Upload frontend coverage
         if: always()
