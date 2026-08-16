@@ -24,6 +24,8 @@ interface MockProviderInstance {
   wsLastMessageReceived: number;
   destroy: ReturnType<typeof vi.fn>;
   awareness: { setLocalStateField: ReturnType<typeof vi.fn>; clientID: number };
+  /** Options captured from the constructor's 4th argument. */
+  _options: Record<string, unknown>;
   _listeners: Map<string, Array<(arg: unknown) => void>>;
   _emitStatus: (status: string) => void;
 }
@@ -71,13 +73,20 @@ class MockWebsocketProvider implements MockProviderInstance {
     clientID: 123,
   };
   _listeners = new Map<string, Array<(arg: unknown) => void>>();
+  _options: Record<string, unknown> = {};
 
   _emitStatus(status: string) {
     const listeners = this._listeners.get('status');
     listeners?.forEach(cb => cb({ status }));
   }
 
-  constructor() {
+  constructor(
+    _serverUrl?: string,
+    _roomName?: string,
+    _doc?: unknown,
+    options?: Record<string, unknown>
+  ) {
+    this._options = options ?? {};
     mockProviderInstances.push(this);
   }
 }
@@ -352,6 +361,33 @@ describe('authenticated-websocket-provider', () => {
       expect(mockProvider).toBeDefined();
       // The provider should have been created with connect: false
       // This is verified by checking the provider exists and was created
+    });
+
+    it('pins shouldReconnect to the y-websocket 3.1 permanent band (4400-4499)', () => {
+      void createAuthenticatedWebsocketProvider(
+        'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id',
+        '',
+        mockDoc,
+        'token'
+      );
+
+      const mockProvider = mockProviderInstances[0];
+      const shouldReconnect = mockProvider._options[
+        'shouldReconnect'
+      ] as (event: { code: number }) => boolean;
+      expect(typeof shouldReconnect).toBe('function');
+
+      // Permanent band: the server told us to go away for good.
+      expect(shouldReconnect({ code: 4400 })).toBe(false);
+      expect(shouldReconnect({ code: 4401 })).toBe(false);
+      expect(shouldReconnect({ code: 4499 })).toBe(false);
+      // Everything else is transient, including the 45xx "try again later"
+      // band our backend uses for rate limits and server-side errors.
+      expect(shouldReconnect({ code: 4399 })).toBe(true);
+      expect(shouldReconnect({ code: 4500 })).toBe(true);
+      expect(shouldReconnect({ code: 4529 })).toBe(true);
+      expect(shouldReconnect({ code: 1006 })).toBe(true);
+      expect(shouldReconnect({ code: 1000 })).toBe(true);
     });
   });
 

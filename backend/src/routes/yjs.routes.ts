@@ -22,6 +22,13 @@ import {
   isYjsFrameBlockedForViewer,
   isElementsDoc,
 } from '../utils/yjs-document-utils';
+import {
+  WS_CLOSE_FORBIDDEN,
+  WS_CLOSE_INVALID_DOCUMENT,
+  WS_CLOSE_INVALID_TOKEN,
+  WS_CLOSE_PROJECT_NOT_FOUND,
+  WS_CLOSE_SERVER_ERROR,
+} from '../utils/ws-close-codes';
 
 const wsLog = logger.child('WebSocket');
 const app = new Hono<AppContext>();
@@ -148,6 +155,11 @@ function startPingInterval(ws: WsHandle, documentId: string, onClear: () => void
  * 4. Server responds with "authenticated" or "access-denied" text message
  * 5. If authenticated, server sets up Yjs sync; if denied, server closes connection
  * 6. All subsequent messages are binary Yjs sync protocol
+ *
+ * Denial closes use the y-websocket 3.1 close-code convention (see
+ * utils/ws-close-codes.ts): 44xx = permanent (the client stops reconnecting),
+ * 45xx = transient (keep retrying). The text frame is the primary signal; the
+ * close code is the backstop the frontend reads from the `closed` event.
  *
  * This approach:
  * - Avoids tokens in URLs (security risk - logged, in browser history)
@@ -308,7 +320,7 @@ app.get(
         if (!sessionData) {
           wsLog.warn(`Invalid auth token for ${documentId}`);
           ws.send('access-denied:invalid-token');
-          ws.close(4001, 'Invalid token');
+          ws.close(WS_CLOSE_INVALID_TOKEN, 'Invalid token');
           return;
         }
 
@@ -316,7 +328,7 @@ app.get(
         if (!parsed) {
           wsLog.error(`Invalid document ID format: ${documentId}`);
           ws.send('access-denied:invalid-document');
-          ws.close(4002, 'Invalid document ID');
+          ws.close(WS_CLOSE_INVALID_DOCUMENT, 'Invalid document ID');
           return;
         }
 
@@ -328,7 +340,7 @@ app.get(
         if (!project) {
           wsLog.warn(`Project not found: ${parsed.projectOwner}/${parsed.slug}`);
           ws.send('access-denied:project-not-found');
-          ws.close(4003, 'Project not found');
+          ws.close(WS_CLOSE_PROJECT_NOT_FOUND, 'Project not found');
           return;
         }
 
@@ -341,14 +353,14 @@ app.get(
         );
         if (canWrite === null) {
           ws.send('access-denied:forbidden');
-          ws.close(4003, 'Access denied');
+          ws.close(WS_CLOSE_FORBIDDEN, 'Access denied');
           return;
         }
 
         if (!ws.raw) {
           wsLog.error(`WebSocket adapter missing raw connection for ${documentId}`);
           ws.send('access-denied:error');
-          ws.close(4000, 'Authentication error');
+          ws.close(WS_CLOSE_SERVER_ERROR, 'Authentication error');
           return;
         }
         try {
@@ -356,7 +368,7 @@ app.get(
         } catch (err) {
           wsLog.error(`Failed to initialize Yjs connection for ${documentId}`, err);
           ws.send('access-denied:error');
-          ws.close(4000, 'Authentication error');
+          ws.close(WS_CLOSE_SERVER_ERROR, 'Authentication error');
           return;
         }
 
@@ -430,7 +442,7 @@ app.get(
           } catch (error) {
             wsLog.error(`Auth error for ${documentId}`, error);
             ws.send('access-denied:error');
-            ws.close(4000, 'Authentication error');
+            ws.close(WS_CLOSE_SERVER_ERROR, 'Authentication error');
           }
           return;
         }

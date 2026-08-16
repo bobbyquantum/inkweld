@@ -101,6 +101,16 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   private readonly storageContext = inject(StorageContextService);
   private readonly versionCompatibility = inject(VersionCompatibilityService);
 
+  /**
+   * WebSocket factory seam. Writable so tests can override it — the Angular
+   * unit-test builder cannot module-mock the relative import, and patching
+   * the `WebsocketProvider` prototype the factory binds is racy under
+   * isolate:false (other specs re-mock y-websocket, so the patched class can
+   * be a different object than the one the factory instantiates). Mirrors
+   * DocumentService.createAuthWsProvider.
+   */
+  private createAuthWsProvider = createAuthenticatedWebsocketProvider; // NOSONAR - writable for test overrides
+
   // Yjs infrastructure
   private doc: Y.Doc | null = null;
   private wsProvider: WebsocketProvider | null = null;
@@ -298,7 +308,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.logger.info('YjsSync', `🌐 WebSocket URL: ${wsUrl}`);
 
       try {
-        this.wsProvider = await createAuthenticatedWebsocketProvider(
+        this.wsProvider = await this.createAuthWsProvider(
           wsUrl,
           '',
           this.doc,
@@ -1355,7 +1365,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
    * and close the socket. `rate-limited` and server-side `error` are
    * transient, so they are NOT terminal: we stop the provider (switching off
    * y-websocket's internal auto-reconnect loop, which doesn't know we were
-   * refused and would otherwise hammer the DO on its 100ms*2^n schedule —
+   * refused and would otherwise hammer the DO on its 200ms*2^n schedule —
    * each reconnect re-authing and re-saturating the per-doc window, i.e. the
    * reconnect storm) and let scheduleReconnect retry with the long floored
    * backoff for as long as it takes the server to recover.

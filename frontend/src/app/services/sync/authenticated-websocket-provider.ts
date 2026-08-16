@@ -282,6 +282,12 @@ export async function createAuthenticatedWebsocketProvider(
     const provider = new WebsocketProvider(wsUrl, roomName, doc, {
       ...wsOptions,
       connect: false,
+      // y-websocket 3.1's default already treats the permanent band
+      // (4400-4499) as terminal. We adopt that convention (the backend closes
+      // hard denials with 44xx and transient failures with 45xx — see
+      // backend/src/utils/ws-close-codes.ts), so pass the default explicitly to
+      // document the intent and keep it stable if the library default changes.
+      shouldReconnect: event => !(event.code >= 4400 && event.code < 4500),
     });
 
     // Install the permanent message guard + keepalive BEFORE registering the
