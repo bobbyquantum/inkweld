@@ -101,6 +101,16 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   private readonly storageContext = inject(StorageContextService);
   private readonly versionCompatibility = inject(VersionCompatibilityService);
 
+  /**
+   * WebSocket factory seam. Writable so tests can override it — the Angular
+   * unit-test builder cannot module-mock the relative import, and patching
+   * the `WebsocketProvider` prototype the factory binds is racy under
+   * isolate:false (other specs re-mock y-websocket, so the patched class can
+   * be a different object than the one the factory instantiates). Mirrors
+   * DocumentService.createAuthWsProvider.
+   */
+  private createAuthWsProvider = createAuthenticatedWebsocketProvider; // NOSONAR - writable for test overrides
+
   // Yjs infrastructure
   private doc: Y.Doc | null = null;
   private wsProvider: WebsocketProvider | null = null;
@@ -298,7 +308,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.logger.info('YjsSync', `🌐 WebSocket URL: ${wsUrl}`);
 
       try {
-        this.wsProvider = await createAuthenticatedWebsocketProvider(
+        this.wsProvider = await this.createAuthWsProvider(
           wsUrl,
           '',
           this.doc,

@@ -1218,78 +1218,43 @@ describe('YjsElementSyncProvider', () => {
 
     it('wires terminal close codes into handleAccessDenied', async () => {
       // The Angular unit-test builder can't module-mock the relative
-      // authenticated-websocket-provider import, so this drives the REAL
-      // factory against the global y-websocket mock: patch the mock's
-      // connect() to capture the provider instance, walk the auth handshake,
-      // then emit a y-websocket 3.1 `closed` event (terminal close code).
-      const { WebsocketProvider } = await import('y-websocket');
-      type CapturedProvider = {
-        ws: { onmessage: ((event: MessageEvent) => void) | null } | null;
-        _listeners: Map<string, Array<(arg: unknown) => void>>;
-        disconnect: () => void;
+      // authenticated-websocket-provider import, and patching the
+      // WebsocketProvider prototype is racy under isolate:false (another spec
+      // re-mocks y-websocket, so the patched class can be a different object
+      // than the one the factory instantiates). Use the createAuthWsProvider
+      // seam instead (same pattern as document.service.spec.ts) to capture
+      // the options the provider passes to the factory.
+      const factoryMock = vi.fn().mockResolvedValue(websocketProvider);
+      (
+        provider as unknown as { createAuthWsProvider: unknown }
+      ).createAuthWsProvider = factoryMock;
+
+      attachDoc();
+      authTokenService.getToken.mockReturnValue('token');
+
+      const result = await provider.connect({
+        username: 'testuser',
+        slug: 'test-project',
+        webSocketUrl: 'ws://localhost:8333',
+      });
+      expect(result).toEqual({ success: true });
+
+      const opts = factoryMock.mock.calls[0]?.[4] as {
+        onTerminalClose?: (reason: string, code: number) => void;
       };
-      const prototype = WebsocketProvider.prototype as unknown as {
-        connect: () => void;
-      };
-      const originalConnect = prototype.connect;
-      let created: CapturedProvider | null = null;
-      const captureCreated = (
-        instance: CapturedProvider & { messageHandlers?: unknown[] }
-      ) => {
-        created = instance;
-        // setupPresenceHandlers() indexes into messageHandlers; the global
-        // mock doesn't declare it.
-        instance.messageHandlers ??= [];
-      };
-      prototype.connect = function (
-        this: CapturedProvider & { messageHandlers?: unknown[] }
-      ) {
-        captureCreated(this);
-        originalConnect.call(this);
-      };
+      expect(typeof opts.onTerminalClose).toBe('function');
 
-      try {
-        attachDoc();
-        authTokenService.getToken.mockReturnValue('token');
+      // Simulate the y-websocket 3.1 `closed` event (terminal close code)
+      // reaching the provider after the text frame was lost: the factory maps
+      // 4403 -> 'forbidden' and routes it into handleAccessDenied.
+      const stub = setWsStub();
+      opts.onTerminalClose!('forbidden', 4403);
 
-        const connectResult = provider.connect({
-          username: 'testuser',
-          slug: 'test-project',
-          webSocketUrl: 'ws://localhost:8333',
-        });
+      expect(privateProvider().terminalDenialReason).toBe('forbidden');
+      expect(stub.disconnect).toHaveBeenCalledTimes(1);
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
 
-        // The factory constructs the provider after the IndexedDB
-        // whenSynced microtask; wait for the patched connect() to run.
-        // Generous timeout: coverage instrumentation slows microtask
-        // draining on CI runners considerably.
-        await vi.waitFor(() => expect(created).not.toBeNull(), {
-          timeout: 10_000,
-        });
-        const wsProvider = created as unknown as CapturedProvider;
-
-        // Walk the auth handshake: 'connected' triggers the token send,
-        // then the 'authenticated' text frame resolves the factory.
-        wsProvider._listeners
-          .get('status')
-          ?.forEach(cb => cb({ status: 'connected' }));
-        wsProvider.ws?.onmessage?.(
-          new MessageEvent('message', { data: 'authenticated' })
-        );
-        await connectResult;
-
-        // The server closes with a permanent code (text frame lost): the
-        // factory maps 4403 -> 'forbidden' and routes it into
-        // handleAccessDenied, which stops the session terminally.
-        wsProvider._listeners
-          .get('closed')
-          ?.forEach(cb => cb({ code: 4403, reason: 'Access denied' }));
-
-        expect(privateProvider().terminalDenialReason).toBe('forbidden');
-        expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
-      } finally {
-        prototype.connect = originalConnect;
-        provider.disconnect();
-      }
+      provider.disconnect();
     });
 
     it('uses the long rate-limit backoff on the retry after a rate-limit', () => {
