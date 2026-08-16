@@ -24,11 +24,10 @@ interface MockProviderInstance {
   wsLastMessageReceived: number;
   destroy: ReturnType<typeof vi.fn>;
   awareness: { setLocalStateField: ReturnType<typeof vi.fn>; clientID: number };
-  _listeners: Map<string, Array<(arg: unknown) => void>>;
-  _emitStatus: (status: string) => void;
   /** Options captured from the constructor's 4th argument. */
   _options: Record<string, unknown>;
-  _emitClosed: (code: number, reason: string) => void;
+  _listeners: Map<string, Array<(arg: unknown) => void>>;
+  _emitStatus: (status: string) => void;
 }
 
 // Store mock instances for test assertions - must be defined before vi.doMock
@@ -79,11 +78,6 @@ class MockWebsocketProvider implements MockProviderInstance {
   _emitStatus(status: string) {
     const listeners = this._listeners.get('status');
     listeners?.forEach(cb => cb({ status }));
-  }
-
-  _emitClosed(code: number, reason: string) {
-    const listeners = this._listeners.get('closed');
-    listeners?.forEach(cb => cb({ code, reason }));
   }
 
   constructor(
@@ -394,83 +388,6 @@ describe('authenticated-websocket-provider', () => {
       expect(shouldReconnect({ code: 4529 })).toBe(true);
       expect(shouldReconnect({ code: 1006 })).toBe(true);
       expect(shouldReconnect({ code: 1000 })).toBe(true);
-    });
-
-    it('does not forward resilience callbacks as WebsocketProvider options', () => {
-      void createAuthenticatedWebsocketProvider(
-        'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id',
-        '',
-        mockDoc,
-        'token',
-        {
-          onDecodeError: vi.fn(),
-          onTextMessage: vi.fn(),
-          onTerminalClose: vi.fn(),
-        }
-      );
-
-      const options = mockProviderInstances[0]._options;
-      expect(options['onDecodeError']).toBeUndefined();
-      expect(options['onTextMessage']).toBeUndefined();
-      expect(options['onTerminalClose']).toBeUndefined();
-    });
-
-    it('routes a terminal close with a mapped code through onTerminalClose', () => {
-      const onTerminalClose = vi.fn();
-      void createAuthenticatedWebsocketProvider(
-        'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id',
-        '',
-        mockDoc,
-        'token',
-        { onTerminalClose }
-      );
-
-      const mockProvider = mockProviderInstances[0];
-      mockProvider._emitClosed(4401, 'Invalid token');
-
-      expect(onTerminalClose).toHaveBeenCalledWith('invalid-token', 4401);
-    });
-
-    it('maps every backend denial close code to its text-frame reason', () => {
-      const cases: Array<[number, string]> = [
-        [4400, 'invalid-document'],
-        [4401, 'invalid-token'],
-        [4403, 'forbidden'],
-        [4404, 'project-not-found'],
-      ];
-      for (const [code, reason] of cases) {
-        const onTerminalClose = vi.fn();
-        void createAuthenticatedWebsocketProvider(
-          'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id',
-          '',
-          mockDoc,
-          'token',
-          { onTerminalClose }
-        );
-        const mockProvider =
-          mockProviderInstances[mockProviderInstances.length - 1];
-        mockProvider._emitClosed(code, 'x');
-        expect(onTerminalClose).toHaveBeenCalledWith(reason, code);
-      }
-    });
-
-    it('warns but does not guess a reason for unmapped permanent codes', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      const onTerminalClose = vi.fn();
-      void createAuthenticatedWebsocketProvider(
-        'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id',
-        '',
-        mockDoc,
-        'token',
-        { onTerminalClose }
-      );
-
-      const mockProvider = mockProviderInstances[0];
-      mockProvider._emitClosed(4499, 'future code');
-
-      expect(onTerminalClose).not.toHaveBeenCalled();
-      expect(warnSpy).toHaveBeenCalled();
-      warnSpy.mockRestore();
     });
   });
 

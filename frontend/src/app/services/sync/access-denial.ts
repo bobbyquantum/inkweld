@@ -56,48 +56,6 @@ export const LONG_BACKOFF_DENIAL_REASONS: ReadonlySet<string> = new Set([
 const DENIAL_PREFIXES = ['access-denied:', 'Access denied:'] as const;
 
 /**
- * WebSocket close codes used by the backend for the Yjs document sockets,
- * following the y-websocket 3.1 convention: the 4400-4499 band is PERMANENT
- * (y-websocket stops its internal reconnect loop and emits `closed`), the
- * 4500-4599 band is TRANSIENT (keep retrying). Trailing digits are an HTTP
- * mnemonic only. Defined in `backend/src/utils/ws-close-codes.ts` — keep the
- * two in sync.
- */
-const WS_CLOSE_INVALID_DOCUMENT = 4400;
-const WS_CLOSE_INVALID_TOKEN = 4401;
-const WS_CLOSE_FORBIDDEN = 4403;
-const WS_CLOSE_PROJECT_NOT_FOUND = 4404;
-const WS_CLOSE_SERVER_ERROR = 4500;
-const WS_CLOSE_RATE_LIMITED = 4529;
-
-/**
- * Map a backend WebSocket close code to the equivalent `access-denied`
- * reason, or null when the code carries no denial (plain 1000/1006 closes,
- * unknown codes). The denial TEXT frame is the primary signal and normally
- * arrives before the close; this mapping is the backstop that lets a
- * `closed` event drive the same denial handling when the text frame was
- * lost.
- */
-export function denialReasonForCloseCode(code: number): string | null {
-  switch (code) {
-    case WS_CLOSE_INVALID_TOKEN:
-      return 'invalid-token';
-    case WS_CLOSE_INVALID_DOCUMENT:
-      return 'invalid-document';
-    case WS_CLOSE_FORBIDDEN:
-      return 'forbidden';
-    case WS_CLOSE_PROJECT_NOT_FOUND:
-      return 'project-not-found';
-    case WS_CLOSE_SERVER_ERROR:
-      return 'error';
-    case WS_CLOSE_RATE_LIMITED:
-      return 'rate-limited';
-    default:
-      return null;
-  }
-}
-
-/**
  * Extract the `access-denied` reason from a server message, or null if the
  * message is not a denial. Handles both the raw wire frame
  * (`access-denied:error`) and the wrapped re-auth callback string

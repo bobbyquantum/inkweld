@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  denialReasonForCloseCode,
   HARD_DENIAL_REASONS,
   LONG_BACKOFF_DENIAL_REASONS,
   parseAccessDeniedReason,
@@ -43,47 +42,6 @@ describe('parseAccessDeniedReason', () => {
     expect(parseAccessDeniedReason('Access denied')).toBeNull();
     expect(parseAccessDeniedReason('access-denieding')).toBeNull();
     expect(parseAccessDeniedReason('Access denieding')).toBeNull();
-  });
-});
-
-describe('denialReasonForCloseCode', () => {
-  it('maps the permanent (44xx) close codes to hard denial reasons', () => {
-    expect(denialReasonForCloseCode(4401)).toBe('invalid-token');
-    expect(denialReasonForCloseCode(4400)).toBe('invalid-document');
-    expect(denialReasonForCloseCode(4403)).toBe('forbidden');
-    expect(denialReasonForCloseCode(4404)).toBe('project-not-found');
-  });
-
-  it('maps the transient (45xx) close codes to long-backoff reasons', () => {
-    expect(denialReasonForCloseCode(4500)).toBe('error');
-    expect(denialReasonForCloseCode(4529)).toBe('rate-limited');
-  });
-
-  it('keeps permanent codes aligned with the hard-denial classifier', () => {
-    for (const code of [4400, 4401, 4403, 4404]) {
-      const reason = denialReasonForCloseCode(code);
-      expect(reason).not.toBeNull();
-      expect(HARD_DENIAL_REASONS.has(reason!)).toBe(true);
-    }
-  });
-
-  it('keeps transient codes aligned with the long-backoff classifier', () => {
-    for (const code of [4500, 4529]) {
-      const reason = denialReasonForCloseCode(code);
-      expect(reason).not.toBeNull();
-      expect(LONG_BACKOFF_DENIAL_REASONS.has(reason!)).toBe(true);
-    }
-  });
-
-  it('returns null for codes that carry no denial', () => {
-    expect(denialReasonForCloseCode(1000)).toBeNull();
-    expect(denialReasonForCloseCode(1006)).toBeNull();
-    expect(denialReasonForCloseCode(1011)).toBeNull();
-    // Permanent-band codes we do not use must stay unmapped rather than
-    // guessing a reason.
-    expect(denialReasonForCloseCode(4402)).toBeNull();
-    expect(denialReasonForCloseCode(4499)).toBeNull();
-    expect(denialReasonForCloseCode(0)).toBeNull();
   });
 });
 

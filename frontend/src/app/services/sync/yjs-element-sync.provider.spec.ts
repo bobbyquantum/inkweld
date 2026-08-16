@@ -1216,47 +1216,6 @@ describe('YjsElementSyncProvider', () => {
       expect(stub.connect).not.toHaveBeenCalled();
     });
 
-    it('wires terminal close codes into handleAccessDenied', async () => {
-      // The Angular unit-test builder can't module-mock the relative
-      // authenticated-websocket-provider import, and patching the
-      // WebsocketProvider prototype is racy under isolate:false (another spec
-      // re-mocks y-websocket, so the patched class can be a different object
-      // than the one the factory instantiates). Use the createAuthWsProvider
-      // seam instead (same pattern as document.service.spec.ts) to capture
-      // the options the provider passes to the factory.
-      const factoryMock = vi.fn().mockResolvedValue(websocketProvider);
-      (
-        provider as unknown as { createAuthWsProvider: unknown }
-      ).createAuthWsProvider = factoryMock;
-
-      attachDoc();
-      authTokenService.getToken.mockReturnValue('token');
-
-      const result = await provider.connect({
-        username: 'testuser',
-        slug: 'test-project',
-        webSocketUrl: 'ws://localhost:8333',
-      });
-      expect(result).toEqual({ success: true });
-
-      const opts = factoryMock.mock.calls[0]?.[4] as {
-        onTerminalClose?: (reason: string, code: number) => void;
-      };
-      expect(typeof opts.onTerminalClose).toBe('function');
-
-      // Simulate the y-websocket 3.1 `closed` event (terminal close code)
-      // reaching the provider after the text frame was lost: the factory maps
-      // 4403 -> 'forbidden' and routes it into handleAccessDenied.
-      const stub = setWsStub();
-      opts.onTerminalClose!('forbidden', 4403);
-
-      expect(privateProvider().terminalDenialReason).toBe('forbidden');
-      expect(stub.disconnect).toHaveBeenCalledTimes(1);
-      expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
-
-      provider.disconnect();
-    });
-
     it('uses the long rate-limit backoff on the retry after a rate-limit', () => {
       vi.useFakeTimers();
       const stub = setWsStub();

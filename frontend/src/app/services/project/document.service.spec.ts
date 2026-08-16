@@ -899,23 +899,10 @@ describe('DocumentService', () => {
         ) => Promise<void>;
       };
 
-      // Track timer ids so clearTimeout() actually cancels a captured
-      // callback — the terminal-close path relies on cancelling a reconnect
-      // that handleDisconnected already scheduled.
-      const cancelled = new Set<number>();
-      let nextTimerId = 1;
       vi.spyOn(globalThis, 'setTimeout').mockImplementation(
         (cb: TimerHandler) => {
-          const id = nextTimerId++;
-          scheduled.push(() => {
-            if (!cancelled.has(id)) (cb as () => void)();
-          });
-          return id as unknown as ReturnType<typeof setTimeout>;
-        }
-      );
-      vi.spyOn(globalThis, 'clearTimeout').mockImplementation(
-        (id?: unknown) => {
-          if (typeof id === 'number') cancelled.add(id);
+          scheduled.push(cb as () => void);
+          return 1 as unknown as ReturnType<typeof setTimeout>;
         }
       );
 
@@ -1031,20 +1018,6 @@ describe('DocumentService', () => {
       return opts?.onTextMessage;
     }
 
-    /**
-     * Pull the `onTerminalClose` callback the service passed into the
-     * auth-ws provider options, so a test can simulate a y-websocket 3.1
-     * `closed` event (terminal close code) reaching the service.
-     */
-    function capturedOnTerminalClose():
-      ((reason: string, code: number) => void) | undefined {
-      const calls = mockCreateAuthWsProvider.mock.calls;
-      const opts = calls[calls.length - 1]?.[4] as
-        | { onTerminalClose?: (reason: string, code: number) => void }
-        | undefined;
-      return opts?.onTerminalClose;
-    }
-
     it('stops reconnecting after a post-auth hard access-denied', async () => {
       const { callbacks, advanceReconnect } = await setupConnection();
       const status = callbacks['status'] as StatusCb;
@@ -1062,38 +1035,6 @@ describe('DocumentService', () => {
       expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(
         connectCallsBefore
       );
-      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
-        DocumentSyncState.Unavailable
-      );
-    });
-
-    it('wires terminal close codes into the denial classifier', async () => {
-      await setupConnection();
-      expect(typeof capturedOnTerminalClose()).toBe('function');
-    });
-
-    it('cancels a pending reconnect when a terminal close arrives without the text frame', async () => {
-      const { callbacks, scheduled, advanceReconnect } =
-        await setupConnection();
-      const status = callbacks['status'] as StatusCb;
-
-      // y-websocket emits 'disconnected' BEFORE 'closed'. With the text frame
-      // lost, handleDisconnected runs first and schedules a reconnect...
-      status({ status: 'disconnected' });
-      expect(scheduled).toHaveLength(1);
-
-      // ...then the terminal close reaches the denial classifier. It must
-      // cancel the already-scheduled retry instead of letting it resurrect a
-      // session the server killed for good.
-      capturedOnTerminalClose()?.('forbidden', 4403);
-
-      const connectCallsBefore =
-        mockWebSocketProvider.connect.mock.calls.length;
-      advanceReconnect(); // runs the captured timer — cancelled, so a no-op
-      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(
-        connectCallsBefore
-      );
-      expect(mockWebSocketProvider.disconnect).toHaveBeenCalled();
       expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
         DocumentSyncState.Unavailable
       );

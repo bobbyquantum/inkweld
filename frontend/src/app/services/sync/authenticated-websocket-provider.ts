@@ -5,8 +5,6 @@ import {
 import { WebsocketProvider } from 'y-websocket';
 import type * as Y from 'yjs';
 
-import { denialReasonForCloseCode } from './access-denial';
-
 /**
  * Authentication result from the WebSocket auth protocol
  */
@@ -272,23 +270,12 @@ export async function createAuthenticatedWebsocketProvider(
       hexPreview: string
     ) => void;
     onTextMessage?: (text: string) => void;
-    /**
-     * Called when the server closes the socket with a code our denial mapping
-     * recognises (see {@link denialReasonForCloseCode}). y-websocket 3.1 stops
-     * its internal reconnect loop for permanent (4400-4499) close codes and
-     * emits `closed`; this callback routes that event through the same denial
-     * handling as the `access-denied` text frame, so the reconnect loop stops
-     * even if the text frame was lost. Transient (4500-4599) codes never fire
-     * `closed` — y-websocket keeps reconnecting on those.
-     */
-    onTerminalClose?: (reason: string, code: number) => void;
   } = {}
 ): Promise<WebsocketProvider> {
   // Strip our custom resilience callbacks before forwarding the rest to
   // y-websocket — only `connect`, `resyncInterval`, and `maxBackoffTime` are
   // real WebsocketProvider options.
-  const { onDecodeError, onTextMessage, onTerminalClose, ...wsOptions } =
-    options;
+  const { onDecodeError, onTextMessage, ...wsOptions } = options;
 
   return new Promise((resolve, reject) => {
     // Start with connect: false so we can set up auth handling first
@@ -301,32 +288,6 @@ export async function createAuthenticatedWebsocketProvider(
       // backend/src/utils/ws-close-codes.ts), so pass the default explicitly to
       // document the intent and keep it stable if the library default changes.
       shouldReconnect: event => !(event.code >= 4400 && event.code < 4500),
-    });
-
-    // Route terminal (permanent-band) closes through the denial classifier so
-    // the reconnect loop stops even when the `access-denied` text frame was
-    // lost. Fired AFTER the provider has stopped (`shouldConnect` false) and
-    // only for codes the default `shouldReconnect` deemed permanent.
-    provider.on('closed', (closedEvent: { code: number; reason: string }) => {
-      const reason = denialReasonForCloseCode(closedEvent.code);
-      if (reason === null) {
-        // A permanent close we don't map (e.g. a future code). Surface it but
-        // don't guess a denial reason.
-        console.warn(
-          `[AuthWS] Server closed the connection permanently with unmapped ` +
-            `code ${closedEvent.code} (${closedEvent.reason || 'no reason'}); ` +
-            `not reconnecting.`
-        );
-        return;
-      }
-      if (onTerminalClose) {
-        onTerminalClose(reason, closedEvent.code);
-      } else {
-        console.warn(
-          `[AuthWS] Server closed the connection permanently ` +
-            `(code ${closedEvent.code}, reason ${reason}); not reconnecting.`
-        );
-      }
     });
 
     // Install the permanent message guard + keepalive BEFORE registering the
