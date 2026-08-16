@@ -326,10 +326,6 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
               );
             },
             onTextMessage: text => this.handlePostAuthText(text),
-            // Terminal close codes (44xx) are the backstop for the
-            // `access-denied` text frame: route them through the same
-            // classifier so a lost text frame can't leave the loop retrying.
-            onTerminalClose: reason => this.handleAccessDenied(reason),
           }
         );
 

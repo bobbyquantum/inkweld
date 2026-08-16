@@ -1386,10 +1386,6 @@ export class DocumentService {
               `Unexpected text frame on ${documentId}: ${text}`
             );
           },
-          // Terminal close codes (44xx) are the backstop for the
-          // `access-denied` text frame: route them through the same
-          // classifier so a lost text frame can't leave the loop retrying.
-          onTerminalClose: reason => markDenied(reason),
         }
       );
 
