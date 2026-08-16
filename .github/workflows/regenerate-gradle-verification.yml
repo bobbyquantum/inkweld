@@ -92,3 +92,4 @@ jobs:
             # (granted by the permissions block above) but was not persisted into
             # git config by the checkout step.
             git -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" push
+          fi
