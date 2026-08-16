@@ -58,7 +58,10 @@ export class CreateSnapshotDialogComponent {
   private readonly dialogRef = inject(
     MatDialogRef<CreateSnapshotDialogComponent>
   );
-  data = inject<CreateSnapshotDialogData>(MAT_DIALOG_DATA);
+  readonly data: CreateSnapshotDialogData =
+    inject<CreateSnapshotDialogData | null>(MAT_DIALOG_DATA, {
+      optional: true,
+    }) ?? {};
   private readonly transloco = inject(TranslocoService);
 
   readonly model = signal<CreateSnapshotFormValue>({

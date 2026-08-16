@@ -129,6 +129,8 @@
     "removeTabConfirm": "Remove the \"{{tab}}\" tab and all its fields?",
     "addField": "Add field",
     "snapshots": "Template snapshots",
-    "editingHint": "Editing schema \u2014 changes save automatically."
+    "editingHint": "Editing schema \u2014 changes save automatically.",
+    "tabLabel": "Tab label",
+    "tabIcon": "Tab icon"
   }
 }

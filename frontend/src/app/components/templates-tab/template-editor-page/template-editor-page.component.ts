@@ -357,6 +357,9 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
       case 'remove-tab':
         this.removeTabByKey(tabs, event.tabKey);
         break;
+      case 'update-tab':
+        this.updateTabByKey(tabs, event.tabKey, event.patch);
+        break;
       case 'add-field':
         this.addFieldToTab(tabs, event.tabKey);
         break;
@@ -386,6 +389,16 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   private removeTabByKey(tabs: TabSchema[], tabKey: string): void {
     const idx = tabs.findIndex(t => t.key === tabKey);
     if (idx >= 0) this.removeTab(idx);
+  }
+
+  /** Update a tab's properties by key, if present. */
+  private updateTabByKey(
+    tabs: TabSchema[],
+    tabKey: string,
+    patch: Partial<TabSchema>
+  ): void {
+    const idx = tabs.findIndex(t => t.key === tabKey);
+    if (idx >= 0) this.updateTab(idx, patch);
   }
 
   /** Add a field to a tab by key, if present. */

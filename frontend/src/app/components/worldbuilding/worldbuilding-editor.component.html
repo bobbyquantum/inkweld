@@ -150,7 +150,7 @@
             }}</span>
           </a>
 
-          @if (projectState.canWrite()) {
+          @if (projectState.canWrite() || schemaEditingEnabled()) {
             <a
               mat-list-item
               (click)="selectSection('styling')"
@@ -180,6 +180,43 @@
       [style.--wb-overlay]="contentBackground()?.overlayAlpha ?? null"
       [class.wb-bg-overlay-dark]="contentBackground()?.overlay === 'dark'"
       [class.wb-bg-overlay-light]="contentBackground()?.overlay === 'light'">
+      <!-- Inline tab property editor (label + icon), shared by both layouts -->
+      <ng-template #tabPropsEditor let-tab>
+        @if (schemaEditingEnabled()) {
+          <div class="tab-props-editor" data-testid="tab-props-editor">
+            <mat-form-field appearance="outline" class="tab-label-field">
+              <mat-label>{{
+                'worldbuilding.schemaEdit.tabLabel' | transloco
+              }}</mat-label>
+              <input
+                matInput
+                [value]="tab.label"
+                (input)="
+                  onUpdateTab(tab.key, {
+                    label: $any($event.target).value,
+                  })
+                "
+                [attr.data-testid]="'tab-label-input-' + tab.key" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="tab-icon-field">
+              <mat-label>{{
+                'worldbuilding.schemaEdit.tabIcon' | transloco
+              }}</mat-label>
+              <mat-select
+                [value]="getTabIcon(tab)"
+                (selectionChange)="onUpdateTab(tab.key, { icon: $event.value })"
+                [attr.data-testid]="'tab-icon-select-' + tab.key">
+                @for (icon of getAvailableIcons(); track icon) {
+                  <mat-option [value]="icon">
+                    <mat-icon>{{ icon }}</mat-icon>
+                    {{ icon }}
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+        }
+      </ng-template>
       @if (isInitialLoading()) {
         <div class="wb-loading-shell" data-testid="worldbuilding-loading-shell">
           @if (useSidenav()) {
@@ -221,7 +258,8 @@
             [elementIcon]="elementIcon()"
             [username]="username()"
             [slug]="slug()"
-            [canWrite]="projectState.canWrite()"
+            [canWrite]="!previewMode() && projectState.canWrite()"
+            [readOnly]="previewMode()"
             [showImage]="false"
             (renameRequested)="onRenameRequested()">
           </app-identity-panel>
@@ -247,7 +285,10 @@
           </div>
         }
 
-        @if (selectedSection() === 'styling' && projectState.canWrite()) {
+        @if (
+          selectedSection() === 'styling' &&
+          (projectState.canWrite() || schemaEditingEnabled())
+        ) {
           <div class="section-content styling-inline">
             @if (schemaEditingEnabled()) {
               <app-appearance-editor
@@ -336,13 +377,20 @@
         @for (tab of getTabs(); track tab.key) {
           @if (selectedSection() === tab.key && schema()) {
             <div class="section-content tab-section-content">
-              <!-- Desktop-only section title -->
-              <h2 class="section-title" data-testid="tab-section-title">
-                <mat-icon class="section-title-icon">{{
-                  getTabIcon(tab)
-                }}</mat-icon>
-                {{ tab.label }}
-              </h2>
+              @if (schemaEditingEnabled()) {
+                <ng-container
+                  [ngTemplateOutlet]="tabPropsEditor"
+                  [ngTemplateOutletContext]="{ $implicit: tab }">
+                </ng-container>
+              } @else {
+                <!-- Desktop-only section title -->
+                <h2 class="section-title" data-testid="tab-section-title">
+                  <mat-icon class="section-title-icon">{{
+                    getTabIcon(tab)
+                  }}</mat-icon>
+                  {{ tab.label }}
+                </h2>
+              }
               <ng-container
                 [ngTemplateOutlet]="tabFieldsTemplate"
                 [ngTemplateOutletContext]="{ $implicit: tab.key }">
@@ -384,7 +432,8 @@
                 [elementIcon]="elementIcon()"
                 [username]="username()"
                 [slug]="slug()"
-                [canWrite]="projectState.canWrite()"
+                [canWrite]="!previewMode() && projectState.canWrite()"
+                [readOnly]="previewMode()"
                 (renameRequested)="onRenameRequested()">
               </app-identity-panel>
             </div>
@@ -402,6 +451,10 @@
                     {{ tab.label }}
                   </mat-panel-title>
                 </mat-expansion-panel-header>
+                <ng-container
+                  [ngTemplateOutlet]="tabPropsEditor"
+                  [ngTemplateOutletContext]="{ $implicit: tab }">
+                </ng-container>
                 <ng-container
                   [ngTemplateOutlet]="tabFieldsTemplate"
                   [ngTemplateOutletContext]="{ $implicit: tab.key }">
@@ -454,7 +507,7 @@
           </mat-expansion-panel>
 
           <!-- Styling panel (editors only) -->
-          @if (projectState.canWrite()) {
+          @if (projectState.canWrite() || schemaEditingEnabled()) {
             <mat-expansion-panel data-testid="accordion-styling">
               <mat-expansion-panel-header>
                 <mat-panel-title>

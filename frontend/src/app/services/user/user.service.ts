@@ -98,7 +98,7 @@ export class UserService {
       await firstValueFrom(
         this.dialog
           .open(UserSettingsDialogComponent, {
-            width: '700px',
+            width: '900px',
             disableClose: true,
           })
           .afterClosed()

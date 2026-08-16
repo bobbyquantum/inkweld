@@ -1176,6 +1176,17 @@ describe('WorldbuildingEditorComponent', () => {
       });
     });
 
+    it('should emit an update-tab event', () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onUpdateTab']('basic', { label: 'Core', icon: 'star' });
+      expect(emit).toHaveBeenCalledWith({
+        type: 'update-tab',
+        tabKey: 'basic',
+        patch: { label: 'Core', icon: 'star' },
+      });
+    });
+
     it('should toggle field config open state', () => {
       expect(component['fieldConfigOpen']('basic', 'name')).toBe(false);
       component['toggleFieldConfig']('basic', 'name');

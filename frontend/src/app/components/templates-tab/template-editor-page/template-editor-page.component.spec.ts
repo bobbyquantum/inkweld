@@ -380,6 +380,27 @@ describe('TemplateEditorPageComponent', () => {
       expect(nameField?.label).toBe('Full name');
       expect(nameField?.placeholder).toBe('Enter name');
     });
+
+    it('should update a tab by key via onSchemaEdit', () => {
+      component['onSchemaEdit']({
+        type: 'update-tab',
+        tabKey: 'basic',
+        patch: { label: 'Core', icon: 'star' },
+      });
+      const tab = component.tabs()[0];
+      expect(tab.label).toBe('Core');
+      expect(tab.icon).toBe('star');
+    });
+
+    it('should ignore an update-tab event for a missing tab key', () => {
+      const original = component.tabs();
+      component['onSchemaEdit']({
+        type: 'update-tab',
+        tabKey: 'missing',
+        patch: { label: 'Nope' },
+      });
+      expect(component.tabs()).toEqual(original);
+    });
   });
 
   describe('scheduleAutosave', () => {

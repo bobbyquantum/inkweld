@@ -173,7 +173,7 @@ export class DialogGatewayService {
       'account' | 'authorized-apps' | 'project-tree' | 'project'
   ): Promise<void> {
     const dialogRef = this.dialog.open(UserSettingsDialogComponent, {
-      width: '800px',
+      width: '1000px',
       maxWidth: '90vw',
       maxHeight: '90vh',
       panelClass: 'user-settings-dialog-panel',

@@ -212,7 +212,7 @@
   overflow-y: auto;
   height: 100%;
   padding: 1.5rem;
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
@@ -230,6 +230,26 @@
 
   .section-title-icon {
     color: var(--sys-primary);
+  }
+}
+
+// Inline tab property editor (label + icon) shown in schema-edit mode.
+.tab-props-editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--sys-outline-variant);
+
+  .tab-label-field {
+    flex: 1 1 220px;
+    min-width: 0;
+  }
+
+  .tab-icon-field {
+    flex: 0 0 180px;
   }
 }
 
@@ -504,7 +524,7 @@ mat-accordion {
 
 .wb-loading-shell {
   padding: 1.5rem;
-  max-width: 1100px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 

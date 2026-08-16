@@ -70,6 +70,7 @@ import { MediaPanelComponent } from './media-panel/media-panel.component';
 export type SchemaEditEvent =
   | { type: 'add-tab' }
   | { type: 'remove-tab'; tabKey: string }
+  | { type: 'update-tab'; tabKey: string; patch: Partial<TabSchema> }
   | { type: 'add-field'; tabKey: string }
   | { type: 'remove-field'; tabKey: string; fieldKey: string }
   | { type: 'move-field'; tabKey: string; fieldKey: string; delta: -1 | 1 }
@@ -788,6 +789,11 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (confirmed) {
       this.emitSchemaEdit({ type: 'remove-tab', tabKey });
     }
+  }
+
+  /** Emit an update to a tab's properties (label/icon). */
+  protected onUpdateTab(tabKey: string, patch: Partial<TabSchema>): void {
+    this.emitSchemaEdit({ type: 'update-tab', tabKey, patch });
   }
 
   /** Resolve a tab's display label by key (or the key itself). */

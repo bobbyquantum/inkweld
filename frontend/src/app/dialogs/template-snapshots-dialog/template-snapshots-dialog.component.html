@@ -37,7 +37,7 @@
             </button>
             <button
               mat-icon-button
-              [matTooltip]="'dialogs.snapshots.delete' | transloco"
+              [matTooltip]="'delete' | transloco"
               (click)="deleteSnapshot(snapshot)"
               data-testid="snapshot-delete">
               <mat-icon>delete</mat-icon>
@@ -64,6 +64,6 @@
     (click)="createSnapshot()"
     data-testid="snapshot-create">
     <mat-icon>add</mat-icon>
-    {{ 'dialogs.snapshots.create' | transloco }}
+    {{ 'dialogs.snapshots.newSnapshot' | transloco }}
   </button>
 </mat-dialog-actions>

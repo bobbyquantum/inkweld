@@ -108,6 +108,16 @@ describe('IdentityPanelComponent', () => {
     );
   });
 
+  it('should not load, sync, or save when read-only (preview mode)', async () => {
+    fixture.componentRef.setInput('readOnly', true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(worldbuildingService.getIdentityData).not.toHaveBeenCalled();
+    expect(worldbuildingService.observeIdentityChanges).not.toHaveBeenCalled();
+    expect(component.isIdentityLoading()).toBe(false);
+  });
+
   it('should expose the appearance config from loaded identity data', async () => {
     worldbuildingService.getIdentityData.mockResolvedValue({
       appearance: {

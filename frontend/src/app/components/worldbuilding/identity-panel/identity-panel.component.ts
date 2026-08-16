@@ -69,6 +69,14 @@ export class IdentityPanelComponent implements OnDestroy {
   canWrite = input<boolean>(true);
   showImage = input<boolean>(true);
 
+  /**
+   * When true the panel is read-only: it does not load, sync, or save any
+   * identity data. Used for schema previews (e.g. the template designer)
+   * where the parent seeds the appearance/image instead, so an async load
+   * cannot overwrite the previewed styling.
+   */
+  readOnly = input(false);
+
   // Outputs
   renameRequested = output<void>();
 
@@ -126,6 +134,10 @@ export class IdentityPanelComponent implements OnDestroy {
     // Load identity data when elementId changes
     effect(() => {
       const id = this.elementId();
+      if (this.readOnly()) {
+        this.isIdentityLoading.set(false);
+        return;
+      }
       if (id) {
         const sequence = ++this.elementSequence;
         void this.setupRealtimeSync(id, sequence);
