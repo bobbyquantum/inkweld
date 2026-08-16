@@ -50,6 +50,13 @@ describe('AppearancePanelComponent', () => {
     fixture.componentRef.setInput('canWrite', true);
   });
 
+  afterEach(() => {
+    // Debounce tests toggle fake timers; always restore so a failure or
+    // cross-file ordering never leaves fake timers active (isolate:false).
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
   it('should create', () => {
     expect(component).toBeTruthy();
   });
@@ -69,25 +76,24 @@ describe('AppearancePanelComponent', () => {
   });
 
   it('should apply an edit and persist it on debounced save', async () => {
-    vi.useFakeTimers();
     fixture.detectChanges();
     component['onAppearanceEdited']({
       menu: { type: 'color', mode: 'auto', value: '#abcdef' },
     });
 
     expect(component.appearance().menu?.value).toBe('#abcdef');
-    await vi.advanceTimersByTimeAsync(500);
-    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
-      'el-1',
-      {
-        appearance: {
-          menu: { type: 'color', mode: 'auto', value: '#abcdef' },
+    await vi.waitFor(() => {
+      expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
+        'el-1',
+        {
+          appearance: {
+            menu: { type: 'color', mode: 'auto', value: '#abcdef' },
+          },
         },
-      },
-      'user',
-      'project'
-    );
-    vi.useRealTimers();
+        'user',
+        'project'
+      );
+    });
   });
 
   it('should emit the appearance live for preview', () => {
@@ -144,26 +150,23 @@ describe('AppearancePanelComponent', () => {
   });
 
   it('should fold deletion markers into the persisted payload', async () => {
-    vi.useFakeTimers();
     fixture.detectChanges();
     component['onAppearanceEdited']({
       menu: { type: 'color', mode: 'auto', value: '#123456' },
     });
     component['onDeletes']({ menu: true });
 
-    await vi.advanceTimersByTimeAsync(500);
-
-    const calls = worldbuildingService.saveIdentityData.mock.calls;
-    const lastCall = calls[calls.length - 1];
-    const payload = lastCall[1] as { appearance: Record<string, unknown> };
-    expect(payload.appearance['menu']).toBe(
-      '\u0000__appearance_delete__\u0000'
-    );
-    vi.useRealTimers();
+    await vi.waitFor(() => {
+      const calls = worldbuildingService.saveIdentityData.mock.calls;
+      const lastCall = calls[calls.length - 1];
+      const payload = lastCall[1] as { appearance: Record<string, unknown> };
+      expect(payload.appearance['menu']).toBe(
+        '\u0000__appearance_delete__\u0000'
+      );
+    });
   });
 
   it('should write a queued save to the element it was created for', async () => {
-    vi.useFakeTimers();
     fixture.detectChanges();
     // Edit element 1, then switch to element 2 before the debounce fires.
     component['onAppearanceEdited']({
@@ -172,24 +175,22 @@ describe('AppearancePanelComponent', () => {
     fixture.componentRef.setInput('elementId', 'el-2');
     fixture.detectChanges();
 
-    await vi.advanceTimersByTimeAsync(500);
-
-    // The queued save must target el-1 (where the edit was made), not el-2.
-    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
-      'el-1',
-      expect.objectContaining({
-        appearance: {
-          content: { type: 'color', mode: 'auto', value: '#abcdef' },
-        },
-      }),
-      'user',
-      'project'
-    );
-    vi.useRealTimers();
+    await vi.waitFor(() => {
+      // The queued save must target el-1 (where the edit was made), not el-2.
+      expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
+        'el-1',
+        expect.objectContaining({
+          appearance: {
+            content: { type: 'color', mode: 'auto', value: '#abcdef' },
+          },
+        }),
+        'user',
+        'project'
+      );
+    });
   });
 
   it('should retain deletion markers when persistence fails', async () => {
-    vi.useFakeTimers();
     worldbuildingService.saveIdentityData.mockRejectedValueOnce(
       new Error('boom')
     );
@@ -199,21 +200,20 @@ describe('AppearancePanelComponent', () => {
       menu: { type: 'color', mode: 'auto', value: '#123456' },
     });
     component['onDeletes']({ menu: true });
-    await vi.advanceTimersByTimeAsync(500);
 
     // First save failed; a subsequent save must still send APPEARANCE_DELETE.
     component['onAppearanceEdited']({
       content: { type: 'color', mode: 'auto', value: '#123456' },
     });
-    await vi.advanceTimersByTimeAsync(500);
 
-    const calls = worldbuildingService.saveIdentityData.mock.calls;
-    const lastCall = calls[calls.length - 1];
-    const payload = lastCall[1] as { appearance: Record<string, unknown> };
-    expect(payload.appearance['menu']).toBe(
-      '\u0000__appearance_delete__\u0000'
-    );
-    vi.useRealTimers();
+    await vi.waitFor(() => {
+      const calls = worldbuildingService.saveIdentityData.mock.calls;
+      const lastCall = calls[calls.length - 1];
+      const payload = lastCall[1] as { appearance: Record<string, unknown> };
+      expect(payload.appearance['menu']).toBe(
+        '\u0000__appearance_delete__\u0000'
+      );
+    });
   });
 
   describe('observe', () => {
@@ -259,7 +259,6 @@ describe('AppearancePanelComponent', () => {
     });
 
     it('should re-allow remote updates after the debounced save persists', async () => {
-      vi.useFakeTimers();
       let observer!: (data: { appearance?: ElementAppearance }) => void;
       worldbuildingService.observeIdentityChanges.mockImplementation(
         (_id, cb) => {
@@ -274,15 +273,20 @@ describe('AppearancePanelComponent', () => {
       component['onAppearanceEdited']({
         menu: { type: 'color', mode: 'auto', value: '#123456' },
       });
-      // Flush the debounced save (400ms) so hasLocalEdit is reset.
-      await vi.advanceTimersByTimeAsync(500);
+      // Wait for the debounced save (400ms) to persist so hasLocalEdit resets.
+      await vi.waitFor(() => {
+        expect(worldbuildingService.saveIdentityData).toHaveBeenCalled();
+      });
+      // Drain the persist() microtask chain so hasLocalEdit is reset before the
+      // remote update is applied.
+      await Promise.resolve();
+      await Promise.resolve();
       // Remote updates should now be applied again.
       const remoteAppearance: ElementAppearance = {
         content: { type: 'color', mode: 'auto', value: '#00ff00' },
       };
       observer({ appearance: remoteAppearance });
       expect(component.appearance()).toEqual(remoteAppearance);
-      vi.useRealTimers();
     });
 
     it('should scope local-edit state to the active element', async () => {
@@ -330,7 +334,6 @@ describe('AppearancePanelComponent', () => {
     });
 
     it('should flush a pending edit before the panel is destroyed', async () => {
-      vi.useFakeTimers();
       fixture.detectChanges();
 
       component['onAppearanceEdited']({
@@ -340,24 +343,23 @@ describe('AppearancePanelComponent', () => {
       // Tear down before the 400ms debounce would have fired.
       fixture.destroy();
 
-      // Let the immediate flush save run.
-      await vi.advanceTimersByTimeAsync(1);
-
-      expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
-        'el-1',
-        expect.objectContaining({
-          appearance: {
-            menu: {
-              type: 'image',
-              mode: 'auto',
-              value: 'media://bg.png',
+      // The pending edit must be flushed synchronously on destroy.
+      await vi.waitFor(() => {
+        expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
+          'el-1',
+          expect.objectContaining({
+            appearance: {
+              menu: {
+                type: 'image',
+                mode: 'auto',
+                value: 'media://bg.png',
+              },
             },
-          },
-        }),
-        'user',
-        'project'
-      );
-      vi.useRealTimers();
+          }),
+          'user',
+          'project'
+        );
+      });
     });
   });
 });
