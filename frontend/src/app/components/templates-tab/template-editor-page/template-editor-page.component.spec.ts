@@ -564,5 +564,22 @@ describe('TemplateEditorPageComponent', () => {
         'Field keys must be unique across the template.'
       );
     });
+
+    it('should reject a flat field key that collides with a nested group', () => {
+      const emitted: (ElementTypeSchema | null)[] = [];
+      component.done.subscribe(v => emitted.push(v));
+
+      // Give the first tab a nested group 'appearance.*' and a flat field 'appearance'.
+      component.updateTab(0, { key: 'appearance', label: 'Appearance' });
+      component.updateField(0, 1, { key: 'appearance.height' });
+      component.updateField(0, 0, { key: 'appearance' });
+
+      component.save();
+
+      expect(emitted).toHaveLength(0);
+      expect(component.validationError()).toContain(
+        'conflicts with a nested field group'
+      );
+    });
   });
 });

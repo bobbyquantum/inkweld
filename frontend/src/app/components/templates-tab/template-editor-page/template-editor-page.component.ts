@@ -478,6 +478,8 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   private validateSchema(): string | null {
     const tabKeys = new Set<string>();
     const fieldKeys = new Set<string>();
+    const flatKeys = new Set<string>();
+    const groupKeys = new Set<string>();
 
     for (const tab of this.tabs()) {
       const tabLabel = tab.label.trim();
@@ -503,6 +505,20 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
           return 'Field keys must be unique across the template.';
         }
         fieldKeys.add(normalizedFieldKey);
+
+        if (normalizedFieldKey.includes('.')) {
+          groupKeys.add(normalizedFieldKey.split('.')[0]);
+        } else {
+          flatKeys.add(normalizedFieldKey);
+        }
+      }
+    }
+
+    // A flat field and a nested group must not share a key — the form can't
+    // hold both (a FormControl and a FormGroup under the same name).
+    for (const flatKey of flatKeys) {
+      if (groupKeys.has(flatKey)) {
+        return `Field key "${flatKey}" conflicts with a nested field group of the same name.`;
       }
     }
 
