@@ -551,8 +551,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formGroup: Record<string, any> = {};
+    const formGroup: Record<string, AbstractControl> = {};
 
     schema.tabs.forEach((tab: TabSchema) => {
       tab.fields?.forEach((field: FieldSchema) => {
@@ -563,11 +562,27 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
         const groupName = this.getFieldGroupName(field);
         if (groupName) {
-          if (!formGroup[groupName]) {
-            formGroup[groupName] = new FormGroup({});
+          const existing = formGroup[groupName];
+          if (existing instanceof FormGroup) {
+            existing.addControl(this.getFieldControlName(field), control);
+          } else if (!existing) {
+            formGroup[groupName] = new FormGroup({
+              [this.getFieldControlName(field)]: control,
+            });
+          } else {
+            // A top-level field shares the group's key; the form can't hold
+            // both. Keep the top-level control and skip the nested field.
+            console.warn(
+              `[WorldbuildingEditor] Skipping nested field "${field.key}": ` +
+                `"${groupName}" is already a non-group field`
+            );
           }
-          const parentGroup = formGroup[groupName] as FormGroup;
-          parentGroup.addControl(this.getFieldControlName(field), control);
+        } else if (formGroup[field.key] instanceof FormGroup) {
+          // A nested group with this key already exists; skip the flat field.
+          console.warn(
+            `[WorldbuildingEditor] Skipping field "${field.key}": ` +
+              `it conflicts with a nested field group`
+          );
         } else {
           formGroup[field.key] = control;
         }

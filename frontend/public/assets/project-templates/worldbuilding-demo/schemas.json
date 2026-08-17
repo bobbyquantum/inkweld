@@ -4806,7 +4806,7 @@
             "placeholder": "e.g., 500 km long, Towering"
           },
           {
-            "key": "significance",
+            "key": "significanceSummary",
             "label": "Significance",
             "type": "text",
             "layout": {
@@ -5763,7 +5763,7 @@
             "placeholder": "How is it reached?"
           },
           {
-            "key": "inhabitants",
+            "key": "inhabitantsOverview",
             "label": "Inhabitants",
             "type": "text",
             "layout": {

@@ -1,7 +1,12 @@
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormArray, ReactiveFormsModule } from '@angular/forms';
+import {
+  FormArray,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { BehaviorSubject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -459,6 +464,68 @@ describe('WorldbuildingEditorComponent', () => {
       // Should not throw
       component['buildFormFromSchema'](emptySchema);
       expect(component.form()).toBeDefined();
+    });
+
+    it('should not crash when a top-level field collides with a nested group', () => {
+      const collisionSchema: ElementTypeSchema = {
+        ...mockCharacterSchema,
+        tabs: [
+          {
+            key: 'basic',
+            label: 'Basic',
+            fields: [
+              { key: 'significance', label: 'Significance', type: 'text' },
+            ],
+          },
+          {
+            key: 'sig',
+            label: 'Significance',
+            fields: [
+              {
+                key: 'significance.cultural',
+                label: 'Cultural',
+                type: 'textarea',
+              },
+            ],
+          },
+        ],
+      };
+
+      // Should not throw.
+      component['buildFormFromSchema'](collisionSchema);
+
+      const form = component.form();
+      // The top-level control wins; the nested field is skipped.
+      expect(form.get('significance')).toBeInstanceOf(FormControl);
+      expect(form.get('significance.cultural')).toBeNull();
+    });
+
+    it('should not crash when a nested group collides with an existing flat field', () => {
+      const collisionSchema: ElementTypeSchema = {
+        ...mockCharacterSchema,
+        tabs: [
+          {
+            key: 'basic',
+            label: 'Basic',
+            fields: [
+              {
+                key: 'significance.cultural',
+                label: 'Cultural',
+                type: 'textarea',
+              },
+              { key: 'significance', label: 'Significance', type: 'text' },
+            ],
+          },
+        ],
+      };
+
+      // Should not throw.
+      component['buildFormFromSchema'](collisionSchema);
+
+      const form = component.form();
+      // The nested group wins; the flat field is skipped.
+      expect(form.get('significance')).toBeInstanceOf(FormGroup);
+      expect(form.get('significance')?.get('cultural')).toBeDefined();
     });
   });
 
