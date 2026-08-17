@@ -249,7 +249,63 @@
   }
 
   .tab-icon-field {
-    flex: 0 0 180px;
+    flex: 0 0 100%;
+  }
+}
+
+// Label shown above a picker field (schema icon / tab icon).
+.icon-field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sys-on-surface-variant);
+}
+
+.icon-field {
+  margin-bottom: 1rem;
+}
+
+// Icon palette picker: a wrapping grid of icon-only buttons.
+.icon-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+
+  .icon-palette-option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    color: var(--sys-on-surface-variant);
+
+    mat-icon {
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+    }
+
+    &:hover {
+      background-color: color-mix(in srgb, var(--sys-primary) 12%, transparent);
+      color: var(--sys-on-surface);
+    }
+
+    &.selected {
+      border-color: var(--sys-primary);
+      background-color: color-mix(in srgb, var(--sys-primary) 16%, transparent);
+      color: var(--sys-primary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--sys-primary);
+      outline-offset: 1px;
+    }
   }
 }
 

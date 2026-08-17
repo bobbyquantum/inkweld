@@ -130,9 +130,8 @@ test.describe('Worldbuilding Templates', () => {
       await nameInput.click();
       await nameInput.fill('Custom Event');
 
-      // Icon is a mat-select; pick 'event' from the available icons.
-      await page.getByTestId('schema-icon-input').click();
-      await page.getByRole('option', { name: /event/ }).click();
+      // Icon is a palette picker; pick 'event' from the available icons.
+      await page.getByTestId('schema-icon-input-event').click();
 
       await page
         .getByTestId('schema-description-input')

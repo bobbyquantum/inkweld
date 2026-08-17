@@ -65,6 +65,6 @@ export default defineConfig({
   forks: {
     minForks: isCI ? 1 : 4,
     maxForks: isCI ? 1 : 8,
-    singleFork: isCI ? true : false,
+    singleFork: isCI,
   },
 });

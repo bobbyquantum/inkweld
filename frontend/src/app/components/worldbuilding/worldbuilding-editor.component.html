@@ -192,6 +192,10 @@
               <input
                 matInput
                 [value]="tab.label"
+                [attr.id]="'tab-label-input-' + tab.key"
+                [attr.aria-label]="
+                  'worldbuilding.schemaEdit.tabLabel' | transloco
+                "
                 (input)="
                   onUpdateTab(tab.key, {
                     label: $any($event.target).value,
@@ -199,22 +203,20 @@
                 "
                 [attr.data-testid]="'tab-label-input-' + tab.key" />
             </mat-form-field>
-            <mat-form-field appearance="outline" class="tab-icon-field">
-              <mat-label>{{
+            <div class="tab-icon-field">
+              <span class="icon-field-label">{{
                 'worldbuilding.schemaEdit.tabIcon' | transloco
-              }}</mat-label>
-              <mat-select
-                [value]="getTabIcon(tab)"
-                (selectionChange)="onUpdateTab(tab.key, { icon: $event.value })"
-                [attr.data-testid]="'tab-icon-select-' + tab.key">
-                @for (icon of getAvailableIcons(); track icon) {
-                  <mat-option [value]="icon">
-                    <mat-icon>{{ icon }}</mat-icon>
-                    {{ icon }}
-                  </mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
+              }}</span>
+              <ng-container
+                [ngTemplateOutlet]="iconPalette"
+                [ngTemplateOutletContext]="{
+                  current: getTabIcon(tab),
+                  select: icon => onUpdateTab(tab.key, { icon: icon }),
+                  label: 'worldbuilding.schemaEdit.tabIcon' | transloco,
+                  testidPrefix: 'tab-icon-select-' + tab.key,
+                }">
+              </ng-container>
+            </div>
           </div>
         }
       </ng-template>
@@ -239,22 +241,20 @@
               " />
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{
+          <div class="icon-field">
+            <span class="icon-field-label">{{
               'templates.editor.iconLabel' | transloco
-            }}</mat-label>
-            <mat-select
-              [value]="previewSchema()?.icon ?? 'category'"
-              (selectionChange)="onSchemaInfoChange({ icon: $event.value })"
-              data-testid="schema-icon-input">
-              @for (icon of getAvailableIcons(); track icon) {
-                <mat-option [value]="icon">
-                  <mat-icon>{{ icon }}</mat-icon>
-                  {{ icon }}
-                </mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+            }}</span>
+            <ng-container
+              [ngTemplateOutlet]="iconPalette"
+              [ngTemplateOutletContext]="{
+                current: previewSchema()?.icon ?? 'category',
+                select: icon => onSchemaInfoChange({ icon: icon }),
+                label: 'templates.editor.iconLabel' | transloco,
+                testidPrefix: 'schema-icon-input',
+              }">
+            </ng-container>
+          </div>
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{
@@ -273,6 +273,29 @@
               data-testid="schema-description-input"
               rows="3"></textarea>
           </mat-form-field>
+        </div>
+      </ng-template>
+      <!-- Icon palette picker (grid of icon-only choices). Context: current,
+           select, label, testidPrefix. -->
+      <ng-template
+        #iconPalette
+        let-current="current"
+        let-select="select"
+        let-label="label"
+        let-testidPrefix="testidPrefix">
+        <div class="icon-palette" role="radiogroup" [attr.aria-label]="label">
+          @for (icon of getIconChoices(current); track icon) {
+            <button
+              type="button"
+              class="icon-palette-option"
+              [class.selected]="icon === current"
+              (click)="select(icon)"
+              [attr.aria-label]="icon"
+              [attr.aria-pressed]="icon === current"
+              [attr.data-testid]="testidPrefix + '-' + icon">
+              <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+            </button>
+          }
         </div>
       </ng-template>
       @if (isInitialLoading()) {

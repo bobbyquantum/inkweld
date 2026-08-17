@@ -1145,6 +1145,30 @@ describe('WorldbuildingEditorComponent', () => {
       }
     });
 
+    it('should offer the icons used by the default Character tabs', () => {
+      const icons = component['getAvailableIcons']();
+      for (const icon of [
+        'info',
+        'visibility',
+        'psychology',
+        'history_edu',
+        'stars',
+        'ac_unit',
+      ]) {
+        expect(icons).toContain(icon);
+      }
+    });
+
+    it('should always include the currently selected icon in the choices', () => {
+      const icons = component['getIconChoices']('campfire');
+      expect(icons).toContain('campfire');
+    });
+
+    it('should not duplicate an icon already in the curated list', () => {
+      const icons = component['getIconChoices']('person');
+      expect(icons.filter(i => i === 'person')).toHaveLength(1);
+    });
+
     it('should open the template snapshots dialog in schema edit mode', () => {
       component.openSnapshotsDialog();
       expect(

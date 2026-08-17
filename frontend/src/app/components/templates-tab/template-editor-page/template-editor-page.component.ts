@@ -123,7 +123,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   /** A transient schema built from the current editor state, for the preview. */
   readonly previewSchema = computed<ElementTypeSchema>(() => ({
     id: this.schema().id,
-    name: this.model().name || 'Untitled',
+    name: this.model().name,
     icon: this.model().icon || 'category',
     description: this.model().description || '',
     version: this.schema().version,

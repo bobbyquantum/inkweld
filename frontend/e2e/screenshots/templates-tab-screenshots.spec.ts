@@ -149,7 +149,7 @@ async function captureAllTemplateScreenshots(
     if (await tabNav.isVisible().catch(() => false)) {
       await tabNav.click();
     }
-    await page.waitForTimeout(300);
+    await page.getByTestId('tab-props-editor').waitFor({ state: 'visible' });
 
     await captureElementScreenshot(
       page,

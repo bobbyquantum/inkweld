@@ -773,7 +773,9 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   /**
    * Icons offered in the Schema Details and tab icon pickers. Covers every
    * built-in element-type icon plus the icons used by the default schemas'
-   * tabs, so an existing schema's icon is always available.
+   * tabs, so an existing schema's icon is always available. Callers should
+   * use {@link getIconChoices} so the currently-selected icon is always
+   * shown even if it isn't in this curated list.
    */
   protected getAvailableIcons(): string[] {
     return [
@@ -792,30 +794,63 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       'hub',
       'dashboard',
       'timeline',
-      // Common schema / tab icons.
+      // Icons used by the default schemas' tabs (schema + tab icons).
       'info',
       'visibility',
-      'article',
-      'menu_book',
-      'event',
-      'watch_later',
-      'public',
-      'people',
-      'group',
+      'psychology',
+      'history_edu',
+      'stars',
+      'ac_unit',
       'account_balance',
       'account_tree',
       'auto_awesome',
+      'blur_on',
+      'bolt',
       'build',
-      'campaign',
+      'celebration',
       'church',
+      'content_copy',
+      'coronavirus',
+      'directions_car',
+      'event',
+      'explore',
+      'face',
+      'flag',
+      'flash_on',
+      'forum',
+      'gavel',
+      'history',
+      'home_work',
+      'lightbulb',
+      'location_city',
+      'location_on',
+      'menu_book',
+      'military_tech',
+      'nights_stay',
+      'public',
+      'record_voice_over',
+      'router',
+      'rule',
+      'school',
+      'science',
+      'sick',
+      'terrain',
+      'today',
+      'translate',
+      'tune',
+      'work',
+      // Additional common icons.
+      'article',
+      'watch_later',
+      'people',
+      'group',
+      'campaign',
       'cloud',
       'computer',
       'currency_exchange',
       'desktop_windows',
-      'directions_car',
       'family_restroom',
       'format_paint',
-      'gavel',
       'inventory_2',
       'key',
       'label',
@@ -827,18 +862,25 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       'publish',
       'push_pin',
       'schedule',
-      'school',
       'star',
       'bookmark',
-      'flag',
       'edit_note',
       'palette',
       'sync',
       'tablet',
-      'tune',
       'update',
-      'work',
     ];
+  }
+
+  /**
+   * The icon choices shown in a picker: the curated list plus the currently
+   * selected icon (if it isn't already present) so the current value is
+   * always visible and selectable.
+   */
+  protected getIconChoices(current?: string): string[] {
+    if (!current) return this.getAvailableIcons();
+    const all = this.getAvailableIcons();
+    return all.includes(current) ? all : [...all, current];
   }
 
   protected onAddTab(): void {
