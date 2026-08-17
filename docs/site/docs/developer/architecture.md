@@ -624,12 +624,23 @@ preview of the schema (`previewSchema` + `editMode` inputs) and the owning
 `TemplateEditorPageComponent` applies the resulting `SchemaEditEvent`s to its
 own schema state, autosaving via the `schemaChange` output.
 
-In the preview you can add/remove/reorder tabs and fields, edit each field's
-config inline (label, type, placeholder, options, …), rename a tab and pick its
-icon, edit the schema name/icon/description (Schema Details), and set the
-default appearance/image that new elements of this type get. Changes save
-automatically; schema-design snapshots can be created and restored from the
-snapshot button.
+The editor has two responsive layouts — a sidenav with sections on wide screens
+and a stacked accordion on narrow ones. In edit mode **Schema Details** is the
+top tab/section (name, icon, description), followed by the schema's tabs and the
+fixed Identity, Relationships, Media and Styling sections. Within the preview
+you can:
+
+- add/remove/reorder tabs and fields,
+- edit each field's config inline (label, type, placeholder, options, …),
+- rename a tab and pick its icon from a curated Material-icon picker that covers
+  every built-in element-type icon (so existing schemas' icons are always
+  available),
+- edit the schema name/icon/description under Schema Details,
+- set the default appearance/image that new elements of this type get under
+  Styling.
+
+Changes save automatically; schema-design snapshots can be created and restored
+from the snapshot button.
 
 ```typescript
 interface ElementTypeSchema {

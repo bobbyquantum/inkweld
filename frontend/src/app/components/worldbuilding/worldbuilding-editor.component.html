@@ -39,22 +39,6 @@
           </button>
         }
         <mat-nav-list>
-          <a
-            mat-list-item
-            (click)="selectSection('identity')"
-            (keydown.enter)="selectSection('identity')"
-            [attr.aria-current]="
-              selectedSection() === 'identity' ? 'true' : null
-            "
-            [class.active]="selectedSection() === 'identity'"
-            tabindex="0"
-            data-testid="nav-identity">
-            <mat-icon matListItemIcon>badge</mat-icon>
-            <span matListItemTitle>{{
-              'worldbuilding.editor.identity' | transloco
-            }}</span>
-          </a>
-
           @if (schemaEditingEnabled()) {
             <a
               mat-list-item
@@ -73,6 +57,22 @@
               }}</span>
             </a>
           }
+
+          <a
+            mat-list-item
+            (click)="selectSection('identity')"
+            (keydown.enter)="selectSection('identity')"
+            [attr.aria-current]="
+              selectedSection() === 'identity' ? 'true' : null
+            "
+            [class.active]="selectedSection() === 'identity'"
+            tabindex="0"
+            data-testid="nav-identity">
+            <mat-icon matListItemIcon>badge</mat-icon>
+            <span matListItemTitle>{{
+              'worldbuilding.editor.identity' | transloco
+            }}</span>
+          </a>
 
           @for (tab of getTabs(); track tab.key) {
             <a
@@ -218,6 +218,63 @@
           </div>
         }
       </ng-template>
+      <!-- Schema Details body (name/icon/description), shared by both layouts -->
+      <ng-template #schemaDetailsBody>
+        <div class="schema-details-body">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'templates.editor.templateNameLabel' | transloco
+            }}</mat-label>
+            <input
+              matInput
+              id="schema-name"
+              [attr.aria-label]="
+                'templates.editor.templateNameAria' | transloco
+              "
+              [value]="previewSchema()?.name ?? ''"
+              (input)="onSchemaInfoChange({ name: $any($event.target).value })"
+              data-testid="schema-name-input"
+              [attr.placeholder]="
+                'templates.editor.templateNamePlaceholder' | transloco
+              " />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'templates.editor.iconLabel' | transloco
+            }}</mat-label>
+            <mat-select
+              [value]="previewSchema()?.icon ?? 'category'"
+              (selectionChange)="onSchemaInfoChange({ icon: $event.value })"
+              data-testid="schema-icon-input">
+              @for (icon of getAvailableIcons(); track icon) {
+                <mat-option [value]="icon">
+                  <mat-icon>{{ icon }}</mat-icon>
+                  {{ icon }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'templates.editor.descriptionLabel' | transloco
+            }}</mat-label>
+            <textarea
+              matInput
+              id="schema-description"
+              [attr.aria-label]="'templates.editor.descriptionAria' | transloco"
+              [value]="previewSchema()?.description ?? ''"
+              (input)="
+                onSchemaInfoChange({
+                  description: $any($event.target).value,
+                })
+              "
+              data-testid="schema-description-input"
+              rows="3"></textarea>
+          </mat-form-field>
+        </div>
+      </ng-template>
       @if (isInitialLoading()) {
         <div class="wb-loading-shell" data-testid="worldbuilding-loading-shell">
           @if (useSidenav()) {
@@ -314,64 +371,8 @@
               <mat-icon class="section-title-icon">edit_note</mat-icon>
               {{ 'templates.editor.schemaDetails' | transloco }}
             </h2>
-            <div class="schema-details-body">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{
-                  'templates.editor.templateNameLabel' | transloco
-                }}</mat-label>
-                <input
-                  matInput
-                  id="schema-name"
-                  [attr.aria-label]="
-                    'templates.editor.templateNameAria' | transloco
-                  "
-                  [value]="previewSchema()?.name ?? ''"
-                  (input)="
-                    onSchemaInfoChange({ name: $any($event.target).value })
-                  "
-                  data-testid="schema-name-input"
-                  [attr.placeholder]="
-                    'templates.editor.templateNamePlaceholder' | transloco
-                  " />
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{
-                  'templates.editor.iconLabel' | transloco
-                }}</mat-label>
-                <mat-select
-                  [value]="previewSchema()?.icon ?? 'category'"
-                  (selectionChange)="onSchemaInfoChange({ icon: $event.value })"
-                  data-testid="schema-icon-input">
-                  @for (icon of getAvailableIcons(); track icon) {
-                    <mat-option [value]="icon">
-                      <mat-icon>{{ icon }}</mat-icon>
-                      {{ icon }}
-                    </mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{
-                  'templates.editor.descriptionLabel' | transloco
-                }}</mat-label>
-                <textarea
-                  matInput
-                  id="schema-description"
-                  [attr.aria-label]="
-                    'templates.editor.descriptionAria' | transloco
-                  "
-                  [value]="previewSchema()?.description ?? ''"
-                  (input)="
-                    onSchemaInfoChange({
-                      description: $any($event.target).value,
-                    })
-                  "
-                  data-testid="schema-description-input"
-                  rows="3"></textarea>
-              </mat-form-field>
-            </div>
+            <ng-container [ngTemplateOutlet]="schemaDetailsBody">
+            </ng-container>
           </div>
         }
 
@@ -416,6 +417,22 @@
           [style.--wb-overlay]="menuBackground()?.overlayAlpha ?? null"
           [class.wb-bg-overlay-dark]="menuBackground()?.overlay === 'dark'"
           [class.wb-bg-overlay-light]="menuBackground()?.overlay === 'light'">
+          <!-- Schema Details panel (schema editor only) -->
+          @if (schemaEditingEnabled()) {
+            <mat-expansion-panel
+              [expanded]="true"
+              data-testid="accordion-schema-details">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon class="panel-title-icon">edit_note</mat-icon>
+                  {{ 'templates.editor.schemaDetails' | transloco }}
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <ng-container [ngTemplateOutlet]="schemaDetailsBody">
+              </ng-container>
+            </mat-expansion-panel>
+          }
+
           <!-- Identity panel -->
           <mat-expansion-panel
             [expanded]="true"

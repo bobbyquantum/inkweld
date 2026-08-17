@@ -1119,6 +1119,32 @@ describe('WorldbuildingEditorComponent', () => {
       expect(component['schemaEditingEnabled']()).toBe(true);
     });
 
+    it('should land on the Schema Details section when the editor opens', () => {
+      expect(component.selectedSection()).toBe('schema-details');
+    });
+
+    it('should offer icons used by built-in element types', () => {
+      const icons = component['getAvailableIcons']();
+      for (const icon of [
+        'person',
+        'place',
+        'category',
+        'map',
+        'diversity_1',
+        'auto_stories',
+        'groups',
+        'pets',
+        'settings',
+        'description',
+        'folder',
+        'hub',
+        'dashboard',
+        'timeline',
+      ]) {
+        expect(icons).toContain(icon);
+      }
+    });
+
     it('should open the template snapshots dialog in schema edit mode', () => {
       component.openSnapshotsDialog();
       expect(

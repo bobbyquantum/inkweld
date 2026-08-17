@@ -351,8 +351,23 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   private readonly resizeCleanup: (() => void) | null = null;
   private isUpdatingFromRemote = false;
   private loadSequence = 0;
+  private schemaEditorSectionInitialized = false;
 
   constructor() {
+    // In the schema editor, land on Schema Details (the top tab) first.
+    // Guarded by a flag so it only runs once and never overrides a later
+    // selection the user makes.
+    effect(() => {
+      if (
+        this.previewMode() &&
+        this.editMode() &&
+        !this.schemaEditorSectionInitialized
+      ) {
+        this.schemaEditorSectionInitialized = true;
+        this.selectedSection.set('schema-details');
+      }
+    });
+
     // Layout detection: sidenav for large desktop + tablet landscape, accordion otherwise
     const browserWindow = globalThis.window;
     if (browserWindow) {
@@ -755,18 +770,74 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     return this.editMode() && this.previewMode();
   }
 
-  /** Icons offered in the Schema Details picker. */
+  /**
+   * Icons offered in the Schema Details and tab icon pickers. Covers every
+   * built-in element-type icon plus the icons used by the default schemas'
+   * tabs, so an existing schema's icon is always available.
+   */
   protected getAvailableIcons(): string[] {
     return [
+      // Element-type icons (must cover built-in types).
       'person',
       'place',
       'category',
+      'map',
+      'diversity_1',
+      'auto_stories',
+      'groups',
+      'pets',
+      'settings',
+      'description',
+      'folder',
+      'hub',
+      'dashboard',
+      'timeline',
+      // Common schema / tab icons.
+      'info',
+      'visibility',
+      'article',
       'menu_book',
       'event',
-      'groups',
-      'public',
-      'auto_stories',
       'watch_later',
+      'public',
+      'people',
+      'group',
+      'account_balance',
+      'account_tree',
+      'auto_awesome',
+      'build',
+      'campaign',
+      'church',
+      'cloud',
+      'computer',
+      'currency_exchange',
+      'desktop_windows',
+      'directions_car',
+      'family_restroom',
+      'format_paint',
+      'gavel',
+      'inventory_2',
+      'key',
+      'label',
+      'link',
+      'list',
+      'local_offer',
+      'lock',
+      'phone_android',
+      'publish',
+      'push_pin',
+      'schedule',
+      'school',
+      'star',
+      'bookmark',
+      'flag',
+      'edit_note',
+      'palette',
+      'sync',
+      'tablet',
+      'tune',
+      'update',
+      'work',
     ];
   }
 
