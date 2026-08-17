@@ -75,6 +75,7 @@
     "untitledField": "Untitled Field",
     "fieldKeyLabel": "Field Key",
     "fieldKeyPlaceholder": "e.g., fullName",
+    "fieldKeyNestedHint": "A dotted key (e.g. group.field) nests this field inside a group",
     "fieldLabelLabel": "Field Label",
     "fieldLabelPlaceholder": "e.g., Full Name",
     "fieldTypeLabel": "Field Type",
@@ -82,6 +83,13 @@
     "placeholderPlaceholder": "e.g., Enter name...",
     "helpTextPlaceholder": "Help text for this field...",
     "removeField": "Remove Field",
+    "fieldOptionsLabel": "Options",
+    "addOption": "Add option",
+    "removeOptionAria": "Remove option",
+    "requiredLabel": "Required",
+    "layoutSpanLabel": "Column Span",
+    "layoutSpanHint": "How many of the 12 columns the field occupies",
+    "rowsLabel": "Rows",
     "saving": "Saving...",
     "saveChanges": "Save Changes"
   }

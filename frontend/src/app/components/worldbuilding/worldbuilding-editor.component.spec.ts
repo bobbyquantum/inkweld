@@ -17,6 +17,7 @@ import { translocoTestProvider } from '../../../testing/transloco-test-provider'
 import { DocumentSyncState } from '../../models/document-sync-state';
 import {
   type ElementTypeSchema,
+  type FieldSchema,
   type TabSchema,
 } from '../../models/schema-types';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
@@ -1304,12 +1305,61 @@ describe('WorldbuildingEditorComponent', () => {
       });
     });
 
+    it('should add an option to a select field', () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onAddOption']('basic', 'gender');
+      expect(emit).toHaveBeenCalledWith({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'gender',
+        patch: { options: ['Male', 'Female', 'Other', ''] },
+      });
+    });
+
+    it('should remove an option from a select field', () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onRemoveOption']('basic', 'gender', 1);
+      expect(emit).toHaveBeenCalledWith({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'gender',
+        patch: { options: ['Male', 'Other'] },
+      });
+    });
+
+    it('should update an option value in a select field', () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onUpdateOption']('basic', 'gender', 0, 'Femme');
+      expect(emit).toHaveBeenCalledWith({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'gender',
+        patch: { options: ['Femme', 'Female', 'Other'] },
+      });
+    });
+
+    it('should clamp layout span and rows inputs', () => {
+      expect(component['clampSpan'](0)).toBe(1);
+      expect(component['clampSpan'](12)).toBe(12);
+      expect(component['clampSpan'](99)).toBe(12);
+      expect(component['clampSpan']('4')).toBe(4);
+      expect(component['clampRows'](0)).toBe(1);
+      expect(component['clampRows'](6)).toBe(6);
+      expect(component['clampRows']('abc')).toBe(1);
+    });
+
     it('should toggle field config open state', () => {
-      expect(component['fieldConfigOpen']('basic', 'name')).toBe(false);
-      component['toggleFieldConfig']('basic', 'name');
-      expect(component['fieldConfigOpen']('basic', 'name')).toBe(true);
-      component['toggleFieldConfig']('basic', 'name');
-      expect(component['fieldConfigOpen']('basic', 'name')).toBe(false);
+      const nameField = mockCharacterSchema.tabs[0].fields.find(
+        f => f.key === 'name'
+      ) as FieldSchema;
+      expect(component['fieldConfigOpen']('basic', nameField)).toBe(false);
+      component['toggleFieldConfig']('basic', nameField);
+      expect(component['fieldConfigOpen']('basic', nameField)).toBe(true);
+      component['toggleFieldConfig']('basic', nameField);
+      expect(component['fieldConfigOpen']('basic', nameField)).toBe(false);
     });
 
     it('should emit add/remove tab events', async () => {

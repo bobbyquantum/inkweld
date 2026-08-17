@@ -200,6 +200,42 @@ test.describe('Worldbuilding Templates', () => {
       await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
     });
 
+    await test.step('field config supports options, nested keys, span and required', async () => {
+      // Reopen Hero Template and add a select field with a nested key.
+      await page
+        .getByTestId('template-card')
+        .filter({ hasText: 'Hero Template' })
+        .getByTestId('edit-template-button')
+        .click();
+      await expect(page.getByTestId('template-editor-page')).toBeVisible();
+      await page.getByTestId('nav-basic').click();
+      await page.getByTestId('add-field-basic').click();
+
+      // Open the newly added field's config.
+      await page.getByTestId('field-edit').last().click();
+      await expect(page.getByTestId('field-config')).toBeVisible();
+
+      // Give it a nested key and a select type.
+      await page.getByTestId('field-config-key').fill('traits.origin');
+      await page.getByTestId('field-config-type').click();
+      await page.getByTestId('field-type-option-select').click();
+
+      // Options editor appears for select; add a couple of options.
+      await expect(page.getByTestId('field-config-options')).toBeVisible();
+      await page.getByTestId('field-option-add').click();
+      await page.getByTestId('field-option-input-0').fill('Born');
+      await page.getByTestId('field-option-add').click();
+      await page.getByTestId('field-option-input-1').fill('Foundling');
+
+      // Set required and a 6-column span.
+      await page.getByTestId('field-config-required').click();
+      await page.getByTestId('field-config-span').fill('6');
+
+      await page.keyboard.press('Escape');
+      await page.getByTestId('template-editor-back').click();
+      await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
+    });
+
     await test.step('custom template can be used to create an element with the right icon', async () => {
       await page.getByTestId('toolbar-home-button').click();
       await expect(page.getByTestId('create-new-element')).toBeVisible();
@@ -227,7 +263,12 @@ test.describe('Worldbuilding Templates', () => {
       await heroElement.click();
       const sidenavTab = page.getByTestId('nav-basic');
       const accordionTab = page.getByTestId('accordion-basic');
-      await expect(sidenavTab.or(accordionTab)).toBeVisible();
+      const basicTab = sidenavTab.or(accordionTab);
+      await expect(basicTab).toBeVisible();
+      await basicTab.click();
+
+      // The nested select field added earlier persists and renders.
+      await expect(page.getByTestId('field-traits.origin')).toBeVisible();
     });
 
     await test.step('deleting Hero Template removes it from the list', async () => {

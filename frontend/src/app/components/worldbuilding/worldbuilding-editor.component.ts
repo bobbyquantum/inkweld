@@ -950,6 +950,72 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     this.emitSchemaEdit({ type: 'update-field', tabKey, fieldKey, patch });
   }
 
+  /** Append a new (empty) option to a select/multiselect field. */
+  protected onAddOption(tabKey: string, fieldKey: string): void {
+    const options = this.getOptionValues(this.getFieldByKey(tabKey, fieldKey));
+    this.onUpdateField(tabKey, fieldKey, {
+      options: [...options, ''],
+    });
+  }
+
+  /** Remove an option from a select/multiselect field. */
+  protected onRemoveOption(
+    tabKey: string,
+    fieldKey: string,
+    index: number
+  ): void {
+    const options = this.getOptionValues(this.getFieldByKey(tabKey, fieldKey));
+    this.onUpdateField(tabKey, fieldKey, {
+      options: options.filter((_, i) => i !== index),
+    });
+  }
+
+  /** Update the value of one option in a select/multiselect field. */
+  protected onUpdateOption(
+    tabKey: string,
+    fieldKey: string,
+    index: number,
+    value: string
+  ): void {
+    const options = this.getOptionValues(this.getFieldByKey(tabKey, fieldKey));
+    this.onUpdateField(tabKey, fieldKey, {
+      options: options.map((opt, i) => (i === index ? value : opt)),
+    });
+  }
+
+  /** The current options of a field as plain strings (for editing). */
+  private getOptionValues(field: FieldSchema): string[] {
+    return this.getFieldOptions(field).map(opt => this.getOptionValue(opt));
+  }
+
+  /** Resolve a field within a tab by key (for reading current values). */
+  private getFieldByKey(tabKey: string, fieldKey: string): FieldSchema {
+    const tab = this.getTabs().find(t => t.key === tabKey);
+    return (
+      tab?.fields.find(f => f.key === fieldKey) ?? {
+        key: fieldKey,
+        label: '',
+        type: 'text',
+      }
+    );
+  }
+
+  /** Clamp a layout span input to a valid column count (1-12). */
+  protected clampSpan(value: unknown): number {
+    return this.clampInt(value, 1, 12);
+  }
+
+  /** Clamp a textarea rows input to a valid count (1-20). */
+  protected clampRows(value: unknown): number {
+    return this.clampInt(value, 1, 20);
+  }
+
+  private clampInt(value: unknown, min: number, max: number): number {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return min;
+    return Math.min(max, Math.max(min, Math.trunc(n)));
+  }
+
   /** Field types offered in the inline field config. */
   protected getFieldTypes(): { value: string; label: string }[] {
     return [
@@ -964,16 +1030,21 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     ];
   }
 
+  /** Stable identity for a field, independent of its (editable) key. */
+  private fieldConfigId(tabKey: string, field: FieldSchema): string {
+    return `${tabKey}:${field.id ?? field.key}`;
+  }
+
   /** Whether the inline config for a field is currently open. */
-  protected fieldConfigOpen(tabKey: string, fieldKey: string): boolean {
-    return this.openFieldConfigs().has(`${tabKey}:${fieldKey}`);
+  protected fieldConfigOpen(tabKey: string, field: FieldSchema): boolean {
+    return this.openFieldConfigs().has(this.fieldConfigId(tabKey, field));
   }
 
   /** Toggle the inline config for a field. */
-  protected toggleFieldConfig(tabKey: string, fieldKey: string): void {
+  protected toggleFieldConfig(tabKey: string, field: FieldSchema): void {
     this.openFieldConfigs.update(set => {
       const next = new Set(set);
-      const key = `${tabKey}:${fieldKey}`;
+      const key = this.fieldConfigId(tabKey, field);
       if (next.has(key)) {
         next.delete(key);
       } else {

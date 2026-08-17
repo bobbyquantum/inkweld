@@ -932,4 +932,46 @@ form {
   border: 1px solid var(--sys-outline-variant);
   border-radius: 8px;
   background-color: var(--sys-surface-container-low);
+
+  // Bottom row: required toggle + span/rows number inputs.
+  .field-config-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+
+    mat-checkbox {
+      flex: 0 0 auto;
+    }
+
+    .span-field,
+    .rows-field {
+      flex: 0 0 140px;
+      max-width: 140px;
+    }
+  }
+
+  // Select/multiselect options editor.
+  .field-options-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    border: 1px dashed var(--sys-outline-variant);
+    border-radius: 8px;
+
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      mat-form-field {
+        flex: 1;
+      }
+
+      button {
+        flex: 0 0 auto;
+      }
+    }
+  }
 }

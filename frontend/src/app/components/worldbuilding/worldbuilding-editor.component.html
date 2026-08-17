@@ -644,7 +644,7 @@
     <div class="tab-content">
       @for (
         field of getFieldsForTab(tabKey);
-        track field.key;
+        track field.id ?? field.key;
         let fi = $index
       ) {
         <div
@@ -658,8 +658,8 @@
               <button
                 mat-icon-button
                 type="button"
-                [class.active]="fieldConfigOpen(tabKey, field.key)"
-                (click)="toggleFieldConfig(tabKey, field.key)"
+                [class.active]="fieldConfigOpen(tabKey, field)"
+                (click)="toggleFieldConfig(tabKey, field)"
                 [attr.aria-label]="'Edit field'"
                 data-testid="field-edit">
                 <mat-icon>settings</mat-icon>
@@ -692,7 +692,7 @@
                 <mat-icon>remove_circle</mat-icon>
               </button>
             </div>
-            @if (fieldConfigOpen(tabKey, field.key)) {
+            @if (fieldConfigOpen(tabKey, field)) {
               <div class="schema-field-config" data-testid="field-config">
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>{{
@@ -708,6 +708,30 @@
                       })
                     "
                     data-testid="field-config-label" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{
+                    'templates.editor.fieldKeyLabel' | transloco
+                  }}</mat-label>
+                  <input
+                    matInput
+                    [attr.id]="'field-cfg-key-' + field.key"
+                    [attr.placeholder]="
+                      'templates.editor.fieldKeyPlaceholder' | transloco
+                    "
+                    [value]="field.key"
+                    (input)="
+                      onUpdateField(tabKey, field.key, {
+                        key: $any($event.target).value,
+                      })
+                    "
+                    data-testid="field-config-key" />
+                  @if (field.key.includes('.')) {
+                    <mat-hint>{{
+                      'templates.editor.fieldKeyNestedHint' | transloco
+                    }}</mat-hint>
+                  }
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="full-width">
@@ -767,6 +791,119 @@
                     rows="2"
                     data-testid="field-config-description"></textarea>
                 </mat-form-field>
+
+                @if (field.type === 'select' || field.type === 'multiselect') {
+                  <div
+                    class="field-options-editor"
+                    data-testid="field-config-options">
+                    <span class="icon-field-label">{{
+                      'templates.editor.fieldOptionsLabel' | transloco
+                    }}</span>
+                    @for (option of getFieldOptions(field); track $index) {
+                      <div class="option-row">
+                        <mat-form-field appearance="outline">
+                          <input
+                            matInput
+                            [attr.id]="'field-cfg-option-' + $index"
+                            [attr.aria-label]="
+                              'templates.editor.fieldOptionsLabel' | transloco
+                            "
+                            [value]="getOptionValue(option)"
+                            (input)="
+                              onUpdateOption(
+                                tabKey,
+                                field.key,
+                                $index,
+                                $any($event.target).value
+                              )
+                            "
+                            [attr.data-testid]="
+                              'field-option-input-' + $index
+                            " />
+                        </mat-form-field>
+                        <button
+                          mat-icon-button
+                          type="button"
+                          [attr.aria-label]="
+                            'templates.editor.removeOptionAria' | transloco
+                          "
+                          (click)="onRemoveOption(tabKey, field.key, $index)"
+                          [attr.data-testid]="'field-option-remove-' + $index">
+                          <mat-icon>close</mat-icon>
+                        </button>
+                      </div>
+                    }
+                    <button
+                      mat-stroked-button
+                      type="button"
+                      (click)="onAddOption(tabKey, field.key)"
+                      data-testid="field-option-add">
+                      <mat-icon>add</mat-icon>
+                      {{ 'templates.editor.addOption' | transloco }}
+                    </button>
+                  </div>
+                }
+
+                <div class="field-config-row">
+                  <mat-checkbox
+                    [checked]="field.validation?.required ?? false"
+                    (change)="
+                      onUpdateField(tabKey, field.key, {
+                        validation: { required: $event.checked },
+                      })
+                    "
+                    data-testid="field-config-required">
+                    {{ 'templates.editor.requiredLabel' | transloco }}
+                  </mat-checkbox>
+
+                  <mat-form-field appearance="outline" class="span-field">
+                    <mat-label>{{
+                      'templates.editor.layoutSpanLabel' | transloco
+                    }}</mat-label>
+                    <input
+                      matInput
+                      type="number"
+                      min="1"
+                      max="12"
+                      [attr.id]="'field-cfg-span-' + field.key"
+                      [attr.aria-label]="
+                        'templates.editor.layoutSpanLabel' | transloco
+                      "
+                      [value]="field.layout?.span ?? 12"
+                      (input)="
+                        onUpdateField(tabKey, field.key, {
+                          layout: {
+                            span: clampSpan($any($event.target).value),
+                          },
+                        })
+                      "
+                      data-testid="field-config-span" />
+                  </mat-form-field>
+
+                  @if (field.type === 'textarea') {
+                    <mat-form-field appearance="outline" class="rows-field">
+                      <mat-label>{{
+                        'templates.editor.rowsLabel' | transloco
+                      }}</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        min="1"
+                        max="20"
+                        [attr.id]="'field-cfg-rows-' + field.key"
+                        [attr.aria-label]="
+                          'templates.editor.rowsLabel' | transloco
+                        "
+                        [value]="field.rows ?? 3"
+                        (input)="
+                          onUpdateField(tabKey, field.key, {
+                            rows: clampRows($any($event.target).value),
+                          })
+                        "
+                        data-testid="field-config-rows" />
+                    </mat-form-field>
+                  }
+                </div>
               </div>
             }
           }
