@@ -160,6 +160,11 @@ protect your work while designing.
   alt="Template Editor"
 />
 
+<ThemedImage
+  src="/img/features/templates-editor-tab"
+  alt="A template tab showing the tab name/icon editor and the tab's fields"
+/>
+
 ## Template Examples
 
 Here are examples of templates you might create. Remember, these are just suggestions—design templates that fit your story's needs.
