@@ -57,7 +57,7 @@ There are two ways to create a new template:
 3. Click the **"Create Template"** button
 4. The template editor opens with a blank starter template
 5. Define your fields and tabs
-6. Click **Save**
+6. Changes save automatically as you go
 
 <ThemedImage
   src="/img/features/templates-create-button"
@@ -124,16 +124,40 @@ A template consists of:
 
 ### The Template Editor
 
-When you create or edit a template, the Template Editor dialog opens. Here you can:
+When you create or edit a template, the **Template Editor** opens as a live,
+interactive preview of the template. It's not a separate form — you edit the
+template directly in the same editor you use to fill in elements, so you can see
+exactly how the fields will look as you build them.
 
-- **Set the name and icon** for the template
-- **Add a description** explaining what this template is for
-- **Manage tabs** to organize fields into logical sections
-- **Add and configure fields** within each tab
+The editor is organised into sections down the left-hand navigation (or as
+stacked panels on narrow screens):
+
+- **Schema Details** (the top section) — the template's **name**, **icon**, and
+  **description**
+- **Tabs** — one section per tab, where you manage that tab's fields
+- **Identity, Relationships, Media, Styling** — the fixed sections every element
+  has
+
+In each tab you can:
+
+- **Add fields** with the "Add field" button
+- **Edit a field** inline — click the field's edit control to change its label,
+  type, placeholder, options, and more
+- **Remove or reorder fields** with the controls on each field
+- **Rename the tab and pick its icon** from the fields at the top of the tab
+- **Add or remove tabs** from the navigation
+
+Under **Schema Details** you set the template's name, icon, and description. Under
+**Styling** you can set a default appearance (backgrounds) and default image that
+new elements of this type get.
+
+Changes save automatically as you edit — there's no separate Save step. You can
+also create and restore **template snapshots** from the snapshot button to
+protect your work while designing.
 
 <ThemedImage
   src="/img/features/templates-create-dialog"
-  alt="Template Editor dialog"
+  alt="Template Editor"
 />
 
 ## Template Examples
@@ -229,8 +253,8 @@ Track objects and artifacts:
 1. Go to **Project Settings** → **Element Templates**
 2. Click the **three-dot menu** (⋮) on the template card
 3. Select **"Edit"** to open the Template Editor
-4. Add, remove, or reorder fields
-5. Click **Save**
+4. Add, remove, or reorder fields and tabs
+5. Changes save automatically — just close the editor when you're done
 
 <ThemedImage
   src="/img/features/templates-card-menu"
@@ -263,9 +287,9 @@ Deleting a template **does not** delete elements that use it, but those elements
 
 ### Organizing Fields
 
-- **Drag fields** to reorder within tabs
-- **Drag tabs** to reorder the tab bar
-- **Move fields** between tabs as needed
+- **Reorder fields** within a tab using the up/down arrows on each field
+- **Move fields between tabs** by removing them from one tab and adding them to another
+- **Reorder tabs** by removing and re-adding them in the order you want
 
 ## Working with Elements
 
