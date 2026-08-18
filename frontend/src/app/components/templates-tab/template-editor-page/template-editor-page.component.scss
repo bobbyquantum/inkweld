@@ -74,3 +74,21 @@
   overflow: hidden;
   display: block;
 }
+
+// Make the embedded editor fill the canvas and scroll like the real
+// worldbuilding editor (which hosts it with flex + overflow hidden).
+:host app-worldbuilding-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+
+  // The editor container normally uses a viewport-derived fixed height; inside
+  // the settings canvas we want it to fill the available space instead so its
+  // content region scrolls.
+  ::ng-deep .worldbuilding-editor-container {
+    height: 100%;
+  }
+}
