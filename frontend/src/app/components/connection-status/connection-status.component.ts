@@ -70,6 +70,14 @@ export class ConnectionStatusComponent {
   /** Whether to show collapsed (icon-only) mode */
   collapsed = input<boolean>(false);
 
+  /**
+   * Strap mode: renders a slim, always-visible footer strip that only appears
+   * when the connection is offline/reconnecting/unavailable. It is hidden in
+   * local mode and when synced, so the sidebar stays clean the majority of
+   * the time. When `true`, `collapsed` is ignored.
+   */
+  strap = input<boolean>(false);
+
   /** Last connection error message (shown in retry button tooltip) */
   lastError = input<string | null>(null);
 
@@ -159,6 +167,24 @@ export class ConnectionStatusComponent {
     const state = this.effectiveState();
     return (
       state === DocumentSyncState.Local || state === DocumentSyncState.Syncing
+    );
+  });
+
+  /**
+   * Whether the strap should be rendered. The strap is a transient
+   * offline/reconnecting indicator: it is hidden in local mode (the user
+   * already knows they're local) and when synced (nothing to report), and
+   * only appears while offline, reconnecting, or hard-failed.
+   */
+  showStrap = computed(() => {
+    if (this.isLocalMode()) {
+      return false;
+    }
+    const state = this.effectiveState();
+    return (
+      state === DocumentSyncState.Local ||
+      state === DocumentSyncState.Syncing ||
+      state === DocumentSyncState.Unavailable
     );
   });
 

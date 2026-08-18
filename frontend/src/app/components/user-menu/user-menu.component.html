@@ -114,15 +114,27 @@
           <span>{{ 'about.aboutTitle' | transloco }}</span>
         </button>
         @if (setupService.getMode() === 'server') {
+          <button
+            mat-menu-item
+            (click)="onManageProfiles()"
+            data-testid="switch-to-local-button">
+            <mat-icon>cloud_off</mat-icon>
+            <span>{{
+              'settings.connectionTab.switchToLocal' | transloco
+            }}</span>
+          </button>
           <button mat-menu-item (click)="onLogout()">
             <mat-icon>exit_to_app</mat-icon>
             <span>{{ 'login.login' | transloco }}</span>
           </button>
         } @else {
-          <button mat-menu-item routerLink="/reset">
-            <mat-icon>restart_alt</mat-icon>
+          <button
+            mat-menu-item
+            (click)="onManageProfiles()"
+            data-testid="connect-to-server-button">
+            <mat-icon>cloud</mat-icon>
             <span>{{
-              'settings.connectionTab.switchToLocal' | transloco
+              'settings.connectionTab.connectToServer' | transloco
             }}</span>
           </button>
         }

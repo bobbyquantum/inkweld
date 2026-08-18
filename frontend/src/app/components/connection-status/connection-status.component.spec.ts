@@ -305,6 +305,98 @@ describe('ConnectionStatusComponent', () => {
     });
   });
 
+  describe('strap mode', () => {
+    it('should render the strap when offline and not in local mode', async () => {
+      fixture.componentRef.setInput('strap', true);
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
+      fixture.componentRef.setInput('isLocalMode', false);
+      await fixture.whenStable();
+
+      const strap = fixture.nativeElement.querySelector(
+        '[data-testid="connection-strap"]'
+      );
+      expect(strap).toBeTruthy();
+      expect(strap?.textContent).toContain('Offline Mode');
+    });
+
+    it('should render the strap while reconnecting (Syncing)', async () => {
+      fixture.componentRef.setInput('strap', true);
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Syncing);
+      fixture.componentRef.setInput('isLocalMode', false);
+      await fixture.whenStable();
+
+      const strap = fixture.nativeElement.querySelector(
+        '[data-testid="connection-strap"]'
+      );
+      expect(strap).toBeTruthy();
+      expect(strap?.textContent).toContain('Offline Mode');
+    });
+
+    it('should render the strap when unavailable', async () => {
+      fixture.componentRef.setInput('strap', true);
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Unavailable);
+      fixture.componentRef.setInput('isLocalMode', false);
+      await fixture.whenStable();
+
+      const strap = fixture.nativeElement.querySelector(
+        '[data-testid="connection-strap"]'
+      );
+      expect(strap).toBeTruthy();
+      expect(strap?.textContent).toContain('Connection Failed');
+    });
+
+    it('should hide the strap when synced', async () => {
+      fixture.componentRef.setInput('strap', true);
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Synced);
+      fixture.componentRef.setInput('isLocalMode', false);
+      await fixture.whenStable();
+
+      const strap = fixture.nativeElement.querySelector(
+        '[data-testid="connection-strap"]'
+      );
+      expect(strap).toBeFalsy();
+    });
+
+    it('should hide the strap in local mode', async () => {
+      fixture.componentRef.setInput('strap', true);
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
+      fixture.componentRef.setInput('isLocalMode', true);
+      await fixture.whenStable();
+
+      const strap = fixture.nativeElement.querySelector(
+        '[data-testid="connection-strap"]'
+      );
+      expect(strap).toBeFalsy();
+    });
+
+    it('should show retry button in the strap when offline', async () => {
+      fixture.componentRef.setInput('strap', true);
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
+      fixture.componentRef.setInput('isLocalMode', false);
+      await fixture.whenStable();
+
+      const retryButton = fixture.nativeElement.querySelector(
+        '[data-testid="retry-sync-button"]'
+      );
+      expect(retryButton).toBeTruthy();
+    });
+
+    it('should emit syncRequested when strap retry button clicked', async () => {
+      fixture.componentRef.setInput('strap', true);
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
+      fixture.componentRef.setInput('isLocalMode', false);
+      await fixture.whenStable();
+
+      const emitSpy = vi.spyOn(component.syncRequested, 'emit');
+      const retryButton = fixture.nativeElement.querySelector(
+        '[data-testid="retry-sync-button"]'
+      );
+      retryButton?.click();
+
+      expect(emitSpy).toHaveBeenCalled();
+    });
+  });
+
   describe('offline display debounce', () => {
     const DEBOUNCE_MS = 40;
 

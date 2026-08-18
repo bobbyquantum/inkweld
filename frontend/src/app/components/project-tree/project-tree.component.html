@@ -199,23 +199,21 @@
         </div>
       </div>
     }
-
-    <!-- Create new element button at the end of the tree (only for users with write access) -->
-    @if (projectStateService.canWrite()) {
-      <div
-        role="treeitem"
-        aria-level="1"
-        aria-selected="false"
-        class="create-item"
-        data-testid="create-new-element"
-        tabindex="0"
-        (click)="onCreateNewElement()"
-        (keyup.enter)="onCreateNewElement()">
-        <mat-icon>add</mat-icon>
-        <div class="node-title">{{ 'project.tree.create' | transloco }}</div>
-      </div>
-    }
   </div>
+
+  <!-- Create new element button - fixed footer, always visible for write access -->
+  @if (projectStateService.canWrite()) {
+    <div
+      role="button"
+      tabindex="0"
+      class="create-item create-footer"
+      data-testid="create-new-element"
+      (click)="onCreateNewElement()"
+      (keyup.enter)="onCreateNewElement()">
+      <mat-icon>add</mat-icon>
+      <div class="node-title">{{ 'project.tree.create' | transloco }}</div>
+    </div>
+  }
 </div>
 
 <!-- Context menu -->

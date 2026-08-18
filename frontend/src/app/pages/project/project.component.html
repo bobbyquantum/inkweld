@@ -68,6 +68,7 @@
             [lastError]="lastConnectionError()"
             [isLocalMode]="isLocalMode()"
             [elementsDocId]="elementsDocId()"
+            [strap]="true"
             (syncRequested)="onRetrySyncConnection()"
             data-testid="mobile-connection-status">
           </app-connection-status>
@@ -341,6 +342,7 @@
                     [lastError]="lastConnectionError()"
                     [isLocalMode]="isLocalMode()"
                     [elementsDocId]="elementsDocId()"
+                    [strap]="true"
                     (syncRequested)="onRetrySyncConnection()"
                     data-testid="sidebar-connection-status">
                   </app-connection-status>

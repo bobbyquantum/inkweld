@@ -20,6 +20,49 @@
   gap: 2px;
 }
 
+// Strap mode: a slim, always-visible footer strip that only appears while
+// offline/reconnecting. It is hidden entirely when synced or in local mode.
+.connection-strap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 2px 8px;
+  border-top: 1px solid var(--sys-outline-variant);
+  background-color: var(--sys-surface-container-high);
+  flex-shrink: 0;
+
+  .status-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin-right: 0;
+  }
+
+  .status-text {
+    font-size: 12px;
+  }
+
+  .sync-button {
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &.spinning {
+      mat-icon {
+        animation: spin 1.5s linear infinite;
+        opacity: 0.6;
+      }
+    }
+  }
+}
+
 .status-row {
   display: flex;
   align-items: center;

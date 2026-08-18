@@ -1,4 +1,31 @@
-@if (collapsed()) {
+@if (strap()) {
+  <!-- Strap mode: slim offline/reconnecting strip, hidden when synced or local -->
+  @if (showStrap()) {
+    <div
+      class="connection-strap"
+      [class.status-offline]="displayAsOffline()"
+      [class.status-unavailable]="syncState() === DocumentSyncState.Unavailable"
+      [matTooltip]="syncTooltip()"
+      (mouseenter)="onStatusHover()"
+      data-testid="connection-strap">
+      <mat-icon class="status-icon">{{ syncIcon() }}</mat-icon>
+      <span class="status-text">{{ syncStatusText() }}</span>
+      @if (showRetryButton()) {
+        <button
+          mat-icon-button
+          class="sync-button"
+          [attr.aria-label]="retryButtonTooltip()"
+          [class.spinning]="isConnecting()"
+          [disabled]="isConnecting()"
+          (click)="onSyncClick()"
+          [matTooltip]="retryButtonTooltip()"
+          data-testid="retry-sync-button">
+          <mat-icon>sync</mat-icon>
+        </button>
+      }
+    </div>
+  }
+} @else if (collapsed()) {
   <!-- Collapsed mode: icon-only button -->
   <button
     mat-icon-button
