@@ -1,11 +1,13 @@
 :host {
+  // When a template is being edited, cover the whole window (settings area is
+  // narrow because of its own sidenav + 900px content cap, which would collapse
+  // the preview to a single column). Position fixed overlays the project shell.
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
   display: block;
-  width: 100%;
-  max-width: 1600px;
-  height: 100%;
-  margin: 0 auto;
-  padding: 0;
-  box-sizing: border-box;
+  background: var(--sys-surface);
+  overflow: hidden;
 }
 
 .editor-page {
@@ -86,8 +88,8 @@
   min-height: 0;
 
   // The editor container normally uses a viewport-derived fixed height; inside
-  // the settings canvas we want it to fill the available space instead so its
-  // content region scrolls.
+  // the full-window canvas we want it to fill the available space instead so
+  // its content region scrolls.
   ::ng-deep .worldbuilding-editor-container {
     height: 100%;
   }
