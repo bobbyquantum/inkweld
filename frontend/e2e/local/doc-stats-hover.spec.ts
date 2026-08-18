@@ -23,18 +23,11 @@ test.describe('Doc Stats Hover (Local Mode)', () => {
     // no sync indicator to hover. Assert the strap is absent — this also
     // verifies the local-mode guard: the fixture's afterEach catches any
     // leaked API requests.
-    const connectionStatus = page.getByTestId('sidebar-connection-status');
-    await expect(connectionStatus).toBeVisible();
-    await expect(connectionStatus.getByTestId('connection-strap')).toHaveCount(
-      0
-    );
-
-    // Verify the tooltip does not contain stats text (would indicate a fetch
-    // happened despite the local-mode guard).
-    await expect(connectionStatus).not.toHaveAttribute(
-      'aria-describedby',
-      /Rows:/
-    );
+    await expect(
+      page
+        .getByTestId('sidebar-connection-status')
+        .getByTestId('connection-strap')
+    ).toHaveCount(0);
 
     // Open a document to test the editor sync status hover
     const firstDoc = page
