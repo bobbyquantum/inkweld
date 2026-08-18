@@ -16,6 +16,7 @@ import {
 } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
 import { EditAvatarDialogComponent } from '../../dialogs/edit-avatar-dialog/edit-avatar-dialog.component';
 import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
+import { FieldConfigDialogComponent } from '../../dialogs/field-config-dialog/field-config-dialog.component';
 import { FileUploadComponent } from '../../dialogs/file-upload/file-upload.component';
 import { ImageGenerationDialogComponent } from '../../dialogs/image-generation-dialog/image-generation-dialog.component';
 import {
@@ -149,6 +150,26 @@ describe('DialogGatewayService', () => {
       width: '400px',
     });
     expect(result).toBe('New Name');
+  });
+
+  it('should open the field config dialog', async () => {
+    const data = {
+      field: { key: 'name', label: 'Name', type: 'text' },
+      fieldTypes: [{ value: 'text', label: 'Text' }],
+    };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(
+      of({ label: 'Full Name' })
+    );
+
+    const result = await service.openFieldConfigDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(FieldConfigDialogComponent, {
+      data,
+      disableClose: true,
+      width: '560px',
+      maxWidth: '92vw',
+    });
+    expect(result).toEqual({ label: 'Full Name' });
   });
 
   it('should open file upload dialog', async () => {

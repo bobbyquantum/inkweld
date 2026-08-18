@@ -19,6 +19,11 @@ import {
   type ElementPickerDialogData,
   type ElementPickerDialogResult,
 } from '../../dialogs/element-picker-dialog/element-picker-dialog.component';
+import {
+  FieldConfigDialogComponent,
+  type FieldConfigDialogData,
+  type FieldConfigDialogResult,
+} from '../../dialogs/field-config-dialog/field-config-dialog.component';
 import { FileUploadComponent } from '../../dialogs/file-upload/file-upload.component';
 import {
   ImageGenerationDialogComponent,
@@ -127,6 +132,22 @@ export class DialogGatewayService {
       data,
       disableClose: true,
       width: '400px',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  /**
+   * Open the schema field settings dialog. Resolves with the applied patch
+   * (or undefined when cancelled).
+   */
+  openFieldConfigDialog(
+    data: FieldConfigDialogData
+  ): Promise<FieldConfigDialogResult | undefined> {
+    const dialogRef = this.dialog.open(FieldConfigDialogComponent, {
+      data,
+      disableClose: true,
+      width: '560px',
+      maxWidth: '92vw',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

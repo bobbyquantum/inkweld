@@ -1,0 +1,47 @@
+.field-config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 420px;
+  max-width: 520px;
+}
+
+.fc-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px dashed var(--sys-outline-variant);
+  border-radius: 8px;
+
+  .fc-options-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--sys-on-surface-variant);
+  }
+
+  .fc-option-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    mat-form-field {
+      flex: 1;
+    }
+  }
+}
+
+.fc-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+
+  mat-checkbox {
+    flex: 0 0 auto;
+  }
+
+  .fc-number {
+    flex: 0 0 120px;
+  }
+}

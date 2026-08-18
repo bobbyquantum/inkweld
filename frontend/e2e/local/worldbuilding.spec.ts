@@ -187,15 +187,16 @@ test.describe('Worldbuilding Templates', () => {
       await page.getByTestId('nav-basic').click();
       await page.getByTestId('add-field-basic').click();
 
-      // Open the newly added field's config and verify 'date' is an option.
+      // Open the newly added field's settings dialog and verify 'date' is an option.
       await page.getByTestId('field-edit').last().click();
-      const fieldTypeSelect = page.getByTestId('field-config-type');
-      await expect(fieldTypeSelect).toBeVisible();
-      await fieldTypeSelect.click();
-      await expect(page.getByTestId('field-type-option-date')).toBeVisible();
+      const typeSelect = page.getByTestId('fc-type');
+      await expect(typeSelect).toBeVisible();
+      await typeSelect.click();
+      await expect(page.getByTestId('fc-type-option-date')).toBeVisible();
 
-      // Close the select dropdown so we can exit without an open overlay.
+      // Close the select dropdown and the dialog so we can exit.
       await page.keyboard.press('Escape');
+      await page.getByTestId('fc-save').click();
       await page.getByTestId('template-editor-back').click();
       await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
     });
@@ -211,27 +212,27 @@ test.describe('Worldbuilding Templates', () => {
       await page.getByTestId('nav-basic').click();
       await page.getByTestId('add-field-basic').click();
 
-      // Open the newly added field's config.
+      // Open the newly added field's settings dialog.
       await page.getByTestId('field-edit').last().click();
-      await expect(page.getByTestId('field-config')).toBeVisible();
+      await expect(page.getByTestId('fc-key')).toBeVisible();
 
       // Give it a nested key and a select type.
-      await page.getByTestId('field-config-key').fill('traits.origin');
-      await page.getByTestId('field-config-type').click();
-      await page.getByTestId('field-type-option-select').click();
+      await page.getByTestId('fc-key').fill('traits.origin');
+      await page.getByTestId('fc-type').click();
+      await page.getByTestId('fc-type-option-select').click();
 
       // Options editor appears for select; add a couple of options.
-      await expect(page.getByTestId('field-config-options')).toBeVisible();
-      await page.getByTestId('field-option-add').click();
-      await page.getByTestId('field-option-input-0').fill('Born');
-      await page.getByTestId('field-option-add').click();
-      await page.getByTestId('field-option-input-1').fill('Foundling');
+      await expect(page.getByTestId('fc-options')).toBeVisible();
+      await page.getByTestId('fc-option-add').click();
+      await page.getByTestId('fc-option-input-0').fill('Born');
+      await page.getByTestId('fc-option-add').click();
+      await page.getByTestId('fc-option-input-1').fill('Foundling');
 
-      // Set required and a 6-column span.
-      await page.getByTestId('field-config-required').click();
-      await page.getByTestId('field-config-span').fill('6');
+      // Set required and a 6-column span, then save and exit.
+      await page.getByTestId('fc-required').click();
+      await page.getByTestId('fc-span').fill('6');
+      await page.getByTestId('fc-save').click();
 
-      await page.keyboard.press('Escape');
       await page.getByTestId('template-editor-back').click();
       await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
     });

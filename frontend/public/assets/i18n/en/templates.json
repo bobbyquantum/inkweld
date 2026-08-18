@@ -91,6 +91,7 @@
     "layoutSpanHint": "How many of the 12 columns the field occupies",
     "rowsLabel": "Rows",
     "saving": "Saving...",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save Changes",
+    "fieldConfigTitle": "Field Settings"
   }
 }
