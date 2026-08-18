@@ -37,8 +37,6 @@ import { logger } from '../services/logger.service';
 import { stripTrailingSlashes } from '../utils/string-utils';
 import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
 import { makeD1Database, type D1DatabaseInstance } from '../db/d1';
-import { projectService } from '../services/project.service';
-import { collaborationService } from '../services/collaboration.service';
 import { writingSessionService } from '../services/writing-session.service';
 import { activityService } from '../services/activity.service';
 import { countWords, extractTextContent } from '../mcp/tools/mutation.tools';
@@ -51,6 +49,7 @@ import {
 } from '../utils/yjs-document-utils';
 import { YjsDocStorage, COMPACT_THRESHOLD, snapshotKey } from './yjs-do-storage';
 import { safeSend, safeClose } from '../utils/ws-guards';
+import { resolveProjectAccess } from '../utils/project-access';
 import {
   WS_CLOSE_FORBIDDEN,
   WS_CLOSE_INVALID_DOCUMENT,
@@ -421,6 +420,46 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
     this.projectId = `${parts[0]}:${parts[1]}`;
     console.log('[DO-HTTP] projectId:', this.projectId);
+
+    // Enforce project-level access (owner or collaborator with read access).
+    // The WebSocket path has always checked this (checkAccessWithDb /
+    // checkAccessLegacy); the HTTP API previously only verified the JWT,
+    // letting any authenticated user read or mutate ANY project's documents
+    // with a predictable username:slug:docId (cross-tenant IDOR). Route both
+    // transports through the same resolveProjectAccess helper so they can't
+    // drift apart again. POST (mutation) endpoints additionally require
+    // write access, mirroring the WS canWrite enforcement.
+    const parsed = this.parseDocumentOwner(documentId);
+    if (!parsed) {
+      console.log('[DO-HTTP] Invalid documentId format');
+      return new Response(JSON.stringify({ error: 'Invalid documentId format' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    const db = this.getDb();
+    const accessResult = await resolveProjectAccess(db, parsed.projectOwner, parsed.slug, session);
+    if (!accessResult.ok) {
+      const deniedMessage =
+        accessResult.reason === 'project-not-found' ? 'Project not found' : 'Access denied';
+      projDOLog.warn(
+        `User ${session.username} denied HTTP access to ${parsed.projectOwner}/${parsed.slug}: ${accessResult.reason}`
+      );
+      return new Response(JSON.stringify({ error: deniedMessage }), {
+        status: accessResult.reason === 'project-not-found' ? 404 : 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    const { canWrite } = accessResult.access;
+    if (method === 'POST' && !canWrite) {
+      projDOLog.warn(
+        `User ${session.username} denied write access to ${parsed.projectOwner}/${parsed.slug}`
+      );
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
     try {
       return await this.dispatchHttpRoute(path, method, request, documentId);
@@ -2098,37 +2137,29 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     sessionData: SessionData,
     ws: WebSocket
   ): Promise<{ canWrite: boolean; projectDbId: string } | null> {
-    const project = await projectService.findByUsernameAndSlug(
-      db,
-      parsed.projectOwner,
-      parsed.slug
-    );
-    if (!project) {
-      projDOLog.warn(`Project not found: ${parsed.projectOwner}/${parsed.slug}`);
-      safeSend(ws, 'access-denied:project-not-found');
-      safeClose(ws, WS_CLOSE_PROJECT_NOT_FOUND, 'Project not found');
+    const result = await resolveProjectAccess(db, parsed.projectOwner, parsed.slug, sessionData);
+    if (!result.ok) {
+      if (result.reason === 'project-not-found') {
+        projDOLog.warn(`Project not found: ${parsed.projectOwner}/${parsed.slug}`);
+        safeSend(ws, 'access-denied:project-not-found');
+        safeClose(ws, WS_CLOSE_PROJECT_NOT_FOUND, 'Project not found');
+      } else {
+        projDOLog.warn(
+          `User ${sessionData.username} attempted to access project ${parsed.projectOwner}/${parsed.slug}`
+        );
+        safeSend(ws, 'access-denied:forbidden');
+        safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access denied');
+      }
       return null;
     }
 
-    const jwtUserId = sessionData.userId ?? sessionData.sub;
-    if (project.userId === jwtUserId) {
-      return { canWrite: true, projectDbId: project.id };
-    }
-
-    const access = await collaborationService.checkAccess(db, project.id, jwtUserId);
-    if (!access.canRead) {
-      projDOLog.warn(
-        `User ${sessionData.username} attempted to access project ${parsed.projectOwner}/${parsed.slug}`
-      );
-      safeSend(ws, 'access-denied:forbidden');
-      safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access denied');
-      return null;
-    }
-
+    const { canWrite, projectDbId, role } = result.access;
+    // With a D1 binding the resolved projectDbId is always present (the
+    // owner shortcut and the collaborator lookup both carry the project id).
     projDOLog.info(
-      `Collaborator ${sessionData.username} (${access.role}, canWrite: ${access.canWrite}) accessing ${parsed.projectOwner}/${parsed.slug}`
+      `Collaborator ${sessionData.username} (${role}, canWrite: ${canWrite}) accessing ${parsed.projectOwner}/${parsed.slug}`
     );
-    return { canWrite: access.canWrite, projectDbId: project.id };
+    return { canWrite, projectDbId: projectDbId as string };
   }
 
   /**

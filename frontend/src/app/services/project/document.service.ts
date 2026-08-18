@@ -146,6 +146,13 @@ export interface DocumentConnection {
   type: Y.XmlFragment;
   /** IndexedDB provider for offline persistence */
   indexeddbProvider: IndexeddbPersistence;
+  /**
+   * The window 'online' listener registered for this connection, so it can be
+   * removed on disconnect. Kept on the connection (not a module-level
+   * listener) so each document's reconnect closure is cleaned up exactly when
+   * its connection is torn down.
+   */
+  onlineHandler?: () => void;
 }
 
 /**
@@ -1702,6 +1709,11 @@ export class DocumentService {
         providerRef.connect();
       };
 
+      // Store the handler on the connection so disconnect paths can remove it
+      // (see DocumentConnection.onlineHandler). Without this, every document
+      // opened leaks a window 'online' listener that holds a closure over the
+      // (possibly destroyed) provider and reconnects it after teardown.
+      connection.onlineHandler = handleOnline;
       globalThis.addEventListener('online', handleOnline);
     }
   }
@@ -2038,6 +2050,10 @@ export class DocumentService {
       );
     }
 
+    // Remove the window 'online' listener so a stale handler can't reconnect
+    // a destroyed provider after this connection is torn down (leak fix).
+    this.removeOnlineHandler(connection);
+
     // Remove from connections map FIRST to prevent reconnection
     this.connections.delete(documentId);
 
@@ -2059,6 +2075,10 @@ export class DocumentService {
     this.connections.clear();
 
     for (const [docId, connection] of connectionsToClose) {
+      // Remove the window 'online' listener before tearing the provider down
+      // so a stale handler can't reconnect a destroyed provider (leak fix).
+      this.removeOnlineHandler(connection);
+
       if (connection.provider) {
         try {
           connection.provider.destroy();
@@ -2096,6 +2116,21 @@ export class DocumentService {
         });
 
       this.cleanupSyncState(docId);
+    }
+  }
+
+  /**
+   * Remove the window 'online' listener stored on a connection (if any).
+   * Called from both disconnect paths so every document teardown also drops
+   * its global listener — previously the listener (and its closure over the
+   * provider / Y.Doc / IndexedDB provider) leaked for the lifetime of the
+   * page and could reconnect a destroyed provider.
+   */
+  private removeOnlineHandler(connection: DocumentConnection): void {
+    const handler = connection.onlineHandler;
+    if (handler) {
+      globalThis.removeEventListener('online', handler);
+      connection.onlineHandler = undefined;
     }
   }
 

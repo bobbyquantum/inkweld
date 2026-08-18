@@ -1128,6 +1128,40 @@ describe('DocumentService', () => {
         DocumentSyncState.Unavailable
       );
     });
+
+    it('reconnects when the network comes back online', async () => {
+      const { callbacks } = await setupConnection();
+      const status = callbacks['status'] as StatusCb;
+      status({ status: 'connected' });
+
+      const connectCallsBefore =
+        mockWebSocketProvider.connect.mock.calls.length;
+      globalThis.dispatchEvent(new Event('online'));
+
+      // The window 'online' listener registered by connectWebSocketInBackground
+      // must call provider.connect() to resume the sync session.
+      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(
+        connectCallsBefore + 1
+      );
+    });
+
+    it('removes the window online listener when the document disconnects', async () => {
+      await setupConnection();
+
+      // Disconnect tears down the connection — including the window 'online'
+      // listener registered for it (leak regression: previously the listener
+      // stayed registered for the page lifetime and reconnected a destroyed
+      // provider).
+      service.disconnect(testDocumentId);
+
+      const connectCallsBefore =
+        mockWebSocketProvider.connect.mock.calls.length;
+      globalThis.dispatchEvent(new Event('online'));
+
+      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(
+        connectCallsBefore
+      );
+    });
   });
 
   describe('Collaboration Setup', () => {
