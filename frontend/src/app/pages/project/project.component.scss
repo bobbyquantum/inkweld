@@ -83,7 +83,10 @@ as-split {
 
   app-project-tree {
     flex: 1;
-    overflow-y: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 }
 

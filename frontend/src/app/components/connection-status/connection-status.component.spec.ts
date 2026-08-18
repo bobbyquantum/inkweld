@@ -295,6 +295,19 @@ describe('ConnectionStatusComponent', () => {
       );
     });
 
+    it('should not fetch doc stats on hover in local mode', async () => {
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
+      fixture.componentRef.setInput('isLocalMode', true);
+      fixture.componentRef.setInput('elementsDocId', 'user:slug:elements');
+      await fixture.whenStable();
+
+      const fetchSpy = vi.spyOn(component['docStatsService'], 'fetchStats');
+      component.onStatusHover();
+      await fixture.whenStable();
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
     it('should show "Offline Mode" when isLocalMode is false and state is Local', async () => {
       fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
       fixture.componentRef.setInput('isLocalMode', false);
