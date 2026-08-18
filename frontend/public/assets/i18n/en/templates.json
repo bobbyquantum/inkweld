@@ -89,6 +89,7 @@
     "requiredLabel": "Required",
     "layoutSpanLabel": "Column Span",
     "layoutSpanHint": "How many of the 12 columns the field occupies",
+    "spanDragAria": "Drag to set the column span",
     "rowsLabel": "Rows",
     "saving": "Saving...",
     "saveChanges": "Save Changes",

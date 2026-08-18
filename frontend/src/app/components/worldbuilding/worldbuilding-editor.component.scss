@@ -528,6 +528,13 @@ mat-accordion {
 .field-container {
   grid-column: span 12;
 
+  // Layout span (1-12 columns of the tab's 12-column grid).
+  @for $i from 1 through 12 {
+    &.span-#{$i} {
+      grid-column: span #{$i};
+    }
+  }
+
   // Narrow container: always full width
   @container wb-content (max-width: 600px) {
     grid-column: span 1 !important;

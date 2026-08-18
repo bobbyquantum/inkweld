@@ -124,21 +124,46 @@
         {{ 'templates.editor.requiredLabel' | transloco }}
       </mat-checkbox>
 
-      <mat-form-field appearance="outline" class="fc-number">
-        <mat-label>{{
+      <div class="fc-span-picker">
+        <span class="fc-options-label">{{
           'templates.editor.layoutSpanLabel' | transloco
-        }}</mat-label>
-        <input
-          matInput
-          type="number"
-          min="1"
-          max="12"
-          id="fc-span"
+        }}</span>
+        <div
+          class="span-grid"
+          role="slider"
+          [attr.aria-valuemin]="1"
+          [attr.aria-valuemax]="12"
+          [attr.aria-valuenow]="span()"
           [attr.aria-label]="'templates.editor.layoutSpanLabel' | transloco"
-          [value]="span()"
-          (input)="span.set($any($event.target).value)"
-          data-testid="fc-span" />
-      </mat-form-field>
+          data-testid="fc-span">
+          @for (cell of spanCells; track $index) {
+            <button
+              type="button"
+              class="span-cell"
+              [class.selected]="$index < span()"
+              (click)="onSpanCell($index)"
+              [attr.aria-label]="
+                ('templates.editor.layoutSpanLabel' | transloco) +
+                ' ' +
+                ($index + 1)
+              "
+              [attr.data-testid]="'fc-span-cell-' + $index"></button>
+          }
+          <div
+            class="span-handle"
+            [style.left.%]="(span() / 12) * 100"
+            (pointerdown)="startSpanDrag($event)"
+            (pointermove)="updateSpanDrag($event)"
+            (pointerup)="endSpanDrag($event)"
+            [attr.aria-label]="'templates.editor.spanDragAria' | transloco"
+            data-testid="fc-span-handle">
+            <mat-icon aria-hidden="true">drag_indicator</mat-icon>
+          </div>
+        </div>
+        <span class="fc-span-value" data-testid="fc-span-value"
+          >{{ span() }} / 12</span
+        >
+      </div>
 
       @if (type() === 'textarea') {
         <mat-form-field appearance="outline" class="fc-number">

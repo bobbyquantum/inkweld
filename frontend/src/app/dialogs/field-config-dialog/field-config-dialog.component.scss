@@ -45,3 +45,67 @@
     flex: 0 0 120px;
   }
 }
+
+// 12-column span picker with a draggable handle.
+.fc-span-picker {
+  .span-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 3px;
+    padding: 4px;
+    border: 1px solid var(--sys-outline-variant);
+    border-radius: 8px;
+    background: var(--sys-surface-container-low);
+    touch-action: none;
+    user-select: none;
+  }
+
+  .span-cell {
+    height: 20px;
+    padding: 0;
+    border: 1px solid var(--sys-outline-variant);
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+
+    &.selected {
+      border-color: var(--sys-primary);
+      background: color-mix(in srgb, var(--sys-primary) 55%, transparent);
+    }
+
+    &:hover:not(.selected) {
+      background: color-mix(in srgb, var(--sys-primary) 14%, transparent);
+    }
+  }
+
+  .span-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 22px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: ew-resize;
+    color: var(--sys-on-surface-variant);
+    background: color-mix(in srgb, var(--sys-surface-container-high) 90%, transparent);
+    border: 1px solid var(--sys-outline-variant);
+    border-radius: 4px;
+    box-shadow: var(--mat-sys-level1-shadow, none);
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .fc-span-value {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--sys-on-surface-variant);
+  }
+}

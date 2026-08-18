@@ -68,8 +68,44 @@ export class FieldConfigDialogComponent {
   protected readonly span = signal(this.data.field.layout?.span ?? 12);
   protected readonly rows = signal(this.data.field.rows ?? 3);
 
+  /** Cell indexes (0-11) for the 12-column span picker. */
+  protected readonly spanCells = Array.from({ length: 12 }, (_, i) => i);
+
+  private spanDragging = false;
+
   protected isOptionsType(): boolean {
     return this.type() === 'select' || this.type() === 'multiselect';
+  }
+
+  /** Set the span by clicking a grid cell (1-12). */
+  protected onSpanCell(index: number): void {
+    this.span.set(index + 1);
+  }
+
+  /** Begin dragging the span handle. */
+  protected startSpanDrag(event: PointerEvent): void {
+    this.spanDragging = true;
+    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+  }
+
+  /** Update the span from the pointer position over the grid. */
+  protected updateSpanDrag(event: PointerEvent): void {
+    if (!this.spanDragging) return;
+    const el = event.currentTarget as HTMLElement | null;
+    const grid = el?.closest('.span-grid') as HTMLElement | null;
+    if (!grid) return;
+    const rect = grid.getBoundingClientRect();
+    if (rect.width === 0) return;
+    const ratio = (event.clientX - rect.left) / rect.width;
+    this.span.set(Math.min(12, Math.max(1, Math.round(ratio * 12))));
+  }
+
+  /** End the span drag. */
+  protected endSpanDrag(event: PointerEvent): void {
+    this.spanDragging = false;
+    (event.currentTarget as HTMLElement).releasePointerCapture?.(
+      event.pointerId
+    );
   }
 
   protected addOption(): void {

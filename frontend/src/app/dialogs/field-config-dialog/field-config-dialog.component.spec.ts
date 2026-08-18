@@ -77,6 +77,41 @@ describe('FieldConfigDialogComponent', () => {
     });
   });
 
+  it('should set the span from a clicked grid cell', () => {
+    component['onSpanCell'](7);
+    expect(component['span']()).toBe(8);
+  });
+
+  it('should track the span during a handle drag', () => {
+    const grid = document.createElement('div');
+    grid.className = 'span-grid';
+    grid.getBoundingClientRect = () =>
+      ({ left: 0, width: 200, top: 0, height: 0 }) as DOMRect;
+    const handle = document.createElement('div');
+    handle.className = 'span-handle';
+    grid.appendChild(handle);
+
+    component['spanDragging'] = true;
+    component['updateSpanDrag']({
+      currentTarget: handle,
+      clientX: 100,
+    } as unknown as PointerEvent);
+    expect(component['span']()).toBe(6);
+  });
+
+  it('should ignore drag updates when not dragging', () => {
+    component['span'].set(3);
+    component['spanDragging'] = false;
+    const grid = document.createElement('div');
+    grid.className = 'span-grid';
+    grid.getBoundingClientRect = () => ({ left: 0, width: 200 }) as DOMRect;
+    component['updateSpanDrag']({
+      currentTarget: grid,
+      clientX: 150,
+    } as unknown as PointerEvent);
+    expect(component['span']()).toBe(3);
+  });
+
   it('should include rows for textarea fields', () => {
     component['type'].set('textarea');
     component['rows'].set(6);

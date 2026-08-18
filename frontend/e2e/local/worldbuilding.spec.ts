@@ -228,9 +228,10 @@ test.describe('Worldbuilding Templates', () => {
       await page.getByTestId('fc-option-add').click();
       await page.getByTestId('fc-option-input-1').fill('Foundling');
 
-      // Set required and a 6-column span, then save and exit.
+      // Set required and a 6-column span (click the 6th cell), then save.
       await page.getByTestId('fc-required').click();
-      await page.getByTestId('fc-span').fill('6');
+      await page.getByTestId('fc-span-cell-5').click();
+      await expect(page.getByTestId('fc-span-value')).toHaveText(/6/);
       await page.getByTestId('fc-save').click();
 
       await page.getByTestId('template-editor-back').click();
@@ -268,8 +269,10 @@ test.describe('Worldbuilding Templates', () => {
       await expect(basicTab).toBeVisible();
       await basicTab.click();
 
-      // The nested select field added earlier persists and renders.
-      await expect(page.getByTestId('field-traits.origin')).toBeVisible();
+      // The nested select field added earlier persists and renders at its span.
+      const originField = page.getByTestId('field-traits.origin');
+      await expect(originField).toBeVisible();
+      await expect(originField).toHaveClass(/span-6/);
     });
 
     await test.step('deleting Hero Template removes it from the list', async () => {
