@@ -180,13 +180,17 @@
 .create-footer {
   display: flex;
   align-items: center;
+  width: 100%;
   min-height: 36px;
   padding: 4px 8px;
   cursor: pointer;
   outline: none;
   flex-shrink: 0;
+  border: none;
   border-top: 1px solid var(--sys-outline-variant);
   background-color: var(--sys-surface-container);
+  font: inherit;
+  text-align: left;
 
   &:focus {
     background-color: var(--sys-surface-container-high);

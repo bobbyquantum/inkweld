@@ -203,16 +203,14 @@
 
   <!-- Create new element button - fixed footer, always visible for write access -->
   @if (projectStateService.canWrite()) {
-    <div
-      role="button"
-      tabindex="0"
+    <button
+      type="button"
       class="create-item create-footer"
       data-testid="create-new-element"
-      (click)="onCreateNewElement()"
-      (keyup.enter)="onCreateNewElement()">
+      (click)="onCreateNewElement()">
       <mat-icon>add</mat-icon>
       <div class="node-title">{{ 'project.tree.create' | transloco }}</div>
-    </div>
+    </button>
   }
 </div>
 
