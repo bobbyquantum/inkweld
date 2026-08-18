@@ -14,8 +14,36 @@
  */
 
 import type { D1DatabaseInstance } from '../db/d1';
+import type { Project } from '../db/schema/projects';
+import type { ProjectAccess } from '../services/collaboration.service';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
+
+/**
+ * The data lookups `resolveProjectAccess` needs, injected so the resolver can
+ * be unit-tested in Bun without `mock.module`. `mock.module` mocks the module
+ * for the ENTIRE `bun test` process, so any test that used it would corrupt
+ * every other test file importing these services (project / collaboration).
+ * Injecting the dependencies keeps the test isolated and side-effect-free.
+ */
+export interface ProjectAccessDeps {
+  findByUsernameAndSlug(
+    db: D1DatabaseInstance,
+    username: string,
+    slug: string
+  ): Promise<(Project & { username: string }) | undefined>;
+  checkAccess(
+    db: D1DatabaseInstance,
+    projectId: string,
+    userId: string | null | undefined
+  ): Promise<ProjectAccess>;
+}
+
+const defaultDeps: ProjectAccessDeps = {
+  findByUsernameAndSlug: (db, username, slug) =>
+    projectService.findByUsernameAndSlug(db, username, slug),
+  checkAccess: (db, projectId, userId) => collaborationService.checkAccess(db, projectId, userId),
+};
 
 export interface ProjectAccessResolution {
   canWrite: boolean;
@@ -52,7 +80,8 @@ export async function resolveProjectAccess(
   db: D1DatabaseInstance | null,
   projectOwner: string,
   slug: string,
-  session: SessionClaims
+  session: SessionClaims,
+  deps: ProjectAccessDeps = defaultDeps
 ): Promise<ProjectAccessResult> {
   const jwtUserId = session.userId ?? session.sub;
 
@@ -64,7 +93,7 @@ export async function resolveProjectAccess(
     return { ok: true, access: { canWrite: true, projectDbId: null, role: null } };
   }
 
-  const project = await projectService.findByUsernameAndSlug(db, projectOwner, slug);
+  const project = await deps.findByUsernameAndSlug(db, projectOwner, slug);
   if (!project) {
     return { ok: false, reason: 'project-not-found' };
   }
@@ -73,7 +102,7 @@ export async function resolveProjectAccess(
     return { ok: true, access: { canWrite: true, projectDbId: project.id, role: null } };
   }
 
-  const access = await collaborationService.checkAccess(db, project.id, jwtUserId);
+  const access = await deps.checkAccess(db, project.id, jwtUserId);
   if (!access.canRead) {
     return { ok: false, reason: 'forbidden' };
   }
