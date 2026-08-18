@@ -325,6 +325,9 @@
   -webkit-backdrop-filter: blur(8px);
   box-sizing: border-box;
   overflow: hidden;
+  // The section is a flex column; keep the card at its content height so the
+  // section scrolls instead of squashing the fields.
+  flex: 0 0 auto;
 }
 
 // ==========================================
@@ -514,7 +517,6 @@ mat-accordion {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: 1rem;
-  min-height: 0;
   box-sizing: border-box;
 
   // Narrow container: reduce padding and single column

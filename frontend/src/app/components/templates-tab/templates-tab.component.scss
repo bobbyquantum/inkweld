@@ -2,6 +2,22 @@
 
 @include settingsTabLayout.apply();
 
+// When the template editor is open, fill the outlet so its content region
+// scrolls instead of growing the page.
+:host:has(app-template-editor-page) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+app-template-editor-page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .templates-list {
   border: 1px solid var(--sys-outline-variant);
   border-radius: 8px;

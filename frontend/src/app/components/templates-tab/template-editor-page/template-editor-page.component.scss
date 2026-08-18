@@ -1,13 +1,10 @@
 :host {
-  // When a template is being edited, cover the whole window (settings area is
-  // narrow because of its own sidenav + 900px content cap, which would collapse
-  // the preview to a single column). Position fixed overlays the project shell.
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
   display: block;
-  background: var(--sys-surface);
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .editor-page {
@@ -77,8 +74,7 @@
   display: block;
 }
 
-// Make the embedded editor fill the canvas and scroll like the real
-// worldbuilding editor (which hosts it with flex + overflow hidden).
+// Make the embedded editor fill the outlet like the templates list does.
 :host app-worldbuilding-editor {
   display: flex;
   flex-direction: column;
@@ -88,8 +84,8 @@
   min-height: 0;
 
   // The editor container normally uses a viewport-derived fixed height; inside
-  // the full-window canvas we want it to fill the available space instead so
-  // its content region scrolls.
+  // the outlet we want it to fill the available space instead so its content
+  // region scrolls.
   ::ng-deep .worldbuilding-editor-container {
     height: 100%;
   }
