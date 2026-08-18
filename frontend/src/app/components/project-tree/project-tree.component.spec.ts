@@ -50,6 +50,7 @@ describe('ProjectTreeComponent', () => {
     { systemType?: string; type?: string; element?: { id: string } }[]
   >;
   let dialogGatewayService: MockedObject<DialogGatewayService>;
+  let canWriteSignal: WritableSignal<boolean>;
 
   const mockDto: ProjectElement = {
     id: '1',
@@ -78,6 +79,7 @@ describe('ProjectTreeComponent', () => {
     savingSignal = signal(false);
     errorSignal = signal<string | undefined>(undefined);
     selectedTabIndexSignal = signal(0);
+    canWriteSignal = signal(true);
     openTabsSignal = signal<{ systemType?: string }[]>([
       { systemType: 'home' },
     ]);
@@ -99,7 +101,7 @@ describe('ProjectTreeComponent', () => {
         username: 'testuser',
         slug: 'testproject',
       }),
-      canWrite: signal(true),
+      canWrite: canWriteSignal,
       isOwner: signal(true),
       pinnedElementIds: signal<string[]>([]),
       isPinned: vi.fn().mockReturnValue(false),
@@ -690,6 +692,33 @@ describe('ProjectTreeComponent', () => {
   it('should open new element dialog when Create button is clicked', () => {
     component.onCreateNewElement();
     expect(projectStateService.showNewElementDialog).toHaveBeenCalled();
+  });
+
+  it('should render the create footer button when user can write', () => {
+    fixture.detectChanges();
+    const createButton = fixture.nativeElement.querySelector(
+      '[data-testid="create-new-element"]'
+    );
+    expect(createButton).toBeTruthy();
+    expect(createButton?.classList.contains('create-footer')).toBe(true);
+  });
+
+  it('should open new element dialog when create footer is clicked', () => {
+    fixture.detectChanges();
+    const createButton = fixture.nativeElement.querySelector(
+      '[data-testid="create-new-element"]'
+    );
+    createButton?.click();
+    expect(projectStateService.showNewElementDialog).toHaveBeenCalled();
+  });
+
+  it('should not render the create footer when user cannot write', () => {
+    canWriteSignal.set(false);
+    fixture.detectChanges();
+    const createButton = fixture.nativeElement.querySelector(
+      '[data-testid="create-new-element"]'
+    );
+    expect(createButton).toBeFalsy();
   });
 
   describe('Home Navigation', () => {

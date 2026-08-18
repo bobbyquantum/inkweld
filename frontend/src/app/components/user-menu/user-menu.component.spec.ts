@@ -161,6 +161,20 @@ describe('UserMenuComponent', () => {
     fixture.detectChanges();
   });
 
+  /**
+   * Re-create the fixture with a specific app mode. Changing the mode after
+   * the fixture has rendered triggers ExpressionChangedAfterItHasBeenChecked
+   * because the template reads getConnectionStatus() (a method call), so we
+   * set the mode before the first change detection pass.
+   */
+  const createFixtureWithMode = (mode: 'server' | 'local') => {
+    fixture?.destroy();
+    setupServiceMock.getMode.mockReturnValue(mode);
+    fixture = TestBed.createComponent(UserMenuComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  };
+
   it('should create', () => {
     expect(component).toBeTruthy();
   });
@@ -318,6 +332,90 @@ describe('UserMenuComponent', () => {
         '[data-testid="switch-server-button"]'
       );
       expect(switchButton).toBeTruthy();
+    });
+
+    it('should show "switch to local mode" action in server mode', async () => {
+      setupServiceMock.getMode.mockReturnValue('server');
+      fixture.detectChanges();
+
+      const menuButton = fixture.nativeElement.querySelector(
+        '[data-testid="user-menu-button"]'
+      );
+      menuButton?.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const switchToLocal = document.querySelector(
+        '[data-testid="switch-to-local-button"]'
+      );
+      expect(switchToLocal).toBeTruthy();
+      expect(switchToLocal?.textContent).toContain('Switch to Local Mode');
+
+      const connectToServer = document.querySelector(
+        '[data-testid="connect-to-server-button"]'
+      );
+      expect(connectToServer).toBeFalsy();
+    });
+
+    it('should show "connect to a server" action in local mode', async () => {
+      createFixtureWithMode('local');
+
+      const menuButton = fixture.nativeElement.querySelector(
+        '[data-testid="user-menu-button"]'
+      );
+      menuButton?.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const connectToServer = document.querySelector(
+        '[data-testid="connect-to-server-button"]'
+      );
+      expect(connectToServer).toBeTruthy();
+      expect(connectToServer?.textContent).toContain('Connect to Server');
+
+      const switchToLocal = document.querySelector(
+        '[data-testid="switch-to-local-button"]'
+      );
+      expect(switchToLocal).toBeFalsy();
+    });
+
+    it('should open profile manager when switch-to-local clicked', async () => {
+      setupServiceMock.getMode.mockReturnValue('server');
+      fixture.detectChanges();
+
+      const menuButton = fixture.nativeElement.querySelector(
+        '[data-testid="user-menu-button"]'
+      );
+      menuButton?.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const switchToLocal = document.querySelector(
+        '[data-testid="switch-to-local-button"]'
+      ) as HTMLElement;
+      switchToLocal?.click();
+      await fixture.whenStable();
+
+      expect(dialogGatewayMock.openProfileManagerDialog).toHaveBeenCalled();
+    });
+
+    it('should open profile manager when connect-to-server clicked', async () => {
+      createFixtureWithMode('local');
+
+      const menuButton = fixture.nativeElement.querySelector(
+        '[data-testid="user-menu-button"]'
+      );
+      menuButton?.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const connectToServer = document.querySelector(
+        '[data-testid="connect-to-server-button"]'
+      ) as HTMLElement;
+      connectToServer?.click();
+      await fixture.whenStable();
+
+      expect(dialogGatewayMock.openProfileManagerDialog).toHaveBeenCalled();
     });
 
     it('should get correct profile display for local mode', () => {

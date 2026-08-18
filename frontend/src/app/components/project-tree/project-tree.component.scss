@@ -34,7 +34,7 @@
   flex-direction: column;
   height: 100%;
   position: relative;
-  overflow: auto;
+  overflow: hidden;
 }
 
 // Open tab indicator - shows a line on the left for items with open tabs
@@ -171,6 +171,29 @@
   &:hover {
     opacity: 1;
     color: var(--sys-primary);
+  }
+}
+
+// Fixed footer variant: pinned to the bottom of the tree container so it
+// stays visible even when the tree is long and scrolls. The aria-tree above
+// it scrolls independently.
+.create-footer {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 36px;
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+  border: none;
+  border-top: 1px solid var(--sys-outline-variant);
+  background-color: var(--sys-surface-container);
+  font: inherit;
+  text-align: left;
+
+  &:focus {
+    background-color: var(--sys-surface-container-high);
   }
 }
 

@@ -18,19 +18,16 @@ test.describe('Doc Stats Hover (Local Mode)', () => {
     await page.waitForURL(/\/testuser\//);
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
-    // Hover the sidebar connection status — should not trigger any API call.
-    // The local-mode guard is synchronous (returns immediately), so no wait
-    // is needed; the fixture's afterEach catches any leaked requests.
-    const connectionStatus = page.getByTestId('sidebar-connection-status');
-    await expect(connectionStatus).toBeVisible();
-    await connectionStatus.hover();
-
-    // Verify the tooltip does not contain stats text (would indicate a fetch
-    // happened despite the local-mode guard).
-    await expect(connectionStatus).not.toHaveAttribute(
-      'aria-describedby',
-      /Rows:/
-    );
+    // In local mode the sidebar connection status is rendered as a strap that
+    // is hidden entirely (there is nothing to report while local), so there is
+    // no sync indicator to hover. Assert the strap is absent — this also
+    // verifies the local-mode guard: the fixture's afterEach catches any
+    // leaked API requests.
+    await expect(
+      page
+        .getByTestId('sidebar-connection-status')
+        .getByTestId('connection-strap')
+    ).toHaveCount(0);
 
     // Open a document to test the editor sync status hover
     const firstDoc = page
