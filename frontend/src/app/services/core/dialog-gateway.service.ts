@@ -26,6 +26,10 @@ import {
 } from '../../dialogs/field-config-dialog/field-config-dialog.component';
 import { FileUploadComponent } from '../../dialogs/file-upload/file-upload.component';
 import {
+  IconPickerDialogComponent,
+  type IconPickerDialogData,
+} from '../../dialogs/icon-picker-dialog/icon-picker-dialog.component';
+import {
   ImageGenerationDialogComponent,
   type ImageGenerationDialogData,
   type ImageGenerationDialogResult,
@@ -147,6 +151,19 @@ export class DialogGatewayService {
       data,
       disableClose: true,
       width: '560px',
+      maxWidth: '92vw',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  /** Open the icon picker dialog. Resolves with the chosen icon or undefined. */
+  openIconPickerDialog(
+    data: IconPickerDialogData
+  ): Promise<string | undefined> {
+    const dialogRef = this.dialog.open(IconPickerDialogComponent, {
+      data,
+      disableClose: true,
+      width: '480px',
       maxWidth: '92vw',
     });
     return firstValueFrom(dialogRef.afterClosed());

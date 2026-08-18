@@ -130,8 +130,10 @@ test.describe('Worldbuilding Templates', () => {
       await nameInput.click();
       await nameInput.fill('Custom Event');
 
-      // Icon is a palette picker; pick 'event' from the available icons.
-      await page.getByTestId('schema-icon-input-event').click();
+      // Icon is a button that opens the picker dialog; pick 'event'.
+      await page.getByTestId('schema-icon-button').click();
+      await page.getByTestId('icon-picker-option-event').click();
+      await page.getByTestId('icon-picker-confirm').click();
 
       await page
         .getByTestId('schema-description-input')

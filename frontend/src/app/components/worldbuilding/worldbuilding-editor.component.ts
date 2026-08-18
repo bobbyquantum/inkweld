@@ -895,6 +895,31 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     return all.includes(current) ? all : [...all, current];
   }
 
+  /** Open the icon picker dialog and apply the chosen icon to a tab. */
+  protected async pickTabIcon(tab: TabSchema): Promise<void> {
+    const icon = await this.dialogGateway.openIconPickerDialog({
+      current: this.getTabIcon(tab),
+      icons: this.getIconChoices(this.getTabIcon(tab)),
+      titleKey: 'worldbuilding.schemaEdit.tabIcon',
+    });
+    if (icon) {
+      this.onUpdateTab(tab.key, { icon });
+    }
+  }
+
+  /** Open the icon picker dialog and apply the chosen icon to the schema. */
+  protected async pickSchemaIcon(): Promise<void> {
+    const current = this.previewSchema()?.icon ?? 'category';
+    const icon = await this.dialogGateway.openIconPickerDialog({
+      current,
+      icons: this.getIconChoices(current),
+      titleKey: 'templates.editor.iconLabel',
+    });
+    if (icon) {
+      this.onSchemaInfoChange({ icon });
+    }
+  }
+
   protected onAddTab(): void {
     this.emitSchemaEdit({ type: 'add-tab' });
   }

@@ -18,6 +18,7 @@ import { EditAvatarDialogComponent } from '../../dialogs/edit-avatar-dialog/edit
 import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { FieldConfigDialogComponent } from '../../dialogs/field-config-dialog/field-config-dialog.component';
 import { FileUploadComponent } from '../../dialogs/file-upload/file-upload.component';
+import { IconPickerDialogComponent } from '../../dialogs/icon-picker-dialog/icon-picker-dialog.component';
 import { ImageGenerationDialogComponent } from '../../dialogs/image-generation-dialog/image-generation-dialog.component';
 import {
   ImageViewerDialogComponent,
@@ -170,6 +171,25 @@ describe('DialogGatewayService', () => {
       maxWidth: '92vw',
     });
     expect(result).toEqual({ label: 'Full Name' });
+  });
+
+  it('should open the icon picker dialog', async () => {
+    const data = {
+      current: 'person',
+      icons: ['person', 'place'],
+      titleKey: 'templates.editor.iconLabel',
+    };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of('map'));
+
+    const result = await service.openIconPickerDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(IconPickerDialogComponent, {
+      data,
+      disableClose: true,
+      width: '480px',
+      maxWidth: '92vw',
+    });
+    expect(result).toBe('map');
   });
 
   it('should open file upload dialog', async () => {

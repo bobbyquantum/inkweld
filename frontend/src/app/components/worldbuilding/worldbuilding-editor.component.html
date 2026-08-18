@@ -207,15 +207,19 @@
               <span class="icon-field-label">{{
                 'worldbuilding.schemaEdit.tabIcon' | transloco
               }}</span>
-              <ng-container
-                [ngTemplateOutlet]="iconPalette"
-                [ngTemplateOutletContext]="{
-                  current: getTabIcon(tab),
-                  select: icon => onUpdateTab(tab.key, { icon: icon }),
-                  label: 'worldbuilding.schemaEdit.tabIcon' | transloco,
-                  testidPrefix: 'tab-icon-select-' + tab.key,
-                }">
-              </ng-container>
+              <button
+                type="button"
+                class="icon-picker-button"
+                (click)="pickTabIcon(tab)"
+                [attr.aria-label]="
+                  'worldbuilding.schemaEdit.tabIcon' | transloco
+                "
+                [attr.data-testid]="'tab-icon-button-' + tab.key">
+                <mat-icon aria-hidden="true">{{ getTabIcon(tab) }}</mat-icon>
+                <mat-icon class="icon-picker-chevron" aria-hidden="true"
+                  >arrow_drop_down</mat-icon
+                >
+              </button>
             </div>
           </div>
         }
@@ -245,15 +249,19 @@
             <span class="icon-field-label">{{
               'templates.editor.iconLabel' | transloco
             }}</span>
-            <ng-container
-              [ngTemplateOutlet]="iconPalette"
-              [ngTemplateOutletContext]="{
-                current: previewSchema()?.icon ?? 'category',
-                select: icon => onSchemaInfoChange({ icon: icon }),
-                label: 'templates.editor.iconLabel' | transloco,
-                testidPrefix: 'schema-icon-input',
-              }">
-            </ng-container>
+            <button
+              type="button"
+              class="icon-picker-button"
+              (click)="pickSchemaIcon()"
+              [attr.aria-label]="'templates.editor.iconLabel' | transloco"
+              data-testid="schema-icon-button">
+              <mat-icon aria-hidden="true">{{
+                previewSchema()?.icon ?? 'category'
+              }}</mat-icon>
+              <mat-icon class="icon-picker-chevron" aria-hidden="true"
+                >arrow_drop_down</mat-icon
+              >
+            </button>
           </div>
 
           <mat-form-field appearance="outline" class="full-width">
@@ -273,29 +281,6 @@
               data-testid="schema-description-input"
               rows="3"></textarea>
           </mat-form-field>
-        </div>
-      </ng-template>
-      <!-- Icon palette picker (grid of icon-only choices). Context: current,
-           select, label, testidPrefix. -->
-      <ng-template
-        #iconPalette
-        let-current="current"
-        let-select="select"
-        let-label="label"
-        let-testidPrefix="testidPrefix">
-        <div class="icon-palette" role="radiogroup" [attr.aria-label]="label">
-          @for (icon of getIconChoices(current); track icon) {
-            <button
-              type="button"
-              class="icon-palette-option"
-              [class.selected]="icon === current"
-              (click)="select(icon)"
-              [attr.aria-label]="icon"
-              [attr.aria-pressed]="icon === current"
-              [attr.data-testid]="testidPrefix + '-' + icon">
-              <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
-            </button>
-          }
         </div>
       </ng-template>
       @if (isInitialLoading()) {

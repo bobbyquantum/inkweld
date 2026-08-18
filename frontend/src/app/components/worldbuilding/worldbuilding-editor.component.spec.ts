@@ -39,6 +39,7 @@ describe('WorldbuildingEditorComponent', () => {
     openConfirmationDialog: ReturnType<typeof vi.fn>;
     openTemplateSnapshotsDialog: ReturnType<typeof vi.fn>;
     openFieldConfigDialog: ReturnType<typeof vi.fn>;
+    openIconPickerDialog: ReturnType<typeof vi.fn>;
   };
   let matDialogMock: {
     open: ReturnType<typeof vi.fn>;
@@ -160,6 +161,7 @@ describe('WorldbuildingEditorComponent', () => {
       openConfirmationDialog: vi.fn().mockResolvedValue(true),
       openTemplateSnapshotsDialog: vi.fn().mockResolvedValue(undefined),
       openFieldConfigDialog: vi.fn().mockResolvedValue(undefined),
+      openIconPickerDialog: vi.fn().mockResolvedValue(undefined),
     };
     matDialogMock = {
       open: vi.fn(),
@@ -1237,6 +1239,35 @@ describe('WorldbuildingEditorComponent', () => {
     it('should not duplicate an icon already in the curated list', () => {
       const icons = component['getIconChoices']('person');
       expect(icons.filter(i => i === 'person')).toHaveLength(1);
+    });
+
+    it('should apply the chosen tab icon from the picker dialog', async () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      dialogGatewayMock.openIconPickerDialog.mockResolvedValue('star');
+      const tab = mockCharacterSchema.tabs[0];
+      await component['pickTabIcon'](tab);
+      expect(emit).toHaveBeenCalledWith({
+        type: 'update-tab',
+        tabKey: tab.key,
+        patch: { icon: 'star' },
+      });
+    });
+
+    it('should not emit a tab icon when the picker is cancelled', async () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      dialogGatewayMock.openIconPickerDialog.mockResolvedValue(undefined);
+      await component['pickTabIcon'](mockCharacterSchema.tabs[0]);
+      expect(emit).not.toHaveBeenCalled();
+    });
+
+    it('should apply the chosen schema icon from the picker dialog', async () => {
+      const emit = vi.fn();
+      component.schemaInfoChange.subscribe(emit);
+      dialogGatewayMock.openIconPickerDialog.mockResolvedValue('map');
+      await component['pickSchemaIcon']();
+      expect(emit).toHaveBeenCalledWith({ icon: 'map' });
     });
 
     it('should open the template snapshots dialog in schema edit mode', () => {

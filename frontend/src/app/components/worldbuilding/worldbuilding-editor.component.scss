@@ -266,46 +266,39 @@
   margin-bottom: 1rem;
 }
 
-// Icon palette picker: a wrapping grid of icon-only buttons.
-.icon-palette {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+// A single clickable icon button that opens the icon picker dialog.
+.icon-picker-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 8px;
+  background: var(--sys-surface-container-low);
+  cursor: pointer;
+  color: var(--sys-on-surface);
 
-  .icon-palette-option {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    background: transparent;
-    cursor: pointer;
+  mat-icon {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+  }
+
+  .icon-picker-chevron {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
     color: var(--sys-on-surface-variant);
+  }
 
-    mat-icon {
-      font-size: 22px;
-      width: 22px;
-      height: 22px;
-    }
+  &:hover {
+    border-color: var(--sys-primary);
+    background-color: color-mix(in srgb, var(--sys-primary) 10%, transparent);
+  }
 
-    &:hover {
-      background-color: color-mix(in srgb, var(--sys-primary) 12%, transparent);
-      color: var(--sys-on-surface);
-    }
-
-    &.selected {
-      border-color: var(--sys-primary);
-      background-color: color-mix(in srgb, var(--sys-primary) 16%, transparent);
-      color: var(--sys-primary);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--sys-primary);
-      outline-offset: 1px;
-    }
+  &:focus-visible {
+    outline: 2px solid var(--sys-primary);
+    outline-offset: 1px;
   }
 }
 
