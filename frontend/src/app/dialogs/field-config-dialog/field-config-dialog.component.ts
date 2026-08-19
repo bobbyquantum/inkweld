@@ -136,9 +136,14 @@ export class FieldConfigDialogComponent {
       key: trimmedKey,
       label: this.label().trim(),
       type: this.type(),
-      validation: { required: this.required() },
       layout: { span: this.clamp(this.span(), 1, 12) },
     };
+
+    // Only store validation when the field is required, so fields edited
+    // without a requirement don't accumulate an empty validation object.
+    if (this.required()) {
+      result.validation = { required: true };
+    }
 
     const trimmedPlaceholder = this.placeholder().trim();
     if (trimmedPlaceholder) {

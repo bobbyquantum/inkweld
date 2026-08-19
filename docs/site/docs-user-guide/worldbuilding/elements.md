@@ -115,12 +115,12 @@ A template consists of:
 | ---------------- | -------------------------------- | -------------------------- |
 | **Short Text**   | Names, titles, brief info        | "Elena Blackwood"          |
 | **Long Text**    | Plain text descriptions          | Backstory summary          |
-| **Rich Text**    | Formatted content with @mentions | Detailed history           |
 | **Selection**    | Pick from options                | "Faction Type: Guild"      |
 | **Multi-Select** | Pick multiple options            | "Abilities: Flight, Magic" |
 | **Number**       | Numeric values                   | "Level: 5"                 |
 | **Date**         | Timeline entries                 | "Founded: 1242"            |
 | **Toggle**       | Yes/No values                    | "Active: ✓"                |
+| **Array**        | A list of short tags             | Tags, features             |
 
 ### The Template Editor
 
@@ -141,11 +141,16 @@ stacked panels on narrow screens):
 In each tab you can:
 
 - **Add fields** with the "Add field" button
-- **Edit a field** inline — click the field's edit control to change its label,
-  type, placeholder, options, and more
+- **Edit a field** in a settings dialog — click the field's edit control (⚙) to
+  change its label, key, type, placeholder, options, required state, column span,
+  and more
 - **Remove or reorder fields** with the controls on each field
-- **Rename the tab and pick its icon** from the fields at the top of the tab
+- **Rename the tab** and **pick its icon** from a picker dialog at the top of the
+  tab
 - **Add or remove tabs** from the navigation
+
+Column span controls how wide a field is across the tab's 12-column grid — pick
+a span in the field settings dialog, and the preview reflects it.
 
 Under **Schema Details** you set the template's name, icon, and description. Under
 **Styling** you can set a default appearance (backgrounds) and default image that
@@ -258,7 +263,7 @@ Track objects and artifacts:
 1. Go to **Project Settings** → **Element Templates**
 2. Click the **three-dot menu** (⋮) on the template card
 3. Select **"Edit"** to open the Template Editor
-4. Add, remove, or reorder fields and tabs
+4. Add, remove, or reorder fields within each tab
 5. Changes save automatically — just close the editor when you're done
 
 <ThemedImage
@@ -293,8 +298,6 @@ Deleting a template **does not** delete elements that use it, but those elements
 ### Organizing Fields
 
 - **Reorder fields** within a tab using the up/down arrows on each field
-- **Move fields between tabs** by removing them from one tab and adding them to another
-- **Reorder tabs** by removing and re-adding them in the order you want
 
 ## Working with Elements
 
