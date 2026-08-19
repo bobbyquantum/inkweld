@@ -1381,6 +1381,26 @@ export class DocumentService {
         }
       );
 
+      // Teardown can race with the async createAuthWsProvider: if the
+      // connection was removed from the map while the provider was still being
+      // created, `connection` is now orphaned. Bail out by tearing down the
+      // freshly-created provider instead of wiring an online listener (and its
+      // reconnect closure) onto a dead connection — otherwise the listener
+      // leaks and would reconnect a destroyed provider.
+      if (this.connections.get(documentId) !== connection) {
+        try {
+          provider.disconnect();
+          provider.destroy();
+        } catch (error) {
+          this.logger.warn(
+            'DocumentService',
+            `Error tearing down orphaned provider for ${documentId}`,
+            error
+          );
+        }
+        return;
+      }
+
       // Update the connection object with the provider
       connection.provider = provider;
 

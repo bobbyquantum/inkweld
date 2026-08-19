@@ -1162,6 +1162,83 @@ describe('DocumentService', () => {
         connectCallsBefore
       );
     });
+
+    it('tears down an orphaned provider when the connection is disconnected during provider creation', async () => {
+      // Defer provider resolution so the connection can be torn down while
+      // createAuthWsProvider is still pending — the race coderabbit flagged.
+      // The continuation must detect the stale connection, tear down the
+      // freshly-created provider, and skip wiring an online listener.
+      let resolveProvider!: (p: WebsocketProvider) => void;
+      const deferredProvider = new Promise<WebsocketProvider>(
+        r => (resolveProvider = r)
+      );
+      mockCreateAuthWsProvider.mockReturnValueOnce(deferredProvider);
+
+      const ydoc = new Y.Doc();
+      const connection: DocumentConnection = {
+        ydoc,
+        provider: null,
+        type: ydoc.getXmlFragment('prosemirror'),
+        indexeddbProvider: _mockIndexedDbProvider,
+      };
+      const editorWithView = {
+        ...mockEditor,
+        view: {
+          ...mockEditor.view,
+          dom: { parentNode: {} },
+          state: {
+            ...mockEditor.view.state,
+            plugins: [],
+            reconfigure: vi.fn().mockReturnValue({}),
+          },
+          updateState: vi.fn(),
+        },
+      } as unknown as DeepMockProxy<Editor>;
+
+      service.initializeSyncStatus(testDocumentId);
+      (
+        service as unknown as { connections: Map<string, unknown> }
+      ).connections.set(testDocumentId, connection);
+
+      const privateService = service as unknown as {
+        connectWebSocketInBackground: (
+          websocketUrl: string | null,
+          documentId: string,
+          doc: Y.Doc,
+          editor: Editor,
+          connection: DocumentConnection
+        ) => Promise<void>;
+      };
+
+      const connectPromise = privateService.connectWebSocketInBackground(
+        'ws://localhost:8333',
+        testDocumentId,
+        ydoc,
+        editorWithView,
+        connection
+      );
+
+      // Teardown while the provider is still being created.
+      service.disconnect(testDocumentId);
+
+      // Resolve the provider; the continuation must notice the connection was
+      // removed, disconnect + destroy the orphaned provider, and return
+      // without registering an online listener.
+      resolveProvider(mockWebSocketProvider);
+      await connectPromise;
+
+      expect(mockWebSocketProvider.disconnect).toHaveBeenCalled();
+      expect(mockWebSocketProvider.destroy).toHaveBeenCalled();
+
+      // No 'online' listener was registered for the orphaned provider, so an
+      // 'online' event must not reconnect it.
+      const connectCallsBefore =
+        mockWebSocketProvider.connect.mock.calls.length;
+      globalThis.dispatchEvent(new Event('online'));
+      expect(mockWebSocketProvider.connect.mock.calls).toHaveLength(
+        connectCallsBefore
+      );
+    });
   });
 
   describe('Collaboration Setup', () => {
