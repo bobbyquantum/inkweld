@@ -1239,6 +1239,70 @@ describe('DocumentService', () => {
         connectCallsBefore
       );
     });
+
+    it('still destroys the orphaned provider when disconnect throws', async () => {
+      // Guard that disconnect() and destroy() are torn down independently: a
+      // disconnect() failure must not skip destroy() (whose wrapper clears the
+      // keepalive interval).
+      let resolveProvider!: (p: WebsocketProvider) => void;
+      const deferredProvider = new Promise<WebsocketProvider>(
+        r => (resolveProvider = r)
+      );
+      mockCreateAuthWsProvider.mockReturnValueOnce(deferredProvider);
+      mockWebSocketProvider.disconnect.mockImplementationOnce(() => {
+        throw new Error('boom');
+      });
+
+      const ydoc = new Y.Doc();
+      const connection: DocumentConnection = {
+        ydoc,
+        provider: null,
+        type: ydoc.getXmlFragment('prosemirror'),
+        indexeddbProvider: _mockIndexedDbProvider,
+      };
+      const editorWithView = {
+        ...mockEditor,
+        view: {
+          ...mockEditor.view,
+          dom: { parentNode: {} },
+          state: {
+            ...mockEditor.view.state,
+            plugins: [],
+            reconfigure: vi.fn().mockReturnValue({}),
+          },
+          updateState: vi.fn(),
+        },
+      } as unknown as DeepMockProxy<Editor>;
+
+      service.initializeSyncStatus(testDocumentId);
+      (
+        service as unknown as { connections: Map<string, unknown> }
+      ).connections.set(testDocumentId, connection);
+
+      const privateService = service as unknown as {
+        connectWebSocketInBackground: (
+          websocketUrl: string | null,
+          documentId: string,
+          doc: Y.Doc,
+          editor: Editor,
+          connection: DocumentConnection
+        ) => Promise<void>;
+      };
+
+      const connectPromise = privateService.connectWebSocketInBackground(
+        'ws://localhost:8333',
+        testDocumentId,
+        ydoc,
+        editorWithView,
+        connection
+      );
+      service.disconnect(testDocumentId);
+      resolveProvider(mockWebSocketProvider);
+      await connectPromise;
+
+      // disconnect() threw, but destroy() must still have run.
+      expect(mockWebSocketProvider.destroy).toHaveBeenCalled();
+    });
   });
 
   describe('Collaboration Setup', () => {

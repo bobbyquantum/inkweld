@@ -1388,13 +1388,24 @@ export class DocumentService {
       // reconnect closure) onto a dead connection — otherwise the listener
       // leaks and would reconnect a destroyed provider.
       if (this.connections.get(documentId) !== connection) {
+        // Guard disconnect() and destroy() independently so destroy() always
+        // runs (its wrapper clears the keepalive interval) even when
+        // disconnect() throws.
         try {
           provider.disconnect();
+        } catch (error) {
+          this.logger.warn(
+            'DocumentService',
+            `Error disconnecting orphaned provider for ${documentId}`,
+            error
+          );
+        }
+        try {
           provider.destroy();
         } catch (error) {
           this.logger.warn(
             'DocumentService',
-            `Error tearing down orphaned provider for ${documentId}`,
+            `Error destroying orphaned provider for ${documentId}`,
             error
           );
         }
