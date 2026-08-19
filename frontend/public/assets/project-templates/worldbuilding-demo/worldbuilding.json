@@ -676,7 +676,6 @@
       "type": "Mountain",
       "location": "Eastern Eldoria, beneath the floating Cloudspire Academy",
       "size": "Over 800 km of peaks, tallest over 6,000 m",
-      "significance": "Source of moonsilver and home to Ironhold and the dwarf clans",
       "summary": "The jagged range that divides Eldoria from the wastes beyond. Its peaks catch the first light of the moon.",
       "description.appearance": "Steep granite peaks dusted with glittering moonsilver veins that shine at night like fallen stars.",
       "description.character": "Harsh and dangerous: rockslides, thin air, and snowstorms that come without warning. The lower slopes are rich in game and ore.",
@@ -691,7 +690,8 @@
         "Iron ore",
         "Hot springs"
       ],
-      "significance.notes": "Cloudspire Academy floats above the highest peak, accessible by magic or airship."
+      "significance.notes": "Cloudspire Academy floats above the highest peak, accessible by magic or airship.",
+      "significanceSummary": "Source of moonsilver and home to Ironhold and the dwarf clans"
     }
   },
   {
@@ -856,7 +856,6 @@
       "name": "Festival of the Silver Moon",
       "type": "Festival",
       "season": "First full moon of autumn",
-      "significance": "Honours Lunara and the memory of the Accord; marks the harvest's end.",
       "summary": "The whole realm lights lanterns at dusk and keeps vigil, telling stories of the past year and sharing harvest food.",
       "practice.participants": "Everyone — the festival is celebrated in every town, village, and grove.",
       "practice.procedure": "At dusk, every lantern is lit. Families share the harvest feast, then gather in town squares to tell stories. At moonrise, the silver toast is drunk and the night vigils begin.",
@@ -870,7 +869,8 @@
       "history.variations": [
         "In Ironhold, the festival becomes the Forge Moon — a night of showing masterworks"
       ],
-      "history.notes": "Silverhollow's festival is the largest; its lanterns reflect in the Silver Fountain."
+      "history.notes": "Silverhollow's festival is the largest; its lanterns reflect in the Silver Fountain.",
+      "significanceSummary": "Honours Lunara and the memory of the Accord; marks the harvest's end."
     }
   },
   {
@@ -1206,7 +1206,6 @@
       "system": "The Sunstone system",
       "type": "Terrestrial",
       "size": "Comparable to a mid-sized habitable world",
-      "inhabitants": "Humans, dwarves, elves, Thornfolk, and countless other peoples",
       "summary": "The planet the known world rests upon, wrapped in the Weave of Arcana and circled by the moons of light and shadow.",
       "description.terrain": "One great ocean, several continents, and mountain ranges that reach into the clouds.",
       "description.climate": "Temperate overall, with a long magical winter in the north during the shadow moon's dominance.",
@@ -1217,7 +1216,8 @@
         "Lunara's Moon (silver)",
         "The Shadow Moon (dark, only visible in the north)"
       ],
-      "astronomy.notes": "Some scholars believe the Shadow Moon is not a moon at all, but a wound in the sky from the Sundering."
+      "astronomy.notes": "Some scholars believe the Shadow Moon is not a moon at all, but a wound in the sky from the Sundering.",
+      "inhabitantsOverview": "Humans, dwarves, elves, Thornfolk, and countless other peoples"
     }
   },
   {
@@ -1228,7 +1228,6 @@
       "name": "The Verdant Court",
       "type": "Pocket Dimension",
       "accessibility": "Reached through rare wild gates beneath ancient trees, or by dreaming in the Heart Grove",
-      "inhabitants": "Fey, Thornfolk dreamers, and the court of the Summer King",
       "summary": "The fey realm that mirrors the forests of the material world. Time flows strangely here, and every promise made binds the maker.",
       "nature.physical": "Impossibly lush forests, meadows of singing flowers, and rivers of honeyed water. The land reshapes itself to match the mood of its visitors.",
       "nature.time": "A day in the Court can be a season outside, or the reverse — the fey keep their own calendar.",
@@ -1250,7 +1249,8 @@
         "Certain dreams"
       ],
       "portals.rules": "Gates open at the solstices. Entering requires an invitation; leaving requires a promise kept.",
-      "portals.notes": "The Library of Moonveil is sometimes said to be not in the material world at all, but in a forgotten wing of the Court."
+      "portals.notes": "The Library of Moonveil is sometimes said to be not in the material world at all, but in a forgotten wing of the Court.",
+      "inhabitantsOverview": "Fey, Thornfolk dreamers, and the court of the Summer King"
     }
   }
 ]
