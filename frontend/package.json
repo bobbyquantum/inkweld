@@ -150,7 +150,7 @@
     "vitest": "^4.0.16",
     "vitest-mock-extended": "5.1.1",
     "wait-on": "^9.0.3",
-    "wrangler": "^4.54.0"
+    "wrangler": "^4.124.0"
   },
   "resolutions": {
     "prosemirror-commands": "1.7.2",
