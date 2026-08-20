@@ -17,7 +17,7 @@ There is no wrong answer — the types exist to give you a head start. If an ent
 
 | Type             | Icon              | Use for                                                                                                                                                                                   |
 | ---------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Character**    | `person`          | People, gods-as-characters, pets, and any individual with agency. Tabs: Basic Info, Appearance, Personality, Background, Abilities, plus an optional **Deity** tab for divine characters. |
+| **Character**    | `person`          | People, gods-as-characters, pets, and any individual with agency. Tabs: Basic Info, Appearance, Personality, Background, Abilities. |
 | **Organization** | `account_balance` | Countries, governments, religions, pantheons, cults, guilds, companies, clans, universities, adventuring parties. Tabs: Basic Info, Leadership, Structure, Holdings, Goals, History.      |
 | **Deity**        | `ac_unit`         | Gods and goddesses as their own entries. Tabs: Basic Info (domains, portfolio, rank), Worship, Relations (divine family, allies, enemies), History.                                       |
 | **Ethnicity**    | `face`            | Cultures and ethnicities — a people sharing ancestry or customs, regardless of borders. Tabs: Basic Info, Culture (dress, values, customs, cuisine, arts), History.                       |
@@ -74,7 +74,6 @@ There is no wrong answer — the types exist to give you a head start. If an ent
 
 ## Tips
 
-- **Deities as characters?** If you prefer that model, use a **Character** and fill in its optional _Deity_ tab instead of creating a separate Deity element.
 - **A space station** might be a Settlement or a Building; a spaceship is a Vehicle.
 - **A magic system** is a Magic System entry; the spells it enables are Spell entries; the school that teaches it is an Organization.
 - **A family or dynasty** is an Organization; each individual member is a Character.
