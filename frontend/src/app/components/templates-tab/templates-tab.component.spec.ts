@@ -21,6 +21,7 @@ describe('TemplatesTabComponent', () => {
     project: ReturnType<typeof signal<Project | null>>;
     elements: ReturnType<typeof signal<any[]>>;
     canWrite: ReturnType<typeof signal<boolean>>;
+    openSchemaEditor: ReturnType<typeof vi.fn>;
   };
   let mockWorldbuildingService: any;
   let mockSnackBar: any;
@@ -57,6 +58,7 @@ describe('TemplatesTabComponent', () => {
       project: signal<Project | null>(null),
       elements: signal([]),
       canWrite: signal(true),
+      openSchemaEditor: vi.fn(),
     };
 
     const initialSchemasSignal = signal<ElementTypeSchema[]>([]);
@@ -318,15 +320,16 @@ describe('TemplatesTabComponent', () => {
   });
 
   describe('editTemplate', () => {
-    it('should switch to edit mode with the loaded schema', () => {
+    it('should open the schema editor tab with the loaded schema', () => {
       mockProjectState.project.set(mockProject);
 
       mockWorldbuildingService.getSchema.mockReturnValue(mockCustomSchema);
 
       component.editTemplate(mockCustomTemplate);
 
-      expect(component.editingState().mode).toBe('edit');
-      expect(component.editingSchema()).toEqual(mockCustomSchema);
+      expect(mockProjectState.openSchemaEditor).toHaveBeenCalledWith(
+        mockCustomSchema
+      );
     });
 
     it('should handle template not found', () => {
@@ -344,118 +347,29 @@ describe('TemplatesTabComponent', () => {
 
       component.editTemplate(template);
 
-      // Should stay in list mode when template not found
-      expect(component.editingState().mode).toBe('list');
-      expect(mockWorldbuildingService.updateTemplate).not.toHaveBeenCalled();
+      // Should not open an editor tab when template not found
+      expect(mockProjectState.openSchemaEditor).not.toHaveBeenCalled();
     });
   });
 
   describe('createTemplate', () => {
-    it('should switch to edit mode with a blank schema', () => {
+    it('should open the schema editor tab with a blank schema', () => {
       mockProjectState.project.set(mockProject);
 
       component.createTemplate();
 
-      expect(component.editingState().mode).toBe('edit');
-      const schema = component.editingSchema();
+      const schema = mockProjectState.openSchemaEditor.mock.calls[0][0];
       expect(schema).not.toBeNull();
-      expect(schema!.name).toBe('New Template');
+      expect(schema.name).toBe('New Template');
+      expect(schema.id).toMatch(/^custom-\d+$/);
     });
 
-    it('should not switch to edit mode without project', () => {
+    it('should not open the editor without a project', () => {
       mockProjectState.project.set(null);
 
       component.createTemplate();
 
-      expect(component.editingState().mode).toBe('list');
-    });
-  });
-
-  describe('onEditorDone', () => {
-    it('should return to list mode when cancelled (null result)', async () => {
-      mockProjectState.project.set(mockProject);
-      mockWorldbuildingService.getSchema.mockReturnValue(mockCustomSchema);
-      component.editTemplate(mockCustomTemplate);
-
-      await component.onEditorDone(null);
-
-      expect(component.editingState().mode).toBe('list');
-      expect(mockWorldbuildingService.updateTemplate).not.toHaveBeenCalled();
-    });
-
-    it('should save an existing template when editor emits a schema', async () => {
-      mockProjectState.project.set(mockProject);
-      mockWorldbuildingService.getSchema.mockReturnValue(mockCustomSchema);
-      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
-      component.editTemplate(mockCustomTemplate);
-
-      const updatedSchema = { ...mockCustomSchema, name: 'Updated Template' };
-      await component.onEditorDone(updatedSchema);
-
-      expect(component.editingState().mode).toBe('list');
-      expect(mockWorldbuildingService.updateTemplate).toHaveBeenCalledWith(
-        'custom-1',
-        updatedSchema
-      );
-    });
-
-    it('should save a new template when creating', async () => {
-      mockProjectState.project.set(mockProject);
-      mockWorldbuildingService.saveSchemaToLibrary.mockReturnValue(undefined);
-      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
-
-      component.createTemplate();
-
-      const newSchema = component.editingSchema()!;
-      const savedSchema = { ...newSchema, name: 'My Template' };
-      await component.onEditorDone(savedSchema);
-
-      expect(component.editingState().mode).toBe('list');
-      expect(mockWorldbuildingService.saveSchemaToLibrary).toHaveBeenCalledWith(
-        savedSchema
-      );
-    });
-  });
-
-  describe('onSchemaChange', () => {
-    it('should live-save an existing template without leaving edit mode', () => {
-      mockProjectState.project.set(mockProject);
-      mockWorldbuildingService.getSchema.mockReturnValue(mockCustomSchema);
-      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
-      component.editTemplate(mockCustomTemplate);
-
-      const updatedSchema = { ...mockCustomSchema, name: 'Autosaved' };
-      component.onSchemaChange(updatedSchema);
-
-      expect(component.editingState().mode).toBe('edit');
-      expect(component.editingSchema()?.name).toBe('Autosaved');
-      expect(mockWorldbuildingService.updateTemplate).toHaveBeenCalledWith(
-        'custom-1',
-        updatedSchema
-      );
-    });
-
-    it('should live-save a new template to the library', () => {
-      mockProjectState.project.set(mockProject);
-      mockWorldbuildingService.saveSchemaToLibrary.mockReturnValue(undefined);
-      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
-      component.createTemplate();
-
-      const schema = { ...component.editingSchema()!, name: 'Auto new' };
-      component.onSchemaChange(schema);
-
-      expect(component.editingState().mode).toBe('edit');
-      expect(mockWorldbuildingService.saveSchemaToLibrary).toHaveBeenCalledWith(
-        schema
-      );
-    });
-
-    it('should do nothing when not editing', () => {
-      component.onSchemaChange(mockCustomSchema);
-      expect(mockWorldbuildingService.updateTemplate).not.toHaveBeenCalled();
-      expect(
-        mockWorldbuildingService.saveSchemaToLibrary
-      ).not.toHaveBeenCalled();
+      expect(mockProjectState.openSchemaEditor).not.toHaveBeenCalled();
     });
   });
 

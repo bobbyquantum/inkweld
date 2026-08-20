@@ -1,0 +1,10 @@
+@if (schema(); as schema) {
+  <app-template-editor-page
+    [schema]="schema"
+    (done)="onDone($event)"
+    (schemaChange)="onSchemaChange($event)" />
+} @else {
+  <div class="schema-editor-loading">
+    <mat-spinner diameter="30"></mat-spinner>
+  </div>
+}

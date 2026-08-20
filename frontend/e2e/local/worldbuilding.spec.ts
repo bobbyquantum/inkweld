@@ -139,9 +139,12 @@ test.describe('Worldbuilding Templates', () => {
         .getByTestId('schema-description-input')
         .fill('Template for story events');
 
-      // Changes autosave; the back button exits the editor.
+      // Changes autosave; the back button closes the editor tab. Return to the
+      // templates section (the editor is now a top-level tab, so closing it
+      // leaves the tab bar — navigate back to Settings → Element Templates).
       await page.getByTestId('template-editor-back').click();
       await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
+      await gotoTemplatesTab(page);
       await expect(
         page.getByTestId('template-card').filter({ hasText: 'Custom Event' })
       ).toBeVisible();
@@ -201,6 +204,8 @@ test.describe('Worldbuilding Templates', () => {
       await page.getByTestId('fc-save').click();
       await page.getByTestId('template-editor-back').click();
       await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
+      // Return to the templates section before reopening in the next step.
+      await gotoTemplatesTab(page);
     });
 
     await test.step('field config supports options, nested keys, span and required', async () => {
@@ -241,6 +246,7 @@ test.describe('Worldbuilding Templates', () => {
     });
 
     await test.step('custom template can be used to create an element with the right icon', async () => {
+      // We're on the templates section after closing the editor; go home.
       await page.getByTestId('toolbar-home-button').click();
       await expect(page.getByTestId('create-new-element')).toBeVisible();
       await page.getByTestId('create-new-element').click();

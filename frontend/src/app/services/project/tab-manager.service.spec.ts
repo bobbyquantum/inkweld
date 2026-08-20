@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import { type AppTab, TabManagerService } from './tab-manager.service';
 
@@ -175,6 +176,43 @@ describe('TabManagerService', () => {
       expect(result1.wasCreated).toBe(true);
       expect(result2.wasCreated).toBe(false);
       expect(service.openTabs().length).toBe(1);
+    });
+  });
+
+  describe('openSchemaEditor', () => {
+    const createSchema = (
+      id: string,
+      name = 'Template'
+    ): ElementTypeSchema => ({
+      id,
+      name,
+      icon: 'article',
+      description: '',
+      version: 1,
+      tabs: [],
+    });
+
+    it('should create a schema-editor tab with the schema', () => {
+      const schema = createSchema('schema-1');
+      const result = service.openSchemaEditor(schema);
+
+      expect(result.wasCreated).toBe(true);
+      expect(result.tab.type).toBe('schema-editor');
+      expect(result.tab.id).toBe('schema-schema-1');
+      expect(result.tab.schema).toBe(schema);
+      expect(service.selectedTabIndex()).toBe(result.index);
+    });
+
+    it('should select an existing schema-editor tab (dedupe by id)', () => {
+      const schema = createSchema('schema-1');
+      const r1 = service.openSchemaEditor(schema);
+      const r2 = service.openSchemaEditor(createSchema('schema-1', 'Renamed'));
+
+      expect(r1.wasCreated).toBe(true);
+      expect(r2.wasCreated).toBe(false);
+      expect(r2.tab.id).toBe('schema-schema-1');
+      expect(service.openTabs().length).toBe(1);
+      expect(r2.tab.name).toBe('Renamed');
     });
   });
 
@@ -371,6 +409,22 @@ describe('TabManagerService', () => {
 
       expect(validTabs.length).toBe(1);
       expect(validTabs[0].type).toBe('system');
+    });
+
+    it('should keep schema-editor tabs regardless of elements', () => {
+      service.openSchemaEditor({
+        id: 'schema-1',
+        name: 'Character',
+        icon: 'person',
+        description: '',
+        version: 1,
+        tabs: [],
+      });
+
+      const validTabs = service.validateAndFilterTabs([]);
+
+      expect(validTabs.length).toBe(1);
+      expect(validTabs[0].type).toBe('schema-editor');
     });
 
     it('should remove document tabs for missing elements', () => {

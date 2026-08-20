@@ -64,6 +64,7 @@ const TAB_TYPE_ICONS: Partial<Record<AppTab['type'], string>> = {
   folder: 'folder',
   'relationship-chart': 'hub',
   canvas: 'dashboard',
+  'schema-editor': 'edit_note',
 };
 
 @Component({
@@ -191,6 +192,18 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
             (tab.id.startsWith('publish-plan-')
               ? tab.id.slice('publish-plan-'.length)
               : tab.id),
+        ]);
+      } else if (tab.type === 'schema-editor') {
+        // Schema editor tab — id is "schema-<schemaId>"
+        const schemaId = tab.id.startsWith('schema-')
+          ? tab.id.slice('schema-'.length)
+          : tab.id;
+        void this.router.navigate([
+          '/',
+          project.username,
+          project.slug,
+          'schema',
+          schemaId,
         ]);
       } else {
         // Document or folder tab
@@ -417,15 +430,21 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   updateSelectedTabFromUrl(): void {
-    const { systemRoute, publishPlanId, tabId } = this.parseRouteInfo();
+    const { systemRoute, publishPlanId, schemaId, tabId } =
+      this.parseRouteInfo();
 
     // Check if we are at the project root (home tab)
-    if (!tabId && !systemRoute && !publishPlanId) {
+    if (!tabId && !systemRoute && !publishPlanId && !schemaId) {
       this.selectOrOpenHomeTab();
       return;
     }
 
-    const tabIndex = this.findOrCreateTab(systemRoute, publishPlanId, tabId);
+    const tabIndex = this.findOrCreateTab(
+      systemRoute,
+      publishPlanId,
+      schemaId,
+      tabId
+    );
     if (tabIndex !== -1) {
       this.projectState.selectTab(tabIndex);
     }
@@ -434,6 +453,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   private parseRouteInfo(): {
     systemRoute: SystemRoute | null;
     publishPlanId: string | null;
+    schemaId: string | null;
     tabId: string | null;
   } {
     const url = this.router.url;
@@ -453,7 +473,12 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
 
       for (const route of systemRoutes) {
         if (url === `${projectBaseUrl}/${route}`) {
-          return { systemRoute: route, publishPlanId: null, tabId: null };
+          return {
+            systemRoute: route,
+            publishPlanId: null,
+            schemaId: null,
+            tabId: null,
+          };
         }
       }
 
@@ -462,7 +487,25 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         if (planId?.includes('?')) {
           planId = planId.split('?')[0];
         }
-        return { systemRoute: null, publishPlanId: planId, tabId: null };
+        return {
+          systemRoute: null,
+          publishPlanId: planId,
+          schemaId: null,
+          tabId: null,
+        };
+      }
+
+      if (url.startsWith(`${projectBaseUrl}/schema/`)) {
+        let schemaId = url.split('/').at(-1) ?? null;
+        if (schemaId?.includes('?')) {
+          schemaId = schemaId.split('?')[0];
+        }
+        return {
+          systemRoute: null,
+          publishPlanId: null,
+          schemaId,
+          tabId: null,
+        };
       }
     }
 
@@ -479,7 +522,12 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     }
 
-    return { systemRoute: null, publishPlanId: null, tabId };
+    return {
+      systemRoute: null,
+      publishPlanId: null,
+      schemaId: null,
+      tabId,
+    };
   }
 
   private selectOrOpenHomeTab(): void {
@@ -496,6 +544,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   private findOrCreateTab(
     systemRoute: SystemRoute | null,
     publishPlanId: string | null,
+    schemaId: string | null,
     tabId: string | null
   ): number {
     if (systemRoute) {
@@ -503,6 +552,9 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     if (publishPlanId) {
       return this.findOrCreatePublishPlanTab(publishPlanId);
+    }
+    if (schemaId) {
+      return this.findOrCreateSchemaEditorTab(schemaId);
     }
     if (tabId) {
       return this.findOrCreateDocumentTab(tabId);
@@ -550,6 +602,24 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
               (tab.publishPlan?.id === publishPlanId ||
                 tab.id === `publish-plan-${publishPlanId}`)
           );
+      }
+    }
+    return tabIndex;
+  }
+
+  private findOrCreateSchemaEditorTab(schemaId: string): number {
+    let tabIndex = this.projectState
+      .openTabs()
+      .findIndex(tab => tab.id === `schema-${schemaId}`);
+
+    if (tabIndex === -1) {
+      // Look up the schema from the library; only open the editor if it exists.
+      const schema = this.worldbuildingService.getSchema(schemaId);
+      if (schema) {
+        this.projectState.openSchemaEditor(schema);
+        tabIndex = this.projectState
+          .openTabs()
+          .findIndex(tab => tab.id === `schema-${schemaId}`);
       }
     }
     return tabIndex;

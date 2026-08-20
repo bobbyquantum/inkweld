@@ -16,6 +16,7 @@ import { type Subscription } from 'rxjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type PublishPlan } from '../../models/publish-plan';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
@@ -1155,6 +1156,21 @@ export class ProjectStateService implements OnDestroy {
     return { index: result.index, wasCreated: result.wasCreated };
   }
 
+  /**
+   * Open (or select) a schema-editor tab for editing a template schema.
+   * The editor is a first-class top-level tab like an open document.
+   */
+  openSchemaEditor(schema: ElementTypeSchema): {
+    index: number;
+    wasCreated: boolean;
+  } {
+    const result = this.tabManager.openSchemaEditor(schema);
+    if (result.wasCreated) {
+      void this.saveOpenedDocumentsToCache();
+    }
+    return { index: result.index, wasCreated: result.wasCreated };
+  }
+
   /** Opens the home tab */
   openHomeTab(): void {
     this.openSystemTab('home');
@@ -1534,7 +1550,9 @@ export class ProjectStateService implements OnDestroy {
         // This ensures properties like schemaId are up-to-date
         const validTabs = tabs
           .filter(tab => {
-            if (tab.type === 'system') return true;
+            if (tab.type === 'system' || tab.type === 'schema-editor') {
+              return true;
+            }
             return (
               tab.element &&
               currentElements.some(element => element.id === tab.id)

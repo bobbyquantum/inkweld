@@ -1,13 +1,7 @@
-@if (editingState().mode === 'edit' && editingSchema(); as schema) {
-  <app-template-editor-page
-    [schema]="schema"
-    (done)="onEditorDone($event)"
-    (schemaChange)="onSchemaChange($event)" />
-} @else {
-  <div class="templates-tab" data-testid="templates-tab">
-    <div class="header">
-      <h2>{{ 'templates.tab.title' | transloco }}</h2>
-      <p class="hint">
+<div class="templates-tab" data-testid="templates-tab">
+  <div class="header">
+    <h2>{{ 'templates.tab.title' | transloco }}</h2>
+    <p class="hint">
         {{ 'templates.tab.hint' | transloco }}
       </p>
     </div>
@@ -134,4 +128,3 @@
       </div>
     }
   </div>
-}

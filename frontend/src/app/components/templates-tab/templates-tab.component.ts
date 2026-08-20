@@ -21,8 +21,6 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 
-import { TemplateEditorPageComponent } from './template-editor-page/template-editor-page.component';
-
 /**
  * Injection token for reload delay after mutations.
  * In tests, this can be overridden to speed up tests.
@@ -34,15 +32,6 @@ export const TEMPLATE_RELOAD_DELAY = new InjectionToken<number>(
     factory: () => 500, // Default 500ms in production
   }
 );
-
-/**
- * Editing state: either showing the list, or the inline editor.
- * `schema` is the schema being created/edited.
- * `templateId` is null when creating a new template.
- */
-type EditingState =
-  | { mode: 'list' }
-  | { mode: 'edit'; schema: ElementTypeSchema; templateId: string | null };
 
 interface TemplateSchema {
   /** Schema ID (nanoid) - used for all lookups */
@@ -70,7 +59,6 @@ interface TemplateSchema {
     MatMenuModule,
     MatTooltipModule,
     SettingsTabStatusComponent,
-    TemplateEditorPageComponent,
     TranslocoModule,
   ],
 })
@@ -100,15 +88,6 @@ export class TemplatesTabComponent {
         t.label.toLowerCase().includes(query) ||
         t.description?.toLowerCase().includes(query)
     );
-  });
-
-  /** Controls whether to show the list or the inline editor. */
-  readonly editingState = signal<EditingState>({ mode: 'list' });
-
-  /** Convenience computed for the schema currently being edited. */
-  readonly editingSchema = computed(() => {
-    const state = this.editingState();
-    return state.mode === 'edit' ? state.schema : null;
   });
 
   constructor() {
@@ -221,11 +200,7 @@ export class TemplatesTabComponent {
       updatedAt: new Date().toISOString(),
     };
 
-    this.editingState.set({
-      mode: 'edit',
-      schema: newSchema,
-      templateId: null,
-    });
+    this.projectState.openSchemaEditor(newSchema);
   }
 
   /**
@@ -340,82 +315,6 @@ export class TemplatesTabComponent {
       return;
     }
 
-    this.editingState.set({
-      mode: 'edit',
-      schema: fullSchema,
-      templateId: template.id,
-    });
-  }
-
-  /**
-   * Handle the editor's done event (save or cancel)
-   */
-  async onEditorDone(result: ElementTypeSchema | null): Promise<void> {
-    const state = this.editingState();
-    if (state.mode !== 'edit') return;
-
-    if (!result) {
-      this.editingState.set({ mode: 'list' });
-      return;
-    }
-
-    try {
-      if (state.templateId === null) {
-        // New template
-        this.worldbuildingService.saveSchemaToLibrary(result);
-      } else {
-        // Existing template
-        this.worldbuildingService.updateTemplate(state.templateId, result);
-      }
-
-      // Wait for sync then reload
-      await new Promise(resolve => setTimeout(resolve, this.reloadDelay));
-      this.loadTemplates();
-
-      this.editingState.set({ mode: 'list' });
-
-      this.snackBar.open(
-        this.transloco.translate('templates.tab.updated', {
-          name: result.name,
-        }),
-        this.transloco.translate('snackbar.close'),
-        { duration: 3000 }
-      );
-    } catch (err) {
-      console.error('[TemplatesTab] Error saving template:', err);
-      this.editingState.set({
-        mode: 'edit',
-        schema: result,
-        templateId: state.templateId,
-      });
-      this.snackBar.open(
-        this.transloco.translate('templates.tab.saveFailed'),
-        this.transloco.translate('snackbar.close'),
-        { duration: 5000 }
-      );
-    }
-  }
-
-  /**
-   * Live-save a schema after preview edits without leaving edit mode. Updates
-   * the schema being edited (so the next edit keeps the latest) and persists to
-   * the template library/backend, but does not reload or exit the editor.
-   */
-  onSchemaChange(schema: ElementTypeSchema): void {
-    const state = this.editingState();
-    if (state.mode !== 'edit') return;
-
-    // Reflect the latest schema so subsequent autosaves build on top of it.
-    this.editingState.update(s => (s.mode === 'edit' ? { ...s, schema } : s));
-
-    try {
-      if (state.templateId === null) {
-        this.worldbuildingService.saveSchemaToLibrary(schema);
-      } else {
-        this.worldbuildingService.updateTemplate(state.templateId, schema);
-      }
-    } catch (err) {
-      console.error('[TemplatesTab] Error autosaving template:', err);
-    }
+    this.projectState.openSchemaEditor(fullSchema);
   }
 }
