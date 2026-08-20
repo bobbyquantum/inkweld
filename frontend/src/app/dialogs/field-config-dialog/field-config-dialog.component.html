@@ -130,10 +130,6 @@
         }}</span>
         <div
           class="span-grid"
-          role="slider"
-          [attr.aria-valuemin]="1"
-          [attr.aria-valuemax]="12"
-          [attr.aria-valuenow]="span()"
           [attr.aria-label]="'templates.editor.layoutSpanLabel' | transloco"
           data-testid="fc-span">
           @for (cell of spanCells; track $index) {

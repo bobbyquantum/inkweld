@@ -482,46 +482,78 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     const groupKeys = new Set<string>();
 
     for (const tab of this.tabs()) {
-      const tabLabel = tab.label.trim();
-      if (!tabLabel) {
-        return 'Each tab needs a label.';
-      }
-
-      const normalizedTabKey = tab.key.trim();
-      if (!normalizedTabKey) {
-        return 'Each tab needs a key.';
-      }
-      if (tabKeys.has(normalizedTabKey)) {
-        return 'Tab keys must be unique.';
-      }
-      tabKeys.add(normalizedTabKey);
+      const tabError = this.validateTab(tab, tabKeys);
+      if (tabError) return tabError;
 
       for (const field of tab.fields) {
-        const normalizedFieldKey = field.key.trim();
-        if (!normalizedFieldKey) {
-          return 'Each field needs a key.';
-        }
-        if (fieldKeys.has(normalizedFieldKey)) {
-          return 'Field keys must be unique across the template.';
-        }
-        fieldKeys.add(normalizedFieldKey);
-
-        if (normalizedFieldKey.includes('.')) {
-          groupKeys.add(normalizedFieldKey.split('.')[0]);
-        } else {
-          flatKeys.add(normalizedFieldKey);
-        }
+        const fieldError = this.validateField(
+          field,
+          fieldKeys,
+          flatKeys,
+          groupKeys
+        );
+        if (fieldError) return fieldError;
       }
     }
 
-    // A flat field and a nested group must not share a key — the form can't
-    // hold both (a FormControl and a FormGroup under the same name).
+    return this.findGroupCollision(flatKeys, groupKeys);
+  }
+
+  /** Validate a tab's label/key and uniqueness. */
+  private validateTab(tab: TabSchema, tabKeys: Set<string>): string | null {
+    const tabLabel = tab.label.trim();
+    if (!tabLabel) {
+      return 'Each tab needs a label.';
+    }
+
+    const normalizedTabKey = tab.key.trim();
+    if (!normalizedTabKey) {
+      return 'Each tab needs a key.';
+    }
+    if (tabKeys.has(normalizedTabKey)) {
+      return 'Tab keys must be unique.';
+    }
+    tabKeys.add(normalizedTabKey);
+
+    return null;
+  }
+
+  /** Validate a field's key uniqueness and track flat/group keys. */
+  private validateField(
+    field: FieldSchema,
+    fieldKeys: Set<string>,
+    flatKeys: Set<string>,
+    groupKeys: Set<string>
+  ): string | null {
+    const normalizedFieldKey = field.key.trim();
+    if (!normalizedFieldKey) {
+      return 'Each field needs a key.';
+    }
+    if (fieldKeys.has(normalizedFieldKey)) {
+      return 'Field keys must be unique across the template.';
+    }
+    fieldKeys.add(normalizedFieldKey);
+
+    if (normalizedFieldKey.includes('.')) {
+      groupKeys.add(normalizedFieldKey.split('.')[0]);
+    } else {
+      flatKeys.add(normalizedFieldKey);
+    }
+
+    return null;
+  }
+
+  /** A flat field and a nested group must not share a key — the form can't
+   * hold both (a FormControl and a FormGroup under the same name). */
+  private findGroupCollision(
+    flatKeys: Set<string>,
+    groupKeys: Set<string>
+  ): string | null {
     for (const flatKey of flatKeys) {
       if (groupKeys.has(flatKey)) {
         return `Field key "${flatKey}" conflicts with a nested field group of the same name.`;
       }
     }
-
     return null;
   }
 }
