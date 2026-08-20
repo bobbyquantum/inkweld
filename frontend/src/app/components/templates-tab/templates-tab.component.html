@@ -2,129 +2,129 @@
   <div class="header">
     <h2>{{ 'templates.tab.title' | transloco }}</h2>
     <p class="hint">
-        {{ 'templates.tab.hint' | transloco }}
+      {{ 'templates.tab.hint' | transloco }}
+    </p>
+  </div>
+
+  <div class="controls" data-testid="templates-controls">
+    <div class="actions">
+      <button
+        mat-flat-button
+        color="primary"
+        (click)="createTemplate()"
+        data-testid="create-template-button">
+        <mat-icon>add</mat-icon>
+        {{ 'templates.tab.newTemplate' | transloco }}
+      </button>
+    </div>
+
+    <div class="search-bar">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>{{ 'templates.tab.searchLabel' | transloco }}</mat-label>
+        <input
+          matInput
+          type="text"
+          id="templates-tab-search-input"
+          [attr.aria-label]="'templates.tab.searchAria' | transloco"
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          [placeholder]="'templates.tab.searchPlaceholder' | transloco" />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <app-settings-tab-status
+    [isLoading]="isLoading()"
+    [error]="error()"
+    (retry)="refresh()" />
+
+  <!-- Empty state - no templates at all -->
+  @if (!isLoading() && !error() && templates().length === 0) {
+    <div class="empty">
+      <mat-icon>description</mat-icon>
+      <p>{{ 'templates.tab.noTemplates' | transloco }}</p>
+      <p class="hint">
+        Templates define the structure for worldbuilding elements like
+        characters, locations, and more.
       </p>
     </div>
+  }
 
-    <div class="controls" data-testid="templates-controls">
-      <div class="actions">
-        <button
-          mat-flat-button
-          color="primary"
-          (click)="createTemplate()"
-          data-testid="create-template-button">
-          <mat-icon>add</mat-icon>
-          {{ 'templates.tab.newTemplate' | transloco }}
-        </button>
-      </div>
-
-      <div class="search-bar">
-        <mat-form-field appearance="outline" class="search-field">
-          <mat-label>{{ 'templates.tab.searchLabel' | transloco }}</mat-label>
-          <input
-            matInput
-            type="text"
-            id="templates-tab-search-input"
-            [attr.aria-label]="'templates.tab.searchAria' | transloco"
-            [value]="searchQuery()"
-            (input)="searchQuery.set($any($event.target).value)"
-            [placeholder]="'templates.tab.searchPlaceholder' | transloco" />
-          <mat-icon matPrefix>search</mat-icon>
-        </mat-form-field>
-      </div>
+  <!-- Empty state - search no results -->
+  @if (
+    !isLoading() &&
+    !error() &&
+    templates().length > 0 &&
+    filteredTemplates().length === 0
+  ) {
+    <div class="empty">
+      <mat-icon>search_off</mat-icon>
+      <p>{{ 'templates.tab.noMatch' | transloco }}</p>
+      <button mat-button (click)="searchQuery.set('')">
+        {{ 'templates.tab.clearFilter' | transloco }}
+      </button>
     </div>
+  }
 
-    <app-settings-tab-status
-      [isLoading]="isLoading()"
-      [error]="error()"
-      (retry)="refresh()" />
-
-    <!-- Empty state - no templates at all -->
-    @if (!isLoading() && !error() && templates().length === 0) {
-      <div class="empty">
-        <mat-icon>description</mat-icon>
-        <p>{{ 'templates.tab.noTemplates' | transloco }}</p>
-        <p class="hint">
-          Templates define the structure for worldbuilding elements like
-          characters, locations, and more.
-        </p>
-      </div>
-    }
-
-    <!-- Empty state - search no results -->
-    @if (
-      !isLoading() &&
-      !error() &&
-      templates().length > 0 &&
-      filteredTemplates().length === 0
-    ) {
-      <div class="empty">
-        <mat-icon>search_off</mat-icon>
-        <p>{{ 'templates.tab.noMatch' | transloco }}</p>
-        <button mat-button (click)="searchQuery.set('')">
-          {{ 'templates.tab.clearFilter' | transloco }}
-        </button>
-      </div>
-    }
-
-    <!-- Templates List -->
-    @if (!isLoading() && !error() && filteredTemplates().length > 0) {
-      <div class="templates-list" data-testid="templates-list">
-        @for (template of filteredTemplates(); track template.id) {
-          <div class="template-row" data-testid="template-card">
-            <div class="template-info">
-              <div class="template-name">
-                <mat-icon>{{ template.icon }}</mat-icon>
-                <span>{{ template.label }}</span>
-              </div>
-              <div class="template-meta">
-                <span
-                  >{{ template.tabCount }}
-                  {{
-                    template.tabCount === 1
-                      ? ('templates.tab.tab' | transloco)
-                      : ('templates.tab.tabs' | transloco)
-                  }}</span
-                >
-                <span>·</span>
-                <span
-                  >{{ template.fieldCount }}
-                  {{
-                    template.fieldCount === 1
-                      ? ('templates.tab.field' | transloco)
-                      : ('templates.tab.fields' | transloco)
-                  }}</span
-                >
-                @if (template.description) {
-                  <span>· {{ template.description }}</span>
-                }
-              </div>
+  <!-- Templates List -->
+  @if (!isLoading() && !error() && filteredTemplates().length > 0) {
+    <div class="templates-list" data-testid="templates-list">
+      @for (template of filteredTemplates(); track template.id) {
+        <div class="template-row" data-testid="template-card">
+          <div class="template-info">
+            <div class="template-name">
+              <mat-icon>{{ template.icon }}</mat-icon>
+              <span>{{ template.label }}</span>
             </div>
-            <div class="template-actions" data-testid="template-actions">
-              <button
-                mat-icon-button
-                matTooltip="Edit"
-                data-testid="edit-template-button"
-                (click)="editTemplate(template)">
-                <mat-icon>edit</mat-icon>
-              </button>
-              <button
-                mat-icon-button
-                matTooltip="Clone"
-                (click)="cloneTemplate(template)"
-                data-testid="clone-template-button">
-                <mat-icon>content_copy</mat-icon>
-              </button>
-              <button
-                mat-icon-button
-                matTooltip="Delete"
-                (click)="deleteTemplate(template)"
-                data-testid="delete-template-button">
-                <mat-icon>delete_outline</mat-icon>
-              </button>
+            <div class="template-meta">
+              <span
+                >{{ template.tabCount }}
+                {{
+                  template.tabCount === 1
+                    ? ('templates.tab.tab' | transloco)
+                    : ('templates.tab.tabs' | transloco)
+                }}</span
+              >
+              <span>·</span>
+              <span
+                >{{ template.fieldCount }}
+                {{
+                  template.fieldCount === 1
+                    ? ('templates.tab.field' | transloco)
+                    : ('templates.tab.fields' | transloco)
+                }}</span
+              >
+              @if (template.description) {
+                <span>· {{ template.description }}</span>
+              }
             </div>
           </div>
-        }
-      </div>
-    }
-  </div>
+          <div class="template-actions" data-testid="template-actions">
+            <button
+              mat-icon-button
+              matTooltip="Edit"
+              data-testid="edit-template-button"
+              (click)="editTemplate(template)">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              matTooltip="Clone"
+              (click)="cloneTemplate(template)"
+              data-testid="clone-template-button">
+              <mat-icon>content_copy</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              matTooltip="Delete"
+              (click)="deleteTemplate(template)"
+              data-testid="delete-template-button">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
