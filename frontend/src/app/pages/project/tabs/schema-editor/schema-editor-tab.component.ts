@@ -6,7 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { TemplateEditorPageComponent } from '@components/templates-tab/template-editor-page/template-editor-page.component';
 import { TranslocoModule } from '@jsverse/transloco';
 import { type ElementTypeSchema } from '@models/schema-types';
@@ -21,6 +21,7 @@ import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.serv
  *
  * Reads `:schemaId` from the route, loads the schema from the library, and
  * saves live edits back through WorldbuildingService (create or update by id).
+ * Closing the tab (via the tab bar) is the exit; edits are autosaved.
  */
 @Component({
   selector: 'app-schema-editor-tab',
@@ -35,7 +36,6 @@ import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.serv
 })
 export class SchemaEditorTabComponent {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly projectState = inject(ProjectStateService);
   private readonly worldbuildingService = inject(WorldbuildingService);
 
@@ -69,31 +69,5 @@ export class SchemaEditorTabComponent {
   /** Live-save schema edits as they happen (autosave). */
   onSchemaChange(schema: ElementTypeSchema): void {
     this.worldbuildingService.saveSchemaToLibrary(schema);
-  }
-
-  /** On explicit save, persist and return to the templates list. */
-  onDone(result: ElementTypeSchema | null): void {
-    if (result) {
-      this.worldbuildingService.saveSchemaToLibrary(result);
-    }
-    const project = this.projectState.project();
-
-    // Navigate to Settings → Element Templates first, so the newly-selected
-    // tab is Settings (not Home). Then close the schema-editor tab.
-    if (project) {
-      void this.router
-        .navigate(['/', project.username, project.slug, 'settings'], {
-          queryParams: { section: 'templates' },
-          replaceUrl: true,
-        })
-        .then(() => {
-          const tabId = `schema-${this.schemaId()}`;
-          const tabs = this.projectState.openTabs();
-          const index = tabs.findIndex(t => t.id === tabId);
-          if (index !== -1) {
-            this.projectState.closeTab(index);
-          }
-        });
-    }
   }
 }

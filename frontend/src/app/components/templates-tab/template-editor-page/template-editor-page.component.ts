@@ -7,6 +7,7 @@ import {
   DestroyRef,
   inject,
   input,
+  type OnDestroy,
   type OnInit,
   output,
   type QueryList,
@@ -59,7 +60,9 @@ interface BasicFormValue {
     WorldbuildingEditorComponent,
   ],
 })
-export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
+export class TemplateEditorPageComponent
+  implements OnInit, AfterViewInit, OnDestroy
+{
   private readonly destroyRef = inject(DestroyRef);
   private readonly transloco = inject(TranslocoService);
 
@@ -199,6 +202,11 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
           }, 100);
         }
       });
+  }
+
+  /** Flush any pending autosave when the editor is torn down (tab closed). */
+  ngOnDestroy(): void {
+    this.flushAutosave();
   }
 
   /** Add a new tab */

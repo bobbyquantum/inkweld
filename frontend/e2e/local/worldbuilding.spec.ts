@@ -139,10 +139,11 @@ test.describe('Worldbuilding Templates', () => {
         .getByTestId('schema-description-input')
         .fill('Template for story events');
 
-      // Changes autosave; the back button closes the editor tab. Return to the
-      // templates section (the editor is now a top-level tab, so closing it
-      // leaves the tab bar — navigate back to Settings → Element Templates).
-      await page.getByTestId('template-editor-back').click();
+      // Changes autosave as you type; close the editor tab to return to the
+      // templates section.
+      await page
+        .locator('[data-testid="tab-New Template"] .close-tab-button')
+        .click();
       await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
       await gotoTemplatesTab(page);
       await expect(
@@ -202,7 +203,9 @@ test.describe('Worldbuilding Templates', () => {
       // Close the select dropdown and the dialog so we can exit.
       await page.keyboard.press('Escape');
       await page.getByTestId('fc-save').click();
-      await page.getByTestId('template-editor-back').click();
+      await page
+        .locator('[data-testid="tab-Hero Template"] .close-tab-button')
+        .click();
       await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
       // Return to the templates section before reopening in the next step.
       await gotoTemplatesTab(page);
@@ -241,7 +244,10 @@ test.describe('Worldbuilding Templates', () => {
       await expect(page.getByTestId('fc-span-value')).toHaveText(/6/);
       await page.getByTestId('fc-save').click();
 
-      await page.getByTestId('template-editor-back').click();
+      // Close the editor tab to return to the templates section.
+      await page
+        .locator('[data-testid="tab-Hero Template"] .close-tab-button')
+        .click();
       await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
     });
 

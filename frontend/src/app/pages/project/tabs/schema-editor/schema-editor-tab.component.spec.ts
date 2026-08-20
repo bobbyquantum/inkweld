@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { type ElementTypeSchema } from '@models/schema-types';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
@@ -30,9 +30,7 @@ describe('SchemaEditorTabComponent', () => {
   };
   let mockProjectState: {
     openTabs: () => { id: string; schema?: ElementTypeSchema }[];
-    closeTab: ReturnType<typeof vi.fn>;
     canWrite: () => boolean;
-    project: () => { username: string; slug: string } | null;
   };
 
   beforeEach(async () => {
@@ -43,9 +41,7 @@ describe('SchemaEditorTabComponent', () => {
     };
     mockProjectState = {
       openTabs: () => [],
-      closeTab: vi.fn(),
       canWrite: () => true,
-      project: () => ({ username: 'u', slug: 'p' }),
     };
 
     await TestBed.configureTestingModule({
@@ -55,10 +51,6 @@ describe('SchemaEditorTabComponent', () => {
         {
           provide: ActivatedRoute,
           useValue: { paramMap: of(new Map([['schemaId', 'character']])) },
-        },
-        {
-          provide: Router,
-          useValue: { navigate: vi.fn().mockResolvedValue(true) },
         },
         { provide: WorldbuildingService, useValue: mockWorldbuildingService },
         { provide: ProjectStateService, useValue: mockProjectState },
@@ -86,27 +78,5 @@ describe('SchemaEditorTabComponent', () => {
     expect(mockWorldbuildingService.saveSchemaToLibrary).toHaveBeenCalledWith(
       mockSchema
     );
-  });
-
-  it('should save and close the tab on done', async () => {
-    mockProjectState.openTabs = () => [
-      { id: 'schema-character', schema: mockSchema },
-    ];
-    component.onDone(mockSchema);
-    await fixture.whenStable();
-    expect(mockWorldbuildingService.saveSchemaToLibrary).toHaveBeenCalledWith(
-      mockSchema
-    );
-    expect(mockProjectState.closeTab).toHaveBeenCalledWith(0);
-  });
-
-  it('should close the tab without saving when cancelled', async () => {
-    mockProjectState.openTabs = () => [
-      { id: 'schema-character', schema: mockSchema },
-    ];
-    component.onDone(null);
-    await fixture.whenStable();
-    expect(mockWorldbuildingService.saveSchemaToLibrary).not.toHaveBeenCalled();
-    expect(mockProjectState.closeTab).toHaveBeenCalledWith(0);
   });
 });

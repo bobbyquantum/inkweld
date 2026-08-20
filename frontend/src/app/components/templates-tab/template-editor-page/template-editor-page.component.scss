@@ -14,51 +14,6 @@
   min-height: 0;
 }
 
-// Top toolbar: back, title, autosave indicator.
-.editor-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--sys-outline-variant);
-  flex-shrink: 0;
-
-  .toolbar-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 1.05rem;
-    font-weight: 600;
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-
-    mat-icon {
-      color: var(--sys-primary);
-    }
-  }
-
-  .toolbar-spacer {
-    flex: 1;
-  }
-
-  .saving-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.85rem;
-    color: var(--sys-on-surface-variant);
-
-    mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      color: var(--sys-success, #2e7d32);
-    }
-  }
-}
-
 // Main editor surface: the interactive worldbuilding editor fills it.
 .editor-layout {
   display: flex;
@@ -74,7 +29,8 @@
   display: block;
 }
 
-// Make the embedded editor fill the outlet like the templates list does.
+// Match the standard worldbuilding editor layout (same as the worldbuilding tab):
+// the embedded editor fills the outlet and scrolls its content internally.
 :host app-worldbuilding-editor {
   display: flex;
   flex-direction: column;
@@ -83,9 +39,6 @@
   flex: 1;
   min-height: 0;
 
-  // The editor container normally uses a viewport-derived fixed height; inside
-  // the outlet we want it to fill the available space instead so its content
-  // region scrolls.
   ::ng-deep .worldbuilding-editor-container {
     height: 100%;
   }

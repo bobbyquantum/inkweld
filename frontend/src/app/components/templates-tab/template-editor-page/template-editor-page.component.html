@@ -1,22 +1,4 @@
 <div class="page editor-page" data-testid="template-editor-page">
-  <header class="editor-toolbar">
-    <button
-      mat-icon-button
-      [attr.aria-label]="'templates.editor.backToTemplates' | transloco"
-      [matTooltip]="'templates.editor.backToTemplates' | transloco"
-      (click)="cancel()"
-      data-testid="template-editor-back">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <span class="toolbar-spacer"></span>
-    @if (isSaving()) {
-      <span class="saving-indicator">
-        <mat-icon>cloud_done</mat-icon>
-        {{ 'templates.editor.saving' | transloco }}
-      </span>
-    }
-  </header>
-
   <div class="editor-layout">
     <!-- Single unified editor: fields, schema details, and styling live inside it -->
     <div class="editor-canvas" data-testid="template-preview">

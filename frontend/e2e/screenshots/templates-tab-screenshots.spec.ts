@@ -131,20 +131,28 @@ async function captureAllTemplateScreenshots(
       32
     );
 
-    await page.click('[data-testid="template-editor-back"]');
+    await page
+      .locator('[data-testid="tab-New Template"] .close-tab-button')
+      .click();
+    // Closing the editor tab lands on the Settings section; return to Element
+    // Templates before the next step.
+    await page.getByTestId('nav-templates').click();
+    await expect(page.getByTestId('template-card').first()).toBeVisible();
   });
 
   await test.step('template editor tab (fields)', async () => {
     // Reopen the template editor via a card's edit action.
     const card = page.locator('[data-testid="template-card"]').first();
+    const templateName = (
+      await card.locator('.template-name span').textContent()
+    )?.trim();
     await card.getByTestId('edit-template-button').click();
     await page.waitForSelector('[data-testid="template-editor-page"]', {
       state: 'visible',
     });
 
     // Open the first schema tab so we can show the fields plus the inline
-    // tab label/icon editor at the top of the tab. The demo Character
-    // template's first tab is "Basic Info" (nav-basic).
+    // tab label/icon editor at the top of the tab.
     const tabNav = page.getByTestId('nav-basic');
     if (await tabNav.isVisible().catch(() => false)) {
       await tabNav.click();
@@ -158,7 +166,9 @@ async function captureAllTemplateScreenshots(
       32
     );
 
-    await page.click('[data-testid="template-editor-back"]');
+    await page
+      .locator(`[data-testid="tab-${templateName}"] .close-tab-button`)
+      .click();
   });
 }
 
