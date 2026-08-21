@@ -9,9 +9,8 @@
       <input
         matInput
         id="fc-label"
+        #labelInput
         [attr.aria-label]="'templates.editor.fieldLabelLabel' | transloco"
-        [value]="label()"
-        (input)="label.set($any($event.target).value)"
         data-testid="fc-label" />
     </mat-form-field>
 
@@ -20,12 +19,12 @@
       <input
         matInput
         id="fc-key"
+        #keyInput
         [attr.aria-label]="'templates.editor.fieldKeyLabel' | transloco"
         [attr.placeholder]="'templates.editor.fieldKeyPlaceholder' | transloco"
-        [value]="key()"
-        (input)="key.set($any($event.target).value)"
+        (input)="onKeyInput($event)"
         data-testid="fc-key" />
-      @if (key().includes('.')) {
+      @if (keyIsNested()) {
         <mat-hint>{{
           'templates.editor.fieldKeyNestedHint' | transloco
         }}</mat-hint>
@@ -55,9 +54,8 @@
       <input
         matInput
         id="fc-placeholder"
+        #placeholderInput
         [attr.aria-label]="'templates.editor.placeholderLabel' | transloco"
-        [value]="placeholder()"
-        (input)="placeholder.set($any($event.target).value)"
         data-testid="fc-placeholder" />
     </mat-form-field>
 
@@ -68,9 +66,8 @@
       <textarea
         matInput
         id="fc-description"
+        #descriptionInput
         [attr.aria-label]="'templates.editor.descriptionAria' | transloco"
-        [value]="description()"
-        (input)="description.set($any($event.target).value)"
         rows="2"
         data-testid="fc-description"></textarea>
     </mat-form-field>
@@ -89,7 +86,6 @@
                 [attr.aria-label]="
                   'templates.editor.fieldOptionsLabel' | transloco
                 "
-                [value]="option"
                 (input)="updateOption($index, $any($event.target).value)"
                 [attr.data-testid]="'fc-option-input-' + $index" />
             </mat-form-field>
@@ -188,7 +184,7 @@
     mat-flat-button
     color="primary"
     type="button"
-    [disabled]="!key().trim()"
+    [disabled]="!canSave()"
     (click)="onSave()"
     data-testid="fc-save">
     {{ 'templates.editor.saveChanges' | transloco }}

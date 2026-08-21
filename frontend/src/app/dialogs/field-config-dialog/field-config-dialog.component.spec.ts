@@ -31,6 +31,15 @@ describe('FieldConfigDialogComponent', () => {
     fieldTypes,
   };
 
+  /** Set a DOM input's value and fire an input event (like user typing). */
+  const setInput = (testId: string, value: string) => {
+    const el = fixture.nativeElement.querySelector(
+      `[data-testid="${testId}"]`
+    ) as HTMLInputElement;
+    el.value = value;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
   beforeEach(async () => {
     dialogRefMock.close.mockClear();
     await TestBed.configureTestingModule({
@@ -51,17 +60,23 @@ describe('FieldConfigDialogComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should seed the form from the field data', () => {
-    expect(component['label']()).toBe('Gender');
-    expect(component['key']()).toBe('gender');
+  it('should seed the DOM inputs from the field data', () => {
+    const read = (testId: string) =>
+      (
+        fixture.nativeElement.querySelector(
+          `[data-testid="${testId}"]`
+        ) as HTMLInputElement
+      ).value;
+    expect(read('fc-label')).toBe('Gender');
+    expect(read('fc-key')).toBe('gender');
     expect(component['type']()).toBe('select');
     expect(component['options']()).toEqual(['Male', 'Female']);
     expect(component['span']()).toBe(6);
   });
 
   it('should close with a patch on save', () => {
-    component['key'].set('gender');
-    component['label'].set('Gender');
+    setInput('fc-label', 'Gender');
+    setInput('fc-key', 'gender');
     component['options'].update(o => [...o, 'Other']);
     component['required'].set(true);
 
@@ -75,6 +90,16 @@ describe('FieldConfigDialogComponent', () => {
       layout: { span: 6 },
       options: ['Male', 'Female', 'Other'],
     });
+  });
+
+  it('should replace the whole key when retyped (no stale concat)', () => {
+    // Simulate the zoneless race regression: the seeded key must be fully
+    // replaced by the typed value, not concatenated with it.
+    setInput('fc-key', 'traits.origin');
+    component.onSave();
+    expect(dialogRefMock.close).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'traits.origin' })
+    );
   });
 
   it('should set the span from a clicked grid cell', () => {
@@ -122,7 +147,7 @@ describe('FieldConfigDialogComponent', () => {
   });
 
   it('should not close when the key is empty', () => {
-    component['key'].set('   ');
+    setInput('fc-key', '   ');
     component.onSave();
     expect(dialogRefMock.close).not.toHaveBeenCalled();
   });
