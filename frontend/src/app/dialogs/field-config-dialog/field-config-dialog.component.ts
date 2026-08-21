@@ -55,26 +55,25 @@ export class FieldConfigDialogComponent implements AfterViewInit {
   private readonly dialogRef = inject(MatDialogRef<FieldConfigDialogComponent>);
   protected readonly data = inject<FieldConfigDialogData>(MAT_DIALOG_DATA);
 
-  // Reactive UI state only. Text input values are NOT bound with [value]:
-  // in zoneless mode a [value] binding re-runs during CD and can interact
-  // poorly with rapid Playwright fill()/select() sequences (the same issue
-  // RenameDialogComponent avoids). Seed the DOM once via viewChild refs
-  // instead, and read the final values from the DOM in onSave().
+  // Text inputs are NOT bound with [value]: in zoneless mode a [value] binding
+  // re-runs during CD and can clobber a rapid programmatic fill()/select().
+  // Instead the value lives in a signal (updated on every input event) and the
+  // DOM is seeded once via a deferred microtask, exactly like RenameDialog.
+  protected readonly key = signal(this.data.field.key);
+  protected readonly label = signal(this.data.field.label);
   protected readonly type = signal(this.data.field.type);
-  protected readonly required = signal(
-    this.data.field.validation?.required ?? false
-  );
-  protected readonly span = signal(this.data.field.layout?.span ?? 12);
-  protected readonly rows = signal(this.data.field.rows ?? 3);
+  protected readonly placeholder = signal(this.data.field.placeholder ?? '');
+  protected readonly description = signal(this.data.field.description ?? '');
   protected readonly options = signal<string[]>(
     (this.data.field.options ?? []).map(opt =>
       typeof opt === 'string' ? opt : opt.value
     )
   );
-  /** Tracks whether the typed key is a dotted (nested-group) key. */
-  protected readonly keyIsNested = signal(this.data.field.key.includes('.'));
-  /** Save is disabled until the key is non-empty. */
-  protected readonly canSave = signal(true);
+  protected readonly required = signal(
+    this.data.field.validation?.required ?? false
+  );
+  protected readonly span = signal(this.data.field.layout?.span ?? 12);
+  protected readonly rows = signal(this.data.field.rows ?? 3);
 
   /** Cell indexes (0-11) for the 12-column span picker. */
   protected readonly spanCells = Array.from({ length: 12 }, (_, i) => i);
@@ -91,41 +90,36 @@ export class FieldConfigDialogComponent implements AfterViewInit {
   private spanDragging = false;
 
   ngAfterViewInit(): void {
-    // Seed the DOM inputs synchronously. No [value] binding means change
-    // detection can never clobber what the user (or a test) types into these
-    // fields — but the seeding must NOT be deferred (e.g. queueMicrotask):
-    // a deferred seed can fire AFTER a rapid programmatic fill and overwrite
-    // the typed value with the stale initial one.
-    const set = (
-      ref: ElementRef<HTMLInputElement | HTMLTextAreaElement> | undefined,
-      value: string
-    ) => {
-      const el = ref?.nativeElement;
-      if (el) el.value = value;
-    };
-    set(this.keyInput(), this.data.field.key);
-    set(this.labelInput(), this.data.field.label);
-    set(this.placeholderInput(), this.data.field.placeholder ?? '');
-    set(this.descriptionInput(), this.data.field.description ?? '');
+    // Seed the DOM inputs once. Deferring to a microtask means the seed reads
+    // the *current* signal value, so it can never overwrite a value the user
+    // (or a test) already typed — a synchronous seed would clobber it.
+    queueMicrotask(() => {
+      const set = (
+        ref: ElementRef<HTMLInputElement | HTMLTextAreaElement> | undefined,
+        value: string
+      ) => {
+        const el = ref?.nativeElement;
+        if (el) el.value = value;
+      };
+      set(this.keyInput(), this.key());
+      set(this.labelInput(), this.label());
+      set(this.placeholderInput(), this.placeholder());
+      set(this.descriptionInput(), this.description());
 
-    // Seed the (uncontrolled) option inputs with their current values.
-    const host = this.keyInput()?.nativeElement.closest('.field-config-form');
-    this.options().forEach((opt, i) => {
-      const el = host?.querySelector(
-        `[data-testid="fc-option-input-${i}"]`
-      ) as HTMLInputElement | null;
-      if (el) el.value = opt;
+      // Seed existing option inputs (only present when the field already has
+      // a select/multiselect type). New options are added empty by addOption().
+      const host = this.keyInput()?.nativeElement.closest('.field-config-form');
+      this.options().forEach((opt, i) => {
+        const el = host?.querySelector(
+          `[data-testid="fc-option-input-${i}"]`
+        ) as HTMLInputElement | null;
+        if (el) el.value = opt;
+      });
     });
   }
 
   protected isOptionsType(): boolean {
     return this.type() === 'select' || this.type() === 'multiselect';
-  }
-
-  protected onKeyInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.keyIsNested.set(value.includes('.'));
-    this.canSave.set(value.trim().length > 0);
   }
 
   /** Set the span by clicking a grid cell (1-12). */
@@ -178,14 +172,14 @@ export class FieldConfigDialogComponent implements AfterViewInit {
   }
 
   onSave(): void {
-    const trimmedKey = this.readInput(this.keyInput()).trim();
+    const trimmedKey = this.key().trim();
     if (!trimmedKey) {
       return;
     }
 
     const result: Partial<FieldSchema> = {
       key: trimmedKey,
-      label: this.readInput(this.labelInput()).trim(),
+      label: this.label().trim(),
       type: this.type(),
       layout: { span: this.clamp(this.span(), 1, 12) },
     };
@@ -196,12 +190,12 @@ export class FieldConfigDialogComponent implements AfterViewInit {
       result.validation = { required: true };
     }
 
-    const trimmedPlaceholder = this.readInput(this.placeholderInput()).trim();
+    const trimmedPlaceholder = this.placeholder().trim();
     if (trimmedPlaceholder) {
       result.placeholder = trimmedPlaceholder;
     }
 
-    const trimmedDescription = this.readInput(this.descriptionInput()).trim();
+    const trimmedDescription = this.description().trim();
     if (trimmedDescription) {
       result.description = trimmedDescription;
     }
@@ -217,12 +211,6 @@ export class FieldConfigDialogComponent implements AfterViewInit {
     }
 
     this.dialogRef.close(result);
-  }
-
-  private readInput(
-    ref: ElementRef<HTMLInputElement | HTMLTextAreaElement> | undefined
-  ): string {
-    return ref?.nativeElement.value ?? '';
   }
 
   private clamp(value: number, min: number, max: number): number {

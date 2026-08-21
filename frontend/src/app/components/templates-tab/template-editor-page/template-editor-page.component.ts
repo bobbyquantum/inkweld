@@ -390,7 +390,14 @@ export class TemplateEditorPageComponent
         break;
     }
 
-    this.scheduleAutosave();
+    // Schema structure edits are discrete commits — persist them immediately
+    // rather than debouncing, so closing the tab can never lose the last edit
+    // to the debounce timer.
+    if (this.autosaveTimer !== null) {
+      clearTimeout(this.autosaveTimer);
+      this.autosaveTimer = null;
+    }
+    this.schemaChange.emit(this.buildUpdatedSchema());
   }
 
   /** Remove a tab by key, if present. */

@@ -11,6 +11,7 @@
         id="fc-label"
         #labelInput
         [attr.aria-label]="'templates.editor.fieldLabelLabel' | transloco"
+        (input)="label.set($any($event.target).value)"
         data-testid="fc-label" />
     </mat-form-field>
 
@@ -22,9 +23,9 @@
         #keyInput
         [attr.aria-label]="'templates.editor.fieldKeyLabel' | transloco"
         [attr.placeholder]="'templates.editor.fieldKeyPlaceholder' | transloco"
-        (input)="onKeyInput($event)"
+        (input)="key.set($any($event.target).value)"
         data-testid="fc-key" />
-      @if (keyIsNested()) {
+      @if (key().includes('.')) {
         <mat-hint>{{
           'templates.editor.fieldKeyNestedHint' | transloco
         }}</mat-hint>
@@ -56,6 +57,7 @@
         id="fc-placeholder"
         #placeholderInput
         [attr.aria-label]="'templates.editor.placeholderLabel' | transloco"
+        (input)="placeholder.set($any($event.target).value)"
         data-testid="fc-placeholder" />
     </mat-form-field>
 
@@ -68,6 +70,7 @@
         id="fc-description"
         #descriptionInput
         [attr.aria-label]="'templates.editor.descriptionAria' | transloco"
+        (input)="description.set($any($event.target).value)"
         rows="2"
         data-testid="fc-description"></textarea>
     </mat-form-field>
@@ -184,7 +187,7 @@
     mat-flat-button
     color="primary"
     type="button"
-    [disabled]="!canSave()"
+    [disabled]="!key().trim()"
     (click)="onSave()"
     data-testid="fc-save">
     {{ 'templates.editor.saveChanges' | transloco }}

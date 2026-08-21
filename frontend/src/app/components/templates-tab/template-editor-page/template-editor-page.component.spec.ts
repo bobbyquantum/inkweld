@@ -434,12 +434,15 @@ describe('TemplateEditorPageComponent', () => {
       expect(emit).toHaveBeenCalledTimes(1);
     });
 
-    it('should schedule an autosave after a schema edit', () => {
+    it('should emit the schema immediately after a schema edit', () => {
       const emit = vi.fn();
       component.schemaChange.subscribe(emit);
       component['onSchemaEdit']({ type: 'add-tab' });
-      vi.advanceTimersByTime(700);
+      // Schema edits are committed immediately, not debounced, so closing the
+      // tab can never lose the last edit.
       expect(emit).toHaveBeenCalledTimes(1);
+      const emitted = emit.mock.calls[0][0] as ElementTypeSchema;
+      expect(emitted.tabs).toEqual(component.tabs());
     });
   });
 

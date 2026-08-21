@@ -191,10 +191,17 @@ test.describe('Worldbuilding Templates', () => {
       // We're still on the Hero Template edit page from the previous step.
       // Hero Template was cloned from Character, so it has a 'basic' tab.
       await page.getByTestId('nav-basic').click();
+      const fieldEditButtons = page.getByTestId('field-edit');
+      await expect(fieldEditButtons.first()).toBeVisible();
+      const fieldCount = await fieldEditButtons.count();
       await page.getByTestId('add-field-basic').click();
+      // Wait for the new field to render before targeting its edit button:
+      // the DOM update is async, so `last()` can otherwise hit the previous
+      // last field (or no field) and open the wrong settings dialog.
+      await expect(fieldEditButtons).toHaveCount(fieldCount + 1);
+      await fieldEditButtons.last().click();
 
       // Open the newly added field's settings dialog and verify 'date' is an option.
-      await page.getByTestId('field-edit').last().click();
       const typeSelect = page.getByTestId('fc-type');
       await expect(typeSelect).toBeVisible();
       await typeSelect.click();
@@ -203,6 +210,7 @@ test.describe('Worldbuilding Templates', () => {
       // Close the select dropdown and the dialog so we can exit.
       await page.keyboard.press('Escape');
       await page.getByTestId('fc-save').click();
+      await expect(page.locator('mat-dialog-container')).not.toBeVisible();
       await page
         .locator('[data-testid="tab-Hero Template"] .close-tab-button')
         .click();
@@ -220,14 +228,25 @@ test.describe('Worldbuilding Templates', () => {
         .click();
       await expect(page.getByTestId('template-editor-page')).toBeVisible();
       await page.getByTestId('nav-basic').click();
+      const fieldEditButtons = page.getByTestId('field-edit');
+      await expect(fieldEditButtons.first()).toBeVisible();
+      const fieldCount = await fieldEditButtons.count();
       await page.getByTestId('add-field-basic').click();
+      // Wait for the new field to render before targeting its edit button.
+      await expect(fieldEditButtons).toHaveCount(fieldCount + 1);
 
       // Open the newly added field's settings dialog.
-      await page.getByTestId('field-edit').last().click();
+      await fieldEditButtons.last().click();
       await expect(page.getByTestId('fc-key')).toBeVisible();
 
-      // Give it a nested key and a select type.
-      await page.getByTestId('fc-key').fill('traits.origin');
+      // Give it a nested key and a select type. Replace the auto-generated key
+      // deterministically (select-all + type) instead of fill(), which can
+      // append to a programmatically-seeded value in zoneless mode.
+      const keyInput = page.getByTestId('fc-key');
+      await keyInput.click();
+      await keyInput.press('ControlOrMeta+a');
+      await keyInput.press('Backspace');
+      await keyInput.pressSequentially('traits.origin');
       await page.getByTestId('fc-type').click();
       await page.getByTestId('fc-type-option-select').click();
 
@@ -243,6 +262,11 @@ test.describe('Worldbuilding Templates', () => {
       await page.getByTestId('fc-span-cell-5').click();
       await expect(page.getByTestId('fc-span-value')).toHaveText(/6/);
       await page.getByTestId('fc-save').click();
+      await expect(page.locator('mat-dialog-container')).not.toBeVisible();
+      // Wait for the renamed field to appear in the live preview before
+      // closing the tab: the dialog's afterClosed → schemaEdit round-trip is
+      // async, and closing too early can drop the last edit.
+      await expect(page.getByTestId('field-traits.origin')).toBeVisible();
 
       // Close the editor tab to return to the templates section.
       await page
