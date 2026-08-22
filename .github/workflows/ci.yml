@@ -431,7 +431,9 @@ jobs:
           # Where the wrangler backend's stdout/stderr is tee'd (see
           # playwright.wrangler.config.ts). Uploaded as an artifact on failure
           # so a native workerd crash stack is preserved for investigation.
-          WRANGLER_LOG_FILE: /tmp/wrangler-backend.log
+          # Note: the webServer runs with cwd ../backend, so this must be
+          # absolute to land in a stable, project-owned location.
+          WRANGLER_LOG_FILE: ${{ github.workspace }}/wrangler-backend.log
 
       - name: Upload Playwright reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -446,7 +448,7 @@ jobs:
         if: failure()
         with:
           name: wrangler-backend-log-shard-${{ matrix.shardIndex }}
-          path: /tmp/wrangler-backend.log
+          path: wrangler-backend.log
           retention-days: 7
 
   # Docker E2E Tests (22 spec files - 2 shards)

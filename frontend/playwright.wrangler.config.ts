@@ -27,6 +27,13 @@ const BACKEND_PORT = Number(process.env['PLAYWRIGHT_BACKEND_PORT'] ?? 9333);
 const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`;
 const BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
 
+// Where the wrangler backend's stdout/stderr is tee'd so a native workerd
+// crash (e.g. "kj/async-io-unix.c++: disconnected: Broken pipe") is preserved
+// for CI artifact upload. Kept inside the project directory (never a publicly
+// writable dir like /tmp) to avoid a symlink-hijack risk; overridable via env.
+const WRANGLER_LOG_FILE =
+  process.env['WRANGLER_LOG_FILE'] ?? `${__dirname}/wrangler-backend.log`;
+
 // Expose ports to globalSetup and test workers via environment variables
 process.env['API_BASE_URL'] = BACKEND_URL;
 process.env['PLAYWRIGHT_FRONTEND_PORT'] = String(FRONTEND_PORT);
@@ -115,7 +122,7 @@ export default defineConfig({
       // this, Playwright swallows the backend output and the crash stack is
       // lost. The log path is exposed via WRANGLER_LOG_FILE for the CI upload
       // step to reference.
-      command: `bun run init:d1-local && npx wrangler dev src/cloudflare-runner.ts -c wrangler.toml --local --port ${BACKEND_PORT} 2>&1 | tee ${process.env['WRANGLER_LOG_FILE'] ?? '/tmp/wrangler-backend.log'}`,
+      command: `bun run init:d1-local && npx wrangler dev src/cloudflare-runner.ts -c wrangler.toml --local --port ${BACKEND_PORT} 2>&1 | tee ${WRANGLER_LOG_FILE}`,
       cwd: '../backend',
       url: `${BACKEND_URL}/api/v1/health`,
       reuseExistingServer: !process.env['CI'],

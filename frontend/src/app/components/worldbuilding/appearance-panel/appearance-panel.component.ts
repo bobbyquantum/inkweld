@@ -43,6 +43,32 @@ interface SaveSnapshot {
 }
 
 /**
+ * Fold a snapshot's deletion markers into a copy of its appearance so the
+ * backend removes the corresponding Yjs keys. Whole-region deletes are keyed
+ * by region only (`region`); slot deletes by `region.slot`, merged into the
+ * region's existing object.
+ */
+function foldPendingDeletes(snapshot: SaveSnapshot): ElementAppearance {
+  const payload: ElementAppearance = { ...snapshot.appearance };
+  for (const key of Object.keys(snapshot.pendingDeletes)) {
+    const [region, slot] = key.split('.');
+    const regionKey = region as AppearanceRegion;
+    if (!slot) {
+      (payload as Record<string, unknown>)[regionKey] = APPEARANCE_DELETE;
+    } else {
+      const existing = payload[regionKey];
+      const base: Record<string, unknown> =
+        existing && typeof existing === 'object'
+          ? { ...(existing as unknown as Record<string, unknown>) }
+          : {};
+      base[slot] = APPEARANCE_DELETE;
+      (payload as Record<string, unknown>)[regionKey] = base;
+    }
+  }
+  return payload;
+}
+
+/**
  * Element appearance panel (the Styling tab).
  *
  * Loads and persists a single element's appearance, and renders the pure
@@ -252,25 +278,7 @@ export class AppearancePanelComponent implements OnDestroy {
   }
 
   private async persist(snapshot: SaveSnapshot): Promise<void> {
-    const payload: ElementAppearance = { ...snapshot.appearance };
-
-    // Fold the snapshot's deletion markers into the payload so the backend
-    // removes the corresponding Yjs keys.
-    for (const key of Object.keys(snapshot.pendingDeletes)) {
-      const [region, slot] = key.split('.');
-      const regionKey = region as AppearanceRegion;
-      if (!slot) {
-        (payload as Record<string, unknown>)[regionKey] = APPEARANCE_DELETE;
-      } else {
-        const existing = payload[regionKey];
-        const base: Record<string, unknown> =
-          existing && typeof existing === 'object'
-            ? { ...(existing as unknown as Record<string, unknown>) }
-            : {};
-        base[slot] = APPEARANCE_DELETE;
-        (payload as Record<string, unknown>)[regionKey] = base;
-      }
-    }
+    const payload: ElementAppearance = foldPendingDeletes(snapshot);
 
     const saveEditGeneration = this.editGeneration;
     try {
