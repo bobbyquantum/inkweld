@@ -79,4 +79,10 @@ export interface ElementTypeSchema {
   createdAt?: string;
   /** Last update timestamp */
   updatedAt?: string;
+  /**
+   * True for a brand-new template that has not yet been saved to the schema
+   * library. Used to preserve unsaved new-template tabs across a reload while
+   * still dropping tabs whose template was deleted.
+   */
+  isNew?: boolean;
 }

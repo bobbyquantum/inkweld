@@ -281,14 +281,22 @@ export class AppearancePanelComponent implements OnDestroy {
         snapshot.slug
       );
       // Persistence succeeded: drop the deletion markers that were folded in.
-      for (const key of Object.keys(snapshot.pendingDeletes)) {
-        delete this.pendingDeletes[key];
+      // Only touch the shared set if this snapshot still belongs to the active
+      // element — an async save for a previous element must not clear markers
+      // that now belong to the currently-edited element.
+      if (snapshot.elementId === this.elementId()) {
+        for (const key of Object.keys(snapshot.pendingDeletes)) {
+          delete this.pendingDeletes[key];
+        }
       }
     } catch {
       // Persistence failed: restore the deletion markers so a later save still
-      // sends APPEARANCE_DELETE for the removed regions/slots.
-      for (const key of Object.keys(snapshot.pendingDeletes)) {
-        this.pendingDeletes[key] = true;
+      // sends APPEARANCE_DELETE for the removed regions/slots. Same element
+      // guard as above.
+      if (snapshot.elementId === this.elementId()) {
+        for (const key of Object.keys(snapshot.pendingDeletes)) {
+          this.pendingDeletes[key] = true;
+        }
       }
     } finally {
       if (this.lastSnapshot === snapshot) {

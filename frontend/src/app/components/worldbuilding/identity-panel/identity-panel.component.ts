@@ -117,7 +117,10 @@ export class IdentityPanelComponent implements OnDestroy {
 
   // Cleanup
   private readonly destroy$ = new Subject<void>();
-  private readonly descriptionChange$ = new Subject<string>();
+  private readonly descriptionChange$ = new Subject<{
+    value: string;
+    elementId: string;
+  }>();
   private unsubscribeObserver: (() => void) | null = null;
   private elementSequence = 0;
   /** Tracks whether a realtime update arrived for a given element sequence. */
@@ -127,8 +130,8 @@ export class IdentityPanelComponent implements OnDestroy {
     // Setup description debounce
     this.descriptionChange$
       .pipe(debounceTime(500), takeUntil(this.destroy$))
-      .subscribe(value => {
-        void this.saveDescription(value);
+      .subscribe(({ value, elementId }) => {
+        void this.saveDescription(value, elementId);
       });
 
     // Load identity data when elementId changes
@@ -318,12 +321,15 @@ export class IdentityPanelComponent implements OnDestroy {
 
   onDescriptionChange(value: string): void {
     this.description.set(value);
-    this.descriptionChange$.next(value);
+    this.descriptionChange$.next({ value, elementId: this.elementId() });
   }
 
-  private async saveDescription(value: string): Promise<void> {
+  private async saveDescription(
+    value: string,
+    elementId: string
+  ): Promise<void> {
     await this.worldbuildingService.saveIdentityData(
-      this.elementId(),
+      elementId,
       { description: value },
       this.username(),
       this.slug()

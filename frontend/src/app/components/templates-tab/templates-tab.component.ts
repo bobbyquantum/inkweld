@@ -178,6 +178,7 @@ export class TemplatesTabComponent {
       icon: 'article',
       description: '',
       version: 1,
+      isNew: true,
       tabs: [
         {
           key: 'general',

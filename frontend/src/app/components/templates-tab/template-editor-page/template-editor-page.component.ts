@@ -342,6 +342,8 @@ export class TemplateEditorPageComponent
       defaultAppearance: this.defaultAppearance(),
       defaultImage: this.defaultImage(),
       version: this.schema().version + 1,
+      // Once assembled for a save, the template is no longer "new".
+      isNew: false,
     };
   }
 

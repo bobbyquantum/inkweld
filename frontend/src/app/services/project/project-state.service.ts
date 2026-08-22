@@ -1561,8 +1561,22 @@ export class ProjectStateService implements OnDestroy {
         // This ensures properties like schemaId are up-to-date
         const validTabs = tabs
           .filter(tab => {
-            if (tab.type === 'system' || tab.type === 'schema-editor') {
+            if (tab.type === 'system') {
               return true;
+            }
+            if (tab.type === 'schema-editor') {
+              // Preserve an unsaved new-template tab; otherwise only restore
+              // the editor when its schema still exists in the library (a
+              // deleted template must not resurrect its editor tab).
+              if (tab.schema?.isNew) {
+                return true;
+              }
+              const schemaId = tab.id.startsWith('schema-')
+                ? tab.id.slice('schema-'.length)
+                : tab.id;
+              return this.worldbuildingService
+                .schemas()
+                .some(s => s.id === schemaId);
             }
             return (
               tab.element &&
