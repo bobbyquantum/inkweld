@@ -122,7 +122,13 @@ export default defineConfig({
       // this, Playwright swallows the backend output and the crash stack is
       // lost. The log path is exposed via WRANGLER_LOG_FILE for the CI upload
       // step to reference.
-      command: `bun run init:d1-local && npx wrangler dev src/cloudflare-runner.ts -c wrangler.toml --local --port ${BACKEND_PORT} 2>&1 | tee ${WRANGLER_LOG_FILE}`,
+      //
+      // A bare pipeline (`wrangler ... | tee file`) would return tee's exit
+      // status, masking a failure in `init:d1-local` or `wrangler`. Wrap in
+      // `bash -c` with `set -o pipefail` so the pipeline's real exit status
+      // propagates and Playwright fails the webServer start if either step
+      // fails. WRANGLER_LOG_FILE is quoted to survive paths with spaces.
+      command: `bash -c 'set -o pipefail; bun run init:d1-local && npx wrangler dev src/cloudflare-runner.ts -c wrangler.toml --local --port ${BACKEND_PORT} 2>&1 | tee "${WRANGLER_LOG_FILE}"'`,
       cwd: '../backend',
       url: `${BACKEND_URL}/api/v1/health`,
       reuseExistingServer: !process.env['CI'],

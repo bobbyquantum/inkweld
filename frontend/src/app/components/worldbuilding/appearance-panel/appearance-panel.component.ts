@@ -111,6 +111,8 @@ export class AppearancePanelComponent implements OnDestroy {
   private hasLocalEdit = false;
   private editGeneration = 0;
   private elementSequence = 0;
+  /** Sequence that has already applied a realtime update, if any. */
+  private realtimeAppliedSequence = -1;
   /** Keys ("region" or "region.slot") pending explicit deletion on next save. */
   private pendingDeletes: Record<string, true> = {};
   /** Most recent snapshot still awaiting a debounced save. */
@@ -130,6 +132,7 @@ export class AppearancePanelComponent implements OnDestroy {
         this.hasLocalEdit = false;
         this.editGeneration = 0;
         this.pendingDeletes = {};
+        this.realtimeAppliedSequence = -1;
         // Clear the displayed appearance while the next element loads so a
         // stale value from the previous element isn't shown.
         this.appearance.set({});
@@ -227,9 +230,17 @@ export class AppearancePanelComponent implements OnDestroy {
       this.username(),
       this.slug()
     );
-    // Discard the result if the active element changed or the user has already
-    // edited before the (async) load resolved.
-    if (sequence !== this.elementSequence || this.hasLocalEdit) return;
+    // Discard the result if the active element changed, the user has already
+    // edited before the (async) load resolved, or a realtime update has already
+    // applied for this sequence — the fetched snapshot is older than the
+    // live state and must not clobber it.
+    if (
+      sequence !== this.elementSequence ||
+      this.hasLocalEdit ||
+      this.realtimeAppliedSequence === sequence
+    ) {
+      return;
+    }
     this.appearance.set(data.appearance ?? {});
   }
 
@@ -245,6 +256,9 @@ export class AppearancePanelComponent implements OnDestroy {
         // Ignore remote updates for a stale element or while the user has
         // local edits in-flight.
         if (sequence !== this.elementSequence || this.hasLocalEdit) return;
+        // Record that this sequence has received realtime state so a concurrent
+        // load() resolution discards its older snapshot instead of clobbering it.
+        this.realtimeAppliedSequence = sequence;
         this.appearance.set(data.appearance ?? {});
       },
       this.username(),

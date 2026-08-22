@@ -394,11 +394,20 @@ export class TemplateEditorPageComponent
 
     // Schema structure edits are discrete commits — persist them immediately
     // rather than debouncing, so closing the tab can never lose the last edit
-    // to the debounce timer.
+    // to the debounce timer. Only emit if the resulting schema is valid; an
+    // invalid schema (e.g. duplicate field keys, flat/nested key collisions)
+    // must not reach the live-save consumer, which would persist a broken
+    // template. The error is surfaced in the editor so the user can correct it.
     if (this.autosaveTimer !== null) {
       clearTimeout(this.autosaveTimer);
       this.autosaveTimer = null;
     }
+    const validationError = this.validateSchema();
+    if (validationError) {
+      this.validationError.set(validationError);
+      return;
+    }
+    this.validationError.set(null);
     this.schemaChange.emit(this.buildUpdatedSchema());
   }
 
