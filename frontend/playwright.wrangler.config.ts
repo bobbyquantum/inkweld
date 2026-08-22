@@ -51,10 +51,9 @@ export default defineConfig({
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env['CI'],
 
-  /* Retry failed tests in CI for stability. Wrangler dev with D1 + DO is
-     materially slower than the Bun backend and more prone to transient
-     infra errors; mirror playwright.cloudflare.config.ts's retry posture. */
-  retries: process.env['CI'] ? 2 : 0,
+  /* No retries. A failing test is a bug to investigate, not something to
+     paper over — retries hide the underlying crash/flake and inflate CI time. */
+  retries: 0,
 
   /* Reporter to use */
   reporter: [['list'], ['html', { open: 'never' }]],
