@@ -108,7 +108,14 @@ export default defineConfig({
       // Wrangler dev server (Workers runtime locally)
       // Uses --local for local persistence, --port to avoid clashing with dev server
       // D1 init runs first to seed database before server starts
-      command: `bun run init:d1-local && npx wrangler dev src/cloudflare-runner.ts -c wrangler.toml --local --port ${BACKEND_PORT}`,
+      //
+      // The backend's stdout/stderr is tee'd to a log file so that a native
+      // workerd crash (e.g. "kj/async-io-unix.c++: disconnected: Broken pipe")
+      // is captured and can be uploaded as a CI artifact on failure. Without
+      // this, Playwright swallows the backend output and the crash stack is
+      // lost. The log path is exposed via WRANGLER_LOG_FILE for the CI upload
+      // step to reference.
+      command: `bun run init:d1-local && npx wrangler dev src/cloudflare-runner.ts -c wrangler.toml --local --port ${BACKEND_PORT} 2>&1 | tee ${process.env['WRANGLER_LOG_FILE'] ?? '/tmp/wrangler-backend.log'}`,
       cwd: '../backend',
       url: `${BACKEND_URL}/api/v1/health`,
       reuseExistingServer: !process.env['CI'],
