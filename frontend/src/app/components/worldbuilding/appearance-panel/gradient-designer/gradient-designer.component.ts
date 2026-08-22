@@ -83,6 +83,7 @@ export class GradientDesignerComponent implements AfterViewInit, OnDestroy {
   }
 
   protected onGradientChange(gradient: string): void {
+    if (this.disabled()) return;
     if (gradient) {
       this.valueChange.emit(gradient);
     }

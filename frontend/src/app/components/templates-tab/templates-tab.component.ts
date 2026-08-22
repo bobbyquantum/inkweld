@@ -271,6 +271,9 @@ export class TemplatesTabComponent {
 
     try {
       this.worldbuildingService.deleteTemplate(template.id);
+      // Close any open schema-editor tab for this template so autosave can't
+      // recreate the deleted schema from the tab's cached copy.
+      this.projectState.closeSchemaEditor(template.id);
 
       this.snackBar.open(
         this.transloco.translate('templates.tab.deleted', {

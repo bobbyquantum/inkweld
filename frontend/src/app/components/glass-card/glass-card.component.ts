@@ -15,6 +15,9 @@ import { MatIconModule } from '@angular/material/icon';
   imports: [MatIconModule],
   templateUrl: './glass-card.component.html',
   styleUrl: './glass-card.component.scss',
+  host: {
+    '[attr.data-transparent]': "transparent() ? 'true' : null",
+  },
 })
 export class GlassCardComponent {
   /** Optional icon shown before the title (a Material icon name). */

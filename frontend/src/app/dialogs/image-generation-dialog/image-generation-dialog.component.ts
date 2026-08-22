@@ -28,6 +28,7 @@ import { type MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { LocalStorageService } from '@services/local/local-storage.service';
+import { formatWorldbuildingFields } from '@utils/worldbuilding.utils';
 import { firstValueFrom } from 'rxjs';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
@@ -59,7 +60,6 @@ import {
 import { LoggerService } from '../../services/core/logger.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
-import { formatWorldbuildingFields } from '../../utils/worldbuilding.utils';
 
 export interface ImageGenerationDialogData {
   /** Pre-fill prompt */

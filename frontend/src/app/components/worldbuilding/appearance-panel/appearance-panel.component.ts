@@ -19,12 +19,12 @@ import {
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
-import { debounceTime, Subject, takeUntil } from 'rxjs';
-
 import {
   buildMediaReference,
   mediaIdFromReference,
-} from '../../../utils/media-reference';
+} from '@utils/media-reference';
+import { debounceTime, Subject, takeUntil } from 'rxjs';
+
 import {
   AppearanceEditorComponent,
   type BackgroundSlot,
@@ -211,19 +211,27 @@ export class AppearancePanelComponent implements OnDestroy {
     const sequence = this.elementSequence;
     if (this.unsubscribeObserver) {
       this.unsubscribeObserver();
+      this.unsubscribeObserver = null;
     }
-    this.unsubscribeObserver =
-      await this.worldbuildingService.observeIdentityChanges(
-        elementId,
-        data => {
-          // Ignore remote updates for a stale element or while the user has
-          // local edits in-flight.
-          if (sequence !== this.elementSequence || this.hasLocalEdit) return;
-          this.appearance.set(data.appearance ?? {});
-        },
-        this.username(),
-        this.slug()
-      );
+    const unsubscribe = await this.worldbuildingService.observeIdentityChanges(
+      elementId,
+      data => {
+        // Ignore remote updates for a stale element or while the user has
+        // local edits in-flight.
+        if (sequence !== this.elementSequence || this.hasLocalEdit) return;
+        this.appearance.set(data.appearance ?? {});
+      },
+      this.username(),
+      this.slug()
+    );
+    // A newer element registration may have resolved first; if this callback
+    // is now stale, release it immediately rather than clobbering the newer
+    // cleanup handle (which would leak the newer observer).
+    if (sequence !== this.elementSequence) {
+      unsubscribe();
+      return;
+    }
+    this.unsubscribeObserver = unsubscribe;
   }
 
   /**

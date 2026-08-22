@@ -4,6 +4,8 @@ import {
   createDefaultPublishStyles,
   type PublishStyles,
 } from '@models/publish-style';
+import { trimHyphens } from '@utils/string-utils';
+import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
 import {
@@ -21,8 +23,6 @@ import {
   SeparatorStyle,
   type WorldbuildingItem,
 } from '../../models/publish-plan';
-import { trimHyphens } from '../../utils/string-utils';
-import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';

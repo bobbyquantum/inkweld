@@ -24,8 +24,8 @@ import {
   type BackgroundType,
   type ElementAppearance,
 } from '@models/element-appearance';
+import { mediaReferenceFilename } from '@utils/media-reference';
 
-import { mediaReferenceFilename } from '../../../../utils/media-reference';
 import { ColorPickerComponent } from '../color-picker/color-picker.component';
 import { GradientDesignerComponent } from '../gradient-designer/gradient-designer.component';
 

@@ -100,7 +100,9 @@ describe('TemplateSnapshotsDialogComponent', () => {
     });
     await component.createSnapshot();
     expect(templateSnapshots.createTemplateSnapshot).toHaveBeenCalledWith(
-      'char'
+      'char',
+      'Baseline',
+      ''
     );
     expect(snackBar.open).toHaveBeenCalled();
   });

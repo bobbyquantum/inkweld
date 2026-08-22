@@ -113,6 +113,23 @@ describe('TemplateSnapshotService', () => {
     );
   });
 
+  it('should persist the name and description entered in the dialog', async () => {
+    worldbuilding.getSchemaById.mockReturnValue(schema);
+    localSnapshots.createSnapshot.mockResolvedValue(buildSnapshot());
+
+    await service.createTemplateSnapshot('char', 'Baseline', 'Before the edit');
+
+    expect(localSnapshots.createSnapshot).toHaveBeenCalledWith(
+      'user/proj',
+      'template:char',
+      expect.objectContaining({
+        name: 'Baseline',
+        description: 'Before the edit',
+        metadata: { kind: 'schema-template' },
+      })
+    );
+  });
+
   it('should list snapshots for a template', async () => {
     const info: SnapshotInfo[] = [];
     localSnapshots.listSnapshotsForDocument.mockResolvedValue(info);

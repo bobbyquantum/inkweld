@@ -65,4 +65,14 @@ describe('GradientDesignerComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.classList).toContain('disabled');
   });
+
+  it('should not emit a change while disabled', () => {
+    fixture.componentRef.setInput('disabled', true);
+    const emit = vi.fn();
+    component.valueChange.subscribe(emit);
+    component['onGradientChange'](
+      'linear-gradient(135deg, #000 0%, #fff 100%)'
+    );
+    expect(emit).not.toHaveBeenCalled();
+  });
 });

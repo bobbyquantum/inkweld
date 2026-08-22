@@ -19,10 +19,9 @@ import type {
 import { LoggerService } from '@services/core/logger.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { ActivityFeedService } from '@services/stats/activity-feed.service';
+import { describeActivityEvent } from '@utils/activity-event-describe';
+import { formatRelativeDate } from '@utils/date-format';
 import { firstValueFrom } from 'rxjs';
-
-import { describeActivityEvent } from '../../../../utils/activity-event-describe';
-import { formatRelativeDate } from '../../../../utils/date-format';
 
 /**
  * Project-scoped activity feed tab.

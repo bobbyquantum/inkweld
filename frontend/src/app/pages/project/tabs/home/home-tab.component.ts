@@ -20,10 +20,10 @@ import { ElementNavigationService } from '@services/project/element-navigation.s
 import { ProjectService } from '@services/project/project.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { base64ToBlob } from '@utils/base64-utils';
 
 import { ProjectCoverComponent } from '../../../../components/project-cover/project-cover.component';
 import { RecentFilesService } from '../../../../services/project/recent-files.service';
-import { base64ToBlob } from '../../../../utils/base64-utils';
 
 @Component({
   selector: 'app-home-tab',

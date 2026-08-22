@@ -91,8 +91,8 @@ describe('TabManagerService', () => {
       expect(result.tab.id).toBe('doc-1');
       expect(result.tab.name).toBe('Chapter 1');
       expect(result.tab.type).toBe('document');
-      expect(service.openTabs().length).toBe(1);
-      expect(service.openDocuments().length).toBe(1);
+      expect(service.openTabs()).toHaveLength(1);
+      expect(service.openDocuments()).toHaveLength(1);
     });
 
     it('should create a folder tab for folder element', () => {
@@ -123,7 +123,7 @@ describe('TabManagerService', () => {
 
       expect(result1.wasCreated).toBe(true);
       expect(result2.wasCreated).toBe(false);
-      expect(service.openTabs().length).toBe(1);
+      expect(service.openTabs()).toHaveLength(1);
     });
 
     it('should set selected tab index for opened document', () => {
@@ -175,7 +175,7 @@ describe('TabManagerService', () => {
 
       expect(result1.wasCreated).toBe(true);
       expect(result2.wasCreated).toBe(false);
-      expect(service.openTabs().length).toBe(1);
+      expect(service.openTabs()).toHaveLength(1);
     });
   });
 
@@ -211,7 +211,7 @@ describe('TabManagerService', () => {
       expect(r1.wasCreated).toBe(true);
       expect(r2.wasCreated).toBe(false);
       expect(r2.tab.id).toBe('schema-schema-1');
-      expect(service.openTabs().length).toBe(1);
+      expect(service.openTabs()).toHaveLength(1);
       expect(r2.tab.name).toBe('Renamed');
     });
   });
@@ -234,7 +234,7 @@ describe('TabManagerService', () => {
       const result = service.closeTab(0);
 
       expect(result).toBe(true);
-      expect(service.openTabs().length).toBe(initialCount - 1);
+      expect(service.openTabs()).toHaveLength(initialCount - 1);
     });
 
     it('should return false for invalid index', () => {
@@ -248,7 +248,7 @@ describe('TabManagerService', () => {
 
       service.closeTab(0);
 
-      expect(service.openDocuments().length).toBe(initialDocCount - 1);
+      expect(service.openDocuments()).toHaveLength(initialDocCount - 1);
     });
 
     it('should select home tab when closing currently selected tab', () => {
@@ -292,7 +292,7 @@ describe('TabManagerService', () => {
 
       service.closeTab(0);
 
-      expect(closedTabs.length).toBe(1);
+      expect(closedTabs).toHaveLength(1);
       expect(closedTabs[0].name).toBe('Chapter 1');
       expect(closedTabs[0].type).toBe('document');
 
@@ -305,7 +305,7 @@ describe('TabManagerService', () => {
 
       service.closeTab(99);
 
-      expect(closedTabs.length).toBe(0);
+      expect(closedTabs).toHaveLength(0);
 
       sub.unsubscribe();
     });
@@ -323,7 +323,7 @@ describe('TabManagerService', () => {
       const result = service.closeTabByElementId('doc-1');
 
       expect(result).toBe(true);
-      expect(service.openTabs().length).toBe(1);
+      expect(service.openTabs()).toHaveLength(1);
       expect(service.openTabs()[0].id).toBe('doc-2');
     });
 
@@ -345,7 +345,7 @@ describe('TabManagerService', () => {
       const result = service.closeTabById('system-media');
 
       expect(result).toBe(true);
-      expect(service.openTabs().length).toBe(0);
+      expect(service.openTabs()).toHaveLength(0);
     });
 
     it('should return false when tab ID is not found', () => {
@@ -365,8 +365,8 @@ describe('TabManagerService', () => {
 
       service.clearAllTabs();
 
-      expect(service.openTabs().length).toBe(0);
-      expect(service.openDocuments().length).toBe(0);
+      expect(service.openTabs()).toHaveLength(0);
+      expect(service.openDocuments()).toHaveLength(0);
       expect(service.selectedTabIndex()).toBe(0);
     });
   });
@@ -407,7 +407,7 @@ describe('TabManagerService', () => {
 
       const validTabs = service.validateAndFilterTabs([]);
 
-      expect(validTabs.length).toBe(1);
+      expect(validTabs).toHaveLength(1);
       expect(validTabs[0].type).toBe('system');
     });
 
@@ -423,7 +423,7 @@ describe('TabManagerService', () => {
 
       const validTabs = service.validateAndFilterTabs([]);
 
-      expect(validTabs.length).toBe(1);
+      expect(validTabs).toHaveLength(1);
       expect(validTabs[0].type).toBe('schema-editor');
     });
 
@@ -436,7 +436,7 @@ describe('TabManagerService', () => {
       // Only element1 exists now
       const validTabs = service.validateAndFilterTabs([element1]);
 
-      expect(validTabs.length).toBe(1);
+      expect(validTabs).toHaveLength(1);
       expect(validTabs[0].id).toBe('doc-1');
     });
 
@@ -448,7 +448,7 @@ describe('TabManagerService', () => {
 
       service.validateAndFilterTabs([element1]);
 
-      expect(service.openDocuments().length).toBe(1);
+      expect(service.openDocuments()).toHaveLength(1);
     });
   });
 

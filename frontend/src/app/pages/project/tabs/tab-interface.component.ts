@@ -26,7 +26,7 @@ import {
   Router,
   RouterModule,
 } from '@angular/router';
-import { type Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType, type Project } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
 import { DocumentService } from '@services/project/document.service';
@@ -47,6 +47,21 @@ type SystemRoute =
   | 'settings'
   | 'publish-plans'
   | 'activity';
+
+/** The pieces of the current URL that map onto a project tab. */
+interface ParsedRouteInfo {
+  systemRoute: SystemRoute | null;
+  publishPlanId: string | null;
+  schemaId: string | null;
+  tabId: string | null;
+}
+
+const EMPTY_ROUTE_INFO: ParsedRouteInfo = {
+  systemRoute: null,
+  publishPlanId: null,
+  schemaId: null,
+  tabId: null,
+};
 
 const SYSTEM_TAB_ICONS: Partial<
   Record<Exclude<AppTab['systemType'], undefined>, string>
@@ -450,66 +465,74 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  private parseRouteInfo(): {
-    systemRoute: SystemRoute | null;
-    publishPlanId: string | null;
-    schemaId: string | null;
-    tabId: string | null;
-  } {
-    const url = this.router.url;
+  private parseRouteInfo(): ParsedRouteInfo {
     const project = this.projectState.project();
+    const projectInfo = project
+      ? this.parseProjectRoute(project)
+      : EMPTY_ROUTE_INFO;
 
-    if (project) {
-      const projectBaseUrl = `/${project.username}/${project.slug}`;
-      const systemRoutes: SystemRoute[] = [
-        'media',
-        'templates-list',
-        'relationships-list',
-        'tags-list',
-        'settings',
-        'publish-plans',
-        'activity',
-      ];
-
-      for (const route of systemRoutes) {
-        if (url === `${projectBaseUrl}/${route}`) {
-          return {
-            systemRoute: route,
-            publishPlanId: null,
-            schemaId: null,
-            tabId: null,
-          };
-        }
-      }
-
-      if (url.startsWith(`${projectBaseUrl}/publish-plan/`)) {
-        let planId = url.split('/').at(-1) ?? null;
-        if (planId?.includes('?')) {
-          planId = planId.split('?')[0];
-        }
-        return {
-          systemRoute: null,
-          publishPlanId: planId,
-          schemaId: null,
-          tabId: null,
-        };
-      }
-
-      if (url.startsWith(`${projectBaseUrl}/schema/`)) {
-        let schemaId = url.split('/').at(-1) ?? null;
-        if (schemaId?.includes('?')) {
-          schemaId = schemaId.split('?')[0];
-        }
-        return {
-          systemRoute: null,
-          publishPlanId: null,
-          schemaId,
-          tabId: null,
-        };
-      }
+    if (projectInfo !== EMPTY_ROUTE_INFO) {
+      return projectInfo;
     }
 
-    // Walk the route tree looking for a tabId param
+    return { ...EMPTY_ROUTE_INFO, tabId: this.findTabIdFromRoute() };
+  }
+
+  /** Parse the URL when a project is loaded, or return EMPTY_ROUTE_INFO. */
+  private parseProjectRoute(project: Project): ParsedRouteInfo {
+    const url = this.router.url;
+    const projectBaseUrl = `/${project.username}/${project.slug}`;
+
+    const systemRoute = this.matchSystemRoute(url, projectBaseUrl);
+    if (systemRoute) {
+      return { ...EMPTY_ROUTE_INFO, systemRoute };
+    }
+
+    if (url.startsWith(`${projectBaseUrl}/publish-plan/`)) {
+      return {
+        ...EMPTY_ROUTE_INFO,
+        publishPlanId: this.lastUrlSegment(url),
+      };
+    }
+
+    if (url.startsWith(`${projectBaseUrl}/schema/`)) {
+      return { ...EMPTY_ROUTE_INFO, schemaId: this.lastUrlSegment(url) };
+    }
+
+    return EMPTY_ROUTE_INFO;
+  }
+
+  /** Match the URL against the known system routes. */
+  private matchSystemRoute(
+    url: string,
+    projectBaseUrl: string
+  ): SystemRoute | null {
+    const systemRoutes: SystemRoute[] = [
+      'media',
+      'templates-list',
+      'relationships-list',
+      'tags-list',
+      'settings',
+      'publish-plans',
+      'activity',
+    ];
+
+    return (
+      systemRoutes.find(route => url === `${projectBaseUrl}/${route}`) ?? null
+    );
+  }
+
+  /** Extract the trailing URL segment, dropping any query string. */
+  private lastUrlSegment(url: string): string | null {
+    const segment = url.split('/').at(-1) ?? null;
+    if (segment?.includes('?')) {
+      return segment.split('?')[0];
+    }
+    return segment;
+  }
+
+  /** Walk the route tree looking for a tabId param. */
+  private findTabIdFromRoute(): string | null {
     let currentRoute = this.route.root;
     let tabId: string | null = null;
     while (currentRoute.firstChild) {
@@ -521,13 +544,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         tabId = currentRoute.snapshot.paramMap.get('tabId');
       }
     }
-
-    return {
-      systemRoute: null,
-      publishPlanId: null,
-      schemaId: null,
-      tabId,
-    };
+    return tabId;
   }
 
   private selectOrOpenHomeTab(): void {

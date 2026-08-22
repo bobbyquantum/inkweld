@@ -1190,6 +1190,17 @@ export class ProjectStateService implements OnDestroy {
     }
   }
 
+  /**
+   * Close the schema-editor tab for a template, if one is open. Called when a
+   * template is deleted so the editor tab doesn't resurrect it via autosave.
+   */
+  closeSchemaEditor(schemaId: string): void {
+    const closed = this.tabManager.closeTabById(`schema-${schemaId}`);
+    if (closed) {
+      void this.saveOpenedDocumentsToCache();
+    }
+  }
+
   closeDocument(index: number): void {
     this.closeTab(index);
   }

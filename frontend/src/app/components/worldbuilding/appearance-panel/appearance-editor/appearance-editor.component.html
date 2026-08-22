@@ -159,21 +159,37 @@
                   <span class="manual-slot-label">{{
                     'worldbuilding.appearance.light' | transloco
                   }}</span>
-                  <app-color-picker
-                    [value]="getSettingValue(region, 'light')"
-                    [disabled]="disabled()"
-                    (valueChange)="setValue(region, 'light', $event)"
-                    [attr.data-testid]="'appearance-' + region + '-light'" />
+                  @if (setting.type === 'gradient') {
+                    <app-gradient-designer
+                      [value]="getSettingValue(region, 'light')"
+                      [disabled]="disabled()"
+                      (valueChange)="setValue(region, 'light', $event)"
+                      [attr.data-testid]="'appearance-' + region + '-light'" />
+                  } @else {
+                    <app-color-picker
+                      [value]="getSettingValue(region, 'light')"
+                      [disabled]="disabled()"
+                      (valueChange)="setValue(region, 'light', $event)"
+                      [attr.data-testid]="'appearance-' + region + '-light'" />
+                  }
                 </div>
                 <div class="manual-slot">
                   <span class="manual-slot-label">{{
                     'worldbuilding.appearance.dark' | transloco
                   }}</span>
-                  <app-color-picker
-                    [value]="getSettingValue(region, 'dark')"
-                    [disabled]="disabled()"
-                    (valueChange)="setValue(region, 'dark', $event)"
-                    [attr.data-testid]="'appearance-' + region + '-dark'" />
+                  @if (setting.type === 'gradient') {
+                    <app-gradient-designer
+                      [value]="getSettingValue(region, 'dark')"
+                      [disabled]="disabled()"
+                      (valueChange)="setValue(region, 'dark', $event)"
+                      [attr.data-testid]="'appearance-' + region + '-dark'" />
+                  } @else {
+                    <app-color-picker
+                      [value]="getSettingValue(region, 'dark')"
+                      [disabled]="disabled()"
+                      (valueChange)="setValue(region, 'dark', $event)"
+                      [attr.data-testid]="'appearance-' + region + '-dark'" />
+                  }
                 </div>
               </div>
             } @else {

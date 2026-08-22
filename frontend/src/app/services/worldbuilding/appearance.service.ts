@@ -10,13 +10,12 @@ import {
 import { StorageContextService } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { ThemeService } from '@themes/theme.service';
-import { firstValueFrom, map } from 'rxjs';
-
-import { adjustGradient, adjustHex } from '../../utils/color';
+import { adjustGradient, adjustHex } from '@utils/color';
 import {
   mediaIdFromReference,
   mediaReferenceFilename,
-} from '../../utils/media-reference';
+} from '@utils/media-reference';
+import { firstValueFrom, map } from 'rxjs';
 
 /**
  * A resolved background ready to bind as CSS custom properties.

@@ -42,4 +42,12 @@ describe('ColorPickerComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.classList).toContain('disabled');
   });
+
+  it('should not emit a change while disabled', () => {
+    fixture.componentRef.setInput('disabled', true);
+    const emit = vi.fn();
+    component.valueChange.subscribe(emit);
+    component['onColorChange']('#ff0000');
+    expect(emit).not.toHaveBeenCalled();
+  });
 });

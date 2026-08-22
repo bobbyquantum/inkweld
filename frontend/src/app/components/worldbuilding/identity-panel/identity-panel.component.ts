@@ -27,12 +27,12 @@ import {
   type WorldbuildingIdentity,
   WorldbuildingService,
 } from '@services/worldbuilding/worldbuilding.service';
-import { debounceTime, firstValueFrom, Subject, takeUntil } from 'rxjs';
-
 import {
   mediaIdFromReference,
   mediaReferenceFilename,
-} from '../../../utils/media-reference';
+} from '@utils/media-reference';
+import { debounceTime, firstValueFrom, Subject, takeUntil } from 'rxjs';
+
 import { TagChipListComponent } from '../../tags/tag-chip-list.component';
 
 /**
@@ -288,24 +288,32 @@ export class IdentityPanelComponent implements OnDestroy {
     // Cleanup previous observer
     if (this.unsubscribeObserver) {
       this.unsubscribeObserver();
+      this.unsubscribeObserver = null;
     }
 
-    this.unsubscribeObserver =
-      await this.worldbuildingService.observeIdentityChanges(
-        elementId,
-        (data: WorldbuildingIdentity) => {
-          if (sequence !== this.elementSequence) return;
-          this.receivedRealtime[sequence] = true;
-          this.identity.set(data);
-          this.appearance.set(data.appearance);
-          // Only update description if different to avoid cursor jumps
-          if (data.description !== this.description()) {
-            this.description.set(data.description ?? '');
-          }
-        },
-        this.username(),
-        this.slug()
-      );
+    const unsubscribe = await this.worldbuildingService.observeIdentityChanges(
+      elementId,
+      (data: WorldbuildingIdentity) => {
+        if (sequence !== this.elementSequence) return;
+        this.receivedRealtime[sequence] = true;
+        this.identity.set(data);
+        this.appearance.set(data.appearance);
+        // Only update description if different to avoid cursor jumps
+        if (data.description !== this.description()) {
+          this.description.set(data.description ?? '');
+        }
+      },
+      this.username(),
+      this.slug()
+    );
+    // A newer element's registration may have resolved first; release this
+    // stale callback immediately instead of overwriting the newer cleanup
+    // handle (which would leak the newer observer).
+    if (sequence !== this.elementSequence) {
+      unsubscribe();
+      return;
+    }
+    this.unsubscribeObserver = unsubscribe;
   }
 
   onDescriptionChange(value: string): void {

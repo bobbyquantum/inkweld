@@ -3,7 +3,7 @@
  * Shared between services and components
  */
 
-import type { ElementAppearance } from './element-appearance';
+import type { ElementAppearance } from '@models/element-appearance';
 
 export enum FieldType {
   TEXT = 'text',

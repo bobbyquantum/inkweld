@@ -89,7 +89,7 @@ export function extractMimeType(dataUrl: string): string {
 /**
  * Convert a base64 data URL to a Blob
  */
-export { base64ToBlob } from '../../utils/base64-utils';
+export { base64ToBlob } from '@utils/base64-utils';
 
 /**
  * Generate a unique media ID for an image

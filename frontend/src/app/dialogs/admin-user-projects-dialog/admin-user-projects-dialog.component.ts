@@ -14,8 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import type { AdminUserProjects } from '@inkweld/model/admin-user-projects';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AdminService } from '@services/admin/admin.service';
-
-import { formatBytes } from '../../utils/format-bytes';
+import { formatBytes } from '@utils/format-bytes';
 export interface AdminUserProjectsDialogData {
   userId: string;
   username: string;

@@ -41,17 +41,29 @@ export class TemplateSnapshotService {
    * `worldbuildingData` (a free-form JSON container) and tag it in `metadata`
    * so restore knows how to unpack it.
    */
-  private buildOptions(schema: ElementTypeSchema): CreateSnapshotOptions {
+  private buildOptions(
+    schema: ElementTypeSchema,
+    name?: string,
+    description?: string
+  ): CreateSnapshotOptions {
     return {
-      name: schema.name,
+      name: name ?? schema.name,
+      description,
       xmlContent: '',
       worldbuildingData: { schema: structuredClone(schema) },
       metadata: { kind: 'schema-template' },
     };
   }
 
-  /** Create a snapshot of a template, overwriting the schema id in place. */
-  async createTemplateSnapshot(schemaId: string): Promise<StoredSnapshot> {
+  /**
+   * Create a snapshot of a template, overwriting the schema id in place.
+   * When no name/description are supplied, the schema's name is used.
+   */
+  async createTemplateSnapshot(
+    schemaId: string,
+    name?: string,
+    description?: string
+  ): Promise<StoredSnapshot> {
     const schema = this.worldbuildingService.getSchemaById(schemaId);
     if (!schema) {
       throw new Error(`Template not found: ${schemaId}`);
@@ -59,7 +71,7 @@ export class TemplateSnapshotService {
     return this.localSnapshots.createSnapshot(
       this.projectKey(),
       templateSnapshotDocumentId(schemaId),
-      this.buildOptions(schema)
+      this.buildOptions(schema, name, description)
     );
   }
 

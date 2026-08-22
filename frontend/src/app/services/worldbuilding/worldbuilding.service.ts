@@ -6,13 +6,13 @@ import {
   type BackgroundType,
   type ElementAppearance,
 } from '@models/element-appearance';
+import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { Subject, type Subscription } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
 import { type ElementTypeSchema } from '../../models/schema-types';
-import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';

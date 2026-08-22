@@ -89,6 +89,7 @@
                 [attr.aria-label]="
                   'templates.editor.fieldOptionsLabel' | transloco
                 "
+                [value]="option"
                 (input)="updateOption($index, $any($event.target).value)"
                 [attr.data-testid]="'fc-option-input-' + $index" />
             </mat-form-field>
@@ -171,7 +172,7 @@
             id="fc-rows"
             [attr.aria-label]="'templates.editor.rowsLabel' | transloco"
             [value]="rows()"
-            (input)="rows.set($any($event.target).value)"
+            (input)="rows.set($any($event.target).valueAsNumber)"
             data-testid="fc-rows" />
         </mat-form-field>
       }

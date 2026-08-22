@@ -1,5 +1,6 @@
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { RouteReuseStrategy } from '@angular/router';
+import { CustomRouteReuseStrategy } from '@utils/custom-route-reuse-strategy';
 import { describe, expect, it } from 'vitest';
 
 import { ThemeService } from '../themes/theme.service';
@@ -7,7 +8,6 @@ import { appConfig } from './app.config';
 import { routes } from './app.routes';
 import { API_PROVIDERS } from './config/api.config';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
-import { CustomRouteReuseStrategy } from './utils/custom-route-reuse-strategy';
 
 describe('app.config', () => {
   it('exports the application providers needed for routing, http, theme, and service worker setup', () => {

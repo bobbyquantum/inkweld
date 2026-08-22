@@ -106,7 +106,9 @@ export class TemplateSnapshotsDialogComponent implements OnInit {
     this.loading.set(true);
     try {
       await this.templateSnapshotService.createTemplateSnapshot(
-        this.data.templateId
+        this.data.templateId,
+        result.name,
+        result.description
       );
       this.snackBar.open(
         this.transloco.translate('dialogs.snapshots.created', {

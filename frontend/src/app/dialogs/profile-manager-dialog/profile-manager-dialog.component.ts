@@ -35,9 +35,9 @@ import {
   MigrationService,
   MigrationStatus,
 } from '@services/local/migration.service';
+import { stripTrailingSlashes } from '@utils/string-utils';
 import { firstValueFrom } from 'rxjs';
 
-import { stripTrailingSlashes } from '../../utils/string-utils';
 import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,

@@ -16,13 +16,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule } from '@jsverse/transloco';
+import { formatRelativeDate } from '@utils/date-format';
 
 import type {
   CommentThreadResponse,
   LocalCommentMessage,
 } from '../../../services/project/comment.service';
 import { CommentService } from '../../../services/project/comment.service';
-import { formatRelativeDate } from '../../../utils/date-format';
 import { UserAvatarComponent } from '../../user-avatar/user-avatar.component';
 import type { CommentMarkAttrs } from '../comment-mark-schema';
 

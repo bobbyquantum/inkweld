@@ -10,9 +10,8 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { normalizeHex } from '@utils/color';
 import { NgxInputColorComponent } from 'ngx-input-color/color-picker';
-
-import { normalizeHex } from '../../../../utils/color';
 
 /**
  * A colour chooser for a solid background colour, embedded inline in the panel
@@ -87,6 +86,7 @@ export class ColorPickerComponent implements AfterViewInit, OnDestroy {
   }
 
   protected onColorChange(colour: string): void {
+    if (this.disabled()) return;
     const normalized = normalizeHex(colour);
     if (normalized) {
       this.valueChange.emit(normalized);

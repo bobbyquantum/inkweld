@@ -22,6 +22,7 @@ describe('TemplatesTabComponent', () => {
     elements: ReturnType<typeof signal<any[]>>;
     canWrite: ReturnType<typeof signal<boolean>>;
     openSchemaEditor: ReturnType<typeof vi.fn>;
+    closeSchemaEditor: ReturnType<typeof vi.fn>;
   };
   let mockWorldbuildingService: any;
   let mockSnackBar: any;
@@ -59,6 +60,7 @@ describe('TemplatesTabComponent', () => {
       elements: signal([]),
       canWrite: signal(true),
       openSchemaEditor: vi.fn(),
+      closeSchemaEditor: vi.fn(),
     };
 
     const initialSchemasSignal = signal<ElementTypeSchema[]>([]);
@@ -286,6 +288,9 @@ describe('TemplatesTabComponent', () => {
       await component.deleteTemplate(mockCustomTemplate);
 
       expect(mockWorldbuildingService.deleteTemplate).toHaveBeenCalledWith(
+        'custom-1'
+      );
+      expect(mockProjectState.closeSchemaEditor).toHaveBeenCalledWith(
         'custom-1'
       );
     });
