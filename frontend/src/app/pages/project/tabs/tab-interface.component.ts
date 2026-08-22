@@ -517,11 +517,8 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
       'activity',
     ];
 
-    // Strip any query string so URLs like `settings?section=appearance` still
-    // match the `settings` route.
-    const path = url.split('?')[0];
     return (
-      systemRoutes.find(route => path === `${projectBaseUrl}/${route}`) ?? null
+      systemRoutes.find(route => url === `${projectBaseUrl}/${route}`) ?? null
     );
   }
 
