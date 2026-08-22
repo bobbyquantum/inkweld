@@ -425,7 +425,7 @@ describe('UserService', () => {
       expect(dialogMock.open).toHaveBeenCalledWith(
         UserSettingsDialogComponent,
         {
-          width: '700px',
+          width: '900px',
           disableClose: true,
         }
       );

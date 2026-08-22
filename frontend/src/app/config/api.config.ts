@@ -7,10 +7,10 @@ import {
   ProjectsService,
   UsersService,
 } from '@inkweld/index';
+import { stripTrailingSlashes } from '@utils/string-utils';
 
 import { environment } from '../../environments/environment';
 import { SetupService } from '../services/core/setup.service';
-import { stripTrailingSlashes } from '../utils/string-utils';
 
 /**
  * Creates a dynamic Configuration that reads basePath from SetupService

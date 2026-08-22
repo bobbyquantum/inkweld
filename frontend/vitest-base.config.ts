@@ -62,8 +62,9 @@ export default defineConfig({
   // Vitest 4+ pool options are now top-level
   // Use half the available CPUs (leaves room for other processes)
   // CI typically has 2 cores, local dev has more
-  // forks: {
-  //   minForks: isCI ? 2 : 4,
-  //   maxForks: isCI ? 2 : 8,
-  // },
+  forks: {
+    minForks: isCI ? 1 : 4,
+    maxForks: isCI ? 1 : 8,
+    singleFork: isCI,
+  },
 });

@@ -2,10 +2,10 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { AdminService } from '@services/admin/admin.service';
+import { formatBytes } from '@utils/format-bytes';
 import { vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-import { formatBytes } from '../../utils/format-bytes';
 import { AdminUserProjectsDialogComponent } from './admin-user-projects-dialog.component';
 
 describe('AdminUserProjectsDialogComponent', () => {

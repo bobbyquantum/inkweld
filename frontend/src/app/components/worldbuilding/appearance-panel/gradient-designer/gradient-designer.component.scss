@@ -1,0 +1,18 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.gradient-designer {
+  width: 100%;
+
+  ngx-input-gradient {
+    display: block;
+    width: 100%;
+  }
+}
+
+:host.disabled {
+  pointer-events: none;
+  opacity: 0.6;
+}

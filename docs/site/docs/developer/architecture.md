@@ -618,17 +618,69 @@ npm run lint         # Lint all code
 
 ### Custom Worldbuilding Templates
 
-Define schemas in database:
+Worldbuilding element schemas (templates) are edited in-app through the unified
+interactive schema editor: the `WorldbuildingEditorComponent` renders a live
+preview of the schema (`previewSchema` + `editMode` inputs) and the owning
+`TemplateEditorPageComponent` applies the resulting `SchemaEditEvent`s to its
+own schema state, autosaving via the `schemaChange` output.
+
+The editor has two responsive layouts — a sidenav with sections on wide screens
+and a stacked accordion on narrow ones. In edit mode **Schema Details** is the
+top tab/section (name, icon, description), followed by the schema's tabs and the
+fixed Identity, Relationships, Media and Styling sections. Within the preview
+you can:
+
+- add/remove/reorder tabs and fields,
+- edit each field's config inline (label, type, placeholder, options, …),
+- rename a tab and pick its icon from a curated Material-icon picker that covers
+  every built-in element-type icon (so existing schemas' icons are always
+  available),
+- edit the schema name/icon/description under Schema Details,
+- set the default appearance/image that new elements of this type get under
+  Styling.
+
+Changes save automatically; schema-design snapshots can be created and restored
+from the snapshot button.
 
 ```typescript
-interface WorldbuildingSchema {
+interface ElementTypeSchema {
+  id: string; // nanoid, used for all lookups
   name: string;
-  tabs: SchemaTab[];
+  icon: string; // Material icon name
+  description: string;
+  version: number; // bumped on each save, used for migrations
+  tabs: TabSchema[];
+  defaultValues?: Record<string, unknown>;
+  defaultAppearance?: ElementAppearance; // menu/content backgrounds
+  defaultImage?: string; // media:// reference or URL
 }
 
-interface SchemaTab {
-  title: string;
-  fields: SchemaField[];
+interface TabSchema {
+  key: string;
+  label: string;
+  icon?: string;
+  order?: number;
+  fields: FieldSchema[];
+}
+
+interface FieldSchema {
+  key: string;
+  label: string;
+  type:
+    | 'text'
+    | 'textarea'
+    | 'number'
+    | 'date'
+    | 'select'
+    | 'multiselect'
+    | 'array'
+    | 'checkbox';
+  placeholder?: string;
+  description?: string;
+  defaultValue?: unknown;
+  options?: string[] | { value: string; label: string }[];
+  validation?: FieldValidation;
+  layout?: { span?: number; order?: number };
 }
 ```
 

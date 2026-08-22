@@ -1,0 +1,12 @@
+<div class="color-picker" data-testid="color-picker">
+  @if (renderReady()) {
+    <ngx-input-color
+      [ngModel]="value()"
+      (ngModelChange)="onColorChange($event)"
+      [simpleMode]="false"
+      [theme]="'light'"
+      [outputType]="'HEX'"
+      [useAlphaChannel]="false"
+      data-testid="color-picker-input"></ngx-input-color>
+  }
+</div>

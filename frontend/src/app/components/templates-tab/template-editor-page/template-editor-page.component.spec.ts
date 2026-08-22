@@ -2,6 +2,7 @@ import { type CdkDragDrop } from '@angular/cdk/drag-drop';
 import { provideZonelessChangeDetection, type QueryList } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { type MatExpansionPanel } from '@angular/material/expansion';
+import { type ElementAppearance } from '@models/element-appearance';
 import {
   type ElementTypeSchema,
   type FieldSchema,
@@ -137,6 +138,22 @@ describe('TemplateEditorPageComponent', () => {
       expect(mockPanel.open).not.toHaveBeenCalled();
       expect(component._lastFieldId).toBeNull();
       vi.useRealTimers();
+    });
+  });
+
+  describe('schema info + appearance handlers', () => {
+    it('should update schema metadata from the Schema Details section', () => {
+      component['onSchemaInfoChange']({ name: 'Hero', icon: 'person' });
+      expect(component.model().name).toBe('Hero');
+      expect(component.model().icon).toBe('person');
+    });
+
+    it('should update the default appearance from the editor styling section', () => {
+      const appearance: ElementAppearance = {
+        menu: { type: 'color', mode: 'auto', value: '#123456' },
+      };
+      component['onDefaultAppearanceChange'](appearance);
+      expect(component.defaultAppearance()).toEqual(appearance);
     });
   });
 
@@ -286,6 +303,149 @@ describe('TemplateEditorPageComponent', () => {
     });
   });
 
+  describe('onSchemaEdit', () => {
+    it('should add a tab', () => {
+      const before = component.tabs().length;
+      component['onSchemaEdit']({ type: 'add-tab' });
+      expect(component.tabs()).toHaveLength(before + 1);
+    });
+
+    it('should remove a tab by key', () => {
+      component['onSchemaEdit']({ type: 'remove-tab', tabKey: 'basic' });
+      expect(component.tabs().some(t => t.key === 'basic')).toBe(false);
+    });
+
+    it('should ignore removing a tab with an unknown key', () => {
+      const before = component.tabs().length;
+      component['onSchemaEdit']({ type: 'remove-tab', tabKey: 'nope' });
+      expect(component.tabs()).toHaveLength(before);
+    });
+
+    it('should add a field to a tab by key', () => {
+      const before = component.tabs()[0].fields.length;
+      component['onSchemaEdit']({ type: 'add-field', tabKey: 'basic' });
+      expect(component.tabs()[0].fields).toHaveLength(before + 1);
+    });
+
+    it('should remove a field by tab and field key', () => {
+      const before = component.tabs()[0].fields.length;
+      component['onSchemaEdit']({
+        type: 'remove-field',
+        tabKey: 'basic',
+        fieldKey: 'age',
+      });
+      expect(component.tabs()[0].fields).toHaveLength(before - 1);
+      expect(component.tabs()[0].fields.some(f => f.key === 'age')).toBe(false);
+    });
+
+    it('should move a field up by delta', () => {
+      component['onSchemaEdit']({
+        type: 'move-field',
+        tabKey: 'basic',
+        fieldKey: 'age',
+        delta: -1,
+      });
+      expect(component.tabs()[0].fields[0].key).toBe('age');
+    });
+
+    it('should move a field down by delta', () => {
+      component['onSchemaEdit']({
+        type: 'move-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        delta: 1,
+      });
+      expect(component.tabs()[0].fields[1].key).toBe('name');
+    });
+
+    it('should ignore an out-of-range field move', () => {
+      const original = component.tabs()[0].fields.map(f => f.key);
+      component['onSchemaEdit']({
+        type: 'move-field',
+        tabKey: 'basic',
+        fieldKey: 'age',
+        delta: 1,
+      });
+      expect(component.tabs()[0].fields.map(f => f.key)).toEqual(original);
+    });
+
+    it('should update a field by key via onSchemaEdit', () => {
+      component['onSchemaEdit']({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: { label: 'Full name', placeholder: 'Enter name' },
+      });
+      const nameField = component.tabs()[0].fields.find(f => f.key === 'name');
+      expect(nameField?.label).toBe('Full name');
+      expect(nameField?.placeholder).toBe('Enter name');
+    });
+
+    it('should update a tab by key via onSchemaEdit', () => {
+      component['onSchemaEdit']({
+        type: 'update-tab',
+        tabKey: 'basic',
+        patch: { label: 'Core', icon: 'star' },
+      });
+      const tab = component.tabs()[0];
+      expect(tab.label).toBe('Core');
+      expect(tab.icon).toBe('star');
+    });
+
+    it('should ignore an update-tab event for a missing tab key', () => {
+      const original = component.tabs();
+      component['onSchemaEdit']({
+        type: 'update-tab',
+        tabKey: 'missing',
+        patch: { label: 'Nope' },
+      });
+      expect(component.tabs()).toEqual(original);
+    });
+  });
+
+  describe('scheduleAutosave', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should emit the assembled schema after the debounce', () => {
+      const emit = vi.fn();
+      component.schemaChange.subscribe(emit);
+      component['scheduleAutosave']();
+      expect(emit).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(700);
+      expect(emit).toHaveBeenCalledTimes(1);
+      const emitted = emit.mock.calls[0][0] as ElementTypeSchema;
+      expect(emitted.tabs).toEqual(component.tabs());
+    });
+
+    it('should reset the debounce on repeated calls', () => {
+      const emit = vi.fn();
+      component.schemaChange.subscribe(emit);
+      component['scheduleAutosave']();
+      vi.advanceTimersByTime(300);
+      component['scheduleAutosave']();
+      vi.advanceTimersByTime(300);
+      expect(emit).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(400);
+      expect(emit).toHaveBeenCalledTimes(1);
+    });
+
+    it('should emit the schema immediately after a schema edit', () => {
+      const emit = vi.fn();
+      component.schemaChange.subscribe(emit);
+      component['onSchemaEdit']({ type: 'add-tab' });
+      // Schema edits are committed immediately, not debounced, so closing the
+      // tab can never lose the last edit.
+      expect(emit).toHaveBeenCalledTimes(1);
+      const emitted = emit.mock.calls[0][0] as ElementTypeSchema;
+      expect(emitted.tabs).toEqual(component.tabs());
+    });
+  });
+
   describe('form validation', () => {
     it('should require template name', () => {
       component.basicForm.name().value.set('');
@@ -343,6 +503,42 @@ describe('TemplateEditorPageComponent', () => {
       });
     });
 
+    it('should include the default appearance on save', () => {
+      const emitted: (ElementTypeSchema | null)[] = [];
+      component.done.subscribe(v => emitted.push(v));
+
+      component.model.set({
+        name: 'Updated Character',
+        description: 'Updated description',
+        icon: 'star',
+      });
+      component.defaultAppearance.set({
+        menu: { type: 'color', mode: 'auto', value: '#123456' },
+      });
+
+      component.save();
+
+      expect(emitted[0]?.defaultAppearance).toEqual({
+        menu: { type: 'color', mode: 'auto', value: '#123456' },
+      });
+    });
+
+    it('should include the default image on save', () => {
+      const emitted: (ElementTypeSchema | null)[] = [];
+      component.done.subscribe(v => emitted.push(v));
+
+      component.model.set({
+        name: 'Updated Character',
+        description: 'Updated description',
+        icon: 'star',
+      });
+      component.defaultImage.set('media://default.png');
+
+      component.save();
+
+      expect(emitted[0]?.defaultImage).toBe('media://default.png');
+    });
+
     it('should not emit when form is invalid', () => {
       const emitted: (ElementTypeSchema | null)[] = [];
       component.done.subscribe(v => emitted.push(v));
@@ -369,6 +565,23 @@ describe('TemplateEditorPageComponent', () => {
       expect(emitted).toHaveLength(0);
       expect(component.validationError()).toBe(
         'Field keys must be unique across the template.'
+      );
+    });
+
+    it('should reject a flat field key that collides with a nested group', () => {
+      const emitted: (ElementTypeSchema | null)[] = [];
+      component.done.subscribe(v => emitted.push(v));
+
+      // Give the first tab a nested group 'appearance.*' and a flat field 'appearance'.
+      component.updateTab(0, { key: 'appearance', label: 'Appearance' });
+      component.updateField(0, 1, { key: 'appearance.height' });
+      component.updateField(0, 0, { key: 'appearance' });
+
+      component.save();
+
+      expect(emitted).toHaveLength(0);
+      expect(component.validationError()).toContain(
+        'conflicts with a nested field group'
       );
     });
   });

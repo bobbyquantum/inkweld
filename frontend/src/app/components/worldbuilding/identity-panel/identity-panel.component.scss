@@ -65,12 +65,7 @@
       min-width: 0; // Allow text to truncate instead of overflow
     }
 
-    .description-section {
-      flex: 1 1 100%;
-      min-width: 0;
-    }
-
-    .tags-section {
+    .description-tags-section {
       flex: 1 1 100%;
       min-width: 0;
     }
@@ -296,19 +291,30 @@
 
 // Name section
 .name-section {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: center;
+  width: 100%;
+  min-width: 0;
+}
 
-  @media (min-width: 760px) {
+.name-glass {
+  width: 100%;
+  --glass-card-bg: color-mix(
+    in srgb,
+    var(--sys-surface-container-low) 70%,
+    transparent
+  );
+  --glass-card-border: var(--sys-outline-variant);
+
+  ::ng-deep .glass-card-body {
+    display: flex;
+    align-items: center;
     justify-content: center;
-    text-align: center;
+    gap: 8px;
   }
+}
 
-  @media (max-width: 759px) {
-    justify-content: flex-start;
-  }
+.element-icon {
+  color: var(--sys-primary);
+  flex-shrink: 0;
 }
 
 .element-name {
@@ -333,10 +339,27 @@
   }
 }
 
-// Description section
-.description-section {
+// Glass cards use the theme surface (not a hard-coded white) so they read
+// correctly in dark mode while still letting a custom background show through.
+.identity-glass {
+  --glass-card-bg: color-mix(
+    in srgb,
+    var(--sys-surface-container-low) 70%,
+    transparent
+  );
+  --glass-card-border: var(--sys-outline-variant);
+}
+
+// Description + tags section (single card)
+.description-tags-section {
   width: 100%;
   min-width: 0;
+
+  ::ng-deep .glass-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
 }
 
 .description-field {
@@ -349,18 +372,6 @@
     @media (max-width: 759px) {
       min-height: 60px;
     }
-  }
-}
-
-// Tags section
-.tags-section {
-  width: 100%;
-  margin-top: 8px;
-
-  @media (max-width: 759px) {
-    flex: 1 1 100%;
-    margin-top: 0;
-    min-width: 0;
   }
 }
 

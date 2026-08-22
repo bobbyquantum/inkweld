@@ -1,3 +1,5 @@
+import { DragDropModule } from '@angular/cdk/drag-drop';
+import { TextFieldModule } from '@angular/cdk/text-field';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -7,6 +9,7 @@ import {
   inject,
   input,
   type OnDestroy,
+  output,
   signal,
   untracked,
   viewChild,
@@ -32,7 +35,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DocumentSyncState } from '@models/document-sync-state';
+import { type ElementAppearance } from '@models/element-appearance';
 import { type ResolvedTag } from '@models/tag.model';
+import { AppearanceService } from '@services/worldbuilding/appearance.service';
 
 import {
   type Element as ApiElement,
@@ -51,8 +56,30 @@ import { ElementSyncProviderFactory } from '../../services/sync/element-sync-pro
 import { TagService } from '../../services/tag/tag.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
+import { AppearanceEditorComponent } from './appearance-panel/appearance-editor/appearance-editor.component';
+import { AppearancePanelComponent } from './appearance-panel/appearance-panel.component';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
 import { MediaPanelComponent } from './media-panel/media-panel.component';
+
+/**
+ * An edit request emitted by the worldbuilding editor when it is in schema
+ * edit mode, so the owning template/schema editor can apply the change to its
+ * own schema state. Carries tab/field identifiers so the parent can locate the
+ * affected items by key (keys are unique across the template).
+ */
+export type SchemaEditEvent =
+  | { type: 'add-tab' }
+  | { type: 'remove-tab'; tabKey: string }
+  | { type: 'update-tab'; tabKey: string; patch: Partial<TabSchema> }
+  | { type: 'add-field'; tabKey: string }
+  | { type: 'remove-field'; tabKey: string; fieldKey: string }
+  | { type: 'move-field'; tabKey: string; fieldKey: string; delta: -1 | 1 }
+  | {
+      type: 'update-field';
+      tabKey: string;
+      fieldKey: string;
+      patch: Partial<FieldSchema>;
+    };
 
 /**
  * Main worldbuilding editor component that renders the dynamic
@@ -64,6 +91,8 @@ import { MediaPanelComponent } from './media-panel/media-panel.component';
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    TextFieldModule,
+    DragDropModule,
     MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
@@ -76,6 +105,8 @@ import { MediaPanelComponent } from './media-panel/media-panel.component';
     MetaPanelComponent,
     IdentityPanelComponent,
     MediaPanelComponent,
+    AppearancePanelComponent,
+    AppearanceEditorComponent,
     TranslocoModule,
   ],
   templateUrl: './worldbuilding-editor.component.html',
@@ -88,12 +119,44 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   username = input.required<string>();
   slug = input.required<string>();
 
+  /**
+   * When set, the editor renders in preview mode using this schema directly
+   * (e.g. from the template designer's Preview tab) instead of loading a real
+   * element. No data is loaded, synced, or saved; the form is read-only.
+   */
+  previewSchema = input<ElementTypeSchema | null>(null);
+
+  /**
+   * When true, the preview renders interactive schema-editing affordances
+   * (add/remove/reorder fields and tabs) and emits {@link SchemaEditEvent}s via
+   * `schemaEdit` for the owning template editor to apply. Ignored outside
+   * preview mode; the live element editor is unaffected.
+   */
+  editMode = input(false);
+
+  /** Emits schema-editing intents when `editMode` is active. */
+  readonly schemaEdit = output<SchemaEditEvent>();
+
+  /** Emits updated schema metadata (name/icon/description) from the Schema Details section. */
+  readonly schemaInfoChange = output<{
+    name?: string;
+    icon?: string;
+    description?: string;
+  }>();
+
+  /** Emits the schema's default appearance when edited from the Styling section. */
+  readonly defaultAppearanceChange = output<ElementAppearance>();
+
+  /** True when rendering a transient schema preview (no element persistence). */
+  readonly previewMode = computed(() => this.previewSchema() !== null);
+
   private readonly worldbuildingService = inject(WorldbuildingService);
   protected readonly projectState = inject(ProjectStateService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly tagService = inject(TagService);
   private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
   private readonly transloco = inject(TranslocoService);
+  private readonly appearanceService = inject(AppearanceService);
 
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);
@@ -125,9 +188,18 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   /** Computed element name from project state */
   elementName = computed(() => {
+    if (this.previewMode()) {
+      return this.previewSchema()?.name || 'Untitled';
+    }
     const elements = this.projectState.elements();
     const element = elements.find(e => e.id === this.elementId());
     return element?.name || 'Untitled';
+  });
+
+  /** Material icon for the element, derived from its schema. */
+  elementIcon = computed(() => {
+    const schema = this.schema();
+    return schema?.icon || 'category';
   });
 
   /** Sync state from the project elements provider */
@@ -169,6 +241,97 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   /** Reference to the identity panel for accessing its resolved image URL */
   identityPanel = viewChild(IdentityPanelComponent);
 
+  /** Reference to the appearance panel (Styling tab) for live preview sync. */
+  appearancePanel = viewChild(AppearancePanelComponent);
+
+  /**
+   * In preview mode, seed the identity panel's appearance and image from the
+   * schema's defaults so the preview shows the configured styling.
+   */
+  protected readonly seedPreviewAppearance = effect(() => {
+    if (!this.previewMode()) return;
+    const panel = this.identityPanel();
+    const schema = this.previewSchema();
+    if (panel && schema) {
+      panel.appearance.set(schema.defaultAppearance);
+      panel.identity.set({ image: schema.defaultImage });
+    }
+  });
+
+  /**
+   * Keep the identity panel's appearance in sync with the appearance panel so
+   * the editor's backgrounds update live (e.g. while dragging the slider).
+   */
+  protected onAppearanceChange(appearance: ElementAppearance): void {
+    this.identityPanel()?.appearance.set(appearance);
+  }
+
+  /**
+   * Resolved menu background derived from the element's appearance config
+   * and the active theme. `null` means no custom background.
+   */
+  readonly menuBackground = computed(() => {
+    const appearance = this.identityPanel()?.appearance();
+    return this.appearanceService.resolveRegion(appearance?.menu, 'menu');
+  });
+
+  /** Resolved content background (see {@link menuBackground}). */
+  readonly contentBackground = computed(() => {
+    const appearance = this.identityPanel()?.appearance();
+    return this.appearanceService.resolveRegion(appearance?.content, 'content');
+  });
+
+  /**
+   * Cache of resolved blob URLs for `media://` background image references,
+   * keyed by the raw reference. Populated asynchronously by {@link resolveBgImage}.
+   */
+  private readonly resolvedImageUrls = signal<Record<string, string>>({});
+
+  /**
+   * Resolve any `media://` image references used by the current backgrounds so
+   * they render as loadable blob URLs. Runs whenever the backgrounds change.
+   */
+  protected readonly resolveBackgroundImages = effect(() => {
+    for (const bg of [this.menuBackground(), this.contentBackground()]) {
+      const ref = this.extractImageRef(bg?.background);
+      if (ref?.startsWith('media://') && !this.resolvedImageUrls()[ref]) {
+        void this.resolveBgImage(ref);
+      }
+    }
+  });
+
+  private async resolveBgImage(ref: string): Promise<void> {
+    const url = await this.appearanceService.resolveImageReference(
+      ref,
+      this.username(),
+      this.slug()
+    );
+    if (url) {
+      this.resolvedImageUrls.update(m => ({ ...m, [ref]: url }));
+    }
+  }
+
+  private extractImageRef(background: string | undefined): string | null {
+    if (!background) return null;
+    const match = /url\('(.*)'\)/.exec(background);
+    return match?.[1] ?? null;
+  }
+
+  /**
+   * Build the CSS value to bind to `--wb-bg` for a resolved background,
+   * substituting any cached blob URL for `media://` image references so the
+   * browser can actually load the image.
+   */
+  protected backgroundCss(
+    bg: ReturnType<AppearanceService['resolveRegion']>
+  ): string | null {
+    if (!bg) return null;
+    if (bg.type !== 'image') return bg.background;
+    const ref = this.extractImageRef(bg.background);
+    const resolved = ref ? this.resolvedImageUrls()[ref] : undefined;
+    return resolved ? `url('${resolved}')` : bg.background;
+  }
+
   /** Reference to the meta panel for controlling expanded state on mobile */
   metaPanel = viewChild(MetaPanelComponent);
 
@@ -185,8 +348,23 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   private readonly resizeCleanup: (() => void) | null = null;
   private isUpdatingFromRemote = false;
   private loadSequence = 0;
+  private schemaEditorSectionInitialized = false;
 
   constructor() {
+    // In the schema editor, land on Schema Details (the top tab) first.
+    // Guarded by a flag so it only runs once and never overrides a later
+    // selection the user makes.
+    effect(() => {
+      if (
+        this.previewMode() &&
+        this.editMode() &&
+        !this.schemaEditorSectionInitialized
+      ) {
+        this.schemaEditorSectionInitialized = true;
+        this.selectedSection.set('schema-details');
+      }
+    });
+
     // Layout detection: sidenav for large desktop + tablet landscape, accordion otherwise
     const browserWindow = globalThis.window;
     if (browserWindow) {
@@ -213,6 +391,19 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       const id = this.elementId();
       const username = this.username();
       const slug = this.slug();
+
+      // In preview mode, build the form from the transient schema and stop.
+      if (this.previewMode()) {
+        const schema = this.previewSchema();
+        this.schema.set(schema);
+        this.form.set(new FormGroup({}));
+        if (schema) {
+          this.buildFormFromSchema(schema);
+          this.form().disable({ emitEvent: false });
+        }
+        this.isInitialLoading.set(false);
+        return;
+      }
 
       // Only load when all required values are available
       if (id && username && slug) {
@@ -246,7 +437,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     effect(onCleanup => {
       // Track the form value signal via the compatForm tree.
       this.formTree().value();
-      if (this.isUpdatingFromRemote) return;
+      if (this.isUpdatingFromRemote || this.previewMode()) return;
       const timer = setTimeout(() => {
         untracked(() => void this.saveData());
       }, 500);
@@ -260,6 +451,11 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     }
     if (this.resizeCleanup) {
       this.resizeCleanup();
+    }
+    for (const url of Object.values(this.resolvedImageUrls())) {
+      if (url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
     }
   }
 
@@ -352,8 +548,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formGroup: Record<string, any> = {};
+    const formGroup: Record<string, AbstractControl> = {};
 
     schema.tabs.forEach((tab: TabSchema) => {
       tab.fields?.forEach((field: FieldSchema) => {
@@ -364,11 +559,27 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
         const groupName = this.getFieldGroupName(field);
         if (groupName) {
-          if (!formGroup[groupName]) {
-            formGroup[groupName] = new FormGroup({});
+          const existing = formGroup[groupName];
+          if (existing instanceof FormGroup) {
+            existing.addControl(this.getFieldControlName(field), control);
+          } else if (!existing) {
+            formGroup[groupName] = new FormGroup({
+              [this.getFieldControlName(field)]: control,
+            });
+          } else {
+            // A top-level field shares the group's key; the form can't hold
+            // both. Keep the top-level control and skip the nested field.
+            console.warn(
+              `[WorldbuildingEditor] Skipping nested field "${field.key}": ` +
+                `"${groupName}" is already a non-group field`
+            );
           }
-          const parentGroup = formGroup[groupName] as FormGroup;
-          parentGroup.addControl(this.getFieldControlName(field), control);
+        } else if (formGroup[field.key] instanceof FormGroup) {
+          // A nested group with this key already exists; skip the flat field.
+          console.warn(
+            `[WorldbuildingEditor] Skipping field "${field.key}": ` +
+              `it conflicts with a nested field group`
+          );
         } else {
           formGroup[field.key] = control;
         }
@@ -528,7 +739,9 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       !!section &&
       section !== 'identity' &&
       section !== 'relationships' &&
-      section !== 'media'
+      section !== 'media' &&
+      section !== 'styling' &&
+      section !== 'schema-details'
     );
   }
 
@@ -536,6 +749,10 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   getSectionLabel(section: string): string {
     if (section === 'identity') return 'Identity & Details';
     if (section === 'relationships') return 'Relationships';
+    if (section === 'styling') return 'Styling';
+    if (section === 'schema-details') {
+      return this.transloco.translate('templates.editor.schemaDetails');
+    }
     const tab = this.getTabs().find(t => t.key === section);
     return tab?.label || section;
   }
@@ -548,6 +765,252 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   getFieldsForTab(tabKey: string): FieldSchema[] {
     const tab = this.getTabs().find(t => t.key === tabKey);
     return tab?.fields || [];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Schema edit mode (preview only)
+  // ---------------------------------------------------------------------------
+
+  /** Emit a schema edit intent to the owning template editor. */
+  protected emitSchemaEdit(event: SchemaEditEvent): void {
+    if (!this.editMode() || !this.previewMode()) return;
+    this.schemaEdit.emit(event);
+  }
+
+  /** True when interactive schema editing is enabled in the preview. */
+  protected schemaEditingEnabled(): boolean {
+    return this.editMode() && this.previewMode();
+  }
+
+  /**
+   * Icons offered in the Schema Details and tab icon pickers. Covers every
+   * built-in element-type icon plus the icons used by the default schemas'
+   * tabs, so an existing schema's icon is always available. Callers should
+   * use {@link getIconChoices} so the currently-selected icon is always
+   * shown even if it isn't in this curated list.
+   */
+  protected getAvailableIcons(): string[] {
+    return [
+      // Element-type icons (must cover built-in types).
+      'person',
+      'place',
+      'category',
+      'map',
+      'diversity_1',
+      'auto_stories',
+      'groups',
+      'pets',
+      'settings',
+      'description',
+      'folder',
+      'hub',
+      'dashboard',
+      'timeline',
+      // Icons used by the default schemas' tabs (schema + tab icons).
+      'info',
+      'visibility',
+      'psychology',
+      'history_edu',
+      'stars',
+      'ac_unit',
+      'account_balance',
+      'account_tree',
+      'auto_awesome',
+      'blur_on',
+      'bolt',
+      'build',
+      'celebration',
+      'church',
+      'content_copy',
+      'coronavirus',
+      'directions_car',
+      'event',
+      'explore',
+      'face',
+      'flag',
+      'flash_on',
+      'forum',
+      'gavel',
+      'history',
+      'home_work',
+      'lightbulb',
+      'location_city',
+      'location_on',
+      'menu_book',
+      'military_tech',
+      'nights_stay',
+      'public',
+      'record_voice_over',
+      'router',
+      'rule',
+      'school',
+      'science',
+      'sick',
+      'terrain',
+      'today',
+      'translate',
+      'tune',
+      'work',
+      // Additional common icons.
+      'article',
+      'watch_later',
+      'people',
+      'group',
+      'campaign',
+      'cloud',
+      'computer',
+      'currency_exchange',
+      'desktop_windows',
+      'family_restroom',
+      'format_paint',
+      'inventory_2',
+      'key',
+      'label',
+      'link',
+      'list',
+      'local_offer',
+      'lock',
+      'phone_android',
+      'publish',
+      'push_pin',
+      'schedule',
+      'star',
+      'bookmark',
+      'edit_note',
+      'palette',
+      'sync',
+      'tablet',
+      'update',
+    ];
+  }
+
+  /**
+   * The icon choices shown in a picker: the curated list plus the currently
+   * selected icon (if it isn't already present) so the current value is
+   * always visible and selectable.
+   */
+  protected getIconChoices(current?: string): string[] {
+    if (!current) return this.getAvailableIcons();
+    const all = this.getAvailableIcons();
+    return all.includes(current) ? all : [...all, current];
+  }
+
+  /** Open the icon picker dialog and apply the chosen icon to a tab. */
+  protected async pickTabIcon(tab: TabSchema): Promise<void> {
+    const icon = await this.dialogGateway.openIconPickerDialog({
+      current: this.getTabIcon(tab),
+      icons: this.getIconChoices(this.getTabIcon(tab)),
+      titleKey: 'worldbuilding.schemaEdit.tabIcon',
+    });
+    if (icon) {
+      this.onUpdateTab(tab.key, { icon });
+    }
+  }
+
+  /** Open the icon picker dialog and apply the chosen icon to the schema. */
+  protected async pickSchemaIcon(): Promise<void> {
+    const current = this.previewSchema()?.icon ?? 'category';
+    const icon = await this.dialogGateway.openIconPickerDialog({
+      current,
+      icons: this.getIconChoices(current),
+      titleKey: 'templates.editor.iconLabel',
+    });
+    if (icon) {
+      this.onSchemaInfoChange({ icon });
+    }
+  }
+
+  protected onAddTab(): void {
+    this.emitSchemaEdit({ type: 'add-tab' });
+  }
+
+  protected async onRemoveTab(tabKey: string): Promise<void> {
+    const confirmed = await this.dialogGateway.openConfirmationDialog({
+      title: this.transloco.translate(
+        'worldbuilding.schemaEdit.removeTabTitle'
+      ),
+      message: this.transloco.translate(
+        'worldbuilding.schemaEdit.removeTabConfirm',
+        { tab: this.getTabLabel(tabKey) }
+      ),
+      confirmText: this.transloco.translate('delete'),
+      cancelText: this.transloco.translate('cancel'),
+    });
+    if (confirmed) {
+      this.emitSchemaEdit({ type: 'remove-tab', tabKey });
+    }
+  }
+
+  /** Emit an update to a tab's properties (label/icon). */
+  protected onUpdateTab(tabKey: string, patch: Partial<TabSchema>): void {
+    this.emitSchemaEdit({ type: 'update-tab', tabKey, patch });
+  }
+
+  /** Resolve a tab's display label by key (or the key itself). */
+  private getTabLabel(tabKey: string): string {
+    return this.getTabs().find(t => t.key === tabKey)?.label || tabKey;
+  }
+
+  protected onAddField(tabKey: string): void {
+    this.emitSchemaEdit({ type: 'add-field', tabKey });
+  }
+
+  protected onRemoveField(tabKey: string, fieldKey: string): void {
+    this.emitSchemaEdit({ type: 'remove-field', tabKey, fieldKey });
+  }
+
+  protected onMoveField(tabKey: string, fieldKey: string, delta: -1 | 1): void {
+    this.emitSchemaEdit({ type: 'move-field', tabKey, fieldKey, delta });
+  }
+
+  /** Emit a field config change (label/type/placeholder/description/options). */
+  protected onUpdateField(
+    tabKey: string,
+    fieldKey: string,
+    patch: Partial<FieldSchema>
+  ): void {
+    this.emitSchemaEdit({ type: 'update-field', tabKey, fieldKey, patch });
+  }
+
+  /** Open the field settings dialog and apply the returned patch. */
+  async openFieldConfig(tabKey: string, field: FieldSchema): Promise<void> {
+    const patch = await this.dialogGateway.openFieldConfigDialog({
+      field,
+      fieldTypes: this.getFieldTypes(),
+    });
+    if (patch) {
+      this.onUpdateField(tabKey, field.key, patch);
+    }
+  }
+
+  /** Field types offered in the field settings dialog. */
+  protected getFieldTypes(): { value: string; label: string }[] {
+    return [
+      { value: 'text', label: 'Text' },
+      { value: 'textarea', label: 'Text Area' },
+      { value: 'number', label: 'Number' },
+      { value: 'date', label: 'Date' },
+      { value: 'select', label: 'Select' },
+      { value: 'multiselect', label: 'Multi Select' },
+      { value: 'checkbox', label: 'Checkbox' },
+      { value: 'array', label: 'Array (Tags)' },
+    ];
+  }
+
+  /** Emit a schema metadata change from the Schema Details section. */
+  protected onSchemaInfoChange(patch: {
+    name?: string;
+    icon?: string;
+    description?: string;
+  }): void {
+    if (!this.schemaEditingEnabled()) return;
+    this.schemaInfoChange.emit(patch);
+  }
+
+  /** Emit an edited default appearance from the Styling section. */
+  protected onDefaultAppearanceChange(appearance: ElementAppearance): void {
+    if (!this.schemaEditingEnabled()) return;
+    this.defaultAppearanceChange.emit(appearance);
   }
 
   /** Count how many fields in a tab have been filled in by the user */
@@ -649,13 +1112,20 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   }
 
   /**
-   * Open the snapshots dialog for this worldbuilding element
+   * Open the snapshots dialog: for a real element, the element's snapshots; in
+   * schema-edit mode, the template's snapshots.
    */
   openSnapshotsDialog(): void {
+    if (this.schemaEditingEnabled()) {
+      const schemaId = this.previewSchema()?.id;
+      if (schemaId) {
+        this.dialogGateway.openTemplateSnapshotsDialog(schemaId);
+        return;
+      }
+    }
     const data: SnapshotsDialogData = {
       documentId: this.elementId(),
     };
-
     this.dialogGateway.openSnapshotsDialog(data);
   }
 }

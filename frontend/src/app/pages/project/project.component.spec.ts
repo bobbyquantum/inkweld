@@ -27,7 +27,6 @@ import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RecentFilesService } from '@services/project/recent-files.service';
 import { MediaAutoSyncService } from '@services/sync/media-auto-sync.service';
-import { type SplitGutterInteractionEvent } from 'angular-split';
 import { BehaviorSubject, of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -635,89 +634,63 @@ describe('ProjectComponent', () => {
     });
   });
 
-  describe('gutter size', () => {
-    it('should return 0 for mobile', () => {
+  describe('sidebar resize', () => {
+    it('should update sidebar width on drag move', () => {
+      component['isMobile'].set(false);
+      const start = {
+        preventDefault: vi.fn(),
+        clientX: 300,
+      } as unknown as MouseEvent;
+      const move = { clientX: 400 } as MouseEvent;
+
+      component.onSidebarResizeStart(start);
+      component['onSidebarResizeMove'](move);
+      component['onSidebarResizeEnd']();
+
+      expect(component['sidebarWidth']()).toBe(400);
+      expect(localStorage.getItem('sidebarWidth')).toBe('400');
+    });
+
+    it('should clamp sidebar width within bounds', () => {
+      component['isMobile'].set(false);
+      component.onSidebarResizeStart({
+        preventDefault: vi.fn(),
+        clientX: 300,
+      } as unknown as MouseEvent);
+
+      component['onSidebarResizeMove']({ clientX: 1000 } as MouseEvent);
+      expect(component['sidebarWidth']()).toBe(480);
+
+      component['onSidebarResizeMove']({ clientX: 50 } as MouseEvent);
+      expect(component['sidebarWidth']()).toBe(200);
+
+      component['onSidebarResizeEnd']();
+      localStorage.removeItem('sidebarWidth');
+    });
+
+    it('should not resize on mobile', () => {
       component['isMobile'].set(true);
-      expect(component.getGutterSize()).toBe(0);
+      localStorage.removeItem('sidebarWidth');
+
+      component.onSidebarResizeStart({
+        preventDefault: vi.fn(),
+        clientX: 300,
+      } as unknown as MouseEvent);
+      component['onSidebarResizeMove']({ clientX: 400 } as MouseEvent);
+
+      expect(component['sidebarWidth']()).toBe(300);
+      expect(localStorage.getItem('sidebarWidth')).toBeNull();
     });
 
-    it('should return 4 for desktop', () => {
-      component['isMobile'].set(false);
-      expect(component.getGutterSize()).toBe(4);
-    });
-  });
-
-  describe('split drag end', () => {
-    it('should update split size on drag end', () => {
-      component['isMobile'].set(false);
-
-      const mockEvent: SplitGutterInteractionEvent = {
-        sizes: [30, 70],
-        gutterNum: 1,
-      };
-      component.onSplitDragEnd(mockEvent);
-
-      expect(component['splitSize']).toBe(30);
-      expect(localStorage.getItem('splitSize')).toBe('30');
-    });
-
-    it('should not update split size on mobile', () => {
-      // Clear any previous value
-      localStorage.removeItem('splitSize');
-      component['isMobile'].set(true);
-
-      const mockEvent: SplitGutterInteractionEvent = {
-        sizes: [30, 70],
-        gutterNum: 1,
-      };
-      component.onSplitDragEnd(mockEvent);
-
-      expect(localStorage.getItem('splitSize')).toBeNull();
-    });
-
-    it('should not persist NaN split size', () => {
-      component['isMobile'].set(false);
-      localStorage.setItem('splitSize', '25');
-      component['splitSize'] = 25;
-
-      const mockEvent: SplitGutterInteractionEvent = {
-        sizes: ['not-a-number' as unknown as number, 70],
-        gutterNum: 1,
-      };
-      component.onSplitDragEnd(mockEvent);
-
-      // Should retain previous value
-      expect(component['splitSize']).toBe(25);
-      expect(localStorage.getItem('splitSize')).toBe('25');
-    });
-
-    it('should not persist Infinity split size', () => {
-      component['isMobile'].set(false);
-      localStorage.setItem('splitSize', '25');
-      component['splitSize'] = 25;
-
-      const mockEvent: SplitGutterInteractionEvent = {
-        sizes: [Infinity, 70],
-        gutterNum: 1,
-      };
-      component.onSplitDragEnd(mockEvent);
-
-      // Should retain previous value
-      expect(component['splitSize']).toBe(25);
-      expect(localStorage.getItem('splitSize')).toBe('25');
-    });
-
-    it('should ignore invalid stored splitSize on construction', () => {
-      // Set an invalid value BEFORE creating a new component instance
-      localStorage.setItem('splitSize', 'not-a-number');
+    it('should ignore invalid stored sidebar width on construction', () => {
+      localStorage.setItem('sidebarWidth', 'not-a-number');
 
       const freshFixture = TestBed.createComponent(ProjectComponent);
       const freshComponent = freshFixture.componentInstance;
 
-      // Should keep the default value of 25 since 'not-a-number' is not finite
-      expect(freshComponent['splitSize']).toBe(25);
+      expect(freshComponent['sidebarWidth']()).toBe(300);
 
-      localStorage.removeItem('splitSize');
+      localStorage.removeItem('sidebarWidth');
       freshFixture.destroy();
     });
   });

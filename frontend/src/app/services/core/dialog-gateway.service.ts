@@ -19,7 +19,16 @@ import {
   type ElementPickerDialogData,
   type ElementPickerDialogResult,
 } from '../../dialogs/element-picker-dialog/element-picker-dialog.component';
+import {
+  FieldConfigDialogComponent,
+  type FieldConfigDialogData,
+  type FieldConfigDialogResult,
+} from '../../dialogs/field-config-dialog/field-config-dialog.component';
 import { FileUploadComponent } from '../../dialogs/file-upload/file-upload.component';
+import {
+  IconPickerDialogComponent,
+  type IconPickerDialogData,
+} from '../../dialogs/icon-picker-dialog/icon-picker-dialog.component';
 import {
   ImageGenerationDialogComponent,
   type ImageGenerationDialogData,
@@ -67,6 +76,7 @@ import {
   TagEditorDialogComponent,
   type TagEditorDialogData,
 } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
+import { TemplateSnapshotsDialogComponent } from '../../dialogs/template-snapshots-dialog/template-snapshots-dialog.component';
 import { UserSettingsDialogComponent } from '../../dialogs/user-settings-dialog/user-settings-dialog.component';
 import {
   WorldbuildingImageDialogComponent,
@@ -130,6 +140,35 @@ export class DialogGatewayService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 
+  /**
+   * Open the schema field settings dialog. Resolves with the applied patch
+   * (or undefined when cancelled).
+   */
+  openFieldConfigDialog(
+    data: FieldConfigDialogData
+  ): Promise<FieldConfigDialogResult | undefined> {
+    const dialogRef = this.dialog.open(FieldConfigDialogComponent, {
+      data,
+      disableClose: true,
+      width: '560px',
+      maxWidth: '92vw',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  /** Open the icon picker dialog. Resolves with the chosen icon or undefined. */
+  openIconPickerDialog(
+    data: IconPickerDialogData
+  ): Promise<string | undefined> {
+    const dialogRef = this.dialog.open(IconPickerDialogComponent, {
+      data,
+      disableClose: true,
+      width: '480px',
+      maxWidth: '92vw',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
   openFileUploadDialog(): Promise<File | null> {
     const dialogRef = this.dialog.open(FileUploadComponent, {
       width: '500px',
@@ -172,7 +211,7 @@ export class DialogGatewayService {
       'account' | 'authorized-apps' | 'project-tree' | 'project'
   ): Promise<void> {
     const dialogRef = this.dialog.open(UserSettingsDialogComponent, {
-      width: '800px',
+      width: '1000px',
       maxWidth: '90vw',
       maxHeight: '90vh',
       panelClass: 'user-settings-dialog-panel',
@@ -303,6 +342,14 @@ export class DialogGatewayService {
   openSnapshotsDialog(data: SnapshotsDialogData): void {
     this.dialog.open(SnapshotsDialogComponent, {
       data,
+      width: '550px',
+      autoFocus: false,
+    });
+  }
+
+  openTemplateSnapshotsDialog(templateId: string): void {
+    this.dialog.open(TemplateSnapshotsDialogComponent, {
+      data: { templateId },
       width: '550px',
       autoFocus: false,
     });

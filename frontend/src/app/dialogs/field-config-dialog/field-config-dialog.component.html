@@ -1,0 +1,196 @@
+<h2 mat-dialog-title>{{ 'templates.editor.fieldConfigTitle' | transloco }}</h2>
+
+<mat-dialog-content>
+  <div class="field-config-form">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{
+        'templates.editor.fieldLabelLabel' | transloco
+      }}</mat-label>
+      <input
+        matInput
+        id="fc-label"
+        #labelInput
+        [attr.aria-label]="'templates.editor.fieldLabelLabel' | transloco"
+        (input)="label.set($any($event.target).value)"
+        data-testid="fc-label" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{ 'templates.editor.fieldKeyLabel' | transloco }}</mat-label>
+      <input
+        matInput
+        id="fc-key"
+        #keyInput
+        [attr.aria-label]="'templates.editor.fieldKeyLabel' | transloco"
+        [attr.placeholder]="'templates.editor.fieldKeyPlaceholder' | transloco"
+        (input)="key.set($any($event.target).value)"
+        data-testid="fc-key" />
+      @if (key().includes('.')) {
+        <mat-hint>{{
+          'templates.editor.fieldKeyNestedHint' | transloco
+        }}</mat-hint>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{ 'templates.editor.fieldTypeLabel' | transloco }}</mat-label>
+      <mat-select
+        [value]="type()"
+        (selectionChange)="type.set($event.value)"
+        data-testid="fc-type">
+        @for (type of data.fieldTypes; track type.value) {
+          <mat-option
+            [value]="type.value"
+            [attr.data-testid]="'fc-type-option-' + type.value">
+            {{ type.label }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{
+        'templates.editor.placeholderLabel' | transloco
+      }}</mat-label>
+      <input
+        matInput
+        id="fc-placeholder"
+        #placeholderInput
+        [attr.aria-label]="'templates.editor.placeholderLabel' | transloco"
+        (input)="placeholder.set($any($event.target).value)"
+        data-testid="fc-placeholder" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{
+        'templates.editor.descriptionLabel' | transloco
+      }}</mat-label>
+      <textarea
+        matInput
+        id="fc-description"
+        #descriptionInput
+        [attr.aria-label]="'templates.editor.descriptionAria' | transloco"
+        (input)="description.set($any($event.target).value)"
+        rows="2"
+        data-testid="fc-description"></textarea>
+    </mat-form-field>
+
+    @if (isOptionsType()) {
+      <div class="fc-options" data-testid="fc-options">
+        <span class="fc-options-label">{{
+          'templates.editor.fieldOptionsLabel' | transloco
+        }}</span>
+        @for (option of options(); track $index) {
+          <div class="fc-option-row">
+            <mat-form-field appearance="outline">
+              <input
+                matInput
+                [attr.id]="'fc-option-' + $index"
+                [attr.aria-label]="
+                  'templates.editor.fieldOptionsLabel' | transloco
+                "
+                [value]="option"
+                (input)="updateOption($index, $any($event.target).value)"
+                [attr.data-testid]="'fc-option-input-' + $index" />
+            </mat-form-field>
+            <button
+              mat-icon-button
+              type="button"
+              [attr.aria-label]="
+                'templates.editor.removeOptionAria' | transloco
+              "
+              (click)="removeOption($index)"
+              [attr.data-testid]="'fc-option-remove-' + $index">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        }
+        <button
+          mat-stroked-button
+          type="button"
+          (click)="addOption()"
+          data-testid="fc-option-add">
+          <mat-icon>add</mat-icon>
+          {{ 'templates.editor.addOption' | transloco }}
+        </button>
+      </div>
+    }
+
+    <div class="fc-row">
+      <mat-checkbox
+        [checked]="required()"
+        (change)="required.set($event.checked)"
+        data-testid="fc-required">
+        {{ 'templates.editor.requiredLabel' | transloco }}
+      </mat-checkbox>
+
+      <div class="fc-span-picker">
+        <span class="fc-options-label">{{
+          'templates.editor.layoutSpanLabel' | transloco
+        }}</span>
+        <div
+          class="span-grid"
+          [attr.aria-label]="'templates.editor.layoutSpanLabel' | transloco"
+          data-testid="fc-span">
+          @for (cell of spanCells; track $index) {
+            <button
+              type="button"
+              class="span-cell"
+              [class.selected]="$index < span()"
+              (click)="onSpanCell($index)"
+              [attr.aria-label]="
+                ('templates.editor.layoutSpanLabel' | transloco) +
+                ' ' +
+                ($index + 1)
+              "
+              [attr.data-testid]="'fc-span-cell-' + $index"></button>
+          }
+          <div
+            class="span-handle"
+            [style.left.%]="(span() / 12) * 100"
+            (pointerdown)="startSpanDrag($event)"
+            (pointermove)="updateSpanDrag($event)"
+            (pointerup)="endSpanDrag($event)"
+            [attr.aria-label]="'templates.editor.spanDragAria' | transloco"
+            data-testid="fc-span-handle">
+            <mat-icon aria-hidden="true">drag_indicator</mat-icon>
+          </div>
+        </div>
+        <span class="fc-span-value" data-testid="fc-span-value"
+          >{{ span() }} / 12</span
+        >
+      </div>
+
+      @if (type() === 'textarea') {
+        <mat-form-field appearance="outline" class="fc-number">
+          <mat-label>{{ 'templates.editor.rowsLabel' | transloco }}</mat-label>
+          <input
+            matInput
+            type="number"
+            min="1"
+            max="20"
+            id="fc-rows"
+            [attr.aria-label]="'templates.editor.rowsLabel' | transloco"
+            [value]="rows()"
+            (input)="rows.set($any($event.target).valueAsNumber)"
+            data-testid="fc-rows" />
+        </mat-form-field>
+      }
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="onCancel()" data-testid="fc-cancel">
+    {{ 'cancel' | transloco }}
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    [disabled]="!key().trim()"
+    (click)="onSave()"
+    data-testid="fc-save">
+    {{ 'templates.editor.saveChanges' | transloco }}
+  </button>
+</mat-dialog-actions>

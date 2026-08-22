@@ -1,0 +1,44 @@
+:host {
+  display: block;
+  border: 1px solid var(--glass-card-border, rgba(127, 127, 127, 0.35));
+  border-radius: 12px;
+  background: var(--glass-card-bg, rgba(255, 255, 255, 0.08));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  padding: 14px 16px;
+  box-sizing: border-box;
+  // Force the card onto its own compositing layer. Without this, Chromium can
+  // fail to repaint children (title, body) of sibling backdrop-filter cards
+  // until an interaction forces a repaint.
+  transform: translateZ(0);
+  isolation: isolate;
+}
+
+:host([data-transparent='true']) {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-color: var(--glass-card-border, rgba(127, 127, 127, 0.35));
+}
+
+.glass-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.glass-card-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--sys-primary);
+}
+
+.glass-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sys-on-surface);
+  letter-spacing: 0.2px;
+}

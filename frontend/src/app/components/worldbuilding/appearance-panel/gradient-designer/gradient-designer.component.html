@@ -1,0 +1,9 @@
+<div class="gradient-designer" data-testid="gradient-designer">
+  @if (renderReady()) {
+    <ngx-input-gradient
+      [ngModel]="value()"
+      (ngModelChange)="onGradientChange($event)"
+      [theme]="'light'"
+      data-testid="gradient-picker"></ngx-input-gradient>
+  }
+</div>

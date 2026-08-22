@@ -49,9 +49,9 @@ import { MediaSyncService } from '@services/local/media-sync.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { formatBytes } from '@utils/format-bytes';
 import { firstValueFrom } from 'rxjs';
 
-import { formatBytes } from '../../../../utils/format-bytes';
 import { TimeSystemsSettingsComponent } from './time-systems-settings/time-systems-settings.component';
 
 /**

@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
+import { stripTrailingSlashes } from '@utils/string-utils';
 
 import { environment } from '../../../environments/environment';
-import { stripTrailingSlashes } from '../../utils/string-utils';
 import {
   type ServerConfig,
   type ServerVersionInfo,

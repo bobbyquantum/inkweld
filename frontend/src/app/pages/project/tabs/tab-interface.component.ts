@@ -26,7 +26,7 @@ import {
   Router,
   RouterModule,
 } from '@angular/router';
-import { type Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType, type Project } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
 import { DocumentService } from '@services/project/document.service';
@@ -48,6 +48,21 @@ type SystemRoute =
   | 'publish-plans'
   | 'activity';
 
+/** The pieces of the current URL that map onto a project tab. */
+interface ParsedRouteInfo {
+  systemRoute: SystemRoute | null;
+  publishPlanId: string | null;
+  schemaId: string | null;
+  tabId: string | null;
+}
+
+const EMPTY_ROUTE_INFO: ParsedRouteInfo = {
+  systemRoute: null,
+  publishPlanId: null,
+  schemaId: null,
+  tabId: null,
+};
+
 const SYSTEM_TAB_ICONS: Partial<
   Record<Exclude<AppTab['systemType'], undefined>, string>
 > = {
@@ -64,6 +79,7 @@ const TAB_TYPE_ICONS: Partial<Record<AppTab['type'], string>> = {
   folder: 'folder',
   'relationship-chart': 'hub',
   canvas: 'dashboard',
+  'schema-editor': 'edit_note',
 };
 
 @Component({
@@ -104,6 +120,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   private routerSubscription: Subscription | null = null;
   private initialSyncDone = false; // Flag to ensure initial sync runs only once
   private lastProjectId: string | undefined; // Track project changes
+  private resizeObserver: ResizeObserver | undefined;
 
   // Scroll state for arrow visibility
   canScrollLeft = signal(false);
@@ -190,6 +207,18 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
             (tab.id.startsWith('publish-plan-')
               ? tab.id.slice('publish-plan-'.length)
               : tab.id),
+        ]);
+      } else if (tab.type === 'schema-editor') {
+        // Schema editor tab — id is "schema-<schemaId>"
+        const schemaId = tab.id.startsWith('schema-')
+          ? tab.id.slice('schema-'.length)
+          : tab.id;
+        void this.router.navigate([
+          '/',
+          project.username,
+          project.slug,
+          'schema',
+          schemaId,
         ]);
       } else {
         // Document or folder tab
@@ -332,12 +361,23 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.routerSubscription) {
       this.routerSubscription.unsubscribe();
     }
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = undefined;
   }
 
   ngAfterViewInit(): void {
     // Initial scroll state check and scroll to active tab
     this.updateScrollState();
     setTimeout(() => this.scrollToActiveTab(), 0);
+
+    // Re-evaluate overflow when the tab bar's width changes (e.g. the sidebar
+    // is resized/dragged or the window shrinks), so the scroll arrows show and
+    // the fixed end actions (user menu) stay visible.
+    const el = this.tabNavBar?.nativeElement;
+    if (el && typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => this.updateScrollState());
+      this.resizeObserver.observe(el);
+    }
   }
 
   /** Check if scroll arrows should be visible */
@@ -405,56 +445,94 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   updateSelectedTabFromUrl(): void {
-    const { systemRoute, publishPlanId, tabId } = this.parseRouteInfo();
+    const { systemRoute, publishPlanId, schemaId, tabId } =
+      this.parseRouteInfo();
 
     // Check if we are at the project root (home tab)
-    if (!tabId && !systemRoute && !publishPlanId) {
+    if (!tabId && !systemRoute && !publishPlanId && !schemaId) {
       this.selectOrOpenHomeTab();
       return;
     }
 
-    const tabIndex = this.findOrCreateTab(systemRoute, publishPlanId, tabId);
+    const tabIndex = this.findOrCreateTab(
+      systemRoute,
+      publishPlanId,
+      schemaId,
+      tabId
+    );
     if (tabIndex !== -1) {
       this.projectState.selectTab(tabIndex);
     }
   }
 
-  private parseRouteInfo(): {
-    systemRoute: SystemRoute | null;
-    publishPlanId: string | null;
-    tabId: string | null;
-  } {
-    const url = this.router.url;
+  private parseRouteInfo(): ParsedRouteInfo {
     const project = this.projectState.project();
+    const projectInfo = project
+      ? this.parseProjectRoute(project)
+      : EMPTY_ROUTE_INFO;
 
-    if (project) {
-      const projectBaseUrl = `/${project.username}/${project.slug}`;
-      const systemRoutes: SystemRoute[] = [
-        'media',
-        'templates-list',
-        'relationships-list',
-        'tags-list',
-        'settings',
-        'publish-plans',
-        'activity',
-      ];
-
-      for (const route of systemRoutes) {
-        if (url === `${projectBaseUrl}/${route}`) {
-          return { systemRoute: route, publishPlanId: null, tabId: null };
-        }
-      }
-
-      if (url.startsWith(`${projectBaseUrl}/publish-plan/`)) {
-        let planId = url.split('/').at(-1) ?? null;
-        if (planId?.includes('?')) {
-          planId = planId.split('?')[0];
-        }
-        return { systemRoute: null, publishPlanId: planId, tabId: null };
-      }
+    if (projectInfo !== EMPTY_ROUTE_INFO) {
+      return projectInfo;
     }
 
-    // Walk the route tree looking for a tabId param
+    return { ...EMPTY_ROUTE_INFO, tabId: this.findTabIdFromRoute() };
+  }
+
+  /** Parse the URL when a project is loaded, or return EMPTY_ROUTE_INFO. */
+  private parseProjectRoute(project: Project): ParsedRouteInfo {
+    const url = this.router.url;
+    const projectBaseUrl = `/${project.username}/${project.slug}`;
+
+    const systemRoute = this.matchSystemRoute(url, projectBaseUrl);
+    if (systemRoute) {
+      return { ...EMPTY_ROUTE_INFO, systemRoute };
+    }
+
+    if (url.startsWith(`${projectBaseUrl}/publish-plan/`)) {
+      return {
+        ...EMPTY_ROUTE_INFO,
+        publishPlanId: this.lastUrlSegment(url),
+      };
+    }
+
+    if (url.startsWith(`${projectBaseUrl}/schema/`)) {
+      return { ...EMPTY_ROUTE_INFO, schemaId: this.lastUrlSegment(url) };
+    }
+
+    return EMPTY_ROUTE_INFO;
+  }
+
+  /** Match the URL against the known system routes. */
+  private matchSystemRoute(
+    url: string,
+    projectBaseUrl: string
+  ): SystemRoute | null {
+    const systemRoutes: SystemRoute[] = [
+      'media',
+      'templates-list',
+      'relationships-list',
+      'tags-list',
+      'settings',
+      'publish-plans',
+      'activity',
+    ];
+
+    return (
+      systemRoutes.find(route => url === `${projectBaseUrl}/${route}`) ?? null
+    );
+  }
+
+  /** Extract the trailing URL segment, dropping any query string. */
+  private lastUrlSegment(url: string): string | null {
+    const segment = url.split('/').at(-1) ?? null;
+    if (segment?.includes('?')) {
+      return segment.split('?')[0];
+    }
+    return segment;
+  }
+
+  /** Walk the route tree looking for a tabId param. */
+  private findTabIdFromRoute(): string | null {
     let currentRoute = this.route.root;
     let tabId: string | null = null;
     while (currentRoute.firstChild) {
@@ -466,8 +544,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         tabId = currentRoute.snapshot.paramMap.get('tabId');
       }
     }
-
-    return { systemRoute: null, publishPlanId: null, tabId };
+    return tabId;
   }
 
   private selectOrOpenHomeTab(): void {
@@ -484,6 +561,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   private findOrCreateTab(
     systemRoute: SystemRoute | null,
     publishPlanId: string | null,
+    schemaId: string | null,
     tabId: string | null
   ): number {
     if (systemRoute) {
@@ -491,6 +569,9 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     if (publishPlanId) {
       return this.findOrCreatePublishPlanTab(publishPlanId);
+    }
+    if (schemaId) {
+      return this.findOrCreateSchemaEditorTab(schemaId);
     }
     if (tabId) {
       return this.findOrCreateDocumentTab(tabId);
@@ -538,6 +619,24 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
               (tab.publishPlan?.id === publishPlanId ||
                 tab.id === `publish-plan-${publishPlanId}`)
           );
+      }
+    }
+    return tabIndex;
+  }
+
+  private findOrCreateSchemaEditorTab(schemaId: string): number {
+    let tabIndex = this.projectState
+      .openTabs()
+      .findIndex(tab => tab.id === `schema-${schemaId}`);
+
+    if (tabIndex === -1) {
+      // Look up the schema from the library; only open the editor if it exists.
+      const schema = this.worldbuildingService.getSchema(schemaId);
+      if (schema) {
+        this.projectState.openSchemaEditor(schema);
+        tabIndex = this.projectState
+          .openTabs()
+          .findIndex(tab => tab.id === `schema-${schemaId}`);
       }
     }
     return tabIndex;

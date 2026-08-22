@@ -4,7 +4,8 @@
  * Captures screenshots of the template management feature (embedded in
  * Project Settings → Element Templates). Consolidated 10 → 2 tests (one
  * per color scheme); each captures overview, list, header/create button,
- * template editor page, template row actions, and card details via test.step.
+ * template editor page, an editor tab (fields + tab label/icon editor),
+ * template row actions, and card details via test.step.
  *
  * Uses the worldbuilding-demo project template which ships with pre-built
  * schemas (Character, Location) so the templates tab has content to display
@@ -130,9 +131,44 @@ async function captureAllTemplateScreenshots(
       32
     );
 
-    await page.click(
-      '[data-testid="template-editor-page"] button:has-text("Cancel")'
+    await page
+      .locator('[data-testid="tab-New Template"] .close-tab-button')
+      .click();
+    // Closing the editor tab lands on the Settings section; return to Element
+    // Templates before the next step.
+    await page.getByTestId('nav-templates').click();
+    await expect(page.getByTestId('template-card').first()).toBeVisible();
+  });
+
+  await test.step('template editor tab (fields)', async () => {
+    // Reopen the template editor via a card's edit action.
+    const card = page.locator('[data-testid="template-card"]').first();
+    const templateName = (
+      await card.locator('.template-name span').textContent()
+    )?.trim();
+    await card.getByTestId('edit-template-button').click();
+    await page.waitForSelector('[data-testid="template-editor-page"]', {
+      state: 'visible',
+    });
+
+    // Open the first schema tab so we can show the fields plus the inline
+    // tab label/icon editor at the top of the tab.
+    const tabNav = page.getByTestId('nav-basic');
+    if (await tabNav.isVisible().catch(() => false)) {
+      await tabNav.click();
+    }
+    await page.getByTestId('tab-props-editor').waitFor({ state: 'visible' });
+
+    await captureElementScreenshot(
+      page,
+      [page.locator('[data-testid="template-editor-page"]')],
+      join(screenshotsDir, `templates-editor-tab-${suffix}.png`),
+      32
     );
+
+    await page
+      .locator(`[data-testid="tab-${templateName}"] .close-tab-button`)
+      .click();
   });
 }
 

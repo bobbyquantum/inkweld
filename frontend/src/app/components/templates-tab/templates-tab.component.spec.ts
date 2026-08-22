@@ -20,6 +20,9 @@ describe('TemplatesTabComponent', () => {
   let mockProjectState: {
     project: ReturnType<typeof signal<Project | null>>;
     elements: ReturnType<typeof signal<any[]>>;
+    canWrite: ReturnType<typeof signal<boolean>>;
+    openSchemaEditor: ReturnType<typeof vi.fn>;
+    closeSchemaEditor: ReturnType<typeof vi.fn>;
   };
   let mockWorldbuildingService: any;
   let mockSnackBar: any;
@@ -55,6 +58,9 @@ describe('TemplatesTabComponent', () => {
     mockProjectState = {
       project: signal<Project | null>(null),
       elements: signal([]),
+      canWrite: signal(true),
+      openSchemaEditor: vi.fn(),
+      closeSchemaEditor: vi.fn(),
     };
 
     const initialSchemasSignal = signal<ElementTypeSchema[]>([]);
@@ -67,6 +73,12 @@ describe('TemplatesTabComponent', () => {
       cloneTemplate: vi.fn(),
       deleteTemplate: vi.fn(),
       updateTemplate: vi.fn(),
+      getSchemaForElement: vi.fn().mockResolvedValue(null),
+      getWorldbuildingData: vi.fn().mockResolvedValue({}),
+      getIdentityData: vi.fn().mockResolvedValue({}),
+      saveIdentityData: vi.fn().mockResolvedValue(undefined),
+      observeChanges: vi.fn().mockResolvedValue(() => {}),
+      observeIdentityChanges: vi.fn().mockResolvedValue(() => {}),
     };
 
     mockSnackBar = {
@@ -278,6 +290,9 @@ describe('TemplatesTabComponent', () => {
       expect(mockWorldbuildingService.deleteTemplate).toHaveBeenCalledWith(
         'custom-1'
       );
+      expect(mockProjectState.closeSchemaEditor).toHaveBeenCalledWith(
+        'custom-1'
+      );
     });
 
     it('should handle cancelled delete dialog', async () => {
@@ -310,15 +325,16 @@ describe('TemplatesTabComponent', () => {
   });
 
   describe('editTemplate', () => {
-    it('should switch to edit mode with the loaded schema', () => {
+    it('should open the schema editor tab with the loaded schema', () => {
       mockProjectState.project.set(mockProject);
 
       mockWorldbuildingService.getSchema.mockReturnValue(mockCustomSchema);
 
       component.editTemplate(mockCustomTemplate);
 
-      expect(component.editingState().mode).toBe('edit');
-      expect(component.editingSchema()).toEqual(mockCustomSchema);
+      expect(mockProjectState.openSchemaEditor).toHaveBeenCalledWith(
+        mockCustomSchema
+      );
     });
 
     it('should handle template not found', () => {
@@ -336,76 +352,29 @@ describe('TemplatesTabComponent', () => {
 
       component.editTemplate(template);
 
-      // Should stay in list mode when template not found
-      expect(component.editingState().mode).toBe('list');
-      expect(mockWorldbuildingService.updateTemplate).not.toHaveBeenCalled();
+      // Should not open an editor tab when template not found
+      expect(mockProjectState.openSchemaEditor).not.toHaveBeenCalled();
     });
   });
 
   describe('createTemplate', () => {
-    it('should switch to edit mode with a blank schema', () => {
+    it('should open the schema editor tab with a blank schema', () => {
       mockProjectState.project.set(mockProject);
 
       component.createTemplate();
 
-      expect(component.editingState().mode).toBe('edit');
-      const schema = component.editingSchema();
+      const schema = mockProjectState.openSchemaEditor.mock.calls[0][0];
       expect(schema).not.toBeNull();
-      expect(schema!.name).toBe('New Template');
+      expect(schema.name).toBe('New Template');
+      expect(schema.id).toMatch(/^custom-\d+$/);
     });
 
-    it('should not switch to edit mode without project', () => {
+    it('should not open the editor without a project', () => {
       mockProjectState.project.set(null);
 
       component.createTemplate();
 
-      expect(component.editingState().mode).toBe('list');
-    });
-  });
-
-  describe('onEditorDone', () => {
-    it('should return to list mode when cancelled (null result)', async () => {
-      mockProjectState.project.set(mockProject);
-      mockWorldbuildingService.getSchema.mockReturnValue(mockCustomSchema);
-      component.editTemplate(mockCustomTemplate);
-
-      await component.onEditorDone(null);
-
-      expect(component.editingState().mode).toBe('list');
-      expect(mockWorldbuildingService.updateTemplate).not.toHaveBeenCalled();
-    });
-
-    it('should save an existing template when editor emits a schema', async () => {
-      mockProjectState.project.set(mockProject);
-      mockWorldbuildingService.getSchema.mockReturnValue(mockCustomSchema);
-      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
-      component.editTemplate(mockCustomTemplate);
-
-      const updatedSchema = { ...mockCustomSchema, name: 'Updated Template' };
-      await component.onEditorDone(updatedSchema);
-
-      expect(component.editingState().mode).toBe('list');
-      expect(mockWorldbuildingService.updateTemplate).toHaveBeenCalledWith(
-        'custom-1',
-        updatedSchema
-      );
-    });
-
-    it('should save a new template when creating', async () => {
-      mockProjectState.project.set(mockProject);
-      mockWorldbuildingService.saveSchemaToLibrary.mockReturnValue(undefined);
-      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
-
-      component.createTemplate();
-
-      const newSchema = component.editingSchema()!;
-      const savedSchema = { ...newSchema, name: 'My Template' };
-      await component.onEditorDone(savedSchema);
-
-      expect(component.editingState().mode).toBe('list');
-      expect(mockWorldbuildingService.saveSchemaToLibrary).toHaveBeenCalledWith(
-        savedSchema
-      );
+      expect(mockProjectState.openSchemaEditor).not.toHaveBeenCalled();
     });
   });
 

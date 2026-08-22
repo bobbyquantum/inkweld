@@ -19,10 +19,9 @@ import { LoggerService } from '@services/core/logger.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { ActivityFeedService } from '@services/stats/activity-feed.service';
 import { WritingStatsService } from '@services/stats/writing-stats.service';
+import { describeActivityEvent } from '@utils/activity-event-describe';
+import { formatRelativeDate } from '@utils/date-format';
 import { firstValueFrom } from 'rxjs';
-
-import { describeActivityEvent } from '../../utils/activity-event-describe';
-import { formatRelativeDate } from '../../utils/date-format';
 
 /**
  * Cross-project stats + recent activity widget for the home page.

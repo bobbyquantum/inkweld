@@ -1,0 +1,39 @@
+<h2 mat-dialog-title>{{ data.titleKey | transloco }}</h2>
+
+<mat-dialog-content>
+  <div
+    class="icon-picker-grid"
+    role="radiogroup"
+    [attr.aria-label]="data.titleKey | transloco">
+    @for (icon of data.icons; track icon) {
+      <button
+        type="button"
+        class="icon-picker-option"
+        [class.selected]="icon === selected()"
+        (click)="choose(icon)"
+        [attr.aria-label]="icon"
+        [attr.aria-pressed]="icon === selected()"
+        [attr.data-testid]="'icon-picker-option-' + icon">
+        <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+      </button>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    mat-button
+    type="button"
+    (click)="onCancel()"
+    data-testid="icon-picker-cancel">
+    {{ 'cancel' | transloco }}
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    (click)="onConfirm()"
+    data-testid="icon-picker-confirm">
+    {{ 'ok' | transloco }}
+  </button>
+</mat-dialog-actions>

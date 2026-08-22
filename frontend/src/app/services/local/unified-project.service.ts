@@ -1,8 +1,8 @@
 import { computed, inject, Injectable, Injector } from '@angular/core';
 import { type Element, type Project } from '@inkweld/index';
+import { trimHyphens } from '@utils/string-utils';
 
 import { type ProjectArchive } from '../../models/project-archive';
-import { trimHyphens } from '../../utils/string-utils';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { DocumentService } from '../project/document.service';

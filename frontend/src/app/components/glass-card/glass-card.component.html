@@ -1,0 +1,13 @@
+@if (title() || icon()) {
+  <div class="glass-card-header">
+    @if (icon()) {
+      <mat-icon class="glass-card-icon">{{ icon() }}</mat-icon>
+    }
+    @if (title()) {
+      <span class="glass-card-title">{{ title() }}</span>
+    }
+  </div>
+}
+<div class="glass-card-body">
+  <ng-content></ng-content>
+</div>

@@ -302,78 +302,6 @@
           }
         ],
         "order": 5
-      },
-      {
-        "key": "deity",
-        "label": "Deity",
-        "icon": "ac_unit",
-        "fields": [
-          {
-            "key": "deity.domains",
-            "label": "Domains",
-            "type": "array",
-            "layout": {
-              "span": 12
-            },
-            "placeholder": "Add a domain",
-            "description": "Aspects of the world this deity governs (e.g., War, Harvest)"
-          },
-          {
-            "key": "deity.portfolio",
-            "label": "Portfolio",
-            "type": "textarea",
-            "layout": {
-              "span": 12
-            },
-            "rows": 3,
-            "placeholder": "What this deity embodies and oversees..."
-          },
-          {
-            "key": "deity.rank",
-            "label": "Rank",
-            "type": "select",
-            "layout": {
-              "span": 6
-            },
-            "options": [
-              "Supreme Deity",
-              "Greater Deity",
-              "Lesser Deity",
-              "Demi-god",
-              "Avatar",
-              "Other"
-            ]
-          },
-          {
-            "key": "deity.alignment",
-            "label": "Alignment",
-            "type": "text",
-            "layout": {
-              "span": 6
-            },
-            "placeholder": "e.g., Lawful Good, Chaotic Neutral"
-          },
-          {
-            "key": "deity.symbol",
-            "label": "Holy Symbol",
-            "type": "text",
-            "layout": {
-              "span": 12
-            },
-            "placeholder": "Sacred symbol or iconography..."
-          },
-          {
-            "key": "deity.worship",
-            "label": "Worship & Followers",
-            "type": "textarea",
-            "layout": {
-              "span": 12
-            },
-            "rows": 4,
-            "placeholder": "How this deity is worshipped, temples, followers..."
-          }
-        ],
-        "order": 6
       }
     ],
     "defaultValues": {}
@@ -4806,7 +4734,7 @@
             "placeholder": "e.g., 500 km long, Towering"
           },
           {
-            "key": "significance",
+            "key": "significanceSummary",
             "label": "Significance",
             "type": "text",
             "layout": {
@@ -5763,7 +5691,7 @@
             "placeholder": "How is it reached?"
           },
           {
-            "key": "inhabitants",
+            "key": "inhabitantsOverview",
             "label": "Inhabitants",
             "type": "text",
             "layout": {
