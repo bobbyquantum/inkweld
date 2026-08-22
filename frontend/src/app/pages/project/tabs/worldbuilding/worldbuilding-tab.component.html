@@ -26,7 +26,7 @@
 } @else if (elementId() && elementType() && username() && slug()) {
   <app-document-breadcrumbs
     [elementId]="elementId()"></app-document-breadcrumbs>
-  @defer (on idle) {
+  @defer (on idle; on timer(2000ms)) {
     <app-worldbuilding-editor
       [style.--breadcrumb-height.px]="breadcrumbVisible() ? 29 : 0"
       [elementId]="elementId()"
