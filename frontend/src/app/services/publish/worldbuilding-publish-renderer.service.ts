@@ -8,8 +8,8 @@ import {
   type FieldType,
   type TabSchema,
 } from '@models/schema-types';
+import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 
-import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';

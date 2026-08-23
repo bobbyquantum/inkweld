@@ -8,6 +8,7 @@ import {
 import { type MediaTag } from '@models/media-tag.model';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import JSZip from '@progress/jszip-esm';
+import { trimHyphens } from '@utils/string-utils';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -28,7 +29,6 @@ import {
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { type TimeSystem } from '../../models/time-system';
-import { trimHyphens } from '../../utils/string-utils';
 import { LoggerService } from '../core/logger.service';
 import { LocalProjectService } from '../local/local-project.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';

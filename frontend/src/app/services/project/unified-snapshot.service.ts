@@ -5,15 +5,15 @@ import {
   SnapshotsService,
   type SnapshotWithContent,
 } from '@inkweld/index';
-import { firstValueFrom } from 'rxjs';
-import * as Y from 'yjs';
-
 import {
   applyJsonToYjsMap,
   applyXmlToFragment,
   xmlFragmentToXmlString,
   yjsMapToJson,
-} from '../../utils/yjs-xml-serializer';
+} from '@utils/yjs-xml-serializer';
+import { firstValueFrom } from 'rxjs';
+import * as Y from 'yjs';
+
 import { LoggerService } from '../core/logger.service';
 import {
   type CreateSnapshotOptions,

@@ -2,6 +2,8 @@ import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
 import { type PublishStyles } from '@models/publish-style';
 import { $typst, TypstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
+import { trimHyphens } from '@utils/string-utils';
+import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
 import {
@@ -19,8 +21,6 @@ import {
   SeparatorStyle,
   type WorldbuildingItem,
 } from '../../models/publish-plan';
-import { trimHyphens } from '../../utils/string-utils';
-import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';

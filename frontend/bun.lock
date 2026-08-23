@@ -41,6 +41,7 @@
         "material-symbols": "0.46.0",
         "nanoid": "6.0.1",
         "ngx-image-cropper": "9.1.6",
+        "ngx-input-color": "7.0.1",
         "prosemirror-history": "1.5.0",
         "prosemirror-transform": "1.12.0",
         "prosemirror-view": "1.42.2",
@@ -1427,6 +1428,8 @@
     "negotiator": ["negotiator@1.0.0", "", {}, "sha512-8Ofs/AUQh8MaEcrlq5xOX0CQ9ypTF5dl78mjlMNfOK08fzpgTHQRQPBxcPlEtIw0yRpws+Zo/3r+5WRby7u3Gg=="],
 
     "ngx-image-cropper": ["ngx-image-cropper@9.1.6", "", { "dependencies": { "tslib": "^2.3.0" }, "peerDependencies": { "@angular/common": ">=17.3.0", "@angular/core": ">=17.3.0" } }, "sha512-b250YJ+jZovfqIj8vdEOrpEFay34be5f1Hpvg6Db68VMlvdyyuzboJdR0gCupbXtVcG6qQ86L7YG+SYxXJwApw=="],
+
+    "ngx-input-color": ["ngx-input-color@7.0.1", "", { "dependencies": { "tslib": "^2.3.0" }, "peerDependencies": { "@angular/common": ">=21.0.0", "@angular/core": ">=21.0.0" } }, "sha512-VUyn+CMCf5aC9uRzAcsIxPqVNzw2Qjqj0F9ZwF5c2CyUpYuxBR1wuAsYUvjvCgZ4qidQFSOIur5tEf/Qr69Ayw=="],
 
     "node-abi": ["node-abi@4.33.0", "", { "dependencies": { "semver": "^7.6.3" } }, "sha512-vLBWCKb+7LWsX+TbfzWOkw0W81m377tyx3hOweBTjO43CXZnRGS1/JPWs20fr0PgZyDXk6ROYrylsEycK8raDA=="],
 

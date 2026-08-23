@@ -3,6 +3,7 @@ import { type Element, ElementType } from '@inkweld/index';
 import { Subject } from 'rxjs';
 
 import { type PublishPlan } from '../../models/publish-plan';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 
 /**
@@ -22,7 +23,8 @@ export interface AppTab {
     | 'relationship-chart'
     | 'canvas'
     | 'timeline'
-    | 'publishPlan';
+    | 'publishPlan'
+    | 'schema-editor';
   /** For system tabs, specifies the system view type */
   systemType?:
     | 'media'
@@ -39,6 +41,8 @@ export interface AppTab {
   elementType?: ElementType;
   /** The publish plan associated with this tab (for publishPlan tabs) */
   publishPlan?: PublishPlan;
+  /** The schema being edited (for schema-editor tabs) */
+  schema?: ElementTypeSchema;
 }
 
 /**
@@ -319,6 +323,70 @@ export class TabManagerService {
   }
 
   /**
+   * Opens a schema-editor tab for editing a template (schema).
+   *
+   * One editor tab per schema id: opening an existing schema's editor selects
+   * the existing tab; otherwise a new tab is created and selected.
+   *
+   * @param schema - The schema to edit
+   * @returns Information about the opened tab
+   */
+  openSchemaEditor(schema: ElementTypeSchema): OpenTabResult {
+    const tabs = this.openTabs();
+    const tabId = `schema-${schema.id}`;
+
+    // Check if tab already exists
+    const existingIndex = tabs.findIndex(t => t.id === tabId);
+    if (existingIndex !== -1) {
+      // Refresh the schema reference so edits persist the latest state.
+      const updatedTabs = [...tabs];
+      updatedTabs[existingIndex] = {
+        ...updatedTabs[existingIndex],
+        schema,
+        name: schema.name || 'New Template',
+      };
+      this.openTabs.set(updatedTabs);
+
+      this.selectedTabIndex.set(existingIndex);
+
+      this.logger.debug(
+        'TabManager',
+        `Selected existing schema editor tab for "${schema.name}" at index ${existingIndex}`
+      );
+
+      return {
+        tab: updatedTabs[existingIndex],
+        wasCreated: false,
+        index: existingIndex,
+      };
+    }
+
+    const newTab: AppTab = {
+      id: tabId,
+      name: schema.name || 'New Template',
+      type: 'schema-editor',
+      schema,
+    };
+
+    const newTabs = [...tabs, newTab];
+    this.openTabs.set(newTabs);
+
+    const newIndex = newTabs.length - 1;
+    this.selectedTabIndex.set(newIndex);
+
+    this.logger.debug(
+      'TabManager',
+      `Created schema editor tab for "${schema.name}" at index ${newIndex}`
+    );
+
+    return {
+      tab: newTab,
+      wasCreated: true,
+      index: newIndex,
+    };
+  }
+
+  /**
    * Closes a tab at the specified index.
    *
    * @param index - The index of the tab to close (0-based, in the tabs array)
@@ -536,6 +604,11 @@ export class TabManagerService {
     const validTabs = tabs.filter(tab => {
       // Always keep system tabs
       if (tab.type === 'system') {
+        return true;
+      }
+
+      // Keep schema-editor tabs (they carry their own schema).
+      if (tab.type === 'schema-editor') {
         return true;
       }
 

@@ -123,20 +123,29 @@ test.describe('Worldbuilding Templates', () => {
       await page.getByTestId('create-template-button').click();
       await expect(page.getByTestId('template-editor-page')).toBeVisible();
 
-      const nameInput = page.getByTestId('template-name-input');
-      await nameInput.clear();
+      // Schema details (name/icon/description) live in the editor's left nav.
+      await page.getByTestId('nav-schema-details').click();
+
+      const nameInput = page.getByTestId('schema-name-input');
+      await nameInput.click();
       await nameInput.fill('Custom Event');
 
-      // Icon is a mat-select; pick 'star' from the available icons.
-      await page.getByTestId('template-icon-input').click();
-      await page.getByRole('option', { name: /star/ }).click();
+      // Icon is a button that opens the picker dialog; pick 'event'.
+      await page.getByTestId('schema-icon-button').click();
+      await page.getByTestId('icon-picker-option-event').click();
+      await page.getByTestId('icon-picker-confirm').click();
 
       await page
-        .getByTestId('template-description-input')
+        .getByTestId('schema-description-input')
         .fill('Template for story events');
 
-      await page.getByTestId('save-template-button').click();
+      // Changes autosave as you type; close the editor tab to return to the
+      // templates section.
+      await page
+        .locator('[data-testid="tab-New Template"] .close-tab-button')
+        .click();
       await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
+      await gotoTemplatesTab(page);
       await expect(
         page.getByTestId('template-card').filter({ hasText: 'Custom Event' })
       ).toBeVisible();
@@ -157,7 +166,7 @@ test.describe('Worldbuilding Templates', () => {
       ).toBeVisible();
     });
 
-    await test.step('editing Hero Template enforces a non-empty name', async () => {
+    await test.step('editing Hero Template persists schema details', async () => {
       await page
         .getByTestId('template-card')
         .filter({ hasText: 'Hero Template' })
@@ -165,39 +174,109 @@ test.describe('Worldbuilding Templates', () => {
         .click();
       await expect(page.getByTestId('template-editor-page')).toBeVisible();
 
-      const nameInput = page.getByTestId('template-name-input');
-      await nameInput.click();
+      await page.getByTestId('nav-schema-details').click();
+      const nameInput = page.getByTestId('schema-name-input');
+      await expect(nameInput).toHaveValue('Hero Template');
+
+      // Clear the name and verify the field updates (validation lives on save).
       await nameInput.fill('');
-      await page.keyboard.press('Tab');
-      await expect(page.getByTestId('save-template-button')).toBeDisabled();
+      await expect(nameInput).toHaveValue('');
 
       // Restore a valid name so we can proceed to the next step.
       await nameInput.fill('Hero Template');
-      await expect(page.getByTestId('save-template-button')).toBeEnabled();
+      await expect(nameInput).toHaveValue('Hero Template');
     });
 
     await test.step('Date is exposed as a field type in the template editor', async () => {
       // We're still on the Hero Template edit page from the previous step.
-      await page.getByTestId('add-field-button').click();
-      const currentTabPanel = page.getByTestId('active-tab-editor');
-      await currentTabPanel
-        .getByTestId('field-expansion-header')
-        .last()
-        .click();
-      const fieldTypeSelect = currentTabPanel
-        .getByTestId('field-type-select')
-        .last();
-      await expect(fieldTypeSelect).toBeVisible();
-      await fieldTypeSelect.click();
-      await expect(page.getByTestId('field-type-option-date')).toBeVisible();
+      // Hero Template was cloned from Character, so it has a 'basic' tab.
+      await page.getByTestId('nav-basic').click();
+      const fieldEditButtons = page.getByTestId('field-edit');
+      await expect(fieldEditButtons.first()).toBeVisible();
+      const fieldCount = await fieldEditButtons.count();
+      await page.getByTestId('add-field-basic').click();
+      // Wait for the new field to render before targeting its edit button:
+      // the DOM update is async, so `last()` can otherwise hit the previous
+      // last field (or no field) and open the wrong settings dialog.
+      await expect(fieldEditButtons).toHaveCount(fieldCount + 1);
+      await fieldEditButtons.last().click();
 
-      // Close the select dropdown so we can save without leaving an open overlay.
+      // Open the newly added field's settings dialog and verify 'date' is an option.
+      const typeSelect = page.getByTestId('fc-type');
+      await expect(typeSelect).toBeVisible();
+      await typeSelect.click();
+      await expect(page.getByTestId('fc-type-option-date')).toBeVisible();
+
+      // Close the select dropdown and the dialog so we can exit.
       await page.keyboard.press('Escape');
-      await page.getByTestId('save-template-button').click();
+      await page.getByTestId('fc-save').click();
+      await expect(page.locator('mat-dialog-container')).not.toBeVisible();
+      await page
+        .locator('[data-testid="tab-Hero Template"] .close-tab-button')
+        .click();
+      await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
+      // Return to the templates section before reopening in the next step.
+      await gotoTemplatesTab(page);
+    });
+
+    await test.step('field config supports options, nested keys, span and required', async () => {
+      // Reopen Hero Template and add a select field with a nested key.
+      await page
+        .getByTestId('template-card')
+        .filter({ hasText: 'Hero Template' })
+        .getByTestId('edit-template-button')
+        .click();
+      await expect(page.getByTestId('template-editor-page')).toBeVisible();
+      await page.getByTestId('nav-basic').click();
+      const fieldEditButtons = page.getByTestId('field-edit');
+      await expect(fieldEditButtons.first()).toBeVisible();
+      const fieldCount = await fieldEditButtons.count();
+      await page.getByTestId('add-field-basic').click();
+      // Wait for the new field to render before targeting its edit button.
+      await expect(fieldEditButtons).toHaveCount(fieldCount + 1);
+
+      // Open the newly added field's settings dialog.
+      await fieldEditButtons.last().click();
+      await expect(page.getByTestId('fc-key')).toBeVisible();
+
+      // Give it a nested key and a select type. Replace the auto-generated key
+      // deterministically (select-all + type) instead of fill(), which can
+      // append to a programmatically-seeded value in zoneless mode.
+      const keyInput = page.getByTestId('fc-key');
+      await keyInput.click();
+      await keyInput.press('ControlOrMeta+a');
+      await keyInput.press('Backspace');
+      await keyInput.pressSequentially('traits.origin');
+      await page.getByTestId('fc-type').click();
+      await page.getByTestId('fc-type-option-select').click();
+
+      // Options editor appears for select; add a couple of options.
+      await expect(page.getByTestId('fc-options')).toBeVisible();
+      await page.getByTestId('fc-option-add').click();
+      await page.getByTestId('fc-option-input-0').fill('Born');
+      await page.getByTestId('fc-option-add').click();
+      await page.getByTestId('fc-option-input-1').fill('Foundling');
+
+      // Set required and a 6-column span (click the 6th cell), then save.
+      await page.getByTestId('fc-required').click();
+      await page.getByTestId('fc-span-cell-5').click();
+      await expect(page.getByTestId('fc-span-value')).toHaveText(/6/);
+      await page.getByTestId('fc-save').click();
+      await expect(page.locator('mat-dialog-container')).not.toBeVisible();
+      // Wait for the renamed field to appear in the live preview before
+      // closing the tab: the dialog's afterClosed → schemaEdit round-trip is
+      // async, and closing too early can drop the last edit.
+      await expect(page.getByTestId('field-traits.origin')).toBeVisible();
+
+      // Close the editor tab to return to the templates section.
+      await page
+        .locator('[data-testid="tab-Hero Template"] .close-tab-button')
+        .click();
       await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
     });
 
     await test.step('custom template can be used to create an element with the right icon', async () => {
+      // We're on the templates section after closing the editor; go home.
       await page.getByTestId('toolbar-home-button').click();
       await expect(page.getByTestId('create-new-element')).toBeVisible();
       await page.getByTestId('create-new-element').click();
@@ -224,7 +303,14 @@ test.describe('Worldbuilding Templates', () => {
       await heroElement.click();
       const sidenavTab = page.getByTestId('nav-basic');
       const accordionTab = page.getByTestId('accordion-basic');
-      await expect(sidenavTab.or(accordionTab)).toBeVisible();
+      const basicTab = sidenavTab.or(accordionTab);
+      await expect(basicTab).toBeVisible();
+      await basicTab.click();
+
+      // The nested select field added earlier persists and renders at its span.
+      const originField = page.getByTestId('field-traits.origin');
+      await expect(originField).toBeVisible();
+      await expect(originField).toHaveClass(/span-6/);
     });
 
     await test.step('deleting Hero Template removes it from the list', async () => {

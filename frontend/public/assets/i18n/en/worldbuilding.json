@@ -7,6 +7,7 @@
     "identity": "Identity",
     "relationships": "Relationships",
     "media": "Media",
+    "styling": "Styling",
     "loadingSchema": "Loading schema...",
     "identityAndDetails": "Identity & Details",
     "manageTags": "Manage tags",
@@ -80,6 +81,37 @@
     "selectFileAria": "Select image file",
     "apply": "Apply"
   },
+  "appearance": {
+    "title": "Appearance",
+    "menuLabel": "Left menu background",
+    "contentLabel": "Content background",
+    "enabled": "Custom",
+    "type": "Type",
+    "typeOptions": {
+      "color": "Solid colour",
+      "gradient": "Gradient",
+      "image": "Image"
+    },
+    "mode": "Theme",
+    "modeAuto": "Auto (adjusts with app theme)",
+    "modeManual": "Manual (light / dark)",
+    "autoAdjust": "Auto adjust",
+    "autoAdjustHint": "Lighten in light theme, darken in dark theme.",
+    "intensity": "Intensity",
+    "light": "Light",
+    "dark": "Dark",
+    "color": "Colour",
+    "gradient": "Gradient",
+    "pickImage": "Pick image",
+    "pickImageTitle": "Select background image",
+    "replaceImage": "Replace image",
+    "currentImage": "Current image",
+    "pickColour": "Pick a colour",
+    "valuePlaceholder": "e.g. #4fd8eb or linear-gradient(...)",
+    "gradientAngle": "Angle",
+    "stopColor": "Colour",
+    "imageHint": "Images auto-adjust their brightness for light/dark mode, or pick separate images per theme in manual mode."
+  },
   "tab": {
     "notSynced": "This document has not been synced to your browser yet.",
     "notSyncedHint": "Reconnect to the server and try again once the document has finished syncing.",
@@ -89,5 +121,16 @@
     "loadFailed": "Unable to load worldbuilding element.",
     "elementId": "Element ID:",
     "notProvided": "Not provided"
+  },
+"schemaEdit": {
+    "addTab": "Add tab",
+    "removeTab": "Remove tab",
+    "removeTabTitle": "Remove tab?",
+    "removeTabConfirm": "Remove the \"{{tab}}\" tab and all its fields?",
+    "addField": "Add field",
+    "snapshots": "Template snapshots",
+    "editingHint": "Editing schema \u2014 changes save automatically.",
+    "tabLabel": "Tab label",
+    "tabIcon": "Tab icon"
   }
 }

@@ -163,5 +163,23 @@ describe('CreateSnapshotDialogComponent', () => {
 
       expect(component.data.wordCount).toBeUndefined();
     });
+
+    it('should work without any MAT_DIALOG_DATA (reusable for templates)', async () => {
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [translocoTestProvider(), CreateSnapshotDialogComponent],
+        providers: [
+          provideZonelessChangeDetection(),
+          { provide: MatDialogRef, useValue: dialogRefMock },
+        ],
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(CreateSnapshotDialogComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      expect(component.data).toEqual({});
+      expect(component.data.wordCount).toBeUndefined();
+    });
   });
 });

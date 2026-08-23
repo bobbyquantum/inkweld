@@ -335,6 +335,16 @@ export const routes: Routes = [
         },
       },
       {
+        path: 'schema/:schemaId',
+        loadComponent: () =>
+          import('./pages/project/tabs/schema-editor/schema-editor-tab.component').then(
+            m => m.SchemaEditorTabComponent
+          ),
+        data: {
+          reuseComponent: false,
+        },
+      },
+      {
         path: 'relationship-chart/:tabId',
         loadComponent: () =>
           import('./pages/project/tabs/relationship-chart/relationship-chart-tab.component').then(

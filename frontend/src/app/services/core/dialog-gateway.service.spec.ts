@@ -16,7 +16,9 @@ import {
 } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
 import { EditAvatarDialogComponent } from '../../dialogs/edit-avatar-dialog/edit-avatar-dialog.component';
 import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
+import { FieldConfigDialogComponent } from '../../dialogs/field-config-dialog/field-config-dialog.component';
 import { FileUploadComponent } from '../../dialogs/file-upload/file-upload.component';
+import { IconPickerDialogComponent } from '../../dialogs/icon-picker-dialog/icon-picker-dialog.component';
 import { ImageGenerationDialogComponent } from '../../dialogs/image-generation-dialog/image-generation-dialog.component';
 import {
   ImageViewerDialogComponent,
@@ -35,6 +37,7 @@ import {
   RenameDialogComponent,
   type RenameDialogData,
 } from '../../dialogs/rename-dialog/rename-dialog.component';
+import { TemplateSnapshotsDialogComponent } from '../../dialogs/template-snapshots-dialog/template-snapshots-dialog.component';
 import { UserSettingsDialogComponent } from '../../dialogs/user-settings-dialog/user-settings-dialog.component';
 import { WorldbuildingImageDialogComponent } from '../../dialogs/worldbuilding-image-dialog/worldbuilding-image-dialog.component';
 import { ProjectActivationService } from '../local/project-activation.service';
@@ -150,6 +153,45 @@ describe('DialogGatewayService', () => {
     expect(result).toBe('New Name');
   });
 
+  it('should open the field config dialog', async () => {
+    const data = {
+      field: { key: 'name', label: 'Name', type: 'text' },
+      fieldTypes: [{ value: 'text', label: 'Text' }],
+    };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(
+      of({ label: 'Full Name' })
+    );
+
+    const result = await service.openFieldConfigDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(FieldConfigDialogComponent, {
+      data,
+      disableClose: true,
+      width: '560px',
+      maxWidth: '92vw',
+    });
+    expect(result).toEqual({ label: 'Full Name' });
+  });
+
+  it('should open the icon picker dialog', async () => {
+    const data = {
+      current: 'person',
+      icons: ['person', 'place'],
+      titleKey: 'templates.editor.iconLabel',
+    };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of('map'));
+
+    const result = await service.openIconPickerDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(IconPickerDialogComponent, {
+      data,
+      disableClose: true,
+      width: '480px',
+      maxWidth: '92vw',
+    });
+    expect(result).toBe('map');
+  });
+
   it('should open file upload dialog', async () => {
     const testFile = new File(['test'], 'test.txt', { type: 'text/plain' });
     (dialogRefMock.afterClosed as Mock).mockReturnValue(of(testFile));
@@ -241,7 +283,7 @@ describe('DialogGatewayService', () => {
     await service.openUserSettingsDialog();
 
     expect(dialogMock.open).toHaveBeenCalledWith(UserSettingsDialogComponent, {
-      width: '800px',
+      width: '1000px',
       maxWidth: '90vw',
       maxHeight: '90vh',
       panelClass: 'user-settings-dialog-panel',
@@ -255,7 +297,7 @@ describe('DialogGatewayService', () => {
     await service.openUserSettingsDialog('project-tree');
 
     expect(dialogMock.open).toHaveBeenCalledWith(UserSettingsDialogComponent, {
-      width: '800px',
+      width: '1000px',
       maxWidth: '90vw',
       maxHeight: '90vh',
       panelClass: 'user-settings-dialog-panel',
@@ -428,6 +470,19 @@ describe('DialogGatewayService', () => {
         maxWidth: '95vw',
         maxHeight: '90vh',
         disableClose: false,
+      }
+    );
+  });
+
+  it('should open the template snapshots dialog', () => {
+    service.openTemplateSnapshotsDialog('char');
+
+    expect(dialogMock.open).toHaveBeenCalledWith(
+      TemplateSnapshotsDialogComponent,
+      {
+        data: { templateId: 'char' },
+        width: '550px',
+        autoFocus: false,
       }
     );
   });

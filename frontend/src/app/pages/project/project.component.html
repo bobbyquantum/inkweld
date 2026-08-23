@@ -167,10 +167,11 @@
         </div>
       </div>
     } @else {
-      @if (showSidebar()) {
-        @if (sidebarCollapsed()) {
-          <!-- Desktop collapsed sidebar -->
-          <div class="collapsed-sidebar-container">
+      <!-- Desktop layout: sidebar + shared content (single outlet preserves routed state) -->
+      <div class="desktop-layout">
+        @if (showSidebar()) {
+          @if (sidebarCollapsed()) {
+            <!-- Desktop collapsed sidebar -->
             <div class="collapsed-sidebar">
               <!-- Top section: Expand toggle, Home, Search -->
               <div class="collapsed-sidebar-top">
@@ -286,160 +287,108 @@
                 </button>
               </div>
             </div>
-
-            <!-- Full-width content area next to collapsed sidebar -->
-            <div class="desktop-content collapsed-content">
-              @if (useTabsDesktop()) {
-                <div class="tabs-header">
-                  <app-tab-interface (importRequested)="onImportClicked()">
-                    <!-- Projected into tab-bar-actions -->
-                    <app-presence-indicator></app-presence-indicator>
-                    <app-user-menu
-                      [miniMode]="true"
-                      class="action-button"></app-user-menu>
-                  </app-tab-interface>
+          } @else {
+            <!-- Desktop expanded sidebar -->
+            <div class="desktop-sidebar" [style.width.px]="sidebarWidth()">
+              @defer (on idle) {
+                <app-project-tree
+                  [showCollapseButton]="true"
+                  (collapseRequested)="toggleSidebarCollapsed()"
+                  (documentOpened)="
+                    onDocumentOpened($event)
+                  "></app-project-tree>
+              } @placeholder {
+                <div class="tree-placeholder">
+                  <mat-spinner diameter="30"></mat-spinner>
                 </div>
               }
-              <div class="content-area">
-                <router-outlet></router-outlet>
+              <!-- Connection Status -->
+              @defer (on idle) {
+                <app-connection-status
+                  [syncState]="projectSyncState()"
+                  [lastError]="lastConnectionError()"
+                  [isLocalMode]="isLocalMode()"
+                  [elementsDocId]="elementsDocId()"
+                  [strap]="true"
+                  (syncRequested)="onRetrySyncConnection()"
+                  data-testid="sidebar-connection-status">
+                </app-connection-status>
+              } @placeholder {
+                <div class="connection-placeholder"></div>
+              }
+              <!-- Fixed bottom navigation -->
+              <div class="sidebar-bottom-nav">
+                <button
+                  type="button"
+                  class="sidebar-nav-item"
+                  [class.selected-item]="isSystemTabSelected('media')"
+                  data-testid="sidebar-media-button"
+                  (click)="onShowMediaLibrary()"
+                  [attr.aria-label]="'project.nav.mediaLibrary' | transloco">
+                  <mat-icon>perm_media</mat-icon>
+                  <span class="nav-title">{{
+                    'project.nav.mediaLibrary' | transloco
+                  }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="sidebar-nav-item"
+                  [class.selected-item]="isSystemTabSelected('publish-plans')"
+                  data-testid="sidebar-publishing-button"
+                  (click)="onShowPublishPlans()"
+                  [attr.aria-label]="'project.nav.publishing' | transloco">
+                  <mat-icon>auto_stories</mat-icon>
+                  <span class="nav-title">{{
+                    'project.nav.publishing' | transloco
+                  }}</span>
+                </button>
+                @if (!isLocalMode()) {
+                  <button
+                    type="button"
+                    class="sidebar-nav-item"
+                    [class.selected-item]="isSystemTabSelected('activity')"
+                    data-testid="sidebar-activity-button"
+                    (click)="onShowActivity()"
+                    [attr.aria-label]="'project.nav.activity' | transloco">
+                    <mat-icon>history</mat-icon>
+                    <span class="nav-title">{{
+                      'project.nav.activity' | transloco
+                    }}</span>
+                  </button>
+                }
+                <button
+                  type="button"
+                  class="sidebar-nav-item"
+                  [class.selected-item]="isSystemTabSelected('settings')"
+                  data-testid="sidebar-settings-button"
+                  (click)="onShowSettings()"
+                  [attr.aria-label]="'project.nav.projectSettings' | transloco">
+                  <mat-icon>settings</mat-icon>
+                  <span class="nav-title">{{
+                    'project.nav.projectSettings' | transloco
+                  }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="sidebar-nav-item exit-item"
+                  data-testid="sidebar-exit-button"
+                  (click)="exitProject()"
+                  [attr.aria-label]="'project.nav.exitProject' | transloco">
+                  <mat-icon>exit_to_app</mat-icon>
+                  <span class="nav-title">{{
+                    'project.nav.exitProject' | transloco
+                  }}</span>
+                </button>
               </div>
             </div>
-          </div>
-        } @else {
-          <!-- Desktop split layout -->
-          <as-split
-            direction="horizontal"
-            [gutterSize]="getGutterSize()"
-            unit="percent"
-            [useTransition]="true"
-            (dragEnd)="onSplitDragEnd($event)">
-            <!-- Custom gutter template -->
+            <!-- Drag handle to resize the sidebar -->
             <div
-              *asSplitGutter="let isDragged = isDragged"
-              class="inkweld-gutter"
-              [class.dragging]="isDragged">
-              <div class="inkweld-gutter-icon"></div>
-            </div>
-            <!-- Sidebar area -->
-            <as-split-area [size]="splitSize" [minSize]="15" [maxSize]="40">
-              <div class="sidebar-area">
-                @defer (on idle) {
-                  <app-project-tree
-                    [showCollapseButton]="true"
-                    (collapseRequested)="toggleSidebarCollapsed()"
-                    (documentOpened)="
-                      onDocumentOpened($event)
-                    "></app-project-tree>
-                } @placeholder {
-                  <div class="tree-placeholder">
-                    <mat-spinner diameter="30"></mat-spinner>
-                  </div>
-                }
-                <!-- Connection Status -->
-                @defer (on idle) {
-                  <app-connection-status
-                    [syncState]="projectSyncState()"
-                    [lastError]="lastConnectionError()"
-                    [isLocalMode]="isLocalMode()"
-                    [elementsDocId]="elementsDocId()"
-                    [strap]="true"
-                    (syncRequested)="onRetrySyncConnection()"
-                    data-testid="sidebar-connection-status">
-                  </app-connection-status>
-                } @placeholder {
-                  <div class="connection-placeholder"></div>
-                }
-                <!-- Fixed bottom navigation -->
-                <div class="sidebar-bottom-nav">
-                  <button
-                    type="button"
-                    class="sidebar-nav-item"
-                    [class.selected-item]="isSystemTabSelected('media')"
-                    data-testid="sidebar-media-button"
-                    (click)="onShowMediaLibrary()"
-                    [attr.aria-label]="'project.nav.mediaLibrary' | transloco">
-                    <mat-icon>perm_media</mat-icon>
-                    <span class="nav-title">{{
-                      'project.nav.mediaLibrary' | transloco
-                    }}</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="sidebar-nav-item"
-                    [class.selected-item]="isSystemTabSelected('publish-plans')"
-                    data-testid="sidebar-publishing-button"
-                    (click)="onShowPublishPlans()"
-                    [attr.aria-label]="'project.nav.publishing' | transloco">
-                    <mat-icon>auto_stories</mat-icon>
-                    <span class="nav-title">{{
-                      'project.nav.publishing' | transloco
-                    }}</span>
-                  </button>
-                  @if (!isLocalMode()) {
-                    <button
-                      type="button"
-                      class="sidebar-nav-item"
-                      [class.selected-item]="isSystemTabSelected('activity')"
-                      data-testid="sidebar-activity-button"
-                      (click)="onShowActivity()"
-                      [attr.aria-label]="'project.nav.activity' | transloco">
-                      <mat-icon>history</mat-icon>
-                      <span class="nav-title">{{
-                        'project.nav.activity' | transloco
-                      }}</span>
-                    </button>
-                  }
-                  <button
-                    type="button"
-                    class="sidebar-nav-item"
-                    [class.selected-item]="isSystemTabSelected('settings')"
-                    data-testid="sidebar-settings-button"
-                    (click)="onShowSettings()"
-                    [attr.aria-label]="
-                      'project.nav.projectSettings' | transloco
-                    ">
-                    <mat-icon>settings</mat-icon>
-                    <span class="nav-title">{{
-                      'project.nav.projectSettings' | transloco
-                    }}</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="sidebar-nav-item exit-item"
-                    data-testid="sidebar-exit-button"
-                    (click)="exitProject()"
-                    [attr.aria-label]="'project.nav.exitProject' | transloco">
-                    <mat-icon>exit_to_app</mat-icon>
-                    <span class="nav-title">{{
-                      'project.nav.exitProject' | transloco
-                    }}</span>
-                  </button>
-                </div>
-              </div>
-            </as-split-area>
-            <!-- Content area -->
-            <as-split-area>
-              <div class="desktop-content">
-                @if (useTabsDesktop()) {
-                  <div class="tabs-header">
-                    <app-tab-interface (importRequested)="onImportClicked()">
-                      <!-- Projected into tab-bar-actions -->
-                      <app-presence-indicator></app-presence-indicator>
-                      <app-user-menu
-                        [miniMode]="true"
-                        class="action-button"></app-user-menu>
-                    </app-tab-interface>
-                  </div>
-                }
-                <div class="content-area">
-                  <router-outlet></router-outlet>
-                </div>
-              </div>
-            </as-split-area>
-          </as-split>
+              class="sidebar-resize-gutter"
+              (mousedown)="onSidebarResizeStart($event)"
+              (touchstart)="onSidebarResizeStart($event)"></div>
+          }
         }
-      } @else {
-        <!-- Desktop full-width content -->
+        <!-- Shared content area (single outlet; preserved across sidebar state changes) -->
         <div class="desktop-content">
           @if (useTabsDesktop()) {
             <div class="tabs-header">
@@ -456,7 +405,7 @@
             <router-outlet></router-outlet>
           </div>
         </div>
-      }
+      </div>
     }
   </mat-sidenav-content>
 </mat-sidenav-container>

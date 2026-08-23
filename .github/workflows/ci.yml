@@ -126,7 +126,7 @@ jobs:
         run: node --version && bun --version
 
       - name: Run frontend tests
-        run: cd frontend && npm run test:coverage
+        run: cd frontend && NODE_OPTIONS="--max-old-space-size=8192" npm run test:coverage
 
       - name: Upload frontend coverage
         if: always()
@@ -422,9 +422,18 @@ jobs:
         run: cd frontend && npm run build
 
       - name: Run wrangler e2e tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+        # No retries: a failing test is a bug to investigate, not something to
+        # paper over. If the shared `wrangler dev` backend crashes mid-run, the
+        # failure surfaces immediately so we can fix the underlying cause.
         run: cd frontend && npm run e2e:wrangler:ci -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           E2E_MODE: prod
+          # Where the wrangler backend's stdout/stderr is tee'd (see
+          # playwright.wrangler.config.ts). Uploaded as an artifact on failure
+          # so a native workerd crash stack is preserved for investigation.
+          # Note: the webServer runs with cwd ../backend, so this must be
+          # absolute to land in a stable, project-owned location.
+          WRANGLER_LOG_FILE: ${{ github.workspace }}/wrangler-backend.log
 
       - name: Upload Playwright reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -432,6 +441,14 @@ jobs:
         with:
           name: playwright-report-wrangler-shard-${{ matrix.shardIndex }}
           path: frontend/playwright-report/
+          retention-days: 7
+
+      - name: Upload wrangler backend log
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: failure()
+        with:
+          name: wrangler-backend-log-shard-${{ matrix.shardIndex }}
+          path: wrangler-backend.log
           retention-days: 7
 
   # Docker E2E Tests (22 spec files - 2 shards)

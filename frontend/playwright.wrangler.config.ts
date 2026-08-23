@@ -27,6 +27,13 @@ const BACKEND_PORT = Number(process.env['PLAYWRIGHT_BACKEND_PORT'] ?? 9333);
 const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`;
 const BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
 
+// Where the wrangler backend's stdout/stderr is tee'd so a native workerd
+// crash (e.g. "kj/async-io-unix.c++: disconnected: Broken pipe") is preserved
+// for CI artifact upload. Kept inside the project directory (never a publicly
+// writable dir like /tmp) to avoid a symlink-hijack risk; overridable via env.
+const WRANGLER_LOG_FILE =
+  process.env['WRANGLER_LOG_FILE'] ?? `${__dirname}/wrangler-backend.log`;
+
 // Expose ports to globalSetup and test workers via environment variables
 process.env['API_BASE_URL'] = BACKEND_URL;
 process.env['PLAYWRIGHT_FRONTEND_PORT'] = String(FRONTEND_PORT);
@@ -51,10 +58,9 @@ export default defineConfig({
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env['CI'],
 
-  /* Retry failed tests in CI for stability. Wrangler dev with D1 + DO is
-     materially slower than the Bun backend and more prone to transient
-     infra errors; mirror playwright.cloudflare.config.ts's retry posture. */
-  retries: process.env['CI'] ? 2 : 0,
+  /* No retries. A failing test is a bug to investigate, not something to
+     paper over — retries hide the underlying crash/flake and inflate CI time. */
+  retries: 0,
 
   /* Reporter to use */
   reporter: [['list'], ['html', { open: 'never' }]],
@@ -109,7 +115,20 @@ export default defineConfig({
       // Wrangler dev server (Workers runtime locally)
       // Uses --local for local persistence, --port to avoid clashing with dev server
       // D1 init runs first to seed database before server starts
-      command: `bun run init:d1-local && npx wrangler dev src/cloudflare-runner.ts -c wrangler.toml --local --port ${BACKEND_PORT}`,
+      //
+      // The backend's stdout/stderr is tee'd to a log file so that a native
+      // workerd crash (e.g. "kj/async-io-unix.c++: disconnected: Broken pipe")
+      // is captured and can be uploaded as a CI artifact on failure. Without
+      // this, Playwright swallows the backend output and the crash stack is
+      // lost. The log path is exposed via WRANGLER_LOG_FILE for the CI upload
+      // step to reference.
+      //
+      // A bare pipeline (`wrangler ... | tee file`) would return tee's exit
+      // status, masking a failure in `init:d1-local` or `wrangler`. Wrap in
+      // `bash -c` with `set -o pipefail` so the pipeline's real exit status
+      // propagates and Playwright fails the webServer start if either step
+      // fails. WRANGLER_LOG_FILE is quoted to survive paths with spaces.
+      command: `bash -c 'set -o pipefail; bun run init:d1-local && npx wrangler dev src/cloudflare-runner.ts -c wrangler.toml --local --port ${BACKEND_PORT} 2>&1 | tee "${WRANGLER_LOG_FILE}"'`,
       cwd: '../backend',
       url: `${BACKEND_URL}/api/v1/health`,
       reuseExistingServer: !process.env['CI'],

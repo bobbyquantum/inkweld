@@ -3,6 +3,8 @@
  * Shared between services and components
  */
 
+import type { ElementAppearance } from '@models/element-appearance';
+
 export enum FieldType {
   TEXT = 'text',
   TEXTAREA = 'textarea',
@@ -69,8 +71,18 @@ export interface ElementTypeSchema {
   tabs: TabSchema[];
   /** Default values for new elements */
   defaultValues?: Record<string, unknown>;
+  /** Default appearance (menu/content backgrounds) applied to new elements of this type. */
+  defaultAppearance?: ElementAppearance;
+  /** Default identity image (media:// reference or URL) for new elements of this type. */
+  defaultImage?: string;
   /** Creation timestamp */
   createdAt?: string;
   /** Last update timestamp */
   updatedAt?: string;
+  /**
+   * True for a brand-new template that has not yet been saved to the schema
+   * library. Used to preserve unsaved new-template tabs across a reload while
+   * still dropping tabs whose template was deleted.
+   */
+  isNew?: boolean;
 }

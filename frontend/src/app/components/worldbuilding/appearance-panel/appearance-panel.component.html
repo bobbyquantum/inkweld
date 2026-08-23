@@ -1,0 +1,13 @@
+<div class="appearance-panel" data-testid="appearance-panel">
+  <h3 class="appearance-title">
+    <mat-icon>palette</mat-icon>
+    {{ 'worldbuilding.appearance.title' | transloco }}
+  </h3>
+  <app-appearance-editor
+    [value]="appearance()"
+    [disabled]="!canWrite()"
+    (valueChange)="onAppearanceEdited($event)"
+    (deletes)="onDeletes($event)"
+    (imagePicker)="onImagePicker($event.region, $event.slot)"
+    data-testid="appearance-editor"></app-appearance-editor>
+</div>

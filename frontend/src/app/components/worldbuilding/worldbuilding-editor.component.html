@@ -5,7 +5,14 @@
   <div class="wb-layout">
     <!-- Sidenav navigation (desktop / tablet landscape) -->
     @if (useSidenav()) {
-      <nav class="wb-sidenav" data-testid="wb-sidenav">
+      <nav
+        class="wb-sidenav"
+        data-testid="wb-sidenav"
+        [class.has-custom-background]="!!menuBackground()"
+        [style.--wb-bg]="backgroundCss(menuBackground())"
+        [style.--wb-overlay]="menuBackground()?.overlayAlpha ?? null"
+        [class.wb-bg-overlay-dark]="menuBackground()?.overlay === 'dark'"
+        [class.wb-bg-overlay-light]="menuBackground()?.overlay === 'light'">
         @if (identityPanel()?.resolvedImageUrl(); as imageUrl) {
           <button
             class="sidenav-thumbnail"
@@ -32,6 +39,25 @@
           </button>
         }
         <mat-nav-list>
+          @if (schemaEditingEnabled()) {
+            <a
+              mat-list-item
+              (click)="selectSection('schema-details')"
+              (keydown.enter)="selectSection('schema-details')"
+              [attr.aria-current]="
+                selectedSection() === 'schema-details' ? 'true' : null
+              "
+              [class.active]="selectedSection() === 'schema-details'"
+              [class.schema-edit]="true"
+              tabindex="0"
+              data-testid="nav-schema-details">
+              <mat-icon matListItemIcon>edit_note</mat-icon>
+              <span matListItemTitle>{{
+                'templates.editor.schemaDetails' | transloco
+              }}</span>
+            </a>
+          }
+
           <a
             mat-list-item
             (click)="selectSection('identity')"
@@ -51,17 +77,48 @@
           @for (tab of getTabs(); track tab.key) {
             <a
               mat-list-item
+              class="schema-tab-item"
               (click)="selectSection(tab.key)"
               (keydown.enter)="selectSection(tab.key)"
               [attr.aria-current]="
                 selectedSection() === tab.key ? 'true' : null
               "
               [class.active]="selectedSection() === tab.key"
+              [class.schema-edit]="schemaEditingEnabled()"
               tabindex="0"
               [attr.data-testid]="'nav-' + tab.key">
               <mat-icon matListItemIcon>{{ getTabIcon(tab) }}</mat-icon>
-              <span matListItemTitle>{{ tab.label }}</span>
+              <span matListItemTitle class="schema-tab-label">{{
+                tab.label
+              }}</span>
+              @if (schemaEditingEnabled()) {
+                <button
+                  type="button"
+                  class="schema-remove-tab"
+                  matListItemMeta
+                  (click)="onRemoveTab(tab.key); $event.stopPropagation()"
+                  (keydown.enter)="
+                    onRemoveTab(tab.key); $event.stopPropagation()
+                  "
+                  [attr.aria-label]="
+                    'worldbuilding.schemaEdit.removeTab' | transloco
+                  "
+                  data-testid="remove-tab-button">
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
             </a>
+          }
+          @if (schemaEditingEnabled()) {
+            <button
+              mat-stroked-button
+              type="button"
+              class="schema-add-tab"
+              (click)="onAddTab()"
+              data-testid="add-tab-button">
+              <mat-icon>add</mat-icon>
+              {{ 'worldbuilding.schemaEdit.addTab' | transloco }}
+            </button>
           }
 
           <a
@@ -93,12 +150,139 @@
               'worldbuilding.editor.media' | transloco
             }}</span>
           </a>
+
+          @if (projectState.canWrite() || schemaEditingEnabled()) {
+            <a
+              mat-list-item
+              (click)="selectSection('styling')"
+              (keydown.enter)="selectSection('styling')"
+              [attr.aria-current]="
+                selectedSection() === 'styling' ? 'true' : null
+              "
+              [class.active]="selectedSection() === 'styling'"
+              tabindex="0"
+              data-testid="nav-styling">
+              <mat-icon matListItemIcon>palette</mat-icon>
+              <span matListItemTitle>{{
+                'worldbuilding.editor.styling' | transloco
+              }}</span>
+            </a>
+          }
         </mat-nav-list>
       </nav>
     }
 
     <!-- Content area -->
-    <div class="wb-content">
+    <div
+      class="wb-content"
+      data-testid="wb-content"
+      [class.has-custom-background]="!!contentBackground()"
+      [style.--wb-bg]="backgroundCss(contentBackground())"
+      [style.--wb-overlay]="contentBackground()?.overlayAlpha ?? null"
+      [class.wb-bg-overlay-dark]="contentBackground()?.overlay === 'dark'"
+      [class.wb-bg-overlay-light]="contentBackground()?.overlay === 'light'">
+      <!-- Inline tab property editor (label + icon), shared by both layouts -->
+      <ng-template #tabPropsEditor let-tab>
+        @if (schemaEditingEnabled()) {
+          <div class="tab-props-editor" data-testid="tab-props-editor">
+            <mat-form-field appearance="outline" class="tab-label-field">
+              <mat-label>{{
+                'worldbuilding.schemaEdit.tabLabel' | transloco
+              }}</mat-label>
+              <input
+                matInput
+                [value]="tab.label"
+                [attr.id]="'tab-label-input-' + tab.key"
+                [attr.aria-label]="
+                  'worldbuilding.schemaEdit.tabLabel' | transloco
+                "
+                (input)="
+                  onUpdateTab(tab.key, {
+                    label: $any($event.target).value,
+                  })
+                "
+                [attr.data-testid]="'tab-label-input-' + tab.key" />
+            </mat-form-field>
+            <div class="tab-icon-field">
+              <span class="icon-field-label">{{
+                'worldbuilding.schemaEdit.tabIcon' | transloco
+              }}</span>
+              <button
+                type="button"
+                class="icon-picker-button"
+                (click)="pickTabIcon(tab)"
+                [attr.aria-label]="
+                  'worldbuilding.schemaEdit.tabIcon' | transloco
+                "
+                [attr.data-testid]="'tab-icon-button-' + tab.key">
+                <mat-icon aria-hidden="true">{{ getTabIcon(tab) }}</mat-icon>
+                <mat-icon class="icon-picker-chevron" aria-hidden="true"
+                  >arrow_drop_down</mat-icon
+                >
+              </button>
+            </div>
+          </div>
+        }
+      </ng-template>
+      <!-- Schema Details body (name/icon/description), shared by both layouts -->
+      <ng-template #schemaDetailsBody>
+        <div class="schema-details-body">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'templates.editor.templateNameLabel' | transloco
+            }}</mat-label>
+            <input
+              matInput
+              id="schema-name"
+              [attr.aria-label]="
+                'templates.editor.templateNameAria' | transloco
+              "
+              [value]="previewSchema()?.name ?? ''"
+              (input)="onSchemaInfoChange({ name: $any($event.target).value })"
+              data-testid="schema-name-input"
+              [attr.placeholder]="
+                'templates.editor.templateNamePlaceholder' | transloco
+              " />
+          </mat-form-field>
+
+          <div class="icon-field">
+            <span class="icon-field-label">{{
+              'templates.editor.iconLabel' | transloco
+            }}</span>
+            <button
+              type="button"
+              class="icon-picker-button"
+              (click)="pickSchemaIcon()"
+              [attr.aria-label]="'templates.editor.iconLabel' | transloco"
+              data-testid="schema-icon-button">
+              <mat-icon aria-hidden="true">{{
+                previewSchema()?.icon ?? 'category'
+              }}</mat-icon>
+              <mat-icon class="icon-picker-chevron" aria-hidden="true"
+                >arrow_drop_down</mat-icon
+              >
+            </button>
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'templates.editor.descriptionLabel' | transloco
+            }}</mat-label>
+            <textarea
+              matInput
+              id="schema-description"
+              [attr.aria-label]="'templates.editor.descriptionAria' | transloco"
+              [value]="previewSchema()?.description ?? ''"
+              (input)="
+                onSchemaInfoChange({
+                  description: $any($event.target).value,
+                })
+              "
+              data-testid="schema-description-input"
+              rows="3"></textarea>
+          </mat-form-field>
+        </div>
+      </ng-template>
       @if (isInitialLoading()) {
         <div class="wb-loading-shell" data-testid="worldbuilding-loading-shell">
           @if (useSidenav()) {
@@ -137,9 +321,11 @@
           <app-identity-panel
             [elementId]="elementId()"
             [elementName]="elementName()"
+            [elementIcon]="elementIcon()"
             [username]="username()"
             [slug]="slug()"
-            [canWrite]="projectState.canWrite()"
+            [canWrite]="!previewMode() && projectState.canWrite()"
+            [readOnly]="previewMode()"
             [showImage]="false"
             (renameRequested)="onRenameRequested()">
           </app-identity-panel>
@@ -165,9 +351,56 @@
           </div>
         }
 
+        @if (
+          selectedSection() === 'styling' &&
+          (projectState.canWrite() || schemaEditingEnabled())
+        ) {
+          <div class="section-content styling-inline">
+            @if (schemaEditingEnabled()) {
+              <app-appearance-editor
+                [value]="previewSchema()?.defaultAppearance ?? {}"
+                (valueChange)="onDefaultAppearanceChange($event)"
+                data-testid="preview-default-appearance"></app-appearance-editor>
+            } @else {
+              <app-appearance-panel
+                [elementId]="elementId()"
+                [username]="username()"
+                [slug]="slug()"
+                [canWrite]="projectState.canWrite()"
+                (appearanceChange)="onAppearanceChange($event)">
+              </app-appearance-panel>
+            }
+          </div>
+        }
+
+        @if (selectedSection() === 'schema-details' && schemaEditingEnabled()) {
+          <div class="section-content tab-section-content">
+            <h2 class="section-title" data-testid="schema-details-title">
+              <mat-icon class="section-title-icon">edit_note</mat-icon>
+              {{ 'templates.editor.schemaDetails' | transloco }}
+            </h2>
+            <ng-container [ngTemplateOutlet]="schemaDetailsBody">
+            </ng-container>
+          </div>
+        }
+
         @for (tab of getTabs(); track tab.key) {
           @if (selectedSection() === tab.key && schema()) {
             <div class="section-content tab-section-content">
+              @if (schemaEditingEnabled()) {
+                <ng-container
+                  [ngTemplateOutlet]="tabPropsEditor"
+                  [ngTemplateOutletContext]="{ $implicit: tab }">
+                </ng-container>
+              } @else {
+                <!-- Desktop-only section title -->
+                <h2 class="section-title" data-testid="tab-section-title">
+                  <mat-icon class="section-title-icon">{{
+                    getTabIcon(tab)
+                  }}</mat-icon>
+                  {{ tab.label }}
+                </h2>
+              }
               <ng-container
                 [ngTemplateOutlet]="tabFieldsTemplate"
                 [ngTemplateOutletContext]="{ $implicit: tab.key }">
@@ -184,7 +417,30 @@
         }
       } @else {
         <!-- ===== Accordion mode: all sections as panels ===== -->
-        <mat-accordion multi>
+        <mat-accordion
+          multi
+          data-testid="wb-accordion"
+          [class.has-custom-background]="!!menuBackground()"
+          [style.--wb-bg]="backgroundCss(menuBackground())"
+          [style.--wb-overlay]="menuBackground()?.overlayAlpha ?? null"
+          [class.wb-bg-overlay-dark]="menuBackground()?.overlay === 'dark'"
+          [class.wb-bg-overlay-light]="menuBackground()?.overlay === 'light'">
+          <!-- Schema Details panel (schema editor only) -->
+          @if (schemaEditingEnabled()) {
+            <mat-expansion-panel
+              [expanded]="true"
+              data-testid="accordion-schema-details">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon class="panel-title-icon">edit_note</mat-icon>
+                  {{ 'templates.editor.schemaDetails' | transloco }}
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <ng-container [ngTemplateOutlet]="schemaDetailsBody">
+              </ng-container>
+            </mat-expansion-panel>
+          }
+
           <!-- Identity panel -->
           <mat-expansion-panel
             [expanded]="true"
@@ -199,9 +455,11 @@
               <app-identity-panel
                 [elementId]="elementId()"
                 [elementName]="elementName()"
+                [elementIcon]="elementIcon()"
                 [username]="username()"
                 [slug]="slug()"
-                [canWrite]="projectState.canWrite()"
+                [canWrite]="!previewMode() && projectState.canWrite()"
+                [readOnly]="previewMode()"
                 (renameRequested)="onRenameRequested()">
               </app-identity-panel>
             </div>
@@ -219,6 +477,10 @@
                     {{ tab.label }}
                   </mat-panel-title>
                 </mat-expansion-panel-header>
+                <ng-container
+                  [ngTemplateOutlet]="tabPropsEditor"
+                  [ngTemplateOutletContext]="{ $implicit: tab }">
+                </ng-container>
                 <ng-container
                   [ngTemplateOutlet]="tabFieldsTemplate"
                   [ngTemplateOutletContext]="{ $implicit: tab.key }">
@@ -269,6 +531,34 @@
               </app-media-panel>
             </div>
           </mat-expansion-panel>
+
+          <!-- Styling panel (editors only) -->
+          @if (projectState.canWrite() || schemaEditingEnabled()) {
+            <mat-expansion-panel data-testid="accordion-styling">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon class="panel-title-icon">palette</mat-icon>
+                  {{ 'worldbuilding.editor.styling' | transloco }}
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <div class="styling-inline">
+                @if (schemaEditingEnabled()) {
+                  <app-appearance-editor
+                    [value]="previewSchema()?.defaultAppearance ?? {}"
+                    (valueChange)="onDefaultAppearanceChange($event)"
+                    data-testid="preview-default-appearance-accordion"></app-appearance-editor>
+                } @else {
+                  <app-appearance-panel
+                    [elementId]="elementId()"
+                    [username]="username()"
+                    [slug]="slug()"
+                    [canWrite]="projectState.canWrite()"
+                    (appearanceChange)="onAppearanceChange($event)">
+                  </app-appearance-panel>
+                }
+              </div>
+            </mat-expansion-panel>
+          }
         </mat-accordion>
       }
     </div>
@@ -309,178 +599,253 @@
         data-testid="worldbuilding-sync-dot"></span>
     </span>
     <span class="status-actions">
-      <button
-        mat-icon-button
-        class="snapshots-btn"
-        (click)="openSnapshotsDialog()"
-        [attr.aria-label]="'worldbuilding.editor.openSnapshots' | transloco"
-        [matTooltip]="'worldbuilding.editor.snapshots' | transloco"
-        data-testid="toolbar-snapshots">
-        <mat-icon>history</mat-icon>
-      </button>
+      @if (schemaEditingEnabled()) {
+        <button
+          mat-icon-button
+          class="snapshots-btn"
+          (click)="openSnapshotsDialog()"
+          [matTooltip]="'worldbuilding.schemaEdit.snapshots' | transloco"
+          data-testid="toolbar-snapshots">
+          <mat-icon>history</mat-icon>
+        </button>
+      } @else {
+        <button
+          mat-icon-button
+          class="snapshots-btn"
+          (click)="openSnapshotsDialog()"
+          [attr.aria-label]="'worldbuilding.editor.openSnapshots' | transloco"
+          [matTooltip]="'worldbuilding.editor.snapshots' | transloco"
+          data-testid="toolbar-snapshots">
+          <mat-icon>history</mat-icon>
+        </button>
+      }
     </span>
   </div>
 </div>
 
 <!-- Shared template for rendering tab fields -->
 <ng-template #tabFieldsTemplate let-tabKey>
-  <div class="tab-content">
-    @for (field of getFieldsForTab(tabKey); track field.key) {
-      <div
-        class="field-container"
-        [attr.data-testid]="'field-' + field.key"
-        [ngClass]="'span-' + (field.layout?.span || 12)">
-        @switch (field.type) {
-          @case ('text') {
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ field.label }}</mat-label>
-              <input
-                matInput
-                [attr.id]="'field-' + field.key"
-                [formControl]="getControl(field.key)"
-                [placeholder]="field.placeholder || ''" />
-              @if (field.description) {
-                <mat-hint>{{ field.description }}</mat-hint>
-              }
-            </mat-form-field>
-          }
-
-          @case ('textarea') {
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ field.label }}</mat-label>
-              <textarea
-                matInput
-                [attr.id]="'field-' + field.key + '-textarea'"
-                [attr.aria-label]="field.label"
-                [formControl]="getControl(field.key)"
-                [placeholder]="field.placeholder || ''"
-                [rows]="field.rows || 3"></textarea>
-              @if (field.description) {
-                <mat-hint>{{ field.description }}</mat-hint>
-              }
-            </mat-form-field>
-          }
-
-          @case ('number') {
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ field.label }}</mat-label>
-              <input
-                matInput
-                type="number"
-                [attr.id]="'field-' + field.key"
-                [formControl]="getControl(field.key)"
-                [placeholder]="field.placeholder || ''" />
-              @if (field.description) {
-                <mat-hint>{{ field.description }}</mat-hint>
-              }
-            </mat-form-field>
-          }
-
-          @case ('date') {
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ field.label }}</mat-label>
-              <input
-                matInput
-                [attr.id]="'field-' + field.key"
-                type="text"
-                [formControl]="getControl(field.key)"
-                [placeholder]="field.placeholder || ''" />
-              @if (field.description) {
-                <mat-hint>{{ field.description }}</mat-hint>
-              }
-            </mat-form-field>
-          }
-
-          @case ('select') {
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ field.label }}</mat-label>
-              <mat-select [formControl]="getControl(field.key)">
-                @for (
-                  option of getFieldOptions(field);
-                  track getOptionValue(option)
-                ) {
-                  <mat-option [value]="getOptionValue(option)">
-                    {{ getOptionLabel(option) }}
-                  </mat-option>
-                }
-              </mat-select>
-              @if (field.description) {
-                <mat-hint>{{ field.description }}</mat-hint>
-              }
-            </mat-form-field>
-          }
-
-          @case ('multiselect') {
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ field.label }}</mat-label>
-              <mat-select
-                [formControl]="$any(getControl(field.key))"
-                [multiple]="true">
-                @for (
-                  option of getFieldOptions(field);
-                  track getOptionValue(option)
-                ) {
-                  <mat-option [value]="getOptionValue(option)">
-                    {{ getOptionLabel(option) }}
-                  </mat-option>
-                }
-              </mat-select>
-              @if (field.description) {
-                <mat-hint>{{ field.description }}</mat-hint>
-              }
-            </mat-form-field>
-          }
-
-          @case ('checkbox') {
-            <div class="checkbox-field">
-              <mat-checkbox [formControl]="$any(getControl(field.key))">
-                {{ field.label }}
-              </mat-checkbox>
-              @if (field.description) {
-                <p class="field-description">{{ field.description }}</p>
-              }
-            </div>
-          }
-
-          @case ('array') {
-            <div class="array-field">
-              <h4>{{ field.label }}</h4>
-              @if (field.description) {
-                <p class="field-description">{{ field.description }}</p>
-              }
-
-              @for (control of getFormArray(field.key).controls; track $index) {
-                <div class="array-item">
-                  <mat-form-field appearance="outline">
-                    <input
-                      matInput
-                      [attr.id]="'field-' + field.key + '-' + $index"
-                      [formControl]="$any(control)"
-                      [placeholder]="field.placeholder || 'Add item'" />
-                  </mat-form-field>
-                  <button
-                    mat-icon-button
-                    color="warn"
-                    type="button"
-                    (click)="removeArrayItem(field.key, $index)"
-                    [attr.aria-label]="
-                      'Remove ' + field.label + ' item ' + ($index + 1)
-                    ">
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </div>
-              }
-
+  <div class="tab-fields-card" data-testid="tab-fields-card">
+    <div class="tab-content">
+      @for (
+        field of getFieldsForTab(tabKey);
+        track field.id ?? field.key;
+        let fi = $index
+      ) {
+        <div
+          class="field-container"
+          [class.schema-edit]="schemaEditingEnabled()"
+          [attr.data-testid]="'field-' + field.key"
+          [ngClass]="'span-' + (field.layout?.span || 12)">
+          @if (schemaEditingEnabled()) {
+            <div class="schema-field-toolbar">
+              <span class="field-index">{{ fi + 1 }}</span>
               <button
-                mat-raised-button
+                mat-icon-button
                 type="button"
-                (click)="addArrayItem(field.key)">
-                <mat-icon>add</mat-icon> Add {{ field.label }}
+                (click)="openFieldConfig(tabKey, field)"
+                [attr.aria-label]="'Edit field'"
+                data-testid="field-edit">
+                <mat-icon>settings</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                type="button"
+                (click)="onMoveField(tabKey, field.key, -1)"
+                [disabled]="fi === 0"
+                [attr.aria-label]="'Move field up'"
+                data-testid="field-move-up">
+                <mat-icon>arrow_circle_up</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                type="button"
+                (click)="onMoveField(tabKey, field.key, 1)"
+                [disabled]="fi === getFieldsForTab(tabKey).length - 1"
+                [attr.aria-label]="'Move field down'"
+                data-testid="field-move-down">
+                <mat-icon>arrow_circle_down</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                type="button"
+                color="warn"
+                (click)="onRemoveField(tabKey, field.key)"
+                [attr.aria-label]="'Remove field'"
+                data-testid="field-remove">
+                <mat-icon>remove_circle</mat-icon>
               </button>
             </div>
           }
-        }
-      </div>
-    }
+          @switch (field.type) {
+            @case ('text') {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ field.label }}</mat-label>
+                <input
+                  matInput
+                  [attr.id]="'field-' + field.key"
+                  [formControl]="getControl(field.key)"
+                  [placeholder]="field.placeholder || ''" />
+                @if (field.description) {
+                  <mat-hint>{{ field.description }}</mat-hint>
+                }
+              </mat-form-field>
+            }
+
+            @case ('textarea') {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ field.label }}</mat-label>
+                <textarea
+                  matInput
+                  [attr.id]="'field-' + field.key + '-textarea'"
+                  [attr.aria-label]="field.label"
+                  [formControl]="getControl(field.key)"
+                  [placeholder]="field.placeholder || ''"
+                  [rows]="field.rows || 3"
+                  cdkTextareaAutosize
+                  [cdkAutosizeMinRows]="field.rows || 3"
+                  [cdkAutosizeMaxRows]="12"></textarea>
+                @if (field.description) {
+                  <mat-hint>{{ field.description }}</mat-hint>
+                }
+              </mat-form-field>
+            }
+
+            @case ('number') {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ field.label }}</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  [attr.id]="'field-' + field.key"
+                  [formControl]="getControl(field.key)"
+                  [placeholder]="field.placeholder || ''" />
+                @if (field.description) {
+                  <mat-hint>{{ field.description }}</mat-hint>
+                }
+              </mat-form-field>
+            }
+
+            @case ('date') {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ field.label }}</mat-label>
+                <input
+                  matInput
+                  [attr.id]="'field-' + field.key"
+                  type="text"
+                  [formControl]="getControl(field.key)"
+                  [placeholder]="field.placeholder || ''" />
+                @if (field.description) {
+                  <mat-hint>{{ field.description }}</mat-hint>
+                }
+              </mat-form-field>
+            }
+
+            @case ('select') {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ field.label }}</mat-label>
+                <mat-select [formControl]="getControl(field.key)">
+                  @for (
+                    option of getFieldOptions(field);
+                    track getOptionValue(option)
+                  ) {
+                    <mat-option [value]="getOptionValue(option)">
+                      {{ getOptionLabel(option) }}
+                    </mat-option>
+                  }
+                </mat-select>
+                @if (field.description) {
+                  <mat-hint>{{ field.description }}</mat-hint>
+                }
+              </mat-form-field>
+            }
+
+            @case ('multiselect') {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ field.label }}</mat-label>
+                <mat-select
+                  [formControl]="$any(getControl(field.key))"
+                  [multiple]="true">
+                  @for (
+                    option of getFieldOptions(field);
+                    track getOptionValue(option)
+                  ) {
+                    <mat-option [value]="getOptionValue(option)">
+                      {{ getOptionLabel(option) }}
+                    </mat-option>
+                  }
+                </mat-select>
+                @if (field.description) {
+                  <mat-hint>{{ field.description }}</mat-hint>
+                }
+              </mat-form-field>
+            }
+
+            @case ('checkbox') {
+              <div class="checkbox-field">
+                <mat-checkbox [formControl]="$any(getControl(field.key))">
+                  {{ field.label }}
+                </mat-checkbox>
+                @if (field.description) {
+                  <p class="field-description">{{ field.description }}</p>
+                }
+              </div>
+            }
+
+            @case ('array') {
+              <div class="array-field">
+                <h4>{{ field.label }}</h4>
+                @if (field.description) {
+                  <p class="field-description">{{ field.description }}</p>
+                }
+
+                @for (
+                  control of getFormArray(field.key).controls;
+                  track $index
+                ) {
+                  <div class="array-item">
+                    <mat-form-field appearance="outline">
+                      <input
+                        matInput
+                        [attr.id]="'field-' + field.key + '-' + $index"
+                        [formControl]="$any(control)"
+                        [placeholder]="field.placeholder || 'Add item'" />
+                    </mat-form-field>
+                    <button
+                      mat-icon-button
+                      color="warn"
+                      type="button"
+                      (click)="removeArrayItem(field.key, $index)"
+                      [attr.aria-label]="
+                        'Remove ' + field.label + ' item ' + ($index + 1)
+                      ">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                }
+
+                <button
+                  mat-raised-button
+                  type="button"
+                  (click)="addArrayItem(field.key)">
+                  <mat-icon>add</mat-icon> Add {{ field.label }}
+                </button>
+              </div>
+            }
+          }
+        </div>
+      }
+      @if (schemaEditingEnabled()) {
+        <button
+          mat-stroked-button
+          type="button"
+          class="schema-add-field"
+          (click)="onAddField(tabKey)"
+          [attr.data-testid]="'add-field-' + tabKey">
+          <mat-icon>add</mat-icon>
+          {{ 'worldbuilding.schemaEdit.addField' | transloco }}
+        </button>
+      }
+    </div>
   </div>
 </ng-template>

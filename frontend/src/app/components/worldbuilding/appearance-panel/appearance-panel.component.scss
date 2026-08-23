@@ -1,0 +1,16 @@
+.appearance-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.appearance-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--sys-on-surface);
+  margin: 0;
+}

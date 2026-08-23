@@ -1,8 +1,8 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { type User } from '@inkweld/index';
+import { stripTrailingSlashes } from '@utils/string-utils';
 
 import { environment } from '../../../environments/environment';
-import { stripTrailingSlashes } from '../../utils/string-utils';
 import { LoggerService } from './logger.service';
 import {
   LOCAL_CONFIG_ID,

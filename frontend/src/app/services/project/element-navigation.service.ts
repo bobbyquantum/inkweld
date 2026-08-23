@@ -1,8 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import type { Element, ElementType } from '@inkweld/index';
+import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 
-import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { ProjectStateService } from './project-state.service';
 
 /**

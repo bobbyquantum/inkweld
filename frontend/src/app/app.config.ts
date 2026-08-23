@@ -20,6 +20,7 @@ import {
 } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
 import { provideTransloco } from '@jsverse/transloco';
+import { CustomRouteReuseStrategy } from '@utils/custom-route-reuse-strategy';
 
 import { ThemeService } from '../themes/theme.service';
 import { routes } from './app.routes';
@@ -27,7 +28,6 @@ import { API_PROVIDERS } from './config/api.config';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { InkweldTitleStrategy } from './services/core/title-strategy.service';
 import { TranslocoHttpLoader } from './transloco-loader';
-import { CustomRouteReuseStrategy } from './utils/custom-route-reuse-strategy';
 
 registerLocaleData(localeEn);
 

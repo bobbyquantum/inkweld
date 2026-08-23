@@ -13,9 +13,8 @@ import { TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { base64ToBlob } from '@utils/base64-utils';
 import type { ImageCroppedEvent, LoadedImage } from 'ngx-image-cropper';
-
-import { base64ToBlob } from '../utils/base64-utils';
 
 /**
  * Abstract base class for image selection/cropping dialogs.

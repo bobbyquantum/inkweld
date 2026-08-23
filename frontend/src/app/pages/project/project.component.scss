@@ -17,12 +17,41 @@
   align-items: center;
 }
 
-// Angular Split Styles
-as-split {
-  height: 100%;
+// Desktop layout: sidebar + content as flex row (single shared outlet)
+.desktop-layout {
+  display: flex;
   flex: 1;
   min-height: 0;
+  min-width: 0; // Allow shrinking so content (and the tab bar) can overflow internally
   width: 100%;
+}
+
+// Expanded desktop sidebar
+.desktop-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex-shrink: 0;
+  background-color: var(--sys-surface-container);
+  border-right: 1px solid var(--sys-outline-variant);
+
+  app-project-tree {
+    flex: 1;
+    overflow-y: auto;
+  }
+}
+
+// Drag handle between sidebar and content
+.sidebar-resize-gutter {
+  width: 4px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background-color: var(--scrollbar-track-color);
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: var(--scrollbar-thumb-color);
+  }
 }
 
 // Custom gutter styling
@@ -74,22 +103,6 @@ as-split {
 
 // Sidebar content - both split and mobile sidenav
 .sidenav-content,
-.sidebar-area {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--sys-surface-container);
-  border-right: 1px solid var(--sys-outline-variant);
-
-  app-project-tree {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-}
-
 // Fixed bottom navigation in sidebar
 .sidebar-bottom-nav {
   display: flex;
@@ -365,6 +378,7 @@ as-split {
 .desktop-content {
   flex: 1;
   min-height: 0;
+  min-width: 0; // Allow the content to shrink so the tab bar overflows internally
   display: flex;
   flex-direction: column;
   position: relative;
@@ -539,12 +553,6 @@ app-templates-tab {
 }
 
 // Collapsed sidebar styles (desktop only)
-.collapsed-sidebar-container {
-  display: flex;
-  height: 100%;
-  width: 100%;
-}
-
 .collapsed-sidebar {
   width: 48px;
   display: flex;
@@ -552,6 +560,7 @@ app-templates-tab {
   background-color: var(--sys-surface-container);
   border-right: 1px solid var(--sys-outline-variant);
   flex-shrink: 0;
+  height: 100%;
 }
 
 .collapsed-sidebar-top {

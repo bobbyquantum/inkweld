@@ -1,9 +1,9 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { type Element, ElementType, type Project } from '@inkweld/index';
+import { flattenToPlainText } from '@utils/prosemirror-text';
 
 import { ProjectSearchDialogComponent } from '../../dialogs/project-search-dialog/project-search-dialog.component';
-import { flattenToPlainText } from '../../utils/prosemirror-text';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { RelationshipService } from '../relationship/relationship.service';

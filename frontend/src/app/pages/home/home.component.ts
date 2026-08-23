@@ -54,10 +54,9 @@ import { ProjectServiceError } from '@services/project/project.service';
 import { CoverSyncService } from '@services/sync/cover-sync.service';
 import { SyncQueueService } from '@services/sync/sync-queue.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
+import { formatBytes } from '@utils/format-bytes';
 import { firstValueFrom, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-
-import { formatBytes } from '../../utils/format-bytes';
 
 interface HomeSearchFormValue {
   search: string;

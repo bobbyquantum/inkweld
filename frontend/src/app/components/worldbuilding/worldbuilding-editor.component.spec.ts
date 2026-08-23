@@ -1,7 +1,12 @@
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormArray, ReactiveFormsModule } from '@angular/forms';
+import {
+  FormArray,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { BehaviorSubject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,6 +17,7 @@ import { translocoTestProvider } from '../../../testing/transloco-test-provider'
 import { DocumentSyncState } from '../../models/document-sync-state';
 import {
   type ElementTypeSchema,
+  type FieldSchema,
   type TabSchema,
 } from '../../models/schema-types';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
@@ -30,6 +36,10 @@ describe('WorldbuildingEditorComponent', () => {
     openRenameDialog: ReturnType<typeof vi.fn>;
     openTagEditorDialog: ReturnType<typeof vi.fn>;
     openSnapshotsDialog: ReturnType<typeof vi.fn>;
+    openConfirmationDialog: ReturnType<typeof vi.fn>;
+    openTemplateSnapshotsDialog: ReturnType<typeof vi.fn>;
+    openFieldConfigDialog: ReturnType<typeof vi.fn>;
+    openIconPickerDialog: ReturnType<typeof vi.fn>;
   };
   let matDialogMock: {
     open: ReturnType<typeof vi.fn>;
@@ -148,6 +158,10 @@ describe('WorldbuildingEditorComponent', () => {
       openRenameDialog: vi.fn().mockResolvedValue(null),
       openTagEditorDialog: vi.fn().mockResolvedValue(undefined),
       openSnapshotsDialog: vi.fn().mockResolvedValue(undefined),
+      openConfirmationDialog: vi.fn().mockResolvedValue(true),
+      openTemplateSnapshotsDialog: vi.fn().mockResolvedValue(undefined),
+      openFieldConfigDialog: vi.fn().mockResolvedValue(undefined),
+      openIconPickerDialog: vi.fn().mockResolvedValue(undefined),
     };
     matDialogMock = {
       open: vi.fn(),
@@ -238,6 +252,20 @@ describe('WorldbuildingEditorComponent', () => {
 
   it('should create', () => {
     expect(component).toBeDefined();
+  });
+
+  it('should build the form from a preview schema without loading data', async () => {
+    fixture.componentRef.setInput('previewSchema', mockCharacterSchema);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(component.previewMode()).toBe(true);
+    expect(component.schema()).toBe(mockCharacterSchema);
+    expect(component.form().get('name')).toBeDefined();
+    expect(component.form().get('age')).toBeDefined();
+    expect(component.isInitialLoading()).toBe(false);
+    // Preview form is read-only.
+    expect(component.form().disabled).toBe(true);
   });
 
   describe('syncTooltip', () => {
@@ -441,6 +469,68 @@ describe('WorldbuildingEditorComponent', () => {
       // Should not throw
       component['buildFormFromSchema'](emptySchema);
       expect(component.form()).toBeDefined();
+    });
+
+    it('should not crash when a top-level field collides with a nested group', () => {
+      const collisionSchema: ElementTypeSchema = {
+        ...mockCharacterSchema,
+        tabs: [
+          {
+            key: 'basic',
+            label: 'Basic',
+            fields: [
+              { key: 'significance', label: 'Significance', type: 'text' },
+            ],
+          },
+          {
+            key: 'sig',
+            label: 'Significance',
+            fields: [
+              {
+                key: 'significance.cultural',
+                label: 'Cultural',
+                type: 'textarea',
+              },
+            ],
+          },
+        ],
+      };
+
+      // Should not throw.
+      component['buildFormFromSchema'](collisionSchema);
+
+      const form = component.form();
+      // The top-level control wins; the nested field is skipped.
+      expect(form.get('significance')).toBeInstanceOf(FormControl);
+      expect(form.get('significance.cultural')).toBeNull();
+    });
+
+    it('should not crash when a nested group collides with an existing flat field', () => {
+      const collisionSchema: ElementTypeSchema = {
+        ...mockCharacterSchema,
+        tabs: [
+          {
+            key: 'basic',
+            label: 'Basic',
+            fields: [
+              {
+                key: 'significance.cultural',
+                label: 'Cultural',
+                type: 'textarea',
+              },
+              { key: 'significance', label: 'Significance', type: 'text' },
+            ],
+          },
+        ],
+      };
+
+      // Should not throw.
+      component['buildFormFromSchema'](collisionSchema);
+
+      const form = component.form();
+      // The nested group wins; the flat field is skipped.
+      expect(form.get('significance')).toBeInstanceOf(FormGroup);
+      expect(form.get('significance')?.get('cultural')).toBeDefined();
     });
   });
 
@@ -678,15 +768,13 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     describe('isTabSection', () => {
-      it('should return false for identity section', () => {
-        component.selectedSection.set('identity');
-        expect(component.isTabSection()).toBe(false);
-      });
-
-      it('should return false for relationships section', () => {
-        component.selectedSection.set('relationships');
-        expect(component.isTabSection()).toBe(false);
-      });
+      it.each([['identity'], ['relationships'], ['styling']])(
+        'should return false for %s section',
+        section => {
+          component.selectedSection.set(section);
+          expect(component.isTabSection()).toBe(false);
+        }
+      );
 
       it('should return true for a schema tab section', () => {
         component.selectedSection.set('basic');
@@ -707,12 +795,38 @@ describe('WorldbuildingEditorComponent', () => {
         );
       });
 
+      it('should return "Styling" for styling section', () => {
+        expect(component.getSectionLabel('styling')).toBe('Styling');
+      });
+
       it('should return tab label for a tab section', () => {
         expect(component.getSectionLabel('basic')).toBe('Basic Info');
       });
 
       it('should return section key as fallback for unknown tab', () => {
         expect(component.getSectionLabel('unknown')).toBe('unknown');
+      });
+    });
+
+    describe('rendered tab section', () => {
+      it('should show a desktop-only section title above a single fields card', async () => {
+        component.selectedSection.set('basic');
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        const title = fixture.nativeElement.querySelector(
+          '[data-testid="tab-section-title"]'
+        );
+        expect(title?.textContent).toContain('Basic Info');
+
+        const card = fixture.nativeElement.querySelector(
+          '[data-testid="tab-fields-card"]'
+        );
+        expect(card).toBeTruthy();
+        // All fields live inside the single card.
+        const fields = card.querySelectorAll('.field-container');
+        expect(fields).toHaveLength(8);
       });
     });
     describe('layout mode', () => {
@@ -783,6 +897,60 @@ describe('WorldbuildingEditorComponent', () => {
 
         expect(component.useSidenav()).toBe(false);
         expect(component.selectedSection()).toBe('identity');
+      });
+
+      it('should show the styling nav item for editors', async () => {
+        await recreateComponentForViewport(1280, true);
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(
+          fixture.nativeElement.querySelector('[data-testid="nav-styling"]')
+        ).toBeTruthy();
+      });
+
+      it('should hide the styling nav item for read-only users', async () => {
+        mockProjectState.canWrite.set(false);
+        await recreateComponentForViewport(1280, true);
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(
+          fixture.nativeElement.querySelector('[data-testid="nav-styling"]')
+        ).toBeNull();
+      });
+
+      it('should render a fields card in accordion mode', async () => {
+        component['schema'].set(mockCharacterSchema);
+        await recreateComponentForViewport(759, false);
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        const accordion = fixture.nativeElement.querySelector(
+          '[data-testid="wb-accordion"]'
+        );
+        expect(accordion).toBeTruthy();
+        expect(
+          accordion.querySelector('[data-testid="tab-fields-card"]')
+        ).toBeTruthy();
+      });
+
+      it('should mark the accordion with the custom menu background', async () => {
+        await recreateComponentForViewport(759, false);
+        fixture.detectChanges();
+        const panel = component.identityPanel();
+        panel?.appearance.set({
+          menu: { type: 'color', mode: 'auto', value: '#123456' },
+        });
+        fixture.detectChanges();
+
+        const accordion = fixture.nativeElement.querySelector(
+          '[data-testid="wb-accordion"]'
+        );
+        expect(accordion.classList).toContain('has-custom-background');
       });
     });
 
@@ -924,6 +1092,47 @@ describe('WorldbuildingEditorComponent', () => {
         expect(() => component.ngOnDestroy()).not.toThrow();
       });
     });
+
+    it('should revoke cached blob URLs on destroy', () => {
+      const revokeSpy = vi
+        .spyOn(URL, 'revokeObjectURL')
+        .mockImplementation(() => {});
+      component['resolvedImageUrls'].set({
+        'media://bg.png': 'blob:abc',
+        'https://x/y.png': 'https://x/y.png',
+      });
+
+      component.ngOnDestroy();
+
+      expect(revokeSpy).toHaveBeenCalledWith('blob:abc');
+      expect(revokeSpy).not.toHaveBeenCalledWith('https://x/y.png');
+      revokeSpy.mockRestore();
+    });
+  });
+
+  describe('background resolution', () => {
+    it('should expose null backgrounds when the identity panel has no appearance', () => {
+      fixture.detectChanges();
+      const panel = component.identityPanel();
+      panel?.appearance.set(undefined);
+      expect(component.menuBackground()).toBeNull();
+      expect(component.contentBackground()).toBeNull();
+    });
+
+    it('should resolve the menu background from the identity appearance', () => {
+      fixture.detectChanges();
+      const panel = component.identityPanel();
+      panel?.appearance.set({
+        menu: {
+          type: 'color',
+          mode: 'manual',
+          light: '#123456',
+          dark: '#000000',
+        },
+      });
+      expect(component.menuBackground()?.background).toBe('#123456');
+      expect(component.contentBackground()).toBeNull();
+    });
   });
 
   describe('initializeIfNeeded', () => {
@@ -967,6 +1176,256 @@ describe('WorldbuildingEditorComponent', () => {
         worldbuildingService.initializeWorldbuildingElement
       ).toHaveBeenCalledWith(mockElement, 'testuser', 'test-project');
       expect(result).toEqual(mockCharacterSchema);
+    });
+  });
+
+  describe('schema edit mode', () => {
+    beforeEach(async () => {
+      fixture.componentRef.setInput('previewSchema', mockCharacterSchema);
+      fixture.componentRef.setInput('editMode', true);
+      fixture.detectChanges();
+      await fixture.whenStable();
+    });
+
+    it('should enable schema editing only in preview + edit mode', () => {
+      expect(component['schemaEditingEnabled']()).toBe(true);
+    });
+
+    it('should land on the Schema Details section when the editor opens', () => {
+      expect(component.selectedSection()).toBe('schema-details');
+    });
+
+    it('should offer icons used by built-in element types', () => {
+      const icons = component['getAvailableIcons']();
+      for (const icon of [
+        'person',
+        'place',
+        'category',
+        'map',
+        'diversity_1',
+        'auto_stories',
+        'groups',
+        'pets',
+        'settings',
+        'description',
+        'folder',
+        'hub',
+        'dashboard',
+        'timeline',
+      ]) {
+        expect(icons).toContain(icon);
+      }
+    });
+
+    it('should offer the icons used by the default Character tabs', () => {
+      const icons = component['getAvailableIcons']();
+      for (const icon of [
+        'info',
+        'visibility',
+        'psychology',
+        'history_edu',
+        'stars',
+        'ac_unit',
+      ]) {
+        expect(icons).toContain(icon);
+      }
+    });
+
+    it('should always include the currently selected icon in the choices', () => {
+      const icons = component['getIconChoices']('campfire');
+      expect(icons).toContain('campfire');
+    });
+
+    it('should not duplicate an icon already in the curated list', () => {
+      const icons = component['getIconChoices']('person');
+      expect(icons.filter(i => i === 'person')).toHaveLength(1);
+    });
+
+    it('should apply the chosen tab icon from the picker dialog', async () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      dialogGatewayMock.openIconPickerDialog.mockResolvedValue('star');
+      const tab = mockCharacterSchema.tabs[0];
+      await component['pickTabIcon'](tab);
+      expect(emit).toHaveBeenCalledWith({
+        type: 'update-tab',
+        tabKey: tab.key,
+        patch: { icon: 'star' },
+      });
+    });
+
+    it('should not emit a tab icon when the picker is cancelled', async () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      dialogGatewayMock.openIconPickerDialog.mockResolvedValue(undefined);
+      await component['pickTabIcon'](mockCharacterSchema.tabs[0]);
+      expect(emit).not.toHaveBeenCalled();
+    });
+
+    it('should apply the chosen schema icon from the picker dialog', async () => {
+      const emit = vi.fn();
+      component.schemaInfoChange.subscribe(emit);
+      dialogGatewayMock.openIconPickerDialog.mockResolvedValue('map');
+      await component['pickSchemaIcon']();
+      expect(emit).toHaveBeenCalledWith({ icon: 'map' });
+    });
+
+    it('should open the template snapshots dialog in schema edit mode', () => {
+      component.openSnapshotsDialog();
+      expect(
+        dialogGatewayMock.openTemplateSnapshotsDialog
+      ).toHaveBeenCalledWith(mockCharacterSchema.id);
+      expect(dialogGatewayMock.openSnapshotsDialog).not.toHaveBeenCalled();
+    });
+
+    it('should be disabled outside edit mode', async () => {
+      fixture.componentRef.setInput('editMode', false);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(component['schemaEditingEnabled']()).toBe(false);
+    });
+
+    it('should emit an add-field event', () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onAddField']('basic');
+      expect(emit).toHaveBeenCalledWith({ type: 'add-field', tabKey: 'basic' });
+    });
+
+    it('should emit a remove-field event', () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onRemoveField']('basic', 'name');
+      expect(emit).toHaveBeenCalledWith({
+        type: 'remove-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+      });
+    });
+
+    it('should emit a move-field event', () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onMoveField']('basic', 'age', 1);
+      expect(emit).toHaveBeenCalledWith({
+        type: 'move-field',
+        tabKey: 'basic',
+        fieldKey: 'age',
+        delta: 1,
+      });
+    });
+
+    it('should emit an update-field event', () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onUpdateField']('basic', 'name', { label: 'Full name' });
+      expect(emit).toHaveBeenCalledWith({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: { label: 'Full name' },
+      });
+    });
+
+    it('should emit an update-tab event', () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onUpdateTab']('basic', { label: 'Core', icon: 'star' });
+      expect(emit).toHaveBeenCalledWith({
+        type: 'update-tab',
+        tabKey: 'basic',
+        patch: { label: 'Core', icon: 'star' },
+      });
+    });
+
+    it('should apply the returned patch from the field config dialog', async () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      dialogGatewayMock.openFieldConfigDialog.mockResolvedValue({
+        label: 'Full name',
+        key: 'fullName',
+      });
+      const nameField = mockCharacterSchema.tabs[0].fields.find(
+        f => f.key === 'name'
+      ) as FieldSchema;
+      await component['openFieldConfig']('basic', nameField);
+      expect(emit).toHaveBeenCalledWith({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: { label: 'Full name', key: 'fullName' },
+      });
+    });
+
+    it('should not emit when the field config dialog is cancelled', async () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      dialogGatewayMock.openFieldConfigDialog.mockResolvedValue(undefined);
+      const nameField = mockCharacterSchema.tabs[0].fields.find(
+        f => f.key === 'name'
+      ) as FieldSchema;
+      await component['openFieldConfig']('basic', nameField);
+      expect(emit).not.toHaveBeenCalled();
+    });
+
+    it('should emit add/remove tab events', async () => {
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onAddTab']();
+      await component['onRemoveTab']('appearance');
+      expect(emit).toHaveBeenNthCalledWith(1, { type: 'add-tab' });
+      expect(emit).toHaveBeenNthCalledWith(2, {
+        type: 'remove-tab',
+        tabKey: 'appearance',
+      });
+    });
+
+    it('should not emit a remove-tab event when the user cancels', async () => {
+      dialogGatewayMock.openConfirmationDialog.mockResolvedValue(false);
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      await component['onRemoveTab']('appearance');
+      expect(emit).not.toHaveBeenCalled();
+    });
+
+    it('should not emit events when schema editing is disabled', () => {
+      fixture.componentRef.setInput('editMode', false);
+      fixture.detectChanges();
+      const emit = vi.fn();
+      component.schemaEdit.subscribe(emit);
+      component['onAddField']('basic');
+      expect(emit).not.toHaveBeenCalled();
+    });
+
+    it('should emit a schema info change', () => {
+      const emit = vi.fn();
+      component.schemaInfoChange.subscribe(emit);
+      component['onSchemaInfoChange']({ name: 'Hero' });
+      expect(emit).toHaveBeenCalledWith({ name: 'Hero' });
+    });
+
+    it('should emit a default appearance change', () => {
+      const emit = vi.fn();
+      component.defaultAppearanceChange.subscribe(emit);
+      component['onDefaultAppearanceChange']({
+        menu: { type: 'color', mode: 'auto', value: '#123456' },
+      });
+      expect(emit).toHaveBeenCalledWith({
+        menu: { type: 'color', mode: 'auto', value: '#123456' },
+      });
+    });
+
+    it('should gate schema info/appearance emission behind edit mode', () => {
+      fixture.componentRef.setInput('editMode', false);
+      fixture.detectChanges();
+      const infoEmit = vi.fn();
+      const appEmit = vi.fn();
+      component.schemaInfoChange.subscribe(infoEmit);
+      component.defaultAppearanceChange.subscribe(appEmit);
+      component['onSchemaInfoChange']({ name: 'Hero' });
+      component['onDefaultAppearanceChange']({});
+      expect(infoEmit).not.toHaveBeenCalled();
+      expect(appEmit).not.toHaveBeenCalled();
     });
   });
 });
