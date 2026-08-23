@@ -6,7 +6,7 @@
       "name": "inkweld-backend",
       "dependencies": {
         "@fal-ai/client": "^1.8.1",
-        "@hono/oauth-providers": "^0.8.5",
+        "@hono/oauth-providers": "^0.9.0",
         "@hono/zod-openapi": "^1.2.0",
         "@simplewebauthn/server": "^13.3.0",
         "bcryptjs": "^3.0.3",
@@ -152,7 +152,7 @@
 
     "@hexagon/base64": ["@hexagon/base64@1.1.28", "", {}, "sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw=="],
 
-    "@hono/oauth-providers": ["@hono/oauth-providers@0.8.7", "", { "peerDependencies": { "hono": ">=3.0.0" } }, "sha512-N2onMhKxN1mN3XIOk4DfHoHdV9hlgOkPJSmUUyyrzRT4lFxogluFpYNEyz6bqxCXqKYm8CJs3DXTeELpa8h+bQ=="],
+    "@hono/oauth-providers": ["@hono/oauth-providers@0.9.0", "", { "peerDependencies": { "hono": ">=3.0.0" } }, "sha512-OgDPB+AM6OgA5ys1y+7G24bkb8V4OINr+6JFDSuSYni80Mmd7BGpJ0e02StQDMPL9ebuWI8ABhxx1bk+9VBcBA=="],
 
     "@hono/zod-openapi": ["@hono/zod-openapi@1.6.0", "", { "dependencies": { "@asteasolutions/zod-to-openapi": "^9.1.0", "@hono/zod-validator": "^0.9.0", "openapi3-ts": "^4.5.0" }, "peerDependencies": { "hono": ">=4.10.0", "zod": "^4.0.0" } }, "sha512-42HXUBIaGmQh+hZGLw3Hy5piOreIXgnBnUSs55mtn2gnW/xWtU9nQwEUtRRCk5to8Vm2XbfO0J83eUCwCf5eTg=="],
 
