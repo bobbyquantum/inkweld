@@ -434,6 +434,14 @@ jobs:
           # Note: the webServer runs with cwd ../backend, so this must be
           # absolute to land in a stable, project-owned location.
           WRANGLER_LOG_FILE: ${{ github.workspace }}/wrangler-backend.log
+          # wrangler's own diagnostic log records what the console's empty
+          # "[ERROR]" line hides. When a transient ProxyWorker disconnect
+          # ("Network connection lost.") kills `wrangler dev` mid-run — see
+          # cloudflare/workers-sdk#15317 — the real cause only shows up at
+          # debug level in this file. Redirected into the workspace so it can
+          # be uploaded as an artifact instead of staying in the runner home.
+          WRANGLER_LOG: debug
+          WRANGLER_LOG_PATH: ${{ github.workspace }}/wrangler-debug-logs
 
       - name: Upload Playwright reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -450,6 +458,15 @@ jobs:
           name: wrangler-backend-log-shard-${{ matrix.shardIndex }}
           path: wrangler-backend.log
           retention-days: 7
+
+      - name: Upload wrangler diagnostic log
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: failure()
+        with:
+          name: wrangler-diag-log-shard-${{ matrix.shardIndex }}
+          path: wrangler-debug-logs/
+          retention-days: 7
+          if-no-files-found: warn
 
   # Docker E2E Tests (22 spec files - 2 shards)
   # Note: each shard rebuilds the Docker image in globalSetup, so the per-job
