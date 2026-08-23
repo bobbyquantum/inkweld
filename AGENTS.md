@@ -454,6 +454,26 @@ cd backend && bun run generate:openapi && bun run generate:angular-client
 > environment. The generated `frontend/src/api-client/**` must not be edited by
 > hand — always regenerate from the OpenAPI spec.
 
+### Wrangler Version Pin (backend)
+
+`backend/package.json` pins `wrangler` to an **exact** `4.116.0` (no caret), and
+Renovate is disabled for it via `renovate.json`. **Do not "fix" this to a range.**
+
+- **Why**: wrangler ≥ 4.121 pulls miniflare 5.x-alpha, where any transient
+  ProxyWorker disconnect ("Network connection lost.") makes `wrangler dev` exit
+  with an **empty** `[ERROR]` mid-run — every test after it fails with
+  `ECONNREFUSED ::1:9333`. This flaked the `e2e-wrangler` CI job constantly
+  after the 2026-08-12 lockfile maintenance (#1300). It does not reproduce on
+  dev machines; CI runner contention provides the dropped connections.
+- **Upstream**: cloudflare/workers-sdk#15317 (also #15203, #4562). 4.116.0 is
+  the last release on the miniflare 4.x line.
+- **Unpin when**: #15317 ships a fixed release — restore `"wrangler": "^<ver>"`,
+  re-lock, and re-enable the Renovate rule.
+- The wrangler e2e job also sets `WRANGLER_LOG=debug` +
+  `WRANGLER_LOG_PATH` and uploads wrangler's diagnostic log as an artifact
+  (`wrangler-diag-log-shard-*`); the real crash cause only appears there, not
+  in the console's empty `[ERROR]`.
+
 ---
 
 ## Debugging Tips
