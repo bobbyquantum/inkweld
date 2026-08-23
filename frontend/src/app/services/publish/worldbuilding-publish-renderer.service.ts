@@ -57,6 +57,22 @@ export interface RenderedWorldbuildingField {
 }
 
 /**
+ * Per-element rendering options shared by the field-collection helpers.
+ */
+interface FieldRenderContext {
+  /** Yjs data-map snapshot for the element being rendered. */
+  data: Record<string, unknown>;
+  /** When set, only these dotted field keys are rendered. */
+  includeKeys: Set<string> | null;
+  /** When set, these dotted field keys are skipped. */
+  excludeKeys: Set<string> | null;
+  /** Render fields with no value. */
+  includeEmpty: boolean;
+  /** Element whose relationship fields are resolved from the store. */
+  elementId: string;
+}
+
+/**
  * Loads worldbuilding entries for a {@link WorldbuildingItem} and produces a
  * format-agnostic {@link RenderedWorldbuildingEntry} list. The HTML, EPUB,
  * and PDF generators each translate the rendered structure into their own
@@ -126,18 +142,23 @@ export class WorldbuildingPublishRendererService {
     const excludeKeys = item.excludedFieldKeys
       ? new Set(item.excludedFieldKeys)
       : null;
-    const includeEmpty = item.includeEmptyFields ?? false;
+
+    const fieldContext: FieldRenderContext = {
+      data,
+      includeKeys,
+      excludeKeys,
+      includeEmpty: item.includeEmptyFields ?? false,
+      elementId: element.id,
+    };
 
     const tabs = schema
-      ? this.renderTabsFromSchema(
-          schema,
+      ? this.renderTabsFromSchema(schema, fieldContext)
+      : this.renderSyntheticTab(
           data,
           includeKeys,
           excludeKeys,
-          includeEmpty,
-          element.id
-        )
-      : this.renderSyntheticTab(data, includeKeys, excludeKeys, includeEmpty);
+          fieldContext.includeEmpty
+        );
 
     return {
       elementId: element.id,
@@ -219,25 +240,14 @@ export class WorldbuildingPublishRendererService {
 
   private renderTabsFromSchema(
     schema: ElementTypeSchema,
-    data: Record<string, unknown>,
-    includeKeys: Set<string> | null,
-    excludeKeys: Set<string> | null,
-    includeEmpty: boolean,
-    elementId: string
+    ctx: FieldRenderContext
   ): RenderedWorldbuildingTab[] {
     const tabs: RenderedWorldbuildingTab[] = [];
     const orderedTabs = [...schema.tabs].sort(
       (a, b) => (a.order ?? 0) - (b.order ?? 0)
     );
     for (const tab of orderedTabs) {
-      const fields = this.collectTabFields(
-        tab,
-        data,
-        includeKeys,
-        excludeKeys,
-        includeEmpty,
-        elementId
-      );
+      const fields = this.collectTabFields(tab, ctx);
       if (fields.length === 0) continue;
       tabs.push({ key: tab.key, label: tab.label, fields });
     }
@@ -270,36 +280,19 @@ export class WorldbuildingPublishRendererService {
 
   private collectTabFields(
     tab: TabSchema,
-    data: Record<string, unknown>,
-    includeKeys: Set<string> | null,
-    excludeKeys: Set<string> | null,
-    includeEmpty: boolean,
-    elementId: string,
+    ctx: FieldRenderContext,
     keyPrefix = ''
   ): RenderedWorldbuildingField[] {
     const out: RenderedWorldbuildingField[] = [];
     for (const field of tab.fields) {
-      this.collectField(
-        field,
-        data,
-        includeKeys,
-        excludeKeys,
-        includeEmpty,
-        elementId,
-        keyPrefix,
-        out
-      );
+      this.collectField(field, ctx, keyPrefix, out);
     }
     return out;
   }
 
   private collectField(
     field: FieldSchema,
-    data: Record<string, unknown>,
-    includeKeys: Set<string> | null,
-    excludeKeys: Set<string> | null,
-    includeEmpty: boolean,
-    elementId: string,
+    ctx: FieldRenderContext,
     keyPrefix: string,
     out: RenderedWorldbuildingField[]
   ): void {
@@ -307,28 +300,19 @@ export class WorldbuildingPublishRendererService {
 
     if (field.isNested && field.nestedFields?.length) {
       for (const nested of field.nestedFields) {
-        this.collectField(
-          nested,
-          data,
-          includeKeys,
-          excludeKeys,
-          includeEmpty,
-          elementId,
-          fullKey,
-          out
-        );
+        this.collectField(nested, ctx, fullKey, out);
       }
       return;
     }
 
-    if (includeKeys && !includeKeys.has(fullKey)) return;
-    if (excludeKeys?.has(fullKey)) return;
+    if (ctx.includeKeys && !ctx.includeKeys.has(fullKey)) return;
+    if (ctx.excludeKeys?.has(fullKey)) return;
     if (fullKey.startsWith('_') || fullKey === 'lastModified') return;
 
     if (field.type === 'relationship') {
-      const linked = this.getLinkedElementsForField(elementId, field);
+      const linked = this.getLinkedElementsForField(ctx.elementId, field);
       const display = linked.map(e => e.name).join(', ');
-      if (!display && !includeEmpty) return;
+      if (!display && !ctx.includeEmpty) return;
       out.push({
         key: fullKey,
         label: field.label,
@@ -339,9 +323,9 @@ export class WorldbuildingPublishRendererService {
       return;
     }
 
-    const value = readDottedKey(data, fullKey);
+    const value = readDottedKey(ctx.data, fullKey);
     const display = formatFieldValue(value);
-    if (!display && !includeEmpty) return;
+    if (!display && !ctx.includeEmpty) return;
 
     out.push({
       key: fullKey,

@@ -280,8 +280,9 @@ describe('RelationshipFieldComponent', () => {
       openDocument;
 
     const card = fixture.nativeElement.querySelector(
-      '[data-testid="rel-card-mother-el"]'
-    ) as HTMLElement;
+      '[data-testid="rel-open-mother-el"]'
+    ) as HTMLButtonElement;
+    expect(card.tagName).toBe('BUTTON');
     card.click();
 
     expect(openDocument).toHaveBeenCalledWith(mother);
@@ -293,7 +294,7 @@ describe('RelationshipFieldComponent', () => {
     fixture.detectChanges();
 
     const card = fixture.nativeElement.querySelector(
-      '[data-testid="rel-card-mother-el"]'
+      '[data-testid="rel-open-mother-el"]'
     ) as HTMLElement;
     card.dispatchEvent(new MouseEvent('mouseenter'));
 

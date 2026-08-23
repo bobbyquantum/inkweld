@@ -595,7 +595,7 @@ describe('RelationshipsTabComponent', () => {
       const badges = fixture.nativeElement.querySelectorAll(
         '[data-testid="type-field-managed-badge"]'
       );
-      expect(badges.length).toBe(1);
+      expect(badges).toHaveLength(1);
     });
   });
 });

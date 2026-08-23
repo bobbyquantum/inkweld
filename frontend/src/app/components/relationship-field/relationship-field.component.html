@@ -1,34 +1,34 @@
 <div class="relationship-field">
   @for (link of linkedElements(); track link.relationship.id) {
     @if (link.element; as element) {
-      <div
-        class="rel-card"
-        role="button"
-        tabindex="0"
-        (click)="navigate(element)"
-        (keydown.enter)="navigate(element)"
-        (mouseenter)="showTooltip(element, $event)"
-        (mouseleave)="hideTooltip()"
-        [attr.data-testid]="'rel-card-' + element.id">
-        @if (imageUrls()[element.id]) {
-          <img
-            class="rel-card-image"
-            [src]="imageUrls()[element.id]"
-            [alt]="element.name" />
-        } @else {
-          <div class="rel-card-image rel-card-image-placeholder">
-            <mat-icon aria-hidden="true">{{ getIcon(element) }}</mat-icon>
-          </div>
-        }
-        <div class="rel-card-body">
-          <span class="rel-card-name">{{ element.name }}</span>
-        </div>
+      <div class="rel-card" [attr.data-testid]="'rel-card-' + element.id">
+        <button
+          type="button"
+          class="rel-card-main"
+          (click)="navigate(element)"
+          (mouseenter)="showTooltip(element, $event)"
+          (mouseleave)="hideTooltip()"
+          [attr.data-testid]="'rel-open-' + element.id">
+          @if (imageUrls()[element.id]) {
+            <img
+              class="rel-card-image"
+              [src]="imageUrls()[element.id]"
+              [alt]="element.name" />
+          } @else {
+            <span class="rel-card-image rel-card-image-placeholder">
+              <mat-icon aria-hidden="true">{{ getIcon(element) }}</mat-icon>
+            </span>
+          }
+          <span class="rel-card-body">
+            <span class="rel-card-name">{{ element.name }}</span>
+          </span>
+        </button>
         @if (!readOnly()) {
           <button
             mat-icon-button
             type="button"
             class="rel-card-remove"
-            (click)="$event.stopPropagation(); removeLink(element.id)"
+            (click)="removeLink(element.id)"
             [attr.aria-label]="
               'worldbuilding.relationshipField.removeElement' | transloco
             "
@@ -43,14 +43,14 @@
         [attr.data-testid]="
           'rel-card-deleted-' + link.relationship.targetElementId
         ">
-        <div class="rel-card-image rel-card-image-placeholder">
+        <span class="rel-card-image rel-card-image-placeholder">
           <mat-icon aria-hidden="true">help_outline</mat-icon>
-        </div>
-        <div class="rel-card-body">
+        </span>
+        <span class="rel-card-body">
           <span class="rel-card-name">{{
             'worldbuilding.relationshipField.deletedElement' | transloco
           }}</span>
-        </div>
+        </span>
         @if (!readOnly()) {
           <button
             mat-icon-button

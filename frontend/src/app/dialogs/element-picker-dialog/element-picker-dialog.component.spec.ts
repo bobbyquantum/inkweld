@@ -212,7 +212,7 @@ describe('ElementPickerDialogComponent', () => {
     newFixture.detectChanges();
 
     const available = newComponent.availableElements();
-    expect(available.length).toBe(1);
+    expect(available).toHaveLength(1);
     expect(available[0].id).toBe('char-1');
   });
 
@@ -235,7 +235,7 @@ describe('ElementPickerDialogComponent', () => {
     const newComponent = newFixture.componentInstance;
     newFixture.detectChanges();
 
-    expect(newComponent.availableElements().length).toBe(0);
+    expect(newComponent.availableElements()).toHaveLength(0);
   });
 
   it('should filter elements based on search text', () => {
