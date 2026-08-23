@@ -104,6 +104,92 @@
 .event-text {
   font-size: 0.95rem;
   line-height: 1.4;
+  display: inline;
+}
+
+/* Element reference chip — mirrors the inline element links in the editor. */
+.element-ref {
+  display: inline;
+  padding: 2px 6px;
+  margin: 0 1px;
+  border-radius: 4px;
+  background: linear-gradient(
+    135deg,
+    var(--sys-primary-container, #e8def8) 0%,
+    var(--element-ref-bg-end, #d4c8f0) 100%
+  );
+  color: var(--sys-on-primary-container, #21005d);
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  border: 1px solid var(--sys-outline-variant, rgba(121, 116, 126, 0.3));
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  position: relative;
+}
+
+.element-ref:hover {
+  background: linear-gradient(
+    135deg,
+    var(--sys-primary, #6750a4) 0%,
+    var(--sys-primary-dark, #523d8a) 100%
+  );
+  color: var(--sys-on-primary, #ffffff);
+  box-shadow:
+    0 2px 6px rgba(103, 80, 164, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border-color: var(--sys-primary, #6750a4);
+  transform: translateY(-1px);
+}
+
+.element-ref:focus {
+  outline: 2px solid var(--sys-primary, #6750a4);
+  outline-offset: 2px;
+}
+
+.element-ref::before {
+  font-family: 'Material Icons', sans-serif;
+  font-size: 14px;
+  margin-right: 3px;
+  vertical-align: middle;
+  opacity: 0.85;
+}
+
+.element-ref--item::before {
+  content: 'description';
+}
+
+.element-ref--worldbuilding::before {
+  content: 'category';
+}
+
+.element-ref--folder::before {
+  content: 'folder';
+}
+
+/* Dark theme adjustments, mirroring the editor's element-ref styles. */
+:host-context(.dark-theme) .element-ref {
+  --element-ref-bg-end: #3a2878;
+  background: linear-gradient(
+    135deg,
+    var(--sys-primary-container, #4f378b) 0%,
+    var(--element-ref-bg-end, #3a2878) 100%
+  );
+  color: var(--sys-on-primary-container, #eaddff);
+  border-color: var(--sys-outline-variant, rgba(202, 196, 208, 0.3));
+}
+
+:host-context(.dark-theme) .element-ref:hover {
+  background: linear-gradient(
+    135deg,
+    var(--sys-primary, #d0bcff) 0%,
+    #b8a4e8 100%
+  );
+  color: var(--sys-on-primary, #381e72);
+  border-color: var(--sys-primary, #d0bcff);
 }
 
 .event-time {

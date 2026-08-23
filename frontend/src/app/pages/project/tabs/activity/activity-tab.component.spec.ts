@@ -1,10 +1,13 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { ElementType } from '@inkweld/index';
 import type {
   ProjectActivityEvent,
   ProjectActivityResponse,
 } from '@models/activity-event';
 import { LoggerService } from '@services/core/logger.service';
+import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { ActivityFeedService } from '@services/stats/activity-feed.service';
 import { of, throwError } from 'rxjs';
@@ -34,7 +37,11 @@ describe('ActivityTabComponent', () => {
   let fixture: ComponentFixture<ActivityTabComponent>;
   let component: ActivityTabComponent;
   let activityFeed: ReturnType<typeof mockDeep<ActivityFeedService>>;
-  let projectState: { project: ReturnType<typeof signal> };
+  let projectState: {
+    project: ReturnType<typeof signal>;
+    elements: ReturnType<typeof signal<object[]>>;
+    openDocument: ReturnType<typeof vi.fn>;
+  };
   let logger: ReturnType<typeof mockDeep<LoggerService>>;
 
   const project = { id: 'p-1', username: 'alice', slug: 'my-book' };
@@ -45,7 +52,11 @@ describe('ActivityTabComponent', () => {
   ) => {
     activityFeed = mockDeep<ActivityFeedService>();
     logger = mockDeep<LoggerService>();
-    projectState = { project: signal(proj) };
+    projectState = {
+      project: signal(proj),
+      elements: signal<object[]>([]),
+      openDocument: vi.fn(),
+    };
 
     if (initial instanceof Error) {
       activityFeed.getProjectActivity.mockReturnValue(
@@ -59,6 +70,7 @@ describe('ActivityTabComponent', () => {
       imports: [translocoTestProvider(), ActivityTabComponent],
       providers: [
         provideZonelessChangeDetection(),
+        provideRouter([{ path: '**', children: [] }]),
         { provide: ActivityFeedService, useValue: activityFeed },
         { provide: ProjectStateService, useValue: projectState },
         { provide: LoggerService, useValue: logger },
@@ -183,7 +195,7 @@ describe('ActivityTabComponent', () => {
     expect((component as any).loadingMore()).toBe(false);
   });
 
-  it('describe() produces a sensible string for each known event type', async () => {
+  it('describeSegments() produces a sensible string for each known event type', async () => {
     await setup({ events: [], nextBefore: null });
 
     const types = [
@@ -207,20 +219,22 @@ describe('ActivityTabComponent', () => {
     ] as const;
 
     for (const t of types) {
-      const text = (component as any).describe(
+      const segments = (component as any).describeSegments(
         makeEvent('x', { eventType: t })
       );
+      const text = segments.map((s: any) => s.text).join('');
       expect(text).toContain('alice');
       expect(text.length).toBeGreaterThan(5);
     }
   });
 
-  it('describe() falls back when username/entityName are missing', async () => {
+  it('describeSegments() falls back when username/entityName are missing', async () => {
     await setup({ events: [], nextBefore: null });
 
-    const text = (component as any).describe(
+    const segments = (component as any).describeSegments(
       makeEvent('x', { username: null, entityName: null })
     );
+    const text = segments.map((s: any) => s.text).join('');
     expect(text).toContain('Someone');
   });
 
@@ -229,5 +243,119 @@ describe('ActivityTabComponent', () => {
     expect((component as any).iconFor('document_edit')).toBe('edit');
     expect((component as any).iconFor('snapshot_created')).toBe('photo_camera');
     expect((component as any).iconFor('unknown' as any)).toBe('circle');
+  });
+
+  it('renders a clickable element link for events referencing a live element', async () => {
+    const element = {
+      id: 'e-1',
+      name: 'Chapter 1',
+      type: ElementType.Item,
+    };
+
+    await setup({
+      events: [
+        makeEvent('a', {
+          eventType: 'element_created',
+          entityId: 'e-1',
+          entityName: 'Chapter 1',
+        }),
+      ],
+      nextBefore: null,
+    });
+
+    projectState.elements.set([element]);
+    fixture.detectChanges();
+
+    const link = fixture.nativeElement.querySelector(
+      '[data-testid="event-element-link"]'
+    );
+    expect(link).toBeTruthy();
+    expect(link.textContent.trim()).toBe('Chapter 1');
+    expect(link.classList.contains('element-ref')).toBe(true);
+
+    link.click();
+    expect(projectState.openDocument).toHaveBeenCalledWith(element);
+  });
+
+  it('does not render a link for events referencing a missing element', async () => {
+    projectState.elements.set([]);
+    await setup({
+      events: [
+        makeEvent('a', {
+          eventType: 'element_created',
+          entityId: 'e-1',
+          entityName: 'Chapter 1',
+        }),
+      ],
+      nextBefore: null,
+    });
+
+    const link = fixture.nativeElement.querySelector(
+      '[data-testid="event-element-link"]'
+    );
+    expect(link).toBeFalsy();
+    const text = fixture.nativeElement.querySelector('.event-text');
+    expect(text.textContent).toContain('Chapter 1');
+  });
+
+  it('renders a clickable link for document_edit referencing a live element', async () => {
+    await setup({
+      events: [makeEvent('a')],
+      nextBefore: null,
+    });
+
+    projectState.elements.set([
+      { id: 'e-1', name: 'Chapter 1', type: ElementType.Item },
+    ]);
+    fixture.detectChanges();
+
+    const link = fixture.nativeElement.querySelector(
+      '[data-testid="event-element-link"]'
+    );
+    expect(link).toBeTruthy();
+  });
+
+  it('openElement() navigates to the referenced element via ElementNavigationService', async () => {
+    const element = {
+      id: 'e-1',
+      name: 'Chapter 1',
+      type: ElementType.Folder,
+    };
+
+    await setup({ events: [], nextBefore: null });
+
+    projectState.elements.set([element]);
+    fixture.detectChanges();
+
+    const navigation = TestBed.inject(ElementNavigationService);
+    const openSpy = vi
+      .spyOn(navigation, 'openElement')
+      .mockImplementation(() => {});
+    const mouseEvent = new MouseEvent('click', { cancelable: true });
+
+    (component as any).openElement(
+      makeEvent('a', {
+        eventType: 'element_created',
+        entityId: 'e-1',
+        entityName: 'Chapter 1',
+      }),
+      mouseEvent
+    );
+
+    expect(mouseEvent.defaultPrevented).toBe(true);
+    expect(openSpy).toHaveBeenCalledWith(element);
+  });
+
+  it('elementTypeClass() mirrors the editor class for element type', async () => {
+    await setup({ events: [], nextBefore: null });
+
+    projectState.elements.set([
+      { id: 'e-1', name: 'W', type: ElementType.Worldbuilding },
+    ]);
+    fixture.detectChanges();
+
+    expect(
+      (component as any).elementTypeClass(makeEvent('a', { entityId: 'e-1' }))
+    ).toBe('worldbuilding');
   });
 });
