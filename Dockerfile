@@ -13,7 +13,7 @@
 # - This allows CI to build frontend once on AMD64 and share with ARM64 builds
 
 # Frontend builder stage (Angular) - only used when not using pre-built frontend
-FROM oven/bun:1.3.14 AS frontend-builder
+FROM oven/bun:1.4.0 AS frontend-builder
 WORKDIR /app
 
 # Angular CLI 22 requires Node ^22.22.3 || ^24.15.0 || >=26; the bun image's
@@ -71,7 +71,7 @@ RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
   fi
 
 # Backend builder stage - produces a single compiled binary
-FROM oven/bun:1.3.14 AS backend-builder
+FROM oven/bun:1.4.0 AS backend-builder
 WORKDIR /app/backend
 
 # Install git for dependencies that need to be cloned
