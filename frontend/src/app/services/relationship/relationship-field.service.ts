@@ -53,6 +53,18 @@ export class RelationshipFieldService {
   }
 
   /**
+   * Deterministic relationshipTypeId for relationship fields that predate id
+   * stamping (legacy/imported schemas). Unlike {@link stampRelationshipTypeId}
+   * the id is derived from schema + field key, so an un-persisted stamp still
+   * resolves to the same backing type on the next session instead of leaking
+   * a new one per open.
+   */
+  stableRelationshipTypeId(schemaId: string, field: FieldSchema): string {
+    const raw = `fieldrel-${schemaId}-${field.key}`;
+    return raw.replace(/[^a-zA-Z0-9_-]/g, '-');
+  }
+
+  /**
    * Ensures the auto-managed relationship type for a field exists and matches
    * the field's current configuration. Idempotent. Returns the relationship
    * type id backing the field, or null when the field is not a relationship

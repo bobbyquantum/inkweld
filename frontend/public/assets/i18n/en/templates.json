@@ -91,6 +91,7 @@
     "layoutSpanHint": "How many of the 12 columns the field occupies",
     "spanDragAria": "Drag to set the column span",
     "rowsLabel": "Rows",
+    "fieldTypeRelationship": "Relationship",
     "relationshipTargetLabel": "Linked element template",
     "relationshipTargetAny": "Any element",
     "relationshipTargetHint": "Restrict which elements can be linked",

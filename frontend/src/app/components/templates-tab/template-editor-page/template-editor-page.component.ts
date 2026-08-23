@@ -186,11 +186,36 @@ export class TemplateEditorPageComponent
       });
     });
 
+    // Legacy/imported relationship fields may lack a backing-type id. Stamp
+    // a deterministic one (stable across sessions even before the save lands)
+    // so ensureRelationshipTypes below can register the matching type.
+    let stampedTypeIds = false;
+    tabs.forEach(tab => {
+      tab.fields.forEach(field => {
+        if (
+          this.relationshipFieldService.isRelationshipField(field) &&
+          !field.relationshipTypeId
+        ) {
+          field.relationshipTypeId =
+            this.relationshipFieldService.stableRelationshipTypeId(
+              schema.id,
+              field
+            );
+          stampedTypeIds = true;
+        }
+      });
+    });
+
     this.tabs.set(tabs);
 
     // Self-heal: make sure every existing relationship field has a backing
     // relationship type registered (idempotent).
     this.ensureRelationshipTypes(tabs);
+
+    if (stampedTypeIds) {
+      // Persist the stamped ids immediately so field and type stay aligned.
+      this.scheduleAutosave();
+    }
   }
 
   /** Ensure backing relationship types exist for all relationship fields. */

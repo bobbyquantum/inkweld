@@ -124,11 +124,9 @@ test.describe('Template Worldbuilding Import', () => {
       // elements as a pre-order list, so imported entries must sit inside
       // their parent folder's block (regression: appended entries vanished).
       await expect(
-        page.getByRole('treeitem', { name: 'Lirael Nightwhisper' })
+        page.getByTestId('element-Lirael Nightwhisper')
       ).toBeVisible();
-      await expect(
-        page.getByRole('treeitem', { name: 'Marcus Webb' })
-      ).toBeVisible();
+      await expect(page.getByTestId('element-Marcus Webb')).toBeVisible();
 
       await openTreeElement(page, 'Elara Nightwhisper');
       await page.getByTestId('nav-relationships').click();

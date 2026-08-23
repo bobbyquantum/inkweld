@@ -1080,7 +1080,12 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       { value: 'multiselect', label: 'Multi Select' },
       { value: 'checkbox', label: 'Checkbox' },
       { value: 'array', label: 'Array (Tags)' },
-      { value: 'relationship', label: 'Relationship' },
+      {
+        value: 'relationship',
+        label: this.transloco.translate(
+          'templates.editor.fieldTypeRelationship'
+        ),
+      },
     ];
   }
 

@@ -22,6 +22,7 @@ describe('TemplateEditorPageComponent', () => {
   let relationshipFieldService: {
     isRelationshipField: ReturnType<typeof vi.fn>;
     stampRelationshipTypeId: ReturnType<typeof vi.fn>;
+    stableRelationshipTypeId: ReturnType<typeof vi.fn>;
     ensureTypeForField: ReturnType<typeof vi.fn>;
     removeTypeForField: ReturnType<typeof vi.fn>;
   };
@@ -75,6 +76,12 @@ describe('TemplateEditorPageComponent', () => {
           field.type === 'relationship' && !field.relationshipTypeId
             ? { ...field, relationshipTypeId: 'fieldrel-stamped' }
             : field
+        ),
+      stableRelationshipTypeId: vi
+        .fn()
+        .mockImplementation(
+          (schemaId: string, field: FieldSchema) =>
+            `fieldrel-${schemaId}-${field.key}`
         ),
       ensureTypeForField: vi.fn().mockReturnValue('fieldrel-stamped'),
       removeTypeForField: vi.fn(),
@@ -590,6 +597,56 @@ describe('TemplateEditorPageComponent', () => {
         expect.objectContaining({ relationshipTypeId: 'fieldrel-x' }),
         true
       );
+    });
+
+    it('should stamp and register a deterministic id for legacy relationship fields', () => {
+      // Schema field predates id stamping (no relationshipTypeId).
+      const schemaWithLegacy: ElementTypeSchema = {
+        ...mockSchema,
+        tabs: [
+          {
+            key: 'family',
+            label: 'Family',
+            fields: [
+              {
+                key: 'mother',
+                label: 'Mother',
+                type: FieldType.RELATIONSHIP,
+              },
+            ],
+          },
+        ],
+      };
+
+      TestBed.resetTestingModule();
+      return TestBed.configureTestingModule({
+        imports: [translocoTestProvider(), TemplateEditorPageComponent],
+        providers: [
+          provideZonelessChangeDetection(),
+          {
+            provide: RelationshipFieldService,
+            useValue: relationshipFieldService,
+          },
+        ],
+      })
+        .compileComponents()
+        .then(() => {
+          const f = TestBed.createComponent(TemplateEditorPageComponent);
+          f.componentRef.setInput('schema', schemaWithLegacy);
+          f.detectChanges();
+
+          const field = f.componentInstance.tabs()[0].fields[0];
+          expect(field.relationshipTypeId).toBe('fieldrel-character-mother');
+          expect(
+            relationshipFieldService.ensureTypeForField
+          ).toHaveBeenCalledWith(
+            'character',
+            expect.objectContaining({
+              key: 'mother',
+              relationshipTypeId: 'fieldrel-character-mother',
+            })
+          );
+        });
     });
 
     it('should not create a managed type when the candidate key is a duplicate', () => {
