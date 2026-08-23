@@ -40,7 +40,22 @@
             <mat-icon>{{ iconFor(event.eventType) }}</mat-icon>
           </div>
           <div class="event-body">
-            <div class="event-text">{{ describe(event) }}</div>
+            <div class="event-text">
+              @for (segment of describeSegments(event); track $index) {
+                @if (segment.kind === 'entity' && isElementLinked(event)) {
+                  <a
+                    class="element-ref"
+                    [class]="'element-ref--' + elementTypeClass(event)"
+                    href="#"
+                    data-testid="event-element-link"
+                    (click)="openElement(event, $event)">
+                    {{ segment.text }}
+                  </a>
+                } @else {
+                  <span>{{ segment.text }}</span>
+                }
+              }
+            </div>
             <div
               class="event-time"
               [matTooltip]="event.createdAt | date: 'medium'">

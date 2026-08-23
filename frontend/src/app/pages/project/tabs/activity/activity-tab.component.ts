@@ -17,9 +17,13 @@ import type {
   ProjectActivityEvent,
 } from '@models/activity-event';
 import { LoggerService } from '@services/core/logger.service';
+import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { ActivityFeedService } from '@services/stats/activity-feed.service';
-import { describeActivityEvent } from '@utils/activity-event-describe';
+import {
+  type ActivityDescriptionSegment,
+  describeActivityEventSegments,
+} from '@utils/activity-event-describe';
 import { formatRelativeDate } from '@utils/date-format';
 import { firstValueFrom } from 'rxjs';
 
@@ -52,6 +56,7 @@ import { firstValueFrom } from 'rxjs';
 export class ActivityTabComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly activityFeed = inject(ActivityFeedService);
+  private readonly elementNavigation = inject(ElementNavigationService);
   private readonly logger = inject(LoggerService);
   private readonly transloco = inject(TranslocoService);
 
@@ -145,10 +150,53 @@ export class ActivityTabComponent {
     return ACTIVITY_ICONS[type] ?? 'circle';
   }
 
-  protected describe(event: ProjectActivityEvent): string {
-    return describeActivityEvent(event, (k, p) =>
+  /**
+   * Segment a single event's description. The `'entity'` segment becomes a
+   * clickable element link; all other segments render as plain text.
+   */
+  protected describeSegments(
+    event: ProjectActivityEvent
+  ): ActivityDescriptionSegment[] {
+    return describeActivityEventSegments(event, (k, p) =>
       this.transloco.translate(k, p)
     );
+  }
+
+  /**
+   * Whether `event` references an element that can be navigated to from the
+   * project tree (i.e. an element id that resolves to a live element). Only
+   * these render as links; deleted elements stay plain text.
+   */
+  protected isElementLinked(event: ProjectActivityEvent): boolean {
+    if (!event.entityId) return false;
+    return this.projectState.elements().some(e => e.id === event.entityId);
+  }
+
+  /** Resolve the live element for `event`, if it still exists. */
+  protected elementFor(event: ProjectActivityEvent) {
+    if (!event.entityId) return undefined;
+    return this.projectState.elements().find(e => e.id === event.entityId);
+  }
+
+  /** Open the referenced element in a tab and navigate to it. */
+  protected openElement(
+    event: ProjectActivityEvent,
+    eventClick: MouseEvent
+  ): void {
+    eventClick.preventDefault();
+    eventClick.stopPropagation();
+    const element = this.elementFor(event);
+    if (element) this.elementNavigation.openElement(element);
+  }
+
+  /**
+   * CSS modifier class used to style the element-ref chip, mirroring the
+   * normal editor (e.g. `element-ref--folder`, `element-ref--worldbuilding`).
+   */
+  protected elementTypeClass(event: ProjectActivityEvent): string {
+    const type = this.elementFor(event)?.type;
+    if (!type) return 'item';
+    return String(type).toLowerCase();
   }
 }
 
