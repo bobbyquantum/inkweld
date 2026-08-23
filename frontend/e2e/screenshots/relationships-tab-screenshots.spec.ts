@@ -157,8 +157,8 @@ test.describe('Relationships Tab Screenshots', () => {
         .getByTestId('edit-relationship-type-dialog-content')
         .waitFor({ state: 'visible' });
       // The dialog is opened in edit mode, so the existing values must be
-      // populated before the screenshot.
-      await expect(page.getByTestId('rel-name-input')).toHaveValue('Parent');
+      // populated before the screenshot (the first card may be any type).
+      await expect(page.getByTestId('rel-name-input')).toHaveValue(/\S/);
 
       await captureElementScreenshot(
         page,

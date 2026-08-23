@@ -38,7 +38,7 @@ async function setupProjectAndTagsTab(
 
   // Navigate to Settings > Tags via shared helper
   await openTagsTab(page, projectSlug);
-  await expect(page.getByTestId('tags-empty')).toBeVisible();
+  await expect(page.getByTestId('tags-list')).toBeVisible();
 }
 
 async function openCreateTagDialog(
@@ -88,9 +88,12 @@ async function captureAllTagsScreenshots(
       await page.click('[data-testid="tag-dialog-save"]');
     }
 
-    await expect(
-      page.getByTestId('tags-list').getByTestId('edit-tag-button')
-    ).toHaveCount(4);
+    // Fresh projects are seeded with default tags, so assert on the created
+    // names rather than an absolute row count.
+    const tagsList = page.getByTestId('tags-list');
+    for (const t of tags) {
+      await expect(tagsList).toContainText(t.name);
+    }
 
     const tagsTab = page.getByTestId('tags-tab');
     await captureElementScreenshot(

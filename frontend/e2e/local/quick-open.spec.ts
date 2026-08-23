@@ -136,7 +136,7 @@ test.describe('Quick Open', () => {
     await test.step('clicking a result opens it and closes the dialog', async () => {
       // Go back to home, then reopen quick-open and click a result.
       await page.getByTestId('toolbar-home-button').click();
-      await expect(page.getByTestId('project-card').first()).toBeVisible();
+      await expect(page.getByTestId('home-tab-content')).toBeVisible();
 
       await pressShortcut(page, 'p');
       await expect(dialog).toBeVisible();

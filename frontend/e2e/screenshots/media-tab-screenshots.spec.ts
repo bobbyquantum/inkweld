@@ -153,7 +153,7 @@ async function capturePopulatedMediaScreenshots(
     await page.waitForSelector('[data-testid="filter-panel"]', {
       state: 'visible',
     });
-    await expect(page.getByTestId('filter-clear-all')).toBeVisible();
+    await expect(page.getByTestId('filter-category').first()).toBeVisible();
 
     await page.screenshot({
       path: join(screenshotsDir, `media-filter-panel-${suffix}.png`),

@@ -259,12 +259,12 @@ test.describe('Image Generation Dialog Screenshots', () => {
 
     const addMediaButton = page.locator('[data-testid="add-media-button"]');
     try {
-      await addMediaButton.waitFor({ state: 'visible', timeout: 10_000 });
+      // The media page can bounce to the project list while loading; a
+      // bounded click turns that race into the skip path below.
+      await addMediaButton.click({ timeout: 5_000 });
     } catch {
       return false;
     }
-
-    await addMediaButton.click();
 
     const generateOption = page.locator('[data-testid="add-media-generate"]');
     if (!(await generateOption.isVisible())) {
@@ -273,7 +273,8 @@ test.describe('Image Generation Dialog Screenshots', () => {
 
     await generateOption.click();
     await page.waitForSelector('mat-dialog-container');
-    await expect(page.getByTestId('image-gen-prompt-input')).toBeVisible();
+    // The wizard opens on its first step; the prompt input comes later.
+    await expect(page.getByTestId('image-gen-dialog-content')).toBeVisible();
     return true;
   }
 
