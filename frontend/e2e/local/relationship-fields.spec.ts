@@ -158,7 +158,7 @@ test.describe('Relationship fields', () => {
       await expect(
         fieldWrapper.locator('[data-testid^="rel-card-"]')
       ).toBeVisible();
-      await expect(fieldWrapper.getByText('Maria')).toBeVisible();
+      await expect(fieldWrapper.getByTestId('rel-name')).toHaveText('Maria');
       await expect(fieldWrapper.getByTestId('rel-change')).toBeVisible();
     });
 
@@ -166,8 +166,11 @@ test.describe('Relationship fields', () => {
       await page.getByTestId('nav-relationships').click();
       const metaPanel = page.getByTestId('meta-panel');
       await expect(metaPanel).toBeVisible();
-      await expect(metaPanel.getByText('Nemesis')).toBeVisible();
-      await expect(metaPanel.getByTestId('relationship-item')).toBeVisible();
+      await expect(
+        metaPanel
+          .locator('[data-testid="relationship-type-panel"]')
+          .filter({ hasText: 'Nemesis' })
+      ).toBeVisible();
       await expect(
         metaPanel.getByTestId('relationship-item').filter({ hasText: 'Maria' })
       ).toBeVisible();
@@ -183,7 +186,11 @@ test.describe('Relationship fields', () => {
 
       const metaPanel = page.getByTestId('meta-panel');
       await expect(metaPanel).toBeVisible();
-      await expect(metaPanel.getByText('Nemesis of')).toBeVisible();
+      await expect(
+        metaPanel
+          .locator('[data-testid="relationship-type-panel"]')
+          .filter({ hasText: 'Nemesis of' })
+      ).toBeVisible();
       await expect(
         metaPanel.getByTestId('relationship-item').filter({ hasText: 'Alice' })
       ).toBeVisible();

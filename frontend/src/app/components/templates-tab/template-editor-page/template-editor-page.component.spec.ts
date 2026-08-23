@@ -592,6 +592,54 @@ describe('TemplateEditorPageComponent', () => {
       );
     });
 
+    it('should not create a managed type when the candidate key is a duplicate', () => {
+      // 'age' already exists in the mock schema; renaming the new
+      // relationship field to that key must be rejected by validation and
+      // therefore must never touch the shared relationship store.
+      component['onSchemaEdit']({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: {
+          type: FieldType.RELATIONSHIP,
+          key: 'age',
+        },
+      });
+
+      expect(
+        relationshipFieldService.ensureTypeForField
+      ).not.toHaveBeenCalled();
+      const field = component.tabs()[0].fields.find(f => f.key === 'name');
+      expect(field?.relationshipTypeId).toBeUndefined();
+    });
+
+    it('should not remove a managed type when the candidate key is invalid', () => {
+      component['onSchemaEdit']({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: {
+          type: FieldType.RELATIONSHIP,
+          label: 'Mother',
+          relationshipTypeId: 'fieldrel-x',
+        },
+      });
+      relationshipFieldService.removeTypeForField.mockClear();
+
+      // Changing away from relationship while simultaneously duplicating a
+      // key is rejected — the existing links must survive.
+      component['onSchemaEdit']({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: { type: FieldType.TEXT, key: 'age' },
+      });
+
+      expect(
+        relationshipFieldService.removeTypeForField
+      ).not.toHaveBeenCalled();
+    });
+
     it('should not touch relationship types for non-relationship field edits', () => {
       relationshipFieldService.ensureTypeForField.mockClear();
       relationshipFieldService.removeTypeForField.mockClear();

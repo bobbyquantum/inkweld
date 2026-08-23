@@ -20,7 +20,9 @@
             </span>
           }
           <span class="rel-card-body">
-            <span class="rel-card-name">{{ element.name }}</span>
+            <span class="rel-card-name" data-testid="rel-name">{{
+              element.name
+            }}</span>
           </span>
         </button>
         @if (!readOnly()) {

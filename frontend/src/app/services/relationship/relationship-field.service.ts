@@ -5,10 +5,9 @@ import {
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
 import { type FieldSchema } from '@models/schema-types';
+import { LoggerService } from '@services/core/logger.service';
+import { RelationshipService } from '@services/relationship/relationship.service';
 import { nanoid } from 'nanoid';
-
-import { LoggerService } from '../core/logger.service';
-import { RelationshipService } from './relationship.service';
 
 /**
  * Bridges worldbuilding template "relationship fields" onto the centralized

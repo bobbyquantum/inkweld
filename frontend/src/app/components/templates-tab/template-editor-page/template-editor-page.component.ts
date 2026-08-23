@@ -508,6 +508,11 @@ export class TemplateEditorPageComponent
    * Stamps a new relationshipTypeId into the patch when a field becomes a
    * relationship field, re-ensures the type on any relationship-field edit,
    * and removes the type when a field stops being a relationship field.
+   *
+   * Guarded by a candidate-key check: the shared relationship store must never
+   * be mutated for an edit that tail validation will reject (duplicate/empty
+   * key, group collision) — otherwise a rejected edit would leak a managed
+   * type or destroy existing links.
    */
   private reconcileRelationshipField(
     tabs: TabSchema[],
@@ -517,6 +522,11 @@ export class TemplateEditorPageComponent
   ): void {
     const current = this.findFieldByKey(tabs, tabKey, fieldKey);
     if (!current) return;
+
+    const candidateKey = patch.key !== undefined ? patch.key : current.key;
+    if (!this.isCandidateKeyValid(tabs, tabKey, current.key, candidateKey)) {
+      return;
+    }
 
     const wasRelationship =
       this.relationshipFieldService.isRelationshipField(current);
@@ -537,6 +547,51 @@ export class TemplateEditorPageComponent
     } else if (wasRelationship) {
       this.relationshipFieldService.removeTypeForField(current, true);
     }
+  }
+
+  /**
+   * Whether an update-field's candidate key stays valid against all sibling
+   * fields. Mirrors validateSchema's rules (non-empty, unique across the
+   * template, no flat/nested group collision) so reconciliation can bail out
+   * before touching the relationship store.
+   */
+  private isCandidateKeyValid(
+    tabs: TabSchema[],
+    tabKey: string,
+    currentKey: string,
+    candidateKey: string
+  ): boolean {
+    const trimmed = candidateKey.trim();
+    if (!trimmed) return false;
+
+    const others: FieldSchema[] = [];
+    for (const tab of tabs) {
+      for (const field of tab.fields) {
+        if (tab.key === tabKey && field.key === currentKey) continue;
+        others.push(field);
+      }
+    }
+
+    if (others.some(f => f.key.trim() === trimmed)) return false;
+
+    const candidateIsNested = trimmed.includes('.');
+    const candidateGroup = candidateIsNested ? trimmed.split('.')[0] : null;
+    for (const other of others) {
+      const otherIsNested = other.key.includes('.');
+      const otherGroup = otherIsNested ? other.key.split('.')[0] : null;
+      if (
+        candidateIsNested &&
+        !otherIsNested &&
+        other.key.trim() === candidateGroup
+      ) {
+        return false;
+      }
+      if (!candidateIsNested && otherIsNested && otherGroup === trimmed) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /** Remove the backing relationship type when a relationship field is deleted. */

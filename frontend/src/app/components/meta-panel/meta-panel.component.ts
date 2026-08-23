@@ -366,9 +366,11 @@ export class MetaPanelComponent {
     const result =
       await this.dialogGateway.openAddRelationshipDialog(dialogData);
     if (result) {
+      // Store relationships against the bare element id so they match every
+      // consumer that filters by sourceElementId (tree, fields, chart).
       this.enforceSourceMaxCount(result.relationshipTypeId);
       this.relationshipService.addRelationship(
-        this.effectiveElementId(),
+        this.normalizedElementId(),
         result.targetElementId,
         result.relationshipTypeId,
         { note: result.note }

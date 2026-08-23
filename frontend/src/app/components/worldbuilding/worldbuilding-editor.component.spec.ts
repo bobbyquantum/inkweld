@@ -790,6 +790,37 @@ describe('WorldbuildingEditorComponent', () => {
       expect(savedPayload).not.toHaveProperty('mother');
     });
 
+    it('should exclude nested (dotted) relationship keys from saved data', async () => {
+      const schemaWithNestedRel: ElementTypeSchema = {
+        ...mockCharacterSchema,
+        tabs: [
+          {
+            key: 'basic',
+            label: 'Basic Info',
+            fields: [
+              { key: 'family.mother', label: 'Mother', type: 'relationship' },
+              { key: 'family.notes', label: 'Notes', type: 'text' },
+              { key: 'standalone', label: 'Standalone', type: 'text' },
+            ],
+          },
+        ],
+      };
+      component['schema'].set(schemaWithNestedRel);
+      component['buildFormFromSchema'](schemaWithNestedRel);
+      component.form().patchValue({
+        family: { mother: ['mother-el'], notes: 'kept' },
+        standalone: 'also kept',
+      });
+
+      await component['saveData']();
+
+      const payload =
+        worldbuildingService.saveWorldbuildingData.mock.calls[0][1];
+      const family = payload['family'] as Record<string, unknown> | undefined;
+      expect(family).toEqual({ notes: 'kept' });
+      expect(payload['standalone']).toBe('also kept');
+    });
+
     it('should include relationship in the field type picker', () => {
       const types = component['getFieldTypes']();
       expect(types).toContainEqual({

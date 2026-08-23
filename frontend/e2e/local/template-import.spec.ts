@@ -153,13 +153,15 @@ test.describe('Template Worldbuilding Import', () => {
       const fatherField = page.getByTestId('relationship-field-father');
       await expect(motherField).toBeVisible();
       await expect(fatherField).toBeVisible();
-      await expect(motherField.getByText('Lirael Nightwhisper')).toBeVisible();
-      await expect(fatherField.getByText('Marcus Webb')).toBeVisible();
+      await expect(motherField.getByTestId('rel-name')).toHaveText(
+        'Lirael Nightwhisper'
+      );
+      await expect(fatherField.getByTestId('rel-name')).toHaveText(
+        'Marcus Webb'
+      );
 
       // Single-valued fields with a link show the change affordance.
-      await expect(
-        motherField.locator('[data-testid^="rel-card-"]')
-      ).toBeVisible();
+      await expect(motherField.getByTestId('rel-change')).toBeVisible();
 
       // Return to the relationships section so the meta-panel steps below
       // keep working (the panel renders only for that section).

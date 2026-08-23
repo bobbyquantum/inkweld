@@ -38,6 +38,8 @@ import {
   type ElementRefTooltipData,
 } from '@components/element-ref';
 import { ElementRefService } from '@components/element-ref/element-ref.service';
+import { MetaPanelComponent } from '@components/meta-panel/meta-panel.component';
+import { RelationshipFieldComponent } from '@components/relationship-field/relationship-field.component';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DocumentSyncState } from '@models/document-sync-state';
 import { type ElementAppearance } from '@models/element-appearance';
@@ -61,8 +63,6 @@ import { ProjectStateService } from '../../services/project/project-state.servic
 import { ElementSyncProviderFactory } from '../../services/sync/element-sync-provider.factory';
 import { TagService } from '../../services/tag/tag.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
-import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
-import { RelationshipFieldComponent } from '../relationship-field/relationship-field.component';
 import { AppearanceEditorComponent } from './appearance-panel/appearance-editor/appearance-editor.component';
 import { AppearancePanelComponent } from './appearance-panel/appearance-panel.component';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
@@ -740,6 +740,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
               if (syncedSchema) {
                 this.schema.set(syncedSchema);
                 this.buildFormFromSchema(syncedSchema);
+                this.ensureRelationshipFieldTypes(syncedSchema);
               }
             }
           }
@@ -756,12 +757,11 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   private async saveData(): Promise<void> {
     const formValue = this.form().value as Record<string, unknown>;
     const relationshipKeys = this.getRelationshipFieldKeys();
-    const persistable: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(formValue)) {
-      if (!relationshipKeys.has(key)) {
-        persistable[key] = value;
-      }
-    }
+    const persistable = this.stripRelationshipValues(
+      formValue,
+      '',
+      relationshipKeys
+    ) as Record<string, unknown>;
     await this.worldbuildingService.saveWorldbuildingData(
       this.elementId(),
       persistable,
@@ -781,6 +781,32 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       }
     }
     return keys;
+  }
+
+  /**
+   * Deep copy of the form value with every path matching a relationship
+   * field's key removed — including dotted keys nested inside group objects,
+   * which a top-level filter would miss. Non-relationship fields and the
+   * surrounding object structure are preserved.
+   */
+  private stripRelationshipValues(
+    value: unknown,
+    path: string,
+    keys: Set<string>
+  ): unknown {
+    if (keys.has(path)) return undefined;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return value;
+    }
+    const out: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(value)) {
+      const childPath = path ? `${path}.${key}` : key;
+      const cleaned = this.stripRelationshipValues(child, childPath, keys);
+      if (cleaned !== undefined) {
+        out[key] = cleaned;
+      }
+    }
+    return out;
   }
 
   getTabs(): TabSchema[] {

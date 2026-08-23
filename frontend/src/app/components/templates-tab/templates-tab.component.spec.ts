@@ -320,6 +320,25 @@ describe('TemplatesTabComponent', () => {
       ).toHaveBeenCalledWith('custom-1');
     });
 
+    it('should keep relationship data when template deletion fails', async () => {
+      mockProjectState.project.set(mockProject);
+      mockDialogGateway.openConfirmationDialog.mockResolvedValue(true);
+      mockWorldbuildingService.deleteTemplate.mockImplementation(() => {
+        throw new Error('No sync provider available');
+      });
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      await component.deleteTemplate(mockCustomTemplate);
+
+      // Cleanup must run only after a successful deletion.
+      expect(
+        mockRelationshipFieldService.removeTypesForSchema
+      ).not.toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
+    });
+
     it('should handle cancelled delete dialog', async () => {
       mockProjectState.project.set(mockProject);
 

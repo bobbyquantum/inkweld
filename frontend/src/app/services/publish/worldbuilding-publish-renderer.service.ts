@@ -8,12 +8,11 @@ import {
   type FieldType,
   type TabSchema,
 } from '@models/schema-types';
+import { LoggerService } from '@services/core/logger.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { RelationshipService } from '@services/relationship/relationship.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
-
-import { LoggerService } from '../core/logger.service';
-import { ProjectStateService } from '../project/project-state.service';
-import { RelationshipService } from '../relationship/relationship.service';
-import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 
 /**
  * Format-agnostic representation of a single rendered worldbuilding entry,

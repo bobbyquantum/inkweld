@@ -273,11 +273,13 @@ export class TemplatesTabComponent {
     }
 
     try {
-      // Remove auto-managed relationship types (and their links) owned by this
-      // template so deleting it doesn't orphan field-backed relationship types.
+      this.worldbuildingService.deleteTemplate(template.id);
+
+      // Only after the template is really gone: removing the auto-managed
+      // relationship types (and their links) before a failed deletion would
+      // destroy relationship data while leaving the template in place.
       this.relationshipFieldService.removeTypesForSchema(template.id);
 
-      this.worldbuildingService.deleteTemplate(template.id);
       // Close any open schema-editor tab for this template so autosave can't
       // recreate the deleted schema from the tab's cached copy.
       this.projectState.closeSchemaEditor(template.id);
