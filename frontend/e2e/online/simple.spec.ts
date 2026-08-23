@@ -80,7 +80,7 @@ test.describe('Online Infrastructure', () => {
     );
 
     // Navigate to app
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     // Verify we can access the app and are logged in
     await expect(page).toHaveTitle(/Home|Inkweld/i);

@@ -206,7 +206,7 @@ describe('ImageGenerationDialogComponent', () => {
     await flushPromises();
 
     expect(imageProfilesService.listImageProfiles).toHaveBeenCalled();
-    expect(component.profiles().length).toBe(2);
+    expect(component.profiles()).toHaveLength(2);
   });
 
   it('should include image-to-image profiles (supportsImageInput=true) since they also support text-to-image', async () => {
@@ -239,7 +239,7 @@ describe('ImageGenerationDialogComponent', () => {
 
     // All profiles should be included - supportsImageInput means it CAN accept image input,
     // not that it requires one. These profiles can still be used for text-to-image generation.
-    expect(component.profiles().length).toBe(3);
+    expect(component.profiles()).toHaveLength(3);
     expect(component.profiles().some(p => p.supportsImageInput === true)).toBe(
       true
     );
@@ -564,7 +564,7 @@ describe('ImageGenerationDialogComponent', () => {
     it('should truncate long prompts', () => {
       const longPrompt = 'a'.repeat(300);
       const truncated = component.truncatePrompt(longPrompt, 200);
-      expect(truncated.length).toBe(203); // 200 + '...'
+      expect(truncated).toHaveLength(203); // 200 + '...'
       expect(truncated.endsWith('...')).toBe(true);
     });
 
@@ -640,7 +640,7 @@ describe('ImageGenerationDialogComponent', () => {
       const options = component.sizeOptions();
       // Should not add a duplicate
       const squareOptions = options.filter(o => o.value === '1024x1024');
-      expect(squareOptions.length).toBe(1);
+      expect(squareOptions).toHaveLength(1);
       expect(squareOptions[0].isCustom).toBeFalsy();
     });
 
@@ -686,7 +686,7 @@ describe('ImageGenerationDialogComponent', () => {
 
       const options = component.sizeOptions();
       // Should only have the 2 sizes from the profile
-      expect(options.length).toBe(2);
+      expect(options).toHaveLength(2);
       expect(options.map(o => o.value)).toContain('1024x1024');
       expect(options.map(o => o.value)).toContain('1920x1080');
     });
@@ -711,7 +711,7 @@ describe('ImageGenerationDialogComponent', () => {
       component.customSizes.set([]);
 
       const options = component.sizeOptions();
-      expect(options.length).toBe(3);
+      expect(options).toHaveLength(3);
       // Aspect ratio sizes should have proper labels
       const wideOption = options.find(o => o.value === '16:9@4K');
       expect(wideOption).toBeDefined();
@@ -743,7 +743,7 @@ describe('ImageGenerationDialogComponent', () => {
 
       const options = component.sizeOptions();
       // Should only have the aspect ratio size, no custom dimension sizes
-      expect(options.length).toBe(1);
+      expect(options).toHaveLength(1);
       expect(options[0].value).toBe('16:9@4K');
     });
 
@@ -767,7 +767,7 @@ describe('ImageGenerationDialogComponent', () => {
 
       const options = component.sizeOptions();
       // Should fall back to defaultSizeOptions
-      expect(options.length).toBe(component.defaultSizeOptions.length);
+      expect(options).toHaveLength(component.defaultSizeOptions.length);
     });
 
     it('should parse dimension sizes not in defaults', () => {
@@ -789,7 +789,7 @@ describe('ImageGenerationDialogComponent', () => {
       component.customSizes.set([]);
 
       const options = component.sizeOptions();
-      expect(options.length).toBe(1);
+      expect(options).toHaveLength(1);
       expect(options[0].value).toBe('1234x5678');
       expect(options[0].label).toBe('1234×5678');
       // Megapixels: 1234 * 5678 = 7,006,652 ≈ 7.01 MP
@@ -1231,38 +1231,46 @@ describe('ImageGenerationDialogComponent', () => {
       await flushPromises();
     });
 
-    it('should parse a plain ratio like "16:9"', () => {
-      const result = component.getAspectRatioPreview('16:9');
-      // ratio = 16/9 ≈ 1.78, >= 1 → width=16, height=Math.round(16/1.78) = 9
-      expect(result).toEqual({ width: 16, height: 9 });
-    });
-
-    it('should parse a square ratio "1:1"', () => {
-      const result = component.getAspectRatioPreview('1:1');
-      // ratio = 1, >= 1 → width=16, height=Math.round(16/1) = 16
-      expect(result).toEqual({ width: 16, height: 16 });
-    });
-
-    it('should parse a portrait ratio "9:16"', () => {
-      const result = component.getAspectRatioPreview('9:16');
-      // ratio = 9/16 = 0.5625, < 1 → width=Math.round(16*0.5625)=9, height=16
-      expect(result).toEqual({ width: 9, height: 16 });
-    });
-
-    it('should parse a ratio with resolution like "16:9@4K"', () => {
-      const result = component.getAspectRatioPreview('16:9@4K');
-      expect(result).toEqual({ width: 16, height: 9 });
-    });
-
-    it('should parse a dimension format like "1920x1080"', () => {
-      const result = component.getAspectRatioPreview('1920x1080');
-      // ratio = 1920/1080 ≈ 1.78, >= 1 → width=16, height=Math.round(16/1.78)=9
-      expect(result).toEqual({ width: 16, height: 9 });
-    });
-
-    it('should return square for unknown format', () => {
-      const result = component.getAspectRatioPreview('unknown');
-      expect(result).toEqual({ width: 16, height: 16 });
+    // ratio = width/height; >= 1 → width=16, height=Math.round(16/ratio)
+    // ratio < 1 → width=Math.round(16*ratio), height=16
+    it.each<{
+      title: string;
+      aspectRatio: string;
+      expected: { width: number; height: number };
+    }>([
+      {
+        title: 'should parse a plain ratio like "16:9"',
+        aspectRatio: '16:9',
+        expected: { width: 16, height: 9 },
+      },
+      {
+        title: 'should parse a square ratio "1:1"',
+        aspectRatio: '1:1',
+        expected: { width: 16, height: 16 },
+      },
+      {
+        title: 'should parse a portrait ratio "9:16"',
+        aspectRatio: '9:16',
+        expected: { width: 9, height: 16 },
+      },
+      {
+        title: 'should parse a ratio with resolution like "16:9@4K"',
+        aspectRatio: '16:9@4K',
+        expected: { width: 16, height: 9 },
+      },
+      {
+        title: 'should parse a dimension format like "1920x1080"',
+        aspectRatio: '1920x1080',
+        expected: { width: 16, height: 9 },
+      },
+      {
+        title: 'should return square for unknown format',
+        aspectRatio: 'unknown',
+        expected: { width: 16, height: 16 },
+      },
+    ])('$title', ({ aspectRatio, expected }) => {
+      const result = component.getAspectRatioPreview(aspectRatio);
+      expect(result).toEqual(expected);
     });
   });
 });

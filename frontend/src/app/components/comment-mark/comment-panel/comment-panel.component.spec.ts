@@ -161,7 +161,7 @@ describe('CommentPanelComponent', () => {
       fixture.detectChanges();
 
       const positioned = component.positionedThreads();
-      expect(positioned.length).toBe(2);
+      expect(positioned).toHaveLength(2);
       // Second thread should be pushed below the first
       expect(positioned[1].displayTop).toBeGreaterThan(
         positioned[0].displayTop
@@ -210,10 +210,10 @@ describe('CommentPanelComponent', () => {
 
       // buildLocalThreads is called via effect when isOpen && !isServerMode
       const threads = component.threads();
-      expect(threads.length).toBe(1);
+      expect(threads).toHaveLength(1);
       expect(threads[0].id).toBe('local-1');
       expect(threads[0].authorName).toBe('Bob');
-      expect(threads[0].messages.length).toBe(1);
+      expect(threads[0].messages).toHaveLength(1);
     });
   });
 
@@ -296,7 +296,7 @@ describe('CommentPanelComponent', () => {
       fixture.detectChanges();
 
       const threads = component.threads();
-      expect(threads.length).toBe(1);
+      expect(threads).toHaveLength(1);
       expect(threads[0].messages).toEqual([]);
     });
 
@@ -319,7 +319,7 @@ describe('CommentPanelComponent', () => {
       fixture.detectChanges();
 
       const threads = component.threads();
-      expect(threads.length).toBe(1);
+      expect(threads).toHaveLength(1);
       expect(threads[0].messages).toEqual([]);
     });
   });

@@ -43,10 +43,9 @@ async function openProjectAndCreateDocument(
   await page.getByTestId('create-element-button').click();
 
   await expect(page.locator('ngx-editor')).toBeVisible();
-  // Brief wait for editor initialization (matches original tests).
-  await page.waitForTimeout(500);
 
   const editor = page.locator('ngx-editor .ProseMirror');
+  await expect(editor).toBeVisible();
   await editor.click();
   return editor;
 }
@@ -85,7 +84,7 @@ test.describe('Find in Document', () => {
   test('find: text matches, no-results, navigation with keyboard and buttons', async ({
     localPageWithProject: page,
   }) => {
-    await openProjectAndCreateDocument(page, 'Find Search Doc');
+    const editor = await openProjectAndCreateDocument(page, 'Find Search Doc');
     const matchCounter = page.getByTestId('find-match-counter');
     const findInput = page.getByTestId('find-input');
 
@@ -96,14 +95,12 @@ test.describe('Find in Document', () => {
     await page.keyboard.type(
       'Hello world, hello universe, hello everyone. find me, find me again'
     );
-    await page.waitForTimeout(300);
+    await expect(editor).toContainText('find me again');
 
     await test.step('find text and show match count', async () => {
       await pressShortcut(page, 'f');
       await expect(page.getByTestId('find-bar')).toBeVisible();
       await findInput.fill('hello');
-      // Debounced search.
-      await page.waitForTimeout(200);
       await expect(matchCounter).toContainText('1 of 3');
     });
 
@@ -119,7 +116,6 @@ test.describe('Find in Document', () => {
     await test.step('navigate matches with next/previous buttons', async () => {
       // Switch the search query so we have a fresh 1 of N starting state.
       await findInput.fill('find');
-      await page.waitForTimeout(200);
       await expect(matchCounter).toContainText('1 of 2');
 
       await page.getByTestId('find-next').click();
@@ -131,7 +127,6 @@ test.describe('Find in Document', () => {
 
     await test.step('show "No results" when query has no matches', async () => {
       await findInput.fill('xyz123');
-      await page.waitForTimeout(200);
       await expect(matchCounter).toContainText('No results');
     });
   });
@@ -164,17 +159,15 @@ test.describe('Find in Document', () => {
       // Type fresh content for this step.
       await editor.click();
       await page.keyboard.type('cat and cat and cat');
-      await page.waitForTimeout(300);
+      await expect(editor).toContainText('cat and cat and cat');
 
       await findInput.click();
       await findInput.fill('cat');
-      await page.waitForTimeout(200);
       await expect(matchCounter).toContainText('1 of 3');
 
       const replaceInput = page.getByTestId('replace-input');
       await replaceInput.fill('dog');
       await page.getByTestId('replace-single').click();
-      await page.waitForTimeout(200);
 
       await expect(matchCounter).toContainText('1 of 2');
       await expect(editor).toContainText('dog');
@@ -186,18 +179,16 @@ test.describe('Find in Document', () => {
       await page.keyboard.press('End');
       await page.keyboard.press('Enter');
       await page.keyboard.type('foo bar foo baz foo');
-      await page.waitForTimeout(300);
+      await expect(editor).toContainText('foo bar foo baz foo');
 
       await findInput.click();
       await findInput.fill('foo');
-      await page.waitForTimeout(200);
       await expect(matchCounter).toContainText('1 of 3');
 
       const replaceInput = page.getByTestId('replace-input');
       await replaceInput.click();
       await replaceInput.fill('qux');
       await page.getByTestId('replace-all').click();
-      await page.waitForTimeout(200);
 
       await expect(matchCounter).toContainText('No results');
       await expect(editor).toContainText('qux bar qux baz qux');
@@ -209,18 +200,16 @@ test.describe('Find in Document', () => {
       await page.keyboard.press('End');
       await page.keyboard.press('Enter');
       await page.keyboard.type('apple banana apple');
-      await page.waitForTimeout(300);
+      await expect(editor).toContainText('apple banana apple');
 
       await findInput.click();
       await findInput.fill('apple');
-      await page.waitForTimeout(200);
       await expect(matchCounter).toContainText('1 of 2');
 
       const replaceInput = page.getByTestId('replace-input');
       await replaceInput.click();
       await replaceInput.fill('orange');
       await replaceInput.press('Enter');
-      await page.waitForTimeout(200);
 
       await expect(matchCounter).toContainText('1 of 1');
     });
@@ -230,18 +219,16 @@ test.describe('Find in Document', () => {
       await page.keyboard.press('End');
       await page.keyboard.press('Enter');
       await page.keyboard.type('red blue red green red');
-      await page.waitForTimeout(300);
+      await expect(editor).toContainText('red blue red green red');
 
       await findInput.click();
       await findInput.fill('red');
-      await page.waitForTimeout(200);
       await expect(matchCounter).toContainText('1 of 3');
 
       const replaceInput = page.getByTestId('replace-input');
       await replaceInput.click();
       await replaceInput.fill('yellow');
       await replaceInput.press('Shift+Enter');
-      await page.waitForTimeout(200);
 
       await expect(matchCounter).toContainText('No results');
       await expect(editor).toContainText('yellow blue yellow green yellow');

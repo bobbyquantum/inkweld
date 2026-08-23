@@ -135,29 +135,16 @@ describe('AdminSystemHealthComponent', () => {
     expect(component.stats()).toEqual(mockStats);
   });
 
-  it('should format days, hours, and minutes', () => {
-    const { component, httpMock } = createComponent();
-    httpMock.match('http://localhost:8333/api/v1/admin/stats');
+  it.each<[number, string]>([
     // 1 day, 1 hour, 1 minute = 86400 + 3600 + 60 = 90060
-    expect(component.formatUptime(90060)).toBe('1d 1h 1m');
-  });
-
-  it('should format hours and minutes without days', () => {
+    [90060, '1d 1h 1m'],
+    [9000, '2h 30m'],
+    [300, '5m'],
+    [0, '0m'],
+  ])('should format uptime %d -> %s', (seconds, expected) => {
     const { component, httpMock } = createComponent();
     httpMock.match('http://localhost:8333/api/v1/admin/stats');
-    expect(component.formatUptime(9000)).toBe('2h 30m');
-  });
-
-  it('should format minutes only', () => {
-    const { component, httpMock } = createComponent();
-    httpMock.match('http://localhost:8333/api/v1/admin/stats');
-    expect(component.formatUptime(300)).toBe('5m');
-  });
-
-  it('should show 0m for zero uptime', () => {
-    const { component, httpMock } = createComponent();
-    httpMock.match('http://localhost:8333/api/v1/admin/stats');
-    expect(component.formatUptime(0)).toBe('0m');
+    expect(component.formatUptime(seconds)).toBe(expected);
   });
 
   it('should handle large uptimes', () => {

@@ -197,6 +197,32 @@ describe('ProjectTreeComponent', () => {
     let _mockDropList: CdkDropList<ProjectElement[]>;
     let node: ProjectElement;
 
+    const createTestNode = (
+      id: string,
+      level: number,
+      order: number = 0
+    ): ProjectElement => ({
+      id,
+      name: `Test Node ${id}`,
+      type: ElementType.Folder,
+      level,
+      expandable: false,
+      version: 0,
+      metadata: {},
+      parentId: null,
+      visible: true,
+      order,
+    });
+
+    beforeEach(() => {
+      node = mockDto;
+      mockDrag = { data: node } as CdkDrag<ProjectElement>;
+      _mockDropList = {
+        data: [node],
+        getSortedItems: () => [mockDrag],
+      } as CdkDropList<ProjectElement[]>;
+    });
+
     const createTestDragEvent = (
       invalid = false
     ): CdkDragDrop<ProjectElement[], ProjectElement[], ProjectElement> => ({
@@ -349,32 +375,6 @@ describe('ProjectTreeComponent', () => {
         // Verify setExpanded was NOT called since folder is already open
         expect(projectStateService.setExpanded).not.toHaveBeenCalled();
       });
-    });
-
-    const createTestNode = (
-      id: string,
-      level: number,
-      order: number = 0
-    ): ProjectElement => ({
-      id,
-      name: `Test Node ${id}`,
-      type: ElementType.Folder,
-      level,
-      expandable: false,
-      version: 0,
-      metadata: {},
-      parentId: null,
-      visible: true,
-      order,
-    });
-
-    beforeEach(() => {
-      node = mockDto;
-      mockDrag = { data: node } as CdkDrag<ProjectElement>;
-      _mockDropList = {
-        data: [node],
-        getSortedItems: () => [mockDrag],
-      } as CdkDropList<ProjectElement[]>;
     });
 
     it('should handle drag start', () => {
@@ -916,7 +916,7 @@ describe('ProjectTreeComponent', () => {
         metadata: {},
       });
 
-      expect(emitted.length).toBe(1);
+      expect(emitted).toHaveLength(1);
     });
 
     it('pinnedElements should resolve elements from pinnedElementIds signal', () => {
@@ -954,7 +954,7 @@ describe('ProjectTreeComponent', () => {
       component.onOpenDocument(mockDto);
 
       // Should be suppressed
-      expect(emitted.length).toBe(0);
+      expect(emitted).toHaveLength(0);
     });
 
     it('onContextMenuOpen without event should not suppress open', () => {
@@ -964,7 +964,7 @@ describe('ProjectTreeComponent', () => {
       component.documentOpened.subscribe(e => emitted.push(e));
       component.onOpenDocument(mockDto);
 
-      expect(emitted.length).toBe(1);
+      expect(emitted).toHaveLength(1);
     });
 
     it('onContextMenuClose should clear suppress flag', () => {
@@ -979,7 +979,7 @@ describe('ProjectTreeComponent', () => {
       component.onOpenDocument(mockDto);
 
       // Suppress was cleared, so open should proceed
-      expect(emitted.length).toBe(1);
+      expect(emitted).toHaveLength(1);
     });
   });
 
@@ -1018,7 +1018,7 @@ describe('ProjectTreeComponent', () => {
       component.documentOpened.subscribe(e => emitted.push(e));
       component.onOpenDocument(mockDto);
 
-      expect(emitted.length).toBe(0);
+      expect(emitted).toHaveLength(0);
     });
 
     it('should suppress open after scroll swipe (touch moved > 10px)', () => {
@@ -1051,7 +1051,7 @@ describe('ProjectTreeComponent', () => {
       component.documentOpened.subscribe(e => emitted.push(e));
       component.onOpenDocument(mockDto, touchEnd);
 
-      expect(emitted.length).toBe(0);
+      expect(emitted).toHaveLength(0);
     });
 
     it('should open document on genuine tap (touch moved < 10px)', () => {
@@ -1084,7 +1084,7 @@ describe('ProjectTreeComponent', () => {
       component.documentOpened.subscribe(e => emitted.push(e));
       component.onOpenDocument(mockDto, touchEnd);
 
-      expect(emitted.length).toBe(1);
+      expect(emitted).toHaveLength(1);
     });
 
     it('dragEnded should clear touch tracking state', () => {
@@ -1107,7 +1107,7 @@ describe('ProjectTreeComponent', () => {
       component.documentOpened.subscribe(e => emitted.push(e));
       component.onOpenDocument(mockDto);
 
-      expect(emitted.length).toBe(1);
+      expect(emitted).toHaveLength(1);
     });
   });
 });

@@ -140,7 +140,7 @@ describe('ElementPickerDialogComponent', () => {
   });
 
   it('should load all elements by default', () => {
-    expect(component.availableElements().length).toBe(4);
+    expect(component.availableElements()).toHaveLength(4);
   });
 
   it('should filter elements by type when filterType is provided', async () => {
@@ -164,7 +164,7 @@ describe('ElementPickerDialogComponent', () => {
     newFixture.detectChanges();
 
     // Should only include worldbuilding elements (3), not document (1)
-    expect(newComponent.availableElements().length).toBe(3);
+    expect(newComponent.availableElements()).toHaveLength(3);
   });
 
   it('should exclude elements by ID when excludeIds is provided', async () => {
@@ -186,7 +186,7 @@ describe('ElementPickerDialogComponent', () => {
     const newComponent = newFixture.componentInstance;
     newFixture.detectChanges();
 
-    expect(newComponent.availableElements().length).toBe(2);
+    expect(newComponent.availableElements()).toHaveLength(2);
     expect(
       newComponent.availableElements().find(e => e.id === 'char-1')
     ).toBeUndefined();
@@ -194,13 +194,13 @@ describe('ElementPickerDialogComponent', () => {
 
   it('should filter elements based on search text', () => {
     component.searchText.set('hero');
-    expect(component.filteredElements().length).toBe(1);
+    expect(component.filteredElements()).toHaveLength(1);
     expect(component.filteredElements()[0].name).toBe('Hero');
   });
 
   it('should filter by schemaId in search', () => {
     component.searchText.set('character');
-    expect(component.filteredElements().length).toBe(1);
+    expect(component.filteredElements()).toHaveLength(1);
     expect(component.filteredElements()[0].schemaId).toBe('character-v1');
   });
 

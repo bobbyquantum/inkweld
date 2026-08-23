@@ -109,7 +109,7 @@ describe('DocumentElementEditorComponent', () => {
 
     it('should have color presets', () => {
       expect(component.colorPresets).toBeDefined();
-      expect(component.colorPresets.length).toBe(20);
+      expect(component.colorPresets).toHaveLength(20);
     });
   });
 

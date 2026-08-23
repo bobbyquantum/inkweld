@@ -181,78 +181,26 @@ describe('InsertLinkDialogComponent', () => {
       ({ component } = createFixture({ selectedText: 'text' }));
     });
 
-    it('should accept https URLs', () => {
-      component['form'].href().value.set('https://example.com');
+    it.each<[string]>([
+      ['https://example.com'],
+      ['http://example.com'],
+      ['mailto:user@example.com'],
+      ['tel:+1234567890'],
+      ['/about'],
+      ['#section-1'],
+    ])('should accept %s', href => {
+      component['form'].href().value.set(href);
       expect(component['form'].href().errors()).toEqual([]);
     });
 
-    it('should accept http URLs', () => {
-      component['form'].href().value.set('http://example.com');
-      expect(component['form'].href().errors()).toEqual([]);
-    });
-
-    it('should accept mailto: links', () => {
-      component['form'].href().value.set('mailto:user@example.com');
-      expect(component['form'].href().errors()).toEqual([]);
-    });
-
-    it('should accept tel: links', () => {
-      component['form'].href().value.set('tel:+1234567890');
-      expect(component['form'].href().errors()).toEqual([]);
-    });
-
-    it('should accept root-relative paths', () => {
-      component['form'].href().value.set('/about');
-      expect(component['form'].href().errors()).toEqual([]);
-    });
-
-    it('should accept same-page anchors', () => {
-      component['form'].href().value.set('#section-1');
-      expect(component['form'].href().errors()).toEqual([]);
-    });
-
-    it('should reject javascript: URLs', () => {
-      component['form'].href().value.set('javascript:alert(1)');
-      expect(
-        component['form']
-          .href()
-          .errors()
-          .some(e => e.kind === 'invalidUrl')
-      ).toBe(true);
-    });
-
-    it('should reject vbscript: URLs', () => {
-      component['form'].href().value.set('vbscript:msgbox(1)');
-      expect(
-        component['form']
-          .href()
-          .errors()
-          .some(e => e.kind === 'invalidUrl')
-      ).toBe(true);
-    });
-
-    it('should reject data: URLs', () => {
-      component['form'].href().value.set('data:text/html,<h1>xss</h1>');
-      expect(
-        component['form']
-          .href()
-          .errors()
-          .some(e => e.kind === 'invalidUrl')
-      ).toBe(true);
-    });
-
-    it('should reject protocol-relative URLs (//example.com)', () => {
-      component['form'].href().value.set('//example.com');
-      expect(
-        component['form']
-          .href()
-          .errors()
-          .some(e => e.kind === 'invalidUrl')
-      ).toBe(true);
-    });
-
-    it('should reject bare hostnames without protocol', () => {
-      component['form'].href().value.set('example.com');
+    it.each<[string]>([
+      ['javascript:alert(1)'],
+      ['vbscript:msgbox(1)'],
+      ['data:text/html,<h1>xss</h1>'],
+      ['//example.com'],
+      ['example.com'],
+    ])('should reject %s', href => {
+      component['form'].href().value.set(href);
       expect(
         component['form']
           .href()

@@ -262,7 +262,7 @@ describe('TimelineEraDialogComponent', () => {
         optionsFor: (i: number) => readonly { value: string; label: string }[];
       }
     ).optionsFor(1);
-    expect(opts.length).toBe(12);
+    expect(opts).toHaveLength(12);
   });
 
   // ─── Seed fallback for different system ────────────────────────────────────

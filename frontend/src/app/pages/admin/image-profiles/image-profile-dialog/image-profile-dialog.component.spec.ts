@@ -232,7 +232,7 @@ describe('ImageProfileDialogComponent', () => {
     });
 
     it('should populate sizes array', () => {
-      expect(component.sizesArray.length).toBe(2);
+      expect(component.sizesArray).toHaveLength(2);
       expect(component.sizesArray[0]).toBe('1024x1024');
       expect(component.sizesArray[1]).toBe('1792x1024');
     });
@@ -251,18 +251,18 @@ describe('ImageProfileDialogComponent', () => {
     });
 
     it('should add size', () => {
-      expect(component.sizesArray.length).toBe(0);
+      expect(component.sizesArray).toHaveLength(0);
       component.addSize();
-      expect(component.sizesArray.length).toBe(1);
+      expect(component.sizesArray).toHaveLength(1);
     });
 
     it('should remove size', () => {
       component.addSize();
       component.addSize();
-      expect(component.sizesArray.length).toBe(2);
+      expect(component.sizesArray).toHaveLength(2);
 
       component.removeSize(0);
-      expect(component.sizesArray.length).toBe(1);
+      expect(component.sizesArray).toHaveLength(1);
     });
   });
 
@@ -319,7 +319,7 @@ describe('ImageProfileDialogComponent', () => {
       expect(
         mockAiProvidersService.getOpenRouterImageModels
       ).toHaveBeenCalled();
-      expect(component.availableModels().length).toBe(3);
+      expect(component.availableModels()).toHaveLength(3);
     });
 
     it('should not load models when provider is not browsable', async () => {
@@ -330,7 +330,7 @@ describe('ImageProfileDialogComponent', () => {
         mockAiProvidersService.getOpenRouterImageModels
       ).not.toHaveBeenCalled();
       expect(mockAiProvidersService.getFalaiModels).not.toHaveBeenCalled();
-      expect(component.availableModels().length).toBe(0);
+      expect(component.availableModels()).toHaveLength(0);
     });
 
     it('should handle model loading error gracefully', async () => {
@@ -340,7 +340,7 @@ describe('ImageProfileDialogComponent', () => {
       component.form.provider().value.set('openrouter');
       await component.loadModelsForProvider();
 
-      expect(component.availableModels().length).toBe(0);
+      expect(component.availableModels()).toHaveLength(0);
       expect(component.isLoadingModels()).toBe(false);
     });
 
@@ -351,7 +351,7 @@ describe('ImageProfileDialogComponent', () => {
       component.modelSearchTerm.set('flux');
       const filtered = component.filteredModels();
 
-      expect(filtered.length).toBe(2);
+      expect(filtered).toHaveLength(2);
       expect(filtered[0].name).toBe('FLUX Pro');
       expect(filtered[1].name).toBe('FLUX Schnell');
     });
@@ -363,7 +363,7 @@ describe('ImageProfileDialogComponent', () => {
       component.modelSearchTerm.set('stability');
       const filtered = component.filteredModels();
 
-      expect(filtered.length).toBe(1);
+      expect(filtered).toHaveLength(1);
       expect(filtered[0].id).toBe('stability-ai/sdxl');
     });
 
@@ -375,7 +375,7 @@ describe('ImageProfileDialogComponent', () => {
       component.selectModel(model);
 
       expect(component.model().modelId).toBe('black-forest-labs/flux-pro');
-      expect(component.sizesArray.length).toBe(2);
+      expect(component.sizesArray).toHaveLength(2);
       expect(component.sizesArray[0]).toBe('1024x1024');
       expect(component.model().defaultSize).toBe('1024x1024');
     });

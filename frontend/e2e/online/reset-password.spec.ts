@@ -16,7 +16,6 @@ test.describe('Reset Password', () => {
     anonymousPage: page,
   }) => {
     await page.goto('/reset-password');
-    await page.waitForLoadState('networkidle');
 
     await test.step('renders the reset-password page with the no-token error', async () => {
       await expect(page.getByTestId('reset-password-page')).toBeVisible();
@@ -33,7 +32,6 @@ test.describe('Reset Password', () => {
     await test.step('offers a link to request a new reset link', async () => {
       // Re-open the no-token state after the previous step navigated away.
       await page.goto('/reset-password');
-      await page.waitForLoadState('networkidle');
 
       const requestLink = page.getByTestId('no-token-error').getByRole('link', {
         name: /send reset link/i,
@@ -49,7 +47,6 @@ test.describe('Reset Password', () => {
   }) => {
     const TOKEN = 'placeholder-test-token';
     await page.goto(`/reset-password?token=${TOKEN}`);
-    await page.waitForLoadState('networkidle');
     await expect(page.getByTestId('reset-password-form')).toBeVisible();
 
     const newPassword = page.getByTestId('new-password-input');
@@ -84,8 +81,8 @@ test.describe('Reset Password', () => {
 
     await test.step('marks requirements as met when typing a valid password', async () => {
       await newPassword.fill('StrongP@ss1');
-      await page.waitForTimeout(300);
       const metIcons = requirements.locator('li.met mat-icon');
+      await expect(metIcons.first()).toBeVisible();
       expect(await metIcons.count()).toBeGreaterThan(0);
     });
 
@@ -103,7 +100,6 @@ test.describe('Reset Password', () => {
 
     await test.step('enables submit button when form is valid', async () => {
       // newPassword + confirmPassword already match a strong password from previous step.
-      await page.waitForTimeout(300);
       await expect(submit).toBeEnabled();
     });
   });

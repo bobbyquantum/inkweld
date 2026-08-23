@@ -106,7 +106,7 @@ describe('ActivityTabComponent', () => {
     expect((component as any).loading()).toBe(false);
 
     const items = fixture.nativeElement.querySelectorAll('.event-item');
-    expect(items.length).toBe(2);
+    expect(items).toHaveLength(2);
   });
 
   it('does nothing when no project is loaded', async () => {

@@ -244,7 +244,7 @@ describe('ProjectRenameMigrationService', () => {
       // Should handle the error gracefully
       expect(result).toBeDefined();
       expect(result.documentsFailed).toBe(1);
-      expect(result.errors.length).toBe(1);
+      expect(result.errors).toHaveLength(1);
       expect(result.errors[0]).toContain('Simulated migration failure');
       expect(result.success).toBe(false);
     });

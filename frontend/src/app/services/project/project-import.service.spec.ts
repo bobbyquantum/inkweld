@@ -916,10 +916,10 @@ describe('ProjectImportService', () => {
       );
     });
 
-    it('should reject archive version below MIN_SUPPORTED_VERSION', async () => {
+    it('should reject archive version below MIN_SUPPORTED_VERSION', async ctx => {
       // This test only applies if MIN_SUPPORTED_VERSION > 0
       if (MIN_SUPPORTED_VERSION <= 0) {
-        return;
+        ctx.skip();
       }
 
       const oldArchive: ProjectArchive = {
@@ -949,10 +949,10 @@ describe('ProjectImportService', () => {
       });
     });
 
-    it('should apply migration when archive version is older', async () => {
+    it('should apply migration when archive version is older', async ctx => {
       // Only test if we have room for an older version
       if (MIN_SUPPORTED_VERSION >= ARCHIVE_VERSION) {
-        return;
+        ctx.skip();
       }
 
       const olderVersion = ARCHIVE_VERSION - 1;
@@ -996,10 +996,10 @@ describe('ProjectImportService', () => {
       }
     });
 
-    it('should fail if no migration path exists', async () => {
+    it('should fail if no migration path exists', async ctx => {
       // Only test if we have room for an older version
       if (MIN_SUPPORTED_VERSION >= ARCHIVE_VERSION) {
-        return;
+        ctx.skip();
       }
 
       const olderVersion = ARCHIVE_VERSION - 1;

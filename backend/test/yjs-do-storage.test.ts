@@ -865,7 +865,7 @@ describe('snapshot + wire-frame round trip (production format contract)', () => 
       { id: 'e2', name: 'Entry 1', type: 'ITEM', order: 1 },
       { id: 'e3', name: 'Entry 2', type: 'ITEM', order: 2 },
     ]);
-    expect(reader.getArray('elements').length).toBe(3);
+    expect(reader.getArray('elements')).toHaveLength(3);
   });
 
   it('regression: a raw snapshot routed through the wire-frame handler never restores the state', () => {
@@ -886,6 +886,6 @@ describe('snapshot + wire-frame round trip (production format contract)', () => 
     } catch {
       // "Unexpected end of array" — the throwing variant of the same loss.
     }
-    expect(reader.getArray('elements').length).toBe(0);
+    expect(reader.getArray('elements')).toHaveLength(0);
   });
 });

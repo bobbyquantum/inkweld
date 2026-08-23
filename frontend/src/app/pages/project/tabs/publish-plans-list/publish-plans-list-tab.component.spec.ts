@@ -76,7 +76,7 @@ describe('PublishPlansListTabComponent', () => {
     const cards = fixture.nativeElement.querySelectorAll(
       '[data-testid="publish-plan-card"]'
     );
-    expect(cards.length).toBe(1);
+    expect(cards).toHaveLength(1);
   });
 
   it('should show empty state when no plans', () => {

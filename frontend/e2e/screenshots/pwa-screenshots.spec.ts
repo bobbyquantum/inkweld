@@ -80,7 +80,6 @@ test.describe('PWA Screenshots', () => {
     await expect(
       page.locator('[data-testid="project-card"]').first()
     ).toBeVisible();
-    await page.waitForLoadState('networkidle');
 
     await test.step('light', async () => {
       await applyColorScheme(page, 'light');
@@ -618,7 +617,6 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.goto(`/demouser/media-showcase/media`);
-    await page.waitForLoadState('networkidle');
     await expect(page.getByTestId('media-grid')).toBeVisible();
 
     await test.step('light', async () => {
@@ -683,7 +681,6 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.goto(`/demouser/filtered-media/media`);
-    await page.waitForLoadState('networkidle');
     await expect(page.getByTestId('media-grid')).toBeVisible();
 
     // Open the filter panel, then click "Inline Images" category
@@ -711,7 +708,6 @@ test.describe('PWA Screenshots', () => {
     await page.waitForURL(/\/demouser\/empty-media/);
 
     await page.goto(`/demouser/empty-media/media`);
-    await page.waitForLoadState('networkidle');
     await expect(page.getByTestId('empty-card')).toBeVisible();
 
     await page.screenshot({
@@ -756,7 +752,6 @@ test.describe('PWA Screenshots', () => {
     );
 
     await page.goto(`/demouser/mobile-media/media`);
-    await page.waitForLoadState('networkidle');
     await expect(page.getByTestId('media-grid')).toBeVisible();
 
     await page.screenshot({

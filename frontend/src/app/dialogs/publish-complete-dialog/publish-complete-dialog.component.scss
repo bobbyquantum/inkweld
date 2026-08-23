@@ -43,7 +43,7 @@ mat-dialog-content {
     .filename {
       font-weight: 500;
       font-size: 16px;
-      word-break: break-word;
+      overflow-wrap: break-word;
     }
 
     .meta {

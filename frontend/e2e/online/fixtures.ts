@@ -731,11 +731,6 @@ export async function registerUser(
   // Click register and wait for dialog to close
   await registerButton.click();
 
-  // Wait for network to settle
-  await page
-    .waitForLoadState('networkidle', { timeout: 15000 })
-    .catch(() => {});
-
   // Wait for dialog to close (indicates success)
   await expect(page.getByTestId('register-dialog')).toBeHidden();
 
@@ -785,9 +780,6 @@ export async function createProject(
   description?: string
 ): Promise<void> {
   await page.goto('/create-project');
-  await page
-    .waitForLoadState('networkidle', { timeout: 15000 })
-    .catch(() => {});
 
   // Verify we're on the create project page (not redirected to login)
   const url = page.url();

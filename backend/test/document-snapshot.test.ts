@@ -108,7 +108,7 @@ describe('Document Snapshot Service', () => {
       ]);
 
       const snapshots = await documentSnapshotService.findByProjectId(db, testProjectId);
-      expect(snapshots.length).toBe(2);
+      expect(snapshots).toHaveLength(2);
 
       // Should be ordered by createdAt desc (newest first)
       expect(snapshots[0].name).toBe('Snapshot 2');
@@ -163,7 +163,7 @@ describe('Document Snapshot Service', () => {
         testProjectId,
         'target-doc'
       );
-      expect(snapshots.length).toBe(2);
+      expect(snapshots).toHaveLength(2);
       expect(snapshots.every((s) => s.documentId === 'target-doc')).toBe(true);
 
       // Should be ordered by createdAt desc
@@ -265,7 +265,7 @@ describe('Document Snapshot Service', () => {
     it('should not throw when deleting non-existent snapshot', async () => {
       const db = getDatabase();
       // Should not throw
-      await documentSnapshotService.delete(db, 'non-existent-id');
+      await expect(documentSnapshotService.delete(db, 'non-existent-id')).resolves.toBeUndefined();
     });
   });
 });

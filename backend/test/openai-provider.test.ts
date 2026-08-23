@@ -63,7 +63,7 @@ describe('OpenAIImageProvider', () => {
       ];
       provider.configure({ apiKey: TEST_API_KEYS.OPENAI, enabled: true, models: customModels });
       const models = provider.getModels();
-      expect(models.length).toBe(1);
+      expect(models).toHaveLength(1);
       expect(models[0].id).toBe('custom-model');
     });
 
@@ -87,27 +87,20 @@ describe('OpenAIImageProvider', () => {
       expect(models).toEqual(DEFAULT_OPENAI_MODELS);
     });
 
-    it('should include gpt-image-1 in default models', () => {
-      const ids = provider.getModels().map((m) => m.id);
-      expect(ids).toContain('gpt-image-1');
-    });
-
-    it('should include gpt-image-1-mini in default models', () => {
-      const ids = provider.getModels().map((m) => m.id);
-      expect(ids).toContain('gpt-image-1-mini');
-    });
-
-    it('should include gpt-image-1.5 in default models', () => {
-      const ids = provider.getModels().map((m) => m.id);
-      expect(ids).toContain('gpt-image-1.5');
-    });
+    it.each<[string]>([['gpt-image-1'], ['gpt-image-1-mini'], ['gpt-image-1.5']])(
+      'should include %s in default models',
+      (modelId) => {
+        const ids = provider.getModels().map((m) => m.id);
+        expect(ids).toContain(modelId);
+      }
+    );
   });
 
   describe('setModels', () => {
     it('should update models list', () => {
       const newModels = [{ id: 'new/model', name: 'New Model' }];
       provider.setModels(newModels);
-      expect(provider.getModels().length).toBe(1);
+      expect(provider.getModels()).toHaveLength(1);
       expect(provider.getModels()[0].id).toBe('new/model');
     });
 
@@ -119,7 +112,7 @@ describe('OpenAIImageProvider', () => {
     it('should keep existing models when setting empty array', () => {
       const originalCount = provider.getModels().length;
       provider.setModels([]);
-      expect(provider.getModels().length).toBe(originalCount);
+      expect(provider.getModels()).toHaveLength(originalCount);
     });
   });
 
@@ -147,7 +140,7 @@ describe('OpenAIImageProvider', () => {
       })) {
         events.push(event);
       }
-      expect(events.length).toBe(1);
+      expect(events).toHaveLength(1);
       expect((events[0] as { type: string }).type).toBe('error');
     });
   });

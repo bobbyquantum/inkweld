@@ -74,7 +74,7 @@ describe('MediaPanelComponent', () => {
     expect(grid).toBeTruthy();
 
     const items = fixture.nativeElement.querySelectorAll('app-media-item-card');
-    expect(items.length).toBe(2);
+    expect(items).toHaveLength(2);
   });
 
   it('should show tagged media count', () => {

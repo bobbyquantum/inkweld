@@ -135,7 +135,7 @@ describe('AnnouncementService', () => {
 
       const all = await announcementService.listAll(db);
 
-      expect(all.length).toBe(3);
+      expect(all).toHaveLength(3);
       // All titles should be present
       const titles = all.map((a) => a.title).sort();
       expect(titles).toEqual(['First', 'Second', 'Third']);
@@ -155,7 +155,7 @@ describe('AnnouncementService', () => {
 
       const published = await announcementService.listPublished(db);
 
-      expect(published.length).toBe(1);
+      expect(published).toHaveLength(1);
       expect(published[0].title).toBe('Published');
     });
 
@@ -175,7 +175,7 @@ describe('AnnouncementService', () => {
 
       const published = await announcementService.listPublished(db);
 
-      expect(published.length).toBe(1);
+      expect(published).toHaveLength(1);
       expect(published[0].title).toBe('Active');
     });
 
@@ -194,9 +194,9 @@ describe('AnnouncementService', () => {
       const publicOnly = await announcementService.listPublished(db, { publicOnly: true });
       const all = await announcementService.listPublished(db, { publicOnly: false });
 
-      expect(publicOnly.length).toBe(1);
+      expect(publicOnly).toHaveLength(1);
       expect(publicOnly[0].title).toBe('Public');
-      expect(all.length).toBe(2);
+      expect(all).toHaveLength(2);
     });
   });
 
@@ -309,7 +309,7 @@ describe('AnnouncementService', () => {
       const userReads = reads.filter(
         (r) => r.userId === testUserId && r.announcementId === announcement.id
       );
-      expect(userReads.length).toBe(1);
+      expect(userReads).toHaveLength(1);
     });
   });
 
@@ -330,7 +330,7 @@ describe('AnnouncementService', () => {
 
       const withStatus = await announcementService.listPublishedWithReadStatus(db, testUserId);
 
-      expect(withStatus.length).toBe(2);
+      expect(withStatus).toHaveLength(2);
       const readItem = withStatus.find((a) => a.title === 'Read');
       const unreadItem = withStatus.find((a) => a.title === 'Unread');
 

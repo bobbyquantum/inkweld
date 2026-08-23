@@ -110,7 +110,7 @@ describe('WritingStatsWidgetComponent', () => {
     expect((component as any).loading()).toBe(false);
 
     expect(fixture.nativeElement.querySelector('.stats-widget')).toBeTruthy();
-    expect(fixture.nativeElement.querySelectorAll('.recent-item').length).toBe(
+    expect(fixture.nativeElement.querySelectorAll('.recent-item')).toHaveLength(
       2
     );
   });

@@ -18,7 +18,7 @@ import { decodeInkweldUri, encodeInkweldUri } from '../src/uri';
 describe('inkweld:// URI codec', () => {
   it('encodes a bare element reference (no project scope)', () => {
     expect(encodeInkweldUri({ elementId: 'abc-123' })).toBe(
-      'inkweld://element/abc-123'
+      'inkweld://element/abc-123',
     );
   });
 
@@ -29,9 +29,9 @@ describe('inkweld:// URI codec', () => {
         username: 'alice',
         slug: 'my-novel',
         params: { type: 'character', note: 'protagonist' },
-      })
+      }),
     ).toBe(
-      'inkweld://alice/my-novel/element/el-1?type=character&note=protagonist'
+      'inkweld://alice/my-novel/element/el-1?type=character&note=protagonist',
     );
   });
 
@@ -42,7 +42,7 @@ describe('inkweld:// URI codec', () => {
       encodeInkweldUri({
         elementId: 'x',
         params: { a: 'kept', b: undefined, c: null, d: '' },
-      })
+      }),
     ).toBe('inkweld://element/x?a=kept&d=');
   });
 
@@ -53,9 +53,9 @@ describe('inkweld:// URI codec', () => {
         username: 'bob',
         slug: 'a/b',
         params: { note: 'has & and =' },
-      })
+      }),
     ).toBe(
-      'inkweld://bob/a%2Fb/element/id%20with%20space?note=has%20%26%20and%20%3D'
+      'inkweld://bob/a%2Fb/element/id%20with%20space?note=has%20%26%20and%20%3D',
     );
   });
 
@@ -69,8 +69,8 @@ describe('inkweld:// URI codec', () => {
   it('decodes the project-scoped form with params', () => {
     expect(
       decodeInkweldUri(
-        'inkweld://alice/my-novel/element/el-1?type=character&note=hi'
-      )
+        'inkweld://alice/my-novel/element/el-1?type=character&note=hi',
+      ),
     ).toEqual({
       elementId: 'el-1',
       username: 'alice',
@@ -108,7 +108,7 @@ describe('inkweld:// URI codec', () => {
 describe('xmlToMarkdown', () => {
   it('renders a single paragraph', () => {
     expect(xmlToMarkdown('<paragraph>Hello world</paragraph>')).toBe(
-      'Hello world'
+      'Hello world',
     );
   });
 
@@ -117,10 +117,10 @@ describe('xmlToMarkdown', () => {
     expect(xmlToMarkdown('<heading level="3">Sub</heading>')).toBe('### Sub');
     // out-of-range levels clamp to [1, 6]
     expect(
-      xmlToMarkdown('<heading level="9">X</heading>').startsWith('######')
+      xmlToMarkdown('<heading level="9">X</heading>').startsWith('######'),
     ).toBe(true);
     expect(
-      xmlToMarkdown('<heading level="0">X</heading>').startsWith('#')
+      xmlToMarkdown('<heading level="0">X</heading>').startsWith('#'),
     ).toBe(true);
   });
 
@@ -128,7 +128,7 @@ describe('xmlToMarkdown', () => {
     const xml =
       '<paragraph><strong>bold</strong> and <em>italic</em> and <code>x()</code> and <s>gone</s></paragraph>';
     expect(xmlToMarkdown(xml)).toBe(
-      '**bold** and *italic* and `x()` and ~~gone~~'
+      '**bold** and *italic* and `x()` and ~~gone~~',
     );
   });
 
@@ -153,7 +153,7 @@ describe('xmlToMarkdown', () => {
 
   it('renders blockquotes with the > prefix', () => {
     expect(
-      xmlToMarkdown('<blockquote><paragraph>Quoted</paragraph></blockquote>')
+      xmlToMarkdown('<blockquote><paragraph>Quoted</paragraph></blockquote>'),
     ).toBe('> Quoted');
   });
 
@@ -162,17 +162,17 @@ describe('xmlToMarkdown', () => {
     // used elsewhere in the app (see markdown-generator.service.ts) is
     // `lang`, so we test both for read-side defensiveness.
     expect(
-      xmlToMarkdown('<code_block lang="ts">const x = 1;</code_block>')
+      xmlToMarkdown('<code_block lang="ts">const x = 1;</code_block>'),
     ).toBe('```ts\nconst x = 1;\n```');
     expect(
-      xmlToMarkdown('<code_block language="ts">const x = 1;</code_block>')
+      xmlToMarkdown('<code_block language="ts">const x = 1;</code_block>'),
     ).toBe('```ts\nconst x = 1;\n```');
   });
 
   it('renders thematic breaks and hard breaks', () => {
     expect(xmlToMarkdown('<horizontal_rule/>')).toBe('---');
     expect(
-      xmlToMarkdown('<paragraph>line 1<hard_break/>line 2</paragraph>')
+      xmlToMarkdown('<paragraph>line 1<hard_break/>line 2</paragraph>'),
     ).toBe('line 1  \nline 2');
   });
 
@@ -195,7 +195,7 @@ describe('xmlToMarkdown', () => {
     const xml =
       '<paragraph><elementRef elementId="el-1" displayText="Alice" type="character"/></paragraph>';
     const md = xmlToMarkdown(xml, {
-      encodeElementRefHref: attrs =>
+      encodeElementRefHref: (attrs) =>
         encodeInkweldUri({
           elementId: String(attrs['elementId']),
           username: 'bob',
@@ -216,7 +216,7 @@ describe('xmlToMarkdown', () => {
 describe('markdownToXml', () => {
   it('wraps plain text in a paragraph', () => {
     expect(markdownToXml('Hello world')).toBe(
-      '<paragraph>Hello world</paragraph>'
+      '<paragraph>Hello world</paragraph>',
     );
   });
 
@@ -224,38 +224,38 @@ describe('markdownToXml', () => {
     expect(markdownToXml('# Title')).toBe('<heading level="1">Title</heading>');
     expect(markdownToXml('### Sub')).toBe('<heading level="3">Sub</heading>');
     expect(markdownToXml('###### Six')).toBe(
-      '<heading level="6">Six</heading>'
+      '<heading level="6">Six</heading>',
     );
   });
 
   it('parses setext headings', () => {
     expect(markdownToXml('Title\n=====')).toBe(
-      '<heading level="1">Title</heading>'
+      '<heading level="1">Title</heading>',
     );
     expect(markdownToXml('Title\n-----')).toBe(
-      '<heading level="2">Title</heading>'
+      '<heading level="2">Title</heading>',
     );
   });
 
   it('parses inline marks', () => {
     expect(markdownToXml('**bold**')).toBe(
-      '<paragraph><strong>bold</strong></paragraph>'
+      '<paragraph><strong>bold</strong></paragraph>',
     );
     expect(markdownToXml('*italic*')).toBe(
-      '<paragraph><em>italic</em></paragraph>'
+      '<paragraph><em>italic</em></paragraph>',
     );
     expect(markdownToXml('~~gone~~')).toBe(
-      '<paragraph><s>gone</s></paragraph>'
+      '<paragraph><s>gone</s></paragraph>',
     );
     expect(markdownToXml('`code`')).toBe(
-      '<paragraph><code>code</code></paragraph>'
+      '<paragraph><code>code</code></paragraph>',
     );
   });
 
   it('parses fenced code blocks with language', () => {
     // Canonical attr name is `lang` (matches markdown-generator.service).
     expect(markdownToXml('```ts\nconst x = 1;\n```')).toBe(
-      '<code_block lang="ts">const x = 1;</code_block>'
+      '<code_block lang="ts">const x = 1;</code_block>',
     );
   });
 
@@ -268,13 +268,13 @@ describe('markdownToXml', () => {
     const ordered = markdownToXml('1. One\n2. Two');
     expect(ordered).toContain('<ordered_list>');
     expect(ordered).toContain(
-      '<list_item><paragraph>One</paragraph></list_item>'
+      '<list_item><paragraph>One</paragraph></list_item>',
     );
   });
 
   it('parses blockquotes', () => {
     expect(markdownToXml('> Quoted')).toBe(
-      '<blockquote><paragraph>Quoted</paragraph></blockquote>'
+      '<blockquote><paragraph>Quoted</paragraph></blockquote>',
     );
   });
 
@@ -286,7 +286,7 @@ describe('markdownToXml', () => {
   it('honours trailing two-space hard breaks', () => {
     // two trailing spaces before the newline = hard break inside a single paragraph
     expect(markdownToXml('line 1  \nline 2')).toBe(
-      '<paragraph>line 1<hard_break/>line 2</paragraph>'
+      '<paragraph>line 1<hard_break/>line 2</paragraph>',
     );
   });
 
@@ -305,7 +305,7 @@ describe('markdownToXml', () => {
   it('decodes inkweld:// links into elementRef nodes', () => {
     const md = '[Alice](inkweld://bob/novel/element/el-1?type=character)';
     const xml = markdownToXml(md, {
-      decodeElementRefHref: href => {
+      decodeElementRefHref: (href) => {
         const decoded = decodeInkweldUri(href);
         if (!decoded) return null;
         return {
@@ -330,7 +330,7 @@ describe('markdownToXml', () => {
 
   it('escapes XML special chars in text content', () => {
     expect(markdownToXml('a & b < c > d')).toBe(
-      '<paragraph>a &amp; b &lt; c &gt; d</paragraph>'
+      '<paragraph>a &amp; b &lt; c &gt; d</paragraph>',
     );
   });
 });
@@ -344,36 +344,32 @@ describe('markdown round-trip', () => {
     return markdownToXml(xmlToMarkdown(xml));
   }
 
-  it('round-trips a simple paragraph', () => {
-    const xml = '<paragraph>Hello world</paragraph>';
-    expect(roundTrip(xml)).toBe(xml);
-  });
-
-  it('round-trips headings', () => {
-    expect(roundTrip('<heading level="2">Sub</heading>')).toBe(
-      '<heading level="2">Sub</heading>'
-    );
-  });
-
-  it('round-trips bold/italic/code', () => {
-    const xml =
-      '<paragraph><strong>bold</strong> and <em>italic</em> and <code>code()</code></paragraph>';
-    expect(roundTrip(xml)).toBe(xml);
-  });
-
-  it('round-trips a bullet list', () => {
-    const xml =
-      '<bullet_list><list_item><paragraph>A</paragraph></list_item><list_item><paragraph>B</paragraph></list_item></bullet_list>';
-    expect(roundTrip(xml)).toBe(xml);
-  });
-
-  it('round-trips blockquotes', () => {
-    const xml = '<blockquote><paragraph>Quoted text</paragraph></blockquote>';
-    expect(roundTrip(xml)).toBe(xml);
-  });
-
-  it('round-trips fenced code blocks', () => {
-    const xml = '<code_block lang="ts">const x = 1;</code_block>';
+  it.each<{ name: string; xml: string }>([
+    {
+      name: 'round-trips a simple paragraph',
+      xml: '<paragraph>Hello world</paragraph>',
+    },
+    {
+      name: 'round-trips headings',
+      xml: '<heading level="2">Sub</heading>',
+    },
+    {
+      name: 'round-trips bold/italic/code',
+      xml: '<paragraph><strong>bold</strong> and <em>italic</em> and <code>code()</code></paragraph>',
+    },
+    {
+      name: 'round-trips a bullet list',
+      xml: '<bullet_list><list_item><paragraph>A</paragraph></list_item><list_item><paragraph>B</paragraph></list_item></bullet_list>',
+    },
+    {
+      name: 'round-trips blockquotes',
+      xml: '<blockquote><paragraph>Quoted text</paragraph></blockquote>',
+    },
+    {
+      name: 'round-trips fenced code blocks',
+      xml: '<code_block lang="ts">const x = 1;</code_block>',
+    },
+  ])('$name', ({ xml }) => {
     expect(roundTrip(xml)).toBe(xml);
   });
 
@@ -394,7 +390,7 @@ describe('markdown round-trip', () => {
     const xml =
       '<paragraph><elementRef elementId="el-1" displayText="Alice" type="character"/></paragraph>';
     const md = xmlToMarkdown(xml, {
-      encodeElementRefHref: attrs =>
+      encodeElementRefHref: (attrs) =>
         encodeInkweldUri({
           elementId: String(attrs['elementId']),
           username: 'bob',
@@ -405,7 +401,7 @@ describe('markdown round-trip', () => {
         }),
     });
     const back = markdownToXml(md, {
-      decodeElementRefHref: href => {
+      decodeElementRefHref: (href) => {
         const decoded = decodeInkweldUri(href);
         if (!decoded) return null;
         return {

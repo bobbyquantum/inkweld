@@ -284,64 +284,27 @@ describe('AppComponent', () => {
       expect((component as any).offlineMode()).toBe(false);
     });
 
-    it('should skip user loading on registration pages', async () => {
-      const originalPathname = window.location.pathname;
-      Object.defineProperty(window, 'location', {
-        value: { ...window.location, pathname: '/register' },
-        writable: true,
-      });
+    it.each<[string]>([['/register'], ['/welcome'], ['/approval-pending']])(
+      'should skip user loading on %s page',
+      async pathname => {
+        const originalPathname = window.location.pathname;
+        Object.defineProperty(window, 'location', {
+          value: { ...window.location, pathname },
+          writable: true,
+        });
 
-      vi.clearAllMocks();
-      component.ngOnInit();
-      await fixture.whenStable();
+        vi.clearAllMocks();
+        component.ngOnInit();
+        await fixture.whenStable();
 
-      // Should not call initialize when on registration page
-      expect(unifiedUserService.initialize).not.toHaveBeenCalled();
+        // Should not call initialize on these pages
+        expect(unifiedUserService.initialize).not.toHaveBeenCalled();
 
-      Object.defineProperty(window, 'location', {
-        value: { ...window.location, pathname: originalPathname },
-        writable: true,
-      });
-    });
-
-    it('should skip user loading on welcome page', async () => {
-      const originalPathname = window.location.pathname;
-      Object.defineProperty(window, 'location', {
-        value: { ...window.location, pathname: '/welcome' },
-        writable: true,
-      });
-
-      vi.clearAllMocks();
-      component.ngOnInit();
-      await fixture.whenStable();
-
-      // Should not call initialize when on welcome page
-      expect(unifiedUserService.initialize).not.toHaveBeenCalled();
-
-      Object.defineProperty(window, 'location', {
-        value: { ...window.location, pathname: originalPathname },
-        writable: true,
-      });
-    });
-
-    it('should skip user loading on approval-pending page', async () => {
-      const originalPathname = window.location.pathname;
-      Object.defineProperty(window, 'location', {
-        value: { ...window.location, pathname: '/approval-pending' },
-        writable: true,
-      });
-
-      vi.clearAllMocks();
-      component.ngOnInit();
-      await fixture.whenStable();
-
-      // Should not call initialize when on approval-pending page
-      expect(unifiedUserService.initialize).not.toHaveBeenCalled();
-
-      Object.defineProperty(window, 'location', {
-        value: { ...window.location, pathname: originalPathname },
-        writable: true,
-      });
-    });
+        Object.defineProperty(window, 'location', {
+          value: { ...window.location, pathname: originalPathname },
+          writable: true,
+        });
+      }
+    );
   });
 });

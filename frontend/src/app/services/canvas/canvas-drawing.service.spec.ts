@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import type { CanvasToolSettings } from '@models/canvas.model';
+import type { CanvasTool, CanvasToolSettings } from '@models/canvas.model';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -174,49 +174,21 @@ describe('CanvasDrawingService', () => {
       expect(service.isDrawing()).toBe(false);
     });
 
-    it('starts free-draw and sets isDrawing true', () => {
-      expect(service.start('draw', baseSettings, handlers)).toBe(true);
-      expect(service.isDrawing()).toBe(true);
-    });
-
-    it('starts line-draw and sets isDrawing true', () => {
-      expect(service.start('line', baseSettings, handlers)).toBe(true);
-      expect(service.isDrawing()).toBe(true);
-    });
-
-    it('starts shape rect-draw and sets isDrawing true', () => {
-      expect(
-        service.start('shape', { ...baseSettings, shapeType: 'rect' }, handlers)
-      ).toBe(true);
-      expect(service.isDrawing()).toBe(true);
-    });
-
-    it('starts shape ellipse-draw and sets isDrawing true', () => {
-      expect(
-        service.start(
-          'shape',
-          { ...baseSettings, shapeType: 'ellipse' },
-          handlers
-        )
-      ).toBe(true);
-      expect(service.isDrawing()).toBe(true);
-    });
-
-    it('starts shape arrow-draw and sets isDrawing true', () => {
-      expect(
-        service.start(
-          'shape',
-          { ...baseSettings, shapeType: 'arrow' },
-          handlers
-        )
-      ).toBe(true);
-      expect(service.isDrawing()).toBe(true);
-    });
-
-    it('starts shape line-draw and sets isDrawing true', () => {
-      expect(
-        service.start('shape', { ...baseSettings, shapeType: 'line' }, handlers)
-      ).toBe(true);
+    it.each<{
+      label: string;
+      tool: CanvasTool;
+      shapeType: CanvasToolSettings['shapeType'] | undefined;
+    }>([
+      { label: 'free-draw', tool: 'draw', shapeType: undefined },
+      { label: 'line-draw', tool: 'line', shapeType: undefined },
+      { label: 'shape rect-draw', tool: 'shape', shapeType: 'rect' },
+      { label: 'shape ellipse-draw', tool: 'shape', shapeType: 'ellipse' },
+      { label: 'shape arrow-draw', tool: 'shape', shapeType: 'arrow' },
+      { label: 'shape line-draw', tool: 'shape', shapeType: 'line' },
+    ])('starts $label and sets isDrawing true', ({ tool, shapeType }) => {
+      const settings =
+        shapeType === undefined ? baseSettings : { ...baseSettings, shapeType };
+      expect(service.start(tool, settings, handlers)).toBe(true);
       expect(service.isDrawing()).toBe(true);
     });
 
@@ -261,37 +233,16 @@ describe('CanvasDrawingService', () => {
       expect(service.isDrawing()).toBe(true);
     });
 
-    it('updates shape arrow on move', () => {
-      service.start('shape', { ...baseSettings, shapeType: 'arrow' }, handlers);
-      pointer.set({ x: 50, y: 60 });
-      expect(() =>
-        service.move('shape', { ...baseSettings, shapeType: 'arrow' }, handlers)
-      ).not.toThrow();
-    });
-
-    it('updates ellipse shape on move', () => {
-      service.start(
-        'shape',
-        { ...baseSettings, shapeType: 'ellipse' },
-        handlers
-      );
-      pointer.set({ x: 50, y: 60 });
-      expect(() =>
-        service.move(
-          'shape',
-          { ...baseSettings, shapeType: 'ellipse' },
-          handlers
-        )
-      ).not.toThrow();
-    });
-
-    it('updates rect shape on move', () => {
-      service.start('shape', { ...baseSettings, shapeType: 'rect' }, handlers);
-      pointer.set({ x: 50, y: 60 });
-      expect(() =>
-        service.move('shape', { ...baseSettings, shapeType: 'rect' }, handlers)
-      ).not.toThrow();
-    });
+    it.each(['arrow', 'ellipse', 'rect'] as const)(
+      'updates shape %s on move',
+      shapeType => {
+        service.start('shape', { ...baseSettings, shapeType }, handlers);
+        pointer.set({ x: 50, y: 60 });
+        expect(() =>
+          service.move('shape', { ...baseSettings, shapeType }, handlers)
+        ).not.toThrow();
+      }
+    );
 
     it('updates rectSelect rect on move', () => {
       service.start('rectSelect', baseSettings, handlers);

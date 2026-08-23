@@ -13,7 +13,6 @@ async function navigateToAdminViaMenu(page: Page): Promise<void> {
   await page.locator('[data-testid="user-menu-button"]').click();
   await page.locator('[data-testid="admin-menu-link"]').click();
   await page.waitForURL('**/admin/**');
-  await page.waitForLoadState('networkidle');
 }
 
 /**
@@ -249,8 +248,7 @@ test.describe('Admin Access Control - non-admin users', () => {
 
     await test.step('direct navigation to /admin is redirected away', async () => {
       await authenticatedPage.goto('/admin');
-      await authenticatedPage.waitForLoadState('networkidle');
-      expect(authenticatedPage.url()).not.toContain('/admin');
+      await expect(authenticatedPage).not.toHaveURL(/\/admin/);
     });
   });
 });

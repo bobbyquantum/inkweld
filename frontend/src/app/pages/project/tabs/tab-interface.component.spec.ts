@@ -875,35 +875,18 @@ describe('TabInterfaceComponent', () => {
       expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
     });
 
-    it('should detect templates-list system route and open tab', () => {
-      (router as any).url = '/testuser/test-project/templates-list';
+    it.each<string>(['templates-list', 'relationships-list', 'tags-list'])(
+      'should detect %s system route and open tab',
+      systemType => {
+        (router as any).url = `/testuser/test-project/${systemType}`;
 
-      component.updateSelectedTabFromUrl();
+        component.updateSelectedTabFromUrl();
 
-      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
-        'templates-list'
-      );
-    });
-
-    it('should detect relationships-list system route and open tab', () => {
-      (router as any).url = '/testuser/test-project/relationships-list';
-
-      component.updateSelectedTabFromUrl();
-
-      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
-        'relationships-list'
-      );
-    });
-
-    it('should detect tags-list system route and open tab', () => {
-      (router as any).url = '/testuser/test-project/tags-list';
-
-      component.updateSelectedTabFromUrl();
-
-      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
-        'tags-list'
-      );
-    });
+        expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+          systemType
+        );
+      }
+    );
 
     it('should detect settings system route and open tab', () => {
       (router as any).url = '/testuser/test-project/settings';

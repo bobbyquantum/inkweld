@@ -12,7 +12,6 @@ test.describe('Forgot Password', () => {
       anonymousPage: page,
     }) => {
       await page.goto('/forgot-password');
-      await page.waitForLoadState('networkidle');
 
       await expect(page.getByTestId('forgot-password-page')).toBeVisible();
       await expect(page.getByTestId('forgot-password-form')).toBeVisible();
@@ -22,7 +21,6 @@ test.describe('Forgot Password', () => {
 
     test('should show back-to-login link', async ({ anonymousPage: page }) => {
       await page.goto('/forgot-password');
-      await page.waitForLoadState('networkidle');
 
       await expect(page.getByTestId('back-to-login')).toBeVisible();
     });
@@ -33,7 +31,6 @@ test.describe('Forgot Password', () => {
       anonymousPage: page,
     }) => {
       await page.goto('/forgot-password');
-      await page.waitForLoadState('networkidle');
 
       // Submit button should be disabled with empty email
       await expect(page.getByTestId('forgot-submit-button')).toBeDisabled();
@@ -43,7 +40,6 @@ test.describe('Forgot Password', () => {
       anonymousPage: page,
     }) => {
       await page.goto('/forgot-password');
-      await page.waitForLoadState('networkidle');
 
       await page.getByTestId('forgot-email-input').fill('user@example.com');
       await expect(page.getByTestId('forgot-submit-button')).toBeEnabled();
@@ -53,7 +49,6 @@ test.describe('Forgot Password', () => {
       anonymousPage: page,
     }) => {
       await page.goto('/forgot-password');
-      await page.waitForLoadState('networkidle');
 
       const email = 'user@example.com';
       await page.getByTestId('forgot-email-input').fill(email);
@@ -72,7 +67,6 @@ test.describe('Forgot Password', () => {
       anonymousPage: page,
     }) => {
       await page.goto('/forgot-password');
-      await page.waitForLoadState('networkidle');
 
       // Submit to get to success state
       await page.getByTestId('forgot-email-input').fill('navigate@test.com');
@@ -88,7 +82,6 @@ test.describe('Forgot Password', () => {
       anonymousPage: page,
     }) => {
       await page.goto('/forgot-password');
-      await page.waitForLoadState('networkidle');
 
       await page.getByTestId('back-to-login').click();
       await expect(page).toHaveURL('/');

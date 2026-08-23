@@ -126,7 +126,7 @@ describe('Storage Service', () => {
 
       const files = await service.listProjectFiles(username, projectSlug);
 
-      expect(files.length).toBe(2);
+      expect(files).toHaveLength(2);
       expect(files.map((f) => f.filename).sort()).toEqual(['doc1.txt', 'doc2.txt']);
     });
 
@@ -136,7 +136,7 @@ describe('Storage Service', () => {
 
       const files = await service.listProjectFiles(username, projectSlug, 'media');
 
-      expect(files.length).toBe(1);
+      expect(files).toHaveLength(1);
       expect(files[0].filename).toBe('media-image.png');
     });
   });

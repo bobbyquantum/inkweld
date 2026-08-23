@@ -26,8 +26,7 @@ async function gotoAbout(page: Page): Promise<void> {
   await page.goto('/about');
   await page.waitForLoadState('domcontentloaded');
   await expect(page.getByTestId('version-card')).toBeVisible();
-  // Brief settle for icon fonts / layout
-  await page.waitForTimeout(300);
+  await page.evaluate(() => document.fonts.ready);
 }
 
 test.describe('About Page Screenshots', () => {

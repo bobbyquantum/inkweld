@@ -144,9 +144,6 @@ async function navigateToAdminViaMenu(page: Page): Promise<void> {
   await page.locator('[data-testid="user-menu-button"]').click();
   await page.locator('[data-testid="admin-menu-link"]').click();
   await page.waitForURL('**/admin/**');
-  await page
-    .waitForLoadState('networkidle', { timeout: 15000 })
-    .catch(() => {});
 }
 
 async function navigateToMediaTab(page: Page): Promise<void> {
@@ -169,12 +166,6 @@ async function navigateToMediaTab(page: Page): Promise<void> {
     ]);
     await expect(searchInput).toBeVisible();
   }).toPass({ timeout: 60000 });
-
-  // Best-effort networkidle — don't fail the test if the page never reaches
-  // a fully idle state (wrangler dev can hold long-poll/sse connections).
-  await page
-    .waitForLoadState('networkidle', { timeout: 15000 })
-    .catch(() => {});
 
   await expect(searchInput).toBeVisible();
 }
@@ -210,9 +201,6 @@ test.describe('Image Generation - Admin Profile Management', () => {
       await navigateToAdminViaMenu(adminPage);
       await adminPage.locator('[data-testid="admin-nav-ai"]').click();
       await adminPage.waitForURL('**/admin/ai');
-      await adminPage
-        .waitForLoadState('networkidle', { timeout: 15000 })
-        .catch(() => {});
 
       const profilesCard = adminPage.locator('mat-card', {
         hasText: 'Image Model Profiles',
@@ -226,9 +214,6 @@ test.describe('Image Generation - Admin Profile Management', () => {
     await test.step('AI Providers page shows OpenAI key configured/not-configured state', async () => {
       await adminPage.locator('[data-testid="admin-nav-ai-providers"]').click();
       await adminPage.waitForURL('**/admin/ai-providers');
-      await adminPage
-        .waitForLoadState('networkidle', { timeout: 15000 })
-        .catch(() => {});
 
       const openaiCard = adminPage.locator(
         '[data-testid="ai-provider-card-openai"]'
@@ -259,9 +244,6 @@ test.describe('Image Generation - Admin Profile Management', () => {
       await adminPage.waitForURL('**/admin/ai');
       // Force a fresh profile fetch — the page caches its first load.
       await adminPage.reload();
-      await adminPage
-        .waitForLoadState('networkidle', { timeout: 15000 })
-        .catch(() => {});
 
       const profilesGrid = adminPage.locator('[data-testid="profiles-grid"]');
       await expect(profilesGrid).toBeVisible();

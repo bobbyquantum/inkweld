@@ -85,28 +85,16 @@ describe('CreateMcpKeyDialogComponent', () => {
       expect(result).toBeUndefined();
     });
 
-    it('should return correct timestamp for "7days"', () => {
+    it.each<[string, number]>([
+      ['7days', 7 * 24 * 60 * 60 * 1000],
+      ['30days', 30 * 24 * 60 * 60 * 1000],
+      ['90days', 90 * 24 * 60 * 60 * 1000],
+    ])('should return correct timestamp for "%s"', (expiration, offsetMs) => {
       const fixedNow = 1_700_000_000_000;
       vi.spyOn(Date, 'now').mockReturnValue(fixedNow);
-      (component as any).keyExpiration = '7days';
+      (component as any).keyExpiration = expiration;
       const result = (component as any).getExpirationTimestamp() as number;
-      expect(result).toBe(fixedNow + 7 * 24 * 60 * 60 * 1000);
-    });
-
-    it('should return correct timestamp for "30days"', () => {
-      const fixedNow = 1_700_000_000_000;
-      vi.spyOn(Date, 'now').mockReturnValue(fixedNow);
-      (component as any).keyExpiration = '30days';
-      const result = (component as any).getExpirationTimestamp() as number;
-      expect(result).toBe(fixedNow + 30 * 24 * 60 * 60 * 1000);
-    });
-
-    it('should return correct timestamp for "90days"', () => {
-      const fixedNow = 1_700_000_000_000;
-      vi.spyOn(Date, 'now').mockReturnValue(fixedNow);
-      (component as any).keyExpiration = '90days';
-      const result = (component as any).getExpirationTimestamp() as number;
-      expect(result).toBe(fixedNow + 90 * 24 * 60 * 60 * 1000);
+      expect(result).toBe(fixedNow + offsetMs);
     });
   });
 

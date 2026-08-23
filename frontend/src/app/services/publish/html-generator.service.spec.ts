@@ -1195,11 +1195,36 @@ describe('HtmlGeneratorService', () => {
   });
 
   describe('text formatting marks', () => {
-    it('should render bold text', async () => {
+    it.each<{ label: string; text: string; mark: string; expected: string }>([
+      {
+        label: 'bold',
+        text: 'Bold text',
+        mark: 'bold',
+        expected: '<strong class="ink-mark-bold">Bold text</strong>',
+      },
+      {
+        label: 'italic',
+        text: 'Italic text',
+        mark: 'italic',
+        expected: '<em class="ink-mark-italic">Italic text</em>',
+      },
+      {
+        label: 'code',
+        text: 'const x = 1',
+        mark: 'code',
+        expected: '<code class="ink-mark-code">const x = 1</code>',
+      },
+      {
+        label: 'strikethrough',
+        text: 'Deleted',
+        mark: 'strike',
+        expected: '<s class="ink-mark-strike">Deleted</s>',
+      },
+    ])('should render $label text', async ({ text, mark, expected }) => {
       documentServiceMock.getDocumentContent.mockResolvedValue([
         {
           type: 'paragraph',
-          content: [{ text: 'Bold text', marks: [{ type: 'bold' }] }],
+          content: [{ text, marks: [{ type: mark }] }],
         },
       ]);
 
@@ -1219,94 +1244,8 @@ describe('HtmlGeneratorService', () => {
       const result = await service.generateHtml(planWithElement);
 
       expect(result.success).toBe(true);
-      const text = await result.file!.text();
-      expect(text).toContain(
-        '<strong class="ink-mark-bold">Bold text</strong>'
-      );
-    });
-
-    it('should render italic text', async () => {
-      documentServiceMock.getDocumentContent.mockResolvedValue([
-        {
-          type: 'paragraph',
-          content: [{ text: 'Italic text', marks: [{ type: 'italic' }] }],
-        },
-      ]);
-
-      const planWithElement: PublishPlan = {
-        ...mockPlan,
-        items: [
-          {
-            id: 'item-1',
-            type: PublishPlanItemType.Element,
-            elementId: 'doc-1',
-            includeChildren: false,
-            isChapter: true,
-          },
-        ],
-      };
-
-      const result = await service.generateHtml(planWithElement);
-
-      expect(result.success).toBe(true);
-      const text = await result.file!.text();
-      expect(text).toContain('<em class="ink-mark-italic">Italic text</em>');
-    });
-
-    it('should render code text', async () => {
-      documentServiceMock.getDocumentContent.mockResolvedValue([
-        {
-          type: 'paragraph',
-          content: [{ text: 'const x = 1', marks: [{ type: 'code' }] }],
-        },
-      ]);
-
-      const planWithElement: PublishPlan = {
-        ...mockPlan,
-        items: [
-          {
-            id: 'item-1',
-            type: PublishPlanItemType.Element,
-            elementId: 'doc-1',
-            includeChildren: false,
-            isChapter: true,
-          },
-        ],
-      };
-
-      const result = await service.generateHtml(planWithElement);
-
-      expect(result.success).toBe(true);
-      const text = await result.file!.text();
-      expect(text).toContain('<code class="ink-mark-code">const x = 1</code>');
-    });
-
-    it('should render strikethrough text', async () => {
-      documentServiceMock.getDocumentContent.mockResolvedValue([
-        {
-          type: 'paragraph',
-          content: [{ text: 'Deleted', marks: [{ type: 'strike' }] }],
-        },
-      ]);
-
-      const planWithElement: PublishPlan = {
-        ...mockPlan,
-        items: [
-          {
-            id: 'item-1',
-            type: PublishPlanItemType.Element,
-            elementId: 'doc-1',
-            includeChildren: false,
-            isChapter: true,
-          },
-        ],
-      };
-
-      const result = await service.generateHtml(planWithElement);
-
-      expect(result.success).toBe(true);
-      const text = await result.file!.text();
-      expect(text).toContain('<s class="ink-mark-strike">Deleted</s>');
+      const html = await result.file!.text();
+      expect(html).toContain(expected);
     });
 
     it('should render combined marks (bold + italic)', async () => {

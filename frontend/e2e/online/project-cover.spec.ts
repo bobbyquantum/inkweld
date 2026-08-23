@@ -40,7 +40,6 @@ async function createProject(
   await page.getByTestId('project-slug-input').fill(slug);
   await page.getByTestId('create-project-button').click();
   await page.waitForURL(new RegExp(slug));
-  await page.waitForLoadState('networkidle');
 }
 
 /** Open the edit-project dialog from the home tab cover area. */
@@ -89,7 +88,6 @@ test.describe('Project Cover', () => {
     // ...and survives a full reload (blob in IndexedDB + coverMediaId in
     // Yjs project meta).
     await page.reload();
-    await page.waitForLoadState('networkidle');
     await expect(page.getByTestId('project-cover-image').first()).toBeVisible();
   });
 

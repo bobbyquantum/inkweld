@@ -510,7 +510,7 @@ describe('HomeComponent', () => {
       component.searchForm.search().value.set('Test Project');
 
       const filtered = component['filteredProjects']();
-      expect(filtered.length).toBe(1);
+      expect(filtered).toHaveLength(1);
       expect(filtered[0].title).toBe('Test Project');
     });
 
@@ -521,7 +521,7 @@ describe('HomeComponent', () => {
       component.searchForm.search().value.set('another');
 
       const filtered = component['filteredProjects']();
-      expect(filtered.length).toBe(1);
+      expect(filtered).toHaveLength(1);
       expect(filtered[0].slug).toBe('another-project');
     });
 
@@ -532,7 +532,7 @@ describe('HomeComponent', () => {
       component.searchForm.search().value.set('description');
 
       const filtered = component['filteredProjects']();
-      expect(filtered.length).toBe(2); // Both have "description" in their description
+      expect(filtered).toHaveLength(2); // Both have "description" in their description
     });
 
     it('should filter projects by username', () => {
@@ -542,7 +542,7 @@ describe('HomeComponent', () => {
       component.searchForm.search().value.set('testuser');
 
       const filtered = component['filteredProjects']();
-      expect(filtered.length).toBe(2);
+      expect(filtered).toHaveLength(2);
     });
   });
 
@@ -827,7 +827,7 @@ describe('HomeComponent', () => {
         component.collaboratedProjects.set(mockCollaboratedProjects);
 
         const all = component['allProjects']();
-        expect(all.length).toBe(3);
+        expect(all).toHaveLength(3);
         expect(all.find(p => p.isShared)).toBeTruthy();
         expect(all.find(p => !p.isShared)).toBeTruthy();
       });
@@ -841,7 +841,7 @@ describe('HomeComponent', () => {
         component.searchForm.search().value.set('Another');
 
         const filtered = component['allProjects']();
-        expect(filtered.length).toBe(1);
+        expect(filtered).toHaveLength(1);
         expect(filtered[0].project.title).toBe('Another Project');
       });
     });

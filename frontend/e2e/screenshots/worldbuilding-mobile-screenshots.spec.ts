@@ -87,7 +87,6 @@ async function setupWorldbuildingAtMobile(
   // worldbuilding-demo template; the mobile test creates a fresh element in
   // an empty project, so it must wait explicitly.
   await expect(page.getByTestId('project-tree')).toBeVisible();
-  await page.waitForLoadState('networkidle');
 
   // Open the worldbuilding element at desktop size. Wait for the router
   // navigation to complete and the editor to render before asserting
@@ -95,7 +94,6 @@ async function setupWorldbuildingAtMobile(
   // default expect timeout to render after the click.
   await page.getByTestId(`element-${elementName}`).click();
   await page.waitForURL(/\/worldbuilding\//);
-  await page.waitForLoadState('networkidle');
   await expect(page.getByTestId('worldbuilding-editor')).toBeVisible({
     timeout: 45000,
   });
@@ -366,7 +364,7 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
     );
 
     await page.emulateMedia({ colorScheme: 'dark' });
-    await page.waitForTimeout(400);
+    await page.evaluate(() => document.fonts.ready);
 
     await test.step('accordion overview screenshot', async () => {
       await expect(page.getByTestId('accordion-identity')).toBeVisible();

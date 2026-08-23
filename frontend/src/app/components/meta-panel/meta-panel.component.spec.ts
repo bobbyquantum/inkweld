@@ -194,7 +194,7 @@ describe('MetaPanelComponent', () => {
   describe('relationship grouping', () => {
     it('should have no relationships when service returns empty', () => {
       expect(component.hasRelationships()).toBe(false);
-      expect(component.groupedRelationships().length).toBe(0);
+      expect(component.groupedRelationships()).toHaveLength(0);
     });
 
     it('should group outgoing relationships by type', () => {
@@ -229,9 +229,9 @@ describe('MetaPanelComponent', () => {
       fixture.detectChanges();
 
       const groups = component.groupedRelationships();
-      expect(groups.length).toBe(1);
+      expect(groups).toHaveLength(1);
       expect(groups[0].displayLabel).toBe('Parent');
-      expect(groups[0].relationships.length).toBe(2);
+      expect(groups[0].relationships).toHaveLength(2);
       expect(groups[0].isIncoming).toBe(false);
     });
 
@@ -261,7 +261,7 @@ describe('MetaPanelComponent', () => {
       fixture.detectChanges();
 
       const groups = component.groupedRelationships();
-      expect(groups.length).toBe(1);
+      expect(groups).toHaveLength(1);
       expect(groups[0].displayLabel).toBe('Child of');
       expect(groups[0].isIncoming).toBe(true);
     });
@@ -291,7 +291,7 @@ describe('MetaPanelComponent', () => {
       fixture.detectChanges();
 
       const groups = component.groupedRelationships();
-      expect(groups.length).toBe(0);
+      expect(groups).toHaveLength(0);
     });
   });
 

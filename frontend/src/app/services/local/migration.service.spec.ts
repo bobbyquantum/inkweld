@@ -321,7 +321,7 @@ describe('MigrationService', () => {
       await service.migrateToServerMode('config-123', 'testuser');
 
       const state = service.migrationState();
-      expect(state.projectStatuses.length).toBe(1);
+      expect(state.projectStatuses).toHaveLength(1);
       expect(state.projectStatuses[0].projectSlug).toBe('test-project-1');
       expect(state.projectStatuses[0].projectTitle).toBe('Test Project 1');
       expect(state.projectStatuses[0].status).toBe(MigrationStatus.Completed);

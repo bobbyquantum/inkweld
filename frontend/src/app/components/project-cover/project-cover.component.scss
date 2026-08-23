@@ -60,7 +60,7 @@
         font-size: 1.5rem;
         font-weight: 500;
         padding: 0 8px;
-        word-break: break-word;
+        overflow-wrap: break-word;
         line-height: 1.3;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
       }
@@ -75,7 +75,8 @@
   }
 
   // List variant styles (smaller)
-  &.list, &.small {
+  &.list,
+  &.small {
     .cover-image {
       width: 100%;
       height: 100%;

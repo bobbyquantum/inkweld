@@ -623,7 +623,7 @@ describe('RelationshipChartService', () => {
       TestBed.flushEffects();
 
       expect(service.activeConfig()).toBe(afterSave);
-      expect(mockLogger.warn.mock.calls.length).toBe(warnBefore);
+      expect(mockLogger.warn.mock.calls).toHaveLength(warnBefore);
     });
 
     it('rebinds when loadConfig is called with a different elementId', () => {

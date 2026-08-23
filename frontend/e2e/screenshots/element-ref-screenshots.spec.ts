@@ -163,7 +163,11 @@ test.describe('Element Reference Screenshots', () => {
       })
       .catch(() => {});
     await page.keyboard.type(searchTerm);
-    await page.waitForTimeout(300);
+    await page
+      .locator('[data-testid="element-ref-result-item"]')
+      .first()
+      .waitFor({ state: 'visible' })
+      .catch(() => {});
 
     const filterTarget = targetName
       ? page
@@ -334,7 +338,6 @@ test.describe('Element Reference Screenshots', () => {
 
       if (refScenario.mode === 'dark') {
         await enableDarkMode(page);
-        await page.waitForTimeout(300);
       }
 
       // ---- Character search popup screenshot (showcase pre-text) ----
@@ -439,7 +442,7 @@ test.describe('Element Reference Screenshots', () => {
         await characterRef.hover();
         const tooltip = page.getByTestId('element-ref-tooltip');
         await tooltip.waitFor({ state: 'visible' }).catch(() => {});
-        await page.waitForTimeout(200);
+        await page.evaluate(() => document.fonts.ready);
 
         await page.screenshot({
           path: join(
@@ -457,7 +460,7 @@ test.describe('Element Reference Screenshots', () => {
           '[data-testid="element-ref-context-menu"]'
         );
         await expect(contextMenu).toBeVisible();
-        await page.waitForTimeout(200);
+        await page.evaluate(() => document.fonts.ready);
 
         await page.screenshot({
           path: join(
@@ -476,7 +479,7 @@ test.describe('Element Reference Screenshots', () => {
               '[data-testid="context-menu-edit-input"]'
             );
             await expect(editInput).toBeVisible();
-            await page.waitForTimeout(200);
+            await page.evaluate(() => document.fonts.ready);
 
             await page.screenshot({
               path: join(
@@ -519,7 +522,6 @@ test.describe('Element Reference Screenshots', () => {
       })
       .catch(() => {});
     await page.keyboard.type('lyra');
-    await page.waitForTimeout(500);
 
     await expect(
       page.locator('[data-testid="element-ref-popup"]')
@@ -567,7 +569,6 @@ test.describe('Element Reference Screenshots', () => {
 
       if (backlinksScenario.mode === 'dark') {
         await enableDarkMode(page);
-        await page.waitForTimeout(300);
       }
 
       await editor.pressSequentially(backlinksScenario.preText, { delay: 15 });
@@ -577,14 +578,12 @@ test.describe('Element Reference Screenshots', () => {
         backlinksScenario.characterName
       );
       await editor.pressSequentially(backlinksScenario.postText, { delay: 15 });
-      await page.waitForTimeout(500);
 
       // Navigate to character node
       const characterNode = page.getByRole('treeitem', {
         name: backlinksScenario.characterName,
       });
       await characterNode.click();
-      await page.waitForTimeout(500);
 
       await expect(
         page.locator('[data-testid="worldbuilding-editor"]')
@@ -593,7 +592,10 @@ test.describe('Element Reference Screenshots', () => {
       const metaPanelToggle = page.locator('[data-testid="meta-panel-toggle"]');
       if (await metaPanelToggle.isVisible().catch(() => false)) {
         await metaPanelToggle.click();
-        await page.waitForTimeout(400);
+        await page
+          .getByTestId('meta-panel')
+          .waitFor({ state: 'visible' })
+          .catch(() => {});
       }
 
       const relationshipsSection = page.locator(
@@ -601,10 +603,9 @@ test.describe('Element Reference Screenshots', () => {
       );
       if (await relationshipsSection.isVisible().catch(() => false)) {
         await relationshipsSection.click();
-        await page.waitForTimeout(300);
       }
 
-      await page.waitForTimeout(500);
+      await page.evaluate(() => document.fonts.ready);
 
       await page.screenshot({
         path: join(

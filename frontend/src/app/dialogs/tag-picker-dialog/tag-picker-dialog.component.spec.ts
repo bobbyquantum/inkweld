@@ -152,9 +152,9 @@ describe('TagPickerDialogComponent', () => {
       setup();
       const items = component.availableItems();
       // 2 tags + 4 non-folder elements = 6
-      expect(items.length).toBe(6);
-      expect(items.filter(i => i.isProjectTag).length).toBe(2);
-      expect(items.filter(i => !i.isProjectTag).length).toBe(4);
+      expect(items).toHaveLength(6);
+      expect(items.filter(i => i.isProjectTag)).toHaveLength(2);
+      expect(items.filter(i => !i.isProjectTag)).toHaveLength(4);
     });
 
     it('should exclude specified element IDs', () => {
@@ -186,7 +186,7 @@ describe('TagPickerDialogComponent', () => {
   describe('filteredItems', () => {
     it('should return all items when search is empty', () => {
       setup();
-      expect(component.filteredItems().length).toBe(
+      expect(component.filteredItems()).toHaveLength(
         component.availableItems().length
       );
     });
@@ -194,7 +194,7 @@ describe('TagPickerDialogComponent', () => {
     it('should filter by name', () => {
       setup();
       component.searchText.set('john');
-      expect(component.filteredItems().length).toBe(1);
+      expect(component.filteredItems()).toHaveLength(1);
       expect(component.filteredItems()[0].name).toBe('John Doe');
     });
 
@@ -283,27 +283,34 @@ describe('TagPickerDialogComponent', () => {
   });
 
   describe('icon mapping', () => {
-    it('should map character schema to person icon', () => {
-      setup();
-      const item = component.availableItems().find(i => i.name === 'John Doe');
-      expect(item?.icon).toBe('person');
-    });
-
-    it('should map location schema to place icon', () => {
-      setup();
-      const item = component
-        .availableItems()
-        .find(i => i.name === 'Dark Forest');
-      expect(item?.icon).toBe('place');
-    });
-
-    it('should map wb-item schema to inventory_2 icon', () => {
-      setup();
-      const item = component
-        .availableItems()
-        .find(i => i.name === 'Magic Sword');
-      expect(item?.icon).toBe('inventory_2');
-    });
+    it.each<{
+      schema: string;
+      itemName: string;
+      expectedIcon: string;
+    }>([
+      {
+        schema: 'character schema',
+        itemName: 'John Doe',
+        expectedIcon: 'person',
+      },
+      {
+        schema: 'location schema',
+        itemName: 'Dark Forest',
+        expectedIcon: 'place',
+      },
+      {
+        schema: 'wb-item schema',
+        itemName: 'Magic Sword',
+        expectedIcon: 'inventory_2',
+      },
+    ])(
+      'should map $schema to $expectedIcon icon',
+      ({ itemName, expectedIcon }) => {
+        setup();
+        const item = component.availableItems().find(i => i.name === itemName);
+        expect(item?.icon).toBe(expectedIcon);
+      }
+    );
 
     it('should use schema icon for new element types', () => {
       setup();

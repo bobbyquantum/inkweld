@@ -164,7 +164,7 @@ describe('PresenceService', () => {
     //  inner if-block should NOT fire again)
     service.setActiveLocation({ kind: 'timeline', elementId: 'e1' });
     // Only one additional setLocalPresence call (for location update), not two
-    expect(provider.setLocalPresence.mock.calls.length).toBe(callCount + 1);
+    expect(provider.setLocalPresence.mock.calls).toHaveLength(callCount + 1);
   });
 
   it('re-marks status as active after becoming editing/idle (covers markActive if-branch)', () => {

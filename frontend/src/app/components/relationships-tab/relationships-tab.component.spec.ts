@@ -162,7 +162,7 @@ describe('RelationshipsTabComponent', () => {
   it('should load relationship types on init', () => {
     component.loadRelationshipTypes();
 
-    expect(component.relationshipTypes().length).toBe(2);
+    expect(component.relationshipTypes()).toHaveLength(2);
   });
 
   it('should sort types by category then name', () => {

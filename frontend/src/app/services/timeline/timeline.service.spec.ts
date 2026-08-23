@@ -310,7 +310,7 @@ describe('TimelineService', () => {
       TestBed.flushEffects();
 
       expect(service.activeConfig()).toBe(afterSave);
-      expect(mockLogger.warn.mock.calls.length).toBe(warnBefore);
+      expect(mockLogger.warn.mock.calls).toHaveLength(warnBefore);
     });
 
     it('rebinds when loadConfig is called with a different elementId', () => {
@@ -569,7 +569,7 @@ describe('TimelineService', () => {
       const writesBefore =
         mockProjectState.updateElementMetadata.mock.calls.length;
       service.clearLinksToElement('does-not-exist');
-      expect(mockProjectState.updateElementMetadata.mock.calls.length).toBe(
+      expect(mockProjectState.updateElementMetadata.mock.calls).toHaveLength(
         writesBefore
       );
     });

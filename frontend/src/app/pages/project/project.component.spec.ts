@@ -1173,7 +1173,7 @@ describe('ProjectComponent', () => {
       const buttons = fixture.nativeElement.querySelectorAll(
         '[data-testid^="collapsed-pinned-"]'
       );
-      expect(buttons.length).toBe(2);
+      expect(buttons).toHaveLength(2);
     });
 
     it('should open the element when a pinned button is clicked', async () => {

@@ -400,14 +400,14 @@ describe('TimeSystemEditPageComponent', () => {
     const remaining = (
       component as unknown as { units: () => unknown[] }
     ).units();
-    expect(remaining.length).toBe(1);
+    expect(remaining).toHaveLength(1);
     // Try removing the last one — should be prevented
     (
       component as unknown as { onRemoveUnit: (i: number) => void }
     ).onRemoveUnit(0);
     expect(
-      (component as unknown as { units: () => unknown[] }).units().length
-    ).toBe(1);
+      (component as unknown as { units: () => unknown[] }).units()
+    ).toHaveLength(1);
   });
 
   it('onRemoveUnit promotes next unit to top when first is removed', async () => {

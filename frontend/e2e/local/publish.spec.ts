@@ -271,8 +271,13 @@ test.describe('Local Publishing Workflow', () => {
         removals < MAX_REMOVALS &&
         (await page.getByTestId('remove-item-button').first().isVisible())
       ) {
+        const countBefore = await page
+          .getByTestId('remove-item-button')
+          .count();
         await page.getByTestId('remove-item-button').first().click();
-        await page.waitForTimeout(300);
+        await expect(page.getByTestId('remove-item-button')).toHaveCount(
+          countBefore - 1
+        );
         removals++;
       }
 

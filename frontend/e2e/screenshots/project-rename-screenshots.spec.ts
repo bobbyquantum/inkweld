@@ -39,7 +39,7 @@ async function setupProjectAndSettings(
 
   // Wait for danger zone content
   await expect(page.getByTestId('rename-project-card')).toBeVisible();
-  await page.waitForTimeout(500);
+  await expect(page.getByTestId('delete-project-card')).toBeVisible();
 }
 
 async function captureAllRenameScreenshots(
@@ -62,7 +62,6 @@ async function captureAllRenameScreenshots(
   await test.step('rename form expanded (empty)', async () => {
     await page.click('[data-testid="rename-project-button"]');
     await expect(page.getByTestId('new-slug-input')).toBeVisible();
-    await page.waitForTimeout(300);
 
     await captureElementScreenshot(
       page,
@@ -76,7 +75,9 @@ async function captureAllRenameScreenshots(
   if (suffix === 'light') {
     await test.step('rename form with new slug entered', async () => {
       await page.fill('[data-testid="new-slug-input"]', 'my-new-project-name');
-      await page.waitForTimeout(300);
+      await expect(page.getByTestId('new-slug-input')).toHaveValue(
+        'my-new-project-name'
+      );
 
       await captureElementScreenshot(
         page,
@@ -89,7 +90,7 @@ async function captureAllRenameScreenshots(
 
   await test.step('danger zone overview', async () => {
     await deleteCard.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(200);
+    await expect(renameCard).toBeVisible();
 
     await captureElementScreenshot(
       page,
@@ -101,7 +102,7 @@ async function captureAllRenameScreenshots(
 
   await test.step('delete card', async () => {
     await deleteCard.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(200);
+    await expect(deleteCard).toBeVisible();
 
     await captureElementScreenshot(
       page,
@@ -132,7 +133,7 @@ test.describe('Project Rename Feature Screenshots', () => {
   }) => {
     await setupProjectAndSettings(page, 'rename-dark', 'Rename Demo');
     await page.emulateMedia({ colorScheme: 'dark' });
-    await page.waitForTimeout(300);
+    await page.evaluate(() => document.fonts.ready);
     await captureAllRenameScreenshots(page, screenshotsDir, 'dark');
     await expect(page.getByTestId('delete-project-card')).toBeVisible();
   });

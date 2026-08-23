@@ -69,7 +69,7 @@ describe('RecentFilesService', () => {
     service.addRecentFile(mockFile, 'user', 'slug');
 
     const recentFiles = service.recentFiles();
-    expect(recentFiles.length).toBe(1);
+    expect(recentFiles).toHaveLength(1);
     expect(recentFiles[0].id).toBe('file1');
     expect(recentFiles[0].name).toBe('Test File');
     expect(recentFiles[0].projectSlug).toBe('slug');
@@ -108,7 +108,7 @@ describe('RecentFilesService', () => {
 
     // Verify order: file2, file1
     let recentFiles = service.recentFiles();
-    expect(recentFiles.length).toBe(2);
+    expect(recentFiles).toHaveLength(2);
     expect(recentFiles[0].id).toBe('file2');
     expect(recentFiles[1].id).toBe('file1');
 
@@ -117,7 +117,7 @@ describe('RecentFilesService', () => {
 
     // Verify new order: file1, file2
     recentFiles = service.recentFiles();
-    expect(recentFiles.length).toBe(2);
+    expect(recentFiles).toHaveLength(2);
     expect(recentFiles[0].id).toBe('file1');
     expect(recentFiles[1].id).toBe('file2');
   });
@@ -151,11 +151,11 @@ describe('RecentFilesService', () => {
     service.addRecentFile(file2, 'user', 'slug2');
 
     const project1Files = service.getRecentFilesForProject('user', 'slug1');
-    expect(project1Files.length).toBe(1);
+    expect(project1Files).toHaveLength(1);
     expect(project1Files[0].id).toBe('file1');
 
     const project2Files = service.getRecentFilesForProject('user', 'slug2');
-    expect(project2Files.length).toBe(1);
+    expect(project2Files).toHaveLength(1);
     expect(project2Files[0].id).toBe('file2');
   });
 
@@ -178,7 +178,7 @@ describe('RecentFilesService', () => {
 
     // Should only keep the 10 most recent
     const recentFiles = service.recentFiles();
-    expect(recentFiles.length).toBe(10);
+    expect(recentFiles).toHaveLength(10);
     expect(recentFiles[0].id).toBe('file10'); // Most recent
     expect(recentFiles[9].id).toBe('file1'); // Least recent (file0 was dropped)
   });
@@ -200,10 +200,10 @@ describe('RecentFilesService', () => {
     vi.clearAllMocks();
 
     service.addRecentFile(file, 'user', 'slug');
-    expect(service.recentFiles().length).toBe(1);
+    expect(service.recentFiles()).toHaveLength(1);
 
     service.clearRecentFiles();
-    expect(service.recentFiles().length).toBe(0);
+    expect(service.recentFiles()).toHaveLength(0);
     expect(settingsService.setSetting).toHaveBeenCalled();
   });
 });

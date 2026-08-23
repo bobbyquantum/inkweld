@@ -279,7 +279,7 @@ describe('ImageViewerDialogComponent', () => {
     it('should return all tags as available when none assigned', () => {
       component.data.mediaId = 'media-1';
       mockMediaProjectTagService.getTagsForMedia.mockReturnValue([]);
-      expect(component.filteredAvailableTags().length).toBe(3);
+      expect(component.filteredAvailableTags()).toHaveLength(3);
     });
 
     it('should return empty resolvedElementTags when no mediaId', () => {
@@ -298,7 +298,7 @@ describe('ImageViewerDialogComponent', () => {
         'el-1',
         'nonexistent',
       ]);
-      expect(component.resolvedElementTags().length).toBe(1);
+      expect(component.resolvedElementTags()).toHaveLength(1);
     });
 
     it('should add project tag by id', () => {

@@ -29,9 +29,9 @@ import {
 
 describe('decodeXmlEntities', () => {
   it('decodes the standard named entities', () => {
-    expect(decodeXmlEntities('&lt;a&gt; &amp; &quot;b&quot; &apos;c&apos;')).toBe(
-      `<a> & "b" 'c'`
-    );
+    expect(
+      decodeXmlEntities('&lt;a&gt; &amp; &quot;b&quot; &apos;c&apos;'),
+    ).toBe(`<a> & "b" 'c'`);
   });
 
   it('decodes &amp; LAST so escaped entities round-trip', () => {
@@ -71,7 +71,7 @@ describe('decodeXmlEntities', () => {
 describe('escapeXmlText', () => {
   it('escapes all five XML metacharacters', () => {
     expect(escapeXmlText(`<a> & "b" 'c'`)).toBe(
-      '&lt;a&gt; &amp; &quot;b&quot; &apos;c&apos;'
+      '&lt;a&gt; &amp; &quot;b&quot; &apos;c&apos;',
     );
   });
 
@@ -83,7 +83,7 @@ describe('escapeXmlText', () => {
 describe('escapeXmlAttr', () => {
   it('escapes &, ", and < but leaves > and apos alone', () => {
     expect(escapeXmlAttr(`a & b "c" <d> 'e'`)).toBe(
-      `a &amp; b &quot;c&quot; &lt;d> 'e'`
+      `a &amp; b &quot;c&quot; &lt;d> 'e'`,
     );
   });
 
@@ -154,10 +154,10 @@ describe('parseXmlToYjsNodes', () => {
 
   it('parses a single paragraph with text', () => {
     const fragment = parseAttached('<paragraph>hello</paragraph>');
-    expect(fragment.length).toBe(1);
+    expect(fragment).toHaveLength(1);
     const p = fragment.get(0) as Y.XmlElement;
     expect(p.nodeName).toBe('paragraph');
-    expect(p.length).toBe(1);
+    expect(p).toHaveLength(1);
     const text = p.get(0) as Y.XmlText;
     expect(text.toString()).toBe('hello');
   });
@@ -174,18 +174,23 @@ describe('parseXmlToYjsNodes', () => {
     expect(ol.nodeName).toBe('ordered_list');
     const ul = parseAttached('<ul></ul>').get(0) as Y.XmlElement;
     expect(ul.nodeName).toBe('bullet_list');
-    const nl = parseAttached('<numbered_list></numbered_list>').get(0) as Y.XmlElement;
+    const nl = parseAttached('<numbered_list></numbered_list>').get(
+      0,
+    ) as Y.XmlElement;
     expect(nl.nodeName).toBe('ordered_list');
   });
 
   it('collapses mark tags into Y.XmlText formatting attributes', () => {
     const fragment = parseAttached(
-      '<paragraph>plain <strong>bold</strong> end</paragraph>'
+      '<paragraph>plain <strong>bold</strong> end</paragraph>',
     );
     const p = fragment.get(0) as Y.XmlElement;
-    expect(p.length).toBe(1);
+    expect(p).toHaveLength(1);
     const text = p.get(0) as Y.XmlText;
-    const delta = text.toDelta() as Array<{ insert: string; attributes?: Record<string, unknown> }>;
+    const delta = text.toDelta() as Array<{
+      insert: string;
+      attributes?: Record<string, unknown>;
+    }>;
     expect(delta).toHaveLength(3);
     expect(delta[0]).toEqual({ insert: 'plain ' });
     expect(delta[1].insert).toBe('bold');
@@ -195,11 +200,14 @@ describe('parseXmlToYjsNodes', () => {
 
   it('parses link marks with href and optional title', () => {
     const fragment = parseAttached(
-      '<paragraph><a href="https://example.com" title="Ex">click</a></paragraph>'
+      '<paragraph><a href="https://example.com" title="Ex">click</a></paragraph>',
     );
     const p = fragment.get(0) as Y.XmlElement;
     const text = p.get(0) as Y.XmlText;
-    const delta = text.toDelta() as Array<{ insert: string; attributes?: Record<string, unknown> }>;
+    const delta = text.toDelta() as Array<{
+      insert: string;
+      attributes?: Record<string, unknown>;
+    }>;
     expect(delta[0].attributes).toEqual({
       link: { href: 'https://example.com', title: 'Ex' },
     });
@@ -207,20 +215,23 @@ describe('parseXmlToYjsNodes', () => {
 
   it('parses generic mark span (data-mark)', () => {
     const fragment = parseAttached(
-      '<paragraph><span data-mark="comment" commentId="c1">x</span></paragraph>'
+      '<paragraph><span data-mark="comment" commentId="c1">x</span></paragraph>',
     );
     const p = fragment.get(0) as Y.XmlElement;
     const text = p.get(0) as Y.XmlText;
-    const delta = text.toDelta() as Array<{ insert: string; attributes?: Record<string, unknown> }>;
+    const delta = text.toDelta() as Array<{
+      insert: string;
+      attributes?: Record<string, unknown>;
+    }>;
     expect(delta[0].attributes).toEqual({ comment: { commentId: 'c1' } });
   });
 
   it('handles self-closing structural elements with attributes', () => {
     const fragment = parseAttached(
-      '<paragraph><elementRef elementId="42" displayText="Foo"/></paragraph>'
+      '<paragraph><elementRef elementId="42" displayText="Foo"/></paragraph>',
     );
     const p = fragment.get(0) as Y.XmlElement;
-    expect(p.length).toBe(1);
+    expect(p).toHaveLength(1);
     const ref = p.get(0) as Y.XmlElement;
     expect(ref.nodeName).toBe('elementRef');
     expect(ref.getAttribute('elementId')).toBe('42');
@@ -229,52 +240,58 @@ describe('parseXmlToYjsNodes', () => {
 
   it('decodes entity-encoded attribute values', () => {
     const fragment = parseAttached(
-      '<paragraph title="a &amp; b &lt;c&gt;">x</paragraph>'
+      '<paragraph title="a &amp; b &lt;c&gt;">x</paragraph>',
     );
     const p = fragment.get(0) as Y.XmlElement;
     expect(p.getAttribute('title')).toBe('a & b <c>');
   });
 
   it('decodes JSON-encoded attribute values', () => {
-    const fragment = parseAttached(
-      `<paragraph data='{"x":1}'>x</paragraph>`
-    );
+    const fragment = parseAttached(`<paragraph data='{"x":1}'>x</paragraph>`);
     const p = fragment.get(0) as Y.XmlElement;
     expect(p.getAttribute('data')).toEqual({ x: 1 });
   });
 
   it('strips XML comments', () => {
-    const fragment = parseAttached('<!-- ignore me --><paragraph>x</paragraph>');
-    expect(fragment.length).toBe(1);
+    const fragment = parseAttached(
+      '<!-- ignore me --><paragraph>x</paragraph>',
+    );
+    expect(fragment).toHaveLength(1);
     expect((fragment.get(0) as Y.XmlElement).nodeName).toBe('paragraph');
   });
 
   it('skips inter-block whitespace', () => {
     const fragment = parseAttached(
-      '<paragraph>a</paragraph>\n  <paragraph>b</paragraph>'
+      '<paragraph>a</paragraph>\n  <paragraph>b</paragraph>',
     );
-    expect(fragment.length).toBe(2);
+    expect(fragment).toHaveLength(2);
   });
 
   it('propagates marks from a parent mark wrapper into nested structural children', () => {
     const fragment = parseAttached(
-      '<strong><paragraph>bold para</paragraph></strong>'
+      '<strong><paragraph>bold para</paragraph></strong>',
     );
     const p = fragment.get(0) as Y.XmlElement;
     expect(p.nodeName).toBe('paragraph');
-    expect(p.length).toBe(1);
+    expect(p).toHaveLength(1);
     const text = p.get(0) as Y.XmlText;
-    const delta = text.toDelta() as Array<{ insert: string; attributes?: Record<string, unknown> }>;
+    const delta = text.toDelta() as Array<{
+      insert: string;
+      attributes?: Record<string, unknown>;
+    }>;
     expect(delta[0].attributes).toEqual({ strong: {} });
   });
 
   it('handles consecutive runs with different marks (clears stale formatting)', () => {
     const fragment = parseAttached(
-      '<paragraph><strong>a</strong><em>b</em></paragraph>'
+      '<paragraph><strong>a</strong><em>b</em></paragraph>',
     );
     const p = fragment.get(0) as Y.XmlElement;
     const text = p.get(0) as Y.XmlText;
-    const delta = text.toDelta() as Array<{ insert: string; attributes?: Record<string, unknown> }>;
+    const delta = text.toDelta() as Array<{
+      insert: string;
+      attributes?: Record<string, unknown>;
+    }>;
     expect(delta).toHaveLength(2);
     expect(delta[0].attributes).toEqual({ strong: {} });
     expect(delta[1].attributes).toEqual({ em: {} });
@@ -283,15 +300,15 @@ describe('parseXmlToYjsNodes', () => {
   it('handles a self-closing mark tag (degenerate empty mark)', () => {
     const fragment = parseAttached('<paragraph><strong/></paragraph>');
     const p = fragment.get(0) as Y.XmlElement;
-    expect(p.length).toBe(0);
+    expect(p).toHaveLength(0);
   });
 
   it('handles a self-closing generic mark span', () => {
     const fragment = parseAttached(
-      '<paragraph><span data-mark="comment" commentId="c1"/></paragraph>'
+      '<paragraph><span data-mark="comment" commentId="c1"/></paragraph>',
     );
     const p = fragment.get(0) as Y.XmlElement;
-    expect(p.length).toBe(0);
+    expect(p).toHaveLength(0);
   });
 
   it('matches closing tags case-insensitively', () => {
@@ -302,7 +319,7 @@ describe('parseXmlToYjsNodes', () => {
 
   it('treats a stray "<" not followed by a valid tag as text', () => {
     const fragment = parseAttached('<paragraph>3 < 5</paragraph>');
-    expect(fragment.length).toBe(1);
+    expect(fragment).toHaveLength(1);
   });
 });
 
@@ -311,11 +328,36 @@ describe('parseXmlToYjsNodes', () => {
 // ---------------------------------------------------------------------------
 
 describe('serializeYjsFragmentToXml + applyXmlToYjsFragment', () => {
-  it('round-trips a simple paragraph through Yjs', () => {
+  it.each<{ name: string; xml: string }>([
+    {
+      name: 'round-trips a simple paragraph through Yjs',
+      xml: '<paragraph>hello</paragraph>',
+    },
+    {
+      name: 'round-trips a link mark',
+      xml: '<paragraph><a href="https://x.com" title="X">click</a></paragraph>',
+    },
+    {
+      name: 'round-trips a generic lossy mark as <span data-mark=...>',
+      xml: '<paragraph><span data-mark="comment" commentId="c1">x</span></paragraph>',
+    },
+    {
+      name: 'serialises self-closing form for empty non-block elements',
+      xml: '<paragraph><elementRef elementId="e1"/></paragraph>',
+    },
+    {
+      name: 'emits explicit close tags for empty block nodes',
+      xml: '<paragraph></paragraph>',
+    },
+    {
+      name: 'round-trips nested structural elements (lists)',
+      xml: '<bullet_list><listItem><paragraph>a</paragraph></listItem><listItem><paragraph>b</paragraph></listItem></bullet_list>',
+    },
+  ])('$name', ({ xml }) => {
     const doc = new Y.Doc();
     const fragment = doc.getXmlFragment('test');
-    applyXmlToYjsFragment(Y, doc, fragment, '<paragraph>hello</paragraph>');
-    expect(serializeYjsFragmentToXml(Y, fragment)).toBe('<paragraph>hello</paragraph>');
+    applyXmlToYjsFragment(Y, doc, fragment, xml);
+    expect(serializeYjsFragmentToXml(Y, fragment)).toBe(xml);
   });
 
   it('round-trips text with multiple marks', () => {
@@ -325,7 +367,7 @@ describe('serializeYjsFragmentToXml + applyXmlToYjsFragment', () => {
       Y,
       doc,
       fragment,
-      '<paragraph><strong><em>x</em></strong></paragraph>'
+      '<paragraph><strong><em>x</em></strong></paragraph>',
     );
     const out = serializeYjsFragmentToXml(Y, fragment);
     // Mark wrapper order may differ (the serializer sorts alphabetically)
@@ -335,14 +377,6 @@ describe('serializeYjsFragmentToXml + applyXmlToYjsFragment', () => {
     expect(out).toContain('x');
     expect(out.startsWith('<paragraph>')).toBe(true);
     expect(out.endsWith('</paragraph>')).toBe(true);
-  });
-
-  it('round-trips a link mark', () => {
-    const doc = new Y.Doc();
-    const fragment = doc.getXmlFragment('test');
-    const xml = '<paragraph><a href="https://x.com" title="X">click</a></paragraph>';
-    applyXmlToYjsFragment(Y, doc, fragment, xml);
-    expect(serializeYjsFragmentToXml(Y, fragment)).toBe(xml);
   });
 
   it('round-trips a link mark with no attrs (degenerate empty href)', () => {
@@ -356,37 +390,8 @@ describe('serializeYjsFragmentToXml + applyXmlToYjsFragment', () => {
     p.insert(0, [text]);
     fragment.insert(0, [p]);
     expect(serializeYjsFragmentToXml(Y, fragment)).toBe(
-      '<paragraph><a>click</a></paragraph>'
+      '<paragraph><a>click</a></paragraph>',
     );
-  });
-
-  it('round-trips a generic lossy mark as <span data-mark=...>', () => {
-    const doc = new Y.Doc();
-    const fragment = doc.getXmlFragment('test');
-    const xml = '<paragraph><span data-mark="comment" commentId="c1">x</span></paragraph>';
-    applyXmlToYjsFragment(Y, doc, fragment, xml);
-    expect(serializeYjsFragmentToXml(Y, fragment)).toBe(xml);
-  });
-
-  it('serialises self-closing form for empty non-block elements', () => {
-    const doc = new Y.Doc();
-    const fragment = doc.getXmlFragment('test');
-    applyXmlToYjsFragment(
-      Y,
-      doc,
-      fragment,
-      '<paragraph><elementRef elementId="e1"/></paragraph>'
-    );
-    expect(serializeYjsFragmentToXml(Y, fragment)).toBe(
-      '<paragraph><elementRef elementId="e1"/></paragraph>'
-    );
-  });
-
-  it('emits explicit close tags for empty block nodes', () => {
-    const doc = new Y.Doc();
-    const fragment = doc.getXmlFragment('test');
-    applyXmlToYjsFragment(Y, doc, fragment, '<paragraph></paragraph>');
-    expect(serializeYjsFragmentToXml(Y, fragment)).toBe('<paragraph></paragraph>');
   });
 
   it('escapes XML special characters in text and attributes', () => {
@@ -396,7 +401,7 @@ describe('serializeYjsFragmentToXml + applyXmlToYjsFragment', () => {
       Y,
       doc,
       fragment,
-      '<paragraph title="a &amp; b">3 &lt; 5</paragraph>'
+      '<paragraph title="a &amp; b">3 &lt; 5</paragraph>',
     );
     const xml = serializeYjsFragmentToXml(Y, fragment);
     expect(xml).toContain('title="a &amp; b"');
@@ -410,7 +415,7 @@ describe('serializeYjsFragmentToXml + applyXmlToYjsFragment', () => {
     p.setAttribute('data', { foo: 1 } as unknown as string);
     fragment.insert(0, [p]);
     expect(serializeYjsFragmentToXml(Y, fragment)).toBe(
-      '<paragraph data="{&quot;foo&quot;:1}"></paragraph>'
+      '<paragraph data="{&quot;foo&quot;:1}"></paragraph>',
     );
   });
 
@@ -428,7 +433,9 @@ describe('serializeYjsFragmentToXml + applyXmlToYjsFragment', () => {
     const fragment = doc.getXmlFragment('test');
     applyXmlToYjsFragment(Y, doc, fragment, '<paragraph>first</paragraph>');
     applyXmlToYjsFragment(Y, doc, fragment, '<paragraph>second</paragraph>');
-    expect(serializeYjsFragmentToXml(Y, fragment)).toBe('<paragraph>second</paragraph>');
+    expect(serializeYjsFragmentToXml(Y, fragment)).toBe(
+      '<paragraph>second</paragraph>',
+    );
   });
 
   it('handles empty XML by emptying the fragment', () => {
@@ -436,17 +443,8 @@ describe('serializeYjsFragmentToXml + applyXmlToYjsFragment', () => {
     const fragment = doc.getXmlFragment('test');
     applyXmlToYjsFragment(Y, doc, fragment, '<paragraph>x</paragraph>');
     applyXmlToYjsFragment(Y, doc, fragment, '');
-    expect(fragment.length).toBe(0);
+    expect(fragment).toHaveLength(0);
     expect(serializeYjsFragmentToXml(Y, fragment)).toBe('');
-  });
-
-  it('round-trips nested structural elements (lists)', () => {
-    const doc = new Y.Doc();
-    const fragment = doc.getXmlFragment('test');
-    const xml =
-      '<bullet_list><listItem><paragraph>a</paragraph></listItem><listItem><paragraph>b</paragraph></listItem></bullet_list>';
-    applyXmlToYjsFragment(Y, doc, fragment, xml);
-    expect(serializeYjsFragmentToXml(Y, fragment)).toBe(xml);
   });
 });
 
@@ -458,8 +456,8 @@ describe('xmlContentToText', () => {
   it('strips tags and collapses block boundaries to newlines', () => {
     expect(
       xmlContentToText(
-        '<paragraph>hello</paragraph><paragraph>world</paragraph>'
-      )
+        '<paragraph>hello</paragraph><paragraph>world</paragraph>',
+      ),
     ).toBe('hello\nworld');
   });
 
@@ -469,27 +467,29 @@ describe('xmlContentToText', () => {
   });
 
   it('handles camelCase block tag aliases', () => {
-    expect(xmlContentToText('<listItem>x</listItem><codeBlock>k</codeBlock>')).toBe(
-      'x\nk'
-    );
+    expect(
+      xmlContentToText('<listItem>x</listItem><codeBlock>k</codeBlock>'),
+    ).toBe('x\nk');
   });
 
   it('decodes the standard entities (and decodes &amp; last)', () => {
-    expect(xmlContentToText('<paragraph>3 &lt; 5 &amp; 2 &gt; 1</paragraph>')).toBe(
-      '3 < 5 & 2 > 1'
-    );
+    expect(
+      xmlContentToText('<paragraph>3 &lt; 5 &amp; 2 &gt; 1</paragraph>'),
+    ).toBe('3 < 5 & 2 > 1');
     expect(xmlContentToText('<paragraph>&amp;lt;</paragraph>')).toBe('&lt;');
   });
 
   it('decodes &#39; and &apos;', () => {
-    expect(xmlContentToText('<paragraph>it&#39;s &apos;ok&apos;</paragraph>')).toBe(
-      `it's 'ok'`
-    );
+    expect(
+      xmlContentToText('<paragraph>it&#39;s &apos;ok&apos;</paragraph>'),
+    ).toBe(`it's 'ok'`);
   });
 
   it('strips inline mark tags', () => {
     expect(
-      xmlContentToText('<paragraph>a <strong>b</strong> <em>c</em></paragraph>')
+      xmlContentToText(
+        '<paragraph>a <strong>b</strong> <em>c</em></paragraph>',
+      ),
     ).toBe('a b c');
   });
 
@@ -534,7 +534,7 @@ describe('parseXmlToAst', () => {
 
   it('parses link mark attrs', () => {
     const ast = parseXmlToAst(
-      '<paragraph><a href="https://x.com" title="t">x</a></paragraph>'
+      '<paragraph><a href="https://x.com" title="t">x</a></paragraph>',
     );
     const p = ast[0] as AstElement;
     expect(p.children[0]).toEqual({
@@ -546,7 +546,7 @@ describe('parseXmlToAst', () => {
 
   it('parses generic mark spans', () => {
     const ast = parseXmlToAst(
-      '<paragraph><span data-mark="comment" commentId="c1">x</span></paragraph>'
+      '<paragraph><span data-mark="comment" commentId="c1">x</span></paragraph>',
     );
     const p = ast[0] as AstElement;
     expect(p.children[0]).toEqual({
@@ -559,7 +559,12 @@ describe('parseXmlToAst', () => {
   it('parses self-closing structural elements with attributes', () => {
     const ast = parseXmlToAst('<elementRef elementId="e1"/>');
     expect(ast).toEqual([
-      { type: 'element', name: 'elementRef', attrs: { elementId: 'e1' }, children: [] },
+      {
+        type: 'element',
+        name: 'elementRef',
+        attrs: { elementId: 'e1' },
+        children: [],
+      },
     ]);
   });
 
@@ -570,11 +575,15 @@ describe('parseXmlToAst', () => {
   });
 
   it('strips XML comments', () => {
-    expect(parseXmlToAst('<!-- skip --><paragraph>x</paragraph>')).toHaveLength(1);
+    expect(parseXmlToAst('<!-- skip --><paragraph>x</paragraph>')).toHaveLength(
+      1,
+    );
   });
 
   it('drops inter-block whitespace runs', () => {
-    const ast = parseXmlToAst('<paragraph>a</paragraph>\n  <paragraph>b</paragraph>');
+    const ast = parseXmlToAst(
+      '<paragraph>a</paragraph>\n  <paragraph>b</paragraph>',
+    );
     expect(ast).toHaveLength(2);
   });
 

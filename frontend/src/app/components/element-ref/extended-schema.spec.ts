@@ -127,8 +127,8 @@ describe('extended-schema', () => {
           number,
         ];
         const rel = dom[1]['rel'] as string;
-        expect(rel.split(' ').filter(t => t === 'noopener').length).toBe(1);
-        expect(rel.split(' ').filter(t => t === 'noreferrer').length).toBe(1);
+        expect(rel.split(' ').filter(t => t === 'noopener')).toHaveLength(1);
+        expect(rel.split(' ').filter(t => t === 'noreferrer')).toHaveLength(1);
       });
     });
 

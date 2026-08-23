@@ -90,19 +90,23 @@ test.describe('Relationship Chart Element Images', () => {
       state: 'visible',
     });
 
-    // Allow time for the asynchronous node-image loading pipeline to complete.
     // The chart fires loadNodeImages() in an effect after graph data loads;
-    // give it a generous window to resolve images from Yjs / IndexedDB.
-    await page.waitForTimeout(5_000);
+    // poll the exposed counter until at least one node image resolves from
+    // Yjs / IndexedDB.
+    const chartArea = page.locator('[data-testid="chart-area"]');
+    await expect
+      .poll(
+        async () =>
+          Number(await chartArea.getAttribute('data-node-images-loaded')),
+        { timeout: 15_000 }
+      )
+      .toBeGreaterThan(0);
 
     // ── Assert that at least one node image was loaded ────────────────────
-    // The chart-area div exposes `data-node-images-loaded` with the count of
-    // resolved node images. If images loaded correctly this will be ≥ 1.
     //
     // BUG: loadNodeImages() calls the getElementImages API endpoint, which
     // does not exist in local mode (API requests are blocked). The chart
     // should read identity images from local Yjs stores instead.
-    const chartArea = page.locator('[data-testid="chart-area"]');
     const imageCount = await chartArea.getAttribute('data-node-images-loaded');
     expect(
       Number(imageCount),

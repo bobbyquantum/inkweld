@@ -83,7 +83,10 @@ async function setupMediaTab(
   await page.waitForSelector('[data-testid="media-grid"]', {
     state: 'visible',
   });
-  await page.waitForTimeout(500);
+  // All five seeded items (4 images + 1 epub) must be rendered.
+  await expect(
+    page.locator('[data-testid="media-grid"] app-media-item-card')
+  ).toHaveCount(5);
 }
 
 async function setupEmptyMediaProject(
@@ -104,7 +107,7 @@ async function setupEmptyMediaProject(
   await page.waitForSelector('[data-testid="empty-card"]', {
     state: 'visible',
   });
-  await page.waitForTimeout(300);
+  await expect(page.getByTestId('empty-card')).toBeVisible();
 }
 
 async function capturePopulatedMediaScreenshots(
@@ -131,7 +134,10 @@ async function capturePopulatedMediaScreenshots(
   await test.step('search with results', async () => {
     const searchInput = page.getByTestId('media-search-input');
     await searchInput.fill('hero');
-    await page.waitForTimeout(300);
+    // Only the seeded "hero-character.png" matches.
+    await expect(
+      page.locator('[data-testid="media-grid"] app-media-item-card')
+    ).toHaveCount(1);
 
     await page.screenshot({
       path: join(screenshotsDir, `media-search-${suffix}.png`),
@@ -140,7 +146,6 @@ async function capturePopulatedMediaScreenshots(
 
     // Reset search so the filter panel screenshot shows the full grid.
     await searchInput.fill('');
-    await page.waitForTimeout(200);
   });
 
   await test.step('filter panel open', async () => {
@@ -148,7 +153,7 @@ async function capturePopulatedMediaScreenshots(
     await page.waitForSelector('[data-testid="filter-panel"]', {
       state: 'visible',
     });
-    await page.waitForTimeout(300);
+    await expect(page.getByTestId('filter-clear-all')).toBeVisible();
 
     await page.screenshot({
       path: join(screenshotsDir, `media-filter-panel-${suffix}.png`),

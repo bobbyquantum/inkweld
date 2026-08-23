@@ -260,7 +260,7 @@ describe('UnitEditorDialogComponent', () => {
         }
       ).rows();
       const twos = rows.filter(r => r.value === '2');
-      expect(twos.length).toBe(1);
+      expect(twos).toHaveLength(1);
     });
 
     it('does nothing for top unit', async () => {
@@ -268,7 +268,7 @@ describe('UnitEditorDialogComponent', () => {
       const { component } = await createComponent(data);
       (component as unknown as { fillRange: () => void }).fillRange();
       const rows = (component as unknown as { rows: { (): unknown[] } }).rows();
-      expect(rows.length).toBe(0);
+      expect(rows).toHaveLength(0);
     });
   });
 
@@ -421,7 +421,7 @@ describe('UnitEditorDialogComponent', () => {
         rows: () => { value: string; subdivision: string }[];
       }
     ).rows();
-    expect(rows.length).toBe(2);
+    expect(rows).toHaveLength(2);
     expect(rows.find(r => r.value === '2')?.subdivision).toBe('28');
     expect(rows.find(r => r.value === '4')?.subdivision).toBe('30');
   });

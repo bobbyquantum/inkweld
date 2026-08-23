@@ -145,7 +145,7 @@ describe('BackgroundSyncService', () => {
       const initCalls = (mockLoggerService.info as Mock).mock.calls.filter(
         (call: unknown[]) => call[1] === 'Background sync service initialized'
       );
-      expect(initCalls.length).toBe(1);
+      expect(initCalls).toHaveLength(1);
     });
   });
 

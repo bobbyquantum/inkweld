@@ -140,7 +140,7 @@ describe('WorldbuildingElementSelectorComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(component.availableElements().length).toBe(3);
+    expect(component.availableElements()).toHaveLength(3);
     expect(component.isLoading()).toBe(false);
   });
 
@@ -169,7 +169,7 @@ describe('WorldbuildingElementSelectorComponent', () => {
 
     // Wait for addElement to complete
     await fixture.whenStable();
-    expect(component.selectedElements().length).toBe(1);
+    expect(component.selectedElements()).toHaveLength(1);
     expect(component.selectedElements()[0].id).toBe('char-1');
   });
 
@@ -180,7 +180,7 @@ describe('WorldbuildingElementSelectorComponent', () => {
     const element = mockElements[0];
     await component.addElement(element);
 
-    expect(component.selectedElements().length).toBe(1);
+    expect(component.selectedElements()).toHaveLength(1);
     expect(component.selectedElements()[0].id).toBe('char-1');
   });
 
@@ -229,10 +229,10 @@ describe('WorldbuildingElementSelectorComponent', () => {
 
     const element = mockElements[0];
     await component.addElement(element);
-    expect(component.selectedElements().length).toBe(1);
+    expect(component.selectedElements()).toHaveLength(1);
 
     component.removeElement(component.selectedElements()[0]);
-    expect(component.selectedElements().length).toBe(0);
+    expect(component.selectedElements()).toHaveLength(0);
   });
 
   it('should enforce max elements limit', async () => {
@@ -243,12 +243,12 @@ describe('WorldbuildingElementSelectorComponent', () => {
     await component.addElement(mockElements[0]);
     await component.addElement(mockElements[1]);
 
-    expect(component.selectedElements().length).toBe(2);
+    expect(component.selectedElements()).toHaveLength(2);
     expect(component.canAddMore()).toBe(false);
 
     // Try to add a third element - should not work
     await component.addElement(mockElements[2]);
-    expect(component.selectedElements().length).toBe(2);
+    expect(component.selectedElements()).toHaveLength(2);
   });
 
   it('should emit selectionChange when elements change', async () => {
@@ -260,7 +260,7 @@ describe('WorldbuildingElementSelectorComponent', () => {
     expect(emitSpy).toHaveBeenCalled();
 
     const lastCall = emitSpy.mock.calls[emitSpy.mock.calls.length - 1][0];
-    expect(lastCall.elements.length).toBe(1);
+    expect(lastCall.elements).toHaveLength(1);
   });
 
   it('should emit selectionChange when toggle changes', async () => {
@@ -285,7 +285,7 @@ describe('WorldbuildingElementSelectorComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(component.selectedElements().length).toBe(2);
+    expect(component.selectedElements()).toHaveLength(2);
   });
 
   it('should pass selected IDs to dialog for exclusion', async () => {
@@ -329,7 +329,7 @@ describe('WorldbuildingElementSelectorComponent', () => {
     await component.addElement(mockElements[0]);
 
     const selection = component.getSelection();
-    expect(selection.length).toBe(1);
+    expect(selection).toHaveLength(1);
     expect(selection[0].id).toBe('char-1');
     expect(selection[0].includeReference).toBe(true);
     expect(typeof selection[0].includeReference).toBe('boolean'); // Not a signal
@@ -347,7 +347,7 @@ describe('WorldbuildingElementSelectorComponent', () => {
     await component.addElement(mockElements[0]);
 
     expect(consoleSpy).toHaveBeenCalled();
-    expect(component.selectedElements().length).toBe(1);
+    expect(component.selectedElements()).toHaveLength(1);
     consoleSpy.mockRestore();
   });
 
@@ -357,6 +357,6 @@ describe('WorldbuildingElementSelectorComponent', () => {
     await fixture.whenStable();
 
     await component.addElement(mockElements[0]);
-    expect(component.selectedElements().length).toBe(0);
+    expect(component.selectedElements()).toHaveLength(0);
   });
 });

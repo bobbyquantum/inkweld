@@ -45,32 +45,37 @@ describe('extractTextFromXmlString', () => {
     expect(extractTextFromXmlString(xml)).toBe('A\nB\nC');
   });
 
-  it('preserves a ">" character inside a quoted attribute (regression)', () => {
-    // A naive /<[^>]+>/ or /<[^<>]+>/ regex would stop at the ">" inside the
-    // quoted title and leave ` b">` in the output. The quote-aware scanner
-    // must consume the whole tag.
-    const xml = '<link title="a > b">click here</link>';
-    expect(extractTextFromXmlString(xml)).toBe('click here');
-  });
-
-  it('preserves a "<" character inside a quoted attribute', () => {
-    const xml = '<link title="a < b">click here</link>';
-    expect(extractTextFromXmlString(xml)).toBe('click here');
-  });
-
-  it('handles single-quoted attributes containing ">"', () => {
-    const xml = "<link title='a > b'>click here</link>";
-    expect(extractTextFromXmlString(xml)).toBe('click here');
-  });
-
-  it('handles multiple attributes with quoted ">" on a self-closing tag', () => {
-    const xml = '<img alt="arrow -> right" src="x.png"/>Caption';
-    expect(extractTextFromXmlString(xml)).toBe('Caption');
-  });
-
-  it('handles nested quotes of the other flavor inside an attribute', () => {
-    const xml = '<link title="say \'hi > bye\'">click</link>';
-    expect(extractTextFromXmlString(xml)).toBe('click');
+  // A naive /<[^>]+>/ or /<[^<>]+>/ regex would stop at the ">" inside the
+  // quoted title and leave ` b">` in the output. The quote-aware scanner
+  // must consume the whole tag.
+  it.each<[string, string, string]>([
+    [
+      'preserves a ">" character inside a quoted attribute (regression)',
+      '<link title="a > b">click here</link>',
+      'click here',
+    ],
+    [
+      'preserves a "<" character inside a quoted attribute',
+      '<link title="a < b">click here</link>',
+      'click here',
+    ],
+    [
+      'handles single-quoted attributes containing ">"',
+      "<link title='a > b'>click here</link>",
+      'click here',
+    ],
+    [
+      'handles multiple attributes with quoted ">" on a self-closing tag',
+      '<img alt="arrow -> right" src="x.png"/>Caption',
+      'Caption',
+    ],
+    [
+      'handles nested quotes of the other flavor inside an attribute',
+      '<link title="say \'hi > bye\'">click</link>',
+      'click',
+    ],
+  ])('%s', (_description, xml, expected) => {
+    expect(extractTextFromXmlString(xml)).toBe(expected);
   });
 
   it('handles an unterminated tag gracefully', () => {

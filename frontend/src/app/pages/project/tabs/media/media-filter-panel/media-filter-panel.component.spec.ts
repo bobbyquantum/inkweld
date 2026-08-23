@@ -94,7 +94,7 @@ describe('MediaFilterPanelComponent', () => {
       ]);
       fixture.detectChanges();
       const selected = component.selectedElements();
-      expect(selected.length).toBe(2);
+      expect(selected).toHaveLength(2);
       expect(selected[0].name).toBe('Character');
     });
 
@@ -104,7 +104,7 @@ describe('MediaFilterPanelComponent', () => {
         { id: 'e1', name: 'Character', icon: 'person' },
       ]);
       fixture.detectChanges();
-      expect(component.selectedElements().length).toBe(1);
+      expect(component.selectedElements()).toHaveLength(1);
     });
   });
 
@@ -115,7 +115,7 @@ describe('MediaFilterPanelComponent', () => {
         { id: 't1', name: 'Hero', icon: 'star', color: '#ff0000' },
       ]);
       fixture.detectChanges();
-      expect(component.selectedTags().length).toBe(1);
+      expect(component.selectedTags()).toHaveLength(1);
       expect(component.selectedTags()[0].name).toBe('Hero');
     });
   });
@@ -212,7 +212,7 @@ describe('MediaFilterPanelComponent', () => {
   describe('categories', () => {
     it('should have predefined categories', () => {
       setup();
-      expect(component.categories.length).toBe(6);
+      expect(component.categories).toHaveLength(6);
       expect(component.categories[0].value).toBe('all');
     });
   });

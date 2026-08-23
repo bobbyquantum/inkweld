@@ -107,7 +107,7 @@ describe('SnapshotsDialogComponent', () => {
   it('should load snapshots on init', async () => {
     await fixture.whenStable();
     expect(snapshotServiceMock.listSnapshots).toHaveBeenCalledWith('doc-1');
-    expect(component.snapshots().length).toBe(2);
+    expect(component.snapshots()).toHaveLength(2);
   });
 
   it('should sort snapshots by date descending', async () => {

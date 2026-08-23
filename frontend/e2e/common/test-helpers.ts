@@ -362,14 +362,6 @@ export function generateUniqueSlug(prefix = 'test-project'): string {
 }
 
 /**
- * Wait for network idle (useful for API-heavy operations)
- * @param page Playwright page
- */
-export async function waitForNetworkIdle(page: Page): Promise<void> {
-  await page.waitForLoadState('networkidle');
-}
-
-/**
  * Clear all browser storage (localStorage, sessionStorage, cookies)
  * @param page Playwright page
  */
@@ -625,8 +617,6 @@ export async function openTagsTab(
 export async function openTagDialog(page: Page): Promise<void> {
   await page.getByTestId('new-tag-button').click();
   await page.getByTestId('tag-dialog-content').waitFor({ state: 'visible' });
-  // Wait for the dialog to be fully stable (animations complete)
-  await page.waitForLoadState('networkidle');
 }
 
 /**
@@ -640,7 +630,6 @@ export async function fillTagDialog(
 ): Promise<void> {
   const nameInput = page.getByTestId('tag-name-input');
   await expect(nameInput).toBeVisible();
-  await nameInput.click({ force: true });
   await nameInput.fill(name);
   await expect(nameInput).toHaveValue(name);
   // Wait for Angular to update the preview chip (confirms signal is set)

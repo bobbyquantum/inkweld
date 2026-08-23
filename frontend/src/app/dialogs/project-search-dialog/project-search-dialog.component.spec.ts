@@ -195,26 +195,23 @@ describe('ProjectSearchDialogComponent', () => {
       expect(component.selectedIndex()).toBe(1);
     });
 
-    it('ArrowDown does not exceed last result', () => {
-      component.selectedIndex.set(1);
-      const event = new KeyboardEvent('keydown', { key: 'ArrowDown' });
-      document.dispatchEvent(event);
-      expect(component.selectedIndex()).toBe(1);
-    });
-
-    it('ArrowUp decrements selectedIndex', () => {
-      component.selectedIndex.set(1);
-      const event = new KeyboardEvent('keydown', { key: 'ArrowUp' });
-      document.dispatchEvent(event);
-      expect(component.selectedIndex()).toBe(0);
-    });
-
-    it('ArrowUp does not go below 0', () => {
-      component.selectedIndex.set(0);
-      const event = new KeyboardEvent('keydown', { key: 'ArrowUp' });
-      document.dispatchEvent(event);
-      expect(component.selectedIndex()).toBe(0);
-    });
+    it.each<{
+      key: string;
+      startIndex: number;
+      expected: number;
+    }>([
+      { key: 'ArrowDown', startIndex: 1, expected: 1 },
+      { key: 'ArrowUp', startIndex: 1, expected: 0 },
+      { key: 'ArrowUp', startIndex: 0, expected: 0 },
+    ])(
+      '$key from index $startIndex -> $expected',
+      ({ key, startIndex, expected }) => {
+        component.selectedIndex.set(startIndex);
+        const event = new KeyboardEvent('keydown', { key });
+        document.dispatchEvent(event);
+        expect(component.selectedIndex()).toBe(expected);
+      }
+    );
 
     it('Escape closes the dialog', () => {
       const event = new KeyboardEvent('keydown', { key: 'Escape' });
@@ -488,12 +485,12 @@ describe('ProjectSearchDialogComponent', () => {
         done: true,
       });
       // Default page size is 50
-      expect(component.results.length).toBe(50);
+      expect(component.results).toHaveLength(50);
       expect(component.hasMoreResults()).toBe(true);
       expect(component.totalResults).toBe(80);
 
       component.loadMore();
-      expect(component.results.length).toBe(80);
+      expect(component.results).toHaveLength(80);
       expect(component.hasMoreResults()).toBe(false);
     });
   });

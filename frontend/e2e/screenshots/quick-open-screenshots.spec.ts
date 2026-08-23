@@ -66,8 +66,8 @@ async function openQuickOpen(page: Page): Promise<void> {
   await page.waitForSelector('[data-testid="quick-open-dialog"]', {
     state: 'visible',
   });
-  // Brief wait for results to populate
-  await page.waitForTimeout(300);
+  // Wait until the results have populated before capturing screenshots.
+  await expect(page.getByTestId('quick-open-result-0')).toBeVisible();
 }
 
 test.describe('Quick Open Screenshots', () => {
@@ -95,7 +95,10 @@ test.describe('Quick Open Screenshots', () => {
     await test.step('dialog filtered by search query', async () => {
       // Dialog is still open from previous step.
       await page.getByTestId('quick-open-search').fill('chapter');
-      await page.waitForTimeout(300);
+      // Exactly the three "Chapter …" documents match the query.
+      await expect(
+        page.locator('[data-testid^="quick-open-result-"]')
+      ).toHaveCount(3);
       await captureElementScreenshot(
         page,
         [page.locator('[data-testid="quick-open-dialog"]')],
@@ -124,7 +127,10 @@ test.describe('Quick Open Screenshots', () => {
 
     await test.step('dialog filtered by search query', async () => {
       await page.getByTestId('quick-open-search').fill('chapter');
-      await page.waitForTimeout(300);
+      // Exactly the three "Chapter …" documents match the query.
+      await expect(
+        page.locator('[data-testid^="quick-open-result-"]')
+      ).toHaveCount(3);
       await captureElementScreenshot(
         page,
         [page.locator('[data-testid="quick-open-dialog"]')],

@@ -164,7 +164,7 @@ describe('prompt-utils', () => {
 
       const result = formatReferenceImagesForOpenRouter(images);
 
-      expect(result.length).toBe(2);
+      expect(result).toHaveLength(2);
       expect(result[0].type).toBe('input_image');
       expect(result[0].image_url).toBe('data:image/png;base64,base64data1');
       expect(result[0].detail).toBe('auto');

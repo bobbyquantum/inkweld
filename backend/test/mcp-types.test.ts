@@ -14,7 +14,7 @@ describe('McpRpcError', () => {
     try {
       throw new McpRpcError(JSON_RPC_ERRORS.INVALID_REQUEST, 'Permission denied');
     } catch (err) {
-      expect(err instanceof McpRpcError).toBe(true);
+      expect(err).toBeInstanceOf(McpRpcError);
       expect((err as McpRpcError).code).toBe(JSON_RPC_ERRORS.INVALID_REQUEST);
     }
   });

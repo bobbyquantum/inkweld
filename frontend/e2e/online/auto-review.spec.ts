@@ -576,7 +576,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
 
       // Reload to force the SPA to re-fetch system features — the cached
       // signal still holds the previous `aiAutoReview: true` until then.
-      await page.reload({ waitUntil: 'networkidle' });
+      await page.reload({ waitUntil: 'domcontentloaded' });
 
       // Re-navigate to the README document since reload resets state.
       await page.getByTestId('element-README').click();

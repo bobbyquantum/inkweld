@@ -326,7 +326,7 @@
     color: var(--sys-on-surface-variant);
     line-height: 1.5;
     white-space: pre-wrap;
-    word-break: break-word;
+    overflow-wrap: break-word;
 
     // Highlighted match within snippet
     ::ng-deep mark {

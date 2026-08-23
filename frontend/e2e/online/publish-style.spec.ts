@@ -41,7 +41,6 @@ test.describe('Online Publish Style Editor', () => {
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
     await page.getByTestId('create-project-button').click();
     await page.waitForURL(new RegExp(uniqueSlug));
-    await page.waitForLoadState('networkidle');
     return uniqueSlug;
   }
 
@@ -104,7 +103,6 @@ test.describe('Online Publish Style Editor', () => {
     await expect(syncStatus.getByTestId('document-sync-dot')).toHaveClass(
       /synced/
     );
-    await page.waitForTimeout(2000);
 
     await createPublishPlan(page);
 
@@ -230,7 +228,6 @@ test.describe('Online Publish Style Editor', () => {
     // ---------- Setup: worldbuilding-demo template (has WB + chapters) ----
     const slug = `pub-regress-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     await page.goto('/create-project');
-    await page.waitForLoadState('networkidle');
     // Step 1: choose the worldbuilding-demo template, then advance.
     await page.getByTestId('template-worldbuilding-demo').click();
     await page.getByTestId('next-button').click();
@@ -238,7 +235,6 @@ test.describe('Online Publish Style Editor', () => {
     await page.getByTestId('project-slug-input').fill(slug);
     await page.getByTestId('create-project-button').click();
     await page.waitForURL(new RegExp(slug));
-    await page.waitForLoadState('networkidle');
     // Open the README element so the sync indicator is mounted, then wait
     // for the post-template sync to settle. The project landing page does
     // not render the sync status until an editor is open.

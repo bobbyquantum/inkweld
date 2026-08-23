@@ -324,95 +324,59 @@ describe('AdminSettingsComponent', () => {
   });
 
   describe('savePasswordMinLength', () => {
-    it('should clamp empty string to 8 (default)', async () => {
+    it.each<{
+      description: string;
+      input: string;
+      savedValue: string;
+      expectedMinLength: number;
+    }>([
+      {
+        description: 'should clamp empty string to 8 (default)',
+        input: '',
+        savedValue: '8',
+        expectedMinLength: 8,
+      },
+      {
+        description: 'should clamp non-numeric input to 8 (default)',
+        input: 'abc',
+        savedValue: '8',
+        expectedMinLength: 8,
+      },
+      {
+        description: 'should clamp negative input to 1',
+        input: '-5',
+        savedValue: '1',
+        expectedMinLength: 1,
+      },
+      {
+        description: 'should clamp zero to default of 8 (falsy)',
+        input: '0',
+        savedValue: '8',
+        expectedMinLength: 8,
+      },
+      {
+        description: 'should accept a valid positive number',
+        input: '12',
+        savedValue: '12',
+        expectedMinLength: 12,
+      },
+    ])('$description', async ({ input, savedValue, expectedMinLength }) => {
       fixture.detectChanges();
       flushAllConfigRequests(httpMock);
       await flushMicrotasks();
 
-      const savePromise = component.savePasswordMinLength('');
-
-      const putReq = httpMock.expectOne(
-        '/api/v1/admin/config/PASSWORD_MIN_LENGTH'
-      );
-      expect(putReq.request.body).toEqual({ value: '8' });
-      putReq.flush(null);
-
-      await savePromise;
-
-      expect(component.passwordMinLength()).toBe(8);
-    });
-
-    it('should clamp non-numeric input to 8 (default)', async () => {
-      fixture.detectChanges();
-      flushAllConfigRequests(httpMock);
-      await flushMicrotasks();
-
-      const savePromise = component.savePasswordMinLength('abc');
-
-      const putReq = httpMock.expectOne(
-        '/api/v1/admin/config/PASSWORD_MIN_LENGTH'
-      );
-      expect(putReq.request.body).toEqual({ value: '8' });
-      putReq.flush(null);
-
-      await savePromise;
-
-      expect(component.passwordMinLength()).toBe(8);
-    });
-
-    it('should clamp negative input to 1', async () => {
-      fixture.detectChanges();
-      flushAllConfigRequests(httpMock);
-      await flushMicrotasks();
-
-      const savePromise = component.savePasswordMinLength('-5');
-
-      const putReq = httpMock.expectOne(
-        '/api/v1/admin/config/PASSWORD_MIN_LENGTH'
-      );
-      expect(putReq.request.body).toEqual({ value: '1' });
-      putReq.flush(null);
-
-      await savePromise;
-
-      expect(component.passwordMinLength()).toBe(1);
-    });
-
-    it('should clamp zero to default of 8 (falsy)', async () => {
-      fixture.detectChanges();
-      flushAllConfigRequests(httpMock);
-      await flushMicrotasks();
-
-      const savePromise = component.savePasswordMinLength('0');
+      const savePromise = component.savePasswordMinLength(input);
 
       const putReq = httpMock.expectOne(
         '/api/v1/admin/config/PASSWORD_MIN_LENGTH'
       );
       // parseInt('0') returns 0, which is falsy, so || 8 gives 8
-      expect(putReq.request.body).toEqual({ value: '8' });
+      expect(putReq.request.body).toEqual({ value: savedValue });
       putReq.flush(null);
 
       await savePromise;
 
-      expect(component.passwordMinLength()).toBe(8);
-    });
-
-    it('should accept a valid positive number', async () => {
-      fixture.detectChanges();
-      flushAllConfigRequests(httpMock);
-      await flushMicrotasks();
-
-      const savePromise = component.savePasswordMinLength('12');
-
-      const putReq = httpMock.expectOne(
-        '/api/v1/admin/config/PASSWORD_MIN_LENGTH'
-      );
-      expect(putReq.request.body).toEqual({ value: '12' });
-      putReq.flush(null);
-
-      await savePromise;
-
-      expect(component.passwordMinLength()).toBe(12);
+      expect(component.passwordMinLength()).toBe(expectedMinLength);
     });
   });
 

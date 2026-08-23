@@ -30,7 +30,6 @@ async function navigateToTagsTab(
   await expect(page.getByTestId('settings-tab-content')).toBeVisible();
   await page.getByTestId('nav-tags').click();
   await expect(page.getByTestId('tags-tab')).toBeVisible();
-  await page.waitForLoadState('networkidle');
 }
 
 function uniqueName(prefix: string): string {
@@ -117,7 +116,6 @@ test.describe('Tags Tab', () => {
 
       editedName = uniqueName('RevisedName');
       const nameInput = page.getByTestId('tag-name-input');
-      await nameInput.click({ force: true });
       await nameInput.fill(editedName);
       await expect(nameInput).toHaveValue(editedName);
       await expect(page.getByTestId('tag-dialog-save')).toBeEnabled();

@@ -21,7 +21,6 @@ test.describe('Cover Auto-Sync on Home Screen', () => {
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
     await page.getByTestId('create-project-button').click();
     await page.waitForURL(new RegExp(uniqueSlug));
-    await page.waitForLoadState('networkidle');
 
     // Capture console errors
     const consoleErrors: string[] = [];
@@ -33,7 +32,6 @@ test.describe('Cover Auto-Sync on Home Screen', () => {
 
     // Navigate to home screen
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
 
     // Project card should display with a fallback/placeholder (no crash)
     const projectCard = page.getByTestId('project-card').first();
@@ -43,7 +41,7 @@ test.describe('Cover Auto-Sync on Home Screen', () => {
     const coverSyncErrors = consoleErrors.filter(
       e => e.includes('CoverSync') || e.includes('cover-sync')
     );
-    expect(coverSyncErrors.length).toBe(0);
+    expect(coverSyncErrors).toHaveLength(0);
   });
 
   test('should not make cover media requests for projects without covers', async ({
@@ -57,12 +55,10 @@ test.describe('Cover Auto-Sync on Home Screen', () => {
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
     await page.getByTestId('create-project-button').click();
     await page.waitForURL(new RegExp(uniqueSlug));
-    await page.waitForLoadState('networkidle');
 
     // First visit to home
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await expect(page.getByTestId('project-card').first()).toBeVisible();
 
     // Track media requests on second visit
     const mediaRequests: string[] = [];
@@ -79,14 +75,12 @@ test.describe('Cover Auto-Sync on Home Screen', () => {
 
     // Navigate away and back to home
     await page.goto('/create-project');
-    await page.waitForLoadState('networkidle');
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await expect(page.getByTestId('project-card').first()).toBeVisible();
 
     // coverImage is null on this project, so the sync service skips it entirely
     // No cover media requests should be made
-    expect(mediaRequests.length).toBe(0);
+    expect(mediaRequests).toHaveLength(0);
   });
 
   test('should trigger cover sync requests on home screen for projects with covers', async ({
@@ -103,7 +97,6 @@ test.describe('Cover Auto-Sync on Home Screen', () => {
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
     await page.getByTestId('create-project-button').click();
     await page.waitForURL(new RegExp(uniqueSlug));
-    await page.waitForLoadState('networkidle');
 
     // Upload a small cover directly via the media endpoint (no image processing)
     const smallJpeg = Buffer.from(
@@ -143,7 +136,6 @@ test.describe('Cover Auto-Sync on Home Screen', () => {
 
     // Navigate to home
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
 
     // Project card should be visible
     const projectCard = page.getByTestId('project-card').first();

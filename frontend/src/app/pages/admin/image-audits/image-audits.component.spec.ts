@@ -115,7 +115,7 @@ describe('AdminImageAuditsComponent', () => {
       const longPrompt =
         'This is a very long prompt that exceeds the default maximum length of eighty characters and should be truncated';
       const result = component.truncatePrompt(longPrompt);
-      expect(result.length).toBe(83); // 80 + '...'
+      expect(result).toHaveLength(83); // 80 + '...'
       expect(result.endsWith('...')).toBe(true);
     });
 

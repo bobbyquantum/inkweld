@@ -38,12 +38,13 @@ async function createDocumentWithContent(
   await dialogInput.waitFor({ state: 'visible' });
   await dialogInput.fill(name);
   await page.getByTestId('create-element-button').click();
-  await page.waitForTimeout(300);
 
   const editor = page.locator('.ProseMirror').first();
   await editor.click();
   await editor.fill(body);
-  await page.waitForTimeout(300);
+  await expect(
+    page.getByTestId('document-sync-status').getByTestId('document-sync-dot')
+  ).toHaveClass(/synced/);
 }
 
 test.describe('Project Search', () => {
@@ -113,8 +114,6 @@ test.describe('Project Search', () => {
       await expect(dialog).toBeVisible();
 
       await input.fill('dragon');
-      // Scan is debounced; allow it to complete.
-      await page.waitForTimeout(1500);
 
       await expect(results).toBeVisible();
       await expect(results).toContainText('Dragon Story');
@@ -123,7 +122,6 @@ test.describe('Project Search', () => {
     await test.step('arrow keys navigate between matching results', async () => {
       // Switch to a query that matches multiple docs.
       await input.fill('zebrafish');
-      await page.waitForTimeout(1500);
 
       const firstResult = page.getByTestId('project-search-result-0');
       await expect(firstResult).toBeVisible();
@@ -153,7 +151,6 @@ test.describe('Project Search', () => {
     // We are on the projects list page, not inside a project; the global
     // shortcut should be a no-op so users don't get confused.
     await pressShortcut(page, 'Shift+f');
-    await page.waitForTimeout(300);
     await expect(page.getByTestId('project-search-dialog')).not.toBeVisible();
   });
 });

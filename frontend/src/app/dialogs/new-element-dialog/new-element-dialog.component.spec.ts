@@ -229,40 +229,40 @@ describe('NewElementDialogComponent', () => {
     it('should filter options by label', () => {
       component.searchQuery.set('folder');
       const filtered = component.filteredOptions();
-      expect(filtered.length).toBe(1);
+      expect(filtered).toHaveLength(1);
       expect(filtered[0].type).toBe(ElementType.Folder);
     });
 
     it('should filter options by description', () => {
       component.searchQuery.set('narrative');
       const filtered = component.filteredOptions();
-      expect(filtered.length).toBe(1);
+      expect(filtered).toHaveLength(1);
       expect(filtered[0].type).toBe(ElementType.Item);
     });
 
     it('should be case insensitive', () => {
       component.searchQuery.set('FOLDER');
       const filtered = component.filteredOptions();
-      expect(filtered.length).toBe(1);
+      expect(filtered).toHaveLength(1);
       expect(filtered[0].type).toBe(ElementType.Folder);
     });
 
     it('should return empty when no match', () => {
       component.searchQuery.set('nonexistent');
-      expect(component.filteredOptions().length).toBe(0);
+      expect(component.filteredOptions()).toHaveLength(0);
     });
   });
 
   describe('category grouping', () => {
     it('should separate document options', () => {
       const docOptions = component.documentOptions();
-      expect(docOptions.length).toBe(2); // Folder and Document
+      expect(docOptions).toHaveLength(2); // Folder and Document
       expect(docOptions.every(o => o.category === 'document')).toBe(true);
     });
 
     it('should start with no worldbuilding options', () => {
       const wbOptions = component.worldbuildingOptions();
-      expect(wbOptions.length).toBe(0);
+      expect(wbOptions).toHaveLength(0);
     });
   });
 
@@ -316,7 +316,7 @@ describe('NewElementDialogComponent', () => {
       expect(mockWorldbuildingService.getAllSchemas).toHaveBeenCalled();
 
       const wbOptions = component.worldbuildingOptions();
-      expect(wbOptions.length).toBe(2);
+      expect(wbOptions).toHaveLength(2);
       expect(wbOptions[0].schemaId).toBe('character-v1');
       expect(wbOptions[1].schemaId).toBe('location-v1');
     });
@@ -336,7 +336,7 @@ describe('NewElementDialogComponent', () => {
 
       expect(consoleErrorSpy).toHaveBeenCalled();
       // Should still have default document types
-      expect(component.documentOptions().length).toBe(2);
+      expect(component.documentOptions()).toHaveLength(2);
 
       consoleErrorSpy.mockRestore();
     });
@@ -367,7 +367,7 @@ describe('NewElementDialogComponent', () => {
 
       component.searchQuery.set('character');
       const filtered = component.filteredOptions();
-      expect(filtered.length).toBe(1);
+      expect(filtered).toHaveLength(1);
       expect(filtered[0].schemaId).toBe('character-v1');
     });
   });

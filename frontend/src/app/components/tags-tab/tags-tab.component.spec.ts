@@ -127,7 +127,7 @@ describe('TagsTabComponent', () => {
     });
 
     it('should have error null by default', () => {
-      expect(component.error()).toBe(null);
+      expect(component.error()).toBeNull();
     });
   });
 
@@ -176,18 +176,18 @@ describe('TagsTabComponent', () => {
 
     it('should return all tags when no search query', () => {
       component.searchQuery.set('');
-      expect(component.filteredTags().length).toBe(2);
+      expect(component.filteredTags()).toHaveLength(2);
     });
 
     it('should filter tags by name', () => {
       component.searchQuery.set('prot');
-      expect(component.filteredTags().length).toBe(1);
+      expect(component.filteredTags()).toHaveLength(1);
       expect(component.filteredTags()[0].name).toBe('Protagonist');
     });
 
     it('should be case-insensitive', () => {
       component.searchQuery.set('COMPLETE');
-      expect(component.filteredTags().length).toBe(1);
+      expect(component.filteredTags()).toHaveLength(1);
       expect(component.filteredTags()[0].name).toBe('Complete');
     });
   });

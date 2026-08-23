@@ -39,12 +39,16 @@ test.describe('Server Unavailable - Local First Behavior', () => {
         .getByTestId('project-description-input')
         .fill('Created while server is unavailable');
 
-      // Submit
+      // Submit — the creation attempt fails while the API is unreachable,
+      // and that failure is what triggers the local-first fallback.
+      const createFailure = page.waitForEvent(
+        'requestfailed',
+        request =>
+          request.method() === 'POST' &&
+          request.url().includes('/api/v1/projects')
+      );
       await page.getByTestId('create-project-button').click();
-
-      // Should not show a fatal error - project should be created locally
-      // Give it time to attempt server, fail, and fall back to local
-      await page.waitForTimeout(2000);
+      await createFailure.catch(() => {});
 
       // The app should either redirect to project or show a gentle offline indicator
       // It should NOT show a blocking error dialog
@@ -76,9 +80,14 @@ test.describe('Server Unavailable - Local First Behavior', () => {
       const uniqueSlug = `pending-sync-${Date.now()}`;
       await page.getByTestId('project-title-input').fill('Pending Sync Test');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
+      const createFailure = page.waitForEvent(
+        'requestfailed',
+        request =>
+          request.method() === 'POST' &&
+          request.url().includes('/api/v1/projects')
+      );
       await page.getByTestId('create-project-button').click();
-
-      await page.waitForTimeout(2000);
+      await createFailure.catch(() => {});
 
       // Look for any sync status indicator showing pending/offline state
       // This might be in the UI after local fallback
@@ -107,9 +116,14 @@ test.describe('Server Unavailable - Local First Behavior', () => {
       const uniqueSlug = `sync-recovery-${Date.now()}`;
       await page.getByTestId('project-title-input').fill('Sync Recovery Test');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
+      const createFailure = page.waitForEvent(
+        'requestfailed',
+        request =>
+          request.method() === 'POST' &&
+          request.url().includes('/api/v1/projects')
+      );
       await page.getByTestId('create-project-button').click();
-
-      await page.waitForTimeout(2000);
+      await createFailure.catch(() => {});
 
       // Restore server connectivity
       await page.serverControl.restore();
@@ -150,10 +164,14 @@ test.describe('Server Unavailable - Local First Behavior', () => {
       const uniqueSlug = `partial-outage-${Date.now()}`;
       await page.getByTestId('project-title-input').fill('Partial Outage Test');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
+      const createFailure = page.waitForEvent(
+        'requestfailed',
+        request =>
+          request.method() === 'POST' &&
+          request.url().includes('/api/v1/projects')
+      );
       await page.getByTestId('create-project-button').click();
-
-      // Wait for fallback
-      await page.waitForTimeout(2000);
+      await createFailure.catch(() => {});
 
       // Should not crash or show fatal error
       await expect(page.getByText(/fatal|crash/i)).not.toBeVisible();
@@ -179,12 +197,16 @@ test.describe('Server Unavailable - Local First Behavior', () => {
       await page.getByTestId('project-title-input').fill('Slow Network Test');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
 
-      // Click create - this will be slow
+      // Click create — the request times out (unreliable network), and the
+      // resulting failure is what triggers the local fallback.
+      const createFailure = page.waitForEvent(
+        'requestfailed',
+        request =>
+          request.method() === 'POST' &&
+          request.url().includes('/api/v1/projects')
+      );
       await page.getByTestId('create-project-button').click();
-
-      // Should show loading state then eventually succeed locally
-      // Give it time for the request to timeout and fall back
-      await page.waitForTimeout(5000);
+      await createFailure.catch(() => {});
 
       // Should not be stuck in error state
       await expect(page.getByText(/fatal error/i)).not.toBeVisible();

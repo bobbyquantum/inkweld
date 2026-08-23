@@ -278,7 +278,13 @@ test.describe('OAuth Consent Screen', () => {
 
       await page.getByRole('button', { name: 'Deny' }).click();
 
-      await page.waitForTimeout(1000);
+      // Wait for the intercepted redirect to fire; the original flow
+      // tolerates it never happening, so keep that behaviour.
+      try {
+        await expect.poll(() => deniedUrl, { timeout: 5_000 }).toBeTruthy();
+      } catch {
+        // Redirect did not occur — assertions below stay conditional.
+      }
       if (deniedUrl) {
         const url = new URL(deniedUrl);
         expect(url.searchParams.get('error')).toBe('access_denied');

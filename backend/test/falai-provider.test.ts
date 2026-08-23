@@ -49,7 +49,7 @@ describe('FalAiImageProvider', () => {
         models: customModels,
       });
       const models = provider.getModels();
-      expect(models.length).toBe(1);
+      expect(models).toHaveLength(1);
       expect(models[0].id).toBe('custom/model');
     });
   });
@@ -72,7 +72,7 @@ describe('FalAiImageProvider', () => {
       ];
       provider.setModels(customModels);
       const models = provider.getModels();
-      expect(models.length).toBe(2);
+      expect(models).toHaveLength(2);
       expect(models[0].id).toBe('test/model-1');
       expect(models[1].id).toBe('test/model-2');
     });
@@ -82,7 +82,7 @@ describe('FalAiImageProvider', () => {
     it('should update models list', () => {
       const newModels = [{ id: 'new/model', name: 'New Model' }];
       provider.setModels(newModels);
-      expect(provider.getModels().length).toBe(1);
+      expect(provider.getModels()).toHaveLength(1);
       expect(provider.getModels()[0].id).toBe('new/model');
     });
 
@@ -90,7 +90,7 @@ describe('FalAiImageProvider', () => {
       const originalCount = provider.getModels().length;
       provider.setModels([]);
       // Empty array should not change models (keeps defaults)
-      expect(provider.getModels().length).toBe(originalCount);
+      expect(provider.getModels()).toHaveLength(originalCount);
     });
   });
 

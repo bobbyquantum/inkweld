@@ -114,30 +114,45 @@ describe('FindPlugin', () => {
       expect(state?.currentMatchIndex).toBe(0);
     });
 
-    it('should be case-insensitive by default', () => {
-      const view = createEditorWithText('Hello HELLO hello');
-      dispatchSearch(view, 'hello');
+    it.each<{
+      description: string;
+      text: string;
+      query: string;
+      expectedMatches: number;
+      expectedCurrentIndex?: number;
+    }>([
+      {
+        description: 'should be case-insensitive by default',
+        text: 'Hello HELLO hello',
+        query: 'hello',
+        expectedMatches: 3,
+      },
+      {
+        description: 'should find no matches for non-existent text',
+        text: 'Hello world',
+        query: 'xyz',
+        expectedMatches: 0,
+        expectedCurrentIndex: -1,
+      },
+      {
+        description: 'should handle empty query',
+        text: 'Hello world',
+        query: '',
+        expectedMatches: 0,
+      },
+    ])(
+      '$description',
+      ({ text, query, expectedMatches, expectedCurrentIndex }) => {
+        const view = createEditorWithText(text);
+        dispatchSearch(view, query);
 
-      const state = getFindState(view);
-      expect(state?.matches.length).toBe(3);
-    });
-
-    it('should find no matches for non-existent text', () => {
-      const view = createEditorWithText('Hello world');
-      dispatchSearch(view, 'xyz');
-
-      const state = getFindState(view);
-      expect(state?.matches.length).toBe(0);
-      expect(state?.currentMatchIndex).toBe(-1);
-    });
-
-    it('should handle empty query', () => {
-      const view = createEditorWithText('Hello world');
-      dispatchSearch(view, '');
-
-      const state = getFindState(view);
-      expect(state?.matches.length).toBe(0);
-    });
+        const state = getFindState(view);
+        expect(state?.matches.length).toBe(expectedMatches);
+        if (expectedCurrentIndex !== undefined) {
+          expect(state?.currentMatchIndex).toBe(expectedCurrentIndex);
+        }
+      }
+    );
 
     it('should find overlapping matches', () => {
       const view = createEditorWithText('aaa');

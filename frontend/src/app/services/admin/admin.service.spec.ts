@@ -202,7 +202,7 @@ describe('AdminService', () => {
       await promise;
 
       // Should have appended the new users
-      expect(service.users().length).toBe(TEST_USERS.length + 1);
+      expect(service.users()).toHaveLength(TEST_USERS.length + 1);
     });
   });
 
@@ -475,7 +475,7 @@ describe('AdminService', () => {
       await service.deleteUser('2');
 
       expect(service.users().find(u => u.id === '2')).toBeUndefined();
-      expect(service.users().length).toBe(1);
+      expect(service.users()).toHaveLength(1);
     });
 
     it('should also remove from pending users list', async () => {
@@ -588,7 +588,7 @@ describe('AdminService', () => {
       expect(error.name).toBe('AdminServiceError');
       expect(error.code).toBe('FORBIDDEN');
       expect(error.message).toBe('Test message');
-      expect(error instanceof Error).toBe(true);
+      expect(error).toBeInstanceOf(Error);
     });
   });
 });

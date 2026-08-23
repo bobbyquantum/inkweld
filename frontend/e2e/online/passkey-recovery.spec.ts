@@ -22,7 +22,6 @@ test.describe('Passkey recovery (magic link)', () => {
     anonymousPage,
   }) => {
     await anonymousPage.goto('/recover-passkey');
-    await anonymousPage.waitForLoadState('networkidle');
 
     await expect(
       anonymousPage.getByTestId('recover-passkey-page')
@@ -44,7 +43,6 @@ test.describe('Passkey recovery (magic link)', () => {
     // The backend deliberately returns the same response whether or not
     // the email matches a real user (to avoid disclosing account existence).
     await anonymousPage.goto('/recover-passkey');
-    await anonymousPage.waitForLoadState('networkidle');
 
     await anonymousPage
       .getByTestId('recover-email-input')
@@ -58,7 +56,6 @@ test.describe('Passkey recovery (magic link)', () => {
     anonymousPage,
   }) => {
     await anonymousPage.goto('/recover-passkey/redeem');
-    await anonymousPage.waitForLoadState('networkidle');
 
     await expect(
       anonymousPage.getByTestId('recover-passkey-redeem-page')
@@ -75,7 +72,6 @@ test.describe('Passkey recovery (magic link)', () => {
     await anonymousPage.goto(
       '/recover-passkey/redeem?token=playwright-placeholder-token'
     );
-    await anonymousPage.waitForLoadState('networkidle');
 
     await expect(
       anonymousPage.getByTestId('recover-passkey-redeem-page')

@@ -107,19 +107,19 @@ describe('ElementRefService', () => {
   describe('searchElements', () => {
     it('should return all elements when no query', () => {
       const results = service.searchElements('');
-      expect(results.length).toBe(5);
+      expect(results).toHaveLength(5);
     });
 
     it('should filter by name', () => {
       const results = service.searchElements('john');
-      expect(results.length).toBe(2); // John Smith and Jane Johnson
+      expect(results).toHaveLength(2); // John Smith and Jane Johnson
       expect(results.some(r => r.element.name === 'John Smith')).toBe(true);
       expect(results.some(r => r.element.name === 'Jane Johnson')).toBe(true);
     });
 
     it('should filter by type', () => {
       const results = service.searchElements('worldbuilding');
-      expect(results.length).toBe(3);
+      expect(results).toHaveLength(3);
       expect(
         results.every(r => r.element.type === ElementType.Worldbuilding)
       ).toBe(true);
@@ -127,14 +127,14 @@ describe('ElementRefService', () => {
 
     it('should respect limit option', () => {
       const results = service.searchElements('', { limit: 2 });
-      expect(results.length).toBe(2);
+      expect(results).toHaveLength(2);
     });
 
     it('should filter by types option', () => {
       const results = service.searchElements('', {
         types: [ElementType.Worldbuilding],
       });
-      expect(results.length).toBe(3);
+      expect(results).toHaveLength(3);
       expect(
         results.every(r => r.element.type === ElementType.Worldbuilding)
       ).toBe(true);
@@ -260,7 +260,7 @@ describe('ElementRefService', () => {
     it('should filter results based on search query', () => {
       service.setSearchQuery('john');
       const results = service.searchResults();
-      expect(results.length).toBe(2);
+      expect(results).toHaveLength(2);
       expect(results.some(r => r.element.name === 'John Smith')).toBe(true);
       expect(results.some(r => r.element.name === 'Jane Johnson')).toBe(true);
     });
@@ -268,20 +268,20 @@ describe('ElementRefService', () => {
     it('should filter by type in search query', () => {
       service.setSearchQuery('castle');
       const results = service.searchResults();
-      expect(results.length).toBe(1);
+      expect(results).toHaveLength(1);
       expect(results[0].element.type).toBe(ElementType.Worldbuilding);
     });
 
     it('should handle whitespace in queries', () => {
       service.setSearchQuery('   john   ');
       const results = service.searchResults();
-      expect(results.length).toBe(2);
+      expect(results).toHaveLength(2);
     });
 
     it('should return empty results for non-matching query', () => {
       service.setSearchQuery('nonexistent');
       const results = service.searchResults();
-      expect(results.length).toBe(0);
+      expect(results).toHaveLength(0);
     });
 
     it('should handle element with missing parent in path', () => {
@@ -304,7 +304,7 @@ describe('ElementRefService', () => {
       service.setSearchQuery('orphan');
       const results = service.searchResults();
 
-      expect(results.length).toBe(1);
+      expect(results).toHaveLength(1);
       expect(results[0].element.name).toBe('Orphan Element');
       // Path should be empty since parent doesn't exist
       expect(results[0].path).toBe('');

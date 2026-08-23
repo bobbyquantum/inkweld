@@ -256,7 +256,7 @@ describe('AddRelationshipDialogComponent', () => {
       fixture.detectChanges();
 
       const filtered = component.filteredElements();
-      expect(filtered.length).toBe(1);
+      expect(filtered).toHaveLength(1);
       expect(filtered[0].name).toBe('Character Alpha');
     });
   });

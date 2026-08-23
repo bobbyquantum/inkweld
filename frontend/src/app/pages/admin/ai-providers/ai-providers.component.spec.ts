@@ -139,7 +139,7 @@ describe('AdminAiProvidersComponent', () => {
       await flushPromises();
 
       expect(mockProvidersService.getAiProvidersStatus).toHaveBeenCalled();
-      expect(component.providers().length).toBe(5);
+      expect(component.providers()).toHaveLength(5);
       expect(component.isLoading()).toBe(false);
     });
 

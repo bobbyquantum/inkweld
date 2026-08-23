@@ -25,7 +25,7 @@ describe('ColorSwatchesComponent', () => {
   });
 
   it('should have a colors palette with 30 swatches', () => {
-    expect(component.colors.length).toBe(30);
+    expect(component.colors).toHaveLength(30);
   });
 
   it('should derive hexValue from selectedColor', () => {
