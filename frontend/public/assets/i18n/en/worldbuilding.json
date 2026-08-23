@@ -122,7 +122,13 @@
     "elementId": "Element ID:",
     "notProvided": "Not provided"
   },
-"schemaEdit": {
+  "relationshipField": {
+    "linkElement": "Link element",
+    "changeElement": "Change element",
+    "removeElement": "Remove link",
+    "deletedElement": "Deleted element"
+  },
+  "schemaEdit": {
     "addTab": "Add tab",
     "removeTab": "Remove tab",
     "removeTabTitle": "Remove tab?",

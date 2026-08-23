@@ -19,6 +19,7 @@ import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { type ElementTypeSchema, type TabSchema } from '@models/schema-types';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { RelationshipFieldService } from '@services/relationship/relationship-field.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 
 /**
@@ -65,6 +66,7 @@ interface TemplateSchema {
 export class TemplatesTabComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly relationshipFieldService = inject(RelationshipFieldService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly transloco = inject(TranslocoService);
   private readonly dialogGateway = inject(DialogGatewayService);
@@ -271,6 +273,10 @@ export class TemplatesTabComponent {
     }
 
     try {
+      // Remove auto-managed relationship types (and their links) owned by this
+      // template so deleting it doesn't orphan field-backed relationship types.
+      this.relationshipFieldService.removeTypesForSchema(template.id);
+
       this.worldbuildingService.deleteTemplate(template.id);
       // Close any open schema-editor tab for this template so autosave can't
       // recreate the deleted schema from the tab's cached copy.

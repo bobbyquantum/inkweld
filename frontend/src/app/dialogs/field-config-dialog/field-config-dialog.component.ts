@@ -20,7 +20,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { TranslocoModule } from '@jsverse/transloco';
-import type { FieldSchema } from '@models/schema-types';
+import { type FieldSchema } from '@models/schema-types';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 
 export interface FieldConfigDialogData {
   field: FieldSchema;
@@ -54,6 +55,7 @@ export type FieldConfigDialogResult = Partial<FieldSchema>;
 export class FieldConfigDialogComponent implements AfterViewInit {
   private readonly dialogRef = inject(MatDialogRef<FieldConfigDialogComponent>);
   protected readonly data = inject<FieldConfigDialogData>(MAT_DIALOG_DATA);
+  private readonly worldbuildingService = inject(WorldbuildingService);
 
   // Text inputs are NOT bound with [value]: in zoneless mode a [value] binding
   // re-runs during CD and can clobber a rapid programmatic fill()/select().
@@ -75,6 +77,15 @@ export class FieldConfigDialogComponent implements AfterViewInit {
   protected readonly span = signal(this.data.field.layout?.span ?? 12);
   protected readonly rows = signal(this.data.field.rows ?? 3);
 
+  protected readonly targetSchemaId = signal<string>(
+    this.data.field.targetSchemaId ?? ''
+  );
+  protected readonly multiple = signal(this.data.field.multiple ?? false);
+  protected readonly inverseLabel = signal(this.data.field.inverseLabel ?? '');
+
+  /** Schema choices for relationship fields (target element template). */
+  protected readonly schemaOptions = this.worldbuildingService.schemas;
+
   /** Cell indexes (0-11) for the 12-column span picker. */
   protected readonly spanCells = Array.from({ length: 12 }, (_, i) => i);
 
@@ -86,6 +97,8 @@ export class FieldConfigDialogComponent implements AfterViewInit {
     viewChild<ElementRef<HTMLInputElement>>('placeholderInput');
   private readonly descriptionInput =
     viewChild<ElementRef<HTMLTextAreaElement>>('descriptionInput');
+  private readonly inverseLabelInput =
+    viewChild<ElementRef<HTMLInputElement>>('inverseLabelInput');
 
   private spanDragging = false;
 
@@ -105,6 +118,7 @@ export class FieldConfigDialogComponent implements AfterViewInit {
       set(this.labelInput(), this.label());
       set(this.placeholderInput(), this.placeholder());
       set(this.descriptionInput(), this.description());
+      set(this.inverseLabelInput(), this.inverseLabel());
 
       // Seed existing option inputs (only present when the field already has
       // a select/multiselect type). New options are added empty by addOption().
@@ -120,6 +134,10 @@ export class FieldConfigDialogComponent implements AfterViewInit {
 
   protected isOptionsType(): boolean {
     return this.type() === 'select' || this.type() === 'multiselect';
+  }
+
+  protected isRelationshipType(): boolean {
+    return this.type() === 'relationship';
   }
 
   /** Set the span by clicking a grid cell (1-12). */
@@ -208,6 +226,14 @@ export class FieldConfigDialogComponent implements AfterViewInit {
 
     if (this.type() === 'textarea') {
       result.rows = this.clamp(this.rows(), 1, 20);
+    }
+
+    if (this.isRelationshipType()) {
+      const target = this.targetSchemaId();
+      result.targetSchemaId = target || undefined;
+      result.multiple = this.multiple();
+      const inverse = this.inverseLabel().trim();
+      result.inverseLabel = inverse || undefined;
     }
 
     this.dialogRef.close(result);

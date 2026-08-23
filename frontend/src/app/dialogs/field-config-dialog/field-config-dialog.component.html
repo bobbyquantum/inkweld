@@ -116,6 +116,59 @@
       </div>
     }
 
+    @if (isRelationshipType()) {
+      <div class="fc-relationship" data-testid="fc-relationship">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{
+            'templates.editor.relationshipTargetLabel' | transloco
+          }}</mat-label>
+          <mat-select
+            [value]="targetSchemaId()"
+            (selectionChange)="targetSchemaId.set($event.value)"
+            data-testid="fc-target-schema">
+            <mat-option value="" data-testid="fc-target-schema-any">
+              {{ 'templates.editor.relationshipTargetAny' | transloco }}
+            </mat-option>
+            @for (schema of schemaOptions(); track schema.id) {
+              <mat-option
+                [value]="schema.id"
+                [attr.data-testid]="'fc-target-schema-' + schema.id">
+                {{ schema.name }}
+              </mat-option>
+            }
+          </mat-select>
+          <mat-hint>{{
+            'templates.editor.relationshipTargetHint' | transloco
+          }}</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{
+            'templates.editor.relationshipInverseLabel' | transloco
+          }}</mat-label>
+          <input
+            matInput
+            id="fc-inverse-label"
+            #inverseLabelInput
+            [attr.aria-label]="
+              'templates.editor.relationshipInverseLabel' | transloco
+            "
+            [attr.placeholder]="
+              'templates.editor.relationshipInversePlaceholder' | transloco
+            "
+            (input)="inverseLabel.set($any($event.target).value)"
+            data-testid="fc-inverse-label" />
+        </mat-form-field>
+
+        <mat-checkbox
+          [checked]="multiple()"
+          (change)="multiple.set($event.checked)"
+          data-testid="fc-multiple">
+          {{ 'templates.editor.relationshipMultipleLabel' | transloco }}
+        </mat-checkbox>
+      </div>
+    }
+
     <div class="fc-row">
       <mat-checkbox
         [checked]="required()"

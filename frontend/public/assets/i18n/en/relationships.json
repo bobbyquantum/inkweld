@@ -11,6 +11,8 @@
     "noMatch": "No relationship types match your search",
     "clearFilter": "Clear filter",
     "inverseHidden": "Inverse links are hidden",
+    "fieldManaged": "Template field",
+    "fieldManagedHint": "Managed by a template relationship field. Edit it in the template editor.",
     "edit": "Edit",
     "duplicate": "Duplicate",
     "delete": "Delete",

@@ -91,6 +91,12 @@
     "layoutSpanHint": "How many of the 12 columns the field occupies",
     "spanDragAria": "Drag to set the column span",
     "rowsLabel": "Rows",
+    "relationshipTargetLabel": "Linked element template",
+    "relationshipTargetAny": "Any element",
+    "relationshipTargetHint": "Restrict which elements can be linked",
+    "relationshipInverseLabel": "Backlink label",
+    "relationshipInversePlaceholder": "e.g. Child of",
+    "relationshipMultipleLabel": "Allow multiple",
     "saving": "Saving...",
     "saveChanges": "Save Changes",
     "fieldConfigTitle": "Field Settings"

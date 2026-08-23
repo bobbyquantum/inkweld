@@ -51,6 +51,18 @@
   font-weight: 400;
   background: var(--sys-surface-container-highest);
   color: var(--sys-on-surface-variant);
+
+  &.field-managed {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+
+    .badge-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+  }
 }
 
 .type-meta {

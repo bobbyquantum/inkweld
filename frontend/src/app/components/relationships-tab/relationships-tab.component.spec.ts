@@ -540,4 +540,62 @@ describe('RelationshipsTabComponent', () => {
       ?.data as EditRelationshipTypeDialogData;
     expect(callArg?.availableSchemas).toEqual(mockSchemas);
   });
+
+  // ── field-managed types (auto-created by template relationship fields) ────
+
+  describe('field-managed types', () => {
+    const fieldManagedType: RelationshipTypeDefinition = {
+      id: 'fieldrel-mother',
+      name: 'Mother',
+      inverseLabel: 'Child of',
+      showInverse: true,
+      category: RelationshipCategory.Custom,
+      isBuiltIn: false,
+      sourceEndpoint: { allowedSchemas: ['character-v1'], maxCount: 1 },
+      targetEndpoint: { allowedSchemas: ['character-v1'], maxCount: null },
+      fieldSource: { schemaId: 'character-v1', fieldKey: 'mother' },
+    };
+
+    beforeEach(() => {
+      allTypesSignal.set([...mockTypes, fieldManagedType]);
+      vi.mocked(relationshipServiceMock.getTypeById!).mockImplementation(
+        (id: string) => [...mockTypes, fieldManagedType].find(t => t.id === id)
+      );
+      component.loadRelationshipTypes();
+    });
+
+    it('should mark types with a fieldSource as field-managed', () => {
+      const view = component
+        .relationshipTypes()
+        .find(t => t.id === 'fieldrel-mother');
+      expect(view?.isFieldManaged).toBe(true);
+
+      const normal = component.relationshipTypes().find(t => t.id === 'parent');
+      expect(normal?.isFieldManaged).toBe(false);
+    });
+
+    it('should not open the editor for a field-managed type', async () => {
+      const view = component
+        .relationshipTypes()
+        .find(t => t.id === 'fieldrel-mother')!;
+      await component.editType(view);
+      expect(dialogMock.open).not.toHaveBeenCalled();
+    });
+
+    it('should not delete a field-managed type', async () => {
+      const view = component
+        .relationshipTypes()
+        .find(t => t.id === 'fieldrel-mother')!;
+      await component.deleteType(view);
+      expect(relationshipServiceMock.removeCustomType).not.toHaveBeenCalled();
+    });
+
+    it('should render the field-managed badge', () => {
+      fixture.detectChanges();
+      const badges = fixture.nativeElement.querySelectorAll(
+        '[data-testid="type-field-managed-badge"]'
+      );
+      expect(badges.length).toBe(1);
+    });
+  });
 });

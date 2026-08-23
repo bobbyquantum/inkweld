@@ -7,6 +7,7 @@ import {
   type ElementAppearance,
 } from '@models/element-appearance';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
+import { nanoid } from 'nanoid';
 import { Subject, type Subscription } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { type WebsocketProvider } from 'y-websocket';
@@ -699,6 +700,12 @@ export class WorldbuildingService {
           tab.fields?.forEach(field => {
             const fieldKey = field.key;
 
+            // Relationship fields live in the central relationships store,
+            // never in the element data map.
+            if (field.type === 'relationship') {
+              return;
+            }
+
             // Handle nested fields (e.g., 'appearance.height')
             if (fieldKey.includes('.')) {
               const [parentKey, childKey] = fieldKey.split('.');
@@ -850,6 +857,18 @@ export class WorldbuildingService {
     const newId = `custom-${timestamp}`;
     const now = new Date().toISOString();
 
+    // Deep-clone the tabs so the copy never mutates the source template.
+    // Relationship fields get fresh backing-type ids so the clone manages its
+    // own relationship types instead of sharing the source's.
+    const clonedTabs = structuredClone(sourceSchema.tabs);
+    for (const tab of clonedTabs) {
+      for (const field of tab.fields ?? []) {
+        if (field.type === 'relationship' && field.relationshipTypeId) {
+          field.relationshipTypeId = `fieldrel-${nanoid(10)}`;
+        }
+      }
+    }
+
     // Clone the schema as a plain object
     const clonedSchema: ElementTypeSchema = {
       id: newId,
@@ -857,9 +876,13 @@ export class WorldbuildingService {
       icon: sourceSchema.icon,
       description: newDescription || `Clone of ${sourceSchema.name}`,
       version: 1,
-      tabs: sourceSchema.tabs,
-      defaultValues: sourceSchema.defaultValues,
-      defaultAppearance: sourceSchema.defaultAppearance,
+      tabs: clonedTabs,
+      defaultValues: sourceSchema.defaultValues
+        ? structuredClone(sourceSchema.defaultValues)
+        : undefined,
+      defaultAppearance: sourceSchema.defaultAppearance
+        ? structuredClone(sourceSchema.defaultAppearance)
+        : undefined,
       defaultImage: sourceSchema.defaultImage,
       createdAt: now,
       updatedAt: now,

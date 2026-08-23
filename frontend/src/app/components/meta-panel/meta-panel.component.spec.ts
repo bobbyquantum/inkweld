@@ -518,6 +518,81 @@ describe('MetaPanelComponent', () => {
 
       expect(relationshipServiceMock.addRelationship).not.toHaveBeenCalled();
     });
+
+    it('should replace an existing relationship when the type maxCount is 1', async () => {
+      relationshipServiceMock.allTypes.set([
+        {
+          id: 'fieldrel-mother',
+          name: 'Mother',
+          inverseLabel: 'Child of',
+          showInverse: true,
+          category: RelationshipCategory.Custom,
+          isBuiltIn: false,
+          sourceEndpoint: { allowedSchemas: [], maxCount: 1 },
+          targetEndpoint: { allowedSchemas: [], maxCount: null },
+        },
+      ]);
+      const existing: ElementRelationship = {
+        id: 'rel-existing',
+        sourceElementId: 'test-doc-id',
+        targetElementId: 'old-mother',
+        relationshipTypeId: 'fieldrel-mother',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      };
+      relationshipServiceMock.relationships.set([existing]);
+      dialogGatewayMock.openAddRelationshipDialog.mockResolvedValue({
+        targetElementId: 'new-mother',
+        relationshipTypeId: 'fieldrel-mother',
+      });
+      fixture.detectChanges();
+
+      await component.openAddRelationshipDialog();
+
+      expect(relationshipServiceMock.removeRelationship).toHaveBeenCalledWith(
+        'rel-existing'
+      );
+      expect(relationshipServiceMock.addRelationship).toHaveBeenCalledWith(
+        'test-doc-id',
+        'new-mother',
+        'fieldrel-mother',
+        { note: undefined }
+      );
+    });
+
+    it('should not remove relationships for types without maxCount', async () => {
+      relationshipServiceMock.allTypes.set([
+        {
+          id: 'friend',
+          name: 'Friend',
+          inverseLabel: 'Friend of',
+          showInverse: true,
+          category: RelationshipCategory.Social,
+          isBuiltIn: false,
+          sourceEndpoint: { allowedSchemas: [], maxCount: null },
+          targetEndpoint: { allowedSchemas: [], maxCount: null },
+        },
+      ]);
+      const existing: ElementRelationship = {
+        id: 'rel-existing',
+        sourceElementId: 'test-doc-id',
+        targetElementId: 'friend-1',
+        relationshipTypeId: 'friend',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      };
+      relationshipServiceMock.relationships.set([existing]);
+      dialogGatewayMock.openAddRelationshipDialog.mockResolvedValue({
+        targetElementId: 'friend-2',
+        relationshipTypeId: 'friend',
+      });
+      fixture.detectChanges();
+
+      await component.openAddRelationshipDialog();
+
+      expect(relationshipServiceMock.removeRelationship).not.toHaveBeenCalled();
+      expect(relationshipServiceMock.addRelationship).toHaveBeenCalled();
+    });
   });
 
   describe('tooltip methods', () => {

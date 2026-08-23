@@ -32,6 +32,7 @@ import {
   type FieldSchema,
   type TabSchema,
 } from '@models/schema-types';
+import { RelationshipFieldService } from '@services/relationship/relationship-field.service';
 
 interface BasicFormValue {
   name: string;
@@ -65,6 +66,7 @@ export class TemplateEditorPageComponent
 {
   private readonly destroyRef = inject(DestroyRef);
   private readonly transloco = inject(TranslocoService);
+  private readonly relationshipFieldService = inject(RelationshipFieldService);
 
   /** Exposed for the preview template. */
   readonly ElementType = ElementType;
@@ -185,6 +187,22 @@ export class TemplateEditorPageComponent
     });
 
     this.tabs.set(tabs);
+
+    // Self-heal: make sure every existing relationship field has a backing
+    // relationship type registered (idempotent).
+    this.ensureRelationshipTypes(tabs);
+  }
+
+  /** Ensure backing relationship types exist for all relationship fields. */
+  private ensureRelationshipTypes(tabs: TabSchema[]): void {
+    const schemaId = this.schema().id;
+    tabs.forEach(tab => {
+      tab.fields.forEach(field => {
+        if (this.relationshipFieldService.isRelationshipField(field)) {
+          this.relationshipFieldService.ensureTypeForField(schemaId, field);
+        }
+      });
+    });
   }
 
   ngAfterViewInit(): void {
@@ -365,6 +383,7 @@ export class TemplateEditorPageComponent
         this.addTab();
         break;
       case 'remove-tab':
+        this.cleanupRelationshipFieldsInTab(tabs, event.tabKey);
         this.removeTabByKey(tabs, event.tabKey);
         break;
       case 'update-tab':
@@ -374,11 +393,18 @@ export class TemplateEditorPageComponent
         this.addFieldToTab(tabs, event.tabKey);
         break;
       case 'remove-field':
+        this.cleanupRelationshipField(tabs, event.tabKey, event.fieldKey);
         this.operateField(tabs, event.tabKey, event.fieldKey, (t, f) =>
           this.removeField(t, f)
         );
         break;
       case 'update-field':
+        this.reconcileRelationshipField(
+          tabs,
+          event.tabKey,
+          event.fieldKey,
+          (event as { patch: Partial<FieldSchema> }).patch
+        );
         this.operateField(tabs, event.tabKey, event.fieldKey, (t, f) =>
           this.updateField(
             t,
@@ -464,6 +490,78 @@ export class TemplateEditorPageComponent
       const arr = next[tabIdx].fields;
       const [moved] = arr.splice(fieldIdx, 1);
       arr.splice(target, 0, moved);
+    });
+  }
+
+  /** Find a field by tab key + field key, or null when not present. */
+  private findFieldByKey(
+    tabs: TabSchema[],
+    tabKey: string,
+    fieldKey: string
+  ): FieldSchema | null {
+    const tab = tabs.find(t => t.key === tabKey);
+    return tab?.fields.find(f => f.key === fieldKey) ?? null;
+  }
+
+  /**
+   * Keep the backing relationship type in sync with an update-field patch.
+   * Stamps a new relationshipTypeId into the patch when a field becomes a
+   * relationship field, re-ensures the type on any relationship-field edit,
+   * and removes the type when a field stops being a relationship field.
+   */
+  private reconcileRelationshipField(
+    tabs: TabSchema[],
+    tabKey: string,
+    fieldKey: string,
+    patch: Partial<FieldSchema>
+  ): void {
+    const current = this.findFieldByKey(tabs, tabKey, fieldKey);
+    if (!current) return;
+
+    const wasRelationship =
+      this.relationshipFieldService.isRelationshipField(current);
+    const willBeRelationship =
+      patch.type !== undefined
+        ? patch.type === 'relationship'
+        : wasRelationship;
+
+    if (willBeRelationship) {
+      const merged: FieldSchema = { ...current, ...patch };
+      const stamped =
+        this.relationshipFieldService.stampRelationshipTypeId(merged);
+      patch.relationshipTypeId = stamped.relationshipTypeId;
+      this.relationshipFieldService.ensureTypeForField(
+        this.schema().id,
+        stamped
+      );
+    } else if (wasRelationship) {
+      this.relationshipFieldService.removeTypeForField(current, true);
+    }
+  }
+
+  /** Remove the backing relationship type when a relationship field is deleted. */
+  private cleanupRelationshipField(
+    tabs: TabSchema[],
+    tabKey: string,
+    fieldKey: string
+  ): void {
+    const field = this.findFieldByKey(tabs, tabKey, fieldKey);
+    if (field && this.relationshipFieldService.isRelationshipField(field)) {
+      this.relationshipFieldService.removeTypeForField(field, true);
+    }
+  }
+
+  /** Remove backing relationship types for all fields in a deleted tab. */
+  private cleanupRelationshipFieldsInTab(
+    tabs: TabSchema[],
+    tabKey: string
+  ): void {
+    const tab = tabs.find(t => t.key === tabKey);
+    if (!tab) return;
+    tab.fields.forEach(field => {
+      if (this.relationshipFieldService.isRelationshipField(field)) {
+        this.relationshipFieldService.removeTypeForField(field, true);
+      }
     });
   }
 

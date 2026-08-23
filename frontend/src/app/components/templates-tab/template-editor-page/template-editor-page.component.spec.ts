@@ -6,8 +6,10 @@ import { type ElementAppearance } from '@models/element-appearance';
 import {
   type ElementTypeSchema,
   type FieldSchema,
+  FieldType,
   type TabSchema,
 } from '@models/schema-types';
+import { RelationshipFieldService } from '@services/relationship/relationship-field.service';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,6 +19,12 @@ import { TemplateEditorPageComponent } from './template-editor-page.component';
 describe('TemplateEditorPageComponent', () => {
   let component: TemplateEditorPageComponent;
   let fixture: ComponentFixture<TemplateEditorPageComponent>;
+  let relationshipFieldService: {
+    isRelationshipField: ReturnType<typeof vi.fn>;
+    stampRelationshipTypeId: ReturnType<typeof vi.fn>;
+    ensureTypeForField: ReturnType<typeof vi.fn>;
+    removeTypeForField: ReturnType<typeof vi.fn>;
+  };
 
   const mockSchema: ElementTypeSchema = {
     id: 'character',
@@ -55,9 +63,32 @@ describe('TemplateEditorPageComponent', () => {
   } as ElementTypeSchema;
 
   beforeEach(async () => {
+    relationshipFieldService = {
+      isRelationshipField: vi
+        .fn()
+        .mockImplementation(
+          (field: FieldSchema) => field.type === 'relationship'
+        ),
+      stampRelationshipTypeId: vi
+        .fn()
+        .mockImplementation((field: FieldSchema) =>
+          field.type === 'relationship' && !field.relationshipTypeId
+            ? { ...field, relationshipTypeId: 'fieldrel-stamped' }
+            : field
+        ),
+      ensureTypeForField: vi.fn().mockReturnValue('fieldrel-stamped'),
+      removeTypeForField: vi.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), TemplateEditorPageComponent],
-      providers: [provideZonelessChangeDetection()],
+      providers: [
+        provideZonelessChangeDetection(),
+        {
+          provide: RelationshipFieldService,
+          useValue: relationshipFieldService,
+        },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TemplateEditorPageComponent);
@@ -400,6 +431,184 @@ describe('TemplateEditorPageComponent', () => {
         patch: { label: 'Nope' },
       });
       expect(component.tabs()).toEqual(original);
+    });
+  });
+
+  describe('relationship field lifecycle', () => {
+    it('should ensure types for existing relationship fields on init', () => {
+      relationshipFieldService.ensureTypeForField.mockClear();
+
+      const schemaWithRel: ElementTypeSchema = {
+        ...mockSchema,
+        tabs: [
+          {
+            key: 'rel',
+            label: 'Relationships',
+            fields: [
+              {
+                key: 'mother',
+                label: 'Mother',
+                type: FieldType.RELATIONSHIP,
+                relationshipTypeId: 'fieldrel-existing',
+              },
+            ],
+          },
+        ],
+      };
+
+      TestBed.resetTestingModule();
+      return TestBed.configureTestingModule({
+        imports: [translocoTestProvider(), TemplateEditorPageComponent],
+        providers: [
+          provideZonelessChangeDetection(),
+          {
+            provide: RelationshipFieldService,
+            useValue: relationshipFieldService,
+          },
+        ],
+      })
+        .compileComponents()
+        .then(() => {
+          const f = TestBed.createComponent(TemplateEditorPageComponent);
+          f.componentRef.setInput('schema', schemaWithRel);
+          f.detectChanges();
+          expect(
+            relationshipFieldService.ensureTypeForField
+          ).toHaveBeenCalledWith(
+            'character',
+            expect.objectContaining({ key: 'mother' })
+          );
+        });
+    });
+
+    it('should stamp a relationshipTypeId when a field becomes a relationship', () => {
+      component['onSchemaEdit']({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: { type: FieldType.RELATIONSHIP, label: 'Mother' },
+      });
+
+      const field = component.tabs()[0].fields.find(f => f.key === 'name');
+      expect(field?.type).toBe(FieldType.RELATIONSHIP);
+      expect(field?.relationshipTypeId).toBe('fieldrel-stamped');
+      expect(relationshipFieldService.ensureTypeForField).toHaveBeenCalledWith(
+        'character',
+        expect.objectContaining({ relationshipTypeId: 'fieldrel-stamped' })
+      );
+    });
+
+    it('should re-ensure the type when a relationship field is edited', () => {
+      component['onSchemaEdit']({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: { type: FieldType.RELATIONSHIP, label: 'Mother' },
+      });
+      relationshipFieldService.ensureTypeForField.mockClear();
+
+      component['onSchemaEdit']({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: { label: 'Renamed Mother' },
+      });
+
+      expect(relationshipFieldService.ensureTypeForField).toHaveBeenCalledWith(
+        'character',
+        expect.objectContaining({ label: 'Renamed Mother' })
+      );
+    });
+
+    it('should remove the type when a relationship field changes type', () => {
+      component['onSchemaEdit']({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: {
+          type: FieldType.RELATIONSHIP,
+          label: 'Mother',
+          relationshipTypeId: 'fieldrel-x',
+        },
+      });
+      relationshipFieldService.removeTypeForField.mockClear();
+
+      component['onSchemaEdit']({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: { type: FieldType.TEXT },
+      });
+
+      expect(relationshipFieldService.removeTypeForField).toHaveBeenCalledWith(
+        expect.objectContaining({ relationshipTypeId: 'fieldrel-x' }),
+        true
+      );
+    });
+
+    it('should remove the type when a relationship field is deleted', () => {
+      component['onSchemaEdit']({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: {
+          type: FieldType.RELATIONSHIP,
+          label: 'Mother',
+          relationshipTypeId: 'fieldrel-x',
+        },
+      });
+      relationshipFieldService.removeTypeForField.mockClear();
+
+      component['onSchemaEdit']({
+        type: 'remove-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+      });
+
+      expect(relationshipFieldService.removeTypeForField).toHaveBeenCalledWith(
+        expect.objectContaining({ relationshipTypeId: 'fieldrel-x' }),
+        true
+      );
+    });
+
+    it('should remove types for relationship fields when a tab is deleted', () => {
+      component['onSchemaEdit']({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: {
+          type: FieldType.RELATIONSHIP,
+          label: 'Mother',
+          relationshipTypeId: 'fieldrel-x',
+        },
+      });
+      relationshipFieldService.removeTypeForField.mockClear();
+
+      component['onSchemaEdit']({ type: 'remove-tab', tabKey: 'basic' });
+
+      expect(relationshipFieldService.removeTypeForField).toHaveBeenCalledWith(
+        expect.objectContaining({ relationshipTypeId: 'fieldrel-x' }),
+        true
+      );
+    });
+
+    it('should not touch relationship types for non-relationship field edits', () => {
+      relationshipFieldService.ensureTypeForField.mockClear();
+      relationshipFieldService.removeTypeForField.mockClear();
+
+      component['onSchemaEdit']({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'name',
+        patch: { label: 'Full name' },
+      });
+
+      expect(
+        relationshipFieldService.ensureTypeForField
+      ).not.toHaveBeenCalled();
+      expect(
+        relationshipFieldService.removeTypeForField
+      ).not.toHaveBeenCalled();
     });
   });
 

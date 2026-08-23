@@ -40,6 +40,8 @@ export interface ElementPickerDialogData {
   filterType?: ElementType;
   /** Element types to exclude from the list */
   excludeTypes?: ElementType[];
+  /** Filter to worldbuilding elements of a specific schema (template) id */
+  filterSchemaId?: string;
 }
 
 /**
@@ -99,6 +101,11 @@ export class ElementPickerDialogComponent {
     if (excludeTypes?.length) {
       const excludeSet = new Set(excludeTypes);
       filtered = filtered.filter(el => !excludeSet.has(el.type));
+    }
+
+    const filterSchemaId = this.data.filterSchemaId;
+    if (filterSchemaId) {
+      filtered = filtered.filter(el => el.schemaId === filterSchemaId);
     }
 
     return filtered;

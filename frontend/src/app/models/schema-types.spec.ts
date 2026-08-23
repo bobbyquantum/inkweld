@@ -40,6 +40,10 @@ describe('schema-types', () => {
     it('should have CHECKBOX type', () => {
       expect(FieldType.CHECKBOX).toBe('checkbox');
     });
+
+    it('should have RELATIONSHIP type', () => {
+      expect(FieldType.RELATIONSHIP).toBe('relationship');
+    });
   });
 
   describe('type interfaces', () => {
@@ -119,6 +123,37 @@ describe('schema-types', () => {
 
         expect(field.isNested).toBe(true);
         expect(field.nestedFields).toHaveLength(2);
+      });
+
+      it('should accept relationship field configuration', () => {
+        const field: FieldSchema = {
+          key: 'mother',
+          label: 'Mother',
+          type: FieldType.RELATIONSHIP,
+          targetSchemaId: 'character-schema',
+          multiple: false,
+          inverseLabel: 'Child of',
+          relationshipTypeId: 'rel-type-mother',
+        };
+
+        expect(field.type).toBe(FieldType.RELATIONSHIP);
+        expect(field.targetSchemaId).toBe('character-schema');
+        expect(field.multiple).toBe(false);
+        expect(field.inverseLabel).toBe('Child of');
+        expect(field.relationshipTypeId).toBe('rel-type-mother');
+      });
+
+      it('should allow relationship fields without optional config', () => {
+        const field: FieldSchema = {
+          key: 'allies',
+          label: 'Allies',
+          type: FieldType.RELATIONSHIP,
+        };
+
+        expect(field.targetSchemaId).toBeUndefined();
+        expect(field.multiple).toBeUndefined();
+        expect(field.inverseLabel).toBeUndefined();
+        expect(field.relationshipTypeId).toBeUndefined();
       });
     });
 

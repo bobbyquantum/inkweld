@@ -745,6 +745,74 @@ describe('WorldbuildingEditorComponent', () => {
     });
   });
 
+  describe('relationship fields', () => {
+    const schemaWithRelationship: ElementTypeSchema = {
+      ...mockCharacterSchema,
+      tabs: [
+        {
+          key: 'basic',
+          label: 'Basic Info',
+          fields: [
+            { key: 'name', label: 'Name', type: 'text' },
+            {
+              key: 'mother',
+              label: 'Mother',
+              type: 'relationship',
+              relationshipTypeId: 'fieldrel-mother',
+            },
+          ],
+        },
+      ],
+    };
+
+    it('should create a control for relationship fields', () => {
+      component['buildFormFromSchema'](schemaWithRelationship);
+      const control = component.form().get('mother');
+      expect(control).toBeDefined();
+      expect(control?.value).toEqual([]);
+    });
+
+    it('should exclude relationship fields from saved data', async () => {
+      component['schema'].set(schemaWithRelationship);
+      component['buildFormFromSchema'](schemaWithRelationship);
+      component.form().patchValue({ name: 'Hero', mother: ['mother-el'] });
+
+      await component['saveData']();
+
+      expect(worldbuildingService.saveWorldbuildingData).toHaveBeenCalledWith(
+        'test-element-123',
+        expect.objectContaining({ name: 'Hero' }),
+        'testuser',
+        'test-project'
+      );
+      const savedPayload =
+        worldbuildingService.saveWorldbuildingData.mock.calls[0][1];
+      expect(savedPayload).not.toHaveProperty('mother');
+    });
+
+    it('should include relationship in the field type picker', () => {
+      const types = component['getFieldTypes']();
+      expect(types).toContainEqual({
+        value: 'relationship',
+        label: 'Relationship',
+      });
+    });
+
+    it('should render a relationship field component for relationship fields', async () => {
+      component['schema'].set(schemaWithRelationship);
+      component.selectedSection.set('basic');
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const wrapper = fixture.nativeElement.querySelector(
+        '[data-testid="relationship-field-mother"]'
+      );
+      expect(wrapper).toBeTruthy();
+      expect(wrapper.querySelector('app-relationship-field')).toBeTruthy();
+    });
+  });
+
   describe('section navigation', () => {
     beforeEach(() => {
       component['schema'].set(mockCharacterSchema);

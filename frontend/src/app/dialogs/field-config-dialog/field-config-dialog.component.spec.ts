@@ -1,9 +1,10 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import {
   FieldConfigDialogComponent,
   type FieldConfigDialogData,
@@ -13,6 +14,13 @@ describe('FieldConfigDialogComponent', () => {
   let component: FieldConfigDialogComponent;
   let fixture: ComponentFixture<FieldConfigDialogComponent>;
   const dialogRefMock = { close: vi.fn() };
+
+  const mockWorldbuildingService = {
+    schemas: signal([
+      { id: 'character-v1', name: 'Character', icon: 'person' },
+      { id: 'location-v1', name: 'Location', icon: 'place' },
+    ]),
+  };
 
   const fieldTypes = [
     { value: 'text', label: 'Text' },
@@ -48,6 +56,7 @@ describe('FieldConfigDialogComponent', () => {
         provideZonelessChangeDetection(),
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MatDialogRef, useValue: dialogRefMock },
+        { provide: WorldbuildingService, useValue: mockWorldbuildingService },
       ],
     }).compileComponents();
 
@@ -155,5 +164,87 @@ describe('FieldConfigDialogComponent', () => {
   it('should close without a result on cancel', () => {
     component.onCancel();
     expect(dialogRefMock.close).toHaveBeenCalledWith();
+  });
+
+  describe('relationship fields', () => {
+    it('should expose relationship config signals from the field', () => {
+      component['type'].set('relationship');
+      component['targetSchemaId'].set('character-v1');
+      component['multiple'].set(true);
+      component['inverseLabel'].set('Child of');
+
+      expect(component['isRelationshipType']()).toBe(true);
+      expect(component['targetSchemaId']()).toBe('character-v1');
+      expect(component['multiple']()).toBe(true);
+      expect(component['inverseLabel']()).toBe('Child of');
+    });
+
+    it('should include relationship config in the save patch', () => {
+      component['type'].set('relationship');
+      component['targetSchemaId'].set('character-v1');
+      component['multiple'].set(false);
+      component['inverseLabel'].set('Child of');
+
+      component.onSave();
+
+      expect(dialogRefMock.close).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'relationship',
+          targetSchemaId: 'character-v1',
+          multiple: false,
+          inverseLabel: 'Child of',
+        })
+      );
+    });
+
+    it('should clear empty target schema and inverse label on save', () => {
+      component['type'].set('relationship');
+      component['targetSchemaId'].set('');
+      component['inverseLabel'].set('   ');
+
+      component.onSave();
+
+      expect(dialogRefMock.close).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'relationship',
+          targetSchemaId: undefined,
+          inverseLabel: undefined,
+        })
+      );
+    });
+
+    it('should not include relationship config for non-relationship types', () => {
+      component['type'].set('text');
+      component.onSave();
+
+      const patch = dialogRefMock.close.mock.calls[0][0];
+      expect(patch).not.toHaveProperty('targetSchemaId');
+      expect(patch).not.toHaveProperty('multiple');
+      expect(patch).not.toHaveProperty('inverseLabel');
+    });
+
+    it('should render the relationship section only for relationship type', () => {
+      component['type'].set('relationship');
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="fc-relationship"]')
+      ).not.toBeNull();
+
+      component['type'].set('text');
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="fc-relationship"]')
+      ).toBeNull();
+    });
+
+    it('should list schema options in the target select', () => {
+      component['type'].set('relationship');
+      fixture.detectChanges();
+      const options = fixture.nativeElement.querySelectorAll(
+        '[data-testid="fc-target-schema"] mat-option'
+      );
+      expect(component['schemaOptions']()).toHaveLength(2);
+      expect(options).toBeDefined();
+    });
   });
 });

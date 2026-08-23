@@ -12,6 +12,7 @@ import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { RelationshipService } from '../relationship/relationship.service';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 
 /**
@@ -66,6 +67,7 @@ export class WorldbuildingPublishRendererService {
   private readonly logger = inject(LoggerService);
   private readonly projectState = inject(ProjectStateService);
   private readonly worldbuilding = inject(WorldbuildingService);
+  private readonly relationshipService = inject(RelationshipService);
 
   /**
    * Renders the entries selected by the publish item, in element order.
@@ -132,7 +134,8 @@ export class WorldbuildingPublishRendererService {
           data,
           includeKeys,
           excludeKeys,
-          includeEmpty
+          includeEmpty,
+          element.id
         )
       : this.renderSyntheticTab(data, includeKeys, excludeKeys, includeEmpty);
 
@@ -219,7 +222,8 @@ export class WorldbuildingPublishRendererService {
     data: Record<string, unknown>,
     includeKeys: Set<string> | null,
     excludeKeys: Set<string> | null,
-    includeEmpty: boolean
+    includeEmpty: boolean,
+    elementId: string
   ): RenderedWorldbuildingTab[] {
     const tabs: RenderedWorldbuildingTab[] = [];
     const orderedTabs = [...schema.tabs].sort(
@@ -231,7 +235,8 @@ export class WorldbuildingPublishRendererService {
         data,
         includeKeys,
         excludeKeys,
-        includeEmpty
+        includeEmpty,
+        elementId
       );
       if (fields.length === 0) continue;
       tabs.push({ key: tab.key, label: tab.label, fields });
@@ -269,6 +274,7 @@ export class WorldbuildingPublishRendererService {
     includeKeys: Set<string> | null,
     excludeKeys: Set<string> | null,
     includeEmpty: boolean,
+    elementId: string,
     keyPrefix = ''
   ): RenderedWorldbuildingField[] {
     const out: RenderedWorldbuildingField[] = [];
@@ -279,6 +285,7 @@ export class WorldbuildingPublishRendererService {
         includeKeys,
         excludeKeys,
         includeEmpty,
+        elementId,
         keyPrefix,
         out
       );
@@ -292,6 +299,7 @@ export class WorldbuildingPublishRendererService {
     includeKeys: Set<string> | null,
     excludeKeys: Set<string> | null,
     includeEmpty: boolean,
+    elementId: string,
     keyPrefix: string,
     out: RenderedWorldbuildingField[]
   ): void {
@@ -305,6 +313,7 @@ export class WorldbuildingPublishRendererService {
           includeKeys,
           excludeKeys,
           includeEmpty,
+          elementId,
           fullKey,
           out
         );
@@ -315,6 +324,20 @@ export class WorldbuildingPublishRendererService {
     if (includeKeys && !includeKeys.has(fullKey)) return;
     if (excludeKeys?.has(fullKey)) return;
     if (fullKey.startsWith('_') || fullKey === 'lastModified') return;
+
+    if (field.type === 'relationship') {
+      const linked = this.getLinkedElementsForField(elementId, field);
+      const display = linked.map(e => e.name).join(', ');
+      if (!display && !includeEmpty) return;
+      out.push({
+        key: fullKey,
+        label: field.label,
+        rawValue: linked.map(e => e.id),
+        displayValue: display,
+        type: field.type,
+      });
+      return;
+    }
 
     const value = readDottedKey(data, fullKey);
     const display = formatFieldValue(value);
@@ -327,6 +350,28 @@ export class WorldbuildingPublishRendererService {
       displayValue: display,
       type: field.type,
     });
+  }
+
+  /**
+   * Resolve the elements linked to `elementId` through a relationship field.
+   * Relationship field values live in the central relationships store, so we
+   * look up outgoing relationships of the field's backing type and resolve
+   * each target element.
+   */
+  private getLinkedElementsForField(
+    elementId: string,
+    field: FieldSchema
+  ): Element[] {
+    const typeId = field.relationshipTypeId;
+    if (!typeId) return [];
+    const elements = this.projectState.elements();
+    return this.relationshipService
+      .relationships()
+      .filter(
+        r => r.sourceElementId === elementId && r.relationshipTypeId === typeId
+      )
+      .map(r => elements.find(e => e.id === r.targetElementId))
+      .filter((e): e is Element => !!e);
   }
 }
 
