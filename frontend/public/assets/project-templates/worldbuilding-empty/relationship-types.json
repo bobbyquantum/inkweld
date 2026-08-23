@@ -51,48 +51,6 @@
     }
   },
   {
-    "id": "mother",
-    "name": "Mother",
-    "inverseLabel": "Child of",
-    "showInverse": false,
-    "category": "Familial",
-    "icon": "face_3",
-    "isBuiltIn": false,
-    "sourceEndpoint": {
-      "allowedSchemas": [
-        "character-v1"
-      ],
-      "maxCount": null
-    },
-    "targetEndpoint": {
-      "allowedSchemas": [
-        "character-v1"
-      ],
-      "maxCount": 1
-    }
-  },
-  {
-    "id": "father",
-    "name": "Father",
-    "inverseLabel": "Child of",
-    "showInverse": false,
-    "category": "Familial",
-    "icon": "face",
-    "isBuiltIn": false,
-    "sourceEndpoint": {
-      "allowedSchemas": [
-        "character-v1"
-      ],
-      "maxCount": null
-    },
-    "targetEndpoint": {
-      "allowedSchemas": [
-        "character-v1"
-      ],
-      "maxCount": 1
-    }
-  },
-  {
     "id": "sibling",
     "name": "Sibling",
     "inverseLabel": "Sibling of",
@@ -1306,6 +1264,56 @@
         "planet-v1",
         "plane-v1"
       ]
+    }
+  },
+  {
+    "id": "fieldrel-character-mother",
+    "name": "Mother",
+    "inverseLabel": "Child of",
+    "showInverse": true,
+    "category": "Familial",
+    "icon": "face_3",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ],
+      "maxCount": 1
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ],
+      "maxCount": null
+    },
+    "fieldSource": {
+      "schemaId": "character-v1",
+      "fieldKey": "mother"
+    }
+  },
+  {
+    "id": "fieldrel-character-father",
+    "name": "Father",
+    "inverseLabel": "Child of",
+    "showInverse": true,
+    "category": "Familial",
+    "icon": "face_3",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ],
+      "maxCount": 1
+    },
+    "targetEndpoint": {
+      "allowedSchemas": [
+        "character-v1"
+      ],
+      "maxCount": null
+    },
+    "fieldSource": {
+      "schemaId": "character-v1",
+      "fieldKey": "father"
     }
   }
 ]

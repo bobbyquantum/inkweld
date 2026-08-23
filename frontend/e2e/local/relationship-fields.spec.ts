@@ -58,7 +58,7 @@ test.describe('Relationship fields', () => {
       await createCharacter(page, 'Maria');
     });
 
-    await test.step('add a "Mother" relationship field to the Character template', async () => {
+    await test.step('add a "Nemesis" relationship field to the Character template', async () => {
       await gotoTemplatesTab(page);
 
       const characterCard = page
@@ -78,8 +78,8 @@ test.describe('Relationship fields', () => {
 
       // Configure the field: label, key, type=relationship.
       await expect(page.getByTestId('fc-key')).toBeVisible();
-      await retypeSeededInput(page, 'fc-label', 'Mother');
-      await retypeSeededInput(page, 'fc-key', 'mother');
+      await retypeSeededInput(page, 'fc-label', 'Nemesis');
+      await retypeSeededInput(page, 'fc-key', 'nemesis');
 
       await page.getByTestId('fc-type').click();
       await page.getByTestId('fc-type-option-relationship').click();
@@ -92,13 +92,13 @@ test.describe('Relationship fields', () => {
       await page.getByTestId('fc-target-schema-character-v1').click();
 
       // Inverse label shown as the backlink on the target element.
-      await retypeSeededInput(page, 'fc-inverse-label', 'Child of');
+      await retypeSeededInput(page, 'fc-inverse-label', 'Nemesis of');
 
       await page.getByTestId('fc-save').click();
       await expect(page.locator('mat-dialog-container')).not.toBeVisible();
 
       // The live preview renders the relationship field wrapper.
-      await expect(page.getByTestId('relationship-field-mother')).toBeVisible();
+      await expect(page.getByTestId('field-nemesis')).toBeVisible();
 
       // Close the editor tab (autosave already committed the schema edit).
       await page
@@ -112,27 +112,24 @@ test.describe('Relationship fields', () => {
       await page.getByTestId('nav-relationships').click();
       await expect(page.getByTestId('relationship-types-list')).toBeVisible();
 
-      // The field-managed type is the only card carrying the managed badge
-      // (the project may also ship a built-in "Mother" type — distinct card).
-      const managedCard = page
+      // The default templates seed field-managed types too (Mother/Father);
+      // target the one this test created via its title text.
+      const nemesisCard = page
         .getByTestId('relationship-type-card')
-        .filter({ has: page.getByTestId('type-field-managed-badge') });
-      await expect(managedCard).toHaveCount(1);
+        .filter({ hasText: 'Nemesis' });
+      await expect(nemesisCard).toHaveCount(1);
       await expect(
-        managedCard.getByTestId('relationship-type-title')
-      ).toHaveText('Mother');
-      await expect(
-        managedCard.getByTestId('type-field-managed-badge')
+        nemesisCard.getByTestId('type-field-managed-badge')
       ).toBeVisible();
       await expect(
-        managedCard.getByTestId('edit-type-button')
+        nemesisCard.getByTestId('edit-type-button')
       ).not.toBeVisible();
       await expect(
-        managedCard.getByTestId('delete-type-button')
+        nemesisCard.getByTestId('delete-type-button')
       ).not.toBeVisible();
     });
 
-    await test.step("link Maria as Alice's mother from the element editor", async () => {
+    await test.step("link Maria as Alice's nemesis from the element editor", async () => {
       await page.getByTestId('toolbar-home-button').click();
       await expect(page.getByTestId('create-new-element')).toBeVisible();
 
@@ -140,7 +137,7 @@ test.describe('Relationship fields', () => {
       await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
 
       await page.getByTestId('nav-basic').click();
-      const fieldWrapper = page.getByTestId('relationship-field-mother');
+      const fieldWrapper = page.getByTestId('relationship-field-nemesis');
       await expect(fieldWrapper).toBeVisible();
       await expect(fieldWrapper.getByTestId('rel-add')).toBeVisible();
 
@@ -165,18 +162,18 @@ test.describe('Relationship fields', () => {
       await expect(fieldWrapper.getByTestId('rel-change')).toBeVisible();
     });
 
-    await test.step('Alice relationships section lists the Mother link', async () => {
+    await test.step('Alice relationships section lists the Nemesis link', async () => {
       await page.getByTestId('nav-relationships').click();
       const metaPanel = page.getByTestId('meta-panel');
       await expect(metaPanel).toBeVisible();
-      await expect(metaPanel.getByText('Mother')).toBeVisible();
+      await expect(metaPanel.getByText('Nemesis')).toBeVisible();
       await expect(metaPanel.getByTestId('relationship-item')).toBeVisible();
       await expect(
         metaPanel.getByTestId('relationship-item').filter({ hasText: 'Maria' })
       ).toBeVisible();
     });
 
-    await test.step('Maria shows the "Child of" backlink', async () => {
+    await test.step('Maria shows the "Nemesis of" backlink', async () => {
       await page.getByTestId('toolbar-home-button').click();
       await expect(page.getByTestId('create-new-element')).toBeVisible();
 
@@ -186,7 +183,7 @@ test.describe('Relationship fields', () => {
 
       const metaPanel = page.getByTestId('meta-panel');
       await expect(metaPanel).toBeVisible();
-      await expect(metaPanel.getByText('Child of')).toBeVisible();
+      await expect(metaPanel.getByText('Nemesis of')).toBeVisible();
       await expect(
         metaPanel.getByTestId('relationship-item').filter({ hasText: 'Alice' })
       ).toBeVisible();
@@ -200,7 +197,7 @@ test.describe('Relationship fields', () => {
       await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
       await page.getByTestId('nav-basic').click();
 
-      const fieldWrapper = page.getByTestId('relationship-field-mother');
+      const fieldWrapper = page.getByTestId('relationship-field-nemesis');
       await expect(fieldWrapper).toBeVisible();
       await fieldWrapper.locator('[data-testid^="rel-remove-"]').click();
 

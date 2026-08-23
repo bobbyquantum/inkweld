@@ -1252,5 +1252,39 @@
       "portals.notes": "The Library of Moonveil is sometimes said to be not in the material world at all, but in a forgotten wing of the Court.",
       "inhabitantsOverview": "Fey, Thornfolk dreamers, and the court of the Summer King"
     }
+  },
+  {
+    "elementId": "char-lirael",
+    "schemaId": "character-v1",
+    "data": {
+      "id": "char-lirael",
+      "name": "Lirael Nightwhisper",
+      "createdDate": "2024-01-01T00:00:00.000Z",
+      "lastModified": "2024-01-01T00:00:00.000Z",
+      "description": "An elven archivist of the enclave near Thornwood Forest, remembered for her vast knowledge of lunar magic. Mother of Elara Nightwhisper.",
+      "fullName": "Lirael Nightwhisper",
+      "gender": "Female",
+      "species": "Elf",
+      "occupation": "Elven Archivist (deceased)",
+      "summary": "An elven archivist of the enclave near Thornwood Forest who fell in love with a human merchant. Her careful records of lunar magic are said to be preserved somewhere in the Library of Moonveil.",
+      "notes": "Deceased - passed illness while Elara was young. Left behind her archivist's seal, which Elara still carries."
+    }
+  },
+  {
+    "elementId": "char-marcus",
+    "schemaId": "character-v1",
+    "data": {
+      "id": "char-marcus",
+      "name": "Marcus Webb",
+      "createdDate": "2024-01-01T00:00:00.000Z",
+      "lastModified": "2024-01-01T00:00:00.000Z",
+      "description": "A restless human merchant who traded along the edges of Thornwood Forest. Father of Elara Nightwhisper.",
+      "fullName": "Marcus Webb",
+      "gender": "Male",
+      "species": "Human",
+      "occupation": "Merchant (deceased)",
+      "summary": "A human merchant whose trade caravans crossed the Silver Vales. He passed his restless curiosity to his daughter Elara before dying of old age.",
+      "notes": "Deceased - died of old age while Elara was still studying at Cloudspire Academy."
+    }
   }
 ]
