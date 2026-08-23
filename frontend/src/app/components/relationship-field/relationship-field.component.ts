@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   input,
@@ -44,6 +45,15 @@ export class RelationshipFieldComponent {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly elementRefService = inject(ElementRefService);
   private readonly appearanceService = inject(AppearanceService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor() {
+    // The hover tooltip lives in a shared service that every editor host
+    // mirrors. If this component unmounts while a card is hovered (section
+    // switch, tab close, navigation), no mouseleave fires — clear it so the
+    // popover cannot leak onto the next page.
+    this.destroyRef.onDestroy(() => this.elementRefService.hideTooltip());
+  }
 
   readonly field = input.required<FieldSchema>();
   readonly sourceElementId = input.required<string>();
@@ -129,6 +139,10 @@ export class RelationshipFieldComponent {
   }
 
   navigate(element: Element): void {
+    // Clicking through to the target must not carry the hover popover along:
+    // no mouseleave fires before the page switches, and every editor host
+    // mirrors the shared tooltip signal, so it would follow the navigation.
+    this.hideTooltip();
     this.projectState.openDocument(element);
   }
 

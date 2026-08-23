@@ -55,7 +55,10 @@ describe('RelationshipFieldComponent', () => {
   let elements: Element[];
   let relationships: ElementRelationship[];
 
-  let projectState: { elements: ReturnType<typeof signal<Element[]>> };
+  let projectState: {
+    elements: ReturnType<typeof signal<Element[]>>;
+    openDocument: ReturnType<typeof vi.fn>;
+  };
   let relationshipService: {
     relationships: ReturnType<typeof signal<ElementRelationship[]>>;
     addRelationship: ReturnType<typeof vi.fn>;
@@ -90,7 +93,10 @@ describe('RelationshipFieldComponent', () => {
     elements = [hero, mother];
     relationships = [];
 
-    projectState = { elements: signal<Element[]>(elements) };
+    projectState = {
+      elements: signal<Element[]>(elements),
+      openDocument: vi.fn(),
+    };
     relationshipService = {
       relationships: signal<ElementRelationship[]>(relationships),
       addRelationship: vi.fn(),
@@ -275,17 +281,43 @@ describe('RelationshipFieldComponent', () => {
     relationshipService.relationships.set([...relationships]);
     fixture.detectChanges();
 
-    const openDocument = vi.fn();
-    (projectState as { openDocument?: ReturnType<typeof vi.fn> }).openDocument =
-      openDocument;
-
     const card = fixture.nativeElement.querySelector(
       '[data-testid="rel-open-mother-el"]'
     ) as HTMLButtonElement;
     expect(card.tagName).toBe('BUTTON');
     card.click();
 
-    expect(openDocument).toHaveBeenCalledWith(mother);
+    expect(projectState.openDocument).toHaveBeenCalledWith(mother);
+  });
+
+  it('should hide the hover tooltip when navigating', () => {
+    relationships.push(makeRel('r1', 'hero', 'mother-el'));
+    relationshipService.relationships.set([...relationships]);
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector(
+      '[data-testid="rel-open-mother-el"]'
+    ) as HTMLButtonElement;
+    card.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(elementRefService.showTooltip).toHaveBeenCalled();
+
+    card.click();
+    expect(elementRefService.hideTooltip).toHaveBeenCalled();
+  });
+
+  it('should hide the tooltip when the component is destroyed', () => {
+    relationships.push(makeRel('r1', 'hero', 'mother-el'));
+    relationshipService.relationships.set([...relationships]);
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector(
+      '[data-testid="rel-open-mother-el"]'
+    ) as HTMLElement;
+    card.dispatchEvent(new MouseEvent('mouseenter'));
+    elementRefService.hideTooltip.mockClear();
+
+    fixture.destroy();
+    expect(elementRefService.hideTooltip).toHaveBeenCalled();
   });
 
   it('should show the tooltip on hover', () => {

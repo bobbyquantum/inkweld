@@ -119,6 +119,17 @@ test.describe('Template Worldbuilding Import', () => {
 
     await test.step('Elara meta panel shows imported relationship type panels', async () => {
       await expandTreeFolder(page, 'Characters');
+
+      // Seeded parents must be visible in the element tree: the tree walks
+      // elements as a pre-order list, so imported entries must sit inside
+      // their parent folder's block (regression: appended entries vanished).
+      await expect(
+        page.getByRole('treeitem', { name: 'Lirael Nightwhisper' })
+      ).toBeVisible();
+      await expect(
+        page.getByRole('treeitem', { name: 'Marcus Webb' })
+      ).toBeVisible();
+
       await openTreeElement(page, 'Elara Nightwhisper');
       await page.getByTestId('nav-relationships').click();
 

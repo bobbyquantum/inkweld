@@ -374,6 +374,11 @@ describe('MetaPanelComponent', () => {
   });
 
   describe('navigateToElement', () => {
+    let elementRefServiceMock: {
+      showTooltip: ReturnType<typeof vi.fn>;
+      hideTooltip: ReturnType<typeof vi.fn>;
+    };
+
     it('should open target element for outgoing relationship', () => {
       const targetElement = {
         id: 'char-2',
@@ -436,6 +441,33 @@ describe('MetaPanelComponent', () => {
       component.navigateToElement(relationship, false);
 
       expect(projectStateMock.openDocument).not.toHaveBeenCalled();
+    });
+
+    it('should hide the hover tooltip before navigating', () => {
+      elementRefServiceMock = TestBed.inject(
+        ElementRefService
+      ) as unknown as typeof elementRefServiceMock;
+      const targetElement = {
+        id: 'char-2',
+        name: 'Target Char',
+        type: 'Character',
+      };
+      projectStateMock.elements.set([targetElement]);
+      fixture.detectChanges();
+
+      const relationship: ElementRelationship = {
+        id: 'rel-1',
+        sourceElementId: 'test-doc-id',
+        targetElementId: 'char-2',
+        relationshipTypeId: 'parent',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      component.navigateToElement(relationship, false);
+
+      expect(elementRefServiceMock.hideTooltip).toHaveBeenCalled();
+      expect(projectStateMock.openDocument).toHaveBeenCalledWith(targetElement);
     });
   });
 

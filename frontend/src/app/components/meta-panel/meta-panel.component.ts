@@ -314,6 +314,11 @@ export class MetaPanelComponent {
       ? relationship.sourceElementId
       : relationship.targetElementId;
 
+    // Clear the hover preview before navigating: no mouseleave fires when a
+    // row is clicked, and the shared tooltip would otherwise follow the user
+    // to the next page.
+    this.elementRefService.hideTooltip();
+
     const element = this.getElement(targetId);
     if (element) {
       this.projectState.openDocument(element);
