@@ -129,6 +129,32 @@ test.describe('Template Worldbuilding Import', () => {
       await expect(page.getByTestId('add-relationship-button')).toBeVisible();
     });
 
+    await test.step('seeded relationship fields render parent cards on Elara', async () => {
+      // Elara's imported Family tab links her parents via relationship
+      // fields; both cards must resolve from the seeded relationships.
+      const familyTab = page
+        .getByTestId('nav-family')
+        .or(page.getByTestId('accordion-family'));
+      await expect(familyTab).toBeVisible();
+      await familyTab.click();
+
+      const motherField = page.getByTestId('relationship-field-mother');
+      const fatherField = page.getByTestId('relationship-field-father');
+      await expect(motherField).toBeVisible();
+      await expect(fatherField).toBeVisible();
+      await expect(motherField.getByText('Lirael Nightwhisper')).toBeVisible();
+      await expect(fatherField.getByText('Marcus Webb')).toBeVisible();
+
+      // Single-valued fields with a link show the change affordance.
+      await expect(
+        motherField.locator('[data-testid^="rel-card-"]')
+      ).toBeVisible();
+
+      // Return to the relationships section so the meta-panel steps below
+      // keep working (the panel renders only for that section).
+      await page.getByTestId('nav-relationships').click();
+    });
+
     await test.step('Elara References panel lists template backlinks', async () => {
       const metaPanel = page.getByTestId('meta-panel');
       await expect(metaPanel).toBeVisible();
