@@ -599,7 +599,8 @@ mat-expansion-panel {
       .value {
         font-size: 0.875rem;
         color: var(--sys-on-surface);
-        overflow-wrap: break-word;
+        min-width: 0;
+        overflow-wrap: anywhere;
       }
 
       .prompt-value {

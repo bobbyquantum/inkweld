@@ -163,11 +163,12 @@ test.describe('Element Reference Screenshots', () => {
       })
       .catch(() => {});
     await page.keyboard.type(searchTerm);
+    // The referenced element always exists in these flows — a missing result
+    // is a real failure, not a case for the Enter fallback below.
     await page
       .locator('[data-testid="element-ref-result-item"]')
       .first()
-      .waitFor({ state: 'visible' })
-      .catch(() => {});
+      .waitFor({ state: 'visible' });
 
     const filterTarget = targetName
       ? page

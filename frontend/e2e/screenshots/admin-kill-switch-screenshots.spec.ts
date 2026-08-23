@@ -61,7 +61,12 @@ async function navigateToAdminSettingsViaMenu(page: Page): Promise<void> {
     .first()
     .waitFor({ state: 'visible', timeout: 10_000 })
     .catch(() => {});
-  if ((await settingsLink.count()) > 0) {
+  if (
+    await settingsLink
+      .first()
+      .isVisible()
+      .catch(() => false)
+  ) {
     await settingsLink.first().click();
   }
 }

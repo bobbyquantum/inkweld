@@ -114,7 +114,7 @@
     .element-name {
       font-size: 16px;
       font-weight: 500;
-      overflow-wrap: break-word;
+      overflow-wrap: anywhere;
       overflow: hidden;
       text-overflow: ellipsis;
       display: -webkit-box;

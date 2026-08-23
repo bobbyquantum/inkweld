@@ -69,7 +69,9 @@ test.describe('Folder Operations', () => {
 
     await page.waitForURL(/\/testuser\/folder-demo-test/);
     await page.getByTestId('project-tree').waitFor({ state: 'visible' });
-    await page.getByRole('treeitem').first().waitFor({ state: 'visible' });
+    // Wait on the folder the steps below assert against, so a missing seed
+    // fails here instead of silently skipping every folder assertion.
+    await page.getByTestId('element-Chronicles').waitFor({ state: 'visible' });
 
     await test.step('expand button reveals child items inside the folder', async () => {
       const expandButton = page

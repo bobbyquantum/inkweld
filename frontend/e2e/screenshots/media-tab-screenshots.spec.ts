@@ -146,6 +146,9 @@ async function capturePopulatedMediaScreenshots(
 
     // Reset search so the filter panel screenshot shows the full grid.
     await searchInput.fill('');
+    await expect(
+      page.locator('[data-testid="media-grid"] app-media-item-card')
+    ).toHaveCount(5);
   });
 
   await test.step('filter panel open', async () => {

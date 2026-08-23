@@ -140,10 +140,8 @@ test.describe('Canvas Tab Screenshots', () => {
 
     // Move mouse away to dismiss any tooltip overlay
     await page.mouse.move(0, 0);
-    await page
-      .locator('mat-tooltip-component')
-      .waitFor({ state: 'hidden' })
-      .catch(() => {});
+    // A tooltip that never hides would end up in the screenshots — fail loud.
+    await page.locator('mat-tooltip-component').waitFor({ state: 'hidden' });
   }
 
   test('canvas screenshots — light mode', async ({ offlinePage: page }) => {

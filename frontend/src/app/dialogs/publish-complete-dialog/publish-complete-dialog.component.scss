@@ -39,11 +39,12 @@ mat-dialog-content {
 
   .file-details {
     flex: 1;
+    min-width: 0;
 
     .filename {
       font-weight: 500;
       font-size: 16px;
-      overflow-wrap: break-word;
+      overflow-wrap: anywhere;
     }
 
     .meta {
