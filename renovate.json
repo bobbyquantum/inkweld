@@ -16,6 +16,13 @@
       "matchPackageNames": ["typescript"],
       "matchUpdateTypes": ["major"],
       "enabled": false
+    },
+    {
+      "description": "Coalesce all Bun-related updates (the bun runtime package, @types/bun, and the bun Docker image tag) into a single PR.",
+      "matchPackageNames": ["bun", "@types/bun", "oven/bun"],
+      "matchDatasources": ["docker", "npm"],
+      "groupName": "Bun",
+      "groupSlug": "bun"
     }
   ]
 }
