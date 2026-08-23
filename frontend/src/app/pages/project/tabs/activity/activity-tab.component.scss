@@ -173,6 +173,7 @@
 /* Dark theme adjustments, mirroring the editor's element-ref styles. */
 :host-context(.dark-theme) .element-ref {
   --element-ref-bg-end: #3a2878;
+
   background: linear-gradient(
     135deg,
     var(--sys-primary-container, #4f378b) 0%,

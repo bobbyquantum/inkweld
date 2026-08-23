@@ -1,7 +1,10 @@
 import type { ProjectActivityEvent } from '@models/activity-event';
 import { describe, expect, it } from 'vitest';
 
-import { describeActivityEvent } from './activity-event-describe';
+import {
+  describeActivityEvent,
+  describeActivityEventSegments,
+} from './activity-event-describe';
 
 /**
  * Minimal fake translate function: returns the key verbatim with `{{params}}`
@@ -146,5 +149,72 @@ describe('describeActivityEvent', () => {
         fakeT
       )
     ).toThrow(/Unhandled activity event type/);
+  });
+});
+
+describe('describeActivityEventSegments', () => {
+  it('emits who, entity, and text segments in order when the actor precedes the entity', () => {
+    const segments = describeActivityEventSegments(
+      makeEvent({ eventType: 'element_created', entityName: 'Hero' }),
+      fakeT
+    );
+    // fakeT returns the key verbatim, so the whole string is one text segment
+    // (no {{who}}/{{name}} placeholders are present in the key itself).
+    expect(segments).toEqual([
+      { text: 'project.activity.events.element_created', kind: 'text' },
+    ]);
+  });
+
+  it('recovers a who segment when the actor appears before the entity', () => {
+    const t = (_key: string, params?: Record<string, unknown>) =>
+      `${String(params?.['who'])} created ${String(params?.['name'])}`;
+    const segments = describeActivityEventSegments(
+      makeEvent({ eventType: 'element_created', entityName: 'Hero' }),
+      t
+    );
+    expect(segments).toEqual([
+      { text: 'alice', kind: 'who' },
+      { text: ' created ', kind: 'text' },
+      { text: 'Hero', kind: 'entity' },
+    ]);
+  });
+
+  it('recovers a who segment when the actor appears after the entity', () => {
+    const t = (_key: string, params?: Record<string, unknown>) =>
+      `${String(params?.['name'])} was created by ${String(params?.['who'])}`;
+    const segments = describeActivityEventSegments(
+      makeEvent({ eventType: 'element_created', entityName: 'Hero' }),
+      t
+    );
+    expect(segments).toEqual([
+      { text: 'Hero', kind: 'entity' },
+      { text: ' was created by ', kind: 'text' },
+      { text: 'alice', kind: 'who' },
+    ]);
+  });
+
+  it('keeps surrounding prose when both who and entity are present', () => {
+    const t = (_key: string, params?: Record<string, unknown>) =>
+      `[${String(params?.['who'])}] renamed [${String(params?.['name'])}] today`;
+    const segments = describeActivityEventSegments(
+      makeEvent({ eventType: 'element_renamed', entityName: 'Hero' }),
+      t
+    );
+    expect(segments).toEqual([
+      { text: '[', kind: 'text' },
+      { text: 'alice', kind: 'who' },
+      { text: '] renamed [', kind: 'text' },
+      { text: 'Hero', kind: 'entity' },
+      { text: '] today', kind: 'text' },
+    ]);
+  });
+
+  it('emits a single text segment when the translation has no placeholders', () => {
+    const t = () => 'no placeholders here';
+    const segments = describeActivityEventSegments(
+      makeEvent({ eventType: 'element_created', entityName: 'Hero' }),
+      t
+    );
+    expect(segments).toEqual([{ text: 'no placeholders here', kind: 'text' }]);
   });
 });

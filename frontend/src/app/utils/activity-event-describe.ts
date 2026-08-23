@@ -121,26 +121,48 @@ export function describeActivityEventSegments(
   const entityName = event.entityName ?? '';
   const key = resolveKey(event);
 
-  // When an entity name is present we swap it out for a sentinel so we can
-  // split the translated string into prose + the entity piece deterministically.
-  const template = entityName
-    ? t(key, { who, name: ENTITY_MARKER })
-    : t(key, { who, name: '' });
+  // Swap both the resolved actor label and the entity name for distinct
+  // sentinels before translating, so we can deterministically recover the
+  // structured who/entity/text contract from the localized string regardless
+  // of where each placeholder appears in the translation.
+  const template = t(key, { who: WHO_MARKER, name: ENTITY_MARKER });
 
-  if (!entityName || !template.includes(ENTITY_MARKER)) {
-    return [{ text: template, kind: 'text' }];
+  const segments: ActivityDescriptionSegment[] = [];
+  let cursor = 0;
+  let nextWho = template.indexOf(WHO_MARKER, cursor);
+  let nextEntity = template.indexOf(ENTITY_MARKER, cursor);
+
+  while (nextWho !== -1 || nextEntity !== -1) {
+    const takeWho =
+      nextEntity === -1 || (nextWho !== -1 && nextWho < nextEntity);
+    const marker = takeWho ? WHO_MARKER : ENTITY_MARKER;
+    const at = takeWho ? nextWho : nextEntity;
+
+    if (at > cursor) {
+      segments.push({ text: template.slice(cursor, at), kind: 'text' });
+    }
+    segments.push({
+      text: takeWho ? who : entityName,
+      kind: takeWho ? 'who' : 'entity',
+    });
+
+    cursor = at + marker.length;
+    nextWho = template.indexOf(WHO_MARKER, cursor);
+    nextEntity = template.indexOf(ENTITY_MARKER, cursor);
   }
 
-  const [before, after] = template.split(ENTITY_MARKER);
-  const segments: ActivityDescriptionSegment[] = [];
-  if (before) segments.push({ text: before, kind: 'text' });
-  segments.push({ text: entityName, kind: 'entity' });
-  if (after) segments.push({ text: after, kind: 'text' });
+  if (cursor < template.length) {
+    segments.push({ text: template.slice(cursor), kind: 'text' });
+  }
+
   return segments;
 }
 
 /** Unique sentinel unlikely to collide with real translations. */
 const ENTITY_MARKER = '\u0000ENTITY\u0000';
+
+/** Unique sentinel for the resolved actor label, distinct from the entity. */
+const WHO_MARKER = '\u0000WHO\u0000';
 
 /**
  * Build a human-readable, localized description for a single activity event as
