@@ -302,6 +302,36 @@
           }
         ],
         "order": 5
+      },
+      {
+        "key": "family",
+        "label": "Family",
+        "icon": "family_restroom",
+        "order": 6,
+        "fields": [
+          {
+            "key": "mother",
+            "label": "Mother",
+            "type": "relationship",
+            "targetSchemaId": "character-v1",
+            "inverseLabel": "Child of",
+            "relationshipTypeId": "fieldrel-character-mother",
+            "layout": {
+              "span": 12
+            }
+          },
+          {
+            "key": "father",
+            "label": "Father",
+            "type": "relationship",
+            "targetSchemaId": "character-v1",
+            "inverseLabel": "Child of",
+            "relationshipTypeId": "fieldrel-character-father",
+            "layout": {
+              "span": 12
+            }
+          }
+        ]
       }
     ],
     "defaultValues": {}

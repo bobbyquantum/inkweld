@@ -33,10 +33,18 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import {
+  ElementRefTooltipComponent,
+  type ElementRefTooltipData,
+} from '@components/element-ref';
+import { ElementRefService } from '@components/element-ref/element-ref.service';
+import { MetaPanelComponent } from '@components/meta-panel/meta-panel.component';
+import { RelationshipFieldComponent } from '@components/relationship-field/relationship-field.component';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DocumentSyncState } from '@models/document-sync-state';
 import { type ElementAppearance } from '@models/element-appearance';
 import { type ResolvedTag } from '@models/tag.model';
+import { RelationshipFieldService } from '@services/relationship/relationship-field.service';
 import { AppearanceService } from '@services/worldbuilding/appearance.service';
 
 import {
@@ -55,7 +63,6 @@ import { ProjectStateService } from '../../services/project/project-state.servic
 import { ElementSyncProviderFactory } from '../../services/sync/element-sync-provider.factory';
 import { TagService } from '../../services/tag/tag.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
-import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
 import { AppearanceEditorComponent } from './appearance-panel/appearance-editor/appearance-editor.component';
 import { AppearancePanelComponent } from './appearance-panel/appearance-panel.component';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
@@ -107,6 +114,8 @@ export type SchemaEditEvent =
     MediaPanelComponent,
     AppearancePanelComponent,
     AppearanceEditorComponent,
+    RelationshipFieldComponent,
+    ElementRefTooltipComponent,
     TranslocoModule,
   ],
   templateUrl: './worldbuilding-editor.component.html',
@@ -157,6 +166,11 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
   private readonly transloco = inject(TranslocoService);
   private readonly appearanceService = inject(AppearanceService);
+  private readonly elementRefService = inject(ElementRefService);
+  private readonly relationshipFieldService = inject(RelationshipFieldService);
+
+  /** Tooltip data mirrored from the element-ref service (hover previews). */
+  readonly tooltipData = signal<ElementRefTooltipData | null>(null);
 
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);
@@ -443,6 +457,12 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       }, 500);
       onCleanup(() => clearTimeout(timer));
     });
+
+    // Mirror hover-tooltip data from the element-ref service so relationship
+    // field cards (and meta-panel rows) render their preview popover here.
+    effect(() => {
+      this.tooltipData.set(this.elementRefService.tooltipData());
+    });
   }
 
   ngOnDestroy(): void {
@@ -488,6 +508,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       this.schema.set(schemaToUse);
       if (schemaToUse) {
         this.buildFormFromSchema(schemaToUse);
+        this.ensureRelationshipFieldTypes(schemaToUse);
       }
 
       const data = await this.worldbuildingService.getWorldbuildingData(
@@ -607,11 +628,30 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         return new FormArray([]);
       case 'checkbox':
         return new FormControl(false);
+      case 'relationship':
+        // The canonical value lives in the relationships store; the control
+        // only mirrors linked element ids for form completeness and is
+        // excluded from persistence (see saveData).
+        return new FormControl<string[]>([]);
       default:
         console.warn(
           `[WorldbuildingEditor] Unsupported field type "${field.type}" for "${field.key}"`
         );
         return null;
+    }
+  }
+
+  /**
+   * Self-heal: make sure every relationship field on the loaded schema has a
+   * backing relationship type registered (idempotent).
+   */
+  private ensureRelationshipFieldTypes(schema: ElementTypeSchema): void {
+    for (const tab of schema.tabs ?? []) {
+      for (const field of tab.fields ?? []) {
+        if (this.relationshipFieldService.isRelationshipField(field)) {
+          this.relationshipFieldService.ensureTypeForField(schema.id, field);
+        }
+      }
     }
   }
 
@@ -700,6 +740,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
               if (syncedSchema) {
                 this.schema.set(syncedSchema);
                 this.buildFormFromSchema(syncedSchema);
+                this.ensureRelationshipFieldTypes(syncedSchema);
               }
             }
           }
@@ -715,12 +756,57 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   private async saveData(): Promise<void> {
     const formValue = this.form().value as Record<string, unknown>;
+    const relationshipKeys = this.getRelationshipFieldKeys();
+    const persistable = this.stripRelationshipValues(
+      formValue,
+      '',
+      relationshipKeys
+    ) as Record<string, unknown>;
     await this.worldbuildingService.saveWorldbuildingData(
       this.elementId(),
-      formValue,
+      persistable,
       this.username(),
       this.slug()
     );
+  }
+
+  /** Keys of all relationship fields in the current schema (not persisted). */
+  private getRelationshipFieldKeys(): Set<string> {
+    const keys = new Set<string>();
+    for (const tab of this.schema()?.tabs ?? []) {
+      for (const field of tab.fields ?? []) {
+        if (this.relationshipFieldService.isRelationshipField(field)) {
+          keys.add(field.key);
+        }
+      }
+    }
+    return keys;
+  }
+
+  /**
+   * Deep copy of the form value with every path matching a relationship
+   * field's key removed — including dotted keys nested inside group objects,
+   * which a top-level filter would miss. Non-relationship fields and the
+   * surrounding object structure are preserved.
+   */
+  private stripRelationshipValues(
+    value: unknown,
+    path: string,
+    keys: Set<string>
+  ): unknown {
+    if (keys.has(path)) return undefined;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return value;
+    }
+    const out: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(value)) {
+      const childPath = path ? `${path}.${key}` : key;
+      const cleaned = this.stripRelationshipValues(child, childPath, keys);
+      if (cleaned !== undefined) {
+        out[key] = cleaned;
+      }
+    }
+    return out;
   }
 
   getTabs(): TabSchema[] {
@@ -994,6 +1080,12 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       { value: 'multiselect', label: 'Multi Select' },
       { value: 'checkbox', label: 'Checkbox' },
       { value: 'array', label: 'Array (Tags)' },
+      {
+        value: 'relationship',
+        label: this.transloco.translate(
+          'templates.editor.fieldTypeRelationship'
+        ),
+      },
     ];
   }
 

@@ -6,6 +6,19 @@
   max-width: 520px;
 }
 
+.full-width {
+  width: 100%;
+}
+
+.fc-relationship {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px dashed var(--sys-outline-variant);
+  border-radius: 8px;
+}
+
 .fc-options {
   display: flex;
   flex-direction: column;

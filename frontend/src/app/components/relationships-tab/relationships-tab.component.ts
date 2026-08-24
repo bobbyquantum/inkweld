@@ -48,6 +48,8 @@ interface RelationshipTypeView {
   color?: string;
   sourceConstraints: string;
   targetConstraints: string;
+  /** True when auto-managed by a template relationship field (read-only). */
+  isFieldManaged: boolean;
 }
 
 /**
@@ -148,6 +150,7 @@ export class RelationshipsTabComponent {
       color: type.color,
       sourceConstraints: this.formatConstraints(type.sourceEndpoint),
       targetConstraints: this.formatConstraints(type.targetEndpoint),
+      isFieldManaged: !!type.fieldSource,
     };
   }
 
@@ -245,6 +248,7 @@ export class RelationshipsTabComponent {
    * Edit a relationship type (full editor)
    */
   async editType(type: RelationshipTypeView): Promise<void> {
+    if (type.isFieldManaged) return;
     const original = this.relationshipService.getTypeById(type.id);
     if (!original) return;
 
@@ -296,6 +300,7 @@ export class RelationshipsTabComponent {
    * Delete a relationship type
    */
   async deleteType(type: RelationshipTypeView): Promise<void> {
+    if (type.isFieldManaged) return;
     const confirmed = await this.dialogGateway.openConfirmationDialog({
       title: this.transloco.translate('relationships.tab.deleteTitle'),
       message: this.transloco.translate('relationships.tab.deleteMessage', {

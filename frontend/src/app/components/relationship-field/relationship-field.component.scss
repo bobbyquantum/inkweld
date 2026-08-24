@@ -1,0 +1,95 @@
+.relationship-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rel-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 10px;
+  background: var(--sys-surface-container-low);
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: color-mix(
+      in srgb,
+      var(--sys-primary) 8%,
+      var(--sys-surface-container-low)
+    );
+  }
+
+  .rel-card-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+  }
+
+  .rel-card-image {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  .rel-card-image-placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--sys-primary) 12%, transparent);
+    color: var(--sys-on-surface-variant);
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .rel-card-body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .rel-card-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+    color: var(--sys-on-surface);
+  }
+
+  .rel-card-remove {
+    flex: 0 0 auto;
+  }
+}
+
+.rel-card-deleted {
+  border-style: dashed;
+  opacity: 0.8;
+}
+
+.rel-add {
+  align-self: flex-start;
+}
+
+.rel-description {
+  margin: 0;
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+}

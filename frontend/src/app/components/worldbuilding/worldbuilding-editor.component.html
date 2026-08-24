@@ -832,6 +832,21 @@
                 </button>
               </div>
             }
+
+            @case ('relationship') {
+              <div
+                class="relationship-field-wrapper"
+                [attr.data-testid]="'relationship-field-' + field.key">
+                <h4>{{ field.label }}</h4>
+                <app-relationship-field
+                  [field]="field"
+                  [sourceElementId]="elementId()"
+                  [username]="username()"
+                  [slug]="slug()"
+                  [readOnly]="previewMode() || !projectState.canWrite()">
+                </app-relationship-field>
+              </div>
+            }
           }
         </div>
       }
@@ -849,3 +864,6 @@
     </div>
   </div>
 </ng-template>
+
+<app-element-ref-tooltip [tooltipData]="tooltipData()">
+</app-element-ref-tooltip>

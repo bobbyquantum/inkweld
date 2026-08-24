@@ -106,6 +106,30 @@
     }
   },
   {
+    "id": "char-lirael",
+    "name": "Lirael Nightwhisper",
+    "type": "WORLDBUILDING",
+    "schemaId": "character-v1",
+    "order": 4,
+    "level": 1,
+    "parentId": "folder-characters",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "char-marcus",
+    "name": "Marcus Webb",
+    "type": "WORLDBUILDING",
+    "schemaId": "character-v1",
+    "order": 5,
+    "level": 1,
+    "parentId": "folder-characters",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
     "id": "folder-locations",
     "name": "Locations",
     "type": "FOLDER",

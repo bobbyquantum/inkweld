@@ -160,6 +160,24 @@ export interface RelationshipTypeDefinition {
 
   /** ISO timestamp of last update */
   updatedAt?: string;
+
+  /**
+   * Present when this type is auto-managed by a relationship field on a
+   * worldbuilding template. Such types are managed by the template editor
+   * (renamed/deleted with the field) and should be read-only in the
+   * relationship types settings UI.
+   */
+  fieldSource?: RelationshipFieldSource;
+}
+
+/**
+ * Identifies the template field that auto-manages a relationship type.
+ */
+export interface RelationshipFieldSource {
+  /** Schema (template) id that owns the field */
+  schemaId: string;
+  /** Field key within the schema */
+  fieldKey: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

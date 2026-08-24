@@ -560,6 +560,15 @@ mat-accordion {
   margin-bottom: 1rem;
 }
 
+.relationship-field-wrapper {
+  width: 100%;
+  margin-bottom: 1rem;
+
+  h4 {
+    margin: 0 0 0.5rem;
+  }
+}
+
 .array-item {
   display: flex;
   gap: 0.5rem;

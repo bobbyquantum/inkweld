@@ -314,6 +314,11 @@ export class MetaPanelComponent {
       ? relationship.sourceElementId
       : relationship.targetElementId;
 
+    // Clear the hover preview before navigating: no mouseleave fires when a
+    // row is clicked, and the shared tooltip would otherwise follow the user
+    // to the next page.
+    this.elementRefService.hideTooltip();
+
     const element = this.getElement(targetId);
     if (element) {
       this.projectState.openDocument(element);
@@ -361,13 +366,49 @@ export class MetaPanelComponent {
     const result =
       await this.dialogGateway.openAddRelationshipDialog(dialogData);
     if (result) {
+      // Store relationships against the bare element id so they match every
+      // consumer that filters by sourceElementId (tree, fields, chart).
+      this.enforceSourceMaxCount(result.relationshipTypeId);
       this.relationshipService.addRelationship(
-        this.effectiveElementId(),
+        this.normalizedElementId(),
         result.targetElementId,
         result.relationshipTypeId,
         { note: result.note }
       );
     }
+  }
+
+  /**
+   * Enforce the source endpoint's maxCount before adding a relationship of
+   * the given type. When the source element already has the maximum number
+   * of outgoing relationships of this type, the oldest ones are removed so
+   * the new one fits (e.g. a single-valued "Mother" field replaces the
+   * previous value instead of duplicating).
+   */
+  private enforceSourceMaxCount(relationshipTypeId: string): void {
+    const typeDef = this.relationshipService
+      .allTypes()
+      .find(t => t.id === relationshipTypeId);
+    const maxCount = typeDef?.sourceEndpoint?.maxCount;
+    if (!maxCount || maxCount <= 0) return;
+
+    const sourceId = this.normalizedElementId();
+    const existing = this.relationshipService
+      .relationships()
+      .filter(
+        r =>
+          r.sourceElementId === sourceId &&
+          r.relationshipTypeId === relationshipTypeId
+      )
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+
+    const slotsNeeded = 1;
+    const overflow = existing.length - (maxCount - slotsNeeded);
+    if (overflow <= 0) return;
+
+    existing
+      .slice(0, overflow)
+      .forEach(r => this.relationshipService.removeRelationship(r.id));
   }
 
   /**

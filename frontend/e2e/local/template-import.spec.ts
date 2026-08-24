@@ -119,6 +119,15 @@ test.describe('Template Worldbuilding Import', () => {
 
     await test.step('Elara meta panel shows imported relationship type panels', async () => {
       await expandTreeFolder(page, 'Characters');
+
+      // Seeded parents must be visible in the element tree: the tree walks
+      // elements as a pre-order list, so imported entries must sit inside
+      // their parent folder's block (regression: appended entries vanished).
+      await expect(
+        page.getByTestId('element-Lirael Nightwhisper')
+      ).toBeVisible();
+      await expect(page.getByTestId('element-Marcus Webb')).toBeVisible();
+
       await openTreeElement(page, 'Elara Nightwhisper');
       await page.getByTestId('nav-relationships').click();
 
@@ -127,6 +136,34 @@ test.describe('Template Worldbuilding Import', () => {
       );
       await expect(relationshipPanels.first()).toBeVisible();
       await expect(page.getByTestId('add-relationship-button')).toBeVisible();
+    });
+
+    await test.step('seeded relationship fields render parent cards on Elara', async () => {
+      // Elara's imported Family tab links her parents via relationship
+      // fields; both cards must resolve from the seeded relationships.
+      const familyTab = page
+        .getByTestId('nav-family')
+        .or(page.getByTestId('accordion-family'));
+      await expect(familyTab).toBeVisible();
+      await familyTab.click();
+
+      const motherField = page.getByTestId('relationship-field-mother');
+      const fatherField = page.getByTestId('relationship-field-father');
+      await expect(motherField).toBeVisible();
+      await expect(fatherField).toBeVisible();
+      await expect(motherField.getByTestId('rel-name')).toHaveText(
+        'Lirael Nightwhisper'
+      );
+      await expect(fatherField.getByTestId('rel-name')).toHaveText(
+        'Marcus Webb'
+      );
+
+      // Single-valued fields with a link show the change affordance.
+      await expect(motherField.getByTestId('rel-change')).toBeVisible();
+
+      // Return to the relationships section so the meta-panel steps below
+      // keep working (the panel renders only for that section).
+      await page.getByTestId('nav-relationships').click();
     });
 
     await test.step('Elara References panel lists template backlinks', async () => {

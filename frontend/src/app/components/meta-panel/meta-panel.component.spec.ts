@@ -374,6 +374,11 @@ describe('MetaPanelComponent', () => {
   });
 
   describe('navigateToElement', () => {
+    let elementRefServiceMock: {
+      showTooltip: ReturnType<typeof vi.fn>;
+      hideTooltip: ReturnType<typeof vi.fn>;
+    };
+
     it('should open target element for outgoing relationship', () => {
       const targetElement = {
         id: 'char-2',
@@ -436,6 +441,33 @@ describe('MetaPanelComponent', () => {
       component.navigateToElement(relationship, false);
 
       expect(projectStateMock.openDocument).not.toHaveBeenCalled();
+    });
+
+    it('should hide the hover tooltip before navigating', () => {
+      elementRefServiceMock = TestBed.inject(
+        ElementRefService
+      ) as unknown as typeof elementRefServiceMock;
+      const targetElement = {
+        id: 'char-2',
+        name: 'Target Char',
+        type: 'Character',
+      };
+      projectStateMock.elements.set([targetElement]);
+      fixture.detectChanges();
+
+      const relationship: ElementRelationship = {
+        id: 'rel-1',
+        sourceElementId: 'test-doc-id',
+        targetElementId: 'char-2',
+        relationshipTypeId: 'parent',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      component.navigateToElement(relationship, false);
+
+      expect(elementRefServiceMock.hideTooltip).toHaveBeenCalled();
+      expect(projectStateMock.openDocument).toHaveBeenCalledWith(targetElement);
     });
   });
 
@@ -517,6 +549,81 @@ describe('MetaPanelComponent', () => {
       await component.openAddRelationshipDialog();
 
       expect(relationshipServiceMock.addRelationship).not.toHaveBeenCalled();
+    });
+
+    it('should replace an existing relationship when the type maxCount is 1', async () => {
+      relationshipServiceMock.allTypes.set([
+        {
+          id: 'fieldrel-mother',
+          name: 'Mother',
+          inverseLabel: 'Child of',
+          showInverse: true,
+          category: RelationshipCategory.Custom,
+          isBuiltIn: false,
+          sourceEndpoint: { allowedSchemas: [], maxCount: 1 },
+          targetEndpoint: { allowedSchemas: [], maxCount: null },
+        },
+      ]);
+      const existing: ElementRelationship = {
+        id: 'rel-existing',
+        sourceElementId: 'test-doc-id',
+        targetElementId: 'old-mother',
+        relationshipTypeId: 'fieldrel-mother',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      };
+      relationshipServiceMock.relationships.set([existing]);
+      dialogGatewayMock.openAddRelationshipDialog.mockResolvedValue({
+        targetElementId: 'new-mother',
+        relationshipTypeId: 'fieldrel-mother',
+      });
+      fixture.detectChanges();
+
+      await component.openAddRelationshipDialog();
+
+      expect(relationshipServiceMock.removeRelationship).toHaveBeenCalledWith(
+        'rel-existing'
+      );
+      expect(relationshipServiceMock.addRelationship).toHaveBeenCalledWith(
+        'test-doc-id',
+        'new-mother',
+        'fieldrel-mother',
+        { note: undefined }
+      );
+    });
+
+    it('should not remove relationships for types without maxCount', async () => {
+      relationshipServiceMock.allTypes.set([
+        {
+          id: 'friend',
+          name: 'Friend',
+          inverseLabel: 'Friend of',
+          showInverse: true,
+          category: RelationshipCategory.Social,
+          isBuiltIn: false,
+          sourceEndpoint: { allowedSchemas: [], maxCount: null },
+          targetEndpoint: { allowedSchemas: [], maxCount: null },
+        },
+      ]);
+      const existing: ElementRelationship = {
+        id: 'rel-existing',
+        sourceElementId: 'test-doc-id',
+        targetElementId: 'friend-1',
+        relationshipTypeId: 'friend',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      };
+      relationshipServiceMock.relationships.set([existing]);
+      dialogGatewayMock.openAddRelationshipDialog.mockResolvedValue({
+        targetElementId: 'friend-2',
+        relationshipTypeId: 'friend',
+      });
+      fixture.detectChanges();
+
+      await component.openAddRelationshipDialog();
+
+      expect(relationshipServiceMock.removeRelationship).not.toHaveBeenCalled();
+      expect(relationshipServiceMock.addRelationship).toHaveBeenCalled();
     });
   });
 

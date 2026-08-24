@@ -72,6 +72,17 @@
               <span class="type-badge" data-testid="type-category-badge">{{
                 type.categoryLabel
               }}</span>
+              @if (type.isFieldManaged) {
+                <span
+                  class="type-badge field-managed"
+                  [matTooltip]="
+                    'relationships.tab.fieldManagedHint' | transloco
+                  "
+                  data-testid="type-field-managed-badge">
+                  <mat-icon class="badge-icon">tune</mat-icon>
+                  {{ 'relationships.tab.fieldManaged' | transloco }}
+                </span>
+              }
             </div>
             <div class="type-meta" data-testid="type-inverse-meta">
               <span>↔ {{ type.inverseLabel }}</span>
@@ -85,27 +96,29 @@
             </div>
           </div>
           <div class="type-actions">
-            <button
-              mat-icon-button
-              [matTooltip]="'relationships.tab.edit' | transloco"
-              (click)="editType(type)"
-              data-testid="edit-type-button">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              [matTooltip]="'relationships.tab.duplicate' | transloco"
-              (click)="cloneType(type)"
-              data-testid="clone-type-button">
-              <mat-icon>content_copy</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              [matTooltip]="'relationships.tab.delete' | transloco"
-              (click)="deleteType(type)"
-              data-testid="delete-type-button">
-              <mat-icon>delete_outline</mat-icon>
-            </button>
+            @if (!type.isFieldManaged) {
+              <button
+                mat-icon-button
+                [matTooltip]="'relationships.tab.edit' | transloco"
+                (click)="editType(type)"
+                data-testid="edit-type-button">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                [matTooltip]="'relationships.tab.duplicate' | transloco"
+                (click)="cloneType(type)"
+                data-testid="clone-type-button">
+                <mat-icon>content_copy</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                [matTooltip]="'relationships.tab.delete' | transloco"
+                (click)="deleteType(type)"
+                data-testid="delete-type-button">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            }
           </div>
         </div>
       }

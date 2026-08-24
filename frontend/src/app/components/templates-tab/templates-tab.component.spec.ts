@@ -5,6 +5,7 @@ import { type Project } from '@inkweld/index';
 import { type ElementTypeSchema } from '@models/schema-types';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { RelationshipFieldService } from '@services/relationship/relationship-field.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -27,6 +28,11 @@ describe('TemplatesTabComponent', () => {
   let mockWorldbuildingService: any;
   let mockSnackBar: any;
   let mockDialogGateway: any;
+  let mockRelationshipFieldService: {
+    removeTypesForSchema: ReturnType<typeof vi.fn>;
+    ensureTypeForField: ReturnType<typeof vi.fn>;
+    isRelationshipField: ReturnType<typeof vi.fn>;
+  };
 
   const mockProject: Project = {
     id: 'test-project-id',
@@ -90,6 +96,16 @@ describe('TemplatesTabComponent', () => {
       openConfirmationDialog: vi.fn(),
     };
 
+    mockRelationshipFieldService = {
+      removeTypesForSchema: vi.fn(),
+      ensureTypeForField: vi.fn(),
+      isRelationshipField: vi
+        .fn()
+        .mockImplementation(
+          (field: { type?: string }) => field.type === 'relationship'
+        ),
+    };
+
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), TemplatesTabComponent],
       providers: [
@@ -98,6 +114,10 @@ describe('TemplatesTabComponent', () => {
         { provide: WorldbuildingService, useValue: mockWorldbuildingService },
         { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: DialogGatewayService, useValue: mockDialogGateway },
+        {
+          provide: RelationshipFieldService,
+          useValue: mockRelationshipFieldService,
+        },
         // Override timeout to 0 for faster tests
         { provide: TEMPLATE_RELOAD_DELAY, useValue: 0 },
       ],
@@ -293,6 +313,64 @@ describe('TemplatesTabComponent', () => {
       expect(mockProjectState.closeSchemaEditor).toHaveBeenCalledWith(
         'custom-1'
       );
+    });
+
+    it('should register backing types for cloned relationship fields', async () => {
+      mockProjectState.project.set(mockProject);
+      mockDialogGateway.openRenameDialog.mockResolvedValue('Cloned Template');
+      const clonedField = {
+        key: 'mother',
+        label: 'Mother',
+        type: 'relationship',
+        relationshipTypeId: 'fieldrel-cloned-1',
+      };
+      mockWorldbuildingService.cloneTemplate.mockReturnValue({
+        id: 'custom-clone',
+        name: 'Cloned Template',
+        tabs: [{ key: 'family', label: 'Family', fields: [clonedField] }],
+      });
+      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
+
+      await component.cloneTemplate(mockCustomTemplate);
+
+      expect(
+        mockRelationshipFieldService.ensureTypeForField
+      ).toHaveBeenCalledWith(
+        'custom-clone',
+        expect.objectContaining({ relationshipTypeId: 'fieldrel-cloned-1' })
+      );
+    });
+
+    it('should remove field-managed relationship types before deleting', async () => {
+      mockProjectState.project.set(mockProject);
+      mockDialogGateway.openConfirmationDialog.mockResolvedValue(true);
+      mockWorldbuildingService.deleteTemplate.mockReturnValue(undefined);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
+
+      await component.deleteTemplate(mockCustomTemplate);
+
+      expect(
+        mockRelationshipFieldService.removeTypesForSchema
+      ).toHaveBeenCalledWith('custom-1');
+    });
+
+    it('should keep relationship data when template deletion fails', async () => {
+      mockProjectState.project.set(mockProject);
+      mockDialogGateway.openConfirmationDialog.mockResolvedValue(true);
+      mockWorldbuildingService.deleteTemplate.mockImplementation(() => {
+        throw new Error('No sync provider available');
+      });
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      await component.deleteTemplate(mockCustomTemplate);
+
+      // Cleanup must run only after a successful deletion.
+      expect(
+        mockRelationshipFieldService.removeTypesForSchema
+      ).not.toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
     });
 
     it('should handle cancelled delete dialog', async () => {

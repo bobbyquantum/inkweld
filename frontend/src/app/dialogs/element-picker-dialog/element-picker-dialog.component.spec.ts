@@ -192,6 +192,52 @@ describe('ElementPickerDialogComponent', () => {
     ).toBeUndefined();
   });
 
+  it('should filter elements by schema when filterSchemaId is provided', async () => {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [translocoTestProvider(), ElementPickerDialogComponent],
+      providers: [
+        { provide: MatDialogRef, useValue: mockDialogRef },
+        {
+          provide: MAT_DIALOG_DATA,
+          useValue: { filterSchemaId: 'character-v1' },
+        },
+        { provide: ProjectStateService, useValue: mockProjectState },
+        { provide: WorldbuildingService, useValue: mockWorldbuildingService },
+      ],
+    }).compileComponents();
+
+    const newFixture = TestBed.createComponent(ElementPickerDialogComponent);
+    const newComponent = newFixture.componentInstance;
+    newFixture.detectChanges();
+
+    const available = newComponent.availableElements();
+    expect(available).toHaveLength(1);
+    expect(available[0].id).toBe('char-1');
+  });
+
+  it('should return no elements for a schema with no matches', async () => {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [translocoTestProvider(), ElementPickerDialogComponent],
+      providers: [
+        { provide: MatDialogRef, useValue: mockDialogRef },
+        {
+          provide: MAT_DIALOG_DATA,
+          useValue: { filterSchemaId: 'nonexistent-schema' },
+        },
+        { provide: ProjectStateService, useValue: mockProjectState },
+        { provide: WorldbuildingService, useValue: mockWorldbuildingService },
+      ],
+    }).compileComponents();
+
+    const newFixture = TestBed.createComponent(ElementPickerDialogComponent);
+    const newComponent = newFixture.componentInstance;
+    newFixture.detectChanges();
+
+    expect(newComponent.availableElements()).toHaveLength(0);
+  });
+
   it('should filter elements based on search text', () => {
     component.searchText.set('hero');
     expect(component.filteredElements()).toHaveLength(1);

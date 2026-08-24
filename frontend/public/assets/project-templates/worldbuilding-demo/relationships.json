@@ -700,5 +700,21 @@
     },
     "createdAt": "2025-06-01T00:00:00.000Z",
     "updatedAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-elara-lirael-mother",
+    "sourceElementId": "char-elara",
+    "targetElementId": "char-lirael",
+    "relationshipTypeId": "fieldrel-character-mother",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-elara-marcus-father",
+    "sourceElementId": "char-elara",
+    "targetElementId": "char-marcus",
+    "relationshipTypeId": "fieldrel-character-father",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
   }
 ]

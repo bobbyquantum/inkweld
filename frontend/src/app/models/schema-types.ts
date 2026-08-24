@@ -14,6 +14,7 @@ export enum FieldType {
   MULTISELECT = 'multiselect',
   ARRAY = 'array',
   CHECKBOX = 'checkbox',
+  RELATIONSHIP = 'relationship',
 }
 
 export interface FieldLayout {
@@ -46,6 +47,14 @@ export interface FieldSchema {
   icon?: string;
   isNested?: boolean;
   nestedFields?: FieldSchema[];
+  /** Relationship fields only: schema id the linked element must belong to (empty/undefined = any worldbuilding element) */
+  targetSchemaId?: string;
+  /** Relationship fields only: allow multiple linked elements */
+  multiple?: boolean;
+  /** Relationship fields only: label shown for the inverse (backlink) direction */
+  inverseLabel?: string;
+  /** Relationship fields only: id of the auto-managed relationship type backing this field */
+  relationshipTypeId?: string;
 }
 
 export interface TabSchema {

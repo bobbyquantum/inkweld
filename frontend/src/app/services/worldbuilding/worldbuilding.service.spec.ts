@@ -695,6 +695,44 @@ describe('WorldbuildingService', () => {
         service.cloneTemplate('nonexistent', 'New', undefined)
       ).toThrow('Template with ID nonexistent not found');
     });
+
+    it('should regenerate relationship type ids without mutating the source', () => {
+      const schemaWithRelationship: ElementTypeSchema = {
+        ...mockCharacterSchema,
+        id: 'character-rel-clone',
+        tabs: [
+          {
+            key: 'basic',
+            label: 'Basic Info',
+            fields: [
+              { key: 'name', label: 'Name', type: 'text' },
+              {
+                key: 'mother',
+                label: 'Mother',
+                type: 'relationship',
+                relationshipTypeId: 'fieldrel-original',
+              },
+            ],
+          },
+        ],
+      };
+      service.saveSchemaToLibrary(schemaWithRelationship);
+
+      const cloned = service.cloneTemplate(
+        'character-rel-clone',
+        'Cloned',
+        undefined
+      );
+
+      const clonedField = cloned.tabs[0].fields.find(f => f.key === 'mother');
+      expect(clonedField?.relationshipTypeId).toMatch(/^fieldrel-/);
+      expect(clonedField?.relationshipTypeId).not.toBe('fieldrel-original');
+
+      // The source template must keep its original id.
+      const source = service.getSchema('character-rel-clone');
+      const sourceField = source?.tabs[0].fields.find(f => f.key === 'mother');
+      expect(sourceField?.relationshipTypeId).toBe('fieldrel-original');
+    });
   });
 
   describe('deleteTemplate', () => {
@@ -855,6 +893,47 @@ describe('WorldbuildingService', () => {
         value: '#123456',
       });
       expect(identity.image).toBe('media://default.png');
+    });
+
+    it('should not pre-create relationship fields in the data map', async () => {
+      const schemaWithRelationship: ElementTypeSchema = {
+        ...mockCharacterSchema,
+        id: 'character-rel-v1',
+        tabs: [
+          {
+            key: 'basic',
+            label: 'Basic Info',
+            fields: [
+              { key: 'name', label: 'Name', type: 'text' },
+              {
+                key: 'mother',
+                label: 'Mother',
+                type: 'relationship',
+                relationshipTypeId: 'fieldrel-mother',
+              },
+            ],
+          },
+        ],
+      };
+
+      const element = {
+        id: 'rel-field-element',
+        type: ElementType.Worldbuilding,
+        schemaId: 'character-rel-v1',
+        name: 'Rel Character',
+      } as Element;
+
+      service.saveSchemaToLibrary(schemaWithRelationship);
+
+      await service.initializeWorldbuildingElement(element, username, slug);
+
+      const data = await service.getWorldbuildingData(
+        'rel-field-element',
+        username,
+        slug
+      );
+      expect(data?.['name']).toBe('Rel Character');
+      expect(data).not.toHaveProperty('mother');
     });
   });
 

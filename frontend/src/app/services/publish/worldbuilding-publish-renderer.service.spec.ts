@@ -1,6 +1,7 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ElementType } from '@inkweld/index';
+import { type ElementRelationship } from '@models/element-ref.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -11,6 +12,7 @@ import {
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { RelationshipService } from '../relationship/relationship.service';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import { WorldbuildingPublishRendererService } from './worldbuilding-publish-renderer.service';
 
@@ -69,7 +71,10 @@ const characterSchema: ElementTypeSchema = {
 
 describe('WorldbuildingPublishRendererService', () => {
   let service: WorldbuildingPublishRendererService;
-  let projectState: { project: ReturnType<typeof vi.fn> };
+  let projectState: {
+    project: ReturnType<typeof vi.fn>;
+    elements: ReturnType<typeof signal>;
+  };
   let worldbuilding: {
     getAllSchemas: ReturnType<typeof vi.fn>;
     getSchemaForElement: ReturnType<typeof vi.fn>;
@@ -80,12 +85,16 @@ describe('WorldbuildingPublishRendererService', () => {
     warn: ReturnType<typeof vi.fn>;
     info: ReturnType<typeof vi.fn>;
   };
+  let relationshipService: {
+    relationships: ReturnType<typeof signal<ElementRelationship[]>>;
+  };
 
   beforeEach(() => {
     projectState = {
       project: vi
         .fn()
         .mockReturnValue({ username: 'demouser', slug: 'demo-project' }),
+      elements: signal([]),
     };
     worldbuilding = {
       getAllSchemas: vi.fn().mockReturnValue([characterSchema]),
@@ -94,6 +103,9 @@ describe('WorldbuildingPublishRendererService', () => {
       getIdentityData: vi.fn().mockResolvedValue({}),
     };
     logger = { warn: vi.fn(), info: vi.fn() };
+    relationshipService = {
+      relationships: signal<ElementRelationship[]>([]),
+    };
 
     TestBed.configureTestingModule({
       imports: [translocoTestProvider()],
@@ -103,6 +115,7 @@ describe('WorldbuildingPublishRendererService', () => {
         { provide: ProjectStateService, useValue: projectState },
         { provide: WorldbuildingService, useValue: worldbuilding },
         { provide: LoggerService, useValue: logger },
+        { provide: RelationshipService, useValue: relationshipService },
       ],
     });
 
@@ -312,6 +325,84 @@ describe('WorldbuildingPublishRendererService', () => {
     ]);
     expect(entry.imageRef).toBeUndefined();
     expect(entry.description).toBeUndefined();
+  });
+
+  describe('relationship fields', () => {
+    const relationshipSchema: ElementTypeSchema = {
+      id: 'character',
+      name: 'Character',
+      icon: 'person',
+      description: 'A character',
+      version: 1,
+      tabs: [
+        {
+          key: 'relations',
+          label: 'Relationships',
+          order: 1,
+          fields: [
+            { key: 'name', label: 'Name', type: 'text' },
+            {
+              key: 'mother',
+              label: 'Mother',
+              type: 'relationship',
+              relationshipTypeId: 'fieldrel-mother',
+            },
+          ],
+        },
+      ],
+    };
+
+    it('renders linked element names for relationship fields', async () => {
+      worldbuilding.getSchemaForElement.mockResolvedValue(relationshipSchema);
+      worldbuilding.getWorldbuildingData.mockResolvedValue({ name: 'Alice' });
+      projectState.elements.set([
+        { id: 'e1', name: 'Alice', type: ElementType.Worldbuilding },
+        { id: 'mother-1', name: 'Maria', type: ElementType.Worldbuilding },
+      ] as never[]);
+      relationshipService.relationships.set([
+        {
+          id: 'r1',
+          sourceElementId: 'e1',
+          targetElementId: 'mother-1',
+          relationshipTypeId: 'fieldrel-mother',
+          createdAt: '',
+          updatedAt: '',
+        },
+      ]);
+
+      const [entry] = await service.renderItem(makeItem(), [
+        wbElement('e1', 'Alice'),
+      ]);
+
+      const motherField = entry.tabs[0].fields.find(f => f.key === 'mother');
+      expect(motherField?.displayValue).toBe('Maria');
+      expect(motherField?.rawValue).toEqual(['mother-1']);
+    });
+
+    it('omits empty relationship fields unless includeEmptyFields', async () => {
+      worldbuilding.getSchemaForElement.mockResolvedValue(relationshipSchema);
+      worldbuilding.getWorldbuildingData.mockResolvedValue({ name: 'Alice' });
+      projectState.elements.set([
+        { id: 'e1', name: 'Alice', type: ElementType.Worldbuilding },
+      ] as never[]);
+      relationshipService.relationships.set([]);
+
+      const [entry] = await service.renderItem(makeItem(), [
+        wbElement('e1', 'Alice'),
+      ]);
+      expect(
+        entry.tabs[0].fields.find(f => f.key === 'mother')
+      ).toBeUndefined();
+
+      const [entryWithEmpty] = await service.renderItem(
+        makeItem({ includeEmptyFields: true }),
+        [wbElement('e1', 'Alice')]
+      );
+      const motherField = entryWithEmpty.tabs[0].fields.find(
+        f => f.key === 'mother'
+      );
+      expect(motherField?.displayValue).toBe('');
+    });
   });
 
   describe('formatFieldValue (via renderItem)', () => {

@@ -19,6 +19,7 @@ import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { type ElementTypeSchema, type TabSchema } from '@models/schema-types';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { RelationshipFieldService } from '@services/relationship/relationship-field.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 
 /**
@@ -65,6 +66,7 @@ interface TemplateSchema {
 export class TemplatesTabComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly relationshipFieldService = inject(RelationshipFieldService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly transloco = inject(TranslocoService);
   private readonly dialogGateway = inject(DialogGatewayService);
@@ -224,11 +226,25 @@ export class TemplatesTabComponent {
     }
 
     try {
-      this.worldbuildingService.cloneTemplate(
+      const cloned = this.worldbuildingService.cloneTemplate(
         template.id,
         newName,
         `Clone of ${template.label}`
       );
+
+      // cloneTemplate regenerates every relationship field's backing-type id;
+      // register those types right away so the clone is fully usable without
+      // being opened in the editor first.
+      for (const tab of cloned.tabs) {
+        for (const field of tab.fields ?? []) {
+          if (
+            this.relationshipFieldService.isRelationshipField(field) &&
+            field.relationshipTypeId
+          ) {
+            this.relationshipFieldService.ensureTypeForField(cloned.id, field);
+          }
+        }
+      }
 
       this.snackBar.open(
         this.transloco.translate('templates.tab.created', { name: newName }),
@@ -272,6 +288,12 @@ export class TemplatesTabComponent {
 
     try {
       this.worldbuildingService.deleteTemplate(template.id);
+
+      // Only after the template is really gone: removing the auto-managed
+      // relationship types (and their links) before a failed deletion would
+      // destroy relationship data while leaving the template in place.
+      this.relationshipFieldService.removeTypesForSchema(template.id);
+
       // Close any open schema-editor tab for this template so autosave can't
       // recreate the deleted schema from the tab's cached copy.
       this.projectState.closeSchemaEditor(template.id);

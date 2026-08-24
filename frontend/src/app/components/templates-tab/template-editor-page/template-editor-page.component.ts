@@ -32,6 +32,7 @@ import {
   type FieldSchema,
   type TabSchema,
 } from '@models/schema-types';
+import { RelationshipFieldService } from '@services/relationship/relationship-field.service';
 
 interface BasicFormValue {
   name: string;
@@ -65,6 +66,7 @@ export class TemplateEditorPageComponent
 {
   private readonly destroyRef = inject(DestroyRef);
   private readonly transloco = inject(TranslocoService);
+  private readonly relationshipFieldService = inject(RelationshipFieldService);
 
   /** Exposed for the preview template. */
   readonly ElementType = ElementType;
@@ -184,7 +186,48 @@ export class TemplateEditorPageComponent
       });
     });
 
+    // Legacy/imported relationship fields may lack a backing-type id. Stamp
+    // a deterministic one (stable across sessions even before the save lands)
+    // so ensureRelationshipTypes below can register the matching type.
+    let stampedTypeIds = false;
+    tabs.forEach(tab => {
+      tab.fields.forEach(field => {
+        if (
+          this.relationshipFieldService.isRelationshipField(field) &&
+          !field.relationshipTypeId
+        ) {
+          field.relationshipTypeId =
+            this.relationshipFieldService.stableRelationshipTypeId(
+              schema.id,
+              field
+            );
+          stampedTypeIds = true;
+        }
+      });
+    });
+
     this.tabs.set(tabs);
+
+    // Self-heal: make sure every existing relationship field has a backing
+    // relationship type registered (idempotent).
+    this.ensureRelationshipTypes(tabs);
+
+    if (stampedTypeIds) {
+      // Persist the stamped ids immediately so field and type stay aligned.
+      this.scheduleAutosave();
+    }
+  }
+
+  /** Ensure backing relationship types exist for all relationship fields. */
+  private ensureRelationshipTypes(tabs: TabSchema[]): void {
+    const schemaId = this.schema().id;
+    tabs.forEach(tab => {
+      tab.fields.forEach(field => {
+        if (this.relationshipFieldService.isRelationshipField(field)) {
+          this.relationshipFieldService.ensureTypeForField(schemaId, field);
+        }
+      });
+    });
   }
 
   ngAfterViewInit(): void {
@@ -365,6 +408,7 @@ export class TemplateEditorPageComponent
         this.addTab();
         break;
       case 'remove-tab':
+        this.cleanupRelationshipFieldsInTab(tabs, event.tabKey);
         this.removeTabByKey(tabs, event.tabKey);
         break;
       case 'update-tab':
@@ -374,11 +418,18 @@ export class TemplateEditorPageComponent
         this.addFieldToTab(tabs, event.tabKey);
         break;
       case 'remove-field':
+        this.cleanupRelationshipField(tabs, event.tabKey, event.fieldKey);
         this.operateField(tabs, event.tabKey, event.fieldKey, (t, f) =>
           this.removeField(t, f)
         );
         break;
       case 'update-field':
+        this.reconcileRelationshipField(
+          tabs,
+          event.tabKey,
+          event.fieldKey,
+          (event as { patch: Partial<FieldSchema> }).patch
+        );
         this.operateField(tabs, event.tabKey, event.fieldKey, (t, f) =>
           this.updateField(
             t,
@@ -464,6 +515,147 @@ export class TemplateEditorPageComponent
       const arr = next[tabIdx].fields;
       const [moved] = arr.splice(fieldIdx, 1);
       arr.splice(target, 0, moved);
+    });
+  }
+
+  /** Find a field by tab key + field key, or null when not present. */
+  private findFieldByKey(
+    tabs: TabSchema[],
+    tabKey: string,
+    fieldKey: string
+  ): FieldSchema | null {
+    const tab = tabs.find(t => t.key === tabKey);
+    return tab?.fields.find(f => f.key === fieldKey) ?? null;
+  }
+
+  /**
+   * Keep the backing relationship type in sync with an update-field patch.
+   * Stamps a new relationshipTypeId into the patch when a field becomes a
+   * relationship field, re-ensures the type on any relationship-field edit,
+   * and removes the type when a field stops being a relationship field.
+   *
+   * Guarded by a candidate-key check: the shared relationship store must never
+   * be mutated for an edit that tail validation will reject (duplicate/empty
+   * key, group collision) — otherwise a rejected edit would leak a managed
+   * type or destroy existing links.
+   */
+  private reconcileRelationshipField(
+    tabs: TabSchema[],
+    tabKey: string,
+    fieldKey: string,
+    patch: Partial<FieldSchema>
+  ): void {
+    const current = this.findFieldByKey(tabs, tabKey, fieldKey);
+    if (!current) return;
+
+    const candidateKey = patch.key ?? current.key;
+    if (!this.isCandidateKeyValid(tabs, tabKey, current.key, candidateKey)) {
+      return;
+    }
+
+    const wasRelationship =
+      this.relationshipFieldService.isRelationshipField(current);
+    const willBeRelationship =
+      patch.type !== undefined
+        ? patch.type === 'relationship'
+        : wasRelationship;
+
+    if (willBeRelationship) {
+      const merged: FieldSchema = { ...current, ...patch };
+      const stamped =
+        this.relationshipFieldService.stampRelationshipTypeId(merged);
+      patch.relationshipTypeId = stamped.relationshipTypeId;
+      this.relationshipFieldService.ensureTypeForField(
+        this.schema().id,
+        stamped
+      );
+    } else if (wasRelationship) {
+      this.relationshipFieldService.removeTypeForField(current, true);
+    }
+  }
+
+  /**
+   * Whether an update-field's candidate key stays valid against all sibling
+   * fields. Mirrors validateSchema's rules (non-empty, unique across the
+   * template, no flat/nested group collision) so reconciliation can bail out
+   * before touching the relationship store.
+   */
+  private isCandidateKeyValid(
+    tabs: TabSchema[],
+    tabKey: string,
+    currentKey: string,
+    candidateKey: string
+  ): boolean {
+    const trimmed = candidateKey.trim();
+    if (!trimmed) return false;
+
+    const others = this.otherFields(tabs, tabKey, currentKey);
+    return (
+      !others.some(f => f.key.trim() === trimmed) &&
+      !this.conflictsWithGroupStructure(trimmed, others)
+    );
+  }
+
+  /** All fields except the one being edited. */
+  private otherFields(
+    tabs: TabSchema[],
+    tabKey: string,
+    currentKey: string
+  ): FieldSchema[] {
+    const others: FieldSchema[] = [];
+    for (const tab of tabs) {
+      for (const field of tab.fields) {
+        if (tab.key === tabKey && field.key === currentKey) continue;
+        others.push(field);
+      }
+    }
+    return others;
+  }
+
+  /**
+   * A flat field and a nested group must not share the group's name — the
+   * form can't hold both (a FormControl and a FormGroup under one key).
+   */
+  private conflictsWithGroupStructure(
+    trimmedKey: string,
+    others: FieldSchema[]
+  ): boolean {
+    const candidateIsNested = trimmedKey.includes('.');
+    const candidateGroup = candidateIsNested ? trimmedKey.split('.')[0] : null;
+
+    return others.some(other => {
+      const otherIsNested = other.key.includes('.');
+      const otherGroup = otherIsNested ? other.key.split('.')[0] : null;
+      if (candidateIsNested && !otherIsNested) {
+        return other.key.trim() === candidateGroup;
+      }
+      return !candidateIsNested && otherIsNested && otherGroup === trimmedKey;
+    });
+  }
+
+  /** Remove the backing relationship type when a relationship field is deleted. */
+  private cleanupRelationshipField(
+    tabs: TabSchema[],
+    tabKey: string,
+    fieldKey: string
+  ): void {
+    const field = this.findFieldByKey(tabs, tabKey, fieldKey);
+    if (field && this.relationshipFieldService.isRelationshipField(field)) {
+      this.relationshipFieldService.removeTypeForField(field, true);
+    }
+  }
+
+  /** Remove backing relationship types for all fields in a deleted tab. */
+  private cleanupRelationshipFieldsInTab(
+    tabs: TabSchema[],
+    tabKey: string
+  ): void {
+    const tab = tabs.find(t => t.key === tabKey);
+    if (!tab) return;
+    tab.fields.forEach(field => {
+      if (this.relationshipFieldService.isRelationshipField(field)) {
+        this.relationshipFieldService.removeTypeForField(field, true);
+      }
     });
   }
 
