@@ -63,28 +63,15 @@ describe('ConfigService', () => {
   });
 
   describe('getBoolean', () => {
-    it('should return true for "true" string', async () => {
-      await configService.set(db, 'LOCAL_USERS_ENABLED', 'true');
+    it.each<[boolean, string]>([
+      [true, 'true'],
+      [true, '1'],
+      [false, 'false'],
+      [false, 'maybe'],
+    ])('should return %s for "%s" string', async (expected, value) => {
+      await configService.set(db, 'LOCAL_USERS_ENABLED', value);
       const result = await configService.getBoolean(db, 'LOCAL_USERS_ENABLED');
-      expect(result).toBe(true);
-    });
-
-    it('should return true for "1" string', async () => {
-      await configService.set(db, 'LOCAL_USERS_ENABLED', '1');
-      const result = await configService.getBoolean(db, 'LOCAL_USERS_ENABLED');
-      expect(result).toBe(true);
-    });
-
-    it('should return false for "false" string', async () => {
-      await configService.set(db, 'LOCAL_USERS_ENABLED', 'false');
-      const result = await configService.getBoolean(db, 'LOCAL_USERS_ENABLED');
-      expect(result).toBe(false);
-    });
-
-    it('should return false for other strings', async () => {
-      await configService.set(db, 'LOCAL_USERS_ENABLED', 'maybe');
-      const result = await configService.getBoolean(db, 'LOCAL_USERS_ENABLED');
-      expect(result).toBe(false);
+      expect(result).toBe(expected);
     });
   });
 
@@ -222,27 +209,14 @@ describe('ConfigService', () => {
       expect(result2).toBe(false);
     });
 
-    it('should check localUsers feature', async () => {
-      await configService.set(db, 'LOCAL_USERS_ENABLED', 'true');
-      const result = await configService.isFeatureEnabled(db, 'localUsers');
-      expect(result).toBe(true);
-    });
-
-    it('should check github feature', async () => {
-      await configService.set(db, 'GITHUB_ENABLED', 'true');
-      const result = await configService.isFeatureEnabled(db, 'github');
-      expect(result).toBe(true);
-    });
-
-    it('should check aiAutoReview feature', async () => {
-      await configService.set(db, 'AI_LINT_ENABLED', 'true');
-      const result = await configService.isFeatureEnabled(db, 'aiLint');
-      expect(result).toBe(true);
-    });
-
-    it('should check aiImage feature', async () => {
-      await configService.set(db, 'AI_IMAGE_ENABLED', 'true');
-      const result = await configService.isFeatureEnabled(db, 'aiImage');
+    it.each<[feature: 'localUsers' | 'github' | 'aiLint' | 'aiImage', configKey: ConfigKey]>([
+      ['localUsers', 'LOCAL_USERS_ENABLED'],
+      ['github', 'GITHUB_ENABLED'],
+      ['aiLint', 'AI_LINT_ENABLED'],
+      ['aiImage', 'AI_IMAGE_ENABLED'],
+    ])('should check %s feature', async (feature, configKey) => {
+      await configService.set(db, configKey, 'true');
+      const result = await configService.isFeatureEnabled(db, feature);
       expect(result).toBe(true);
     });
   });

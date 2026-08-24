@@ -249,13 +249,13 @@ describe('ElementTreeService', () => {
 
     it('should return element and all nested children', () => {
       const subtree = service.getSubtree(elements, 0);
-      expect(subtree.length).toBe(4);
+      expect(subtree).toHaveLength(4);
       expect(subtree.map(e => e.id)).toEqual(['1', '2', '3', '4']);
     });
 
     it('should stop at same level element', () => {
       const subtree = service.getSubtree(elements, 2);
-      expect(subtree.length).toBe(2);
+      expect(subtree).toHaveLength(2);
       expect(subtree.map(e => e.id)).toEqual(['3', '4']);
     });
 
@@ -468,13 +468,13 @@ describe('ElementTreeService', () => {
 
     it('should return single parent for first-level element', () => {
       const ancestors = service.getAncestors(elements, 1);
-      expect(ancestors.length).toBe(1);
+      expect(ancestors).toHaveLength(1);
       expect(ancestors[0].id).toBe('1');
     });
 
     it('should return all ancestors in order from parent to root', () => {
       const ancestors = service.getAncestors(elements, 3);
-      expect(ancestors.length).toBe(3);
+      expect(ancestors).toHaveLength(3);
       expect(ancestors.map(a => a.id)).toEqual(['3', '2', '1']);
     });
   });

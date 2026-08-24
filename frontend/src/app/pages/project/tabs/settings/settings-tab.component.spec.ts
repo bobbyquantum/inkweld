@@ -383,7 +383,7 @@ describe('SettingsTabComponent', () => {
         'testuser',
         'test-project'
       );
-      expect(component['mcpKeys']().length).toBe(2);
+      expect(component['mcpKeys']()).toHaveLength(2);
       expect(component['isLoadingKeys']()).toBe(false);
     });
 
@@ -403,7 +403,7 @@ describe('SettingsTabComponent', () => {
 
       await offlineComponent.loadMcpKeys();
 
-      expect(offlineComponent['mcpKeys']().length).toBe(0);
+      expect(offlineComponent['mcpKeys']()).toHaveLength(0);
       expect(offlineComponent['isLoadingKeys']()).toBe(false);
     });
 
@@ -1003,7 +1003,7 @@ describe('SettingsTabComponent', () => {
         'testuser',
         'test-project'
       );
-      expect(component['collaborators']().length).toBe(2);
+      expect(component['collaborators']()).toHaveLength(2);
     });
 
     it('should get active collaborators count', async () => {
@@ -1102,7 +1102,7 @@ describe('SettingsTabComponent', () => {
       await fixture.whenStable();
 
       // Should remain empty after error
-      expect(component['collaborators']().length).toBe(0);
+      expect(component['collaborators']()).toHaveLength(0);
     });
 
     it('should handle error when inviting collaborator', async () => {
@@ -1226,19 +1226,25 @@ describe('SettingsTabComponent', () => {
   });
 
   describe('Project Rename', () => {
-    it('should validate slug - empty slug is invalid', () => {
-      component['newProjectSlug'] = '';
-      expect(component.isValidSlug()).toBe(false);
-    });
-
-    it('should validate slug - too short slug is invalid', () => {
-      component['newProjectSlug'] = 'ab';
-      expect(component.isValidSlug()).toBe(false);
-    });
-
-    it('should validate slug - valid slug with 3 chars', () => {
-      component['newProjectSlug'] = 'abc';
-      expect(component.isValidSlug()).toBe(true);
+    it.each<{ name: string; slug: string; valid: boolean }>([
+      {
+        name: 'should validate slug - empty slug is invalid',
+        slug: '',
+        valid: false,
+      },
+      {
+        name: 'should validate slug - too short slug is invalid',
+        slug: 'ab',
+        valid: false,
+      },
+      {
+        name: 'should validate slug - valid slug with 3 chars',
+        slug: 'abc',
+        valid: true,
+      },
+    ])('$name', ({ slug, valid }) => {
+      component['newProjectSlug'] = slug;
+      expect(component.isValidSlug()).toBe(valid);
     });
 
     it('should validate slug - invalid chars are rejected', () => {

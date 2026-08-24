@@ -111,7 +111,7 @@ describe('createKeyboardShortcutsPlugin', () => {
       schema: testSchema,
       plugins: [plugin],
     });
-    expect(state.plugins.length).toBe(1);
+    expect(state.plugins).toHaveLength(1);
     expect(state.plugins[0]).toBe(plugin);
   });
 
@@ -148,7 +148,7 @@ describe('createKeyboardShortcutsPlugin', () => {
       schema: minimalSchema,
       plugins: [plugin],
     });
-    expect(state.plugins.length).toBe(1);
+    expect(state.plugins).toHaveLength(1);
   });
 
   describe('command execution with dispatch', () => {
@@ -193,7 +193,7 @@ describe('createKeyboardShortcutsPlugin', () => {
       });
 
       // Should still create plugin without throwing
-      expect(state.plugins.length).toBe(1);
+      expect(state.plugins).toHaveLength(1);
     });
 
     it('should handle list commands with missing list types gracefully', () => {
@@ -218,7 +218,7 @@ describe('createKeyboardShortcutsPlugin', () => {
       });
 
       // Should still create plugin without throwing
-      expect(state.plugins.length).toBe(1);
+      expect(state.plugins).toHaveLength(1);
     });
   });
 
@@ -286,6 +286,6 @@ describe('KEYBOARD_SHORTCUTS_LIST', () => {
   });
 
   it('should have 16 keyboard shortcuts defined', () => {
-    expect(KEYBOARD_SHORTCUTS_LIST.length).toBe(16);
+    expect(KEYBOARD_SHORTCUTS_LIST).toHaveLength(16);
   });
 });

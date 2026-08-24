@@ -192,7 +192,7 @@ describe('AdminUsersComponent', () => {
     fixture.detectChanges();
 
     const activeUsers = component.activeUsers();
-    expect(activeUsers.length).toBe(2); // admin and user1
+    expect(activeUsers).toHaveLength(2); // admin and user1
     expect(activeUsers.every(u => u.approved && u.enabled)).toBe(true);
   });
 
@@ -200,7 +200,7 @@ describe('AdminUsersComponent', () => {
     fixture.detectChanges();
 
     const disabledUsers = component.disabledUsers();
-    expect(disabledUsers.length).toBe(1);
+    expect(disabledUsers).toHaveLength(1);
     expect(disabledUsers[0].username).toBe('disabled');
   });
 
@@ -208,7 +208,7 @@ describe('AdminUsersComponent', () => {
     fixture.detectChanges();
 
     const adminUsers = component.adminUsers();
-    expect(adminUsers.length).toBe(1);
+    expect(adminUsers).toHaveLength(1);
     expect(adminUsers[0].username).toBe('admin');
   });
 

@@ -56,7 +56,14 @@ async function constrainToolbarWidth(
     document.head.appendChild(style);
     document.body.getBoundingClientRect();
   }, widthPx);
-  await page.waitForTimeout(400);
+  await page.waitForFunction(
+    w => {
+      const el = document.querySelector('[data-testid="editor-toolbar"]');
+      return !!el && el.getBoundingClientRect().width <= w;
+    },
+    widthPx,
+    { timeout: 5000 }
+  );
 }
 
 /**
@@ -64,13 +71,26 @@ async function constrainToolbarWidth(
  * Forces a layout reflow so the ResizeObserver sees the change.
  */
 async function removeToolbarConstraint(page: Page): Promise<void> {
+  const constrainedWidth = await page.evaluate(
+    () =>
+      document
+        .querySelector('[data-testid="editor-toolbar"]')
+        ?.getBoundingClientRect().width ?? 0
+  );
   await page.evaluate(() => {
     document
       .querySelectorAll('style[data-toolbar-constraint]')
       .forEach(s => s.remove());
     document.body.getBoundingClientRect();
   });
-  await page.waitForTimeout(600);
+  await page.waitForFunction(
+    w => {
+      const el = document.querySelector('[data-testid="editor-toolbar"]');
+      return !!el && el.getBoundingClientRect().width > w;
+    },
+    constrainedWidth,
+    { timeout: 5000 }
+  );
 }
 
 test.describe('Toolbar Overflow', () => {

@@ -52,7 +52,7 @@ async function setupProjectAndOpenStyleEditor(
   await page.waitForSelector('[data-testid="publish-style-editor"]', {
     state: 'visible',
   });
-  await page.waitForTimeout(400);
+  await expect(page.getByTestId('preset-select')).toBeVisible();
 }
 
 async function captureStyleScreenshots(
@@ -82,19 +82,19 @@ async function captureStyleScreenshots(
   await test.step('preset dropdown open', async () => {
     await page.getByTestId('preset-select').click();
     await page.waitForSelector('mat-option', { state: 'visible' });
-    await page.waitForTimeout(200);
+    await expect(page.locator('mat-option').first()).toBeVisible();
     await page.screenshot({
       path: join(screenshotsDir, `publish-style-preset-list-${suffix}.png`),
       fullPage: false,
     });
     await page.keyboard.press('Escape');
-    await page.waitForTimeout(200);
+    await expect(page.locator('mat-option')).toHaveCount(0);
   });
 
   await test.step('body text section expanded', async () => {
-    await page.getByTestId('section-base-text').click();
-    await page.waitForTimeout(300);
     const section = page.getByTestId('section-base-text');
+    await section.click();
+    await expect(page.getByTestId('font-base-text')).toBeVisible();
     await captureElementScreenshot(
       page,
       [section],
@@ -104,9 +104,9 @@ async function captureStyleScreenshots(
   });
 
   await test.step('chapter title section with page break toggle', async () => {
-    await page.getByTestId('section-chapter').click();
-    await page.waitForTimeout(300);
     const section = page.getByTestId('section-chapter');
+    await section.click();
+    await expect(page.getByTestId('chapter-page-break')).toBeVisible();
     await captureElementScreenshot(
       page,
       [section],
@@ -116,9 +116,9 @@ async function captureStyleScreenshots(
   });
 
   await test.step('worldbuilding section', async () => {
-    await page.getByTestId('section-worldbuilding').click();
-    await page.waitForTimeout(300);
     const section = page.getByTestId('section-worldbuilding');
+    await section.click();
+    await expect(page.getByTestId('worldbuilding-layout-select')).toBeVisible();
     await captureElementScreenshot(
       page,
       [section],

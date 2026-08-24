@@ -66,15 +66,15 @@ describe('RecoverPasskeyRedeemComponent', () => {
     fixture.detectChanges();
   }
 
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
   it('creates and reads token from query params', async () => {
     await setup({ token: 'abc' });
     expect(component).toBeTruthy();
     expect(component.noToken()).toBe(false);
     expect(component.browserUnsupported()).toBe(false);
-  });
-
-  afterEach(() => {
-    TestBed.resetTestingModule();
   });
 
   it('flags noToken when ?token query param is missing', async () => {

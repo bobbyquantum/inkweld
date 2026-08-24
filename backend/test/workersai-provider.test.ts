@@ -84,7 +84,7 @@ describe('WorkersAIImageProvider', () => {
         models: customModels,
       });
       const models = provider.getModels();
-      expect(models.length).toBe(1);
+      expect(models).toHaveLength(1);
       expect(models[0].id).toBe('@cf/flux-schnell');
     });
 
@@ -112,7 +112,7 @@ describe('WorkersAIImageProvider', () => {
         { id: '@cf/model-b', name: 'Model B' },
       ];
       provider.setModels(newModels);
-      expect(provider.getModels().length).toBe(2);
+      expect(provider.getModels()).toHaveLength(2);
     });
 
     it('should set provider field to workersai', () => {
@@ -123,7 +123,7 @@ describe('WorkersAIImageProvider', () => {
     it('should keep existing models when setting empty array', () => {
       provider.setModels([{ id: 'x', name: 'X' }]);
       provider.setModels([]); // Should not clear
-      expect(provider.getModels().length).toBe(1);
+      expect(provider.getModels()).toHaveLength(1);
     });
   });
 

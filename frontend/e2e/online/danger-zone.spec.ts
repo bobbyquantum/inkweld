@@ -24,7 +24,6 @@ async function navigateToDangerZone(
 
   await page.getByTestId('danger-zone-section').scrollIntoViewIfNeeded();
   await expect(page.getByTestId('danger-zone-section')).toBeVisible();
-  await page.waitForLoadState('networkidle');
 }
 
 async function setupProjectAndNavigateToDanger(
@@ -87,11 +86,8 @@ test.describe('Danger Zone', () => {
       const newSlug = `renamed-${Date.now()}`;
       await page.getByTestId('new-slug-input').fill(newSlug);
 
-      // Wait for the confirm button to be fully enabled and the form
-      // to be in a stable state before submitting.
+      // Wait for the confirm button to be fully enabled before submitting.
       await expect(page.getByTestId('confirm-rename-button')).toBeEnabled();
-      await page.waitForLoadState('networkidle');
-
       await page.getByTestId('confirm-rename-button').click();
 
       // After rename the component triggers a full navigation to the new URL.

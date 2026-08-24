@@ -62,7 +62,6 @@ test.describe('Passwordless mode (PASSWORD_LOGIN_ENABLED)', () => {
     adminPage,
   }) => {
     await adminPage.goto('/admin/settings');
-    await adminPage.waitForLoadState('networkidle');
 
     await expect(
       adminPage.locator('[data-testid="password-login-card"]')
@@ -83,7 +82,6 @@ test.describe('Passwordless mode (PASSWORD_LOGIN_ENABLED)', () => {
 
       // Sanity: registration form shows password fields when the flag is on.
       await anonymousPage.goto('/');
-      await anonymousPage.waitForLoadState('networkidle');
       await anonymousPage
         .locator('[data-testid="welcome-register-button"]')
         .click();
@@ -101,7 +99,6 @@ test.describe('Passwordless mode (PASSWORD_LOGIN_ENABLED)', () => {
 
       // Reload so the system-config signal picks up the new value.
       await anonymousPage.reload();
-      await anonymousPage.waitForLoadState('networkidle');
       await anonymousPage
         .locator('[data-testid="welcome-register-button"]')
         .click();
@@ -136,7 +133,6 @@ test.describe('Passwordless mode (PASSWORD_LOGIN_ENABLED)', () => {
       await setPasswordLoginFlag(adminPage, false);
 
       await anonymousPage.goto('/');
-      await anonymousPage.waitForLoadState('networkidle');
       await anonymousPage
         .locator('[data-testid="welcome-login-button"]')
         .click();

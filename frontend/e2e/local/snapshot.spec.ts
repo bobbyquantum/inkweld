@@ -59,6 +59,55 @@ async function closeSnapshotsDialog(page: Page): Promise<void> {
   await expect(page.getByTestId('close-snapshots-dialog')).not.toBeVisible();
 }
 
+/**
+ * Wait until the worldbuilding editor's debounced save has flushed by
+ * polling every `worldbuilding:*` y-indexeddb database for the given
+ * value (Yjs persists updates verbatim, so the value appears as a UTF-8
+ * substring once written).
+ */
+async function waitForWorldbuildingPersisted(
+  page: Page,
+  value: string
+): Promise<void> {
+  await expect
+    .poll(() =>
+      page.evaluate(async needle => {
+        const names = (await indexedDB.databases())
+          .map(db => db.name)
+          .filter((n): n is string => !!n && n.startsWith('worldbuilding:'));
+        const decoder = new TextDecoder('utf-8');
+        for (const name of names) {
+          const open = indexedDB.open(name);
+          try {
+            const db = await new Promise<IDBDatabase>((resolve, reject) => {
+              open.onsuccess = () => resolve(open.result);
+              open.onerror = () =>
+                reject(open.error ?? new Error('open failed'));
+            });
+            const store = db
+              .transaction('updates', 'readonly')
+              .objectStore('updates');
+            const records = await new Promise<Uint8Array[]>(
+              (resolve, reject) => {
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result as Uint8Array[]);
+                req.onerror = () => reject(req.error ?? new Error('get'));
+              }
+            );
+            db.close();
+            if (records.some(r => decoder.decode(r).includes(needle))) {
+              return true;
+            }
+          } catch {
+            // Database may not have an updates store yet — keep polling.
+          }
+        }
+        return false;
+      }, value)
+    )
+    .toBe(true);
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -163,8 +212,11 @@ test.describe('Worldbuilding Snapshots', () => {
     await summaryField.fill(
       'A beautiful mountain village nestled in the Alps.'
     );
-    // Worldbuilding editor debounces saves at 500ms; wait for the flush.
-    await page.waitForTimeout(600);
+    // Wait for the debounced save to reach persistence before snapshotting.
+    await waitForWorldbuildingPersisted(
+      page,
+      'A beautiful mountain village nestled in the Alps.'
+    );
 
     await test.step('create snapshot is listed', async () => {
       await openSnapshotsDialog(page);
@@ -185,8 +237,8 @@ test.describe('Worldbuilding Snapshots', () => {
       await summaryField.clear();
       await summaryField.fill('A destroyed wasteland.');
       await expect(summaryField).toHaveValue('A destroyed wasteland.');
-      // Wait for the debounced save before triggering a restore.
-      await page.waitForTimeout(600);
+      // Wait for the debounced save to reach persistence before restoring.
+      await waitForWorldbuildingPersisted(page, 'A destroyed wasteland.');
 
       await openSnapshotsDialog(page);
 
@@ -222,13 +274,12 @@ test.describe('Auto-Snapshots', () => {
     // keyboard.type triggers real input events through ProseMirror's Yjs binding,
     // which is what marks the doc dirty for auto-snapshot creation.
     await page.keyboard.type('Content that should trigger an auto-snapshot.');
+    // The local sync dot reflects the same ydoc update stream that
+    // AutoSnapshotService uses to mark the element dirty, so reaching it
+    // means markDirty has run.
     await expect(
       page.getByTestId('document-sync-status').getByTestId('document-sync-dot')
     ).toHaveClass(/local/);
-
-    // Small delay so the ydoc update event has fired and markDirty was called
-    // before canDeactivate runs on navigation.
-    await page.waitForTimeout(500);
 
     // Use the in-app exit button (router.navigate) so canDeactivate runs.
     // ngOnDestroy does NOT run because CustomRouteReuseStrategy detaches.

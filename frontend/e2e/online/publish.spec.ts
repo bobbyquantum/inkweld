@@ -47,7 +47,6 @@ test.describe('Online Publishing Workflow', () => {
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
     await page.getByTestId('create-project-button').click();
     await page.waitForURL(new RegExp(uniqueSlug));
-    await page.waitForLoadState('networkidle');
     return uniqueSlug;
   }
 

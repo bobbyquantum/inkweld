@@ -36,8 +36,7 @@ async function createDocument(page: Page, name: string): Promise<void> {
   await dialogInput.waitFor({ state: 'visible' });
   await dialogInput.fill(name);
   await page.getByTestId('create-element-button').click();
-  // Brief wait for tree update + IndexedDB persistence.
-  await page.waitForTimeout(300);
+  await expect(page.getByTestId(`element-${name}`)).toBeVisible();
 }
 
 test.describe('Quick Open', () => {
@@ -116,8 +115,6 @@ test.describe('Quick Open', () => {
       await expect(dialog).toBeVisible();
 
       await search.fill('Doc');
-      await page.waitForTimeout(200);
-
       const firstResult = page.getByTestId('quick-open-result-0');
       const secondResult = page.getByTestId('quick-open-result-1');
       await expect(firstResult).toHaveClass(/selected/);
@@ -139,12 +136,11 @@ test.describe('Quick Open', () => {
     await test.step('clicking a result opens it and closes the dialog', async () => {
       // Go back to home, then reopen quick-open and click a result.
       await page.getByTestId('toolbar-home-button').click();
-      await page.waitForTimeout(200);
+      await expect(page.getByTestId('home-tab-content')).toBeVisible();
 
       await pressShortcut(page, 'p');
       await expect(dialog).toBeVisible();
       await search.fill('Doc');
-      await page.waitForTimeout(200);
 
       await page.getByTestId('quick-open-result-0').click();
       await expect(dialog).not.toBeVisible();

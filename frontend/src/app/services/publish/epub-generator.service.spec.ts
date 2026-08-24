@@ -717,50 +717,16 @@ describe('EpubGeneratorService', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should handle bold marks', async () => {
+    it.each<{ label: string; text: string; mark: string }>([
+      { label: 'bold', text: 'Bold text', mark: 'bold' },
+      { label: 'italic', text: 'Italic text', mark: 'italic' },
+      { label: 'code', text: 'inline code', mark: 'code' },
+      { label: 'strikethrough', text: 'deleted text', mark: 'strike' },
+    ])('should handle $label marks', async ({ text, mark }) => {
       documentServiceMock.getDocumentContent.mockResolvedValue([
         {
           type: 'paragraph',
-          content: [{ text: 'Bold text', marks: [{ type: 'bold' }] }],
-        },
-      ]);
-
-      const result = await service.generateEpub(mockPlan);
-
-      expect(result.success).toBe(true);
-    });
-
-    it('should handle italic marks', async () => {
-      documentServiceMock.getDocumentContent.mockResolvedValue([
-        {
-          type: 'paragraph',
-          content: [{ text: 'Italic text', marks: [{ type: 'italic' }] }],
-        },
-      ]);
-
-      const result = await service.generateEpub(mockPlan);
-
-      expect(result.success).toBe(true);
-    });
-
-    it('should handle code marks', async () => {
-      documentServiceMock.getDocumentContent.mockResolvedValue([
-        {
-          type: 'paragraph',
-          content: [{ text: 'inline code', marks: [{ type: 'code' }] }],
-        },
-      ]);
-
-      const result = await service.generateEpub(mockPlan);
-
-      expect(result.success).toBe(true);
-    });
-
-    it('should handle strikethrough marks', async () => {
-      documentServiceMock.getDocumentContent.mockResolvedValue([
-        {
-          type: 'paragraph',
-          content: [{ text: 'deleted text', marks: [{ type: 'strike' }] }],
+          content: [{ text, marks: [{ type: mark }] }],
         },
       ]);
 

@@ -161,7 +161,7 @@ describe('ElementRefPopupComponent', () => {
       const resultItems = fixture.nativeElement.querySelectorAll(
         '[data-testid="element-ref-result-item"]'
       );
-      expect(resultItems.length).toBe(3);
+      expect(resultItems).toHaveLength(3);
     });
 
     it('should show no results message when search returns empty', () => {
@@ -188,7 +188,7 @@ describe('ElementRefPopupComponent', () => {
       fixture.detectChanges();
 
       const icons = fixture.nativeElement.querySelectorAll('.result-icon');
-      expect(icons.length).toBe(3);
+      expect(icons).toHaveLength(3);
     });
 
     it('should display element paths in results', () => {
@@ -199,7 +199,7 @@ describe('ElementRefPopupComponent', () => {
       fixture.detectChanges();
 
       const paths = fixture.nativeElement.querySelectorAll('.result-path');
-      expect(paths.length).toBe(3);
+      expect(paths).toHaveLength(3);
       expect(paths[0].textContent).toBe('/Characters');
     });
 
@@ -223,7 +223,7 @@ describe('ElementRefPopupComponent', () => {
       fixture.detectChanges();
 
       const paths = fixture.nativeElement.querySelectorAll('.result-path');
-      expect(paths.length).toBe(0);
+      expect(paths).toHaveLength(0);
     });
 
     it('should format element types', () => {

@@ -370,7 +370,7 @@ describe('MCP Key Service - Database Operations', () => {
 
       const keys = await mcpKeyService.getKeysForProject(db, testProjectId);
 
-      expect(keys.length).toBe(2);
+      expect(keys).toHaveLength(2);
       expect(keys.map((k) => k.name).sort((a, b) => a.localeCompare(b))).toEqual([
         'Key 1',
         'Key 2',
@@ -391,7 +391,7 @@ describe('MCP Key Service - Database Operations', () => {
 
       const activeKeys = await mcpKeyService.getActiveKeysForProject(db, testProjectId);
 
-      expect(activeKeys.length).toBe(1);
+      expect(activeKeys).toHaveLength(1);
       expect(activeKeys[0].id).toBe(key1.id);
     });
   });
@@ -497,7 +497,7 @@ describe('MCP Key Service - Database Operations', () => {
       await mcpKeyService.deleteKeysForProject(db, testProjectId);
 
       const keys = await mcpKeyService.getKeysForProject(db, testProjectId);
-      expect(keys.length).toBe(0);
+      expect(keys).toHaveLength(0);
     });
   });
 

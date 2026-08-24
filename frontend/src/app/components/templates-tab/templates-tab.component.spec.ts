@@ -144,7 +144,7 @@ describe('TemplatesTabComponent', () => {
 
       // Templates load synchronously from cache
 
-      expect(component.templates().length).toBe(1);
+      expect(component.templates()).toHaveLength(1);
       expect(component.templates()[0].id).toBe('char-1');
       expect(component.templates()[0].label).toBe('Character');
       expect(component.templates()[0].tabCount).toBe(1);
@@ -160,7 +160,7 @@ describe('TemplatesTabComponent', () => {
 
       component.loadTemplates();
 
-      expect(component.templates().length).toBe(0);
+      expect(component.templates()).toHaveLength(0);
       expect(component.isLoading()).toBe(false);
     });
 

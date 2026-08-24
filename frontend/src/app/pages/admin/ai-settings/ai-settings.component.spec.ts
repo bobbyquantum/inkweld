@@ -820,7 +820,7 @@ describe('AdminAiSettingsComponent', () => {
 
       // Models should be populated from the mock API response
       const models = component.openaiModels();
-      expect(models.length).toBe(2);
+      expect(models).toHaveLength(2);
       expect(models[0].id).toBe('gpt-image-1');
       expect(models[0].supportedSizes).toBeDefined();
       expect(models[0].supportsQuality).toBe(true);
@@ -832,7 +832,7 @@ describe('AdminAiSettingsComponent', () => {
 
       // Models should be populated from the mock API response
       const models = component.openrouterModels();
-      expect(models.length).toBe(2);
+      expect(models).toHaveLength(2);
       expect(models[0].id).toBe('black-forest-labs/flux-1.1-pro');
       expect(
         models.some((m: { id: string }) => m.id.startsWith('google/'))
@@ -987,7 +987,7 @@ describe('AdminAiSettingsComponent', () => {
       component.addCustomSize();
 
       // Should add to local list
-      expect(component.customSizes().length).toBe(initialCount + 1);
+      expect(component.customSizes()).toHaveLength(initialCount + 1);
       // Should set modified flag
       expect(component.customSizesModified()).toBe(true);
       // Should stop editing
@@ -1004,7 +1004,7 @@ describe('AdminAiSettingsComponent', () => {
       component.addCustomSize();
 
       // Should not add
-      expect(component.customSizes().length).toBe(initialCount);
+      expect(component.customSizes()).toHaveLength(initialCount);
     });
 
     it('should not add custom size with invalid dimensions', () => {
@@ -1017,7 +1017,7 @@ describe('AdminAiSettingsComponent', () => {
       component.addCustomSize();
 
       // Should not add
-      expect(component.customSizes().length).toBe(initialCount);
+      expect(component.customSizes()).toHaveLength(initialCount);
     });
 
     it('should remove a custom size', () => {

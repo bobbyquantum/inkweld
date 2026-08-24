@@ -386,7 +386,7 @@ describe('ProfileManagerDialogComponent', () => {
       expect(component.getProjectSlug(mockProjects[0])).toBe('second-rename');
     });
 
-    it('should clear rename when setting back to original slug', () => {
+    it('should clear rename when slug is set back to the project original', () => {
       component.updateProjectSlug(mockProjects[0], 'renamed-slug');
       expect(component.getProjectSlug(mockProjects[0])).toBe('renamed-slug');
 
@@ -519,45 +519,38 @@ describe('ProfileManagerDialogComponent', () => {
       expect(component['connectionSuccess']()).toBe(true);
     });
 
-    it('should not modify URLs that already have http://', async () => {
+    it.each<{
+      description: string;
+      inputUrl: string;
+      expectedUrl: string;
+    }>([
+      {
+        description: 'should not modify URLs that already have http://',
+        inputUrl: 'http://myserver.local:8080',
+        expectedUrl: 'http://myserver.local:8080',
+      },
+      {
+        description: 'should not modify URLs that already have https://',
+        inputUrl: 'https://secure.example.com',
+        expectedUrl: 'https://secure.example.com',
+      },
+      {
+        description: 'should normalize 127.0.0.1 with http:// protocol',
+        inputUrl: '127.0.0.1:8333',
+        expectedUrl: 'http://127.0.0.1:8333',
+      },
+    ])('$description', async ({ inputUrl, expectedUrl }) => {
       (
         component as unknown as { newServerUrl: { set: (v: string) => void } }
-      ).newServerUrl.set('http://myserver.local:8080');
+      ).newServerUrl.set(inputUrl);
 
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
 
       await component.testConnection();
 
+      // Verify the normalized URL was used for fetch
       expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-        'http://myserver.local:8080/api/v1/health'
-      );
-    });
-
-    it('should not modify URLs that already have https://', async () => {
-      (
-        component as unknown as { newServerUrl: { set: (v: string) => void } }
-      ).newServerUrl.set('https://secure.example.com');
-
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
-
-      await component.testConnection();
-
-      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-        'https://secure.example.com/api/v1/health'
-      );
-    });
-
-    it('should normalize 127.0.0.1 with http:// protocol', async () => {
-      (
-        component as unknown as { newServerUrl: { set: (v: string) => void } }
-      ).newServerUrl.set('127.0.0.1:8333');
-
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
-
-      await component.testConnection();
-
-      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-        'http://127.0.0.1:8333/api/v1/health'
+        `${expectedUrl}/api/v1/health`
       );
     });
   });
@@ -603,34 +596,36 @@ describe('ProfileManagerDialogComponent', () => {
       expect(component['showAuthForm']()).toBe(true);
     });
 
-    it('should normalize URL by adding http:// for localhost when storing', () => {
+    it.each<{
+      description: string;
+      inputUrl: string;
+      expectedPendingUrl: string;
+    }>([
+      {
+        description:
+          'should normalize URL by adding http:// for localhost when storing',
+        inputUrl: 'localhost:8333',
+        expectedPendingUrl: 'http://localhost:8333',
+      },
+      {
+        description:
+          'should normalize URL by adding https:// for non-localhost when storing',
+        inputUrl: 'example.com:8333',
+        expectedPendingUrl: 'https://example.com:8333',
+      },
+      {
+        description: 'should handle 127.0.0.1 with http:// protocol',
+        inputUrl: '127.0.0.1:8333',
+        expectedPendingUrl: 'http://127.0.0.1:8333',
+      },
+    ])('$description', ({ inputUrl, expectedPendingUrl }) => {
       (
         component as unknown as { newServerUrl: { set: (v: string) => void } }
-      ).newServerUrl.set('localhost:8333');
+      ).newServerUrl.set(inputUrl);
 
       component.addServer();
 
-      expect(component['pendingServerUrl']).toBe('http://localhost:8333');
-    });
-
-    it('should normalize URL by adding https:// for non-localhost when storing', () => {
-      (
-        component as unknown as { newServerUrl: { set: (v: string) => void } }
-      ).newServerUrl.set('example.com:8333');
-
-      component.addServer();
-
-      expect(component['pendingServerUrl']).toBe('https://example.com:8333');
-    });
-
-    it('should handle 127.0.0.1 with http:// protocol', () => {
-      (
-        component as unknown as { newServerUrl: { set: (v: string) => void } }
-      ).newServerUrl.set('127.0.0.1:8333');
-
-      component.addServer();
-
-      expect(component['pendingServerUrl']).toBe('http://127.0.0.1:8333');
+      expect(component['pendingServerUrl']).toBe(expectedPendingUrl);
     });
   });
 

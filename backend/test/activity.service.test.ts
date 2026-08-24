@@ -96,12 +96,13 @@ describe('ActivityService – record', () => {
 
   it('does not throw when given an invalid project id (best-effort logging)', async () => {
     // Should swallow the FK violation and not throw.
-    await activityService.record(db, {
-      projectId: crypto.randomUUID(), // does not exist
-      userId: USER_ID,
-      eventType: 'document_edit',
-    });
-    // No assertion — the contract is "must not throw".
+    await expect(
+      activityService.record(db, {
+        projectId: crypto.randomUUID(), // does not exist
+        userId: USER_ID,
+        eventType: 'document_edit',
+      })
+    ).resolves.toBeUndefined();
   });
 });
 
@@ -395,15 +396,17 @@ describe('ActivityService – recordOrCoalesceEdit', () => {
   });
 
   it('does not throw on invalid project id (best-effort)', async () => {
-    await activityService.recordOrCoalesceEdit(db, {
-      projectId: crypto.randomUUID(),
-      userId: USER_ID,
-      entityId: 'el-bad',
-      entityName: null,
-      wordsDelta: 1,
-      endWordCount: 1,
-      durationMs: 1,
-    });
+    await expect(
+      activityService.recordOrCoalesceEdit(db, {
+        projectId: crypto.randomUUID(),
+        userId: USER_ID,
+        entityId: 'el-bad',
+        entityName: null,
+        wordsDelta: 1,
+        endWordCount: 1,
+        durationMs: 1,
+      })
+    ).resolves.toBeUndefined();
   });
 
   it('persists extra metadata fields supplied by the caller (e.g. MCP source)', async () => {

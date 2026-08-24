@@ -34,7 +34,6 @@ test.describe('Online Media Storage', () => {
       await page.getByTestId('create-project-button').click();
 
       await page.waitForURL(new RegExp(uniqueSlug));
-      await page.waitForLoadState('networkidle');
       expect(page.url()).toContain(uniqueSlug);
       await expect(page.getByTestId('project-tree')).toBeVisible();
     });
@@ -55,7 +54,6 @@ test.describe('Online Media Storage', () => {
       });
 
       await page.reload();
-      await page.waitForLoadState('networkidle');
 
       expect(page.url()).toBe(projectUrl);
       await expect(page.getByTestId('project-cover')).toBeVisible();
@@ -65,7 +63,6 @@ test.describe('Online Media Storage', () => {
 
     await test.step('shows project card on home page', async () => {
       await page.goto('/');
-      await page.waitForLoadState('networkidle');
       await expect(page.getByTestId('project-card').first()).toBeVisible();
     });
   });
@@ -107,7 +104,9 @@ test.describe('Online Media Storage', () => {
         }
       });
       await page.goto('/');
-      await page.waitForLoadState('networkidle');
+      await expect(
+        page.locator('[data-testid="user-menu-button"]')
+      ).toBeVisible();
       expect(apiRequests.length).toBeGreaterThanOrEqual(0);
     });
   });

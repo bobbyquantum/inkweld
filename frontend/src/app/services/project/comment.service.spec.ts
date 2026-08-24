@@ -131,7 +131,7 @@ describe('CommentService', () => {
 
       // Verify the mark was applied
       const marks = service.getCommentMarks(result.view);
-      expect(marks.length).toBe(1);
+      expect(marks).toHaveLength(1);
       expect(marks[0].localOnly).toBe(true);
       expect(marks[0].authorName).toBe('Alice');
     });
@@ -229,7 +229,7 @@ describe('CommentService', () => {
       expect(id).toBeTruthy();
 
       const marks = service.getCommentMarks(result.view);
-      expect(marks.length).toBe(1);
+      expect(marks).toHaveLength(1);
       expect(marks[0].localOnly).toBe(false);
       expect(marks[0].authorName).toBe('Alice');
     });
@@ -291,10 +291,10 @@ describe('CommentService', () => {
 
       await service.addComment(result.view, 'Will remove', 'u', 's', 0, 5);
       const marks = service.getCommentMarks(result.view);
-      expect(marks.length).toBe(1);
+      expect(marks).toHaveLength(1);
 
       service.removeCommentMark(result.view, marks[0].commentId);
-      expect(service.getCommentMarks(result.view).length).toBe(0);
+      expect(service.getCommentMarks(result.view)).toHaveLength(0);
     });
 
     it('should do nothing if commentId does not exist', async () => {
@@ -305,7 +305,7 @@ describe('CommentService', () => {
       await service.addComment(result.view, 'Keep', 'u', 's', 0, 5);
 
       service.removeCommentMark(result.view, 'nonexistent');
-      expect(service.getCommentMarks(result.view).length).toBe(1);
+      expect(service.getCommentMarks(result.view)).toHaveLength(1);
     });
   });
 
@@ -359,7 +359,7 @@ describe('CommentService', () => {
       result.view.dispatch(tr);
 
       const marks = service.getCommentMarks(result.view);
-      expect(marks.length).toBe(1);
+      expect(marks).toHaveLength(1);
     });
 
     it('should return empty array when schema has no comment mark type', () => {
@@ -387,7 +387,7 @@ describe('CommentService', () => {
       await service.addComment(result.view, 'First', 'u', 's', 0, 5);
 
       const marksWithPos = service.getCommentMarksWithPositions(result.view);
-      expect(marksWithPos.length).toBe(1);
+      expect(marksWithPos).toHaveLength(1);
       expect(marksWithPos[0].from).toBe(0);
       expect(marksWithPos[0].attrs.commentId).toBeTruthy();
     });
@@ -411,7 +411,7 @@ describe('CommentService', () => {
 
       const updated = service.getCommentMarks(result.view);
       const msgs = JSON.parse(updated[0].messages!);
-      expect(msgs.length).toBe(2);
+      expect(msgs).toHaveLength(2);
       expect(msgs[1].text).toBe('Reply text');
       expect(updated[0].messageCount).toBe(2);
     });
@@ -423,7 +423,7 @@ describe('CommentService', () => {
 
       service.addLocalReply(result.view, 'nonexistent', 'Reply');
       // Marks should remain unchanged (no comment with that id exists)
-      expect(service.getCommentMarks(result.view).length).toBe(0);
+      expect(service.getCommentMarks(result.view)).toHaveLength(0);
     });
 
     it('should handle malformed JSON in messages attribute', () => {
@@ -451,7 +451,7 @@ describe('CommentService', () => {
 
       const marks = service.getCommentMarks(result.view);
       const msgs = JSON.parse(marks[0].messages!);
-      expect(msgs.length).toBe(1);
+      expect(msgs).toHaveLength(1);
       expect(msgs[0].text).toBe('New reply');
     });
 
@@ -478,7 +478,7 @@ describe('CommentService', () => {
 
       const marks = service.getCommentMarks(result.view);
       const msgs = JSON.parse(marks[0].messages!);
-      expect(msgs.length).toBe(1);
+      expect(msgs).toHaveLength(1);
     });
   });
 
@@ -496,7 +496,7 @@ describe('CommentService', () => {
       const marks = service.getCommentMarks(result.view);
 
       service.resolveLocalComment(result.view, marks[0].commentId);
-      expect(service.getCommentMarks(result.view).length).toBe(0);
+      expect(service.getCommentMarks(result.view)).toHaveLength(0);
     });
   });
 

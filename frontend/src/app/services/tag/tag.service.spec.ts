@@ -171,20 +171,20 @@ describe('TagService', () => {
     it('should return tags from customTags', () => {
       customTagsSubject.next(MOCK_PROJECT_TAGS);
       const allTags = service.allTags();
-      expect(allTags.length).toBe(MOCK_PROJECT_TAGS.length);
+      expect(allTags).toHaveLength(MOCK_PROJECT_TAGS.length);
     });
 
     it('should return empty when no tags exist', () => {
       customTagsSubject.next([]);
       const allTags = service.allTags();
-      expect(allTags.length).toBe(0);
+      expect(allTags).toHaveLength(0);
     });
 
     it('should include additional custom tags', () => {
       customTagsSubject.next([...MOCK_PROJECT_TAGS, mockCustomTag]);
       const allTags = service.allTags();
       expect(allTags).toContainEqual(mockCustomTag);
-      expect(allTags.length).toBe(MOCK_PROJECT_TAGS.length + 1);
+      expect(allTags).toHaveLength(MOCK_PROJECT_TAGS.length + 1);
     });
   });
 
@@ -208,7 +208,7 @@ describe('TagService', () => {
       customTagsSubject.next(MOCK_PROJECT_TAGS);
 
       const index = service.tagIndex();
-      expect(index.length).toBe(MOCK_PROJECT_TAGS.length);
+      expect(index).toHaveLength(MOCK_PROJECT_TAGS.length);
       expect(index.every(e => e.count === 0)).toBe(true);
     });
   });
@@ -224,7 +224,7 @@ describe('TagService', () => {
     it('should return tags for a specific element', () => {
       mockSyncProvider.getElementTags.mockReturnValue(mockElementTags);
       const tags = service.getTagsForElement('elem1');
-      expect(tags.length).toBe(2);
+      expect(tags).toHaveLength(2);
       expect(tags.every(t => t.elementId === 'elem1')).toBe(true);
     });
 
@@ -242,7 +242,7 @@ describe('TagService', () => {
       customTagsSubject.next(MOCK_PROJECT_TAGS);
 
       const resolved = service.getResolvedTagsForElement('elem1');
-      expect(resolved.length).toBe(2);
+      expect(resolved).toHaveLength(2);
       expect(resolved[0].definition).toBeDefined();
       expect(resolved[0].assignment).toBeDefined();
     });
@@ -253,7 +253,7 @@ describe('TagService', () => {
       customTagsSubject.next([]); // No tags defined
 
       const resolved = service.getResolvedTagsForElement('elem1');
-      expect(resolved.length).toBe(0); // No definitions found
+      expect(resolved).toHaveLength(0); // No definitions found
     });
   });
 
@@ -265,7 +265,7 @@ describe('TagService', () => {
 
       const view = service.getElementTagView('elem1');
       expect(view.elementId).toBe('elem1');
-      expect(view.tags.length).toBe(2);
+      expect(view.tags).toHaveLength(2);
     });
   });
 
@@ -351,7 +351,7 @@ describe('TagService', () => {
       expect(mockSyncProvider.updateElementTags).toHaveBeenCalled();
       const call = mockSyncProvider.updateElementTags.mock.calls[0][0];
       const elem1Tags = call.filter((t: ElementTag) => t.elementId === 'elem1');
-      expect(elem1Tags.length).toBe(2);
+      expect(elem1Tags).toHaveLength(2);
     });
   });
 

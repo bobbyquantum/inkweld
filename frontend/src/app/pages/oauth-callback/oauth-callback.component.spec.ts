@@ -113,32 +113,17 @@ describe('OAuthCallbackComponent', () => {
   });
 
   describe('error handling', () => {
-    it('should show error message for github_auth_failed', () => {
-      queryParams.set('error', 'github_auth_failed');
-      createComponent();
+    it.each(['github_auth_failed', 'account_disabled', 'some_unknown_error'])(
+      'should show generic error message for error code %s',
+      errorCode => {
+        queryParams.set('error', errorCode);
+        createComponent();
 
-      expect(component.errorMessage()).toBe(
-        'Something went wrong. Please try again.'
-      );
-    });
-
-    it('should show error message for account_disabled', () => {
-      queryParams.set('error', 'account_disabled');
-      createComponent();
-
-      expect(component.errorMessage()).toBe(
-        'Something went wrong. Please try again.'
-      );
-    });
-
-    it('should show generic error for unknown error codes', () => {
-      queryParams.set('error', 'some_unknown_error');
-      createComponent();
-
-      expect(component.errorMessage()).toBe(
-        'Something went wrong. Please try again.'
-      );
-    });
+        expect(component.errorMessage()).toBe(
+          'Something went wrong. Please try again.'
+        );
+      }
+    );
 
     it('should show error when no code or error param present', () => {
       createComponent();

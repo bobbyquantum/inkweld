@@ -39,8 +39,7 @@ async function waitForWidget(page: Page): Promise<void> {
     state: 'visible',
     timeout: 15_000,
   });
-  // Brief settle for sparkline animation.
-  await page.waitForTimeout(400);
+  await page.evaluate(() => document.fonts.ready);
 }
 
 test.describe('Writing Stats & Activity Screenshots', () => {

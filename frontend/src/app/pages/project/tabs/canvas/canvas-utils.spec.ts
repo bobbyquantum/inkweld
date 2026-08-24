@@ -232,28 +232,38 @@ describe('rectsIntersect', () => {
     expect(rectsIntersect(a, b)).toBe(true);
   });
 
-  it('should detect non-overlapping rects', () => {
-    const a = { x: 0, y: 0, width: 10, height: 10 };
-    const b = { x: 20, y: 20, width: 10, height: 10 };
-    expect(rectsIntersect(a, b)).toBe(false);
-  });
-
-  it('should detect edge-touching rects as non-overlapping', () => {
-    const a = { x: 0, y: 0, width: 10, height: 10 };
-    const b = { x: 10, y: 0, width: 10, height: 10 };
-    expect(rectsIntersect(a, b)).toBe(false);
-  });
-
-  it('should detect containment', () => {
-    const a = { x: 0, y: 0, width: 100, height: 100 };
-    const b = { x: 20, y: 20, width: 10, height: 10 };
-    expect(rectsIntersect(a, b)).toBe(true);
-  });
-
-  it('should handle rects overlapping only on x-axis', () => {
-    const a = { x: 0, y: 0, width: 10, height: 10 };
-    const b = { x: 5, y: 20, width: 10, height: 10 };
-    expect(rectsIntersect(a, b)).toBe(false);
+  it.each<{
+    name: string;
+    a: { x: number; y: number; width: number; height: number };
+    b: { x: number; y: number; width: number; height: number };
+    expected: boolean;
+  }>([
+    {
+      name: 'should detect non-overlapping rects',
+      a: { x: 0, y: 0, width: 10, height: 10 },
+      b: { x: 20, y: 20, width: 10, height: 10 },
+      expected: false,
+    },
+    {
+      name: 'should detect edge-touching rects as non-overlapping',
+      a: { x: 0, y: 0, width: 10, height: 10 },
+      b: { x: 10, y: 0, width: 10, height: 10 },
+      expected: false,
+    },
+    {
+      name: 'should detect containment',
+      a: { x: 0, y: 0, width: 100, height: 100 },
+      b: { x: 20, y: 20, width: 10, height: 10 },
+      expected: true,
+    },
+    {
+      name: 'should handle rects overlapping only on x-axis',
+      a: { x: 0, y: 0, width: 10, height: 10 },
+      b: { x: 5, y: 20, width: 10, height: 10 },
+      expected: false,
+    },
+  ])('$name', ({ a, b, expected }) => {
+    expect(rectsIntersect(a, b)).toBe(expected);
   });
 
   it('should handle rects overlapping only on y-axis', () => {

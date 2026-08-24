@@ -1333,7 +1333,7 @@ describe('DocumentService', () => {
       await service.setupCollaboration(mockEditor, testDocumentId);
 
       // Plugins should not have been re-added
-      expect(mockEditor.view.state.plugins.length).toBe(pluginCountBefore);
+      expect(mockEditor.view.state.plugins).toHaveLength(pluginCountBefore);
     });
   });
 
@@ -1886,8 +1886,8 @@ describe('DocumentService', () => {
         const result = await service.syncDocumentsToServer(documentIds);
 
         // All should succeed (skipped due to no WebSocket URL)
-        expect(result.success.length).toBe(3);
-        expect(result.failed.length).toBe(0);
+        expect(result.success).toHaveLength(3);
+        expect(result.failed).toHaveLength(0);
       });
 
       it('should handle empty document list', async () => {
@@ -1908,8 +1908,8 @@ describe('DocumentService', () => {
         // With concurrency of 2, should process in batches
         const result = await service.syncDocumentsToServer(documentIds, 2);
 
-        expect(result.success.length).toBe(10);
-        expect(result.failed.length).toBe(0);
+        expect(result.success).toHaveLength(10);
+        expect(result.failed).toHaveLength(0);
       });
     });
 
@@ -2011,8 +2011,8 @@ describe('DocumentService', () => {
           await service.syncWorldbuildingToServerBatch(worldbuildingIds);
 
         // All should succeed (skipped due to no WebSocket URL)
-        expect(result.success.length).toBe(3);
-        expect(result.failed.length).toBe(0);
+        expect(result.success).toHaveLength(3);
+        expect(result.failed).toHaveLength(0);
       });
 
       it('should handle empty worldbuilding list', async () => {
@@ -2036,8 +2036,8 @@ describe('DocumentService', () => {
           2
         );
 
-        expect(result.success.length).toBe(10);
-        expect(result.failed.length).toBe(0);
+        expect(result.success).toHaveLength(10);
+        expect(result.failed).toHaveLength(0);
       });
 
       it('should track failures when some worldbuilding elements have invalid format', async () => {
@@ -2053,8 +2053,8 @@ describe('DocumentService', () => {
           await service.syncWorldbuildingToServerBatch(worldbuildingIds);
 
         // 2 should succeed, 1 should fail
-        expect(result.success.length).toBe(2);
-        expect(result.failed.length).toBe(1);
+        expect(result.success).toHaveLength(2);
+        expect(result.failed).toHaveLength(1);
         expect(result.failed[0]).toBe('invalid:id');
       });
     });

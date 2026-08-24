@@ -115,7 +115,7 @@ describe('AnnouncementFeedComponent', () => {
       component.maxItems = 3;
       fixture.detectChanges();
 
-      expect(component.displayedAnnouncements.length).toBe(3);
+      expect(component.displayedAnnouncements).toHaveLength(3);
     });
   });
 

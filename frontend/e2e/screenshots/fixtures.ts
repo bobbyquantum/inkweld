@@ -207,10 +207,8 @@ export const test = base.extend<ScreenshotFixtures>({
       // Ignore features API timeout
     }
 
-    // Wait for the page to fully render and Angular to process the user
-    await page.waitForLoadState('networkidle');
-
-    // Wait for the user menu to appear (indicates user is authenticated)
+    // Wait for the user menu to appear (indicates user is authenticated
+    // and Angular has fully rendered the shell).
     try {
       await page.waitForSelector(
         '[data-testid="user-menu-button"], .user-menu'

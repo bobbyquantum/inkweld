@@ -47,7 +47,7 @@ describe('ChangelogComponent', () => {
     fixture.detectChanges();
 
     expect(mockChangelogService.getChangelog).toHaveBeenCalled();
-    expect(component.versions().length).toBe(2);
+    expect(component.versions()).toHaveLength(2);
     expect(component.loading()).toBe(false);
     expect(component.error()).toBeNull();
   });
@@ -61,7 +61,7 @@ describe('ChangelogComponent', () => {
 
     expect(component.loading()).toBe(false);
     expect(component.error()).toBe('Failed to load data. Please try again.');
-    expect(component.versions().length).toBe(0);
+    expect(component.versions()).toHaveLength(0);
   });
 
   it('should call window.history.back on goBack', () => {

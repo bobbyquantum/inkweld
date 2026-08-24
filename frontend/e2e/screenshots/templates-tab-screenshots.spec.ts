@@ -51,7 +51,6 @@ async function setupProjectAndTemplatesTab(
   await page.getByTestId('nav-templates').click();
 
   await page.getByTestId('templates-tab').waitFor({ state: 'visible' });
-  await page.waitForTimeout(500);
 }
 
 async function captureAllTemplateScreenshots(
@@ -62,7 +61,7 @@ async function captureAllTemplateScreenshots(
   await page.waitForSelector('[data-testid="template-card"]', {
     state: 'visible',
   });
-  await page.waitForTimeout(300);
+  await expect(page.getByTestId('templates-controls')).toBeVisible();
 
   await test.step('overview', async () => {
     await page.screenshot({
@@ -122,7 +121,7 @@ async function captureAllTemplateScreenshots(
     await page.waitForSelector('[data-testid="template-editor-page"]', {
       state: 'visible',
     });
-    await page.waitForTimeout(300);
+    await expect(page.getByTestId('schema-name-input')).toBeVisible();
 
     await captureElementScreenshot(
       page,

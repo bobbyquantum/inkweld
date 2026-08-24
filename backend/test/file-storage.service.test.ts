@@ -169,7 +169,9 @@ describe('FileStorageService', () => {
 
     it('should not throw for non-existing directory', async () => {
       // Should handle gracefully (logs error but doesn't throw)
-      await service.deleteProjectDirectory(testUser, 'nonexistent');
+      await expect(
+        service.deleteProjectDirectory(testUser, 'nonexistent')
+      ).resolves.toBeUndefined();
     });
   });
 
@@ -191,7 +193,9 @@ describe('FileStorageService', () => {
 
     it('should not throw when source directory does not exist', async () => {
       // Should handle gracefully
-      await service.renameProjectDirectory(testUser, 'nonexistent', 'new-slug');
+      await expect(
+        service.renameProjectDirectory(testUser, 'nonexistent', 'new-slug')
+      ).resolves.toBeUndefined();
     });
 
     it('should throw when target directory already exists', async () => {
@@ -254,7 +258,7 @@ describe('FileStorageService', () => {
       await service.saveProjectFile(testUser, testSlug, 'media-cover.png', 'img1');
       await service.saveProjectFile(testUser, testSlug, 'notes.txt', 'notes');
       const files = await service.listProjectFiles(testUser, testSlug, 'media');
-      expect(files.length).toBe(1);
+      expect(files).toHaveLength(1);
       expect(files[0].filename).toBe('media-cover.png');
     });
 

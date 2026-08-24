@@ -116,7 +116,7 @@ describe('Collaboration', () => {
       expect(response.status).toBe(200);
       const data = (await json()) as unknown[];
       expect(data).toBeArray();
-      expect(data.length).toBe(0);
+      expect(data).toHaveLength(0);
     });
 
     it('should deny access to non-owners', async () => {
@@ -265,7 +265,7 @@ describe('Collaboration', () => {
 
       expect(response.status).toBe(200);
       const data = (await json()) as { username: string; status: string }[];
-      expect(data.length).toBe(1);
+      expect(data).toHaveLength(1);
       expect(data[0].username).toBe(collaboratorUsername);
       expect(data[0].status).toBe('accepted');
     });
@@ -376,7 +376,7 @@ describe('Collaboration', () => {
           )
         );
 
-      expect(collabs.length).toBe(0);
+      expect(collabs).toHaveLength(0);
     });
 
     it('should deny project access after removal', async () => {

@@ -310,7 +310,7 @@ describe('HomeTabComponent', () => {
       fixture.nativeElement.querySelectorAll('.recent-file-item');
 
     expect(recentFilesList).toBeTruthy();
-    expect(recentFileItems.length).toBe(2);
+    expect(recentFileItems).toHaveLength(2);
   });
 
   it('should display different icons based on document type', () => {
@@ -595,7 +595,7 @@ describe('HomeTabComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      expect((component as any).coverImageUrl()).toBe(null);
+      expect((component as any).coverImageUrl()).toBeNull();
       expect((component as any).coverImageLoading()).toBe(false);
       expect((component as any).showCoverPlaceholder()).toBe(true);
     });
@@ -625,7 +625,7 @@ describe('HomeTabComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      expect((component as any).coverImageUrl()).toBe(null);
+      expect((component as any).coverImageUrl()).toBeNull();
       expect((component as any).coverImageLoading()).toBe(false);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         '[HomeTab] Failed to load cover image:',

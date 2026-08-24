@@ -529,7 +529,7 @@ describe('CanvasRendererService', () => {
         {}
       );
       CanvasRendererService.updatePinLinkIndicator(group, true);
-      expect(group.find('.linkBadge').length).toBe(1);
+      expect(group.find('.linkBadge')).toHaveLength(1);
     });
   });
 

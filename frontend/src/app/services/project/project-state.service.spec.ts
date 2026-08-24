@@ -1492,8 +1492,8 @@ describe('ProjectStateService', () => {
       service.pinElement('elem-1');
       service.pinElement('elem-1');
       expect(
-        service.pinnedElementIds().filter(id => id === 'elem-1').length
-      ).toBe(1);
+        service.pinnedElementIds().filter(id => id === 'elem-1')
+      ).toHaveLength(1);
     });
 
     it('should clear pins when project state is cleared', () => {

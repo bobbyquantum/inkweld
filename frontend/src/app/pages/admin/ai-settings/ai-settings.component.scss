@@ -398,7 +398,7 @@
     margin: 0;
     font-size: 0.75rem;
     white-space: pre-wrap;
-    word-break: break-word;
+    overflow-wrap: break-word;
     color: var(--sys-on-surface-variant);
     max-height: 200px;
     overflow-y: auto;

@@ -54,7 +54,7 @@ describe('OpenRouterImageProvider', () => {
         models: customModels,
       });
       const models = provider.getModels();
-      expect(models.length).toBe(1);
+      expect(models).toHaveLength(1);
       expect(models[0].id).toBe('openrouter/flux');
     });
 
@@ -78,7 +78,7 @@ describe('OpenRouterImageProvider', () => {
         { id: 'gemini/vision', name: 'Gemini Vision' },
       ];
       provider.setModels(newModels);
-      expect(provider.getModels().length).toBe(2);
+      expect(provider.getModels()).toHaveLength(2);
     });
 
     it('should set provider field to openrouter', () => {
@@ -89,7 +89,7 @@ describe('OpenRouterImageProvider', () => {
     it('should keep existing models when setting empty array', () => {
       provider.setModels([{ id: 'model', name: 'M' }]);
       provider.setModels([]); // Should not clear
-      expect(provider.getModels().length).toBe(1);
+      expect(provider.getModels()).toHaveLength(1);
     });
   });
 

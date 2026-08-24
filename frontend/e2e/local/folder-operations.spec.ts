@@ -21,7 +21,6 @@ test.describe('Folder Operations', () => {
     await page.waitForURL(/\/.+\/.+/);
 
     await page.getByTestId('project-tree').waitFor({ state: 'visible' });
-    await page.waitForTimeout(500);
 
     await page.click('[data-testid="create-new-element"]');
     await page.waitForSelector('mat-dialog-container', { state: 'visible' });
@@ -70,7 +69,9 @@ test.describe('Folder Operations', () => {
 
     await page.waitForURL(/\/testuser\/folder-demo-test/);
     await page.getByTestId('project-tree').waitFor({ state: 'visible' });
-    await page.waitForTimeout(500);
+    // Wait on the folder the steps below assert against, so a missing seed
+    // fails here instead of silently skipping every folder assertion.
+    await page.getByTestId('element-Chronicles').waitFor({ state: 'visible' });
 
     await test.step('expand button reveals child items inside the folder', async () => {
       const expandButton = page

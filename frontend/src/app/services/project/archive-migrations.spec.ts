@@ -180,7 +180,7 @@ describe('archive-migrations', () => {
       ARCHIVE_MIGRATIONS.push(migration);
 
       try {
-        expect(ARCHIVE_MIGRATIONS.length).toBe(length1 + 1);
+        expect(ARCHIVE_MIGRATIONS).toHaveLength(length1 + 1);
       } finally {
         ARCHIVE_MIGRATIONS.pop();
       }

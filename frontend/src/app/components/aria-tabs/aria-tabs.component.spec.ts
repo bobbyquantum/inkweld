@@ -86,7 +86,7 @@ describe('AriaTabsComponent', () => {
 
     it('should render tabs from input', () => {
       const tabButtons = fixture.nativeElement.querySelectorAll('.tab-button');
-      expect(tabButtons.length).toBe(2);
+      expect(tabButtons).toHaveLength(2);
     });
 
     it('should display tab labels', () => {
@@ -499,7 +499,7 @@ describe('AriaTabsComponent with host', () => {
   });
 
   it('should project tab panels', () => {
-    expect(hostComponent.tabsComponent.tabPanels.length).toBe(3);
+    expect(hostComponent.tabsComponent.tabPanels).toHaveLength(3);
   });
 
   it('should project tabBarActions content', () => {
@@ -572,12 +572,12 @@ describe('AriaTabsComponent with host', () => {
     await hostFixture.whenStable();
 
     const arrows = hostFixture.nativeElement.querySelectorAll('.scroll-arrow');
-    expect(arrows.length).toBe(0);
+    expect(arrows).toHaveLength(0);
   });
 
   it('should render icons for tabs that have them', () => {
     const icons = hostFixture.nativeElement.querySelectorAll('.tab-icon');
-    expect(icons.length).toBe(1); // Only first tab has icon
+    expect(icons).toHaveLength(1); // Only first tab has icon
     expect(icons[0].textContent.trim()).toBe('info');
   });
 });

@@ -343,7 +343,7 @@ describe('EditProjectDialogComponent', () => {
       component.applyCroppedImage();
 
       expect(component.coverImage).toBeDefined();
-      expect(component.coverImage instanceof File).toBe(true);
+      expect(component.coverImage).toBeInstanceOf(File);
       expect(component.coverImageUrl).toBe('blob:test-url');
       expect(component.showCropper()).toBe(false);
     });

@@ -158,7 +158,7 @@ describe('MediaSelectorDialogComponent', () => {
 
     // Should filter out the PDF
     const items = component.mediaItems();
-    expect(items.length).toBe(2);
+    expect(items).toHaveLength(2);
     expect(items.every(item => item.mimeType?.startsWith('image/'))).toBe(true);
   });
 
@@ -184,7 +184,7 @@ describe('MediaSelectorDialogComponent', () => {
     await flushPromises();
     await flushPromises();
 
-    expect(newFixture.componentInstance.mediaItems().length).toBe(3);
+    expect(newFixture.componentInstance.mediaItems()).toHaveLength(3);
   });
 
   it('should select an item when clicked', async () => {

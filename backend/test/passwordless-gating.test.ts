@@ -634,7 +634,7 @@ describe('PasskeyRecoveryService internals', () => {
         .where(eq(passkeyRecoveryTokens.userId, userId));
       // Old token must be gone; a new one should have been inserted.
       expect(remaining.find((r) => r.tokenHash === 'old'.padEnd(64, '0'))).toBeUndefined();
-      expect(remaining.length).toBe(1);
+      expect(remaining).toHaveLength(1);
     } finally {
       await configService.delete(db, 'EMAIL_ENABLED');
     }

@@ -192,7 +192,7 @@ describe('publish-plan models', () => {
       const elementItems = plan.items.filter(
         item => item.type === PublishPlanItemType.Element
       );
-      expect(elementItems.length).toBe(3);
+      expect(elementItems).toHaveLength(3);
     });
 
     it('should mark elements as chapters', () => {

@@ -160,7 +160,7 @@ describe('TimeSystemLibraryService', () => {
       const tplId = GREGORIAN_SYSTEM.id;
       service.installTemplate(tplId);
       const second = service.installTemplate(tplId);
-      expect(service.systems().filter(s => s.id === tplId).length).toBe(1);
+      expect(service.systems().filter(s => s.id === tplId)).toHaveLength(1);
       expect(second).not.toBeNull();
     });
 
@@ -222,7 +222,7 @@ describe('TimeSystemLibraryService', () => {
       const sys = makeSystem({ id: 'keep' });
       service.setSyncProvider(makeSyncProvider([sys]));
       service.removeSystem('unknown');
-      expect(service.systems().length).toBe(1);
+      expect(service.systems()).toHaveLength(1);
     });
   });
 });

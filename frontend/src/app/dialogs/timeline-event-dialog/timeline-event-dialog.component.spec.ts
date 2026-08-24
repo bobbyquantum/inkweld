@@ -346,7 +346,7 @@ describe('TimelineEventDialogComponent', () => {
       }
     ).optionsFor(1);
     // Gregorian month field has dropdown options (12 months)
-    expect(opts.length).toBe(12);
+    expect(opts).toHaveLength(12);
   });
 
   // ─── Seed fallback path for different system ──────────────────────────────

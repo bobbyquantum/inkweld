@@ -51,14 +51,23 @@ async function navigateToAdminSettingsViaMenu(page: Page): Promise<void> {
   await page.locator('[data-testid="user-menu-button"]').click();
   await page.locator('[data-testid="admin-menu-link"]').click();
   await page.waitForURL('**/admin/**');
-  await page.waitForLoadState('networkidle');
 
   const settingsLink = page.locator(
     '[data-testid="admin-nav-settings"], a[href*="/admin/settings"]'
   );
-  if ((await settingsLink.count()) > 0) {
+  // Wait briefly for the admin nav to render, but stay tolerant of
+  // layouts where the settings link is absent.
+  await settingsLink
+    .first()
+    .waitFor({ state: 'visible', timeout: 10_000 })
+    .catch(() => {});
+  if (
+    await settingsLink
+      .first()
+      .isVisible()
+      .catch(() => false)
+  ) {
     await settingsLink.first().click();
-    await page.waitForLoadState('networkidle');
   }
 }
 

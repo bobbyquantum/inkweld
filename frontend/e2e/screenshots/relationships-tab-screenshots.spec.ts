@@ -51,7 +51,6 @@ test.describe('Relationships Tab Screenshots', () => {
 
     await page.getByTestId('nav-relationships').click();
     await page.getByTestId('relationships-tab').waitFor({ state: 'visible' });
-    await page.waitForTimeout(500);
 
     await createSampleRelationshipType(page);
   }
@@ -91,7 +90,9 @@ test.describe('Relationships Tab Screenshots', () => {
     await page.waitForSelector('[data-testid="relationship-type-card"]', {
       state: 'visible',
     });
-    await page.waitForTimeout(300);
+    await expect(
+      page.getByTestId('relationship-types-list').first()
+    ).toBeVisible();
 
     await test.step('overview (sidebar + settings)', async () => {
       const projectTree = page.locator('[data-testid="project-tree"]');
@@ -155,7 +156,9 @@ test.describe('Relationships Tab Screenshots', () => {
       await page
         .getByTestId('edit-relationship-type-dialog-content')
         .waitFor({ state: 'visible' });
-      await page.waitForTimeout(300);
+      // The dialog is opened in edit mode, so the existing values must be
+      // populated before the screenshot (the first card may be any type).
+      await expect(page.getByTestId('rel-name-input')).toHaveValue(/\S/);
 
       await captureElementScreenshot(
         page,
@@ -182,7 +185,6 @@ test.describe('Relationships Tab Screenshots', () => {
       await page
         .getByTestId('edit-relationship-type-dialog-content')
         .waitFor({ state: 'visible' });
-      await page.waitForTimeout(200);
 
       await page.fill('[data-testid="rel-name-input"]', 'Nemesis of');
       await page.fill('[data-testid="rel-inverse-input"]', 'Hunted by');

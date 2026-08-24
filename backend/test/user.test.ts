@@ -655,7 +655,7 @@ describe('User Routes', () => {
 
       expect(response.status).toBe(200);
       const data = (await json()) as { users: Array<{ username: string }>; total: number };
-      expect(data.users.length).toBe(0);
+      expect(data.users).toHaveLength(0);
       expect(data.total).toBe(0);
     });
   });

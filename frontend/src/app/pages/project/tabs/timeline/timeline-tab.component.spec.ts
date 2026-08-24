@@ -553,7 +553,7 @@ describe('TimelineTabComponent', () => {
 
     const during = component['bounds']();
     // Panning should shift bounds
-    expect(during.minTick !== before.minTick).toBe(true);
+    expect(during.minTick).not.toBe(before.minTick);
 
     // Simulate pointer up
     const upEvent = new PointerEvent('pointerup', { pointerId: 1 });
@@ -1107,7 +1107,7 @@ describe('TimelineTabComponent', () => {
   it('trackRows computed maps tracks to y positions', () => {
     fixture.detectChanges();
     const rows = component['trackRows']();
-    expect(rows.length).toBe(defaultConfig.tracks.length);
+    expect(rows).toHaveLength(defaultConfig.tracks.length);
     rows.forEach((row, idx) => {
       expect(row.y).toBe(idx * component['trackHeight']);
     });
@@ -1134,7 +1134,7 @@ describe('TimelineTabComponent', () => {
     timelineSignal.set({ ...defaultConfig, events: [event] });
     fixture.detectChanges();
     const pills = component['eventPills']();
-    expect(pills.length).toBe(1);
+    expect(pills).toHaveLength(1);
     expect(pills[0].event.id).toBe('pill-ev');
     // Instant events render as diamonds with `cx`/`diamondPoints`, no `width`.
     expect(pills[0].isInstant).toBe(true);
@@ -1180,7 +1180,7 @@ describe('TimelineTabComponent', () => {
     timelineSignal.set({ ...defaultConfig, events: [event] });
     fixture.detectChanges();
     const pills = component['eventPills']();
-    expect(pills.length).toBe(0);
+    expect(pills).toHaveLength(0);
   });
 
   it('eraBands computed returns bands for eras matching active system', () => {
@@ -1375,7 +1375,7 @@ describe('TimelineTabComponent', () => {
     timelineSignal.set({ ...defaultConfig, events: [event] });
     fixture.detectChanges();
     const pills = component['eventPills']();
-    expect(pills.length).toBe(1);
+    expect(pills).toHaveLength(1);
     // Ranged events use rect geometry: x/y/width/height, not cx/diamondPoints.
     expect(pills[0].isInstant).toBe(false);
     expect(pills[0].width).toBeGreaterThan(0);
@@ -1395,7 +1395,7 @@ describe('TimelineTabComponent', () => {
     timelineSignal.set({ ...defaultConfig, events: [event] });
     fixture.detectChanges();
     const pills = component['eventPills']();
-    expect(pills.length).toBe(0);
+    expect(pills).toHaveLength(0);
   });
 
   // ─── Add event with no config / no system ──────────────────────────────────
@@ -1436,7 +1436,7 @@ describe('TimelineTabComponent', () => {
     };
     timelineSignal.set({ ...defaultConfig, events: [corruptEvent] });
     fixture.detectChanges();
-    expect(component['eventPills']().length).toBe(0);
+    expect(component['eventPills']()).toHaveLength(0);
   });
 
   it('eventPills treats corrupt end point as a point event (falls back to startTick)', () => {
@@ -1453,7 +1453,7 @@ describe('TimelineTabComponent', () => {
     fixture.detectChanges();
     const pills = component['eventPills']();
     // Event still renders — corrupt end is just ignored (treated as point event)
-    expect(pills.length).toBe(1);
+    expect(pills).toHaveLength(1);
   });
 
   it('eraBands omits eras with corrupt start (matching systemId but wrong unit count)', () => {
@@ -1468,7 +1468,7 @@ describe('TimelineTabComponent', () => {
     };
     timelineSignal.set({ ...defaultConfig, eras: [corruptEra] });
     fixture.detectChanges();
-    expect(component['eraBands']().length).toBe(0);
+    expect(component['eraBands']()).toHaveLength(0);
   });
 
   it('fitContents (onFit) does not throw or warn with valid data', () => {

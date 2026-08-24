@@ -150,7 +150,7 @@ describe('ImageGenerationService', () => {
 
       service.startGeneration(projectKey, request);
 
-      expect(service.jobs().length).toBe(1);
+      expect(service.jobs()).toHaveLength(1);
       expect(service.jobs()[0].projectKey).toBe(projectKey);
     });
 
@@ -182,7 +182,7 @@ describe('ImageGenerationService', () => {
 
       service.startGeneration(projectKey, request);
 
-      expect(service.activeJobs().length).toBe(1);
+      expect(service.activeJobs()).toHaveLength(1);
     });
 
     it('should call the AI image service', async () => {
@@ -226,7 +226,7 @@ describe('ImageGenerationService', () => {
 
       const job = service.jobs()[0];
       expect(job.status).toBe('completed');
-      expect(job.images.length).toBe(1);
+      expect(job.images).toHaveLength(1);
       expect(mockOfflineStorage.saveMedia).toHaveBeenCalled();
     });
 
@@ -372,10 +372,10 @@ describe('ImageGenerationService', () => {
       service.startGeneration('user/project1', createMockRequest());
 
       const project1Jobs = service.getProjectJobs('user/project1');
-      expect(project1Jobs.length).toBe(2);
+      expect(project1Jobs).toHaveLength(2);
 
       const project2Jobs = service.getProjectJobs('user/project2');
-      expect(project2Jobs.length).toBe(1);
+      expect(project2Jobs).toHaveLength(1);
     });
 
     it('should return empty array for project with no jobs', () => {
@@ -390,12 +390,12 @@ describe('ImageGenerationService', () => {
       await flushPromises();
       await flushPromises();
 
-      expect(service.jobs().length).toBe(1);
+      expect(service.jobs()).toHaveLength(1);
       expect(service.jobs()[0].status).toBe('completed');
 
       service.clearCompletedJobs();
 
-      expect(service.jobs().length).toBe(0);
+      expect(service.jobs()).toHaveLength(0);
     });
 
     it('should remove failed jobs', async () => {
@@ -410,7 +410,7 @@ describe('ImageGenerationService', () => {
 
       service.clearCompletedJobs();
 
-      expect(service.jobs().length).toBe(0);
+      expect(service.jobs()).toHaveLength(0);
     });
 
     it('should keep pending and active jobs', () => {
@@ -418,7 +418,7 @@ describe('ImageGenerationService', () => {
       service.startGeneration('user/project', createMockRequest());
 
       // Job should be pending or generating
-      expect(service.jobs().length).toBe(1);
+      expect(service.jobs()).toHaveLength(1);
 
       service.clearCompletedJobs();
 
@@ -439,7 +439,7 @@ describe('ImageGenerationService', () => {
       const result = service.removeJob(jobId);
 
       expect(result).toBe(true);
-      expect(service.jobs().length).toBe(0);
+      expect(service.jobs()).toHaveLength(0);
     });
 
     it('should return false for non-existent job', () => {
@@ -467,7 +467,7 @@ describe('ImageGenerationService', () => {
       if (job?.status === 'generating' || job?.status === 'saving') {
         const result = service.removeJob(jobId);
         expect(result).toBe(false);
-        expect(service.jobs().length).toBe(1);
+        expect(service.jobs()).toHaveLength(1);
       }
     });
   });
@@ -483,7 +483,7 @@ describe('ImageGenerationService', () => {
       await flushPromises();
 
       const job = service.jobs()[0];
-      expect(job.images.length).toBe(3);
+      expect(job.images).toHaveLength(3);
       expect(mockOfflineStorage.saveMedia).toHaveBeenCalledTimes(3);
     });
 
@@ -601,7 +601,7 @@ describe('ImageGenerationService', () => {
       await flushPromises();
       await flushPromises();
 
-      expect(service.activeJobs().length).toBe(0);
+      expect(service.activeJobs()).toHaveLength(0);
     });
   });
 
@@ -695,7 +695,7 @@ describe('ImageGenerationService', () => {
 
       const job = service.getJob(jobId);
       expect(job?.status).toBe('completed');
-      expect(job?.images.length).toBe(1);
+      expect(job?.images).toHaveLength(1);
     });
 
     it('should handle error events from stream', async () => {
@@ -852,7 +852,7 @@ describe('ImageGenerationService', () => {
 
       const job = service.getJob(jobId);
       expect(job?.status).toBe('completed');
-      expect(job?.images.length).toBe(1);
+      expect(job?.images).toHaveLength(1);
     });
 
     it('should fail streaming job when completed event has text-only response', async () => {

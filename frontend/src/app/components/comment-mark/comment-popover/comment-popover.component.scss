@@ -123,7 +123,7 @@
 .comment-popover__msg-text {
   color: var(--sys-on-surface);
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .comment-popover__empty {

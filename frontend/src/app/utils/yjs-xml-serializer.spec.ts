@@ -247,13 +247,13 @@ describe('yjs-xml-serializer', () => {
 
     it('should apply empty XML to empty fragment', () => {
       applyXmlToFragment(ydoc, fragment, '');
-      expect(fragment.length).toBe(0);
+      expect(fragment).toHaveLength(0);
     });
 
     it('should apply single paragraph', () => {
       applyXmlToFragment(ydoc, fragment, '<paragraph>Hello</paragraph>');
 
-      expect(fragment.length).toBe(1);
+      expect(fragment).toHaveLength(1);
       const child = fragment.get(0) as Y.XmlElement;
       expect(child.nodeName).toBe('paragraph');
     });
@@ -265,7 +265,7 @@ describe('yjs-xml-serializer', () => {
         '<paragraph>First</paragraph><paragraph>Second</paragraph>'
       );
 
-      expect(fragment.length).toBe(2);
+      expect(fragment).toHaveLength(2);
     });
 
     it('should apply element with attributes', () => {
@@ -287,7 +287,7 @@ describe('yjs-xml-serializer', () => {
 
       const blockquote = fragment.get(0) as Y.XmlElement;
       expect(blockquote.nodeName).toBe('blockquote');
-      expect(blockquote.length).toBe(1);
+      expect(blockquote).toHaveLength(1);
 
       const paragraph = blockquote.get(0) as Y.XmlElement;
       expect(paragraph.nodeName).toBe('paragraph');
@@ -297,7 +297,7 @@ describe('yjs-xml-serializer', () => {
       // Add initial content
       const initial = new Y.XmlElement('paragraph');
       fragment.insert(0, [initial]);
-      expect(fragment.length).toBe(1);
+      expect(fragment).toHaveLength(1);
 
       // Apply new content
       applyXmlToFragment(
@@ -306,7 +306,7 @@ describe('yjs-xml-serializer', () => {
         '<heading>New</heading><paragraph>Content</paragraph>'
       );
 
-      expect(fragment.length).toBe(2);
+      expect(fragment).toHaveLength(2);
       const first = fragment.get(0) as Y.XmlElement;
       expect(first.nodeName).toBe('heading');
     });
@@ -321,7 +321,7 @@ describe('yjs-xml-serializer', () => {
       const paragraph = fragment.get(0) as Y.XmlElement;
       expect(paragraph.nodeName).toBe('paragraph');
       // Should have a single XmlText with formatting runs
-      expect(paragraph.length).toBe(1);
+      expect(paragraph).toHaveLength(1);
       const text = paragraph.get(0) as Y.XmlText;
       const delta = text.toDelta();
       expect(delta).toEqual([
@@ -457,7 +457,7 @@ describe('yjs-xml-serializer', () => {
 
       const paragraph = fragment.get(0) as Y.XmlElement;
       expect(paragraph.nodeName).toBe('paragraph');
-      expect(paragraph.length).toBe(2);
+      expect(paragraph).toHaveLength(2);
       const ref = paragraph.get(1) as Y.XmlElement;
       expect(ref.nodeName).toBe('elementRef');
       expect(ref.getAttribute('elementId')).toBe('char-elara');
@@ -641,7 +641,7 @@ describe('yjs-xml-serializer', () => {
       // The deserialized fragment must still contain a node literally named
       // `elementRef` with the original attributes.
       const p = fragment2.get(0) as Y.XmlElement;
-      expect(p.length).toBe(3);
+      expect(p).toHaveLength(3);
       const restoredRef = p.get(1) as Y.XmlElement;
       expect(restoredRef.nodeName).toBe('elementRef');
       expect(restoredRef.getAttribute('elementId')).toBe('char-elara');

@@ -37,10 +37,8 @@ test.describe('Delete project from cover kebab menu', () => {
       await page.getByTestId('project-slug-input').fill(slug);
       await page.getByTestId('create-project-button').click();
       await page.waitForURL(new RegExp(slug));
-      await page.waitForLoadState('networkidle');
 
       await page.goto('/');
-      await page.waitForLoadState('networkidle');
       await expect(projectCard()).toBeVisible();
     });
 
@@ -76,7 +74,6 @@ test.describe('Delete project from cover kebab menu', () => {
 
       // Reload to confirm the project still exists on the server.
       await page.goto('/');
-      await page.waitForLoadState('networkidle');
       await expect(projectCard()).toBeVisible();
     });
 
@@ -92,7 +89,6 @@ test.describe('Delete project from cover kebab menu', () => {
       await input.fill(slug);
 
       await page.getByTestId('confirm-delete-button').click();
-      await page.waitForLoadState('networkidle');
 
       // The deleted project's card should no longer be present on the home
       // grid. (For a fresh test user with only this project, the grid becomes
@@ -237,7 +233,6 @@ test.describe('Delete project from cover kebab menu', () => {
         { authToken: collaboratorToken, serverUrl: apiUrl }
       );
       await collabPage.goto('/');
-      await collabPage.waitForLoadState('networkidle');
 
       // The shared project should appear as a card with a shared badge.
       const sharedCard = collabPage
@@ -284,10 +279,8 @@ test.describe('Delete project from cover kebab menu', () => {
       await page.getByTestId('project-slug-input').fill(slug);
       await page.getByTestId('create-project-button').click();
       await page.waitForURL(new RegExp(slug));
-      await page.waitForLoadState('networkidle');
 
       await page.goto('/');
-      await page.waitForLoadState('networkidle');
       await expect(projectTile()).toBeVisible();
     });
 
@@ -324,7 +317,6 @@ test.describe('Delete project from cover kebab menu', () => {
       ).not.toBeVisible();
 
       await page.goto('/');
-      await page.waitForLoadState('networkidle');
       await expect(projectTile()).toBeVisible();
     });
 
@@ -338,7 +330,6 @@ test.describe('Delete project from cover kebab menu', () => {
       await input.fill(slug);
 
       await page.getByTestId('confirm-delete-button').click();
-      await page.waitForLoadState('networkidle');
 
       await expect(projectTile()).toHaveCount(0);
     });

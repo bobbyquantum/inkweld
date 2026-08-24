@@ -315,7 +315,7 @@ describe('ImagePastePlugin', () => {
 
     it('should initialize correctly', () => {
       expect(state).toBeDefined();
-      expect(state.plugins.length).toBe(1);
+      expect(state.plugins).toHaveLength(1);
     });
 
     it('should have image node in schema', () => {
@@ -473,7 +473,7 @@ describe('Plugin Integration', () => {
 
   it('should create EditorView with plugin', () => {
     expect(view).toBeDefined();
-    expect(view.state.plugins.length).toBe(1);
+    expect(view.state.plugins).toHaveLength(1);
   });
 
   it('should have handlePaste in props', () => {

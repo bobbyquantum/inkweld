@@ -185,7 +185,9 @@ test.describe('Timeline Tab Screenshots', () => {
     // Fit so the composition is framed nicely.
     await page.getByTestId('timeline-fit').click();
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(300);
+    // The fit re-computes the view bounds synchronously; wait for the
+    // seeded era to be rendered in the SVG before capturing screenshots.
+    await expect(page.getByTestId('timeline-era-header').first()).toBeVisible();
   }
 
   test('timeline screenshots — light mode', async ({ offlinePage: page }) => {

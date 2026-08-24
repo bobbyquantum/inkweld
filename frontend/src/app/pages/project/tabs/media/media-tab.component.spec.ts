@@ -170,7 +170,7 @@ describe('MediaTabComponent', () => {
     expect(localStorage.listMedia).toHaveBeenCalledWith(
       'testuser/test-project'
     );
-    expect(component.mediaItems().length).toBe(3);
+    expect(component.mediaItems()).toHaveLength(3);
     expect(component.isLoading()).toBe(false);
   });
 
@@ -193,11 +193,11 @@ describe('MediaTabComponent', () => {
     fixture.detectChanges();
 
     component.setCategory('inline');
-    expect(component.filteredItems().length).toBe(1);
+    expect(component.filteredItems()).toHaveLength(1);
     expect(component.filteredItems()[0].mediaId).toBe('img-abc123');
 
     component.setCategory('all');
-    expect(component.filteredItems().length).toBe(3);
+    expect(component.filteredItems()).toHaveLength(3);
   });
 
   it('should calculate total size and count', async () => {
@@ -407,7 +407,7 @@ describe('MediaTabComponent', () => {
 
       component.searchQuery.set('character');
       const filtered = component.filteredItems();
-      expect(filtered.length).toBe(1);
+      expect(filtered).toHaveLength(1);
       expect(filtered[0].mediaId).toBe('img-abc123');
     });
 
@@ -431,7 +431,7 @@ describe('MediaTabComponent', () => {
       });
 
       const filtered = component.filteredItems();
-      expect(filtered.length).toBe(2); // only items from 1/16 and 1/17
+      expect(filtered).toHaveLength(2); // only items from 1/16 and 1/17
     });
 
     it('should filter by dateTo', async () => {
@@ -447,7 +447,7 @@ describe('MediaTabComponent', () => {
       });
 
       const filtered = component.filteredItems();
-      expect(filtered.length).toBe(1);
+      expect(filtered).toHaveLength(1);
       expect(filtered[0].mediaId).toBe('cover');
     });
 
@@ -524,7 +524,7 @@ describe('MediaTabComponent', () => {
         mediaProjectTagService.getTagsForMedia as ReturnType<typeof vi.fn>
       ).mockReturnValue(['tag-1']);
       const result = component.getAvailableProjectTags('media-1');
-      expect(result.length).toBe(1);
+      expect(result).toHaveLength(1);
       expect(result[0].id).toBe('tag-2');
     });
   });

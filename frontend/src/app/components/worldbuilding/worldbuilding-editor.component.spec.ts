@@ -416,7 +416,7 @@ describe('WorldbuildingEditorComponent', () => {
     it('should add item to array field', () => {
       const initialLength = component.getFormArray('aliases').length;
       component.addArrayItem('aliases');
-      expect(component.getFormArray('aliases').length).toBe(initialLength + 1);
+      expect(component.getFormArray('aliases')).toHaveLength(initialLength + 1);
     });
 
     it('should remove item from array field', () => {
@@ -424,7 +424,7 @@ describe('WorldbuildingEditorComponent', () => {
       component.addArrayItem('aliases');
       const initialLength = component.getFormArray('aliases').length;
       component.removeArrayItem('aliases', 0);
-      expect(component.getFormArray('aliases').length).toBe(initialLength - 1);
+      expect(component.getFormArray('aliases')).toHaveLength(initialLength - 1);
     });
   });
 
@@ -558,7 +558,7 @@ describe('WorldbuildingEditorComponent', () => {
         aliases: ['John', 'Johnny', 'J'],
       });
       const aliasesArray = component.getFormArray('aliases');
-      expect(aliasesArray.length).toBe(3);
+      expect(aliasesArray).toHaveLength(3);
       expect(aliasesArray.at(0).value).toBe('John');
       expect(aliasesArray.at(1).value).toBe('Johnny');
     });
@@ -569,7 +569,7 @@ describe('WorldbuildingEditorComponent', () => {
       });
 
       const featuresArray = component.getFormArray('appearance.features');
-      expect(featuresArray.length).toBe(2);
+      expect(featuresArray).toHaveLength(2);
       expect(featuresArray.at(0).value).toBe('Scar');
       expect(featuresArray.at(1).value).toBe('Tattoo');
     });

@@ -161,7 +161,7 @@ describe('TagEditDialogComponent', () => {
 
   describe('colorOptions', () => {
     it('should have 16 color options available', () => {
-      expect(component.colorOptions.length).toBe(16);
+      expect(component.colorOptions).toHaveLength(16);
       expect(component.colorOptions).toContain('#DC143C'); // Crimson
       expect(component.colorOptions).toContain('#607D8B'); // Blue gray
     });

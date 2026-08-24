@@ -165,7 +165,7 @@ describe('WorldbuildingPublishRendererService', () => {
     expect(entry.layout).toBe('card');
     expect(entry.description).toBe('A protagonist');
     expect(entry.imageRef).toBe('data:image/png;base64,abc');
-    expect(entry.tabs.length).toBe(2);
+    expect(entry.tabs).toHaveLength(2);
     const identityFields = entry.tabs[0].fields.map(f => f.key);
     expect(identityFields).toEqual(['name', 'age']);
     const statsFields = entry.tabs[1].fields.map(f => f.key);

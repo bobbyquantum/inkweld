@@ -23,7 +23,6 @@ async function navigateToRelationshipsTab(page: Page, projectBaseUrl: string) {
   await expect(page.getByTestId('settings-tab-content')).toBeVisible();
   await page.getByTestId('nav-relationships').click();
   await expect(page.getByTestId('relationships-tab')).toBeVisible();
-  await page.waitForLoadState('networkidle');
 }
 
 function getProjectBaseUrl(page: Page): string {

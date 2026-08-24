@@ -208,7 +208,7 @@ describe('TemplateEditorPageComponent', () => {
 
     it('should handle tab drag and drop', () => {
       component.addTab();
-      expect(component.tabs().length).toBe(2);
+      expect(component.tabs()).toHaveLength(2);
 
       const dragEvent: Partial<CdkDragDrop<TabSchema[]>> = {
         previousIndex: 0,
@@ -280,7 +280,7 @@ describe('TemplateEditorPageComponent', () => {
       component.addField(tabIndex);
 
       const tab = component.tabs()[tabIndex];
-      expect(tab.fields.length).toBe(3);
+      expect(tab.fields).toHaveLength(3);
 
       type FieldList = FieldSchema[];
       const dragEvent: Partial<CdkDragDrop<FieldList>> = {

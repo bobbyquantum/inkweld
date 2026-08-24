@@ -147,7 +147,6 @@ test.describe('Offline to Server Migration', () => {
     // Step 11: Wait for page to reload (dialog does window.location.href = '/' after 1 second)
     // Or force navigation ourselves
     await offlinePage.goto('/');
-    await offlinePage.waitForLoadState('networkidle');
 
     // Wait for the user menu button to appear (indicates successful authentication)
     await expect(
@@ -323,7 +322,6 @@ test.describe('Offline to Server Migration', () => {
 
     // Navigate to home
     await offlinePage.goto('/');
-    await offlinePage.waitForLoadState('networkidle');
 
     // Wait for the user menu button to appear (indicates successful authentication)
     await expect(
@@ -351,7 +349,10 @@ test.describe('Offline to Server Migration', () => {
         async () => {
           if (await projectButton.isVisible().catch(() => false)) return true;
           await offlinePage.reload();
-          await offlinePage.waitForLoadState('networkidle');
+          await offlinePage
+            .locator('[data-testid="user-menu-button"]')
+            .waitFor({ state: 'visible' })
+            .catch(() => {});
           return projectButton.isVisible({ timeout: 5000 }).catch(() => false);
         },
         { timeout: 30_000, intervals: [0] }
@@ -500,7 +501,10 @@ test.describe('Offline to Server Migration', () => {
         async () => {
           if (await projectAButton.isVisible().catch(() => false)) return true;
           await offlinePage.reload();
-          await offlinePage.waitForLoadState('networkidle');
+          await offlinePage
+            .locator('[data-testid="user-menu-button"]')
+            .waitFor({ state: 'visible' })
+            .catch(() => {});
           return projectAButton.isVisible({ timeout: 5000 }).catch(() => false);
         },
         { timeout: 30_000, intervals: [0] }
@@ -563,7 +567,6 @@ test.describe('Offline to Server Migration', () => {
 
     // Reload to pick up the localStorage change
     await offlinePage.reload();
-    await offlinePage.waitForLoadState('networkidle');
 
     // After clearing profiles, we should still be in local mode
     // (the fixture starts in local mode)
@@ -592,7 +595,6 @@ test.describe('Offline to Server Migration', () => {
 
     // Navigate to home and ensure services are refreshed
     await offlinePage.goto('/');
-    await offlinePage.waitForLoadState('networkidle');
     await offlinePage.waitForTimeout(1000); // Allow Angular services to initialize
 
     await openProfileManager(offlinePage);
@@ -706,9 +708,6 @@ test.describe('Offline to Server Migration', () => {
     // The dialog does window.location.href = '/' after sync success
     await offlinePage.waitForURL('**/');
 
-    // Wait for page to settle
-    await offlinePage.waitForLoadState('networkidle');
-
     // ════════════════════════════════════════════════════════════════════════
     // PHASE 7: Verify the project exists ON THE SERVER with the renamed slug
     // ════════════════════════════════════════════════════════════════════════
@@ -764,7 +763,6 @@ test.describe('Offline to Server Migration', () => {
     await serverProfileSwitch.click();
     await offlinePage.waitForTimeout(1500);
     await offlinePage.goto('/');
-    await offlinePage.waitForLoadState('networkidle');
 
     // The migrated project should be visible on the server
     await expect(offlinePage.locator('body')).toContainText(

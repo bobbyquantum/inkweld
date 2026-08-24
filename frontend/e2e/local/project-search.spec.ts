@@ -38,12 +38,12 @@ async function createDocumentWithContent(
   await dialogInput.waitFor({ state: 'visible' });
   await dialogInput.fill(name);
   await page.getByTestId('create-element-button').click();
-  await page.waitForTimeout(300);
 
   const editor = page.locator('.ProseMirror').first();
   await editor.click();
   await editor.fill(body);
-  await page.waitForTimeout(300);
+  // The content must be applied to the document (persisted on disconnect).
+  await expect(editor).toContainText(body);
 }
 
 test.describe('Project Search', () => {
@@ -113,30 +113,28 @@ test.describe('Project Search', () => {
       await expect(dialog).toBeVisible();
 
       await input.fill('dragon');
-      // Scan is debounced; allow it to complete.
-      await page.waitForTimeout(1500);
 
       await expect(results).toBeVisible();
       await expect(results).toContainText('Dragon Story');
     });
 
     await test.step('arrow keys navigate between matching results', async () => {
-      // Switch to a query that matches multiple docs.
+      // Switch to a query that matches multiple docs. The scan is debounced
+      // and progressive, so wait until scanning completes before exercising
+      // the selection model (result DOM may otherwise re-render mid-test).
       await input.fill('zebrafish');
-      await page.waitForTimeout(1500);
+      await expect(page.getByTestId('project-search-progress')).toBeHidden();
 
       const firstResult = page.getByTestId('project-search-result-0');
-      await expect(firstResult).toBeVisible();
+      const secondResult = page.getByTestId('project-search-result-1');
+      await expect(secondResult).toBeVisible();
 
-      // Click the input to ensure focus, then verify selection model.
-      await input.click();
+      // Keyboard-only: the input is already focused, and moving the mouse
+      // would let result mouseenter handlers fight the keyboard selection.
       await expect(firstResult).toHaveClass(/selected/);
 
       await input.press('ArrowDown');
-      const secondResult = page.getByTestId('project-search-result-1');
-      if (await secondResult.isVisible()) {
-        await expect(secondResult).toHaveClass(/selected/);
-      }
+      await expect(secondResult).toHaveClass(/selected/);
 
       await input.press('ArrowUp');
       await expect(firstResult).toHaveClass(/selected/);
@@ -153,7 +151,6 @@ test.describe('Project Search', () => {
     // We are on the projects list page, not inside a project; the global
     // shortcut should be a no-op so users don't get confused.
     await pressShortcut(page, 'Shift+f');
-    await page.waitForTimeout(300);
     await expect(page.getByTestId('project-search-dialog')).not.toBeVisible();
   });
 });

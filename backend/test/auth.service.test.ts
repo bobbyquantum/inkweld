@@ -73,7 +73,7 @@ describe('AuthService – createSession', () => {
     const token = await authService.createSession(c, user);
     expect(token).toBeTruthy();
     expect(typeof token).toBe('string');
-    expect(token.split('.').length).toBe(3);
+    expect(token.split('.')).toHaveLength(3);
   });
 
   it('creates an enrolment session with short expiry', async () => {

@@ -321,30 +321,15 @@ describe('IdentityPanelComponent', () => {
     const resolveImageUrl = (comp: IdentityPanelComponent, url: string) =>
       (comp as unknown as IdentityPanelPrivateApi).resolveImageUrl(url);
 
-    it('should allow https:// URLs', async () => {
+    it.each<[string]>([
+      ['https://example.com/image.png'],
+      ['http://example.com/image.png'],
+      ['blob:http://localhost/abc123'],
+      ['data:image/png;base64,abc123'],
+    ])('should allow %s URLs', async url => {
       fixture.detectChanges();
-      await resolveImageUrl(component, 'https://example.com/image.png');
-      expect(component.resolvedImageUrl()).toBe(
-        'https://example.com/image.png'
-      );
-    });
-
-    it('should allow http:// URLs', async () => {
-      fixture.detectChanges();
-      await resolveImageUrl(component, 'http://example.com/image.png');
-      expect(component.resolvedImageUrl()).toBe('http://example.com/image.png');
-    });
-
-    it('should allow blob: URLs', async () => {
-      fixture.detectChanges();
-      await resolveImageUrl(component, 'blob:http://localhost/abc123');
-      expect(component.resolvedImageUrl()).toBe('blob:http://localhost/abc123');
-    });
-
-    it('should allow data:image/ URLs', async () => {
-      fixture.detectChanges();
-      await resolveImageUrl(component, 'data:image/png;base64,abc123');
-      expect(component.resolvedImageUrl()).toBe('data:image/png;base64,abc123');
+      await resolveImageUrl(component, url);
+      expect(component.resolvedImageUrl()).toBe(url);
     });
 
     it('should reject javascript: URLs', async () => {

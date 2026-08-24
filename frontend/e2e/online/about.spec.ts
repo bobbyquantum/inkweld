@@ -70,8 +70,6 @@ test.describe('About Page - Online', () => {
     await backButton.first().click();
 
     // Should navigate back (to about or home depending on history)
-    await page.waitForTimeout(500);
-    const url = page.url();
-    expect(url).not.toMatch(/\/about\/changelog/);
+    await expect(page).not.toHaveURL(/\/about\/changelog/);
   });
 });

@@ -433,7 +433,7 @@ describe('AdminAiTextSettingsComponent', () => {
 
       component.lintModelSearch.set('');
 
-      expect(component.filteredLintModels().length).toBe(
+      expect(component.filteredLintModels()).toHaveLength(
         component.availableModels().length
       );
     });
@@ -460,7 +460,7 @@ describe('AdminAiTextSettingsComponent', () => {
 
       component.imagePromptModelSearch.set('');
 
-      expect(component.filteredImagePromptModels().length).toBe(
+      expect(component.filteredImagePromptModels()).toHaveLength(
         component.availableModels().length
       );
     });
@@ -500,7 +500,7 @@ describe('AdminAiTextSettingsComponent', () => {
 
       component.lintModelSearch.set('nonexistent-model-xyz');
 
-      expect(component.filteredLintModels().length).toBe(0);
+      expect(component.filteredLintModels()).toHaveLength(0);
     });
   });
 

@@ -907,11 +907,66 @@ describe('MarkdownGeneratorService', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should handle bold marks', async () => {
+    it.each<{ label: string; text: string; mark: string; expected: string }>([
+      {
+        label: 'bold marks',
+        text: 'Bold text',
+        mark: 'bold',
+        expected: '**Bold text**',
+      },
+      {
+        label: 'italic marks',
+        text: 'Italic text',
+        mark: 'italic',
+        expected: '*Italic text*',
+      },
+      {
+        label: 'code marks',
+        text: 'inline code',
+        mark: 'code',
+        expected: '`inline code`',
+      },
+      {
+        label: 'strikethrough marks',
+        text: 'deleted text',
+        mark: 'strike',
+        expected: '~~deleted text~~',
+      },
+      {
+        label: 'strong marks (alias for bold)',
+        text: 'Strong text',
+        mark: 'strong',
+        expected: '**Strong text**',
+      },
+      {
+        label: 'em marks (alias for italic)',
+        text: 'Emphasized text',
+        mark: 'em',
+        expected: '*Emphasized text*',
+      },
+      {
+        label: 'underline marks as HTML',
+        text: 'underlined',
+        mark: 'u',
+        expected: '<u>underlined</u>',
+      },
+      {
+        label: 'superscript marks as HTML',
+        text: '2',
+        mark: 'sup',
+        expected: '<sup>2</sup>',
+      },
+      {
+        label: 'subscript marks as HTML',
+        text: '2',
+        mark: 'sub',
+        expected: '<sub>2</sub>',
+      },
+    ])('should handle $label', async ({ text, mark, expected }) => {
       documentServiceMock.getDocumentContent.mockResolvedValue([
         {
           type: 'paragraph',
-          content: [{ text: 'Bold text', marks: [{ type: 'bold' }] }],
+          content: [{ text, marks: [{ type: mark }] }],
         },
       ]);
 
@@ -931,148 +986,8 @@ describe('MarkdownGeneratorService', () => {
       const result = await service.generateMarkdown(planWithElement);
 
       expect(result.success).toBe(true);
-      const text = await result.file!.text();
-      expect(text).toContain('**Bold text**');
-    });
-
-    it('should handle italic marks', async () => {
-      documentServiceMock.getDocumentContent.mockResolvedValue([
-        {
-          type: 'paragraph',
-          content: [{ text: 'Italic text', marks: [{ type: 'italic' }] }],
-        },
-      ]);
-
-      const planWithElement: PublishPlan = {
-        ...mockPlan,
-        items: [
-          {
-            id: 'item-1',
-            type: PublishPlanItemType.Element,
-            elementId: 'doc-1',
-            includeChildren: false,
-            isChapter: true,
-          },
-        ],
-      };
-
-      const result = await service.generateMarkdown(planWithElement);
-
-      expect(result.success).toBe(true);
-      const text = await result.file!.text();
-      expect(text).toContain('*Italic text*');
-    });
-
-    it('should handle code marks', async () => {
-      documentServiceMock.getDocumentContent.mockResolvedValue([
-        {
-          type: 'paragraph',
-          content: [{ text: 'inline code', marks: [{ type: 'code' }] }],
-        },
-      ]);
-
-      const planWithElement: PublishPlan = {
-        ...mockPlan,
-        items: [
-          {
-            id: 'item-1',
-            type: PublishPlanItemType.Element,
-            elementId: 'doc-1',
-            includeChildren: false,
-            isChapter: true,
-          },
-        ],
-      };
-
-      const result = await service.generateMarkdown(planWithElement);
-
-      expect(result.success).toBe(true);
-      const text = await result.file!.text();
-      expect(text).toContain('`inline code`');
-    });
-
-    it('should handle strikethrough marks', async () => {
-      documentServiceMock.getDocumentContent.mockResolvedValue([
-        {
-          type: 'paragraph',
-          content: [{ text: 'deleted text', marks: [{ type: 'strike' }] }],
-        },
-      ]);
-
-      const planWithElement: PublishPlan = {
-        ...mockPlan,
-        items: [
-          {
-            id: 'item-1',
-            type: PublishPlanItemType.Element,
-            elementId: 'doc-1',
-            includeChildren: false,
-            isChapter: true,
-          },
-        ],
-      };
-
-      const result = await service.generateMarkdown(planWithElement);
-
-      expect(result.success).toBe(true);
-      const text = await result.file!.text();
-      expect(text).toContain('~~deleted text~~');
-    });
-
-    it('should handle strong marks (alias for bold)', async () => {
-      documentServiceMock.getDocumentContent.mockResolvedValue([
-        {
-          type: 'paragraph',
-          content: [{ text: 'Strong text', marks: [{ type: 'strong' }] }],
-        },
-      ]);
-
-      const planWithElement: PublishPlan = {
-        ...mockPlan,
-        items: [
-          {
-            id: 'item-1',
-            type: PublishPlanItemType.Element,
-            elementId: 'doc-1',
-            includeChildren: false,
-            isChapter: true,
-          },
-        ],
-      };
-
-      const result = await service.generateMarkdown(planWithElement);
-
-      expect(result.success).toBe(true);
-      const text = await result.file!.text();
-      expect(text).toContain('**Strong text**');
-    });
-
-    it('should handle em marks (alias for italic)', async () => {
-      documentServiceMock.getDocumentContent.mockResolvedValue([
-        {
-          type: 'paragraph',
-          content: [{ text: 'Emphasized text', marks: [{ type: 'em' }] }],
-        },
-      ]);
-
-      const planWithElement: PublishPlan = {
-        ...mockPlan,
-        items: [
-          {
-            id: 'item-1',
-            type: PublishPlanItemType.Element,
-            elementId: 'doc-1',
-            includeChildren: false,
-            isChapter: true,
-          },
-        ],
-      };
-
-      const result = await service.generateMarkdown(planWithElement);
-
-      expect(result.success).toBe(true);
-      const text = await result.file!.text();
-      expect(text).toContain('*Emphasized text*');
+      const md = await result.file!.text();
+      expect(md).toContain(expected);
     });
 
     it('should handle link marks with href', async () => {
@@ -1144,90 +1059,6 @@ describe('MarkdownGeneratorService', () => {
       expect(result.success).toBe(true);
       const text = await result.file!.text();
       expect(text).toContain('[Hover me](https://example.com "Example")');
-    });
-
-    it('should handle underline marks as HTML', async () => {
-      documentServiceMock.getDocumentContent.mockResolvedValue([
-        {
-          type: 'paragraph',
-          content: [{ text: 'underlined', marks: [{ type: 'u' }] }],
-        },
-      ]);
-
-      const planWithElement: PublishPlan = {
-        ...mockPlan,
-        items: [
-          {
-            id: 'item-1',
-            type: PublishPlanItemType.Element,
-            elementId: 'doc-1',
-            includeChildren: false,
-            isChapter: true,
-          },
-        ],
-      };
-
-      const result = await service.generateMarkdown(planWithElement);
-
-      expect(result.success).toBe(true);
-      const text = await result.file!.text();
-      expect(text).toContain('<u>underlined</u>');
-    });
-
-    it('should handle superscript marks as HTML', async () => {
-      documentServiceMock.getDocumentContent.mockResolvedValue([
-        {
-          type: 'paragraph',
-          content: [{ text: '2', marks: [{ type: 'sup' }] }],
-        },
-      ]);
-
-      const planWithElement: PublishPlan = {
-        ...mockPlan,
-        items: [
-          {
-            id: 'item-1',
-            type: PublishPlanItemType.Element,
-            elementId: 'doc-1',
-            includeChildren: false,
-            isChapter: true,
-          },
-        ],
-      };
-
-      const result = await service.generateMarkdown(planWithElement);
-
-      expect(result.success).toBe(true);
-      const text = await result.file!.text();
-      expect(text).toContain('<sup>2</sup>');
-    });
-
-    it('should handle subscript marks as HTML', async () => {
-      documentServiceMock.getDocumentContent.mockResolvedValue([
-        {
-          type: 'paragraph',
-          content: [{ text: '2', marks: [{ type: 'sub' }] }],
-        },
-      ]);
-
-      const planWithElement: PublishPlan = {
-        ...mockPlan,
-        items: [
-          {
-            id: 'item-1',
-            type: PublishPlanItemType.Element,
-            elementId: 'doc-1',
-            includeChildren: false,
-            isChapter: true,
-          },
-        ],
-      };
-
-      const result = await service.generateMarkdown(planWithElement);
-
-      expect(result.success).toBe(true);
-      const text = await result.file!.text();
-      expect(text).toContain('<sub>2</sub>');
     });
 
     it('should render image nodes as Markdown image syntax', async () => {

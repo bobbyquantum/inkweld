@@ -385,36 +385,17 @@ describe('EditRelationshipTypeDialogComponent', () => {
   // ── Max count ──────────────────────────────────────────────────────────────
 
   describe('max count parsing', () => {
-    it('should parse empty string as null (unlimited)', () => {
+    it.each<{ input: string; expected: number | null }>([
+      { input: '', expected: null },
+      { input: '0', expected: null },
+      { input: '3', expected: 3 },
+      { input: 'abc', expected: null },
+    ])('should parse "$input" as $expected', ({ input, expected }) => {
       const { component } = createComponent({
         isNew: true,
         availableSchemas: [],
       });
-      expect(component.parseMaxCount('')).toBeNull();
-    });
-
-    it('should parse "0" as null (unlimited)', () => {
-      const { component } = createComponent({
-        isNew: true,
-        availableSchemas: [],
-      });
-      expect(component.parseMaxCount('0')).toBeNull();
-    });
-
-    it('should parse "3" as 3', () => {
-      const { component } = createComponent({
-        isNew: true,
-        availableSchemas: [],
-      });
-      expect(component.parseMaxCount('3')).toBe(3);
-    });
-
-    it('should parse invalid string as null', () => {
-      const { component } = createComponent({
-        isNew: true,
-        availableSchemas: [],
-      });
-      expect(component.parseMaxCount('abc')).toBeNull();
+      expect(component.parseMaxCount(input)).toBe(expected);
     });
 
     it('onSourceMaxCountChange should update sourceMaxCount signal', () => {

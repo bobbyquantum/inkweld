@@ -90,7 +90,7 @@ describe('CommentPopoverComponent', () => {
     it('should parse messages from attrs when local-only', () => {
       fixture.detectChanges();
       const msgs = component.messages();
-      expect(msgs.length).toBe(1);
+      expect(msgs).toHaveLength(1);
       expect(msgs[0].text).toBe('Hello there');
     });
 
@@ -300,7 +300,7 @@ describe('CommentPopoverComponent', () => {
       });
 
       expect(component.thread()).toBe(serverThread);
-      expect(component.messages().length).toBe(1);
+      expect(component.messages()).toHaveLength(1);
       expect(component.messages()[0].text).toBe('Server msg');
       expect(component.threadAuthor()).toBe('Server Alice');
     });

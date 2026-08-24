@@ -21,17 +21,16 @@ const SCREENSHOTS_DIR = path.join(
 
 async function navigateToAdminAiViaMenu(page: Page): Promise<void> {
   await page.locator('[data-testid="user-menu-button"]').click();
-  await page.waitForTimeout(300);
-  await page.locator('[data-testid="admin-menu-link"]').click();
+  const adminMenuLink = page.locator('[data-testid="admin-menu-link"]');
+  await expect(adminMenuLink).toBeVisible();
+  await adminMenuLink.click();
   await page.waitForURL('**/admin/**');
-  await page.waitForLoadState('networkidle');
 
   if (!page.url().includes('/admin/ai')) {
     const aiLink = page.locator('[data-testid="admin-nav-ai"]');
     try {
       await aiLink.waitFor({ state: 'visible' });
       await aiLink.click();
-      await page.waitForLoadState('networkidle');
     } catch {
       throw new Error(
         'AI nav link not visible - AI kill switch may be enabled in mock'
@@ -54,7 +53,9 @@ async function applyColorScheme(
       html.classList.add('light-mode');
     }
   }, scheme);
-  await page.waitForTimeout(300);
+  // Give the theme swap and any web fonts a chance to settle before
+  // screenshots are captured.
+  await page.evaluate(() => document.fonts.ready);
 }
 
 async function navigateToAiProviders(page: Page): Promise<void> {
@@ -63,10 +64,8 @@ async function navigateToAiProviders(page: Page): Promise<void> {
   );
   if (await aiProvidersLink.isVisible()) {
     await aiProvidersLink.click();
-    await page.waitForLoadState('networkidle');
   } else {
     await page.goto('/admin/ai-providers');
-    await page.waitForLoadState('networkidle');
   }
   await page.waitForSelector('.provider-card');
 }
@@ -257,14 +256,15 @@ test.describe('Image Model Profiles Screenshots', () => {
 test.describe('Image Generation Dialog Screenshots', () => {
   async function openImageGenerationDialog(page: Page): Promise<boolean> {
     await page.goto('/testuser/worldbuilding-chronicles/media');
-    await page.waitForLoadState('networkidle');
 
     const addMediaButton = page.locator('[data-testid="add-media-button"]');
-    if (!(await addMediaButton.isVisible())) {
+    try {
+      // The media page can bounce to the project list while loading; a
+      // bounded click turns that race into the skip path below.
+      await addMediaButton.click({ timeout: 5_000 });
+    } catch {
       return false;
     }
-
-    await addMediaButton.click();
 
     const generateOption = page.locator('[data-testid="add-media-generate"]');
     if (!(await generateOption.isVisible())) {
@@ -273,7 +273,8 @@ test.describe('Image Generation Dialog Screenshots', () => {
 
     await generateOption.click();
     await page.waitForSelector('mat-dialog-container');
-    await page.waitForTimeout(500);
+    // The wizard opens on its first step; the prompt input comes later.
+    await expect(page.getByTestId('image-gen-dialog-content')).toBeVisible();
     return true;
   }
 

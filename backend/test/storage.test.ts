@@ -141,7 +141,7 @@ describe('FileStorageService', () => {
 
       const files = await service.listProjectFiles(username, projectSlug);
 
-      expect(files.length).toBe(3);
+      expect(files).toHaveLength(3);
       const filenames = files.map((f) => f.filename).sort();
       expect(filenames).toEqual(['doc1.txt', 'doc2.txt', 'image.png']);
     });
@@ -155,7 +155,7 @@ describe('FileStorageService', () => {
 
       const files = await service.listProjectFiles(username, projectSlug);
 
-      expect(files.length).toBe(1);
+      expect(files).toHaveLength(1);
       expect(files[0].filename).toBe('test.txt');
       expect(files[0].size).toBe(content.length);
       expect(files[0].mimeType).toBe('text/plain');
@@ -172,7 +172,7 @@ describe('FileStorageService', () => {
 
       const files = await service.listProjectFiles(username, projectSlug, 'media');
 
-      expect(files.length).toBe(2);
+      expect(files).toHaveLength(2);
       expect(files.every((f) => f.filename.startsWith('media'))).toBe(true);
     });
 
@@ -194,7 +194,7 @@ describe('FileStorageService', () => {
 
       const files = await service.listProjectFiles(username, projectSlug);
 
-      expect(files.length).toBe(1);
+      expect(files).toHaveLength(1);
       expect(files[0].filename).toBe('visible.txt');
     });
 
@@ -207,7 +207,7 @@ describe('FileStorageService', () => {
 
       const files = await service.listProjectFiles(username, projectSlug);
 
-      expect(files.length).toBe(1);
+      expect(files).toHaveLength(1);
       expect(files[0].filename).toBe('document.txt');
     });
 

@@ -9,6 +9,7 @@ import {
   type CanvasPin,
   type CanvasShape,
   type CanvasText,
+  type CanvasTool,
   createDefaultCanvasConfig,
   createDefaultToolSettings,
 } from '@models/canvas.model';
@@ -2106,28 +2107,14 @@ describe('CanvasTabComponent', () => {
       expect(component['selectedObjectId']()).toBeNull();
     });
 
-    it('should call placePin when tool is pin', () => {
-      component['activeTool'].set('pin');
+    it.each<[string, CanvasTool]>([
+      ['placePin', 'pin'],
+      ['placeText', 'text'],
+      ['placeDefaultShape', 'shape'],
+    ])('should call %s when tool is %s', (method, tool) => {
+      component['activeTool'].set(tool);
       const spy = vi
-        .spyOn(component as any, 'placePin')
-        .mockImplementation(() => {});
-      component['handleStageClick'](fakeEvent);
-      expect(spy).toHaveBeenCalled();
-    });
-
-    it('should call placeText when tool is text', () => {
-      component['activeTool'].set('text');
-      const spy = vi
-        .spyOn(component as any, 'placeText')
-        .mockImplementation(() => {});
-      component['handleStageClick'](fakeEvent);
-      expect(spy).toHaveBeenCalled();
-    });
-
-    it('should call placeDefaultShape when tool is shape', () => {
-      component['activeTool'].set('shape');
-      const spy = vi
-        .spyOn(component as any, 'placeDefaultShape')
+        .spyOn(component as any, method)
         .mockImplementation(() => {});
       component['handleStageClick'](fakeEvent);
       expect(spy).toHaveBeenCalled();

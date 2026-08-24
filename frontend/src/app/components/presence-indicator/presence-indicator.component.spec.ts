@@ -56,7 +56,7 @@ describe('PresenceIndicatorComponent', () => {
     );
     fixture.detectChanges();
 
-    expect(component['displayedUsers']().length).toBe(5);
+    expect(component['displayedUsers']()).toHaveLength(5);
     expect(component['overflowCount']()).toBe(5);
   });
 

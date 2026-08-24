@@ -140,7 +140,7 @@ describe('PublishPlanTabComponent', () => {
   });
 
   it('should show sidenav navigation sections', () => {
-    expect(component['sections'].length).toBe(5);
+    expect(component['sections']).toHaveLength(5);
     expect(component['sections'].map((s: { key: string }) => s.key)).toEqual([
       'metadata',
       'contents',
@@ -306,7 +306,7 @@ describe('PublishPlanTabComponent', () => {
       component.addElement('elem-1');
 
       const updatedPlan = currentPlan();
-      expect(updatedPlan?.items.length).toBe(initialLength + 1);
+      expect(updatedPlan?.items).toHaveLength(initialLength + 1);
       const lastItem = updatedPlan?.items[updatedPlan.items.length - 1];
       expect(lastItem?.type).toBe(PublishPlanItemType.Element);
       expect((lastItem as { elementId: string }).elementId).toBe('elem-1');
@@ -319,7 +319,7 @@ describe('PublishPlanTabComponent', () => {
       component.addElement('elem-new', 1);
 
       const plan = currentPlan();
-      expect(plan?.items.length).toBe(3);
+      expect(plan?.items).toHaveLength(3);
       expect((plan?.items[1] as { elementId: string }).elementId).toBe(
         'elem-new'
       );
@@ -352,7 +352,7 @@ describe('PublishPlanTabComponent', () => {
       component.addFrontmatter(FrontmatterType.TitlePage);
 
       const plan = currentPlan();
-      expect(plan?.items.length).toBe(initialLength + 1);
+      expect(plan?.items).toHaveLength(initialLength + 1);
       const lastItem = plan?.items[plan.items.length - 1];
       expect(lastItem?.type).toBe(PublishPlanItemType.Frontmatter);
     });
@@ -364,7 +364,7 @@ describe('PublishPlanTabComponent', () => {
       component.addBackmatter(BackmatterType.Acknowledgments);
 
       const plan = currentPlan();
-      expect(plan?.items.length).toBe(initialLength + 1);
+      expect(plan?.items).toHaveLength(initialLength + 1);
       const lastItem = plan?.items[plan.items.length - 1];
       expect(lastItem?.type).toBe(PublishPlanItemType.Backmatter);
     });
@@ -376,7 +376,7 @@ describe('PublishPlanTabComponent', () => {
       component.addSeparator(SeparatorStyle.PageBreak);
 
       const plan = currentPlan();
-      expect(plan?.items.length).toBe(initialLength + 1);
+      expect(plan?.items).toHaveLength(initialLength + 1);
       const lastItem = plan?.items[plan.items.length - 1];
       expect(lastItem?.type).toBe(PublishPlanItemType.Separator);
     });
@@ -388,7 +388,7 @@ describe('PublishPlanTabComponent', () => {
       component.addTableOfContents();
 
       const plan = currentPlan();
-      expect(plan?.items.length).toBe(initialLength + 1);
+      expect(plan?.items).toHaveLength(initialLength + 1);
       const lastItem = plan?.items[plan.items.length - 1];
       expect(lastItem?.type).toBe(PublishPlanItemType.TableOfContents);
     });
@@ -401,7 +401,7 @@ describe('PublishPlanTabComponent', () => {
 
       const plan = currentPlan();
       // Should add elem-1 and elem-2 (not folder-1)
-      expect(plan?.items.length).toBe(initialLength + 2);
+      expect(plan?.items).toHaveLength(initialLength + 2);
       const addedItems = plan!.items.slice(initialLength);
       expect(addedItems[0].type).toBe(PublishPlanItemType.Element);
       expect((addedItems[0] as ElementItem).elementId).toBe('elem-1');
@@ -416,7 +416,7 @@ describe('PublishPlanTabComponent', () => {
       const initialLength = currentPlan()?.items.length ?? 0;
       component.addEverything();
 
-      expect(currentPlan()?.items.length).toBe(initialLength);
+      expect(currentPlan()?.items).toHaveLength(initialLength);
     });
   });
 
@@ -431,7 +431,7 @@ describe('PublishPlanTabComponent', () => {
       // Then remove it
       component.removeItem(addedItem!.id);
 
-      expect(currentPlan()?.items.length).toBe(lengthAfterAdd - 1);
+      expect(currentPlan()?.items).toHaveLength(lengthAfterAdd - 1);
     });
   });
 
@@ -863,7 +863,7 @@ describe('PublishPlanTabComponent', () => {
       ]);
 
       const files = component['publishedFiles']();
-      expect(files.length).toBe(1);
+      expect(files).toHaveLength(1);
       expect(files[0].id).toBe('f1');
     });
 
@@ -881,7 +881,7 @@ describe('PublishPlanTabComponent', () => {
       ]);
 
       const files = component['publishedFiles']();
-      expect(files.length).toBe(1);
+      expect(files).toHaveLength(1);
     });
 
     it('should download published file', async () => {
@@ -1031,7 +1031,7 @@ describe('PublishPlanTabComponent', () => {
       component.dropItem(event);
 
       const updatedPlan = currentPlan();
-      expect(updatedPlan?.items.length).toBe(3);
+      expect(updatedPlan?.items).toHaveLength(3);
       expect((updatedPlan?.items[1] as { elementId: string }).elementId).toBe(
         'elem-3'
       );
@@ -1054,7 +1054,7 @@ describe('PublishPlanTabComponent', () => {
 
       component.dropItem(event);
 
-      expect(currentPlan()?.items.length).toBe(1);
+      expect(currentPlan()?.items).toHaveLength(1);
     });
 
     it('should do nothing when plan is null', () => {
@@ -1094,21 +1094,21 @@ describe('PublishPlanTabComponent', () => {
       const initialLength = currentPlan()?.items.length ?? 0;
       component.onElementSelected({ value: 'elem-1' });
 
-      expect(currentPlan()?.items.length).toBe(initialLength + 1);
+      expect(currentPlan()?.items).toHaveLength(initialLength + 1);
     });
 
     it('should not add element when value is null', () => {
       const initialLength = currentPlan()?.items.length ?? 0;
       component.onElementSelected({ value: null });
 
-      expect(currentPlan()?.items.length).toBe(initialLength);
+      expect(currentPlan()?.items).toHaveLength(initialLength);
     });
   });
 
   describe('computed properties', () => {
     it('should filter document elements', () => {
       const docs = component['documentElements']();
-      expect(docs.length).toBe(2);
+      expect(docs).toHaveLength(2);
       expect(docs.every(e => e.type !== ElementType.Folder)).toBe(true);
     });
 

@@ -33,7 +33,6 @@ test.describe('Account Settings Page', () => {
     authenticatedPage: page,
   }) => {
     await page.goto('/settings');
-    await page.waitForLoadState('networkidle');
 
     // Should show empty state or the connected apps list
     // A fresh test user should have no connected OAuth apps
@@ -81,7 +80,6 @@ test.describe('Account Settings Page', () => {
     authenticatedPage: page,
   }) => {
     await page.goto('/settings');
-    await page.waitForLoadState('networkidle');
 
     // Should display the connected apps section
     await expect(page.locator('body')).toContainText(

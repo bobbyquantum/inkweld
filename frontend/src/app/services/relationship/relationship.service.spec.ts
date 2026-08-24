@@ -182,7 +182,9 @@ describe('RelationshipService', () => {
 
     it('should initialize with seeded default types', () => {
       // Types are now seeded at project creation
-      expect(service.customTypes().length).toBe(MOCK_RELATIONSHIP_TYPES.length);
+      expect(service.customTypes()).toHaveLength(
+        MOCK_RELATIONSHIP_TYPES.length
+      );
     });
 
     it('should have built-in types available', () => {
@@ -209,7 +211,7 @@ describe('RelationshipService', () => {
       expect(relationship.note).toBe('Father');
 
       expect(mockSyncProvider.updateRelationships).toHaveBeenCalled();
-      expect(relationshipsStore.length).toBe(1);
+      expect(relationshipsStore).toHaveLength(1);
     });
 
     it('should get outgoing relationships', () => {
@@ -219,7 +221,7 @@ describe('RelationshipService', () => {
 
       const outgoing = service.getOutgoingRelationships('char-1');
 
-      expect(outgoing.length).toBe(2);
+      expect(outgoing).toHaveLength(2);
       expect(outgoing.every(r => r.sourceElementId === 'char-1')).toBe(true);
     });
 
@@ -229,7 +231,7 @@ describe('RelationshipService', () => {
 
       const incoming = service.getIncomingRelationships('char-2');
 
-      expect(incoming.length).toBe(1);
+      expect(incoming).toHaveLength(1);
       expect(incoming[0].sourceElementId).toBe('char-1');
     });
 
@@ -239,8 +241,8 @@ describe('RelationshipService', () => {
 
       const view = service.getRelationshipView('char-2');
 
-      expect(view.outgoing.length).toBe(0);
-      expect(view.incoming.length).toBe(2);
+      expect(view.outgoing).toHaveLength(0);
+      expect(view.incoming).toHaveLength(2);
     });
 
     it('should update a relationship', () => {
@@ -267,7 +269,7 @@ describe('RelationshipService', () => {
       const removed = service.removeRelationship(rel.id);
 
       expect(removed).toBe(true);
-      expect(relationshipsStore.length).toBe(0);
+      expect(relationshipsStore).toHaveLength(0);
     });
 
     it('should return false when removing non-existent relationship', () => {
@@ -282,7 +284,7 @@ describe('RelationshipService', () => {
 
       const between = service.findRelationshipsBetween('char-1', 'char-2');
 
-      expect(between.length).toBe(2);
+      expect(between).toHaveLength(2);
     });
   });
 
@@ -312,7 +314,7 @@ describe('RelationshipService', () => {
 
       const inDoc1 = service.findRelationshipsInDocument('doc-1');
 
-      expect(inDoc1.length).toBe(2);
+      expect(inDoc1).toHaveLength(2);
     });
 
     it('should remove all relationships from a document', () => {
@@ -329,7 +331,7 @@ describe('RelationshipService', () => {
       const removed = service.removeRelationshipsFromDocument('doc-1');
 
       expect(removed).toBe(2);
-      expect(relationshipsStore.length).toBe(1);
+      expect(relationshipsStore).toHaveLength(1);
     });
 
     it('should remove relationships from document for specific target', () => {
@@ -346,7 +348,7 @@ describe('RelationshipService', () => {
       );
 
       expect(removed).toBe(1);
-      expect(relationshipsStore.length).toBe(1);
+      expect(relationshipsStore).toHaveLength(1);
       expect(relationshipsStore[0].targetElementId).toBe('loc-1');
     });
   });
@@ -423,12 +425,12 @@ describe('RelationshipService', () => {
         targetEndpoint: { allowedSchemas: [] },
       });
 
-      expect(customTypesStore.length).toBe(initialCount + 1);
+      expect(customTypesStore).toHaveLength(initialCount + 1);
 
       const removed = service.removeCustomType(newType.id);
       expect(removed).toBe(true);
 
-      expect(customTypesStore.length).toBe(initialCount);
+      expect(customTypesStore).toHaveLength(initialCount);
       expect(customTypesStore.find(t => t.id === newType.id)).toBeUndefined();
     });
 
@@ -475,7 +477,7 @@ describe('RelationshipService', () => {
 
       // Call again — should be a no-op
       service.addRawType({ ...rawType, name: 'Overwritten?' });
-      expect(customTypesStore.length).toBe(countBefore);
+      expect(customTypesStore).toHaveLength(countBefore);
       expect(service.getTypeById('canvas-pin')?.name).toBe('Pinned on Canvas');
     });
   });
@@ -579,7 +581,7 @@ describe('RelationshipService', () => {
       const removed = service.removeAllRelationshipsForElement('char-1');
 
       expect(removed).toBe(2);
-      expect(relationshipsStore.length).toBe(1);
+      expect(relationshipsStore).toHaveLength(1);
       expect(relationshipsStore[0].sourceElementId).toBe('char-2');
       expect(relationshipsStore[0].targetElementId).toBe('loc-1');
     });

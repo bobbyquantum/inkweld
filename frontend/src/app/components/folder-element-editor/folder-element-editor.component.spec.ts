@@ -108,7 +108,7 @@ describe('FolderElementEditorComponent', () => {
   });
 
   it('should load child elements on initialization', () => {
-    expect(component.childElements().length).toBe(2);
+    expect(component.childElements()).toHaveLength(2);
     expect(component.childElements()[0].id).toBe('item1');
     expect(component.childElements()[1].id).toBe('item2');
   });

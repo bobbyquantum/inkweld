@@ -30,7 +30,9 @@
       data-testid="document-breadcrumbs"
       [elementId]="bareElementId()"></app-document-breadcrumbs>
   }
-  @defer (on idle) {
+  <!-- Timer fallback mirrors worldbuilding-tab: under heavy load the browser
+       may never report idle, which would leave the editor placeholder up. -->
+  @defer (on idle; on timer(2000ms)) {
     <app-document-element-editor
       [style.--breadcrumb-height.px]="breadcrumbVisible() ? 29 : 0"
       [documentId]="fullDocumentId()"

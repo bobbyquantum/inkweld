@@ -695,7 +695,7 @@ describe('YjsElementSyncProvider', () => {
     it('should replace existing media tags on update', () => {
       const doc = attachDoc();
       provider.updateMediaTags(sampleMediaTags);
-      expect(provider.getMediaTags().length).toBe(1);
+      expect(provider.getMediaTags()).toHaveLength(1);
 
       const newTags: MediaTag[] = [
         {

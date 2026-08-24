@@ -28,7 +28,7 @@ describe('MediaItemCardComponent', () => {
     fixture.detectChanges();
 
     const imgs = fixture.nativeElement.querySelectorAll('img');
-    expect(imgs.length).toBe(2);
+    expect(imgs).toHaveLength(2);
     expect(imgs[0].getAttribute('src')).toBe('https://example.com/image.png');
     expect(imgs[0].getAttribute('alt')).toBe('Test image');
     expect(imgs[1].getAttribute('src')).toBe('https://example.com/image.png');

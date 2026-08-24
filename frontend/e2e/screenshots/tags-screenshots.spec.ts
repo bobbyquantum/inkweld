@@ -17,7 +17,7 @@ import {
   openTagDialog,
   openTagsTab,
 } from '../common/test-helpers';
-import { test } from './fixtures';
+import { expect, test } from './fixtures';
 import {
   captureElementScreenshot,
   ensureDirectory,
@@ -38,7 +38,7 @@ async function setupProjectAndTagsTab(
 
   // Navigate to Settings > Tags via shared helper
   await openTagsTab(page, projectSlug);
-  await page.waitForTimeout(500);
+  await expect(page.getByTestId('tags-list')).toBeVisible();
 }
 
 async function openCreateTagDialog(
@@ -48,9 +48,7 @@ async function openCreateTagDialog(
   colorIndex: number = 0
 ) {
   await openTagDialog(page);
-  await page.waitForTimeout(300);
   await fillTagDialog(page, name, iconIndex, colorIndex);
-  await page.waitForTimeout(200);
 }
 
 async function captureAllTagsScreenshots(
@@ -75,7 +73,6 @@ async function captureAllTagsScreenshots(
       16
     );
     await page.click('[data-testid="tag-dialog-cancel"]');
-    await page.waitForTimeout(200);
   });
 
   await test.step('tags list with multiple tags', async () => {
@@ -89,9 +86,14 @@ async function captureAllTagsScreenshots(
     for (const t of tags) {
       await openCreateTagDialog(page, t.name, t.icon, t.color);
       await page.click('[data-testid="tag-dialog-save"]');
-      await page.waitForTimeout(300);
     }
-    await page.waitForTimeout(200);
+
+    // Fresh projects are seeded with default tags, so assert on the created
+    // names rather than an absolute row count.
+    const tagsList = page.getByTestId('tags-list');
+    for (const t of tags) {
+      await expect(tagsList).toContainText(t.name);
+    }
 
     const tagsTab = page.getByTestId('tags-tab');
     await captureElementScreenshot(
@@ -106,7 +108,7 @@ async function captureAllTagsScreenshots(
     // Edit the first tag in the list
     await page.locator('[data-testid="edit-tag-button"]').first().click();
     await page.getByTestId('tag-dialog-content').waitFor({ state: 'visible' });
-    await page.waitForTimeout(300);
+    await expect(page.getByTestId('tag-name-input')).not.toHaveValue('');
 
     const dialog = page.getByTestId('tag-dialog-content');
     await captureElementScreenshot(

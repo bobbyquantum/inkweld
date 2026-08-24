@@ -60,16 +60,24 @@ describe('markdownToXml — block edge cases', () => {
     expect(xml).toContain('indented');
   });
 
-  it('parses setext h2 with --- underline', () => {
-    expect(markdownToXml('Title\n---')).toContain('<heading level="2">Title</heading>');
-  });
-
-  it('parses setext h1 with === underline', () => {
-    expect(markdownToXml('Title\n===')).toContain('<heading level="1">Title</heading>');
-  });
-
-  it('does not treat trailing # in ATX headings as content', () => {
-    expect(markdownToXml('# Title ##')).toContain('<heading level="1">Title</heading>');
+  it.each<{ name: string; md: string; expected: string }>([
+    {
+      name: 'parses setext h2 with --- underline',
+      md: 'Title\n---',
+      expected: '<heading level="2">Title</heading>',
+    },
+    {
+      name: 'parses setext h1 with === underline',
+      md: 'Title\n===',
+      expected: '<heading level="1">Title</heading>',
+    },
+    {
+      name: 'does not treat trailing # in ATX headings as content',
+      md: '# Title ##',
+      expected: '<heading level="1">Title</heading>',
+    },
+  ])('$name', ({ md, expected }) => {
+    expect(markdownToXml(md)).toContain(expected);
   });
 });
 
@@ -136,7 +144,9 @@ describe('markdownToXml — inline edge cases', () => {
   });
 
   it('decodes project-scoped inkweld:// URIs into elementRef nodes', () => {
-    const xml = markdownToXml('[Foo](inkweld://alice/my-novel/element/e1?type=item)');
+    const xml = markdownToXml(
+      '[Foo](inkweld://alice/my-novel/element/e1?type=item)',
+    );
     expect(xml).toContain('<elementRef');
     expect(xml).toContain('elementId="e1"');
     // The third path segment ("element") is present in the URL → decoder
@@ -145,7 +155,7 @@ describe('markdownToXml — inline edge cases', () => {
 
   it('decodes inkweld:// URIs with query parameters', () => {
     const xml = markdownToXml(
-      '[Foo](inkweld://element/e1?elementType=item&relationshipNote=hi)'
+      '[Foo](inkweld://element/e1?elementType=item&relationshipNote=hi)',
     );
     expect(xml).toContain('elementType="item"');
     expect(xml).toContain('relationshipNote="hi"');
@@ -169,21 +179,24 @@ describe('markdownToXml — inline edge cases', () => {
 // ---------------------------------------------------------------------------
 
 describe('xmlToMarkdown — element / mark coverage', () => {
-  it('renders inline images with a title', () => {
-    const md = xmlToMarkdown(
-      '<paragraph><image src="a.png" alt="alt" title="t"/></paragraph>'
-    );
-    expect(md).toBe('![alt](a.png "t")');
-  });
-
-  it('renders inline images without title', () => {
-    const md = xmlToMarkdown('<paragraph><image src="a.png" alt="alt"/></paragraph>');
-    expect(md).toBe('![alt](a.png)');
-  });
-
-  it('omits image entirely when src is empty', () => {
-    const md = xmlToMarkdown('<paragraph><image src="" alt="x"/></paragraph>');
-    expect(md).toBe('');
+  it.each<{ name: string; xml: string; expected: string }>([
+    {
+      name: 'renders inline images with a title',
+      xml: '<paragraph><image src="a.png" alt="alt" title="t"/></paragraph>',
+      expected: '![alt](a.png "t")',
+    },
+    {
+      name: 'renders inline images without title',
+      xml: '<paragraph><image src="a.png" alt="alt"/></paragraph>',
+      expected: '![alt](a.png)',
+    },
+    {
+      name: 'omits image entirely when src is empty',
+      xml: '<paragraph><image src="" alt="x"/></paragraph>',
+      expected: '',
+    },
+  ])('$name', ({ xml, expected }) => {
+    expect(xmlToMarkdown(xml)).toBe(expected);
   });
 
   it('renders <br/> as a hard break', () => {
@@ -196,10 +209,16 @@ describe('xmlToMarkdown — element / mark coverage', () => {
   });
 
   it('renders the camelCase node names (bulletList, orderedList, codeBlock, hardBreak, horizontalRule)', () => {
-    expect(xmlToMarkdown('<bulletList><list_item><paragraph>a</paragraph></list_item></bulletList>'))
-      .toContain('- a');
-    expect(xmlToMarkdown('<orderedList><list_item><paragraph>a</paragraph></list_item></orderedList>'))
-      .toContain('1. a');
+    expect(
+      xmlToMarkdown(
+        '<bulletList><list_item><paragraph>a</paragraph></list_item></bulletList>',
+      ),
+    ).toContain('- a');
+    expect(
+      xmlToMarkdown(
+        '<orderedList><list_item><paragraph>a</paragraph></list_item></orderedList>',
+      ),
+    ).toContain('1. a');
     expect(xmlToMarkdown('<codeBlock>x</codeBlock>')).toContain('```');
     expect(xmlToMarkdown('<horizontalRule/>')).toBe('---');
     expect(xmlToMarkdown('<hr/>')).toBe('---');
@@ -207,27 +226,29 @@ describe('xmlToMarkdown — element / mark coverage', () => {
 
   it('renders elementRef using the default bare URI encoder', () => {
     const md = xmlToMarkdown(
-      '<paragraph><elementRef elementId="abc" displayText="Foo"/></paragraph>'
+      '<paragraph><elementRef elementId="abc" displayText="Foo"/></paragraph>',
     );
     expect(md).toBe('[Foo](inkweld://element/abc)');
   });
 
   it('uses originalName / elementId fallback when displayText is missing', () => {
     const md = xmlToMarkdown(
-      '<paragraph><elementRef elementId="abc" originalName="Bar"/></paragraph>'
+      '<paragraph><elementRef elementId="abc" originalName="Bar"/></paragraph>',
     );
     expect(md).toBe('[Bar](inkweld://element/abc)');
   });
 
   it('renders a secureLink inline element', () => {
     const md = xmlToMarkdown(
-      '<paragraph><secureLink href="https://x.com" displayText="Link"/></paragraph>'
+      '<paragraph><secureLink href="https://x.com" displayText="Link"/></paragraph>',
     );
     expect(md).toBe('[Link](https://x.com)');
   });
 
   it('preserves underline / sup / sub marks as inline HTML', () => {
-    const md = xmlToMarkdown('<paragraph><u>x</u> <sup>y</sup> <sub>z</sub></paragraph>');
+    const md = xmlToMarkdown(
+      '<paragraph><u>x</u> <sup>y</sup> <sub>z</sub></paragraph>',
+    );
     expect(md).toContain('<u>x</u>');
     expect(md).toContain('<sup>y</sup>');
     expect(md).toContain('<sub>z</sub>');
@@ -235,7 +256,7 @@ describe('xmlToMarkdown — element / mark coverage', () => {
 
   it('renders links with a title', () => {
     const md = xmlToMarkdown(
-      '<paragraph><a href="https://x.com" title="t">click</a></paragraph>'
+      '<paragraph><a href="https://x.com" title="t">click</a></paragraph>',
     );
     expect(md).toBe('[click](https://x.com "t")');
   });
@@ -266,25 +287,25 @@ describe('xmlToMarkdown — element / mark coverage', () => {
 
   it('escapes leading list / heading / blockquote markers in plain text', () => {
     expect(xmlToMarkdown('<paragraph># not a heading</paragraph>')).toBe(
-      String.raw`\# not a heading`
+      String.raw`\# not a heading`,
     );
     expect(xmlToMarkdown('<paragraph>1. not a list</paragraph>')).toBe(
-      String.raw`1\. not a list`
+      String.raw`1\. not a list`,
     );
     expect(xmlToMarkdown('<paragraph>* not a list</paragraph>')).toBe(
-      String.raw`\* not a list`
+      String.raw`\* not a list`,
     );
   });
 
   it('escapes brackets in body text', () => {
     expect(xmlToMarkdown('<paragraph>see [docs]</paragraph>')).toBe(
-      String.raw`see \[docs\]`
+      String.raw`see \[docs\]`,
     );
   });
 
   it('preserves lossy mark attribute values that are objects', () => {
     const md = xmlToMarkdown(
-      '<paragraph><span data-mark="custom" payload="{&quot;a&quot;:1}">x</span></paragraph>'
+      '<paragraph><span data-mark="custom" payload="{&quot;a&quot;:1}">x</span></paragraph>',
     );
     expect(md).toContain('data-mark="custom"');
     expect(md).toContain('payload=');
@@ -376,9 +397,9 @@ describe('inkweld:// URI codec — strict validation', () => {
     const { decodeInkweldUri, encodeInkweldUri } = await import('../src/uri');
     const decoded = decodeInkweldUri('inkweld://element/x?flag=&kept=v');
     expect(decoded?.params).toEqual({ flag: '', kept: 'v' });
-    expect(
-      encodeInkweldUri({ elementId: 'x', params: decoded!.params })
-    ).toBe('inkweld://element/x?flag=&kept=v');
+    expect(encodeInkweldUri({ elementId: 'x', params: decoded!.params })).toBe(
+      'inkweld://element/x?flag=&kept=v',
+    );
   });
 });
 
@@ -390,8 +411,8 @@ describe('XML AST parser — mismatched-tag safety', () => {
   it('throws when a closing tag does not match the open element', async () => {
     const { parseXmlToAst } = await import('../src/xml/ast');
     // <strong> closed by </paragraph> — must NOT silently flatten.
-    expect(() =>
-      parseXmlToAst('<paragraph><strong>x</paragraph>')
-    ).toThrow(/Mismatched closing tag/);
+    expect(() => parseXmlToAst('<paragraph><strong>x</paragraph>')).toThrow(
+      /Mismatched closing tag/,
+    );
   });
 });

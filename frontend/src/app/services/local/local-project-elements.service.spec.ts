@@ -638,7 +638,7 @@ describe('LocalProjectElementsService', () => {
         },
       ];
       await service.saveMediaTags(TEST_USERNAME, TEST_SLUG, first);
-      expect(service.mediaTags().length).toBe(1);
+      expect(service.mediaTags()).toHaveLength(1);
 
       const second = [
         {
