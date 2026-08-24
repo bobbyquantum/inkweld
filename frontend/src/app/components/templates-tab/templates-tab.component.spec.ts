@@ -30,6 +30,8 @@ describe('TemplatesTabComponent', () => {
   let mockDialogGateway: any;
   let mockRelationshipFieldService: {
     removeTypesForSchema: ReturnType<typeof vi.fn>;
+    ensureTypeForField: ReturnType<typeof vi.fn>;
+    isRelationshipField: ReturnType<typeof vi.fn>;
   };
 
   const mockProject: Project = {
@@ -96,6 +98,12 @@ describe('TemplatesTabComponent', () => {
 
     mockRelationshipFieldService = {
       removeTypesForSchema: vi.fn(),
+      ensureTypeForField: vi.fn(),
+      isRelationshipField: vi
+        .fn()
+        .mockImplementation(
+          (field: { type?: string }) => field.type === 'relationship'
+        ),
     };
 
     await TestBed.configureTestingModule({
@@ -304,6 +312,32 @@ describe('TemplatesTabComponent', () => {
       );
       expect(mockProjectState.closeSchemaEditor).toHaveBeenCalledWith(
         'custom-1'
+      );
+    });
+
+    it('should register backing types for cloned relationship fields', async () => {
+      mockProjectState.project.set(mockProject);
+      mockDialogGateway.openRenameDialog.mockResolvedValue('Cloned Template');
+      const clonedField = {
+        key: 'mother',
+        label: 'Mother',
+        type: 'relationship',
+        relationshipTypeId: 'fieldrel-cloned-1',
+      };
+      mockWorldbuildingService.cloneTemplate.mockReturnValue({
+        id: 'custom-clone',
+        name: 'Cloned Template',
+        tabs: [{ key: 'family', label: 'Family', fields: [clonedField] }],
+      });
+      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
+
+      await component.cloneTemplate(mockCustomTemplate);
+
+      expect(
+        mockRelationshipFieldService.ensureTypeForField
+      ).toHaveBeenCalledWith(
+        'custom-clone',
+        expect.objectContaining({ relationshipTypeId: 'fieldrel-cloned-1' })
       );
     });
 

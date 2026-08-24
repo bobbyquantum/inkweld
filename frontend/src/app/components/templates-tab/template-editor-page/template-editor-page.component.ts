@@ -548,7 +548,7 @@ export class TemplateEditorPageComponent
     const current = this.findFieldByKey(tabs, tabKey, fieldKey);
     if (!current) return;
 
-    const candidateKey = patch.key !== undefined ? patch.key : current.key;
+    const candidateKey = patch.key ?? current.key;
     if (!this.isCandidateKeyValid(tabs, tabKey, current.key, candidateKey)) {
       return;
     }
@@ -589,6 +589,19 @@ export class TemplateEditorPageComponent
     const trimmed = candidateKey.trim();
     if (!trimmed) return false;
 
+    const others = this.otherFields(tabs, tabKey, currentKey);
+    return (
+      !others.some(f => f.key.trim() === trimmed) &&
+      !this.conflictsWithGroupStructure(trimmed, others)
+    );
+  }
+
+  /** All fields except the one being edited. */
+  private otherFields(
+    tabs: TabSchema[],
+    tabKey: string,
+    currentKey: string
+  ): FieldSchema[] {
     const others: FieldSchema[] = [];
     for (const tab of tabs) {
       for (const field of tab.fields) {
@@ -596,27 +609,28 @@ export class TemplateEditorPageComponent
         others.push(field);
       }
     }
+    return others;
+  }
 
-    if (others.some(f => f.key.trim() === trimmed)) return false;
+  /**
+   * A flat field and a nested group must not share the group's name — the
+   * form can't hold both (a FormControl and a FormGroup under one key).
+   */
+  private conflictsWithGroupStructure(
+    trimmedKey: string,
+    others: FieldSchema[]
+  ): boolean {
+    const candidateIsNested = trimmedKey.includes('.');
+    const candidateGroup = candidateIsNested ? trimmedKey.split('.')[0] : null;
 
-    const candidateIsNested = trimmed.includes('.');
-    const candidateGroup = candidateIsNested ? trimmed.split('.')[0] : null;
-    for (const other of others) {
+    return others.some(other => {
       const otherIsNested = other.key.includes('.');
       const otherGroup = otherIsNested ? other.key.split('.')[0] : null;
-      if (
-        candidateIsNested &&
-        !otherIsNested &&
-        other.key.trim() === candidateGroup
-      ) {
-        return false;
+      if (candidateIsNested && !otherIsNested) {
+        return other.key.trim() === candidateGroup;
       }
-      if (!candidateIsNested && otherIsNested && otherGroup === trimmed) {
-        return false;
-      }
-    }
-
-    return true;
+      return !candidateIsNested && otherIsNested && otherGroup === trimmedKey;
+    });
   }
 
   /** Remove the backing relationship type when a relationship field is deleted. */

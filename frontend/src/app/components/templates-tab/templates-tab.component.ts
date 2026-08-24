@@ -226,11 +226,25 @@ export class TemplatesTabComponent {
     }
 
     try {
-      this.worldbuildingService.cloneTemplate(
+      const cloned = this.worldbuildingService.cloneTemplate(
         template.id,
         newName,
         `Clone of ${template.label}`
       );
+
+      // cloneTemplate regenerates every relationship field's backing-type id;
+      // register those types right away so the clone is fully usable without
+      // being opened in the editor first.
+      for (const tab of cloned.tabs) {
+        for (const field of tab.fields ?? []) {
+          if (
+            this.relationshipFieldService.isRelationshipField(field) &&
+            field.relationshipTypeId
+          ) {
+            this.relationshipFieldService.ensureTypeForField(cloned.id, field);
+          }
+        }
+      }
 
       this.snackBar.open(
         this.transloco.translate('templates.tab.created', { name: newName }),
