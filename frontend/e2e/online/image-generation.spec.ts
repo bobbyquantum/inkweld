@@ -156,17 +156,40 @@ async function navigateToMediaTab(page: Page): Promise<void> {
   // the tab unselected and the URL unchanged. Retry the click until the
   // Media tab's search input renders (the definitive signal that the tab
   // opened and its content loaded).
-  await expect(async () => {
-    await mediaButton.click();
-    // Accept either signal that the tab opened: the URL lands on /media,
-    // or the search input becomes visible.
-    await Promise.race([
-      page.waitForURL(/\/media$/, { timeout: 5000 }).catch(() => {}),
-      searchInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {}),
-    ]);
-    await expect(searchInput).toBeVisible();
-  }).toPass({ timeout: 60000 });
+  //
+  // Rarely, a dropped workerd connection leaves the page's hydration wedged
+  // indefinitely: every click is swallowed and no request ever fires again.
+  // Re-clicking alone cannot recover from that, so when two consecutive
+  // attempts fail to change anything, reload once to force a fresh
+  // bootstrap. Budget stays below the 120s per-test timeout.
+  const deadline = Date.now() + 90_000;
+  let urlBeforeAttempts = '';
 
+  while (Date.now() < deadline) {
+    const urlAtLoopStart = page.url();
+    try {
+      await mediaButton.click({ timeout: 5_000 });
+      // Accept either signal that the tab opened: the URL lands on /media,
+      // or the search input becomes visible.
+      await Promise.race([
+        page.waitForURL(/\/media$/, { timeout: 5000 }).catch(() => {}),
+        searchInput
+          .waitFor({ state: 'visible', timeout: 5000 })
+          .catch(() => {}),
+      ]);
+      await expect(searchInput).toBeVisible({ timeout: 2_000 });
+      return;
+    } catch {
+      if (urlAtLoopStart === urlBeforeAttempts && urlBeforeAttempts !== '') {
+        // Two consecutive rounds produced no navigation at all — the page is
+        // wedged, not merely slow. Reload to restart hydration.
+        await page.reload().catch(() => {});
+      }
+      urlBeforeAttempts = urlAtLoopStart;
+    }
+  }
+
+  // Final diagnostic assertion — surfaces the last page state on failure.
   await expect(searchInput).toBeVisible();
 }
 
