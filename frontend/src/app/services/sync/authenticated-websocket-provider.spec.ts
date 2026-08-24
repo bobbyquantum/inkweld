@@ -30,66 +30,75 @@ interface MockProviderInstance {
   _emitStatus: (status: string) => void;
 }
 
-// Store mock instances for test assertions - must be defined before vi.doMock
-const mockProviderInstances: MockProviderInstance[] = [];
+// Mock state must be created inside `vi.hoisted()` so it exists when the
+// hoisted `vi.mock` factory executes. Vitest >= 4.1.11 evaluates factories
+// eagerly (before the module body runs), so a factory that references
+// module-scope bindings declared further down silently registers a broken
+// module (`{ WebsocketProvider: undefined }`) instead of throwing.
+const { MockWebsocketProvider, mockProviderInstances, resetMockInstances } =
+  vi.hoisted(() => {
+    const mockProviderInstances: MockProviderInstance[] = [];
 
-function resetMockInstances() {
-  mockProviderInstances.length = 0;
-}
-
-// Create the mock class - used by vi.doMock and directly in tests
-class MockWebsocketProvider implements MockProviderInstance {
-  ws: MockWebSocket | null = null;
-  on = vi.fn((event: string, callback: (arg: unknown) => void) => {
-    if (!this._listeners.has(event)) {
-      this._listeners.set(event, []);
+    function resetMockInstances() {
+      mockProviderInstances.length = 0;
     }
-    this._listeners.get(event)!.push(callback);
-  });
-  off = vi.fn((event: string, callback: (arg: unknown) => void) => {
-    const listeners = this._listeners.get(event);
-    if (listeners) {
-      this._listeners.set(
-        event,
-        listeners.filter(cb => cb !== callback)
-      );
+
+    // Create the mock class - used by the vi.mock factory and directly in tests
+    class MockWebsocketProvider implements MockProviderInstance {
+      ws: MockWebSocket | null = null;
+      on = vi.fn((event: string, callback: (arg: unknown) => void) => {
+        if (!this._listeners.has(event)) {
+          this._listeners.set(event, []);
+        }
+        this._listeners.get(event)!.push(callback);
+      });
+      off = vi.fn((event: string, callback: (arg: unknown) => void) => {
+        const listeners = this._listeners.get(event);
+        if (listeners) {
+          this._listeners.set(
+            event,
+            listeners.filter(cb => cb !== callback)
+          );
+        }
+      });
+      connect = vi.fn(() => {
+        // Create mock WebSocket
+        this.ws = {
+          onmessage: null,
+          send: vi.fn(),
+          readyState: 1,
+          OPEN: 1,
+        };
+      });
+      disconnect = vi.fn();
+      destroy = vi.fn();
+      wsconnected = false;
+      wsLastMessageReceived = 0;
+      awareness = {
+        setLocalStateField: vi.fn(),
+        clientID: 123,
+      };
+      _listeners = new Map<string, Array<(arg: unknown) => void>>();
+      _options: Record<string, unknown> = {};
+
+      _emitStatus(status: string) {
+        const listeners = this._listeners.get('status');
+        listeners?.forEach(cb => cb({ status }));
+      }
+
+      constructor(
+        _serverUrl?: string,
+        _roomName?: string,
+        _doc?: unknown,
+        options?: Record<string, unknown>
+      ) {
+        this._options = options ?? {};
+        mockProviderInstances.push(this);
+      }
     }
-  });
-  connect = vi.fn(() => {
-    // Create mock WebSocket
-    this.ws = {
-      onmessage: null,
-      send: vi.fn(),
-      readyState: 1,
-      OPEN: 1,
-    };
-  });
-  disconnect = vi.fn();
-  destroy = vi.fn();
-  wsconnected = false;
-  wsLastMessageReceived = 0;
-  awareness = {
-    setLocalStateField: vi.fn(),
-    clientID: 123,
-  };
-  _listeners = new Map<string, Array<(arg: unknown) => void>>();
-  _options: Record<string, unknown> = {};
 
-  _emitStatus(status: string) {
-    const listeners = this._listeners.get('status');
-    listeners?.forEach(cb => cb({ status }));
-  }
-
-  constructor(
-    _serverUrl?: string,
-    _roomName?: string,
-    _doc?: unknown,
-    options?: Record<string, unknown>
-  ) {
-    this._options = options ?? {};
-    mockProviderInstances.push(this);
-  }
-}
+    return { MockWebsocketProvider, mockProviderInstances, resetMockInstances };
+  });
 
 // Override the global mock with our custom mock that tracks instances
 vi.mock('y-websocket', () => {
