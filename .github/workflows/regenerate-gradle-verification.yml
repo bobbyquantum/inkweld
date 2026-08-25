@@ -90,6 +90,12 @@ jobs:
             git commit -m "chore(android): regenerate gradle verification metadata"
             # Authenticate only for the push — the GITHUB_TOKEN has contents:write
             # (granted by the permissions block above) but was not persisted into
-            # git config by the checkout step.
-            git -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" push
+            # git config by the checkout step. Use the same URL-scoped basic
+            # x-access-token header actions/checkout persists: GitHub's git
+            # endpoint rejects the previous unscoped bearer form, which made
+            # git fall back to prompting for a username and die with exit 128
+            # ("could not read Username for 'https://github.com'").
+            AUTH_B64=$(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 | tr -d '\n')
+            git -c http.https://github.com/.extraheader="AUTHORIZATION: basic ${AUTH_B64}" \
+              push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
           fi
