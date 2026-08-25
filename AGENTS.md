@@ -467,8 +467,27 @@ Renovate is disabled for it via `renovate.json`. **Do not "fix" this to a range.
   dev machines; CI runner contention provides the dropped connections.
 - **Upstream**: cloudflare/workers-sdk#15317 (also #15203, #4562). 4.116.0 is
   the last release on the miniflare 4.x line.
+- **The pin alone is NOT enough**: 4.116.0 has the same defect, just at lower
+  frequency (two crashes on 2026-08-25 while pinned). The crash mechanism:
+  a client aborting an in-flight request rejects the ProxyWorker's internal
+  proxy fetch with "Network connection lost."; the ProxyWorker posts a
+  `type: "error"` message; `DevEnv.handleErrorEvent` re-emits it as a fatal
+  `"error"` event; the dev command's `await events.once(devEnv, "teardown")`
+  rejects (Node's `events.once` rejects on `"error"`), and the process exits.
+- **Local patch**: `backend/patches/wrangler@4.116.0.patch` (applied via
+  `patchedDependencies` in `backend/package.json`) makes
+  "Error inside ProxyWorker" events non-fatal — they log as
+  `Non-fatal error in ProxyController: ...` warnings and the affected request
+  simply fails; the server keeps running. It also fixes `castErrorCause` so the
+  cause's message/stack survive into the log instead of an empty `[ERROR]`.
+  Repro + verification: send POSTs with a partial body and RST the socket
+  mid-request; unpatched wrangler dies on the first one, patched logs a
+  warning and keeps serving.
 - **Unpin when**: #15317 ships a fixed release — restore `"wrangler": "^<ver>"`,
-  re-lock, and re-enable the Renovate rule.
+  re-lock, drop the patch (`backend/patches/` + `patchedDependencies`), and
+  re-enable the Renovate rule. If bumping wrangler while the patch is still
+  needed, regenerate the patch against the new version (`bun patch wrangler`)
+  — a stale version key in `patchedDependencies` fails the install.
 - The wrangler e2e job also sets `WRANGLER_LOG=debug` +
   `WRANGLER_LOG_PATH` and uploads wrangler's diagnostic log as an artifact
   (`wrangler-diag-log-shard-*`); the real crash cause only appears there, not
