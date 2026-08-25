@@ -87,9 +87,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /
 # - esbuild: downloads platform-specific binary
 # - sharp: downloads prebuilt libvips binaries
 COPY backend/bun.lock backend/package.json ./
+# bun.lock references patchedDependencies; the patch files must be present
+# before `bun install --frozen-lockfile` or the install fails.
+COPY backend/patches ./patches
 RUN bun install --frozen-lockfile --ignore-scripts && \
   node node_modules/esbuild/install.js && \
-  cd node_modules/sharp && node install/check.js || true
+  { cd node_modules/sharp && node install/check.js || true; }
 
 # Copy source and build scripts
 COPY backend .
