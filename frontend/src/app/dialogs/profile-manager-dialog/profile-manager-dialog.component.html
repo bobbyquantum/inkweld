@@ -599,7 +599,11 @@
                 mat-raised-button
                 color="primary"
                 (click)="migrateProjects()"
-                [disabled]="isMigrating() || hasUnresolvedConflicts()"
+                [disabled]="
+                  isMigrating() ||
+                  isCheckingConflicts() ||
+                  hasUnresolvedConflicts()
+                "
                 data-testid="migrate-projects-button">
                 @if (isMigrating()) {
                   <mat-spinner diameter="18"></mat-spinner>
