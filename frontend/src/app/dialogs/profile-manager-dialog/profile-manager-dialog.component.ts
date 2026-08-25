@@ -660,16 +660,17 @@ export class ProfileManagerDialogComponent {
         credentials.password
       );
 
-      // Auth successful - mark as authenticated
-      this.isAuthenticated.set(true);
-      this.showAuthForm.set(false);
-
-      // Now check for slug conflicts with server projects
-      await this.checkSlugConflicts();
-
-      // Select all projects by default (if any)
+      // Select all projects by default and resolve slug conflicts BEFORE
+      // revealing the selection step. Flipping the view first left a window
+      // where the migrate button was clickable with an empty selection, so a
+      // fast click "skipped" migration entirely (vacuous success; flaky e2e).
       const allSlugs = this.localProjects().map(p => p.slug);
       this.selectedProjectSlugs.set(new Set(allSlugs));
+      await this.checkSlugConflicts();
+
+      // Auth successful - mark as authenticated and show project selection
+      this.isAuthenticated.set(true);
+      this.showAuthForm.set(false);
 
       const message =
         allSlugs.length > 0
@@ -720,16 +721,17 @@ export class ProfileManagerDialogComponent {
       // Login to server
       await this.migrationService.loginToServer(usernameValue, passwordValue);
 
-      // Auth successful - mark as authenticated
-      this.isAuthenticated.set(true);
-      this.showAuthForm.set(false);
-
-      // Now check for slug conflicts with server projects
-      await this.checkSlugConflicts();
-
-      // Select all projects by default (if any)
+      // Select all projects by default and resolve slug conflicts BEFORE
+      // revealing the selection step. Flipping the view first left a window
+      // where the migrate button was clickable with an empty selection, so a
+      // fast click "skipped" migration entirely (vacuous success; flaky e2e).
       const allSlugs = this.localProjects().map(p => p.slug);
       this.selectedProjectSlugs.set(new Set(allSlugs));
+      await this.checkSlugConflicts();
+
+      // Auth successful - mark as authenticated and show project selection
+      this.isAuthenticated.set(true);
+      this.showAuthForm.set(false);
 
       const message =
         allSlugs.length > 0

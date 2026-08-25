@@ -124,10 +124,22 @@ test.describe('Offline to Server Migration', () => {
       })
     ).toBeVisible();
 
-    // Step 9c: Select all projects to migrate (they're selected by default now, but click for safety)
+    // Step 9c: Both local projects must be listed and selected by default.
+    // Asserting the rows (not just the select-all header) guards against the
+    // regression where the selection step rendered before defaults were
+    // initialised and the migrate button silently skipped migration.
     await expect(
       offlinePage.locator('[data-testid="select-all-projects"]')
     ).toBeVisible();
+    await expect(
+      offlinePage.locator('[data-testid="select-project-offline-novel"]')
+    ).toBeVisible();
+    await expect(
+      offlinePage.locator('[data-testid="select-project-offline-story"]')
+    ).toBeVisible();
+    await expect(
+      offlinePage.locator('[data-testid="migrate-projects-button"]')
+    ).toContainText(/Migrate/i);
 
     // Step 9d: Click migrate button to complete step 2
     await offlinePage
