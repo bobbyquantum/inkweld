@@ -20,6 +20,12 @@ const yjsLog = logger.child('Yjs');
 interface LeveldbPersistence {
   getYDoc(docName: string): Promise<Y.Doc>;
   storeUpdate(docName: string, update: Uint8Array): Promise<unknown>;
+  /**
+   * Merge all stored incremental updates for a document into a single row and
+   * clear the prior range (`y-leveldb`). Keeps on-disk storage proportional to
+   * document content instead of full edit history.
+   */
+  flushDocument(docName: string): Promise<void>;
   destroy(): Promise<void>;
 }
 
@@ -44,6 +50,15 @@ function loadLeveldbPersistence(): Promise<new (location: string) => LeveldbPers
 
 const messageSync = 0;
 const messageAwareness = 1;
+
+/**
+ * Incremental update rows stored per document before a LevelDB compaction
+ * (`flushDocument`) is triggered. Matches the Durable Object path's
+ * `COMPACT_THRESHOLD` so both runtimes bound storage the same way. Local to
+ * this file — importing from `durable-objects/` would pull the Worker-side
+ * module into the Bun bundle (see `loadLeveldbPersistence`).
+ */
+export const LEVELDB_COMPACT_THRESHOLD = 50;
 
 /**
  * Lightweight snapshot of a single element used for diffing before/after
@@ -98,6 +113,13 @@ export class YjsService {
   // Map by project key (username:projectSlug) instead of documentId
   private readonly persistences = new Map<string, LeveldbPersistence>();
   private readonly persistFailures = new Map<string, number>();
+  /**
+   * Per-document count of incremental updates persisted since the last
+   * LevelDB compaction. When a document reaches `LEVELDB_COMPACT_THRESHOLD`
+   * a `flushDocument` compaction is fired (reset only on flush success, so a
+   * failed flush retries after the next batch instead of waiting silently).
+   */
+  private readonly pendingSinceCompact = new Map<string, number>();
 
   /**
    * Get project key from documentId
@@ -236,6 +258,25 @@ export class YjsService {
                 `LevelDB persistence recovered for ${documentId} after ${prevFailures} failures`
               );
               this.persistFailures.delete(documentId);
+            }
+            // Fire-and-forget compaction: merge the accumulated incremental
+            // rows into one so on-disk size tracks content, not edit history.
+            // Safe to run here — `y-leveldb` serializes storeUpdate/flush
+            // through its internal transaction chain, and a rejection leaves
+            // both data and counter untouched (flush retries next batch).
+            const pending = (this.pendingSinceCompact.get(documentId) ?? 0) + 1;
+            if (pending >= LEVELDB_COMPACT_THRESHOLD) {
+              void currentPersistence
+                .flushDocument(documentId)
+                .then(() => {
+                  this.pendingSinceCompact.set(documentId, 0);
+                  yjsLog.debug(`Compacted LevelDB updates for ${documentId}`);
+                })
+                .catch((error: unknown) => {
+                  yjsLog.warn(`LevelDB compaction failed for ${documentId} — will retry`, error);
+                });
+            } else {
+              this.pendingSinceCompact.set(documentId, pending);
             }
           } else {
             yjsLog.warn(`No persistence available for project ${projectKey}, update not saved`);
@@ -541,6 +582,7 @@ export class YjsService {
           doc.doc.destroy();
           this.docs.delete(doc.name);
           this.persistFailures.delete(doc.name);
+          this.pendingSinceCompact.delete(doc.name);
           yjsLog.debug(`Document ${doc.name} cleaned up after inactivity`);
 
           // Check if there are any other documents from the same project still active
@@ -619,6 +661,8 @@ export class YjsService {
 
     this.docs.clear();
     this.persistences.clear();
+    this.persistFailures.clear();
+    this.pendingSinceCompact.clear();
   }
 
   /**
@@ -667,6 +711,8 @@ export class YjsService {
 
     for (const docId of docsToRemove) {
       this.docs.delete(docId);
+      this.persistFailures.delete(docId);
+      this.pendingSinceCompact.delete(docId);
     }
 
     yjsLog.info(`Project rename complete: ${oldProjectKey} -> ${newProjectKey}`);
