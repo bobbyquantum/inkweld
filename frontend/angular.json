@@ -234,7 +234,7 @@
             "**/document-element-editor.component.ts",
             "**/project/document.service.ts"
           ],
-            "coverageReporters": ["text", "html", "lcov"],
+            "coverageReporters": ["text", "lcov"],
             "coverageThresholds": {
               "statements": 80,
               "functions": 80,
