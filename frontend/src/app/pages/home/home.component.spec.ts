@@ -25,6 +25,7 @@ import {
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { StorageContextService } from '@services/core/storage-context.service';
+import { TutorialService } from '@services/core/tutorial.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
@@ -143,6 +144,7 @@ describe('HomeComponent', () => {
 
     breakpointObserver = {
       observe: vi.fn().mockReturnValue(of({ matches: true, breakpoints: {} })),
+      isMatched: vi.fn().mockReturnValue(false),
     } as unknown as MockedObject<BreakpointObserver>;
 
     httpClient = {
@@ -282,6 +284,13 @@ describe('HomeComponent', () => {
         { provide: BreakpointObserver, useValue: breakpointObserver },
         { provide: HttpClient, useValue: httpClient },
         { provide: Router, useValue: router },
+        {
+          provide: TutorialService,
+          useValue: {
+            start: vi.fn().mockReturnValue(true),
+            maybeAutoStart: vi.fn().mockReturnValue(false),
+          },
+        },
         { provide: MatDialog, useValue: matDialog },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: CoverSyncService, useValue: coverSyncService },

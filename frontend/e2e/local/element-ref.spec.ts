@@ -99,6 +99,9 @@ test.describe('Element Reference (@mentions)', () => {
         'local:inkweld-local-user',
         JSON.stringify(userProfile)
       );
+
+      // Keep the guided tour from auto-starting during unrelated tests
+      localStorage.setItem('inkweld-tutorial-autostart', 'off');
     });
 
     // Create a project once per test (each test runs in an isolated context,

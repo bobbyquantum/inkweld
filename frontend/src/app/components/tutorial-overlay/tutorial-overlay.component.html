@@ -1,0 +1,96 @@
+@if (tutorial.currentStep(); as step) {
+  <div class="tutorial-overlay" data-testid="tutorial-overlay">
+    <!-- Blocks interaction with the page while the tour is showing. -->
+    <div
+      class="tutorial-scrim"
+      [class.tutorial-scrim--dimmed]="!anchorRect()"></div>
+
+    @if (anchorRect(); as rect) {
+      <div
+        class="tutorial-highlight"
+        [style.top.px]="rect.top - 6"
+        [style.left.px]="rect.left - 6"
+        [style.width.px]="rect.width + 12"
+        [style.height.px]="rect.height + 12"></div>
+    }
+
+    <div
+      #tutorialCard
+      class="tutorial-card"
+      [class.tutorial-card--centered]="!cardPosition()"
+      [class.tutorial-card--ready]="cardReady()"
+      [style.top.px]="cardPosition()?.top"
+      [style.left.px]="cardPosition()?.left"
+      cdkTrapFocus
+      cdkTrapFocusAutoCapture
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tutorial-step-title"
+      data-testid="tutorial-card">
+      <div class="tutorial-card-header">
+        <h2 id="tutorial-step-title">{{ step.titleKey | transloco }}</h2>
+        <button
+          mat-icon-button
+          class="tutorial-close-button"
+          (click)="tutorial.dismiss()"
+          [attr.aria-label]="'tutorial.closeAria' | transloco"
+          data-testid="tutorial-close-button">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <p class="tutorial-card-body" aria-live="polite">
+        {{ step.bodyKey | transloco }}
+      </p>
+
+      <div class="tutorial-card-footer">
+        @if (!isIntroStep()) {
+          <span
+            class="tutorial-step-counter"
+            data-testid="tutorial-step-counter">
+            {{
+              'tutorial.stepCounter'
+                | transloco
+                  : {
+                      current: tutorial.stepIndex(),
+                      total: tutorial.totalSteps() - 1,
+                    }
+            }}
+          </span>
+        }
+        <span class="tutorial-footer-spacer"></span>
+        @if (isIntroStep()) {
+          <button
+            mat-button
+            (click)="tutorial.dismiss()"
+            data-testid="tutorial-not-now-button">
+            {{ 'tutorial.notNow' | transloco }}
+          </button>
+          <button
+            mat-raised-button
+            color="primary"
+            cdkFocusInitial
+            (click)="tutorial.next()"
+            data-testid="tutorial-start-button">
+            {{ 'tutorial.startTour' | transloco }}
+          </button>
+        } @else {
+          <button
+            mat-button
+            (click)="tutorial.previous()"
+            data-testid="tutorial-back-button">
+            {{ 'back' | transloco }}
+          </button>
+          <button
+            mat-raised-button
+            color="primary"
+            cdkFocusInitial
+            (click)="tutorial.next()"
+            data-testid="tutorial-next-button">
+            {{ (isLastStep() ? 'done' : 'next') | transloco }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}

@@ -20,6 +20,7 @@ import settingsEn from '../../public/assets/i18n/en/settings.json';
 import tagsEn from '../../public/assets/i18n/en/tags.json';
 import templatesEn from '../../public/assets/i18n/en/templates.json';
 import timelineEn from '../../public/assets/i18n/en/timeline.json';
+import tutorialEn from '../../public/assets/i18n/en/tutorial.json';
 import worldbuildingEn from '../../public/assets/i18n/en/worldbuilding.json';
 
 const enTranslations = {
@@ -43,6 +44,7 @@ const enTranslations = {
   tags: tagsEn,
   templates: templatesEn,
   messages: messagesEn,
+  tutorial: tutorialEn,
 };
 
 export function translocoTestProvider() {

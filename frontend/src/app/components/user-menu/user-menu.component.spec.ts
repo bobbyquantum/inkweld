@@ -11,6 +11,7 @@ import {
   type ServerConfig,
   StorageContextService,
 } from '@services/core/storage-context.service';
+import { TutorialService } from '@services/core/tutorial.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
 import { type ThemeOption, ThemeService } from '@themes/theme.service';
@@ -125,6 +126,10 @@ describe('UserMenuComponent', () => {
         provideZonelessChangeDetection(),
         { provide: HttpClient, useValue: httpClientMock },
         { provide: Router, useValue: routerMock },
+        {
+          provide: TutorialService,
+          useValue: { start: vi.fn().mockReturnValue(true) },
+        },
         { provide: UnifiedUserService, useValue: userServiceMock },
         { provide: DialogGatewayService, useValue: dialogGatewayMock },
         { provide: SetupService, useValue: setupServiceMock },

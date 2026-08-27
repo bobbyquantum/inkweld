@@ -19,6 +19,7 @@ import { ProjectSearchService } from '@services/core/project-search.service';
 import { QuickOpenService } from '@services/core/quick-open.service';
 import { SettingsService } from '@services/core/settings.service';
 import { StorageContextService } from '@services/core/storage-context.service';
+import { TutorialService } from '@services/core/tutorial.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
@@ -214,6 +215,7 @@ describe('ProjectComponent', () => {
         .mockReturnValue(
           of({ matches: false, breakpoints: {} } as BreakpointState)
         ),
+      isMatched: vi.fn().mockReturnValue(false),
     };
 
     snackBar = {
@@ -282,6 +284,13 @@ describe('ProjectComponent', () => {
           },
         },
         { provide: Router, useValue: router },
+        {
+          provide: TutorialService,
+          useValue: {
+            start: vi.fn().mockReturnValue(true),
+            maybeAutoStart: vi.fn().mockReturnValue(false),
+          },
+        },
         { provide: ProjectExportService, useValue: exportService },
         { provide: UnifiedProjectService, useValue: projectService },
         { provide: DialogGatewayService, useValue: dialogGateway },

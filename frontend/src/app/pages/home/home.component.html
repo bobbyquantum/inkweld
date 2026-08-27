@@ -179,7 +179,8 @@
               <!-- Show user menu if authenticated -->
               <app-user-menu
                 [user]="userService.currentUser()"
-                [miniMode]="true"></app-user-menu>
+                [miniMode]="true"
+                tutorialTour="home"></app-user-menu>
             </div>
           }
         </div>
@@ -354,6 +355,12 @@
                     data-testid="import-first-project-button"
                     (click)="importProject()">
                     {{ 'home.importProject' | transloco }}
+                  </button>
+                  <button
+                    mat-button
+                    data-testid="take-tour-button"
+                    (click)="startTutorial()">
+                    {{ 'tutorial.takeTour' | transloco }}
                   </button>
                 </div>
               </div>

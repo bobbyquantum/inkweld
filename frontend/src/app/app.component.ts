@@ -13,6 +13,7 @@ import { Router, RouterOutlet } from '@angular/router';
 import { TranslocoModule } from '@jsverse/transloco';
 
 import { ThemeService } from '../themes/theme.service';
+import { TutorialOverlayComponent } from './components/tutorial-overlay/tutorial-overlay.component';
 import { LocaleService } from './services/core/locale.service';
 import { SetupService } from './services/core/setup.service';
 import { UpdateService } from './services/core/update.service';
@@ -29,6 +30,7 @@ import { UnifiedUserService } from './services/user/unified-user.service';
     MatToolbarModule,
     MatButtonModule,
     TranslocoModule,
+    TutorialOverlayComponent,
   ],
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

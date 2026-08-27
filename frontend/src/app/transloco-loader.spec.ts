@@ -55,6 +55,7 @@ describe('TranslocoHttpLoader', () => {
   const mockTags = { tag: 'Tag' };
   const mockTemplates = { template: 'Template' };
   const mockMessages = { inbox: 'Inbox' };
+  const mockTutorial = { takeTour: 'Take the tour' };
 
   const allScopeMocks: Record<string, Record<string, unknown>> = {
     app: mockApp,
@@ -76,6 +77,7 @@ describe('TranslocoHttpLoader', () => {
     tags: mockTags,
     templates: mockTemplates,
     messages: mockMessages,
+    tutorial: mockTutorial,
   };
 
   const allScopeNames = Object.keys(allScopeMocks);

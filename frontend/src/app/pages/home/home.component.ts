@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   type OnDestroy,
   type OnInit,
@@ -44,6 +45,7 @@ import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { StorageContextService } from '@services/core/storage-context.service';
+import { TutorialService } from '@services/core/tutorial.service';
 import { LocalProjectElementsService } from '@services/local/local-project-elements.service';
 import { LocalSnapshotService } from '@services/local/local-snapshot.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
@@ -108,6 +110,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly localStorageService = inject(LocalStorageService);
   private readonly localSnapshotService = inject(LocalSnapshotService);
   private readonly localElementsService = inject(LocalProjectElementsService);
+  private readonly tutorialService = inject(TutorialService);
 
   /** True when the app is running in local-only mode (no backend). */
   protected readonly isLocalMode = this.storageContext.isLocalMode;
@@ -245,6 +248,37 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.searchForm.search().value()
   );
 
+  /** Latch so the home tour is offered at most once per visit. */
+  private tutorialOffered = false;
+
+  constructor() {
+    // Offer the home tour once the user state has resolved on a desktop
+    // viewport. Reactive rather than a one-shot check because auth state and
+    // the breakpoint both settle asynchronously during boot.
+    effect(() => {
+      if (
+        this.tutorialOffered ||
+        this.isInitializing() ||
+        !this.isAuthenticated() ||
+        this.isMobile()
+      ) {
+        return;
+      }
+      // The signal can lag the real viewport briefly at startup; skip without
+      // latching so the effect retries when the breakpoint signal updates.
+      if (
+        this.breakpointObserver.isMatched([
+          Breakpoints.XSmall,
+          Breakpoints.Small,
+        ])
+      ) {
+        return;
+      }
+      this.tutorialOffered = true;
+      this.tutorialService.maybeAutoStart('home', { isMobile: false });
+    });
+  }
+
   ngOnInit() {
     void this.loadProjects();
     this.setupBreakpointObserver();
@@ -324,6 +358,11 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   toggleSideNav(): void {
     this.sideNavOpen.set(!this.sideNavOpen());
+  }
+
+  /** Start the home-screen tour (from the empty state's button). */
+  protected startTutorial(): void {
+    this.tutorialService.start('home');
   }
 
   toggleMobileSearch(): void {

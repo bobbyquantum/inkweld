@@ -53,6 +53,7 @@ import { DialogGatewayService } from '../../services/core/dialog-gateway.service
 import { ProjectSearchService } from '../../services/core/project-search.service';
 import { QuickOpenService } from '../../services/core/quick-open.service';
 import { StorageContextService } from '../../services/core/storage-context.service';
+import { TutorialService } from '../../services/core/tutorial.service';
 import { RecentFilesService } from '../../services/project/recent-files.service';
 import { MediaAutoSyncService } from '../../services/sync/media-auto-sync.service';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
@@ -102,6 +103,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly activationService = inject(ProjectActivationService);
   private readonly logger = inject(LoggerService);
   private readonly elementNavigation = inject(ElementNavigationService);
+  private readonly tutorialService = inject(TutorialService);
 
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
 
@@ -156,7 +158,30 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly sidebarWidth = signal(300);
   private resizing = false;
 
+  /** Latch so the workspace tour is offered at most once per visit. */
+  private tutorialOffered = false;
+
   constructor() {
+    // Offer the workspace tour once a project is loaded on a desktop
+    // viewport. Reactive rather than a one-shot check because the project
+    // and the breakpoint both settle asynchronously.
+    effect(() => {
+      if (
+        this.tutorialOffered ||
+        !this.projectState.project() ||
+        this.isMobile()
+      ) {
+        return;
+      }
+      // The signal can lag the real viewport briefly at startup; skip without
+      // latching so the effect retries when the breakpoint signal updates.
+      if (this.breakpointObserver.isMatched(this.MOBILE_BREAKPOINT)) {
+        return;
+      }
+      this.tutorialOffered = true;
+      this.tutorialService.maybeAutoStart('project', { isMobile: false });
+    });
+
     // Load saved sidebar collapsed state and width early in initialization
     if (!this.isMobile()) {
       const storedCollapsed = localStorage.getItem('sidebarCollapsed');

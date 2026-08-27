@@ -1,0 +1,39 @@
+{
+  "menuItem": "Take a tour",
+  "takeTour": "Take the tour",
+  "notNow": "Not now",
+  "startTour": "Start tour",
+  "closeAria": "Close the tour",
+  "stepCounter": "{{current}} of {{total}}",
+  "home": {
+    "welcomeTitle": "Welcome to Inkweld!",
+    "welcomeBody": "Your space for writing and worldbuilding. Want a one-minute tour of the home screen?",
+    "createTitle": "Create a project",
+    "createBody": "Start a new project from a template, or import an existing Inkweld archive.",
+    "projectsTitle": "Your projects",
+    "projectsEmptyBody": "Projects you create or join will appear here as cards.",
+    "projectsGridBody": "Click a project card to open it in the editor.",
+    "syncTitle": "Stay in sync",
+    "syncBody": "Sync all of your activated projects with the server in one click.",
+    "userMenuTitle": "Your account",
+    "userMenuBody": "Switch themes, servers, and profiles, and open your settings here. You can replay this tour from this menu at any time."
+  },
+  "project": {
+    "welcomeTitle": "Your project workspace",
+    "welcomeBody": "This is where you write and build your world. Want a quick orientation?",
+    "treeTitle": "Project tree",
+    "treeBody": "Documents, folders, and worldbuilding elements live here. Drag items to reorganize them, or right-click for more actions.",
+    "searchTitle": "Search your project",
+    "searchBody": "Search across every document and element in the project (Ctrl/Cmd + Shift + F).",
+    "tabsTitle": "Tabs",
+    "tabsBody": "Everything you open appears as a tab, so you can move between documents and elements quickly.",
+    "mediaTitle": "Media library",
+    "mediaBody": "Store and organize images for your project — covers, portraits, maps, and more.",
+    "publishTitle": "Publishing",
+    "publishBody": "Export your work as EPUB, PDF, Markdown, or HTML when you're ready to share it.",
+    "settingsTitle": "Project settings",
+    "settingsBody": "Rename your project and adjust project-level options here.",
+    "shortcutsTitle": "One more thing",
+    "shortcutsBody": "Press Ctrl/Cmd + P to quickly open any file, and Ctrl/Cmd + F to find text in the current document. You can replay this tour from the account menu at any time."
+  }
+}

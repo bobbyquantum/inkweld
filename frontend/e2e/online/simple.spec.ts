@@ -75,6 +75,9 @@ test.describe('Online Infrastructure', () => {
           })
         );
         localStorage.setItem('srv:server-1:auth_token', token);
+
+        // Keep the guided tour from auto-starting during unrelated tests
+        localStorage.setItem('inkweld-tutorial-autostart', 'off');
       },
       { token: registerData.token!, serverUrl: API_BASE }
     );

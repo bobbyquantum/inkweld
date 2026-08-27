@@ -23,9 +23,11 @@ import {
   type ServerConfig,
   StorageContextService,
 } from '@services/core/storage-context.service';
+import { TutorialService } from '@services/core/tutorial.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { type ThemeOption, ThemeService } from '@themes/theme.service';
 
+import { type TutorialTourId } from '../../models/tutorial';
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 
 @Component({
@@ -53,9 +55,12 @@ export class UserMenuComponent implements OnInit {
   protected authTokenService = inject(AuthTokenService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly themeService = inject(ThemeService);
+  private readonly tutorialService = inject(TutorialService);
 
   @Input() user: User | undefined = undefined;
   @Input() miniMode = false;
+  /** Which guided tour this menu offers; omit to hide the menu item. */
+  @Input() tutorialTour: TutorialTourId | null = null;
 
   // Check if current user is an admin (only in server mode)
   protected isAdmin = computed(() => {
@@ -108,6 +113,12 @@ export class UserMenuComponent implements OnInit {
 
   async onManageProfiles() {
     await this.dialogGateway.openProfileManagerDialog();
+  }
+
+  onStartTutorial(): void {
+    if (this.tutorialTour) {
+      this.tutorialService.start(this.tutorialTour);
+    }
   }
 
   onThemeChange(theme: ThemeOption): void {
