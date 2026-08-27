@@ -55,14 +55,21 @@ interface FlushProbe {
   wrapped: ServiceInternals['persistences'] extends Map<string, infer P> ? P : never;
   inFlightStores(): number;
   inFlightFlushes(): number;
-  completedFlushes(): number;
+  /** Flush invocations started (counted on entry, failures included). */
+  attemptedFlushes(): number;
+  /** Flush invocations that have settled (success or failure). */
+  settledFlushes(): number;
 }
 
-function installFlushProbe(service: YjsService, projectKey: string): FlushProbe {
+function installFlushProbe(
+  service: YjsService,
+  projectKey: string,
+  opts?: { failFlushes?: () => boolean }
+): FlushProbe {
   const internals = internalsOf(service);
   const real = internals.persistences.get(projectKey);
   if (!real) throw new Error(`No persistence installed for ${projectKey}`);
-  const state = { stores: 0, flushes: 0, completed: 0 };
+  const state = { stores: 0, inFlight: 0, attempts: 0, settled: 0 };
   const wrapped = {
     getYDoc: (docName: string) => real.getYDoc(docName),
     storeUpdate: async (docName: string, update: Uint8Array) => {
@@ -74,12 +81,14 @@ function installFlushProbe(service: YjsService, projectKey: string): FlushProbe 
       }
     },
     flushDocument: async (docName: string) => {
-      state.flushes++;
+      state.attempts++;
+      state.inFlight++;
       try {
+        if (opts?.failFlushes?.()) throw new Error('simulated flush failure');
         return await real.flushDocument(docName);
       } finally {
-        state.flushes--;
-        state.completed++;
+        state.inFlight--;
+        state.settled++;
       }
     },
     destroy: () => real.destroy(),
@@ -88,8 +97,9 @@ function installFlushProbe(service: YjsService, projectKey: string): FlushProbe 
   return {
     wrapped,
     inFlightStores: () => state.stores,
-    inFlightFlushes: () => state.flushes,
-    completedFlushes: () => state.completed,
+    inFlightFlushes: () => state.inFlight,
+    attemptedFlushes: () => state.attempts,
+    settledFlushes: () => state.settled,
   };
 }
 
@@ -163,7 +173,7 @@ describe('YjsService live-path LevelDB compaction', () => {
 
     await applyUpdates(service, documentId, LEVELDB_COMPACT_THRESHOLD + 5);
     await awaitWriteSettled(probe);
-    expect(probe.completedFlushes()).toBeGreaterThanOrEqual(1);
+    expect(probe.settledFlushes()).toBeGreaterThanOrEqual(1);
 
     await service.cleanup();
     const rows = await countUpdateRows(documentId);
@@ -187,7 +197,7 @@ describe('YjsService live-path LevelDB compaction', () => {
     const stateVectorBefore = Array.from(Y.encodeStateVector(sharedDoc.doc));
 
     await awaitWriteSettled(probe);
-    expect(probe.completedFlushes()).toBeGreaterThanOrEqual(1);
+    expect(probe.settledFlushes()).toBeGreaterThanOrEqual(1);
     await service.cleanup();
 
     const reloaded = new YjsService();
@@ -212,45 +222,54 @@ describe('YjsService live-path LevelDB compaction', () => {
     const totalTransactions = LEVELDB_COMPACT_THRESHOLD - 1;
     await applyUpdates(service, documentId, totalTransactions - 1);
     await awaitWriteSettled(probe);
-    expect(probe.completedFlushes()).toBe(0);
+    expect(probe.settledFlushes()).toBe(0);
 
     await service.cleanup();
     expect(await countUpdateRows(documentId)).toBe(totalTransactions);
     expect(internalsOf(service).pendingSinceCompact.size).toBe(0);
   }, 20000);
 
-  it('retries compaction after a failed flush and never blocks persistence', async () => {
+  it('defers compaction to the next batch after a failed flush and never blocks persistence', async () => {
     const service = new YjsService();
     const documentId = `${USERNAME}:${SLUG}:elements/`;
     await service.getDocument(documentId);
-    const store = internalsOf(service);
-    const real = store.persistences.get(PROJECT_KEY)!;
-    const probe = installFlushProbe(service, PROJECT_KEY);
-
     let failFlushes = true;
-    store.persistences.set(PROJECT_KEY, {
-      getYDoc: (docName: string) => real.getYDoc(docName),
-      storeUpdate: (docName: string, update: Uint8Array) => real.storeUpdate(docName, update),
-      flushDocument: (docName: string) =>
-        failFlushes
-          ? Promise.reject(new Error('simulated flush failure'))
-          : real.flushDocument(docName),
-      destroy: () => real.destroy(),
-    });
+    const probe = installFlushProbe(service, PROJECT_KEY, { failFlushes: () => failFlushes });
 
     // Cross the threshold while flushes are failing — persistence itself must
     // keep succeeding (never blocks the write path).
     await applyUpdates(service, documentId, LEVELDB_COMPACT_THRESHOLD);
     await awaitWriteSettled(probe);
+    // Optimistic reset: exactly ONE attempt per threshold crossing, even
+    // though every update past the crossing still fires storeUpdates.
+    expect(probe.attemptedFlushes()).toBe(1);
 
-    // Restore the real persistence; the very next update retries the flush.
+    // Stop failing; the next batch converges to one row.
     failFlushes = false;
-    store.persistences.set(PROJECT_KEY, probe.wrapped);
-    await applyUpdates(service, documentId, 1);
+    await applyUpdates(service, documentId, LEVELDB_COMPACT_THRESHOLD);
     await awaitWriteSettled(probe);
 
     await service.cleanup();
     expect(await countUpdateRows(documentId)).toBe(1);
+    expect(internalsOf(service).pendingSinceCompact.size).toBe(0);
+  }, 30000);
+
+  it('queues at most one flush per threshold crossing during a long burst', async () => {
+    const service = new YjsService();
+    const documentId = `${USERNAME}:${SLUG}:elements/`;
+    await service.getDocument(documentId);
+    const probe = installFlushProbe(service, PROJECT_KEY);
+
+    // 150 updates = 3 threshold crossings; the counter must reset optimistically
+    // so the burst does not queue a redundant flush on every subsequent update.
+    const bursts = 3;
+    await applyUpdates(service, documentId, LEVELDB_COMPACT_THRESHOLD * bursts);
+    await awaitWriteSettled(probe);
+
+    expect(probe.attemptedFlushes()).toBe(bursts);
+
+    await service.cleanup();
+    expect(await countUpdateRows(documentId)).toBeLessThanOrEqual(bursts);
     expect(internalsOf(service).pendingSinceCompact.size).toBe(0);
   }, 30000);
 });
