@@ -15,6 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { type User } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
+import { type TutorialTourId } from '@models/tutorial';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -27,7 +28,6 @@ import { TutorialService } from '@services/core/tutorial.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { type ThemeOption, ThemeService } from '@themes/theme.service';
 
-import { type TutorialTourId } from '../../models/tutorial';
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 
 @Component({

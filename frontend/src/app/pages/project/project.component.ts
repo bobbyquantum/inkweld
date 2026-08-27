@@ -34,6 +34,7 @@ import { type Element, ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
 import { SettingsService } from '@services/core/settings.service';
+import { TutorialService } from '@services/core/tutorial.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
@@ -53,7 +54,6 @@ import { DialogGatewayService } from '../../services/core/dialog-gateway.service
 import { ProjectSearchService } from '../../services/core/project-search.service';
 import { QuickOpenService } from '../../services/core/quick-open.service';
 import { StorageContextService } from '../../services/core/storage-context.service';
-import { TutorialService } from '../../services/core/tutorial.service';
 import { RecentFilesService } from '../../services/project/recent-files.service';
 import { MediaAutoSyncService } from '../../services/sync/media-auto-sync.service';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';

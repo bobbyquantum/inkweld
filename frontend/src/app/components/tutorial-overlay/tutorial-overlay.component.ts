@@ -14,9 +14,9 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoModule } from '@jsverse/transloco';
+import { type TutorialStep } from '@models/tutorial';
+import { TutorialService } from '@services/core/tutorial.service';
 
-import { type TutorialStep } from '../../models/tutorial';
-import { TutorialService } from '../../services/core/tutorial.service';
 import { type CardPosition, computeCardPosition } from './tutorial-position';
 
 /** How long to wait for a step's anchor to appear before giving up. */
@@ -122,6 +122,7 @@ export class TutorialOverlayComponent implements OnDestroy {
   private resolveStep(step: TutorialStep): void {
     const testIds = step.anchorTestIds;
     if (!testIds || testIds.length === 0) {
+      this.tutorial.markStepDisplayed();
       this.anchorRect.set(null);
       this.scheduleCardPlacement(null);
       return;
@@ -144,6 +145,7 @@ export class TutorialOverlayComponent implements OnDestroy {
           this.tutorial.skipUnavailableStep();
         } else {
           // Required step without an anchor: show the card centered.
+          this.tutorial.markStepDisplayed();
           this.anchorRect.set(null);
           this.scheduleCardPlacement(null);
         }
@@ -173,6 +175,7 @@ export class TutorialOverlayComponent implements OnDestroy {
 
   private attachAnchor(el: HTMLElement): void {
     this.anchorEl = el;
+    this.tutorial.markStepDisplayed();
 
     if (typeof el.scrollIntoView === 'function') {
       const reducedMotion =

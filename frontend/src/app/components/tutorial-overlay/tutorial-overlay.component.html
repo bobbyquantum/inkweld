@@ -8,6 +8,7 @@
     @if (anchorRect(); as rect) {
       <div
         class="tutorial-highlight"
+        data-testid="tutorial-highlight"
         [style.top.px]="rect.top - 6"
         [style.left.px]="rect.left - 6"
         [style.width.px]="rect.width + 12"
@@ -52,8 +53,8 @@
               'tutorial.stepCounter'
                 | transloco
                   : {
-                      current: tutorial.stepIndex(),
-                      total: tutorial.totalSteps() - 1,
+                      current: tutorial.displayedStepNumber(),
+                      total: tutorial.displayedTotalSteps(),
                     }
             }}
           </span>

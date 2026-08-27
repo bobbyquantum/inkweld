@@ -1,13 +1,13 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { NavigationStart, Router } from '@angular/router';
-
 import {
   type TutorialProgress,
   type TutorialStep,
   type TutorialTour,
   type TutorialTourId,
   type TutorialTourStatus,
-} from '../../models/tutorial';
+} from '@models/tutorial';
+
 import { SettingsService } from './settings.service';
 import { TUTORIAL_TOURS } from './tutorial-tours';
 
@@ -41,6 +41,9 @@ export class TutorialService {
   private readonly _activeTour = signal<TutorialTour | null>(null);
   private readonly _stepIndex = signal(0);
 
+  /** Indices of steps skipped because their anchor never appeared. */
+  private readonly _skippedSteps = signal<ReadonlySet<number>>(new Set());
+
   /**
    * Direction of the last user navigation (1 = forward, -1 = back). Used to
    * keep skipping in the same direction when an optional step has no anchor.
@@ -64,6 +67,34 @@ export class TutorialService {
 
   /** Total number of steps in the active tour. */
   readonly totalSteps = computed(() => this._activeTour()?.steps.length ?? 0);
+
+  /**
+   * 1-based position of the current step among the steps the user actually
+   * sees (the intro and skipped steps are excluded), for the progress counter.
+   */
+  readonly displayedStepNumber = computed(() => {
+    const index = this._stepIndex();
+    let position = index;
+    for (const skipped of this._skippedSteps()) {
+      if (skipped < index) {
+        position--;
+      }
+    }
+    return position;
+  });
+
+  /**
+   * Number of non-intro steps not (yet) known to be skipped. Shrinks as
+   * unavailable steps are discovered, so the counter never overstates
+   * progress that is left.
+   */
+  readonly displayedTotalSteps = computed(() => {
+    const tour = this._activeTour();
+    if (!tour) {
+      return 0;
+    }
+    return tour.steps.length - 1 - this._skippedSteps().size;
+  });
 
   constructor() {
     // A tour is bound to the screen it was defined for; leaving that screen
@@ -119,6 +150,7 @@ export class TutorialService {
     }
     this.direction = 1;
     this._stepIndex.set(0);
+    this._skippedSteps.set(new Set());
     this._activeTour.set(tour);
     return true;
   }
@@ -155,6 +187,10 @@ export class TutorialService {
     if (!tour) {
       return;
     }
+    const skipped = new Set(this._skippedSteps());
+    skipped.add(this._stepIndex());
+    this._skippedSteps.set(skipped);
+
     const nextIndex = this._stepIndex() + this.direction;
     if (nextIndex >= tour.steps.length) {
       this.complete();
@@ -176,10 +212,26 @@ export class TutorialService {
     this.close('completed');
   }
 
+  /**
+   * Called by the overlay when the current step is actually shown. A step
+   * skipped earlier (e.g. while its anchor was still loading) that renders on
+   * a revisit is no longer counted as skipped.
+   */
+  markStepDisplayed(): void {
+    const index = this._stepIndex();
+    if (!this._skippedSteps().has(index)) {
+      return;
+    }
+    const skipped = new Set(this._skippedSteps());
+    skipped.delete(index);
+    this._skippedSteps.set(skipped);
+  }
+
   /** Close the tour without persisting anything (offer can reappear). */
   abort(): void {
     this._activeTour.set(null);
     this._stepIndex.set(0);
+    this._skippedSteps.set(new Set());
     this.direction = 1;
   }
 

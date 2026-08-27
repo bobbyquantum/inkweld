@@ -13,9 +13,14 @@ test.describe('Interactive Tutorial', () => {
   test('auto-offers the home tour once and remembers dismissal', async ({
     localPage: page,
   }) => {
-    // Re-enable auto-start (fixture init scripts run first, this one last)
+    // Re-enable auto-start. Init-script execution order is not guaranteed,
+    // so also re-remove the fixture's opt-out once the DOM is ready — still
+    // long before the app evaluates it.
     await page.addInitScript(() => {
-      localStorage.removeItem('inkweld-tutorial-autostart');
+      const enableAutoStart = () =>
+        localStorage.removeItem('inkweld-tutorial-autostart');
+      enableAutoStart();
+      document.addEventListener('DOMContentLoaded', enableAutoStart);
     });
     await page.goto('/');
 
@@ -38,7 +43,10 @@ test.describe('Interactive Tutorial', () => {
     localPage: page,
   }) => {
     await page.addInitScript(() => {
-      localStorage.removeItem('inkweld-tutorial-autostart');
+      const enableAutoStart = () =>
+        localStorage.removeItem('inkweld-tutorial-autostart');
+      enableAutoStart();
+      document.addEventListener('DOMContentLoaded', enableAutoStart);
     });
     await page.goto('/');
 
@@ -46,7 +54,8 @@ test.describe('Interactive Tutorial', () => {
     await page.getByTestId('tutorial-start-button').click();
 
     // A fresh local profile shows: create button → empty state → (projects
-    // grid and sync steps skip — no anchors) → account menu, then Done.
+    // grid and sync steps skip — no anchors, shrinking the counter total)
+    // → account menu, then Done.
     const counter = page.getByTestId('tutorial-step-counter');
     const next = page.getByTestId('tutorial-next-button');
 
@@ -54,7 +63,7 @@ test.describe('Interactive Tutorial', () => {
     await next.click();
     await expect(counter).toContainText('2 of 5');
     await next.click();
-    await expect(counter).toContainText('5 of 5');
+    await expect(counter).toContainText('3 of 3');
     await next.click(); // Done
     await expect(page.getByTestId('tutorial-overlay')).toHaveCount(0);
 
@@ -102,7 +111,7 @@ test.describe('Interactive Tutorial', () => {
 
     // Start, then verify an anchored step highlights the project tree
     await page.getByTestId('tutorial-start-button').click();
-    await expect(page.locator('.tutorial-highlight')).toBeVisible();
+    await expect(page.getByTestId('tutorial-highlight')).toBeVisible();
     await expect(page.getByTestId('tutorial-step-counter')).toContainText(
       '1 of'
     );

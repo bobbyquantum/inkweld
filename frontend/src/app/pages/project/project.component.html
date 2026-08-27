@@ -154,7 +154,7 @@
         <div class="toolbar-actions">
           <app-user-menu
             [miniMode]="true"
-            tutorialTour="project"
+            [tutorialTour]="isMobile() ? null : 'project'"
             class="action-button"></app-user-menu>
         </div>
       </mat-toolbar>

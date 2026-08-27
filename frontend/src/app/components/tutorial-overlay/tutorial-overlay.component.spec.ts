@@ -156,9 +156,7 @@ describe('TutorialOverlayComponent', () => {
 
     await settle(() => {
       expect(tutorial.stepIndex()).toBe(1);
-      const highlight = fixture.nativeElement.querySelector(
-        '.tutorial-highlight'
-      ) as HTMLElement | null;
+      const highlight = query('tutorial-highlight');
       expect(highlight).not.toBeNull();
       // Anchor rect (100,400 100x40) plus 6px spotlight padding
       expect(highlight?.style.top).toBe('94px');

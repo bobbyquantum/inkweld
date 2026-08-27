@@ -1,4 +1,4 @@
-import { type TutorialTour, type TutorialTourId } from '../../models/tutorial';
+import { type TutorialTour, type TutorialTourId } from '@models/tutorial';
 
 /**
  * Definitions for the guided tours.

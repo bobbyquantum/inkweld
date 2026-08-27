@@ -10,10 +10,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterOutlet } from '@angular/router';
+import { TutorialOverlayComponent } from '@components/tutorial-overlay/tutorial-overlay.component';
 import { TranslocoModule } from '@jsverse/transloco';
 
 import { ThemeService } from '../themes/theme.service';
-import { TutorialOverlayComponent } from './components/tutorial-overlay/tutorial-overlay.component';
 import { LocaleService } from './services/core/locale.service';
 import { SetupService } from './services/core/setup.service';
 import { UpdateService } from './services/core/update.service';

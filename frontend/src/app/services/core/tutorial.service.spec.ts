@@ -139,6 +139,47 @@ describe('TutorialService', () => {
     });
   });
 
+  describe('displayed progress', () => {
+    it('excludes skipped steps from the counter', () => {
+      service.start('home'); // 6 steps incl. intro
+      service.next();
+      expect(service.displayedStepNumber()).toBe(1);
+      expect(service.displayedTotalSteps()).toBe(5);
+
+      service.next();
+      service.skipUnavailableStep(); // step 2 unavailable → 3
+      service.skipUnavailableStep(); // step 3 unavailable → 4
+
+      expect(service.stepIndex()).toBe(4);
+      expect(service.displayedStepNumber()).toBe(2);
+      expect(service.displayedTotalSteps()).toBe(3);
+    });
+
+    it('un-counts a formerly skipped step once it is displayed', () => {
+      service.start('home');
+      service.next();
+      service.next();
+      service.skipUnavailableStep(); // step 2 marked skipped → index 3
+      expect(service.displayedTotalSteps()).toBe(4);
+
+      service.previous(); // revisit step 2, now assumed available
+      service.markStepDisplayed();
+
+      expect(service.displayedTotalSteps()).toBe(5);
+      expect(service.displayedStepNumber()).toBe(2);
+    });
+
+    it('resets skip tracking when a tour restarts', () => {
+      service.start('home');
+      service.next();
+      service.skipUnavailableStep();
+      service.dismiss();
+
+      service.start('home');
+      expect(service.displayedTotalSteps()).toBe(5);
+    });
+  });
+
   describe('closing', () => {
     it('dismiss persists a dismissal and deactivates', () => {
       service.start('home');
