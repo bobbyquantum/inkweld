@@ -26,6 +26,7 @@ describe('UserMenuComponent', () => {
   let fixture: ComponentFixture<UserMenuComponent>;
   let httpClientMock: MockedObject<HttpClient>;
   let routerMock: MockedObject<Router>;
+  let tutorialServiceMock: { start: ReturnType<typeof vi.fn> };
   let userServiceMock: MockedObject<UnifiedUserService>;
   let dialogGatewayMock: MockedObject<DialogGatewayService>;
   let setupServiceMock: MockedObject<SetupService>;
@@ -81,6 +82,8 @@ describe('UserMenuComponent', () => {
       navigateByUrl: vi.fn().mockResolvedValue(true),
     } as unknown as MockedObject<Router>;
 
+    tutorialServiceMock = { start: vi.fn().mockReturnValue(true) };
+
     userServiceMock = {
       logout: vi.fn().mockResolvedValue(undefined),
       getMode: vi.fn().mockReturnValue('local'),
@@ -126,10 +129,7 @@ describe('UserMenuComponent', () => {
         provideZonelessChangeDetection(),
         { provide: HttpClient, useValue: httpClientMock },
         { provide: Router, useValue: routerMock },
-        {
-          provide: TutorialService,
-          useValue: { start: vi.fn().mockReturnValue(true) },
-        },
+        { provide: TutorialService, useValue: tutorialServiceMock },
         { provide: UnifiedUserService, useValue: userServiceMock },
         { provide: DialogGatewayService, useValue: dialogGatewayMock },
         { provide: SetupService, useValue: setupServiceMock },
@@ -456,6 +456,23 @@ describe('UserMenuComponent', () => {
         'abc12345'
       );
       expect(window.location.href).toBe('/');
+    });
+  });
+  describe('onStartTutorial', () => {
+    it('starts the configured tour', () => {
+      component.tutorialTour = 'home';
+
+      component.onStartTutorial();
+
+      expect(tutorialServiceMock.start).toHaveBeenCalledWith('home');
+    });
+
+    it('does nothing when no tour is configured', () => {
+      component.tutorialTour = null;
+
+      component.onStartTutorial();
+
+      expect(tutorialServiceMock.start).not.toHaveBeenCalled();
     });
   });
 });

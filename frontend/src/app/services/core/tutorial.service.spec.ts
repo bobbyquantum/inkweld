@@ -125,6 +125,21 @@ describe('TutorialService', () => {
       expect(service.stepIndex()).toBe(1);
     });
 
+    it('clamps to the intro when skipping backward past the start', () => {
+      service.start('home');
+      service.next();
+      service.previous(); // back at the intro, direction backward
+
+      service.skipUnavailableStep();
+
+      expect(service.stepIndex()).toBe(0);
+      expect(service.isActive()).toBe(true);
+
+      // Direction was reset to forward
+      service.skipUnavailableStep();
+      expect(service.stepIndex()).toBe(1);
+    });
+
     it('completes the tour when skipping past the final step', () => {
       service.start('home');
       const lastIndex = service.totalSteps() - 1;
