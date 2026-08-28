@@ -116,8 +116,11 @@ export class YjsService {
   /**
    * Per-document count of incremental updates persisted since the last
    * LevelDB compaction. When a document reaches `LEVELDB_COMPACT_THRESHOLD`
-   * a `flushDocument` compaction is fired (reset only on flush success, so a
-   * failed flush retries after the next batch instead of waiting silently).
+   * a `flushDocument` compaction is fired and the counter resets immediately
+   * (optimistic, mirroring the Durable Object path), so exactly one flush is
+   * in flight per burst; a failed flush defers compaction to the next batch —
+   * incremental rows remain intact and `getYDoc`'s load-time trim (>500 rows)
+   * is the backstop.
    */
   private readonly pendingSinceCompact = new Map<string, number>();
 
@@ -261,20 +264,22 @@ export class YjsService {
             }
             // Fire-and-forget compaction: merge the accumulated incremental
             // rows into one so on-disk size tracks content, not edit history.
-            // Safe to run here — `y-leveldb` serializes storeUpdate/flush
-            // through its internal transaction chain, and a rejection leaves
-            // both data and counter untouched (flush retries next batch).
+            // The counter resets before firing (optimistic, like the DO path)
+            // so a burst triggers exactly one flush; y-leveldb's transaction
+            // chain serializes it against concurrent storeUpdates, and a
+            // rejection only defers compaction to the next batch.
             const pending = (this.pendingSinceCompact.get(documentId) ?? 0) + 1;
             if (pending >= LEVELDB_COMPACT_THRESHOLD) {
-              void currentPersistence
-                .flushDocument(documentId)
-                .then(() => {
-                  this.pendingSinceCompact.set(documentId, 0);
-                  yjsLog.debug(`Compacted LevelDB updates for ${documentId}`);
-                })
-                .catch((error: unknown) => {
-                  yjsLog.warn(`LevelDB compaction failed for ${documentId} — will retry`, error);
-                });
+              this.pendingSinceCompact.set(documentId, 0);
+              void currentPersistence.flushDocument(documentId).then(
+                () => yjsLog.debug(`Compacted LevelDB updates for ${documentId}`),
+                (error: unknown) => {
+                  yjsLog.warn(
+                    `LevelDB compaction failed for ${documentId} — deferring to the next batch`,
+                    error
+                  );
+                }
+              );
             } else {
               this.pendingSinceCompact.set(documentId, pending);
             }
