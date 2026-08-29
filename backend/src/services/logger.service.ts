@@ -177,7 +177,9 @@ function sanitizeLogText(value: string): string {
   for (const ch of value) {
     const code = ch.codePointAt(0);
     result +=
-      code !== undefined && isControlCode(code) ? `\\u${code.toString(16).padStart(4, '0')}` : ch;
+      code !== undefined && isControlCode(code)
+        ? String.raw`\u${code.toString(16).padStart(4, '0')}`
+        : ch;
   }
   return result;
 }
@@ -302,7 +304,9 @@ function logDev(
   let logLine = `${timeStr} ${levelLabel} ${contextStr}${corrStr} ${message}`;
 
   if (data && Object.keys(data).length > 0) {
-    logLine += colors.dim + ' ' + JSON.stringify(data) + colors.reset;
+    // JSON.stringify escapes C0 controls inside string values but leaves C1
+    // controls (e.g. 8-bit CSI) raw, so scrub the serialised tail too.
+    logLine += colors.dim + ' ' + sanitizeLogText(JSON.stringify(data)) + colors.reset;
   }
 
   if (level === LogLevel.ERROR) {

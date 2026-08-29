@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test';
 import { logger } from './logger.service';
 
 const originalNodeEnv = process.env.NODE_ENV;
+const originalLogLevel = process.env.LOG_LEVEL;
 
 type Spy = ReturnType<typeof spyOn>;
 
@@ -34,6 +35,9 @@ function containsControlChars(text: string): boolean {
 }
 
 beforeEach(() => {
+  // Pin the level so assertions inspect real output even if the environment
+  // forces error/none (info/warn calls would otherwise be filtered out).
+  process.env.LOG_LEVEL = 'debug';
   logSpy = spyOn(console, 'log').mockImplementation(() => {});
   warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
   errorSpy = spyOn(console, 'error').mockImplementation(() => {});
@@ -44,6 +48,11 @@ afterEach(() => {
   warnSpy.mockRestore();
   errorSpy.mockRestore();
   process.env.NODE_ENV = originalNodeEnv;
+  if (originalLogLevel === undefined) {
+    delete process.env.LOG_LEVEL;
+  } else {
+    process.env.LOG_LEVEL = originalLogLevel;
+  }
 });
 
 describe('logger control-character neutralization (dev output)', () => {
@@ -79,6 +88,16 @@ describe('logger control-character neutralization (dev output)', () => {
     expect(logLine).toContain('sync failed');
     expect(stackLine.includes('x\ny')).toBe(false);
     expect(stackLine.includes('x\\u000ay')).toBe(true);
+  });
+
+  it('escapes C1 control characters in the serialized data payload', () => {
+    // JSON.stringify leaves C1 controls (e.g. 8-bit CSI U+009B) raw; the
+    // data tail must be scrubbed like message/context/correlationId.
+    logger.info('Auth', 'login ok', { userAgent: 'Mozilla\u009b31m' });
+
+    const [line] = captured(logSpy);
+    expect(line.includes('\\u009b')).toBe(true);
+    expect(line.includes('\u009b')).toBe(false);
   });
 
   it('leaves clean messages untouched', () => {
