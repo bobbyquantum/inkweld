@@ -117,8 +117,8 @@ function formatError(
   if (error instanceof Error) {
     return {
       name: error.name,
-      message: error.message,
-      stack: error.stack,
+      message: sanitizeLogText(error.message),
+      stack: error.stack ? sanitizeLogText(error.stack) : undefined,
     };
   }
 
@@ -143,7 +143,7 @@ function formatError(
 
   return {
     name: 'UnknownError',
-    message: typeof error === 'string' ? error : safeMessage,
+    message: sanitizeLogText(typeof error === 'string' ? error : safeMessage),
   };
 }
 
@@ -152,6 +152,36 @@ function formatError(
  */
 function getTimestamp(): string {
   return new Date().toISOString();
+}
+
+/**
+ * True for C0 control characters (U+0000–U+001F, includes CR/LF/ESC), DEL
+ * (U+007F) and C1 control characters (U+0080–U+009F, includes 8-bit CSI).
+ */
+function isControlCode(code: number): boolean {
+  return code <= 0x1f || (code >= 0x7f && code <= 0x9f);
+}
+
+/**
+ * Neutralize control characters in text before it is embedded in a log line.
+ *
+ * Log messages, contexts and correlation IDs routinely derive from
+ * user-controlled input (document IDs, usernames, the X-Correlation-ID
+ * header). Left raw, CR/LF can forge additional log entries and ESC/CSI
+ * sequences can inject terminal escape codes (CWE-117). Each control
+ * character is replaced with a visible `\uXXXX` escape so the payload stays
+ * forensically identifiable without being interpretable.
+ */
+function sanitizeLogText(value: string): string {
+  let result = '';
+  for (const ch of value) {
+    const code = ch.codePointAt(0);
+    result +=
+      code !== undefined && isControlCode(code)
+        ? String.raw`\u${code.toString(16).padStart(4, '0')}`
+        : ch;
+  }
+  return result;
 }
 
 /**
@@ -232,16 +262,25 @@ function log(
   if (level < minLevel) return;
 
   const { isDev } = detectEnvironment();
+  const rawCorrelationId = explicitCorrelationId ?? getCorrelationId();
   const meta: LogMeta = {
-    correlationId: explicitCorrelationId ?? getCorrelationId(),
+    correlationId:
+      rawCorrelationId === undefined || rawCorrelationId === null
+        ? rawCorrelationId
+        : sanitizeLogText(rawCorrelationId),
     timestamp: getTimestamp(),
     levelStr: levelToString(level),
   };
 
+  // Neutralize control characters in everything interpolated into the final
+  // log line; message/context/correlationId may all carry user-controlled data.
+  const safeContext = sanitizeLogText(context);
+  const safeMessage = sanitizeLogText(message);
+
   if (isDev) {
-    logDev(level, context, message, error, data, meta);
+    logDev(level, safeContext, safeMessage, error, data, meta);
   } else {
-    logProduction(level, context, message, error, data, meta);
+    logProduction(level, safeContext, safeMessage, error, data, meta);
   }
 }
 
@@ -265,7 +304,9 @@ function logDev(
   let logLine = `${timeStr} ${levelLabel} ${contextStr}${corrStr} ${message}`;
 
   if (data && Object.keys(data).length > 0) {
-    logLine += colors.dim + ' ' + JSON.stringify(data) + colors.reset;
+    // JSON.stringify escapes C0 controls inside string values but leaves C1
+    // controls (e.g. 8-bit CSI) raw, so scrub the serialised tail too.
+    logLine += colors.dim + ' ' + sanitizeLogText(JSON.stringify(data)) + colors.reset;
   }
 
   if (level === LogLevel.ERROR) {
@@ -303,7 +344,10 @@ function logProduction(
   if (data && Object.keys(data).length > 0) entry.data = data;
   if (error) entry.error = formatError(error);
 
-  const jsonLine = JSON.stringify(entry);
+  // JSON.stringify escapes C0 controls (CR/LF/ESC) inside string values but
+  // leaves C1 controls (e.g. 8-bit CSI, U+009B) raw — scrub the final line so
+  // no control character reaches the log stream verbatim.
+  const jsonLine = sanitizeLogText(JSON.stringify(entry));
 
   if (level === LogLevel.ERROR) {
     console.error(jsonLine);
