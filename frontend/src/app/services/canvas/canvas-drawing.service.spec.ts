@@ -542,7 +542,7 @@ describe('CanvasDrawingService', () => {
         [20, 40],
         [40, 0],
       ]);
-      expect(path.points.length).toBe(6);
+      expect(path.points).toHaveLength(6);
     });
 
     it('stores points relative to the object origin', () => {

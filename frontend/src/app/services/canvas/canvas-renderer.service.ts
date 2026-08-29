@@ -269,30 +269,7 @@ export class CanvasRendererService {
     for (const obj of objects) {
       wanted.add(obj.id);
       const kLayer = this._konvaLayers.get(obj.layerId);
-      if (!kLayer) continue;
-
-      const structure = CanvasRendererService.getObjectStructure(obj);
-      let node = this._konvaNodes.get(obj.id) ?? null;
-
-      if (node && this._objectStructures.get(obj.id) !== structure) {
-        this.detachFromTransformer(node);
-        node.destroy();
-        this._konvaNodes.delete(obj.id);
-        node = null;
-      }
-
-      if (!node) {
-        node = this.createKonvaNode(obj, handlers);
-        if (!node) continue;
-        this._konvaNodes.set(obj.id, node);
-        this._objectStructures.set(obj.id, structure);
-        kLayer.add(node as Konva.Group | Konva.Shape);
-        continue;
-      }
-
-      if (node.getLayer() !== kLayer) node.moveTo(kLayer);
-      CanvasRendererService.applyCommonAttrs(node, obj);
-      CanvasRendererService.applyStyle(node, obj);
+      if (kLayer) this.syncObject(obj, kLayer, handlers);
     }
 
     for (const [id, node] of this._konvaNodes) {
@@ -302,6 +279,40 @@ export class CanvasRendererService {
       this._konvaNodes.delete(id);
       this._objectStructures.delete(id);
     }
+  }
+
+  /**
+   * Bring one object's node up to date: patched in place where possible, and
+   * rebuilt only when its structure changed (a different shape variant, a new
+   * image source, ink switching between outlined and stroked).
+   */
+  private syncObject(
+    obj: CanvasObject,
+    kLayer: Konva.Layer,
+    handlers: CanvasNodeHandlers
+  ): void {
+    const structure = CanvasRendererService.getObjectStructure(obj);
+    let node = this._konvaNodes.get(obj.id) ?? null;
+
+    if (node && this._objectStructures.get(obj.id) !== structure) {
+      this.detachFromTransformer(node);
+      node.destroy();
+      this._konvaNodes.delete(obj.id);
+      node = null;
+    }
+
+    if (!node) {
+      const created = this.createKonvaNode(obj, handlers);
+      if (!created) return;
+      this._konvaNodes.set(obj.id, created);
+      this._objectStructures.set(obj.id, structure);
+      kLayer.add(created);
+      return;
+    }
+
+    if (node.getLayer() !== kLayer) node.moveTo(kLayer);
+    CanvasRendererService.applyCommonAttrs(node, obj);
+    CanvasRendererService.applyStyle(node, obj);
   }
 
   /**

@@ -596,7 +596,7 @@ export class CanvasDrawingService {
       const obj = config.objects[i];
       if (obj.locked || !obj.visible) continue;
       const layer = layerById.get(obj.layerId);
-      if (!layer || !layer.visible || layer.locked) continue;
+      if (!layer?.visible || layer.locked) continue;
 
       const node = this.canvasRenderer.konvaNodes.get(obj.id);
       if (!node) continue;

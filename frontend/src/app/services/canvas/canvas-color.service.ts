@@ -131,18 +131,29 @@ export class CanvasColorService {
     } else if (type === 'text' && node instanceof Konva.Text) {
       if (result.fill) node.fill(result.fill);
     } else if (type === 'path' && node instanceof Konva.Line) {
-      // Pressure ink is drawn as a filled outline, so its colour is the fill.
-      const isInk = this.isInkPath(objectId);
-      if (result.stroke) {
-        if (isInk) node.fill(result.stroke);
-        else node.stroke(result.stroke);
-      }
-      if (result.fill && !isInk) node.fill(result.fill);
+      this.applyPathColors(node, this.isInkPath(objectId), result);
     } else if (type === 'shape') {
       this.applyShapeColors(node, result);
     }
 
     node.getLayer()?.batchDraw();
+  }
+
+  /**
+   * Colour a path. Pressure ink is drawn as a filled outline rather than a
+   * stroked line, so the stroke colour has to land on its fill.
+   */
+  private applyPathColors(
+    node: Konva.Shape,
+    isInk: boolean,
+    result: ColorResult
+  ): void {
+    if (isInk) {
+      if (result.stroke) node.fill(result.stroke);
+      return;
+    }
+    if (result.stroke) node.stroke(result.stroke);
+    if (result.fill) node.fill(result.fill);
   }
 
   /** Pressure ink stores its colour as the fill of an outline, not a stroke. */
