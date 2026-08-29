@@ -1,0 +1,101 @@
+// Editor table styles (prosemirror-tables).
+//
+// Split out of `document-element-editor.component.scss` — that file sits
+// close to the 15 kB `anyComponentStyle` budget, and table styling is a
+// self-contained concern. Loaded as a second entry in the component's
+// `styleUrls`, so it shares the same view encapsulation.
+
+::ng-deep ngx-editor {
+  // ---------------------------------------------------------------
+  // Tables (prosemirror-tables)
+  //
+  // `columnResizing` wraps each table in a `.tableWrapper` div and drives
+  // widths through a <colgroup>, so the table needs `table-layout: fixed`
+  // for the column widths it writes to take effect.
+  // ---------------------------------------------------------------
+  .ProseMirror {
+    .tableWrapper {
+      // A wide table scrolls inside its own wrapper rather than forcing
+      // the whole document to scroll sideways.
+      overflow-x: auto;
+      margin: 1em 0;
+    }
+
+    table {
+      border-collapse: collapse;
+      table-layout: fixed;
+      width: 100%;
+      overflow: hidden;
+
+      td,
+      th {
+        border: 1px solid var(--sys-outline-variant);
+        padding: 6px 10px;
+        vertical-align: top;
+        box-sizing: border-box;
+        position: relative;
+        // Without a minimum, dragging a column to zero width makes the
+        // cell impossible to click back into.
+        min-width: 2em;
+
+        > *:first-child {
+          margin-top: 0;
+        }
+
+        > *:last-child {
+          margin-bottom: 0;
+        }
+      }
+
+      th {
+        background-color: var(--sys-surface-container-high);
+        font-weight: 600;
+        text-align: left;
+      }
+
+      // GFM column alignment, stored as an `align` attribute on the cell.
+      td[align='center'],
+      th[align='center'] {
+        text-align: center;
+      }
+
+      td[align='right'],
+      th[align='right'] {
+        text-align: right;
+      }
+
+      td[align='left'],
+      th[align='left'] {
+        text-align: left;
+      }
+    }
+
+    // Cell selection highlight. Rendered as an overlay so it does not
+    // disturb the cell's own background or text contrast.
+    .selectedCell::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-color: var(--sys-primary);
+      opacity: 0.16;
+      pointer-events: none;
+    }
+
+    .column-resize-handle {
+      position: absolute;
+      right: -2px;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background-color: var(--sys-primary);
+      pointer-events: none;
+      z-index: 20;
+    }
+  }
+
+  // While a column drag is in progress prosemirror-tables adds this class
+  // to the editor; the col-resize cursor must win over the text cursor.
+  .ProseMirror.resize-cursor {
+    cursor: col-resize;
+  }
+}

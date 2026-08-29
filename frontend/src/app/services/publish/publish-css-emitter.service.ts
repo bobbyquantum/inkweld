@@ -212,6 +212,15 @@ ${indent}}`;
         .concat(boxStyleDecls(bm.box, { epub }))
         .join(' ')} }`,
       '.ink-page-break { page-break-after: always; }',
+      // Tables are not yet part of the user-configurable publish styles,
+      // so they get a neutral built-in treatment that reads correctly in
+      // both HTML output and e-readers.
+      '.ink-doc-table { border-collapse: collapse; width: 100%; margin: 1em 0; }',
+      '.ink-doc-table-cell, .ink-doc-table-header { border: 1px solid #999; padding: 0.35em 0.6em; vertical-align: top; }',
+      '.ink-doc-table-header { font-weight: bold; text-align: left; }',
+      '.ink-doc-align-left { text-align: left; }',
+      '.ink-doc-align-center { text-align: center; }',
+      '.ink-doc-align-right { text-align: right; }',
     ];
     return rules.join('\n');
   }

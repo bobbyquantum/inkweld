@@ -54,6 +54,18 @@ When inside a list item:
 | Outdent list item | `Ctrl + [` | `Cmd + [` |
 | Line break (no new item) | `Shift + Enter` | `Shift + Enter` |
 
+## Table Editing
+
+When the cursor is inside a table cell:
+
+| Action | Windows/Linux | macOS |
+|--------|---------------|-------|
+| Next cell | `Tab` | `Tab` |
+| Previous cell | `Shift + Tab` | `Shift + Tab` |
+
+`Tab` in the last cell does not add a row — use *Insert row below* from the
+toolbar's table menu.
+
 ## Navigation
 
 | Action | Windows/Linux | macOS |

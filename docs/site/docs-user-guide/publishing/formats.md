@@ -56,6 +56,13 @@ Each export includes:
 - **Document content** — The documents you added to the plan
 - **Metadata** — Title, author, language, description
 
+### Tables
+
+Tables export to every format. Merged cells are the one thing that does not
+survive everywhere: PDF keeps them, while Markdown, HTML, and EPUB flatten a
+merge into the cell plus empty columns so the grid keeps its shape. Column
+alignment is preserved in all four.
+
 ## Client-Side Generation
 
 Exports are generated entirely in your browser:

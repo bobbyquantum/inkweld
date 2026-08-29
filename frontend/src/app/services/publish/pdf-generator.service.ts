@@ -826,10 +826,85 @@ export class PdfGeneratorService {
         break;
       }
 
+      case 'table':
+        ctx.markup += this.renderTypstTable(children);
+        break;
+
+      // Rows and cells are consumed by `renderTypstTable`; if one is
+      // reached on its own (a malformed document) fall through to the
+      // default child-walking behaviour rather than emitting stray markup.
+
       default:
         // Process children for unknown nodes
         children.forEach(c => this.nodeToTypst(c, ctx));
     }
+  }
+
+  /**
+   * Render a table as Typst's `#table(...)`.
+   *
+   * Typst wants a flat list of cells plus an explicit column count, so the
+   * rows are flattened here. Ragged rows are padded to the widest row —
+   * Typst fills a short final row silently, which would shift every cell
+   * after the gap into the wrong column.
+   *
+   * Merged cells become `#table.cell(colspan: n)[…]`, which Typst supports
+   * directly, so unlike the markdown path no padding is needed for them.
+   */
+  private renderTypstTable(rows: ProseMirrorNode[]): string {
+    const grid = rows
+      .filter(row => this.getNodeName(row).startsWith('table_row'))
+      .map(row =>
+        this.getChildren(row).filter(cell =>
+          this.getNodeName(cell).startsWith('table_')
+        )
+      );
+
+    if (grid.length === 0) return '';
+
+    const columns = Math.max(
+      ...grid.map(row =>
+        row.reduce((sum, cell) => sum + this.tableCellSpan(cell), 0)
+      )
+    );
+    if (columns === 0) return '';
+
+    const cells: string[] = [];
+    for (const row of grid) {
+      let used = 0;
+      for (const cell of row) {
+        const span = this.tableCellSpan(cell);
+        const body = this.extractTypstText(cell).trim();
+
+        // A Typst content block; header cells are wrapped in `strong`.
+        const content =
+          this.getNodeName(cell) === 'table_header'
+            ? `[#strong[${body}]]`
+            : `[${body}]`;
+
+        cells.push(
+          span > 1 ? `table.cell(colspan: ${span})${content}` : content
+        );
+        used += span;
+      }
+      // Pad the row out so the next row starts in column one.
+      for (; used < columns; used++) cells.push('[]');
+    }
+
+    return (
+      `#table(\n  columns: ${columns},\n  stroke: 0.5pt + gray,\n  inset: 6pt,\n  ` +
+      `${cells.join(',\n  ')},\n)\n\n`
+    );
+  }
+
+  /** A cell's `colspan`, clamped to a sane range. */
+  private tableCellSpan(cell: ProseMirrorNode): number {
+    const attrs = (cell as Record<string, unknown>)['attrs'] as
+      Record<string, unknown> | undefined;
+    const raw = attrs?.['colspan'];
+    const n = typeof raw === 'number' ? raw : Number(raw);
+    if (!Number.isFinite(n) || n < 1) return 1;
+    return Math.min(64, Math.trunc(n));
   }
 
   private extractTypstText(node: ProseMirrorNode): string {

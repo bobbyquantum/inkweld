@@ -112,6 +112,31 @@ interface TocEntry {
   children?: TocEntry[];
 }
 
+/** Cell node names that can carry GFM column alignment. */
+const TABLE_CELL_NAMES = new Set([
+  'table_cell',
+  'tablecell',
+  'table_header',
+  'tableheader',
+]);
+
+/**
+ * Map a table cell's `align` attribute to a CSS class.
+ *
+ * Alignment becomes a class rather than an inline `style` attribute so that
+ * attacker-controlled document JSON can never inject arbitrary CSS; only the
+ * three known values produce a class at all.
+ */
+function tableAlignClass(node: ProseMirrorNode): string | null {
+  if (typeof node !== 'object' || !node || !('attrs' in node)) return null;
+  const attrs = node['attrs'] as Record<string, unknown> | null;
+  const align = attrs?.['align'];
+  if (align === 'left' || align === 'center' || align === 'right') {
+    return `ink-doc-align-${align}`;
+  }
+  return null;
+}
+
 /**
  * Service for generating EPUB files client-side.
  *
@@ -735,6 +760,13 @@ export class EpubGeneratorService {
       image: { tag: 'img', cls: 'ink-doc-image' },
       figure: { tag: 'figure', cls: 'ink-doc-figure' },
       caption: { tag: 'figcaption', cls: 'ink-doc-caption' },
+      table: { tag: 'table', cls: 'ink-doc-table' },
+      table_row: { tag: 'tr', cls: 'ink-doc-table-row' },
+      tablerow: { tag: 'tr', cls: 'ink-doc-table-row' },
+      table_cell: { tag: 'td', cls: 'ink-doc-table-cell' },
+      tablecell: { tag: 'td', cls: 'ink-doc-table-cell' },
+      table_header: { tag: 'th', cls: 'ink-doc-table-header' },
+      tableheader: { tag: 'th', cls: 'ink-doc-table-header' },
     };
 
     if (typeof node === 'object' && node) {
@@ -753,10 +785,12 @@ export class EpubGeneratorService {
       }
       const mapped = typeMap[lower];
       if (mapped) {
-        return {
-          tagName: mapped.tag,
-          classNames: mapped.cls ? [mapped.cls] : [],
-        };
+        const classNames = mapped.cls ? [mapped.cls] : [];
+        if (TABLE_CELL_NAMES.has(lower)) {
+          const align = tableAlignClass(node);
+          if (align) classNames.push(align);
+        }
+        return { tagName: mapped.tag, classNames };
       }
       return { tagName: lower || 'div', classNames: [] };
     }

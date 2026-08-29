@@ -78,6 +78,48 @@ export class MyComponent {
 - **WorldbuildingService** - Template/schema system
 - **AuthService** - Authentication and session management
 
+### Editor Schema
+
+The ProseMirror schema is assembled in
+`frontend/src/app/components/element-ref/extended-schema.ts`. It composes
+three sources:
+
+1. ngx-editor's base nodes and marks (`@bobbyquantum/ngx-editor/schema`)
+2. `prosemirror-tables`' `tableNodes()` output
+3. Inkweld's own extensions from `@inkweld/prosemirror/schema` — the
+   `elementRef` node plus the `comment`, `autoReview`, and secure `link` marks
+
+`new Schema(...)` is constructed **in the frontend**, never inside the shared
+package. The shared package returns specs only; building the `Schema` there
+would pull a second copy of `prosemirror-model` into the bundle and break the
+class-identity checks in y-prosemirror and `EditorView` — typing would
+silently stop working. `prosemirror-tables` is pinned in `resolutions`
+alongside the other ProseMirror packages for the same reason.
+
+#### Tables
+
+Table support is layered on `prosemirror-tables` rather than on ngx-editor's
+menu, because Inkweld replaced that menu with its own Material toolbar
+(`editor-toolbar.component.ts`). Only the schema and the editing plugins come
+from the library:
+
+- **Schema** — `tableNodes()` with `cellContent: 'paragraph+'`. Cells are
+  restricted to paragraphs deliberately: allowing arbitrary blocks would
+  permit nested tables and headings that no export format renders sensibly.
+  An extra `align` cell attribute carries GFM column alignment.
+- **Plugins** — `columnResizing`, `tableEditing`, and a `Tab` / `Shift-Tab`
+  keymap, appended to the editor's plugin list in `document.service.ts`.
+  `columnResizing` must be registered before `tableEditing`.
+- **Wire format** — table node names are block-level in
+  `packages/inkweld-prosemirror/src/xml/tags.ts`, so an empty cell serializes
+  as `<table_cell></table_cell>` rather than collapsing to a self-closing tag
+  and desynchronising the row.
+- **Markdown** — `markdownToXml` parses GFM tables and `xmlToMarkdown` emits
+  them, so tables round-trip through the MCP tools and markdown export.
+- **Publish** — the HTML, EPUB, and Typst/PDF generators each render tables.
+  Tables are not yet part of the user-configurable publish-styles system and
+  currently get fixed built-in styling.
+
 ## Backend (Bun + Hono)
 
 ### Technology Stack

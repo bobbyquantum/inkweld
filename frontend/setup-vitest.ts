@@ -353,6 +353,42 @@ vi.mock('@bobbyquantum/ngx-editor', () => {
   };
 });
 
+// Mock prosemirror-tables for the editor toolbar's table commands and for
+// document.service's table plugins. The real implementations need a fully
+// constructed EditorState with a table-aware schema, which the lightweight
+// mock views used in unit tests do not provide.
+const mockTableCommand = (
+  _state: unknown,
+  dispatch?: (tr: unknown) => void
+): boolean => {
+  if (dispatch) dispatch({});
+  return true;
+};
+
+vi.mock('prosemirror-tables', () => ({
+  addColumnAfter: mockTableCommand,
+  addColumnBefore: mockTableCommand,
+  addRowAfter: mockTableCommand,
+  addRowBefore: mockTableCommand,
+  deleteColumn: mockTableCommand,
+  deleteRow: mockTableCommand,
+  deleteTable: mockTableCommand,
+  mergeCells: mockTableCommand,
+  splitCell: mockTableCommand,
+  toggleHeaderColumn: mockTableCommand,
+  toggleHeaderRow: mockTableCommand,
+  isInTable: (): boolean => false,
+  columnResizing: () => ({}),
+  tableEditing: () => ({}),
+  goToNextCell: () => mockTableCommand,
+  tableNodes: () => ({
+    table: { content: 'table_row+', group: 'block', isolating: true },
+    table_row: { content: '(table_cell | table_header)*' },
+    table_cell: { content: 'paragraph+', attrs: {} },
+    table_header: { content: 'paragraph+', attrs: {} },
+  }),
+}));
+
 // Mock prosemirror-schema-list for list operations (wrapInList, liftListItem, etc.)
 vi.mock('prosemirror-schema-list', () => ({
   wrapInList:

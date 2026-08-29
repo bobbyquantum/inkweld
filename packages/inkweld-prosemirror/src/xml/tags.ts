@@ -51,6 +51,9 @@ export const NODE_TAG_ALIASES: Record<string, string> = {
   numbered_list: 'ordered_list',
   ol: 'ordered_list',
   ul: 'bullet_list',
+  tr: 'table_row',
+  td: 'table_cell',
+  th: 'table_header',
 };
 
 /**
@@ -66,4 +69,11 @@ export const BLOCK_NODE_NAMES = new Set([
   'code_block',
   'listItem',
   'list_item',
+  // Table nodes must never collapse to a self-closing form: an empty
+  // `<table_cell/>` would be dropped on re-parse, silently changing the
+  // shape of the table and desynchronising row lengths.
+  'table',
+  'table_row',
+  'table_cell',
+  'table_header',
 ]);

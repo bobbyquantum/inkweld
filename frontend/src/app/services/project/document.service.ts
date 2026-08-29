@@ -32,8 +32,10 @@ import {
   rateLimitBackoff,
   withJitter,
 } from '@services/sync/access-denial';
+import { keymap } from 'prosemirror-keymap';
 import { type Node as ProseMirrorModelNode } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
+import { columnResizing, goToNextCell, tableEditing } from 'prosemirror-tables';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 import { Observable, Subject } from 'rxjs';
 import { IndexeddbPersistence, storeState } from 'y-indexeddb';
@@ -1139,6 +1141,24 @@ export class DocumentService {
       },
     });
     plugins.push(autoReviewPlugin);
+
+    // Table editing: cell selection, row/column commands and drag-to-resize.
+    //
+    // `columnResizing` must precede `tableEditing` — it installs the `table`
+    // node view that draws the resize handles, and `tableEditing` expects
+    // that view to already be in place when it handles a drag.
+    //
+    // Tab / Shift-Tab move between cells. The keymap is pushed *before* the
+    // table plugins so it wins over their internal handlers, and it is a
+    // no-op outside a table, leaving Tab free for its normal behaviour.
+    plugins.push(
+      keymap({
+        Tab: goToNextCell(1),
+        'Shift-Tab': goToNextCell(-1),
+      }),
+      columnResizing({}),
+      tableEditing()
+    );
 
     // Reconfigure state with new plugins - this triggers ySyncPlugin's init()
     // which binds Yjs content to ProseMirror

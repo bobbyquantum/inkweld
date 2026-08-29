@@ -45,6 +45,9 @@ describe('EditorToolbarComponent', () => {
         addMark: Mock;
         removeMark: Mock;
         setStoredMarks: Mock;
+        scrollIntoView: Mock;
+        insert: Mock;
+        doc: { lastChild: unknown; content: { size: number } };
         docChanged: boolean;
       };
       doc: { nodesBetween: Mock; slice: Mock };
@@ -90,6 +93,10 @@ describe('EditorToolbarComponent', () => {
             list_item: createMockNode('list_item'),
             blockquote: createMockNode('blockquote'),
             horizontal_rule: createMockNode('horizontal_rule'),
+            table: createMockNode('table'),
+            table_row: createMockNode('table_row'),
+            table_cell: createMockNode('table_cell'),
+            table_header: createMockNode('table_header'),
           },
         },
         selection: {
@@ -114,6 +121,11 @@ describe('EditorToolbarComponent', () => {
           addMark: vi.fn().mockReturnThis(),
           removeMark: vi.fn().mockReturnThis(),
           setStoredMarks: vi.fn().mockReturnThis(),
+          scrollIntoView: vi.fn().mockReturnThis(),
+          insert: vi.fn().mockReturnThis(),
+          // The doc left behind after replaceSelectionWith(table); the
+          // trailing-paragraph guard inspects its last child.
+          doc: { lastChild: null, content: { size: 10 } },
           docChanged: false,
         },
         doc: {
@@ -269,6 +281,113 @@ describe('EditorToolbarComponent', () => {
       vi.runAllTimers();
       expect(mockEditorView.dispatch).toHaveBeenCalled();
       expect(mockEditorView.focus).toHaveBeenCalled();
+    });
+  });
+
+  describe('Tables', () => {
+    it('should insert a table and scroll it into view', () => {
+      vi.useFakeTimers();
+      component.insertTable();
+      vi.runAllTimers();
+      expect(mockEditorView.state.tr.replaceSelectionWith).toHaveBeenCalled();
+      expect(mockEditorView.state.tr.scrollIntoView).toHaveBeenCalled();
+      expect(mockEditorView.dispatch).toHaveBeenCalled();
+      expect(mockEditorView.focus).toHaveBeenCalled();
+    });
+
+    it('should build the requested number of rows and columns', () => {
+      const rowType = mockEditorView.state.schema.nodes['table_row'] as {
+        create: Mock;
+      };
+      component.insertTable(4, 2);
+      expect(rowType.create).toHaveBeenCalledTimes(4);
+      // Every row is built with exactly two cells.
+      for (const call of rowType.create.mock.calls) {
+        expect(call[1]).toHaveLength(2);
+      }
+    });
+
+    it('should build the first row from header cells and the rest from body cells', () => {
+      const headerType = mockEditorView.state.schema.nodes['table_header'] as {
+        create: Mock;
+      };
+      const cellType = mockEditorView.state.schema.nodes['table_cell'] as {
+        create: Mock;
+      };
+      component.insertTable(3, 3);
+      // One header row of 3, two body rows of 3.
+      expect(headerType.create).toHaveBeenCalledTimes(3);
+      expect(cellType.create).toHaveBeenCalledTimes(6);
+    });
+
+    it('should append a trailing paragraph when the table ends the document', () => {
+      const tableType = mockEditorView.state.schema.nodes['table'];
+      const paragraphType = mockEditorView.state.schema.nodes['paragraph'] as {
+        create: Mock;
+      };
+      // Simulate the table landing as the document's last node.
+      mockEditorView.state.tr.doc.lastChild = { type: tableType };
+
+      component.insertTable();
+
+      expect(mockEditorView.state.tr.insert).toHaveBeenCalledWith(
+        10,
+        expect.anything()
+      );
+      expect(paragraphType.create).toHaveBeenCalled();
+    });
+
+    it('should not append a paragraph when content already follows the table', () => {
+      mockEditorView.state.tr.doc.lastChild = {
+        type: mockEditorView.state.schema.nodes['paragraph'],
+      };
+
+      component.insertTable();
+
+      expect(mockEditorView.state.tr.insert).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing when the schema has no table nodes', () => {
+      delete mockEditorView.state.schema.nodes['table'];
+      component.insertTable();
+      expect(mockEditorView.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('should not insert a table while disabled', () => {
+      component.disabled = true;
+      component.insertTable();
+      expect(mockEditorView.dispatch).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['addRowBefore'],
+      ['addRowAfter'],
+      ['deleteRow'],
+      ['addColumnBefore'],
+      ['addColumnAfter'],
+      ['deleteColumn'],
+      ['mergeCells'],
+      ['splitCell'],
+      ['toggleHeaderRow'],
+      ['toggleHeaderColumn'],
+      ['deleteTable'],
+    ])('should run the %s command and refocus the editor', name => {
+      vi.useFakeTimers();
+      (component[name as keyof typeof component] as () => void).call(component);
+      vi.runAllTimers();
+      expect(mockEditorView.dispatch).toHaveBeenCalled();
+      expect(mockEditorView.focus).toHaveBeenCalled();
+    });
+
+    it('should not run table commands while disabled', () => {
+      component.disabled = true;
+      component.addRowAfter();
+      component.deleteTable();
+      expect(mockEditorView.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('should report inTable as false outside a table', () => {
+      expect(component.inTable()).toBe(false);
     });
   });
 

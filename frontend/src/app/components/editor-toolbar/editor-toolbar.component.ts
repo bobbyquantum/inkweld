@@ -32,6 +32,20 @@ import { redo, undo } from 'prosemirror-history';
 import { type MarkType, type NodeType } from 'prosemirror-model';
 import { wrapInList } from 'prosemirror-schema-list';
 import { type EditorState, type Transaction } from 'prosemirror-state';
+import {
+  addColumnAfter,
+  addColumnBefore,
+  addRowAfter,
+  addRowBefore,
+  deleteColumn,
+  deleteRow,
+  deleteTable,
+  isInTable,
+  mergeCells,
+  splitCell,
+  toggleHeaderColumn,
+  toggleHeaderRow,
+} from 'prosemirror-tables';
 import { type EditorView } from 'prosemirror-view';
 import { type Subscription } from 'rxjs';
 
@@ -132,6 +146,7 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
     bulletList: false,
     orderedList: false,
     blockquote: false,
+    inTable: false,
   });
 
   /**
@@ -432,6 +447,9 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
   /** Current text alignment */
   textAlign = computed(() => this.selectionState().align);
 
+  /** True when the selection sits inside a table (gates the table menu items) */
+  inTable = computed(() => this.selectionState().inTable);
+
   /** Computed active state for bullet list */
   isBulletList = computed(() => this.selectionState().bulletList);
 
@@ -500,6 +518,10 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
       );
       const blockquote = this.isNodeActive(state, schema.nodes['blockquote']);
 
+      // `isInTable` throws if the schema has no table nodes at all, which is
+      // the case for the plain ngx-editor schema used by some consumers.
+      const inTable = schema.nodes['table'] ? isInTable(state) : false;
+
       this.selectionState.set({
         bold,
         italic,
@@ -512,6 +534,7 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
         bulletList,
         orderedList,
         blockquote,
+        inTable,
       });
     }, 50);
   }
@@ -816,6 +839,123 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
       dispatch(tr);
     }
     this.refocusEditor();
+  }
+
+  // ========== Table Commands ==========
+
+  /** Default size for a freshly inserted table: a header row plus two body rows. */
+  private static readonly DEFAULT_TABLE_ROWS = 3;
+  private static readonly DEFAULT_TABLE_COLS = 3;
+
+  /**
+   * Insert a table at the cursor.
+   *
+   * The first row is built from `table_header` cells so the table has a
+   * usable header out of the box and so it survives a markdown round trip
+   * (a GFM table's first row is always its header).
+   */
+  insertTable(
+    rows = EditorToolbarComponent.DEFAULT_TABLE_ROWS,
+    cols = EditorToolbarComponent.DEFAULT_TABLE_COLS
+  ): void {
+    if (this.disabled) return;
+
+    const view = this.editor?.view;
+    if (!view) return;
+
+    const { state, dispatch } = view;
+    const { schema } = state;
+    const tableType = schema.nodes['table'];
+    const rowType = schema.nodes['table_row'];
+    const cellType = schema.nodes['table_cell'];
+    const headerType = schema.nodes['table_header'];
+    const paragraphType = schema.nodes['paragraph'];
+
+    if (!tableType || !rowType || !cellType || !headerType || !paragraphType) {
+      return;
+    }
+
+    const buildRow = (header: boolean) =>
+      rowType.create(
+        null,
+        Array.from({ length: cols }, () =>
+          (header ? headerType : cellType).create(null, paragraphType.create())
+        )
+      );
+
+    const table = tableType.create(
+      null,
+      Array.from({ length: rows }, (_, i) => buildRow(i === 0))
+    );
+
+    const tr = state.tr.replaceSelectionWith(table);
+
+    // A table that ends the document is a dead end: there is no inline
+    // position after it, so the user cannot click or arrow past the table
+    // to keep writing. Append a paragraph whenever the insert leaves the
+    // table as the last node.
+    const { doc } = tr;
+    if (doc.lastChild?.type === tableType) {
+      tr.insert(doc.content.size, paragraphType.create());
+    }
+
+    dispatch(tr.scrollIntoView());
+    this.refocusEditor();
+  }
+
+  /** Insert a row above the current one */
+  addRowBefore(): void {
+    this.execCommand(addRowBefore);
+  }
+
+  /** Insert a row below the current one */
+  addRowAfter(): void {
+    this.execCommand(addRowAfter);
+  }
+
+  /** Delete the row containing the selection */
+  deleteRow(): void {
+    this.execCommand(deleteRow);
+  }
+
+  /** Insert a column to the left of the current one */
+  addColumnBefore(): void {
+    this.execCommand(addColumnBefore);
+  }
+
+  /** Insert a column to the right of the current one */
+  addColumnAfter(): void {
+    this.execCommand(addColumnAfter);
+  }
+
+  /** Delete the column containing the selection */
+  deleteColumn(): void {
+    this.execCommand(deleteColumn);
+  }
+
+  /** Merge the selected cells into one */
+  mergeCells(): void {
+    this.execCommand(mergeCells);
+  }
+
+  /** Split a merged cell back into its constituent cells */
+  splitCell(): void {
+    this.execCommand(splitCell);
+  }
+
+  /** Toggle the first row between header and body cells */
+  toggleHeaderRow(): void {
+    this.execCommand(toggleHeaderRow);
+  }
+
+  /** Toggle the first column between header and body cells */
+  toggleHeaderColumn(): void {
+    this.execCommand(toggleHeaderColumn);
+  }
+
+  /** Delete the whole table */
+  deleteTable(): void {
+    this.execCommand(deleteTable);
   }
 
   /** Clear formatting from selection */
