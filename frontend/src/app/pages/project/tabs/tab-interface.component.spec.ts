@@ -11,6 +11,7 @@ import {
   ActivatedRoute,
   convertToParamMap,
   NavigationEnd,
+  NavigationStart,
   Router,
   RouterModule,
 } from '@angular/router';
@@ -40,7 +41,9 @@ describe('TabInterfaceComponent', () => {
   let router: Partial<Router>;
   let activatedRoute: Partial<ActivatedRoute>;
   let dialog: Partial<MatDialog>;
-  let routerEvents: Subject<NavigationEnd>;
+  // Router events (NavigationStart, NavigationEnd, etc.) for the
+  // pending-navigation guard tests.
+  let routerEvents: Subject<NavigationEnd | NavigationStart>;
 
   // Mock data
   const mockProject = {
@@ -131,7 +134,7 @@ describe('TabInterfaceComponent', () => {
     };
 
     // Mock router
-    routerEvents = new Subject<NavigationEnd>();
+    routerEvents = new Subject<NavigationEnd | NavigationStart>();
     router = {
       navigate: vi.fn().mockResolvedValue(true),
       events: routerEvents.asObservable(),
@@ -458,6 +461,45 @@ describe('TabInterfaceComponent', () => {
     routerEvents.next(navigationEndEvent);
 
     expect(component.updateSelectedTabFromUrl).toHaveBeenCalled();
+  });
+
+  it('does not navigate from stale state while a navigation is pending', async () => {
+    // Effects already flushed once during beforeEach (which may have
+    // triggered a navigation) — start from a clean slate.
+    (router.navigate as any).mockClear();
+
+    // A navigation to /publish-plans started (lazy chunk still loading).
+    routerEvents.next(
+      new NavigationStart(1, '/testuser/test-project/publish-plans')
+    );
+
+    // While it is in flight, loadProject finishes: isLoading flips false and
+    // restore-tabs re-selects a tab.
+    (projectStateService.isLoading as any).set(false);
+    (projectStateService.selectedTabIndex as any).set(0);
+    fixture.detectChanges();
+    await Promise.resolve();
+
+    // The navigation effect must NOT have issued a competing navigation
+    // (it would cancel the in-flight one and strand the app on Home).
+    expect(router.navigate).not.toHaveBeenCalled();
+
+    // The pending navigation commits.
+    routerEvents.next(
+      new NavigationEnd(
+        1,
+        '/testuser/test-project/publish-plans',
+        '/testuser/test-project/publish-plans'
+      )
+    );
+
+    // Once committed, the effects may act again: a later selection change
+    // must navigate normally.
+    (router.navigate as any).mockClear();
+    (projectStateService.selectedTabIndex as any).set(1);
+    fixture.detectChanges();
+    await new Promise(res => setTimeout(res, 0));
+    expect(router.navigate).toHaveBeenCalled();
   });
 
   it('should clean up subscriptions on destroy', () => {
