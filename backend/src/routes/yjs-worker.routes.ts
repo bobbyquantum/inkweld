@@ -87,6 +87,14 @@ app.get('/yjs', async (c) => {
 });
 
 /**
+ * The only endpoint names the diagnostics proxy may forward. These match the
+ * routes YjsProjectDO.dispatchHttpRoute actually serves. Validating against
+ * this fixed set means the URL handed to stub.fetch() is never constructed
+ * from arbitrary user-controlled input (path traversal / open proxy).
+ */
+const DO_API_ENDPOINTS = new Set(['stats', 'elements', 'document', 'storage-keys', 'storage-size']);
+
+/**
  * HTTP API proxy to the Durable Object.
  *
  * The DO exposes /api/stats, /api/elements, /api/document etc. but these are
@@ -101,13 +109,21 @@ app.get('/yjs', async (c) => {
  */
 app.get('/yjs/do/:endpoint', async (c) => {
   const endpoint = c.req.param('endpoint');
+
+  // Reject anything outside the fixed endpoint set before building the URL,
+  // so `/api/${endpoint}` can only ever be a known-good pathname.
+  if (!DO_API_ENDPOINTS.has(endpoint)) {
+    return c.json({ error: 'Unknown endpoint' }, 404);
+  }
+
   const documentId = c.req.query('documentId');
 
   try {
     const result = resolveProjectStub(c, documentId);
     if (!result.ok) return result.error;
 
-    // Rewrite the path so the DO's handleHttpApi sees /api/<endpoint>
+    // Rewrite the path so the DO's handleHttpApi sees /api/<endpoint>;
+    // `endpoint` is a validated member of DO_API_ENDPOINTS at this point.
     const url = new URL(c.req.url);
     url.pathname = `/api/${endpoint}`;
     const req = new Request(url.toString(), {
