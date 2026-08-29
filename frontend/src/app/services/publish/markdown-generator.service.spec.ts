@@ -736,7 +736,7 @@ describe('MarkdownGeneratorService', () => {
       const cell = (text: string, align?: string) => ({
         type: 'table_cell',
         attrs: align ? { align, colspan: 1 } : { colspan: 1 },
-        content: [{ type: 'paragraph', content: [{ text }] }],
+        content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
       });
       const header = (text: string, align?: string) => ({
         ...cell(text, align),

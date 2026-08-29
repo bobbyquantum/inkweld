@@ -730,6 +730,137 @@ describe('HtmlGeneratorService', () => {
       expect(text).toContain('<h2 class="ink-doc-heading-2">');
     });
 
+    it('should convert tables, including header cells and column alignment', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'table',
+          content: [
+            {
+              type: 'table_row',
+              content: [
+                {
+                  type: 'table_header',
+                  attrs: { colspan: 1 },
+                  content: [
+                    {
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'Name' }],
+                    },
+                  ],
+                },
+                {
+                  type: 'table_header',
+                  attrs: { colspan: 1, align: 'right' },
+                  content: [
+                    {
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'Age' }],
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              type: 'table_row',
+              content: [
+                {
+                  type: 'table_cell',
+                  attrs: { colspan: 1 },
+                  content: [
+                    {
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'Alice' }],
+                    },
+                  ],
+                },
+                {
+                  type: 'table_cell',
+                  attrs: { colspan: 1, align: 'center' },
+                  content: [
+                    {
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: '30' }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateHtml(planWithElement);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      expect(text).toContain('<table class="ink-doc-table">');
+      expect(text).toContain('<tr class="ink-doc-table-row">');
+      expect(text).toContain('<th class="ink-doc-table-header">');
+      expect(text).toContain('ink-doc-table-header ink-doc-align-right');
+      expect(text).toContain('ink-doc-table-cell ink-doc-align-center');
+      expect(text).toContain('Alice');
+    });
+
+    it('should not emit an alignment class for an unrecognised align value', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'table',
+          content: [
+            {
+              type: 'table_row',
+              content: [
+                {
+                  type: 'table_cell',
+                  // Only left/center/right map to a class; anything else is
+                  // ignored so document JSON cannot inject arbitrary CSS.
+                  attrs: { colspan: 1, align: 'justify; color: red' },
+                  content: [
+                    {
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'x' }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateHtml(planWithElement);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      expect(text).toContain('<td class="ink-doc-table-cell">');
+      expect(text).not.toContain('color: red');
+    });
+
     it('should convert blockquote nodes', async () => {
       documentServiceMock.getDocumentContent.mockResolvedValue([
         {

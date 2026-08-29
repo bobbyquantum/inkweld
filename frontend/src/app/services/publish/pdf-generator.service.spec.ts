@@ -386,6 +386,134 @@ describe('PdfGeneratorService', () => {
     });
   });
 
+  describe('table rendering', () => {
+    /** Run a plan through the generator and return the Typst markup it produced. */
+    async function markupFor(content: unknown[]): Promise<string> {
+      documentServiceMock.getDocumentContent.mockResolvedValue(content);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generatePdf(planWithElement);
+      expect(result.success).toBe(true);
+
+      const call = (
+        $typstSnippet.pdf as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls.at(-1)!;
+      return (call[0] as { mainContent: string }).mainContent;
+    }
+
+    const cell = (text: string, type = 'table_cell', attrs = {}) => ({
+      type,
+      attrs: { colspan: 1, ...attrs },
+      content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
+    });
+
+    it('should emit a Typst table with the right column count', async () => {
+      const markup = await markupFor([
+        {
+          type: 'table',
+          content: [
+            {
+              type: 'table_row',
+              content: [
+                cell('Name', 'table_header'),
+                cell('Age', 'table_header'),
+              ],
+            },
+            {
+              type: 'table_row',
+              content: [cell('Alice'), cell('30')],
+            },
+          ],
+        },
+      ]);
+
+      expect(markup).toContain('#table(');
+      expect(markup).toContain('columns: 2');
+      expect(markup).toContain('Alice');
+    });
+
+    it('should wrap header cells in strong', async () => {
+      const markup = await markupFor([
+        {
+          type: 'table',
+          content: [
+            { type: 'table_row', content: [cell('Name', 'table_header')] },
+          ],
+        },
+      ]);
+
+      expect(markup).toContain('[#strong[Name]]');
+    });
+
+    it('should express a merged cell as table.cell(colspan:)', async () => {
+      const markup = await markupFor([
+        {
+          type: 'table',
+          content: [
+            {
+              type: 'table_row',
+              content: [cell('Wide', 'table_cell', { colspan: 2 })],
+            },
+            { type: 'table_row', content: [cell('a'), cell('b')] },
+          ],
+        },
+      ]);
+
+      expect(markup).toContain('table.cell(colspan: 2)[Wide]');
+      expect(markup).toContain('columns: 2');
+    });
+
+    it('should pad a short row so the next row starts in column one', async () => {
+      const markup = await markupFor([
+        {
+          type: 'table',
+          content: [
+            { type: 'table_row', content: [cell('a'), cell('b')] },
+            { type: 'table_row', content: [cell('c')] },
+          ],
+        },
+      ]);
+
+      // The short row gains one empty cell to fill the second column.
+      expect(markup).toContain('columns: 2');
+      expect(markup).toContain('[c],\n  []');
+    });
+
+    it('should clamp an absurd colspan rather than emitting it verbatim', async () => {
+      const markup = await markupFor([
+        {
+          type: 'table',
+          content: [
+            {
+              type: 'table_row',
+              content: [cell('x', 'table_cell', { colspan: 10_000 })],
+            },
+          ],
+        },
+      ]);
+
+      expect(markup).toContain('table.cell(colspan: 64)');
+      expect(markup).not.toContain('colspan: 10000');
+    });
+
+    it('should emit nothing for a table with no rows', async () => {
+      const markup = await markupFor([{ type: 'table', content: [] }]);
+      expect(markup).not.toContain('#table(');
+    });
+  });
+
   describe('complete$', () => {
     it('should emit result when generation completes', async () => {
       const results: PdfResult[] = [];

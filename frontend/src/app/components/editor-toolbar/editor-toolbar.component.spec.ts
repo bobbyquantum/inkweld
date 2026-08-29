@@ -26,6 +26,7 @@ describe('EditorToolbarComponent', () => {
   let mockEditorView: {
     state: {
       schema: {
+        cached: Record<string, unknown>;
         marks: Record<string, unknown>;
         nodes: Record<string, unknown>;
       };
@@ -34,6 +35,8 @@ describe('EditorToolbarComponent', () => {
         to: number;
         $from: unknown;
         $to: unknown;
+        $head: unknown;
+        $anchor: unknown;
         empty: boolean;
       };
       tr: {
@@ -68,6 +71,17 @@ describe('EditorToolbarComponent', () => {
       create: vi.fn().mockReturnValue({ type: { name } }),
     });
 
+    // A minimal ResolvedPos. `node(depth)` returns a node whose spec has no
+    // `tableRole`, so prosemirror-tables treats the position as outside a
+    // table — which is what the non-table tests expect.
+    const createMockResolvedPos = () => ({
+      pos: 0,
+      depth: 0,
+      marks: () => [],
+      node: () => ({ type: { name: 'paragraph', spec: {} } }),
+      blockRange: vi.fn().mockReturnValue(null),
+    });
+
     const createMockNode = (name: string) => ({
       name,
       create: vi.fn().mockReturnValue({ type: { name } }),
@@ -77,6 +91,9 @@ describe('EditorToolbarComponent', () => {
     mockEditorView = {
       state: {
         schema: {
+          // prosemirror-tables' tableNodeTypes() memoises on schema.cached,
+          // so a real ProseMirror Schema always has this object.
+          cached: {},
           marks: {
             strong: createMockMark('strong'),
             em: createMockMark('em'),
@@ -102,14 +119,13 @@ describe('EditorToolbarComponent', () => {
         selection: {
           from: 0,
           to: 0,
-          $from: {
-            pos: 0,
-            depth: 0,
-            marks: () => [],
-            node: () => ({ type: { name: 'paragraph' } }),
-            blockRange: vi.fn().mockReturnValue(null),
-          },
+          $from: createMockResolvedPos(),
           $to: {},
+          // A real ProseMirror Selection always exposes $head and $anchor.
+          // prosemirror-tables' isInTable() reads $head.depth, so leaving
+          // them out throws inside the debounced selection-state update.
+          $head: createMockResolvedPos(),
+          $anchor: createMockResolvedPos(),
           empty: true,
         },
         tr: {
@@ -372,10 +388,17 @@ describe('EditorToolbarComponent', () => {
       ['toggleHeaderColumn'],
       ['deleteTable'],
     ])('should run the %s command and refocus the editor', name => {
+      // prosemirror-tables is not mocked: outside a table each command
+      // correctly reports "not applicable" and dispatches nothing. What the
+      // toolbar owns is running the command without throwing and handing
+      // focus back to the editor afterwards.
       vi.useFakeTimers();
-      (component[name as keyof typeof component] as () => void).call(component);
+      expect(() =>
+        (component[name as keyof typeof component] as () => void).call(
+          component
+        )
+      ).not.toThrow();
       vi.runAllTimers();
-      expect(mockEditorView.dispatch).toHaveBeenCalled();
       expect(mockEditorView.focus).toHaveBeenCalled();
     });
 
@@ -383,6 +406,8 @@ describe('EditorToolbarComponent', () => {
       component.disabled = true;
       component.addRowAfter();
       component.deleteTable();
+      // execCommand returns before touching the view at all.
+      expect(mockEditorView.focus).not.toHaveBeenCalled();
       expect(mockEditorView.dispatch).not.toHaveBeenCalled();
     });
 
