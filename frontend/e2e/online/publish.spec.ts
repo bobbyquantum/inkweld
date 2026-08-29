@@ -47,6 +47,20 @@ test.describe('Online Publishing Workflow', () => {
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
     await page.getByTestId('create-project-button').click();
     await page.waitForURL(new RegExp(uniqueSlug));
+    // Wait for the project page to finish loading before interacting: on a
+    // loaded CI runner, `loadProject` (metadata fetch + Yjs provider connect +
+    // tab restore) is still in flight when waitForURL resolves, and clicking
+    // a sidebar nav button during that window races the app's initial
+    // tab-sync/restore logic. The project shell renders a spinner while
+    // isLoading is true — wait for it to disappear so the click below lands
+    // against a settled app (this was the source of the CI "Publishing tab
+    // never appears" flake: the click's lazy route load raced tab restore).
+    await page
+      .locator('.loading-indicator')
+      .waitFor({ state: 'hidden', timeout: 60000 })
+      .catch(() => {
+        /* The spinner may have already unmounted before this wait started. */
+      });
     return uniqueSlug;
   }
 

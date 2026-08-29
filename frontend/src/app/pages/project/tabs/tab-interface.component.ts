@@ -21,7 +21,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import {
   ActivatedRoute,
+  NavigationCancel,
   NavigationEnd,
+  NavigationError,
+  NavigationStart,
   PRIMARY_OUTLET,
   Router,
   RouterModule,
@@ -122,6 +125,17 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   private lastProjectId: string | undefined; // Track project changes
   private resizeObserver: ResizeObserver | undefined;
 
+  /**
+   * Number of router navigations that have started but not committed yet.
+   * While > 0, the tab-sync and navigation effects below must not issue
+   * competing navigations or reconcile tab selection from the (stale,
+   * pre-navigation) committed URL — a lazy route component (e.g. the
+   * publish-plans list) can take noticeable time to fetch on a loaded
+   * machine, and reconciling against the old URL in that window cancels the
+   * user's navigation and leaves the app stranded on the previous tab.
+   */
+  private readonly pendingNavigationCount = signal(0);
+
   // Scroll state for arrow visibility
   canScrollLeft = signal(false);
   canScrollRight = signal(false);
@@ -166,8 +180,15 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
       const project = this.projectState.project();
       const isLoading = this.projectState.isLoading();
 
-      // Skip navigation during initial load OR while loading
-      if (!this.initialSyncDone || !project || isLoading) {
+      // Skip navigation during initial load, while loading, or while a router
+      // navigation is still in flight (its completion will land on the right
+      // tab; navigating now from stale state would cancel it).
+      if (
+        !this.initialSyncDone ||
+        !project ||
+        isLoading ||
+        this.pendingNavigationCount() > 0
+      ) {
         return;
       }
 
@@ -240,6 +261,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
       const isLoading = this.projectState.isLoading();
       const project = this.projectState.project();
       const elements = this.projectState.elements();
+      const pendingNavigations = this.pendingNavigationCount();
       const currentUrl = this.router.url;
 
       // For document/folder tabs, we need elements to be loaded first
@@ -257,7 +279,12 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         return; // Elements haven't loaded yet, effect will re-run when they do
       }
 
-      if (!isLoading && !this.initialSyncDone && project) {
+      if (
+        !isLoading &&
+        !this.initialSyncDone &&
+        pendingNavigations === 0 &&
+        project
+      ) {
         // Verify the project matches the current URL before syncing
         const urlUsername = urlParts[0];
         const urlSlug = urlParts[1];
@@ -305,6 +332,31 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit(): void {
+    // Track in-flight router navigations so the tab effects can wait for them
+    // to commit before acting on (potentially stale) state. NavigationStart
+    // increments; NavigationEnd/Cancel/Error decrement. NavigationSkipped has
+    // no matching NavigationStart for same-URL navigations (see Angular
+    // router: IgnoredSameUrlNavigation skips Start entirely), so Skipped must
+    // NOT decrement — counting it would drive the counter negative.
+    this.router.events
+      .pipe(
+        filter(
+          event =>
+            event instanceof NavigationStart ||
+            event instanceof NavigationEnd ||
+            event instanceof NavigationCancel ||
+            event instanceof NavigationError
+        ),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(event => {
+        if (event instanceof NavigationStart) {
+          this.pendingNavigationCount.update(count => count + 1);
+        } else {
+          this.pendingNavigationCount.update(count => Math.max(0, count - 1));
+        }
+      });
+
     // Subscribe to router events to update the tab selection on subsequent navigations
     this.routerSubscription = this.router.events
       .pipe(
