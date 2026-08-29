@@ -40,7 +40,7 @@
         "material-icons": "1.13.14",
         "material-symbols": "0.47.0",
         "nanoid": "6.0.1",
-        "ngx-image-cropper": "9.1.6",
+        "ngx-image-cropper": "9.1.7",
         "ngx-input-color": "7.0.1",
         "prosemirror-history": "1.5.0",
         "prosemirror-transform": "1.12.0",
@@ -1429,7 +1429,7 @@
 
     "negotiator": ["negotiator@1.1.0", "", { "dependencies": { "content-type": "^2.1.0" } }, "sha512-NMPBRMJgiQHjbd8phG3Vebdx4kZ1H121rbl5IkMqeOsahptB9BKo/d7oJ3zTXqTgagn2bWlNSXkh0QUGM31RYg=="],
 
-    "ngx-image-cropper": ["ngx-image-cropper@9.1.6", "", { "dependencies": { "tslib": "^2.3.0" }, "peerDependencies": { "@angular/common": ">=17.3.0", "@angular/core": ">=17.3.0" } }, "sha512-b250YJ+jZovfqIj8vdEOrpEFay34be5f1Hpvg6Db68VMlvdyyuzboJdR0gCupbXtVcG6qQ86L7YG+SYxXJwApw=="],
+    "ngx-image-cropper": ["ngx-image-cropper@9.1.7", "", { "dependencies": { "tslib": "^2.3.0" }, "peerDependencies": { "@angular/common": ">=17.3.0", "@angular/core": ">=17.3.0" } }, "sha512-LAAv8s17FvIEiP4Duc3Non95q6ZxnIXCZn5fWBL/TwaDm6rhIv/Er/AJUotAJFWd1JT+gWRCtYK5RbzNbUHjDg=="],
 
     "ngx-input-color": ["ngx-input-color@7.0.1", "", { "dependencies": { "tslib": "^2.3.0" }, "peerDependencies": { "@angular/common": ">=21.0.0", "@angular/core": ">=21.0.0" } }, "sha512-VUyn+CMCf5aC9uRzAcsIxPqVNzw2Qjqj0F9ZwF5c2CyUpYuxBR1wuAsYUvjvCgZ4qidQFSOIur5tEf/Qr69Ayw=="],
 
