@@ -1140,18 +1140,17 @@ export class DocumentService {
         this.autoReviewApi.clickEvent.set({ attrs, coords });
       },
     });
-    plugins.push(autoReviewPlugin);
-
     // Table editing: cell selection, row/column commands and drag-to-resize.
     //
     // `columnResizing` must precede `tableEditing` — it installs the `table`
     // node view that draws the resize handles, and `tableEditing` expects
     // that view to already be in place when it handles a drag.
     //
-    // Tab / Shift-Tab move between cells. The keymap is pushed *before* the
+    // Tab / Shift-Tab move between cells. The keymap comes *before* the
     // table plugins so it wins over their internal handlers, and it is a
     // no-op outside a table, leaving Tab free for its normal behaviour.
     plugins.push(
+      autoReviewPlugin,
       keymap({
         Tab: goToNextCell(1),
         'Shift-Tab': goToNextCell(-1),

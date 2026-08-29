@@ -137,6 +137,53 @@ function tableAlignClass(node: ProseMirrorNode): string | null {
   return null;
 }
 
+/** ProseMirror node name → EPUB tag and class. */
+const EPUB_NODE_TAG_MAP: Record<string, { tag: string; cls: string }> = {
+  paragraph: { tag: 'p', cls: 'ink-doc-paragraph' },
+  blockquote: { tag: 'blockquote', cls: 'ink-doc-blockquote' },
+  bullet_list: { tag: 'ul', cls: 'ink-doc-bullet-list' },
+  bulletlist: { tag: 'ul', cls: 'ink-doc-bullet-list' },
+  ordered_list: { tag: 'ol', cls: 'ink-doc-ordered-list' },
+  orderedlist: { tag: 'ol', cls: 'ink-doc-ordered-list' },
+  list_item: { tag: 'li', cls: 'ink-doc-list-item' },
+  listitem: { tag: 'li', cls: 'ink-doc-list-item' },
+  hard_break: { tag: 'br', cls: '' },
+  horizontal_rule: { tag: 'hr', cls: 'ink-doc-horizontal-rule' },
+  code_block: { tag: 'pre', cls: 'ink-doc-code-block' },
+  codeblock: { tag: 'pre', cls: 'ink-doc-code-block' },
+  image: { tag: 'img', cls: 'ink-doc-image' },
+  figure: { tag: 'figure', cls: 'ink-doc-figure' },
+  caption: { tag: 'figcaption', cls: 'ink-doc-caption' },
+  table: { tag: 'table', cls: 'ink-doc-table' },
+  table_row: { tag: 'tr', cls: 'ink-doc-table-row' },
+  tablerow: { tag: 'tr', cls: 'ink-doc-table-row' },
+  table_cell: { tag: 'td', cls: 'ink-doc-table-cell' },
+  tablecell: { tag: 'td', cls: 'ink-doc-table-cell' },
+  table_header: { tag: 'th', cls: 'ink-doc-table-header' },
+  tableheader: { tag: 'th', cls: 'ink-doc-table-header' },
+};
+
+/** The node's type name, lower-cased. Accepts both Yjs and ProseMirror shapes. */
+function epubNodeName(node: object): string {
+  if ('nodeName' in node) return String(node.nodeName).toLowerCase();
+  if ('type' in node) return String(node.type).toLowerCase();
+  return '';
+}
+
+/** Base class for a node, plus a column-alignment class for table cells. */
+function epubClassNames(
+  cls: string,
+  lower: string,
+  node: ProseMirrorNode
+): string[] {
+  const classNames = cls ? [cls] : [];
+  if (TABLE_CELL_NAMES.has(lower)) {
+    const align = tableAlignClass(node);
+    if (align) classNames.push(align);
+  }
+  return classNames;
+}
+
 /**
  * Service for generating EPUB files client-side.
  *
@@ -744,57 +791,28 @@ export class EpubGeneratorService {
     tagName: string;
     classNames: string[];
   } {
-    const typeMap: Record<string, { tag: string; cls: string }> = {
-      paragraph: { tag: 'p', cls: 'ink-doc-paragraph' },
-      blockquote: { tag: 'blockquote', cls: 'ink-doc-blockquote' },
-      bullet_list: { tag: 'ul', cls: 'ink-doc-bullet-list' },
-      bulletlist: { tag: 'ul', cls: 'ink-doc-bullet-list' },
-      ordered_list: { tag: 'ol', cls: 'ink-doc-ordered-list' },
-      orderedlist: { tag: 'ol', cls: 'ink-doc-ordered-list' },
-      list_item: { tag: 'li', cls: 'ink-doc-list-item' },
-      listitem: { tag: 'li', cls: 'ink-doc-list-item' },
-      hard_break: { tag: 'br', cls: '' },
-      horizontal_rule: { tag: 'hr', cls: 'ink-doc-horizontal-rule' },
-      code_block: { tag: 'pre', cls: 'ink-doc-code-block' },
-      codeblock: { tag: 'pre', cls: 'ink-doc-code-block' },
-      image: { tag: 'img', cls: 'ink-doc-image' },
-      figure: { tag: 'figure', cls: 'ink-doc-figure' },
-      caption: { tag: 'figcaption', cls: 'ink-doc-caption' },
-      table: { tag: 'table', cls: 'ink-doc-table' },
-      table_row: { tag: 'tr', cls: 'ink-doc-table-row' },
-      tablerow: { tag: 'tr', cls: 'ink-doc-table-row' },
-      table_cell: { tag: 'td', cls: 'ink-doc-table-cell' },
-      tablecell: { tag: 'td', cls: 'ink-doc-table-cell' },
-      table_header: { tag: 'th', cls: 'ink-doc-table-header' },
-      tableheader: { tag: 'th', cls: 'ink-doc-table-header' },
-    };
-
-    if (typeof node === 'object' && node) {
-      let name = '';
-      if ('nodeName' in node) name = String(node.nodeName);
-      else if ('type' in node) name = String(node.type);
-      const lower = name.toLowerCase();
-      if (lower === 'heading') {
-        const attrs =
-          'attrs' in node ? (node['attrs'] as Record<string, unknown>) : null;
-        const level = clampLevel(Number(attrs?.['level'] ?? 1));
-        return {
-          tagName: `h${level}`,
-          classNames: [`ink-doc-heading-${level}`],
-        };
-      }
-      const mapped = typeMap[lower];
-      if (mapped) {
-        const classNames = mapped.cls ? [mapped.cls] : [];
-        if (TABLE_CELL_NAMES.has(lower)) {
-          const align = tableAlignClass(node);
-          if (align) classNames.push(align);
-        }
-        return { tagName: mapped.tag, classNames };
-      }
-      return { tagName: lower || 'div', classNames: [] };
+    if (typeof node !== 'object' || !node) {
+      return { tagName: 'span', classNames: [] };
     }
-    return { tagName: 'span', classNames: [] };
+
+    const lower = epubNodeName(node);
+    if (lower === 'heading') {
+      const attrs =
+        'attrs' in node ? (node['attrs'] as Record<string, unknown>) : null;
+      const level = clampLevel(Number(attrs?.['level'] ?? 1));
+      return {
+        tagName: `h${level}`,
+        classNames: [`ink-doc-heading-${level}`],
+      };
+    }
+
+    const mapped = EPUB_NODE_TAG_MAP[lower];
+    if (!mapped) return { tagName: lower || 'div', classNames: [] };
+
+    return {
+      tagName: mapped.tag,
+      classNames: epubClassNames(mapped.cls, lower, node),
+    };
   }
 
   private getAttributes(node: ProseMirrorNode): string {

@@ -333,8 +333,8 @@ function splitTableRow(line: string): string[] {
   cells.push(cur);
 
   // Strip the empty leading/trailing cells produced by outer pipes.
-  if (cells.length > 0 && cells[0].trim() === '') cells.shift();
-  if (cells.length > 0 && cells[cells.length - 1].trim() === '') cells.pop();
+  if (cells.at(0)?.trim() === '') cells.shift();
+  if (cells.at(-1)?.trim() === '') cells.pop();
 
   return cells.map((c) => c.trim());
 }
@@ -344,7 +344,7 @@ function splitTableRow(line: string): string[] {
  * Returns `null` when the line is not a delimiter row.
  */
 function parseDelimiterRow(line: string): TableAlign[] | null {
-  if (!line || !line.includes('|')) return null;
+  if (!line?.includes('|')) return null;
   const cells = splitTableRow(line);
   if (cells.length === 0) return null;
 
