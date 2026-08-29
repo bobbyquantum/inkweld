@@ -56,7 +56,10 @@ export class RenameDialogComponent implements AfterViewInit {
   ngAfterViewInit(): void {
     queueMicrotask(() => {
       const el = this.nameInput()?.nativeElement;
-      if (el) {
+      // Skip seeding when the field already has content: a fast automated
+      // filler may have typed before this microtask ran, and overwriting it
+      // would clobber that value.
+      if (el && !el.value) {
         el.value = this.name();
       }
     });

@@ -152,10 +152,10 @@ export class TagEditDialogComponent implements AfterViewInit {
     queueMicrotask(() => {
       const nameEl = this.nameInput()?.nativeElement;
       const descEl = this.descriptionInput()?.nativeElement;
-      if (nameEl && this.name()) {
+      if (nameEl && this.name() && !nameEl.value) {
         nameEl.value = this.name();
       }
-      if (descEl && this.description()) {
+      if (descEl && this.description() && !descEl.value) {
         descEl.value = this.description();
       }
     });

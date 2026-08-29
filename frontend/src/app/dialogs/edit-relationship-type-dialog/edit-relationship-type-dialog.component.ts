@@ -268,8 +268,12 @@ export class EditRelationshipTypeDialogComponent implements AfterViewInit {
     queueMicrotask(() => {
       const nameEl = this.nameInput()?.nativeElement;
       const invEl = this.inverseInput()?.nativeElement;
-      if (nameEl && this.name()) nameEl.value = this.name();
-      if (invEl && this.inverseLabel()) invEl.value = this.inverseLabel();
+      // Skip seeding when the field already has content: a fast automated
+      // filler (or a browser autofill) may have typed into the input before
+      // this microtask ran, and overwriting it would clobber that value.
+      if (nameEl && this.name() && !nameEl.value) nameEl.value = this.name();
+      if (invEl && this.inverseLabel() && !invEl.value)
+        invEl.value = this.inverseLabel();
     });
   }
 
