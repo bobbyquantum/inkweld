@@ -545,6 +545,39 @@ describe('canvasPathToSvg', () => {
     expect(svg).toContain('fill="#ff0"');
   });
 
+  it('should smooth the path when tension is set', () => {
+    const obj: CanvasPath = {
+      ...baseObj,
+      type: 'path',
+      points: [0, 0, 50, 50, 100, 0],
+      stroke: '#f00',
+      strokeWidth: 3,
+      closed: false,
+      tension: 0.5,
+    };
+    const svg = canvasPathToSvg(obj, tf);
+    expect(svg).toContain('C ');
+    expect(svg).not.toContain('NaN');
+    expect(svg).toContain('stroke-linecap="round"');
+  });
+
+  it('should render pressure ink as a filled outline', () => {
+    const obj: CanvasPath = {
+      ...baseObj,
+      type: 'path',
+      points: [0, 0, 50, 0, 100, 0],
+      pressures: [1, 0.5, 0.2],
+      stroke: '#123456',
+      strokeWidth: 10,
+      closed: false,
+      tension: 0,
+    };
+    const svg = canvasPathToSvg(obj, tf);
+    expect(svg).toContain('fill="#123456"');
+    expect(svg).toContain('stroke="none"');
+    expect(svg).toContain('Z');
+  });
+
   it('should return empty string for paths with fewer than 4 points', () => {
     const obj: CanvasPath = {
       ...baseObj,
@@ -648,6 +681,35 @@ describe('canvasPinToSvg', () => {
 // ─────────────────────────────────────────────────────────────────────────
 
 describe('canvasObjectToSvgElement', () => {
+  it('should wrap translucent objects in an opacity group', () => {
+    const obj: CanvasShape = {
+      ...baseObj,
+      type: 'shape',
+      shapeType: 'rect',
+      opacity: 0.4,
+      width: 100,
+      height: 50,
+      stroke: '#000',
+      strokeWidth: 1,
+    };
+    const svg = canvasObjectToSvgElement(obj);
+    expect(svg.startsWith('<g opacity="0.4">')).toBe(true);
+    expect(svg.endsWith('</g>')).toBe(true);
+  });
+
+  it('should not wrap fully opaque objects', () => {
+    const obj: CanvasShape = {
+      ...baseObj,
+      type: 'shape',
+      shapeType: 'rect',
+      width: 100,
+      height: 50,
+      stroke: '#000',
+      strokeWidth: 1,
+    };
+    expect(canvasObjectToSvgElement(obj).startsWith('<g')).toBe(false);
+  });
+
   it('should include transform with translate', () => {
     const obj: CanvasShape = {
       ...baseObj,

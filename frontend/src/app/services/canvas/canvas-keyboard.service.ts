@@ -20,6 +20,12 @@ export interface CanvasKeyboardHandlers {
   onZoomIn(): void;
   onZoomOut(): void;
   onFitAll(): void;
+  onUndo(): void;
+  onRedo(): void;
+  /** Step the active stroke width up or down (`]` / `[`). */
+  onAdjustStrokeWidth(direction: 1 | -1): void;
+  /** Space held: pan the canvas without leaving the current tool. */
+  onSpacePanChange(active: boolean): void;
 }
 
 /**
@@ -39,34 +45,105 @@ export class CanvasKeyboardService {
     h: 'pan',
     p: 'pin',
     d: 'draw',
+    e: 'eraser',
     l: 'line',
     s: 'shape',
     t: 'text',
   };
 
-  /** Attach the listener. Subsequent calls are no-ops. */
+  /** Attach the listeners. Subsequent calls are no-ops. */
   attach(handlers: CanvasKeyboardHandlers): void {
     if (this.attached) return;
     this.attached = true;
-    const handler = (e: KeyboardEvent) => this.dispatch(e, handlers);
-    document.addEventListener('keydown', handler);
+    const onKeyDown = (e: KeyboardEvent) => this.dispatch(e, handlers);
+    const onKeyUp = (e: KeyboardEvent) => this.dispatchKeyUp(e, handlers);
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
     this.destroyRef.onDestroy(() => {
-      document.removeEventListener('keydown', handler);
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('keyup', onKeyUp);
     });
   }
 
   private attached = false;
+
+  /** Whether space is currently held down (temporary pan). */
+  private spaceHeld = false;
 
   /** Exposed for unit tests. */
   dispatch(e: KeyboardEvent, h: CanvasKeyboardHandlers): void {
     if (this.isTypingTarget(e.target)) return;
 
     const key = e.key.toLowerCase();
+    if (this.handleHistoryShortcuts(e, key, h)) return;
     if (this.handleClipboardShortcuts(e, key, h)) return;
+    if (this.handleSpacePan(e, key, h)) return;
     if (this.handleToolSelectionShortcuts(key, e.ctrlKey || e.metaKey, h))
       return;
+    if (this.handleBrushShortcuts(e, key, h)) return;
     if (this.handleEditingShortcuts(e, key, h)) return;
     this.handleZoomShortcuts(e, key, h);
+  }
+
+  /** Exposed for unit tests. */
+  dispatchKeyUp(e: KeyboardEvent, h: CanvasKeyboardHandlers): void {
+    if (e.key !== ' ' && e.key !== 'Spacebar') return;
+    if (!this.spaceHeld) return;
+    this.spaceHeld = false;
+    h.onSpacePanChange(false);
+  }
+
+  private handleHistoryShortcuts(
+    e: KeyboardEvent,
+    key: string,
+    h: CanvasKeyboardHandlers
+  ): boolean {
+    if (!e.ctrlKey && !e.metaKey) return false;
+
+    if (key === 'z') {
+      e.preventDefault();
+      if (e.shiftKey) h.onRedo();
+      else h.onUndo();
+      return true;
+    }
+    if (key === 'y') {
+      e.preventDefault();
+      h.onRedo();
+      return true;
+    }
+    return false;
+  }
+
+  private handleSpacePan(
+    e: KeyboardEvent,
+    key: string,
+    h: CanvasKeyboardHandlers
+  ): boolean {
+    if (key !== ' ' && key !== 'spacebar') return false;
+    e.preventDefault();
+    if (this.spaceHeld) return true;
+    this.spaceHeld = true;
+    h.onSpacePanChange(true);
+    return true;
+  }
+
+  private handleBrushShortcuts(
+    e: KeyboardEvent,
+    key: string,
+    h: CanvasKeyboardHandlers
+  ): boolean {
+    if (e.ctrlKey || e.metaKey) return false;
+    if (key === '[') {
+      e.preventDefault();
+      h.onAdjustStrokeWidth(-1);
+      return true;
+    }
+    if (key === ']') {
+      e.preventDefault();
+      h.onAdjustStrokeWidth(1);
+      return true;
+    }
+    return false;
   }
 
   private isTypingTarget(target: EventTarget | null): boolean {

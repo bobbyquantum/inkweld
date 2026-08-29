@@ -77,6 +77,29 @@ export class CanvasColorService {
     return { title: 'Edit Colors', showFill, showStroke, fill, stroke };
   }
 
+  /**
+   * Apply colours to an object without going through the dialog — used by the
+   * toolbar swatches, which recolour the current selection as you pick.
+   * Colours that don't apply to the object's type are ignored.
+   */
+  applyColor(objectId: string, result: ColorResult): void {
+    const obj = this.canvasService
+      .activeConfig()
+      ?.objects.find(o => o.id === objectId);
+    if (!obj) return;
+
+    if (obj.type === 'image') return;
+
+    if (obj.type === 'pin' || obj.type === 'text') {
+      const fill = result.fill;
+      if (fill === undefined) return;
+      this.applyColorUpdate(objectId, obj.type, { fill });
+      return;
+    }
+
+    this.applyColorUpdate(objectId, obj.type, result);
+  }
+
   private applyColorUpdate(
     objectId: string,
     type: string,
@@ -108,13 +131,26 @@ export class CanvasColorService {
     } else if (type === 'text' && node instanceof Konva.Text) {
       if (result.fill) node.fill(result.fill);
     } else if (type === 'path' && node instanceof Konva.Line) {
-      if (result.stroke) node.stroke(result.stroke);
-      if (result.fill) node.fill(result.fill);
+      // Pressure ink is drawn as a filled outline, so its colour is the fill.
+      const isInk = this.isInkPath(objectId);
+      if (result.stroke) {
+        if (isInk) node.fill(result.stroke);
+        else node.stroke(result.stroke);
+      }
+      if (result.fill && !isInk) node.fill(result.fill);
     } else if (type === 'shape') {
       this.applyShapeColors(node, result);
     }
 
     node.getLayer()?.batchDraw();
+  }
+
+  /** Pressure ink stores its colour as the fill of an outline, not a stroke. */
+  private isInkPath(objectId: string): boolean {
+    const obj = this.canvasService
+      .activeConfig()
+      ?.objects.find(o => o.id === objectId);
+    return obj?.type === 'path' && !!obj.pressures?.length;
   }
 
   private findKonvaNodeById(objectId: string): Konva.Node | undefined {

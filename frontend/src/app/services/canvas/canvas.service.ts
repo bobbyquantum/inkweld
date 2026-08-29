@@ -8,19 +8,31 @@
  * instance so multiple canvas tabs never share config state.
  */
 
-import { effect, inject, Injectable, signal, untracked } from '@angular/core';
+import {
+  computed,
+  DestroyRef,
+  effect,
+  inject,
+  Injectable,
+  signal,
+  untracked,
+} from '@angular/core';
 import {
   type CanvasConfig,
   type CanvasLayer,
   type CanvasObject,
+  type CanvasToolSettings,
   type CanvasViewport,
   createDefaultCanvasConfig,
   createDefaultLayer,
+  normalizeToolSettings,
 } from '@models/canvas.model';
 import { LoggerService } from '@services/core/logger.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { nanoid } from 'nanoid';
+
+import { UndoHistory } from './canvas-history';
 
 /** Key used to store serialized canvas config in element metadata */
 const CANVAS_CONFIG_META_KEY = 'canvasConfig';
@@ -33,8 +45,31 @@ export interface PinOptions {
   relationshipId?: string;
 }
 
+/** Options controlling how a config change is recorded and persisted */
+export interface SaveOptions {
+  /**
+   * Groups rapid changes into a single undo step. Consecutive saves sharing a
+   * key (a slider drag, a multi-object nudge) collapse to one entry.
+   */
+  coalesceKey?: string;
+  /** Skip the undo stack entirely — used by undo/redo themselves. */
+  skipHistory?: boolean;
+}
+
 /** LocalStorage key prefix for per-user canvas viewport */
 const CANVAS_STATE_BASE_PREFIX = 'inkweld-canvas-state:';
+
+/** LocalStorage key for per-user drawing tool settings */
+const CANVAS_TOOLS_BASE_KEY = 'inkweld-canvas-tools';
+
+/**
+ * Minimum gap between metadata writes. A canvas edit rewrites the project's
+ * whole element array, so bursts (a flurry of strokes, an eraser sweep, a
+ * multi-object drag) are throttled into a leading write plus one trailing
+ * write instead of one per mutation. Local state is never delayed — only the
+ * trip through Yjs is.
+ */
+const PERSIST_INTERVAL_MS = 200;
 
 /**
  * NOT provided at root — each CanvasTabComponent provides its own
@@ -45,6 +80,7 @@ export class CanvasService {
   private readonly logger = inject(LoggerService);
   private readonly projectState = inject(ProjectStateService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly destroyRef = inject(DestroyRef);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Active canvas state
@@ -64,6 +100,32 @@ export class CanvasService {
    */
   private lastAppliedSerialized: string | null = null;
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Undo / redo
+  // ─────────────────────────────────────────────────────────────────────────
+
+  private readonly history = new UndoHistory<CanvasConfig>();
+
+  /** Bumped whenever the history stack changes so the UI can re-read it. */
+  private readonly historyVersion = signal(0);
+
+  readonly canUndo = computed(() => {
+    this.historyVersion();
+    return this.history.canUndo;
+  });
+
+  readonly canRedo = computed(() => {
+    this.historyVersion();
+    return this.history.canRedo;
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Throttled persistence
+  // ─────────────────────────────────────────────────────────────────────────
+
+  private pendingWrite: { elementId: string; serialized: string } | null = null;
+  private persistTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor() {
     // React to remote updates to the bound element's metadata. When another
     // user edits the canvas, ProjectStateService re-emits `elements()` with
@@ -77,9 +139,86 @@ export class CanvasService {
       const serialized = element?.metadata?.[CANVAS_CONFIG_META_KEY] ?? null;
       if (serialized === this.lastAppliedSerialized) return;
       untracked(() => {
+        // A local edit is still queued: our state is the newer one, so push it
+        // out rather than letting a stale snapshot overwrite work in progress.
+        if (this.pendingWrite) {
+          this.flush();
+          return;
+        }
         this.applySerializedConfig(id, serialized);
+        // Remote work landed underneath us — replaying a redo on top of it
+        // would resurrect state the other author never saw.
+        this.history.clearRedo();
+        this.historyVersion.update(v => v + 1);
       });
     });
+
+    const flushOnHide = () => {
+      if (document.visibilityState === 'hidden') this.flush();
+    };
+    document.addEventListener('visibilitychange', flushOnHide);
+    this.destroyRef.onDestroy(() => {
+      document.removeEventListener('visibilitychange', flushOnHide);
+      this.flush();
+    });
+  }
+
+  /** Undo the last local change. Returns true when something was undone. */
+  undo(): boolean {
+    const current = this.activeConfigSignal();
+    if (!current) return false;
+    const previous = this.history.undo(current);
+    if (!previous) return false;
+    this.applyConfig(previous);
+    this.historyVersion.update(v => v + 1);
+    return true;
+  }
+
+  /** Redo the most recently undone change. */
+  redo(): boolean {
+    const current = this.activeConfigSignal();
+    if (!current) return false;
+    const next = this.history.redo(current);
+    if (!next) return false;
+    this.applyConfig(next);
+    this.historyVersion.update(v => v + 1);
+    return true;
+  }
+
+  /** Push any queued metadata write out immediately. */
+  flush(): void {
+    if (this.persistTimer !== null) {
+      clearTimeout(this.persistTimer);
+      this.persistTimer = null;
+    }
+    this.writePending();
+  }
+
+  private writePending(): void {
+    const pending = this.pendingWrite;
+    this.pendingWrite = null;
+    if (!pending) return;
+    this.projectState.updateElementMetadata(pending.elementId, {
+      [CANVAS_CONFIG_META_KEY]: pending.serialized,
+    });
+  }
+
+  /**
+   * Queue a metadata write. The first change in a burst goes out immediately
+   * so collaborators see it without delay; anything that piles up behind it is
+   * collapsed into a single trailing write.
+   */
+  private schedulePersist(elementId: string, serialized: string): void {
+    this.pendingWrite = { elementId, serialized };
+
+    if (this.persistTimer !== null) return;
+
+    this.writePending();
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null;
+      const pending = this.pendingWrite;
+      if (pending) this.schedulePersist(pending.elementId, pending.serialized);
+    }, PERSIST_INTERVAL_MS);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -92,6 +231,10 @@ export class CanvasService {
    * Reads from element metadata if it exists, otherwise creates defaults.
    */
   loadConfig(elementId: string): CanvasConfig {
+    this.flush();
+    this.history.clear();
+    this.historyVersion.update(v => v + 1);
+
     const element = this.projectState.elements().find(e => e.id === elementId);
     const serialized = element?.metadata?.[CANVAS_CONFIG_META_KEY] ?? null;
     this.applySerializedConfig(elementId, serialized);
@@ -101,10 +244,21 @@ export class CanvasService {
   }
 
   /**
-   * Save canvas config to element metadata (synced via Yjs).
+   * Save canvas config to element metadata (synced via Yjs) and record the
+   * previous state on the undo stack.
    * Excludes viewport (local-only state).
    */
-  saveConfig(config: CanvasConfig): void {
+  saveConfig(config: CanvasConfig, options?: SaveOptions): void {
+    const previous = this.activeConfigSignal();
+    if (previous && !options?.skipHistory) {
+      this.history.push(previous, options?.coalesceKey);
+      this.historyVersion.update(v => v + 1);
+    }
+    this.applyConfig(config);
+  }
+
+  /** Push a config into local state and queue it for persistence. */
+  private applyConfig(config: CanvasConfig): void {
     this.activeConfigSignal.set(config);
 
     const toSerialize: Omit<CanvasConfig, 'elementId'> = {
@@ -114,9 +268,7 @@ export class CanvasService {
     const serialized = JSON.stringify(toSerialize);
     this.lastAppliedSerialized = serialized;
 
-    this.projectState.updateElementMetadata(config.elementId, {
-      [CANVAS_CONFIG_META_KEY]: serialized,
-    });
+    this.schedulePersist(config.elementId, serialized);
   }
 
   /**
@@ -263,28 +415,57 @@ export class CanvasService {
 
   /** Remove a canvas object by ID */
   removeObject(objectId: string): void {
-    const config = this.activeConfigSignal();
-    if (!config) return;
+    this.removeObjects([objectId]);
+  }
 
-    this.saveConfig({
-      ...config,
-      objects: config.objects.filter(o => o.id !== objectId),
-    });
+  /**
+   * Remove several objects in one edit — one undo step and one write for a
+   * whole eraser sweep or multi-object delete.
+   */
+  removeObjects(objectIds: string[]): void {
+    const config = this.activeConfigSignal();
+    if (!config || objectIds.length === 0) return;
+
+    const doomed = new Set(objectIds);
+    const objects = config.objects.filter(o => !doomed.has(o.id));
+    if (objects.length === config.objects.length) return;
+
+    this.saveConfig({ ...config, objects });
   }
 
   /** Update an existing canvas object */
-  updateObject(objectId: string, updates: Partial<CanvasObject>): void {
-    const config = this.activeConfigSignal();
-    if (!config) return;
+  updateObject(
+    objectId: string,
+    updates: Partial<CanvasObject>,
+    options?: SaveOptions
+  ): void {
+    this.updateObjects([{ id: objectId, updates }], options);
+  }
 
-    this.saveConfig({
-      ...config,
-      objects: config.objects.map(o =>
-        o.id === objectId
-          ? ({ ...o, ...updates, id: objectId } as CanvasObject)
-          : o
-      ),
+  /**
+   * Apply updates to several objects in a single edit. Used for multi-select
+   * drags and transforms, which would otherwise rewrite the project once per
+   * node.
+   */
+  updateObjects(
+    edits: { id: string; updates: Partial<CanvasObject> }[],
+    options?: SaveOptions
+  ): void {
+    const config = this.activeConfigSignal();
+    if (!config || edits.length === 0) return;
+
+    const editMap = new Map(edits.map(e => [e.id, e.updates]));
+    let changed = false;
+
+    const objects = config.objects.map(o => {
+      const updates = editMap.get(o.id);
+      if (!updates) return o;
+      changed = true;
+      return { ...o, ...updates, id: o.id } as CanvasObject;
     });
+
+    if (!changed) return;
+    this.saveConfig({ ...config, objects }, options);
   }
 
   /** Move an object to a different layer */
@@ -362,18 +543,14 @@ export class CanvasService {
   }
 
   /** Batch-update multiple object positions (e.g. after drag) */
-  updateObjectPositions(updates: { id: string; x: number; y: number }[]): void {
-    const config = this.activeConfigSignal();
-    if (!config) return;
-
-    const updateMap = new Map(updates.map(u => [u.id, u]));
-    this.saveConfig({
-      ...config,
-      objects: config.objects.map(o => {
-        const upd = updateMap.get(o.id);
-        return upd ? { ...o, x: upd.x, y: upd.y } : o;
-      }),
-    });
+  updateObjectPositions(
+    updates: { id: string; x: number; y: number }[],
+    options?: SaveOptions
+  ): void {
+    this.updateObjects(
+      updates.map(({ id, x, y }) => ({ id, updates: { x, y } })),
+      options
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -441,6 +618,34 @@ export class CanvasService {
       return JSON.parse(raw) as CanvasViewport;
     } catch {
       return null;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Tool Settings (per-user, shared by every canvas, not synced)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** Persist the drawing tool settings so they survive a reload. */
+  saveToolSettings(settings: CanvasToolSettings): void {
+    try {
+      localStorage.setItem(
+        this.storageContext.prefixKey(CANVAS_TOOLS_BASE_KEY),
+        JSON.stringify(settings)
+      );
+    } catch {
+      // localStorage full or unavailable — settings just won't persist
+    }
+  }
+
+  /** Load tool settings, falling back to defaults for anything missing. */
+  loadToolSettings(): CanvasToolSettings {
+    try {
+      const raw = localStorage.getItem(
+        this.storageContext.prefixKey(CANVAS_TOOLS_BASE_KEY)
+      );
+      return normalizeToolSettings(raw ? JSON.parse(raw) : null);
+    } catch {
+      return normalizeToolSettings(null);
     }
   }
 }

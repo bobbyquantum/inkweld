@@ -67,6 +67,8 @@ interface CanvasObjectBase {
   locked: boolean;
   /** Optional display name shown in the objects sidebar */
   name?: string;
+  /** Object opacity (0–1). Undefined means fully opaque. */
+  opacity?: number;
 }
 
 // ─── Image Object ────────────────────────────────────────────────────────────
@@ -125,6 +127,13 @@ export interface CanvasPath extends CanvasObjectBase {
   fill?: string;
   /** Spline tension. 0 = straight segments, > 0 = smooth curves. */
   tension: number;
+  /**
+   * Per-point width multipliers (0–1), one per point in {@link points}.
+   * Present only for pressure/velocity-modulated ink; when set the stroke is
+   * rendered as a filled outline whose half-width is
+   * `strokeWidth / 2 * pressures[i]` instead of a uniform stroked polyline.
+   */
+  pressures?: number[];
 }
 
 // ─── Shape Object ────────────────────────────────────────────────────────────
@@ -225,10 +234,39 @@ export type CanvasTool =
   | 'pan'
   | 'pin'
   | 'draw'
+  | 'eraser'
   | 'line'
   | 'shape'
   | 'text'
   | 'image';
+
+/** Tools that create new objects by dragging on the stage */
+const DRAWING_TOOLS = new Set<CanvasTool>(['draw', 'line', 'shape']);
+
+/** Tools that must receive raw stage input rather than hitting objects */
+const STAGE_CAPTURE_TOOLS = new Set<CanvasTool>([
+  'draw',
+  'eraser',
+  'line',
+  'shape',
+  'rectSelect',
+  'pin',
+  'text',
+]);
+
+/** True when `tool` draws a new object by dragging (free-draw, line, shape). */
+export function isDrawingTool(tool: CanvasTool): boolean {
+  return DRAWING_TOOLS.has(tool);
+}
+
+/**
+ * True when `tool` needs pointer events to reach the stage instead of the
+ * objects on it — otherwise you cannot draw or drop a pin on top of an image,
+ * and pressing an existing object drags it instead of starting a stroke.
+ */
+export function capturesStageInput(tool: CanvasTool): boolean {
+  return STAGE_CAPTURE_TOOLS.has(tool);
+}
 
 /** Persistent drawing/tool settings */
 export interface CanvasToolSettings {
@@ -238,6 +276,10 @@ export interface CanvasToolSettings {
   strokeWidth: number;
   /** Fill color for new shapes/text */
   fill: string;
+  /** Whether new shapes are filled at all */
+  fillEnabled: boolean;
+  /** Opacity (0–1) applied to newly created objects */
+  opacity: number;
   /** Font size for new text objects */
   fontSize: number;
   /** Font family for new text objects */
@@ -246,7 +288,25 @@ export interface CanvasToolSettings {
   shapeType: CanvasShapeType;
   /** Spline tension for the draw tool */
   tension: number;
+  /**
+   * Whether freehand strokes vary in width with stylus pressure (or, for
+   * mouse/trackpad input, with drawing speed).
+   */
+  pressure: boolean;
+  /** Eraser radius in canvas units */
+  eraserSize: number;
 }
+
+/** Stroke width presets offered in the toolbar */
+export const STROKE_WIDTH_PRESETS = [1, 2, 4, 8, 16, 32] as const;
+
+/** Bounds for the stroke width control */
+export const MIN_STROKE_WIDTH = 1;
+export const MAX_STROKE_WIDTH = 96;
+
+/** Bounds for the eraser radius control */
+export const MIN_ERASER_SIZE = 4;
+export const MAX_ERASER_SIZE = 200;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Defaults & Factories
@@ -277,11 +337,63 @@ export function createDefaultLayer(name: string, order: number): CanvasLayer {
 export function createDefaultToolSettings(): CanvasToolSettings {
   return {
     stroke: '#333333',
-    strokeWidth: 2,
+    strokeWidth: 3,
     fill: '#ffffff',
+    fillEnabled: false,
+    opacity: 1,
     fontSize: 18,
     fontFamily: 'Arial',
     shapeType: 'rect',
-    tension: 0,
+    tension: 0.35,
+    pressure: true,
+    eraserSize: 16,
+  };
+}
+
+/**
+ * Merge persisted (possibly partial or stale) tool settings over the current
+ * defaults, dropping anything that isn't a usable value. Keeps older stored
+ * settings working when new fields are added.
+ */
+export function normalizeToolSettings(stored: unknown): CanvasToolSettings {
+  const defaults = createDefaultToolSettings();
+  if (!stored || typeof stored !== 'object') return defaults;
+
+  const s = stored as Partial<Record<keyof CanvasToolSettings, unknown>>;
+  const num = (v: unknown, fallback: number, min: number, max: number) =>
+    typeof v === 'number' && Number.isFinite(v)
+      ? Math.min(Math.max(v, min), max)
+      : fallback;
+  const str = (v: unknown, fallback: string) =>
+    typeof v === 'string' && v.length > 0 ? v : fallback;
+  const bool = (v: unknown, fallback: boolean) =>
+    typeof v === 'boolean' ? v : fallback;
+
+  return {
+    stroke: str(s.stroke, defaults.stroke),
+    strokeWidth: num(
+      s.strokeWidth,
+      defaults.strokeWidth,
+      MIN_STROKE_WIDTH,
+      MAX_STROKE_WIDTH
+    ),
+    fill: str(s.fill, defaults.fill),
+    fillEnabled: bool(s.fillEnabled, defaults.fillEnabled),
+    opacity: num(s.opacity, defaults.opacity, 0.05, 1),
+    fontSize: num(s.fontSize, defaults.fontSize, 6, 400),
+    fontFamily: str(s.fontFamily, defaults.fontFamily),
+    shapeType: (
+      ['rect', 'ellipse', 'polygon', 'line', 'arrow'] as CanvasShapeType[]
+    ).includes(s.shapeType as CanvasShapeType)
+      ? (s.shapeType as CanvasShapeType)
+      : defaults.shapeType,
+    tension: num(s.tension, defaults.tension, 0, 1),
+    pressure: bool(s.pressure, defaults.pressure),
+    eraserSize: num(
+      s.eraserSize,
+      defaults.eraserSize,
+      MIN_ERASER_SIZE,
+      MAX_ERASER_SIZE
+    ),
   };
 }

@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
@@ -72,6 +72,15 @@ function makePinObject(overrides: Partial<CanvasPin> = {}): CanvasPin {
     color: '#E53935',
     ...overrides,
   };
+}
+
+/** Find a localStorage key by substring (keys are context-prefixed). */
+function findStorageKey(fragment: string): string | undefined {
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.includes(fragment)) return key;
+  }
+  return undefined;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -793,6 +802,281 @@ describe('CanvasService', () => {
     it('should return null for corrupt localStorage data', () => {
       localStorage.setItem('inkweld-canvas-state:bad', '{invalid}}}');
       expect(service.loadViewport('bad')).toBeNull();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Undo / redo
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('undo/redo', () => {
+    beforeEach(() => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      service.loadConfig('canvas-1');
+    });
+
+    it('starts with nothing to undo or redo', () => {
+      expect(service.canUndo()).toBe(false);
+      expect(service.canRedo()).toBe(false);
+      expect(service.undo()).toBe(false);
+      expect(service.redo()).toBe(false);
+    });
+
+    it('undoes an added object', () => {
+      service.addObject(makeTextObject({ id: 'text-1' }));
+      expect(service.activeConfig()?.objects).toHaveLength(1);
+      expect(service.canUndo()).toBe(true);
+
+      expect(service.undo()).toBe(true);
+      expect(service.activeConfig()?.objects).toHaveLength(0);
+      expect(service.canRedo()).toBe(true);
+    });
+
+    it('redoes what was undone', () => {
+      service.addObject(makeTextObject({ id: 'text-1' }));
+      service.undo();
+
+      expect(service.redo()).toBe(true);
+      expect(service.activeConfig()?.objects).toHaveLength(1);
+      expect(service.canRedo()).toBe(false);
+    });
+
+    it('walks back through several edits', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      service.addObject(makeTextObject({ id: 'b' }));
+      service.addLayer('Extra');
+
+      service.undo();
+      expect(service.activeConfig()?.layers).toHaveLength(1);
+      service.undo();
+      expect(service.activeConfig()?.objects.map(o => o.id)).toEqual(['a']);
+      service.undo();
+      expect(service.activeConfig()?.objects).toHaveLength(0);
+      expect(service.canUndo()).toBe(false);
+    });
+
+    it('drops the redo branch once a new edit lands', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      service.undo();
+      service.addObject(makeTextObject({ id: 'b' }));
+
+      expect(service.canRedo()).toBe(false);
+    });
+
+    it('collapses a coalesced gesture into one undo step', () => {
+      service.addObject(makeTextObject({ id: 'a', x: 0 }));
+      service.updateObject('a', { x: 10 }, { coalesceKey: 'drag-1' });
+      service.updateObject('a', { x: 20 }, { coalesceKey: 'drag-1' });
+      service.updateObject('a', { x: 30 }, { coalesceKey: 'drag-1' });
+
+      service.undo();
+      expect(service.activeConfig()?.objects[0].x).toBe(0);
+    });
+
+    it('keeps separate gestures separately undoable', () => {
+      service.addObject(makeTextObject({ id: 'a', x: 0 }));
+      service.updateObject('a', { x: 10 }, { coalesceKey: 'drag-1' });
+      service.updateObject('a', { x: 20 }, { coalesceKey: 'drag-2' });
+
+      service.undo();
+      expect(service.activeConfig()?.objects[0].x).toBe(10);
+    });
+
+    it('forgets history when a different canvas is loaded', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      expect(service.canUndo()).toBe(true);
+
+      mockElements.set([
+        makeElement({ id: 'canvas-1' }),
+        makeElement({ id: 'canvas-2' }),
+      ]);
+      service.loadConfig('canvas-2');
+      expect(service.canUndo()).toBe(false);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Batch object operations
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('batch operations', () => {
+    beforeEach(() => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      service.loadConfig('canvas-1');
+      service.addObject(makeTextObject({ id: 'a', x: 0 }));
+      service.addObject(makeTextObject({ id: 'b', x: 0 }));
+      service.addObject(makeTextObject({ id: 'c', x: 0 }));
+    });
+
+    it('removes several objects as one edit', () => {
+      service.removeObjects(['a', 'c']);
+
+      expect(service.activeConfig()?.objects.map(o => o.id)).toEqual(['b']);
+      service.undo();
+      expect(service.activeConfig()?.objects).toHaveLength(3);
+    });
+
+    it('ignores ids that are not on the canvas', () => {
+      const before = service.activeConfig();
+      service.removeObjects(['nope']);
+      expect(service.activeConfig()).toBe(before);
+    });
+
+    it('ignores an empty removal', () => {
+      const before = service.activeConfig();
+      service.removeObjects([]);
+      expect(service.activeConfig()).toBe(before);
+    });
+
+    it('updates several objects as one edit', () => {
+      service.updateObjects([
+        { id: 'a', updates: { x: 5 } },
+        { id: 'b', updates: { x: 6 } },
+      ]);
+
+      const objects = service.activeConfig()?.objects ?? [];
+      expect(objects[0].x).toBe(5);
+      expect(objects[1].x).toBe(6);
+
+      service.undo();
+      expect(service.activeConfig()?.objects[0].x).toBe(0);
+    });
+
+    it('does not save when no object matched', () => {
+      const before = service.activeConfig();
+      service.updateObjects([{ id: 'missing', updates: { x: 1 } }]);
+      expect(service.activeConfig()).toBe(before);
+    });
+
+    it('batches position updates', () => {
+      service.updateObjectPositions([
+        { id: 'a', x: 11, y: 12 },
+        { id: 'b', x: 21, y: 22 },
+      ]);
+
+      const objects = service.activeConfig()?.objects ?? [];
+      expect(objects[0]).toMatchObject({ x: 11, y: 12 });
+      expect(objects[1]).toMatchObject({ x: 21, y: 22 });
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Write throttling
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('metadata write throttling', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      service.loadConfig('canvas-1');
+      mockProjectState.updateElementMetadata.mockClear();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('writes the first change straight away', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      expect(mockProjectState.updateElementMetadata).toHaveBeenCalledTimes(1);
+    });
+
+    it('collapses a burst into one trailing write', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      service.addObject(makeTextObject({ id: 'b' }));
+      service.addObject(makeTextObject({ id: 'c' }));
+      expect(mockProjectState.updateElementMetadata).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(500);
+      expect(mockProjectState.updateElementMetadata).toHaveBeenCalledTimes(2);
+    });
+
+    it('the trailing write carries the latest state', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      service.addObject(makeTextObject({ id: 'b' }));
+      vi.advanceTimersByTime(500);
+
+      const lastCall = mockProjectState.updateElementMetadata.mock.calls.at(
+        -1
+      ) as [string, Record<string, string>];
+      const parsed = JSON.parse(lastCall[1]['canvasConfig']) as {
+        objects: { id: string }[];
+      };
+      expect(parsed.objects.map(o => o.id)).toEqual(['a', 'b']);
+    });
+
+    it('local state is never delayed', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      service.addObject(makeTextObject({ id: 'b' }));
+      expect(service.activeConfig()?.objects).toHaveLength(2);
+    });
+
+    it('flush sends the queued write immediately', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      service.addObject(makeTextObject({ id: 'b' }));
+
+      service.flush();
+      expect(mockProjectState.updateElementMetadata).toHaveBeenCalledTimes(2);
+
+      // Nothing left over for the timer to send.
+      vi.advanceTimersByTime(500);
+      expect(mockProjectState.updateElementMetadata).toHaveBeenCalledTimes(2);
+    });
+
+    it('flush is a no-op with nothing queued', () => {
+      service.flush();
+      expect(mockProjectState.updateElementMetadata).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Tool settings
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('tool settings', () => {
+    it('returns defaults when nothing is stored', () => {
+      const settings = service.loadToolSettings();
+      expect(settings.strokeWidth).toBeGreaterThan(0);
+      expect(settings.stroke).toBeTruthy();
+    });
+
+    it('round-trips saved settings', () => {
+      const settings = service.loadToolSettings();
+      service.saveToolSettings({
+        ...settings,
+        stroke: '#ABCDEF',
+        strokeWidth: 12,
+        pressure: false,
+      });
+
+      const restored = service.loadToolSettings();
+      expect(restored.stroke).toBe('#ABCDEF');
+      expect(restored.strokeWidth).toBe(12);
+      expect(restored.pressure).toBe(false);
+    });
+
+    it('falls back to defaults for corrupt storage', () => {
+      service.saveToolSettings(service.loadToolSettings());
+      const key = findStorageKey('canvas-tools');
+      expect(key).toBeDefined();
+      localStorage.setItem(key as string, 'not json');
+
+      expect(() => service.loadToolSettings()).not.toThrow();
+      expect(service.loadToolSettings().strokeWidth).toBeGreaterThan(0);
+    });
+
+    it('repairs partial or out-of-range stored settings', () => {
+      service.saveToolSettings(service.loadToolSettings());
+      const key = findStorageKey('canvas-tools') as string;
+      localStorage.setItem(
+        key,
+        JSON.stringify({ strokeWidth: 9999, stroke: 42 })
+      );
+
+      const restored = service.loadToolSettings();
+      expect(restored.strokeWidth).toBeLessThanOrEqual(96);
+      expect(typeof restored.stroke).toBe('string');
+      expect(restored.pressure).toBe(true);
     });
   });
 

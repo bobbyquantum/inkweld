@@ -408,6 +408,41 @@ test.describe('Canvas Tab', () => {
       await expect(zoomLabel).toHaveText('100%');
     });
 
+    await test.step('eraser is selectable alongside the other draw tools', async () => {
+      await toolbar.getByRole('button', { name: /Eraser/i }).click();
+      await expect(
+        toolbar.getByRole('button', { name: /Eraser/i })
+      ).toHaveClass(/active/);
+    });
+
+    await test.step('undo and redo start disabled', async () => {
+      await expect(toolbar.getByTestId('undo-button')).toBeDisabled();
+      await expect(toolbar.getByTestId('redo-button')).toBeDisabled();
+    });
+
+    await test.step('stroke colour picker opens', async () => {
+      await toolbar.getByTestId('stroke-color-button').click();
+      await expect(page.getByTestId('stroke-color-panel')).toBeVisible();
+      await expect(page.getByTestId('color-swatches')).toBeVisible();
+      await page.keyboard.press('Escape');
+    });
+
+    await test.step('brush options expose pressure and smoothing', async () => {
+      await toolbar.getByTestId('brush-options-button').click();
+      await expect(page.getByTestId('brush-options-panel')).toBeVisible();
+      await expect(page.getByTestId('pressure-toggle')).toBeVisible();
+      await expect(page.getByTestId('smoothing-slider')).toBeVisible();
+      await expect(page.getByTestId('eraser-size-slider')).toBeVisible();
+      await page.keyboard.press('Escape');
+    });
+
+    await test.step('stroke width presets are offered', async () => {
+      await toolbar.getByTestId('stroke-width-button').click();
+      await expect(page.getByTestId('stroke-width-panel')).toBeVisible();
+      await expect(page.getByTestId('stroke-width-slider')).toBeVisible();
+      await page.keyboard.press('Escape');
+    });
+
     await test.step('export menu shows all options', async () => {
       await sidebar.getByRole('button', { name: /export canvas/i }).click();
 
