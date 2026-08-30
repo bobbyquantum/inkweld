@@ -7,7 +7,7 @@ import {
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, EMPTY } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
@@ -103,6 +103,10 @@ function createMockSyncProvider(): IElementSyncProvider & {
     ).asObservable(),
     remotePresence$: new BehaviorSubject([]).asObservable(),
     setLocalPresence: vi.fn(),
+    getCanvasContents: vi.fn(() => null),
+    canvasContents$: vi.fn(() => EMPTY),
+    applyCanvasEdit: vi.fn(),
+    seedCanvasContents: vi.fn(),
   };
 }
 

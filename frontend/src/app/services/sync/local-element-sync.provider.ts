@@ -1,11 +1,19 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element } from '@inkweld/index';
 import {
+  applyCanvasEdit as applyEdit,
+  CANVAS_CONFIG_META_KEY,
+  type CanvasContents,
+  type CanvasEdit,
+  emptyCanvasContents,
+  parseCanvasContents,
+} from '@models/canvas-edit';
+import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
-import { BehaviorSubject, type Observable, Subject } from 'rxjs';
+import { BehaviorSubject, filter, map, type Observable, Subject } from 'rxjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type MediaProjectTag } from '../../models/media-project-tag.model';
@@ -122,6 +130,82 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
    */
   setLocalPresence(_fields: LocalPresenceFields): void {
     // Intentionally empty: no remote peers in local-only mode.
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Canvas contents
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /** Canvases whose stream is muted because we are mid-write on them. */
+  private readonly canvasEchoGuard = new Set<string>();
+
+  /**
+   * Local mode has a single writer, so there is nothing to merge: the canvas
+   * stays a JSON blob on its element, which is also what archives and the
+   * media-usage scan read.
+   */
+  getCanvasContents(elementId: string): CanvasContents | null {
+    const element = this.elementsSubject
+      .getValue()
+      .find(e => e.id === elementId);
+    return parseCanvasContents(element?.metadata?.[CANVAS_CONFIG_META_KEY]);
+  }
+
+  canvasContents$(elementId: string): Observable<CanvasContents> {
+    return this.elements$.pipe(
+      // Our own write is already reflected in the editor's state; echoing it
+      // back would hand every object a new identity and make the next edit
+      // look like the whole canvas changed.
+      filter(() => !this.canvasEchoGuard.has(elementId)),
+      map(elements => elements.find(e => e.id === elementId)),
+      map(element =>
+        parseCanvasContents(element?.metadata?.[CANVAS_CONFIG_META_KEY])
+      ),
+      filter((contents): contents is CanvasContents => contents !== null)
+    );
+  }
+
+  applyCanvasEdit(elementId: string, edit: CanvasEdit): void {
+    const elements = this.elementsSubject.getValue();
+    const index = elements.findIndex(e => e.id === elementId);
+    if (index === -1) {
+      this.logger.warn(
+        'OfflineSync',
+        `Cannot edit canvas — element ${elementId} not found`
+      );
+      return;
+    }
+
+    const element = elements[index];
+    const current =
+      parseCanvasContents(element.metadata?.[CANVAS_CONFIG_META_KEY]) ??
+      emptyCanvasContents();
+    const next = applyEdit(current, edit);
+
+    const updated = [...elements];
+    updated[index] = {
+      ...element,
+      metadata: {
+        ...element.metadata,
+        [CANVAS_CONFIG_META_KEY]: JSON.stringify(next),
+      },
+    };
+
+    this.canvasEchoGuard.add(elementId);
+    try {
+      this.updateElements(updated);
+    } finally {
+      this.canvasEchoGuard.delete(elementId);
+    }
+  }
+
+  seedCanvasContents(elementId: string, contents: CanvasContents): void {
+    if (this.getCanvasContents(elementId)) return;
+    this.applyCanvasEdit(elementId, {
+      layers: contents.layers,
+      upserts: contents.objects,
+      order: contents.objects.map(o => o.id),
+    });
   }
 
   /**

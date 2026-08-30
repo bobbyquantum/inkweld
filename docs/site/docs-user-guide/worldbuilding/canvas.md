@@ -221,6 +221,7 @@ Only visible layers are included in the export.
 - **Turn fill off** when drawing shapes over a map so the artwork underneath stays visible
 - **Lower the opacity** and pick a bright stroke colour for highlighter-style annotation
 - The canvas is saved automatically as you work — no explicit save step is needed
+- Two people can draw on the same canvas at once: each stroke syncs on its own, so nobody's work is overwritten by somebody else's
 
 ---
 

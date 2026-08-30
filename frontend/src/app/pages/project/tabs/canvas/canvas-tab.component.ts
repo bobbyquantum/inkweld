@@ -11,6 +11,7 @@ import {
   type OnDestroy,
   type OnInit,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -396,6 +397,16 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
       if (!id) return;
       const element = elements.find(e => e.id === id);
       if (element) this.elementName.set(element.name);
+    });
+
+    // The active layer can go stale: the canvas may load after the tab opened,
+    // or a collaborator may delete the layer we were working on.
+    effect(() => {
+      const config = this.canvasService.activeConfig();
+      if (!config || config.layers.length === 0) return;
+      const current = this.activeLayerId();
+      if (current && config.layers.some(l => l.id === current)) return;
+      untracked(() => this.activeLayerId.set(this.sortedLayers()[0]?.id ?? ''));
     });
 
     // Re-render Konva when config changes (local edits OR remote sync).

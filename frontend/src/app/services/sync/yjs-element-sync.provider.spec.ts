@@ -717,6 +717,326 @@ describe('YjsElementSyncProvider', () => {
     });
   });
 
+  describe('canvas contents', () => {
+    function makePath(id: string, x = 0) {
+      return {
+        id,
+        layerId: 'L1',
+        type: 'path' as const,
+        x,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        points: [0, 0, 10, 10],
+        stroke: '#000',
+        strokeWidth: 2,
+        closed: false,
+        tension: 0,
+      };
+    }
+
+    const layers = [
+      {
+        id: 'L1',
+        name: 'Layer 1',
+        visible: true,
+        locked: false,
+        opacity: 1,
+        order: 0,
+      },
+    ];
+
+    it('returns null for a canvas with no contents', () => {
+      attachDoc();
+      expect(provider.getCanvasContents('canvas-1')).toBeNull();
+    });
+
+    it('ignores edits when there is no document', () => {
+      expect(() =>
+        provider.applyCanvasEdit('canvas-1', { upserts: [makePath('a')] })
+      ).not.toThrow();
+    });
+
+    it('stores each object under its own key', () => {
+      const doc = attachDoc();
+      provider.applyCanvasEdit('canvas-1', {
+        layers,
+        upserts: [makePath('a'), makePath('b')],
+      });
+
+      const canvas = doc
+        .getMap<Y.Map<unknown>>('canvases')
+        .get('canvas-1') as Y.Map<unknown>;
+      const objects = canvas.get('objects') as Y.Map<string>;
+      expect([...objects.keys()].sort()).toEqual(['a', 'b']);
+      expect((canvas.get('order') as Y.Array<string>).toArray()).toEqual([
+        'a',
+        'b',
+      ]);
+    });
+
+    it('reads objects back in z-order', () => {
+      attachDoc();
+      provider.applyCanvasEdit('canvas-1', {
+        layers,
+        upserts: [makePath('a'), makePath('b')],
+      });
+
+      const contents = provider.getCanvasContents('canvas-1');
+      expect(contents?.objects.map(o => o.id)).toEqual(['a', 'b']);
+      expect(contents?.layers).toEqual(layers);
+    });
+
+    it('touches only the object being changed', () => {
+      const doc = attachDoc();
+      provider.applyCanvasEdit('canvas-1', {
+        layers,
+        upserts: [makePath('a'), makePath('b')],
+      });
+
+      const objects = (
+        doc.getMap<Y.Map<unknown>>('canvases').get('canvas-1') as Y.Map<unknown>
+      ).get('objects') as Y.Map<string>;
+      const untouched = objects.get('b');
+
+      provider.applyCanvasEdit('canvas-1', { upserts: [makePath('a', 99)] });
+
+      expect(objects.get('b')).toBe(untouched);
+      expect(JSON.parse(objects.get('a') as string).x).toBe(99);
+    });
+
+    it('removes deleted objects and their ordering', () => {
+      const doc = attachDoc();
+      provider.applyCanvasEdit('canvas-1', {
+        layers,
+        upserts: [makePath('a'), makePath('b')],
+      });
+
+      provider.applyCanvasEdit('canvas-1', { deletes: ['a'] });
+
+      const canvas = doc
+        .getMap<Y.Map<unknown>>('canvases')
+        .get('canvas-1') as Y.Map<unknown>;
+      expect((canvas.get('order') as Y.Array<string>).toArray()).toEqual(['b']);
+      expect(provider.getCanvasContents('canvas-1')?.objects).toHaveLength(1);
+    });
+
+    it('applies an explicit restack', () => {
+      attachDoc();
+      provider.applyCanvasEdit('canvas-1', {
+        layers,
+        upserts: [makePath('a'), makePath('b')],
+      });
+
+      provider.applyCanvasEdit('canvas-1', { order: ['b', 'a'] });
+
+      expect(
+        provider.getCanvasContents('canvas-1')?.objects.map(o => o.id)
+      ).toEqual(['b', 'a']);
+    });
+
+    it('ignores an edit with nothing in it', () => {
+      const doc = attachDoc();
+      provider.applyCanvasEdit('canvas-1', {});
+      expect(doc.getMap('canvases').has('canvas-1')).toBe(false);
+    });
+
+    it('keeps both strokes when two peers draw at once', () => {
+      const local = attachDoc();
+      provider.applyCanvasEdit('canvas-1', {
+        layers,
+        upserts: [makePath('mine')],
+      });
+
+      // A second peer starts from the same state and adds its own object.
+      const remote = new Y.Doc();
+      Y.applyUpdate(remote, Y.encodeStateAsUpdate(local));
+      const remoteCanvas = remote
+        .getMap<Y.Map<unknown>>('canvases')
+        .get('canvas-1') as Y.Map<unknown>;
+      remote.transact(() => {
+        (remoteCanvas.get('objects') as Y.Map<string>).set(
+          'theirs',
+          JSON.stringify(makePath('theirs'))
+        );
+        (remoteCanvas.get('order') as Y.Array<string>).push(['theirs']);
+      });
+
+      Y.applyUpdate(local, Y.encodeStateAsUpdate(remote));
+
+      expect(
+        provider
+          .getCanvasContents('canvas-1')
+          ?.objects.map(o => o.id)
+          .sort()
+      ).toEqual(['mine', 'theirs']);
+    });
+
+    it('surfaces an object whose ordering has not arrived', () => {
+      const doc = attachDoc();
+      provider.applyCanvasEdit('canvas-1', {
+        layers,
+        upserts: [makePath('a')],
+      });
+
+      const canvas = doc
+        .getMap<Y.Map<unknown>>('canvases')
+        .get('canvas-1') as Y.Map<unknown>;
+      doc.transact(() => {
+        (canvas.get('objects') as Y.Map<string>).set(
+          'orphan',
+          JSON.stringify(makePath('orphan'))
+        );
+      });
+
+      expect(
+        provider.getCanvasContents('canvas-1')?.objects.map(o => o.id)
+      ).toEqual(['a', 'orphan']);
+    });
+
+    it('skips unparseable object entries', () => {
+      const doc = attachDoc();
+      provider.applyCanvasEdit('canvas-1', {
+        layers,
+        upserts: [makePath('a')],
+      });
+      const canvas = doc
+        .getMap<Y.Map<unknown>>('canvases')
+        .get('canvas-1') as Y.Map<unknown>;
+      doc.transact(() => {
+        (canvas.get('objects') as Y.Map<string>).set('broken', 'not json');
+      });
+
+      expect(
+        provider.getCanvasContents('canvas-1')?.objects.map(o => o.id)
+      ).toEqual(['a']);
+    });
+
+    it('emits remote changes but not our own edits', () => {
+      const doc = attachDoc();
+      (
+        provider as unknown as { setupDocumentObserver: () => void }
+      ).setupDocumentObserver();
+
+      const seen: number[] = [];
+      provider
+        .canvasContents$('canvas-1')
+        .subscribe(contents => seen.push(contents.objects.length));
+
+      // Initial value from the BehaviorSubject only.
+      expect(seen).toEqual([0]);
+
+      provider.applyCanvasEdit('canvas-1', {
+        layers,
+        upserts: [makePath('a')],
+      });
+      expect(seen).toEqual([0]);
+
+      // A change from elsewhere in the document does reach subscribers.
+      const canvas = doc
+        .getMap<Y.Map<unknown>>('canvases')
+        .get('canvas-1') as Y.Map<unknown>;
+      doc.transact(() => {
+        (canvas.get('objects') as Y.Map<string>).set(
+          'theirs',
+          JSON.stringify(makePath('theirs'))
+        );
+      });
+      expect(seen.at(-1)).toBe(2);
+    });
+
+    it('seeds a canvas only when it has no contents yet', () => {
+      attachDoc();
+      provider.seedCanvasContents('canvas-1', {
+        layers,
+        objects: [makePath('seed')],
+      });
+      provider.seedCanvasContents('canvas-1', {
+        layers,
+        objects: [makePath('ignored')],
+      });
+
+      expect(
+        provider.getCanvasContents('canvas-1')?.objects.map(o => o.id)
+      ).toEqual(['seed']);
+    });
+
+    it('mirrors the canvas onto its element after the drawing pauses', () => {
+      vi.useFakeTimers();
+      try {
+        const doc = attachDoc();
+        doc.getArray<Element>('elements').insert(0, [
+          {
+            id: 'canvas-1',
+            name: 'Canvas',
+            type: ElementType.Canvas,
+            parentId: null,
+            order: 0,
+            level: 0,
+            expandable: false,
+            version: 1,
+            metadata: {},
+          },
+        ]);
+
+        provider.applyCanvasEdit('canvas-1', {
+          layers,
+          upserts: [makePath('a')],
+        });
+
+        // Nothing written while the pen is still moving.
+        expect(
+          doc.getArray<Element>('elements').get(0).metadata?.['canvasConfig']
+        ).toBeUndefined();
+
+        vi.advanceTimersByTime(5000);
+
+        const snapshot = doc.getArray<Element>('elements').get(0).metadata?.[
+          'canvasConfig'
+        ];
+        expect(snapshot).toBeDefined();
+        expect(JSON.parse(snapshot).objects).toHaveLength(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('writes a pending snapshot out on disconnect', () => {
+      vi.useFakeTimers();
+      try {
+        const doc = attachDoc();
+        doc.getArray<Element>('elements').insert(0, [
+          {
+            id: 'canvas-1',
+            name: 'Canvas',
+            type: ElementType.Canvas,
+            parentId: null,
+            order: 0,
+            level: 0,
+            expandable: false,
+            version: 1,
+            metadata: {},
+          },
+        ]);
+        provider.applyCanvasEdit('canvas-1', {
+          layers,
+          upserts: [makePath('a')],
+        });
+
+        provider.disconnect();
+
+        expect(
+          doc.getArray<Element>('elements').get(0).metadata?.['canvasConfig']
+        ).toBeDefined();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   describe('presence', () => {
     function remoteSession(username: string): PresenceSession {
       return {

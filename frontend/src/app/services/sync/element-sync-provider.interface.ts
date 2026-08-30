@@ -6,6 +6,7 @@ import {
   type PresenceStatus,
   type PresenceUserIdentity,
 } from '@inkweld/presence';
+import { type CanvasContents, type CanvasEdit } from '@models/canvas-edit';
 import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
@@ -392,6 +393,40 @@ export interface IElementSyncProvider {
    * @param meta Partial metadata to update
    */
   updateProjectMeta(meta: Partial<ProjectMeta>): void;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Canvas contents (per-object, so concurrent drawing merges)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Read a canvas's synced contents.
+   *
+   * Returns `null` when the provider holds no state for that canvas yet —
+   * a brand-new canvas, or one whose contents still only exist in the legacy
+   * element-metadata blob and need seeding.
+   */
+  getCanvasContents(elementId: string): CanvasContents | null;
+
+  /**
+   * Observable of one canvas's contents, emitting when another peer changes
+   * it. Local edits are not echoed back: the caller already has that state.
+   */
+  canvasContents$(elementId: string): Observable<CanvasContents>;
+
+  /**
+   * Apply a granular change to a canvas.
+   *
+   * Real-time providers write each object separately so two people drawing at
+   * once keep both strokes; single-writer providers may persist the canvas
+   * however they like.
+   */
+  applyCanvasEdit(elementId: string, edit: CanvasEdit): void;
+
+  /**
+   * Populate a canvas that has no synced contents yet, e.g. from the legacy
+   * metadata blob when it is first opened. Does nothing when contents exist.
+   */
+  seedCanvasContents(elementId: string, contents: CanvasContents): void;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Presence
