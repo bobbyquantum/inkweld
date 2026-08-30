@@ -399,7 +399,10 @@
               (change)="savePrivacyPolicyUrl($any($event.target).value)"
               [disabled]="isSaving()"
               id="admin-privacy-policy-url-input"
-              data-testid="privacy-policy-url-input" />
+              data-testid="privacy-policy-url-input"
+              [attr.aria-label]="
+                'admin.settings.privacyPolicyUrlAria' | transloco
+              " />
             <mat-hint>{{
               'admin.settings.privacyPolicyUrlHint' | transloco
             }}</mat-hint>
@@ -415,7 +418,8 @@
               (change)="saveTermsUrl($any($event.target).value)"
               [disabled]="isSaving()"
               id="admin-terms-url-input"
-              data-testid="terms-url-input" />
+              data-testid="terms-url-input"
+              [attr.aria-label]="'admin.settings.termsUrlAria' | transloco" />
             <mat-hint>{{ 'admin.settings.termsUrlHint' | transloco }}</mat-hint>
           </mat-form-field>
         </div>
@@ -454,7 +458,10 @@
               "
               [disabled]="isSaving()"
               id="admin-custom-head-html-input"
-              data-testid="custom-head-html-input"></textarea>
+              data-testid="custom-head-html-input"
+              [attr.aria-label]="
+                'admin.settings.customHeadAria' | transloco
+              "></textarea>
             <mat-hint>{{
               'admin.settings.customHeadHint' | transloco
             }}</mat-hint>
@@ -473,7 +480,10 @@
               "
               [disabled]="isSaving()"
               id="admin-custom-body-html-input"
-              data-testid="custom-body-html-input"></textarea>
+              data-testid="custom-body-html-input"
+              [attr.aria-label]="
+                'admin.settings.customBodyAria' | transloco
+              "></textarea>
             <mat-hint>{{
               'admin.settings.customBodyHint' | transloco
             }}</mat-hint>
