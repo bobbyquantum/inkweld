@@ -2335,8 +2335,8 @@ describe('CanvasTabComponent', () => {
       const dividers = fixture.nativeElement.querySelectorAll(
         '[data-toolbar-divider]'
       );
-      expect(groups.length).toBe(6);
-      expect(dividers.length).toBe(5);
+      expect(groups).toHaveLength(6);
+      expect(dividers).toHaveLength(5);
     });
 
     it('does not measure a toolbar with no width', () => {
