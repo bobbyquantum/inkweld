@@ -773,10 +773,12 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
       widths: this.groupWidths,
     }) as ReadonlySet<CanvasToolbarGroup>;
 
+    // Only the decision is stored — no follow-up measurement. Re-measuring
+    // after every change lets the row chase itself between two answers, which
+    // shows up as a toolbar whose buttons never stop moving. If hiding a group
+    // genuinely changes the toolbar's size, the ResizeObserver says so.
     if (!sameOverflow(this.overflowGroups(), next)) {
       this.overflowGroups.set(next);
-      // The row just changed shape; check the new one settles.
-      this.scheduleToolbarMeasure();
     }
   }
 
