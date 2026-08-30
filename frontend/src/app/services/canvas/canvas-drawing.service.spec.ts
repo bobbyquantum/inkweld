@@ -486,6 +486,58 @@ describe('CanvasDrawingService', () => {
     });
   });
 
+  describe('end() reports whether it committed', () => {
+    it('is true after a shape drag big enough to keep', () => {
+      const settings = { ...baseSettings, shapeType: 'ellipse' as const };
+      service.start('shape', settings, handlers);
+      pointer.set({ x: 100, y: 100 });
+      service.move('shape', settings, handlers);
+
+      expect(service.end('shape', settings, handlers)).toBe(true);
+    });
+
+    it('is false when the drag was too small to keep', () => {
+      const settings = { ...baseSettings, shapeType: 'ellipse' as const };
+      service.start('shape', settings, handlers);
+      pointer.set({ x: 11, y: 21 });
+      service.move('shape', settings, handlers);
+
+      expect(service.end('shape', settings, handlers)).toBe(false);
+    });
+
+    it('is true after a committed freehand stroke', () => {
+      service.start('draw', baseSettings, handlers);
+      pointer.set({ x: 40, y: 50 });
+      service.move('draw', baseSettings, handlers);
+      pointer.set({ x: 80, y: 90 });
+      service.move('draw', baseSettings, handlers);
+
+      expect(service.end('draw', baseSettings, handlers)).toBe(true);
+    });
+
+    it('is true after a committed line', () => {
+      service.start('line', baseSettings, handlers);
+      pointer.set({ x: 100, y: 100 });
+      service.move('line', baseSettings, handlers);
+
+      expect(service.end('line', baseSettings, handlers)).toBe(true);
+    });
+
+    it('is false for an eraser sweep and a rect-select', () => {
+      service.start('eraser', baseSettings, handlers);
+      expect(service.end('eraser', baseSettings, handlers)).toBe(false);
+
+      service.start('rectSelect', baseSettings, handlers);
+      pointer.set({ x: 90, y: 90 });
+      service.move('rectSelect', baseSettings, handlers);
+      expect(service.end('rectSelect', baseSettings, handlers)).toBe(false);
+    });
+
+    it('is false when nothing was in progress', () => {
+      expect(service.end('shape', baseSettings, handlers)).toBe(false);
+    });
+  });
+
   // ───────────────────────────────────────────────────────────────────────
   // Stroke capture
   // ───────────────────────────────────────────────────────────────────────

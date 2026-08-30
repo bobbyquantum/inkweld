@@ -208,35 +208,39 @@ export class CanvasDrawingService {
     }
   }
 
-  /** Finalize an in-progress draw operation. */
+  /**
+   * Finalize an in-progress draw operation.
+   *
+   * Returns whether an object was committed. A drag that ends on the stage is
+   * followed by a browser `click`, and the host places a default-sized shape on
+   * click — without this the drag and the click would each create one.
+   */
   end(
     tool: CanvasTool,
     settings: CanvasToolSettings,
     h: DrawingHandlers
-  ): void {
+  ): boolean {
     if (this.erasing) {
       this.commitErase();
-      return;
+      return false;
     }
     if (this.rectSelectRect && this.rectSelectStart) {
       this.finalizeRectSelect(h);
-      return;
+      return false;
     }
     if (this.drawingLine && tool === 'draw') {
-      this.finalizeFreeDraw(settings, h);
-      return;
+      return this.finalizeFreeDraw(settings, h);
     }
     if (this.drawingLine && tool === 'line') {
-      this.finalizeLineDraw(settings, h);
-      return;
+      return this.finalizeLineDraw(settings, h);
     }
     if (this.drawingLine && tool === 'shape') {
-      this.finalizeLineShapeDraw(settings, h);
-      return;
+      return this.finalizeLineShapeDraw(settings, h);
     }
     if (this.drawingShape && tool === 'shape') {
-      this.finalizeRectShapeDraw(settings, h);
+      return this.finalizeRectShapeDraw(settings, h);
     }
+    return false;
   }
 
   /**
@@ -723,7 +727,7 @@ export class CanvasDrawingService {
   private finalizeFreeDraw(
     settings: CanvasToolSettings,
     h: DrawingHandlers
-  ): void {
+  ): boolean {
     const layerId = this.drawingPoints.length >= 4 ? h.ensureLayer() : '';
 
     if (layerId) {
@@ -777,12 +781,14 @@ export class CanvasDrawingService {
     this.widthFactors = [];
     this.lastSample = null;
     this.canvasRenderer.previewLayer?.batchDraw();
+    return !!layerId;
   }
 
   private finalizeLineDraw(
     settings: CanvasToolSettings,
     h: DrawingHandlers
-  ): void {
+  ): boolean {
+    let committed = false;
     const points = this.drawingLine!.points();
     const dx = (points[2] ?? 0) - (points[0] ?? 0);
     const dy = (points[3] ?? 0) - (points[1] ?? 0);
@@ -791,6 +797,7 @@ export class CanvasDrawingService {
     if (len > LINE_MIN_LENGTH) {
       const layerId = h.ensureLayer();
       if (layerId) {
+        committed = true;
         this.canvasService.addObject({
           id: nanoid(),
           layerId,
@@ -815,12 +822,14 @@ export class CanvasDrawingService {
     this.drawingLine = null;
     this.drawingStartPos = null;
     this.canvasRenderer.previewLayer?.batchDraw();
+    return committed;
   }
 
   private finalizeLineShapeDraw(
     settings: CanvasToolSettings,
     h: DrawingHandlers
-  ): void {
+  ): boolean {
+    let committed = false;
     const points = this.drawingLine!.points();
     const dx = (points[2] ?? 0) - (points[0] ?? 0);
     const dy = (points[3] ?? 0) - (points[1] ?? 0);
@@ -829,6 +838,7 @@ export class CanvasDrawingService {
     if (len > LINE_MIN_LENGTH) {
       const layerId = h.ensureLayer();
       if (layerId) {
+        committed = true;
         this.canvasService.addObject({
           id: nanoid(),
           layerId,
@@ -855,12 +865,14 @@ export class CanvasDrawingService {
     this.drawingLine = null;
     this.drawingStartPos = null;
     this.canvasRenderer.previewLayer?.batchDraw();
+    return committed;
   }
 
   private finalizeRectShapeDraw(
     settings: CanvasToolSettings,
     h: DrawingHandlers
-  ): void {
+  ): boolean {
+    let committed = false;
     let w: number, hh: number, sx: number, sy: number;
 
     if (settings.shapeType === 'ellipse') {
@@ -880,6 +892,7 @@ export class CanvasDrawingService {
     if (w > RECT_MIN_SIZE && hh > RECT_MIN_SIZE) {
       const layerId = h.ensureLayer();
       if (layerId) {
+        committed = true;
         this.canvasService.addObject({
           id: nanoid(),
           layerId,
@@ -905,5 +918,6 @@ export class CanvasDrawingService {
     this.drawingShape = null;
     this.drawingStartPos = null;
     this.canvasRenderer.previewLayer?.batchDraw();
+    return committed;
   }
 }

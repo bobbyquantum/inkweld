@@ -175,6 +175,14 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private gestureKey: string | null = null;
   private gestureCounter = 0;
 
+  /**
+   * Set when a drag committed an object. The browser fires a `click` straight
+   * after such a drag, and a click places a default-sized shape — without this
+   * one drag produced two shapes: the one drawn, plus a default one dropped
+   * where the pointer was released.
+   */
+  private dragCommittedObject = false;
+
   /** Currently active layer ID */
   protected readonly activeLayerId = signal<string>('');
 
@@ -453,6 +461,12 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   ): void {
     const tool = this.activeTool();
 
+    // This click is the tail of a drag that already drew something.
+    if (this.dragCommittedObject) {
+      this.dragCommittedObject = false;
+      return;
+    }
+
     if (tool === 'select' || tool === 'pan' || tool === 'rectSelect') {
       this.clearCanvasSelection();
       return;
@@ -501,11 +515,16 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   private handleDrawEnd(): void {
     const tool = this.activeTool();
-    this.canvasDrawing.end(tool, this.toolSettings(), this.drawingHandlers);
+    this.dragCommittedObject = this.canvasDrawing.end(
+      tool,
+      this.toolSettings(),
+      this.drawingHandlers
+    );
     this.applyToolToStage(tool);
   }
 
   private handleDrawCancel(): void {
+    this.dragCommittedObject = false;
     this.canvasDrawing.cancel();
     this.applyToolToStage(this.activeTool());
   }

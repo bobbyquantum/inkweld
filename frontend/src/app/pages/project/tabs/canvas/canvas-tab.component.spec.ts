@@ -2273,6 +2273,62 @@ describe('CanvasTabComponent', () => {
     });
   });
 
+  describe('drag then click', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+      mockCanvasRenderer.stage = createStageStub();
+    });
+
+    it('does not also place a default shape after a shape drag', () => {
+      component['onToolChange']('shape');
+      vi.spyOn(component['canvasDrawing'], 'end').mockReturnValue(true);
+      const placeDefault = vi.spyOn(
+        component['canvasPlacement'],
+        'placeDefaultShape'
+      );
+
+      // A drag commits its shape, then the browser fires a click on the stage.
+      component['handleDrawEnd']();
+      component['handleStageClick'](
+        {} as unknown as Parameters<(typeof component)['handleStageClick']>[0]
+      );
+
+      expect(placeDefault).not.toHaveBeenCalled();
+    });
+
+    it('still places a default shape on a plain click', () => {
+      component['onToolChange']('shape');
+      vi.spyOn(component['canvasDrawing'], 'end').mockReturnValue(false);
+      const placeDefault = vi
+        .spyOn(component['canvasPlacement'], 'placeDefaultShape')
+        .mockImplementation(() => {});
+
+      component['handleDrawEnd']();
+      component['handleStageClick'](
+        {} as unknown as Parameters<(typeof component)['handleStageClick']>[0]
+      );
+
+      expect(placeDefault).toHaveBeenCalled();
+    });
+
+    it('only swallows the one click that follows the drag', () => {
+      component['onToolChange']('shape');
+      vi.spyOn(component['canvasDrawing'], 'end').mockReturnValue(true);
+      const placeDefault = vi
+        .spyOn(component['canvasPlacement'], 'placeDefaultShape')
+        .mockImplementation(() => {});
+
+      component['handleDrawEnd']();
+      const click = {} as unknown as Parameters<
+        (typeof component)['handleStageClick']
+      >[0];
+      component['handleStageClick'](click);
+      component['handleStageClick'](click);
+
+      expect(placeDefault).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('tool settings', () => {
     beforeEach(() => {
       fixture.detectChanges();
