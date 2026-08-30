@@ -328,13 +328,25 @@
   gap: 4px;
   flex-shrink: 0;
   min-height: 44px;
-  overflow-x: auto;
+  // Overflow is handled by moving groups into the chevron menu, so the row
+  // neither wraps nor scrolls sideways.
+  flex-wrap: nowrap;
+  overflow-x: hidden;
+}
+
+// Taken out of layout entirely; the overflow menu carries their controls.
+.toolbar-group--hidden,
+.toolbar-divider--hidden {
+  display: none !important;
 }
 
 .toolbar-group {
   display: flex;
   align-items: center;
   gap: 2px;
+  // Groups must keep their natural width: if flexbox squeezes them, the
+  // measured widths are meaningless and the row never reports an overflow.
+  flex-shrink: 0;
 }
 
 .toolbar-divider {
@@ -347,6 +359,8 @@
 
 .toolbar-spacer {
   flex: 1 1 auto;
+  // Collapses to nothing so the pinned presence indicator keeps its place.
+  min-width: 0;
 }
 
 .zoom-label {

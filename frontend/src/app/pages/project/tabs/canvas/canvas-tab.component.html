@@ -206,8 +206,12 @@
     <!-- Main canvas area -->
     <div class="canvas-main">
       <!-- Toolbar -->
-      <div class="canvas-toolbar" data-testid="canvas-toolbar">
-        <div class="toolbar-group">
+      <div class="canvas-toolbar" #canvasToolbar data-testid="canvas-toolbar">
+        <div
+          class="toolbar-group"
+          data-toolbar-group="navigation"
+          [class.toolbar-group--hidden]="isOverflowed('navigation')"
+          [attr.aria-hidden]="isOverflowed('navigation') ? 'true' : null">
           <button
             mat-icon-button
             [class.active]="activeTool() === 'select'"
@@ -234,9 +238,16 @@
           </button>
         </div>
 
-        <div class="toolbar-divider"></div>
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="navigation"
+          [class.toolbar-divider--hidden]="isOverflowed('navigation')"></div>
 
-        <div class="toolbar-group">
+        <div
+          class="toolbar-group"
+          data-toolbar-group="creation"
+          [class.toolbar-group--hidden]="isOverflowed('creation')"
+          [attr.aria-hidden]="isOverflowed('creation') ? 'true' : null">
           <button
             mat-icon-button
             [class.active]="activeTool() === 'pin'"
@@ -265,9 +276,16 @@
           </button>
         </div>
 
-        <div class="toolbar-divider"></div>
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="creation"
+          [class.toolbar-divider--hidden]="isOverflowed('creation')"></div>
 
-        <div class="toolbar-group">
+        <div
+          class="toolbar-group"
+          data-toolbar-group="drawing"
+          [class.toolbar-group--hidden]="isOverflowed('drawing')"
+          [attr.aria-hidden]="isOverflowed('drawing') ? 'true' : null">
           <button
             mat-icon-button
             [class.active]="activeTool() === 'draw'"
@@ -308,9 +326,16 @@
           </button>
         </div>
 
-        <div class="toolbar-divider"></div>
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="drawing"
+          [class.toolbar-divider--hidden]="isOverflowed('drawing')"></div>
 
-        <div class="toolbar-group">
+        <div
+          class="toolbar-group"
+          data-toolbar-group="style"
+          [class.toolbar-group--hidden]="isOverflowed('style')"
+          [attr.aria-hidden]="isOverflowed('style') ? 'true' : null">
           <button
             mat-icon-button
             class="swatch-button"
@@ -362,9 +387,16 @@
           </button>
         </div>
 
-        <div class="toolbar-divider"></div>
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="style"
+          [class.toolbar-divider--hidden]="isOverflowed('style')"></div>
 
-        <div class="toolbar-group">
+        <div
+          class="toolbar-group"
+          data-toolbar-group="history"
+          [class.toolbar-group--hidden]="isOverflowed('history')"
+          [attr.aria-hidden]="isOverflowed('history') ? 'true' : null">
           <button
             mat-icon-button
             data-testid="undo-button"
@@ -385,9 +417,16 @@
           </button>
         </div>
 
-        <div class="toolbar-divider"></div>
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="history"
+          [class.toolbar-divider--hidden]="isOverflowed('history')"></div>
 
-        <div class="toolbar-group">
+        <div
+          class="toolbar-group"
+          data-toolbar-group="zoom"
+          [class.toolbar-group--hidden]="isOverflowed('zoom')"
+          [attr.aria-hidden]="isOverflowed('zoom') ? 'true' : null">
           <button
             mat-icon-button
             [matTooltip]="'canvas.toolbar.zoomIn' | transloco"
@@ -417,6 +456,19 @@
             {{ zoomPercent() }}%
           </button>
         </div>
+
+        @if (hasOverflow()) {
+          <div class="toolbar-group" data-toolbar-fixed="overflow">
+            <button
+              mat-icon-button
+              data-testid="toolbar-overflow-button"
+              [matMenuTriggerFor]="toolbarOverflowMenu"
+              [matTooltip]="'canvas.toolbar.moreTools' | transloco"
+              [attr.aria-label]="'canvas.toolbar.moreTools' | transloco">
+              <mat-icon>expand_more</mat-icon>
+            </button>
+          </div>
+        }
 
         <div class="toolbar-spacer" aria-hidden="true"></div>
 
@@ -763,4 +815,144 @@
     <mat-icon>horizontal_rule</mat-icon>
     <span>{{ 'canvas.shapes.line' | transloco }}</span>
   </button>
+</mat-menu>
+
+<!-- Toolbar overflow: mirrors whichever groups did not fit on the row -->
+<mat-menu #toolbarOverflowMenu="matMenu">
+  <ng-template matMenuContent>
+    @if (isOverflowed('navigation')) {
+      <button mat-menu-item (click)="onToolChange('select')">
+        <mat-icon>near_me</mat-icon>
+        <span>{{ 'canvas.toolbar.select' | transloco }}</span>
+      </button>
+      <button mat-menu-item (click)="onToolChange('rectSelect')">
+        <mat-icon>select_all</mat-icon>
+        <span>{{ 'canvas.toolbar.rectangleSelect' | transloco }}</span>
+      </button>
+      <button mat-menu-item (click)="onToolChange('pan')">
+        <mat-icon>pan_tool</mat-icon>
+        <span>{{ 'canvas.toolbar.pan' | transloco }}</span>
+      </button>
+      <mat-divider></mat-divider>
+    }
+
+    @if (isOverflowed('drawing')) {
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        (click)="onToolChange('draw')">
+        <mat-icon>draw</mat-icon>
+        <span>{{ 'canvas.toolbar.freehandDraw' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        (click)="onToolChange('eraser')">
+        <mat-icon fontSet="material-symbols-outlined">ink_eraser</mat-icon>
+        <span>{{ 'canvas.toolbar.eraser' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        (click)="onToolChange('line')">
+        <mat-icon>horizontal_rule</mat-icon>
+        <span>{{ 'canvas.toolbar.line' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        [matMenuTriggerFor]="shapeMenu">
+        <mat-icon>{{ shapeIcon() }}</mat-icon>
+        <span>{{ 'canvas.toolbar.shape' | transloco }}</span>
+      </button>
+      <mat-divider></mat-divider>
+    }
+
+    @if (isOverflowed('style')) {
+      <button mat-menu-item [matMenuTriggerFor]="strokeColorMenu">
+        <mat-icon>border_color</mat-icon>
+        <span>{{ 'canvas.toolbar.strokeColor' | transloco }}</span>
+      </button>
+      <button mat-menu-item [matMenuTriggerFor]="fillColorMenu">
+        <mat-icon>format_color_fill</mat-icon>
+        <span>{{ 'canvas.toolbar.fillColor' | transloco }}</span>
+      </button>
+      <button mat-menu-item [matMenuTriggerFor]="strokeWidthMenu">
+        <mat-icon fontSet="material-symbols-outlined">line_weight</mat-icon>
+        <span>{{ 'canvas.toolbar.strokeWidth' | transloco }}</span>
+      </button>
+      <button mat-menu-item [matMenuTriggerFor]="brushOptionsMenu">
+        <mat-icon>tune</mat-icon>
+        <span>{{ 'canvas.toolbar.brushOptions' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        [disabled]="!selectedObjectId()"
+        (click)="onEditObjectColors()">
+        <mat-icon>palette</mat-icon>
+        <span>{{ 'canvas.toolbar.editColors' | transloco }}</span>
+      </button>
+      <mat-divider></mat-divider>
+    }
+
+    @if (isOverflowed('creation')) {
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        (click)="onToolChange('pin')">
+        <mat-icon>place</mat-icon>
+        <span>{{ 'canvas.toolbar.placePin' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        (click)="onAddImage()">
+        <mat-icon>image</mat-icon>
+        <span>{{ 'canvas.toolbar.addImage' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        (click)="onToolChange('text')">
+        <mat-icon>title</mat-icon>
+        <span>{{ 'canvas.toolbar.addText' | transloco }}</span>
+      </button>
+      <mat-divider></mat-divider>
+    }
+
+    @if (isOverflowed('history')) {
+      <button mat-menu-item [disabled]="!canUndo()" (click)="onUndo()">
+        <mat-icon>undo</mat-icon>
+        <span>{{ 'canvas.toolbar.undo' | transloco }}</span>
+      </button>
+      <button mat-menu-item [disabled]="!canRedo()" (click)="onRedo()">
+        <mat-icon>redo</mat-icon>
+        <span>{{ 'canvas.toolbar.redo' | transloco }}</span>
+      </button>
+      <mat-divider></mat-divider>
+    }
+
+    @if (isOverflowed('zoom')) {
+      <button mat-menu-item (click)="onZoomIn()">
+        <mat-icon>add</mat-icon>
+        <span>{{ 'canvas.toolbar.zoomIn' | transloco }}</span>
+      </button>
+      <button mat-menu-item (click)="onZoomOut()">
+        <mat-icon>remove</mat-icon>
+        <span>{{ 'canvas.toolbar.zoomOut' | transloco }}</span>
+      </button>
+      <button mat-menu-item (click)="onFitAll()">
+        <mat-icon>fit_screen</mat-icon>
+        <span>{{ 'canvas.toolbar.fitAll' | transloco }}</span>
+      </button>
+      <button mat-menu-item (click)="onZoomReset()">
+        <mat-icon>restart_alt</mat-icon>
+        <span
+          >{{ 'canvas.toolbar.resetZoom' | transloco }} ({{
+            zoomPercent()
+          }}%)</span
+        >
+      </button>
+    }
+  </ng-template>
 </mat-menu>

@@ -1,4 +1,5 @@
 import {
+  type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -64,12 +65,41 @@ import { CanvasStageEventsService } from '@services/canvas/canvas-stage-events.s
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import {
+  computeOverflowGroups,
+  horizontalPadding,
+  measuredWidth,
+  sameOverflow,
+} from '@utils/toolbar-overflow';
 import type Konva from 'konva';
 
 import { getObjectIcon, getObjectLabel } from './canvas-utils';
 
 /** Delay (ms) after sidebar toggle before telling Konva to resize */
 const SIDEBAR_RESIZE_DELAY_MS = 250;
+
+/**
+ * Toolbar groups, highest priority first: the last entry is the first to move
+ * into the overflow menu. Zoom and history go first because both have keyboard
+ * equivalents; the tools themselves are what the toolbar is for, so they stay
+ * on the row longest.
+ */
+const TOOLBAR_GROUP_PRIORITY = [
+  'navigation',
+  'drawing',
+  'style',
+  'creation',
+  'history',
+  'zoom',
+] as const;
+
+export type CanvasToolbarGroup = (typeof TOOLBAR_GROUP_PRIORITY)[number];
+
+/** Matches the `gap` on `.canvas-toolbar`. */
+const TOOLBAR_GAP_PX = 4;
+
+/** Space kept for the overflow chevron and the presence indicator. */
+const TOOLBAR_RESERVED_PX = 88;
 
 @Component({
   selector: 'app-canvas-tab',
@@ -104,7 +134,7 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
     CanvasStageEventsService,
   ],
 })
-export class CanvasTabComponent implements OnInit, OnDestroy {
+export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly projectState = inject(ProjectStateService);
   private readonly canvasService = inject(CanvasService);
@@ -142,6 +172,10 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly brushCursor =
     viewChild<ElementRef<HTMLDivElement>>('brushCursor');
 
+  /** The toolbar row, measured to decide what has to overflow */
+  private readonly toolbarEl =
+    viewChild<ElementRef<HTMLElement>>('canvasToolbar');
+
   /** Trigger for the right-click context menu */
   private readonly contextMenuTrigger =
     viewChild<MatMenuTrigger>('contextMenuTrigger');
@@ -166,6 +200,21 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   /** Stroke width presets offered in the width menu */
   protected readonly strokeWidthPresets = STROKE_WIDTH_PRESETS;
+
+  /** Groups that don't fit on the toolbar row and live under the chevron */
+  private readonly overflowGroups = signal<ReadonlySet<CanvasToolbarGroup>>(
+    new Set()
+  );
+
+  /** Whether anything has been pushed into the overflow menu */
+  protected readonly hasOverflow = computed(
+    () => this.overflowGroups().size > 0
+  );
+
+  /** Natural width of each group, remeasured whenever it is on the row */
+  private readonly groupWidths = new Map<string, number>();
+
+  private toolbarResizeObserver: ResizeObserver | null = null;
 
   /** Whether the last edit can be undone/redone */
   protected readonly canUndo = this.canvasService.canUndo;
@@ -368,6 +417,17 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // Lifecycle
   // ─────────────────────────────────────────────────────────────────────────
 
+  ngAfterViewInit(): void {
+    const toolbar = this.toolbarEl()?.nativeElement;
+    if (!toolbar) return;
+
+    this.toolbarResizeObserver = new ResizeObserver(() =>
+      this.scheduleToolbarMeasure()
+    );
+    this.toolbarResizeObserver.observe(toolbar);
+    this.scheduleToolbarMeasure();
+  }
+
   ngOnInit(): void {
     this.route.paramMap
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -399,6 +459,8 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.toolbarResizeObserver?.disconnect();
+    this.toolbarResizeObserver = null;
     this.saveViewport();
     // Push out any edit still sitting in the write throttle.
     this.canvasService.flush();
@@ -663,6 +725,61 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // Toolbar Actions (called from template)
   // ─────────────────────────────────────────────────────────────────────────
 
+  /** Whether `group` is currently in the overflow menu rather than the row. */
+  protected isOverflowed(group: CanvasToolbarGroup): boolean {
+    return this.overflowGroups().has(group);
+  }
+
+  /**
+   * Re-measure the toolbar and decide what fits.
+   *
+   * Runs on a double animation frame so the browser has committed the layout
+   * that results from the previous decision — measuring mid-change is what
+   * makes this kind of toolbar oscillate.
+   */
+  private scheduleToolbarMeasure(): void {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => this.measureToolbar())
+    );
+  }
+
+  private measureToolbar(): void {
+    const container = this.toolbarEl()?.nativeElement;
+    if (!container || container.offsetWidth === 0) return;
+
+    // Refresh the cache for whatever is currently on the row; hidden groups
+    // keep the width they had when they were last visible.
+    for (const name of TOOLBAR_GROUP_PRIORITY) {
+      const group = container.querySelector<HTMLElement>(
+        `[data-toolbar-group="${name}"]`
+      );
+      if (!group) continue;
+      const divider = container.querySelector<HTMLElement>(
+        `[data-toolbar-divider="${name}"]`
+      );
+      const width = measuredWidth(group) + measuredWidth(divider);
+      if (width > 0) this.groupWidths.set(name, width);
+    }
+
+    const available =
+      container.offsetWidth -
+      horizontalPadding(container) -
+      TOOLBAR_RESERVED_PX;
+
+    const next = computeOverflowGroups({
+      availableWidth: available,
+      gapPx: TOOLBAR_GAP_PX,
+      priority: TOOLBAR_GROUP_PRIORITY,
+      widths: this.groupWidths,
+    }) as ReadonlySet<CanvasToolbarGroup>;
+
+    if (!sameOverflow(this.overflowGroups(), next)) {
+      this.overflowGroups.set(next);
+      // The row just changed shape; check the new one settles.
+      this.scheduleToolbarMeasure();
+    }
+  }
+
   protected onToolChange(tool: CanvasTool): void {
     if (this.canvasDrawing.isDrawing()) this.canvasDrawing.cancel();
     this.activeTool.set(tool);
@@ -827,6 +944,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       return next;
     });
     setTimeout(() => {
+      this.scheduleToolbarMeasure();
       if (!this.stage) return;
       const container = this.canvasContainer()?.nativeElement;
       if (container) {

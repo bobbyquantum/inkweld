@@ -46,7 +46,8 @@
     "zoomInAria": "Zoom in",
     "zoomOutAria": "Zoom out",
     "fitAll": "Fit all (⌘0)",
-    "resetZoom": "Reset zoom to 100%"
+    "resetZoom": "Reset zoom to 100%",
+    "moreTools": "More tools"
   },
   "contextMenu": {
     "cut": "Cut",

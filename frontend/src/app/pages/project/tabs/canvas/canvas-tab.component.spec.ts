@@ -2273,6 +2273,79 @@ describe('CanvasTabComponent', () => {
     });
   });
 
+  describe('toolbar overflow', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+    });
+
+    it('shows no chevron while everything fits', () => {
+      expect(component['hasOverflow']()).toBe(false);
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="toolbar-overflow-button"]'
+        )
+      ).toBeNull();
+    });
+
+    it('reports which groups are overflowed', () => {
+      component['overflowGroups'].set(new Set(['zoom', 'history']));
+
+      expect(component['isOverflowed']('zoom')).toBe(true);
+      expect(component['isOverflowed']('history')).toBe(true);
+      expect(component['isOverflowed']('navigation')).toBe(false);
+      expect(component['hasOverflow']()).toBe(true);
+    });
+
+    it('renders the chevron and hides the overflowed group', () => {
+      component['overflowGroups'].set(new Set(['zoom']));
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="toolbar-overflow-button"]'
+        )
+      ).not.toBeNull();
+      expect(
+        fixture.nativeElement
+          .querySelector('[data-toolbar-group="zoom"]')
+          .classList.contains('toolbar-group--hidden')
+      ).toBe(true);
+      expect(
+        fixture.nativeElement
+          .querySelector('[data-toolbar-group="navigation"]')
+          .classList.contains('toolbar-group--hidden')
+      ).toBe(false);
+    });
+
+    it('hides an overflowed group from assistive tech too', () => {
+      component['overflowGroups'].set(new Set(['style']));
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement
+          .querySelector('[data-toolbar-group="style"]')
+          .getAttribute('aria-hidden')
+      ).toBe('true');
+    });
+
+    it('tags every group and divider for measurement', () => {
+      const groups = fixture.nativeElement.querySelectorAll(
+        '[data-toolbar-group]'
+      );
+      const dividers = fixture.nativeElement.querySelectorAll(
+        '[data-toolbar-divider]'
+      );
+      expect(groups.length).toBe(6);
+      expect(dividers.length).toBe(5);
+    });
+
+    it('does not measure a toolbar with no width', () => {
+      // jsdom reports zero widths; measuring anyway would hide everything.
+      component['measureToolbar']();
+      expect(component['hasOverflow']()).toBe(false);
+    });
+  });
+
   describe('drag then click', () => {
     beforeEach(() => {
       fixture.detectChanges();
