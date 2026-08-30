@@ -11,6 +11,7 @@ import {
   writeSnapshot,
   writeUpdate,
 } from '@inkweld/presence';
+import { type CanvasContents } from '@models/canvas-edit';
 import { type ElementRelationship } from '@models/element-ref.model';
 import { createDefaultPublishStyles } from '@models/publish-style';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
@@ -788,6 +789,68 @@ describe('YjsElementSyncProvider', () => {
       const contents = provider.getCanvasContents('canvas-1');
       expect(contents?.objects.map(o => o.id)).toEqual(['a', 'b']);
       expect(contents?.layers).toEqual(layers);
+    });
+
+    it('emits a peer\u2019s layer addition to an open canvas', () => {
+      const local = attachDoc();
+      (
+        provider as unknown as { setupDocumentObserver(): void }
+      ).setupDocumentObserver();
+
+      const seen: CanvasContents[] = [];
+      provider.canvasContents$('canvas-1').subscribe(c => seen.push(c));
+
+      // A second tab, editing the same canvas through its own document.
+      const peer = new Y.Doc();
+      const asDoc = provider as unknown as { doc: Y.Doc | null };
+      asDoc.doc = peer;
+      provider.applyCanvasEdit('canvas-1', { layers });
+      asDoc.doc = local;
+      Y.applyUpdate(local, Y.encodeStateAsUpdate(peer));
+
+      // The peer then adds a second layer.
+      const secondLayer = {
+        id: 'L2',
+        name: 'Layer 2',
+        visible: true,
+        locked: false,
+        opacity: 1,
+        order: 1,
+      };
+      asDoc.doc = peer;
+      provider.applyCanvasEdit('canvas-1', {
+        layers: [...layers, secondLayer],
+      });
+      asDoc.doc = local;
+      Y.applyUpdate(local, Y.encodeStateAsUpdate(peer));
+
+      expect(seen.at(-1)?.layers).toEqual([...layers, secondLayer]);
+    });
+
+    it('keeps delivering peer edits to a canvas open across a reconnect', () => {
+      const local = attachDoc();
+      const asProvider = provider as unknown as {
+        setupDocumentObserver(): void;
+        doc: Y.Doc | null;
+      };
+      asProvider.setupDocumentObserver();
+
+      const seen: CanvasContents[] = [];
+      provider.canvasContents$('canvas-1').subscribe(c => seen.push(c));
+
+      // The socket drops while the canvas stays open.
+      provider.disconnect();
+      asProvider.doc = local;
+      asProvider.setupDocumentObserver();
+
+      // A peer edits the canvas after we are back.
+      const peer = new Y.Doc();
+      asProvider.doc = peer;
+      provider.applyCanvasEdit('canvas-1', { layers });
+      asProvider.doc = local;
+      Y.applyUpdate(local, Y.encodeStateAsUpdate(peer));
+
+      expect(seen.at(-1)?.layers).toEqual(layers);
     });
 
     it('touches only the object being changed', () => {

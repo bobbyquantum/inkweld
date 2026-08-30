@@ -480,8 +480,11 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     // Mirror any freshly drawn canvas onto its element before the doc goes,
     // so an archive taken after closing the project still has it.
     this.flushCanvasSnapshots();
-    for (const subject of this.canvasSubjects.values()) subject.complete();
-    this.canvasSubjects.clear();
+    // Canvas subjects deliberately survive: they belong to whoever is still
+    // watching a canvas, not to this connection. Completing them here would
+    // leave an open canvas permanently deaf to remote edits, because the
+    // observer only notifies subjects that are still registered and a
+    // completed subject can never emit again.
 
     // Clear any pending reconnection
     if (this.reconnectTimeout) {
@@ -1817,6 +1820,16 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
         );
       }
     });
+
+    // A canvas that stayed open across a reconnect missed every change made
+    // while the socket was down, and no observer fires for state that arrived
+    // with the document. Push the current contents at each one.
+    for (const [elementId, subject] of this.canvasSubjects) {
+      // Only when the document actually holds the canvas: pushing an empty
+      // one at a canvas still waiting for its first sync would blank it.
+      const contents = this.getCanvasContents(elementId);
+      if (contents) subject.next(contents);
+    }
 
     // Project metadata observer
     const metaMap = this.doc.getMap<string>('projectMeta');
