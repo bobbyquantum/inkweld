@@ -114,6 +114,16 @@ const SystemFeaturesSchema = z
         'Whether MCP (Model Context Protocol) access is enabled. The AI kill switch takes ' +
         'precedence: when the kill switch is on, MCP is disabled regardless of this flag.',
     }),
+    privacyPolicyUrl: z.string().optional().openapi({
+      example: 'https://example.com/privacy',
+      description:
+        'URL of the instance privacy policy, if configured by an admin. Absent when unset.',
+    }),
+    termsUrl: z.string().optional().openapi({
+      example: 'https://example.com/terms',
+      description:
+        'URL of the instance terms of service, if configured by an admin. Absent when unset.',
+    }),
   })
   .openapi('SystemFeatures');
 
@@ -245,6 +255,12 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
   // still takes precedence.
   const mcpEnabled = await configService.getBoolean(db, 'MCP_ENABLED');
 
+  // Optional legal links configured by the admin. Trimmed; empty values are
+  // omitted from the payload so the frontend can simply check presence.
+  const privacyPolicyUrl =
+    (await configService.get(db, 'PRIVACY_POLICY_URL')).value.trim() || undefined;
+  const termsUrl = (await configService.get(db, 'TERMS_OF_SERVICE_URL')).value.trim() || undefined;
+
   return c.json({
     aiKillSwitch,
     aiKillSwitchLockedByEnv: lockedByEnv,
@@ -261,6 +277,8 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     emailRecoveryEnabled,
     legacyMcpEnabled,
     mcpEnabled,
+    privacyPolicyUrl,
+    termsUrl,
   });
 });
 

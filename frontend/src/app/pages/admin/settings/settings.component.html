@@ -372,5 +372,114 @@
         </mat-form-field>
       </mat-card-content>
     </mat-card>
+
+    <!-- Branding & Legal Links Card -->
+    <mat-card class="setting-card" data-testid="branding-card">
+      <mat-card-content>
+        <div class="setting-section-header">
+          <mat-icon>policy</mat-icon>
+          <span class="setting-label">{{
+            'admin.settings.brandingTitle' | transloco
+          }}</span>
+        </div>
+        <span class="setting-description policy-description">{{
+          'admin.settings.brandingDesc' | transloco
+        }}</span>
+
+        <div class="policy-settings">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'admin.settings.privacyPolicyUrl' | transloco
+            }}</mat-label>
+            <input
+              matInput
+              type="url"
+              placeholder="https://example.com/privacy"
+              [ngModel]="privacyPolicyUrl()"
+              (change)="savePrivacyPolicyUrl($any($event.target).value)"
+              [disabled]="isSaving()"
+              id="admin-privacy-policy-url-input"
+              data-testid="privacy-policy-url-input" />
+            <mat-hint>{{
+              'admin.settings.privacyPolicyUrlHint' | transloco
+            }}</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'admin.settings.termsUrl' | transloco }}</mat-label>
+            <input
+              matInput
+              type="url"
+              placeholder="https://example.com/terms"
+              [ngModel]="termsUrl()"
+              (change)="saveTermsUrl($any($event.target).value)"
+              [disabled]="isSaving()"
+              id="admin-terms-url-input"
+              data-testid="terms-url-input" />
+            <mat-hint>{{ 'admin.settings.termsUrlHint' | transloco }}</mat-hint>
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Custom HTML Injection Card -->
+    <mat-card class="setting-card" data-testid="custom-html-card">
+      <mat-card-content>
+        <div class="setting-section-header">
+          <mat-icon>code</mat-icon>
+          <span class="setting-label">{{
+            'admin.settings.customHtmlTitle' | transloco
+          }}</span>
+        </div>
+        <span class="setting-description policy-description">{{
+          'admin.settings.customHtmlDesc' | transloco
+        }}</span>
+
+        <div class="warning-banner" data-testid="custom-html-warning">
+          <mat-icon>warning</mat-icon>
+          <span>{{ 'admin.settings.customHtmlWarning' | transloco }}</span>
+        </div>
+
+        <div class="policy-settings">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'admin.settings.customHeadLabel' | transloco
+            }}</mat-label>
+            <textarea
+              matInput
+              rows="4"
+              [ngModel]="customHeadHtml()"
+              (change)="
+                saveCustomHtml('CUSTOM_HEAD_HTML', $any($event.target).value)
+              "
+              [disabled]="isSaving()"
+              id="admin-custom-head-html-input"
+              data-testid="custom-head-html-input"></textarea>
+            <mat-hint>{{
+              'admin.settings.customHeadHint' | transloco
+            }}</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'admin.settings.customBodyLabel' | transloco
+            }}</mat-label>
+            <textarea
+              matInput
+              rows="4"
+              [ngModel]="customBodyHtml()"
+              (change)="
+                saveCustomHtml('CUSTOM_BODY_HTML', $any($event.target).value)
+              "
+              [disabled]="isSaving()"
+              id="admin-custom-body-html-input"
+              data-testid="custom-body-html-input"></textarea>
+            <mat-hint>{{
+              'admin.settings.customBodyHint' | transloco
+            }}</mat-hint>
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
   }
 </div>
