@@ -22,7 +22,7 @@
 
     <mat-divider></mat-divider>
 
-    @if (systemConfig.isPasskeysEnabled()) {
+    @if (systemConfig.isPasskeyManagementAvailable()) {
       <section class="settings-section">
         <app-passkeys-settings></app-passkeys-settings>
       </section>

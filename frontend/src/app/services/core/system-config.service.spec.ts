@@ -527,6 +527,39 @@ describe('SystemConfigService', () => {
     });
   });
 
+  describe('isPasskeyManagementAvailable', () => {
+    it('should be true in server mode when passkeys are enabled', () => {
+      expect(service.isPasskeysEnabled()).toBe(true);
+      expect(service.isLocalMode()).toBe(false);
+      expect(service.isPasskeyManagementAvailable()).toBe(true);
+    });
+
+    it('should be false in local mode even though local defaults enable passkeys', () => {
+      TestBed.resetTestingModule();
+      vi.clearAllMocks();
+
+      const localSetupService = {
+        getMode: vi.fn().mockReturnValue('local'),
+      } as MockedObject<SetupService>;
+
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          SystemConfigService,
+          { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: localSetupService },
+        ],
+      });
+
+      const localService = TestBed.inject(SystemConfigService);
+
+      // The raw feature flag stays on, but there is no server-side credential
+      // store to manage, so the management UI must stay hidden.
+      expect(localService.isPasskeysEnabled()).toBe(true);
+      expect(localService.isPasskeyManagementAvailable()).toBe(false);
+    });
+  });
+
   describe('Signal Reactivity', () => {
     it('should update computed properties when system features change', () => {
       const initialFeatures = { aiAutoReview: false, aiImageGeneration: false };

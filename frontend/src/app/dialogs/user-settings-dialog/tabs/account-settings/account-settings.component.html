@@ -87,7 +87,7 @@
 
   <mat-divider></mat-divider>
 
-  @if (systemConfig.isPasskeysEnabled()) {
+  @if (systemConfig.isPasskeyManagementAvailable()) {
     <app-passkeys-settings></app-passkeys-settings>
   }
 </div>

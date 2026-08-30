@@ -143,6 +143,16 @@ export class SystemConfigService {
     () => this.systemFeaturesSignal().passkeysEnabled ?? true
   );
   /**
+   * Whether passkey *management* UI should be offered. Passkeys are a
+   * server-side credential store, so there is nothing to list or register in
+   * local mode — and asking would fire an HTTP request at a server that isn't
+   * there. Gate any passkey settings section on this rather than on the raw
+   * {@link isPasskeysEnabled} feature flag.
+   */
+  public readonly isPasskeyManagementAvailable = computed(
+    () => this.isPasskeysEnabled() && !this.isLocalMode()
+  );
+  /**
    * Whether classic email/password login is enabled on the server.
    * When false the UI must hide password fields and the /login + password
    * reset endpoints will refuse requests; users authenticate via passkey.
