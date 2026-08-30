@@ -87,12 +87,28 @@ app.get('/yjs', async (c) => {
 });
 
 /**
- * The only endpoint names the diagnostics proxy may forward. These match the
- * routes YjsProjectDO.dispatchHttpRoute actually serves. Validating against
- * this fixed set means the URL handed to stub.fetch() is never constructed
- * from arbitrary user-controlled input (path traversal / open proxy).
+ * Maps the only endpoint names the diagnostics proxy may forward to the
+ * literal DO path they resolve to. These match the routes
+ * YjsProjectDO.dispatchHttpRoute actually serves. An unrecognized name maps to
+ * undefined and is rejected, so the forwarded URL can only ever be one of
+ * these fixed paths — never constructed from arbitrary user-controlled input
+ * (path traversal / open proxy).
  */
-const DO_API_ENDPOINTS = new Set(['stats', 'elements', 'document', 'storage-keys', 'storage-size']);
+const DO_API_PATHS: Readonly<Record<string, string>> = {
+  stats: '/api/stats',
+  elements: '/api/elements',
+  document: '/api/document',
+  'storage-keys': '/api/storage-keys',
+  'storage-size': '/api/storage-size',
+};
+
+/**
+ * Synthetic origin for requests forwarded to the Durable Object. The DO routes
+ * only on path and query (never on host), so a fixed constant is used instead
+ * of the incoming request URL to keep every component of the forwarded URL
+ * trusted.
+ */
+const DO_PROXY_ORIGIN = 'https://yjs-project-do.internal';
 
 /**
  * HTTP API proxy to the Durable Object.
@@ -108,11 +124,10 @@ const DO_API_ENDPOINTS = new Set(['stats', 'elements', 'document', 'storage-keys
  *   GET /api/v1/ws/yjs/do/document?documentId=user:slug:docId
  */
 app.get('/yjs/do/:endpoint', async (c) => {
-  const endpoint = c.req.param('endpoint');
-
-  // Reject anything outside the fixed endpoint set before building the URL,
-  // so `/api/${endpoint}` can only ever be a known-good pathname.
-  if (!DO_API_ENDPOINTS.has(endpoint)) {
+  // The user-controlled param is used solely as a lookup key; the value that
+  // reaches the URL is a fixed literal from DO_API_PATHS.
+  const apiPath = DO_API_PATHS[c.req.param('endpoint')];
+  if (!apiPath) {
     return c.json({ error: 'Unknown endpoint' }, 404);
   }
 
@@ -122,11 +137,15 @@ app.get('/yjs/do/:endpoint', async (c) => {
     const result = resolveProjectStub(c, documentId);
     if (!result.ok) return result.error;
 
-    // Rewrite the path so the DO's handleHttpApi sees /api/<endpoint>;
-    // `endpoint` is a validated member of DO_API_ENDPOINTS at this point.
-    const url = new URL(c.req.url);
-    url.pathname = `/api/${endpoint}`;
-    const req = new Request(url.toString(), {
+    // Build the forwarded URL entirely from trusted constants: fixed origin +
+    // allowlisted path. `documentId` — the sole query parameter the DO's HTTP
+    // API reads — is carried over explicitly (URL-encoded by searchParams);
+    // nothing else from the incoming URL is reused.
+    const target = new URL(DO_PROXY_ORIGIN + apiPath);
+    if (documentId !== undefined) {
+      target.searchParams.set('documentId', documentId);
+    }
+    const req = new Request(target, {
       method: c.req.method,
       headers: c.req.raw.headers,
     });
