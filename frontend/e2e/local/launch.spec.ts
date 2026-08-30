@@ -9,8 +9,13 @@
  * `test.step()`. The local-mode indicator and config-active-mode checks
  * are merged with launch + persistence + navigation since they all
  * operate on the same `localPageWithProject` fixture.
+ *
+ * The settings-dialog step exists to keep the Account tab server-free: the
+ * `localPageWithProject` fixture fails the test if any `/api/**` request is
+ * made, so opening the tab guards against surfaces (like passkey management)
+ * creeping back in and calling a server that local mode does not have.
  */
-import { expect, test } from './fixtures';
+import { expect, openUserSettings, test } from './fixtures';
 
 /** Read the active mode from the v2 (or legacy v1) config blob. */
 function getActiveMode(config: string): 'local' | 'server' | undefined {
@@ -58,6 +63,23 @@ test.describe('Local Application Launch', () => {
       await page.getByTestId('project-card').first().click();
       await expect(page).toHaveURL(/\/.+\/.+/);
       await expect(page.getByTestId('project-tree')).toBeVisible();
+    });
+
+    await test.step('the settings dialog account tab renders without contacting a server', async () => {
+      await openUserSettings(page);
+
+      const accountTab = page.getByTestId('account-settings');
+      await expect(accountTab).toBeVisible();
+      await expect(
+        accountTab.getByTestId('account-display-name-input')
+      ).toBeVisible();
+
+      // Passkeys are a server-side credential store, so the section must not
+      // render (and must not list credentials over HTTP) in local mode.
+      await expect(page.getByTestId('passkeys-settings')).toHaveCount(0);
+
+      await page.getByTestId('settings-close-button').click();
+      await expect(accountTab).toBeHidden();
     });
   });
 });

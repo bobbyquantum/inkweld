@@ -18,6 +18,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
   let mockSystemConfig: {
     isLocalMode: ReturnType<typeof vi.fn>;
     isPasskeysEnabled: ReturnType<typeof vi.fn>;
+    isPasskeyManagementAvailable: ReturnType<typeof vi.fn>;
     isPasswordLoginEnabled: ReturnType<typeof vi.fn>;
   };
   let mockSnackBar: {
@@ -45,6 +46,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
     mockSystemConfig = {
       isLocalMode: vi.fn().mockReturnValue(false),
       isPasskeysEnabled: vi.fn().mockReturnValue(true),
+      isPasskeyManagementAvailable: vi.fn().mockReturnValue(true),
       isPasswordLoginEnabled: vi.fn().mockReturnValue(true),
     };
 
@@ -86,6 +88,25 @@ describe('AccountSettingsComponent (dialog tab)', () => {
 
     mockSystemConfig.isLocalMode.mockReturnValue(true);
     expect(component.isLocalMode()).toBe(true);
+  });
+
+  describe('passkeys section', () => {
+    it('should render the passkeys section when passkey management is available', () => {
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('app-passkeys-settings')).toBeTruthy();
+    });
+
+    it('should not render the passkeys section when passkey management is unavailable', () => {
+      // Local mode has no server-side credential store, so rendering the
+      // section would fire a doomed /auth/passkeys request on init.
+      mockSystemConfig.isPasskeyManagementAvailable.mockReturnValue(false);
+
+      fixture = TestBed.createComponent(AccountSettingsComponent);
+      fixture.detectChanges();
+
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('app-passkeys-settings')).toBeFalsy();
+    });
   });
 
   describe('saveProfile', () => {
