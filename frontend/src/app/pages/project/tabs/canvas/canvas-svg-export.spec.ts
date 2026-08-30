@@ -98,8 +98,9 @@ describe('computeSvgViewBox', () => {
     };
     const config = makeConfig([obj]);
     const result = computeSvgViewBox(config, [defaultLayer]);
-    // min: (10+0, 20+0) = (10, 20), max: (10+200, 20+100) = (210, 120)
-    expect(result).toEqual({ vX: -10, vY: 0, vW: 240, vH: 140 });
+    // Centreline min (10, 20) / max (210, 120), widened by half of the 2px
+    // stroke on every side so the ink itself is inside the viewBox.
+    expect(result).toEqual({ vX: -11, vY: -1, vW: 242, vH: 142 });
   });
 
   it('should compute viewBox from arrow shape using points', () => {
@@ -508,6 +509,60 @@ describe('canvasTextToSvg', () => {
 // ─────────────────────────────────────────────────────────────────────────
 // canvasPathToSvg
 // ─────────────────────────────────────────────────────────────────────────
+
+describe('computeSvgViewBox path bounds', () => {
+  function pathAt(overrides: Partial<CanvasPath>): CanvasPath {
+    return {
+      ...baseObj,
+      type: 'path',
+      points: [0, 0, 100, 0],
+      stroke: '#000',
+      strokeWidth: 2,
+      closed: false,
+      tension: 0,
+      ...overrides,
+    };
+  }
+
+  const layer: CanvasLayer = {
+    id: 'l',
+    name: 'L',
+    visible: true,
+    locked: false,
+    opacity: 1,
+    order: 0,
+  };
+
+  it('includes the stroke half-width so wide strokes are not clipped', () => {
+    const config: CanvasConfig = {
+      elementId: 'e',
+      layers: [layer],
+      objects: [pathAt({ layerId: 'l', strokeWidth: 80 })],
+    };
+
+    const box = computeSvgViewBox(config, [layer]);
+    // Centreline runs along y=0; half of an 80px stroke reaches 40 either side.
+    expect(box.vY).toBeLessThanOrEqual(-40);
+    expect(box.vY + box.vH).toBeGreaterThanOrEqual(40);
+  });
+
+  it('allows for the swell of a pressure stroke', () => {
+    const plain: CanvasConfig = {
+      elementId: 'e',
+      layers: [layer],
+      objects: [pathAt({ layerId: 'l', strokeWidth: 40 })],
+    };
+    const ink: CanvasConfig = {
+      elementId: 'e',
+      layers: [layer],
+      objects: [pathAt({ layerId: 'l', strokeWidth: 40, pressures: [1, 1] })],
+    };
+
+    expect(computeSvgViewBox(ink, [layer]).vH).toBeGreaterThan(
+      computeSvgViewBox(plain, [layer]).vH
+    );
+  });
+});
 
 describe('canvasPathToSvg', () => {
   const tf = 'transform="translate(0,0)"';

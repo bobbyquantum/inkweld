@@ -46,8 +46,11 @@ describe('UpdateService', () => {
       value: { reload: vi.fn() },
     });
 
-    // Default to online
+    // Default to online. `configurable` matters: without it the property is
+    // frozen for the whole worker, and any later spec that spies on the getter
+    // fails with "Cannot redefine property: onLine".
     Object.defineProperty(navigator, 'onLine', {
+      configurable: true,
       writable: true,
       value: true,
     });
@@ -137,7 +140,11 @@ describe('UpdateService', () => {
 
   it('should skip update check when offline', async () => {
     swUpdateMock.checkForUpdate.mockClear();
-    Object.defineProperty(navigator, 'onLine', { value: false });
+    Object.defineProperty(navigator, 'onLine', {
+      configurable: true,
+      writable: true,
+      value: false,
+    });
     const result = await service.checkForUpdate();
     expect(result).toBe(false);
     expect(swUpdateMock.checkForUpdate).not.toHaveBeenCalled();
@@ -149,7 +156,11 @@ describe('UpdateService', () => {
   });
 
   it('should not reload on unrecoverable state when offline', () => {
-    Object.defineProperty(navigator, 'onLine', { value: false });
+    Object.defineProperty(navigator, 'onLine', {
+      configurable: true,
+      writable: true,
+      value: false,
+    });
     unrecoverableSubject.next({ reason: 'Hash mismatch' });
     expect(window.location.reload).not.toHaveBeenCalled();
   });

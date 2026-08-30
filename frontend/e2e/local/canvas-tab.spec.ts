@@ -409,10 +409,8 @@ test.describe('Canvas Tab', () => {
     });
 
     await test.step('eraser is selectable alongside the other draw tools', async () => {
-      await toolbar.getByRole('button', { name: /Eraser/i }).click();
-      await expect(
-        toolbar.getByRole('button', { name: /Eraser/i })
-      ).toHaveClass(/active/);
+      await toolbar.getByTestId('eraser-tool').click();
+      await expect(toolbar.getByTestId('eraser-tool')).toHaveClass(/active/);
     });
 
     await test.step('undo and redo start disabled', async () => {

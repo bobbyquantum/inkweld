@@ -27,12 +27,11 @@ import {
   createDefaultLayer,
   normalizeToolSettings,
 } from '@models/canvas.model';
+import { UndoHistory } from '@services/canvas/canvas-history';
 import { LoggerService } from '@services/core/logger.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { nanoid } from 'nanoid';
-
-import { UndoHistory } from './canvas-history';
 
 /** Key used to store serialized canvas config in element metadata */
 const CANVAS_CONFIG_META_KEY = 'canvasConfig';
@@ -146,9 +145,10 @@ export class CanvasService {
           return;
         }
         this.applySerializedConfig(id, serialized);
-        // Remote work landed underneath us — replaying a redo on top of it
-        // would resurrect state the other author never saw.
-        this.history.clearRedo();
+        // Remote work landed underneath us. Every snapshot on the stack
+        // predates it, so undoing one would write back a config that silently
+        // drops the other author's changes — drop the history instead.
+        this.history.clear();
         this.historyVersion.update(v => v + 1);
       });
     });

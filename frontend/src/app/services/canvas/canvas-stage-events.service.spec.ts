@@ -28,6 +28,7 @@ function wheelEvent(overrides: Partial<WheelEvent> = {}) {
 function pointerEvent(overrides: Partial<PointerEvent> = {}) {
   return {
     evt: {
+      pointerId: 1,
       pointerType: 'mouse',
       pressure: 0.5,
       shiftKey: false,
@@ -35,6 +36,11 @@ function pointerEvent(overrides: Partial<PointerEvent> = {}) {
       ...overrides,
     },
   };
+}
+
+/** A window-level pointer event carrying an id, which jsdom's Event lacks. */
+function windowPointerEvent(type: string, pointerId: number): Event {
+  return Object.assign(new Event(type), { pointerId });
 }
 
 function touch(clientX: number, clientY: number) {
@@ -257,6 +263,29 @@ describe('CanvasStageEventsService', () => {
     it('accepts touch input when no stylus has been used', () => {
       fire('pointerdown', pointerEvent({ pointerType: 'touch' }));
       expect(callbacks.onDrawStart).toHaveBeenCalled();
+    });
+
+    it('a rejected palm release does not end the stylus stroke', () => {
+      fire('pointerdown', pointerEvent({ pointerType: 'pen', pointerId: 1 }));
+      // The palm is rejected on the way down but still reports a release.
+      fire('pointerdown', pointerEvent({ pointerType: 'touch', pointerId: 2 }));
+      window.dispatchEvent(windowPointerEvent('pointerup', 2));
+
+      expect(callbacks.onDrawEnd).not.toHaveBeenCalled();
+
+      // The stylus keeps drawing, and its own release still commits.
+      fire('pointermove', pointerEvent({ pointerType: 'pen', pointerId: 1 }));
+      expect(callbacks.onDrawMove).toHaveBeenCalled();
+
+      fire('pointerup', pointerEvent({ pointerType: 'pen', pointerId: 1 }));
+      expect(callbacks.onDrawEnd).toHaveBeenCalledTimes(1);
+    });
+
+    it('a cancel from another pointer does not abandon the stroke', () => {
+      fire('pointerdown', pointerEvent({ pointerType: 'pen', pointerId: 1 }));
+      window.dispatchEvent(windowPointerEvent('pointercancel', 7));
+
+      expect(callbacks.onDrawCancel).not.toHaveBeenCalled();
     });
   });
 

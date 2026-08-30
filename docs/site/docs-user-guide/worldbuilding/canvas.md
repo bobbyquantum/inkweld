@@ -106,7 +106,7 @@ annotate directly over a placed map without selecting it by mistake.
 
 ### Brush Settings
 
-Three toolbar controls set what the next stroke or shape will look like. Your
+Four toolbar controls set what the next stroke or shape will look like. Your
 choices are remembered between sessions.
 
 | Control          | Description                                                                     |

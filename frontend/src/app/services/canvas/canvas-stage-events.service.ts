@@ -51,6 +51,14 @@ export class CanvasStageEventsService {
   /** Whether a pointer gesture that started on the stage is still active. */
   private pointerActive = false;
 
+  /**
+   * Pointer id of the gesture in flight. A palm resting on the screen is
+   * rejected on the way down, but it still produces a release — without this
+   * that release would commit the stylus stroke mid-draw and every later
+   * stylus move would be dropped.
+   */
+  private activePointerId: number | null = null;
+
   /** Timestamp of the last stylus event, used for palm rejection. */
   private lastPenAt = 0;
 
@@ -67,6 +75,7 @@ export class CanvasStageEventsService {
     this.detachWindowListeners?.();
     this.detachWindowListeners = null;
     this.pointerActive = false;
+    this.activePointerId = null;
     this.pinchDistance = null;
     this.pinchCenter = null;
   }
@@ -88,18 +97,19 @@ export class CanvasStageEventsService {
     stage.on('pointerdown', e => {
       if (this.shouldIgnore(e.evt)) return;
       this.pointerActive = true;
+      this.activePointerId = e.evt.pointerId;
       callbacks.onDrawStart(CanvasStageEventsService.toInput(e.evt));
     });
 
     stage.on('pointermove', e => {
       if (this.shouldIgnore(e.evt)) return;
-      if (!this.pointerActive) return;
+      if (!this.isActivePointer(e.evt)) return;
       callbacks.onDrawMove(CanvasStageEventsService.toInput(e.evt));
     });
 
-    stage.on('pointerup', () => {
-      if (!this.pointerActive) return;
-      this.pointerActive = false;
+    stage.on('pointerup', e => {
+      if (!this.isActivePointer(e.evt)) return;
+      this.endGesture();
       callbacks.onDrawEnd();
     });
 
@@ -124,17 +134,24 @@ export class CanvasStageEventsService {
   ): void {
     const container = stage.container();
 
-    const onWindowPointerUp = () => {
-      if (!this.pointerActive) return;
-      this.pointerActive = false;
+    const onWindowPointerUp = (evt: PointerEvent) => {
+      if (!this.isActivePointer(evt)) return;
+      this.endGesture();
       callbacks.onDrawEnd();
     };
 
+    const onPointerCancel = (evt: PointerEvent) => {
+      if (!this.isActivePointer(evt)) return;
+      this.endGesture();
+      callbacks.onDrawCancel();
+    };
+
+    // Losing the window entirely abandons whatever was in flight.
     const onAbort = () => {
       this.pinchDistance = null;
       this.pinchCenter = null;
       if (!this.pointerActive) return;
-      this.pointerActive = false;
+      this.endGesture();
       callbacks.onDrawCancel();
     };
 
@@ -149,14 +166,14 @@ export class CanvasStageEventsService {
     const onContainerLeave = () => callbacks.onPointerFrame?.(null);
 
     window.addEventListener('pointerup', onWindowPointerUp);
-    window.addEventListener('pointercancel', onAbort);
+    window.addEventListener('pointercancel', onPointerCancel);
     window.addEventListener('blur', onAbort);
     container.addEventListener('pointermove', onContainerMove);
     container.addEventListener('pointerleave', onContainerLeave);
 
     this.detachWindowListeners = () => {
       window.removeEventListener('pointerup', onWindowPointerUp);
-      window.removeEventListener('pointercancel', onAbort);
+      window.removeEventListener('pointercancel', onPointerCancel);
       window.removeEventListener('blur', onAbort);
       container.removeEventListener('pointermove', onContainerMove);
       container.removeEventListener('pointerleave', onContainerLeave);
@@ -209,7 +226,7 @@ export class CanvasStageEventsService {
 
     // A second finger means navigation, not drawing.
     if (this.pointerActive) {
-      this.pointerActive = false;
+      this.endGesture();
       callbacks.onDrawCancel();
     }
 
@@ -245,6 +262,23 @@ export class CanvasStageEventsService {
     stage.batchDraw();
 
     if (newScale !== null) callbacks.onZoomChange(newScale);
+  }
+
+  /**
+   * Whether an event belongs to the gesture in flight. Releases from any other
+   * pointer — a resting palm, a second finger — are not ours to act on.
+   */
+  private isActivePointer(evt: PointerEvent | undefined): boolean {
+    if (!this.pointerActive) return false;
+    if (this.activePointerId === null) return true;
+    return (
+      evt?.pointerId === undefined || evt.pointerId === this.activePointerId
+    );
+  }
+
+  private endGesture(): void {
+    this.pointerActive = false;
+    this.activePointerId = null;
   }
 
   /**

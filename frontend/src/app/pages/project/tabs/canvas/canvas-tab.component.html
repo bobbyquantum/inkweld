@@ -662,6 +662,7 @@
           'canvas.toolbar.strokeWidth' | transloco
         }}</span>
         <input
+          #widthSlider
           type="range"
           data-testid="stroke-width-slider"
           min="1"
@@ -670,7 +671,7 @@
           [value]="toolSettings().strokeWidth"
           (click)="$event.stopPropagation()"
           (keydown)="$event.stopPropagation()"
-          (input)="onStrokeWidthChange($any($event.target).value)" />
+          (input)="onStrokeWidthChange(widthSlider.value)" />
         <span class="picker-value">{{ toolSettings().strokeWidth }}</span>
       </label>
     </div>
@@ -697,6 +698,7 @@
           'canvas.toolbar.smoothing' | transloco
         }}</span>
         <input
+          #smoothingSlider
           type="range"
           data-testid="smoothing-slider"
           min="0"
@@ -705,13 +707,14 @@
           [value]="toolSettings().tension"
           (click)="$event.stopPropagation()"
           (keydown)="$event.stopPropagation()"
-          (input)="onSmoothingChange($any($event.target).value)" />
+          (input)="onSmoothingChange(smoothingSlider.value)" />
       </label>
       <label class="picker-row">
         <span class="picker-label">{{
           'canvas.toolbar.opacity' | transloco
         }}</span>
         <input
+          #opacitySlider
           type="range"
           data-testid="opacity-slider"
           min="0.05"
@@ -720,13 +723,14 @@
           [value]="toolSettings().opacity"
           (click)="$event.stopPropagation()"
           (keydown)="$event.stopPropagation()"
-          (input)="onOpacityChange($any($event.target).value)" />
+          (input)="onOpacityChange(opacitySlider.value)" />
       </label>
       <label class="picker-row">
         <span class="picker-label">{{
           'canvas.toolbar.eraserSize' | transloco
         }}</span>
         <input
+          #eraserSlider
           type="range"
           data-testid="eraser-size-slider"
           min="4"
@@ -735,7 +739,7 @@
           [value]="toolSettings().eraserSize"
           (click)="$event.stopPropagation()"
           (keydown)="$event.stopPropagation()"
-          (input)="onEraserSizeChange($any($event.target).value)" />
+          (input)="onEraserSizeChange(eraserSlider.value)" />
       </label>
     </div>
   </ng-template>

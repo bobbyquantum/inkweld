@@ -30,14 +30,23 @@ interface Bounds {
   maxY: number;
 }
 
-/** Expand bounding box to include all points of a path object */
+/**
+ * Expand bounding box to include all points of a path object.
+ *
+ * Points describe the centreline, but the ink sits either side of it — and a
+ * pressure stroke can swell past half the nominal width — so the reach has to
+ * be added or a wide stroke at the edge of the drawing gets clipped.
+ */
 function expandBoundsForPath(b: Bounds, obj: CanvasObject): void {
-  const pts = (obj as CanvasPath).points;
+  const path = obj as CanvasPath;
+  const pts = path.points;
+  const reach = (path.strokeWidth / 2) * (path.pressures?.length ? 1.4 : 1);
+
   for (let i = 0; i < pts.length - 1; i += 2) {
-    b.minX = Math.min(b.minX, obj.x + (pts[i] ?? 0));
-    b.minY = Math.min(b.minY, obj.y + (pts[i + 1] ?? 0));
-    b.maxX = Math.max(b.maxX, obj.x + (pts[i] ?? 0));
-    b.maxY = Math.max(b.maxY, obj.y + (pts[i + 1] ?? 0));
+    b.minX = Math.min(b.minX, obj.x + (pts[i] ?? 0) - reach);
+    b.minY = Math.min(b.minY, obj.y + (pts[i + 1] ?? 0) - reach);
+    b.maxX = Math.max(b.maxX, obj.x + (pts[i] ?? 0) + reach);
+    b.maxY = Math.max(b.maxY, obj.y + (pts[i + 1] ?? 0) + reach);
   }
 }
 

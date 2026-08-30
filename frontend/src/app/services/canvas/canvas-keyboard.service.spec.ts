@@ -251,6 +251,21 @@ describe('CanvasKeyboardService', () => {
       expect(handlers.onSpacePanChange).not.toHaveBeenCalled();
     });
 
+    it('releases the pan when the window loses focus', () => {
+      svc.attach(handlers);
+      svc.dispatch(makeEvent(' '), handlers);
+      vi.mocked(handlers.onSpacePanChange).mockClear();
+
+      globalThis.dispatchEvent(new Event('blur'));
+      expect(handlers.onSpacePanChange).toHaveBeenCalledWith(false);
+    });
+
+    it('does nothing on blur when space was never held', () => {
+      svc.attach(handlers);
+      globalThis.dispatchEvent(new Event('blur'));
+      expect(handlers.onSpacePanChange).not.toHaveBeenCalled();
+    });
+
     it('ignores other keys on release', () => {
       svc.dispatch(makeEvent(' '), handlers);
       vi.mocked(handlers.onSpacePanChange).mockClear();

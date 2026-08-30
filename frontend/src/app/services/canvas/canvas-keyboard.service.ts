@@ -57,11 +57,17 @@ export class CanvasKeyboardService {
     this.attached = true;
     const onKeyDown = (e: KeyboardEvent) => this.dispatch(e, handlers);
     const onKeyUp = (e: KeyboardEvent) => this.dispatchKeyUp(e, handlers);
+    // Alt-tabbing away while space is held never delivers the keyup, which
+    // would otherwise leave the canvas stuck in pan mode.
+    const onBlur = () => this.releaseSpacePan(handlers);
+
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
+    globalThis.addEventListener('blur', onBlur);
     this.destroyRef.onDestroy(() => {
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('keyup', onKeyUp);
+      globalThis.removeEventListener('blur', onBlur);
     });
   }
 
@@ -88,6 +94,11 @@ export class CanvasKeyboardService {
   /** Exposed for unit tests. */
   dispatchKeyUp(e: KeyboardEvent, h: CanvasKeyboardHandlers): void {
     if (e.key !== ' ' && e.key !== 'Spacebar') return;
+    this.releaseSpacePan(h);
+  }
+
+  /** End temporary panning, if it was active. Exposed for unit tests. */
+  releaseSpacePan(h: CanvasKeyboardHandlers): void {
     if (!this.spaceHeld) return;
     this.spaceHeld = false;
     h.onSpacePanChange(false);
