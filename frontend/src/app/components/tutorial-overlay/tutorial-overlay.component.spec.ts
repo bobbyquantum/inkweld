@@ -1,4 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
+import { ApplicationRef } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -95,10 +96,13 @@ describe('TutorialOverlayComponent', () => {
     return el;
   }
 
+  /**
+   * Query by test id in the whole document. The step card lives inside a
+   * MatDialog (rendered into the CDK overlay container on document.body),
+   * so fixture-scoped queries would miss it.
+   */
   function query(testId: string): HTMLElement | null {
-    return fixture.nativeElement.querySelector(
-      `[data-testid="${testId}"]`
-    ) as HTMLElement | null;
+    return document.querySelector(`[data-testid="${testId}"]`);
   }
 
   async function settle(assertion: () => void): Promise<void> {
@@ -113,15 +117,15 @@ describe('TutorialOverlayComponent', () => {
 
   it('renders nothing while no tour is active', () => {
     expect(query('tutorial-overlay')).toBeNull();
+    expect(query('tutorial-card')).toBeNull();
   });
 
-  it('shows a centered intro card with start and dismiss actions', async () => {
+  it('shows the card in a platform dialog on the intro step', async () => {
     tutorial.start('home');
 
     await settle(() => {
       const card = query('tutorial-card');
       expect(card).not.toBeNull();
-      expect(card?.classList.contains('tutorial-card--centered')).toBe(true);
       expect(card?.textContent).toContain('Welcome to Inkweld!');
       expect(query('tutorial-start-button')).not.toBeNull();
       expect(query('tutorial-not-now-button')).not.toBeNull();
@@ -137,6 +141,41 @@ describe('TutorialOverlayComponent', () => {
     );
   });
 
+  it('exposes dialog semantics on the Material dialog container', async () => {
+    tutorial.start('home');
+    await settle(() => expect(query('tutorial-card')).not.toBeNull());
+    // Zoneless: the container's aria bindings refresh on the next app tick
+    // after mat-dialog-title registers itself.
+    TestBed.inject(ApplicationRef).tick();
+
+    const container = document.querySelector<HTMLElement>(
+      '.cdk-overlay-container .mat-mdc-dialog-container'
+    );
+    expect(container).not.toBeNull();
+    expect(container?.getAttribute('role')).toBe('dialog');
+    expect(container?.getAttribute('aria-modal')).toBe('true');
+    // The step title labels the dialog via mat-dialog-title
+    const labelledBy = container?.getAttribute('aria-labelledby');
+    expect(labelledBy).toBeTruthy();
+    expect(document.getElementById(labelledBy ?? '')?.textContent).toContain(
+      'Welcome to Inkweld!'
+    );
+  });
+
+  it('moves focus to the primary button once the card is placed', async () => {
+    addAnchor('create-new-project-button');
+    tutorial.start('home');
+    await settle(() => expect(query('tutorial-start-button')).not.toBeNull());
+
+    query('tutorial-start-button')?.click();
+
+    await settle(() => {
+      expect(
+        document.activeElement?.matches('[data-testid="tutorial-next-button"]')
+      ).toBe(true);
+    });
+  });
+
   it('dismisses the tour from the intro card', async () => {
     tutorial.start('home');
     await settle(() => expect(query('tutorial-not-now-button')).not.toBeNull());
@@ -146,6 +185,7 @@ describe('TutorialOverlayComponent', () => {
     await settle(() => {
       expect(query('tutorial-overlay')).toBeNull();
     });
+    expect(query('tutorial-card')).toBeNull();
     expect(tutorial.isActive()).toBe(false);
     expect(stored['tutorialProgress']).toEqual({ home: 'dismissed' });
   });
@@ -157,6 +197,7 @@ describe('TutorialOverlayComponent', () => {
     query('tutorial-close-button')?.click();
 
     await settle(() => expect(query('tutorial-overlay')).toBeNull());
+    expect(query('tutorial-card')).toBeNull();
     expect(tutorial.isActive()).toBe(false);
   });
 
@@ -164,11 +205,18 @@ describe('TutorialOverlayComponent', () => {
     tutorial.start('home');
     await settle(() => expect(query('tutorial-card')).not.toBeNull());
 
-    document.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+    // The CDK keyboard dispatcher listens for keydown on document.body;
+    // Material closes on the legacy keyCode 27.
+    document.body.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Escape',
+        keyCode: 27,
+        bubbles: true,
+      })
     );
 
     await settle(() => expect(query('tutorial-overlay')).toBeNull());
+    expect(query('tutorial-card')).toBeNull();
     expect(tutorial.isActive()).toBe(false);
   });
 
@@ -190,6 +238,27 @@ describe('TutorialOverlayComponent', () => {
       // Back and next available on interior steps
       expect(query('tutorial-back-button')).not.toBeNull();
       expect(query('tutorial-next-button')).not.toBeNull();
+    });
+  });
+
+  it('positions the dialog pane beside the anchor', async () => {
+    addAnchor('create-new-project-button');
+    tutorial.start('home');
+    await settle(() => expect(query('tutorial-start-button')).not.toBeNull());
+
+    query('tutorial-start-button')?.click();
+
+    await settle(() => {
+      // The pane carries the computed card position (anchor below-right of
+      // (400,100): below the anchor, horizontally clamped to the viewport)
+      const pane = document.querySelector<HTMLElement>(
+        '.cdk-overlay-container .cdk-overlay-pane'
+      );
+      expect(pane).not.toBeNull();
+      const top = parseFloat(pane!.style.marginTop);
+      const left = parseFloat(pane!.style.marginLeft);
+      expect(top).toBeGreaterThanOrEqual(152); // anchor bottom (140) + gap
+      expect(left).toBeGreaterThanOrEqual(12); // viewport margin clamp
     });
   });
 
@@ -221,9 +290,13 @@ describe('TutorialOverlayComponent', () => {
     await settle(() => {
       expect(tutorial.stepIndex()).toBe(1);
       const card = query('tutorial-card');
-      expect(card?.classList.contains('tutorial-card--centered')).toBe(true);
-      // The ready class returns only once the fallback placement has run
       expect(card?.classList.contains('tutorial-card--ready')).toBe(true);
+      // No anchor → the pane stays centered (no margin offsets)
+      const pane = document.querySelector<HTMLElement>(
+        '.cdk-overlay-container .cdk-overlay-pane'
+      );
+      expect(parseFloat(pane!.style.marginTop)).toBeNaN();
+      expect(parseFloat(pane!.style.marginLeft)).toBeNaN();
     });
   });
 
@@ -243,17 +316,22 @@ describe('TutorialOverlayComponent', () => {
     await settle(() => expect(query('tutorial-next-button')).not.toBeNull());
     query('tutorial-next-button')?.click();
 
-    await settle(() => expect(query('tutorial-overlay')).toBeNull());
+    await settle(() => {
+      expect(query('tutorial-overlay')).toBeNull();
+      expect(query('tutorial-card')).toBeNull();
+    });
     expect(tutorial.isActive()).toBe(false);
     expect(stored['tutorialProgress']).toEqual({ home: 'completed' });
   });
+
   it('ignores Escape while no tour is active', () => {
-    document.dispatchEvent(
+    document.body.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
     );
 
     expect(tutorial.isActive()).toBe(false);
     expect(query('tutorial-overlay')).toBeNull();
+    expect(query('tutorial-card')).toBeNull();
   });
 
   it('repositions the spotlight when the window resizes', async () => {
@@ -300,8 +378,11 @@ describe('TutorialOverlayComponent', () => {
 
     await settle(() => {
       expect(query('tutorial-highlight')).toBeNull();
-      const card = query('tutorial-card');
-      expect(card?.classList.contains('tutorial-card--centered')).toBe(true);
+      const pane = document.querySelector<HTMLElement>(
+        '.cdk-overlay-container .cdk-overlay-pane'
+      );
+      // Required-anchor fallback centers the pane (no margin offsets)
+      expect(parseFloat(pane!.style.marginTop)).toBeNaN();
     });
     expect(tutorial.stepIndex()).toBe(1);
   });

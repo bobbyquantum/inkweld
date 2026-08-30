@@ -1,23 +1,17 @@
-import { A11yModule } from '@angular/cdk/a11y';
 import {
   ChangeDetectionStrategy,
   Component,
   effect,
-  type ElementRef,
   inject,
   InjectionToken,
   type OnDestroy,
   signal,
   untracked,
-  viewChild,
 } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { TranslocoModule } from '@jsverse/transloco';
+import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
+import { TutorialCardDialogComponent } from '@dialogs/tutorial-card-dialog/tutorial-card-dialog.component';
 import { type TutorialStep } from '@models/tutorial';
 import { TutorialService } from '@services/core/tutorial.service';
-
-import { type CardPosition, computeCardPosition } from './tutorial-position';
 
 /** How long to wait for a step's anchor to appear before giving up. */
 export const TUTORIAL_ANCHOR_WAIT_MS = new InjectionToken<number>(
@@ -35,10 +29,12 @@ const ANCHOR_POLL_MS = 100;
 const OPTIONAL_ANCHOR_WAIT_MS = 600;
 
 /**
- * Visual layer of the guided tours: renders a spotlight over the current
- * step's anchor element plus a positioned step card, or a centered card for
- * anchor-less steps. Mounted once in the app shell; renders nothing while no
- * tour is active.
+ * Anchor-resolution layer of the guided tours: while a tour is active, it
+ * resolves the current step's anchor element and renders the page-blocking
+ * scrim plus the spotlight ring. The step card itself is shown through a
+ * MatDialog (`TutorialCardDialogComponent`), which receives the anchor rect
+ * live and positions its own pane. The overlay is mounted once in the app
+ * shell and renders nothing while no tour is active.
  *
  * Anchors are looked up by `data-testid`, waiting briefly for lazily-rendered
  * elements. Optional steps whose anchor never appears are skipped; required
@@ -46,34 +42,23 @@ const OPTIONAL_ANCHOR_WAIT_MS = 600;
  */
 @Component({
   selector: 'app-tutorial-overlay',
-  imports: [A11yModule, MatButtonModule, MatIconModule, TranslocoModule],
   templateUrl: './tutorial-overlay.component.html',
   styleUrl: './tutorial-overlay.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: {
-    '(document:keydown.escape)': 'onEscape()',
-  },
 })
 export class TutorialOverlayComponent implements OnDestroy {
   protected readonly tutorial = inject(TutorialService);
   private readonly anchorWaitMs = inject(TUTORIAL_ANCHOR_WAIT_MS);
+  private readonly dialog = inject(MatDialog);
 
   /** Bounding rect of the resolved anchor; null renders a centered card. */
   protected readonly anchorRect = signal<DOMRect | null>(null);
 
-  /** Fixed-position coordinates for the card; null centers it via CSS. */
-  protected readonly cardPosition = signal<CardPosition | null>(null);
-
-  /** False while the card is being (re)measured, to avoid position flicker. */
-  protected readonly cardReady = signal(false);
-
-  private readonly cardElement =
-    viewChild<ElementRef<HTMLElement>>('tutorialCard');
+  private dialogRef: MatDialogRef<TutorialCardDialogComponent> | null = null;
 
   private anchorEl: HTMLElement | null = null;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private measureFrame: number | null = null;
-  private placementFrame: number | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private listenersAttached = false;
 
@@ -94,29 +79,56 @@ export class TutorialOverlayComponent implements OnDestroy {
       untracked(() => {
         this.teardownStep();
         if (step) {
-          this.cardReady.set(false);
           this.resolveStep(step);
         }
       });
     });
+
+    // Mirror the tour lifecycle onto the step-card dialog: one dialog per
+    // tour, kept open across steps and repositioned by the card itself.
+    effect(() => {
+      if (this.tutorial.isActive()) {
+        untracked(() => this.openCardDialog());
+      } else {
+        untracked(() => this.closeCardDialog());
+      }
+    });
   }
 
   ngOnDestroy(): void {
+    this.closeCardDialog();
     this.teardownStep();
   }
 
-  protected onEscape(): void {
-    if (this.tutorial.isActive()) {
-      this.tutorial.dismiss();
+  private openCardDialog(): void {
+    if (this.dialogRef) {
+      return;
     }
+    const ref = this.dialog.open(TutorialCardDialogComponent, {
+      // The spotlight scrim rendered by this component is the backdrop.
+      hasBackdrop: false,
+      // The tutorial service owns what navigation means for the tour (an
+      // untouched intro aborts silently; anything else counts as dismissed).
+      closeOnNavigation: false,
+      panelClass: 'tutorial-card-dialog',
+      ariaModal: true,
+      // Signals stay live across the ref, so the card re-places itself as
+      // the anchor moves.
+      data: { anchorRect: this.anchorRect },
+    });
+    // A close this component did not initiate (Escape) dismisses the tour.
+    ref.afterClosed().subscribe(() => {
+      this.dialogRef = null;
+      if (this.tutorial.isActive()) {
+        this.tutorial.dismiss();
+      }
+    });
+    this.dialogRef = ref;
   }
 
-  protected isIntroStep(): boolean {
-    return this.tutorial.stepIndex() === 0;
-  }
-
-  protected isLastStep(): boolean {
-    return this.tutorial.stepIndex() >= this.tutorial.totalSteps() - 1;
+  private closeCardDialog(): void {
+    this.dialogRef?.close();
+    this.dialogRef = null;
   }
 
   private resolveStep(step: TutorialStep): void {
@@ -124,7 +136,6 @@ export class TutorialOverlayComponent implements OnDestroy {
     if (!testIds || testIds.length === 0) {
       this.tutorial.markStepDisplayed();
       this.anchorRect.set(null);
-      this.scheduleCardPlacement(null);
       return;
     }
 
@@ -147,7 +158,6 @@ export class TutorialOverlayComponent implements OnDestroy {
           // Required step without an anchor: show the card centered.
           this.tutorial.markStepDisplayed();
           this.anchorRect.set(null);
-          this.scheduleCardPlacement(null);
         }
       }
     };
@@ -188,9 +198,7 @@ export class TutorialOverlayComponent implements OnDestroy {
       });
     }
 
-    const rect = el.getBoundingClientRect();
-    this.anchorRect.set(rect);
-    this.scheduleCardPlacement(rect);
+    this.anchorRect.set(el.getBoundingClientRect());
 
     if (!this.listenersAttached) {
       window.addEventListener('resize', this.scheduleRemeasure);
@@ -217,52 +225,7 @@ export class TutorialOverlayComponent implements OnDestroy {
       }
       return;
     }
-    const rect = el.getBoundingClientRect();
-    this.anchorRect.set(rect);
-    this.scheduleCardPlacement(rect);
-  }
-
-  private scheduleCardPlacement(rect: DOMRect | null): void {
-    if (this.placementFrame !== null) {
-      cancelAnimationFrame(this.placementFrame);
-    }
-    this.placementFrame = requestAnimationFrame(() => {
-      this.placementFrame = null;
-      if (!rect) {
-        this.cardPosition.set(null);
-        this.cardReady.set(true);
-        this.focusCard();
-        return;
-      }
-      const card = this.cardElement()?.nativeElement;
-      if (!card) {
-        // Card not rendered yet — try again next frame.
-        this.scheduleCardPlacement(rect);
-        return;
-      }
-      this.cardPosition.set(
-        computeCardPosition(
-          rect,
-          { width: card.offsetWidth, height: card.offsetHeight },
-          { width: window.innerWidth, height: window.innerHeight }
-        )
-      );
-      this.cardReady.set(true);
-      this.focusCard();
-    });
-  }
-
-  /**
-   * Move focus to the step's primary button once the card is visible. The
-   * CDK focus trap captures while the card is still hidden (unmeasured), so
-   * its own initial focus attempt lands nowhere.
-   */
-  private focusCard(): void {
-    const card = this.cardElement()?.nativeElement;
-    if (!card || card.contains(document.activeElement)) {
-      return;
-    }
-    card.querySelector<HTMLElement>('[cdkFocusInitial]')?.focus();
+    this.anchorRect.set(el.getBoundingClientRect());
   }
 
   private stopPolling(): void {
@@ -278,10 +241,6 @@ export class TutorialOverlayComponent implements OnDestroy {
       cancelAnimationFrame(this.measureFrame);
       this.measureFrame = null;
     }
-    if (this.placementFrame !== null) {
-      cancelAnimationFrame(this.placementFrame);
-      this.placementFrame = null;
-    }
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
     if (this.listenersAttached) {
@@ -291,6 +250,5 @@ export class TutorialOverlayComponent implements OnDestroy {
     }
     this.anchorEl = null;
     this.anchorRect.set(null);
-    this.cardPosition.set(null);
   }
 }
