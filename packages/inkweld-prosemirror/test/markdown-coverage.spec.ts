@@ -24,34 +24,43 @@ describe('markdownToXml — block edge cases', () => {
     expect(xml).toContain('after blank');
   });
 
-  it('terminates a blockquote on a non-blank, non-quote line', () => {
-    const md = '> quoted\nplain text';
+  it.each<{
+    name: string;
+    md: string;
+    expectedIncludes: string[];
+  }>([
+    {
+      name: 'terminates a blockquote on a non-blank, non-quote line',
+      md: '> quoted\nplain text',
+      expectedIncludes: [
+        '<blockquote>',
+        '<paragraph>plain text</paragraph>',
+      ],
+    },
+    {
+      name: 'parses ordered lists with `)` marker and a custom start index',
+      md: '5) first\n6) second',
+      expectedIncludes: ['<ordered_list order="5">'],
+    },
+    {
+      name: 'preserves blank-line separated continuation indented under a list item',
+      md: '- item\n\n  continuation',
+      expectedIncludes: ['<list_item>', 'continuation'],
+    },
+    {
+      name: 'terminates a list at an unindented next line after a blank',
+      md: '- item\n\nnext paragraph',
+      expectedIncludes: ['<list_item>', '<paragraph>next paragraph</paragraph>'],
+    },
+  ])('block continuation/termination: $name', ({ md, expectedIncludes }) => {
     const xml = markdownToXml(md);
-    expect(xml).toContain('<blockquote>');
-    expect(xml).toContain('<paragraph>plain text</paragraph>');
+    for (const expected of expectedIncludes) {
+      expect(xml).toContain(expected);
+    }
   });
 
   it('supports bullet markers `+` and `*` in addition to `-`', () => {
     expect(markdownToXml('+ a\n* b')).toContain('<bullet_list>');
-  });
-
-  it('parses ordered lists with `)` marker and a custom start index', () => {
-    const xml = markdownToXml('5) first\n6) second');
-    expect(xml).toContain('<ordered_list order="5">');
-  });
-
-  it('preserves blank-line separated continuation indented under a list item', () => {
-    const md = '- item\n\n  continuation';
-    const xml = markdownToXml(md);
-    expect(xml).toContain('<list_item>');
-    expect(xml).toContain('continuation');
-  });
-
-  it('terminates a list at an unindented next line after a blank', () => {
-    const md = '- item\n\nnext paragraph';
-    const xml = markdownToXml(md);
-    expect(xml).toContain('<list_item>');
-    expect(xml).toContain('<paragraph>next paragraph</paragraph>');
   });
 
   it('handles tab-indented continuation in list items', () => {

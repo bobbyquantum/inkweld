@@ -8,6 +8,10 @@
 import AdmZip from 'adm-zip';
 import { promises as fs } from 'fs';
 
+import {
+  waitForElementsDocPersisted,
+  waitForIndexedDBPersisted,
+} from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 test.describe('Online Publishing Workflow', () => {
@@ -128,6 +132,10 @@ test.describe('Online Publishing Workflow', () => {
   test('plan management, format selection, content editing, and persistence', async ({
     authenticatedPage: page,
   }) => {
+    // Set by the authenticatedPage fixture (via @ts-expect-error there).
+    const { username }: { username: string } = page[
+      'testCredentials' as never
+    ] as { username: string };
     await createProject(page, 'plan-mgmt');
 
     await test.step('shows publishing tab via sidenav button', async () => {
@@ -200,8 +208,11 @@ test.describe('Online Publishing Workflow', () => {
 
     await test.step('persists format selection (PDF) across reload', async () => {
       await selectFormat(page, 'PDF');
-      // Auto-save debounce
-      await page.waitForTimeout(1000);
+      // Wait for the debounced auto-save to flush the format change into
+      // the persisted project elements document before reloading.
+      await waitForElementsDocPersisted(page, username, 'format-content', [
+        '"format":"PDF_SIMPLE"',
+      ]);
 
       await page.reload();
       await expect(page.getByTestId('publish-plan-container')).toBeVisible();
@@ -218,8 +229,12 @@ test.describe('Online Publishing Workflow', () => {
       await selectSection(page, 'contents');
       await expect(page.getByTestId('content-items-list')).toBeVisible();
 
-      // Auto-save debounce
-      await page.waitForTimeout(1000);
+      // Wait for the debounced auto-save to flush the metadata changes
+      // into the persisted project elements document before reloading.
+      await waitForElementsDocPersisted(page, username, 'format-content', [
+        'Persistent Title',
+        'Persistent Author',
+      ]);
 
       await page.reload();
       await expect(page.getByTestId('plan-name-input')).toBeVisible();
@@ -245,6 +260,10 @@ test.describe('Online Publishing Workflow', () => {
   test('generates PDF, EPUB, Markdown, and HTML with real document content', async ({
     authenticatedPage: page,
   }) => {
+    // Set by the authenticatedPage fixture (via @ts-expect-error there).
+    const { username }: { username: string } = page[
+      'testCredentials' as never
+    ] as { username: string };
     const testContent =
       'The quick brown fox jumps over the lazy dog near the riverbank.';
 
@@ -267,9 +286,17 @@ test.describe('Online Publishing Workflow', () => {
       page.getByTestId('document-sync-status').getByTestId('document-sync-dot')
     ).toHaveClass(/synced/);
 
-    // y-indexeddb debounces writes ~1s; storeState needs to complete before
-    // PDF generation can read the document. Pad to be safe.
-    await page.waitForTimeout(3000);
+    // "Synced" means the server has the update, but PDF generation may read
+    // the content back from the document's local y-indexeddb mirror (the
+    // document loses its live connection once we switch to the plan tab).
+    // y-indexeddb writes every Yjs update to its `updates` store as it
+    // arrives, so wait for the typed text to show up there.
+    const elementId = new URL(page.url()).pathname.split('/').pop()!;
+    await waitForIndexedDBPersisted(
+      page,
+      `${username}:format-content:${elementId}`,
+      ['The quick brown fox']
+    );
 
     await createPublishPlan(page);
 

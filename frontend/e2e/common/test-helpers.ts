@@ -67,6 +67,47 @@ export async function waitForIndexedDBPersisted(
 }
 
 /**
+ * Wait for a value to be persisted in the project elements document (the
+ * Yjs doc that carries the element tree, publish plans, relationships, tags,
+ * etc.).
+ *
+ * The elements doc is stored by y-indexeddb under
+ * `{storagePrefix}{username}:{slug}:elements/`, where the prefix depends on
+ * the active app configuration (`local:` in local mode, `srv:{hash}:` in
+ * server mode) and the trailing slash is the local-storage spelling used by
+ * YjsElementSyncProvider. To stay prefix-agnostic, this resolves the exact
+ * database name from the live IndexedDB database list. y-indexeddb debounces
+ * writes, so persistence must be observed — not assumed — before actions
+ * like a reload that read from storage.
+ *
+ * @param page - Playwright page
+ * @param username - Project owner username
+ * @param slug - Project slug
+ * @param expected - UTF-8 substrings that must appear in the persisted bytes
+ */
+export async function waitForElementsDocPersisted(
+  page: Page,
+  username: string,
+  slug: string,
+  expected: string[]
+): Promise<void> {
+  const suffix = `${username}:${slug}:elements/`;
+  const dbName = await page.evaluate(async expectedSuffix => {
+    if (typeof indexedDB.databases !== 'function') return null;
+    const dbs = await indexedDB.databases();
+    return (
+      dbs.map(db => db.name).find(n => n?.endsWith(expectedSuffix)) ?? null
+    );
+  }, suffix);
+  if (!dbName) {
+    throw new Error(
+      `IndexedDB database for elements doc “${suffix}” not found — the project may not have been opened yet.`
+    );
+  }
+  await waitForIndexedDBPersisted(page, dbName, expected);
+}
+
+/**
  * Return the number of `updates` records currently stored for a y-indexeddb
  * database. y-indexeddb appends one record per applied update, so this count
  * grows whenever a Yjs change is persisted.

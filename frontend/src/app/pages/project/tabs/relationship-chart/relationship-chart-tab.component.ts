@@ -120,6 +120,9 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   /** Resolved image URLs for nodes (elementId → displayable URL) */
   protected readonly nodeImages = signal<Map<string, string>>(new Map());
 
+  /** Whether a Cytoscape layout animation is running (exposed for tests) */
+  protected readonly layoutRunning = signal(false);
+
   /** Blob URLs that need revoking on destroy */
   private readonly blobUrls: string[] = [];
 
@@ -846,6 +849,10 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
       this.cy.layout(layoutOpts).run();
     }
 
+    // Track layout activity on the chart-area element so tests can
+    // synchronize on `data-layout-running` instead of fixed delays.
+    this.registerLayoutActivityHandlers(this.cy);
+
     // ── Interactivity ──────────────────────────────────────────────────
 
     // Click node → focus mode
@@ -872,6 +879,15 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     });
 
     this.initialized = true;
+  }
+
+  /**
+   * Flip the layoutRunning signal from Cytoscape's layout lifecycle events so
+   * the DOM exposes a `data-layout-running` attribute tests can await.
+   */
+  private registerLayoutActivityHandlers(cy: cytoscape.Core): void {
+    cy.on('layoutstart', () => this.layoutRunning.set(true));
+    cy.on('layoutstop', () => this.layoutRunning.set(false));
   }
 
   /**

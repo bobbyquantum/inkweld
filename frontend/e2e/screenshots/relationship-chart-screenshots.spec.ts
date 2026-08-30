@@ -72,8 +72,12 @@ test.describe('Relationship Chart Screenshots', () => {
       state: 'visible',
     });
 
-    // Give Cytoscape time to finish the layout animation.
-    await page.waitForTimeout(2000);
+    // Wait for the layout animation to settle — the component tracks
+    // Cytoscape's layout events on the chart-area element.
+    await expect(page.locator('[data-testid="chart-area"]')).toHaveAttribute(
+      'data-layout-running',
+      'false'
+    );
   }
 
   test('relationship chart screenshots — light mode', async ({

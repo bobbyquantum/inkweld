@@ -13,7 +13,101 @@
  * 3. Recovery when server comes back online
  */
 
-import { expect, type ServerUnavailablePage, test } from './fixtures';
+import {
+  expect,
+  type Page,
+  type ServerUnavailablePage,
+  test,
+} from './fixtures';
+
+/**
+ * The `inkweld-sync` IndexedDB database is storage-prefixed
+ * (`srv:{hash}:inkweld-sync`) and may not exist until the first write, so
+ * resolve its live name (or null) before polling the sync-state store.
+ */
+async function findSyncDb(page: Page): Promise<string | null> {
+  return page.evaluate(async () => {
+    if (typeof indexedDB.databases !== 'function') return null;
+    const dbs = await indexedDB.databases();
+    return (
+      dbs.map(db => db.name).find(n => n?.endsWith('inkweld-sync')) ?? null
+    );
+  });
+}
+
+/**
+ * Shape of the per-project sync-state record persisted by ProjectSyncService.
+ */
+interface SyncStateRecord {
+  status?: string;
+  pendingCreation?: { projectData: { slug: string } };
+}
+
+/**
+ * Read the sync-state record for a project key (`username/slug`) from the
+ * `inkweld-sync` database. Returns null when the DB or record does not exist.
+ */
+async function readSyncState(
+  page: Page,
+  projectKey: string
+): Promise<SyncStateRecord | null> {
+  const dbName = await findSyncDb(page);
+  if (!dbName) return null;
+  return page.evaluate(
+    async ({ name, key }) => {
+      const open = indexedDB.open(name);
+      try {
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+          open.onsuccess = () => resolve(open.result);
+          open.onerror = () => reject(open.error ?? new Error('open failed'));
+        });
+        if (!db.objectStoreNames.contains('sync-state')) return null;
+        const store = db
+          .transaction('sync-state', 'readonly')
+          .objectStore('sync-state');
+        const record = await new Promise<unknown>((resolve, reject) => {
+          const req = store.get(key);
+          req.onsuccess = () => resolve(req.result ?? null);
+          req.onerror = () => reject(req.error ?? new Error('get failed'));
+        });
+        db.close();
+        return (record as SyncStateRecord | null) ?? null;
+      } catch {
+        return null;
+      }
+    },
+    { name: dbName, key: projectKey }
+  );
+}
+
+/**
+ * Wait for locally-fallback project creation to settle: the app navigates to
+ * the new project page and the queued pending-creation state becomes
+ * observable in the inkweld-sync IndexedDB store.
+ */
+async function waitForLocalFallback(
+  page: ServerUnavailablePage,
+  slug: string
+): Promise<void> {
+  // The create-project flow redirects to the project page once the local
+  // placeholder exists.
+  await page.waitForURL(new RegExp(`/${slug}$`));
+
+  // The pending-creation record (written by markPendingCreation) is the
+  // observable proof that the local-first queue actually ran.
+  await expect
+    .poll(
+      async () => {
+        const s = await readSyncState(
+          page,
+          `${page.testCredentials.username}/${slug}`
+        );
+        return s?.pendingCreation ? 'queued' : 'missing';
+      },
+      { timeout: 15_000 }
+    )
+    .toBe('queued');
+}
 
 test.describe('Server Unavailable - Local First Behavior', () => {
   test.describe('Project Creation', () => {
@@ -39,15 +133,13 @@ test.describe('Server Unavailable - Local First Behavior', () => {
         .getByTestId('project-description-input')
         .fill('Created while server is unavailable');
 
-      // Submit
+      // Submit — synchronize on the observable outcome of the local-first
+      // fallback instead of a fixed delay.
       await page.getByTestId('create-project-button').click();
+      await waitForLocalFallback(page, uniqueSlug);
 
-      // Should not show a fatal error - project should be created locally
-      // Give it time to attempt server, fail, and fall back to local
-      await page.waitForTimeout(2000);
-
-      // The app should either redirect to project or show a gentle offline indicator
-      // It should NOT show a blocking error dialog
+      // The app should have redirected to the project — it should NOT show
+      // a blocking error dialog
       await expect(page.getByText(/fatal error/i)).not.toBeVisible();
 
       // Verify project was created locally by checking localStorage/IndexedDB
@@ -78,7 +170,8 @@ test.describe('Server Unavailable - Local First Behavior', () => {
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();
 
-      await page.waitForTimeout(2000);
+      // Synchronize on the queued pending-creation state instead of a delay.
+      await waitForLocalFallback(page, uniqueSlug);
 
       // Look for any sync status indicator showing pending/offline state
       // This might be in the UI after local fallback
@@ -109,9 +202,16 @@ test.describe('Server Unavailable - Local First Behavior', () => {
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();
 
-      await page.waitForTimeout(2000);
+      await waitForLocalFallback(page, uniqueSlug);
 
-      // Restore server connectivity
+      // Restore server connectivity and observe the background sync flushing
+      // the queued creation to the server (POST /api/v1/projects succeeds).
+      const createResponse = page.waitForResponse(
+        res =>
+          res.url().includes('/api/v1/projects') &&
+          res.request().method() === 'POST' &&
+          res.status() < 400
+      );
       await page.serverControl.restore();
 
       // Trigger online event to simulate network recovery
@@ -119,8 +219,18 @@ test.describe('Server Unavailable - Local First Behavior', () => {
         window.dispatchEvent(new Event('online'));
       });
 
-      // Wait for background sync to complete
-      await page.waitForTimeout(3000);
+      await createResponse;
+
+      // The queued marker is cleared once the sync completes.
+      await expect
+        .poll(async () => {
+          const s = await readSyncState(
+            page,
+            `${page.testCredentials.username}/${uniqueSlug}`
+          );
+          return s?.pendingCreation ? 'queued' : 'cleared';
+        })
+        .toBe('cleared');
 
       // The app should still be functional
       await expect(page.getByText(/fatal error/i)).not.toBeVisible();
@@ -152,8 +262,9 @@ test.describe('Server Unavailable - Local First Behavior', () => {
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();
 
-      // Wait for fallback
-      await page.waitForTimeout(2000);
+      // Wait for the observable fallback (redirect + queued pending state)
+      // instead of a fixed delay.
+      await waitForLocalFallback(page, uniqueSlug);
 
       // Should not crash or show fatal error
       await expect(page.getByText(/fatal|crash/i)).not.toBeVisible();
@@ -179,12 +290,11 @@ test.describe('Server Unavailable - Local First Behavior', () => {
       await page.getByTestId('project-title-input').fill('Slow Network Test');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
 
-      // Click create - this will be slow
+      // Click create - this will be slow: the request must time out before
+      // the local fallback can run, so wait on the fallback's observable
+      // outcome (redirect + queued pending state) instead of a delay.
       await page.getByTestId('create-project-button').click();
-
-      // Should show loading state then eventually succeed locally
-      // Give it time for the request to timeout and fall back
-      await page.waitForTimeout(5000);
+      await waitForLocalFallback(page, uniqueSlug);
 
       // Should not be stuck in error state
       await expect(page.getByText(/fatal error/i)).not.toBeVisible();

@@ -88,36 +88,44 @@ test.describe('Canvas Tab Screenshots', () => {
     if (box) {
       const { x: cx, y: cy, width: cw, height: ch } = box;
 
+      // The sidebar lists one .object-item per committed object; waiting for
+      // the count to grow is the observable signal that the pointer-up was
+      // processed and the next drag can start.
       /** Drag from (sx,sy) to (ex,ey) in canvas-relative coords to draw a shape */
       const dragShape = async (
         sx: number,
         sy: number,
         ex: number,
-        ey: number
+        ey: number,
+        expectedObjects: number
       ) => {
         await page.mouse.move(cx + sx, cy + sy);
         await page.mouse.down();
         await page.mouse.move(cx + ex, cy + ey, { steps: 8 });
         await page.mouse.up();
-        await page.waitForTimeout(80);
+        await expect(objectItems).toHaveCount(expectedObjects);
       };
 
       const toolbar = page.getByTestId('canvas-toolbar');
+      const objectItems = page
+        .getByTestId('canvas-sidebar')
+        .locator('.object-item');
+      await expect(objectItems).toHaveCount(0);
 
       // ── Rectangles ───────────────────────────────────────────────────────
       await toolbar.getByRole('button', { name: /Shape \(S\)/i }).click();
       await page.getByRole('menuitem', { name: /Rectangle/i }).click();
 
       // Three rectangles at different positions / sizes
-      await dragShape(cw * 0.08, ch * 0.12, cw * 0.36, ch * 0.44);
-      await dragShape(cw * 0.44, ch * 0.08, cw * 0.74, ch * 0.4);
-      await dragShape(cw * 0.22, ch * 0.52, cw * 0.58, ch * 0.76);
+      await dragShape(cw * 0.08, ch * 0.12, cw * 0.36, ch * 0.44, 1);
+      await dragShape(cw * 0.44, ch * 0.08, cw * 0.74, ch * 0.4, 2);
+      await dragShape(cw * 0.22, ch * 0.52, cw * 0.58, ch * 0.76, 3);
 
       // ── Ellipse ──────────────────────────────────────────────────────────
       await toolbar.getByRole('button', { name: /Shape \(S\)/i }).click();
       await page.getByRole('menuitem', { name: /Ellipse/i }).click();
 
-      await dragShape(cw * 0.62, ch * 0.52, cw * 0.88, ch * 0.8);
+      await dragShape(cw * 0.62, ch * 0.52, cw * 0.88, ch * 0.8, 4);
 
       // ── Line ─────────────────────────────────────────────────────────────
       await toolbar.getByRole('button', { name: /Line \(L\)/i }).click();
@@ -125,14 +133,14 @@ test.describe('Canvas Tab Screenshots', () => {
       await page.mouse.down();
       await page.mouse.move(cx + cw * 0.6, cy + ch * 0.88, { steps: 10 });
       await page.mouse.up();
-      await page.waitForTimeout(80);
+      await expect(objectItems).toHaveCount(5);
 
       // Second line
       await page.mouse.move(cx + cw * 0.36, cy + ch * 0.44);
       await page.mouse.down();
       await page.mouse.move(cx + cw * 0.44, cy + ch * 0.4, { steps: 10 });
       await page.mouse.up();
-      await page.waitForTimeout(80);
+      await expect(objectItems).toHaveCount(6);
 
       // Switch back to select tool so no ghost tool state lingers
       await toolbar.getByRole('button', { name: /Select \(V\)/i }).click();

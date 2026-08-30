@@ -470,6 +470,26 @@ describe('RelationshipChartTabComponent', () => {
     });
   });
 
+  it('should track layout activity in the layoutRunning signal', () => {
+    fixture.detectChanges();
+    expect(component['layoutRunning']()).toBe(false);
+
+    const handlers = new Map<string, () => void>();
+    const mockCy = {
+      on: (event: string, cb: () => void): void => {
+        handlers.set(event, cb);
+      },
+    };
+    component['registerLayoutActivityHandlers'](
+      mockCy as unknown as import('cytoscape').Core
+    );
+
+    handlers.get('layoutstart')!();
+    expect(component['layoutRunning']()).toBe(true);
+    handlers.get('layoutstop')!();
+    expect(component['layoutRunning']()).toBe(false);
+  });
+
   it('should return description icon for documents', () => {
     const el = {
       id: 'el-4',
