@@ -75,6 +75,9 @@ async function initializeServerFixturePage(
       'srv:screenshot-server:auth_token',
       'mock-token-testuser'
     );
+
+    // Keep the guided tour from auto-starting during screenshot capture
+    localStorage.setItem('inkweld-tutorial-autostart', 'off');
   });
 }
 
@@ -250,6 +253,9 @@ export const test = base.extend<ScreenshotFixtures>({
           ],
         })
       );
+
+      // Keep the guided tour from auto-starting during screenshot capture
+      localStorage.setItem('inkweld-tutorial-autostart', 'off');
     });
 
     await use(page);

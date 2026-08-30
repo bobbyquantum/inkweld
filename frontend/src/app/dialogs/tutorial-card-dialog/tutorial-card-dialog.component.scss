@@ -1,0 +1,71 @@
+// Step card, frosted-glass style to match the app's dialogs and menus. The
+// dialog pane is placed by this component (see scheduleCardPlacement); the
+// default dialog surface chrome is stripped in themes/theme.scss.
+.tutorial-card {
+  width: min(360px, calc(100vw - 24px));
+  padding: 16px;
+  border-radius: 12px;
+  visibility: hidden;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 8px 32px 0 rgba(31, 38, 135, 0.25),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+
+  // The step title doubles as the dialog title (aria-labelledby via
+  // mat-dialog-title), so neutralize the headline chrome defaults.
+  --mat-dialog-headline-padding: 0;
+
+  &--ready {
+    visibility: visible;
+  }
+}
+
+:host-context(.dark-theme) .tutorial-card {
+  background: rgba(18, 18, 20, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.tutorial-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+
+  h2 {
+    flex: 1;
+    margin: 0;
+    color: inherit;
+    font-size: 1.1rem;
+    line-height: 1.4;
+    padding-top: 4px;
+  }
+}
+
+.tutorial-close-button {
+  margin: -4px -8px 0 0;
+}
+
+.tutorial-card-body {
+  margin: 8px 0 16px;
+  line-height: 1.5;
+}
+
+.tutorial-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tutorial-step-counter {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.tutorial-footer-spacer {
+  flex: 1;
+}

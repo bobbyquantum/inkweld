@@ -106,6 +106,9 @@ export const test = base.extend<LocalTestFixtures>({
         'local:inkweld-local-user',
         JSON.stringify(userProfile)
       );
+
+      // Keep the guided tour from auto-starting during unrelated tests
+      localStorage.setItem('inkweld-tutorial-autostart', 'off');
     });
 
     // Navigate to home
@@ -190,6 +193,9 @@ export const test = base.extend<LocalTestFixtures>({
         'local:inkweld-local-user',
         JSON.stringify(userProfile)
       );
+
+      // Keep the guided tour from auto-starting during unrelated tests
+      localStorage.setItem('inkweld-tutorial-autostart', 'off');
     });
 
     // Navigate to home
@@ -293,6 +299,9 @@ export const test = base.extend<LocalTestFixtures>({
         'local:inkweld-local-user',
         JSON.stringify(userProfile)
       );
+
+      // Keep the guided tour from auto-starting during unrelated tests
+      localStorage.setItem('inkweld-tutorial-autostart', 'off');
     });
 
     await use(context);

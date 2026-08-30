@@ -35,6 +35,9 @@ opencode.json
 .cscode
 nohup.out
 
-# Process core dumps (e.g. from an OOM-aborted ng lint)
+# Process core dumps (e.g. from an OOM-aborted ng lint).
+# The bare "core" pattern also matches directories (e.g. services/core/),
+# silently ignoring new source files inside them — re-include directories.
 core
 core.*
+!**/core/

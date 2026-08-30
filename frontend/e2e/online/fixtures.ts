@@ -142,6 +142,9 @@ export const test = base.extend<OnlineTestFixtures>({
           ],
         })
       );
+
+      // Keep the guided tour from auto-starting during unrelated tests
+      localStorage.setItem('inkweld-tutorial-autostart', 'off');
     }, apiUrl);
 
     await use(page);
@@ -192,6 +195,9 @@ export const test = base.extend<OnlineTestFixtures>({
 
         // Store token with server-specific prefix (matches AuthTokenService)
         localStorage.setItem('srv:server-1:auth_token', authToken);
+
+        // Keep the guided tour from auto-starting during unrelated tests
+        localStorage.setItem('inkweld-tutorial-autostart', 'off');
       },
       { authToken: token, serverUrl: apiUrl }
     );
@@ -316,6 +322,9 @@ export const test = base.extend<OnlineTestFixtures>({
 
         // Store token with server-specific prefix (matches AuthTokenService)
         localStorage.setItem('srv:server-1:auth_token', authToken);
+
+        // Keep the guided tour from auto-starting during unrelated tests
+        localStorage.setItem('inkweld-tutorial-autostart', 'off');
       },
       { authToken: token, serverUrl: apiUrl }
     );
@@ -423,6 +432,9 @@ export const test = base.extend<OnlineTestFixtures>({
 
       // Clear any existing offline projects
       localStorage.removeItem('local:inkweld-local-projects');
+
+      // Keep the guided tour from auto-starting during unrelated tests
+      localStorage.setItem('inkweld-tutorial-autostart', 'off');
     }, username);
 
     // Reload to apply the configuration
@@ -475,6 +487,9 @@ export const test = base.extend<OnlineTestFixtures>({
         );
         // Store token with server-specific prefix (matches AuthTokenService)
         localStorage.setItem('srv:server-1:auth_token', authToken);
+
+        // Keep the guided tour from auto-starting during unrelated tests
+        localStorage.setItem('inkweld-tutorial-autostart', 'off');
       },
       { authToken: token, serverUrl: apiUrl }
     );

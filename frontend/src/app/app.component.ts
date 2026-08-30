@@ -10,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterOutlet } from '@angular/router';
+import { TutorialOverlayComponent } from '@components/tutorial-overlay/tutorial-overlay.component';
 import { TranslocoModule } from '@jsverse/transloco';
 
 import { ThemeService } from '../themes/theme.service';
@@ -29,6 +30,7 @@ import { UnifiedUserService } from './services/user/unified-user.service';
     MatToolbarModule,
     MatButtonModule,
     TranslocoModule,
+    TutorialOverlayComponent,
   ],
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

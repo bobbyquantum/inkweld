@@ -23,6 +23,7 @@ const SCOPES = [
   'tags',
   'templates',
   'messages',
+  'tutorial',
 ] as const;
 
 @Injectable({ providedIn: 'root' })

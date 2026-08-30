@@ -1,0 +1,48 @@
+// Sits above the app content but below the CDK overlay container (z-index
+// 1000), so the tutorial step-card dialog and any Material menus/dialogs
+// opened during a tour stay usable above the spotlight.
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+}
+
+// Invisible click-catcher so the page isn't interactive mid-tour. When a step
+// has no anchor (centered card) it also provides the dimmed backdrop, since
+// there is no highlight ring to cast one.
+.tutorial-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+
+  &--dimmed {
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+:host-context(.dark-theme) .tutorial-scrim--dimmed {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+// Spotlight ring over the anchor; the huge box-shadow dims everything else.
+.tutorial-highlight {
+  position: absolute;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition:
+      top 0.2s ease,
+      left 0.2s ease,
+      width 0.2s ease,
+      height 0.2s ease;
+  }
+}
+
+:host-context(.dark-theme) .tutorial-highlight {
+  border-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.65);
+}

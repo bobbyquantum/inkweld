@@ -602,3 +602,18 @@ body.dark-theme .mat-mdc-snack-bar-container .mat-mdc-button {
 .multiline-tooltip {
   white-space: pre-line !important;
 }
+
+/* Tutorial step-card dialog - the frosted-glass card inside provides its own
+   visuals, so strip the default dialog surface chrome. The pane is positioned
+   beside the tour step's anchor by the card component itself. */
+.cdk-overlay-pane.tutorial-card-dialog {
+  min-width: 0;
+  max-width: none;
+
+  .mat-mdc-dialog-surface {
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+}

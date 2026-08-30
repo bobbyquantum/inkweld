@@ -25,6 +25,7 @@ import {
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { StorageContextService } from '@services/core/storage-context.service';
+import { TutorialService } from '@services/core/tutorial.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
@@ -63,6 +64,10 @@ describe('HomeComponent', () => {
   let httpClient: MockedObject<HttpClient>;
   let router: MockedObject<Router>;
   let matDialog: MockedObject<MatDialog>;
+  let tutorialService: {
+    start: ReturnType<typeof vi.fn>;
+    maybeAutoStart: ReturnType<typeof vi.fn>;
+  };
   let snackBar: MockedObject<MatSnackBar>;
   let coverSyncService: { syncCovers: ReturnType<typeof vi.fn> };
   let projectsService: {
@@ -143,6 +148,7 @@ describe('HomeComponent', () => {
 
     breakpointObserver = {
       observe: vi.fn().mockReturnValue(of({ matches: true, breakpoints: {} })),
+      isMatched: vi.fn().mockReturnValue(false),
     } as unknown as MockedObject<BreakpointObserver>;
 
     httpClient = {
@@ -157,6 +163,11 @@ describe('HomeComponent', () => {
       navigate: vi.fn(),
       url: '/',
     } as unknown as MockedObject<Router>;
+
+    tutorialService = {
+      start: vi.fn().mockReturnValue(true),
+      maybeAutoStart: vi.fn().mockReturnValue(false),
+    };
 
     matDialog = {
       open: vi.fn(),
@@ -282,6 +293,7 @@ describe('HomeComponent', () => {
         { provide: BreakpointObserver, useValue: breakpointObserver },
         { provide: HttpClient, useValue: httpClient },
         { provide: Router, useValue: router },
+        { provide: TutorialService, useValue: tutorialService },
         { provide: MatDialog, useValue: matDialog },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: CoverSyncService, useValue: coverSyncService },
@@ -1381,6 +1393,39 @@ describe('HomeComponent', () => {
           'No activated projects to sync'
         );
       });
+    });
+  });
+  describe('tutorial auto-offer', () => {
+    it('offers the home tour once authenticated on a desktop viewport', () => {
+      fixture.detectChanges();
+      component.isInitializing.set(false);
+      component.isMobile.set(false);
+      fixture.detectChanges();
+
+      expect(tutorialService.maybeAutoStart).toHaveBeenCalledWith('home', {
+        isMobile: false,
+      });
+      // The offer is latched — later signal changes don't re-offer
+      tutorialService.maybeAutoStart.mockClear();
+      component.isMobile.set(true);
+      component.isMobile.set(false);
+      fixture.detectChanges();
+      expect(tutorialService.maybeAutoStart).not.toHaveBeenCalled();
+    });
+
+    it('does not offer the tour on mobile viewports', () => {
+      fixture.detectChanges();
+      component.isInitializing.set(false);
+      component.isMobile.set(true);
+      fixture.detectChanges();
+
+      expect(tutorialService.maybeAutoStart).not.toHaveBeenCalled();
+    });
+
+    it('starts the tour from the empty state button', () => {
+      component['startTutorial']();
+
+      expect(tutorialService.start).toHaveBeenCalledWith('home');
     });
   });
 });

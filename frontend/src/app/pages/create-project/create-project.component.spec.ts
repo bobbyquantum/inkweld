@@ -19,6 +19,7 @@ import {
   Router,
 } from '@angular/router';
 import { type Project } from '@inkweld/index';
+import { TutorialService } from '@services/core/tutorial.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectTemplateService } from '@services/project/project-template.service';
@@ -119,6 +120,10 @@ describe('CreateProjectComponent', () => {
         { provide: ProjectTemplateService, useValue: templateService },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: Router, useValue: router },
+        {
+          provide: TutorialService,
+          useValue: { start: vi.fn().mockReturnValue(true) },
+        },
         {
           provide: ActivatedRoute,
           useValue: { paramMap: of(convertToParamMap({})) },

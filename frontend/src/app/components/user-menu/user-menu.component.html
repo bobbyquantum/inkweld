@@ -113,6 +113,15 @@
           <mat-icon>info</mat-icon>
           <span>{{ 'about.aboutTitle' | transloco }}</span>
         </button>
+        @if (tutorialTour) {
+          <button
+            mat-menu-item
+            (click)="onStartTutorial()"
+            data-testid="tutorial-menu-item">
+            <mat-icon>tour</mat-icon>
+            <span>{{ 'tutorial.menuItem' | transloco }}</span>
+          </button>
+        }
         @if (setupService.getMode() === 'server') {
           <button
             mat-menu-item

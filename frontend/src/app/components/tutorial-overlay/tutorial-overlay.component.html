@@ -1,0 +1,18 @@
+@if (tutorial.currentStep()) {
+  <div class="tutorial-overlay" data-testid="tutorial-overlay">
+    <!-- Blocks interaction with the page while the tour is showing. -->
+    <div
+      class="tutorial-scrim"
+      [class.tutorial-scrim--dimmed]="!anchorRect()"></div>
+
+    @if (anchorRect(); as rect) {
+      <div
+        class="tutorial-highlight"
+        data-testid="tutorial-highlight"
+        [style.top.px]="rect.top - 6"
+        [style.left.px]="rect.left - 6"
+        [style.width.px]="rect.width + 12"
+        [style.height.px]="rect.height + 12"></div>
+    }
+  </div>
+}
