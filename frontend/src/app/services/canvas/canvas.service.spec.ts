@@ -1092,7 +1092,7 @@ describe('CanvasService', () => {
       service.addObject(makeTextObject({ id: 'a' }));
       const callsBefore = mockProjectState.applyCanvasEdit.mock.calls.length;
       service.flush();
-      expect(mockProjectState.applyCanvasEdit.mock.calls.length).toBe(
+      expect(mockProjectState.applyCanvasEdit.mock.calls).toHaveLength(
         callsBefore
       );
     });

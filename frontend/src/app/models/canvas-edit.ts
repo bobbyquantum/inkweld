@@ -89,7 +89,7 @@ export function diffCanvasContents(
 ): CanvasEdit {
   const edit: CanvasEdit = {};
 
-  if (!previous || previous.layers !== next.layers) {
+  if (previous?.layers !== next.layers) {
     edit.layers = next.layers;
   }
 
