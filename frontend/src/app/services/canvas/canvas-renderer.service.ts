@@ -12,6 +12,7 @@ import {
   type CanvasShape,
   type CanvasText,
   type CanvasViewport,
+  isBackgroundImage,
 } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
 import { LoggerService } from '@services/core/logger.service';
@@ -36,6 +37,8 @@ export interface CanvasNodeHandlers {
     rotation: number
   ) => void;
   onDblClickText: (obj: CanvasText, textNode: Konva.Text) => void;
+  /** Fired when a linked pin is double-clicked/tapped (open the element). */
+  onDblClickPin?: (obj: CanvasPin) => void;
 }
 
 @Injectable()
@@ -54,6 +57,7 @@ export class CanvasRendererService {
   private readonly _objectStructures = new Map<string, string>();
   private _resizeObserver: ResizeObserver | null = null;
   private _contentInteractive = true;
+  private _interactionLocked = false;
 
   get stage(): Konva.Stage | null {
     return this._stage;
@@ -89,6 +93,19 @@ export class CanvasRendererService {
     this._contentInteractive = interactive;
     for (const kLayer of this._konvaLayers.values()) {
       kLayer.listening(interactive && kLayer.getAttr('inkLocked') !== true);
+    }
+  }
+
+  /**
+   * View mode: objects stay visible and clickable (so linked pins navigate)
+   * but nothing can be dragged. Re-syncing from the config restores each
+   * object's own draggable state after unlocking.
+   */
+  setInteractionLocked(locked: boolean): void {
+    if (this._interactionLocked === locked) return;
+    this._interactionLocked = locked;
+    if (locked) {
+      for (const node of this._konvaNodes.values()) node.draggable(false);
     }
   }
 
@@ -312,6 +329,7 @@ export class CanvasRendererService {
 
     if (node.getLayer() !== kLayer) node.moveTo(kLayer);
     CanvasRendererService.applyCommonAttrs(node, obj);
+    if (this._interactionLocked) node.draggable(false);
     CanvasRendererService.applyStyle(node, obj);
   }
 
@@ -339,14 +357,26 @@ export class CanvasRendererService {
    */
   private applyObjectZOrder(objects: CanvasObject[]): void {
     const desiredByLayer = new Map<Konva.Layer, Konva.Node[]>();
+    const foregroundByLayer = new Map<Konva.Layer, Konva.Node[]>();
 
+    // Backgrounds always sit below the other objects on their layer,
+    // regardless of where they fall in the objects array.
     for (const obj of objects) {
       const node = this._konvaNodes.get(obj.id);
       const layer = node?.getLayer();
       if (!node || !layer) continue;
-      const nodes = desiredByLayer.get(layer);
+      const byLayer = isBackgroundImage(obj)
+        ? desiredByLayer
+        : foregroundByLayer;
+      const nodes = byLayer.get(layer);
       if (nodes) nodes.push(node);
-      else desiredByLayer.set(layer, [node]);
+      else byLayer.set(layer, [node]);
+    }
+
+    for (const [layer, nodes] of foregroundByLayer) {
+      const existing = desiredByLayer.get(layer);
+      if (existing) existing.push(...nodes);
+      else desiredByLayer.set(layer, nodes);
     }
 
     for (const [layer, desired] of desiredByLayer) {
@@ -420,11 +450,17 @@ export class CanvasRendererService {
   static getObjectStructure(obj: CanvasObject): string {
     switch (obj.type) {
       case 'image':
-        return `image:${obj.src}`;
+        // isBackground is structural: it decides whether the node listens
+        // to the pointer and has handlers wired at all.
+        return `image:${obj.isBackground ? 'bg:' : ''}${obj.src}`;
       case 'shape':
         return `shape:${obj.shapeType}`;
       case 'path':
         return `path:${obj.pressures?.length ? 'ink' : 'line'}`;
+      case 'pin':
+        // Linked pins carry extra interactions (dblclick, hover cursor), so
+        // gaining or losing a link rebuilds the node.
+        return `pin:${obj.linkedElementId ? 'linked' : 'plain'}`;
       default:
         return obj.type;
     }
@@ -437,7 +473,7 @@ export class CanvasRendererService {
     node.scale({ x: obj.scaleX, y: obj.scaleY });
     node.visible(obj.visible);
     node.opacity(obj.opacity ?? 1);
-    node.draggable(!obj.locked);
+    node.draggable(!obj.locked && !isBackgroundImage(obj));
   }
 
   /** Patch the type-specific appearance of an existing node. */
@@ -519,6 +555,7 @@ export class CanvasRendererService {
     obj: CanvasObject,
     handlers: CanvasNodeHandlers
   ): Konva.Group | Konva.Shape | null {
+    const background = isBackgroundImage(obj);
     const commonAttrs: Konva.NodeConfig = {
       id: obj.id,
       x: obj.x,
@@ -528,7 +565,8 @@ export class CanvasRendererService {
       scaleY: obj.scaleY,
       visible: obj.visible,
       opacity: obj.opacity ?? 1,
-      draggable: !obj.locked,
+      draggable: !obj.locked && !background && !this._interactionLocked,
+      listening: !background,
     };
 
     let node: Konva.Group | Konva.Shape | null = null;
@@ -554,7 +592,14 @@ export class CanvasRendererService {
         break;
       case 'pin':
         node = CanvasRendererService.createPinNode(obj, commonAttrs);
+        this.wirePinInteractions(node, obj, handlers);
         break;
+    }
+
+    if (node && background) {
+      // Backdrops never take part in selection, dragging or transforms.
+      (node as Konva.Node).setAttr('inkBackground', true);
+      return node;
     }
 
     if (node) {
@@ -586,6 +631,23 @@ export class CanvasRendererService {
     }
 
     return node;
+  }
+
+  /** Extra interactions for pins linked to a project element. */
+  private wirePinInteractions(
+    group: Konva.Group,
+    obj: CanvasPin,
+    handlers: CanvasNodeHandlers
+  ): void {
+    if (!obj.linkedElementId) return;
+    group.on('dblclick dbltap', () => handlers.onDblClickPin?.(obj));
+    group.on('mouseenter', () => this.setStageCursor('pointer'));
+    group.on('mouseleave', () => this.setStageCursor(''));
+  }
+
+  private setStageCursor(cursor: string): void {
+    const container = this._stage?.container();
+    if (container) container.style.cursor = cursor;
   }
 
   static createImageNode(

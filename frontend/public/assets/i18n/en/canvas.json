@@ -15,7 +15,9 @@
     "objects": "Objects",
     "objectsAria": "Objects",
     "noObjects": "No objects on this layer.",
-    "noObjectsHint": "Use the toolbar to add images, text, pins, or drawings."
+    "noObjectsHint": "Use the toolbar to add images, text, pins, or drawings.",
+    "setAsBackground": "Set as background",
+    "detachBackground": "Detach from background"
   },
   "toolbar": {
     "select": "Select (V)",
@@ -47,7 +49,9 @@
     "zoomOutAria": "Zoom out",
     "fitAll": "Fit all (⌘0)",
     "resetZoom": "Reset zoom to 100%",
-    "moreTools": "More tools"
+    "moreTools": "More tools",
+    "viewMode": "View mode",
+    "editMode": "Edit mode"
   },
   "contextMenu": {
     "cut": "Cut",
@@ -59,7 +63,14 @@
     "bringForward": "Bring forward",
     "sendBackward": "Send backward",
     "sendToBack": "Send to back",
-    "sendToLayer": "Send to Layer"
+    "sendToLayer": "Send to Layer",
+    "setAsBackground": "Set as background",
+    "detachBackground": "Detach from background",
+    "openLinkedElement": "Open linked element",
+    "editPin": "Edit pin…"
+  },
+  "pin": {
+    "linkedElementMissing": "Linked element no longer exists"
   },
   "export": {
     "exportPng": "Export as PNG",
@@ -69,6 +80,7 @@
   "layerMenu": {
     "rename": "Rename",
     "duplicate": "Duplicate",
+    "addBackground": "Add background image…",
     "moveUp": "Move up",
     "moveDown": "Move down",
     "delete": "Delete"

@@ -19,7 +19,6 @@ import type {
   CanvasToolSettings,
 } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
-import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -46,6 +45,14 @@ export interface PlacementHandlers {
   viewportCenter: () => { x: number; y: number };
   /** ID of the element that owns this canvas (for relationship creation). */
   elementId: () => string;
+}
+
+/** Options for {@link CanvasPlacementService.addImage}. */
+export interface AddImageOptions {
+  /** Place the image as a non-interactive backdrop (map base image). */
+  background?: boolean;
+  /** Target layer; falls back to the active layer when omitted. */
+  layerId?: string;
 }
 
 /**
@@ -219,13 +226,7 @@ export class CanvasPlacementService {
   }
 
   /** Open a dialog to edit an existing pin's label, color, and link target. */
-  openPinEditDialog(
-    obj: CanvasPin,
-    label: Konva.Text,
-    marker: Konva.Circle,
-    group: Konva.Group,
-    elementId: string
-  ): void {
+  openPinEditDialog(obj: CanvasPin, elementId: string): void {
     const linkedElement = obj.linkedElementId
       ? this.projectState.elements().find(e => e.id === obj.linkedElementId)
       : undefined;
@@ -246,14 +247,6 @@ export class CanvasPlacementService {
       .afterClosed()
       .subscribe((result: CanvasPinDialogResult | undefined) => {
         if (!result) return;
-        label.text(result.label);
-        label.x(-label.width() / 2);
-        marker.fill(result.color);
-
-        CanvasRendererService.updatePinLinkIndicator(
-          group,
-          !!result.linkedElementId
-        );
 
         const oldLink = obj.linkedElementId;
         const newLink = result.linkedElementId;
@@ -273,7 +266,6 @@ export class CanvasPlacementService {
           }
         }
 
-        group.getLayer()?.batchDraw();
         this.canvasService.updateObject(obj.id, {
           label: result.label,
           color: result.color,
@@ -284,16 +276,23 @@ export class CanvasPlacementService {
       });
   }
 
-  /** Open the insert-image dialog, store the blob, and place the image on the active layer. */
-  async addImage(handlers: PlacementHandlers): Promise<void> {
+  /**
+   * Open the insert-image dialog, store the blob, and place the image.
+   * Resolves with the created object once it has been added (or null when the
+   * dialog was cancelled or the image failed to decode).
+   */
+  async addImage(
+    handlers: PlacementHandlers,
+    options?: AddImageOptions
+  ): Promise<CanvasImage | null> {
     const project = this.projectState.project();
-    if (!project) return;
+    if (!project) return null;
 
     const result = await this.dialogGateway.openInsertImageDialog({
       username: project.username,
       slug: project.slug,
     });
-    if (!result?.mediaId || !result?.imageBlob) return;
+    if (!result?.mediaId || !result?.imageBlob) return null;
 
     const projectKey = `${project.username}/${project.slug}`;
 
@@ -310,33 +309,41 @@ export class CanvasPlacementService {
     );
 
     const blobUrl = URL.createObjectURL(result.imageBlob);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(blobUrl);
-      const center = handlers.viewportCenter();
-      const layerId = handlers.ensureLayer();
-      if (!layerId) {
-        return;
-      }
-      const imageObj: CanvasImage = {
-        id: nanoid(),
-        layerId,
-        type: 'image',
-        x: center.x - img.naturalWidth / 2,
-        y: center.y - img.naturalHeight / 2,
-        rotation: 0,
-        scaleX: 1,
-        scaleY: 1,
-        visible: true,
-        locked: false,
-        src: createMediaUrl(result.mediaId),
-        width: img.naturalWidth,
-        height: img.naturalHeight,
-        name: result.mediaId,
+    return new Promise<CanvasImage | null>(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(blobUrl);
+        const center = handlers.viewportCenter();
+        const layerId = options?.layerId ?? handlers.ensureLayer();
+        if (!layerId) {
+          resolve(null);
+          return;
+        }
+        const imageObj: CanvasImage = {
+          id: nanoid(),
+          layerId,
+          type: 'image',
+          x: center.x - img.naturalWidth / 2,
+          y: center.y - img.naturalHeight / 2,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          visible: true,
+          locked: false,
+          src: createMediaUrl(result.mediaId),
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+          name: result.mediaId,
+          isBackground: options?.background || undefined,
+        };
+        this.canvasService.addObject(imageObj);
+        resolve(imageObj);
       };
-      this.canvasService.addObject(imageObj);
-    };
-    img.onerror = () => URL.revokeObjectURL(blobUrl);
-    img.src = blobUrl;
+      img.onerror = () => {
+        URL.revokeObjectURL(blobUrl);
+        resolve(null);
+      };
+      img.src = blobUrl;
+    });
   }
 }

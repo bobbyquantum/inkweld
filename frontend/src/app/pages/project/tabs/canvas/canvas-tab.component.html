@@ -60,15 +60,17 @@
             <span class="section-title">{{
               'canvas.sidebar.layers' | transloco
             }}</span>
-            <button
-              mat-icon-button
-              [matTooltip]="'canvas.sidebar.addLayer' | transloco"
-              [attr.aria-label]="'canvas.sidebar.addLayer' | transloco"
-              data-testid="add-layer-button"
-              (click)="onAddLayer()"
-              class="section-action">
-              <mat-icon>add</mat-icon>
-            </button>
+            @if (!viewMode()) {
+              <button
+                mat-icon-button
+                [matTooltip]="'canvas.sidebar.addLayer' | transloco"
+                [attr.aria-label]="'canvas.sidebar.addLayer' | transloco"
+                data-testid="add-layer-button"
+                (click)="onAddLayer()"
+                class="section-action">
+                <mat-icon>add</mat-icon>
+              </button>
+            }
           </div>
           <div
             class="layers-list"
@@ -101,34 +103,40 @@
                       layer.visible ? 'visibility' : 'visibility_off'
                     }}</mat-icon>
                   </button>
-                  <button
-                    mat-icon-button
-                    class="layer-lock"
-                    data-testid="layer-lock"
-                    (click)="onToggleLayerLock(layer.id, $event)"
-                    [matTooltip]="
-                      layer.locked
-                        ? ('canvas.sidebar.unlockLayer' | transloco)
-                        : ('canvas.sidebar.lockLayer' | transloco)
-                    ">
-                    <mat-icon>{{
-                      layer.locked ? 'lock' : 'lock_open'
-                    }}</mat-icon>
-                  </button>
+                  @if (!viewMode()) {
+                    <button
+                      mat-icon-button
+                      class="layer-lock"
+                      data-testid="layer-lock"
+                      (click)="onToggleLayerLock(layer.id, $event)"
+                      [matTooltip]="
+                        layer.locked
+                          ? ('canvas.sidebar.unlockLayer' | transloco)
+                          : ('canvas.sidebar.lockLayer' | transloco)
+                      ">
+                      <mat-icon>{{
+                        layer.locked ? 'lock' : 'lock_open'
+                      }}</mat-icon>
+                    </button>
+                  }
                   <span class="layer-name" data-testid="layer-name">{{
                     layer.name
                   }}</span>
-                  <button
-                    mat-icon-button
-                    class="layer-action"
-                    [attr.aria-label]="'canvas.sidebar.moreOptions' | transloco"
-                    [matMenuTriggerFor]="layerMenu"
-                    [matMenuTriggerData]="{ layerId: layer.id }"
-                    (click)="$event.stopPropagation()">
-                    <mat-icon>more_vert</mat-icon>
-                  </button>
+                  @if (!viewMode()) {
+                    <button
+                      mat-icon-button
+                      class="layer-action"
+                      [attr.aria-label]="
+                        'canvas.sidebar.moreOptions' | transloco
+                      "
+                      [matMenuTriggerFor]="layerMenu"
+                      [matMenuTriggerData]="{ layerId: layer.id }"
+                      (click)="$event.stopPropagation()">
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                  }
                 </div>
-                @if (layer.id === activeLayerId()) {
+                @if (layer.id === activeLayerId() && !viewMode()) {
                   <input
                     type="range"
                     class="layer-opacity"
@@ -182,13 +190,32 @@
                 <span class="object-name">{{
                   obj.name || getObjectLabel(obj)
                 }}</span>
-                <button
-                  mat-icon-button
-                  class="object-action"
-                  [matTooltip]="'delete' | transloco"
-                  (click)="onDeleteObject(obj.id, $event)">
-                  <mat-icon>delete</mat-icon>
-                </button>
+                @if (!viewMode()) {
+                  @if (obj.type === 'image') {
+                    <button
+                      mat-icon-button
+                      class="object-action"
+                      data-testid="object-background-toggle"
+                      [matTooltip]="
+                        (obj.isBackground
+                          ? 'canvas.sidebar.detachBackground'
+                          : 'canvas.sidebar.setAsBackground'
+                        ) | transloco
+                      "
+                      (click)="onToggleObjectBackground(obj.id, $event)">
+                      <mat-icon>{{
+                        obj.isBackground ? 'flip_to_front' : 'wallpaper'
+                      }}</mat-icon>
+                    </button>
+                  }
+                  <button
+                    mat-icon-button
+                    class="object-action"
+                    [matTooltip]="'delete' | transloco"
+                    (click)="onDeleteObject(obj.id, $event)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
               </div>
             } @empty {
               <div class="empty-state" data-testid="objects-empty">
@@ -207,9 +234,32 @@
     <div class="canvas-main">
       <!-- Toolbar -->
       <div class="canvas-toolbar" #canvasToolbar data-testid="canvas-toolbar">
-        <div
-          class="toolbar-group"
-          data-toolbar-group="navigation"
+        <div class="toolbar-group" data-toolbar-fixed="mode">
+          <button
+            mat-icon-button
+            data-testid="canvas-mode-toggle"
+            [class.active]="viewMode()"
+            [matTooltip]="
+              (viewMode()
+                ? 'canvas.toolbar.editMode'
+                : 'canvas.toolbar.viewMode'
+              ) | transloco
+            "
+            [attr.aria-label]="
+              (viewMode()
+                ? 'canvas.toolbar.editMode'
+                : 'canvas.toolbar.viewMode'
+              ) | transloco
+            "
+            (click)="onToggleViewMode()">
+            <mat-icon>{{ viewMode() ? 'edit' : 'visibility' }}</mat-icon>
+          </button>
+        </div>
+        <div class="toolbar-divider"></div>
+        @if (!viewMode()) {
+          <div
+            class="toolbar-group"
+            data-toolbar-group="navigation"
           [class.toolbar-group--hidden]="isOverflowed('navigation')"
           [attr.aria-hidden]="isOverflowed('navigation') ? 'true' : null">
           <button
@@ -421,6 +471,7 @@
           class="toolbar-divider"
           data-toolbar-divider="history"
           [class.toolbar-divider--hidden]="isOverflowed('history')"></div>
+        }
 
         <div
           class="toolbar-group"
@@ -572,6 +623,42 @@
       <span>{{ 'canvas.contextMenu.sendToLayer' | transloco }}</span>
     </button>
   }
+  @if (selectedPin(); as pin) {
+    <mat-divider></mat-divider>
+    @if (pin.linkedElementId) {
+      <button
+        mat-menu-item
+        data-testid="open-linked-element"
+        (click)="onOpenLinkedElement()">
+        <mat-icon>open_in_new</mat-icon>
+        <span>{{ 'canvas.contextMenu.openLinkedElement' | transloco }}</span>
+      </button>
+    }
+    <button mat-menu-item data-testid="edit-pin" (click)="onEditPin()">
+      <mat-icon>edit_location_alt</mat-icon>
+      <span>{{ 'canvas.contextMenu.editPin' | transloco }}</span>
+    </button>
+  }
+  @if (selectedImage(); as image) {
+    <mat-divider></mat-divider>
+    @if (!image.isBackground) {
+      <button
+        mat-menu-item
+        data-testid="set-as-background"
+        (click)="onToggleObjectBackground(image.id)">
+        <mat-icon>wallpaper</mat-icon>
+        <span>{{ 'canvas.contextMenu.setAsBackground' | transloco }}</span>
+      </button>
+    } @else {
+      <button
+        mat-menu-item
+        data-testid="detach-background"
+        (click)="onToggleObjectBackground(image.id)">
+        <mat-icon>flip_to_front</mat-icon>
+        <span>{{ 'canvas.contextMenu.detachBackground' | transloco }}</span>
+      </button>
+    }
+  }
 </mat-menu>
 
 <!-- Send-to-layer submenu -->
@@ -615,6 +702,13 @@
     <button mat-menu-item (click)="onDuplicateLayer(layerId)">
       <mat-icon>content_copy</mat-icon>
       <span>{{ 'canvas.layerMenu.duplicate' | transloco }}</span>
+    </button>
+    <button
+      mat-menu-item
+      data-testid="layer-add-background"
+      (click)="onAddBackgroundImage(layerId)">
+      <mat-icon>wallpaper</mat-icon>
+      <span>{{ 'canvas.layerMenu.addBackground' | transloco }}</span>
     </button>
     <mat-divider></mat-divider>
     <button
@@ -820,7 +914,7 @@
 <!-- Toolbar overflow: mirrors whichever groups did not fit on the row -->
 <mat-menu #toolbarOverflowMenu="matMenu">
   <ng-template matMenuContent>
-    @if (isOverflowed('navigation')) {
+    @if (!viewMode() && isOverflowed('navigation')) {
       <button mat-menu-item (click)="onToolChange('select')">
         <mat-icon>near_me</mat-icon>
         <span>{{ 'canvas.toolbar.select' | transloco }}</span>
@@ -836,7 +930,7 @@
       <mat-divider></mat-divider>
     }
 
-    @if (isOverflowed('drawing')) {
+    @if (!viewMode() && isOverflowed('drawing')) {
       <button
         mat-menu-item
         [disabled]="!hasActiveLayer()"
@@ -868,7 +962,7 @@
       <mat-divider></mat-divider>
     }
 
-    @if (isOverflowed('style')) {
+    @if (!viewMode() && isOverflowed('style')) {
       <button mat-menu-item [matMenuTriggerFor]="strokeColorMenu">
         <mat-icon>border_color</mat-icon>
         <span>{{ 'canvas.toolbar.strokeColor' | transloco }}</span>
@@ -895,7 +989,7 @@
       <mat-divider></mat-divider>
     }
 
-    @if (isOverflowed('creation')) {
+    @if (!viewMode() && isOverflowed('creation')) {
       <button
         mat-menu-item
         [disabled]="!hasActiveLayer()"
@@ -920,7 +1014,7 @@
       <mat-divider></mat-divider>
     }
 
-    @if (isOverflowed('history')) {
+    @if (!viewMode() && isOverflowed('history')) {
       <button mat-menu-item [disabled]="!canUndo()" (click)="onUndo()">
         <mat-icon>undo</mat-icon>
         <span>{{ 'canvas.toolbar.undo' | transloco }}</span>

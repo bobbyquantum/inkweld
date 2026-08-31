@@ -1,12 +1,13 @@
-import type {
-  CanvasConfig,
-  CanvasImage,
-  CanvasLayer,
-  CanvasObject,
-  CanvasPath,
-  CanvasPin,
-  CanvasShape,
-  CanvasText,
+import {
+  type CanvasConfig,
+  type CanvasImage,
+  type CanvasLayer,
+  type CanvasObject,
+  type CanvasPath,
+  type CanvasPin,
+  type CanvasShape,
+  type CanvasText,
+  isBackgroundImage,
 } from '@models/canvas.model';
 
 import { svgEsc } from './canvas-utils';
@@ -267,9 +268,14 @@ export function buildSvgDocument(config: CanvasConfig): string {
   ];
 
   for (const layer of visibleLayers) {
-    const objs = config.objects.filter(
+    const layerObjs = config.objects.filter(
       o => o.layerId === layer.id && o.visible
     );
+    // Match the renderer: backgrounds always draw below the layer's objects.
+    const objs = [
+      ...layerObjs.filter(o => isBackgroundImage(o)),
+      ...layerObjs.filter(o => !isBackgroundImage(o)),
+    ];
     if (!objs.length) continue;
     lines.push(`  <g id="${svgEsc(layer.id)}" opacity="${layer.opacity}">`);
     for (const obj of objs) {

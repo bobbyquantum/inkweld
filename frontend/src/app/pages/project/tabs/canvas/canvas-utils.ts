@@ -1,10 +1,10 @@
-import type { CanvasObject } from '@models/canvas.model';
+import { type CanvasObject, isBackgroundImage } from '@models/canvas.model';
 
 /** Get Material icon name for a canvas object type */
 export function getObjectIcon(obj: CanvasObject): string {
   switch (obj.type) {
     case 'image':
-      return 'image';
+      return isBackgroundImage(obj) ? 'wallpaper' : 'image';
     case 'text':
       return 'title';
     case 'path':
@@ -22,7 +22,7 @@ export function getObjectIcon(obj: CanvasObject): string {
 export function getObjectLabel(obj: CanvasObject): string {
   switch (obj.type) {
     case 'image':
-      return 'Image';
+      return isBackgroundImage(obj) ? 'Background' : 'Image';
     case 'text':
       return obj.text.substring(0, 30) || 'Text';
     case 'path':

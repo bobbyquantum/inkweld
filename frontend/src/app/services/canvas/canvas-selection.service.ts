@@ -35,7 +35,9 @@ export class CanvasSelectionService {
   selectNode(node: Konva.Node): void {
     const transformer = this.renderer.transformer;
     if (!transformer) return;
-    transformer.nodes([node]);
+    // Background images can be picked in the objects sidebar, but must never
+    // grow transform handles — they are moved by detaching them first.
+    transformer.nodes(node.getAttr('inkBackground') === true ? [] : [node]);
     this.renderer.selectionLayer?.batchDraw();
   }
 
@@ -54,6 +56,7 @@ export class CanvasSelectionService {
     const selected: Konva.Node[] = [];
     for (const [, kLayer] of this.renderer.konvaLayers) {
       kLayer.getChildren().forEach(child => {
+        if ((child as Konva.Node).getAttr('inkBackground') === true) return;
         const box = child.getClientRect({ relativeTo: kLayer });
         if (rectsIntersect(rect, box)) {
           selected.push(child);

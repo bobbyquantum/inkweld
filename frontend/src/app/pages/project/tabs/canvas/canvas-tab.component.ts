@@ -19,15 +19,18 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule, type MatMenuTrigger } from '@angular/material/menu';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
 import { ColorSwatchesComponent } from '@components/color-swatches/color-swatches.component';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
+  type CanvasImage,
   type CanvasLayer,
   type CanvasObject,
+  type CanvasPin,
   type CanvasShapeType,
   type CanvasText,
   type CanvasTool,
@@ -65,6 +68,7 @@ import { CanvasSelectionService } from '@services/canvas/canvas-selection.servic
 import { CanvasStageEventsService } from '@services/canvas/canvas-stage-events.service';
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { PresenceService } from '@services/presence/presence.service';
+import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
   computeOverflowGroups,
@@ -99,8 +103,8 @@ export type CanvasToolbarGroup = (typeof TOOLBAR_GROUP_PRIORITY)[number];
 /** Matches the `gap` on `.canvas-toolbar`. */
 const TOOLBAR_GAP_PX = 4;
 
-/** Space kept for the overflow chevron and the presence indicator. */
-const TOOLBAR_RESERVED_PX = 88;
+/** Space kept for the mode toggle, overflow chevron and presence indicator. */
+const TOOLBAR_RESERVED_PX = 132;
 
 @Component({
   selector: 'app-canvas-tab',
@@ -153,6 +157,9 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   private readonly canvasStageEvents = inject(CanvasStageEventsService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly presence = inject(PresenceService);
+  private readonly elementNavigation = inject(ElementNavigationService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
 
   /** Stable presence location for this canvas tab. */
   protected readonly presenceLocation = computed(() => {
@@ -244,6 +251,14 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     this.readLocalStorage('canvasSidebarOpen') !== 'false'
   );
 
+  /**
+   * View mode: pan/zoom only, no editing, and a single click on a linked pin
+   * opens its element. Per-user UI state, remembered across sessions.
+   */
+  protected readonly viewMode = signal(
+    this.readLocalStorage('canvasViewMode') === 'true'
+  );
+
   /** Current zoom level (updated by Konva stage events) */
   protected readonly zoomLevel = signal<number>(1);
 
@@ -273,6 +288,24 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     const layerId = this.activeLayerId();
     if (!config || !layerId) return [];
     return config.objects.filter(o => o.layerId === layerId);
+  });
+
+  /** The currently selected image object, if the selection is an image. */
+  protected readonly selectedImage = computed<CanvasImage | null>(() => {
+    const id = this.selectedObjectId();
+    const config = this.canvasService.activeConfig();
+    if (!id || !config) return null;
+    const obj = config.objects.find(o => o.id === id);
+    return obj?.type === 'image' ? obj : null;
+  });
+
+  /** The currently selected pin object, if the selection is a pin. */
+  protected readonly selectedPin = computed<CanvasPin | null>(() => {
+    const id = this.selectedObjectId();
+    const config = this.canvasService.activeConfig();
+    if (!id || !config) return null;
+    const obj = config.objects.find(o => o.id === id);
+    return obj?.type === 'pin' ? obj : null;
   });
 
   /** Whether there is a valid active layer (used to disable creation tools) */
@@ -349,7 +382,10 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   /** Handlers injected into CanvasRendererService for Konva node events */
   private readonly nodeHandlers = {
     onSelect: (objId: string) => this.onSelectObject(objId),
-    onSelectKonvaNode: (node: Konva.Node) => this.selectKonvaNode(node),
+    onSelectKonvaNode: (node: Konva.Node) => {
+      if (this.viewMode()) return;
+      this.selectKonvaNode(node);
+    },
     onGestureStart: () => this.beginGesture(),
     onDragEnd: (objId: string, x: number, y: number) =>
       this.canvasService.updateObject(
@@ -376,8 +412,11 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
         },
         { coalesceKey: this.gestureKey ?? undefined }
       ),
-    onDblClickText: (obj: CanvasText, textNode: Konva.Text) =>
-      this.openTextEditDialog(obj, textNode),
+    onDblClickText: (obj: CanvasText, textNode: Konva.Text) => {
+      if (this.viewMode()) return;
+      this.openTextEditDialog(obj, textNode);
+    },
+    onDblClickPin: (obj: CanvasPin) => this.openPinLink(obj),
   };
 
   /**
@@ -492,6 +531,11 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     if (!config) return;
 
     const savedViewport = this.canvasService.loadViewport(this.elementId());
+
+    // Apply the remembered mode before nodes are created, so their
+    // draggability is right from the start.
+    if (this.viewMode()) this.activeTool.set('pan');
+    this.canvasRenderer.setInteractionLocked(this.viewMode());
 
     const { zoomLevel } = this.canvasRenderer.initStage(
       container,
@@ -794,9 +838,66 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   protected onToolChange(tool: CanvasTool): void {
+    if (this.viewMode() && tool !== 'pan') return;
     if (this.canvasDrawing.isDrawing()) this.canvasDrawing.cancel();
     this.activeTool.set(tool);
     this.applyToolToStage(tool);
+  }
+
+  /** Switch between edit mode and pan/zoom-only view mode. */
+  protected onToggleViewMode(): void {
+    const entering = !this.viewMode();
+    this.viewMode.set(entering);
+    this.writeLocalStorage('canvasViewMode', String(entering));
+
+    this.canvasDrawing.cancel();
+    this.clearCanvasSelection();
+    this.canvasRenderer.setInteractionLocked(entering);
+
+    this.activeTool.set(entering ? 'pan' : 'select');
+    this.applyToolToStage(this.activeTool());
+
+    // Leaving view mode: restore each object's own draggable state.
+    if (!entering) {
+      const config = this.canvasService.activeConfig();
+      if (config && this.stage) {
+        this.canvasRenderer.syncKonvaFromConfig(
+          config.layers,
+          config.objects,
+          null,
+          this.nodeHandlers
+        );
+      }
+    }
+  }
+
+  /** Open the element a pin is linked to, if it still exists. */
+  private openPinLink(pin: CanvasPin): void {
+    if (!pin.linkedElementId) return;
+    const element = this.projectState
+      .elements()
+      .find(e => e.id === pin.linkedElementId);
+    if (element) {
+      this.elementNavigation.openElement(element);
+      return;
+    }
+    this.snackBar.open(
+      this.transloco.translate('canvas.pin.linkedElementMissing'),
+      undefined,
+      { duration: 3000 }
+    );
+  }
+
+  /** Context menu: open the selected pin's linked element. */
+  protected onOpenLinkedElement(): void {
+    const pin = this.selectedPin();
+    if (pin) this.openPinLink(pin);
+  }
+
+  /** Context menu: edit the selected pin's label, color and link. */
+  protected onEditPin(): void {
+    const pin = this.selectedPin();
+    if (pin) this.canvasPlacement.openPinEditDialog(pin, this.elementId());
   }
 
   /**
@@ -893,10 +994,12 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   protected onUndo(): void {
+    if (this.viewMode()) return;
     if (this.canvasService.undo()) this.afterHistoryStep();
   }
 
   protected onRedo(): void {
+    if (this.viewMode()) return;
     if (this.canvasService.redo()) this.afterHistoryStep();
   }
 
@@ -917,8 +1020,36 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     this.canvasColor.openEditColorsDialog(objId);
   }
 
-  protected onAddImage(): Promise<void> {
-    return this.canvasPlacement.addImage(this.placementHandlers);
+  protected async onAddImage(): Promise<void> {
+    await this.canvasPlacement.addImage(this.placementHandlers);
+  }
+
+  /** Add a non-interactive background image (map backdrop) to a layer. */
+  protected async onAddBackgroundImage(layerId: string): Promise<void> {
+    const added = await this.canvasPlacement.addImage(this.placementHandlers, {
+      background: true,
+      layerId,
+    });
+    // Bring the freshly-placed map into view once its node exists.
+    if (added) requestAnimationFrame(() => this.onFitAll());
+  }
+
+  /** Toggle an image between backdrop and regular object. */
+  protected onToggleObjectBackground(objectId: string, event?: Event): void {
+    event?.stopPropagation();
+    const obj = this.canvasService
+      .activeConfig()
+      ?.objects.find(o => o.id === objectId);
+    if (obj?.type !== 'image') return;
+
+    const makeBackground = !obj.isBackground;
+    this.canvasService.updateObject(objectId, {
+      isBackground: makeBackground || undefined,
+    });
+    // A backdrop cannot stay selected — it no longer takes part in selection.
+    if (makeBackground && this.selectedObjectId() === objectId) {
+      this.clearCanvasSelection();
+    }
   }
 
   protected onShapeTypeChange(shapeType: CanvasShapeType): void {
@@ -1025,6 +1156,16 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   // ── Object actions ─────────────────────────────────────────────────────
 
   protected onSelectObject(objectId: string): void {
+    // In view mode nothing gets selected; a click on a linked pin opens
+    // its element instead.
+    if (this.viewMode()) {
+      const obj = this.canvasService
+        .activeConfig()
+        ?.objects.find(o => o.id === objectId);
+      if (obj?.type === 'pin') this.openPinLink(obj);
+      return;
+    }
+
     this.selectedObjectId.set(objectId);
 
     // Find and select the Konva node
@@ -1044,6 +1185,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   private deleteSelectedObject(): void {
+    if (this.viewMode()) return;
     const id = this.selectedObjectId();
     if (!id) return;
     this.canvasSelection.deleteObject(id);
@@ -1078,6 +1220,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   protected onContextMenu(event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();
+    if (this.viewMode()) return;
     this.canvasContextMenu.openAt(
       event.clientX,
       event.clientY,
@@ -1091,21 +1234,25 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
   /** Copy the selected object to the clipboard */
   protected onCopy(): void {
+    if (this.viewMode()) return;
     this.canvasContextMenu.copy(this.menuCallbacks);
   }
 
   /** Cut the selected object (copy + remove) */
   protected onCut(): void {
+    if (this.viewMode()) return;
     this.canvasContextMenu.cut(this.menuCallbacks);
   }
 
   /** Paste from clipboard at the context menu position (or viewport center) */
   protected onPaste(): void {
+    if (this.viewMode()) return;
     this.canvasContextMenu.paste(this.menuCallbacks);
   }
 
   /** Duplicate the selected object with a small offset */
   protected onDuplicateObject(): void {
+    if (this.viewMode()) return;
     this.canvasContextMenu.duplicate(this.menuCallbacks);
   }
 

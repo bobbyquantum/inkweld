@@ -87,6 +87,12 @@ export interface CanvasImage extends CanvasObjectBase {
   width: number;
   /** Natural height of the image in canvas units */
   height: number;
+  /**
+   * Non-interactive backdrop (map base image). Background images ignore the
+   * pointer, cannot be selected or erased, and always render below the other
+   * objects on their layer. Several backgrounds can tile one large map.
+   */
+  isBackground?: boolean;
 }
 
 // ─── Text Object ─────────────────────────────────────────────────────────────
@@ -194,6 +200,11 @@ export interface CanvasPin extends CanvasObjectBase {
 /** Any object that can be placed on the canvas */
 export type CanvasObject =
   CanvasImage | CanvasText | CanvasPath | CanvasShape | CanvasPin;
+
+/** True when `obj` is a non-interactive background image. */
+export function isBackgroundImage(obj: CanvasObject): obj is CanvasImage {
+  return obj.type === 'image' && obj.isBackground === true;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Canvas Configuration (persisted to Yjs metadata)

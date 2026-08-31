@@ -1,9 +1,10 @@
 import { inject, Injectable } from '@angular/core';
-import type {
-  CanvasObject,
-  CanvasPath,
-  CanvasTool,
-  CanvasToolSettings,
+import {
+  type CanvasObject,
+  type CanvasPath,
+  type CanvasTool,
+  type CanvasToolSettings,
+  isBackgroundImage,
 } from '@models/canvas.model';
 import Konva from 'konva';
 import { nanoid } from 'nanoid';
@@ -598,7 +599,7 @@ export class CanvasDrawingService {
     // Topmost first so a sweep bites the visible object, not what's beneath.
     for (let i = config.objects.length - 1; i >= 0; i--) {
       const obj = config.objects[i];
-      if (obj.locked || !obj.visible) continue;
+      if (obj.locked || !obj.visible || isBackgroundImage(obj)) continue;
       const layer = layerById.get(obj.layerId);
       if (!layer?.visible || layer.locked) continue;
 
