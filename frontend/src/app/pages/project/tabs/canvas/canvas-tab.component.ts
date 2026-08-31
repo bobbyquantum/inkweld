@@ -211,6 +211,13 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   protected readonly elementId = signal<string>('');
   protected readonly elementName = signal<string>('Canvas');
 
+  /** Sidebar header icon — the element's own icon (e.g. 'map') if set. */
+  protected readonly elementIcon = computed(() => {
+    const id = this.elementId();
+    const element = this.projectState.elements().find(e => e.id === id);
+    return element?.metadata?.['icon'] || 'dashboard';
+  });
+
   /** Currently active tool */
   protected readonly activeTool = signal<CanvasTool>('select');
 

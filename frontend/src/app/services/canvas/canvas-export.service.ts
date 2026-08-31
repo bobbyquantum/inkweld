@@ -1,10 +1,13 @@
 import { inject, Injectable } from '@angular/core';
-import { type CanvasFrame, canvasSizeFrame } from '@models/canvas.model';
+import { type CanvasFrame } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import type Konva from 'konva';
 
-import { downloadSvg } from '../../pages/project/tabs/canvas/canvas-svg-export';
+import {
+  computeSvgViewBox,
+  downloadSvg,
+} from '../../pages/project/tabs/canvas/canvas-svg-export';
 
 /** A rectangular export region in canvas world coordinates. */
 export interface ExportRect {
@@ -18,47 +21,48 @@ export interface ExportRect {
  * Component-scoped service that exports the active canvas as PNG (1x/2x/3x)
  * or SVG. Operates on the renderer's current Konva stage.
  *
- * When a canvas-size frame exists it defines the default export bounds;
- * otherwise the visible viewport is exported as before. Named crop frames can
- * be exported individually.
+ * "Whole area" exports fit around all visible content; individual frames
+ * (canvas size or crops) export exactly their rect.
  */
 @Injectable()
 export class CanvasExportService {
   private readonly renderer = inject(CanvasRendererService);
   private readonly canvasService = inject(CanvasService);
 
-  /** The canvas-size frame's rect, when one exists. */
-  private canvasSizeRect(): ExportRect | null {
-    const frame = canvasSizeFrame(this.canvasService.activeConfig()?.frames);
-    return frame
-      ? {
-          x: frame.x,
-          y: frame.y,
-          width: frame.width,
-          height: frame.height,
-        }
-      : null;
+  /** Bounds of all visible content, or null for an empty canvas. */
+  private wholeAreaRect(): ExportRect | null {
+    const config = this.canvasService.activeConfig();
+    if (!config || config.objects.length === 0) return null;
+
+    const visibleLayers = [...config.layers]
+      .sort((a, b) => a.order - b.order)
+      .filter(l => l.visible);
+    const { vX, vY, vW, vH } = computeSvgViewBox(config, visibleLayers);
+    return { x: vX, y: vY, width: vW, height: vH };
   }
 
-  /** Export the canvas as a PNG at the given pixel ratio and trigger download. */
+  /**
+   * Export the whole canvas as a PNG: fitted around all visible content, or
+   * the current viewport when the canvas is empty.
+   */
   exportAsPng(filename: string, pixelRatio = 2): void {
-    const rect = this.canvasSizeRect();
+    const rect = this.wholeAreaRect();
     const dataUrl = rect
       ? this.regionDataUrl(rect, pixelRatio)
       : this.viewportDataUrl(pixelRatio);
     if (dataUrl) CanvasExportService.download(dataUrl, `${filename}.png`);
   }
 
-  /** Export the canvas as a high-resolution PNG (pixelRatio 3). */
+  /** Export the whole canvas as a high-resolution PNG (pixelRatio 3). */
   exportAsHighResPng(filename: string): void {
     this.exportAsPng(`${filename}-highres`, 3);
   }
 
-  /** Export the active canvas config as an SVG file. */
+  /** Export the whole canvas as an SVG fitted around the visible content. */
   exportAsSvg(filename: string): void {
     const config = this.canvasService.activeConfig();
     if (!config) return;
-    downloadSvg(config, filename, this.canvasSizeRect() ?? undefined);
+    downloadSvg(config, filename);
   }
 
   /** Export one frame's region as a PNG download. */

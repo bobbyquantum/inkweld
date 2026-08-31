@@ -118,7 +118,8 @@
   "export": {
     "exportPng": "Export as PNG",
     "exportPngHighRes": "Export as PNG (High-res)",
-    "exportSvg": "Export as SVG"
+    "exportSvg": "Export as SVG",
+    "frame": "Frame"
   },
   "layerMenu": {
     "rename": "Rename",

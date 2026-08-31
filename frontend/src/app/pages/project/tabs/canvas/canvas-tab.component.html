@@ -32,7 +32,7 @@
       <aside class="canvas-sidebar" data-testid="canvas-sidebar">
         <!-- Header -->
         <div class="sidebar-header">
-          <mat-icon class="header-icon">dashboard</mat-icon>
+          <mat-icon class="header-icon">{{ elementIcon() }}</mat-icon>
           <span class="header-title">{{ elementName() }}</span>
           <button
             mat-icon-button
@@ -795,7 +795,7 @@
 
 <!-- Export menu -->
 <mat-menu #exportMenu="matMenu">
-  <button mat-menu-item (click)="exportAsPng()">
+  <button mat-menu-item data-testid="export-whole-png" (click)="exportAsPng()">
     <mat-icon>image</mat-icon>
     <span>{{ 'canvas.export.exportPng' | transloco }}</span>
   </button>
@@ -807,6 +807,50 @@
     <mat-icon>polyline</mat-icon>
     <span>{{ 'canvas.export.exportSvg' | transloco }}</span>
   </button>
+  @if (frames().length > 0) {
+    <mat-divider></mat-divider>
+    @for (frame of frames(); track frame.id) {
+      <button
+        mat-menu-item
+        data-testid="export-frame-item"
+        [matMenuTriggerFor]="frameExportMenu"
+        [matMenuTriggerData]="{ frame: frame }">
+        <mat-icon>{{ frame.kind === 'canvas' ? 'crop_din' : 'crop' }}</mat-icon>
+        <span
+          >{{ 'canvas.export.frame' | transloco }}: {{ frame.name }} ({{
+            frame.width
+          }}×{{ frame.height }})</span
+        >
+      </button>
+    }
+  }
+</mat-menu>
+
+<!-- Per-frame export submenu -->
+<mat-menu #frameExportMenu="matMenu">
+  <ng-template matMenuContent let-frame="frame">
+    <button
+      mat-menu-item
+      data-testid="export-frame-png"
+      (click)="onExportFramePng(frame)">
+      <mat-icon>image</mat-icon>
+      <span>{{ 'canvas.frames.exportPng' | transloco }}</span>
+    </button>
+    <button
+      mat-menu-item
+      data-testid="export-frame-png-2x"
+      (click)="onExportFramePng(frame, 2)">
+      <mat-icon>high_quality</mat-icon>
+      <span>{{ 'canvas.frames.exportPng2x' | transloco }}</span>
+    </button>
+    <button
+      mat-menu-item
+      data-testid="export-frame-svg"
+      (click)="onExportFrameSvg(frame)">
+      <mat-icon>polyline</mat-icon>
+      <span>{{ 'canvas.frames.exportSvg' | transloco }}</span>
+    </button>
+  </ng-template>
 </mat-menu>
 
 <!-- Layer context menu -->

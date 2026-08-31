@@ -78,7 +78,7 @@ describe('CanvasExportService', () => {
     service = TestBed.inject(CanvasExportService);
   });
 
-  it('exports the viewport with default pixelRatio 2 when no canvas size exists', () => {
+  it('exports the viewport with default pixelRatio 2 when the canvas is empty', () => {
     const clickSpy = vi.fn();
     vi.spyOn(document, 'createElement').mockReturnValueOnce({
       click: clickSpy,
@@ -102,12 +102,38 @@ describe('CanvasExportService', () => {
     expect(renderer.stage!.toDataURL).toHaveBeenCalledWith({ pixelRatio: 3 });
   });
 
-  it('exports the canvas-size region when a canvas frame exists', () => {
+  it('exports the whole area fitted around visible content', () => {
     canvasService.activeConfig.mockReturnValue({
       elementId: 'e1',
-      layers: [],
-      objects: [],
-      frames: [frame],
+      layers: [
+        {
+          id: 'L1',
+          name: 'Layer 1',
+          visible: true,
+          locked: false,
+          opacity: 1,
+          order: 0,
+        },
+      ],
+      objects: [
+        {
+          id: 's1',
+          layerId: 'L1',
+          type: 'shape',
+          shapeType: 'rect',
+          x: 100,
+          y: 200,
+          width: 300,
+          height: 100,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          visible: true,
+          locked: false,
+          stroke: '#000',
+          strokeWidth: 1,
+        },
+      ],
     });
     const clickSpy = vi.fn();
     vi.spyOn(document, 'createElement').mockReturnValueOnce({
@@ -117,14 +143,29 @@ describe('CanvasExportService', () => {
     service.exportAsPng('mycanvas');
 
     const stage = renderer.stage!;
-    // Stage resized/re-positioned so the region fills it at scale 1…
-    expect(stage.size).toHaveBeenCalledWith({ width: 400, height: 640 });
-    expect(stage.scale).toHaveBeenCalledWith({ x: 1, y: 1 });
-    expect(stage.position).toHaveBeenCalledWith({ x: -100, y: -200 });
-    // …and restored afterwards.
+    // Content bounds plus the 20px viewBox padding on every side…
+    expect(stage.size).toHaveBeenCalledWith({ width: 340, height: 140 });
+    expect(stage.position).toHaveBeenCalledWith({ x: -80, y: -180 });
+    // …and the stage restored afterwards.
     expect(stage.size).toHaveBeenLastCalledWith({ width: 800, height: 600 });
     expect(stage.scale).toHaveBeenLastCalledWith({ x: 1.5, y: 1.5 });
     expect(stage.position).toHaveBeenLastCalledWith({ x: 10, y: 20 });
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it('exports a frame region exactly', () => {
+    const clickSpy = vi.fn();
+    vi.spyOn(document, 'createElement').mockReturnValueOnce({
+      click: clickSpy,
+    } as unknown as HTMLAnchorElement);
+
+    service.exportFrameAsPng(frame);
+
+    const stage = renderer.stage!;
+    expect(stage.size).toHaveBeenCalledWith({ width: 400, height: 640 });
+    expect(stage.scale).toHaveBeenCalledWith({ x: 1, y: 1 });
+    expect(stage.position).toHaveBeenCalledWith({ x: -100, y: -200 });
+    expect(stage.size).toHaveBeenLastCalledWith({ width: 800, height: 600 });
     expect(clickSpy).toHaveBeenCalled();
   });
 

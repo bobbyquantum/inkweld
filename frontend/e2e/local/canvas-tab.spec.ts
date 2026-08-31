@@ -751,6 +751,22 @@ test.describe('Canvas Tab', () => {
       expect(download.suggestedFilename()).toBe('Book Cover.png');
     });
 
+    await test.step('export menu offers whole area and per-frame entries', async () => {
+      await sidebar.getByRole('button', { name: /export canvas/i }).click();
+      await expect(page.getByTestId('export-whole-png')).toBeVisible();
+      await expect(page.getByTestId('export-frame-item')).toHaveCount(2);
+
+      // Open the Book Cover frame's submenu and download its PNG.
+      await page
+        .getByTestId('export-frame-item')
+        .filter({ hasText: 'Book Cover' })
+        .click();
+      const downloadPromise = page.waitForEvent('download');
+      await page.getByTestId('export-frame-png').click();
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toBe('Book Cover.png');
+    });
+
     await test.step('set a frame as the project cover', async () => {
       const row = frameItems.filter({ hasText: 'Book Cover' });
       await row.getByTestId('frame-menu').click();

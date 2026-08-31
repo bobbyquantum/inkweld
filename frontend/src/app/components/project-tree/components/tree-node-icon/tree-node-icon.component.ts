@@ -34,7 +34,8 @@ export class TreeNodeIconComponent {
       return this.isExpanded ? 'folder_open' : 'folder';
     }
 
-    // For Worldbuilding elements, look up the icon from the schema
+    // For Worldbuilding elements, look up the icon from the schema — the
+    // live schema icon beats any snapshot stored on the element.
     if (this.type === (ElementType.Worldbuilding as string) && this.schemaId) {
       const schema = this.worldbuildingService.getSchemaById(this.schemaId);
       if (schema?.icon) {
@@ -42,6 +43,12 @@ export class TreeNodeIconComponent {
       }
       // Fallback for worldbuilding without schema
       return 'category';
+    }
+
+    // An explicit per-element icon beats the type default (e.g. a canvas
+    // created via the Map preset carries icon 'map').
+    if (this.metadata?.['icon']) {
+      return this.metadata['icon'] as string;
     }
 
     // Items (documents) use description icon
@@ -62,11 +69,6 @@ export class TreeNodeIconComponent {
     // Timeline elements use timeline icon
     if (this.type === (ElementType.Timeline as string)) {
       return 'timeline';
-    }
-
-    // For custom types, check metadata cache
-    if (this.metadata?.['icon']) {
-      return this.metadata['icon'] as string;
     }
 
     // Default fallback

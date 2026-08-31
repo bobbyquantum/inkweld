@@ -873,6 +873,14 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
       return this.getSystemTabIcon(tab.systemType);
     }
 
+    // An explicit per-element icon beats the tab-type default (e.g. a
+    // canvas created via the Map preset carries icon 'map'). Worldbuilding
+    // tabs keep resolving through their schema below.
+    if (tab.type !== 'worldbuilding') {
+      const metadataIcon = tab.element?.metadata?.['icon'];
+      if (metadataIcon) return metadataIcon;
+    }
+
     const staticIcon = TAB_TYPE_ICONS[tab.type];
     if (staticIcon) return staticIcon;
 
