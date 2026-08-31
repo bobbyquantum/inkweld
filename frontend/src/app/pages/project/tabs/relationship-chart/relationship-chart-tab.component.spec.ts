@@ -26,6 +26,37 @@ class MockResizeObserver {
   disconnect(): void {}
 }
 
+// Cytoscape cannot fully initialize in jsdom (canvas renderer); mock the
+// module so renderGraph's post-init code (layout handlers, event wiring)
+// is exercisable in unit tests.
+const cyMockInstances: Array<Record<string, unknown>> = [];
+vi.mock('cytoscape', () => {
+  const makeInstance = (): Record<string, unknown> => ({
+    on: vi.fn(),
+    one: vi.fn(),
+    fit: vi.fn(),
+    layout: vi.fn(() => ({ run: vi.fn(), on: vi.fn() })),
+    destroy: vi.fn(),
+    add: vi.fn(),
+    batchDraw: vi.fn(),
+    nodes: vi.fn(() => []),
+    elements: vi.fn(() => []),
+    json: vi.fn(),
+    resize: vi.fn(),
+    width: vi.fn(() => 800),
+    height: vi.fn(() => 600),
+  });
+  const core = Object.assign(
+    vi.fn(() => {
+      const inst = makeInstance();
+      cyMockInstances.push(inst);
+      return inst;
+    }),
+    { use: vi.fn() }
+  );
+  return { default: core };
+});
+
 describe('RelationshipChartTabComponent', () => {
   let component: RelationshipChartTabComponent;
   let fixture: ComponentFixture<RelationshipChartTabComponent>;
@@ -468,6 +499,52 @@ describe('RelationshipChartTabComponent', () => {
     expect(mockChartService.saveLocalState).toHaveBeenCalledWith('test-chart', {
       nodePositions: {},
     });
+  });
+
+  it('registers layout activity handlers while rendering the graph', () => {
+    graphDataSignal.set({
+      nodes: [
+        {
+          id: 'el-1',
+          name: 'Alice',
+          type: ElementType.Worldbuilding,
+          schemaId: 'character-v1',
+          relationshipCount: 1,
+          category: 'Character',
+        },
+      ],
+      edges: [],
+    });
+    fixture.detectChanges();
+
+    component['renderGraph'](
+      {
+        nodes: [
+          {
+            id: 'el-1',
+            name: 'Alice',
+            type: ElementType.Worldbuilding,
+            schemaId: 'character-v1',
+            relationshipCount: 1,
+            category: 'Character',
+          },
+        ],
+        edges: [],
+      },
+      'force',
+      new Map(),
+      true,
+      {}
+    );
+
+    // renderGraph wired the layout lifecycle handlers on the instance.
+    expect(component['layoutRunning']()).toBe(false);
+    const cy = component['cy'] as unknown as {
+      on: ReturnType<typeof vi.fn>;
+    };
+    const registered = cy.on.mock.calls.map((call: unknown[]) => call[0]);
+    expect(registered).toContain('layoutstart');
+    expect(registered).toContain('layoutstop');
   });
 
   it('should track layout activity in the layoutRunning signal', () => {
