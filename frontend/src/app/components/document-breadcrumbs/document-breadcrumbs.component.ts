@@ -8,12 +8,11 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { ElementTreeMenuComponent } from '@components/element-tree-menu/element-tree-menu.component';
 import { type Element } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-
-import { ElementTreeMenuComponent } from '../element-tree-menu/element-tree-menu.component';
 
 /**
  * Synthetic id used for the virtual project-name root segment. It is not a real
