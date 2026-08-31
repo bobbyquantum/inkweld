@@ -600,6 +600,8 @@ export class CanvasDrawingService {
     for (let i = config.objects.length - 1; i >= 0; i--) {
       const obj = config.objects[i];
       if (obj.locked || !obj.visible || isBackgroundImage(obj)) continue;
+      // Pins are annotations, not artwork — the eraser never bites them.
+      if (obj.type === 'pin') continue;
       const layer = layerById.get(obj.layerId);
       if (!layer?.visible || layer.locked) continue;
 

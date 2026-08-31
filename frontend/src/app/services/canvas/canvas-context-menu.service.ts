@@ -93,7 +93,7 @@ export class CanvasContextMenuService {
   duplicate(callbacks: ContextMenuCallbacks): void {
     const id = callbacks.getSelectedObjectId();
     if (!id) return;
-    const newId = this.canvasClipboard.duplicate(id);
+    const newId = this.canvasClipboard.duplicate(id, callbacks.getElementId());
     if (newId) callbacks.setSelectedObjectId(newId);
   }
 

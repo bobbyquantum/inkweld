@@ -97,7 +97,7 @@ export function computeSvgViewBox(
 
   for (const layer of visibleLayers) {
     for (const obj of config.objects.filter(
-      o => o.layerId === layer.id && o.visible
+      o => o.layerId === layer.id && o.visible && o.type !== 'pin'
     )) {
       if (obj.type === 'path') {
         expandBoundsForPath(b, obj);
@@ -107,6 +107,13 @@ export function computeSvgViewBox(
         expandBoundsForBox(b, obj);
       }
     }
+  }
+
+  // Pins are annotations rendered above every layer, regardless of layer
+  // visibility — include them in the bounds the same way.
+  for (const obj of config.objects) {
+    if (obj.type !== 'pin' || !obj.visible) continue;
+    expandBoundsForBox(b, obj);
   }
 
   const PAD = 20;
@@ -286,7 +293,7 @@ export function buildSvgDocument(
 
   for (const layer of visibleLayers) {
     const layerObjs = config.objects.filter(
-      o => o.layerId === layer.id && o.visible
+      o => o.layerId === layer.id && o.visible && o.type !== 'pin'
     );
     // Match the renderer: backgrounds always draw below the layer's objects.
     const objs = [
@@ -297,6 +304,16 @@ export function buildSvgDocument(
     lines.push(`  <g id="${svgEsc(layer.id)}" opacity="${layer.opacity}">`);
     for (const obj of objs) {
       lines.push('    ' + canvasObjectToSvgElement(obj));
+    }
+    lines.push('  </g>');
+  }
+
+  // Pins render above every layer, independent of layer visibility.
+  const pins = config.objects.filter(o => o.type === 'pin' && o.visible);
+  if (pins.length > 0) {
+    lines.push('  <g id="annotations">');
+    for (const pin of pins) {
+      lines.push('    ' + canvasObjectToSvgElement(pin));
     }
     lines.push('  </g>');
   }

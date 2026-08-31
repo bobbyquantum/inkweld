@@ -47,6 +47,7 @@ import { UndoHistory } from '@services/canvas/canvas-history';
 import { LoggerService } from '@services/core/logger.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { RelationshipService } from '@services/relationship/relationship.service';
 import { nanoid } from 'nanoid';
 import { type Subscription } from 'rxjs';
 
@@ -347,17 +348,36 @@ export class CanvasService {
     return layer.id;
   }
 
-  /** Remove a layer and all its objects */
+  /**
+   * Remove a layer and its artwork. Pins survive — they are annotations on
+   * the annotations overlay, not layer content; their vestigial `layerId` is
+   * reassigned so old clients (which still render pins per layer) keep
+   * showing them.
+   */
   removeLayer(layerId: string): void {
     const config = this.activeConfigSignal();
     if (!config) return;
     // Don't allow removing the last layer
     if (config.layers.length <= 1) return;
 
+    const layers = config.layers.filter(l => l.id !== layerId);
+    const fallbackLayerId = [...layers].sort((a, b) => a.order - b.order)[0].id;
+
+    // Linked artwork on the layer dies with it — drop its relationships.
+    this.cleanupRelationshipsFor(
+      config.objects.filter(o => o.type !== 'pin' && o.layerId === layerId)
+    );
+
     this.saveConfig({
       ...config,
-      layers: config.layers.filter(l => l.id !== layerId),
-      objects: config.objects.filter(o => o.layerId !== layerId),
+      layers,
+      objects: config.objects
+        .filter(o => o.type === 'pin' || o.layerId !== layerId)
+        .map(o =>
+          o.type === 'pin' && o.layerId === layerId
+            ? { ...o, layerId: fallbackLayerId }
+            : o
+        ),
     });
   }
 
@@ -501,6 +521,10 @@ export class CanvasService {
   /**
    * Remove several objects in one edit — one undo step and one write for a
    * whole eraser sweep or multi-object delete.
+   *
+   * This is the single choke point for object deletion (sidebar, keyboard,
+   * context menu, eraser), so it also removes the relationships backing any
+   * deleted linked object (pins and region shapes).
    */
   removeObjects(objectIds: string[]): void {
     const config = this.activeConfigSignal();
@@ -510,7 +534,20 @@ export class CanvasService {
     const objects = config.objects.filter(o => !doomed.has(o.id));
     if (objects.length === config.objects.length) return;
 
+    this.cleanupRelationshipsFor(config.objects.filter(o => doomed.has(o.id)));
     this.saveConfig({ ...config, objects });
+  }
+
+  /** Remove the relationships backing any linked objects in `objects`. */
+  private cleanupRelationshipsFor(objects: CanvasObject[]): void {
+    // Resolved lazily: RelationshipService is root-provided and only needed
+    // on deletions.
+    let relationships: RelationshipService | null = null;
+    for (const obj of objects) {
+      if (!('relationshipId' in obj) || !obj.relationshipId) continue;
+      relationships ??= this.injector.get(RelationshipService);
+      relationships.removeRelationship(obj.relationshipId);
+    }
   }
 
   /** Update an existing canvas object */

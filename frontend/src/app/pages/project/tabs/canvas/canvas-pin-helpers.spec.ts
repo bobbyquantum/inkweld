@@ -7,9 +7,9 @@ import type { RelationshipService } from '@services/relationship/relationship.se
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  cleanupPinRelationships,
+  cleanupLinkRelationships,
   createPinRelationship,
-  ensureCanvasPinRelationshipType,
+  ensureCanvasLinkRelationshipType,
   removePinRelationship,
 } from './canvas-pin-helpers';
 
@@ -104,10 +104,10 @@ describe('removePinRelationship', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
-// ensureCanvasPinRelationshipType
+// ensureCanvasLinkRelationshipType
 // ─────────────────────────────────────────────────────────────────────────
 
-describe('ensureCanvasPinRelationshipType', () => {
+describe('ensureCanvasLinkRelationshipType', () => {
   let svc: ReturnType<typeof createMockRelationshipService>;
 
   beforeEach(() => {
@@ -116,7 +116,7 @@ describe('ensureCanvasPinRelationshipType', () => {
 
   it('should add the type when it does not exist', () => {
     (svc.getTypeById as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
-    ensureCanvasPinRelationshipType(svc);
+    ensureCanvasLinkRelationshipType(svc, 'pin');
     expect(svc.addRawType).toHaveBeenCalledWith(
       expect.objectContaining({
         id: CANVAS_PIN_RELATIONSHIP_TYPE,
@@ -129,16 +129,16 @@ describe('ensureCanvasPinRelationshipType', () => {
     (svc.getTypeById as ReturnType<typeof vi.fn>).mockReturnValue({
       id: CANVAS_PIN_RELATIONSHIP_TYPE,
     });
-    ensureCanvasPinRelationshipType(svc);
+    ensureCanvasLinkRelationshipType(svc, 'pin');
     expect(svc.addRawType).not.toHaveBeenCalled();
   });
 });
 
 // ─────────────────────────────────────────────────────────────────────────
-// cleanupPinRelationships
+// cleanupLinkRelationships
 // ─────────────────────────────────────────────────────────────────────────
 
-describe('cleanupPinRelationships', () => {
+describe('cleanupLinkRelationships', () => {
   let svc: ReturnType<typeof createMockRelationshipService>;
 
   beforeEach(() => {
@@ -166,7 +166,7 @@ describe('cleanupPinRelationships', () => {
         relationshipId: 'rel-2',
       },
     ];
-    cleanupPinRelationships(svc, objects);
+    cleanupLinkRelationships(svc, objects);
     expect(svc.removeRelationship).toHaveBeenCalledTimes(2);
     expect(svc.removeRelationship).toHaveBeenCalledWith('rel-1');
     expect(svc.removeRelationship).toHaveBeenCalledWith('rel-2');
@@ -185,12 +185,12 @@ describe('cleanupPinRelationships', () => {
         strokeWidth: 1,
       },
     ];
-    cleanupPinRelationships(svc, objects);
+    cleanupLinkRelationships(svc, objects);
     expect(svc.removeRelationship).not.toHaveBeenCalled();
   });
 
   it('should handle empty array', () => {
-    cleanupPinRelationships(svc, []);
+    cleanupLinkRelationships(svc, []);
     expect(svc.removeRelationship).not.toHaveBeenCalled();
   });
 
@@ -205,7 +205,7 @@ describe('cleanupPinRelationships', () => {
         color: '#f00',
       },
     ];
-    cleanupPinRelationships(svc, objects);
+    cleanupLinkRelationships(svc, objects);
     expect(svc.removeRelationship).not.toHaveBeenCalled();
   });
 });

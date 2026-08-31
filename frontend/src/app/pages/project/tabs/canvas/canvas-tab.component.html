@@ -57,6 +57,22 @@
         <!-- Layers section -->
         <div class="sidebar-section">
           <div class="section-header" data-testid="layers-header">
+            <button
+              mat-icon-button
+              class="section-chevron"
+              data-testid="section-toggle-layers"
+              [attr.aria-expanded]="!isSectionCollapsed('layers')"
+              [attr.aria-label]="
+                (isSectionCollapsed('layers')
+                  ? 'canvas.sidebar.expandSection'
+                  : 'canvas.sidebar.collapseSection'
+                ) | transloco
+              "
+              (click)="onToggleSection('layers')">
+              <mat-icon>{{
+                isSectionCollapsed('layers') ? 'chevron_right' : 'expand_more'
+              }}</mat-icon>
+            </button>
             <span class="section-title">{{
               'canvas.sidebar.layers' | transloco
             }}</span>
@@ -74,6 +90,7 @@
           </div>
           <div
             class="layers-list"
+            [class.section-collapsed]="isSectionCollapsed('layers')"
             [attr.aria-label]="'canvas.sidebar.layersAria' | transloco">
             @for (layer of sortedLayers(); track layer.id) {
               <div
@@ -164,6 +181,22 @@
         <!-- Objects section -->
         <div class="sidebar-section">
           <div class="section-header" data-testid="objects-header">
+            <button
+              mat-icon-button
+              class="section-chevron"
+              data-testid="section-toggle-objects"
+              [attr.aria-expanded]="!isSectionCollapsed('objects')"
+              [attr.aria-label]="
+                (isSectionCollapsed('objects')
+                  ? 'canvas.sidebar.expandSection'
+                  : 'canvas.sidebar.collapseSection'
+                ) | transloco
+              "
+              (click)="onToggleSection('objects')">
+              <mat-icon>{{
+                isSectionCollapsed('objects') ? 'chevron_right' : 'expand_more'
+              }}</mat-icon>
+            </button>
             <span class="section-title">{{
               'canvas.sidebar.objects' | transloco
             }}</span>
@@ -171,6 +204,7 @@
           </div>
           <div
             class="objects-list"
+            [class.section-collapsed]="isSectionCollapsed('objects')"
             [attr.aria-label]="'canvas.sidebar.objectsAria' | transloco">
             @for (obj of activeLayerObjects(); track obj.id) {
               <div
@@ -228,10 +262,97 @@
           </div>
         </div>
 
+        <!-- Pins section (annotations, independent of layers) -->
+        <div class="sidebar-section">
+          <div class="section-header" data-testid="pins-header">
+            <button
+              mat-icon-button
+              class="section-chevron"
+              data-testid="section-toggle-pins"
+              [attr.aria-expanded]="!isSectionCollapsed('pins')"
+              [attr.aria-label]="
+                (isSectionCollapsed('pins')
+                  ? 'canvas.sidebar.expandSection'
+                  : 'canvas.sidebar.collapseSection'
+                ) | transloco
+              "
+              (click)="onToggleSection('pins')">
+              <mat-icon>{{
+                isSectionCollapsed('pins') ? 'chevron_right' : 'expand_more'
+              }}</mat-icon>
+            </button>
+            <span class="section-title">{{
+              'canvas.sidebar.pins' | transloco
+            }}</span>
+            <span class="object-count">{{ allPins().length }}</span>
+          </div>
+          <div
+            class="objects-list"
+            [class.section-collapsed]="isSectionCollapsed('pins')"
+            [attr.aria-label]="'canvas.sidebar.pinsAria' | transloco">
+            @for (pin of allPins(); track pin.id) {
+              <div
+                role="option"
+                class="object-item"
+                data-testid="pin-item"
+                [class.selected]="pin.id === selectedObjectId()"
+                tabindex="0"
+                [attr.aria-selected]="pin.id === selectedObjectId()"
+                (click)="onSelectObject(pin.id)"
+                (keydown.enter)="onSelectObject(pin.id)">
+                <mat-icon class="object-icon">place</mat-icon>
+                <span class="object-name">{{
+                  pin.label.trim() ||
+                    ('canvas.pinDialog.pinFallback' | transloco)
+                }}</span>
+                @if (pin.linkedElementId) {
+                  <mat-icon
+                    class="object-icon"
+                    [matTooltip]="'canvas.pinDialog.linkedTooltip' | transloco"
+                    >link</mat-icon
+                  >
+                }
+                @if (!viewMode()) {
+                  <button
+                    mat-icon-button
+                    class="object-action"
+                    [matTooltip]="'delete' | transloco"
+                    (click)="onDeleteObject(pin.id, $event)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
+              </div>
+            } @empty {
+              <div class="empty-state" data-testid="pins-empty">
+                <p>{{ 'canvas.sidebar.noPins' | transloco }}</p>
+                <p class="hint">
+                  {{ 'canvas.sidebar.noPinsHint' | transloco }}
+                </p>
+              </div>
+            }
+          </div>
+        </div>
+
         <!-- Frames section (canvas size + crop frames) -->
         @if (!viewMode()) {
           <div class="sidebar-section">
             <div class="section-header" data-testid="frames-header">
+              <button
+                mat-icon-button
+                class="section-chevron"
+                data-testid="section-toggle-frames"
+                [attr.aria-expanded]="!isSectionCollapsed('frames')"
+                [attr.aria-label]="
+                  (isSectionCollapsed('frames')
+                    ? 'canvas.sidebar.expandSection'
+                    : 'canvas.sidebar.collapseSection'
+                  ) | transloco
+                "
+                (click)="onToggleSection('frames')">
+                <mat-icon>{{
+                  isSectionCollapsed('frames') ? 'chevron_right' : 'expand_more'
+                }}</mat-icon>
+              </button>
               <span class="section-title">{{
                 'canvas.frames.title' | transloco
               }}</span>
@@ -268,6 +389,7 @@
             </div>
             <div
               class="layers-list"
+              [class.section-collapsed]="isSectionCollapsed('frames')"
               [attr.aria-label]="'canvas.frames.listAria' | transloco">
               @for (frame of frames(); track frame.id) {
                 <div
@@ -733,7 +855,7 @@
       <span>{{ 'canvas.contextMenu.sendToBack' | transloco }}</span>
     </button>
   }
-  @if (selectedObjectId() && sortedLayers().length > 1) {
+  @if (selectedObjectId() && sortedLayers().length > 1 && !selectedPin()) {
     <mat-divider></mat-divider>
     <button mat-menu-item [matMenuTriggerFor]="sendToLayerMenu">
       <mat-icon>swap_horiz</mat-icon>
@@ -755,6 +877,33 @@
       <mat-icon>edit_location_alt</mat-icon>
       <span>{{ 'canvas.contextMenu.editPin' | transloco }}</span>
     </button>
+  }
+  @if (selectedShape(); as shape) {
+    <mat-divider></mat-divider>
+    @if (shape.linkedElementId) {
+      <button
+        mat-menu-item
+        data-testid="open-linked-element"
+        (click)="onOpenLinkedElement()">
+        <mat-icon>open_in_new</mat-icon>
+        <span>{{ 'canvas.contextMenu.openLinkedElement' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        data-testid="unlink-shape-element"
+        (click)="onUnlinkShape()">
+        <mat-icon>link_off</mat-icon>
+        <span>{{ 'canvas.contextMenu.unlinkElement' | transloco }}</span>
+      </button>
+    } @else {
+      <button
+        mat-menu-item
+        data-testid="link-shape-element"
+        (click)="onLinkShape()">
+        <mat-icon>add_link</mat-icon>
+        <span>{{ 'canvas.contextMenu.linkToElement' | transloco }}</span>
+      </button>
+    }
   }
   @if (selectedImage(); as image) {
     <mat-divider></mat-divider>

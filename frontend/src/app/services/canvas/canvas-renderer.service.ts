@@ -38,8 +38,13 @@ export interface CanvasNodeHandlers {
     rotation: number
   ) => void;
   onDblClickText: (obj: CanvasText, textNode: Konva.Text) => void;
-  /** Fired when a linked pin is double-clicked/tapped (open the element). */
-  onDblClickPin?: (obj: CanvasPin) => void;
+  /**
+   * Fired when a linked object (pin or region shape) is double-clicked or
+   * double-tapped — open the linked element.
+   */
+  onOpenLinkedObject?: (obj: CanvasPin | CanvasShape) => void;
+  /** Resolve a project element's display name (for hover labels). */
+  getElementName?: (elementId: string) => string | null;
 }
 
 @Injectable()
@@ -56,6 +61,7 @@ export class CanvasRendererService {
   private _selectionLayer: Konva.Layer | null = null;
   private _previewLayer: Konva.Layer | null = null;
   private _framesLayer: Konva.Layer | null = null;
+  private _annotationsLayer: Konva.Layer | null = null;
   private readonly _frameNodes = new Map<string, Konva.Group>();
   private _frameTransformer: Konva.Transformer | null = null;
   private _editingFrameId: string | null = null;
@@ -91,6 +97,14 @@ export class CanvasRendererService {
   get framesLayer(): Konva.Layer | null {
     return this._framesLayer;
   }
+  /**
+   * Overlay for annotations (pins): always above the artwork layers and
+   * independent of their visibility, lock and deletion. Pins are semantic
+   * markers about the map, not part of any one rendition of it.
+   */
+  get annotationsLayer(): Konva.Layer | null {
+    return this._annotationsLayer;
+  }
 
   /**
    * Whether objects respond to the pointer. Turned off while a creation tool
@@ -103,6 +117,8 @@ export class CanvasRendererService {
     for (const kLayer of this._konvaLayers.values()) {
       kLayer.listening(interactive && kLayer.getAttr('inkLocked') !== true);
     }
+    // Annotations follow the same rule but are never layer-locked.
+    this._annotationsLayer?.listening(interactive);
   }
 
   /**
@@ -153,10 +169,14 @@ export class CanvasRendererService {
     this._selectionLayer.add(this._transformer);
 
     this._framesLayer = new Konva.Layer({ listening: false });
+    this._annotationsLayer = new Konva.Layer({
+      listening: this._contentInteractive,
+    });
 
     this.buildKonvaLayers(configLayers);
     this.buildKonvaObjects(configObjects, handlers);
 
+    this._stage.add(this._annotationsLayer);
     this._stage.add(this._framesLayer);
     this._stage.add(this._previewLayer);
     this._stage.add(this._selectionLayer);
@@ -198,12 +218,22 @@ export class CanvasRendererService {
     }
   }
 
+  /**
+   * The Konva layer an object renders on: pins live on the annotations
+   * overlay (their `layerId` is vestigial, kept for old clients); everything
+   * else renders on its artwork layer.
+   */
+  private targetLayerFor(obj: CanvasObject): Konva.Layer | null {
+    if (obj.type === 'pin') return this._annotationsLayer;
+    return this._konvaLayers.get(obj.layerId) ?? null;
+  }
+
   buildKonvaObjects(
     objects: CanvasObject[],
     handlers: CanvasNodeHandlers
   ): void {
     for (const obj of objects) {
-      const kLayer = this._konvaLayers.get(obj.layerId);
+      const kLayer = this.targetLayerFor(obj);
       if (!kLayer) continue;
 
       const node = this.createKonvaNode(obj, handlers);
@@ -219,6 +249,7 @@ export class CanvasRendererService {
     for (const kLayer of this._konvaLayers.values()) {
       kLayer.batchDraw();
     }
+    this._annotationsLayer?.batchDraw();
   }
 
   /**
@@ -242,6 +273,7 @@ export class CanvasRendererService {
     this.syncObjects(objects, handlers);
     this.applyObjectZOrder(objects);
 
+    this._annotationsLayer?.moveToTop();
     this._framesLayer?.moveToTop();
     this._previewLayer?.moveToTop();
     this._selectionLayer?.moveToTop();
@@ -251,6 +283,7 @@ export class CanvasRendererService {
     for (const kLayer of this._konvaLayers.values()) {
       kLayer.batchDraw();
     }
+    this._annotationsLayer?.batchDraw();
   }
 
   /** Create, update and destroy Konva layers so they mirror the config. */
@@ -298,7 +331,7 @@ export class CanvasRendererService {
 
     for (const obj of objects) {
       wanted.add(obj.id);
-      const kLayer = this._konvaLayers.get(obj.layerId);
+      const kLayer = this.targetLayerFor(obj);
       if (kLayer) this.syncObject(obj, kLayer, handlers);
     }
 
@@ -631,6 +664,8 @@ export class CanvasRendererService {
     for (const kLayer of this._konvaLayers.values()) {
       kLayer.destroy();
     }
+    // Pins live outside _konvaLayers, so clear their overlay explicitly.
+    this._annotationsLayer?.destroyChildren();
     this._konvaLayers.clear();
     this._konvaNodes.clear();
     this._objectStructures.clear();
@@ -638,6 +673,7 @@ export class CanvasRendererService {
     this.buildKonvaLayers(layers);
     this.buildKonvaObjects(objects, handlers);
 
+    this._annotationsLayer?.moveToTop();
     this._framesLayer?.moveToTop();
     this._previewLayer?.moveToTop();
     this._selectionLayer?.moveToTop();
@@ -664,7 +700,9 @@ export class CanvasRendererService {
         // to the pointer and has handlers wired at all.
         return `image:${obj.isBackground ? 'bg:' : ''}${obj.src}`;
       case 'shape':
-        return `shape:${obj.shapeType}`;
+        // A link adds interactions (dblclick, hover label), so gaining or
+        // losing one rebuilds the node.
+        return `shape:${obj.shapeType}${obj.linkedElementId ? ':linked' : ''}`;
       case 'path':
         return `path:${obj.pressures?.length ? 'ink' : 'line'}`;
       case 'pin':
@@ -799,10 +837,11 @@ export class CanvasRendererService {
         break;
       case 'shape':
         node = CanvasRendererService.createShapeNode(obj, commonAttrs);
+        this.wireLinkInteractions(node, obj, handlers);
         break;
       case 'pin':
         node = CanvasRendererService.createPinNode(obj, commonAttrs);
-        this.wirePinInteractions(node, obj, handlers);
+        this.wireLinkInteractions(node, obj, handlers);
         break;
     }
 
@@ -843,16 +882,62 @@ export class CanvasRendererService {
     return node;
   }
 
-  /** Extra interactions for pins linked to a project element. */
-  private wirePinInteractions(
-    group: Konva.Group,
-    obj: CanvasPin,
+  /** Extra interactions for objects linked to a project element. */
+  private wireLinkInteractions(
+    node: Konva.Node,
+    obj: CanvasPin | CanvasShape,
     handlers: CanvasNodeHandlers
   ): void {
     if (!obj.linkedElementId) return;
-    group.on('dblclick dbltap', () => handlers.onDblClickPin?.(obj));
-    group.on('mouseenter', () => this.setStageCursor('pointer'));
-    group.on('mouseleave', () => this.setStageCursor(''));
+    node.on('dblclick dbltap', () => handlers.onOpenLinkedObject?.(obj));
+    node.on('mouseenter', () => {
+      this.setStageCursor('pointer');
+      const name = obj.linkedElementId
+        ? handlers.getElementName?.(obj.linkedElementId)
+        : null;
+      if (name) this.showHoverLabel(name);
+    });
+    node.on('mouseleave', () => {
+      this.setStageCursor('');
+      this.hideHoverLabel();
+    });
+  }
+
+  /** Show the linked element's name near the pointer, on the preview layer. */
+  private showHoverLabel(text: string): void {
+    const layer = this._previewLayer;
+    const stage = this._stage;
+    if (!layer || !stage) return;
+
+    this.hideHoverLabel();
+
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+    const world = stage.getAbsoluteTransform().copy().invert().point(pointer);
+
+    const label = new Konva.Label({
+      name: 'linkHoverLabel',
+      x: world.x,
+      y: world.y,
+      listening: false,
+    });
+    label.add(
+      new Konva.Tag({ fill: '#424242', cornerRadius: 3, opacity: 0.9 })
+    );
+    label.add(new Konva.Text({ text, fontSize: 11, padding: 4, fill: '#fff' }));
+    // Screen-constant size and a small offset up-right of the cursor.
+    const inverse = 1 / (stage.scaleX() || 1);
+    label.scale({ x: inverse, y: inverse });
+    label.offset({ x: -12, y: 24 });
+    layer.add(label);
+    layer.batchDraw();
+  }
+
+  private hideHoverLabel(): void {
+    const layer = this._previewLayer;
+    if (!layer) return;
+    layer.find('.linkHoverLabel').forEach(n => n.destroy());
+    layer.batchDraw();
   }
 
   private setStageCursor(cursor: string): void {
@@ -1144,6 +1229,7 @@ export class CanvasRendererService {
     this._selectionLayer = null;
     this._previewLayer = null;
     this._framesLayer = null;
+    this._annotationsLayer = null;
     this._contentInteractive = true;
   }
 

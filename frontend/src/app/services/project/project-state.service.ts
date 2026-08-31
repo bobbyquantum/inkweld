@@ -9,7 +9,7 @@ import {
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { type Element, ElementType, type Project } from '@inkweld/index';
-import { createDefaultLayer } from '@models/canvas.model';
+import { createDefaultLayer, isLinkableObject } from '@models/canvas.model';
 import { type CanvasContents, type CanvasEdit } from '@models/canvas-edit';
 import { type ProjectElement } from '@models/project-element';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
@@ -980,7 +980,7 @@ export class ProjectStateService implements OnDestroy {
       const unlinked = contents.objects
         .filter(
           o =>
-            o.type === 'pin' &&
+            isLinkableObject(o) &&
             o.linkedElementId !== undefined &&
             deletedIds.has(o.linkedElementId)
         )

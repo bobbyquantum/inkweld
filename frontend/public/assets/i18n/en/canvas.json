@@ -15,7 +15,13 @@
     "objects": "Objects",
     "objectsAria": "Objects",
     "noObjects": "No objects on this layer.",
-    "noObjectsHint": "Use the toolbar to add images, text, pins, or drawings.",
+    "noObjectsHint": "Use the toolbar to add images, text, or drawings.",
+    "pins": "Pins",
+    "pinsAria": "Pins",
+    "noPins": "No pins yet.",
+    "noPinsHint": "Use the pin tool (P) to add markers linked to your elements.",
+    "collapseSection": "Collapse section",
+    "expandSection": "Expand section",
     "setAsBackground": "Set as background",
     "detachBackground": "Detach from background"
   },
@@ -67,7 +73,9 @@
     "setAsBackground": "Set as background",
     "detachBackground": "Detach from background",
     "openLinkedElement": "Open linked element",
-    "editPin": "Edit pin…"
+    "editPin": "Edit pin…",
+    "linkToElement": "Link to element…",
+    "unlinkElement": "Unlink element"
   },
   "pin": {
     "linkedElementMissing": "Linked element no longer exists"

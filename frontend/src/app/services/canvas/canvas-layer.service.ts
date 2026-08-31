@@ -9,17 +9,14 @@ import {
   type RenameDialogData,
 } from '@dialogs/rename-dialog/rename-dialog.component';
 import type { CanvasObject } from '@models/canvas.model';
-import { RelationshipService } from '@services/relationship/relationship.service';
 import { nanoid } from 'nanoid';
 import { firstValueFrom, type Observable } from 'rxjs';
 
-import { cleanupPinRelationships } from '../../pages/project/tabs/canvas/canvas-pin-helpers';
 import { CanvasService } from './canvas.service';
 
 @Injectable()
 export class CanvasLayerService {
   private readonly canvasService = inject(CanvasService);
-  private readonly relationshipService = inject(RelationshipService);
   private readonly dialog = inject(MatDialog);
 
   addLayer(): string | null {
@@ -77,13 +74,18 @@ export class CanvasLayerService {
     const newLayerId = this.canvasService.addLayer(`${layer.name} (copy)`);
     if (!newLayerId) return;
 
-    const objectsToCopy = config.objects.filter(o => o.layerId === layerId);
+    // Pins are annotations, not layer content — duplicating a layer copies
+    // its artwork only. Element links are per-object relationships and are
+    // not carried onto copies.
+    const objectsToCopy = config.objects.filter(
+      o => o.layerId === layerId && o.type !== 'pin'
+    );
     for (const obj of objectsToCopy) {
       const copy: CanvasObject = {
         ...obj,
         id: nanoid(),
         layerId: newLayerId,
-        ...(obj.type === 'pin'
+        ...('linkedElementId' in obj
           ? { relationshipId: undefined, linkedElementId: undefined }
           : {}),
       };
@@ -104,10 +106,8 @@ export class CanvasLayerService {
         .afterClosed() as Observable<boolean | undefined>
     );
     if (confirmed) {
-      cleanupPinRelationships(
-        this.relationshipService,
-        this.canvasService.getObjectsForLayer(layerId)
-      );
+      // Pins survive layer deletion; relationship cleanup for the layer's
+      // linked artwork happens inside CanvasService.removeLayer.
       this.canvasService.removeLayer(layerId);
       return true;
     }

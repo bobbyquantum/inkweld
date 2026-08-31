@@ -19,6 +19,7 @@ import {
 } from '../../models/canvas.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { RelationshipService } from '../relationship/relationship.service';
 import { CanvasService } from './canvas.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -145,6 +146,10 @@ describe('CanvasService', () => {
     error: vi.fn(),
   };
 
+  const mockRelationships = {
+    removeRelationship: vi.fn(),
+  };
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [translocoTestProvider()],
@@ -152,6 +157,7 @@ describe('CanvasService', () => {
         CanvasService,
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: LoggerService, useValue: mockLogger },
+        { provide: RelationshipService, useValue: mockRelationships },
       ],
     });
 
@@ -536,6 +542,84 @@ describe('CanvasService', () => {
 
       expect(service.redo()).toBe(true);
       expect(service.activeConfig()!.frames![0].x).toBe(99);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Annotations & relationship cleanup
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('pins and linked objects', () => {
+    beforeEach(() => {
+      mockElements.set([makeElement()]);
+      service.loadConfig('canvas-1');
+    });
+
+    it('removeLayer keeps pins and reassigns their vestigial layerId', () => {
+      const firstLayerId = service.activeConfig()!.layers[0].id;
+      const doomedLayerId = service.addLayer('Doomed');
+      service.addObject(makeTextObject({ id: 't1', layerId: doomedLayerId }));
+      service.addObject(makePinObject({ id: 'p1', layerId: doomedLayerId }));
+
+      service.removeLayer(doomedLayerId);
+
+      const config = service.activeConfig()!;
+      expect(config.objects.some(o => o.id === 't1')).toBe(false);
+      const pin = config.objects.find(o => o.id === 'p1');
+      expect(pin).toBeDefined();
+      expect(pin!.layerId).toBe(firstLayerId);
+    });
+
+    it('removeLayer drops relationships of linked artwork on the layer', () => {
+      const doomedLayerId = service.addLayer('Doomed');
+      service.addObject({
+        id: 's1',
+        layerId: doomedLayerId,
+        type: 'shape',
+        shapeType: 'rect',
+        x: 0,
+        y: 0,
+        width: 10,
+        height: 10,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        stroke: '#000',
+        strokeWidth: 1,
+        linkedElementId: 'el-1',
+        relationshipId: 'rel-shape',
+      });
+      service.addObject(
+        makePinObject({
+          id: 'p1',
+          layerId: doomedLayerId,
+          relationshipId: 'rel-pin',
+        })
+      );
+
+      service.removeLayer(doomedLayerId);
+
+      // The linked shape dies with the layer; the pin (and its link) survive.
+      expect(mockRelationships.removeRelationship).toHaveBeenCalledWith(
+        'rel-shape'
+      );
+      expect(mockRelationships.removeRelationship).not.toHaveBeenCalledWith(
+        'rel-pin'
+      );
+    });
+
+    it('removeObjects removes the relationships of doomed linked objects', () => {
+      service.addObject(makePinObject({ id: 'p1', relationshipId: 'rel-1' }));
+      service.addObject(makeTextObject({ id: 't1' }));
+
+      service.removeObjects(['p1', 't1']);
+
+      expect(mockRelationships.removeRelationship).toHaveBeenCalledWith(
+        'rel-1'
+      );
+      expect(service.activeConfig()!.objects).toHaveLength(0);
     });
   });
 

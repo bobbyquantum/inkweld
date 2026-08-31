@@ -503,16 +503,11 @@ describe('CanvasTabComponent', () => {
       component['onDuplicateLayer'](defaultConfig.layers[0].id);
 
       expect(mockCanvasService.addLayer).toHaveBeenCalledWith('Layer 1 (copy)');
-      expect(mockCanvasService.addObject).toHaveBeenCalledTimes(2);
+      // Pins are annotations, not layer content - only the artwork copies.
+      expect(mockCanvasService.addObject).toHaveBeenCalledTimes(1);
       expect(mockCanvasService.addObject.mock.calls[0][0]).toMatchObject({
         layerId: 'new-layer-id',
         type: 'shape',
-      });
-      expect(mockCanvasService.addObject.mock.calls[1][0]).toMatchObject({
-        layerId: 'new-layer-id',
-        type: 'pin',
-        linkedElementId: undefined,
-        relationshipId: undefined,
       });
     });
 
@@ -1569,12 +1564,12 @@ describe('CanvasTabComponent', () => {
       expect((clipContent as CanvasPin).relationshipId).toBeUndefined();
     });
 
-    it('should call removePinRelationship when cutting a linked pin', () => {
+    it('should cut a linked pin without touching the relationship itself', () => {
+      // Relationship cleanup is centralized in CanvasService.removeObjects
+      // (mocked here); the component/clipboard paths only remove the object.
       component['selectedObjectId'].set('pin-linked');
       component['onCut']();
-      expect(mockRelationshipService.removeRelationship).toHaveBeenCalledWith(
-        'rel-1'
-      );
+      expect(mockCanvasService.removeObject).toHaveBeenCalledWith('pin-linked');
       const clipContent = component['clipboard']();
       expect((clipContent as CanvasPin).relationshipId).toBeUndefined();
     });
@@ -1593,21 +1588,15 @@ describe('CanvasTabComponent', () => {
       expect(pastedObj.relationshipId).toBe('relationship-1');
     });
 
-    it('should call removePinRelationship when deleting a linked pin via context menu', () => {
+    it('should delete a linked pin via context menu through removeObject', () => {
       component['selectedObjectId'].set('pin-linked');
       component['onContextDelete']();
-      expect(mockRelationshipService.removeRelationship).toHaveBeenCalledWith(
-        'rel-1'
-      );
       expect(mockCanvasService.removeObject).toHaveBeenCalledWith('pin-linked');
     });
 
-    it('should call removePinRelationship when deleting a linked pin via sidebar', () => {
+    it('should delete a linked pin via sidebar through removeObject', () => {
       const event = new MouseEvent('click');
       component['onDeleteObject']('pin-linked', event);
-      expect(mockRelationshipService.removeRelationship).toHaveBeenCalledWith(
-        'rel-1'
-      );
       expect(mockCanvasService.removeObject).toHaveBeenCalledWith('pin-linked');
     });
   });

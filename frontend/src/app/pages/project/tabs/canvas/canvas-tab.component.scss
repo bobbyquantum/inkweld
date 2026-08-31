@@ -199,6 +199,23 @@
   text-overflow: ellipsis;
 }
 
+.section-chevron {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  margin-right: 2px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.section-collapsed {
+  display: none;
+}
+
 .frame-dims {
   font-size: 11px;
   color: var(--sys-on-surface-variant);

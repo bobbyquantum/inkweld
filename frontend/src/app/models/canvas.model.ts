@@ -168,6 +168,14 @@ export interface CanvasShape extends CanvasObjectBase {
   cornerRadius?: number;
   /** Dash pattern for dashed lines: [dash, gap] */
   dash?: number[];
+  /**
+   * Linked project element ID — a shape linked to an element is a "region":
+   * a mapped area you can click to open the element. Several shapes sharing
+   * a link form one discontinuous region.
+   */
+  linkedElementId?: string;
+  /** ID of the ElementRelationship backing this link (for cleanup) */
+  relationshipId?: string;
 }
 
 // ─── Pin Object ──────────────────────────────────────────────────────────────
@@ -177,6 +185,12 @@ export interface CanvasShape extends CanvasObjectBase {
  * This type is auto-created in the project's relationship types if not present.
  */
 export const CANVAS_PIN_RELATIONSHIP_TYPE = 'canvas-pin';
+
+/**
+ * Well-known relationship type ID for shape ("region") → element links.
+ * Auto-created in the project's relationship types if not present.
+ */
+export const CANVAS_AREA_RELATIONSHIP_TYPE = 'canvas-area';
 
 /** Pin marker linked to a project element */
 export interface CanvasPin extends CanvasObjectBase {
@@ -204,6 +218,13 @@ export type CanvasObject =
 /** True when `obj` is a non-interactive background image. */
 export function isBackgroundImage(obj: CanvasObject): obj is CanvasImage {
   return obj.type === 'image' && obj.isBackground === true;
+}
+
+/** Objects that can carry an element link (pin markers and region shapes). */
+export function isLinkableObject(
+  obj: CanvasObject
+): obj is CanvasPin | CanvasShape {
+  return obj.type === 'pin' || obj.type === 'shape';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

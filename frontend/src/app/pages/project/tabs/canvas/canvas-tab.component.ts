@@ -26,6 +26,7 @@ import { ActivatedRoute } from '@angular/router';
 import { ColorSwatchesComponent } from '@components/color-swatches/color-swatches.component';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
+import { ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   type CanvasFrame,
@@ -34,6 +35,7 @@ import {
   type CanvasLayer,
   type CanvasObject,
   type CanvasPin,
+  type CanvasShape,
   type CanvasShapeType,
   type CanvasText,
   type CanvasTool,
@@ -42,6 +44,7 @@ import {
   createFrame,
   FRAME_PRESETS,
   type FramePresetKey,
+  isLinkableObject,
   MAX_STROKE_WIDTH,
   MIN_STROKE_WIDTH,
   STROKE_WIDTH_PRESETS,
@@ -78,6 +81,7 @@ import { PresenceService } from '@services/presence/presence.service';
 import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { RelationshipService } from '@services/relationship/relationship.service';
 import {
   computeOverflowGroups,
   horizontalPadding,
@@ -91,6 +95,10 @@ import type {
   CanvasFrameDialogData,
   CanvasFrameDialogResult,
 } from '../../../../dialogs/canvas-frame-dialog/canvas-frame-dialog.component';
+import {
+  createLinkRelationship,
+  removeLinkRelationship,
+} from './canvas-pin-helpers';
 import { getObjectIcon, getObjectLabel } from './canvas-utils';
 
 /** Delay (ms) after sidebar toggle before telling Konva to resize */
@@ -176,6 +184,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   private readonly dialog = inject(MatDialog);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly projectService = inject(ProjectService);
+  private readonly relationshipService = inject(RelationshipService);
 
   /** Stable presence location for this canvas tab. */
   protected readonly presenceLocation = computed(() => {
@@ -287,6 +296,35 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     this.readLocalStorage('canvasFramesVisible') !== 'false'
   );
 
+  /** Collapsed sidebar sections, remembered per user. */
+  protected readonly collapsedSections = signal<Record<string, boolean>>(
+    this.readCollapsedSections()
+  );
+
+  private readCollapsedSections(): Record<string, boolean> {
+    try {
+      const raw = this.readLocalStorage('canvasSidebarSections');
+      const parsed: unknown = raw ? JSON.parse(raw) : null;
+      return parsed && typeof parsed === 'object'
+        ? (parsed as Record<string, boolean>)
+        : {};
+    } catch {
+      return {};
+    }
+  }
+
+  protected isSectionCollapsed(section: string): boolean {
+    return this.collapsedSections()[section] === true;
+  }
+
+  protected onToggleSection(section: string): void {
+    this.collapsedSections.update(state => {
+      const next = { ...state, [section]: !state[section] };
+      this.writeLocalStorage('canvasSidebarSections', JSON.stringify(next));
+      return next;
+    });
+  }
+
   /** Frames on the active canvas (canvas size + crop frames). */
   protected readonly frames = computed<CanvasFrame[]>(
     () => this.canvasService.activeConfig()?.frames ?? []
@@ -326,12 +364,21 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     return [...config.layers].sort((a, b) => a.order - b.order);
   });
 
-  /** Objects on the active layer */
+  /** Artwork objects on the active layer (pins live in their own section) */
   protected readonly activeLayerObjects = computed<CanvasObject[]>(() => {
     const config = this.canvasService.activeConfig();
     const layerId = this.activeLayerId();
     if (!config || !layerId) return [];
-    return config.objects.filter(o => o.layerId === layerId);
+    return config.objects.filter(
+      o => o.layerId === layerId && o.type !== 'pin'
+    );
+  });
+
+  /** All pins on the canvas — annotations, independent of layers. */
+  protected readonly allPins = computed<CanvasPin[]>(() => {
+    const config = this.canvasService.activeConfig();
+    if (!config) return [];
+    return config.objects.filter(o => o.type === 'pin');
   });
 
   /** The currently selected image object, if the selection is an image. */
@@ -350,6 +397,15 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     if (!id || !config) return null;
     const obj = config.objects.find(o => o.id === id);
     return obj?.type === 'pin' ? obj : null;
+  });
+
+  /** The currently selected shape object, if the selection is a shape. */
+  protected readonly selectedShape = computed<CanvasShape | null>(() => {
+    const id = this.selectedObjectId();
+    const config = this.canvasService.activeConfig();
+    if (!id || !config) return null;
+    const obj = config.objects.find(o => o.id === id);
+    return obj?.type === 'shape' ? obj : null;
   });
 
   /** Whether there is a valid active layer (used to disable creation tools) */
@@ -460,7 +516,10 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
       if (this.viewMode()) return;
       this.openTextEditDialog(obj, textNode);
     },
-    onDblClickPin: (obj: CanvasPin) => this.openPinLink(obj),
+    onOpenLinkedObject: (obj: CanvasPin | CanvasShape) =>
+      this.openElementLink(obj.linkedElementId),
+    getElementName: (elementId: string) =>
+      this.projectState.elements().find(e => e.id === elementId)?.name ?? null,
   };
 
   /**
@@ -949,12 +1008,12 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     }
   }
 
-  /** Open the element a pin is linked to, if it still exists. */
-  private openPinLink(pin: CanvasPin): void {
-    if (!pin.linkedElementId) return;
+  /** Open a linked element (pin or region shape), if it still exists. */
+  private openElementLink(linkedElementId: string | undefined): void {
+    if (!linkedElementId) return;
     const element = this.projectState
       .elements()
-      .find(e => e.id === pin.linkedElementId);
+      .find(e => e.id === linkedElementId);
     if (element) {
       this.elementNavigation.openElement(element);
       return;
@@ -966,16 +1025,71 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     );
   }
 
-  /** Context menu: open the selected pin's linked element. */
+  /** Context menu: open the selected pin's or shape's linked element. */
   protected onOpenLinkedElement(): void {
-    const pin = this.selectedPin();
-    if (pin) this.openPinLink(pin);
+    const linked = this.selectedPin() ?? this.selectedShape();
+    if (linked) this.openElementLink(linked.linkedElementId);
   }
 
   /** Context menu: edit the selected pin's label, color and link. */
   protected onEditPin(): void {
     const pin = this.selectedPin();
     if (pin) this.canvasPlacement.openPinEditDialog(pin, this.elementId());
+  }
+
+  /**
+   * Context menu: link the selected shape to an element, turning it into a
+   * clickable region. Several shapes sharing a link form one (possibly
+   * discontinuous) region.
+   */
+  protected async onLinkShape(): Promise<void> {
+    const shape = this.selectedShape();
+    if (!shape) return;
+
+    const { ElementPickerDialogComponent } =
+      await import('../../../../dialogs/element-picker-dialog/element-picker-dialog.component');
+    const pickerRef = this.dialog.open(ElementPickerDialogComponent, {
+      width: '480px',
+      maxHeight: '80vh',
+      data: {
+        title: this.transloco.translate('canvas.pinDialog.linkToElement'),
+        maxSelections: 1,
+        excludeTypes: [
+          ElementType.Folder,
+          ElementType.Canvas,
+          ElementType.Timeline,
+        ],
+      },
+    });
+    const result = (await firstValueFrom(pickerRef.afterClosed())) as
+      { elements?: { id: string }[] } | null | undefined;
+    const target = result?.elements?.[0];
+    if (!target) return;
+
+    if (shape.relationshipId) {
+      removeLinkRelationship(this.relationshipService, shape);
+    }
+    const relationshipId = createLinkRelationship(
+      this.relationshipService,
+      this.elementId(),
+      target.id,
+      'area'
+    );
+    this.canvasService.updateObject(shape.id, {
+      linkedElementId: target.id,
+      relationshipId,
+    });
+  }
+
+  /** Context menu: remove the selected shape's element link. */
+  protected onUnlinkShape(): void {
+    const shape = this.selectedShape();
+    if (!shape?.linkedElementId) return;
+    removeLinkRelationship(this.relationshipService, shape);
+    this.canvasService.updateObject(shape.id, {
+      linkedElementId: undefined,
+      relationshipId: undefined,
+    });
   }
 
   /**
@@ -1433,13 +1547,15 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   // ── Object actions ─────────────────────────────────────────────────────
 
   protected onSelectObject(objectId: string): void {
-    // In view mode nothing gets selected; a click on a linked pin opens
-    // its element instead.
+    // In view mode nothing gets selected; a click on a linked pin or
+    // region shape opens its element instead.
     if (this.viewMode()) {
       const obj = this.canvasService
         .activeConfig()
         ?.objects.find(o => o.id === objectId);
-      if (obj?.type === 'pin') this.openPinLink(obj);
+      if (obj && isLinkableObject(obj)) {
+        this.openElementLink(obj.linkedElementId);
+      }
       return;
     }
 

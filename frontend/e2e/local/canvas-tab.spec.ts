@@ -130,6 +130,25 @@ test.describe('Canvas Tab', () => {
       ).toHaveText('100%');
     });
 
+    await test.step('sidebar sections collapse and remember their state', async () => {
+      const sidebar = page.getByTestId('canvas-sidebar');
+      await expect(sidebar.getByTestId('layer-item').first()).toBeVisible();
+
+      await page.getByTestId('section-toggle-layers').click();
+      await expect(sidebar.getByTestId('layer-item').first()).toBeHidden();
+
+      await page.reload();
+      await expect(page.getByTestId('canvas-sidebar')).toBeVisible();
+      await expect(
+        page.getByTestId('canvas-sidebar').getByTestId('layer-item').first()
+      ).toBeHidden();
+
+      await page.getByTestId('section-toggle-layers').click();
+      await expect(
+        page.getByTestId('canvas-sidebar').getByTestId('layer-item').first()
+      ).toBeVisible();
+    });
+
     await test.step('sidebar can collapse and expand', async () => {
       await expect(page.getByTestId('canvas-sidebar')).toBeVisible();
 
@@ -672,6 +691,81 @@ test.describe('Canvas Tab', () => {
         toolbar.locator('[data-toolbar-group="drawing"]')
       ).toBeVisible();
       await expect(sidebar.getByTestId('add-layer-button')).toBeVisible();
+    });
+
+    await test.step('pins live in their own sidebar section', async () => {
+      await expect(sidebar.getByTestId('pins-header')).toBeVisible();
+      await expect(
+        sidebar.getByTestId('pin-item').filter({ hasText: 'Target Pin' })
+      ).toBeVisible();
+      await expect(sidebar.getByTestId('objects-empty')).toBeVisible();
+    });
+
+    await test.step('pin outlives layer visibility', async () => {
+      // Hide the only artwork layer — the pin is an annotation and stays.
+      await sidebar.getByTestId('layer-visibility').first().click();
+
+      await page.getByTestId('canvas-mode-toggle').click();
+      await page
+        .getByTestId('canvas-stage')
+        .click({ position: { x: 400, y: 300 } });
+      await page.waitForURL(/document\/.+/);
+
+      await page.getByTestId('element-World Map').click();
+      await expect(page.getByTestId('canvas-container')).toBeVisible();
+      await page.getByTestId('canvas-mode-toggle').click();
+      await sidebar.getByTestId('layer-visibility').first().click();
+    });
+
+    await test.step('link a shape to an element (region)', async () => {
+      // Fill on, so the shape interior is clickable.
+      await toolbar.getByTestId('fill-color-button').click();
+      await page.getByTestId('fill-toggle').click();
+      await page.keyboard.press('Escape');
+
+      // Pick Rectangle from the shape submenu — this both closes the menu
+      // and leaves the shape tool active (Escape would reset the tool).
+      await toolbar.getByRole('button', { name: /Shape \(S\)/i }).click();
+      await page.getByRole('menuitem', { name: /Rectangle/i }).click();
+      await page
+        .getByTestId('canvas-stage')
+        .click({ position: { x: 200, y: 150 } });
+
+      await toolbar.getByRole('button', { name: /Select \(V\)/i }).click();
+      await page
+        .getByTestId('canvas-stage')
+        .click({ button: 'right', position: { x: 200, y: 150 } });
+      await page.getByTestId('link-shape-element').click();
+      await page
+        .getByTestId('element-picker-item')
+        .filter({ hasText: 'Pin Target' })
+        .click();
+      await page.getByTestId('element-picker-confirm').click();
+    });
+
+    await test.step('view mode: clicking the region opens the element', async () => {
+      await page.getByTestId('canvas-mode-toggle').click();
+      await page
+        .getByTestId('canvas-stage')
+        .click({ position: { x: 200, y: 150 } });
+      await page.waitForURL(/document\/.+/);
+
+      await page.getByTestId('element-World Map').click();
+      await expect(page.getByTestId('canvas-container')).toBeVisible();
+      await page.getByTestId('canvas-mode-toggle').click();
+    });
+
+    await test.step('unlink the region via the context menu', async () => {
+      await page
+        .getByTestId('canvas-stage')
+        .click({ button: 'right', position: { x: 200, y: 150 } });
+      await page.getByTestId('unlink-shape-element').click();
+
+      await page
+        .getByTestId('canvas-stage')
+        .click({ button: 'right', position: { x: 200, y: 150 } });
+      await expect(page.getByTestId('link-shape-element')).toBeVisible();
+      await page.keyboard.press('Escape');
     });
   });
 
