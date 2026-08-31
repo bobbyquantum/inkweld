@@ -172,9 +172,12 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🟡 | Layers | Add, rename, duplicate, delete; visibility & lock toggles |
 | ✅ | 🟡 | Pan and zoom | Navigate large canvases smoothly |
 | ✅ | 🟡 | Export as PNG | Standard and high-resolution export |
-| ✅ | 🟡 | Shape fills & stroke palette | Per-object color editing |
+| ✅ | 🟡 | Shape fills & stroke palette | Per-object color editing with the full color picker; gradient fills for shapes |
 | ✅ | 🟢 | Pin-to-element linking | Connect canvas pins to worldbuilding elements |
 | ✅ | 🟡 | Canvas size & crop frames | Page bounds plus named crop frames; per-frame PNG/SVG export and set-as-project-cover |
+| ✅ | 🟡 | Region pen tool | Click-to-place vertices, close the loop into a polygon — trace map regions |
+| ✅ | 🟢 | View/edit mode | Read-only mode: pan, zoom and click linked pins/regions without editing |
+| ⬜ | 🟢 | SVG import | Place an SVG as an image; later, import Inkscape files as editable objects |
 
 ### Interactive Maps
 
