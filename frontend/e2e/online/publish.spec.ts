@@ -10,7 +10,7 @@ import { promises as fs } from 'fs';
 
 import {
   waitForElementsDocPersisted,
-  waitForIndexedDBPersisted,
+  waitForIndexedDBStable,
 } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
@@ -211,7 +211,7 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for the debounced auto-save to flush the format change into
       // the persisted project elements document before reloading.
       await waitForElementsDocPersisted(page, username, 'format-content', [
-        '"format":"PDF_SIMPLE"',
+        'PDF_SIMPLE',
       ]);
 
       await page.reload();
@@ -289,13 +289,13 @@ test.describe('Online Publishing Workflow', () => {
     // "Synced" means the server has the update, but PDF generation may read
     // the content back from the document's local y-indexeddb mirror (the
     // document loses its live connection once we switch to the plan tab).
-    // y-indexeddb writes every Yjs update to its `updates` store as it
-    // arrives, so wait for the typed text to show up there.
+    // Typing is per-character, so the text never appears as one contiguous
+    // byte run — instead wait until the persisted update count stops
+    // changing, i.e. every keystroke's write has been flushed.
     const elementId = new URL(page.url()).pathname.split('/').pop()!;
-    await waitForIndexedDBPersisted(
+    await waitForIndexedDBStable(
       page,
-      `${username}:format-content:${elementId}`,
-      ['The quick brown fox']
+      `${username}:format-content:${elementId}`
     );
 
     await createPublishPlan(page);

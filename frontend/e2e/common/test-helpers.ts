@@ -72,13 +72,15 @@ export async function waitForIndexedDBPersisted(
  * etc.).
  *
  * The elements doc is stored by y-indexeddb under
- * `{storagePrefix}{username}:{slug}:elements/`, where the prefix depends on
- * the active app configuration (`local:` in local mode, `srv:{hash}:` in
- * server mode) and the trailing slash is the local-storage spelling used by
- * YjsElementSyncProvider. To stay prefix-agnostic, this resolves the exact
- * database name from the live IndexedDB database list. y-indexeddb debounces
- * writes, so persistence must be observed — not assumed — before actions
- * like a reload that read from storage.
+ * `{storagePrefix}{username}:{slug}:elements`, where the prefix depends on
+ * the active app configuration (`local:` in local mode, `srv:{configId}:` in
+ * server mode) — note there is no trailing slash locally (the trailing-slash
+ * form from AGENTS.md is a server-side WebSocket room name only). The
+ * database is created when the project's sync provider first connects, so
+ * this helper resolves the exact database name from the live IndexedDB list,
+ * polling until it appears. y-indexeddb writes every Yjs update to its
+ * `updates` store immediately, so byte presence is a true observable of
+ * persistence.
  *
  * @param page - Playwright page
  * @param username - Project owner username
@@ -91,20 +93,60 @@ export async function waitForElementsDocPersisted(
   slug: string,
   expected: string[]
 ): Promise<void> {
-  const suffix = `${username}:${slug}:elements/`;
-  const dbName = await page.evaluate(async expectedSuffix => {
-    if (typeof indexedDB.databases !== 'function') return null;
-    const dbs = await indexedDB.databases();
-    return (
-      dbs.map(db => db.name).find(n => n?.endsWith(expectedSuffix)) ?? null
-    );
-  }, suffix);
-  if (!dbName) {
-    throw new Error(
-      `IndexedDB database for elements doc “${suffix}” not found — the project may not have been opened yet.`
-    );
-  }
-  await waitForIndexedDBPersisted(page, dbName, expected);
+  const suffix = `:${username}:${slug}:elements`;
+  let dbName: string | null = null;
+  await expect
+    .poll(async () => {
+      dbName = await page.evaluate(async expectedSuffix => {
+        if (typeof indexedDB.databases !== 'function') return null;
+        const dbs = await indexedDB.databases();
+        const matches = dbs.flatMap(db =>
+          db.name && db.name.endsWith(expectedSuffix) ? [db.name] : []
+        );
+        // The elements doc may exist with or without the local trailing
+        // slash spelling — prefer whichever exists.
+        const withSlash = matches.find(n => n.endsWith(':elements/'));
+        return withSlash ?? matches[0] ?? null;
+      }, suffix);
+      return dbName;
+    })
+    .not.toBeNull();
+  await waitForIndexedDBPersisted(page, dbName!, expected);
+}
+
+/**
+ * Wait until the project elements document has no more pending persisted
+ * updates (the update count stops changing). Use this when the change to
+ * await has no greppable byte signature (e.g. numeric or boolean edits that
+ * are encoded as binary, not text) but every edit rewrites the document as
+ * a single update, so a settled count proves the last edit was flushed.
+ *
+ * @param page - Playwright page
+ * @param username - Project owner username
+ * @param slug - Project slug
+ */
+export async function waitForElementsDocSettled(
+  page: Page,
+  username: string,
+  slug: string
+): Promise<void> {
+  const suffix = `:${username}:${slug}:elements`;
+  let dbName: string | null = null;
+  await expect
+    .poll(async () => {
+      dbName = await page.evaluate(async expectedSuffix => {
+        if (typeof indexedDB.databases !== 'function') return null;
+        const dbs = await indexedDB.databases();
+        const matches = dbs.flatMap(db =>
+          db.name && db.name.endsWith(expectedSuffix) ? [db.name] : []
+        );
+        const withSlash = matches.find(n => n.endsWith(':elements/'));
+        return withSlash ?? matches[0] ?? null;
+      }, suffix);
+      return dbName;
+    })
+    .not.toBeNull();
+  await waitForIndexedDBStable(page, dbName!);
 }
 
 /**

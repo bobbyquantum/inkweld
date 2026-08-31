@@ -109,15 +109,18 @@ test.describe('Local Publishing Workflow', () => {
 
     // The preview element appearing is the observable signal that CDK has
     // actually started the drag sequence.
-    await expect(page.locator('.cdk-drag-preview')).toBeAttached();
+    await expect(page.locator('.cdk-drag-preview')).toBeAttached({
+      timeout: 5_000,
+    });
 
     await page.mouse.move(tgtX, tgtY, { steps: 30 });
 
     // `cdk-drop-list-receiving` appears only once CDK has chosen the list as
     // the active drop target; the enter predicate refuses folders, so for a
-    // rejected drag it never shows and we just proceed to the release.
+    // rejected drag it never shows — bound this wait so a rejection doesn't
+    // burn the full expect timeout, and just proceed to the release.
     await expect(target)
-      .toHaveClass(/cdk-drop-list-receiving/)
+      .toHaveClass(/cdk-drop-list-receiving/, { timeout: 1_000 })
       .catch(() => {
         // Item not accepted (e.g. folder) — nothing to wait for.
       });
@@ -126,7 +129,9 @@ test.describe('Local Publishing Workflow', () => {
 
     // The drop is processed when CDK tears down the preview; the
     // cdkDropListDropped handler runs in the same task as the teardown.
-    await expect(page.locator('.cdk-drag-preview')).toHaveCount(0);
+    await expect(page.locator('.cdk-drag-preview')).toHaveCount(0, {
+      timeout: 5_000,
+    });
   }
 
   // ───────────────────────────────────────────────────────────────────────────

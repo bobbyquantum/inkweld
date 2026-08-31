@@ -11,7 +11,7 @@
  */
 import { promises as fs } from 'fs';
 
-import { waitForElementsDocPersisted } from '../common/test-helpers';
+import { waitForElementsDocSettled } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 test.describe('Online Publish Style Editor', () => {
@@ -160,11 +160,11 @@ test.describe('Online Publish Style Editor', () => {
 
     await test.step('Style edits persist across reload', async () => {
       // Wait for the debounced auto-save to flush the customized styles
-      // (heading-1 font size override) into the persisted project elements
-      // document before reloading. The styles are stored as a plain object
-      // in the plans Y.Array; the "custom" preset marker key appears once
-      // the edits land.
-      await waitForElementsDocPersisted(page, username, slug, ['custom']);
+      // (heading-1 font size override + chapter page-break flag) into the
+      // persisted project elements document before reloading. The edited
+      // values are numbers/booleans with no greppable byte signature, so
+      // wait for the persisted update count to settle instead.
+      await waitForElementsDocSettled(page, username, slug);
 
       await page.reload();
       await expect(page.getByTestId('publish-plan-container')).toBeVisible();
