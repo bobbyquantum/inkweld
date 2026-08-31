@@ -116,6 +116,10 @@ test.describe('Tags Tab', () => {
 
       editedName = uniqueName('RevisedName');
       const nameInput = page.getByTestId('tag-name-input');
+      // The dialog seeds the input's DOM value asynchronously (queueMicrotask
+      // in ngAfterViewInit). Wait for the seed to land before filling, or the
+      // seed can interleave with fill()'s select-all + insert and concatenate.
+      await expect(nameInput).toHaveValue(originalName);
       await nameInput.fill(editedName);
       await expect(nameInput).toHaveValue(editedName);
       await expect(page.getByTestId('tag-dialog-save')).toBeEnabled();
@@ -132,6 +136,8 @@ test.describe('Tags Tab', () => {
         .click();
       await expect(page.getByTestId('tag-dialog-content')).toBeVisible();
 
+      // Wait for the async DOM seed before filling (see edit step above).
+      await expect(page.getByTestId('tag-name-input')).toHaveValue(editedName);
       await page.getByTestId('tag-name-input').fill(uniqueName('ChangedName'));
       await page.getByTestId('tag-dialog-cancel').click();
 
