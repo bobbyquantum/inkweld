@@ -81,6 +81,9 @@ test.describe('Online Publish Style Editor', () => {
   test('preset selection, override, persistence, and HTML output reflect styles', async ({
     authenticatedPage: page,
   }) => {
+    // Multiple format generations against a real backend — needs headroom on
+    // slow CI runners (the default 30s budget is marginal).
+    test.slow();
     // Set by the authenticatedPage fixture (via @ts-expect-error there).
     const { username }: { username: string } = page[
       'testCredentials' as never
@@ -235,6 +238,9 @@ test.describe('Online Publish Style Editor', () => {
   test('regression: bug fixes 1-4 carry through generated output', async ({
     authenticatedPage: page,
   }) => {
+    // Three full generation + download cycles — needs headroom on slow CI
+    // runners (the default 30s budget is marginal).
+    test.slow();
     // ---------- Setup: worldbuilding-demo template (has WB + chapters) ----
     const slug = `pub-regress-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     await page.goto('/create-project');

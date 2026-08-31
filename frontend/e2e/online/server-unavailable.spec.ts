@@ -41,6 +41,8 @@ test.describe('Server Unavailable - Local First Behavior', () => {
     test('should allow creating a project when server is down', async ({
       serverUnavailablePage,
     }) => {
+      // Simulated outages and fallback timing — needs headroom on slow CI runners.
+      test.slow();
       const page = serverUnavailablePage as ServerUnavailablePage;
 
       // User is already authenticated and at home page with server now blocked
@@ -82,6 +84,8 @@ test.describe('Server Unavailable - Local First Behavior', () => {
     test('should show sync pending indicator for locally created project', async ({
       serverUnavailablePage,
     }) => {
+      // Simulated outages and fallback timing — needs headroom on slow CI runners.
+      test.slow();
       const page = serverUnavailablePage as ServerUnavailablePage;
 
       await page.goto('/create-project');
@@ -114,6 +118,8 @@ test.describe('Server Unavailable - Local First Behavior', () => {
     test('should sync pending project when server becomes available', async ({
       serverUnavailablePage,
     }) => {
+      // Simulated outages and fallback timing — needs headroom on slow CI runners.
+      test.slow();
       const page = serverUnavailablePage as ServerUnavailablePage;
 
       await page.goto('/create-project');
@@ -157,6 +163,8 @@ test.describe('Server Unavailable - Local First Behavior', () => {
     test('should handle specific API endpoints being down', async ({
       serverUnavailablePage,
     }) => {
+      // Simulated outages and fallback timing — needs headroom on slow CI runners.
+      test.slow();
       const page = serverUnavailablePage as ServerUnavailablePage;
 
       // First restore full connectivity
@@ -189,6 +197,8 @@ test.describe('Server Unavailable - Local First Behavior', () => {
     test('should handle unreliable network with delays', async ({
       serverUnavailablePage,
     }) => {
+      // Simulated outages and fallback timing — needs headroom on slow CI runners.
+      test.slow();
       const page = serverUnavailablePage as ServerUnavailablePage;
 
       // Simulate unreliable network (2 second delay then fail)

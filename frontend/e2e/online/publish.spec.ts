@@ -132,6 +132,9 @@ test.describe('Online Publishing Workflow', () => {
   test('plan management, format selection, content editing, and persistence', async ({
     authenticatedPage: page,
   }) => {
+    // Multiple generate/download cycles against a real backend — needs headroom
+    // on slow CI runners (the default 30s budget is marginal).
+    test.slow();
     // Set by the authenticatedPage fixture (via @ts-expect-error there).
     const { username }: { username: string } = page[
       'testCredentials' as never
@@ -260,6 +263,9 @@ test.describe('Online Publishing Workflow', () => {
   test('generates PDF, EPUB, Markdown, and HTML with real document content', async ({
     authenticatedPage: page,
   }) => {
+    // Four full generation + download cycles — needs headroom on slow CI
+    // runners (the default 30s budget is marginal).
+    test.slow();
     // Set by the authenticatedPage fixture (via @ts-expect-error there).
     const { username }: { username: string } = page[
       'testCredentials' as never
