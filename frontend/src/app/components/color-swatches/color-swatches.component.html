@@ -65,26 +65,28 @@
       [style.background]="solidColor()"></span>
   </button>
   @if (pickerOpen()) {
-    <!-- Propagation shield only (clicks inside a mat-menu close it), not an
-         interactive element in its own right. -->
-    <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+    <!-- Propagation shield only: clicks inside a mat-menu close it, and
+         keystrokes in picker inputs must not reach canvas shortcuts. -->
     <div
       class="picker-wrap"
       data-testid="custom-color-picker"
-      (click)="$event.stopPropagation()">
+      tabindex="-1"
+      (click)="$event.stopPropagation()"
+      (keydown)="$event.stopPropagation()">
       <app-color-picker
         [value]="solidColor()"
         (valueChange)="onPickerChange($event)" />
     </div>
   }
 } @else {
-  <!-- Propagation shield only (clicks inside a mat-menu close it), not an
-       interactive element in its own right. -->
-  <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+  <!-- Propagation shield only: clicks inside a mat-menu close it, and
+       keystrokes in designer inputs must not reach canvas shortcuts. -->
   <div
     class="picker-wrap"
     data-testid="gradient-designer"
-    (click)="$event.stopPropagation()">
+    tabindex="-1"
+    (click)="$event.stopPropagation()"
+    (keydown)="$event.stopPropagation()">
     <app-gradient-designer
       [value]="gradientValue()"
       (valueChange)="onGradientChange($event)" />

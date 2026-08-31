@@ -407,30 +407,7 @@ export class CanvasRendererService {
    * on a busy canvas. Appends (the common case) are already in order.
    */
   private applyObjectZOrder(objects: CanvasObject[]): void {
-    const desiredByLayer = new Map<Konva.Layer, Konva.Node[]>();
-    const foregroundByLayer = new Map<Konva.Layer, Konva.Node[]>();
-
-    // Backgrounds always sit below the other objects on their layer,
-    // regardless of where they fall in the objects array.
-    for (const obj of objects) {
-      const node = this._konvaNodes.get(obj.id);
-      const layer = node?.getLayer();
-      if (!node || !layer) continue;
-      const byLayer = isBackgroundImage(obj)
-        ? desiredByLayer
-        : foregroundByLayer;
-      const nodes = byLayer.get(layer);
-      if (nodes) nodes.push(node);
-      else byLayer.set(layer, [node]);
-    }
-
-    for (const [layer, nodes] of foregroundByLayer) {
-      const existing = desiredByLayer.get(layer);
-      if (existing) existing.push(...nodes);
-      else desiredByLayer.set(layer, nodes);
-    }
-
-    for (const [layer, desired] of desiredByLayer) {
+    for (const [layer, desired] of this.desiredNodeOrderByLayer(objects)) {
       const current = layer.getChildren();
       const alreadyOrdered =
         current.length === desired.length &&
@@ -438,6 +415,34 @@ export class CanvasRendererService {
       if (alreadyOrdered) continue;
       for (const node of desired) node.moveToTop();
     }
+  }
+
+  /**
+   * Desired stacking per layer: background images always first, then the
+   * remaining objects in array order.
+   */
+  private desiredNodeOrderByLayer(
+    objects: CanvasObject[]
+  ): Map<Konva.Layer, Konva.Node[]> {
+    const backgrounds = new Map<Konva.Layer, Konva.Node[]>();
+    const foregrounds = new Map<Konva.Layer, Konva.Node[]>();
+
+    for (const obj of objects) {
+      const node = this._konvaNodes.get(obj.id);
+      const layer = node?.getLayer();
+      if (!node || !layer) continue;
+      const byLayer = isBackgroundImage(obj) ? backgrounds : foregrounds;
+      const nodes = byLayer.get(layer);
+      if (nodes) nodes.push(node);
+      else byLayer.set(layer, [node]);
+    }
+
+    for (const [layer, nodes] of foregrounds) {
+      const existing = backgrounds.get(layer);
+      if (existing) existing.push(...nodes);
+      else backgrounds.set(layer, nodes);
+    }
+    return backgrounds;
   }
 
   // ─── Frames overlay ────────────────────────────────────────────────────

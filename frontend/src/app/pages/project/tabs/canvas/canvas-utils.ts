@@ -95,6 +95,61 @@ function splitStops(body: string): string[] {
   return parts;
 }
 
+/** A gradient stop whose position may still need to be inferred. */
+interface PendingStop {
+  color: string;
+  offset: number | null;
+}
+
+/** CSS angle from the first gradient argument, or null when it's a stop. */
+function parseGradientAngle(first: string | undefined): number | null {
+  if (!first) return null;
+  const angleMatch = /^(-?\d+(?:\.\d+)?)deg$/.exec(first);
+  if (angleMatch) return Number.parseFloat(angleMatch[1]);
+  // Direction/shape prefixes we don't model; skip the argument.
+  if (/^(to |circle|ellipse|closest|farthest|at )/.test(first)) return 180;
+  return null;
+}
+
+/** Parse `color [position%]` stop arguments. */
+function parseGradientStops(parts: string[]): PendingStop[] {
+  const stops: PendingStop[] = [];
+  for (const part of parts) {
+    if (!part) continue;
+    // Anchored suffix match keeps this linear (no backtracking through the
+    // color, which may itself contain digits and spaces).
+    const positionMatch = /\s(-?\d+(?:\.\d+)?)%$/.exec(part);
+    if (positionMatch) {
+      stops.push({
+        color: part.slice(0, positionMatch.index).trim(),
+        offset:
+          Math.min(Math.max(Number.parseFloat(positionMatch[1]), 0), 100) / 100,
+      });
+    } else {
+      stops.push({ color: part, offset: null });
+    }
+  }
+  return stops;
+}
+
+/** Distribute stops without explicit positions evenly between neighbours. */
+function normalizeStopOffsets(stops: PendingStop[]): GradientStop[] {
+  stops[0].offset ??= 0;
+  const last = stops.at(-1)!;
+  last.offset ??= 1;
+  for (let i = 0; i < stops.length; i++) {
+    if (stops[i].offset !== null) continue;
+    let next = i;
+    while (stops[next].offset === null) next++;
+    const previous = stops[i - 1].offset as number;
+    const step = ((stops[next].offset as number) - previous) / (next - i + 1);
+    for (let j = i; j < next; j++) {
+      stops[j].offset = previous + step * (j - i + 1);
+    }
+  }
+  return stops as GradientStop[];
+}
+
 /**
  * Parse a CSS `linear-gradient(...)` / `radial-gradient(...)` string.
  * Tolerant: unknown prefixes (`to right`, `circle at center`) are skipped,
@@ -107,52 +162,15 @@ export function parseCssGradient(fill: string): ParsedGradient | null {
 
   const type = match[1] as 'linear' | 'radial';
   const parts = splitStops(match[2]);
-  let angle = 180; // CSS default: "to bottom"
 
-  const stopParts = [...parts];
-  const first = stopParts[0];
-  if (first) {
-    const angleMatch = /^(-?\d+(?:\.\d+)?)deg$/.exec(first);
-    if (angleMatch) {
-      angle = Number.parseFloat(angleMatch[1]);
-      stopParts.shift();
-    } else if (/^(to |circle|ellipse|closest|farthest|at )/.test(first)) {
-      stopParts.shift();
-    }
-  }
+  const firstArgAngle = parseGradientAngle(parts[0]);
+  const angle = firstArgAngle ?? 180; // CSS default: "to bottom"
+  const stopParts = firstArgAngle === null ? parts : parts.slice(1);
 
-  const stops: (GradientStop | { color: string; offset: number | null })[] = [];
-  for (const part of stopParts) {
-    const positionMatch = /^(.*?)\s+(-?\d+(?:\.\d+)?)%$/.exec(part);
-    if (positionMatch) {
-      stops.push({
-        color: positionMatch[1].trim(),
-        offset:
-          Math.min(Math.max(Number.parseFloat(positionMatch[2]), 0), 100) / 100,
-      });
-    } else if (part) {
-      stops.push({ color: part, offset: null });
-    }
-  }
+  const stops = parseGradientStops(stopParts);
   if (stops.length < 2) return null;
 
-  // Distribute stops without explicit positions evenly.
-  if (stops[0].offset === null) stops[0].offset = 0;
-  if (stops[stops.length - 1].offset === null) {
-    stops[stops.length - 1].offset = 1;
-  }
-  for (let i = 0; i < stops.length; i++) {
-    if (stops[i].offset !== null) continue;
-    let next = i;
-    while (stops[next].offset === null) next++;
-    const previous = stops[i - 1].offset as number;
-    const step = ((stops[next].offset as number) - previous) / (next - i + 1);
-    for (let j = i; j < next; j++) {
-      stops[j].offset = previous + step * (j - i + 1);
-    }
-  }
-
-  return { type, angle, stops: stops as GradientStop[] };
+  return { type, angle, stops: normalizeStopOffsets(stops) };
 }
 
 /**

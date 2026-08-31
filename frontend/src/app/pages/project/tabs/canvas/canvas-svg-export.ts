@@ -88,6 +88,17 @@ function isLineOrArrowShape(obj: CanvasObject): obj is CanvasShape {
   );
 }
 
+/** Expand bounds by one object, dispatching on its geometry kind. */
+function expandBoundsForObject(b: Bounds, obj: CanvasObject): void {
+  if (obj.type === 'path') {
+    expandBoundsForPath(b, obj);
+  } else if (isLineOrArrowShape(obj)) {
+    expandBoundsForLineShape(b, obj);
+  } else {
+    expandBoundsForBox(b, obj);
+  }
+}
+
 /** Compute SVG viewBox from visible objects across visible layers */
 export function computeSvgViewBox(
   config: CanvasConfig,
@@ -100,25 +111,13 @@ export function computeSvgViewBox(
     maxY: -Infinity,
   };
 
-  for (const layer of visibleLayers) {
-    for (const obj of config.objects.filter(
-      o => o.layerId === layer.id && o.visible && o.type !== 'pin'
-    )) {
-      if (obj.type === 'path') {
-        expandBoundsForPath(b, obj);
-      } else if (isLineOrArrowShape(obj)) {
-        expandBoundsForLineShape(b, obj);
-      } else {
-        expandBoundsForBox(b, obj);
-      }
-    }
-  }
-
-  // Pins are annotations rendered above every layer, regardless of layer
-  // visibility — include them in the bounds the same way.
+  const visibleLayerIds = new Set(visibleLayers.map(l => l.id));
   for (const obj of config.objects) {
-    if (obj.type !== 'pin' || !obj.visible) continue;
-    expandBoundsForBox(b, obj);
+    if (!obj.visible) continue;
+    // Pins are annotations rendered above every layer, regardless of layer
+    // visibility — everything else follows its layer.
+    if (obj.type !== 'pin' && !visibleLayerIds.has(obj.layerId)) continue;
+    expandBoundsForObject(b, obj);
   }
 
   const PAD = 20;

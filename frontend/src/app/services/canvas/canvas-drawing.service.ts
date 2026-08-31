@@ -284,8 +284,8 @@ export class CanvasDrawingService {
     // would constantly "double-click".
     if (points.length >= 2) {
       const dedupeDistance = POLYGON_DEDUPE_PX / scale;
-      const lastX = points[points.length - 2];
-      const lastY = points[points.length - 1];
+      const lastX = points.at(-2)!;
+      const lastY = points.at(-1)!;
       if (Math.hypot(pos.x - lastX, pos.y - lastY) <= dedupeDistance) {
         if (points.length >= 6) return this.finishPolygon(settings, h);
         return false;

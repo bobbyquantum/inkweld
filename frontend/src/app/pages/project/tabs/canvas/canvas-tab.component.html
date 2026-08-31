@@ -288,16 +288,19 @@
           </div>
           <div
             class="objects-list"
+            role="list"
             [class.section-collapsed]="isSectionCollapsed('pins')"
             [attr.aria-label]="'canvas.sidebar.pinsAria' | transloco">
             @for (pin of allPins(); track pin.id) {
               <div
-                role="option"
+                role="listitem"
                 class="object-item"
                 data-testid="pin-item"
                 [class.selected]="pin.id === selectedObjectId()"
                 tabindex="0"
-                [attr.aria-selected]="pin.id === selectedObjectId()"
+                [attr.aria-current]="
+                  pin.id === selectedObjectId() ? 'true' : null
+                "
                 (click)="onSelectObject(pin.id)"
                 (keydown.enter)="onSelectObject(pin.id)">
                 <mat-icon class="object-icon">place</mat-icon>
@@ -389,11 +392,12 @@
             </div>
             <div
               class="layers-list"
+              role="list"
               [class.section-collapsed]="isSectionCollapsed('frames')"
               [attr.aria-label]="'canvas.frames.listAria' | transloco">
               @for (frame of frames(); track frame.id) {
                 <div
-                  role="option"
+                  role="listitem"
                   class="layer-item"
                   data-testid="frame-item"
                   tabindex="0"
