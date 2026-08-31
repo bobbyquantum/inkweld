@@ -14,6 +14,7 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -27,6 +28,7 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { ConnectionStatusComponent } from '@components/connection-status/connection-status.component';
+import { ElementTreeMenuComponent } from '@components/element-tree-menu/element-tree-menu.component';
 import { PresenceIndicatorComponent } from '@components/presence-indicator/presence-indicator.component';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
@@ -68,6 +70,7 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
     MatSidenavModule,
     MatTabsModule,
     MatIconModule,
+    MatMenuModule,
     MatProgressSpinnerModule,
     MatToolbarModule,
     MatTooltipModule,
@@ -80,6 +83,7 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
     UserMenuComponent,
     RouterOutlet,
     TabInterfaceComponent,
+    ElementTreeMenuComponent,
   ],
 })
 export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {

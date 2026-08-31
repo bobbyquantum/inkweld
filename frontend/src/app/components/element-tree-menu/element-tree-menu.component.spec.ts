@@ -8,7 +8,7 @@ import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.serv
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-import { BreadcrumbMenuComponent } from './breadcrumb-menu.component';
+import { ElementTreeMenuComponent } from './element-tree-menu.component';
 
 function makeElement(
   id: string,
@@ -30,9 +30,9 @@ function makeElement(
   };
 }
 
-describe('BreadcrumbMenuComponent', () => {
-  let fixture: ComponentFixture<BreadcrumbMenuComponent>;
-  let component: BreadcrumbMenuComponent;
+describe('ElementTreeMenuComponent', () => {
+  let fixture: ComponentFixture<ElementTreeMenuComponent>;
+  let component: ElementTreeMenuComponent;
   let elementsSignal: ReturnType<typeof signal<Element[]>>;
   let openElementMock: ReturnType<typeof vi.fn>;
 
@@ -41,7 +41,7 @@ describe('BreadcrumbMenuComponent', () => {
     openElementMock = vi.fn();
 
     await TestBed.configureTestingModule({
-      imports: [translocoTestProvider(), BreadcrumbMenuComponent],
+      imports: [translocoTestProvider(), ElementTreeMenuComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([{ path: '**', children: [] }]),
@@ -64,7 +64,7 @@ describe('BreadcrumbMenuComponent', () => {
       ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(BreadcrumbMenuComponent);
+    fixture = TestBed.createComponent(ElementTreeMenuComponent);
     component = fixture.componentInstance;
   });
 

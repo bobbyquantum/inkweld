@@ -203,7 +203,7 @@ describe('DocumentBreadcrumbsComponent', () => {
       'breadcrumb-segment-root'
     );
     // A breadcrumb menu component is rendered alongside each button
-    const menuComponent = nav.querySelector('app-breadcrumb-menu');
+    const menuComponent = nav.querySelector('app-element-tree-menu');
     expect(menuComponent).toBeTruthy();
   });
 

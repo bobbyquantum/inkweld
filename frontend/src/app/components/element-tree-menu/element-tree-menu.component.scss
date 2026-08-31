@@ -1,0 +1,16 @@
+.element-tree-menu-empty {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+// Keep long document names readable without letting the flyout dominate the
+// page it floats over.
+::ng-deep .element-tree-menu-panel.mat-mdc-menu-panel {
+  min-width: 13rem;
+  max-width: 20rem;
+}
+
+// Highlight the row that lies on the path to the currently-open element.
+::ng-deep .element-tree-menu-panel .current-branch {
+  font-weight: 600;
+}
