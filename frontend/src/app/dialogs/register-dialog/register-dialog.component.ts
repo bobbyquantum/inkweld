@@ -13,6 +13,7 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
+import { LegalLinksComponent } from '@components/legal-links/legal-links.component';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
 import {
   RegistrationFormComponent,
@@ -30,6 +31,7 @@ import { Subject } from 'rxjs';
     MatDialogModule,
     MatButtonModule,
     MatDividerModule,
+    LegalLinksComponent,
     OAuthProviderListComponent,
     RegistrationFormComponent,
     TranslocoModule,

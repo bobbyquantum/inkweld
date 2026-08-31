@@ -75,6 +75,15 @@ export class AdminSettingsComponent implements OnInit {
   // Site URL state
   readonly siteUrl = signal('');
 
+  // Branding / legal links state
+  readonly privacyPolicyUrl = signal('');
+  readonly termsUrl = signal('');
+
+  // Custom HTML injection slots (raw, intentionally unsanitized). Empty
+  // string means "no injection" — the SPA shell is served untouched.
+  readonly customHeadHtml = signal('');
+  readonly customBodyHtml = signal('');
+
   // Passkeys state
   readonly passkeysEnabled = signal(true);
 
@@ -133,6 +142,10 @@ export class AdminSettingsComponent implements OnInit {
         emailRecoveryEnabled,
         legacyMcpEnabled,
         mcpEnabled,
+        privacyPolicyUrl,
+        termsUrl,
+        customHeadHtml,
+        customBodyHtml,
       ] = await Promise.all([
         this.configService.getConfig('USER_APPROVAL_REQUIRED'),
         this.configService.getConfig('AI_KILL_SWITCH'),
@@ -148,6 +161,10 @@ export class AdminSettingsComponent implements OnInit {
         this.configService.getConfig('EMAIL_RECOVERY_ENABLED'),
         this.configService.getConfig('LEGACY_MCP_ENABLED'),
         this.configService.getConfig('MCP_ENABLED'),
+        this.configService.getConfig('PRIVACY_POLICY_URL'),
+        this.configService.getConfig('TERMS_OF_SERVICE_URL'),
+        this.configService.getConfig('CUSTOM_HEAD_HTML'),
+        this.configService.getConfig('CUSTOM_BODY_HTML'),
       ]);
 
       this.userApprovalRequired.set(userApproval?.value === 'true');
@@ -168,6 +185,12 @@ export class AdminSettingsComponent implements OnInit {
 
       // Site URL
       this.siteUrl.set(siteUrl?.value || '');
+
+      // Branding / legal links
+      this.privacyPolicyUrl.set(privacyPolicyUrl?.value || '');
+      this.termsUrl.set(termsUrl?.value || '');
+      this.customHeadHtml.set(customHeadHtml?.value || '');
+      this.customBodyHtml.set(customBodyHtml?.value || '');
 
       // Passkeys — default is true (enabled) when no value stored
       this.passkeysEnabled.set(passkeysEnabled?.value !== 'false');
@@ -299,6 +322,64 @@ export class AdminSettingsComponent implements OnInit {
       this.snackBar.open('Failed to save setting', 'Close', { duration: 3000 });
     } finally {
       this.isSaving.set(false);
+    }
+  }
+
+  /** Shared saver for free-form string config values. Returns success. */
+  private async saveStringConfig(key: string, value: string): Promise<boolean> {
+    this.isSaving.set(true);
+
+    try {
+      await this.configService.setConfig(key, value);
+      this.snackBar.open(
+        this.transloco.translate('admin.settings.settingSaved'),
+        this.transloco.translate('close'),
+        { duration: 2000 }
+      );
+      return true;
+    } catch (err) {
+      console.error(`Failed to save ${key}:`, err);
+      this.snackBar.open(
+        this.transloco.translate('admin.settings.saveFailed'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
+      return false;
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  async savePrivacyPolicyUrl(value: string): Promise<void> {
+    const trimmed = value.trim();
+    if (await this.saveStringConfig('PRIVACY_POLICY_URL', trimmed)) {
+      this.privacyPolicyUrl.set(trimmed);
+    }
+  }
+
+  async saveTermsUrl(value: string): Promise<void> {
+    const trimmed = value.trim();
+    if (await this.saveStringConfig('TERMS_OF_SERVICE_URL', trimmed)) {
+      this.termsUrl.set(trimmed);
+    }
+  }
+
+  /**
+   * Save one of the raw HTML injection slots. NOT sanitized by design —
+   * that is the feature; the settings UI already warns about it.
+   */
+  async saveCustomHtml(
+    slot: 'CUSTOM_HEAD_HTML' | 'CUSTOM_BODY_HTML',
+    value: string
+  ): Promise<void> {
+    const trimmed = value.trim();
+    if (!(await this.saveStringConfig(slot, trimmed))) {
+      return;
+    }
+    if (slot === 'CUSTOM_HEAD_HTML') {
+      this.customHeadHtml.set(trimmed);
+    } else {
+      this.customBodyHtml.set(trimmed);
     }
   }
 

@@ -4,6 +4,42 @@
  */
 
 /**
+ * Placeholder markers placed in the built index.html. The SPA-serving layer
+ * substitutes them with the admin-configured CUSTOM_HEAD_HTML /
+ * CUSTOM_BODY_HTML values at request time (see injectCustomHtml).
+ */
+export const CUSTOM_HEAD_MARKER = '<!-- INKWELD_HEAD_EXTRA -->';
+export const CUSTOM_BODY_MARKER = '<!-- INKWELD_BODY_EXTRA -->';
+
+/**
+ * Substitute the custom-HTML markers in an index.html document with
+ * admin-provided snippets.
+ *
+ * - Empty snippets leave the marker position empty (the markers themselves
+ *   are always consumed, so nothing internal leaks to the client).
+ * - Replacement uses function replacements so `$&`, `$'` etc. in the
+ *   admin's HTML are treated as literal text, not replace() patterns.
+ * - Documents without the markers (older builds) are returned unchanged.
+ */
+export function injectCustomHtml(html: string, headExtra: string, bodyExtra: string): string {
+  let result = html;
+
+  if (result.includes(CUSTOM_HEAD_MARKER)) {
+    result = headExtra
+      ? result.replace(CUSTOM_HEAD_MARKER, () => headExtra)
+      : result.replace(CUSTOM_HEAD_MARKER, '');
+  }
+
+  if (result.includes(CUSTOM_BODY_MARKER)) {
+    result = bodyExtra
+      ? result.replace(CUSTOM_BODY_MARKER, () => bodyExtra)
+      : result.replace(CUSTOM_BODY_MARKER, '');
+  }
+
+  return result;
+}
+
+/**
  * Sanitize a URL pathname into a safe relative file path.
  * Returns 'index.html' for empty or root paths.
  */

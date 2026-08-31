@@ -1,0 +1,24 @@
+.legal-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 0.8rem;
+
+  a {
+    color: inherit;
+    opacity: 0.75;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      opacity: 1;
+      text-decoration: underline;
+    }
+  }
+
+  .legal-separator {
+    opacity: 0.5;
+  }
+}
