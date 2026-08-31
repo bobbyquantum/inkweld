@@ -179,10 +179,11 @@ Then open `http://localhost:8333` in your browser.
 
 | Status | Priority | Feature | Notes |
 |--------|----------|---------|-------|
-| ⬜ | 🔥 | Map background images | Load a map image as a non-editable canvas background |
-| ⬜ | 🔥 | Location pins | Clickable markers linked to worldbuilding elements |
-| ⬜ | 🔥 | Pin-to-element linking | Special relationship type connecting pins to elements |
-| ⬜ | 🟡 | Multiple map layers | Overlay different maps (political, terrain, etc.) |
+| ✅ | 🔥 | Map background images | Flag any canvas image as a non-editable backdrop; multiple per layer for tiling large maps |
+| ✅ | 🔥 | Location pins | Click a linked pin in view mode (or double-click in edit mode) to open its element |
+| ✅ | 🔥 | Pin-to-element linking | `canvas-pin` relationship type; links cleaned up when elements are deleted |
+| ✅ | 🟡 | Multiple map layers | Per-layer backgrounds blended with layer visibility/opacity; "Map" preset in the new-element dialog |
+| ⬜ | 🟢 | AI map restyling | Rough-colour a layer, restyle it via AI image generation (political, terrain, parchment…) |
 
 ### Timelines
 | Status | Priority | Feature | Notes |
