@@ -107,6 +107,8 @@ function createMockSyncProvider(): IElementSyncProvider & {
     canvasContents$: vi.fn(() => EMPTY),
     applyCanvasEdit: vi.fn(),
     seedCanvasContents: vi.fn(),
+    listCanvasElementIds: vi.fn().mockReturnValue([]),
+    deleteCanvas: vi.fn(),
   };
 }
 

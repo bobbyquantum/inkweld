@@ -12,6 +12,7 @@ interface MockNode {
   id: () => string;
   parent: MockNode | null;
   getClientRect?: () => { x: number; y: number; width: number; height: number };
+  getAttr?: (key: string) => unknown;
 }
 
 function makeNode(
@@ -23,6 +24,7 @@ function makeNode(
     id: () => id,
     parent,
     getClientRect: () => rect,
+    getAttr: () => undefined,
   };
 }
 
@@ -93,10 +95,22 @@ describe('CanvasSelectionService', () => {
   });
 
   it('selectNode attaches transformer and redraws', () => {
-    const node = { id: () => 'n1' } as unknown as Konva.Node;
+    const node = {
+      id: () => 'n1',
+      getAttr: () => undefined,
+    } as unknown as Konva.Node;
     service.selectNode(node);
     expect(transformerNodes).toHaveBeenCalledWith([node]);
     expect(selectionBatchDraw).toHaveBeenCalled();
+  });
+
+  it('selectNode skips transformer for background images', () => {
+    const node = {
+      id: () => 'bg1',
+      getAttr: (key: string) => (key === 'inkBackground' ? true : undefined),
+    } as unknown as Konva.Node;
+    service.selectNode(node);
+    expect(transformerNodes).toHaveBeenCalledWith([]);
   });
 
   it('selectNodesInRect with single match notifies onSingleSelected', () => {

@@ -262,6 +262,7 @@ describe('CanvasTabComponent', () => {
     r.buildKonvaLayers = vi.fn();
     r.buildKonvaObjects = vi.fn();
     r.setContentInteractive = vi.fn();
+    r.setInteractionLocked = vi.fn();
     r.resolveImageSrc = CanvasRendererService.prototype.resolveImageSrc.bind(r);
     r.initStage = vi.fn(() => ({ zoomLevel: 1 }));
     r.destroyStage = vi.fn();

@@ -355,8 +355,40 @@ describe('CanvasRendererService', () => {
       ).toBe(CanvasRendererService.getObjectStructure(makePath()));
     });
 
-    it('falls back to the type for pins', () => {
-      expect(CanvasRendererService.getObjectStructure(makePin())).toBe('pin');
+    it('distinguishes linked from plain pins', () => {
+      expect(CanvasRendererService.getObjectStructure(makePin())).toBe(
+        'pin:plain'
+      );
+      expect(
+        CanvasRendererService.getObjectStructure(
+          makePin({ linkedElementId: 'el-1' })
+        )
+      ).toBe('pin:linked');
+    });
+
+    it('never makes background images draggable', () => {
+      const calls: unknown[] = [];
+      const node = {
+        position: () => {},
+        rotation: () => {},
+        scale: () => {},
+        visible: () => {},
+        opacity: () => {},
+        draggable: (v: boolean) => calls.push(v),
+      } as unknown as Konva.Node;
+      CanvasRendererService.applyCommonAttrs(
+        node,
+        makeImage({ isBackground: true, locked: false })
+      );
+      expect(calls).toEqual([false]);
+    });
+
+    it('distinguishes background from regular images', () => {
+      expect(CanvasRendererService.getObjectStructure(makeImage())).not.toBe(
+        CanvasRendererService.getObjectStructure(
+          makeImage({ isBackground: true })
+        )
+      );
     });
   });
 
