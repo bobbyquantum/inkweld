@@ -139,7 +139,7 @@ test.describe('Online Publishing Workflow', () => {
     const { username }: { username: string } = page[
       'testCredentials' as never
     ] as { username: string };
-    await createProject(page, 'plan-mgmt');
+    const slug = await createProject(page, 'plan-mgmt');
 
     await test.step('shows publishing tab via sidenav button', async () => {
       await navigateToPublishingTab(page);
@@ -213,9 +213,7 @@ test.describe('Online Publishing Workflow', () => {
       await selectFormat(page, 'PDF');
       // Wait for the debounced auto-save to flush the format change into
       // the persisted project elements document before reloading.
-      await waitForElementsDocPersisted(page, username, 'format-content', [
-        'PDF_SIMPLE',
-      ]);
+      await waitForElementsDocPersisted(page, username, slug, ['PDF_SIMPLE']);
 
       await page.reload();
       await expect(page.getByTestId('publish-plan-container')).toBeVisible();
@@ -234,7 +232,7 @@ test.describe('Online Publishing Workflow', () => {
 
       // Wait for the debounced auto-save to flush the metadata changes
       // into the persisted project elements document before reloading.
-      await waitForElementsDocPersisted(page, username, 'format-content', [
+      await waitForElementsDocPersisted(page, username, slug, [
         'Persistent Title',
         'Persistent Author',
       ]);

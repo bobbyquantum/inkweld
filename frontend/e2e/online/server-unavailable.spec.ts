@@ -21,6 +21,56 @@ import {
 } from './fixtures';
 
 /**
+ * Shape of the per-project sync-state record persisted by ProjectSyncService
+ * (inkweld-sync database, 'sync-state' store, keyed by `username/slug`).
+ */
+interface SyncStateRecord {
+  status?: string;
+  pendingCreation?: { projectData: { slug: string } };
+}
+
+/**
+ * Read the sync-state record for a project key (`username/slug`) from the
+ * `inkweld-sync` database. Returns null when the DB or record does not exist.
+ */
+async function readSyncState(
+  page: Page,
+  projectKey: string
+): Promise<SyncStateRecord | null> {
+  return page.evaluate(async key => {
+    try {
+      if (typeof indexedDB.databases !== 'function') return null;
+      const dbs = await indexedDB.databases();
+      const dbName = dbs
+        .map(db => db.name)
+        .find(n => n?.endsWith('inkweld-sync'));
+      if (!dbName) return null;
+      const open = indexedDB.open(dbName);
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        open.onsuccess = () => resolve(open.result);
+        open.onerror = () => reject(open.error ?? new Error('open failed'));
+      });
+      if (!db.objectStoreNames.contains('sync-state')) {
+        db.close();
+        return null;
+      }
+      const store = db
+        .transaction('sync-state', 'readonly')
+        .objectStore('sync-state');
+      const record = await new Promise<unknown>((resolve, reject) => {
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result ?? null);
+        req.onerror = () => reject(req.error ?? new Error('get failed'));
+      });
+      db.close();
+      return (record as SyncStateRecord | null) ?? null;
+    } catch {
+      return null;
+    }
+  }, projectKey);
+}
+
+/**
  * Wait for locally-fallback project creation to settle. The create-project
  * flow only navigates to the new project page after UnifiedProjectService
  * has BOTH created the local placeholder AND queued the pending-creation
@@ -137,14 +187,12 @@ test.describe('Server Unavailable - Local First Behavior', () => {
 
       await waitForLocalFallback(page, uniqueSlug);
 
-      // Restore server connectivity and observe the background sync flushing
-      // the queued creation to the server (POST /api/v1/projects succeeds).
-      const createResponse = page.waitForResponse(
-        res =>
-          res.url().includes('/api/v1/projects') &&
-          res.request().method() === 'POST' &&
-          res.status() < 400
-      );
+      // Restore server connectivity and observe the background sync
+      // flushing the queued creation: BackgroundSyncService clears the
+      // pending-creation record in the inkweld-sync IndexedDB store once
+      // the server has accepted it. The retry timing is opaque (tombstone
+      // checks, backoff), so poll for the state change rather than the
+      // individual HTTP response.
       await page.serverControl.restore();
 
       // Trigger online event to simulate network recovery
@@ -152,7 +200,19 @@ test.describe('Server Unavailable - Local First Behavior', () => {
         window.dispatchEvent(new Event('online'));
       });
 
-      await createResponse;
+      await expect
+        .poll(
+          async () => {
+            const s = await readSyncState(
+              page,
+              `${page.testCredentials.username}/${uniqueSlug}`
+            );
+            if (!s) return 'missing';
+            return s.pendingCreation ? 'queued' : 'synced';
+          },
+          { timeout: 60_000 }
+        )
+        .toBe('synced');
 
       // The app should still be functional
       await expect(page.getByText(/fatal error/i)).not.toBeVisible();
