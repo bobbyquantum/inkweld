@@ -75,7 +75,7 @@ jobs:
         run: cd packages/inkweld-presence && bun run test:coverage
 
       - name: Upload packages coverage
-        if: always()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: packages-coverage
@@ -83,7 +83,7 @@ jobs:
           retention-days: 1
 
       - name: Upload presence package coverage
-        if: always()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: presence-coverage
@@ -129,7 +129,7 @@ jobs:
         run: cd frontend && NODE_OPTIONS="--max-old-space-size=8192" npm run test:coverage
 
       - name: Upload frontend coverage
-        if: always()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: frontend-coverage
@@ -167,7 +167,7 @@ jobs:
         run: cd backend && DB_DATABASE=":memory:" USER_APPROVAL_REQUIRED="false" bun run test:coverage
 
       - name: Upload backend coverage
-        if: always()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: backend-coverage
@@ -183,8 +183,13 @@ jobs:
     permissions:
       contents: read
     needs: [test-frontend, test-backend, test-packages]
-    # Skip SonarCloud analysis for Renovate dependency PRs (machine-generated).
-    if: ${{ always() && !startsWith(github.head_ref, 'renovate/') }}
+    # Run even when the test jobs fail (partial coverage is still worth
+    # scanning), but NOT when the run is cancelled - `always()` would also
+    # match cancellations, and a superseded run's coverage artifacts never
+    # get uploaded, so the scan would report 0% coverage on new code and post
+    # a false quality gate failure to the PR.
+    # Also skip SonarCloud analysis for Renovate dependency PRs (machine-generated).
+    if: ${{ !cancelled() && !startsWith(github.head_ref, 'renovate/') }}
     # Configure the 15-minute wait timer on the sonarcloud-analysis environment.
     environment:
       name: sonarcloud-analysis
