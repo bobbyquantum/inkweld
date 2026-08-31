@@ -87,6 +87,7 @@ Click the paragraph style dropdown to choose:
 | Button | Effect |
 |--------|--------|
 | Link | Insert or edit a hyperlink |
+| Table | Insert a table, or edit the rows and columns of the one you are in |
 | Horizontal rule | Insert a scene break line |
 | Clear formatting | Remove all formatting from selection |
 | Undo | Undo last action (`Ctrl/Cmd + Z`) |

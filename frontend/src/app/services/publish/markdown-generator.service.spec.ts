@@ -732,6 +732,55 @@ describe('MarkdownGeneratorService', () => {
       expect(text).toContain('### H3 Heading');
     });
 
+    it('should convert tables to GFM, preserving header and alignment', async () => {
+      const cell = (text: string, align?: string) => ({
+        type: 'table_cell',
+        attrs: align ? { align, colspan: 1 } : { colspan: 1 },
+        content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
+      });
+      const header = (text: string, align?: string) => ({
+        ...cell(text, align),
+        type: 'table_header',
+      });
+
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'table',
+          content: [
+            {
+              type: 'table_row',
+              content: [header('Name'), header('Age', 'right')],
+            },
+            {
+              type: 'table_row',
+              content: [cell('Alice'), cell('30', 'right')],
+            },
+          ],
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateMarkdown(planWithElement);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      expect(text).toContain('| Name | Age |');
+      expect(text).toContain('| --- | ---: |');
+      expect(text).toContain('| Alice | 30 |');
+    });
+
     it('should convert blockquote nodes', async () => {
       documentServiceMock.getDocumentContent.mockResolvedValue([
         {

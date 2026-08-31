@@ -105,7 +105,10 @@ import { createMediaUrl } from '../image-paste';
   ],
   templateUrl: './document-element-editor.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
-  styleUrls: ['./document-element-editor.component.scss'],
+  styleUrls: [
+    './document-element-editor.component.scss',
+    './document-element-editor-tables.scss',
+  ],
 })
 export class DocumentElementEditorComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewChecked

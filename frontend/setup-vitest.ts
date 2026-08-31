@@ -353,6 +353,17 @@ vi.mock('@bobbyquantum/ngx-editor', () => {
   };
 });
 
+// NOTE: prosemirror-tables is deliberately NOT mocked.
+//
+// `vi.mock()` from this setup file does not reliably apply to it — under
+// coverage instrumentation the real module is loaded regardless, which made
+// specs pass locally and fail in CI. The real implementation is safe in unit
+// tests instead: every table command bails out via `isInTable()` (or an
+// equivalent guard) when the selection is not inside a table, which is the
+// case for the mock editor views the specs build. Mock selections must
+// therefore expose `$head` and `$anchor`, and mock schemas a `cached` object,
+// because that is what the real commands read.
+
 // Mock prosemirror-schema-list for list operations (wrapInList, liftListItem, etc.)
 vi.mock('prosemirror-schema-list', () => ({
   wrapInList:

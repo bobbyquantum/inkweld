@@ -525,6 +525,9 @@ export class MarkdownGeneratorService {
       orderedlist: 'ordered_list',
       list_item: 'list_item',
       listitem: 'list_item',
+      table: 'table',
+      table_row: 'table_row',
+      tablerow: 'table_row',
     };
     const wrapper = simpleWrappers[name];
     if (wrapper) return `<${wrapper}>${inner}</${wrapper}>`;
@@ -539,6 +542,12 @@ export class MarkdownGeneratorService {
       case 'code_block':
       case 'codeblock':
         return this.renderCodeBlockXml(node, inner);
+      case 'table_cell':
+      case 'tablecell':
+        return this.renderTableCellXml(node, inner, 'table_cell');
+      case 'table_header':
+      case 'tableheader':
+        return this.renderTableCellXml(node, inner, 'table_header');
       case 'image':
         return this.renderImageXml(node);
       case 'horizontal_rule':
@@ -561,6 +570,28 @@ export class MarkdownGeneratorService {
       default:
         return inner;
     }
+  }
+
+  /**
+   * Serialize a table cell, preserving the attributes `xmlToMarkdown` needs:
+   * `align` drives the GFM delimiter row, and `colspan` is expanded into
+   * padding cells so the emitted rows stay rectangular.
+   */
+  private renderTableCellXml(
+    node: ProseMirrorNode,
+    inner: string,
+    tag: 'table_cell' | 'table_header'
+  ): string {
+    const attrs = (node as Record<string, unknown>)['attrs'] as
+      Record<string, unknown> | undefined;
+
+    const align = this.safeStringAttr(attrs, 'align');
+    const alignAttr = align ? ` align="${this.escapeXmlAttr(align)}"` : '';
+
+    const colspan = this.getAttr(node, 'colspan', 1);
+    const colspanAttr = colspan > 1 ? ` colspan="${colspan}"` : '';
+
+    return `<${tag}${alignAttr}${colspanAttr}>${inner}</${tag}>`;
   }
 
   private renderCodeBlockXml(node: ProseMirrorNode, inner: string): string {

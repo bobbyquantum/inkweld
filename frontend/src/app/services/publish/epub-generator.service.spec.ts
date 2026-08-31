@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { createDefaultPublishStyles } from '@models/publish-style';
+import JSZip from 'jszip';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -615,6 +616,102 @@ describe('EpubGeneratorService', () => {
       const result = await service.generateEpub(mockPlan);
 
       expect(result.success).toBe(true);
+    });
+
+    it('should convert tables, including header cells and column alignment', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'table',
+          content: [
+            {
+              type: 'table_row',
+              content: [
+                {
+                  type: 'table_header',
+                  attrs: { colspan: 1 },
+                  content: [
+                    {
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'Name' }],
+                    },
+                  ],
+                },
+                {
+                  type: 'table_header',
+                  attrs: { colspan: 1, align: 'right' },
+                  content: [
+                    {
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'Age' }],
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              type: 'table_row',
+              content: [
+                {
+                  type: 'table_cell',
+                  attrs: { colspan: 1 },
+                  content: [
+                    {
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'Alice' }],
+                    },
+                  ],
+                },
+                {
+                  type: 'table_cell',
+                  attrs: { colspan: 1, align: 'center' },
+                  content: [
+                    {
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: '30' }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.generateEpub(mockPlan);
+      expect(result.success).toBe(true);
+
+      // Find the chapter document by content rather than by index — an EPUB
+      // also contains nav/cover XHTML whose order is not guaranteed.
+      const zip = await new JSZip().loadAsync(result.file!);
+      const candidates = zip.file(/\.xhtml$/);
+      const bodies = await Promise.all(candidates.map(f => f.async('string')));
+      const xhtml = bodies.find(b => b.includes('<table'));
+      expect(xhtml).toBeDefined();
+
+      expect(xhtml).toContain('<table class="ink-doc-table">');
+      expect(xhtml).toContain('<tr class="ink-doc-table-row">');
+      expect(xhtml).toContain('<th class="ink-doc-table-header"');
+      expect(xhtml).toContain(
+        'class="ink-doc-table-header ink-doc-align-right"'
+      );
+      expect(xhtml).toContain(
+        'class="ink-doc-table-cell ink-doc-align-center"'
+      );
+      expect(xhtml).toContain('Name');
+      expect(xhtml).toContain('Alice');
+    });
+
+    it('should include table styling in the EPUB stylesheet', async () => {
+      const result = await service.generateEpub(mockPlan);
+      expect(result.success).toBe(true);
+
+      const zip = await new JSZip().loadAsync(result.file!);
+      const css = zip.file(/\.css$/)[0];
+      expect(css).toBeTruthy();
+      const styles = await css.async('string');
+
+      expect(styles).toContain('.ink-doc-table');
+      expect(styles).toContain('.ink-doc-align-center');
     });
 
     it('should convert blockquote nodes', async () => {

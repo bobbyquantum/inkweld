@@ -67,6 +67,23 @@ type ProseMirrorNode =
   string | { [key: string]: unknown } | ProseMirrorNode[] | null | undefined;
 
 /**
+ * Map a table cell's `align` attribute to a CSS class.
+ *
+ * Alignment becomes a class rather than an inline `style` attribute so that
+ * attacker-controlled document JSON can never inject arbitrary CSS; only the
+ * three known values produce a class at all.
+ */
+function alignClass(node: ProseMirrorNode): string | null {
+  if (typeof node !== 'object' || !node || !('attrs' in node)) return null;
+  const attrs = node['attrs'] as Record<string, unknown> | null;
+  const align = attrs?.['align'];
+  if (align === 'left' || align === 'center' || align === 'right') {
+    return `ink-doc-align-${align}`;
+  }
+  return null;
+}
+
+/**
  * HTML Generator Service
  *
  * Generates a single HTML file with all content, suitable for
@@ -615,7 +632,22 @@ export class HtmlGeneratorService {
     image: { tag: 'img', cls: 'ink-doc-image' },
     figure: { tag: 'figure', cls: 'ink-doc-figure' },
     caption: { tag: 'figcaption', cls: 'ink-doc-caption' },
+    table: { tag: 'table', cls: 'ink-doc-table' },
+    table_row: { tag: 'tr', cls: 'ink-doc-table-row' },
+    tablerow: { tag: 'tr', cls: 'ink-doc-table-row' },
+    table_cell: { tag: 'td', cls: 'ink-doc-table-cell' },
+    tablecell: { tag: 'td', cls: 'ink-doc-table-cell' },
+    table_header: { tag: 'th', cls: 'ink-doc-table-header' },
+    tableheader: { tag: 'th', cls: 'ink-doc-table-header' },
   };
+
+  /** Cell node names that carry GFM column alignment. */
+  private static readonly TABLE_CELL_NAMES = new Set([
+    'table_cell',
+    'tablecell',
+    'table_header',
+    'tableheader',
+  ]);
 
   private getTagAndClass(node: ProseMirrorNode): {
     tagName: string;
@@ -636,10 +668,15 @@ export class HtmlGeneratorService {
     }
     const mapped = HtmlGeneratorService.NODE_TAG_MAP[lower];
     if (mapped) {
-      return {
-        tagName: mapped.tag,
-        classNames: mapped.cls ? [mapped.cls] : [],
-      };
+      const classNames = mapped.cls ? [mapped.cls] : [];
+      // Column alignment travels as a class rather than a style attribute:
+      // node attributes come from document JSON and are never emitted
+      // verbatim (see the note on unknown node types below).
+      if (HtmlGeneratorService.TABLE_CELL_NAMES.has(lower)) {
+        const align = alignClass(node);
+        if (align) classNames.push(align);
+      }
+      return { tagName: mapped.tag, classNames };
     }
     // Unknown node types render as a neutral container so a malicious
     // document JSON cannot smuggle in attacker-controlled tags like

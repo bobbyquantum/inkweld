@@ -131,11 +131,122 @@ function renderBlockElement(node: AstElement, ctx: RenderContext): string {
       return '---';
     case 'image':
       return renderImage(node);
+    case 'table':
+      return renderTable(node, ctx);
     default:
       // Unknown block: best-effort render its children.
       if (node.children.length === 0) return '';
       return renderInlineNodes(node.children, ctx);
   }
+}
+
+/**
+ * Render a `<table>` as a GFM table.
+ *
+ * Lossy by necessity — GFM tables have no way to express merged cells or
+ * column widths:
+ *   - `colspan > 1` is expanded into trailing empty cells so the grid
+ *     stays rectangular and every row keeps the same column count.
+ *   - `rowspan` is ignored; the cell's text appears only in the row that
+ *     declares it.
+ *   - `colwidth` is dropped.
+ *
+ * Column alignment is taken from the first row's cells, matching GFM,
+ * where alignment is a property of the column rather than the cell.
+ */
+function renderTable(node: AstElement, ctx: RenderContext): string {
+  const rows = node.children.filter(
+    (c): c is AstElement => c.type === 'element' && isTableRow(c.name)
+  );
+  if (rows.length === 0) return '';
+
+  const grid = rows.map((row) =>
+    row.children
+      .filter((c): c is AstElement => c.type === 'element' && isTableCell(c.name))
+      .flatMap((cell) => {
+        const text = renderTableCell(cell, ctx);
+        const span = cellSpan(cell.attrs['colspan']);
+        // First slot carries the text; the rest pad the row out.
+        return [text, ...Array.from({ length: span - 1 }, () => '')];
+      })
+  );
+
+  const width = Math.max(...grid.map((r) => r.length));
+  if (width === 0) return '';
+  for (const row of grid) {
+    while (row.length < width) row.push('');
+  }
+
+  const alignRow = rows[0].children
+    .filter((c): c is AstElement => c.type === 'element' && isTableCell(c.name))
+    .flatMap((cell) => {
+      const span = cellSpan(cell.attrs['colspan']);
+      const align = stringAttr(cell.attrs, 'align');
+      return Array.from({ length: span }, () => align);
+    });
+
+  const delimiter = Array.from({ length: width }, (_, i) => {
+    switch (alignRow[i]) {
+      case 'left':
+        return ':---';
+      case 'center':
+        return ':---:';
+      case 'right':
+        return '---:';
+      default:
+        return '---';
+    }
+  });
+
+  const line = (cells: string[]): string => `| ${cells.join(' | ')} |`;
+
+  return [line(grid[0]), line(delimiter), ...grid.slice(1).map(line)].join('\n');
+}
+
+function isTableRow(name: string): boolean {
+  return name === 'table_row' || name === 'tableRow' || name === 'tr';
+}
+
+function isTableCell(name: string): boolean {
+  return (
+    name === 'table_cell' ||
+    name === 'tableCell' ||
+    name === 'td' ||
+    name === 'table_header' ||
+    name === 'tableHeader' ||
+    name === 'th'
+  );
+}
+
+function cellSpan(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.min(64, Math.trunc(n));
+}
+
+/**
+ * Render one cell's content to a single markdown line. A cell holds
+ * `paragraph+`; multiple paragraphs are joined with `<br/>` because a GFM
+ * cell cannot contain a line break. Pipes are escaped so they do not split
+ * the row on re-parse.
+ */
+function renderTableCell(cell: AstElement, ctx: RenderContext): string {
+  const blocks = cell.children.filter((c): c is AstElement => c.type === 'element');
+
+  // A well-formed cell wraps its content in `paragraph+`. Render each
+  // paragraph's *children* so the wrapper itself is never emitted as an
+  // inline node — an empty paragraph would otherwise surface as a
+  // `<span data-mark="paragraph">` placeholder. Only a cell with no block
+  // children at all falls back to rendering the cell's own children.
+  const text =
+    blocks.length > 0
+      ? blocks
+          .map((block) => renderInlineNodes(block.children, ctx).trim())
+          .filter((t) => t !== '')
+          .join('<br/>')
+      : renderInlineNodes(cell.children, ctx).trim();
+
+  return text.replaceAll('|', String.raw`\|`).replaceAll('\n', ' ');
 }
 
 function clampHeadingLevel(value: unknown): number {

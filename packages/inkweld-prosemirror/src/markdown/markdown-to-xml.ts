@@ -11,6 +11,7 @@
  *   - Bullet lists (`-`, `*`, `+`) and ordered lists (`1.`, `1)`)
  *   - Fenced code blocks (` ``` ` and `~~~`) with optional language
  *   - Thematic breaks (`---`, `***`, `___`)
+ *   - GFM tables, including per-column alignment (`:---`, `:---:`, `---:`)
  *
  * Supported inline constructs
  * ---------------------------
@@ -117,12 +118,16 @@ function defaultDecodeElementRefHref(href: string): Record<string, unknown> | nu
 // Block-level parser
 // ---------------------------------------------------------------------------
 
+/** GFM column alignment; `null` means "not specified". */
+type TableAlign = 'left' | 'center' | 'right' | null;
+
 type Block =
   | { kind: 'heading'; level: number; text: string }
   | { kind: 'paragraph'; text: string }
   | { kind: 'blockquote'; children: Block[] }
   | { kind: 'list'; ordered: boolean; start: number; items: Block[][] }
   | { kind: 'code'; lang: string; content: string }
+  | { kind: 'table'; align: TableAlign[]; header: string[]; rows: string[][] }
   | { kind: 'hr' };
 
 function parseBlocks(input: string): Block[] {
@@ -199,6 +204,14 @@ function tryParseBlock(lines: string[], i: number, out: Block[]): number {
     return end - i;
   }
 
+  // GFM table (header row + delimiter row). Checked before setext so that a
+  // single-column table's `---` delimiter is not mistaken for an underline.
+  const table = tryParseTable(lines, i);
+  if (table) {
+    out.push(table.table);
+    return table.end - i;
+  }
+
   // Setext heading? (current line is paragraph text; next line is === or ---)
   const setext = lookaheadSetext(lines, i);
   if (setext) {
@@ -212,14 +225,14 @@ function tryParseBlock(lines: string[], i: number, out: Block[]): number {
 function collectParagraph(lines: string[], start: number): { end: number; paragraph: Block } {
   const paraLines = [lines[start]];
   let j = start + 1;
-  while (j < lines.length && !isParagraphTerminator(lines[j])) {
+  while (j < lines.length && !isParagraphTerminator(lines[j], lines[j + 1])) {
     paraLines.push(lines[j]);
     j++;
   }
   return { end: j, paragraph: { kind: 'paragraph', text: paraLines.join('\n') } };
 }
 
-function isParagraphTerminator(line: string): boolean {
+function isParagraphTerminator(line: string, next?: string): boolean {
   if (line.trim() === '') return true;
   if (matchFenceOpen(line)) return true;
   if (isThematicBreak(line)) return true;
@@ -228,6 +241,11 @@ function isParagraphTerminator(line: string): boolean {
   if (matchListMarker(line)) return true;
   // Setext underline ends the paragraph (and is handled by lookaheadSetext).
   if (/^\s{0,3}(=+|-+)\s*$/.test(line)) return true;
+  // A table header row (this line) followed by a delimiter row (the next)
+  // starts a table, so the running paragraph must stop here.
+  if (isTableHeaderRow(line) && next !== undefined && parseDelimiterRow(next)) {
+    return true;
+  }
   return false;
 }
 
@@ -273,6 +291,124 @@ function lookaheadSetext(lines: string[], i: number): { level: number } | null {
   if (/^\s{0,3}=+\s*$/.test(next)) return { level: 1 };
   if (/^\s{0,3}-+\s*$/.test(next)) return { level: 2 };
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// GFM tables
+// ---------------------------------------------------------------------------
+
+/**
+ * Split one table row into raw cell strings.
+ *
+ * Leading and trailing pipes are optional in GFM and are stripped when
+ * present. A pipe preceded by a backslash is an escaped literal and does
+ * not split the row; the backslash is consumed so the cell text carries a
+ * bare `|`.
+ */
+function splitTableRow(line: string): string[] {
+  const cells: string[] = [];
+  let cur = '';
+  let escaped = false;
+
+  for (const ch of line.trim()) {
+    if (escaped) {
+      // Only `\|` is a table-level escape; every other backslash pair is
+      // left intact for the inline parser to interpret.
+      cur += ch === '|' ? '|' : `\\${ch}`;
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (ch === '|') {
+      cells.push(cur);
+      cur = '';
+      continue;
+    }
+    cur += ch;
+  }
+  if (escaped) cur += '\\';
+  cells.push(cur);
+
+  // Strip the empty leading/trailing cells produced by outer pipes.
+  if (cells.at(0)?.trim() === '') cells.shift();
+  if (cells.at(-1)?.trim() === '') cells.pop();
+
+  return cells.map((c) => c.trim());
+}
+
+/**
+ * Parse a GFM delimiter row (`| --- | :---: |`) into per-column alignment.
+ * Returns `null` when the line is not a delimiter row.
+ */
+function parseDelimiterRow(line: string): TableAlign[] | null {
+  if (!line?.includes('|')) return null;
+  const cells = splitTableRow(line);
+  if (cells.length === 0) return null;
+
+  const align: TableAlign[] = [];
+  for (const cell of cells) {
+    // NOSONAR(typescript:S5852) - linear: anchored, bounded, no nested quantifiers.
+    const m = /^(:?)-+(:?)$/.exec(cell); // NOSONAR
+    if (!m) return null;
+    const left = m[1] === ':';
+    const right = m[2] === ':';
+    if (left && right) align.push('center');
+    else if (right) align.push('right');
+    else if (left) align.push('left');
+    else align.push(null);
+  }
+  return align;
+}
+
+/** A candidate header row must contain at least one unescaped pipe. */
+function isTableHeaderRow(line: string): boolean {
+  if (line.trim() === '') return false;
+  return /(^|[^\\])\|/.test(line);
+}
+
+/**
+ * Try to parse a GFM table starting at `lines[i]`.
+ *
+ * Rows whose cell count differs from the header are normalised: extra
+ * cells are dropped and missing cells are padded with empty strings, so
+ * every row in the emitted table has identical length. ProseMirror's table
+ * model requires rectangular rows, and a ragged table would otherwise fail
+ * schema validation when the document is opened.
+ */
+function tryParseTable(
+  lines: string[],
+  i: number
+): { end: number; table: Block } | null {
+  const headerLine = lines[i];
+  const delimiterLine = lines[i + 1];
+  if (!isTableHeaderRow(headerLine)) return null;
+  if (delimiterLine === undefined) return null;
+
+  const align = parseDelimiterRow(delimiterLine);
+  if (!align) return null;
+
+  const header = splitTableRow(headerLine);
+  if (header.length === 0) return null;
+  // GFM requires the delimiter row to match the header's column count.
+  if (align.length !== header.length) return null;
+
+  const rows: string[][] = [];
+  let j = i + 2;
+  while (j < lines.length) {
+    const line = lines[j];
+    if (line.trim() === '') break;
+    if (!isTableHeaderRow(line)) break;
+    const cells = splitTableRow(line);
+    // Normalise to the header width.
+    while (cells.length < header.length) cells.push('');
+    rows.push(cells.slice(0, header.length));
+    j++;
+  }
+
+  return { end: j, table: { kind: 'table', align, header, rows } };
 }
 
 function collectBlockquote(lines: string[], start: number): { end: number; inner: string } {
@@ -481,6 +617,8 @@ function renderBlock(block: Block, ctx: ParseContext): string {
       return renderListBlock(block, ctx);
     case 'code':
       return renderCodeBlock(block);
+    case 'table':
+      return renderTableBlock(block, ctx);
     case 'hr':
       return '<horizontal_rule/>';
   }
@@ -499,6 +637,34 @@ function renderListBlock(
   const tag = block.ordered ? 'ordered_list' : 'bullet_list';
   const attrs = block.ordered && block.start !== 1 ? ` order="${block.start}"` : '';
   return `<${tag}${attrs}>${itemsXml}</${tag}>`;
+}
+
+function renderTableBlock(
+  block: Extract<Block, { kind: 'table' }>,
+  ctx: ParseContext
+): string {
+  const cell = (text: string, align: TableAlign, header: boolean): string => {
+    const tag = header ? 'table_header' : 'table_cell';
+    const alignAttr = align ? ` align="${align}"` : '';
+    // Cell content is `paragraph+`, so even an empty cell needs one
+    // paragraph to satisfy the schema.
+    return `<${tag}${alignAttr}><paragraph>${renderInline(text, ctx)}</paragraph></${tag}>`;
+  };
+
+  const headerRow = `<table_row>${block.header
+    .map((text, col) => cell(text, block.align[col] ?? null, true))
+    .join('')}</table_row>`;
+
+  const bodyRows = block.rows
+    .map(
+      (row) =>
+        `<table_row>${row
+          .map((text, col) => cell(text, block.align[col] ?? null, false))
+          .join('')}</table_row>`
+    )
+    .join('');
+
+  return `<table>${headerRow}${bodyRows}</table>`;
 }
 
 function renderCodeBlock(block: Extract<Block, { kind: 'code' }>): string {

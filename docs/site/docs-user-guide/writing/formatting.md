@@ -133,6 +133,60 @@ Insert a horizontal rule for:
 
 Create with the horizontal rule button in the toolbar.
 
+## Tables
+
+Tables are useful for reference material that sits alongside your prose — magic
+system rules, character stat blocks, timelines of regnal years, translation
+glossaries.
+
+### Inserting a Table
+
+1. Place the cursor where you want the table
+2. Click the **Table** button in the toolbar
+3. Choose **Insert table**
+
+A new table starts as three columns by three rows. The first row is a **header
+row**, styled differently from the body and preserved when you export.
+
+### Editing a Table
+
+Click into any cell and type. Cells hold ordinary paragraphs, so all the
+character formatting above works inside them.
+
+| Action | How |
+|--------|-----|
+| Move to the next cell | `Tab` |
+| Move to the previous cell | `Shift + Tab` |
+| Insert a row or column | Table menu → *Insert row/column* |
+| Delete a row or column | Table menu → *Delete row/column* |
+| Merge selected cells | Table menu → *Merge cells* |
+| Split a merged cell | Table menu → *Split cell* |
+| Resize a column | Drag the divider between two column headers |
+| Remove the whole table | Table menu → *Delete table* |
+
+Select several cells by clicking one and dragging across the others — merge and
+alignment actions apply to the whole selection.
+
+:::tip
+`Tab` in the last cell does **not** create a new row. Use *Insert row below*
+from the table menu when you need more space.
+:::
+
+### Tables and Export
+
+Tables export to Markdown, HTML, EPUB, and PDF.
+
+Markdown and EPUB have no way to express merged cells. When you export a table
+containing merged cells, the merge is flattened: the cell's text stays in place
+and the columns it spanned become empty, so the grid keeps its shape. PDF output
+preserves merges.
+
+:::warning
+A table always exports with its first row as the header. If you turn the header
+row off in the editor, Markdown export will still treat row one as the header —
+that is a limitation of the Markdown table format, not of Inkweld.
+:::
+
 ## Links
 
 ### Inserting Links

@@ -298,6 +298,13 @@
         <mat-icon>image</mat-icon>
       </button>
       <button
+        mat-icon-button
+        [matMenuTriggerFor]="tableMenu"
+        [matTooltip]="'editor.toolbar.table' | transloco"
+        data-testid="toolbar-table">
+        <mat-icon>table_chart</mat-icon>
+      </button>
+      <button
         ngToolbarWidget
         value="hr"
         [matTooltip]="'editor.toolbar.horizontalRule' | transloco"
@@ -371,6 +378,13 @@
               data-testid="overflow-image">
               <mat-icon>image</mat-icon>
               <span>{{ 'editor.toolbar.insertImageShort' | transloco }}</span>
+            </button>
+            <button
+              mat-menu-item
+              [matMenuTriggerFor]="tableMenu"
+              data-testid="overflow-table">
+              <mat-icon>table_chart</mat-icon>
+              <span>{{ 'editor.toolbar.table' | transloco }}</span>
             </button>
             <button
               mat-menu-item
@@ -588,3 +602,102 @@
     </div>
   }
 </div>
+
+<mat-menu #tableMenu="matMenu" (closed)="onMenuClosed()">
+  <button mat-menu-item (click)="insertTable()" data-testid="table-insert">
+    <mat-icon>grid_on</mat-icon>
+    <span>{{ 'editor.toolbar.insertTable' | transloco }}</span>
+  </button>
+  <mat-divider></mat-divider>
+  <button
+    mat-menu-item
+    [disabled]="!inTable()"
+    (click)="addRowBefore()"
+    data-testid="table-add-row-before">
+    <mat-icon>add</mat-icon>
+    <span>{{ 'editor.toolbar.addRowBefore' | transloco }}</span>
+  </button>
+  <button
+    mat-menu-item
+    [disabled]="!inTable()"
+    (click)="addRowAfter()"
+    data-testid="table-add-row-after">
+    <mat-icon>add</mat-icon>
+    <span>{{ 'editor.toolbar.addRowAfter' | transloco }}</span>
+  </button>
+  <button
+    mat-menu-item
+    [disabled]="!inTable()"
+    (click)="deleteRow()"
+    data-testid="table-delete-row">
+    <mat-icon>remove</mat-icon>
+    <span>{{ 'editor.toolbar.deleteRow' | transloco }}</span>
+  </button>
+  <mat-divider></mat-divider>
+  <button
+    mat-menu-item
+    [disabled]="!inTable()"
+    (click)="addColumnBefore()"
+    data-testid="table-add-column-before">
+    <mat-icon>add</mat-icon>
+    <span>{{ 'editor.toolbar.addColumnBefore' | transloco }}</span>
+  </button>
+  <button
+    mat-menu-item
+    [disabled]="!inTable()"
+    (click)="addColumnAfter()"
+    data-testid="table-add-column-after">
+    <mat-icon>add</mat-icon>
+    <span>{{ 'editor.toolbar.addColumnAfter' | transloco }}</span>
+  </button>
+  <button
+    mat-menu-item
+    [disabled]="!inTable()"
+    (click)="deleteColumn()"
+    data-testid="table-delete-column">
+    <mat-icon>remove</mat-icon>
+    <span>{{ 'editor.toolbar.deleteColumn' | transloco }}</span>
+  </button>
+  <mat-divider></mat-divider>
+  <button
+    mat-menu-item
+    [disabled]="!inTable()"
+    (click)="mergeCells()"
+    data-testid="table-merge-cells">
+    <mat-icon>call_merge</mat-icon>
+    <span>{{ 'editor.toolbar.mergeCells' | transloco }}</span>
+  </button>
+  <button
+    mat-menu-item
+    [disabled]="!inTable()"
+    (click)="splitCell()"
+    data-testid="table-split-cell">
+    <mat-icon>call_split</mat-icon>
+    <span>{{ 'editor.toolbar.splitCell' | transloco }}</span>
+  </button>
+  <button
+    mat-menu-item
+    [disabled]="!inTable()"
+    (click)="toggleHeaderRow()"
+    data-testid="table-toggle-header-row">
+    <mat-icon>table_rows</mat-icon>
+    <span>{{ 'editor.toolbar.toggleHeaderRow' | transloco }}</span>
+  </button>
+  <button
+    mat-menu-item
+    [disabled]="!inTable()"
+    (click)="toggleHeaderColumn()"
+    data-testid="table-toggle-header-column">
+    <mat-icon>view_column</mat-icon>
+    <span>{{ 'editor.toolbar.toggleHeaderColumn' | transloco }}</span>
+  </button>
+  <mat-divider></mat-divider>
+  <button
+    mat-menu-item
+    [disabled]="!inTable()"
+    (click)="deleteTable()"
+    data-testid="table-delete">
+    <mat-icon>delete_outline</mat-icon>
+    <span>{{ 'editor.toolbar.deleteTable' | transloco }}</span>
+  </button>
+</mat-menu>

@@ -26,6 +26,7 @@ describe('EditorToolbarComponent', () => {
   let mockEditorView: {
     state: {
       schema: {
+        cached: Record<string, unknown>;
         marks: Record<string, unknown>;
         nodes: Record<string, unknown>;
       };
@@ -34,6 +35,8 @@ describe('EditorToolbarComponent', () => {
         to: number;
         $from: unknown;
         $to: unknown;
+        $head: unknown;
+        $anchor: unknown;
         empty: boolean;
       };
       tr: {
@@ -45,6 +48,9 @@ describe('EditorToolbarComponent', () => {
         addMark: Mock;
         removeMark: Mock;
         setStoredMarks: Mock;
+        scrollIntoView: Mock;
+        insert: Mock;
+        doc: { lastChild: unknown; content: { size: number } };
         docChanged: boolean;
       };
       doc: { nodesBetween: Mock; slice: Mock };
@@ -65,6 +71,17 @@ describe('EditorToolbarComponent', () => {
       create: vi.fn().mockReturnValue({ type: { name } }),
     });
 
+    // A minimal ResolvedPos. `node(depth)` returns a node whose spec has no
+    // `tableRole`, so prosemirror-tables treats the position as outside a
+    // table — which is what the non-table tests expect.
+    const createMockResolvedPos = () => ({
+      pos: 0,
+      depth: 0,
+      marks: () => [],
+      node: () => ({ type: { name: 'paragraph', spec: {} } }),
+      blockRange: vi.fn().mockReturnValue(null),
+    });
+
     const createMockNode = (name: string) => ({
       name,
       create: vi.fn().mockReturnValue({ type: { name } }),
@@ -74,6 +91,9 @@ describe('EditorToolbarComponent', () => {
     mockEditorView = {
       state: {
         schema: {
+          // prosemirror-tables' tableNodeTypes() memoises on schema.cached,
+          // so a real ProseMirror Schema always has this object.
+          cached: {},
           marks: {
             strong: createMockMark('strong'),
             em: createMockMark('em'),
@@ -90,19 +110,22 @@ describe('EditorToolbarComponent', () => {
             list_item: createMockNode('list_item'),
             blockquote: createMockNode('blockquote'),
             horizontal_rule: createMockNode('horizontal_rule'),
+            table: createMockNode('table'),
+            table_row: createMockNode('table_row'),
+            table_cell: createMockNode('table_cell'),
+            table_header: createMockNode('table_header'),
           },
         },
         selection: {
           from: 0,
           to: 0,
-          $from: {
-            pos: 0,
-            depth: 0,
-            marks: () => [],
-            node: () => ({ type: { name: 'paragraph' } }),
-            blockRange: vi.fn().mockReturnValue(null),
-          },
+          $from: createMockResolvedPos(),
           $to: {},
+          // A real ProseMirror Selection always exposes $head and $anchor.
+          // prosemirror-tables' isInTable() reads $head.depth, so leaving
+          // them out throws inside the debounced selection-state update.
+          $head: createMockResolvedPos(),
+          $anchor: createMockResolvedPos(),
           empty: true,
         },
         tr: {
@@ -114,6 +137,11 @@ describe('EditorToolbarComponent', () => {
           addMark: vi.fn().mockReturnThis(),
           removeMark: vi.fn().mockReturnThis(),
           setStoredMarks: vi.fn().mockReturnThis(),
+          scrollIntoView: vi.fn().mockReturnThis(),
+          insert: vi.fn().mockReturnThis(),
+          // The doc left behind after replaceSelectionWith(table); the
+          // trailing-paragraph guard inspects its last child.
+          doc: { lastChild: null, content: { size: 10 } },
           docChanged: false,
         },
         doc: {
@@ -269,6 +297,122 @@ describe('EditorToolbarComponent', () => {
       vi.runAllTimers();
       expect(mockEditorView.dispatch).toHaveBeenCalled();
       expect(mockEditorView.focus).toHaveBeenCalled();
+    });
+  });
+
+  describe('Tables', () => {
+    it('should insert a table and scroll it into view', () => {
+      vi.useFakeTimers();
+      component.insertTable();
+      vi.runAllTimers();
+      expect(mockEditorView.state.tr.replaceSelectionWith).toHaveBeenCalled();
+      expect(mockEditorView.state.tr.scrollIntoView).toHaveBeenCalled();
+      expect(mockEditorView.dispatch).toHaveBeenCalled();
+      expect(mockEditorView.focus).toHaveBeenCalled();
+    });
+
+    it('should build the requested number of rows and columns', () => {
+      const rowType = mockEditorView.state.schema.nodes['table_row'] as {
+        create: Mock;
+      };
+      component.insertTable(4, 2);
+      expect(rowType.create).toHaveBeenCalledTimes(4);
+      // Every row is built with exactly two cells.
+      for (const call of rowType.create.mock.calls) {
+        expect(call[1]).toHaveLength(2);
+      }
+    });
+
+    it('should build the first row from header cells and the rest from body cells', () => {
+      const headerType = mockEditorView.state.schema.nodes['table_header'] as {
+        create: Mock;
+      };
+      const cellType = mockEditorView.state.schema.nodes['table_cell'] as {
+        create: Mock;
+      };
+      component.insertTable(3, 3);
+      // One header row of 3, two body rows of 3.
+      expect(headerType.create).toHaveBeenCalledTimes(3);
+      expect(cellType.create).toHaveBeenCalledTimes(6);
+    });
+
+    it('should append a trailing paragraph when the table ends the document', () => {
+      const tableType = mockEditorView.state.schema.nodes['table'];
+      const paragraphType = mockEditorView.state.schema.nodes['paragraph'] as {
+        create: Mock;
+      };
+      // Simulate the table landing as the document's last node.
+      mockEditorView.state.tr.doc.lastChild = { type: tableType };
+
+      component.insertTable();
+
+      expect(mockEditorView.state.tr.insert).toHaveBeenCalledWith(
+        10,
+        expect.anything()
+      );
+      expect(paragraphType.create).toHaveBeenCalled();
+    });
+
+    it('should not append a paragraph when content already follows the table', () => {
+      mockEditorView.state.tr.doc.lastChild = {
+        type: mockEditorView.state.schema.nodes['paragraph'],
+      };
+
+      component.insertTable();
+
+      expect(mockEditorView.state.tr.insert).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing when the schema has no table nodes', () => {
+      delete mockEditorView.state.schema.nodes['table'];
+      component.insertTable();
+      expect(mockEditorView.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('should not insert a table while disabled', () => {
+      component.disabled = true;
+      component.insertTable();
+      expect(mockEditorView.dispatch).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['addRowBefore'],
+      ['addRowAfter'],
+      ['deleteRow'],
+      ['addColumnBefore'],
+      ['addColumnAfter'],
+      ['deleteColumn'],
+      ['mergeCells'],
+      ['splitCell'],
+      ['toggleHeaderRow'],
+      ['toggleHeaderColumn'],
+      ['deleteTable'],
+    ])('should run the %s command and refocus the editor', name => {
+      // prosemirror-tables is not mocked: outside a table each command
+      // correctly reports "not applicable" and dispatches nothing. What the
+      // toolbar owns is running the command without throwing and handing
+      // focus back to the editor afterwards.
+      vi.useFakeTimers();
+      expect(() =>
+        (component[name as keyof typeof component] as () => void).call(
+          component
+        )
+      ).not.toThrow();
+      vi.runAllTimers();
+      expect(mockEditorView.focus).toHaveBeenCalled();
+    });
+
+    it('should not run table commands while disabled', () => {
+      component.disabled = true;
+      component.addRowAfter();
+      component.deleteTable();
+      // execCommand returns before touching the view at all.
+      expect(mockEditorView.focus).not.toHaveBeenCalled();
+      expect(mockEditorView.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('should report inTable as false outside a table', () => {
+      expect(component.inTable()).toBe(false);
     });
   });
 
