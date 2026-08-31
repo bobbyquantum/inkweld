@@ -14,6 +14,7 @@
  */
 import { type Page } from '@playwright/test';
 
+import { waitForElementsDocPersisted } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 test.describe('Local Publishing Workflow', () => {
@@ -70,8 +71,13 @@ test.describe('Local Publishing Workflow', () => {
   /**
    * Helper: perform a CDK-compatible drag using mouse events.
    * Angular CDK uses pointer/mouse events, not HTML5 drag events,
-   * so Playwright's dragTo() doesn't work. Uses deliberate timing
-   * to ensure CDK processes each phase through requestAnimationFrame.
+   * so Playwright's dragTo() doesn't work.
+   *
+   * Each phase synchronizes on CDK's observable DOM state instead of a fixed
+   * delay: the drag preview appearing, the target list's
+   * `cdk-drop-list-receiving` class (CDK only sets it when the enter
+   * predicate accepts the item, so a refused folder never gets it), and the
+   * preview being removed once the drop has been processed.
    */
   async function cdkDragTo(
     page: Page,
@@ -92,25 +98,40 @@ test.describe('Local Publishing Workflow', () => {
     const tgtX = targetBox.x + targetBox.width / 2;
     const tgtY = targetBox.y + targetBox.height / 2;
 
+    // Cross CDK's 5px drag-start threshold in small steps. CDK binds its
+    // document-level mousemove listener synchronously on mousedown, so the
+    // moves only need to be separate events, not spaced out in time.
     await page.mouse.move(srcX, srcY);
-    await page.waitForTimeout(200);
-
     await page.mouse.down();
-    await page.waitForTimeout(200);
-
     for (let i = 1; i <= 5; i++) {
-      await page.mouse.move(srcX + i * 4, srcY, { steps: 2 });
-      await page.waitForTimeout(50);
+      await page.mouse.move(srcX + i * 4, srcY);
     }
 
-    await page.waitForTimeout(300);
+    // The preview element appearing is the observable signal that CDK has
+    // actually started the drag sequence.
+    await expect(page.locator('.cdk-drag-preview')).toBeAttached({
+      timeout: 5_000,
+    });
 
     await page.mouse.move(tgtX, tgtY, { steps: 30 });
 
-    await page.waitForTimeout(500);
+    // `cdk-drop-list-receiving` appears only once CDK has chosen the list as
+    // the active drop target; the enter predicate refuses folders, so for a
+    // rejected drag it never shows — bound this wait so a rejection doesn't
+    // burn the full expect timeout, and just proceed to the release.
+    await expect(target)
+      .toHaveClass(/cdk-drop-list-receiving/, { timeout: 1_000 })
+      .catch(() => {
+        // Item not accepted (e.g. folder) — nothing to wait for.
+      });
 
     await page.mouse.up();
-    await page.waitForTimeout(200);
+
+    // The drop is processed when CDK tears down the preview; the
+    // cdkDropListDropped handler runs in the same task as the teardown.
+    await expect(page.locator('.cdk-drag-preview')).toHaveCount(0, {
+      timeout: 5_000,
+    });
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -289,8 +310,11 @@ test.describe('Local Publishing Workflow', () => {
       await selectSection(page, 'metadata');
       await page.getByTestId('book-title-input').fill('Updated Book Title');
 
-      // Auto-save debounce
-      await page.waitForTimeout(1000);
+      // Wait for the debounced auto-save to flush the new title into the
+      // project elements document before reloading.
+      await waitForElementsDocPersisted(page, 'testuser', 'test-project', [
+        'Updated Book Title',
+      ]);
 
       await page.reload();
 

@@ -11,6 +11,7 @@
  */
 import { promises as fs } from 'fs';
 
+import { waitForElementsDocSettled } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 test.describe('Online Publish Style Editor', () => {
@@ -80,10 +81,16 @@ test.describe('Online Publish Style Editor', () => {
   test('preset selection, override, persistence, and HTML output reflect styles', async ({
     authenticatedPage: page,
   }) => {
+    // Multiple format generations against a real backend — needs headroom on
+    // slow CI runners (the default 30s budget is marginal).
+    test.slow();
+    // Set by the authenticatedPage fixture (via @ts-expect-error there).
+    const { username }: { username: string } = page[
+      'testCredentials' as never
+    ] as { username: string };
+    const slug = await createProject(page, 'pub-style');
     const testContent =
       'A short paragraph used to verify rendered typography in the HTML output.';
-
-    await createProject(page, 'pub-style');
 
     // Add a small amount of content so HTML generation has something to render.
     const readme = page.getByTestId('element-README');
@@ -155,7 +162,13 @@ test.describe('Online Publish Style Editor', () => {
     });
 
     await test.step('Style edits persist across reload', async () => {
-      await page.waitForTimeout(1000); // auto-save debounce
+      // Wait for the debounced auto-save to flush the customized styles
+      // (heading-1 font size override + chapter page-break flag) into the
+      // persisted project elements document before reloading. The edited
+      // values are numbers/booleans with no greppable byte signature, so
+      // wait for the persisted update count to settle instead.
+      await waitForElementsDocSettled(page, username, slug);
+
       await page.reload();
       await expect(page.getByTestId('publish-plan-container')).toBeVisible();
       await openStyleEditor(page);
@@ -225,6 +238,9 @@ test.describe('Online Publish Style Editor', () => {
   test('regression: bug fixes 1-4 carry through generated output', async ({
     authenticatedPage: page,
   }) => {
+    // Three full generation + download cycles — needs headroom on slow CI
+    // runners (the default 30s budget is marginal).
+    test.slow();
     // ---------- Setup: worldbuilding-demo template (has WB + chapters) ----
     const slug = `pub-regress-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     await page.goto('/create-project');
