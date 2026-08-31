@@ -2273,6 +2273,40 @@ describe('CanvasTabComponent', () => {
     });
   });
 
+  describe('active layer', () => {
+    it('adopts the first layer when the canvas loads after the tab', () => {
+      fixture.detectChanges();
+      component['activeLayerId'].set('layer-from-a-default-config');
+
+      const config = mockCanvasService.activeConfig();
+      mockCanvasService.activeConfig.set({
+        ...config!,
+        layers: [
+          {
+            id: 'real-layer',
+            name: 'Loaded',
+            visible: true,
+            locked: false,
+            opacity: 1,
+            order: 0,
+          },
+        ],
+      });
+      fixture.detectChanges();
+
+      expect(component['activeLayerId']()).toBe('real-layer');
+    });
+
+    it('leaves a still-valid active layer alone', () => {
+      fixture.detectChanges();
+      const layerId = mockCanvasService.activeConfig()!.layers[0].id;
+      component['activeLayerId'].set(layerId);
+
+      fixture.detectChanges();
+      expect(component['activeLayerId']()).toBe(layerId);
+    });
+  });
+
   describe('toolbar overflow', () => {
     beforeEach(() => {
       fixture.detectChanges();

@@ -14,6 +14,14 @@ import {
   writeUpdate,
   Y_MESSAGE_PRESENCE,
 } from '@inkweld/presence';
+import { type CanvasLayer, type CanvasObject } from '@models/canvas.model';
+import {
+  CANVAS_CONFIG_META_KEY,
+  type CanvasContents,
+  type CanvasEdit,
+  emptyCanvasContents,
+  isEmptyCanvasEdit,
+} from '@models/canvas-edit';
 import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
@@ -76,6 +84,79 @@ const DEFAULT_RECONNECTION_CONFIG: ReconnectionConfig = {
 };
 
 const PRESENCE_KEEPALIVE_INTERVAL_MS = 30_000;
+
+/** Top-level shared type holding every canvas in the project. */
+const CANVASES_KEY = 'canvases';
+
+/**
+ * Transaction origin for our own canvas writes, so the observer can skip
+ * echoing local edits back to the editor that just made them.
+ */
+const CANVAS_ORIGIN = 'canvas-local';
+
+/**
+ * How long drawing has to pause before the canvas is mirrored back onto its
+ * element as JSON for archives and the media-usage scan.
+ */
+const CANVAS_SNAPSHOT_DELAY_MS = 3000;
+
+/** Read a canvas's shared map into plain objects, in z-order. */
+function readCanvasMap(canvas: Y.Map<unknown>): CanvasContents {
+  const layers = parseJson<CanvasLayer[]>(canvas.get('layers'), []);
+  const objectsMap = canvas.get('objects') as Y.Map<string> | undefined;
+  const order = (canvas.get('order') as Y.Array<string> | undefined)?.toArray();
+
+  if (!objectsMap) return { layers, objects: [] };
+
+  const seen = new Set<string>();
+  const objects: CanvasObject[] = [];
+
+  for (const id of order ?? []) {
+    if (seen.has(id)) continue;
+    const object = parseJson<CanvasObject | null>(objectsMap.get(id), null);
+    if (!object) continue;
+    seen.add(id);
+    objects.push(object);
+  }
+
+  // An object added by a peer whose ordering has not arrived yet still belongs
+  // on the canvas — better at the top than invisible.
+  for (const [id, raw] of objectsMap) {
+    if (seen.has(id)) continue;
+    const object = parseJson<CanvasObject | null>(raw, null);
+    if (object) objects.push(object);
+  }
+
+  return { layers, objects };
+}
+
+function parseJson<T>(raw: unknown, fallback: T): T {
+  if (typeof raw !== 'string') return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+/** Drop every occurrence of `id` from the z-order array. */
+function removeFromOrder(order: Y.Array<string>, id: string): void {
+  for (let i = order.length - 1; i >= 0; i--) {
+    if (order.get(i) === id) order.delete(i, 1);
+  }
+}
+
+/** Replace the z-order wholesale — only used for an explicit restack. */
+function replaceOrder(order: Y.Array<string>, ids: string[]): void {
+  if (
+    order.length === ids.length &&
+    order.toArray().every((id, i) => id === ids[i])
+  ) {
+    return;
+  }
+  order.delete(0, order.length);
+  order.insert(0, ids);
+}
 
 /**
  * Yjs-based implementation of the element sync provider.
@@ -195,6 +276,16 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
   // Flag to skip observer emission during local updates (prevents feedback loop)
   private isUpdatingProjectMeta = false;
+
+  /** One stream per canvas being edited, created on first subscription. */
+  private readonly canvasSubjects = new Map<
+    string,
+    BehaviorSubject<CanvasContents>
+  >();
+
+  /** Canvases whose JSON snapshot is waiting on a pause in the drawing. */
+  private readonly pendingCanvasSnapshots = new Set<string>();
+  private canvasSnapshotTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Public observables
   readonly syncState$: Observable<DocumentSyncState> =
@@ -385,6 +476,15 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
    */
   disconnect(): void {
     this.logger.info('YjsSync', `🔌 Disconnecting from ${this.docId || 'n/a'}`);
+
+    // Mirror any freshly drawn canvas onto its element before the doc goes,
+    // so an archive taken after closing the project still has it.
+    this.flushCanvasSnapshots();
+    // Canvas subjects deliberately survive: they belong to whoever is still
+    // watching a canvas, not to this connection. Completing them here would
+    // leave an open canvas permanently deaf to remote edits, because the
+    // observer only notifies subjects that are still registered and a
+    // completed subject can never emit again.
 
     // Clear any pending reconnection
     if (this.reconnectTimeout) {
@@ -948,6 +1048,159 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.projectMetaSubject.next(updated);
 
     this.logger.debug('YjsSync', 'Project metadata updated in Yjs');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Canvas contents
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Canvases live in their own shared type rather than as a JSON blob on the
+   * owning element, so a stroke is a single small map entry instead of a
+   * rewrite of the project's whole element array — and two people drawing at
+   * the same time keep both sets of strokes.
+   *
+   * Layout: `canvases` → elementId → { layers: json, objects: Map<id, json>,
+   * order: Array<id> }. Objects are stored whole because they are edited
+   * whole; the merge that matters is between *different* objects.
+   */
+  getCanvasContents(elementId: string): CanvasContents | null {
+    const canvas = this.doc
+      ?.getMap<Y.Map<unknown>>(CANVASES_KEY)
+      .get(elementId);
+    return canvas ? readCanvasMap(canvas) : null;
+  }
+
+  canvasContents$(elementId: string): Observable<CanvasContents> {
+    return this.canvasSubject(elementId).asObservable();
+  }
+
+  applyCanvasEdit(elementId: string, edit: CanvasEdit): void {
+    if (!this.doc) {
+      this.logger.warn('YjsSync', 'Cannot edit canvas - not connected');
+      return;
+    }
+    if (isEmptyCanvasEdit(edit)) return;
+
+    this.doc.transact(() => {
+      const canvas = this.ensureCanvasMap(elementId);
+      const objects = canvas.get('objects') as Y.Map<string>;
+      const order = canvas.get('order') as Y.Array<string>;
+
+      if (edit.layers) canvas.set('layers', JSON.stringify(edit.layers));
+
+      for (const id of edit.deletes ?? []) {
+        objects.delete(id);
+        removeFromOrder(order, id);
+      }
+
+      for (const object of edit.upserts ?? []) {
+        const isNew = !objects.has(object.id);
+        objects.set(object.id, JSON.stringify(object));
+        // Appending only new ids is what lets concurrent additions merge:
+        // neither peer has to rewrite the other's ordering.
+        if (isNew && !order.toArray().includes(object.id)) {
+          order.push([object.id]);
+        }
+      }
+
+      if (edit.order) replaceOrder(order, edit.order);
+    }, CANVAS_ORIGIN);
+
+    this.scheduleCanvasSnapshot(elementId);
+  }
+
+  seedCanvasContents(elementId: string, contents: CanvasContents): void {
+    if (!this.doc) return;
+    if (this.doc.getMap<Y.Map<unknown>>(CANVASES_KEY).has(elementId)) return;
+
+    this.applyCanvasEdit(elementId, {
+      layers: contents.layers,
+      upserts: contents.objects,
+      order: contents.objects.map(o => o.id),
+    });
+  }
+
+  /** Get (creating if needed) the subject backing one canvas's stream. */
+  private canvasSubject(elementId: string): BehaviorSubject<CanvasContents> {
+    const existing = this.canvasSubjects.get(elementId);
+    if (existing) return existing;
+
+    const subject = new BehaviorSubject<CanvasContents>(
+      this.getCanvasContents(elementId) ?? emptyCanvasContents()
+    );
+    this.canvasSubjects.set(elementId, subject);
+    return subject;
+  }
+
+  private ensureCanvasMap(elementId: string): Y.Map<unknown> {
+    const canvases = (this.doc as Y.Doc).getMap<Y.Map<unknown>>(CANVASES_KEY);
+    const existing = canvases.get(elementId);
+    if (existing) return existing;
+
+    const canvas = new Y.Map<unknown>();
+    canvases.set(elementId, canvas);
+    canvas.set('layers', '[]');
+    canvas.set('objects', new Y.Map<string>());
+    canvas.set('order', new Y.Array<string>());
+    return canvas;
+  }
+
+  /**
+   * Mirror a canvas back onto its element as JSON, on a delay.
+   *
+   * Nothing reads this while editing — it exists so archives, project
+   * templates and the media-usage scan keep working. Writing it costs an
+   * element rewrite, so it waits for the drawing to stop.
+   */
+  private scheduleCanvasSnapshot(elementId: string): void {
+    this.pendingCanvasSnapshots.add(elementId);
+    if (this.canvasSnapshotTimer !== null) return;
+
+    this.canvasSnapshotTimer = setTimeout(() => {
+      this.canvasSnapshotTimer = null;
+      this.flushCanvasSnapshots();
+    }, CANVAS_SNAPSHOT_DELAY_MS);
+  }
+
+  /** Write every queued canvas snapshot into its element's metadata. */
+  private flushCanvasSnapshots(): void {
+    if (this.canvasSnapshotTimer !== null) {
+      clearTimeout(this.canvasSnapshotTimer);
+      this.canvasSnapshotTimer = null;
+    }
+
+    const pending = [...this.pendingCanvasSnapshots];
+    this.pendingCanvasSnapshots.clear();
+    if (pending.length === 0 || !this.doc) return;
+
+    const elementsArray = this.doc.getArray<Element>('elements');
+    const elements = elementsArray.toArray();
+
+    this.doc.transact(() => {
+      for (const elementId of pending) {
+        const contents = this.getCanvasContents(elementId);
+        if (!contents) continue;
+
+        const index = elements.findIndex(e => e.id === elementId);
+        if (index === -1) continue;
+
+        const serialized = JSON.stringify(contents);
+        const element = elements[index];
+        if (element.metadata?.[CANVAS_CONFIG_META_KEY] === serialized) continue;
+
+        elementsArray.delete(index, 1);
+        elementsArray.insert(index, [
+          {
+            ...element,
+            metadata: {
+              ...element.metadata,
+              [CANVAS_CONFIG_META_KEY]: serialized,
+            },
+          },
+        ]);
+      }
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1540,6 +1793,43 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       );
       this.mediaProjectTagsSubject.next(mediaProjectTags);
     });
+
+    // Canvas observer — one canvas map per element, watched as a whole so a
+    // stroke from another peer lands on exactly the canvas it belongs to.
+    const canvases = this.doc.getMap<Y.Map<unknown>>(CANVASES_KEY);
+    canvases.observeDeep((events, transaction) => {
+      // Our own writes are already reflected in the editor's state.
+      if (transaction.origin === CANVAS_ORIGIN) return;
+
+      const touched = new Set<string>();
+      for (const event of events) {
+        const [elementId] = event.path;
+        if (typeof elementId === 'string') {
+          touched.add(elementId);
+          continue;
+        }
+        // A change to the top-level map itself: added or removed canvases.
+        for (const key of event.changes.keys.keys()) touched.add(key);
+      }
+
+      for (const elementId of touched) {
+        const subject = this.canvasSubjects.get(elementId);
+        if (!subject) continue;
+        subject.next(
+          this.getCanvasContents(elementId) ?? emptyCanvasContents()
+        );
+      }
+    });
+
+    // A canvas that stayed open across a reconnect missed every change made
+    // while the socket was down, and no observer fires for state that arrived
+    // with the document. Push the current contents at each one.
+    for (const [elementId, subject] of this.canvasSubjects) {
+      // Only when the document actually holds the canvas: pushing an empty
+      // one at a canvas still waiting for its first sync would blank it.
+      const contents = this.getCanvasContents(elementId);
+      if (contents) subject.next(contents);
+    }
 
     // Project metadata observer
     const metaMap = this.doc.getMap<string>('projectMeta');

@@ -13,7 +13,7 @@ import {
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
-import { BehaviorSubject, of, Subject } from 'rxjs';
+import { BehaviorSubject, EMPTY, of, Subject } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -135,6 +135,10 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
       mediaTagsSubject.next(tags);
     }),
     updateMediaProjectTags: vi.fn(),
+    getCanvasContents: vi.fn(() => null),
+    canvasContents$: vi.fn(() => EMPTY),
+    applyCanvasEdit: vi.fn(),
+    seedCanvasContents: vi.fn(),
     updateProjectMeta: vi.fn((meta: Partial<ProjectMeta>) => {
       const current = projectMetaSubject.getValue();
       projectMetaSubject.next({

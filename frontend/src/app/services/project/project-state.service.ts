@@ -9,10 +9,17 @@ import {
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { type Element, ElementType, type Project } from '@inkweld/index';
+import { type CanvasContents, type CanvasEdit } from '@models/canvas-edit';
 import { type ProjectElement } from '@models/project-element';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
 import { nanoid } from 'nanoid';
-import { type Subscription } from 'rxjs';
+import {
+  BehaviorSubject,
+  EMPTY,
+  type Observable,
+  type Subscription,
+  switchMap,
+} from 'rxjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type PublishPlan } from '../../models/publish-plan';
@@ -90,7 +97,24 @@ export class ProjectStateService implements OnDestroy {
   private readonly snackBar = inject(MatSnackBar);
 
   // Current sync provider (set when project is loaded)
-  private syncProvider: IElementSyncProvider | null = null;
+  private syncProviderValue: IElementSyncProvider | null = null;
+
+  /**
+   * The active provider, published so streams can pick it up when it arrives.
+   * A canvas tab can be created before the project finishes connecting, and a
+   * stream bound to a not-yet-existent provider would never emit again.
+   */
+  private readonly syncProviderSubject =
+    new BehaviorSubject<IElementSyncProvider | null>(null);
+
+  private get syncProvider(): IElementSyncProvider | null {
+    return this.syncProviderValue;
+  }
+
+  private set syncProvider(provider: IElementSyncProvider | null) {
+    this.syncProviderValue = provider;
+    this.syncProviderSubject.next(provider);
+  }
   private providerSubscriptions: Subscription[] = [];
 
   // Monotonic counter bumped by disconnectSync() and captured per loadProject
@@ -785,6 +809,44 @@ export class ProjectStateService implements OnDestroy {
 
     this.error.set(errorMessage);
     this.docSyncState.set(DocumentSyncState.Unavailable);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Canvas Operations
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Read a canvas's synced contents, or `null` when the provider has none yet.
+   * A canvas is stored per object rather than as a blob on its element, so
+   * concurrent drawing merges instead of overwriting.
+   */
+  getCanvasContents(elementId: string): CanvasContents | null {
+    return this.syncProvider?.getCanvasContents(elementId) ?? null;
+  }
+
+  /**
+   * Stream of remote changes to a single canvas. Follows the provider, so a
+   * canvas opened while the project is still connecting starts receiving
+   * updates as soon as it does.
+   */
+  canvasContents$(elementId: string): Observable<CanvasContents> {
+    return this.syncProviderSubject.pipe(
+      switchMap(provider => provider?.canvasContents$(elementId) ?? EMPTY)
+    );
+  }
+
+  /** Apply a granular canvas change (added, changed and removed objects). */
+  applyCanvasEdit(elementId: string, edit: CanvasEdit): void {
+    if (!this.syncProvider) {
+      this.logger.warn('ProjectState', 'Cannot edit canvas - no sync provider');
+      return;
+    }
+    this.syncProvider.applyCanvasEdit(elementId, edit);
+  }
+
+  /** Seed a canvas that has no synced contents yet (e.g. from an archive). */
+  seedCanvasContents(elementId: string, contents: CanvasContents): void {
+    this.syncProvider?.seedCanvasContents(elementId, contents);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
