@@ -341,6 +341,7 @@ export type CanvasTool =
   | 'eraser'
   | 'line'
   | 'shape'
+  | 'polygon'
   | 'text'
   | 'image';
 
@@ -353,6 +354,7 @@ const STAGE_CAPTURE_TOOLS = new Set<CanvasTool>([
   'eraser',
   'line',
   'shape',
+  'polygon',
   'rectSelect',
   'pin',
   'text',

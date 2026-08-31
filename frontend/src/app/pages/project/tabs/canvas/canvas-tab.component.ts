@@ -728,6 +728,13 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     }
     if (tool === 'pin') return this.placePin();
     if (tool === 'text') return this.placeText();
+    if (tool === 'polygon') {
+      this.canvasDrawing.addPolygonVertex(
+        this.toolSettings(),
+        this.drawingHandlers
+      );
+      return;
+    }
     if (tool === 'shape') this.placeDefaultShape();
   }
 
@@ -787,6 +794,13 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
   /** Position the brush ring, in container pixels, or hide it. */
   private moveBrushCursor(position: { x: number; y: number } | null): void {
+    // The polygon pen rubber-bands its pending segment to the cursor.
+    if (this.activeTool() === 'polygon') {
+      this.canvasDrawing.updatePolygonCursor(
+        this.canvasRenderer.getCanvasPointerPosition()
+      );
+    }
+
     const el = this.brushCursor()?.nativeElement;
     if (!el) return;
 

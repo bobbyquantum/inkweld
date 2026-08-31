@@ -755,6 +755,21 @@ test.describe('Canvas Tab', () => {
       await page.getByTestId('canvas-mode-toggle').click();
     });
 
+    await test.step('trace a closed loop with the region pen', async () => {
+      await page.getByTestId('polygon-tool').click();
+      const stage = page.getByTestId('canvas-stage');
+      await stage.click({ position: { x: 500, y: 120 } });
+      await stage.click({ position: { x: 620, y: 140 } });
+      await stage.click({ position: { x: 600, y: 240 } });
+      await stage.click({ position: { x: 480, y: 220 } });
+      // Double-click closes the loop.
+      await stage.dblclick({ position: { x: 480, y: 220 } });
+
+      await expect(sidebar.getByText('polygon', { exact: true })).toBeVisible();
+
+      await toolbar.getByRole('button', { name: /Select \(V\)/i }).click();
+    });
+
     await test.step('unlink the region via the context menu', async () => {
       await page
         .getByTestId('canvas-stage')

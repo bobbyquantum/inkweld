@@ -36,6 +36,7 @@
     "eraser": "Eraser (E)",
     "line": "Line (L)",
     "shape": "Shape (S)",
+    "polygon": "Region pen (G) — click points, close the loop",
     "editColors": "Edit object colors",
     "strokeColor": "Stroke color",
     "fillColor": "Fill color",

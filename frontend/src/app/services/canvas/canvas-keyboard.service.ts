@@ -49,6 +49,7 @@ export class CanvasKeyboardService {
     l: 'line',
     s: 'shape',
     t: 'text',
+    g: 'polygon',
   };
 
   /** Attach the listeners. Subsequent calls are no-ops. */

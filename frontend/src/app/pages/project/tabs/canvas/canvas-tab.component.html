@@ -609,6 +609,16 @@
               [matMenuTriggerFor]="shapeMenu">
               <mat-icon>{{ shapeIcon() }}</mat-icon>
             </button>
+            <button
+              mat-icon-button
+              data-testid="polygon-tool"
+              [class.active]="activeTool() === 'polygon'"
+              [disabled]="!hasActiveLayer()"
+              [matTooltip]="'canvas.toolbar.polygon' | transloco"
+              [attr.aria-label]="'canvas.toolbar.polygon' | transloco"
+              (click)="onToolChange('polygon')">
+              <mat-icon fontSet="material-symbols-outlined">pentagon</mat-icon>
+            </button>
           </div>
 
           <div
@@ -1368,6 +1378,13 @@
         [matMenuTriggerFor]="shapeMenu">
         <mat-icon>{{ shapeIcon() }}</mat-icon>
         <span>{{ 'canvas.toolbar.shape' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        (click)="onToolChange('polygon')">
+        <mat-icon fontSet="material-symbols-outlined">pentagon</mat-icon>
+        <span>{{ 'canvas.toolbar.polygon' | transloco }}</span>
       </button>
       <mat-divider></mat-divider>
     }
