@@ -558,4 +558,120 @@ test.describe('Canvas Tab', () => {
       ).toBeVisible();
     });
   });
+
+  test('interactive maps: map preset, linked pins, and view mode', async ({
+    localPageWithProject: page,
+  }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await page.getByTestId('project-card').first().click();
+    await page.waitForURL(/\/.+\/.+/);
+
+    await test.step('create a document to link a pin to', async () => {
+      await page.getByTestId('create-new-element').click();
+      await page.getByTestId('element-type-item').click();
+      const nameInput = page.getByTestId('element-name-input');
+      await nameInput.waitFor({ state: 'visible' });
+      await nameInput.fill('Pin Target');
+      await page.getByTestId('create-element-button').click();
+      await expect(page.getByTestId('element-Pin Target')).toBeVisible();
+    });
+
+    await test.step('create a map via the Map preset', async () => {
+      await page.getByTestId('create-new-element').click();
+      await page.getByTestId('element-type-map').click();
+      const nameInput = page.getByTestId('element-name-input');
+      await nameInput.waitFor({ state: 'visible' });
+      await nameInput.fill('World Map');
+      await page.getByTestId('create-element-button').click();
+      await expect(page.getByTestId('element-World Map')).toBeVisible();
+      await expect(page.getByTestId('canvas-container')).toBeVisible();
+    });
+
+    const toolbar = page.getByTestId('canvas-toolbar');
+    const sidebar = page.getByTestId('canvas-sidebar');
+
+    await test.step('map preset seeds a Base map layer', async () => {
+      await expect(
+        sidebar.getByTestId('layer-name').filter({ hasText: 'Base map' })
+      ).toBeVisible();
+    });
+
+    await test.step('layer menu offers Add background image', async () => {
+      await sidebar
+        .getByTestId('layer-item')
+        .first()
+        .getByRole('button', { name: /more options/i })
+        .click();
+      await expect(page.getByTestId('layer-add-background')).toBeVisible();
+      await page.keyboard.press('Escape');
+    });
+
+    await test.step('place a pin linked to the document', async () => {
+      await toolbar.getByRole('button', { name: /Place pin/i }).click();
+      await page
+        .getByTestId('canvas-stage')
+        .click({ position: { x: 400, y: 300 } });
+
+      const labelInput = page.getByTestId('canvas-pin-label-input');
+      await labelInput.waitFor({ state: 'visible' });
+      await labelInput.clear();
+      await labelInput.fill('Target Pin');
+
+      await page.getByTestId('canvas-pin-link-element').click();
+      await page
+        .getByTestId('element-picker-item')
+        .filter({ hasText: 'Pin Target' })
+        .click();
+      await page.getByTestId('element-picker-confirm').click();
+      await page.getByTestId('canvas-pin-confirm').click();
+
+      await expect(
+        sidebar.getByText('Target Pin', { exact: true })
+      ).toBeVisible();
+    });
+
+    await test.step('double-click on the pin opens the linked document', async () => {
+      await toolbar.getByRole('button', { name: /Select \(V\)/i }).click();
+      await page
+        .getByTestId('canvas-stage')
+        .dblclick({ position: { x: 400, y: 300 } });
+      await page.waitForURL(/document\/.+/);
+    });
+
+    await test.step('view mode hides editing tools', async () => {
+      await page.getByTestId('element-World Map').click();
+      await expect(page.getByTestId('canvas-container')).toBeVisible();
+
+      await page.getByTestId('canvas-mode-toggle').click();
+      await expect(
+        toolbar.locator('[data-toolbar-group="drawing"]')
+      ).toHaveCount(0);
+      await expect(
+        toolbar.locator('[data-toolbar-group="creation"]')
+      ).toHaveCount(0);
+      await expect(sidebar.getByTestId('add-layer-button')).toHaveCount(0);
+      // Zoom stays available for navigating the map.
+      await expect(
+        toolbar.locator('[data-toolbar-group="zoom"]')
+      ).toBeVisible();
+    });
+
+    await test.step('view mode: single click on the pin opens the document', async () => {
+      await page
+        .getByTestId('canvas-stage')
+        .click({ position: { x: 400, y: 300 } });
+      await page.waitForURL(/document\/.+/);
+    });
+
+    await test.step('leaving view mode restores editing tools', async () => {
+      await page.getByTestId('element-World Map').click();
+      await expect(page.getByTestId('canvas-container')).toBeVisible();
+
+      await page.getByTestId('canvas-mode-toggle').click();
+      await expect(
+        toolbar.locator('[data-toolbar-group="drawing"]')
+      ).toBeVisible();
+      await expect(sidebar.getByTestId('add-layer-button')).toBeVisible();
+    });
+  });
 });
