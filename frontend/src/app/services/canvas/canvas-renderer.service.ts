@@ -19,9 +19,13 @@ import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import Konva from 'konva';
 
+import { buildInkOutline } from '../../pages/project/tabs/canvas/ink-stroke';
+
 export interface CanvasNodeHandlers {
   onSelect: (objId: string) => void;
   onSelectKonvaNode: (node: Konva.Node) => void;
+  /** Fired once per node when a drag or transform gesture begins. */
+  onGestureStart?: () => void;
   onDragEnd: (objId: string, x: number, y: number) => void;
   onTransformEnd: (
     objId: string,
@@ -46,8 +50,10 @@ export class CanvasRendererService {
   private readonly _konvaNodes = new Map<string, Konva.Node>();
   private _transformer: Konva.Transformer | null = null;
   private _selectionLayer: Konva.Layer | null = null;
-  private readonly _objectRenderSignatures = new Map<string, string>();
+  private _previewLayer: Konva.Layer | null = null;
+  private readonly _objectStructures = new Map<string, string>();
   private _resizeObserver: ResizeObserver | null = null;
+  private _contentInteractive = true;
 
   get stage(): Konva.Stage | null {
     return this._stage;
@@ -63,6 +69,27 @@ export class CanvasRendererService {
   }
   get selectionLayer(): Konva.Layer | null {
     return this._selectionLayer;
+  }
+  /**
+   * Scratch layer for in-progress strokes. Drawing here keeps every pointer
+   * frame off the content layers, so a stroke over a large map doesn't
+   * re-rasterize the map on every sample.
+   */
+  get previewLayer(): Konva.Layer | null {
+    return this._previewLayer;
+  }
+
+  /**
+   * Whether objects respond to the pointer. Turned off while a creation tool
+   * is active so strokes land on the stage instead of selecting or dragging
+   * whatever happens to be underneath them.
+   */
+  setContentInteractive(interactive: boolean): void {
+    if (this._contentInteractive === interactive) return;
+    this._contentInteractive = interactive;
+    for (const kLayer of this._konvaLayers.values()) {
+      kLayer.listening(interactive && kLayer.getAttr('inkLocked') !== true);
+    }
   }
 
   initStage(
@@ -82,6 +109,7 @@ export class CanvasRendererService {
       draggable: true,
     });
 
+    this._previewLayer = new Konva.Layer({ listening: false });
     this._selectionLayer = new Konva.Layer();
     this._transformer = new Konva.Transformer({
       rotateEnabled: true,
@@ -101,6 +129,7 @@ export class CanvasRendererService {
     this.buildKonvaLayers(configLayers);
     this.buildKonvaObjects(configObjects, handlers);
 
+    this._stage.add(this._previewLayer);
     this._stage.add(this._selectionLayer);
 
     let zoomLevel = 1;
@@ -132,8 +161,9 @@ export class CanvasRendererService {
         id: layerDef.id,
         visible: layerDef.visible,
         opacity: layerDef.opacity,
-        listening: !layerDef.locked,
+        listening: this._contentInteractive && !layerDef.locked,
       });
+      kLayer.setAttr('inkLocked', layerDef.locked);
       this._konvaLayers.set(layerDef.id, kLayer);
       this._stage.add(kLayer);
     }
@@ -150,6 +180,10 @@ export class CanvasRendererService {
       const node = this.createKonvaNode(obj, handlers);
       if (node) {
         this._konvaNodes.set(obj.id, node);
+        this._objectStructures.set(
+          obj.id,
+          CanvasRendererService.getObjectStructure(obj)
+        );
         kLayer.add(node);
       }
     }
@@ -158,6 +192,15 @@ export class CanvasRendererService {
     }
   }
 
+  /**
+   * Reconcile the Konva scene with the config, touching only what changed.
+   *
+   * Rebuilding the whole stage on every edit is what made drawing feel heavy:
+   * a single stroke destroyed every node, and images fell back to their grey
+   * placeholder until they had re-decoded. Nodes now survive edits; only
+   * objects whose *structure* changed (a different shape type, a new image
+   * source, ink switching between outlined and stroked) get replaced.
+   */
   syncKonvaFromConfig(
     layers: CanvasLayer[],
     objects: CanvasObject[],
@@ -166,60 +209,178 @@ export class CanvasRendererService {
   ): void {
     if (!this._stage) return;
 
-    for (const layerDef of layers) {
-      const kLayer = this._konvaLayers.get(layerDef.id);
-      if (kLayer) {
-        kLayer.visible(layerDef.visible);
-        kLayer.opacity(layerDef.opacity);
-        kLayer.listening(!layerDef.locked);
-      }
+    this.syncLayers(layers);
+    this.syncObjects(objects, handlers);
+    this.applyObjectZOrder(objects);
+
+    this._previewLayer?.moveToTop();
+    this._selectionLayer?.moveToTop();
+
+    this.reattachTransformer(selectedObjectId, handlers);
+
+    for (const kLayer of this._konvaLayers.values()) {
+      kLayer.batchDraw();
     }
+  }
 
-    const configLayerIds = new Set(layers.map(l => l.id));
-    const existingLayerIds = new Set(this._konvaLayers.keys());
-    const configObjectIds = new Set(objects.map(o => o.id));
-    const existingObjectIds = new Set(this._konvaNodes.keys());
+  /** Create, update and destroy Konva layers so they mirror the config. */
+  private syncLayers(layers: CanvasLayer[]): void {
+    if (!this._stage) return;
 
-    const layersChanged =
-      configLayerIds.size !== existingLayerIds.size ||
-      [...configLayerIds].some(id => !existingLayerIds.has(id));
-    const objectsChanged =
-      configObjectIds.size !== existingObjectIds.size ||
-      [...configObjectIds].some(id => !existingObjectIds.has(id));
+    const sorted = [...layers].sort((a, b) => a.order - b.order);
+    const wanted = new Set(sorted.map(l => l.id));
 
-    const renderChanged = objects.some(obj => {
-      const prev = this._objectRenderSignatures.get(obj.id);
-      return prev !== CanvasRendererService.getObjectRenderSignature(obj);
-    });
-
-    if (layersChanged || objectsChanged || renderChanged) {
-      this.rebuildAllKonvaNodes(layers, objects, selectedObjectId, handlers);
-    } else {
-      for (const obj of objects) {
-        const node = this._konvaNodes.get(obj.id);
-        if (node) {
-          node.position({ x: obj.x, y: obj.y });
-          node.rotation(obj.rotation);
-          node.scale({ x: obj.scaleX, y: obj.scaleY });
-          node.visible(obj.visible);
-          node.draggable(!obj.locked);
+    for (const [id, kLayer] of this._konvaLayers) {
+      if (wanted.has(id)) continue;
+      for (const [objId, node] of this._konvaNodes) {
+        if (node.getLayer() === kLayer) {
+          this.detachFromTransformer(node);
+          this._konvaNodes.delete(objId);
+          this._objectStructures.delete(objId);
         }
       }
+      kLayer.destroy();
+      this._konvaLayers.delete(id);
+    }
 
-      for (const kLayer of this._konvaLayers.values()) {
-        kLayer.batchDraw();
+    for (const layerDef of sorted) {
+      let kLayer = this._konvaLayers.get(layerDef.id);
+      if (!kLayer) {
+        kLayer = new Konva.Layer({ id: layerDef.id });
+        this._konvaLayers.set(layerDef.id, kLayer);
+        this._stage.add(kLayer);
       }
+      kLayer.visible(layerDef.visible);
+      kLayer.opacity(layerDef.opacity);
+      kLayer.setAttr('inkLocked', layerDef.locked);
+      kLayer.listening(this._contentInteractive && !layerDef.locked);
+      // Bottom-to-top ordering; preview and selection are lifted afterwards.
+      kLayer.moveToTop();
     }
+  }
 
-    this._objectRenderSignatures.clear();
+  /** Add, patch, move and drop object nodes to match the config. */
+  private syncObjects(
+    objects: CanvasObject[],
+    handlers: CanvasNodeHandlers
+  ): void {
+    const wanted = new Set<string>();
+
     for (const obj of objects) {
-      this._objectRenderSignatures.set(
-        obj.id,
-        CanvasRendererService.getObjectRenderSignature(obj)
-      );
+      wanted.add(obj.id);
+      const kLayer = this._konvaLayers.get(obj.layerId);
+      if (kLayer) this.syncObject(obj, kLayer, handlers);
     }
 
-    this._selectionLayer?.moveToTop();
+    for (const [id, node] of this._konvaNodes) {
+      if (wanted.has(id)) continue;
+      this.detachFromTransformer(node);
+      node.destroy();
+      this._konvaNodes.delete(id);
+      this._objectStructures.delete(id);
+    }
+  }
+
+  /**
+   * Bring one object's node up to date: patched in place where possible, and
+   * rebuilt only when its structure changed (a different shape variant, a new
+   * image source, ink switching between outlined and stroked).
+   */
+  private syncObject(
+    obj: CanvasObject,
+    kLayer: Konva.Layer,
+    handlers: CanvasNodeHandlers
+  ): void {
+    const structure = CanvasRendererService.getObjectStructure(obj);
+    let node = this._konvaNodes.get(obj.id) ?? null;
+
+    if (node && this._objectStructures.get(obj.id) !== structure) {
+      this.detachFromTransformer(node);
+      node.destroy();
+      this._konvaNodes.delete(obj.id);
+      node = null;
+    }
+
+    if (!node) {
+      const created = this.createKonvaNode(obj, handlers);
+      if (!created) return;
+      this._konvaNodes.set(obj.id, created);
+      this._objectStructures.set(obj.id, structure);
+      kLayer.add(created);
+      return;
+    }
+
+    if (node.getLayer() !== kLayer) node.moveTo(kLayer);
+    CanvasRendererService.applyCommonAttrs(node, obj);
+    CanvasRendererService.applyStyle(node, obj);
+  }
+
+  /**
+   * Drop a node from the transformer before destroying it. A transformer that
+   * still points at a destroyed node throws the next time it measures itself —
+   * which is exactly what happens when a multi-selected object is deleted, or
+   * removed by another collaborator.
+   */
+  private detachFromTransformer(node: Konva.Node): void {
+    const transformer = this._transformer;
+    if (!transformer) return;
+
+    const attached = transformer.nodes();
+    if (!attached.includes(node)) return;
+    transformer.nodes(attached.filter(n => n !== node));
+  }
+
+  /**
+   * Objects render in array order within their layer — mirror that in Konva.
+   *
+   * Restacking is only done when the order actually differs: `moveToTop` is a
+   * splice, so blindly restacking every node on every sync would be quadratic
+   * on a busy canvas. Appends (the common case) are already in order.
+   */
+  private applyObjectZOrder(objects: CanvasObject[]): void {
+    const desiredByLayer = new Map<Konva.Layer, Konva.Node[]>();
+
+    for (const obj of objects) {
+      const node = this._konvaNodes.get(obj.id);
+      const layer = node?.getLayer();
+      if (!node || !layer) continue;
+      const nodes = desiredByLayer.get(layer);
+      if (nodes) nodes.push(node);
+      else desiredByLayer.set(layer, [node]);
+    }
+
+    for (const [layer, desired] of desiredByLayer) {
+      const current = layer.getChildren();
+      const alreadyOrdered =
+        current.length === desired.length &&
+        desired.every((node, i) => current[i] === node);
+      if (alreadyOrdered) continue;
+      for (const node of desired) node.moveToTop();
+    }
+  }
+
+  /** Keep the transformer bound to the selected object across replacements. */
+  private reattachTransformer(
+    selectedObjectId: string | null,
+    handlers: CanvasNodeHandlers
+  ): void {
+    const transformer = this._transformer;
+    if (!transformer) return;
+
+    if (!selectedObjectId) return;
+
+    const node = this._konvaNodes.get(selectedObjectId);
+    if (!node) {
+      if (transformer.nodes().length > 0) {
+        transformer.nodes([]);
+        this._selectionLayer?.batchDraw();
+      }
+      return;
+    }
+
+    if (!transformer.nodes().includes(node)) {
+      handlers.onSelectKonvaNode(node);
+    }
   }
 
   rebuildAllKonvaNodes(
@@ -233,17 +394,13 @@ export class CanvasRendererService {
     }
     this._konvaLayers.clear();
     this._konvaNodes.clear();
-    this._objectRenderSignatures.clear();
+    this._objectStructures.clear();
 
     this.buildKonvaLayers(layers);
     this.buildKonvaObjects(objects, handlers);
 
-    for (const obj of objects) {
-      this._objectRenderSignatures.set(
-        obj.id,
-        CanvasRendererService.getObjectRenderSignature(obj)
-      );
-    }
+    this._previewLayer?.moveToTop();
+    this._selectionLayer?.moveToTop();
 
     if (selectedObjectId) {
       const selectedNode = this._konvaNodes.get(selectedObjectId);
@@ -256,67 +413,106 @@ export class CanvasRendererService {
     }
   }
 
-  static getObjectRenderSignature(obj: CanvasObject): string {
+  /**
+   * Identifies the *kind* of Konva node an object needs. When this changes the
+   * node has to be rebuilt; everything else is patched in place.
+   */
+  static getObjectStructure(obj: CanvasObject): string {
     switch (obj.type) {
       case 'image':
-        return JSON.stringify({
-          type: obj.type,
-          layerId: obj.layerId,
-          src: obj.src,
-          width: obj.width,
-          height: obj.height,
-        });
-      case 'text':
-        return JSON.stringify({
-          type: obj.type,
-          layerId: obj.layerId,
-          text: obj.text,
-          fontSize: obj.fontSize,
-          fontFamily: obj.fontFamily,
-          fontStyle: obj.fontStyle,
-          fill: obj.fill,
-          width: obj.width,
-          align: obj.align,
-        });
-      case 'path':
-        return JSON.stringify({
-          type: obj.type,
-          layerId: obj.layerId,
-          points: obj.points,
-          stroke: obj.stroke,
-          strokeWidth: obj.strokeWidth,
-          closed: obj.closed,
-          fill: obj.fill,
-          tension: obj.tension,
-        });
+        return `image:${obj.src}`;
       case 'shape':
-        return JSON.stringify({
-          type: obj.type,
-          layerId: obj.layerId,
-          shapeType: obj.shapeType,
-          width: obj.width,
-          height: obj.height,
-          points: obj.points,
-          fill: obj.fill,
-          stroke: obj.stroke,
-          strokeWidth: obj.strokeWidth,
-          cornerRadius: obj.cornerRadius,
-          dash: obj.dash,
-        });
-      case 'pin':
-        return JSON.stringify({
-          type: obj.type,
-          layerId: obj.layerId,
-          label: obj.label,
-          icon: obj.icon,
-          color: obj.color,
-          linkedElementId: obj.linkedElementId,
-          relationshipId: obj.relationshipId,
-          note: obj.note,
-        });
+        return `shape:${obj.shapeType}`;
+      case 'path':
+        return `path:${obj.pressures?.length ? 'ink' : 'line'}`;
       default:
-        return JSON.stringify(obj);
+        return obj.type;
     }
+  }
+
+  /** Position, transform and visibility — cheap to apply on every sync. */
+  static applyCommonAttrs(node: Konva.Node, obj: CanvasObject): void {
+    node.position({ x: obj.x, y: obj.y });
+    node.rotation(obj.rotation);
+    node.scale({ x: obj.scaleX, y: obj.scaleY });
+    node.visible(obj.visible);
+    node.opacity(obj.opacity ?? 1);
+    node.draggable(!obj.locked);
+  }
+
+  /** Patch the type-specific appearance of an existing node. */
+  static applyStyle(node: Konva.Node, obj: CanvasObject): void {
+    switch (obj.type) {
+      case 'path':
+        CanvasRendererService.applyPathStyle(node as Konva.Line, obj);
+        break;
+      case 'shape':
+        CanvasRendererService.applyShapeStyle(node as Konva.Shape, obj);
+        break;
+      case 'text':
+        CanvasRendererService.applyTextStyle(node as Konva.Text, obj);
+        break;
+      case 'image':
+        CanvasRendererService.applyImageStyle(node as Konva.Group, obj);
+        break;
+      case 'pin':
+        CanvasRendererService.applyPinStyle(node as Konva.Group, obj);
+        break;
+    }
+  }
+
+  private static applyPathStyle(node: Konva.Line, obj: CanvasPath): void {
+    const attrs = CanvasRendererService.pathAttrs(obj);
+    node.points(attrs.points);
+    node.strokeWidth(attrs.strokeWidth);
+    node.closed(attrs.closed);
+    node.tension(attrs.tension);
+    node.hitStrokeWidth(attrs.hitStrokeWidth);
+    node.setAttr('stroke', attrs.stroke);
+    node.setAttr('fill', attrs.fill);
+  }
+
+  private static applyShapeStyle(node: Konva.Shape, obj: CanvasShape): void {
+    node.stroke(obj.stroke);
+    node.strokeWidth(obj.strokeWidth);
+    node.setAttr('fill', obj.fill);
+    node.dash(obj.dash ?? []);
+
+    if (node instanceof Konva.Rect) {
+      node.width(obj.width);
+      node.height(obj.height);
+      node.cornerRadius(obj.cornerRadius ?? 0);
+    } else if (node instanceof Konva.Ellipse) {
+      node.radiusX(obj.width / 2);
+      node.radiusY(obj.height / 2);
+    } else if (node instanceof Konva.Line) {
+      node.points(obj.points ?? [0, 0, obj.width, 0]);
+      if (node instanceof Konva.Arrow) node.fill(obj.stroke);
+    }
+  }
+
+  private static applyTextStyle(node: Konva.Text, obj: CanvasText): void {
+    node.text(obj.text);
+    node.fontSize(obj.fontSize);
+    node.fontFamily(obj.fontFamily);
+    node.fontStyle(obj.fontStyle);
+    node.fill(obj.fill);
+    node.setAttr('width', obj.width || undefined);
+    node.align(obj.align);
+  }
+
+  private static applyImageStyle(node: Konva.Group, obj: CanvasImage): void {
+    for (const child of node.getChildren()) {
+      if (child instanceof Konva.Image || child instanceof Konva.Rect) {
+        child.width(obj.width);
+        child.height(obj.height);
+      }
+    }
+  }
+
+  private static applyPinStyle(node: Konva.Group, obj: CanvasPin): void {
+    node.findOne<Konva.Circle>('.pinMarker')?.fill(obj.color);
+    CanvasRendererService.updatePinLinkIndicator(node, !!obj.linkedElementId);
   }
 
   createKonvaNode(
@@ -331,6 +527,7 @@ export class CanvasRendererService {
       scaleX: obj.scaleX,
       scaleY: obj.scaleY,
       visible: obj.visible,
+      opacity: obj.opacity ?? 1,
       draggable: !obj.locked,
     };
 
@@ -365,6 +562,10 @@ export class CanvasRendererService {
       n.on('click tap', () => {
         handlers.onSelect(obj.id);
         handlers.onSelectKonvaNode(n);
+      });
+
+      n.on('dragstart transformstart', () => {
+        handlers.onGestureStart?.();
       });
 
       n.on('dragend', () => {
@@ -465,17 +666,54 @@ export class CanvasRendererService {
     return textNode;
   }
 
-  static createPathNode(obj: CanvasPath, attrs: Konva.NodeConfig): Konva.Line {
-    return new Konva.Line({
-      ...attrs,
+  /**
+   * Resolve how a path should be drawn.
+   *
+   * Pressure-modulated ink is stored as a centreline plus per-point width
+   * factors and rendered as a filled outline, because a Konva line can only
+   * have one width. Everything else stays a plain stroked polyline.
+   */
+  static pathAttrs(obj: CanvasPath): {
+    points: number[];
+    stroke: string | undefined;
+    strokeWidth: number;
+    closed: boolean;
+    fill: string | undefined;
+    tension: number;
+    hitStrokeWidth: number;
+  } {
+    if (obj.pressures?.length) {
+      return {
+        points: buildInkOutline(obj.points, obj.pressures, obj.strokeWidth),
+        stroke: undefined,
+        strokeWidth: 0,
+        closed: true,
+        fill: obj.stroke,
+        tension: 0,
+        hitStrokeWidth: 0,
+      };
+    }
+
+    return {
       points: obj.points,
       stroke: obj.stroke,
       strokeWidth: obj.strokeWidth,
       closed: obj.closed,
       fill: obj.closed ? obj.fill : undefined,
       tension: obj.tension,
+      // Thin strokes are otherwise almost impossible to click.
+      hitStrokeWidth: Math.max(obj.strokeWidth, 12),
+    };
+  }
+
+  static createPathNode(obj: CanvasPath, attrs: Konva.NodeConfig): Konva.Line {
+    return new Konva.Line({
+      ...attrs,
+      ...CanvasRendererService.pathAttrs(obj),
       lineCap: 'round',
       lineJoin: 'round',
+      perfectDrawEnabled: false,
+      shadowForStrokeEnabled: false,
     });
   }
 
@@ -543,6 +781,7 @@ export class CanvasRendererService {
 
     const pinSize = 24;
     const marker = new Konva.Circle({
+      name: 'pinMarker',
       radius: pinSize / 2,
       fill: obj.color,
       stroke: '#fff',
@@ -625,8 +864,11 @@ export class CanvasRendererService {
     }
     this._konvaLayers.clear();
     this._konvaNodes.clear();
+    this._objectStructures.clear();
     this._transformer = null;
     this._selectionLayer = null;
+    this._previewLayer = null;
+    this._contentInteractive = true;
   }
 
   async resolveImageSrc(src: string): Promise<string> {

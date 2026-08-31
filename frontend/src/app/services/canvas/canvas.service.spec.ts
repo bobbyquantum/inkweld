@@ -1,6 +1,13 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
+import {
+  applyCanvasEdit,
+  type CanvasContents,
+  type CanvasEdit,
+  emptyCanvasContents,
+} from '@models/canvas-edit';
+import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -74,6 +81,15 @@ function makePinObject(overrides: Partial<CanvasPin> = {}): CanvasPin {
   };
 }
 
+/** Find a localStorage key by substring (keys are context-prefixed). */
+function findStorageKey(fragment: string): string | undefined {
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.includes(fragment)) return key;
+  }
+  return undefined;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Tests
 // ─────────────────────────────────────────────────────────────────────────────
@@ -82,10 +98,43 @@ describe('CanvasService', () => {
   let service: CanvasService;
   const mockElements = signal<Element[]>([]);
 
+  /**
+   * Stand-in for the sync provider's canvas store: keeps contents per element
+   * and exposes a stream so remote edits can be simulated.
+   */
+  const canvasStore = new Map<string, CanvasContents>();
+  const canvasStreams = new Map<string, Subject<CanvasContents>>();
+
+  function canvasStream(elementId: string): Subject<CanvasContents> {
+    const existing = canvasStreams.get(elementId);
+    if (existing) return existing;
+    const subject = new Subject<CanvasContents>();
+    canvasStreams.set(elementId, subject);
+    return subject;
+  }
+
   const mockProjectState = {
     elements: mockElements,
     updateElementMetadata: vi.fn(),
     project: vi.fn(() => null),
+    getCanvasContents: vi.fn(
+      (elementId: string) => canvasStore.get(elementId) ?? null
+    ),
+    canvasContents$: vi.fn((elementId: string) =>
+      canvasStream(elementId).asObservable()
+    ),
+    applyCanvasEdit: vi.fn((elementId: string, edit: CanvasEdit) => {
+      canvasStore.set(
+        elementId,
+        applyCanvasEdit(
+          canvasStore.get(elementId) ?? emptyCanvasContents(),
+          edit
+        )
+      );
+    }),
+    seedCanvasContents: vi.fn((elementId: string, contents: CanvasContents) => {
+      if (!canvasStore.has(elementId)) canvasStore.set(elementId, contents);
+    }),
   };
 
   const mockLogger = {
@@ -107,6 +156,8 @@ describe('CanvasService', () => {
 
     service = TestBed.inject(CanvasService);
     mockElements.set([]);
+    canvasStore.clear();
+    canvasStreams.clear();
     vi.clearAllMocks();
     localStorage.clear();
   });
@@ -217,15 +268,13 @@ describe('CanvasService', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('saveConfig', () => {
-    it('should persist config to element metadata', () => {
+    it('should send the change to the sync provider', () => {
       const config = createDefaultCanvasConfig('canvas-1');
       service.saveConfig(config);
 
-      expect(mockProjectState.updateElementMetadata).toHaveBeenCalledWith(
+      expect(mockProjectState.applyCanvasEdit).toHaveBeenCalledWith(
         'canvas-1',
-        expect.objectContaining({
-          canvasConfig: expect.any(String),
-        })
+        expect.objectContaining({ layers: config.layers })
       );
     });
 
@@ -236,21 +285,24 @@ describe('CanvasService', () => {
       expect(service.activeConfig()).toEqual(config);
     });
 
-    it('should serialize without elementId in the JSON payload', () => {
-      const config = createDefaultCanvasConfig('canvas-1');
-      service.saveConfig(config);
+    it('should not write the whole canvas back on every edit', () => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      service.loadConfig('canvas-1');
+      service.addObject(makeTextObject({ id: 'a' }));
+      service.addObject(makeTextObject({ id: 'b' }));
+      mockProjectState.applyCanvasEdit.mockClear();
 
-      const call = mockProjectState.updateElementMetadata.mock.calls[0] as [
-        string,
-        Record<string, string>,
-      ];
-      const serialized = JSON.parse(call[1]['canvasConfig']) as Record<
-        string,
-        unknown
-      >;
-      expect(serialized['elementId']).toBeUndefined();
-      expect(serialized['layers']).toBeDefined();
-      expect(serialized['objects']).toBeDefined();
+      service.updateObject('a', { x: 40 });
+
+      const edit = mockProjectState.applyCanvasEdit.mock.calls[0][1];
+      expect(edit.upserts?.map(o => o.id)).toEqual(['a']);
+      expect(edit.deletes).toBeUndefined();
+      expect(edit.layers).toBeUndefined();
+    });
+
+    it('should not touch element metadata', () => {
+      service.saveConfig(createDefaultCanvasConfig('canvas-1'));
+      expect(mockProjectState.updateElementMetadata).not.toHaveBeenCalled();
     });
   });
 
@@ -259,135 +311,157 @@ describe('CanvasService', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('remote sync', () => {
-    it('updates activeConfig when the bound element metadata changes remotely', () => {
-      mockElements.set([
-        makeElement({
-          id: 'canvas-1',
-          metadata: {
-            canvasConfig: JSON.stringify({
-              layers: [
-                {
-                  id: 'l1',
-                  name: 'A',
-                  visible: true,
-                  locked: false,
-                  opacity: 1,
-                  order: 0,
-                },
-              ],
-              objects: [],
-            }),
-          },
-        }),
-      ]);
-      service.loadConfig('canvas-1');
-      expect(service.activeConfig()!.layers[0].name).toBe('A');
+    function layer(name: string) {
+      return {
+        id: `l-${name}`,
+        name,
+        visible: true,
+        locked: false,
+        opacity: 1,
+        order: 0,
+      };
+    }
 
-      // Simulate a remote collaborator replacing the metadata payload.
-      mockElements.set([
-        makeElement({
-          id: 'canvas-1',
-          metadata: {
-            canvasConfig: JSON.stringify({
-              layers: [
-                {
-                  id: 'l1',
-                  name: 'A',
-                  visible: true,
-                  locked: false,
-                  opacity: 1,
-                  order: 0,
-                },
-                {
-                  id: 'l2',
-                  name: 'Remote Layer',
-                  visible: true,
-                  locked: false,
-                  opacity: 1,
-                  order: 1,
-                },
-              ],
-              objects: [makeTextObject({ layerId: 'l2', text: 'remote' })],
-            }),
-          },
-        }),
-      ]);
-
-      // Allow the effect to flush.
-      TestBed.flushEffects();
-
-      const active = service.activeConfig()!;
-      expect(active.layers).toHaveLength(2);
-      expect(active.layers[1].name).toBe('Remote Layer');
-      expect(active.objects).toHaveLength(1);
-      expect((active.objects[0] as CanvasText).text).toBe('remote');
-    });
-
-    it('does not re-parse on echoes of its own saveConfig writes', () => {
+    it('adopts contents pushed by another collaborator', () => {
       mockElements.set([makeElement({ id: 'canvas-1' })]);
       service.loadConfig('canvas-1');
 
-      const warnBefore = mockLogger.warn.mock.calls.length;
-      const before = service.activeConfig();
+      canvasStream('canvas-1').next({
+        layers: [layer('Theirs')],
+        objects: [makeTextObject({ id: 'remote-1' })],
+      });
 
-      // Local save: stamps lastAppliedSerialized with the emitted JSON.
-      service.addLayer('Local');
-      const savedCall = mockProjectState.updateElementMetadata.mock.calls.at(
-        -1
-      ) as [string, Record<string, string>];
-      const serialized = savedCall[1]['canvasConfig'];
-
-      // The Yjs round-trip re-emits the same JSON into elements(). The
-      // service must short-circuit without re-parsing — the object identity
-      // of activeConfig stays stable.
-      const afterSave = service.activeConfig();
-      mockElements.set([
-        makeElement({ id: 'canvas-1', metadata: { canvasConfig: serialized } }),
+      expect(service.activeConfig()!.layers[0].name).toBe('Theirs');
+      expect(service.activeConfig()!.objects.map(o => o.id)).toEqual([
+        'remote-1',
       ]);
-      TestBed.flushEffects();
-
-      expect(service.activeConfig()).toBe(afterSave);
-      expect(mockLogger.warn.mock.calls).toHaveLength(warnBefore);
-      expect(before).not.toBe(afterSave);
     });
 
-    it('rebinds when loadConfig is called with a different elementId', () => {
+    it('keeps a remote object when the next local edit is sent', () => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      service.loadConfig('canvas-1');
+
+      canvasStream('canvas-1').next({
+        layers: [layer('Shared')],
+        objects: [makeTextObject({ id: 'theirs' })],
+      });
+      mockProjectState.applyCanvasEdit.mockClear();
+
+      service.addObject(makeTextObject({ id: 'mine' }));
+
+      // Only our own object is sent — theirs is left alone rather than being
+      // rewritten (and potentially clobbered) as part of a whole-canvas save.
+      const edit = mockProjectState.applyCanvasEdit.mock.calls[0][1];
+      expect(edit.upserts?.map(o => o.id)).toEqual(['mine']);
+      expect(edit.deletes).toBeUndefined();
+      expect(service.activeConfig()!.objects.map(o => o.id)).toEqual([
+        'theirs',
+        'mine',
+      ]);
+    });
+
+    it('drops the undo history when remote work lands', () => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      service.loadConfig('canvas-1');
+      service.addObject(makeTextObject({ id: 'a' }));
+      service.undo();
+      expect(service.canRedo()).toBe(true);
+
+      canvasStream('canvas-1').next({
+        layers: [layer('Shared')],
+        objects: [makeTextObject({ id: 'theirs' })],
+      });
+
+      // Every snapshot predates the remote change, so replaying one would
+      // delete work the other author just added.
+      expect(service.canRedo()).toBe(false);
+      expect(service.canUndo()).toBe(false);
+    });
+
+    it('ignores updates for a canvas that is no longer bound', () => {
       mockElements.set([
-        makeElement({ id: 'canvas-1', name: 'First' }),
+        makeElement({ id: 'canvas-1' }),
         makeElement({ id: 'canvas-2', name: 'Second' }),
       ]);
       service.loadConfig('canvas-1');
-      service.loadConfig('canvas-2');
-      expect(service.activeConfig()!.elementId).toBe('canvas-2');
+      const stale = canvasStream('canvas-1');
 
-      // A remote update to the OLD element must no longer affect state.
-      mockElements.set([
-        makeElement({
-          id: 'canvas-1',
-          metadata: {
-            canvasConfig: JSON.stringify({
-              layers: [
-                {
-                  id: 'lx',
-                  name: 'Stale',
-                  visible: true,
-                  locked: false,
-                  opacity: 1,
-                  order: 0,
-                },
-              ],
-              objects: [],
-            }),
-          },
-        }),
-        makeElement({ id: 'canvas-2', name: 'Second' }),
-      ]);
-      TestBed.flushEffects();
+      service.loadConfig('canvas-2');
+      stale.next({ layers: [layer('Stale')], objects: [] });
 
       expect(service.activeConfig()!.elementId).toBe('canvas-2');
       expect(service.activeConfig()!.layers.some(l => l.name === 'Stale')).toBe(
         false
       );
+    });
+
+    it('waits for the project before deciding a canvas is empty', () => {
+      // Canvas tab opens before the project's elements have loaded.
+      mockElements.set([]);
+      const config = service.loadConfig('canvas-1');
+      expect(config.objects).toHaveLength(0);
+      expect(mockProjectState.seedCanvasContents).not.toHaveBeenCalled();
+
+      // Elements arrive; only now is the canvas read (and seeded if needed).
+      mockElements.set([
+        makeElement({
+          id: 'canvas-1',
+          metadata: {
+            canvasConfig: JSON.stringify({
+              layers: [layer('Loaded')],
+              objects: [makeTextObject({ id: 'late' })],
+            }),
+          },
+        }),
+      ]);
+      TestBed.flushEffects();
+
+      expect(service.activeConfig()!.objects.map(o => o.id)).toEqual(['late']);
+      expect(mockProjectState.seedCanvasContents).toHaveBeenCalled();
+    });
+
+    it('seeds a canvas from the legacy metadata blob on first open', () => {
+      mockElements.set([
+        makeElement({
+          id: 'canvas-1',
+          metadata: {
+            canvasConfig: JSON.stringify({
+              layers: [layer('Imported')],
+              objects: [makeTextObject({ id: 'legacy' })],
+            }),
+          },
+        }),
+      ]);
+
+      const config = service.loadConfig('canvas-1');
+
+      expect(config.layers[0].name).toBe('Imported');
+      expect(config.objects.map(o => o.id)).toEqual(['legacy']);
+      expect(mockProjectState.seedCanvasContents).toHaveBeenCalledWith(
+        'canvas-1',
+        expect.objectContaining({ objects: expect.any(Array) })
+      );
+    });
+
+    it('prefers synced contents over the legacy blob', () => {
+      canvasStore.set('canvas-1', {
+        layers: [layer('Synced')],
+        objects: [],
+      });
+      mockElements.set([
+        makeElement({
+          id: 'canvas-1',
+          metadata: {
+            canvasConfig: JSON.stringify({
+              layers: [layer('Legacy')],
+              objects: [],
+            }),
+          },
+        }),
+      ]);
+
+      expect(service.loadConfig('canvas-1').layers[0].name).toBe('Synced');
+      expect(mockProjectState.seedCanvasContents).not.toHaveBeenCalled();
     });
   });
 
@@ -797,40 +871,295 @@ describe('CanvasService', () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Undo / redo
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('undo/redo', () => {
+    beforeEach(() => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      service.loadConfig('canvas-1');
+    });
+
+    it('starts with nothing to undo or redo', () => {
+      expect(service.canUndo()).toBe(false);
+      expect(service.canRedo()).toBe(false);
+      expect(service.undo()).toBe(false);
+      expect(service.redo()).toBe(false);
+    });
+
+    it('undoes an added object', () => {
+      service.addObject(makeTextObject({ id: 'text-1' }));
+      expect(service.activeConfig()?.objects).toHaveLength(1);
+      expect(service.canUndo()).toBe(true);
+
+      expect(service.undo()).toBe(true);
+      expect(service.activeConfig()?.objects).toHaveLength(0);
+      expect(service.canRedo()).toBe(true);
+    });
+
+    it('redoes what was undone', () => {
+      service.addObject(makeTextObject({ id: 'text-1' }));
+      service.undo();
+
+      expect(service.redo()).toBe(true);
+      expect(service.activeConfig()?.objects).toHaveLength(1);
+      expect(service.canRedo()).toBe(false);
+    });
+
+    it('walks back through several edits', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      service.addObject(makeTextObject({ id: 'b' }));
+      service.addLayer('Extra');
+
+      service.undo();
+      expect(service.activeConfig()?.layers).toHaveLength(1);
+      service.undo();
+      expect(service.activeConfig()?.objects.map(o => o.id)).toEqual(['a']);
+      service.undo();
+      expect(service.activeConfig()?.objects).toHaveLength(0);
+      expect(service.canUndo()).toBe(false);
+    });
+
+    it('drops the redo branch once a new edit lands', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      service.undo();
+      service.addObject(makeTextObject({ id: 'b' }));
+
+      expect(service.canRedo()).toBe(false);
+    });
+
+    it('collapses a coalesced gesture into one undo step', () => {
+      service.addObject(makeTextObject({ id: 'a', x: 0 }));
+      service.updateObject('a', { x: 10 }, { coalesceKey: 'drag-1' });
+      service.updateObject('a', { x: 20 }, { coalesceKey: 'drag-1' });
+      service.updateObject('a', { x: 30 }, { coalesceKey: 'drag-1' });
+
+      service.undo();
+      expect(service.activeConfig()?.objects[0].x).toBe(0);
+    });
+
+    it('keeps separate gestures separately undoable', () => {
+      service.addObject(makeTextObject({ id: 'a', x: 0 }));
+      service.updateObject('a', { x: 10 }, { coalesceKey: 'drag-1' });
+      service.updateObject('a', { x: 20 }, { coalesceKey: 'drag-2' });
+
+      service.undo();
+      expect(service.activeConfig()?.objects[0].x).toBe(10);
+    });
+
+    it('forgets history when a different canvas is loaded', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      expect(service.canUndo()).toBe(true);
+
+      mockElements.set([
+        makeElement({ id: 'canvas-1' }),
+        makeElement({ id: 'canvas-2' }),
+      ]);
+      service.loadConfig('canvas-2');
+      expect(service.canUndo()).toBe(false);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Batch object operations
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('batch operations', () => {
+    beforeEach(() => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      service.loadConfig('canvas-1');
+      service.addObject(makeTextObject({ id: 'a', x: 0 }));
+      service.addObject(makeTextObject({ id: 'b', x: 0 }));
+      service.addObject(makeTextObject({ id: 'c', x: 0 }));
+    });
+
+    it('removes several objects as one edit', () => {
+      service.removeObjects(['a', 'c']);
+
+      expect(service.activeConfig()?.objects.map(o => o.id)).toEqual(['b']);
+      service.undo();
+      expect(service.activeConfig()?.objects).toHaveLength(3);
+    });
+
+    it('ignores ids that are not on the canvas', () => {
+      const before = service.activeConfig();
+      service.removeObjects(['nope']);
+      expect(service.activeConfig()).toBe(before);
+    });
+
+    it('ignores an empty removal', () => {
+      const before = service.activeConfig();
+      service.removeObjects([]);
+      expect(service.activeConfig()).toBe(before);
+    });
+
+    it('updates several objects as one edit', () => {
+      service.updateObjects([
+        { id: 'a', updates: { x: 5 } },
+        { id: 'b', updates: { x: 6 } },
+      ]);
+
+      const objects = service.activeConfig()?.objects ?? [];
+      expect(objects[0].x).toBe(5);
+      expect(objects[1].x).toBe(6);
+
+      service.undo();
+      expect(service.activeConfig()?.objects[0].x).toBe(0);
+    });
+
+    it('does not save when no object matched', () => {
+      const before = service.activeConfig();
+      service.updateObjects([{ id: 'missing', updates: { x: 1 } }]);
+      expect(service.activeConfig()).toBe(before);
+    });
+
+    it('batches position updates', () => {
+      service.updateObjectPositions([
+        { id: 'a', x: 11, y: 12 },
+        { id: 'b', x: 21, y: 22 },
+      ]);
+
+      const objects = service.activeConfig()?.objects ?? [];
+      expect(objects[0]).toMatchObject({ x: 11, y: 12 });
+      expect(objects[1]).toMatchObject({ x: 21, y: 22 });
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Write throttling
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('granular sync', () => {
+    beforeEach(() => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      service.loadConfig('canvas-1');
+      mockProjectState.applyCanvasEdit.mockClear();
+    });
+
+    it('sends one upsert when an object is added', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+
+      expect(mockProjectState.applyCanvasEdit).toHaveBeenCalledTimes(1);
+      const edit = mockProjectState.applyCanvasEdit.mock.calls[0][1];
+      expect(edit.upserts?.map(o => o.id)).toEqual(['a']);
+      expect(edit.order).toBeUndefined();
+    });
+
+    it('sends only the removed ids for an eraser sweep', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      service.addObject(makeTextObject({ id: 'b' }));
+      service.addObject(makeTextObject({ id: 'c' }));
+      mockProjectState.applyCanvasEdit.mockClear();
+
+      service.removeObjects(['a', 'c']);
+
+      expect(mockProjectState.applyCanvasEdit).toHaveBeenCalledTimes(1);
+      const edit = mockProjectState.applyCanvasEdit.mock.calls[0][1];
+      expect(edit.deletes).toEqual(['a', 'c']);
+      expect(edit.upserts).toBeUndefined();
+    });
+
+    it('sends the layer list only when a layer changed', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      const objectEdit = mockProjectState.applyCanvasEdit.mock.calls[0][1];
+      expect(objectEdit.layers).toBeUndefined();
+
+      mockProjectState.applyCanvasEdit.mockClear();
+      service.addLayer('Second');
+      const layerEdit = mockProjectState.applyCanvasEdit.mock.calls[0][1];
+      expect(layerEdit.layers).toHaveLength(2);
+      expect(layerEdit.upserts).toBeUndefined();
+    });
+
+    it('sends the z-order only when objects are restacked', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      service.addObject(makeTextObject({ id: 'b' }));
+      mockProjectState.applyCanvasEdit.mockClear();
+
+      service.reorderObject('a', 'front');
+
+      const edit = mockProjectState.applyCanvasEdit.mock.calls[0][1];
+      expect(edit.order).toEqual(['b', 'a']);
+    });
+
+    it('sends nothing when a save changes nothing', () => {
+      const config = service.activeConfig()!;
+      service.saveConfig({ ...config });
+      expect(mockProjectState.applyCanvasEdit).not.toHaveBeenCalled();
+    });
+
+    it('flush is a no-op now that writes are immediate', () => {
+      service.addObject(makeTextObject({ id: 'a' }));
+      const callsBefore = mockProjectState.applyCanvasEdit.mock.calls.length;
+      service.flush();
+      expect(mockProjectState.applyCanvasEdit.mock.calls).toHaveLength(
+        callsBefore
+      );
+    });
+  });
+
+  describe('tool settings', () => {
+    it('returns defaults when nothing is stored', () => {
+      const settings = service.loadToolSettings();
+      expect(settings.strokeWidth).toBeGreaterThan(0);
+      expect(settings.stroke).toBeTruthy();
+    });
+
+    it('round-trips saved settings', () => {
+      const settings = service.loadToolSettings();
+      service.saveToolSettings({
+        ...settings,
+        stroke: '#ABCDEF',
+        strokeWidth: 12,
+        pressure: false,
+      });
+
+      const restored = service.loadToolSettings();
+      expect(restored.stroke).toBe('#ABCDEF');
+      expect(restored.strokeWidth).toBe(12);
+      expect(restored.pressure).toBe(false);
+    });
+
+    it('falls back to defaults for corrupt storage', () => {
+      service.saveToolSettings(service.loadToolSettings());
+      const key = findStorageKey('canvas-tools');
+      expect(key).toBeDefined();
+      localStorage.setItem(key as string, 'not json');
+
+      expect(() => service.loadToolSettings()).not.toThrow();
+      expect(service.loadToolSettings().strokeWidth).toBeGreaterThan(0);
+    });
+
+    it('repairs partial or out-of-range stored settings', () => {
+      service.saveToolSettings(service.loadToolSettings());
+      const key = findStorageKey('canvas-tools') as string;
+      localStorage.setItem(
+        key,
+        JSON.stringify({ strokeWidth: 9999, stroke: 42 })
+      );
+
+      const restored = service.loadToolSettings();
+      expect(restored.strokeWidth).toBeLessThanOrEqual(96);
+      expect(typeof restored.stroke).toBe('string');
+      expect(restored.pressure).toBe(true);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Config Round-Trip
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('config round-trip', () => {
-    it('should save, clear, and load config correctly', () => {
-      // Capture saved metadata
-      let savedMeta: Record<string, string> = {};
-      mockProjectState.updateElementMetadata.mockImplementation(
-        (_id: string, meta: Record<string, string>) => {
-          savedMeta = { ...savedMeta, ...meta };
-
-          // Simulate the metadata being stored on the element
-          const current = mockElements();
-          mockElements.set(
-            current.map(el =>
-              el.id === 'canvas-1'
-                ? { ...el, metadata: { ...el.metadata, ...savedMeta } }
-                : el
-            )
-          );
-        }
-      );
-
+    it('should save, close, and reopen a canvas', () => {
       mockElements.set([makeElement({ id: 'canvas-1' })]);
       service.loadConfig('canvas-1');
 
-      // Make changes
       service.addLayer('Annotations');
       service.addObject(makeTextObject({ id: 'text-1' }));
 
-      // Now load again — should restore from persisted metadata
-      const restoredConfig = service.loadConfig('canvas-1');
-      expect(restoredConfig.layers).toHaveLength(2);
-      expect(restoredConfig.objects).toHaveLength(1);
+      const restored = service.loadConfig('canvas-1');
+      expect(restored.layers).toHaveLength(2);
+      expect(restored.objects).toHaveLength(1);
     });
   });
 });

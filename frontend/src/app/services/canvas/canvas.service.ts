@@ -1,29 +1,52 @@
 /**
  * Canvas Service
  *
- * Manages canvas configuration persistence via element metadata.
- * Provides layer and object CRUD operations.
+ * Owns the canvas being edited and its layer/object operations.
+ *
+ * Persistence goes through the sync provider one object at a time rather than
+ * as a single serialized config, so two people drawing on the same canvas keep
+ * both sets of strokes and a stroke costs a small delta instead of a rewrite
+ * of the project's element array.
  *
  * NOT provided at root — each CanvasTabComponent provides its own
  * instance so multiple canvas tabs never share config state.
  */
 
-import { effect, inject, Injectable, signal, untracked } from '@angular/core';
+import {
+  computed,
+  DestroyRef,
+  effect,
+  type EffectRef,
+  inject,
+  Injectable,
+  Injector,
+  signal,
+  untracked,
+} from '@angular/core';
+import { type Element } from '@inkweld/index';
 import {
   type CanvasConfig,
   type CanvasLayer,
   type CanvasObject,
+  type CanvasToolSettings,
   type CanvasViewport,
   createDefaultCanvasConfig,
   createDefaultLayer,
+  normalizeToolSettings,
 } from '@models/canvas.model';
+import {
+  CANVAS_CONFIG_META_KEY,
+  type CanvasContents,
+  diffCanvasContents,
+  isEmptyCanvasEdit,
+  parseCanvasContents,
+} from '@models/canvas-edit';
+import { UndoHistory } from '@services/canvas/canvas-history';
 import { LoggerService } from '@services/core/logger.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { nanoid } from 'nanoid';
-
-/** Key used to store serialized canvas config in element metadata */
-const CANVAS_CONFIG_META_KEY = 'canvasConfig';
+import { type Subscription } from 'rxjs';
 
 /** Optional parameters for createPin */
 export interface PinOptions {
@@ -33,8 +56,22 @@ export interface PinOptions {
   relationshipId?: string;
 }
 
+/** Options controlling how a config change is recorded and persisted */
+export interface SaveOptions {
+  /**
+   * Groups rapid changes into a single undo step. Consecutive saves sharing a
+   * key (a slider drag, a multi-object nudge) collapse to one entry.
+   */
+  coalesceKey?: string;
+  /** Skip the undo stack entirely — used by undo/redo themselves. */
+  skipHistory?: boolean;
+}
+
 /** LocalStorage key prefix for per-user canvas viewport */
 const CANVAS_STATE_BASE_PREFIX = 'inkweld-canvas-state:';
+
+/** LocalStorage key for per-user drawing tool settings */
+const CANVAS_TOOLS_BASE_KEY = 'inkweld-canvas-tools';
 
 /**
  * NOT provided at root — each CanvasTabComponent provides its own
@@ -43,8 +80,10 @@ const CANVAS_STATE_BASE_PREFIX = 'inkweld-canvas-state:';
 @Injectable()
 export class CanvasService {
   private readonly logger = inject(LoggerService);
+  private readonly injector = inject(Injector);
   private readonly projectState = inject(ProjectStateService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly destroyRef = inject(DestroyRef);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Active canvas state
@@ -55,31 +94,82 @@ export class CanvasService {
   readonly activeConfig = this.activeConfigSignal.asReadonly();
 
   /** ID of the element whose config is mirrored into `activeConfigSignal`. */
-  private readonly boundElementId = signal<string | null>(null);
+  private boundElementId: string | null = null;
 
-  /**
-   * Last serialized config we either wrote via `saveConfig` or applied from
-   * remote metadata. Used to short-circuit echoes of our own writes so we
-   * don't re-parse identical JSON every time the elements signal emits.
-   */
-  private lastAppliedSerialized: string | null = null;
+  /** Contents as last handed to (or received from) the sync provider. */
+  private lastSyncedContents: CanvasContents | null = null;
+
+  /** Subscription to the bound canvas's remote changes. */
+  private remoteSubscription: Subscription | null = null;
+
+  /** Waits for the project to load before reading the bound canvas. */
+  private loadEffect: EffectRef | null = null;
+
+  /** Whether the bound canvas's contents have been read yet. */
+  private contentsLoaded = false;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Undo / redo
+  // ─────────────────────────────────────────────────────────────────────────
+
+  private readonly history = new UndoHistory<CanvasConfig>();
+
+  /** Bumped whenever the history stack changes so the UI can re-read it. */
+  private readonly historyVersion = signal(0);
+
+  readonly canUndo = computed(() => {
+    this.historyVersion();
+    return this.history.canUndo;
+  });
+
+  readonly canRedo = computed(() => {
+    this.historyVersion();
+    return this.history.canRedo;
+  });
 
   constructor() {
-    // React to remote updates to the bound element's metadata. When another
-    // user edits the canvas, ProjectStateService re-emits `elements()` with
-    // the new metadata JSON; we re-parse and update `activeConfigSignal` so
-    // the canvas view reflects the change in real time.
-    effect(() => {
-      const id = this.boundElementId();
-      if (!id) return;
-      const elements = this.projectState.elements();
-      const element = elements.find(e => e.id === id);
-      const serialized = element?.metadata?.[CANVAS_CONFIG_META_KEY] ?? null;
-      if (serialized === this.lastAppliedSerialized) return;
-      untracked(() => {
-        this.applySerializedConfig(id, serialized);
-      });
-    });
+    this.destroyRef.onDestroy(() => this.unbind());
+  }
+
+  /** Undo the last local change. Returns true when something was undone. */
+  undo(): boolean {
+    const current = this.activeConfigSignal();
+    if (!current) return false;
+    const previous = this.history.undo(current);
+    if (!previous) return false;
+    this.applyConfig(previous);
+    this.historyVersion.update(v => v + 1);
+    return true;
+  }
+
+  /** Redo the most recently undone change. */
+  redo(): boolean {
+    const current = this.activeConfigSignal();
+    if (!current) return false;
+    const next = this.history.redo(current);
+    if (!next) return false;
+    this.applyConfig(next);
+    this.historyVersion.update(v => v + 1);
+    return true;
+  }
+
+  /**
+   * Retained for callers that used to force a queued write out. Edits now
+   * reach the sync provider as they happen, so there is nothing to flush.
+   */
+  flush(): void {
+    // Intentionally empty: writes are no longer queued.
+  }
+
+  /** Stop tracking the current canvas. */
+  private unbind(): void {
+    this.remoteSubscription?.unsubscribe();
+    this.remoteSubscription = null;
+    this.loadEffect?.destroy();
+    this.loadEffect = null;
+    this.boundElementId = null;
+    this.lastSyncedContents = null;
+    this.contentsLoaded = false;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -92,71 +182,132 @@ export class CanvasService {
    * Reads from element metadata if it exists, otherwise creates defaults.
    */
   loadConfig(elementId: string): CanvasConfig {
-    const element = this.projectState.elements().find(e => e.id === elementId);
-    const serialized = element?.metadata?.[CANVAS_CONFIG_META_KEY] ?? null;
-    this.applySerializedConfig(elementId, serialized);
-    this.boundElementId.set(elementId);
-    const config = this.activeConfigSignal();
-    return config ?? createDefaultCanvasConfig(elementId);
+    this.unbind();
+    this.history.clear();
+    this.historyVersion.update(v => v + 1);
+
+    this.boundElementId = elementId;
+    this.activeConfigSignal.set(createDefaultCanvasConfig(elementId));
+    this.tryLoadContents(elementId, this.projectState.elements());
+
+    // A canvas tab can open before the project has finished loading, when
+    // there is nothing to read yet. Wait for the element to appear rather than
+    // concluding the canvas is empty — seeding an empty canvas over a
+    // populated one would throw the drawing away.
+    this.loadEffect = effect(
+      () => {
+        const elements = this.projectState.elements();
+        untracked(() => this.tryLoadContents(elementId, elements));
+      },
+      { injector: this.injector }
+    );
+
+    // Remote-only: the provider does not echo our own edits back at us.
+    this.remoteSubscription = this.projectState
+      .canvasContents$(elementId)
+      .subscribe(remote => this.applyRemoteContents(elementId, remote));
+
+    return this.activeConfigSignal() ?? createDefaultCanvasConfig(elementId);
+  }
+
+  /** Read the bound canvas once its element is visible in the project. */
+  private tryLoadContents(elementId: string, elements: Element[]): void {
+    if (this.contentsLoaded || this.boundElementId !== elementId) return;
+    if (!elements.some(e => e.id === elementId)) return;
+
+    this.contentsLoaded = true;
+    const contents = this.readOrSeedContents(elementId);
+    this.lastSyncedContents = contents;
+    this.activeConfigSignal.set(this.toConfig(elementId, contents));
   }
 
   /**
-   * Save canvas config to element metadata (synced via Yjs).
+   * Read the canvas from the sync provider, seeding it the first time from the
+   * legacy metadata blob so canvases created before per-object sync — or
+   * restored from an archive — open with their contents intact.
+   */
+  private readOrSeedContents(elementId: string): CanvasContents {
+    const synced = this.projectState.getCanvasContents(elementId);
+    if (synced && (synced.layers.length > 0 || synced.objects.length > 0)) {
+      return synced;
+    }
+
+    const element = this.projectState.elements().find(e => e.id === elementId);
+    const serialized = element?.metadata?.[CANVAS_CONFIG_META_KEY];
+    const legacy = parseCanvasContents(serialized);
+    if (serialized && !legacy) {
+      this.logger.warn('Canvas', 'Failed to parse canvas config from metadata');
+    }
+    const defaults = createDefaultCanvasConfig(elementId);
+    const contents: CanvasContents = {
+      layers: legacy?.layers.length ? legacy.layers : defaults.layers,
+      objects: legacy?.objects ?? [],
+    };
+
+    this.projectState.seedCanvasContents(elementId, contents);
+    return contents;
+  }
+
+  /** Adopt contents that arrived from another peer. */
+  private applyRemoteContents(
+    elementId: string,
+    contents: CanvasContents
+  ): void {
+    if (this.boundElementId !== elementId) return;
+
+    this.contentsLoaded = true;
+    this.lastSyncedContents = contents;
+    this.activeConfigSignal.set(this.toConfig(elementId, contents));
+
+    // Someone else's work landed underneath us. Every snapshot on the stack
+    // predates it, so undoing one would send deletes for objects the other
+    // author just added — drop the history instead.
+    this.history.clear();
+    this.historyVersion.update(v => v + 1);
+  }
+
+  /** Build a config, falling back to a default layer for an empty canvas. */
+  private toConfig(elementId: string, contents: CanvasContents): CanvasConfig {
+    const defaults = createDefaultCanvasConfig(elementId);
+    return {
+      elementId,
+      layers: contents.layers.length > 0 ? contents.layers : defaults.layers,
+      objects: contents.objects,
+    };
+  }
+
+  /**
+   * Persist a canvas config and record the previous state on the undo stack.
+   * Only the objects that actually changed are sent to the sync provider.
    * Excludes viewport (local-only state).
    */
-  saveConfig(config: CanvasConfig): void {
+  saveConfig(config: CanvasConfig, options?: SaveOptions): void {
+    const previous = this.activeConfigSignal();
+    if (previous && !options?.skipHistory) {
+      this.history.push(previous, options?.coalesceKey);
+      this.historyVersion.update(v => v + 1);
+    }
+    this.applyConfig(config);
+  }
+
+  /**
+   * Push a config into local state and send only what changed to the sync
+   * provider — the added, modified and removed objects rather than the whole
+   * canvas.
+   */
+  private applyConfig(config: CanvasConfig): void {
     this.activeConfigSignal.set(config);
 
-    const toSerialize: Omit<CanvasConfig, 'elementId'> = {
+    const contents: CanvasContents = {
       layers: config.layers,
       objects: config.objects,
     };
-    const serialized = JSON.stringify(toSerialize);
-    this.lastAppliedSerialized = serialized;
+    const edit = diffCanvasContents(this.lastSyncedContents, contents);
+    this.lastSyncedContents = contents;
 
-    this.projectState.updateElementMetadata(config.elementId, {
-      [CANVAS_CONFIG_META_KEY]: serialized,
-    });
-  }
-
-  /**
-   * Parse a serialized config from element metadata and push it into
-   * `activeConfigSignal`. Falls back to defaults when `serialized` is null
-   * or unparseable. Also stamps `lastAppliedSerialized` so subsequent echoes
-   * of the same payload are skipped.
-   */
-  private applySerializedConfig(
-    elementId: string,
-    serialized: string | null
-  ): void {
-    this.lastAppliedSerialized = serialized;
-
-    if (serialized) {
-      try {
-        const parsed = JSON.parse(serialized) as Partial<CanvasConfig>;
-        const defaults = createDefaultCanvasConfig(elementId);
-        const config: CanvasConfig = {
-          ...defaults,
-          ...parsed,
-          elementId,
-        };
-        if (!Array.isArray(config.layers) || config.layers.length === 0) {
-          config.layers = defaults.layers;
-        }
-        if (!Array.isArray(config.objects)) {
-          config.objects = [];
-        }
-        this.activeConfigSignal.set(config);
-        return;
-      } catch {
-        this.logger.warn(
-          'Canvas',
-          'Failed to parse canvas config from metadata'
-        );
-      }
+    if (!isEmptyCanvasEdit(edit)) {
+      this.projectState.applyCanvasEdit(config.elementId, edit);
     }
-
-    this.activeConfigSignal.set(createDefaultCanvasConfig(elementId));
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -263,28 +414,57 @@ export class CanvasService {
 
   /** Remove a canvas object by ID */
   removeObject(objectId: string): void {
-    const config = this.activeConfigSignal();
-    if (!config) return;
+    this.removeObjects([objectId]);
+  }
 
-    this.saveConfig({
-      ...config,
-      objects: config.objects.filter(o => o.id !== objectId),
-    });
+  /**
+   * Remove several objects in one edit — one undo step and one write for a
+   * whole eraser sweep or multi-object delete.
+   */
+  removeObjects(objectIds: string[]): void {
+    const config = this.activeConfigSignal();
+    if (!config || objectIds.length === 0) return;
+
+    const doomed = new Set(objectIds);
+    const objects = config.objects.filter(o => !doomed.has(o.id));
+    if (objects.length === config.objects.length) return;
+
+    this.saveConfig({ ...config, objects });
   }
 
   /** Update an existing canvas object */
-  updateObject(objectId: string, updates: Partial<CanvasObject>): void {
-    const config = this.activeConfigSignal();
-    if (!config) return;
+  updateObject(
+    objectId: string,
+    updates: Partial<CanvasObject>,
+    options?: SaveOptions
+  ): void {
+    this.updateObjects([{ id: objectId, updates }], options);
+  }
 
-    this.saveConfig({
-      ...config,
-      objects: config.objects.map(o =>
-        o.id === objectId
-          ? ({ ...o, ...updates, id: objectId } as CanvasObject)
-          : o
-      ),
+  /**
+   * Apply updates to several objects in a single edit. Used for multi-select
+   * drags and transforms, which would otherwise rewrite the project once per
+   * node.
+   */
+  updateObjects(
+    edits: { id: string; updates: Partial<CanvasObject> }[],
+    options?: SaveOptions
+  ): void {
+    const config = this.activeConfigSignal();
+    if (!config || edits.length === 0) return;
+
+    const editMap = new Map(edits.map(e => [e.id, e.updates]));
+    let changed = false;
+
+    const objects = config.objects.map(o => {
+      const updates = editMap.get(o.id);
+      if (!updates) return o;
+      changed = true;
+      return { ...o, ...updates, id: o.id } as CanvasObject;
     });
+
+    if (!changed) return;
+    this.saveConfig({ ...config, objects }, options);
   }
 
   /** Move an object to a different layer */
@@ -362,18 +542,14 @@ export class CanvasService {
   }
 
   /** Batch-update multiple object positions (e.g. after drag) */
-  updateObjectPositions(updates: { id: string; x: number; y: number }[]): void {
-    const config = this.activeConfigSignal();
-    if (!config) return;
-
-    const updateMap = new Map(updates.map(u => [u.id, u]));
-    this.saveConfig({
-      ...config,
-      objects: config.objects.map(o => {
-        const upd = updateMap.get(o.id);
-        return upd ? { ...o, x: upd.x, y: upd.y } : o;
-      }),
-    });
+  updateObjectPositions(
+    updates: { id: string; x: number; y: number }[],
+    options?: SaveOptions
+  ): void {
+    this.updateObjects(
+      updates.map(({ id, x, y }) => ({ id, updates: { x, y } })),
+      options
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -441,6 +617,34 @@ export class CanvasService {
       return JSON.parse(raw) as CanvasViewport;
     } catch {
       return null;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Tool Settings (per-user, shared by every canvas, not synced)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** Persist the drawing tool settings so they survive a reload. */
+  saveToolSettings(settings: CanvasToolSettings): void {
+    try {
+      localStorage.setItem(
+        this.storageContext.prefixKey(CANVAS_TOOLS_BASE_KEY),
+        JSON.stringify(settings)
+      );
+    } catch {
+      // localStorage full or unavailable — settings just won't persist
+    }
+  }
+
+  /** Load tool settings, falling back to defaults for anything missing. */
+  loadToolSettings(): CanvasToolSettings {
+    try {
+      const raw = localStorage.getItem(
+        this.storageContext.prefixKey(CANVAS_TOOLS_BASE_KEY)
+      );
+      return normalizeToolSettings(raw ? JSON.parse(raw) : null);
+    } catch {
+      return normalizeToolSettings(null);
     }
   }
 }

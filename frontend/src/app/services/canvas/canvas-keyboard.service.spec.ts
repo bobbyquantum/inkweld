@@ -36,17 +36,28 @@ function createHandlers(): CanvasKeyboardHandlers {
     onZoomIn: vi.fn(),
     onZoomOut: vi.fn(),
     onFitAll: vi.fn(),
+    onUndo: vi.fn(),
+    onRedo: vi.fn(),
+    onAdjustStrokeWidth: vi.fn(),
+    onSpacePanChange: vi.fn(),
   };
 }
 
 function makeEvent(
   key: string,
-  opts: { ctrl?: boolean; meta?: boolean; target?: EventTarget } = {}
+  opts: {
+    ctrl?: boolean;
+    meta?: boolean;
+    shift?: boolean;
+    target?: EventTarget;
+    type?: 'keydown' | 'keyup';
+  } = {}
 ): KeyboardEvent {
-  const ev = new KeyboardEvent('keydown', {
+  const ev = new KeyboardEvent(opts.type ?? 'keydown', {
     key,
     ctrlKey: opts.ctrl,
     metaKey: opts.meta,
+    shiftKey: opts.shift,
   });
   if (opts.target) Object.defineProperty(ev, 'target', { value: opts.target });
   vi.spyOn(ev, 'preventDefault');
@@ -172,6 +183,94 @@ describe('CanvasKeyboardService', () => {
     it('plain "0" without modifier is ignored', () => {
       svc.dispatch(makeEvent('0'), handlers);
       expect(handlers.onFitAll).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('history shortcuts', () => {
+    it('Ctrl+Z → onUndo', () => {
+      svc.dispatch(makeEvent('z', { ctrl: true }), handlers);
+      expect(handlers.onUndo).toHaveBeenCalled();
+      expect(handlers.onRedo).not.toHaveBeenCalled();
+    });
+
+    it('Cmd+Shift+Z → onRedo', () => {
+      svc.dispatch(makeEvent('z', { meta: true, shift: true }), handlers);
+      expect(handlers.onRedo).toHaveBeenCalled();
+      expect(handlers.onUndo).not.toHaveBeenCalled();
+    });
+
+    it('Ctrl+Y → onRedo', () => {
+      svc.dispatch(makeEvent('y', { ctrl: true }), handlers);
+      expect(handlers.onRedo).toHaveBeenCalled();
+    });
+
+    it('plain "z" does not undo', () => {
+      svc.dispatch(makeEvent('z'), handlers);
+      expect(handlers.onUndo).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('brush shortcuts', () => {
+    it('"]" grows the stroke', () => {
+      svc.dispatch(makeEvent(']'), handlers);
+      expect(handlers.onAdjustStrokeWidth).toHaveBeenCalledWith(1);
+    });
+
+    it('"[" shrinks the stroke', () => {
+      svc.dispatch(makeEvent('['), handlers);
+      expect(handlers.onAdjustStrokeWidth).toHaveBeenCalledWith(-1);
+    });
+
+    it('ignores bracket keys with a modifier', () => {
+      svc.dispatch(makeEvent(']', { meta: true }), handlers);
+      expect(handlers.onAdjustStrokeWidth).not.toHaveBeenCalled();
+    });
+
+    it('"e" selects the eraser', () => {
+      svc.dispatch(makeEvent('e'), handlers);
+      expect(handlers.onToolChange).toHaveBeenCalledWith('eraser');
+    });
+  });
+
+  describe('space to pan', () => {
+    it('reports space held down once', () => {
+      svc.dispatch(makeEvent(' '), handlers);
+      svc.dispatch(makeEvent(' '), handlers);
+      expect(handlers.onSpacePanChange).toHaveBeenCalledTimes(1);
+      expect(handlers.onSpacePanChange).toHaveBeenCalledWith(true);
+    });
+
+    it('reports space released', () => {
+      svc.dispatch(makeEvent(' '), handlers);
+      svc.dispatchKeyUp(makeEvent(' ', { type: 'keyup' }), handlers);
+      expect(handlers.onSpacePanChange).toHaveBeenCalledWith(false);
+    });
+
+    it('ignores a release that was never pressed', () => {
+      svc.dispatchKeyUp(makeEvent(' ', { type: 'keyup' }), handlers);
+      expect(handlers.onSpacePanChange).not.toHaveBeenCalled();
+    });
+
+    it('releases the pan when the window loses focus', () => {
+      svc.attach(handlers);
+      svc.dispatch(makeEvent(' '), handlers);
+      vi.mocked(handlers.onSpacePanChange).mockClear();
+
+      globalThis.dispatchEvent(new Event('blur'));
+      expect(handlers.onSpacePanChange).toHaveBeenCalledWith(false);
+    });
+
+    it('does nothing on blur when space was never held', () => {
+      svc.attach(handlers);
+      globalThis.dispatchEvent(new Event('blur'));
+      expect(handlers.onSpacePanChange).not.toHaveBeenCalled();
+    });
+
+    it('ignores other keys on release', () => {
+      svc.dispatch(makeEvent(' '), handlers);
+      vi.mocked(handlers.onSpacePanChange).mockClear();
+      svc.dispatchKeyUp(makeEvent('a', { type: 'keyup' }), handlers);
+      expect(handlers.onSpacePanChange).not.toHaveBeenCalled();
     });
   });
 

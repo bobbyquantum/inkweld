@@ -8,7 +8,7 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, EMPTY } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
@@ -215,6 +215,10 @@ describe('WorldbuildingEditorComponent', () => {
       disconnect: vi.fn(),
       isConnected: vi.fn(() => false),
       setLocalPresence: vi.fn(),
+      getCanvasContents: vi.fn(() => null),
+      canvasContents$: vi.fn(() => EMPTY),
+      applyCanvasEdit: vi.fn(),
+      seedCanvasContents: vi.fn(),
     };
     const syncFactoryMock = {
       getProvider: vi.fn().mockReturnValue(provider),

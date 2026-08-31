@@ -397,6 +397,161 @@ describe('LocalElementSyncProvider', () => {
     });
   });
 
+  describe('canvas contents', () => {
+    const config = { username: 'testuser', slug: 'test-project' };
+
+    function makePath(id: string, x = 0) {
+      return {
+        id,
+        layerId: 'L1',
+        type: 'path' as const,
+        x,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        points: [0, 0, 10, 10],
+        stroke: '#000',
+        strokeWidth: 2,
+        closed: false,
+        tension: 0,
+      };
+    }
+
+    const layers = [
+      {
+        id: 'L1',
+        name: 'Layer 1',
+        visible: true,
+        locked: false,
+        opacity: 1,
+        order: 0,
+      },
+    ];
+
+    /** A canvas element the provider can hold contents for. */
+    const canvasElement: Element = {
+      ...mockElement,
+      id: 'canvas-1',
+      type: ElementType.Canvas,
+      metadata: {},
+    };
+
+    it('returns null for a canvas with no contents', async () => {
+      await provider.connect(config);
+      provider.updateElements([canvasElement]);
+
+      expect(provider.getCanvasContents('canvas-1')).toBeNull();
+    });
+
+    it('stores contents on the owning element', async () => {
+      await provider.connect(config);
+      provider.updateElements([canvasElement]);
+
+      provider.applyCanvasEdit('canvas-1', {
+        layers,
+        upserts: [makePath('a')],
+      });
+
+      const contents = provider.getCanvasContents('canvas-1');
+      expect(contents?.objects.map(o => o.id)).toEqual(['a']);
+      expect(contents?.layers).toEqual(layers);
+      // Archives and the media-usage scan read this blob.
+      expect(
+        provider.getElements()[0].metadata?.['canvasConfig']
+      ).toBeDefined();
+    });
+
+    it('applies successive edits on top of each other', async () => {
+      await provider.connect(config);
+      provider.updateElements([canvasElement]);
+
+      provider.applyCanvasEdit('canvas-1', {
+        layers,
+        upserts: [makePath('a'), makePath('b')],
+      });
+      provider.applyCanvasEdit('canvas-1', { deletes: ['a'] });
+      provider.applyCanvasEdit('canvas-1', { upserts: [makePath('c')] });
+
+      expect(
+        provider.getCanvasContents('canvas-1')?.objects.map(o => o.id)
+      ).toEqual(['b', 'c']);
+    });
+
+    it('warns when the element does not exist', async () => {
+      await provider.connect(config);
+
+      provider.applyCanvasEdit('missing', { upserts: [makePath('a')] });
+      expect(mockLoggerService.warn).toHaveBeenCalled();
+    });
+
+    it('does not echo our own edit back to subscribers', async () => {
+      await provider.connect(config);
+      provider.updateElements([canvasElement]);
+
+      const seen: number[] = [];
+      const subscription = provider
+        .canvasContents$('canvas-1')
+        .subscribe(contents => seen.push(contents.objects.length));
+
+      provider.applyCanvasEdit('canvas-1', {
+        layers,
+        upserts: [makePath('a')],
+      });
+      subscription.unsubscribe();
+
+      // The editor already has this state; re-emitting it would give every
+      // object a new identity and make the next edit look like a full rewrite.
+      expect(seen).toEqual([]);
+    });
+
+    it('emits contents when the element changes from elsewhere', async () => {
+      await provider.connect(config);
+      provider.updateElements([canvasElement]);
+
+      const seen: number[] = [];
+      const subscription = provider
+        .canvasContents$('canvas-1')
+        .subscribe(contents => seen.push(contents.objects.length));
+
+      // Simulates the element arriving from storage or another writer.
+      provider.updateElements([
+        {
+          ...canvasElement,
+          metadata: {
+            canvasConfig: JSON.stringify({
+              layers,
+              objects: [makePath('a')],
+            }),
+          },
+        },
+      ]);
+      subscription.unsubscribe();
+
+      expect(seen.at(-1)).toBe(1);
+    });
+
+    it('seeds a canvas only once', async () => {
+      await provider.connect(config);
+      provider.updateElements([canvasElement]);
+
+      provider.seedCanvasContents('canvas-1', {
+        layers,
+        objects: [makePath('seed')],
+      });
+      provider.seedCanvasContents('canvas-1', {
+        layers,
+        objects: [makePath('ignored')],
+      });
+
+      expect(
+        provider.getCanvasContents('canvas-1')?.objects.map(o => o.id)
+      ).toEqual(['seed']);
+    });
+  });
+
   describe('Observables', () => {
     const config = {
       username: 'testuser',

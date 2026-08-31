@@ -98,8 +98,9 @@ describe('computeSvgViewBox', () => {
     };
     const config = makeConfig([obj]);
     const result = computeSvgViewBox(config, [defaultLayer]);
-    // min: (10+0, 20+0) = (10, 20), max: (10+200, 20+100) = (210, 120)
-    expect(result).toEqual({ vX: -10, vY: 0, vW: 240, vH: 140 });
+    // Centreline min (10, 20) / max (210, 120), widened by half of the 2px
+    // stroke on every side so the ink itself is inside the viewBox.
+    expect(result).toEqual({ vX: -11, vY: -1, vW: 242, vH: 142 });
   });
 
   it('should compute viewBox from arrow shape using points', () => {
@@ -509,6 +510,60 @@ describe('canvasTextToSvg', () => {
 // canvasPathToSvg
 // ─────────────────────────────────────────────────────────────────────────
 
+describe('computeSvgViewBox path bounds', () => {
+  function pathAt(overrides: Partial<CanvasPath>): CanvasPath {
+    return {
+      ...baseObj,
+      type: 'path',
+      points: [0, 0, 100, 0],
+      stroke: '#000',
+      strokeWidth: 2,
+      closed: false,
+      tension: 0,
+      ...overrides,
+    };
+  }
+
+  const layer: CanvasLayer = {
+    id: 'l',
+    name: 'L',
+    visible: true,
+    locked: false,
+    opacity: 1,
+    order: 0,
+  };
+
+  it('includes the stroke half-width so wide strokes are not clipped', () => {
+    const config: CanvasConfig = {
+      elementId: 'e',
+      layers: [layer],
+      objects: [pathAt({ layerId: 'l', strokeWidth: 80 })],
+    };
+
+    const box = computeSvgViewBox(config, [layer]);
+    // Centreline runs along y=0; half of an 80px stroke reaches 40 either side.
+    expect(box.vY).toBeLessThanOrEqual(-40);
+    expect(box.vY + box.vH).toBeGreaterThanOrEqual(40);
+  });
+
+  it('allows for the swell of a pressure stroke', () => {
+    const plain: CanvasConfig = {
+      elementId: 'e',
+      layers: [layer],
+      objects: [pathAt({ layerId: 'l', strokeWidth: 40 })],
+    };
+    const ink: CanvasConfig = {
+      elementId: 'e',
+      layers: [layer],
+      objects: [pathAt({ layerId: 'l', strokeWidth: 40, pressures: [1, 1] })],
+    };
+
+    expect(computeSvgViewBox(ink, [layer]).vH).toBeGreaterThan(
+      computeSvgViewBox(plain, [layer]).vH
+    );
+  });
+});
+
 describe('canvasPathToSvg', () => {
   const tf = 'transform="translate(0,0)"';
 
@@ -543,6 +598,39 @@ describe('canvasPathToSvg', () => {
     const svg = canvasPathToSvg(obj, tf);
     expect(svg).toContain('Z');
     expect(svg).toContain('fill="#ff0"');
+  });
+
+  it('should smooth the path when tension is set', () => {
+    const obj: CanvasPath = {
+      ...baseObj,
+      type: 'path',
+      points: [0, 0, 50, 50, 100, 0],
+      stroke: '#f00',
+      strokeWidth: 3,
+      closed: false,
+      tension: 0.5,
+    };
+    const svg = canvasPathToSvg(obj, tf);
+    expect(svg).toContain('C ');
+    expect(svg).not.toContain('NaN');
+    expect(svg).toContain('stroke-linecap="round"');
+  });
+
+  it('should render pressure ink as a filled outline', () => {
+    const obj: CanvasPath = {
+      ...baseObj,
+      type: 'path',
+      points: [0, 0, 50, 0, 100, 0],
+      pressures: [1, 0.5, 0.2],
+      stroke: '#123456',
+      strokeWidth: 10,
+      closed: false,
+      tension: 0,
+    };
+    const svg = canvasPathToSvg(obj, tf);
+    expect(svg).toContain('fill="#123456"');
+    expect(svg).toContain('stroke="none"');
+    expect(svg).toContain('Z');
   });
 
   it('should return empty string for paths with fewer than 4 points', () => {
@@ -648,6 +736,35 @@ describe('canvasPinToSvg', () => {
 // ─────────────────────────────────────────────────────────────────────────
 
 describe('canvasObjectToSvgElement', () => {
+  it('should wrap translucent objects in an opacity group', () => {
+    const obj: CanvasShape = {
+      ...baseObj,
+      type: 'shape',
+      shapeType: 'rect',
+      opacity: 0.4,
+      width: 100,
+      height: 50,
+      stroke: '#000',
+      strokeWidth: 1,
+    };
+    const svg = canvasObjectToSvgElement(obj);
+    expect(svg.startsWith('<g opacity="0.4">')).toBe(true);
+    expect(svg.endsWith('</g>')).toBe(true);
+  });
+
+  it('should not wrap fully opaque objects', () => {
+    const obj: CanvasShape = {
+      ...baseObj,
+      type: 'shape',
+      shapeType: 'rect',
+      width: 100,
+      height: 50,
+      stroke: '#000',
+      strokeWidth: 1,
+    };
+    expect(canvasObjectToSvgElement(obj).startsWith('<g')).toBe(false);
+  });
+
   it('should include transform with translate', () => {
     const obj: CanvasShape = {
       ...baseObj,

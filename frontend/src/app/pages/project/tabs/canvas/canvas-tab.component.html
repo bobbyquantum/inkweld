@@ -206,8 +206,12 @@
     <!-- Main canvas area -->
     <div class="canvas-main">
       <!-- Toolbar -->
-      <div class="canvas-toolbar" data-testid="canvas-toolbar">
-        <div class="toolbar-group">
+      <div class="canvas-toolbar" #canvasToolbar data-testid="canvas-toolbar">
+        <div
+          class="toolbar-group"
+          data-toolbar-group="navigation"
+          [class.toolbar-group--hidden]="isOverflowed('navigation')"
+          [attr.aria-hidden]="isOverflowed('navigation') ? 'true' : null">
           <button
             mat-icon-button
             [class.active]="activeTool() === 'select'"
@@ -234,9 +238,16 @@
           </button>
         </div>
 
-        <div class="toolbar-divider"></div>
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="navigation"
+          [class.toolbar-divider--hidden]="isOverflowed('navigation')"></div>
 
-        <div class="toolbar-group">
+        <div
+          class="toolbar-group"
+          data-toolbar-group="creation"
+          [class.toolbar-group--hidden]="isOverflowed('creation')"
+          [attr.aria-hidden]="isOverflowed('creation') ? 'true' : null">
           <button
             mat-icon-button
             [class.active]="activeTool() === 'pin'"
@@ -265,9 +276,16 @@
           </button>
         </div>
 
-        <div class="toolbar-divider"></div>
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="creation"
+          [class.toolbar-divider--hidden]="isOverflowed('creation')"></div>
 
-        <div class="toolbar-group">
+        <div
+          class="toolbar-group"
+          data-toolbar-group="drawing"
+          [class.toolbar-group--hidden]="isOverflowed('drawing')"
+          [attr.aria-hidden]="isOverflowed('drawing') ? 'true' : null">
           <button
             mat-icon-button
             [class.active]="activeTool() === 'draw'"
@@ -276,6 +294,16 @@
             [attr.aria-label]="'canvas.toolbar.freehandDraw' | transloco"
             (click)="onToolChange('draw')">
             <mat-icon>draw</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="eraser-tool"
+            [class.active]="activeTool() === 'eraser'"
+            [disabled]="!hasActiveLayer()"
+            [matTooltip]="'canvas.toolbar.eraser' | transloco"
+            [attr.aria-label]="'canvas.toolbar.eraser' | transloco"
+            (click)="onToolChange('eraser')">
+            <mat-icon fontSet="material-symbols-outlined">ink_eraser</mat-icon>
           </button>
           <button
             mat-icon-button
@@ -298,9 +326,57 @@
           </button>
         </div>
 
-        <div class="toolbar-divider"></div>
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="drawing"
+          [class.toolbar-divider--hidden]="isOverflowed('drawing')"></div>
 
-        <div class="toolbar-group">
+        <div
+          class="toolbar-group"
+          data-toolbar-group="style"
+          [class.toolbar-group--hidden]="isOverflowed('style')"
+          [attr.aria-hidden]="isOverflowed('style') ? 'true' : null">
+          <button
+            mat-icon-button
+            class="swatch-button"
+            data-testid="stroke-color-button"
+            [matMenuTriggerFor]="strokeColorMenu"
+            [matTooltip]="'canvas.toolbar.strokeColor' | transloco"
+            [attr.aria-label]="'canvas.toolbar.strokeColor' | transloco">
+            <span
+              class="swatch-dot"
+              [style.background]="toolSettings().stroke"></span>
+          </button>
+          <button
+            mat-icon-button
+            class="swatch-button"
+            data-testid="fill-color-button"
+            [matMenuTriggerFor]="fillColorMenu"
+            [matTooltip]="'canvas.toolbar.fillColor' | transloco"
+            [attr.aria-label]="'canvas.toolbar.fillColor' | transloco">
+            <span
+              class="swatch-dot"
+              [class.swatch-none]="!toolSettings().fillEnabled"
+              [style.background]="
+                toolSettings().fillEnabled ? toolSettings().fill : 'transparent'
+              "></span>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="stroke-width-button"
+            [matMenuTriggerFor]="strokeWidthMenu"
+            [matTooltip]="'canvas.toolbar.strokeWidth' | transloco"
+            [attr.aria-label]="'canvas.toolbar.strokeWidth' | transloco">
+            <mat-icon fontSet="material-symbols-outlined">line_weight</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="brush-options-button"
+            [matMenuTriggerFor]="brushOptionsMenu"
+            [matTooltip]="'canvas.toolbar.brushOptions' | transloco"
+            [attr.aria-label]="'canvas.toolbar.brushOptions' | transloco">
+            <mat-icon>tune</mat-icon>
+          </button>
           <button
             mat-icon-button
             [matTooltip]="'canvas.toolbar.editColors' | transloco"
@@ -311,9 +387,46 @@
           </button>
         </div>
 
-        <div class="toolbar-divider"></div>
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="style"
+          [class.toolbar-divider--hidden]="isOverflowed('style')"></div>
 
-        <div class="toolbar-group">
+        <div
+          class="toolbar-group"
+          data-toolbar-group="history"
+          [class.toolbar-group--hidden]="isOverflowed('history')"
+          [attr.aria-hidden]="isOverflowed('history') ? 'true' : null">
+          <button
+            mat-icon-button
+            data-testid="undo-button"
+            [disabled]="!canUndo()"
+            [matTooltip]="'canvas.toolbar.undo' | transloco"
+            [attr.aria-label]="'canvas.toolbar.undo' | transloco"
+            (click)="onUndo()">
+            <mat-icon>undo</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="redo-button"
+            [disabled]="!canRedo()"
+            [matTooltip]="'canvas.toolbar.redo' | transloco"
+            [attr.aria-label]="'canvas.toolbar.redo' | transloco"
+            (click)="onRedo()">
+            <mat-icon>redo</mat-icon>
+          </button>
+        </div>
+
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="history"
+          [class.toolbar-divider--hidden]="isOverflowed('history')"></div>
+
+        <div
+          class="toolbar-group"
+          data-toolbar-group="zoom"
+          [class.toolbar-group--hidden]="isOverflowed('zoom')"
+          [attr.aria-hidden]="isOverflowed('zoom') ? 'true' : null">
           <button
             mat-icon-button
             [matTooltip]="'canvas.toolbar.zoomIn' | transloco"
@@ -344,17 +457,42 @@
           </button>
         </div>
 
+        @if (hasOverflow()) {
+          <div class="toolbar-group" data-toolbar-fixed="overflow">
+            <button
+              mat-icon-button
+              data-testid="toolbar-overflow-button"
+              [matMenuTriggerFor]="toolbarOverflowMenu"
+              [matTooltip]="'canvas.toolbar.moreTools' | transloco"
+              [attr.aria-label]="'canvas.toolbar.moreTools' | transloco">
+              <mat-icon>expand_more</mat-icon>
+            </button>
+          </div>
+        }
+
         <div class="toolbar-spacer" aria-hidden="true"></div>
 
         <app-tab-presence-indicator [location]="presenceLocation()" />
       </div>
 
-      <!-- Konva canvas container -->
-      <div
-        class="canvas-area"
-        #canvasContainer
-        data-testid="canvas-stage"
-        (contextmenu)="onContextMenu($event)"></div>
+      <!-- Konva canvas container. Konva clears this element, so the brush
+           cursor lives beside it rather than inside it. -->
+      <div class="canvas-stage-wrap">
+        <div
+          class="canvas-area"
+          #canvasContainer
+          data-testid="canvas-stage"
+          (contextmenu)="onContextMenu($event)"></div>
+        <div
+          class="brush-cursor"
+          #brushCursor
+          data-testid="brush-cursor"
+          aria-hidden="true"
+          [class.eraser]="activeTool() === 'eraser'"
+          [style.borderColor]="
+            activeTool() === 'eraser' ? null : toolSettings().stroke
+          "></div>
+      </div>
 
       <!-- Hidden trigger for the canvas context menu -->
       <div
@@ -504,6 +642,161 @@
   </ng-template>
 </mat-menu>
 
+<!-- Stroke colour picker -->
+<mat-menu #strokeColorMenu="matMenu" class="canvas-picker-menu">
+  <ng-template matMenuContent>
+    <div class="picker-panel" data-testid="stroke-color-panel">
+      <span class="picker-title">{{
+        'canvas.toolbar.strokeColor' | transloco
+      }}</span>
+      <app-color-swatches
+        [selectedColor]="toolSettings().stroke"
+        (colorChange)="onStrokeColorChange($event)" />
+    </div>
+  </ng-template>
+</mat-menu>
+
+<!-- Fill colour picker -->
+<mat-menu #fillColorMenu="matMenu" class="canvas-picker-menu">
+  <ng-template matMenuContent>
+    <div class="picker-panel" data-testid="fill-color-panel">
+      <div class="picker-header">
+        <span class="picker-title">{{
+          'canvas.toolbar.fillColor' | transloco
+        }}</span>
+        <button
+          type="button"
+          class="picker-toggle"
+          data-testid="fill-toggle"
+          [class.on]="toolSettings().fillEnabled"
+          (click)="onToggleFill()">
+          {{
+            (toolSettings().fillEnabled
+              ? 'canvas.toolbar.fillOn'
+              : 'canvas.toolbar.fillOff'
+            ) | transloco
+          }}
+        </button>
+      </div>
+      <app-color-swatches
+        [selectedColor]="toolSettings().fill"
+        (colorChange)="onFillColorChange($event)" />
+    </div>
+  </ng-template>
+</mat-menu>
+
+<!-- Stroke width picker -->
+<mat-menu #strokeWidthMenu="matMenu" class="canvas-picker-menu">
+  <ng-template matMenuContent>
+    <div class="picker-panel" data-testid="stroke-width-panel">
+      <span class="picker-title">{{
+        'canvas.toolbar.strokeWidth' | transloco
+      }}</span>
+      <div class="width-presets">
+        @for (width of strokeWidthPresets; track width) {
+          <button
+            type="button"
+            class="width-preset"
+            [class.selected]="toolSettings().strokeWidth === width"
+            [attr.aria-pressed]="toolSettings().strokeWidth === width"
+            [attr.aria-label]="width + 'px'"
+            (click)="onStrokeWidthChange(width)">
+            <span
+              class="width-dot"
+              [style.width.px]="width"
+              [style.height.px]="width"
+              [style.background]="toolSettings().stroke"></span>
+          </button>
+        }
+      </div>
+      <label class="picker-row">
+        <span class="picker-label">{{
+          'canvas.toolbar.strokeWidth' | transloco
+        }}</span>
+        <input
+          #widthSlider
+          type="range"
+          data-testid="stroke-width-slider"
+          min="1"
+          max="96"
+          step="1"
+          [value]="toolSettings().strokeWidth"
+          (click)="$event.stopPropagation()"
+          (keydown)="$event.stopPropagation()"
+          (input)="onStrokeWidthChange(widthSlider.value)" />
+        <span class="picker-value">{{ toolSettings().strokeWidth }}</span>
+      </label>
+    </div>
+  </ng-template>
+</mat-menu>
+
+<!-- Brush options -->
+<mat-menu #brushOptionsMenu="matMenu" class="canvas-picker-menu">
+  <ng-template matMenuContent>
+    <div class="picker-panel" data-testid="brush-options-panel">
+      <button
+        type="button"
+        class="picker-toggle wide"
+        data-testid="pressure-toggle"
+        [class.on]="toolSettings().pressure"
+        (click)="onTogglePressure()">
+        <mat-icon>{{
+          toolSettings().pressure ? 'check_box' : 'check_box_outline_blank'
+        }}</mat-icon>
+        <span>{{ 'canvas.toolbar.pressure' | transloco }}</span>
+      </button>
+      <label class="picker-row">
+        <span class="picker-label">{{
+          'canvas.toolbar.smoothing' | transloco
+        }}</span>
+        <input
+          #smoothingSlider
+          type="range"
+          data-testid="smoothing-slider"
+          min="0"
+          max="1"
+          step="0.05"
+          [value]="toolSettings().tension"
+          (click)="$event.stopPropagation()"
+          (keydown)="$event.stopPropagation()"
+          (input)="onSmoothingChange(smoothingSlider.value)" />
+      </label>
+      <label class="picker-row">
+        <span class="picker-label">{{
+          'canvas.toolbar.opacity' | transloco
+        }}</span>
+        <input
+          #opacitySlider
+          type="range"
+          data-testid="opacity-slider"
+          min="0.05"
+          max="1"
+          step="0.05"
+          [value]="toolSettings().opacity"
+          (click)="$event.stopPropagation()"
+          (keydown)="$event.stopPropagation()"
+          (input)="onOpacityChange(opacitySlider.value)" />
+      </label>
+      <label class="picker-row">
+        <span class="picker-label">{{
+          'canvas.toolbar.eraserSize' | transloco
+        }}</span>
+        <input
+          #eraserSlider
+          type="range"
+          data-testid="eraser-size-slider"
+          min="4"
+          max="200"
+          step="2"
+          [value]="toolSettings().eraserSize"
+          (click)="$event.stopPropagation()"
+          (keydown)="$event.stopPropagation()"
+          (input)="onEraserSizeChange(eraserSlider.value)" />
+      </label>
+    </div>
+  </ng-template>
+</mat-menu>
+
 <!-- Shape submenu -->
 <mat-menu #shapeMenu="matMenu">
   <button mat-menu-item (click)="onShapeTypeChange('rect')">
@@ -522,4 +815,144 @@
     <mat-icon>horizontal_rule</mat-icon>
     <span>{{ 'canvas.shapes.line' | transloco }}</span>
   </button>
+</mat-menu>
+
+<!-- Toolbar overflow: mirrors whichever groups did not fit on the row -->
+<mat-menu #toolbarOverflowMenu="matMenu">
+  <ng-template matMenuContent>
+    @if (isOverflowed('navigation')) {
+      <button mat-menu-item (click)="onToolChange('select')">
+        <mat-icon>near_me</mat-icon>
+        <span>{{ 'canvas.toolbar.select' | transloco }}</span>
+      </button>
+      <button mat-menu-item (click)="onToolChange('rectSelect')">
+        <mat-icon>select_all</mat-icon>
+        <span>{{ 'canvas.toolbar.rectangleSelect' | transloco }}</span>
+      </button>
+      <button mat-menu-item (click)="onToolChange('pan')">
+        <mat-icon>pan_tool</mat-icon>
+        <span>{{ 'canvas.toolbar.pan' | transloco }}</span>
+      </button>
+      <mat-divider></mat-divider>
+    }
+
+    @if (isOverflowed('drawing')) {
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        (click)="onToolChange('draw')">
+        <mat-icon>draw</mat-icon>
+        <span>{{ 'canvas.toolbar.freehandDraw' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        (click)="onToolChange('eraser')">
+        <mat-icon fontSet="material-symbols-outlined">ink_eraser</mat-icon>
+        <span>{{ 'canvas.toolbar.eraser' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        (click)="onToolChange('line')">
+        <mat-icon>horizontal_rule</mat-icon>
+        <span>{{ 'canvas.toolbar.line' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        [matMenuTriggerFor]="shapeMenu">
+        <mat-icon>{{ shapeIcon() }}</mat-icon>
+        <span>{{ 'canvas.toolbar.shape' | transloco }}</span>
+      </button>
+      <mat-divider></mat-divider>
+    }
+
+    @if (isOverflowed('style')) {
+      <button mat-menu-item [matMenuTriggerFor]="strokeColorMenu">
+        <mat-icon>border_color</mat-icon>
+        <span>{{ 'canvas.toolbar.strokeColor' | transloco }}</span>
+      </button>
+      <button mat-menu-item [matMenuTriggerFor]="fillColorMenu">
+        <mat-icon>format_color_fill</mat-icon>
+        <span>{{ 'canvas.toolbar.fillColor' | transloco }}</span>
+      </button>
+      <button mat-menu-item [matMenuTriggerFor]="strokeWidthMenu">
+        <mat-icon fontSet="material-symbols-outlined">line_weight</mat-icon>
+        <span>{{ 'canvas.toolbar.strokeWidth' | transloco }}</span>
+      </button>
+      <button mat-menu-item [matMenuTriggerFor]="brushOptionsMenu">
+        <mat-icon>tune</mat-icon>
+        <span>{{ 'canvas.toolbar.brushOptions' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        [disabled]="!selectedObjectId()"
+        (click)="onEditObjectColors()">
+        <mat-icon>palette</mat-icon>
+        <span>{{ 'canvas.toolbar.editColors' | transloco }}</span>
+      </button>
+      <mat-divider></mat-divider>
+    }
+
+    @if (isOverflowed('creation')) {
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        (click)="onToolChange('pin')">
+        <mat-icon>place</mat-icon>
+        <span>{{ 'canvas.toolbar.placePin' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        (click)="onAddImage()">
+        <mat-icon>image</mat-icon>
+        <span>{{ 'canvas.toolbar.addImage' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        [disabled]="!hasActiveLayer()"
+        (click)="onToolChange('text')">
+        <mat-icon>title</mat-icon>
+        <span>{{ 'canvas.toolbar.addText' | transloco }}</span>
+      </button>
+      <mat-divider></mat-divider>
+    }
+
+    @if (isOverflowed('history')) {
+      <button mat-menu-item [disabled]="!canUndo()" (click)="onUndo()">
+        <mat-icon>undo</mat-icon>
+        <span>{{ 'canvas.toolbar.undo' | transloco }}</span>
+      </button>
+      <button mat-menu-item [disabled]="!canRedo()" (click)="onRedo()">
+        <mat-icon>redo</mat-icon>
+        <span>{{ 'canvas.toolbar.redo' | transloco }}</span>
+      </button>
+      <mat-divider></mat-divider>
+    }
+
+    @if (isOverflowed('zoom')) {
+      <button mat-menu-item (click)="onZoomIn()">
+        <mat-icon>add</mat-icon>
+        <span>{{ 'canvas.toolbar.zoomIn' | transloco }}</span>
+      </button>
+      <button mat-menu-item (click)="onZoomOut()">
+        <mat-icon>remove</mat-icon>
+        <span>{{ 'canvas.toolbar.zoomOut' | transloco }}</span>
+      </button>
+      <button mat-menu-item (click)="onFitAll()">
+        <mat-icon>fit_screen</mat-icon>
+        <span>{{ 'canvas.toolbar.fitAll' | transloco }}</span>
+      </button>
+      <button mat-menu-item (click)="onZoomReset()">
+        <mat-icon>restart_alt</mat-icon>
+        <span
+          >{{ 'canvas.toolbar.resetZoom' | transloco }} ({{
+            zoomPercent()
+          }}%)</span
+        >
+      </button>
+    }
+  </ng-template>
 </mat-menu>
