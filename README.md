@@ -174,6 +174,7 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🟡 | Export as PNG | Standard and high-resolution export |
 | ✅ | 🟡 | Shape fills & stroke palette | Per-object color editing |
 | ✅ | 🟢 | Pin-to-element linking | Connect canvas pins to worldbuilding elements |
+| ✅ | 🟡 | Canvas size & crop frames | Page bounds plus named crop frames; per-frame PNG/SVG export and set-as-project-cover |
 
 ### Interactive Maps
 
