@@ -31,6 +31,12 @@ import { expect, test } from './fixtures';
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function createCanvasAndOpen(page: Page) {
+  // A wide viewport keeps every toolbar group on the row. Overflow into the
+  // "more" chevron is real behaviour at narrower widths and is covered by its
+  // own test below; the rest of these assume the controls are directly
+  // clickable.
+  await page.setViewportSize({ width: 1600, height: 900 });
+
   // Navigate into the project
   await page.getByTestId('project-card').first().click();
   await page.waitForURL(/\/.+\/.+/);
@@ -54,6 +60,29 @@ async function createCanvasAndOpen(page: Page) {
 
   // The canvas tab should now be open — wait for the canvas container
   await expect(page.getByTestId('canvas-container')).toBeVisible();
+}
+
+/**
+ * Constrains the canvas toolbar to a pixel width by injecting a style rule,
+ * then waits for the ResizeObserver and Angular to settle. Mirrors the
+ * approach used by the editor toolbar's overflow tests.
+ */
+async function constrainToolbarWidth(page: Page, widthPx: number) {
+  await page.evaluate(w => {
+    const style = document.createElement('style');
+    style.setAttribute('data-canvas-toolbar-constraint', 'true');
+    style.textContent = `[data-testid="canvas-toolbar"] { max-width: ${w}px !important; }`;
+    document.head.append(style);
+    document.body.getBoundingClientRect();
+  }, widthPx);
+}
+
+/** Removes the injected constraint so the toolbar returns to full width. */
+async function releaseToolbarWidth(page: Page) {
+  await page.evaluate(() => {
+    document.querySelector('style[data-canvas-toolbar-constraint]')?.remove();
+    document.body.getBoundingClientRect();
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -408,6 +437,39 @@ test.describe('Canvas Tab', () => {
       await expect(zoomLabel).toHaveText('100%');
     });
 
+    await test.step('eraser is selectable alongside the other draw tools', async () => {
+      await toolbar.getByTestId('eraser-tool').click();
+      await expect(toolbar.getByTestId('eraser-tool')).toHaveClass(/active/);
+    });
+
+    await test.step('undo and redo start disabled', async () => {
+      await expect(toolbar.getByTestId('undo-button')).toBeDisabled();
+      await expect(toolbar.getByTestId('redo-button')).toBeDisabled();
+    });
+
+    await test.step('stroke colour picker opens', async () => {
+      await toolbar.getByTestId('stroke-color-button').click();
+      await expect(page.getByTestId('stroke-color-panel')).toBeVisible();
+      await expect(page.getByTestId('color-swatches')).toBeVisible();
+      await page.keyboard.press('Escape');
+    });
+
+    await test.step('brush options expose pressure and smoothing', async () => {
+      await toolbar.getByTestId('brush-options-button').click();
+      await expect(page.getByTestId('brush-options-panel')).toBeVisible();
+      await expect(page.getByTestId('pressure-toggle')).toBeVisible();
+      await expect(page.getByTestId('smoothing-slider')).toBeVisible();
+      await expect(page.getByTestId('eraser-size-slider')).toBeVisible();
+      await page.keyboard.press('Escape');
+    });
+
+    await test.step('stroke width presets are offered', async () => {
+      await toolbar.getByTestId('stroke-width-button').click();
+      await expect(page.getByTestId('stroke-width-panel')).toBeVisible();
+      await expect(page.getByTestId('stroke-width-slider')).toBeVisible();
+      await page.keyboard.press('Escape');
+    });
+
     await test.step('export menu shows all options', async () => {
       await sidebar.getByRole('button', { name: /export canvas/i }).click();
 
@@ -452,6 +514,48 @@ test.describe('Canvas Tab', () => {
       await expect(page.getByTestId('object-bring-to-front')).toHaveCount(0);
 
       await page.keyboard.press('Escape');
+    });
+  });
+
+  test('toolbar overflow: groups collapse into the chevron menu', async ({
+    localPageWithProject: page,
+  }) => {
+    await createCanvasAndOpen(page);
+
+    const toolbar = page.getByTestId('canvas-toolbar');
+    const chevron = toolbar.getByTestId('toolbar-overflow-button');
+
+    await test.step('no chevron while everything fits', async () => {
+      await expect(chevron).toHaveCount(0);
+    });
+
+    await test.step('narrowing pushes the zoom group into the menu', async () => {
+      await constrainToolbarWidth(page, 420);
+      await expect(chevron).toBeVisible();
+
+      // The zoom group leaves the row first; the tools stay.
+      await expect(toolbar.locator('[data-toolbar-group="zoom"]')).toBeHidden();
+      await expect(
+        toolbar.locator('[data-toolbar-group="navigation"]')
+      ).toBeVisible();
+    });
+
+    await test.step('the menu carries the overflowed controls', async () => {
+      await chevron.click();
+      await expect(
+        page.getByRole('menuitem', { name: /zoom in/i })
+      ).toBeVisible();
+
+      await page.getByRole('menuitem', { name: /zoom in/i }).click();
+      await expect(toolbar.getByTestId('zoom-label')).not.toHaveText('100%');
+    });
+
+    await test.step('releasing the constraint restores the row', async () => {
+      await releaseToolbarWidth(page);
+      await expect(chevron).toHaveCount(0);
+      await expect(
+        toolbar.locator('[data-toolbar-group="zoom"]')
+      ).toBeVisible();
     });
   });
 });

@@ -117,7 +117,9 @@ export class CanvasPlacementService {
     const data: CanvasTextDialogData = {
       title: 'Add Text',
       text: 'Text',
-      color: settings.fill,
+      // Text takes the drawing colour, not the shape fill — the fill defaults
+      // to white, which put invisible labels on the canvas.
+      color: settings.stroke,
     };
     const dialogRef = this.dialog.open(CanvasTextDialogComponent, {
       data,
@@ -147,6 +149,7 @@ export class CanvasPlacementService {
           fill: result.color,
           width: 200,
           align: 'left',
+          opacity: settings.opacity,
           name: result.text.substring(0, 30),
         };
         this.canvasService.addObject(textObj);
@@ -183,7 +186,8 @@ export class CanvasPlacementService {
       points: isLinear ? [0, 0, defaultSize, 0] : undefined,
       stroke: settings.stroke,
       strokeWidth: settings.strokeWidth,
-      fill: settings.fill,
+      fill: settings.fillEnabled ? settings.fill : undefined,
+      opacity: settings.opacity,
     };
     this.canvasService.addObject(shapeObj);
   }

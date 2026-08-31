@@ -84,6 +84,9 @@ describe('CanvasTabComponent', () => {
       position: vi.fn(),
       scale: vi.fn(),
       destroy: vi.fn(),
+      draggable: vi.fn(),
+      batchDraw: vi.fn(),
+      container: vi.fn(() => document.createElement('div')),
       ...overrides,
     };
   }
@@ -129,6 +132,15 @@ describe('CanvasTabComponent', () => {
     })),
     saveViewport: vi.fn(),
     loadViewport: vi.fn(() => null),
+    loadToolSettings: vi.fn(() => createDefaultToolSettings()),
+    saveToolSettings: vi.fn(),
+    removeObjects: vi.fn(),
+    updateObjects: vi.fn(),
+    flush: vi.fn(),
+    undo: vi.fn(() => false),
+    redo: vi.fn(() => false),
+    canUndo: signal(false),
+    canRedo: signal(false),
   };
 
   const testElements: Element[] = [
@@ -201,13 +213,16 @@ describe('CanvasTabComponent', () => {
       })),
     };
 
+    // Renderer stand-in. Konva cannot build a real stage under jsdom, so the
+    // component spec stubs the scene-graph surface; the real reconciliation is
+    // covered against a live stage in canvas-renderer.service.spec.ts.
     const r: any = {};
     r._stage = null;
     r._konvaLayers = new Map<string, any>();
     r._konvaNodes = new Map<string, any>();
     r._transformer = null;
     r._selectionLayer = null;
-    r._objectRenderSignatures = new Map<string, string>();
+    r._previewLayer = null;
 
     Object.defineProperties(r, {
       stage: {
@@ -233,20 +248,20 @@ describe('CanvasTabComponent', () => {
         },
         configurable: true,
       },
-      objectRenderSignatures: {
-        get: () => r._objectRenderSignatures,
+      previewLayer: {
+        get: () => r._previewLayer,
+        set: (v: any) => {
+          r._previewLayer = v;
+        },
         configurable: true,
       },
     });
 
-    r.syncKonvaFromConfig =
-      CanvasRendererService.prototype.syncKonvaFromConfig.bind(r);
-    r.rebuildAllKonvaNodes =
-      CanvasRendererService.prototype.rebuildAllKonvaNodes.bind(r);
-    r.buildKonvaLayers =
-      CanvasRendererService.prototype.buildKonvaLayers.bind(r);
-    r.buildKonvaObjects =
-      CanvasRendererService.prototype.buildKonvaObjects.bind(r);
+    r.syncKonvaFromConfig = vi.fn();
+    r.rebuildAllKonvaNodes = vi.fn();
+    r.buildKonvaLayers = vi.fn();
+    r.buildKonvaObjects = vi.fn();
+    r.setContentInteractive = vi.fn();
     r.resolveImageSrc = CanvasRendererService.prototype.resolveImageSrc.bind(r);
     r.initStage = vi.fn(() => ({ zoomLevel: 1 }));
     r.destroyStage = vi.fn();
@@ -2172,542 +2187,422 @@ describe('CanvasTabComponent', () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // getObjectRenderSignature
+  // Drawing tools
   // ─────────────────────────────────────────────────────────────────────────
 
-  describe('getObjectRenderSignature', () => {
-    const base = {
-      id: 'obj-sig',
-      layerId: 'layer-1',
-      x: 0,
-      y: 0,
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      visible: true,
-      locked: false,
-    };
+  describe('tool activation', () => {
+    let stage: ReturnType<typeof createStageStub>;
 
-    it('should include src, width and height for image objects', () => {
-      const img: CanvasImage = {
-        ...base,
-        type: 'image',
-        src: 'media:abc',
-        width: 200,
-        height: 150,
-      };
-      const sig = CanvasRendererService.getObjectRenderSignature(img);
-      const parsed = JSON.parse(sig);
-      expect(parsed.type).toBe('image');
-      expect(parsed.src).toBe('media:abc');
-      expect(parsed.width).toBe(200);
-      expect(parsed.height).toBe(150);
-      expect(parsed.layerId).toBe('layer-1');
+    beforeEach(() => {
+      fixture.detectChanges();
+      stage = createStageStub();
+      mockCanvasRenderer.stage = stage;
     });
 
-    it('should include text content and style for text objects', () => {
-      const txt: CanvasText = {
-        ...base,
-        type: 'text',
-        text: 'Hello',
-        fontSize: 18,
-        fontFamily: 'Georgia',
-        fontStyle: 'italic',
-        fill: '#333',
-        width: 100,
-        align: 'center',
-      };
-      const sig = CanvasRendererService.getObjectRenderSignature(txt);
-      const parsed = JSON.parse(sig);
-      expect(parsed.type).toBe('text');
-      expect(parsed.text).toBe('Hello');
-      expect(parsed.fontSize).toBe(18);
-      expect(parsed.fontStyle).toBe('italic');
-      expect(parsed.align).toBe('center');
+    it('takes pointer events away from objects for creation tools', () => {
+      component['onToolChange']('draw');
+
+      expect(mockCanvasRenderer.setContentInteractive).toHaveBeenCalledWith(
+        false
+      );
+      expect(stage.draggable).toHaveBeenCalledWith(false);
     });
 
-    it('should include points, stroke and fill for path objects', () => {
-      const path: CanvasPath = {
-        ...base,
-        type: 'path',
-        points: [0, 0, 10, 20],
-        stroke: '#f00',
-        strokeWidth: 3,
-        closed: true,
-        fill: '#0f0',
-        tension: 0.5,
-      };
-      const sig = CanvasRendererService.getObjectRenderSignature(path);
-      const parsed = JSON.parse(sig);
-      expect(parsed.type).toBe('path');
-      expect(parsed.points).toEqual([0, 0, 10, 20]);
-      expect(parsed.closed).toBe(true);
-      expect(parsed.tension).toBe(0.5);
+    it.each(['eraser', 'line', 'shape', 'rectSelect', 'pin', 'text'] as const)(
+      'captures stage input for the %s tool',
+      tool => {
+        component['onToolChange'](tool);
+        expect(mockCanvasRenderer.setContentInteractive).toHaveBeenCalledWith(
+          false
+        );
+      }
+    );
+
+    it('gives pointer events back for the select tool', () => {
+      component['onToolChange']('draw');
+      component['onToolChange']('select');
+
+      expect(mockCanvasRenderer.setContentInteractive).toHaveBeenLastCalledWith(
+        true
+      );
+      expect(stage.draggable).toHaveBeenLastCalledWith(true);
     });
 
-    it('should include shapeType and dimensions for shape objects', () => {
-      const shape: CanvasShape = {
-        ...base,
-        type: 'shape',
-        shapeType: 'ellipse',
-        width: 80,
-        height: 40,
-        fill: '#ff0',
-        stroke: '#00f',
-        strokeWidth: 2,
-      };
-      const sig = CanvasRendererService.getObjectRenderSignature(shape);
-      const parsed = JSON.parse(sig);
-      expect(parsed.type).toBe('shape');
-      expect(parsed.shapeType).toBe('ellipse');
-      expect(parsed.width).toBe(80);
-      expect(parsed.height).toBe(40);
-    });
-
-    it('should include label, icon, color and linkedElementId for pin objects', () => {
-      const pin: CanvasPin = {
-        ...base,
-        type: 'pin',
-        label: 'Castle',
-        icon: 'castle',
-        color: '#9c27b0',
-        linkedElementId: 'el-castle',
-        relationshipId: 'rel-1',
-        note: 'A dark fortress',
-      };
-      const sig = CanvasRendererService.getObjectRenderSignature(pin);
-      const parsed = JSON.parse(sig);
-      expect(parsed.type).toBe('pin');
-      expect(parsed.label).toBe('Castle');
-      expect(parsed.icon).toBe('castle');
-      expect(parsed.color).toBe('#9c27b0');
-      expect(parsed.linkedElementId).toBe('el-castle');
-      expect(parsed.note).toBe('A dark fortress');
-    });
-
-    it('should produce different signatures when render-affecting fields change', () => {
-      const before: CanvasText = {
-        ...base,
-        type: 'text',
-        text: 'Old',
-        fontSize: 14,
-        fontFamily: 'Arial',
-        fontStyle: 'normal',
-        fill: '#000',
-        width: 100,
-        align: 'left',
-      };
-      const after: CanvasText = {
-        ...before,
-        text: 'New',
-      };
-      expect(CanvasRendererService.getObjectRenderSignature(before)).not.toBe(
-        CanvasRendererService.getObjectRenderSignature(after)
+    it('keeps objects selectable while panning', () => {
+      component['onToolChange']('pan');
+      expect(mockCanvasRenderer.setContentInteractive).toHaveBeenLastCalledWith(
+        true
       );
     });
 
-    it('should produce identical signatures when only position changes', () => {
-      const obj1: CanvasImage = {
-        ...base,
-        type: 'image',
-        src: 'media:img',
-        width: 100,
-        height: 100,
-        x: 10,
-        y: 20,
-      };
-      const obj2: CanvasImage = {
-        ...obj1,
-        x: 999,
-        y: 999,
-      };
-      // position (x, y) is not part of the signature
-      expect(CanvasRendererService.getObjectRenderSignature(obj1)).toBe(
-        CanvasRendererService.getObjectRenderSignature(obj2)
+    it('drags the stage rather than objects while space-panning', () => {
+      component['onToolChange']('select');
+      component['setSpacePanning'](true);
+
+      expect(stage.draggable).toHaveBeenLastCalledWith(true);
+      expect(mockCanvasRenderer.setContentInteractive).toHaveBeenLastCalledWith(
+        false
       );
+    });
+
+    it('abandons an in-progress stroke when the tool changes', () => {
+      const drawing = component['canvasDrawing'];
+      vi.spyOn(drawing, 'isDrawing').mockReturnValue(true);
+      const cancel = vi.spyOn(drawing, 'cancel').mockImplementation(() => {});
+
+      component['onToolChange']('select');
+      expect(cancel).toHaveBeenCalled();
+    });
+
+    it('space pans without losing the active tool', () => {
+      component['onToolChange']('draw');
+      component['setSpacePanning'](true);
+
+      expect(component['activeTool']()).toBe('draw');
+      expect(stage.draggable).toHaveBeenLastCalledWith(true);
+      expect(component.toolClass).toBe('tool-pan');
+
+      component['setSpacePanning'](false);
+      expect(component.toolClass).toBe('tool-draw');
+    });
+
+    it('ignores space while a stroke is being drawn', () => {
+      vi.spyOn(component['canvasDrawing'], 'isDrawing').mockReturnValue(true);
+      component['setSpacePanning'](true);
+      expect(component.toolClass).not.toBe('tool-pan');
     });
   });
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // syncKonvaFromConfig + rebuildAllKonvaNodes
-  // ─────────────────────────────────────────────────────────────────────────
-
-  describe('syncKonvaFromConfig', () => {
-    const layerId = defaultConfig.layers[0].id;
-
-    function makeMockLayer() {
-      return {
-        visible: vi.fn(),
-        opacity: vi.fn(),
-        listening: vi.fn(),
-        batchDraw: vi.fn(),
-        destroy: vi.fn(),
-        moveToTop: vi.fn(),
-      } as unknown as Konva.Layer;
-    }
-
-    function makeMockNode() {
-      return {
-        position: vi.fn(),
-        rotation: vi.fn(),
-        scale: vi.fn(),
-        visible: vi.fn(),
-        draggable: vi.fn(),
-      } as unknown as Konva.Node;
-    }
-
-    function stubStageAndHelpers() {
-      mockCanvasRenderer.stage = { destroy: vi.fn() };
-      vi.spyOn(mockCanvasRenderer, 'buildKonvaLayers').mockImplementation(
-        () => {}
-      );
-      vi.spyOn(mockCanvasRenderer, 'buildKonvaObjects').mockImplementation(
-        () => {}
-      );
-      vi.spyOn(component as any, 'selectKonvaNode').mockImplementation(
-        () => {}
-      );
-      mockCanvasRenderer.selectionLayer = {
-        moveToTop: vi.fn(),
-        batchDraw: vi.fn(),
-      };
-      mockCanvasRenderer.transformer = {
-        nodes: vi.fn(),
-      };
-    }
-
-    function callSync(layers: any, objects: any) {
-      return mockCanvasRenderer.syncKonvaFromConfig(
-        layers,
-        objects,
-        component['selectedObjectId'](),
-        component['nodeHandlers']
-      );
-    }
-
-    it('should return early when stage is null', () => {
-      mockCanvasRenderer.stage = undefined;
-      const rebuildSpy = vi.spyOn(mockCanvasRenderer, 'rebuildAllKonvaNodes');
-      callSync(defaultConfig.layers, []);
-      expect(rebuildSpy).not.toHaveBeenCalled();
+  describe('toolbar overflow', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
     });
 
-    it('should update layer visibility/opacity when layer exists', () => {
-      stubStageAndHelpers();
-      const mockLayer = makeMockLayer();
-      mockCanvasRenderer.konvaLayers.set(layerId, mockLayer);
+    it('shows no chevron while everything fits', () => {
+      expect(component['hasOverflow']()).toBe(false);
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="toolbar-overflow-button"]'
+        )
+      ).toBeNull();
+    });
 
-      callSync(defaultConfig.layers, []);
+    it('reports which groups are overflowed', () => {
+      component['overflowGroups'].set(new Set(['zoom', 'history']));
 
-      expect(mockLayer.visible).toHaveBeenCalledWith(
-        defaultConfig.layers[0].visible
+      expect(component['isOverflowed']('zoom')).toBe(true);
+      expect(component['isOverflowed']('history')).toBe(true);
+      expect(component['isOverflowed']('navigation')).toBe(false);
+      expect(component['hasOverflow']()).toBe(true);
+    });
+
+    it('renders the chevron and hides the overflowed group', () => {
+      component['overflowGroups'].set(new Set(['zoom']));
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="toolbar-overflow-button"]'
+        )
+      ).not.toBeNull();
+      expect(
+        fixture.nativeElement
+          .querySelector('[data-toolbar-group="zoom"]')
+          .classList.contains('toolbar-group--hidden')
+      ).toBe(true);
+      expect(
+        fixture.nativeElement
+          .querySelector('[data-toolbar-group="navigation"]')
+          .classList.contains('toolbar-group--hidden')
+      ).toBe(false);
+    });
+
+    it('hides an overflowed group from assistive tech too', () => {
+      component['overflowGroups'].set(new Set(['style']));
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement
+          .querySelector('[data-toolbar-group="style"]')
+          .getAttribute('aria-hidden')
+      ).toBe('true');
+    });
+
+    it('tags every group and divider for measurement', () => {
+      const groups = fixture.nativeElement.querySelectorAll(
+        '[data-toolbar-group]'
       );
-      expect(mockLayer.opacity).toHaveBeenCalledWith(
-        defaultConfig.layers[0].opacity
+      const dividers = fixture.nativeElement.querySelectorAll(
+        '[data-toolbar-divider]'
       );
-      expect(mockLayer.listening).toHaveBeenCalledWith(
-        !defaultConfig.layers[0].locked
+      expect(groups).toHaveLength(6);
+      expect(dividers).toHaveLength(5);
+    });
+
+    it('does not measure a toolbar with no width', () => {
+      // jsdom reports zero widths; measuring anyway would hide everything.
+      component['measureToolbar']();
+      expect(component['hasOverflow']()).toBe(false);
+    });
+  });
+
+  describe('drag then click', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+      mockCanvasRenderer.stage = createStageStub();
+    });
+
+    it('does not also place a default shape after a shape drag', () => {
+      component['onToolChange']('shape');
+      vi.spyOn(component['canvasDrawing'], 'end').mockReturnValue(true);
+      const placeDefault = vi.spyOn(
+        component['canvasPlacement'],
+        'placeDefaultShape'
+      );
+
+      // A drag commits its shape, then the browser fires a click on the stage.
+      component['handleDrawEnd']();
+      component['handleStageClick'](
+        {} as unknown as Parameters<(typeof component)['handleStageClick']>[0]
+      );
+
+      expect(placeDefault).not.toHaveBeenCalled();
+    });
+
+    it('still places a default shape on a plain click', () => {
+      component['onToolChange']('shape');
+      vi.spyOn(component['canvasDrawing'], 'end').mockReturnValue(false);
+      const placeDefault = vi
+        .spyOn(component['canvasPlacement'], 'placeDefaultShape')
+        .mockImplementation(() => {});
+
+      component['handleDrawEnd']();
+      component['handleStageClick'](
+        {} as unknown as Parameters<(typeof component)['handleStageClick']>[0]
+      );
+
+      expect(placeDefault).toHaveBeenCalled();
+    });
+
+    it('only swallows the one click that follows the drag', () => {
+      component['onToolChange']('shape');
+      vi.spyOn(component['canvasDrawing'], 'end').mockReturnValue(true);
+      const placeDefault = vi
+        .spyOn(component['canvasPlacement'], 'placeDefaultShape')
+        .mockImplementation(() => {});
+
+      component['handleDrawEnd']();
+      const click = {} as unknown as Parameters<
+        (typeof component)['handleStageClick']
+      >[0];
+      component['handleStageClick'](click);
+      component['handleStageClick'](click);
+
+      expect(placeDefault).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('tool settings', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+    });
+
+    it('persists changes for the next session', () => {
+      component['updateToolSettings']({ stroke: '#FF0000' });
+
+      expect(component['toolSettings']().stroke).toBe('#FF0000');
+      expect(mockCanvasService.saveToolSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ stroke: '#FF0000' })
       );
     });
 
-    it('should do incremental position sync when layers and objects are unchanged', () => {
-      stubStageAndHelpers();
-      const obj: CanvasShape = {
-        id: 'shape-1',
-        layerId,
-        type: 'shape',
-        shapeType: 'rect',
-        x: 15,
-        y: 25,
-        rotation: 45,
-        scaleX: 2,
-        scaleY: 2,
-        visible: true,
-        locked: false,
-        width: 100,
-        height: 50,
-        stroke: '#000',
-        strokeWidth: 1,
-      };
-      const mockLayer = makeMockLayer();
-      const mockNode = makeMockNode();
-      mockCanvasRenderer.konvaLayers.set(layerId, mockLayer);
-      mockCanvasRenderer.konvaNodes.set('shape-1', mockNode);
-      // Pre-seed signature so renderChanged is false
-      mockCanvasRenderer.objectRenderSignatures.set(
-        'shape-1',
-        CanvasRendererService.getObjectRenderSignature(obj)
-      );
+    it('clamps the stroke width to the supported range', () => {
+      component['onStrokeWidthChange'](500);
+      expect(component['toolSettings']().strokeWidth).toBe(96);
 
-      callSync(defaultConfig.layers, [obj]);
-
-      expect(mockNode.position).toHaveBeenCalledWith({ x: 15, y: 25 });
-      expect(mockNode.rotation).toHaveBeenCalledWith(45);
-      expect(mockNode.scale).toHaveBeenCalledWith({ x: 2, y: 2 });
-      expect(mockNode.visible).toHaveBeenCalledWith(true);
-      expect(mockNode.draggable).toHaveBeenCalledWith(true);
-      expect(mockLayer.batchDraw).toHaveBeenCalled();
+      component['onStrokeWidthChange'](0);
+      expect(component['toolSettings']().strokeWidth).toBe(1);
     });
 
-    it('should trigger full rebuild when object count changes (new object added)', () => {
-      stubStageAndHelpers();
-      const rebuildSpy = vi.spyOn(mockCanvasRenderer, 'rebuildAllKonvaNodes');
-      const obj: CanvasShape = {
-        id: 'new-shape',
-        layerId,
-        type: 'shape',
-        shapeType: 'rect',
-        x: 0,
-        y: 0,
-        rotation: 0,
-        scaleX: 1,
-        scaleY: 1,
-        visible: true,
-        locked: false,
-        width: 50,
-        height: 50,
-        stroke: '#000',
-        strokeWidth: 1,
-      };
-      mockCanvasRenderer.konvaLayers.set(layerId, makeMockLayer());
-      // No entry in konvaNodes → size mismatch → rebuild
-
-      callSync(defaultConfig.layers, [obj]);
-
-      expect(rebuildSpy).toHaveBeenCalled();
-      expect(rebuildSpy.mock.calls[0][0]).toBe(defaultConfig.layers);
-      expect(rebuildSpy.mock.calls[0][1]).toEqual([obj]);
+    it('ignores an unparseable width', () => {
+      const before = component['toolSettings']().strokeWidth;
+      component['onStrokeWidthChange']('abc');
+      expect(component['toolSettings']().strokeWidth).toBe(before);
     });
 
-    it('should trigger full rebuild when render-affecting field changes', () => {
-      stubStageAndHelpers();
-      const rebuildSpy = vi.spyOn(mockCanvasRenderer, 'rebuildAllKonvaNodes');
-      const obj: CanvasText = {
-        id: 'text-1',
-        layerId,
-        type: 'text',
-        text: 'New Text',
-        fontSize: 16,
-        fontFamily: 'Arial',
-        fontStyle: 'normal',
-        fill: '#000',
-        width: 200,
-        align: 'left',
-        x: 0,
-        y: 0,
-        rotation: 0,
-        scaleX: 1,
-        scaleY: 1,
-        visible: true,
-        locked: false,
-      };
-      mockCanvasRenderer.konvaLayers.set(layerId, makeMockLayer());
-      mockCanvasRenderer.konvaNodes.set('text-1', makeMockNode());
-      // Set old signature with different text
-      const oldSig = CanvasRendererService.getObjectRenderSignature({
-        ...obj,
-        text: 'Old Text',
+    it('steps up and down through the width presets', () => {
+      component['onStrokeWidthChange'](4);
+      component['onAdjustStrokeWidth'](1);
+      expect(component['toolSettings']().strokeWidth).toBe(8);
+
+      component['onAdjustStrokeWidth'](-1);
+      expect(component['toolSettings']().strokeWidth).toBe(4);
+    });
+
+    it('stops at the ends of the preset range', () => {
+      component['onStrokeWidthChange'](1);
+      component['onAdjustStrokeWidth'](-1);
+      expect(component['toolSettings']().strokeWidth).toBe(1);
+    });
+
+    it('toggles fill on and off', () => {
+      const before = component['toolSettings']().fillEnabled;
+      component['onToggleFill']();
+      expect(component['toolSettings']().fillEnabled).toBe(!before);
+    });
+
+    it('toggles pressure', () => {
+      const before = component['toolSettings']().pressure;
+      component['onTogglePressure']();
+      expect(component['toolSettings']().pressure).toBe(!before);
+    });
+
+    it('clamps smoothing and opacity', () => {
+      component['onSmoothingChange']('2');
+      expect(component['toolSettings']().tension).toBe(1);
+
+      component['onOpacityChange']('0');
+      expect(component['toolSettings']().opacity).toBe(0.05);
+    });
+
+    it('accepts an eraser size', () => {
+      component['onEraserSizeChange']('40');
+      expect(component['toolSettings']().eraserSize).toBe(40);
+    });
+
+    it('recolours the selection while picking a stroke colour', () => {
+      const applyColor = vi
+        .spyOn(component['canvasColor'], 'applyColor')
+        .mockImplementation(() => {});
+      component['selectedObjectId'].set('obj-1');
+
+      component['onStrokeColorChange']('#00FF00');
+
+      expect(applyColor).toHaveBeenCalledWith('obj-1', { stroke: '#00FF00' });
+      expect(component['toolSettings']().stroke).toBe('#00FF00');
+    });
+
+    it('only updates the tool when nothing is selected', () => {
+      const applyColor = vi
+        .spyOn(component['canvasColor'], 'applyColor')
+        .mockImplementation(() => {});
+      component['selectedObjectId'].set(null);
+
+      component['onFillColorChange']('#0000FF');
+
+      expect(applyColor).not.toHaveBeenCalled();
+      expect(component['toolSettings']().fill).toBe('#0000FF');
+      expect(component['toolSettings']().fillEnabled).toBe(true);
+    });
+  });
+
+  describe('undo and redo', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+    });
+
+    it('delegates undo to the canvas service', () => {
+      component['onUndo']();
+      expect(mockCanvasService.undo).toHaveBeenCalled();
+    });
+
+    it('delegates redo to the canvas service', () => {
+      component['onRedo']();
+      expect(mockCanvasService.redo).toHaveBeenCalled();
+    });
+
+    it('clears the selection when the undone step removed it', () => {
+      mockCanvasService.undo.mockReturnValue(true);
+      component['selectedObjectId'].set('gone');
+
+      component['onUndo']();
+      expect(component['selectedObjectId']()).toBeNull();
+    });
+
+    it('keeps a selection that survived the undo', () => {
+      mockCanvasService.undo.mockReturnValue(true);
+      const config = mockCanvasService.activeConfig();
+      mockCanvasService.activeConfig.set({
+        ...config!,
+        objects: [
+          {
+            id: 'kept',
+            layerId: config!.layers[0].id,
+            type: 'path',
+            x: 0,
+            y: 0,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            visible: true,
+            locked: false,
+            points: [0, 0, 10, 10],
+            stroke: '#000',
+            strokeWidth: 2,
+            closed: false,
+            tension: 0,
+          },
+        ],
       });
-      mockCanvasRenderer.objectRenderSignatures.set('text-1', oldSig);
+      component['selectedObjectId'].set('kept');
 
-      callSync(defaultConfig.layers, [obj]);
-
-      expect(rebuildSpy).toHaveBeenCalled();
-    });
-
-    it('should update objectRenderSignatures after incremental sync', () => {
-      stubStageAndHelpers();
-      const obj: CanvasShape = {
-        id: 'shape-sig',
-        layerId,
-        type: 'shape',
-        shapeType: 'rect',
-        x: 0,
-        y: 0,
-        rotation: 0,
-        scaleX: 1,
-        scaleY: 1,
-        visible: true,
-        locked: false,
-        width: 50,
-        height: 50,
-        stroke: '#000',
-        strokeWidth: 1,
-      };
-      mockCanvasRenderer.konvaLayers.set(layerId, makeMockLayer());
-      mockCanvasRenderer.konvaNodes.set('shape-sig', makeMockNode());
-      mockCanvasRenderer.objectRenderSignatures.set(
-        'shape-sig',
-        CanvasRendererService.getObjectRenderSignature(obj)
-      );
-
-      callSync(defaultConfig.layers, [obj]);
-
-      expect(mockCanvasRenderer.objectRenderSignatures.get('shape-sig')).toBe(
-        CanvasRendererService.getObjectRenderSignature(obj)
-      );
-    });
-
-    it('should move selection layer to top after sync', () => {
-      stubStageAndHelpers();
-      mockCanvasRenderer.konvaLayers.set(layerId, makeMockLayer());
-
-      callSync(defaultConfig.layers, []);
-
-      expect(
-        (
-          mockCanvasRenderer.selectionLayer as unknown as {
-            moveToTop: ReturnType<typeof vi.fn>;
-          }
-        ).moveToTop
-      ).toHaveBeenCalled();
-    });
-
-    it('should trigger full rebuild when a layer is added', () => {
-      stubStageAndHelpers();
-      const rebuildSpy = vi.spyOn(mockCanvasRenderer, 'rebuildAllKonvaNodes');
-      // No layers in konvaLayers but config has one layer → mismatch
-      // (konvaLayers is empty by default)
-
-      callSync(defaultConfig.layers, []);
-
-      expect(rebuildSpy).toHaveBeenCalled();
+      component['onUndo']();
+      expect(component['selectedObjectId']()).toBe('kept');
     });
   });
 
-  describe('rebuildAllKonvaNodes', () => {
-    const layerId = defaultConfig.layers[0].id;
-
-    function stubForRebuild() {
-      mockCanvasRenderer.stage = { destroy: vi.fn() };
-      vi.spyOn(mockCanvasRenderer, 'buildKonvaLayers').mockImplementation(
-        () => {}
-      );
-      vi.spyOn(mockCanvasRenderer, 'buildKonvaObjects').mockImplementation(
-        () => {}
-      );
-      vi.spyOn(component as any, 'selectKonvaNode').mockImplementation(
-        () => {}
-      );
-      mockCanvasRenderer.selectionLayer = {
-        moveToTop: vi.fn(),
-        batchDraw: vi.fn(),
-      };
-      mockCanvasRenderer.transformer = {
-        nodes: vi.fn(),
-      };
-    }
-
-    function callRebuild(layers: any, objects: any) {
-      return mockCanvasRenderer.rebuildAllKonvaNodes(
-        layers,
-        objects,
-        component['selectedObjectId'](),
-        component['nodeHandlers']
-      );
-    }
-
-    it('should destroy existing layers and clear all maps', () => {
-      stubForRebuild();
-      const mockLayer = {
-        destroy: vi.fn(),
-        batchDraw: vi.fn(),
-      } as unknown as Konva.Layer;
-      mockCanvasRenderer.konvaLayers.set(layerId, mockLayer);
-      mockCanvasRenderer.konvaNodes.set('node-1', {});
-      mockCanvasRenderer.objectRenderSignatures.set('node-1', '{}');
-
-      callRebuild(defaultConfig.layers, []);
-
-      expect(mockLayer.destroy).toHaveBeenCalled();
-      expect(mockCanvasRenderer.konvaLayers.size).toBe(0);
-      expect(mockCanvasRenderer.konvaNodes.size).toBe(0);
-      expect(mockCanvasRenderer.objectRenderSignatures.size).toBe(0);
+  describe('brush cursor', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
     });
 
-    it('should populate render signatures for each object after rebuild', () => {
-      stubForRebuild();
-      const obj: CanvasShape = {
-        id: 'shape-rb',
-        layerId,
-        type: 'shape',
-        shapeType: 'ellipse',
-        x: 0,
-        y: 0,
-        rotation: 0,
-        scaleX: 1,
-        scaleY: 1,
-        visible: true,
-        locked: false,
-        width: 80,
-        height: 40,
-        fill: '#ff0',
-        stroke: '#00f',
-        strokeWidth: 2,
-      };
+    it('sizes the ring to the stroke width and zoom', () => {
+      component['onToolChange']('draw');
+      component['updateToolSettings']({ strokeWidth: 10 });
+      component['zoomLevel'].set(2);
 
-      callRebuild(defaultConfig.layers, [obj]);
+      component['moveBrushCursor']({ x: 30, y: 40 });
 
-      expect(mockCanvasRenderer.objectRenderSignatures.get('shape-rb')).toBe(
-        CanvasRendererService.getObjectRenderSignature(obj)
-      );
+      const ring = fixture.nativeElement.querySelector(
+        '[data-testid="brush-cursor"]'
+      ) as HTMLElement;
+      expect(ring.style.width).toBe('20px');
+      expect(ring.style.opacity).toBe('1');
+      expect(ring.style.transform).toContain('translate(30px, 40px)');
     });
 
-    it('should restore transformer selection when selected node is found', () => {
-      stubForRebuild();
-      const selectedId = 'shape-sel';
-      const mockNode = {} as Konva.Node;
-      component['selectedObjectId'].set(selectedId);
-      // Simulate buildKonvaObjects populating konvaNodes
-      vi.spyOn(mockCanvasRenderer, 'buildKonvaObjects').mockImplementation(
-        () => {
-          mockCanvasRenderer.konvaNodes.set(selectedId, mockNode);
-        }
-      );
+    it('uses the eraser diameter for the eraser', () => {
+      component['onToolChange']('eraser');
+      component['updateToolSettings']({ eraserSize: 12 });
+      component['zoomLevel'].set(1);
 
-      const obj: CanvasShape = {
-        id: selectedId,
-        layerId,
-        type: 'shape',
-        shapeType: 'rect',
-        x: 0,
-        y: 0,
-        rotation: 0,
-        scaleX: 1,
-        scaleY: 1,
-        visible: true,
-        locked: false,
-        width: 50,
-        height: 50,
-        stroke: '#000',
-        strokeWidth: 1,
-      };
+      component['moveBrushCursor']({ x: 0, y: 0 });
 
-      callRebuild(defaultConfig.layers, [obj]);
-
-      expect(component['selectKonvaNode']).toHaveBeenCalledWith(mockNode);
+      const ring = fixture.nativeElement.querySelector(
+        '[data-testid="brush-cursor"]'
+      ) as HTMLElement;
+      expect(ring.style.width).toBe('24px');
     });
 
-    it('should clear transformer when selected node is no longer present', () => {
-      stubForRebuild();
-      component['selectedObjectId'].set('missing-node');
+    it('hides the ring for tools that do not paint', () => {
+      component['onToolChange']('select');
+      component['moveBrushCursor']({ x: 10, y: 10 });
 
-      callRebuild(defaultConfig.layers, []);
+      const ring = fixture.nativeElement.querySelector(
+        '[data-testid="brush-cursor"]'
+      ) as HTMLElement;
+      expect(ring.style.opacity).toBe('0');
+    });
 
-      expect(
-        (
-          mockCanvasRenderer.transformer as unknown as {
-            nodes: ReturnType<typeof vi.fn>;
-          }
-        ).nodes
-      ).toHaveBeenCalledWith([]);
-      expect(
-        (
-          mockCanvasRenderer.selectionLayer as unknown as {
-            batchDraw: ReturnType<typeof vi.fn>;
-          }
-        ).batchDraw
-      ).toHaveBeenCalled();
+    it('hides the ring when the pointer leaves', () => {
+      component['onToolChange']('draw');
+      component['moveBrushCursor']({ x: 10, y: 10 });
+      component['moveBrushCursor'](null);
+
+      const ring = fixture.nativeElement.querySelector(
+        '[data-testid="brush-cursor"]'
+      ) as HTMLElement;
+      expect(ring.style.opacity).toBe('0');
     });
   });
 

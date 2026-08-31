@@ -328,13 +328,25 @@
   gap: 4px;
   flex-shrink: 0;
   min-height: 44px;
-  overflow-x: auto;
+  // Overflow is handled by moving groups into the chevron menu, so the row
+  // neither wraps nor scrolls sideways.
+  flex-wrap: nowrap;
+  overflow-x: hidden;
+}
+
+// Taken out of layout entirely; the overflow menu carries their controls.
+.toolbar-group--hidden,
+.toolbar-divider--hidden {
+  display: none !important;
 }
 
 .toolbar-group {
   display: flex;
   align-items: center;
   gap: 2px;
+  // Groups must keep their natural width: if flexbox squeezes them, the
+  // measured widths are meaningless and the row never reports an overflow.
+  flex-shrink: 0;
 }
 
 .toolbar-divider {
@@ -347,6 +359,8 @@
 
 .toolbar-spacer {
   flex: 1 1 auto;
+  // Collapses to nothing so the pinned presence indicator keeps its place.
+  min-width: 0;
 }
 
 .zoom-label {
@@ -367,13 +381,43 @@
 // Canvas Stage
 // ─────────────────────────────────────────────────────────────────────────────
 
-.canvas-area {
+// Positioning context for the brush cursor. Konva wipes the container it owns,
+// so the ring has to be a sibling of the stage rather than a child.
+.canvas-stage-wrap {
+  position: relative;
   flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.brush-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 1.5px solid currentcolor;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 2;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 60%);
+
+  &.eraser {
+    border-style: dashed;
+    border-color: var(--sys-on-surface-variant);
+  }
+}
+
+.canvas-area {
   min-height: 0;
   min-width: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
+
+  // The stage handles its own pan and zoom; without this a single-finger
+  // stroke scrolls the page out from under the drawing on touch devices.
+  touch-action: none;
   background-color: var(--sys-surface-container-lowest);
   background-image: radial-gradient(
     circle,
@@ -402,6 +446,148 @@
   :host-context(.tool-rectSelect) & {
     cursor: crosshair;
   }
+
+  // The ring is the eraser cursor — a second pointer on top of it just adds noise.
+  :host-context(.tool-eraser) & {
+    cursor: none;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Toolbar swatches and picker menus
+// ─────────────────────────────────────────────────────────────────────────────
+
+.swatch-button .swatch-dot {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--sys-outline);
+  box-sizing: border-box;
+}
+
+.swatch-dot.swatch-none {
+  background:
+    linear-gradient(
+      to bottom right,
+      transparent calc(50% - 1px),
+      var(--sys-error) calc(50% - 1px),
+      var(--sys-error) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    ),
+    var(--sys-surface);
+}
+
+.picker-panel {
+  padding: 12px;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.picker-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.picker-toggle {
+  border: 1px solid var(--sys-outline-variant);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  border-radius: 12px;
+  padding: 2px 10px;
+  cursor: pointer;
+
+  &.on {
+    background: var(--sys-secondary-container);
+    color: var(--sys-on-secondary-container);
+    border-color: transparent;
+  }
+
+  &.wide {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 8px;
+    padding: 6px 10px;
+    width: 100%;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+.picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+
+  input[type='range'] {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.picker-label {
+  min-width: 74px;
+  color: var(--sys-on-surface-variant);
+}
+
+.picker-value {
+  min-width: 24px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--sys-on-surface-variant);
+}
+
+.width-presets {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.width-preset {
+  flex: 1;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--sys-surface-container-high);
+  }
+
+  &.selected {
+    border-color: var(--sys-primary);
+  }
+}
+
+.width-dot {
+  display: block;
+  border-radius: 50%;
+  max-width: 28px;
+  max-height: 28px;
 }
 
 // Hidden trigger for the canvas context menu

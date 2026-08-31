@@ -87,18 +87,66 @@ Creation tools are enabled when a layer is active. Objects are added to whicheve
 | **Image**         | —        | Open the media library to place an image                                  |
 | **Text**          | `T`      | Click on the canvas to add a text label                                   |
 | **Freehand Draw** | `D`      | Draw freely with the pointer                                              |
+| **Eraser**        | `E`      | Drag across strokes and objects to remove them                            |
 | **Line**          | `L`      | Click and drag to draw a straight line                                    |
 | **Shape**         | `S`      | Draw a shape — click the arrow to pick Rectangle, Ellipse, Arrow, or Line |
+
+Drawing tools work on top of whatever is already on the canvas, so you can
+annotate directly over a placed map without selecting it by mistake.
+
+### Modifier Keys
+
+| Modifier             | Effect                                                       |
+| -------------------- | ------------------------------------------------------------ |
+| **Shift** + line     | Snap the line to 15° increments                              |
+| **Shift** + shape    | Constrain to a perfect square or circle                      |
+| **Alt** + shape      | Draw the shape outward from the point you started at         |
+| **Space** (held)     | Pan the canvas without leaving the current tool              |
+| **Esc**              | Cancel the stroke in progress and return to the Select tool  |
+
+### Brush Settings
+
+Four toolbar controls set what the next stroke or shape will look like. Your
+choices are remembered between sessions.
+
+| Control          | Description                                                                     |
+| ---------------- | ------------------------------------------------------------------------------- |
+| **Stroke color** | Colour of lines, outlines, and freehand ink                                     |
+| **Fill color**   | Interior colour for shapes, with a **No fill** toggle for outline-only shapes   |
+| **Stroke width** | Six presets plus a slider — `[` and `]` step through the presets while you draw |
+| **Brush options**| Pressure, smoothing, opacity, and eraser size                                   |
+
+With an object selected, picking a colour recolours it immediately — no dialog
+needed.
+
+**Pressure & speed** makes freehand strokes vary in width: a stylus uses real
+pen pressure, and a mouse or trackpad uses drawing speed, so quick strokes taper
+the way ink does. Turn it off for a uniform line. **Smoothing** rounds off the
+corners in a hand-drawn line; **opacity** is useful for highlighter-style
+annotation over a map.
 
 ### Other Controls
 
 | Control           | Description                                            |
 | ----------------- | ------------------------------------------------------ |
 | **Palette**       | Edit the fill and stroke colors of the selected object |
+| **Undo / Redo**   | Step backwards and forwards through your edits         |
 | **Zoom In / Out** | Step the zoom level up or down                         |
 | **Fit All**       | Zoom to show all objects on the canvas                 |
 | **Export**        | Export the canvas as PNG or SVG                        |
 | **Zoom label**    | Shows the current zoom percentage                      |
+
+### Navigating the Stage
+
+| Gesture                          | Result                        |
+| -------------------------------- | ----------------------------- |
+| Scroll / two-finger swipe        | Pan the canvas                |
+| **Shift** + scroll               | Pan horizontally              |
+| **Ctrl**/**⌘** + scroll, or pinch| Zoom around the pointer       |
+| Hold **Space** and drag          | Pan from any tool             |
+
+On a tablet, pinch to zoom and drag with two fingers to pan. While a stylus is
+in use, resting your hand on the screen won't start a second stroke.
 
 ## Objects Panel
 
@@ -143,6 +191,14 @@ Right-click anywhere on the canvas (or on a selected object) to open the context
 
 Standard keyboard shortcuts also work: `Ctrl+C` / `Cmd+C` to copy, `Ctrl+X` / `Cmd+X` to cut, `Ctrl+V` / `Cmd+V` to paste, `Ctrl+D` / `Cmd+D` to duplicate, and `Delete` to remove.
 
+## Undo & Redo
+
+`Ctrl+Z` / `Cmd+Z` steps back through your canvas edits, and `Ctrl+Shift+Z` /
+`Cmd+Shift+Z` (or `Ctrl+Y`) steps forward again. The toolbar has buttons for
+both. A continuous gesture — dragging an object, sweeping the eraser across
+several strokes — counts as a single step, so one undo takes back the whole
+action rather than unpicking it piece by piece.
+
 ## Exporting
 
 Export the visible canvas at any time:
@@ -161,7 +217,9 @@ Only visible layers are included in the export.
 - **Lock finished layers** to avoid accidentally moving objects you're happy with
 - **Hide layers during export** to produce cleaner output — e.g., hide a grid or reference layer before exporting
 - **Use Pan mode (`H`)** to navigate the canvas without risk of accidentally moving objects
-- **Freehand draw** works best with a stylus or trackpad; for crisp lines use the **Line** tool instead
+- **Freehand draw** feels best with a stylus, which drives stroke width from real pen pressure; for crisp lines use the **Line** tool instead
+- **Turn fill off** when drawing shapes over a map so the artwork underneath stays visible
+- **Lower the opacity** and pick a bright stroke colour for highlighter-style annotation
 - The canvas is saved automatically as you work — no explicit save step is needed
 
 ---

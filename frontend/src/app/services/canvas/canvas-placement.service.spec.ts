@@ -131,9 +131,52 @@ describe('CanvasPlacementService', () => {
         expect.objectContaining({ type: 'text', text: 'Hello', fill: '#111' })
       );
     });
+
+    it('offers the drawing colour rather than the shape fill', () => {
+      dialog.open.mockReturnValue({ afterClosed: () => of(undefined) });
+      service.placeText(handlers, {
+        ...settings,
+        stroke: '#123456',
+        fill: '#ffffff',
+      });
+      expect(dialog.open).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({ color: '#123456' }),
+        })
+      );
+    });
   });
 
   describe('placeDefaultShape', () => {
+    it('leaves the shape unfilled when fill is switched off', () => {
+      const settings: CanvasToolSettings = {
+        shapeType: 'rect',
+        stroke: '#000',
+        strokeWidth: 2,
+        fill: '#abc',
+        fillEnabled: false,
+      } as CanvasToolSettings;
+      service.placeDefaultShape(handlers, settings);
+      expect(canvasService.addObject).toHaveBeenCalledWith(
+        expect.objectContaining({ fill: undefined })
+      );
+    });
+
+    it('applies the fill when it is switched on', () => {
+      const settings: CanvasToolSettings = {
+        shapeType: 'rect',
+        stroke: '#000',
+        strokeWidth: 2,
+        fill: '#abc',
+        fillEnabled: true,
+      } as CanvasToolSettings;
+      service.placeDefaultShape(handlers, settings);
+      expect(canvasService.addObject).toHaveBeenCalledWith(
+        expect.objectContaining({ fill: '#abc' })
+      );
+    });
+
     it('creates a rect when shapeType is rect', () => {
       const settings: CanvasToolSettings = {
         shapeType: 'rect',

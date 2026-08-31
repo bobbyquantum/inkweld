@@ -10,6 +10,7 @@ import type {
 } from '@models/canvas.model';
 
 import { svgEsc } from './canvas-utils';
+import { buildInkOutline, buildPathData } from './ink-stroke';
 
 let svgIdCounter = 0;
 
@@ -29,14 +30,23 @@ interface Bounds {
   maxY: number;
 }
 
-/** Expand bounding box to include all points of a path object */
+/**
+ * Expand bounding box to include all points of a path object.
+ *
+ * Points describe the centreline, but the ink sits either side of it — and a
+ * pressure stroke can swell past half the nominal width — so the reach has to
+ * be added or a wide stroke at the edge of the drawing gets clipped.
+ */
 function expandBoundsForPath(b: Bounds, obj: CanvasObject): void {
-  const pts = (obj as CanvasPath).points;
+  const path = obj as CanvasPath;
+  const pts = path.points;
+  const reach = (path.strokeWidth / 2) * (path.pressures?.length ? 1.4 : 1);
+
   for (let i = 0; i < pts.length - 1; i += 2) {
-    b.minX = Math.min(b.minX, obj.x + (pts[i] ?? 0));
-    b.minY = Math.min(b.minY, obj.y + (pts[i + 1] ?? 0));
-    b.maxX = Math.max(b.maxX, obj.x + (pts[i] ?? 0));
-    b.maxY = Math.max(b.maxY, obj.y + (pts[i + 1] ?? 0));
+    b.minX = Math.min(b.minX, obj.x + (pts[i] ?? 0) - reach);
+    b.minY = Math.min(b.minY, obj.y + (pts[i + 1] ?? 0) - reach);
+    b.maxX = Math.max(b.maxX, obj.x + (pts[i] ?? 0) + reach);
+    b.maxY = Math.max(b.maxY, obj.y + (pts[i + 1] ?? 0) + reach);
   }
 }
 
@@ -123,7 +133,14 @@ function buildTransformAttr(obj: CanvasObject): string {
 /** Convert a CanvasObject to an SVG element string */
 export function canvasObjectToSvgElement(obj: CanvasObject): string {
   const tf = buildTransformAttr(obj);
+  const element = canvasObjectToSvgShape(obj, tf);
 
+  const opacity = obj.opacity ?? 1;
+  if (!element || opacity >= 1) return element;
+  return `<g opacity="${opacity}">${element}</g>`;
+}
+
+function canvasObjectToSvgShape(obj: CanvasObject, tf: string): string {
   switch (obj.type) {
     case 'shape':
       return canvasShapeToSvg(obj, tf);
@@ -201,13 +218,20 @@ export function canvasTextToSvg(obj: CanvasText, tf: string): string {
 
 /** Convert a CanvasPath to an SVG polyline element */
 export function canvasPathToSvg(obj: CanvasPath, tf: string): string {
-  const pts = obj.points;
-  if (pts.length < 4) return '';
-  const d: string[] = [`M ${pts[0]},${pts[1]}`];
-  for (let i = 2; i < pts.length; i += 2) d.push(`L ${pts[i]},${pts[i + 1]}`);
-  if (obj.closed) d.push('Z');
+  if (obj.points.length < 4) return '';
+
+  // Pressure ink is a filled outline, matching how it renders on the canvas.
+  if (obj.pressures?.length) {
+    const outline = buildInkOutline(obj.points, obj.pressures, obj.strokeWidth);
+    const d = buildPathData(outline, 0, true);
+    if (!d) return '';
+    return `<path ${tf} d="${d}" fill="${obj.stroke}" stroke="none"/>`;
+  }
+
+  const d = buildPathData(obj.points, obj.tension, obj.closed);
+  if (!d) return '';
   const fill = obj.closed && obj.fill ? obj.fill : 'none';
-  return `<path ${tf} d="${d.join(' ')}" fill="${fill}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}"/>`;
+  return `<path ${tf} d="${d}" fill="${fill}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`;
 }
 
 /** Convert a CanvasImage to an SVG image or placeholder rect */

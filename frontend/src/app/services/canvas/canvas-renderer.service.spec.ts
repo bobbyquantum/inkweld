@@ -3,7 +3,6 @@ import { TestBed } from '@angular/core/testing';
 import type {
   CanvasImage,
   CanvasLayer,
-  CanvasObject,
   CanvasPath,
   CanvasPin,
   CanvasShape,
@@ -313,70 +312,96 @@ describe('CanvasRendererService', () => {
     });
   });
 
-  // ─── getObjectRenderSignature (static) ───────────────────────────────────
+  // ─── getObjectStructure (static) ─────────────────────────────────────────
 
-  describe('getObjectRenderSignature (static)', () => {
-    it('returns JSON signature for image type', () => {
-      const obj = makeImage();
-      const sig = CanvasRendererService.getObjectRenderSignature(obj);
-      const parsed = JSON.parse(sig);
-      expect(parsed.type).toBe('image');
-      expect(parsed.src).toBe('https://example.com/img.jpg');
-      expect(parsed.width).toBe(200);
-    });
-
-    it('returns JSON signature for text type', () => {
-      const obj = makeText({ text: 'World', fontSize: 18 });
-      const sig = CanvasRendererService.getObjectRenderSignature(obj);
-      const parsed = JSON.parse(sig);
-      expect(parsed.type).toBe('text');
-      expect(parsed.text).toBe('World');
-      expect(parsed.fontSize).toBe(18);
-    });
-
-    it('returns JSON signature for path type', () => {
-      const obj = makePath({ stroke: '#ff0000', strokeWidth: 3 });
-      const sig = CanvasRendererService.getObjectRenderSignature(obj);
-      const parsed = JSON.parse(sig);
-      expect(parsed.type).toBe('path');
-      expect(parsed.stroke).toBe('#ff0000');
-    });
-
-    it('returns JSON signature for shape type', () => {
-      const obj = makeShape('rect');
-      const sig = CanvasRendererService.getObjectRenderSignature(obj);
-      const parsed = JSON.parse(sig);
-      expect(parsed.type).toBe('shape');
-      expect(parsed.shapeType).toBe('rect');
-    });
-
-    it('returns JSON signature for pin type', () => {
-      const obj = makePin({
-        linkedElementId: 'E1',
-        relationshipId: 'R1',
-        note: 'a note',
-      });
-      const sig = CanvasRendererService.getObjectRenderSignature(obj);
-      const parsed = JSON.parse(sig);
-      expect(parsed.type).toBe('pin');
-      expect(parsed.linkedElementId).toBe('E1');
-    });
-
-    it('falls back to full JSON.stringify for unknown type', () => {
-      const obj = {
-        ...baseObj,
-        type: 'unknown',
-      } as unknown as CanvasObject;
-      const sig = CanvasRendererService.getObjectRenderSignature(obj);
-      expect(sig).toContain('"type":"unknown"');
-    });
-
-    it('produces different signatures when content changes', () => {
-      const a = makeText({ text: 'A' });
-      const b = makeText({ text: 'B' });
-      expect(CanvasRendererService.getObjectRenderSignature(a)).not.toBe(
-        CanvasRendererService.getObjectRenderSignature(b)
+  describe('getObjectStructure (static)', () => {
+    it('keys images by source so a new source rebuilds the node', () => {
+      expect(CanvasRendererService.getObjectStructure(makeImage())).toBe(
+        'image:https://example.com/img.jpg'
       );
+      expect(
+        CanvasRendererService.getObjectStructure(
+          makeImage({ src: 'media://other' })
+        )
+      ).toBe('image:media://other');
+    });
+
+    it('keys shapes by their variant', () => {
+      expect(CanvasRendererService.getObjectStructure(makeShape('rect'))).toBe(
+        'shape:rect'
+      );
+      expect(
+        CanvasRendererService.getObjectStructure(makeShape('ellipse'))
+      ).toBe('shape:ellipse');
+    });
+
+    it('distinguishes outlined ink from a stroked polyline', () => {
+      expect(CanvasRendererService.getObjectStructure(makePath())).toBe(
+        'path:line'
+      );
+      expect(
+        CanvasRendererService.getObjectStructure(
+          makePath({ pressures: [1, 0.5] })
+        )
+      ).toBe('path:ink');
+    });
+
+    it('is stable when only appearance changes', () => {
+      expect(
+        CanvasRendererService.getObjectStructure(makeText({ text: 'A' }))
+      ).toBe(CanvasRendererService.getObjectStructure(makeText({ text: 'B' })));
+      expect(
+        CanvasRendererService.getObjectStructure(makePath({ stroke: '#f00' }))
+      ).toBe(CanvasRendererService.getObjectStructure(makePath()));
+    });
+
+    it('falls back to the type for pins', () => {
+      expect(CanvasRendererService.getObjectStructure(makePin())).toBe('pin');
+    });
+  });
+
+  // ─── pathAttrs (static) ──────────────────────────────────────────────────
+
+  describe('pathAttrs (static)', () => {
+    it('keeps a plain path stroked', () => {
+      const attrs = CanvasRendererService.pathAttrs(
+        makePath({ stroke: '#123456', strokeWidth: 3, tension: 0.4 })
+      );
+      expect(attrs.stroke).toBe('#123456');
+      expect(attrs.strokeWidth).toBe(3);
+      expect(attrs.tension).toBe(0.4);
+      expect(attrs.closed).toBe(false);
+      expect(attrs.fill).toBeUndefined();
+    });
+
+    it('gives thin strokes a generous hit area', () => {
+      expect(
+        CanvasRendererService.pathAttrs(makePath({ strokeWidth: 1 }))
+          .hitStrokeWidth
+      ).toBeGreaterThanOrEqual(12);
+    });
+
+    it('fills a closed path', () => {
+      const attrs = CanvasRendererService.pathAttrs(
+        makePath({ closed: true, fill: '#abcdef' })
+      );
+      expect(attrs.fill).toBe('#abcdef');
+    });
+
+    it('turns pressure ink into a filled outline', () => {
+      const attrs = CanvasRendererService.pathAttrs(
+        makePath({
+          points: [0, 0, 50, 0],
+          pressures: [1, 0.4],
+          stroke: '#222222',
+          strokeWidth: 8,
+        })
+      );
+      expect(attrs.closed).toBe(true);
+      expect(attrs.fill).toBe('#222222');
+      expect(attrs.stroke).toBeUndefined();
+      expect(attrs.strokeWidth).toBe(0);
+      expect(attrs.points.length).toBeGreaterThan(4);
     });
   });
 
@@ -716,6 +741,213 @@ describe('CanvasRendererService', () => {
       const node = service.konvaNodes.get('o1')!;
       expect(node.x()).toBe(99);
       expect(node.y()).toBe(88);
+    });
+
+    it('keeps the same node when only style changes', () => {
+      const layer = makeLayer();
+      const obj = makePath();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [obj], null, handlers);
+      const before = service.konvaNodes.get('o1');
+
+      service.syncKonvaFromConfig(
+        [layer],
+        [{ ...obj, stroke: '#ff0000', strokeWidth: 9 }],
+        null,
+        handlers
+      );
+
+      const after = service.konvaNodes.get('o1') as Konva.Line;
+      expect(after).toBe(before);
+      expect(after.stroke()).toBe('#ff0000');
+      expect(after.strokeWidth()).toBe(9);
+    });
+
+    it('keeps the image node across edits so it does not reload', () => {
+      const layer = makeLayer();
+      const obj = makeImage();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [obj], null, handlers);
+      const before = service.konvaNodes.get('o1');
+
+      service.syncKonvaFromConfig(
+        [layer],
+        [{ ...obj, width: 400, height: 300 }],
+        null,
+        handlers
+      );
+
+      expect(service.konvaNodes.get('o1')).toBe(before);
+    });
+
+    it('rebuilds the node when the image source changes', () => {
+      const layer = makeLayer();
+      const obj = makeImage();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [obj], null, handlers);
+      const before = service.konvaNodes.get('o1');
+
+      service.syncKonvaFromConfig(
+        [layer],
+        [{ ...obj, src: 'https://example.com/other.png' }],
+        null,
+        handlers
+      );
+
+      expect(service.konvaNodes.get('o1')).not.toBe(before);
+    });
+
+    it('rebuilds the node when a shape changes variant', () => {
+      const layer = makeLayer();
+      const handlers = makeHandlers();
+      service.initStage(
+        container,
+        [layer],
+        [makeShape('rect')],
+        null,
+        handlers
+      );
+      const before = service.konvaNodes.get('o1');
+
+      service.syncKonvaFromConfig(
+        [layer],
+        [makeShape('ellipse')],
+        null,
+        handlers
+      );
+
+      const after = service.konvaNodes.get('o1');
+      expect(after).not.toBe(before);
+      expect(after).toBeInstanceOf(Konva.Ellipse);
+    });
+
+    it('drops nodes for objects that were deleted', () => {
+      const layer = makeLayer();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [makeText()], null, handlers);
+
+      service.syncKonvaFromConfig([layer], [], null, handlers);
+      expect(service.konvaNodes.size).toBe(0);
+    });
+
+    it('moves a node when its object changes layer', () => {
+      const layer = makeLayer();
+      const layer2 = makeLayer({ id: 'L2', name: 'Layer 2', order: 1 });
+      const obj = makeText();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [obj], null, handlers);
+
+      service.syncKonvaFromConfig(
+        [layer, layer2],
+        [{ ...obj, layerId: 'L2' }],
+        null,
+        handlers
+      );
+
+      const node = service.konvaNodes.get('o1');
+      expect(node?.getLayer()).toBe(service.konvaLayers.get('L2'));
+    });
+
+    it('drops nodes that belonged to a deleted layer', () => {
+      const layer = makeLayer();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [makeText()], null, handlers);
+
+      const other = makeLayer({ id: 'L2', name: 'Layer 2', order: 0 });
+      service.syncKonvaFromConfig([other], [], null, handlers);
+
+      expect(service.konvaNodes.size).toBe(0);
+      expect(service.konvaLayers.has('L1')).toBe(false);
+    });
+
+    it('applies object opacity', () => {
+      const layer = makeLayer();
+      const obj = makeText();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [obj], null, handlers);
+
+      service.syncKonvaFromConfig(
+        [layer],
+        [{ ...obj, opacity: 0.4 }],
+        null,
+        handlers
+      );
+
+      expect(service.konvaNodes.get('o1')!.opacity()).toBe(0.4);
+    });
+
+    it('mirrors object array order into z-order', () => {
+      const layer = makeLayer();
+      const a = makeText({ id: 'a' });
+      const b = makeText({ id: 'b' });
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [a, b], null, handlers);
+
+      service.syncKonvaFromConfig([layer], [b, a], null, handlers);
+
+      const nodeA = service.konvaNodes.get('a')!;
+      const nodeB = service.konvaNodes.get('b')!;
+      expect(nodeA.zIndex()).toBeGreaterThan(nodeB.zIndex());
+    });
+
+    it('keeps the preview layer above the content layers', () => {
+      const layer = makeLayer();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [], null, handlers);
+      service.syncKonvaFromConfig([layer], [], null, handlers);
+
+      const preview = service.previewLayer!;
+      expect(preview.zIndex()).toBeGreaterThan(
+        service.konvaLayers.get('L1')!.zIndex()
+      );
+      expect(service.selectionLayer!.zIndex()).toBeGreaterThan(
+        preview.zIndex()
+      );
+    });
+
+    it('setContentInteractive stops objects from taking pointer events', () => {
+      const layer = makeLayer();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [], null, handlers);
+
+      service.setContentInteractive(false);
+      expect(service.konvaLayers.get('L1')!.listening()).toBe(false);
+
+      service.setContentInteractive(true);
+      expect(service.konvaLayers.get('L1')!.listening()).toBe(true);
+    });
+
+    it('keeps locked layers unlistening when interactivity returns', () => {
+      const layer = makeLayer({ locked: true });
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [], null, handlers);
+
+      service.setContentInteractive(false);
+      service.setContentInteractive(true);
+      expect(service.konvaLayers.get('L1')!.listening()).toBe(false);
+    });
+
+    it('survives a sync while content is non-interactive', () => {
+      const layer = makeLayer();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [], null, handlers);
+      service.setContentInteractive(false);
+
+      service.syncKonvaFromConfig([layer], [makeText()], null, handlers);
+      expect(service.konvaLayers.get('L1')!.listening()).toBe(false);
+    });
+
+    it('detaches a destroyed node from the transformer', () => {
+      const layer = makeLayer();
+      const obj = makeText();
+      const handlers = makeHandlers();
+      service.initStage(container, [layer], [obj], null, handlers);
+
+      const node = service.konvaNodes.get('o1')!;
+      service.transformer!.nodes([node]);
+
+      service.syncKonvaFromConfig([layer], [], null, handlers);
+      expect(service.transformer!.nodes()).toHaveLength(0);
     });
 
     it('rebuildAllKonvaNodes clears nodes when no objects provided', () => {

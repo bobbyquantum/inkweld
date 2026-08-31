@@ -1,4 +1,5 @@
 import {
+  type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -19,6 +20,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule, type MatMenuTrigger } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
+import { ColorSwatchesComponent } from '@components/color-swatches/color-swatches.component';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
 import { TranslocoModule } from '@jsverse/transloco';
@@ -29,7 +31,10 @@ import {
   type CanvasText,
   type CanvasTool,
   type CanvasToolSettings,
-  createDefaultToolSettings,
+  capturesStageInput,
+  MAX_STROKE_WIDTH,
+  MIN_STROKE_WIDTH,
+  STROKE_WIDTH_PRESETS,
 } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasClipboardService } from '@services/canvas/canvas-clipboard.service';
@@ -41,6 +46,7 @@ import {
 import {
   CanvasDrawingService,
   type DrawingHandlers,
+  type DrawInput,
 } from '@services/canvas/canvas-drawing.service';
 import { CanvasExportService } from '@services/canvas/canvas-export.service';
 import { CanvasKeyboardService } from '@services/canvas/canvas-keyboard.service';
@@ -59,12 +65,41 @@ import { CanvasStageEventsService } from '@services/canvas/canvas-stage-events.s
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import {
+  computeOverflowGroups,
+  horizontalPadding,
+  measuredWidth,
+  sameOverflow,
+} from '@utils/toolbar-overflow';
 import type Konva from 'konva';
 
 import { getObjectIcon, getObjectLabel } from './canvas-utils';
 
 /** Delay (ms) after sidebar toggle before telling Konva to resize */
 const SIDEBAR_RESIZE_DELAY_MS = 250;
+
+/**
+ * Toolbar groups, highest priority first: the last entry is the first to move
+ * into the overflow menu. Zoom and history go first because both have keyboard
+ * equivalents; the tools themselves are what the toolbar is for, so they stay
+ * on the row longest.
+ */
+const TOOLBAR_GROUP_PRIORITY = [
+  'navigation',
+  'drawing',
+  'style',
+  'creation',
+  'history',
+  'zoom',
+] as const;
+
+export type CanvasToolbarGroup = (typeof TOOLBAR_GROUP_PRIORITY)[number];
+
+/** Matches the `gap` on `.canvas-toolbar`. */
+const TOOLBAR_GAP_PX = 4;
+
+/** Space kept for the overflow chevron and the presence indicator. */
+const TOOLBAR_RESERVED_PX = 88;
 
 @Component({
   selector: 'app-canvas-tab',
@@ -80,6 +115,7 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
     TranslocoModule,
     TabPresenceIndicatorComponent,
     DocumentBreadcrumbsComponent,
+    ColorSwatchesComponent,
   ],
   providers: [
     CanvasService,
@@ -98,7 +134,7 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
     CanvasStageEventsService,
   ],
 })
-export class CanvasTabComponent implements OnInit, OnDestroy {
+export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly projectState = inject(ProjectStateService);
   private readonly canvasService = inject(CanvasService);
@@ -132,6 +168,14 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly canvasContainer =
     viewChild<ElementRef<HTMLDivElement>>('canvasContainer');
 
+  /** Ring that previews the brush/eraser size under the cursor */
+  private readonly brushCursor =
+    viewChild<ElementRef<HTMLDivElement>>('brushCursor');
+
+  /** The toolbar row, measured to decide what has to overflow */
+  private readonly toolbarEl =
+    viewChild<ElementRef<HTMLElement>>('canvasToolbar');
+
   /** Trigger for the right-click context menu */
   private readonly contextMenuTrigger =
     viewChild<MatMenuTrigger>('contextMenuTrigger');
@@ -146,10 +190,47 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   /** Currently active tool */
   protected readonly activeTool = signal<CanvasTool>('select');
 
-  /** Tool settings (stroke, fill, font, etc.) */
+  /** Tool settings (stroke, fill, font, etc.), restored from localStorage */
   protected readonly toolSettings = signal<CanvasToolSettings>(
-    createDefaultToolSettings()
+    this.canvasService.loadToolSettings()
   );
+
+  /** Whether space is held for temporary panning */
+  private readonly spacePanning = signal(false);
+
+  /** Stroke width presets offered in the width menu */
+  protected readonly strokeWidthPresets = STROKE_WIDTH_PRESETS;
+
+  /** Groups that don't fit on the toolbar row and live under the chevron */
+  private readonly overflowGroups = signal<ReadonlySet<CanvasToolbarGroup>>(
+    new Set()
+  );
+
+  /** Whether anything has been pushed into the overflow menu */
+  protected readonly hasOverflow = computed(
+    () => this.overflowGroups().size > 0
+  );
+
+  /** Natural width of each group, remeasured whenever it is on the row */
+  private readonly groupWidths = new Map<string, number>();
+
+  private toolbarResizeObserver: ResizeObserver | null = null;
+
+  /** Whether the last edit can be undone/redone */
+  protected readonly canUndo = this.canvasService.canUndo;
+  protected readonly canRedo = this.canvasService.canRedo;
+
+  /** Identifies the current drag/transform gesture for undo coalescing */
+  private gestureKey: string | null = null;
+  private gestureCounter = 0;
+
+  /**
+   * Set when a drag committed an object. The browser fires a `click` straight
+   * after such a drag, and a click places a default-sized shape — without this
+   * one drag produced two shapes: the one drawn, plus a default one dropped
+   * where the pointer was released.
+   */
+  private dragCommittedObject = false;
 
   /** Currently active layer ID */
   protected readonly activeLayerId = signal<string>('');
@@ -239,8 +320,15 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   /** CSS class on host for cursor styling */
   @HostBinding('class')
   get toolClass(): string {
-    return `tool-${this.activeTool()}`;
+    return this.spacePanning() ? 'tool-pan' : `tool-${this.activeTool()}`;
   }
+
+  /** Whether the current tool draws with the brush ring cursor */
+  protected readonly showBrushCursor = computed(
+    () =>
+      !this.spacePanning() &&
+      (this.activeTool() === 'draw' || this.activeTool() === 'eraser')
+  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // Konva State
@@ -261,8 +349,13 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly nodeHandlers = {
     onSelect: (objId: string) => this.onSelectObject(objId),
     onSelectKonvaNode: (node: Konva.Node) => this.selectKonvaNode(node),
+    onGestureStart: () => this.beginGesture(),
     onDragEnd: (objId: string, x: number, y: number) =>
-      this.canvasService.updateObject(objId, { x, y }),
+      this.canvasService.updateObject(
+        objId,
+        { x, y },
+        { coalesceKey: this.gestureKey ?? undefined }
+      ),
     onTransformEnd: (
       objId: string,
       x: number,
@@ -271,16 +364,29 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       scaleY: number,
       rotation: number
     ) =>
-      this.canvasService.updateObject(objId, {
-        x,
-        y,
-        scaleX,
-        scaleY,
-        rotation,
-      }),
+      this.canvasService.updateObject(
+        objId,
+        {
+          x,
+          y,
+          scaleX,
+          scaleY,
+          rotation,
+        },
+        { coalesceKey: this.gestureKey ?? undefined }
+      ),
     onDblClickText: (obj: CanvasText, textNode: Konva.Text) =>
       this.openTextEditDialog(obj, textNode),
   };
+
+  /**
+   * Start a new drag/transform gesture. Every node touched by the same
+   * gesture shares a key so a multi-object transform is one undo step, while
+   * two separate drags stay separately undoable.
+   */
+  private beginGesture(): void {
+    this.gestureKey = `gesture-${++this.gestureCounter}`;
+  }
 
   constructor() {
     // Keep the tab title in sync with the underlying element's name.
@@ -310,6 +416,17 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────
   // Lifecycle
   // ─────────────────────────────────────────────────────────────────────────
+
+  ngAfterViewInit(): void {
+    const toolbar = this.toolbarEl()?.nativeElement;
+    if (!toolbar) return;
+
+    this.toolbarResizeObserver = new ResizeObserver(() =>
+      this.scheduleToolbarMeasure()
+    );
+    this.toolbarResizeObserver.observe(toolbar);
+    this.scheduleToolbarMeasure();
+  }
 
   ngOnInit(): void {
     this.route.paramMap
@@ -342,7 +459,11 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.toolbarResizeObserver?.disconnect();
+    this.toolbarResizeObserver = null;
     this.saveViewport();
+    // Push out any edit still sitting in the write throttle.
+    this.canvasService.flush();
     this.canvasRenderer.destroyStage();
     // Stop broadcasting our presence on this canvas.
     this.presence.setActiveLocation(null);
@@ -377,10 +498,14 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     this.canvasStageEvents.attach(stage, {
       onZoomChange: scale => this.zoomLevel.set(scale),
       onStageClick: e => this.handleStageClick(e),
-      onDrawStart: e => this.handleDrawStart(e),
-      onDrawMove: () => this.handleDrawMove(),
+      onDrawStart: input => this.handleDrawStart(input),
+      onDrawMove: input => this.handleDrawMove(input),
       onDrawEnd: () => this.handleDrawEnd(),
+      onDrawCancel: () => this.handleDrawCancel(),
+      onPointerFrame: position => this.moveBrushCursor(position),
     });
+
+    this.applyToolToStage(this.activeTool());
 
     // Keyboard shortcuts (register only once per component lifetime)
     if (!this.keyboardShortcutsInitialized) {
@@ -397,6 +522,12 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     _e: Konva.KonvaEventObject<MouseEvent | TouchEvent>
   ): void {
     const tool = this.activeTool();
+
+    // This click is the tail of a drag that already drew something.
+    if (this.dragCommittedObject) {
+      this.dragCommittedObject = false;
+      return;
+    }
 
     if (tool === 'select' || tool === 'pan' || tool === 'rectSelect') {
       this.clearCanvasSelection();
@@ -422,30 +553,64 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     };
   }
 
-  private handleDrawStart(
-    _e: Konva.KonvaEventObject<MouseEvent | TouchEvent>
-  ): void {
+  private handleDrawStart(input: DrawInput): void {
+    if (this.spacePanning()) return;
     const tool = this.activeTool();
     const consumed = this.canvasDrawing.start(
       tool,
       this.toolSettings(),
-      this.drawingHandlers
+      this.drawingHandlers,
+      input
     );
     if (consumed) this.stage?.draggable(false);
   }
 
-  private handleDrawMove(): void {
+  private handleDrawMove(input: DrawInput): void {
+    if (this.spacePanning()) return;
     this.canvasDrawing.move(
       this.activeTool(),
       this.toolSettings(),
-      this.drawingHandlers
+      this.drawingHandlers,
+      input
     );
   }
 
   private handleDrawEnd(): void {
     const tool = this.activeTool();
-    this.canvasDrawing.end(tool, this.toolSettings(), this.drawingHandlers);
-    this.stage?.draggable(tool === 'select' || tool === 'pan');
+    this.dragCommittedObject = this.canvasDrawing.end(
+      tool,
+      this.toolSettings(),
+      this.drawingHandlers
+    );
+    this.applyToolToStage(tool);
+  }
+
+  private handleDrawCancel(): void {
+    this.dragCommittedObject = false;
+    this.canvasDrawing.cancel();
+    this.applyToolToStage(this.activeTool());
+  }
+
+  /** Position the brush ring, in container pixels, or hide it. */
+  private moveBrushCursor(position: { x: number; y: number } | null): void {
+    const el = this.brushCursor()?.nativeElement;
+    if (!el) return;
+
+    if (!position || !this.showBrushCursor()) {
+      el.style.opacity = '0';
+      return;
+    }
+
+    const settings = this.toolSettings();
+    const size =
+      (this.activeTool() === 'eraser'
+        ? settings.eraserSize * 2
+        : settings.strokeWidth) * this.zoomLevel();
+
+    el.style.opacity = '1';
+    el.style.width = `${Math.max(size, 4)}px`;
+    el.style.height = `${Math.max(size, 4)}px`;
+    el.style.transform = `translate(${position.x}px, ${position.y}px) translate(-50%, -50%)`;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -539,15 +704,20 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       onDuplicate: () => this.onDuplicateObject(),
       onDelete: () => this.deleteSelectedObject(),
       onEscape: () => {
+        this.canvasDrawing.cancel();
         this.selectedObjectId.set(null);
         this.canvasSelection.clearSelection();
         this.presence.setSelection(null);
-        this.activeTool.set('select');
+        this.onToolChange('select');
       },
       onToolChange: tool => this.onToolChange(tool),
       onZoomIn: () => this.onZoomIn(),
       onZoomOut: () => this.onZoomOut(),
       onFitAll: () => this.onFitAll(),
+      onUndo: () => this.onUndo(),
+      onRedo: () => this.onRedo(),
+      onAdjustStrokeWidth: direction => this.onAdjustStrokeWidth(direction),
+      onSpacePanChange: active => this.setSpacePanning(active),
     });
   }
 
@@ -555,12 +725,178 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // Toolbar Actions (called from template)
   // ─────────────────────────────────────────────────────────────────────────
 
-  protected onToolChange(tool: CanvasTool): void {
-    this.activeTool.set(tool);
-    // Adjust stage draggable based on tool
-    if (this.stage) {
-      this.stage.draggable(tool === 'select' || tool === 'pan');
+  /** Whether `group` is currently in the overflow menu rather than the row. */
+  protected isOverflowed(group: CanvasToolbarGroup): boolean {
+    return this.overflowGroups().has(group);
+  }
+
+  /**
+   * Re-measure the toolbar and decide what fits.
+   *
+   * Runs on a double animation frame so the browser has committed the layout
+   * that results from the previous decision — measuring mid-change is what
+   * makes this kind of toolbar oscillate.
+   */
+  private scheduleToolbarMeasure(): void {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => this.measureToolbar())
+    );
+  }
+
+  private measureToolbar(): void {
+    const container = this.toolbarEl()?.nativeElement;
+    if (!container || container.offsetWidth === 0) return;
+
+    // Refresh the cache for whatever is currently on the row; hidden groups
+    // keep the width they had when they were last visible.
+    for (const name of TOOLBAR_GROUP_PRIORITY) {
+      const group = container.querySelector<HTMLElement>(
+        `[data-toolbar-group="${name}"]`
+      );
+      if (!group) continue;
+      const divider = container.querySelector<HTMLElement>(
+        `[data-toolbar-divider="${name}"]`
+      );
+      const width = measuredWidth(group) + measuredWidth(divider);
+      if (width > 0) this.groupWidths.set(name, width);
     }
+
+    const available =
+      container.offsetWidth -
+      horizontalPadding(container) -
+      TOOLBAR_RESERVED_PX;
+
+    const next = computeOverflowGroups({
+      availableWidth: available,
+      gapPx: TOOLBAR_GAP_PX,
+      priority: TOOLBAR_GROUP_PRIORITY,
+      widths: this.groupWidths,
+    }) as ReadonlySet<CanvasToolbarGroup>;
+
+    // Only the decision is stored — no follow-up measurement. Re-measuring
+    // after every change lets the row chase itself between two answers, which
+    // shows up as a toolbar whose buttons never stop moving. If hiding a group
+    // genuinely changes the toolbar's size, the ResizeObserver says so.
+    if (!sameOverflow(this.overflowGroups(), next)) {
+      this.overflowGroups.set(next);
+    }
+  }
+
+  protected onToolChange(tool: CanvasTool): void {
+    if (this.canvasDrawing.isDrawing()) this.canvasDrawing.cancel();
+    this.activeTool.set(tool);
+    this.applyToolToStage(tool);
+  }
+
+  /**
+   * Match the stage to the active tool: only the navigation tools drag the
+   * stage, and creation tools take pointer events away from the objects so a
+   * stroke can start on top of an image instead of selecting it.
+   */
+  private applyToolToStage(tool: CanvasTool): void {
+    const panning = this.spacePanning();
+    this.stage?.draggable(panning || tool === 'select' || tool === 'pan');
+    // While space is held the canvas is in pure navigation mode: dragging must
+    // pan, never pick up whatever object happens to be under the cursor.
+    this.canvasRenderer.setContentInteractive(
+      !panning && !capturesStageInput(tool)
+    );
+    if (!this.showBrushCursor()) this.moveBrushCursor(null);
+  }
+
+  /** Space held down: pan from any tool without losing the current one. */
+  private setSpacePanning(active: boolean): void {
+    if (this.spacePanning() === active) return;
+    if (active && this.canvasDrawing.isDrawing()) return;
+    this.spacePanning.set(active);
+    this.applyToolToStage(this.activeTool());
+  }
+
+  /** Merge a change into the tool settings and remember it for next session. */
+  protected updateToolSettings(patch: Partial<CanvasToolSettings>): void {
+    const next = { ...this.toolSettings(), ...patch };
+    this.toolSettings.set(next);
+    this.canvasService.saveToolSettings(next);
+  }
+
+  /** Toolbar stroke swatch — also recolours the current selection. */
+  protected onStrokeColorChange(stroke: string): void {
+    this.updateToolSettings({ stroke });
+    const selected = this.selectedObjectId();
+    if (selected) this.canvasColor.applyColor(selected, { stroke });
+  }
+
+  /** Toolbar fill swatch — also recolours the current selection. */
+  protected onFillColorChange(fill: string): void {
+    this.updateToolSettings({ fill, fillEnabled: true });
+    const selected = this.selectedObjectId();
+    if (selected) this.canvasColor.applyColor(selected, { fill });
+  }
+
+  protected onStrokeWidthChange(value: number | string): void {
+    const parsed = typeof value === 'string' ? Number.parseFloat(value) : value;
+    if (!Number.isFinite(parsed)) return;
+    this.updateToolSettings({
+      strokeWidth: Math.min(
+        Math.max(parsed, MIN_STROKE_WIDTH),
+        MAX_STROKE_WIDTH
+      ),
+    });
+  }
+
+  /** Step through the width presets with `[` and `]`. */
+  protected onAdjustStrokeWidth(direction: 1 | -1): void {
+    const current = this.toolSettings().strokeWidth;
+    const presets = STROKE_WIDTH_PRESETS;
+    const index = presets.findIndex(w => w >= current);
+    const base = index === -1 ? presets.length - 1 : index;
+    const next =
+      presets[Math.min(Math.max(base + direction, 0), presets.length - 1)];
+    this.onStrokeWidthChange(next);
+  }
+
+  protected onOpacityChange(value: number | string): void {
+    const parsed = typeof value === 'string' ? Number.parseFloat(value) : value;
+    if (!Number.isFinite(parsed)) return;
+    this.updateToolSettings({ opacity: Math.min(Math.max(parsed, 0.05), 1) });
+  }
+
+  protected onEraserSizeChange(value: number | string): void {
+    const parsed = typeof value === 'string' ? Number.parseFloat(value) : value;
+    if (!Number.isFinite(parsed)) return;
+    this.updateToolSettings({ eraserSize: parsed });
+  }
+
+  protected onToggleFill(): void {
+    this.updateToolSettings({ fillEnabled: !this.toolSettings().fillEnabled });
+  }
+
+  protected onTogglePressure(): void {
+    this.updateToolSettings({ pressure: !this.toolSettings().pressure });
+  }
+
+  protected onSmoothingChange(value: number | string): void {
+    const parsed = typeof value === 'string' ? Number.parseFloat(value) : value;
+    if (!Number.isFinite(parsed)) return;
+    this.updateToolSettings({ tension: Math.min(Math.max(parsed, 0), 1) });
+  }
+
+  protected onUndo(): void {
+    if (this.canvasService.undo()) this.afterHistoryStep();
+  }
+
+  protected onRedo(): void {
+    if (this.canvasService.redo()) this.afterHistoryStep();
+  }
+
+  /** An undone edit may have removed the selected object. */
+  private afterHistoryStep(): void {
+    const id = this.selectedObjectId();
+    if (!id) return;
+    const stillExists = this.canvasService
+      .activeConfig()
+      ?.objects.some(o => o.id === id);
+    if (!stillExists) this.clearCanvasSelection();
   }
 
   /** Open a color dialog for the currently-selected object. */
@@ -575,8 +911,8 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   }
 
   protected onShapeTypeChange(shapeType: CanvasShapeType): void {
-    this.toolSettings.update(s => ({ ...s, shapeType }));
-    this.activeTool.set('shape');
+    this.updateToolSettings({ shapeType });
+    this.onToolChange('shape');
   }
 
   protected onZoomIn(): void {
@@ -610,6 +946,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       return next;
     });
     setTimeout(() => {
+      this.scheduleToolbarMeasure();
       if (!this.stage) return;
       const container = this.canvasContainer()?.nativeElement;
       if (container) {
