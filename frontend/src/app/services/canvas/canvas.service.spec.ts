@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
+  type CanvasFrame,
   type CanvasPin,
   type CanvasText,
   createDefaultCanvasConfig,
@@ -462,6 +463,79 @@ describe('CanvasService', () => {
 
       expect(service.loadConfig('canvas-1').layers[0].name).toBe('Synced');
       expect(mockProjectState.seedCanvasContents).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Frame Operations
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('frames', () => {
+    const makeFrame = (overrides: Partial<CanvasFrame> = {}): CanvasFrame => ({
+      id: 'frame-1',
+      name: 'Cover',
+      kind: 'crop',
+      x: 0,
+      y: 0,
+      width: 1000,
+      height: 1600,
+      visible: true,
+      ...overrides,
+    });
+
+    beforeEach(() => {
+      mockElements.set([makeElement()]);
+      service.loadConfig('canvas-1');
+    });
+
+    it('adds and removes frames', () => {
+      service.addFrame(makeFrame());
+      expect(service.activeConfig()!.frames).toHaveLength(1);
+
+      service.removeFrame('frame-1');
+      expect(service.activeConfig()!.frames).toHaveLength(0);
+    });
+
+    it('updates frame geometry and name', () => {
+      service.addFrame(makeFrame());
+      service.updateFrame('frame-1', { x: 50, width: 500, name: 'Half' });
+
+      const frame = service.activeConfig()!.frames![0];
+      expect(frame.x).toBe(50);
+      expect(frame.width).toBe(500);
+      expect(frame.name).toBe('Half');
+      expect(frame.id).toBe('frame-1');
+    });
+
+    it('adding a canvas-size frame demotes the existing one', () => {
+      service.addFrame(makeFrame({ id: 'a', kind: 'canvas' }));
+      service.addFrame(makeFrame({ id: 'b', kind: 'canvas' }));
+
+      const frames = service.activeConfig()!.frames!;
+      expect(frames.find(f => f.id === 'a')?.kind).toBe('crop');
+      expect(frames.find(f => f.id === 'b')?.kind).toBe('canvas');
+    });
+
+    it('setFrameKind promotes a crop frame and demotes the old canvas size', () => {
+      service.addFrame(makeFrame({ id: 'a', kind: 'canvas' }));
+      service.addFrame(makeFrame({ id: 'b', kind: 'crop' }));
+
+      service.setFrameKind('b', 'canvas');
+
+      const frames = service.activeConfig()!.frames!;
+      expect(frames.find(f => f.id === 'a')?.kind).toBe('crop');
+      expect(frames.find(f => f.id === 'b')?.kind).toBe('canvas');
+    });
+
+    it('frame edits are undoable', () => {
+      service.addFrame(makeFrame());
+      service.updateFrame('frame-1', { x: 99 });
+
+      expect(service.undo()).toBe(true);
+      expect(service.activeConfig()!.frames![0].x).toBe(0);
+
+      expect(service.redo()).toBe(true);
+      expect(service.activeConfig()!.frames![0].x).toBe(99);
     });
   });
 

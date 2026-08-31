@@ -207,6 +207,73 @@ export function isBackgroundImage(obj: CanvasObject): obj is CanvasImage {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Frames (canvas size + crop regions)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Frame kinds:
+ * - `canvas`: THE canvas size — the page. Default export bounds and the main
+ *   border. At most one per canvas (enforced functionally, see
+ *   {@link canvasSizeFrame}).
+ * - `crop`: a named crop region for alternate exports (cover crop, region
+ *   cut-outs of a map, …).
+ */
+export type CanvasFrameKind = 'canvas' | 'crop';
+
+/**
+ * A rectangular bound on the canvas. Frames are not canvas objects: they
+ * never take part in object selection, clipboard or drawing — they only
+ * render as borders and define export crops.
+ */
+export interface CanvasFrame {
+  /** Unique frame ID */
+  id: string;
+  /** Display name ("Canvas", "Cover", "Region: North") */
+  name: string;
+  /** See {@link CanvasFrameKind} */
+  kind: CanvasFrameKind;
+  /** Top-left corner in canvas world coordinates. Axis-aligned; no rotation. */
+  x: number;
+  y: number;
+  /** Size in canvas units */
+  width: number;
+  height: number;
+  /** Whether the border is shown on the canvas */
+  visible: boolean;
+}
+
+/** The canvas-size frame, when one exists. First wins under a brief race. */
+export function canvasSizeFrame(
+  frames: CanvasFrame[] | undefined
+): CanvasFrame | undefined {
+  return frames?.find(f => f.kind === 'canvas');
+}
+
+/** Create a frame with a fresh id. */
+export function createFrame(
+  kind: CanvasFrameKind,
+  name: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number
+): CanvasFrame {
+  return { id: nanoid(), name, kind, x, y, width, height, visible: true };
+}
+
+/** Size presets offered when adding a frame. */
+export const FRAME_PRESETS = [
+  // 1:1.6 portrait — matches the project cover pipeline (1600×2560 fit)
+  { key: 'cover', width: 1000, height: 1600 },
+  { key: 'hd', width: 1920, height: 1080 },
+  { key: 'square', width: 2048, height: 2048 },
+  // A4 @ 150dpi
+  { key: 'a4', width: 1240, height: 1754 },
+] as const;
+
+export type FramePresetKey = (typeof FRAME_PRESETS)[number]['key'];
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Canvas Configuration (persisted to Yjs metadata)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -221,6 +288,11 @@ export interface CanvasConfig {
   layers: CanvasLayer[];
   /** All objects on all layers */
   objects: CanvasObject[];
+  /**
+   * Canvas size + crop frames. Optional for back-compat: canvases created
+   * before frames existed simply have none.
+   */
+  frames?: CanvasFrame[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

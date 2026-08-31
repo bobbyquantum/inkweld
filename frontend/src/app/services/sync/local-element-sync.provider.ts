@@ -203,6 +203,7 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
     if (this.getCanvasContents(elementId)) return;
     this.applyCanvasEdit(elementId, {
       layers: contents.layers,
+      frames: contents.frames,
       upserts: contents.objects,
       order: contents.objects.map(o => o.id),
     });

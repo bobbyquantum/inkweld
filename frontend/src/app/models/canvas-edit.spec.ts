@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import type { CanvasLayer, CanvasObject, CanvasPath } from './canvas.model';
+import type {
+  CanvasFrame,
+  CanvasLayer,
+  CanvasObject,
+  CanvasPath,
+} from './canvas.model';
 import {
   applyCanvasEdit,
   type CanvasContents,
   diffCanvasContents,
   emptyCanvasContents,
   isEmptyCanvasEdit,
+  parseCanvasContents,
 } from './canvas-edit';
 
 function makeLayer(id = 'L1'): CanvasLayer {
@@ -233,5 +239,74 @@ describe('applyCanvasEdit', () => {
     const result = applyCanvasEdit(before, diffCanvasContents(before, after));
     expect(result.objects.map(o => o.id)).toEqual(['c', 'a']);
     expect(result.objects.find(o => o.id === 'a')?.x).toBe(5);
+  });
+});
+
+describe('frames', () => {
+  const frame: CanvasFrame = {
+    id: 'F1',
+    name: 'Cover',
+    kind: 'crop',
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 160,
+    visible: true,
+  };
+
+  it('isEmptyCanvasEdit is false when frames are set', () => {
+    expect(isEmptyCanvasEdit({ frames: [] })).toBe(false);
+  });
+
+  it('diff omits frames when both sides have none', () => {
+    const edit = diffCanvasContents(contents([]), contents([]));
+    expect(edit.frames).toBeUndefined();
+  });
+
+  it('diff sends the full frame list when the reference changes', () => {
+    const before: CanvasContents = { ...contents([]), frames: [frame] };
+    const moved = [{ ...frame, x: 50 }];
+    const after: CanvasContents = { ...contents([]), frames: moved };
+    expect(diffCanvasContents(before, after).frames).toBe(moved);
+  });
+
+  it('diff sends [] when the last frame is deleted', () => {
+    const before: CanvasContents = { ...contents([]), frames: [frame] };
+    const after: CanvasContents = contents([]);
+    expect(diffCanvasContents(before, after).frames).toEqual([]);
+  });
+
+  it('apply replaces frames and keeps them when the edit has none', () => {
+    const state: CanvasContents = { ...contents([]), frames: [frame] };
+    const next = [{ ...frame, name: 'Renamed' }];
+    expect(applyCanvasEdit(state, { frames: next }).frames).toBe(next);
+    expect(applyCanvasEdit(state, { upserts: [] }).frames).toBe(state.frames);
+  });
+
+  it('apply leaves frames absent when neither side has them', () => {
+    expect(
+      applyCanvasEdit(contents([]), { upserts: [] }).frames
+    ).toBeUndefined();
+  });
+
+  it('parse round-trips frames and tolerates snapshots without them', () => {
+    const withFrames = JSON.stringify({
+      layers: [makeLayer()],
+      objects: [],
+      frames: [frame],
+    });
+    expect(parseCanvasContents(withFrames)?.frames).toEqual([frame]);
+
+    const legacy = JSON.stringify({ layers: [makeLayer()], objects: [] });
+    const parsed = parseCanvasContents(legacy);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.frames).toBeUndefined();
+  });
+
+  it('frames round-trip through diff + apply', () => {
+    const before: CanvasContents = contents([]);
+    const after: CanvasContents = { ...contents([]), frames: [frame] };
+    const result = applyCanvasEdit(before, diffCanvasContents(before, after));
+    expect(result.frames).toEqual([frame]);
   });
 });

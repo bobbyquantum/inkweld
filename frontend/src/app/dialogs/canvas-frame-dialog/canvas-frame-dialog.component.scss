@@ -1,0 +1,12 @@
+.full-width {
+  width: 100%;
+  min-width: 300px;
+}
+.field-row {
+  display: flex;
+  gap: 12px;
+
+  mat-form-field {
+    flex: 1;
+  }
+}

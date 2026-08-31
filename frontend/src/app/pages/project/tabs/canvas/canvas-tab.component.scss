@@ -199,6 +199,13 @@
   text-overflow: ellipsis;
 }
 
+.frame-dims {
+  font-size: 11px;
+  color: var(--sys-on-surface-variant);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .layer-action {
   width: 28px !important;
   height: 28px !important;

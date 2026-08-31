@@ -4,6 +4,7 @@ import {
   isMediaUrl,
 } from '@components/image-paste/image-paste-plugin';
 import {
+  type CanvasFrame,
   type CanvasImage,
   type CanvasLayer,
   type CanvasObject,
@@ -54,6 +55,10 @@ export class CanvasRendererService {
   private _transformer: Konva.Transformer | null = null;
   private _selectionLayer: Konva.Layer | null = null;
   private _previewLayer: Konva.Layer | null = null;
+  private _framesLayer: Konva.Layer | null = null;
+  private readonly _frameNodes = new Map<string, Konva.Group>();
+  private _frameTransformer: Konva.Transformer | null = null;
+  private _editingFrameId: string | null = null;
   private readonly _objectStructures = new Map<string, string>();
   private _resizeObserver: ResizeObserver | null = null;
   private _contentInteractive = true;
@@ -81,6 +86,10 @@ export class CanvasRendererService {
    */
   get previewLayer(): Konva.Layer | null {
     return this._previewLayer;
+  }
+  /** Overlay layer drawing frame borders (canvas size + crop frames). */
+  get framesLayer(): Konva.Layer | null {
+    return this._framesLayer;
   }
 
   /**
@@ -143,9 +152,12 @@ export class CanvasRendererService {
     });
     this._selectionLayer.add(this._transformer);
 
+    this._framesLayer = new Konva.Layer({ listening: false });
+
     this.buildKonvaLayers(configLayers);
     this.buildKonvaObjects(configObjects, handlers);
 
+    this._stage.add(this._framesLayer);
     this._stage.add(this._previewLayer);
     this._stage.add(this._selectionLayer);
 
@@ -230,6 +242,7 @@ export class CanvasRendererService {
     this.syncObjects(objects, handlers);
     this.applyObjectZOrder(objects);
 
+    this._framesLayer?.moveToTop();
     this._previewLayer?.moveToTop();
     this._selectionLayer?.moveToTop();
 
@@ -389,6 +402,202 @@ export class CanvasRendererService {
     }
   }
 
+  // ─── Frames overlay ────────────────────────────────────────────────────
+
+  /**
+   * Reconcile the frame borders with the config.
+   *
+   * Frames are chrome, not content: they live on their own overlay layer,
+   * never enter `_konvaNodes`, and (for now) never listen to the pointer.
+   * In view mode only the canvas-size border stays — readers care about the
+   * page boundary, not export scaffolding.
+   */
+  syncFrames(
+    frames: CanvasFrame[] | undefined,
+    opts: { viewMode: boolean; framesVisible: boolean }
+  ): void {
+    const layer = this._framesLayer;
+    if (!layer) return;
+
+    const list = frames ?? [];
+    const wanted = new Set(list.map(f => f.id));
+    for (const [id, group] of this._frameNodes) {
+      if (wanted.has(id)) continue;
+      group.destroy();
+      this._frameNodes.delete(id);
+    }
+
+    for (const frame of list) {
+      let group = this._frameNodes.get(frame.id);
+      if (!group) {
+        group = CanvasRendererService.createFrameGroup();
+        this._frameNodes.set(frame.id, group);
+        layer.add(group);
+      }
+      CanvasRendererService.applyFrameAttrs(group, frame);
+
+      const shown =
+        frame.visible &&
+        opts.framesVisible &&
+        (!opts.viewMode || frame.kind === 'canvas');
+      group.visible(shown);
+      group.findOne('.frameLabel')?.visible(shown && !opts.viewMode);
+    }
+
+    this.updateFrameOverlayScale(this._stage?.scaleX() ?? 1);
+    layer.batchDraw();
+  }
+
+  /**
+   * Counter-scale frame labels so they stay readable at every zoom level.
+   * (Borders are already screen-constant via `strokeScaleEnabled: false`.)
+   */
+  updateFrameOverlayScale(stageScale: number): void {
+    const layer = this._framesLayer;
+    if (!layer || stageScale <= 0) return;
+    const inverse = 1 / stageScale;
+    for (const group of this._frameNodes.values()) {
+      group
+        .findOne<Konva.Label>('.frameLabel')
+        ?.scale({ x: inverse, y: inverse });
+    }
+    layer.batchDraw();
+  }
+
+  /**
+   * Make one frame draggable/resizable with its own transformer, or end
+   * frame editing with `null`. Commits go through `onChange` on
+   * dragend/transformend with the node geometry normalized back into
+   * x/y/width/height (scale reset to 1).
+   */
+  setFrameEditing(
+    frameId: string | null,
+    onChange?: (
+      frameId: string,
+      rect: { x: number; y: number; width: number; height: number }
+    ) => void
+  ): void {
+    const layer = this._framesLayer;
+    if (!layer) return;
+
+    // Tear down the previous editing state.
+    if (this._editingFrameId) {
+      const prevGroup = this._frameNodes.get(this._editingFrameId);
+      prevGroup?.listening(false);
+      const prevRect = prevGroup?.findOne<Konva.Rect>('.frameRect');
+      prevRect?.off('.frameedit');
+      prevRect?.setAttrs({
+        listening: false,
+        draggable: false,
+        fillEnabled: false,
+      });
+    }
+    this._frameTransformer?.destroy();
+    this._frameTransformer = null;
+    this._editingFrameId = frameId;
+    layer.listening(frameId !== null);
+
+    const group = frameId ? this._frameNodes.get(frameId) : undefined;
+    const rect = group?.findOne<Konva.Rect>('.frameRect');
+    if (!frameId || !group || !rect || !onChange) {
+      this._editingFrameId = null;
+      layer.listening(false);
+      layer.batchDraw();
+      return;
+    }
+
+    // The group is non-listening chrome by default; while editing it must
+    // pass events through to the rect.
+    group.listening(true);
+
+    // A transparent fill gives the whole rect a hit area — otherwise only
+    // the hairline border would be draggable.
+    rect.setAttrs({
+      listening: true,
+      draggable: true,
+      fillEnabled: true,
+      fill: 'transparent',
+    });
+
+    rect.on('dragend.frameedit transformend.frameedit', () => {
+      const next = {
+        x: Math.round(group.x() + rect.x()),
+        y: Math.round(group.y() + rect.y()),
+        width: Math.max(16, Math.round(rect.width() * rect.scaleX())),
+        height: Math.max(16, Math.round(rect.height() * rect.scaleY())),
+      };
+      rect.position({ x: 0, y: 0 });
+      rect.scale({ x: 1, y: 1 });
+      onChange(frameId, next);
+    });
+
+    this._frameTransformer = new Konva.Transformer({
+      rotateEnabled: false,
+      flipEnabled: false,
+      nodes: [rect],
+    });
+    layer.add(this._frameTransformer);
+    layer.batchDraw();
+  }
+
+  private static createFrameGroup(): Konva.Group {
+    const group = new Konva.Group({ listening: false });
+
+    group.add(
+      new Konva.Rect({
+        name: 'frameRect',
+        strokeScaleEnabled: false,
+        fillEnabled: false,
+        listening: false,
+      })
+    );
+
+    const label = new Konva.Label({ name: 'frameLabel', listening: false });
+    label.add(
+      new Konva.Tag({
+        cornerRadius: 3,
+        opacity: 0.9,
+      })
+    );
+    label.add(
+      new Konva.Text({
+        name: 'frameLabelText',
+        fontSize: 11,
+        padding: 4,
+        fill: '#fff',
+      })
+    );
+    // Sits just above the frame's top-left corner (in screen units, since
+    // the label is counter-scaled against the stage zoom).
+    label.offsetY(24);
+    group.add(label);
+
+    return group;
+  }
+
+  private static applyFrameAttrs(group: Konva.Group, frame: CanvasFrame): void {
+    const isCanvas = frame.kind === 'canvas';
+    const color = isCanvas ? '#1976d2' : '#9c27b0';
+
+    group.position({ x: frame.x, y: frame.y });
+    group.setAttr('inkFrameId', frame.id);
+
+    const rect = group.findOne<Konva.Rect>('.frameRect');
+    rect?.setAttrs({
+      width: frame.width,
+      height: frame.height,
+      stroke: color,
+      strokeWidth: isCanvas ? 2 : 1.5,
+      // Dash is applied in screen space under strokeScaleEnabled:false,
+      // so it stays crisp at every zoom.
+      dash: isCanvas ? [] : [6, 4],
+    });
+
+    const label = group.findOne<Konva.Label>('.frameLabel');
+    label?.getTag().fill(color);
+    label?.getText().text(frame.name);
+  }
+
   /** Keep the transformer bound to the selected object across replacements. */
   private reattachTransformer(
     selectedObjectId: string | null,
@@ -429,6 +638,7 @@ export class CanvasRendererService {
     this.buildKonvaLayers(layers);
     this.buildKonvaObjects(objects, handlers);
 
+    this._framesLayer?.moveToTop();
     this._previewLayer?.moveToTop();
     this._selectionLayer?.moveToTop();
 
@@ -927,9 +1137,13 @@ export class CanvasRendererService {
     this._konvaLayers.clear();
     this._konvaNodes.clear();
     this._objectStructures.clear();
+    this._frameNodes.clear();
+    this._frameTransformer = null;
+    this._editingFrameId = null;
     this._transformer = null;
     this._selectionLayer = null;
     this._previewLayer = null;
+    this._framesLayer = null;
     this._contentInteractive = true;
   }
 

@@ -251,16 +251,33 @@ export function canvasPinToSvg(obj: CanvasPin, tf: string): string {
   return `<g ${tf}><circle r="12" fill="${obj.color}" stroke="#fff" stroke-width="2"/>${label}</g>`;
 }
 
+/** A rectangular export region in canvas world coordinates. */
+export interface SvgExportRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 /**
  * Build a complete SVG document string from a canvas config.
  * Returns the SVG markup as a string.
+ *
+ * With a `region` (canvas size or crop frame) the viewBox is exactly that
+ * rect — the SVG viewBox crops overhanging content naturally. Otherwise the
+ * viewBox is fitted around the visible content as before.
  */
-export function buildSvgDocument(config: CanvasConfig): string {
+export function buildSvgDocument(
+  config: CanvasConfig,
+  region?: SvgExportRegion
+): string {
   const visibleLayers = [...config.layers]
     .sort((a, b) => a.order - b.order)
     .filter(l => l.visible);
 
-  const { vX, vY, vW, vH } = computeSvgViewBox(config, visibleLayers);
+  const { vX, vY, vW, vH } = region
+    ? { vX: region.x, vY: region.y, vW: region.width, vH: region.height }
+    : computeSvgViewBox(config, visibleLayers);
 
   const lines: string[] = [
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"`,
@@ -292,8 +309,12 @@ export function buildSvgDocument(config: CanvasConfig): string {
  * Export the canvas config as an SVG file download.
  * Handles blob creation and browser download trigger.
  */
-export function downloadSvg(config: CanvasConfig, elementName: string): void {
-  const svgContent = buildSvgDocument(config);
+export function downloadSvg(
+  config: CanvasConfig,
+  elementName: string,
+  region?: SvgExportRegion
+): void {
+  const svgContent = buildSvgDocument(config, region);
   const blob = new Blob([svgContent], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

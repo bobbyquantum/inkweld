@@ -26,6 +26,8 @@ import {
 import { type Element } from '@inkweld/index';
 import {
   type CanvasConfig,
+  type CanvasFrame,
+  type CanvasFrameKind,
   type CanvasLayer,
   type CanvasObject,
   type CanvasToolSettings,
@@ -65,6 +67,13 @@ export interface SaveOptions {
   coalesceKey?: string;
   /** Skip the undo stack entirely — used by undo/redo themselves. */
   skipHistory?: boolean;
+}
+
+/** Demote any canvas-size frame to a crop frame (at most one canvas size). */
+function demoteCanvasFrames(frames: CanvasFrame[]): CanvasFrame[] {
+  return frames.map(f =>
+    f.kind === 'canvas' ? { ...f, kind: 'crop' as const } : f
+  );
 }
 
 /** LocalStorage key prefix for per-user canvas viewport */
@@ -243,6 +252,7 @@ export class CanvasService {
       layers: legacy?.layers.length ? legacy.layers : defaults.layers,
       objects: legacy?.objects ?? [],
     };
+    if (legacy?.frames) contents.frames = legacy.frames;
 
     this.projectState.seedCanvasContents(elementId, contents);
     return contents;
@@ -273,6 +283,7 @@ export class CanvasService {
       elementId,
       layers: contents.layers.length > 0 ? contents.layers : defaults.layers,
       objects: contents.objects,
+      frames: contents.frames,
     };
   }
 
@@ -301,6 +312,7 @@ export class CanvasService {
     const contents: CanvasContents = {
       layers: config.layers,
       objects: config.objects,
+      frames: config.frames,
     };
     const edit = diffCanvasContents(this.lastSyncedContents, contents);
     this.lastSyncedContents = contents;
@@ -395,6 +407,75 @@ export class CanvasService {
     const config = this.activeConfigSignal();
     if (!config) return [];
     return [...config.layers].sort((a, b) => a.order - b.order);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Frame Operations (canvas size + crop frames)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Add a frame. When adding a `canvas` frame, any existing canvas-size
+   * frame is demoted to a crop frame in the same edit — there is at most one
+   * canvas size.
+   */
+  addFrame(frame: CanvasFrame): void {
+    const config = this.activeConfigSignal();
+    if (!config) return;
+
+    const existing = config.frames ?? [];
+    const frames =
+      frame.kind === 'canvas'
+        ? [...demoteCanvasFrames(existing), frame]
+        : [...existing, frame];
+
+    this.saveConfig({ ...config, frames });
+  }
+
+  /** Update frame properties. `kind` changes go through setFrameKind. */
+  updateFrame(
+    frameId: string,
+    updates: Partial<Omit<CanvasFrame, 'id' | 'kind'>>,
+    options?: SaveOptions
+  ): void {
+    const config = this.activeConfigSignal();
+    if (!config?.frames?.some(f => f.id === frameId)) return;
+
+    this.saveConfig(
+      {
+        ...config,
+        frames: config.frames.map(f =>
+          f.id === frameId ? { ...f, ...updates, id: frameId } : f
+        ),
+      },
+      options
+    );
+  }
+
+  /** Remove a frame. */
+  removeFrame(frameId: string): void {
+    const config = this.activeConfigSignal();
+    if (!config?.frames?.some(f => f.id === frameId)) return;
+
+    this.saveConfig({
+      ...config,
+      frames: config.frames.filter(f => f.id !== frameId),
+    });
+  }
+
+  /**
+   * Promote a frame to be THE canvas size (demoting any other), or demote it
+   * back to a crop frame.
+   */
+  setFrameKind(frameId: string, kind: CanvasFrameKind): void {
+    const config = this.activeConfigSignal();
+    if (!config?.frames?.some(f => f.id === frameId)) return;
+
+    const base =
+      kind === 'canvas' ? demoteCanvasFrames(config.frames) : config.frames;
+    this.saveConfig({
+      ...config,
+      frames: base.map(f => (f.id === frameId ? { ...f, kind } : f)),
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────

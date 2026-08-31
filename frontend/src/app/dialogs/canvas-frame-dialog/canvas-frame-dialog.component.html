@@ -1,0 +1,77 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+<mat-dialog-content>
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>{{ 'canvas.frames.nameLabel' | transloco }}</mat-label>
+    <input
+      matInput
+      id="canvas-frame-name-input"
+      [attr.aria-label]="'canvas.frames.nameLabel' | transloco"
+      [formField]="form.name"
+      cdkFocusInitial
+      data-testid="frame-custom-name" />
+    @if (form.name().touched() && form.name().invalid()) {
+      @for (error of form.name().errors(); track error.message) {
+        <mat-error>{{ error.message }}</mat-error>
+      }
+    }
+  </mat-form-field>
+
+  <div class="field-row">
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'canvas.frames.widthLabel' | transloco }}</mat-label>
+      <input
+        matInput
+        type="number"
+        id="canvas-frame-width-input"
+        [attr.aria-label]="'canvas.frames.widthLabel' | transloco"
+        [formField]="form.width"
+        data-testid="frame-custom-width" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'canvas.frames.heightLabel' | transloco }}</mat-label>
+      <input
+        matInput
+        type="number"
+        id="canvas-frame-height-input"
+        [attr.aria-label]="'canvas.frames.heightLabel' | transloco"
+        [formField]="form.height"
+        data-testid="frame-custom-height" />
+    </mat-form-field>
+  </div>
+
+  @if (showPosition) {
+    <div class="field-row">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'canvas.frames.xLabel' | transloco }}</mat-label>
+        <input
+          matInput
+          type="number"
+          id="canvas-frame-x-input"
+          [attr.aria-label]="'canvas.frames.xLabel' | transloco"
+          [formField]="form.x"
+          data-testid="frame-custom-x" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'canvas.frames.yLabel' | transloco }}</mat-label>
+        <input
+          matInput
+          type="number"
+          id="canvas-frame-y-input"
+          [attr.aria-label]="'canvas.frames.yLabel' | transloco"
+          [formField]="form.y"
+          data-testid="frame-custom-y" />
+      </mat-form-field>
+    </div>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">{{ 'cancel' | transloco }}</button>
+  <button
+    mat-button
+    color="primary"
+    [disabled]="form().invalid()"
+    data-testid="frame-custom-confirm"
+    (click)="onConfirm()">
+    {{ data.confirmLabel || ('canvas.frames.create' | transloco) }}
+  </button>
+</mat-dialog-actions>

@@ -674,4 +674,99 @@ test.describe('Canvas Tab', () => {
       await expect(sidebar.getByTestId('add-layer-button')).toBeVisible();
     });
   });
+
+  test('frames: canvas size, crop frames, export and cover', async ({
+    localPageWithProject: page,
+  }) => {
+    await createCanvasAndOpen(page);
+
+    const sidebar = page.getByTestId('canvas-sidebar');
+    const frameItems = sidebar.getByTestId('frame-item');
+
+    await test.step('frames section starts empty', async () => {
+      await expect(sidebar.getByTestId('frames-header')).toBeVisible();
+      await expect(sidebar.getByTestId('frames-empty')).toBeVisible();
+    });
+
+    await test.step('add the canvas size', async () => {
+      await sidebar.getByTestId('add-frame-button').click();
+      await page.getByTestId('frame-set-canvas-size').click();
+
+      await expect(frameItems).toHaveCount(1);
+      await expect(frameItems.first().getByTestId('frame-name')).toHaveText(
+        'Canvas'
+      );
+      // Only one canvas size allowed — the menu entry is now disabled.
+      await sidebar.getByTestId('add-frame-button').click();
+      await expect(page.getByTestId('frame-set-canvas-size')).toBeDisabled();
+      await page.keyboard.press('Escape');
+    });
+
+    await test.step('add a Cover crop frame from the presets', async () => {
+      await sidebar.getByTestId('add-frame-button').click();
+      await page.getByTestId('frame-preset-cover').click();
+
+      await expect(frameItems).toHaveCount(2);
+      await expect(
+        sidebar.getByTestId('frame-name').filter({ hasText: 'Cover' })
+      ).toBeVisible();
+    });
+
+    await test.step('edit frame name and dimensions via the dialog', async () => {
+      const coverRow = frameItems.filter({ hasText: 'Cover' });
+      await coverRow.getByTestId('frame-menu').click();
+      await page.getByTestId('frame-edit-dimensions').click();
+
+      const dialog = page.locator('mat-dialog-container');
+      await expect(dialog).toBeVisible();
+      await dialog.getByTestId('frame-custom-name').clear();
+      await dialog.getByTestId('frame-custom-name').fill('Book Cover');
+      await dialog.getByTestId('frame-custom-width').clear();
+      await dialog.getByTestId('frame-custom-width').fill('500');
+      await dialog.getByTestId('frame-custom-confirm').click();
+      await expect(dialog).not.toBeVisible();
+
+      const renamed = frameItems.filter({ hasText: 'Book Cover' });
+      await expect(renamed).toHaveCount(1);
+      await expect(renamed).toContainText('500×1600');
+    });
+
+    await test.step('toggle a frame border off and on', async () => {
+      const row = frameItems.first();
+      const eye = row.getByTestId('frame-visibility');
+      await expect(eye.locator('mat-icon')).toContainText('visibility');
+      await eye.click();
+      await expect(eye.locator('mat-icon')).toContainText('visibility_off');
+      await eye.click();
+      await expect(eye.locator('mat-icon')).toContainText('visibility');
+    });
+
+    await test.step('export a frame as PNG downloads a file', async () => {
+      const row = frameItems.filter({ hasText: 'Book Cover' });
+      await row.getByTestId('frame-menu').click();
+
+      const downloadPromise = page.waitForEvent('download');
+      await page.getByTestId('frame-export-png').click();
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toBe('Book Cover.png');
+    });
+
+    await test.step('set a frame as the project cover', async () => {
+      const row = frameItems.filter({ hasText: 'Book Cover' });
+      await row.getByTestId('frame-menu').click();
+      await page.getByTestId('frame-set-cover').click();
+
+      // No existing cover, so no confirmation dialog — straight to success.
+      await expect(page.getByText('Project cover updated')).toBeVisible({
+        timeout: 10_000,
+      });
+    });
+
+    await test.step('view mode keeps the canvas border but hides the frames panel', async () => {
+      await page.getByTestId('canvas-mode-toggle').click();
+      await expect(sidebar.getByTestId('frames-header')).toHaveCount(0);
+      await page.getByTestId('canvas-mode-toggle').click();
+      await expect(sidebar.getByTestId('frames-header')).toBeVisible();
+    });
+  });
 });

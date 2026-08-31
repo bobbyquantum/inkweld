@@ -227,6 +227,117 @@
             }
           </div>
         </div>
+
+        <!-- Frames section (canvas size + crop frames) -->
+        @if (!viewMode()) {
+          <div class="sidebar-section">
+            <div class="section-header" data-testid="frames-header">
+              <span class="section-title">{{
+                'canvas.frames.title' | transloco
+              }}</span>
+              <button
+                mat-icon-button
+                data-testid="frames-toggle-all"
+                class="section-action"
+                [matTooltip]="
+                  (framesVisible()
+                    ? 'canvas.frames.hideAll'
+                    : 'canvas.frames.showAll'
+                  ) | transloco
+                "
+                [attr.aria-label]="
+                  (framesVisible()
+                    ? 'canvas.frames.hideAll'
+                    : 'canvas.frames.showAll'
+                  ) | transloco
+                "
+                (click)="onToggleFramesVisible()">
+                <mat-icon>{{
+                  framesVisible() ? 'visibility' : 'visibility_off'
+                }}</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                data-testid="add-frame-button"
+                class="section-action"
+                [matTooltip]="'canvas.frames.addFrame' | transloco"
+                [attr.aria-label]="'canvas.frames.addFrame' | transloco"
+                [matMenuTriggerFor]="addFrameMenu">
+                <mat-icon>add</mat-icon>
+              </button>
+            </div>
+            <div
+              class="layers-list"
+              [attr.aria-label]="'canvas.frames.listAria' | transloco">
+              @for (frame of frames(); track frame.id) {
+                <div
+                  role="option"
+                  class="layer-item"
+                  data-testid="frame-item"
+                  tabindex="0"
+                  [class.active]="frame.id === selectedFrameId()"
+                  [attr.aria-selected]="frame.id === selectedFrameId()"
+                  (click)="onSelectFrame(frame.id)"
+                  (keydown.enter)="onSelectFrame(frame.id)">
+                  <div class="layer-item-row">
+                    <button
+                      mat-icon-button
+                      class="layer-visibility"
+                      data-testid="frame-visibility"
+                      (click)="onToggleFrameVisibility(frame.id, $event)"
+                      [matTooltip]="
+                        (frame.visible
+                          ? 'canvas.frames.hide'
+                          : 'canvas.frames.show'
+                        ) | transloco
+                      ">
+                      <mat-icon>{{
+                        frame.visible ? 'visibility' : 'visibility_off'
+                      }}</mat-icon>
+                    </button>
+                    <mat-icon
+                      class="object-icon"
+                      [matTooltip]="
+                        (frame.kind === 'canvas'
+                          ? 'canvas.frames.kindCanvas'
+                          : 'canvas.frames.kindCrop'
+                        ) | transloco
+                      "
+                      >{{
+                        frame.kind === 'canvas' ? 'crop_din' : 'crop'
+                      }}</mat-icon
+                    >
+                    <span class="layer-name" data-testid="frame-name">{{
+                      frame.name
+                    }}</span>
+                    <span class="frame-dims"
+                      >{{ frame.width }}×{{ frame.height }}</span
+                    >
+                    <button
+                      mat-icon-button
+                      class="layer-action"
+                      data-testid="frame-menu"
+                      [attr.aria-label]="
+                        'canvas.sidebar.moreOptions' | transloco
+                      "
+                      [matMenuTriggerFor]="frameMenu"
+                      [matMenuTriggerData]="{ frame: frame }"
+                      (click)="$event.stopPropagation()">
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              } @empty {
+                <div class="empty-state" data-testid="frames-empty">
+                  <p>{{ 'canvas.frames.noFrames' | transloco }}</p>
+                  <p class="hint">
+                    {{ 'canvas.frames.noFramesHint' | transloco }}
+                  </p>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </aside>
     }
 
@@ -738,6 +849,106 @@
       [disabled]="sortedLayers().length <= 1">
       <mat-icon>delete</mat-icon>
       <span>{{ 'canvas.layerMenu.delete' | transloco }}</span>
+    </button>
+  </ng-template>
+</mat-menu>
+
+<!-- Add-frame menu -->
+<mat-menu #addFrameMenu="matMenu">
+  <button
+    mat-menu-item
+    data-testid="frame-set-canvas-size"
+    [disabled]="hasCanvasSize()"
+    (click)="onAddCanvasSize()">
+    <mat-icon>crop_din</mat-icon>
+    <span>{{ 'canvas.frames.setCanvasSize' | transloco }}</span>
+  </button>
+  <mat-divider></mat-divider>
+  @for (preset of framePresets; track preset.key) {
+    <button
+      mat-menu-item
+      [attr.data-testid]="'frame-preset-' + preset.key"
+      (click)="onAddFramePreset(preset.key)">
+      <mat-icon>crop</mat-icon>
+      <span
+        >{{ 'canvas.frames.preset.' + preset.key | transloco }} ({{
+          preset.width
+        }}×{{ preset.height }})</span
+      >
+    </button>
+  }
+  <button
+    mat-menu-item
+    data-testid="frame-preset-custom"
+    (click)="onAddCustomFrame()">
+    <mat-icon>tune</mat-icon>
+    <span>{{ 'canvas.frames.preset.custom' | transloco }}</span>
+  </button>
+</mat-menu>
+
+<!-- Frame context menu -->
+<mat-menu #frameMenu="matMenu">
+  <ng-template matMenuContent let-frame="frame">
+    <button
+      mat-menu-item
+      data-testid="frame-edit-dimensions"
+      (click)="onEditFrame(frame.id)">
+      <mat-icon>edit</mat-icon>
+      <span>{{ 'canvas.frames.editDimensions' | transloco }}</span>
+    </button>
+    @if (frame.kind === 'crop') {
+      <button
+        mat-menu-item
+        data-testid="frame-make-canvas-size"
+        (click)="onSetFrameKind(frame.id, 'canvas')">
+        <mat-icon>crop_din</mat-icon>
+        <span>{{ 'canvas.frames.makeCanvasSize' | transloco }}</span>
+      </button>
+    } @else {
+      <button
+        mat-menu-item
+        data-testid="frame-make-crop"
+        (click)="onSetFrameKind(frame.id, 'crop')">
+        <mat-icon>crop</mat-icon>
+        <span>{{ 'canvas.frames.makeCropFrame' | transloco }}</span>
+      </button>
+    }
+    <mat-divider></mat-divider>
+    <button
+      mat-menu-item
+      data-testid="frame-export-png"
+      (click)="onExportFramePng(frame)">
+      <mat-icon>image</mat-icon>
+      <span>{{ 'canvas.frames.exportPng' | transloco }}</span>
+    </button>
+    <button
+      mat-menu-item
+      data-testid="frame-export-png-2x"
+      (click)="onExportFramePng(frame, 2)">
+      <mat-icon>high_quality</mat-icon>
+      <span>{{ 'canvas.frames.exportPng2x' | transloco }}</span>
+    </button>
+    <button
+      mat-menu-item
+      data-testid="frame-export-svg"
+      (click)="onExportFrameSvg(frame)">
+      <mat-icon>polyline</mat-icon>
+      <span>{{ 'canvas.frames.exportSvg' | transloco }}</span>
+    </button>
+    <button
+      mat-menu-item
+      data-testid="frame-set-cover"
+      (click)="onSetFrameAsCover(frame)">
+      <mat-icon>book</mat-icon>
+      <span>{{ 'canvas.frames.setAsCover' | transloco }}</span>
+    </button>
+    <mat-divider></mat-divider>
+    <button
+      mat-menu-item
+      data-testid="frame-delete"
+      (click)="onDeleteFrame(frame.id)">
+      <mat-icon>delete</mat-icon>
+      <span>{{ 'delete' | transloco }}</span>
     </button>
   </ng-template>
 </mat-menu>

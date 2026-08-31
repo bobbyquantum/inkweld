@@ -263,6 +263,9 @@ describe('CanvasTabComponent', () => {
     r.buildKonvaObjects = vi.fn();
     r.setContentInteractive = vi.fn();
     r.setInteractionLocked = vi.fn();
+    r.syncFrames = vi.fn();
+    r.setFrameEditing = vi.fn();
+    r.updateFrameOverlayScale = vi.fn();
     r.resolveImageSrc = CanvasRendererService.prototype.resolveImageSrc.bind(r);
     r.initStage = vi.fn(() => ({ zoomLevel: 1 }));
     r.destroyStage = vi.fn();
@@ -1956,6 +1959,7 @@ describe('CanvasTabComponent', () => {
     it('should export PNG with pixelRatio 2', () => {
       mockCanvasRenderer.stage = {
         toDataURL: vi.fn(() => 'data:image/png;base64,abc'),
+        batchDraw: vi.fn(),
       };
 
       component['exportAsPng']();
@@ -1969,6 +1973,7 @@ describe('CanvasTabComponent', () => {
     it('should export high-res PNG with pixelRatio 3', () => {
       mockCanvasRenderer.stage = {
         toDataURL: vi.fn(() => 'data:image/png;base64,xyz'),
+        batchDraw: vi.fn(),
       };
 
       component['exportAsHighResPng']();

@@ -53,7 +53,8 @@ export class CanvasZoomService {
     if (!stage) return null;
 
     const config = this.canvasService.activeConfig();
-    if (!config || config.objects.length === 0) {
+    const hasFrames = (config?.frames?.length ?? 0) > 0;
+    if (!config || (config.objects.length === 0 && !hasFrames)) {
       stage.position({ x: 0, y: 0 });
       stage.scale({ x: 1, y: 1 });
       return 1;
@@ -72,6 +73,16 @@ export class CanvasZoomService {
       minY = Math.min(minY, rect.y);
       maxX = Math.max(maxX, rect.x + rect.width);
       maxY = Math.max(maxY, rect.y + rect.height);
+    }
+
+    // A frame far from the drawn content (or on an empty canvas) still
+    // deserves to be brought into view — frames define the page/exports.
+    for (const frame of config.frames ?? []) {
+      if (!frame.visible) continue;
+      minX = Math.min(minX, frame.x);
+      minY = Math.min(minY, frame.y);
+      maxX = Math.max(maxX, frame.x + frame.width);
+      maxY = Math.max(maxY, frame.y + frame.height);
     }
 
     if (!Number.isFinite(minX)) return null;

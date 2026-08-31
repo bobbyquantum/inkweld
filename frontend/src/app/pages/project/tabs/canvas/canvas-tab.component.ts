@@ -16,6 +16,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule, type MatMenuTrigger } from '@angular/material/menu';
@@ -27,6 +28,8 @@ import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/d
 import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
+  type CanvasFrame,
+  type CanvasFrameKind,
   type CanvasImage,
   type CanvasLayer,
   type CanvasObject,
@@ -36,6 +39,9 @@ import {
   type CanvasTool,
   type CanvasToolSettings,
   capturesStageInput,
+  createFrame,
+  FRAME_PRESETS,
+  type FramePresetKey,
   MAX_STROKE_WIDTH,
   MIN_STROKE_WIDTH,
   STROKE_WIDTH_PRESETS,
@@ -67,8 +73,10 @@ import { CanvasRendererService } from '@services/canvas/canvas-renderer.service'
 import { CanvasSelectionService } from '@services/canvas/canvas-selection.service';
 import { CanvasStageEventsService } from '@services/canvas/canvas-stage-events.service';
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { ElementNavigationService } from '@services/project/element-navigation.service';
+import { ProjectService } from '@services/project/project.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
   computeOverflowGroups,
@@ -77,7 +85,12 @@ import {
   sameOverflow,
 } from '@utils/toolbar-overflow';
 import type Konva from 'konva';
+import { firstValueFrom } from 'rxjs';
 
+import type {
+  CanvasFrameDialogData,
+  CanvasFrameDialogResult,
+} from '../../../../dialogs/canvas-frame-dialog/canvas-frame-dialog.component';
 import { getObjectIcon, getObjectLabel } from './canvas-utils';
 
 /** Delay (ms) after sidebar toggle before telling Konva to resize */
@@ -160,6 +173,9 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   private readonly elementNavigation = inject(ElementNavigationService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly transloco = inject(TranslocoService);
+  private readonly dialog = inject(MatDialog);
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly projectService = inject(ProjectService);
 
   /** Stable presence location for this canvas tab. */
   protected readonly presenceLocation = computed(() => {
@@ -258,6 +274,27 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   protected readonly viewMode = signal(
     this.readLocalStorage('canvasViewMode') === 'true'
   );
+
+  /** Whether frame borders are drawn at all (local preference). */
+  protected readonly framesVisible = signal(
+    this.readLocalStorage('canvasFramesVisible') !== 'false'
+  );
+
+  /** Frames on the active canvas (canvas size + crop frames). */
+  protected readonly frames = computed<CanvasFrame[]>(
+    () => this.canvasService.activeConfig()?.frames ?? []
+  );
+
+  /** Whether a canvas-size frame already exists. */
+  protected readonly hasCanvasSize = computed(() =>
+    this.frames().some(f => f.kind === 'canvas')
+  );
+
+  /** Frame size presets for the add menu. */
+  protected readonly framePresets = FRAME_PRESETS;
+
+  /** Frame currently selected for on-canvas drag/resize editing. */
+  protected readonly selectedFrameId = signal<string | null>(null);
 
   /** Current zoom level (updated by Konva stage events) */
   protected readonly zoomLevel = signal<number>(1);
@@ -461,6 +498,35 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
         );
       }
     });
+
+    // Mirror frames into the overlay whenever they, the mode, the visibility
+    // toggle, or the editing selection change.
+    effect(() => {
+      const config = this.canvasService.activeConfig();
+      const viewMode = this.viewMode();
+      const framesVisible = this.framesVisible();
+      const selected = this.selectedFrameId();
+      if (!config || !this.stage) return;
+
+      this.canvasRenderer.syncFrames(config.frames, {
+        viewMode,
+        framesVisible,
+      });
+
+      // A frame can vanish under the selection (deleted here or remotely),
+      // and view mode never edits frames.
+      const valid =
+        selected && !viewMode && config.frames?.some(f => f.id === selected)
+          ? selected
+          : null;
+      if (valid !== selected) untracked(() => this.selectedFrameId.set(valid));
+      this.canvasRenderer.setFrameEditing(valid, (frameId, rect) =>
+        this.canvasService.updateFrame(frameId, rect)
+      );
+    });
+
+    // Keep frame labels readable at every zoom level.
+    effect(() => this.canvasRenderer.updateFrameOverlayScale(this.zoomLevel()));
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -562,6 +628,12 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
     this.applyToolToStage(this.activeTool());
 
+    // Initial frame borders (the frames effect only re-runs on changes).
+    this.canvasRenderer.syncFrames(config.frames, {
+      viewMode: this.viewMode(),
+      framesVisible: this.framesVisible(),
+    });
+
     // Keyboard shortcuts (register only once per component lifetime)
     if (!this.keyboardShortcutsInitialized) {
       this.setupKeyboardShortcuts();
@@ -595,6 +667,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
   private clearCanvasSelection(): void {
     this.selectedObjectId.set(null);
+    this.selectedFrameId.set(null);
     this.canvasSelection.clearSelection();
     this.presence.setSelection(null);
   }
@@ -760,9 +833,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
       onDelete: () => this.deleteSelectedObject(),
       onEscape: () => {
         this.canvasDrawing.cancel();
-        this.selectedObjectId.set(null);
-        this.canvasSelection.clearSelection();
-        this.presence.setSelection(null);
+        this.clearCanvasSelection();
         this.onToolChange('select');
       },
       onToolChange: tool => this.onToolChange(tool),
@@ -1153,6 +1224,205 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     this.canvasLayerActions.setOpacity(layerId, num);
   }
 
+  // ── Frame actions ──────────────────────────────────────────────────────
+
+  /** Display names for preset frames (the frame's own name, not the menu label). */
+  private static readonly PRESET_FRAME_NAMES: Record<FramePresetKey, string> = {
+    cover: 'Cover',
+    hd: 'HD',
+    square: 'Square',
+    a4: 'A4',
+  };
+
+  /** Toggle drawing of all frame borders (local preference). */
+  protected onToggleFramesVisible(): void {
+    this.framesVisible.update(v => {
+      const next = !v;
+      this.writeLocalStorage('canvasFramesVisible', String(next));
+      return next;
+    });
+  }
+
+  /** Rect of the given size centered on the current viewport. */
+  private centeredFrameRect(
+    width: number,
+    height: number
+  ): { x: number; y: number } {
+    const center = this.canvasRenderer.getViewportCenter();
+    return {
+      x: Math.round(center.x - width / 2),
+      y: Math.round(center.y - height / 2),
+    };
+  }
+
+  /** Add THE canvas size (the page). No-op when one already exists. */
+  protected onAddCanvasSize(): void {
+    if (this.hasCanvasSize()) return;
+    const width = 1920;
+    const height = 1080;
+    const pos = this.centeredFrameRect(width, height);
+    this.canvasService.addFrame(
+      createFrame('canvas', 'Canvas', pos.x, pos.y, width, height)
+    );
+  }
+
+  /** Add a crop frame from a size preset. */
+  protected onAddFramePreset(key: FramePresetKey): void {
+    const preset = FRAME_PRESETS.find(p => p.key === key);
+    if (!preset) return;
+    const pos = this.centeredFrameRect(preset.width, preset.height);
+    this.canvasService.addFrame(
+      createFrame(
+        'crop',
+        CanvasTabComponent.PRESET_FRAME_NAMES[key],
+        pos.x,
+        pos.y,
+        preset.width,
+        preset.height
+      )
+    );
+  }
+
+  /** Add a crop frame with user-chosen name and size. */
+  protected async onAddCustomFrame(): Promise<void> {
+    const result = await this.openFrameDialog({
+      title: this.transloco.translate('canvas.frames.customTitle'),
+      name: this.transloco.translate('canvas.frames.defaultName'),
+      width: 1000,
+      height: 1000,
+    });
+    if (!result) return;
+    const pos = this.centeredFrameRect(result.width, result.height);
+    this.canvasService.addFrame(
+      createFrame(
+        'crop',
+        result.name,
+        pos.x,
+        pos.y,
+        result.width,
+        result.height
+      )
+    );
+  }
+
+  /** Edit a frame's name, size and position. */
+  protected async onEditFrame(frameId: string): Promise<void> {
+    const frame = this.frames().find(f => f.id === frameId);
+    if (!frame) return;
+    const result = await this.openFrameDialog({
+      title: this.transloco.translate('canvas.frames.editTitle'),
+      name: frame.name,
+      width: frame.width,
+      height: frame.height,
+      x: frame.x,
+      y: frame.y,
+      confirmLabel: this.transloco.translate('save'),
+    });
+    if (!result) return;
+    this.canvasService.updateFrame(frameId, {
+      name: result.name,
+      width: result.width,
+      height: result.height,
+      x: result.x ?? frame.x,
+      y: result.y ?? frame.y,
+    });
+  }
+
+  private async openFrameDialog(
+    data: CanvasFrameDialogData
+  ): Promise<CanvasFrameDialogResult | undefined> {
+    const { CanvasFrameDialogComponent } =
+      await import('../../../../dialogs/canvas-frame-dialog/canvas-frame-dialog.component');
+    const dialogRef = this.dialog.open<
+      InstanceType<typeof CanvasFrameDialogComponent>,
+      CanvasFrameDialogData,
+      CanvasFrameDialogResult
+    >(CanvasFrameDialogComponent, {
+      data,
+      width: '420px',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  /** Select a frame for on-canvas drag/resize editing (toggle). */
+  protected onSelectFrame(frameId: string): void {
+    if (this.viewMode()) return;
+    const next = this.selectedFrameId() === frameId ? null : frameId;
+    this.selectedObjectId.set(null);
+    this.canvasSelection.clearSelection();
+    this.presence.setSelection(null);
+    this.selectedFrameId.set(next);
+  }
+
+  protected onToggleFrameVisibility(frameId: string, event: Event): void {
+    event.stopPropagation();
+    const frame = this.frames().find(f => f.id === frameId);
+    if (!frame) return;
+    this.canvasService.updateFrame(frameId, { visible: !frame.visible });
+  }
+
+  protected onSetFrameKind(frameId: string, kind: CanvasFrameKind): void {
+    this.canvasService.setFrameKind(frameId, kind);
+  }
+
+  protected onDeleteFrame(frameId: string): void {
+    this.canvasService.removeFrame(frameId);
+  }
+
+  protected onExportFramePng(frame: CanvasFrame, pixelRatio = 1): void {
+    this.canvasExport.exportFrameAsPng(frame, pixelRatio);
+  }
+
+  protected onExportFrameSvg(frame: CanvasFrame): void {
+    this.canvasExport.exportFrameAsSvg(frame);
+  }
+
+  /** Render a frame's region and set it as the project cover. */
+  protected async onSetFrameAsCover(frame: CanvasFrame): Promise<void> {
+    const project = this.projectState.project();
+    if (!project) return;
+
+    if (this.projectState.coverMediaId()) {
+      const confirmed = await this.dialogGateway.openConfirmationDialog({
+        title: this.transloco.translate('canvas.frames.coverConfirmTitle'),
+        message: this.transloco.translate('canvas.frames.coverConfirmMessage'),
+        confirmText: this.transloco.translate('canvas.frames.coverConfirm'),
+      });
+      if (!confirmed) return;
+    }
+
+    try {
+      // Aim for ~1600px wide output — the cover pipeline fits into
+      // 1600×2560 anyway. Clamp so tiny frames upscale and huge maps don't
+      // blow the export canvas.
+      const pixelRatio = Math.max(1, Math.min(3, 1600 / frame.width));
+      const blob = await this.canvasExport.exportRegionBlob(frame, pixelRatio);
+
+      const coverFilename = await this.projectService.uploadProjectCover(
+        project.username,
+        project.slug,
+        blob
+      );
+      // The filename stem is the coverMediaId — same convention as the
+      // edit-project dialog and the home tab's AI cover flow.
+      const coverMediaId = coverFilename.replace(/\.[^.]+$/, '');
+      this.projectState.updateProject(project, coverMediaId);
+
+      this.snackBar.open(
+        this.transloco.translate('canvas.frames.coverSaved'),
+        undefined,
+        { duration: 3000 }
+      );
+    } catch (error) {
+      console.error('Error setting frame as project cover:', error);
+      this.snackBar.open(
+        this.transloco.translate('canvas.frames.coverSaveFailed'),
+        undefined,
+        { duration: 5000 }
+      );
+    }
+  }
+
   // ── Object actions ─────────────────────────────────────────────────────
 
   protected onSelectObject(objectId: string): void {
@@ -1166,6 +1436,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
       return;
     }
 
+    this.selectedFrameId.set(null);
     this.selectedObjectId.set(objectId);
 
     // Find and select the Konva node
