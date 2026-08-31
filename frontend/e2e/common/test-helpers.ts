@@ -111,7 +111,7 @@ export async function waitForElementsDocPersisted(
                 ? (JSON.parse(configRaw) as {
                     activeConfigId?: string;
                   })
-                  : null;
+                : null;
               const id = config?.activeConfigId;
               if (id) prefix = id === 'local' ? 'local:' : `srv:${id}:`;
             } catch {
@@ -125,12 +125,11 @@ export async function waitForElementsDocPersisted(
             ];
             const listed =
               typeof indexedDB.databases === 'function'
-                ? ((await indexedDB.databases())
+                ? (await indexedDB.databases())
                     .map(db => db.name)
                     .filter(
-                      (n): n is string =>
-                        !!n && n.endsWith(expectedSuffix)
-                    ) as string[])
+                      (n): n is string => !!n && n.endsWith(expectedSuffix)
+                    )
                 : [];
             const candidates = [...new Set([...listed, ...deterministic])];
 
