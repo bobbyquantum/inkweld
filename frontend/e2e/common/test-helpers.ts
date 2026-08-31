@@ -94,24 +94,96 @@ export async function waitForElementsDocPersisted(
   expected: string[]
 ): Promise<void> {
   const suffix = `:${username}:${slug}:elements`;
-  let dbName: string | null = null;
+  const needleBytes = expected;
   await expect
-    .poll(async () => {
-      dbName = await page.evaluate(async expectedSuffix => {
-        if (typeof indexedDB.databases !== 'function') return null;
-        const dbs = await indexedDB.databases();
-        const matches = dbs.flatMap(db =>
-          db.name && db.name.endsWith(expectedSuffix) ? [db.name] : []
+    .poll(
+      async () => {
+        const result = await page.evaluate(
+          async ({ expectedSuffix, needles, username, slug }) => {
+            // Candidate databases: whatever IndexedDB currently lists plus
+            // the deterministic name derived from the app's own prefix rule
+            // (config id 'local' → 'local:', otherwise 'srv:{configId}:'),
+            // in both the plain and trailing-slash spellings.
+            const configRaw = localStorage.getItem('inkweld-app-config');
+            let prefix = 'srv:server-1:';
+            try {
+              const config = configRaw
+                ? (JSON.parse(configRaw) as {
+                    activeConfigId?: string;
+                  })
+                  : null;
+              const id = config?.activeConfigId;
+              if (id) prefix = id === 'local' ? 'local:' : `srv:${id}:`;
+            } catch {
+              // keep default prefix
+            }
+            const deterministic = [
+              `${prefix}${username}:${slug}:elements`,
+              `${prefix}${username}:${slug}:elements/`,
+              `${username}:${slug}:elements`,
+              `${username}:${slug}:elements/`,
+            ];
+            const listed =
+              typeof indexedDB.databases === 'function'
+                ? ((await indexedDB.databases())
+                    .map(db => db.name)
+                    .filter(
+                      (n): n is string =>
+                        !!n && n.endsWith(expectedSuffix)
+                    ) as string[])
+                : [];
+            const candidates = [...new Set([...listed, ...deterministic])];
+
+            const text = new TextDecoder('utf-8');
+            for (const name of candidates) {
+              try {
+                const open = indexedDB.open(name);
+                const db = await new Promise<IDBDatabase>((resolve, reject) => {
+                  open.onsuccess = () => resolve(open.result);
+                  open.onerror = () =>
+                    reject(open.error ?? new Error('open failed'));
+                });
+                if (!db.objectStoreNames.contains('updates')) {
+                  db.close();
+                  continue;
+                }
+                const store = db
+                  .transaction('updates', 'readonly')
+                  .objectStore('updates');
+                const records = await new Promise<Uint8Array[]>(
+                  (resolve, reject) => {
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result as Uint8Array[]);
+                    req.onerror = () =>
+                      reject(req.error ?? new Error('get failed'));
+                  }
+                );
+                db.close();
+                const all = text.decode(
+                  records.reduce((acc, r) => {
+                    const merged = new Uint8Array(acc.length + r.length);
+                    merged.set(acc);
+                    merged.set(r, acc.length);
+                    return merged;
+                  }, new Uint8Array(0))
+                );
+                if (needles.every(n => all.includes(n))) return name;
+              } catch {
+                // Missing DB / store — try the next candidate.
+              }
+            }
+            return null;
+          },
+          { expectedSuffix: suffix, needles: needleBytes, username, slug }
         );
-        // The elements doc may exist with or without the local trailing
-        // slash spelling — prefer whichever exists.
-        const withSlash = matches.find(n => n.endsWith(':elements/'));
-        return withSlash ?? matches[0] ?? null;
-      }, suffix);
-      return dbName;
-    })
+        return result;
+      },
+      {
+        // Surface the candidate inspection on failure for diagnosis.
+        timeout: 45_000,
+      }
+    )
     .not.toBeNull();
-  await waitForIndexedDBPersisted(page, dbName!, expected);
 }
 
 /**
