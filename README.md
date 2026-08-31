@@ -184,6 +184,8 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🔥 | Location pins | Click a linked pin in view mode (or double-click in edit mode) to open its element |
 | ✅ | 🔥 | Pin-to-element linking | `canvas-pin` relationship type; links cleaned up when elements are deleted |
 | ✅ | 🟡 | Multiple map layers | Per-layer backgrounds blended with layer visibility/opacity; "Map" preset in the new-element dialog |
+| ✅ | 🟡 | Linked regions | Shapes linked to elements: click-to-open areas; discontinuous regions via shared links |
+| ✅ | 🟡 | Pins as annotations | Pins live on an always-on overlay, independent of drawing layers |
 | ⬜ | 🟢 | AI map restyling | Rough-colour a layer, restyle it via AI image generation (political, terrain, parchment…) |
 
 ### Timelines
