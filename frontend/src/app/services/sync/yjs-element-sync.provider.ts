@@ -1121,6 +1121,21 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     });
   }
 
+  listCanvasElementIds(): string[] {
+    const canvases = this.doc?.getMap<Y.Map<unknown>>(CANVASES_KEY);
+    return canvases ? [...canvases.keys()] : [];
+  }
+
+  deleteCanvas(elementId: string): void {
+    if (!this.doc) return;
+    const canvases = this.doc.getMap<Y.Map<unknown>>(CANVASES_KEY);
+    if (!canvases.has(elementId)) return;
+    this.doc.transact(() => canvases.delete(elementId), CANVAS_ORIGIN);
+    this.pendingCanvasSnapshots.delete(elementId);
+    this.canvasSubjects.get(elementId)?.complete();
+    this.canvasSubjects.delete(elementId);
+  }
+
   /** Get (creating if needed) the subject backing one canvas's stream. */
   private canvasSubject(elementId: string): BehaviorSubject<CanvasContents> {
     const existing = this.canvasSubjects.get(elementId);

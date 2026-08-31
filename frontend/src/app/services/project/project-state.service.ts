@@ -9,6 +9,7 @@ import {
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { type Element, ElementType, type Project } from '@inkweld/index';
+import { createDefaultLayer } from '@models/canvas.model';
 import { type CanvasContents, type CanvasEdit } from '@models/canvas-edit';
 import { type ProjectElement } from '@models/project-element';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
@@ -946,6 +947,52 @@ export class ProjectStateService implements OnDestroy {
       this.elementTreeService.recomputeOrder(newElements);
     this.elements.set(recomputedElements);
     this.updateElements(recomputedElements);
+
+    this.cleanupReferencesToDeleted(subtree);
+  }
+
+  /**
+   * After a delete: drop relationships involving the removed elements, unlink
+   * canvas pins that pointed at them, and drop the synced contents of removed
+   * canvases so they do not linger in the project document.
+   */
+  private cleanupReferencesToDeleted(deleted: Element[]): void {
+    const provider = this.syncProvider;
+    if (!provider || deleted.length === 0) return;
+    const deletedIds = new Set(deleted.map(e => e.id));
+
+    const relationships = provider.getRelationships();
+    const kept = relationships.filter(
+      r =>
+        !deletedIds.has(r.sourceElementId) && !deletedIds.has(r.targetElementId)
+    );
+    if (kept.length !== relationships.length) {
+      provider.updateRelationships(kept);
+    }
+
+    for (const canvasId of provider.listCanvasElementIds()) {
+      if (deletedIds.has(canvasId)) {
+        provider.deleteCanvas(canvasId);
+        continue;
+      }
+      const contents = provider.getCanvasContents(canvasId);
+      if (!contents) continue;
+      const unlinked = contents.objects
+        .filter(
+          o =>
+            o.type === 'pin' &&
+            o.linkedElementId !== undefined &&
+            deletedIds.has(o.linkedElementId)
+        )
+        .map(o => ({
+          ...o,
+          linkedElementId: undefined,
+          relationshipId: undefined,
+        }));
+      if (unlinked.length > 0) {
+        provider.applyCanvasEdit(canvasId, { upserts: unlinked });
+      }
+    }
   }
 
   renameNode(node: Element, newName: string): void {
@@ -1474,6 +1521,7 @@ export class ProjectStateService implements OnDestroy {
         );
 
         if (newElementId) {
+          if (result.preset === 'map') this.applyMapPreset(newElementId);
           const elements = this.elements();
           const newElement = elements.find(e => e.id === newElementId);
           if (newElement) {
@@ -1481,6 +1529,18 @@ export class ProjectStateService implements OnDestroy {
           }
         }
       }
+    });
+  }
+
+  /**
+   * Pre-configure a freshly created canvas as an interactive map: map icon in
+   * the tree, and a "Base map" starting layer for the background image.
+   */
+  private applyMapPreset(elementId: string): void {
+    this.updateElementMetadata(elementId, { icon: 'map' });
+    this.syncProvider?.seedCanvasContents(elementId, {
+      layers: [createDefaultLayer('Base map', 0)],
+      objects: [],
     });
   }
 

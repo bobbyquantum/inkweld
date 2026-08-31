@@ -208,6 +208,18 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
     });
   }
 
+  listCanvasElementIds(): string[] {
+    return this.elementsSubject
+      .getValue()
+      .filter(e => e.metadata?.[CANVAS_CONFIG_META_KEY])
+      .map(e => e.id);
+  }
+
+  deleteCanvas(_elementId: string): void {
+    // Local mode keeps canvas contents on the element itself, so they are
+    // removed along with the element.
+  }
+
   /**
    * Connect to offline storage for a project.
    * Loads all project data from IndexedDB.
