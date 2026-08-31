@@ -40,6 +40,16 @@ export default defineConfig({
     // Forks are faster for Angular because they avoid thread overhead
     pool: 'forks',
 
+    // Cap worker concurrency. `maxWorkers` defaults to ALL available
+    // parallelism whenever watch mode is off, which is exactly the CI case —
+    // on a 4-core / 16 GB GitHub runner that meant four forks, each inheriting
+    // the NODE_OPTIONS --max-old-space-size ceiling set in ci.yml. Combined
+    // with isolate:false (memory accumulates across the whole suite) that
+    // periodically exhausted the runner's RAM and the job was killed outright
+    // with a bare "The operation was canceled.". One worker in CI; locally
+    // half the cores, leaving room for other processes.
+    maxWorkers: isCI ? 1 : '50%',
+
     // Disable file watching in CI
     watch: !isCI,
 
@@ -57,14 +67,5 @@ export default defineConfig({
         return false;
       }
     },
-  },
-
-  // Vitest 4+ pool options are now top-level
-  // Use half the available CPUs (leaves room for other processes)
-  // CI typically has 2 cores, local dev has more
-  forks: {
-    minForks: isCI ? 1 : 4,
-    maxForks: isCI ? 1 : 8,
-    singleFork: isCI,
   },
 });
