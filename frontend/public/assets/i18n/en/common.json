@@ -26,6 +26,11 @@
   "description": "Description",
   "title": "Title",
   "color": "Color",
+  "colorChooser": {
+    "solid": "Solid",
+    "gradient": "Gradient",
+    "custom": "Custom color"
+  },
   "icon": "Icon",
   "actions": "Actions",
   "type": "Type",

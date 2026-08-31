@@ -1,12 +1,12 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  type ElementRef,
   EventEmitter,
   HostBinding,
   Input,
+  type OnChanges,
   Output,
-  ViewChild,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,9 +14,20 @@ import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule } from '@jsverse/transloco';
 
+import { ColorPickerComponent } from '../worldbuilding/appearance-panel/color-picker/color-picker.component';
+import { GradientDesignerComponent } from '../worldbuilding/appearance-panel/gradient-designer/gradient-designer.component';
+
+/** True when a value is a CSS gradient string. */
+function isGradientValue(value: string): boolean {
+  return /^(linear|radial)-gradient\(/.test(value.trim());
+}
+
 /**
- * Compact color palette with preset swatches and a custom hex input.
- * Designed for canvas property editing — supports any CSS color string.
+ * Colour chooser for canvas property editing: preset swatches for quick
+ * picks, the full colour picker (shared with the worldbuilding appearance
+ * panel) for custom colours, and — where `allowGradient` is set, e.g. shape
+ * fills — a gradient mode using the shared gradient designer, emitting a CSS
+ * `linear-gradient(...)` string.
  */
 @Component({
   selector: 'app-color-swatches',
@@ -29,17 +40,39 @@ import { TranslocoModule } from '@jsverse/transloco';
     MatInputModule,
     MatTooltipModule,
     TranslocoModule,
+    ColorPickerComponent,
+    GradientDesignerComponent,
   ],
 })
-export class ColorSwatchesComponent {
+export class ColorSwatchesComponent implements OnChanges {
   @Input() selectedColor = '#333333';
+  /** Offer a gradient mode (shape fills only). */
+  @Input() allowGradient = false;
   @Output() colorChange = new EventEmitter<string>();
 
   @HostBinding('attr.data-testid')
   readonly testId = 'color-swatches';
 
-  @ViewChild('hexInputEl')
-  private readonly hexInputRef!: ElementRef<HTMLInputElement>;
+  /** 'solid' shows swatches + picker; 'gradient' shows the designer. */
+  protected readonly mode = signal<'solid' | 'gradient'>('solid');
+
+  /** Whether the full picker is expanded below the swatches. */
+  protected readonly pickerOpen = signal(false);
+
+  /** Last solid colour, kept so mode switches don't lose it. */
+  protected readonly solidColor = signal('#333333');
+
+  /** Last gradient, kept so mode switches don't lose it. */
+  protected readonly gradientValue = signal('');
+
+  ngOnChanges(): void {
+    if (isGradientValue(this.selectedColor)) {
+      this.gradientValue.set(this.selectedColor);
+      if (this.allowGradient) this.mode.set('gradient');
+    } else if (this.selectedColor) {
+      this.solidColor.set(this.selectedColor);
+    }
+  }
 
   /** Curated palette — Material Design inspired */
   readonly colors: string[] = [
@@ -84,30 +117,39 @@ export class ColorSwatchesComponent {
     '#F48FB1',
   ];
 
-  get hexValue(): string {
-    return this.selectedColor.replaceAll('#', '');
+  protected setMode(mode: 'solid' | 'gradient'): void {
+    if (this.mode() === mode) return;
+    this.mode.set(mode);
+    // Switching modes re-emits the value that mode last held, so the
+    // consumer's state follows what is on screen.
+    if (mode === 'solid') {
+      this.emitColor(this.solidColor());
+    } else if (this.gradientValue()) {
+      this.emitColor(this.gradientValue());
+    }
+  }
+
+  protected togglePicker(): void {
+    this.pickerOpen.update(open => !open);
   }
 
   selectColor(color: string): void {
-    this.selectedColor = color;
-    this.colorChange.emit(color);
+    this.solidColor.set(color);
+    this.emitColor(color);
   }
 
-  onHexInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    // Strip non-hex characters
-    input.value = input.value.replaceAll(/[^0-9a-fA-F]/g, '');
+  protected onPickerChange(color: string): void {
+    this.solidColor.set(color);
+    this.emitColor(color);
   }
 
-  onHexBlur(): void {
-    // Read raw value from the input
-    const el = this.hexInputRef?.nativeElement;
-    if (!el) return;
-    const hex = el.value.replaceAll(/[^0-9a-fA-F]/g, '');
-    if (hex.length === 3 || hex.length === 6) {
-      const color = `#${hex.toUpperCase()}`;
-      this.selectedColor = color;
-      this.colorChange.emit(color);
-    }
+  protected onGradientChange(gradient: string): void {
+    this.gradientValue.set(gradient);
+    this.emitColor(gradient);
+  }
+
+  private emitColor(value: string): void {
+    this.selectedColor = value;
+    this.colorChange.emit(value);
   }
 }

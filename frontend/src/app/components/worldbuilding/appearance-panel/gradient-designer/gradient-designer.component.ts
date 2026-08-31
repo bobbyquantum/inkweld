@@ -50,12 +50,16 @@ export class GradientDesignerComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     if (this.host.nativeElement.offsetWidth > 0) {
-      this.renderReady.set(true);
+      // Deferred: flipping the signal inside the same change-detection pass
+      // that ran ngAfterViewInit trips NG0100 when the host already has
+      // layout (e.g. mounted inside an open menu).
+      this.fallbackTimer = setTimeout(() => this.renderReady.set(true), 0);
       return;
     }
     if (typeof ResizeObserver === 'undefined') {
-      // Non-browser environments (e.g. unit tests) have no layout; mount anyway.
-      this.renderReady.set(true);
+      // Non-browser environments (e.g. unit tests) have no layout; mount
+      // anyway — deferred, for the same NG0100 reason as above.
+      this.fallbackTimer = setTimeout(() => this.renderReady.set(true), 0);
       return;
     }
     this.resizeObserver = new ResizeObserver(() => {

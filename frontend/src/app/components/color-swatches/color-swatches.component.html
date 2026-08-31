@@ -1,47 +1,92 @@
-<div class="swatches-grid">
-  @for (color of colors; track color) {
+@if (allowGradient) {
+  <div class="mode-toggle" role="tablist">
     <button
       type="button"
-      class="swatch"
-      [attr.aria-label]="
-        'Select color ' + color + (selectedColor === color ? ', selected' : '')
-      "
-      [attr.aria-pressed]="selectedColor === color"
-      [class.selected]="selectedColor === color"
-      [style.background]="color"
-      [matTooltip]="color"
-      (click)="selectColor(color)">
-      @if (selectedColor === color) {
-        <mat-icon class="check-icon" aria-hidden="true">check</mat-icon>
-      }
-      <span class="sr-only">
-        {{ color }}
-        @if (selectedColor === color) {
-          (selected)
-        }
-      </span>
+      class="mode-button"
+      data-testid="color-mode-solid"
+      role="tab"
+      [attr.aria-selected]="mode() === 'solid'"
+      [class.on]="mode() === 'solid'"
+      (click)="setMode('solid'); $event.stopPropagation()">
+      {{ 'colorChooser.solid' | transloco }}
     </button>
-  }
-</div>
-<div class="custom-color">
-  <label class="hex-label" for="hexInput">{{ 'color' | transloco }}</label>
-  <div class="hex-input-group">
-    <span class="hash">#</span>
-    <input
-      #hexInputEl
-      id="hexInput"
-      type="text"
-      class="hex-input"
-      maxlength="6"
-      [value]="hexValue"
-      (input)="onHexInput($event)"
-      (blur)="onHexBlur()"
-      placeholder="333333" />
     <button
       type="button"
-      class="preview-swatch"
-      [style.background]="selectedColor"
-      [attr.aria-label]="'apply' | transloco"
-      (click)="onHexBlur()"></button>
+      class="mode-button"
+      data-testid="color-mode-gradient"
+      role="tab"
+      [attr.aria-selected]="mode() === 'gradient'"
+      [class.on]="mode() === 'gradient'"
+      (click)="setMode('gradient'); $event.stopPropagation()">
+      {{ 'colorChooser.gradient' | transloco }}
+    </button>
   </div>
-</div>
+}
+
+@if (mode() === 'solid') {
+  <div class="swatches-grid">
+    @for (color of colors; track color) {
+      <button
+        type="button"
+        class="swatch"
+        [attr.aria-label]="
+          'Select color ' +
+          color +
+          (selectedColor === color ? ', selected' : '')
+        "
+        [attr.aria-pressed]="selectedColor === color"
+        [class.selected]="selectedColor === color"
+        [style.background]="color"
+        [matTooltip]="color"
+        (click)="selectColor(color)">
+        @if (selectedColor === color) {
+          <mat-icon class="check-icon" aria-hidden="true">check</mat-icon>
+        }
+        <span class="sr-only">
+          {{ color }}
+          @if (selectedColor === color) {
+            (selected)
+          }
+        </span>
+      </button>
+    }
+  </div>
+  <button
+    type="button"
+    class="picker-toggle-row"
+    data-testid="custom-color-toggle"
+    [attr.aria-expanded]="pickerOpen()"
+    (click)="togglePicker(); $event.stopPropagation()">
+    <mat-icon>{{ pickerOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+    <span>{{ 'colorChooser.custom' | transloco }}</span>
+    <span
+      class="current-swatch"
+      aria-hidden="true"
+      [style.background]="solidColor()"></span>
+  </button>
+  @if (pickerOpen()) {
+    <!-- Propagation shield only (clicks inside a mat-menu close it), not an
+         interactive element in its own right. -->
+    <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+    <div
+      class="picker-wrap"
+      data-testid="custom-color-picker"
+      (click)="$event.stopPropagation()">
+      <app-color-picker
+        [value]="solidColor()"
+        (valueChange)="onPickerChange($event)" />
+    </div>
+  }
+} @else {
+  <!-- Propagation shield only (clicks inside a mat-menu close it), not an
+       interactive element in its own right. -->
+  <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+  <div
+    class="picker-wrap"
+    data-testid="gradient-designer"
+    (click)="$event.stopPropagation()">
+    <app-gradient-designer
+      [value]="gradientValue()"
+      (valueChange)="onGradientChange($event)" />
+  </div>
+}

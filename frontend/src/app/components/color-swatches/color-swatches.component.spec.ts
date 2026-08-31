@@ -1,14 +1,39 @@
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { ColorPickerComponent } from '../worldbuilding/appearance-panel/color-picker/color-picker.component';
+import { GradientDesignerComponent } from '../worldbuilding/appearance-panel/gradient-designer/gradient-designer.component';
 import { ColorSwatchesComponent } from './color-swatches.component';
+
+// The wrapped ngx pickers measure layout during mount and misbehave in
+// jsdom; the chooser's own logic is what this spec covers, so stub them.
+@Component({ selector: 'app-color-picker', template: '' })
+class ColorPickerStubComponent {
+  @Input() value = '';
+  @Input() disabled = false;
+  @Output() readonly valueChange = new EventEmitter<string>();
+}
+
+@Component({ selector: 'app-gradient-designer', template: '' })
+class GradientDesignerStubComponent {
+  @Input() value = '';
+  @Input() disabled = false;
+  @Output() readonly valueChange = new EventEmitter<string>();
+}
 
 describe('ColorSwatchesComponent', () => {
   let component: ColorSwatchesComponent;
   let fixture: ComponentFixture<ColorSwatchesComponent>;
 
   beforeEach(async () => {
+    TestBed.overrideComponent(ColorSwatchesComponent, {
+      remove: { imports: [ColorPickerComponent, GradientDesignerComponent] },
+      add: {
+        imports: [ColorPickerStubComponent, GradientDesignerStubComponent],
+      },
+    });
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), ColorSwatchesComponent],
     }).compileComponents();
@@ -28,21 +53,6 @@ describe('ColorSwatchesComponent', () => {
     expect(component.colors).toHaveLength(30);
   });
 
-  it('should derive hexValue from selectedColor', () => {
-    component.selectedColor = '#FF5722';
-    expect(component.hexValue).toBe('FF5722');
-  });
-
-  it('should strip all # characters including leading double hash', () => {
-    component.selectedColor = '##AABBCC';
-    expect(component.hexValue).toBe('AABBCC');
-  });
-
-  it('should strip embedded # characters', () => {
-    component.selectedColor = '#AAB#BCC';
-    expect(component.hexValue).toBe('AABBCC');
-  });
-
   it('should emit colorChange when a swatch is selected', () => {
     const spy = vi.spyOn(component.colorChange, 'emit');
     component.selectColor('#E53935');
@@ -50,54 +60,63 @@ describe('ColorSwatchesComponent', () => {
     expect(component.selectedColor).toBe('#E53935');
   });
 
-  it('should update hexValue after selecting color', () => {
-    component.selectColor('#1E88E5');
-    expect(component.hexValue).toBe('1E88E5');
-  });
+  it('expands the full picker on the custom-color toggle', () => {
+    const nativeEl = fixture.nativeElement as HTMLElement;
+    expect(
+      nativeEl.querySelector('[data-testid="custom-color-picker"]')
+    ).toBeNull();
 
-  it('should strip non-hex chars in onHexInput', () => {
-    const input = document.createElement('input');
-    input.value = '#GG11ZZ';
-    const event = { target: input } as unknown as Event;
-    component.onHexInput(event);
-    expect(input.value).toBe('11');
-  });
-
-  it('should emit on valid 6-char hex via onHexBlur', () => {
-    const spy = vi.spyOn(component.colorChange, 'emit');
+    nativeEl
+      .querySelector<HTMLButtonElement>('[data-testid="custom-color-toggle"]')!
+      .click();
     fixture.detectChanges();
 
-    // Set the hex input value via the DOM
-    const nativeEl = fixture.nativeElement as HTMLElement;
-    const hexInput = nativeEl.querySelector<HTMLInputElement>('#hexInput');
-    expect(hexInput).not.toBeNull();
-    hexInput!.value = 'FF5722';
-    component.onHexBlur();
-    expect(spy).toHaveBeenCalledWith('#FF5722');
+    expect(
+      nativeEl.querySelector('[data-testid="custom-color-picker"]')
+    ).not.toBeNull();
   });
 
-  it('should emit on valid 3-char hex via onHexBlur', () => {
-    const spy = vi.spyOn(component.colorChange, 'emit');
-    fixture.detectChanges();
-
+  it('shows no gradient mode toggle by default', () => {
     const nativeEl = fixture.nativeElement as HTMLElement;
-    const hexInput = nativeEl.querySelector<HTMLInputElement>('#hexInput');
-    expect(hexInput).not.toBeNull();
-    hexInput!.value = 'F00';
-    component.onHexBlur();
-    expect(spy).toHaveBeenCalledWith('#F00');
+    expect(
+      nativeEl.querySelector('[data-testid="color-mode-gradient"]')
+    ).toBeNull();
   });
 
-  it('should not emit on invalid hex via onHexBlur', () => {
-    const spy = vi.spyOn(component.colorChange, 'emit');
-    fixture.detectChanges();
+  it('offers gradient mode when allowGradient is set', () => {
+    // Fresh fixture: the input must be set before the first change-detection
+    // pass, since @if branch creation between passes trips dev-mode NG0100.
+    const gradientFixture = TestBed.createComponent(ColorSwatchesComponent);
+    gradientFixture.componentInstance.allowGradient = true;
+    gradientFixture.detectChanges();
 
-    const nativeEl = fixture.nativeElement as HTMLElement;
-    const hexInput = nativeEl.querySelector<HTMLInputElement>('#hexInput');
-    expect(hexInput).not.toBeNull();
-    hexInput!.value = 'GG';
-    component.onHexBlur();
-    // Only non-hex chars stripped → empty → invalid length
-    expect(spy).not.toHaveBeenCalled();
+    const nativeEl = gradientFixture.nativeElement as HTMLElement;
+    expect(
+      nativeEl.querySelector('[data-testid="color-mode-gradient"]')
+    ).not.toBeNull();
+
+    gradientFixture.componentInstance['setMode']('gradient');
+    expect(gradientFixture.componentInstance['mode']()).toBe('gradient');
+  });
+
+  it('starts in gradient mode when the value is a gradient', () => {
+    component.allowGradient = true;
+    component.selectedColor =
+      'linear-gradient(90deg, #ff0000 0%, #0000ff 100%)';
+    component.ngOnChanges();
+    expect(component['mode']()).toBe('gradient');
+  });
+
+  it('switching back to solid re-emits the last solid color', () => {
+    component.allowGradient = true;
+    component.selectedColor = '#E53935';
+    component.ngOnChanges();
+    component.selectedColor =
+      'linear-gradient(90deg, #ff0000 0%, #0000ff 100%)';
+    component.ngOnChanges();
+
+    const spy = vi.spyOn(component.colorChange, 'emit');
+    component['setMode']('solid');
+    expect(spy).toHaveBeenCalledWith('#E53935');
   });
 });

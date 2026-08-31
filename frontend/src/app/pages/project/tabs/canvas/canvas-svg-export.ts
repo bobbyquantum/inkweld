@@ -10,7 +10,12 @@ import {
   isBackgroundImage,
 } from '@models/canvas.model';
 
-import { svgEsc } from './canvas-utils';
+import {
+  isGradientFill,
+  linearGradientLine,
+  parseCssGradient,
+  svgEsc,
+} from './canvas-utils';
 import { buildInkOutline, buildPathData } from './ink-stroke';
 
 let svgIdCounter = 0;
@@ -165,9 +170,43 @@ function canvasObjectToSvgShape(obj: CanvasObject, tf: string): string {
   }
 }
 
+/**
+ * SVG `<defs>` + fill reference for a CSS gradient fill, or null for plain
+ * colors. Gradient coordinates use objectBoundingBox fractions so they track
+ * the shape without knowing its absolute geometry.
+ */
+function svgGradientFill(
+  fill: string
+): { defs: string; fillRef: string } | null {
+  const gradient = parseCssGradient(fill);
+  if (!gradient) return null;
+
+  const id = `grad-${++svgIdCounter}`;
+  const stops = gradient.stops
+    .map(
+      stop =>
+        `<stop offset="${Math.round(stop.offset * 1000) / 10}%" stop-color="${svgEsc(stop.color)}"/>`
+    )
+    .join('');
+
+  if (gradient.type === 'linear') {
+    const { start, end } = linearGradientLine(gradient.angle, 1, 1, {
+      x: 0.5,
+      y: 0.5,
+    });
+    const defs = `<defs><linearGradient id="${id}" x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}">${stops}</linearGradient></defs>`;
+    return { defs, fillRef: `url(#${id})` };
+  }
+
+  const defs = `<defs><radialGradient id="${id}" cx="0.5" cy="0.5" r="0.7071">${stops}</radialGradient></defs>`;
+  return { defs, fillRef: `url(#${id})` };
+}
+
 /** Convert a CanvasShape to its SVG element string */
 export function canvasShapeToSvg(obj: CanvasShape, tf: string): string {
-  const fill = obj.fill ?? 'none';
+  const gradient = isGradientFill(obj.fill) ? svgGradientFill(obj.fill) : null;
+  const fill = gradient?.fillRef ?? obj.fill ?? 'none';
+  const gradientDefs = gradient?.defs ?? '';
   const base = `fill="${fill}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}"`;
   const dash = obj.dash?.length
     ? ` stroke-dasharray="${obj.dash.join(',')}"`
@@ -176,12 +215,12 @@ export function canvasShapeToSvg(obj: CanvasShape, tf: string): string {
   switch (obj.shapeType) {
     case 'rect': {
       const cr = obj.cornerRadius ? ` rx="${obj.cornerRadius}"` : '';
-      return `<rect ${tf} width="${obj.width}" height="${obj.height}" ${base}${dash}${cr}/>`;
+      return `${gradientDefs}<rect ${tf} width="${obj.width}" height="${obj.height}" ${base}${dash}${cr}/>`;
     }
     case 'ellipse': {
       const rx = obj.width / 2;
       const ry = obj.height / 2;
-      return `<ellipse ${tf} cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" ${base}${dash}/>`;
+      return `${gradientDefs}<ellipse ${tf} cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" ${base}${dash}/>`;
     }
     case 'line': {
       const pts: number[] = obj.points ?? [0, 0, obj.width, 0];
@@ -199,7 +238,7 @@ export function canvasShapeToSvg(obj: CanvasShape, tf: string): string {
       const ptStr: string[] = [];
       for (let i = 0; i < pts.length; i += 2)
         ptStr.push(`${pts[i]},${pts[i + 1]}`);
-      return `<polygon ${tf} points="${ptStr.join(' ')}" ${base}${dash}/>`;
+      return `${gradientDefs}<polygon ${tf} points="${ptStr.join(' ')}" ${base}${dash}/>`;
     }
     default:
       return '';

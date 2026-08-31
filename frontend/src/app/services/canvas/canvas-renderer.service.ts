@@ -21,6 +21,11 @@ import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import Konva from 'konva';
 
+import {
+  isGradientFill,
+  linearGradientLine,
+  parseCssGradient,
+} from '../../pages/project/tabs/canvas/canvas-utils';
 import { buildInkOutline } from '../../pages/project/tabs/canvas/ink-stroke';
 
 export interface CanvasNodeHandlers {
@@ -756,10 +761,75 @@ export class CanvasRendererService {
     node.setAttr('fill', attrs.fill);
   }
 
+  /**
+   * Apply a shape's fill, which may be a plain color or a CSS gradient
+   * string (Konva needs gradients as explicit start/end points and stops).
+   */
+  static applyShapeFill(node: Konva.Shape, obj: CanvasShape): void {
+    const gradient = isGradientFill(obj.fill)
+      ? parseCssGradient(obj.fill)
+      : null;
+
+    if (!gradient) {
+      node.setAttrs({
+        fill: obj.fill,
+        fillPriority: 'color',
+        fillLinearGradientColorStops: undefined,
+        fillRadialGradientColorStops: undefined,
+      });
+      return;
+    }
+
+    // Ellipses draw around their origin; everything else from the top-left.
+    const center =
+      obj.shapeType === 'ellipse'
+        ? { x: 0, y: 0 }
+        : { x: obj.width / 2, y: obj.height / 2 };
+    const stops: (number | string)[] = [];
+    for (const stop of gradient.stops) stops.push(stop.offset, stop.color);
+
+    if (gradient.type === 'linear') {
+      const { start, end } = linearGradientLine(
+        gradient.angle,
+        obj.width,
+        obj.height,
+        center
+      );
+      node.setAttrs({
+        fill: undefined,
+        fillPriority: 'linear-gradient',
+        fillLinearGradientStartPoint: start,
+        fillLinearGradientEndPoint: end,
+        fillLinearGradientColorStops: stops,
+        fillRadialGradientColorStops: undefined,
+      });
+      return;
+    }
+
+    node.setAttrs({
+      fill: undefined,
+      fillPriority: 'radial-gradient',
+      fillRadialGradientStartPoint: center,
+      fillRadialGradientEndPoint: center,
+      fillRadialGradientStartRadius: 0,
+      fillRadialGradientEndRadius: Math.hypot(obj.width, obj.height) / 2,
+      fillRadialGradientColorStops: stops,
+      fillLinearGradientColorStops: undefined,
+    });
+  }
+
   private static applyShapeStyle(node: Konva.Shape, obj: CanvasShape): void {
     node.stroke(obj.stroke);
     node.strokeWidth(obj.strokeWidth);
-    node.setAttr('fill', obj.fill);
+    if (
+      obj.shapeType === 'rect' ||
+      obj.shapeType === 'ellipse' ||
+      obj.shapeType === 'polygon'
+    ) {
+      CanvasRendererService.applyShapeFill(node, obj);
+    } else {
+      node.setAttr('fill', obj.fill);
+    }
     node.dash(obj.dash ?? []);
 
     if (node instanceof Konva.Rect) {
@@ -1075,6 +1145,22 @@ export class CanvasRendererService {
   }
 
   static createShapeNode(
+    obj: CanvasShape,
+    attrs: Konva.NodeConfig
+  ): Konva.Shape {
+    const node = CanvasRendererService.buildShapeNode(obj, attrs);
+    // Gradient fills need explicit Konva attrs, not the constructor string.
+    if (
+      obj.shapeType === 'rect' ||
+      obj.shapeType === 'ellipse' ||
+      obj.shapeType === 'polygon'
+    ) {
+      CanvasRendererService.applyShapeFill(node, obj);
+    }
+    return node;
+  }
+
+  private static buildShapeNode(
     obj: CanvasShape,
     attrs: Konva.NodeConfig
   ): Konva.Shape {
