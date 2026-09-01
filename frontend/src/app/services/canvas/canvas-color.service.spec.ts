@@ -77,6 +77,29 @@ describe('CanvasColorService', () => {
       expect(data.fill).toBe('#333');
     });
 
+    it('offers gradient fills only for closed shapes', () => {
+      mockCanvasService.activeConfig.set({
+        objects: [
+          { id: 's', type: 'shape', shapeType: 'rect', fill: '#f00' },
+          { id: 'a', type: 'shape', shapeType: 'arrow', stroke: '#000' },
+          { id: 't', type: 'text', fill: '#333' },
+        ],
+      });
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(undefined) });
+      service.openEditColorsDialog('s');
+      expect(mockDialog.open.mock.calls[0][1].data.allowGradientFill).toBe(
+        true
+      );
+      service.openEditColorsDialog('a');
+      expect(mockDialog.open.mock.calls[1][1].data.allowGradientFill).toBe(
+        false
+      );
+      service.openEditColorsDialog('t');
+      expect(mockDialog.open.mock.calls[2][1].data.allowGradientFill).toBe(
+        false
+      );
+    });
+
     it('opens dialog with fill and stroke for shape', () => {
       mockCanvasService.activeConfig.set({
         objects: [

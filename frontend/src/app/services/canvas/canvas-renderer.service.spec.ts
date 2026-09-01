@@ -364,7 +364,17 @@ describe('CanvasRendererService', () => {
         CanvasRendererService.getObjectStructure(
           makePin({ linkedElementId: 'el-1' })
         )
-      ).toBe('pin:linked');
+      ).toBe('pin:linked:el-1');
+      // Retargeting a link must rebuild the node so its handlers follow.
+      expect(
+        CanvasRendererService.getObjectStructure(
+          makePin({ linkedElementId: 'el-2' })
+        )
+      ).not.toBe(
+        CanvasRendererService.getObjectStructure(
+          makePin({ linkedElementId: 'el-1' })
+        )
+      );
     });
 
     it('never makes background images draggable', () => {
@@ -1206,6 +1216,40 @@ describe('CanvasRendererService', () => {
       });
       // Scale is normalized back into width/height.
       expect(rect.scaleX()).toBe(1);
+    });
+
+    it('editing frames are grabbed by their border only', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncFrames([makeFrame()], frameOpts());
+      service.setFrameEditing('F1', vi.fn());
+
+      const rect = (
+        service.framesLayer!.getChildren()[0] as Konva.Group
+      ).findOne<Konva.Rect>('.frameRect')!;
+      // A filled hit area would sit above every object inside the frame.
+      expect(rect.fillEnabled()).toBe(false);
+      expect(rect.hitStrokeWidth()).toBeGreaterThan(0);
+    });
+
+    it('a creation tool switches the editing frame off the hit graph', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncFrames([makeFrame()], frameOpts());
+      service.setFrameEditing('F1', vi.fn());
+      expect(service.framesLayer!.listening()).toBe(true);
+
+      service.setContentInteractive(false);
+      expect(service.framesLayer!.listening()).toBe(false);
+      service.setContentInteractive(true);
+      expect(service.framesLayer!.listening()).toBe(true);
+    });
+
+    it('re-selecting the same frame keeps the existing transformer', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncFrames([makeFrame()], frameOpts());
+      service.setFrameEditing('F1', vi.fn());
+      const before = service.framesLayer!.findOne('Transformer');
+      service.setFrameEditing('F1', vi.fn());
+      expect(service.framesLayer!.findOne('Transformer')).toBe(before);
     });
 
     it('setFrameEditing(null) tears the editing state down', () => {

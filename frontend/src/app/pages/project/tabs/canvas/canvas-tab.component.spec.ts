@@ -190,6 +190,10 @@ describe('CanvasTabComponent', () => {
         Promise.resolve(undefined)
     ),
     openConfirmationDialog: vi.fn(() => Promise.resolve(true)),
+    openElementPickerDialog: vi.fn(
+      (): Promise<{ elements: { id: string }[] } | undefined> =>
+        Promise.resolve(undefined)
+    ),
   };
 
   const mockLocalStorageService = {
@@ -2954,8 +2958,8 @@ describe('CanvasTabComponent', () => {
         },
       ]);
       component['selectedObjectId'].set('shape-linked');
-      mockDialog.open.mockReturnValue({
-        afterClosed: () => of({ elements: [{ id: 'target-el' }] }),
+      mockDialogGateway.openElementPickerDialog.mockResolvedValue({
+        elements: [{ id: 'target-el' }],
       });
 
       await component['onLinkShape']();
@@ -2970,7 +2974,7 @@ describe('CanvasTabComponent', () => {
     it('does nothing when the element picker is dismissed', async () => {
       withObjects([linkedShape]);
       component['selectedObjectId'].set('shape-linked');
-      mockDialog.open.mockReturnValue({ afterClosed: () => of(null) });
+      mockDialogGateway.openElementPickerDialog.mockResolvedValue(undefined);
 
       await component['onLinkShape']();
       expect(mockCanvasService.updateObject).not.toHaveBeenCalled();

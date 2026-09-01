@@ -7,7 +7,6 @@ import type { RelationshipService } from '@services/relationship/relationship.se
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  cleanupLinkRelationships,
   createPinRelationship,
   ensureCanvasLinkRelationshipType,
   removePinRelationship,
@@ -131,81 +130,5 @@ describe('ensureCanvasLinkRelationshipType', () => {
     });
     ensureCanvasLinkRelationshipType(svc, 'pin');
     expect(svc.addRawType).not.toHaveBeenCalled();
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────────
-// cleanupLinkRelationships
-// ─────────────────────────────────────────────────────────────────────────
-
-describe('cleanupLinkRelationships', () => {
-  let svc: ReturnType<typeof createMockRelationshipService>;
-
-  beforeEach(() => {
-    svc = createMockRelationshipService();
-  });
-
-  it('should remove relationships for all linked pins', () => {
-    const objects: CanvasObject[] = [
-      {
-        ...baseObj,
-        id: 'pin-1',
-        type: 'pin',
-        label: 'P1',
-        icon: 'place',
-        color: '#f00',
-        relationshipId: 'rel-1',
-      },
-      {
-        ...baseObj,
-        id: 'pin-2',
-        type: 'pin',
-        label: 'P2',
-        icon: 'place',
-        color: '#f00',
-        relationshipId: 'rel-2',
-      },
-    ];
-    cleanupLinkRelationships(svc, objects);
-    expect(svc.removeRelationship).toHaveBeenCalledTimes(2);
-    expect(svc.removeRelationship).toHaveBeenCalledWith('rel-1');
-    expect(svc.removeRelationship).toHaveBeenCalledWith('rel-2');
-  });
-
-  it('should skip non-pin objects', () => {
-    const objects: CanvasObject[] = [
-      {
-        ...baseObj,
-        id: 'shape-1',
-        type: 'shape',
-        shapeType: 'rect',
-        width: 50,
-        height: 50,
-        stroke: '#000',
-        strokeWidth: 1,
-      },
-    ];
-    cleanupLinkRelationships(svc, objects);
-    expect(svc.removeRelationship).not.toHaveBeenCalled();
-  });
-
-  it('should handle empty array', () => {
-    cleanupLinkRelationships(svc, []);
-    expect(svc.removeRelationship).not.toHaveBeenCalled();
-  });
-
-  it('should skip pins without relationshipId', () => {
-    const objects: CanvasObject[] = [
-      {
-        ...baseObj,
-        id: 'pin-1',
-        type: 'pin',
-        label: 'Unlinked',
-        icon: 'place',
-        color: '#f00',
-      },
-    ];
-    cleanupLinkRelationships(svc, objects);
-    expect(svc.removeRelationship).not.toHaveBeenCalled();
   });
 });

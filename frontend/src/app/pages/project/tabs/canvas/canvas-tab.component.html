@@ -215,6 +215,7 @@
               <div
                 role="option"
                 class="object-item"
+                data-testid="object-item"
                 [class.selected]="obj.id === selectedObjectId()"
                 tabindex="0"
                 [attr.aria-selected]="obj.id === selectedObjectId()"
@@ -1247,7 +1248,7 @@
       </div>
       <app-color-swatches
         [selectedColor]="toolSettings().fill"
-        [allowGradient]="true"
+        [allowGradient]="fillGradientAllowed()"
         (colorChange)="onFillColorChange($event)" />
     </div>
   </ng-template>

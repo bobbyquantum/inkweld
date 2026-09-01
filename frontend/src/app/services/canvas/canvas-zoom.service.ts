@@ -2,6 +2,8 @@ import { inject, Injectable } from '@angular/core';
 import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 
+import { layersContentBounds } from './canvas-bounds';
+
 /** Min/max zoom levels */
 const MIN_ZOOM = 0.05;
 const MAX_ZOOM = 20;
@@ -60,20 +62,15 @@ export class CanvasZoomService {
       return 1;
     }
 
-    let minX = Infinity,
-      minY = Infinity,
-      maxX = -Infinity,
-      maxY = -Infinity;
-
-    for (const kLayer of this.canvasRenderer.konvaLayers.values()) {
-      if (!kLayer.visible()) continue;
-      const rect = kLayer.getClientRect({ skipTransform: true });
-      if (rect.width === 0 && rect.height === 0) continue;
-      minX = Math.min(minX, rect.x);
-      minY = Math.min(minY, rect.y);
-      maxX = Math.max(maxX, rect.x + rect.width);
-      maxY = Math.max(maxY, rect.y + rect.height);
-    }
+    // Pins render on the annotations overlay, outside the artwork layers.
+    const bounds = layersContentBounds([
+      ...this.canvasRenderer.konvaLayers.values(),
+      this.canvasRenderer.annotationsLayer,
+    ]);
+    let minX = bounds ? bounds.x : Infinity,
+      minY = bounds ? bounds.y : Infinity,
+      maxX = bounds ? bounds.x + bounds.width : -Infinity,
+      maxY = bounds ? bounds.y + bounds.height : -Infinity;
 
     // A frame far from the drawn content (or on an empty canvas) still
     // deserves to be brought into view — frames define the page/exports.

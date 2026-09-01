@@ -1,7 +1,6 @@
 import {
   CANVAS_AREA_RELATIONSHIP_TYPE,
   CANVAS_PIN_RELATIONSHIP_TYPE,
-  type CanvasObject,
   type CanvasPin,
 } from '@models/canvas.model';
 import type { RelationshipCategory } from '@models/element-ref.model';
@@ -79,21 +78,6 @@ export function ensureCanvasLinkRelationshipType(
     sourceEndpoint: { allowedSchemas: [] },
     targetEndpoint: { allowedSchemas: [] },
   });
-}
-
-/**
- * Clean up relationships for every linked object in a set (pins and region
- * shapes). Used when deleting objects or a whole layer.
- */
-export function cleanupLinkRelationships(
-  relationshipService: RelationshipService,
-  objects: CanvasObject[]
-): void {
-  for (const obj of objects) {
-    if ('relationshipId' in obj) {
-      removeLinkRelationship(relationshipService, obj);
-    }
-  }
 }
 
 // ─── Pin-flavored wrappers (existing call sites) ────────────────────────────

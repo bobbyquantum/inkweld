@@ -590,7 +590,7 @@ test.describe('Canvas Tab', () => {
       await page.getByTestId('canvas-pin-confirm').click();
 
       await expect(
-        sidebar.getByText('Target Pin', { exact: true })
+        sidebar.getByTestId('pin-item').filter({ hasText: 'Target Pin' })
       ).toBeVisible();
     });
 
@@ -710,7 +710,9 @@ test.describe('Canvas Tab', () => {
       // Double-click closes the loop.
       await stage.dblclick({ position: { x: 480, y: 220 } });
 
-      await expect(sidebar.getByText('polygon', { exact: true })).toBeVisible();
+      await expect(
+        sidebar.getByTestId('object-item').filter({ hasText: 'polygon' })
+      ).toBeVisible();
 
       await toolbar.getByTestId('select-tool').click();
     });

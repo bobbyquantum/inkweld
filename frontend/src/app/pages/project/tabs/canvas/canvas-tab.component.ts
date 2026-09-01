@@ -37,6 +37,7 @@ import {
   type CanvasPin,
   type CanvasShape,
   type CanvasShapeType,
+  canvasSizeFrame,
   type CanvasText,
   type CanvasTool,
   type CanvasToolSettings,
@@ -48,6 +49,7 @@ import {
   MAX_STROKE_WIDTH,
   MIN_STROKE_WIDTH,
   STROKE_WIDTH_PRESETS,
+  supportsGradientFill,
 } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasClipboardService } from '@services/canvas/canvas-clipboard.service';
@@ -95,7 +97,6 @@ import type {
   CanvasFrameDialogData,
   CanvasFrameDialogResult,
 } from '../../../../dialogs/canvas-frame-dialog/canvas-frame-dialog.component';
-import type { ElementPickerDialogResult } from '../../../../dialogs/element-picker-dialog/element-picker-dialog.component';
 import {
   createLinkRelationship,
   removeLinkRelationship,
@@ -127,6 +128,28 @@ const TOOLBAR_GAP_PX = 4;
 
 /** Space kept for the mode toggle, overflow chevron and presence indicator. */
 const TOOLBAR_RESERVED_PX = 132;
+
+/** Shared empty array so a frameless config yields a stable reference. */
+const EMPTY_FRAMES: readonly CanvasFrame[] = [];
+
+/** Frames compare by content: a config commit rebuilds the array each time. */
+function sameFrames(a: CanvasFrame[], b: CanvasFrame[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  return a.every((f, i) => {
+    const g = b[i];
+    return (
+      f.id === g.id &&
+      f.name === g.name &&
+      f.kind === g.kind &&
+      f.x === g.x &&
+      f.y === g.y &&
+      f.width === g.width &&
+      f.height === g.height &&
+      f.visible === g.visible
+    );
+  });
+}
 
 @Component({
   selector: 'app-canvas-tab',
@@ -328,13 +351,31 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
   /** Frames on the active canvas (canvas size + crop frames). */
   protected readonly frames = computed<CanvasFrame[]>(
-    () => this.canvasService.activeConfig()?.frames ?? []
+    () =>
+      this.canvasService.activeConfig()?.frames ??
+      (EMPTY_FRAMES as CanvasFrame[]),
+    // Every config commit builds a fresh array; only re-run dependents when
+    // the frames themselves changed, not on every stroke.
+    { equal: sameFrames }
   );
 
   /** Whether a canvas-size frame already exists. */
-  protected readonly hasCanvasSize = computed(() =>
-    this.frames().some(f => f.kind === 'canvas')
+  protected readonly hasCanvasSize = computed(
+    () => canvasSizeFrame(this.frames()) !== undefined
   );
+
+  /**
+   * Gradients only render on closed shapes; with anything else selected the
+   * fill swatch recolours that object, so offer solid colours only.
+   */
+  protected readonly fillGradientAllowed = computed(() => {
+    const id = this.selectedObjectId();
+    if (!id) return true;
+    const obj = this.canvasService
+      .activeConfig()
+      ?.objects.find(o => o.id === id);
+    return !obj || supportsGradientFill(obj);
+  });
 
   /** Frame size presets for the add menu. */
   protected readonly framePresets = FRAME_PRESETS;
@@ -569,13 +610,13 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     // Mirror frames into the overlay whenever they, the mode, the visibility
     // toggle, or the editing selection change.
     effect(() => {
-      const config = this.canvasService.activeConfig();
+      const frames = this.frames();
       const viewMode = this.viewMode();
       const framesVisible = this.framesVisible();
       const selected = this.selectedFrameId();
-      if (!config || !this.stage) return;
+      if (!this.canvasService.activeConfig() || !this.stage) return;
 
-      this.canvasRenderer.syncFrames(config.frames, {
+      this.canvasRenderer.syncFrames(frames, {
         viewMode,
         framesVisible,
       });
@@ -583,7 +624,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
       // A frame can vanish under the selection (deleted here or remotely),
       // and view mode never edits frames.
       const valid =
-        selected && !viewMode && config.frames?.some(f => f.id === selected)
+        selected && !viewMode && frames.some(f => f.id === selected)
           ? selected
           : null;
       if (valid !== selected) untracked(() => this.selectedFrameId.set(valid));
@@ -1061,26 +1102,15 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     const shape = this.selectedShape();
     if (!shape) return;
 
-    const { ElementPickerDialogComponent } =
-      await import('../../../../dialogs/element-picker-dialog/element-picker-dialog.component');
-    const pickerRef = this.dialog.open<
-      InstanceType<typeof ElementPickerDialogComponent>,
-      unknown,
-      ElementPickerDialogResult
-    >(ElementPickerDialogComponent, {
-      width: '480px',
-      maxHeight: '80vh',
-      data: {
-        title: this.transloco.translate('canvas.pinDialog.linkToElement'),
-        maxSelections: 1,
-        excludeTypes: [
-          ElementType.Folder,
-          ElementType.Canvas,
-          ElementType.Timeline,
-        ],
-      },
+    const result = await this.dialogGateway.openElementPickerDialog({
+      title: this.transloco.translate('canvas.pinDialog.linkToElement'),
+      maxSelections: 1,
+      excludeTypes: [
+        ElementType.Folder,
+        ElementType.Canvas,
+        ElementType.Timeline,
+      ],
     });
-    const result = await firstValueFrom(pickerRef.afterClosed());
     const target = result?.elements?.[0];
     if (!target) return;
 
@@ -1365,14 +1395,6 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
   // ── Frame actions ──────────────────────────────────────────────────────
 
-  /** Display names for preset frames (the frame's own name, not the menu label). */
-  private static readonly PRESET_FRAME_NAMES: Record<FramePresetKey, string> = {
-    cover: 'Cover',
-    hd: 'HD',
-    square: 'Square',
-    a4: 'A4',
-  };
-
   /** Toggle drawing of all frame borders (local preference). */
   protected onToggleFramesVisible(): void {
     this.framesVisible.update(v => {
@@ -1413,7 +1435,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     this.canvasService.addFrame(
       createFrame(
         'crop',
-        CanvasTabComponent.PRESET_FRAME_NAMES[key],
+        this.transloco.translate(`canvas.frames.preset.${key}`),
         pos.x,
         pos.y,
         preset.width,
@@ -1509,7 +1531,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   protected onExportFramePng(frame: CanvasFrame, pixelRatio = 1): void {
-    this.canvasExport.exportFrameAsPng(frame, pixelRatio);
+    this.reportExport(this.canvasExport.exportFrameAsPng(frame, pixelRatio));
   }
 
   protected onExportFrameSvg(frame: CanvasFrame): void {
@@ -1697,11 +1719,21 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────
 
   protected exportAsPng(): void {
-    this.canvasExport.exportAsPng(this.elementName());
+    this.reportExport(this.canvasExport.exportAsPng(this.elementName()));
+  }
+
+  /** Surface a failed raster export (oversized or unrenderable region). */
+  private reportExport(ok: boolean): void {
+    if (ok !== false) return;
+    this.snackBar.open(
+      this.transloco.translate('canvas.export.failed'),
+      undefined,
+      { duration: 5000 }
+    );
   }
 
   protected exportAsHighResPng(): void {
-    this.canvasExport.exportAsHighResPng(this.elementName());
+    this.reportExport(this.canvasExport.exportAsHighResPng(this.elementName()));
   }
 
   protected exportAsSvg(): void {

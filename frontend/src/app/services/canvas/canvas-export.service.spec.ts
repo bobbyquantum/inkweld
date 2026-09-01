@@ -55,7 +55,23 @@ describe('CanvasExportService', () => {
     selectionLayer: null;
     previewLayer: null;
     framesLayer: null;
+    konvaLayers: Map<string, MockLayer>;
+    annotationsLayer: MockLayer | null;
   };
+
+  interface MockLayer {
+    visible: () => boolean;
+    getClientRect: () => {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+  }
+  const makeLayer = (
+    rect: { x: number; y: number; width: number; height: number },
+    visible = true
+  ): MockLayer => ({ visible: () => visible, getClientRect: () => rect });
   let canvasService: { activeConfig: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
@@ -64,6 +80,8 @@ describe('CanvasExportService', () => {
       selectionLayer: null,
       previewLayer: null,
       framesLayer: null,
+      konvaLayers: new Map(),
+      annotationsLayer: null,
     };
     canvasService = { activeConfig: vi.fn(() => null) };
 
@@ -135,6 +153,10 @@ describe('CanvasExportService', () => {
         },
       ],
     });
+    renderer.konvaLayers.set(
+      'L1',
+      makeLayer({ x: 100, y: 200, width: 300, height: 100 })
+    );
     const clickSpy = vi.fn();
     vi.spyOn(document, 'createElement').mockReturnValueOnce({
       click: clickSpy,
@@ -143,7 +165,7 @@ describe('CanvasExportService', () => {
     service.exportAsPng('mycanvas');
 
     const stage = renderer.stage!;
-    // Content bounds plus the 20px viewBox padding on every side…
+    // Rendered bounds plus the 20px padding on every side…
     expect(stage.size).toHaveBeenCalledWith({ width: 340, height: 140 });
     expect(stage.position).toHaveBeenCalledWith({ x: -80, y: -180 });
     // …and the stage restored afterwards.
@@ -200,6 +222,10 @@ describe('CanvasExportService', () => {
         },
       ],
     });
+    renderer.konvaLayers.set(
+      'L1',
+      makeLayer({ x: 0, y: 0, width: 0, height: 0 }, false)
+    );
     const clickSpy = vi.fn();
     vi.spyOn(document, 'createElement').mockReturnValueOnce({
       click: clickSpy,
@@ -244,6 +270,16 @@ describe('CanvasExportService', () => {
         },
       ],
     });
+    renderer.konvaLayers.set(
+      'L1',
+      makeLayer({ x: 0, y: 0, width: 0, height: 0 }, false)
+    );
+    renderer.annotationsLayer = makeLayer({
+      x: 10,
+      y: 10,
+      width: 24,
+      height: 30,
+    });
     const clickSpy = vi.fn();
     vi.spyOn(document, 'createElement').mockReturnValueOnce({
       click: clickSpy,
@@ -284,9 +320,52 @@ describe('CanvasExportService', () => {
       throw new Error('boom');
     });
 
-    expect(() => service.exportFrameAsPng(frame)).toThrow('boom');
+    expect(service.exportFrameAsPng(frame)).toBe(false);
     expect(stage.size).toHaveBeenLastCalledWith({ width: 800, height: 600 });
     expect(stage.position).toHaveBeenLastCalledWith({ x: 10, y: 20 });
+  });
+
+  it('reports failure when the browser refuses to render the canvas', () => {
+    canvasService.activeConfig.mockReturnValue({
+      elementId: 'e1',
+      layers: [],
+      objects: [],
+      frames: [frame],
+    });
+    renderer.stage!.toDataURL.mockReturnValue('data:,');
+    const clickSpy = vi.fn();
+    vi.spyOn(document, 'createElement').mockReturnValue({
+      click: clickSpy,
+    } as unknown as HTMLAnchorElement);
+
+    expect(service.exportFrameAsPng(frame)).toBe(false);
+    expect(clickSpy).not.toHaveBeenCalled();
+  });
+
+  it('scales the pixel ratio down so huge regions stay renderable', () => {
+    const huge = { x: 0, y: 0, width: 8000, height: 6000 };
+    // 8000 × 3 = 24000 would exceed the 16384 per-side limit, and the area
+    // cap bites even sooner: sqrt(1e8 / 48e6) ≈ 1.44.
+    expect(CanvasExportService.clampPixelRatio(huge, 3)).toBeCloseTo(1.443, 2);
+    // Small regions are left alone.
+    expect(
+      CanvasExportService.clampPixelRatio(
+        { x: 0, y: 0, width: 1000, height: 1600 },
+        3
+      )
+    ).toBe(3);
+
+    canvasService.activeConfig.mockReturnValue({
+      elementId: 'e1',
+      layers: [],
+      objects: [],
+      frames: [huge],
+    });
+    service.exportFrameAsPng({ ...frame, ...huge }, 3);
+    const call = renderer.stage!.toDataURL.mock.calls.at(-1)![0] as {
+      pixelRatio: number;
+    };
+    expect(call.pixelRatio).toBeLessThan(3);
   });
 
   it('does nothing when stage is null', () => {

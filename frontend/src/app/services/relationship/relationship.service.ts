@@ -195,6 +195,26 @@ export class RelationshipService {
   }
 
   /**
+   * Remove several relationships by ID in one write. Unknown IDs are
+   * ignored; returns how many were removed.
+   */
+  removeRelationships(relationshipIds: readonly string[]): number {
+    const doomed = new Set(relationshipIds);
+    if (doomed.size === 0) return 0;
+    const relationships = this.syncProvider.getRelationships();
+    const kept = relationships.filter(r => !doomed.has(r.id));
+    const removed = relationships.length - kept.length;
+    if (removed === 0) return 0;
+
+    this.syncProvider.updateRelationships(kept);
+    this.logger.debug(
+      'RelationshipService',
+      `Removed ${removed} relationship(s)`
+    );
+    return removed;
+  }
+
+  /**
    * Remove a relationship by ID
    */
   removeRelationship(relationshipId: string): boolean {

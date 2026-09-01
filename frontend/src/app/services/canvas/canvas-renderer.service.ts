@@ -52,6 +52,9 @@ export interface CanvasNodeHandlers {
   getElementName?: (elementId: string) => string | null;
 }
 
+/** Grab width (screen px) of a frame border while the frame is being edited. */
+const FRAME_GRAB_PX = 12;
+
 @Injectable()
 export class CanvasRendererService {
   private readonly projectState = inject(ProjectStateService);
@@ -124,6 +127,8 @@ export class CanvasRendererService {
     }
     // Annotations follow the same rule but are never layer-locked.
     this._annotationsLayer?.listening(interactive);
+    // A frame being edited must not swallow strokes from a creation tool.
+    this._framesLayer?.listening(interactive && this._editingFrameId !== null);
   }
 
   /**
@@ -523,6 +528,17 @@ export class CanvasRendererService {
     const layer = this._framesLayer;
     if (!layer) return;
 
+    // Same frame, still mounted: nothing to rebuild. Rebuilding here would
+    // destroy the transformer mid-gesture whenever the config changes.
+    if (
+      frameId !== null &&
+      frameId === this._editingFrameId &&
+      this._frameTransformer &&
+      this._frameNodes.has(frameId)
+    ) {
+      return;
+    }
+
     // Tear down the previous editing state.
     if (this._editingFrameId) {
       const prevGroup = this._frameNodes.get(this._editingFrameId);
@@ -532,13 +548,13 @@ export class CanvasRendererService {
       prevRect?.setAttrs({
         listening: false,
         draggable: false,
-        fillEnabled: false,
+        hitStrokeWidth: 'auto',
       });
     }
     this._frameTransformer?.destroy();
     this._frameTransformer = null;
     this._editingFrameId = frameId;
-    layer.listening(frameId !== null);
+    layer.listening(frameId !== null && this._contentInteractive);
 
     const group = frameId ? this._frameNodes.get(frameId) : undefined;
     const rect = group?.findOne<Konva.Rect>('.frameRect');
@@ -553,13 +569,14 @@ export class CanvasRendererService {
     // pass events through to the rect.
     group.listening(true);
 
-    // A transparent fill gives the whole rect a hit area — otherwise only
-    // the hairline border would be draggable.
+    // Only the border is grabbable: a filled hit area would sit above every
+    // object inside the frame and block selecting or drawing on them. The
+    // transformer's anchors handle resizing.
     rect.setAttrs({
       listening: true,
       draggable: true,
-      fillEnabled: true,
-      fill: 'transparent',
+      fillEnabled: false,
+      hitStrokeWidth: FRAME_GRAB_PX,
     });
 
     rect.on('dragend.frameedit transformend.frameedit', () => {
@@ -710,15 +727,15 @@ export class CanvasRendererService {
         // to the pointer and has handlers wired at all.
         return `image:${obj.isBackground ? 'bg:' : ''}${obj.src}`;
       case 'shape':
-        // A link adds interactions (dblclick, hover label), so gaining or
-        // losing one rebuilds the node.
-        return `shape:${obj.shapeType}${obj.linkedElementId ? ':linked' : ''}`;
+        // A link adds interactions (dblclick, hover label) bound to the
+        // target, so gaining, losing or retargeting one rebuilds the node.
+        return `shape:${obj.shapeType}${obj.linkedElementId ? `:linked:${obj.linkedElementId}` : ''}`;
       case 'path':
         return `path:${obj.pressures?.length ? 'ink' : 'line'}`;
       case 'pin':
-        // Linked pins carry extra interactions (dblclick, hover cursor), so
-        // gaining or losing a link rebuilds the node.
-        return `pin:${obj.linkedElementId ? 'linked' : 'plain'}`;
+        // Linked pins carry extra interactions bound to the target, so
+        // gaining, losing or retargeting a link rebuilds the node.
+        return `pin:${obj.linkedElementId ? `linked:${obj.linkedElementId}` : 'plain'}`;
       default:
         return obj.type;
     }

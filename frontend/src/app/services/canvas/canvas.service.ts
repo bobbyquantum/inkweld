@@ -34,6 +34,7 @@ import {
   type CanvasViewport,
   createDefaultCanvasConfig,
   createDefaultLayer,
+  isLinkableObject,
   normalizeToolSettings,
 } from '@models/canvas.model';
 import {
@@ -114,6 +115,7 @@ export class CanvasService {
 
   /** Waits for the project to load before reading the bound canvas. */
   private loadEffect: EffectRef | null = null;
+  private linkEffect: EffectRef | null = null;
 
   /** Whether the bound canvas's contents have been read yet. */
   private contentsLoaded = false;
@@ -177,6 +179,8 @@ export class CanvasService {
     this.remoteSubscription = null;
     this.loadEffect?.destroy();
     this.loadEffect = null;
+    this.linkEffect?.destroy();
+    this.linkEffect = null;
     this.boundElementId = null;
     this.lastSyncedContents = null;
     this.contentsLoaded = false;
@@ -208,6 +212,14 @@ export class CanvasService {
       () => {
         const elements = this.projectState.elements();
         untracked(() => this.tryLoadContents(elementId, elements));
+      },
+      { injector: this.injector }
+    );
+
+    this.linkEffect = effect(
+      () => {
+        const elements = this.projectState.elements();
+        untracked(() => this.unlinkDanglingObjects(elements));
       },
       { injector: this.injector }
     );
@@ -542,12 +554,49 @@ export class CanvasService {
   private cleanupRelationshipsFor(objects: CanvasObject[]): void {
     // Resolved lazily: RelationshipService is root-provided and only needed
     // on deletions.
-    let relationships: RelationshipService | null = null;
-    for (const obj of objects) {
-      if (!('relationshipId' in obj) || !obj.relationshipId) continue;
-      relationships ??= this.injector.get(RelationshipService);
-      relationships.removeRelationship(obj.relationshipId);
-    }
+    const ids = objects.flatMap(obj =>
+      'relationshipId' in obj && obj.relationshipId ? [obj.relationshipId] : []
+    );
+    if (ids.length === 0) return;
+    // One write for the whole batch: each relationship removal rewrites the
+    // shared relationships array and broadcasts it.
+    this.injector.get(RelationshipService).removeRelationships(ids);
+  }
+
+  /**
+   * Drop links to elements that no longer exist. The project-level cleanup
+   * writes the unlink straight to the provider, which never echoes our own
+   * canvas back to us, so an open editor has to notice on its own — otherwise
+   * its next edit would resurrect the dangling link.
+   */
+  private unlinkDanglingObjects(elements: Element[]): void {
+    if (!this.contentsLoaded || elements.length === 0) return;
+    const config = this.activeConfigSignal();
+    if (!config) return;
+
+    const ids = new Set(elements.map(e => e.id));
+    const dangling = new Set(
+      config.objects
+        .filter(
+          o =>
+            isLinkableObject(o) &&
+            o.linkedElementId &&
+            !ids.has(o.linkedElementId)
+        )
+        .map(o => o.id)
+    );
+    if (dangling.size === 0) return;
+
+    const objects = config.objects.map(o =>
+      dangling.has(o.id)
+        ? ({
+            ...o,
+            linkedElementId: undefined,
+            relationshipId: undefined,
+          } as CanvasObject)
+        : o
+    );
+    this.saveConfig({ ...config, objects }, { skipHistory: true });
   }
 
   /** Update an existing canvas object */

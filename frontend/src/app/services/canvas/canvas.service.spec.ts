@@ -148,6 +148,7 @@ describe('CanvasService', () => {
 
   const mockRelationships = {
     removeRelationship: vi.fn(),
+    removeRelationships: vi.fn(),
   };
 
   beforeEach(() => {
@@ -602,12 +603,9 @@ describe('CanvasService', () => {
       service.removeLayer(doomedLayerId);
 
       // The linked shape dies with the layer; the pin (and its link) survive.
-      expect(mockRelationships.removeRelationship).toHaveBeenCalledWith(
-        'rel-shape'
-      );
-      expect(mockRelationships.removeRelationship).not.toHaveBeenCalledWith(
-        'rel-pin'
-      );
+      expect(mockRelationships.removeRelationships).toHaveBeenCalledWith([
+        'rel-shape',
+      ]);
     });
 
     it('removeObjects removes the relationships of doomed linked objects', () => {
@@ -616,9 +614,11 @@ describe('CanvasService', () => {
 
       service.removeObjects(['p1', 't1']);
 
-      expect(mockRelationships.removeRelationship).toHaveBeenCalledWith(
-        'rel-1'
-      );
+      // One batched write for every doomed link.
+      expect(mockRelationships.removeRelationships).toHaveBeenCalledTimes(1);
+      expect(mockRelationships.removeRelationships).toHaveBeenCalledWith([
+        'rel-1',
+      ]);
       expect(service.activeConfig()!.objects).toHaveLength(0);
     });
   });
@@ -666,6 +666,54 @@ describe('CanvasService', () => {
     it('should return empty string if no config loaded', () => {
       const result = service.addLayer();
       expect(result).toBe('');
+    });
+  });
+
+  describe('dangling element links', () => {
+    it('unlinks objects whose element disappears from the project', () => {
+      mockElements.set([
+        makeElement({ id: 'canvas-1', type: ElementType.Canvas }),
+        makeElement({ id: 'target-1' }),
+      ]);
+      service.loadConfig('canvas-1');
+      service.addObject(
+        makePinObject({
+          id: 'p1',
+          linkedElementId: 'target-1',
+          relationshipId: 'rel-1',
+        })
+      );
+      service.addObject(makePinObject({ id: 'p2' }));
+
+      // The target is deleted elsewhere; the provider never echoes our own
+      // canvas back, so the open editor must drop the link itself.
+      mockElements.set([
+        makeElement({ id: 'canvas-1', type: ElementType.Canvas }),
+      ]);
+      TestBed.tick();
+
+      const objects = service.activeConfig()!.objects;
+      const p1 = objects.find(o => o.id === 'p1') as CanvasPin;
+      expect(p1.linkedElementId).toBeUndefined();
+      expect(p1.relationshipId).toBeUndefined();
+      expect(objects.find(o => o.id === 'p2')).toBeDefined();
+    });
+
+    it('leaves links alone while the element list is still loading', () => {
+      mockElements.set([
+        makeElement({ id: 'canvas-1', type: ElementType.Canvas }),
+        makeElement({ id: 'target-1' }),
+      ]);
+      service.loadConfig('canvas-1');
+      service.addObject(
+        makePinObject({ id: 'p1', linkedElementId: 'target-1' })
+      );
+
+      mockElements.set([]);
+      TestBed.tick();
+
+      const p1 = service.activeConfig()!.objects[0] as CanvasPin;
+      expect(p1.linkedElementId).toBe('target-1');
     });
   });
 

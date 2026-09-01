@@ -128,7 +128,8 @@
     "exportPng": "Export as PNG",
     "exportPngHighRes": "Export as PNG (High-res)",
     "exportSvg": "Export as SVG",
-    "frame": "Frame"
+    "frame": "Frame",
+    "failed": "Couldn't export the image — the area is too large to render"
   },
   "layerMenu": {
     "rename": "Rename",

@@ -8,7 +8,7 @@
       </span>
       <app-color-swatches
         [selectedColor]="selectedFill"
-        [allowGradient]="true"
+        [allowGradient]="data.allowGradientFill ?? false"
         (colorChange)="onFillChange($event)" />
     </div>
   }

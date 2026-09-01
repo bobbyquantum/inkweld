@@ -272,6 +272,22 @@ describe('RelationshipService', () => {
       expect(relationshipsStore).toHaveLength(0);
     });
 
+    it('removes several relationships in a single write', () => {
+      const a = service.addRelationship('char-1', 'char-2', 'parent-of');
+      const b = service.addRelationship('char-1', 'char-3', 'parent-of');
+      service.addRelationship('char-2', 'char-3', 'parent-of');
+      const writes = mockSyncProvider.updateRelationships.mock.calls.length;
+
+      const removed = service.removeRelationships([a.id, b.id, 'missing']);
+
+      expect(removed).toBe(2);
+      expect(relationshipsStore).toHaveLength(1);
+      expect(mockSyncProvider.updateRelationships.mock.calls.length).toBe(
+        writes + 1
+      );
+      expect(service.removeRelationships([])).toBe(0);
+    });
+
     it('should return false when removing non-existent relationship', () => {
       const result = service.removeRelationship('fake-id');
       expect(result).toBe(false);

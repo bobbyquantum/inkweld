@@ -216,6 +216,16 @@ export type CanvasObject =
   CanvasImage | CanvasText | CanvasPath | CanvasShape | CanvasPin;
 
 /** True when `obj` is a non-interactive background image. */
+/** Whether an object's fill can be a CSS gradient (closed area shapes only). */
+export function supportsGradientFill(obj: CanvasObject): boolean {
+  return (
+    obj.type === 'shape' &&
+    (obj.shapeType === 'rect' ||
+      obj.shapeType === 'ellipse' ||
+      obj.shapeType === 'polygon')
+  );
+}
+
 export function isBackgroundImage(obj: CanvasObject): obj is CanvasImage {
   return obj.type === 'image' && obj.isBackground === true;
 }
