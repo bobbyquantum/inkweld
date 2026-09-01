@@ -23,6 +23,7 @@ This document tracks which pages, features, and routes have e2e test coverage ac
 | `/:user/:slug/media` | Media Library | `media-tab.spec.ts`, `media-storage.spec.ts` | `media-storage.spec.ts` | `pwa-screenshots` | Covered |
 | `/:user/:slug/settings` | Project Settings | - | `relationships-tab.spec.ts`, `tags.spec.ts`, `danger-zone.spec.ts` | `tags-screenshots`, `templates-tab-screenshots`, `relationships-tab-screenshots`, `project-rename-screenshots` | Covered |
 | `/:user/:slug/worldbuilding/:id` | Worldbuilding | `worldbuilding.spec.ts` | - | - | Partial |
+| `/:user/:slug/canvas/:id` | Canvas / Map | `canvas-tab.spec.ts` | - | `canvas-screenshots` | Covered |
 | `/:user/:slug/publish-plan/:id` | Publish Plan | `publish.spec.ts` | `publish.spec.ts` | - | Partial |
 | `/messages` | Messages | - | - | - | Not Covered |
 | `/approval-pending` | Approval Pending | - | - | - | Not Covered |
@@ -60,6 +61,9 @@ This document tracks which pages, features, and routes have e2e test coverage ac
 | **Worldbuilding** | | | | |
 | Elements | `worldbuilding.spec.ts` | - | - | |
 | Element Refs | `element-ref.spec.ts` | - | `element-ref-screenshots` | |
+| Canvas (layers, tools, export) | `canvas-tab.spec.ts` | - | `canvas-screenshots` | |
+| Interactive maps (pins, regions, view mode) | `canvas-tab.spec.ts` | - | - | |
+| Canvas frames & cover export | `canvas-tab.spec.ts` | - | - | |
 | **Media** | | | | |
 | Storage | `media-storage.spec.ts` | `media-storage.spec.ts` | - | |
 | Library Tab | `media-tab.spec.ts` | - | `pwa-screenshots` | |

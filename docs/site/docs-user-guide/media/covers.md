@@ -30,6 +30,10 @@ AI image generation is an optional feature. If you don't see the "Generate with 
 
 After selecting an image, a cropper appears to adjust it to the correct aspect ratio (1:1.6, optimized for 1600×2560px). Click **Crop & Save** to apply.
 
+### From a Canvas Frame
+
+You can also render a cover straight from a [canvas](../worldbuilding/canvas#frame-as-project-cover): add a frame using the **Cover** preset (already the right 1:1.6 ratio), arrange your artwork inside it, then click the frame's **⋮** menu → **Set as project cover…**. The frame's contents are exported at cover resolution and replace the current cover after confirmation.
+
 ### Removing a Cover
 
 Click the delete button on the cover image in the edit dialog. The project will show a placeholder with its title instead.

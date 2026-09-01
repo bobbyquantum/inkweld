@@ -66,6 +66,7 @@ const sidebars: SidebarsConfig = {
         'worldbuilding/relationships',
         'worldbuilding/relationship-charts',
         'worldbuilding/canvas',
+        'worldbuilding/interactive-maps',
         'worldbuilding/timeline',
       ],
     },

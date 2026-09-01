@@ -177,6 +177,8 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🟡 | Canvas size & crop frames | Page bounds plus named crop frames; per-frame PNG/SVG export and set-as-project-cover |
 | ✅ | 🟡 | Region pen tool | Click-to-place vertices, close the loop into a polygon — trace map regions |
 | ✅ | 🟢 | View/edit mode | Read-only mode: pan, zoom and click linked pins/regions without editing |
+| ✅ | 🟢 | Collapsible sidebar sections | Layers, Objects, Pins and Frames each collapse independently; state remembered |
+| ✅ | 🟢 | Unified colour chooser | Canvas uses the worldbuilding appearance picker: swatches, full picker, gradient mode |
 | ⬜ | 🟢 | SVG import | Place an SVG as an image; later, import Inkscape files as editable objects |
 
 ### Interactive Maps
