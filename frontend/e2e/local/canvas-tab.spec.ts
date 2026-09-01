@@ -841,4 +841,31 @@ test.describe('Canvas Tab', () => {
       await expect(sidebar.getByTestId('frames-header')).toBeVisible();
     });
   });
+
+  test('guided tour and phone layout', async ({
+    localPageWithProject: page,
+  }) => {
+    await createCanvasAndOpen(page);
+
+    await test.step('help button starts the canvas tour', async () => {
+      await page.getByTestId('canvas-tour-button').first().click();
+      await expect(page.getByTestId('tutorial-card')).toBeVisible();
+      await page.getByTestId('tutorial-close-button').click();
+      await expect(page.getByTestId('tutorial-card')).toHaveCount(0);
+    });
+
+    await test.step('phone width tucks the sidebar into a drawer', async () => {
+      await page.setViewportSize({ width: 390, height: 800 });
+      await page.reload();
+      await expect(page.getByTestId('canvas-container')).toBeVisible();
+      await expect(page.getByTestId('canvas-sidebar')).toHaveCount(0);
+
+      await page.getByTestId('sidebar-expand-button').click();
+      await expect(page.getByTestId('canvas-sidebar')).toBeVisible();
+      await expect(page.getByTestId('sidebar-scrim')).toBeVisible();
+
+      await page.getByTestId('sidebar-scrim').click();
+      await expect(page.getByTestId('canvas-sidebar')).toHaveCount(0);
+    });
+  });
 });

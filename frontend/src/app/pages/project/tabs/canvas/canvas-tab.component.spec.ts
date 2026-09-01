@@ -1,3 +1,4 @@
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
@@ -31,6 +32,7 @@ import { CanvasStageEventsService } from '@services/canvas/canvas-stage-events.s
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
+import { TutorialService } from '@services/core/tutorial.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { ProjectService } from '@services/project/project.service';
@@ -184,6 +186,16 @@ describe('CanvasTabComponent', () => {
     paramMap: of(new Map([['tabId', 'test-canvas']])),
   };
 
+  const mockBreakpointObserver = {
+    isMatched: vi.fn(() => false),
+    observe: vi.fn(() => of({ matches: false, breakpoints: {} })),
+  };
+
+  const mockTutorialService = {
+    start: vi.fn(() => true),
+    maybeAutoStart: vi.fn(() => false),
+  };
+
   const mockDialogGateway = {
     openInsertImageDialog: vi.fn(
       (): Promise<{ mediaId: string; imageBlob: Blob } | undefined> =>
@@ -305,6 +317,8 @@ describe('CanvasTabComponent', () => {
         { provide: ActivatedRoute, useValue: mockRoute },
         { provide: MatDialog, useValue: mockDialog },
         { provide: DialogGatewayService, useValue: mockDialogGateway },
+        { provide: BreakpointObserver, useValue: mockBreakpointObserver },
+        { provide: TutorialService, useValue: mockTutorialService },
         { provide: LocalStorageService, useValue: mockLocalStorageService },
         { provide: LoggerService, useValue: mockLogger },
         { provide: RelationshipService, useValue: mockRelationshipService },
@@ -3158,6 +3172,128 @@ describe('CanvasTabComponent', () => {
       fixture.detectChanges();
       expect(component['elementIcon']()).toBe('map');
       mockProjectState.elements.set(testElements);
+    });
+  });
+
+  describe('mobile layout and touch', () => {
+    it('starts with the sidebar tucked away on phones', () => {
+      mockBreakpointObserver.isMatched.mockReturnValue(true);
+      mockBreakpointObserver.observe.mockReturnValue(
+        of({ matches: true, breakpoints: {} })
+      );
+      const mobileFixture = TestBed.createComponent(CanvasTabComponent);
+      mobileFixture.detectChanges();
+      const mobile = mobileFixture.componentInstance;
+      expect(mobile['isMobile']()).toBe(true);
+      expect(mobile['sidebarOpen']()).toBe(false);
+
+      // Opening the drawer shows a scrim that closes it again.
+      mobile['toggleSidebar']();
+      mobileFixture.detectChanges();
+      const scrim = mobileFixture.nativeElement.querySelector(
+        '[data-testid="sidebar-scrim"]'
+      ) as HTMLElement;
+      expect(scrim).toBeTruthy();
+      scrim.click();
+      expect(mobile['sidebarOpen']()).toBe(false);
+      mockBreakpointObserver.isMatched.mockReturnValue(false);
+      mockBreakpointObserver.observe.mockReturnValue(
+        of({ matches: false, breakpoints: {} })
+      );
+    });
+
+    it('is not mobile at desktop widths', () => {
+      expect(component['isMobile']()).toBe(false);
+    });
+
+    it('a still touch on the stage opens the context menu', () => {
+      vi.useFakeTimers();
+      try {
+        const openAt = vi.spyOn(component['canvasContextMenu'], 'openAt');
+        component['onStagePointerDown']({
+          pointerType: 'touch',
+          clientX: 40,
+          clientY: 50,
+        } as PointerEvent);
+        expect(openAt).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(500);
+        expect(openAt).toHaveBeenCalledWith(40, 50, null);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('a moving finger, a mouse, or a drawing tool never long-presses', () => {
+      vi.useFakeTimers();
+      try {
+        const openAt = vi.spyOn(component['canvasContextMenu'], 'openAt');
+
+        // Drift beyond the slop cancels the press.
+        component['onStagePointerDown']({
+          pointerType: 'touch',
+          clientX: 40,
+          clientY: 50,
+        } as PointerEvent);
+        component['onStagePointerMove']({
+          clientX: 60,
+          clientY: 50,
+        } as PointerEvent);
+        vi.advanceTimersByTime(600);
+        expect(openAt).not.toHaveBeenCalled();
+
+        // Mouse pointers have a real right-click.
+        component['onStagePointerDown']({
+          pointerType: 'mouse',
+          clientX: 40,
+          clientY: 50,
+        } as PointerEvent);
+        vi.advanceTimersByTime(600);
+        expect(openAt).not.toHaveBeenCalled();
+
+        // With a creation tool active a press is the start of a stroke.
+        component['activeTool'].set('draw');
+        component['onStagePointerDown']({
+          pointerType: 'touch',
+          clientX: 40,
+          clientY: 50,
+        } as PointerEvent);
+        vi.advanceTimersByTime(600);
+        expect(openAt).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('lifting the finger before the delay cancels the press', () => {
+      vi.useFakeTimers();
+      try {
+        const openAt = vi.spyOn(component['canvasContextMenu'], 'openAt');
+        component['onStagePointerDown']({
+          pointerType: 'touch',
+          clientX: 1,
+          clientY: 2,
+        } as PointerEvent);
+        component['cancelLongPress']();
+        vi.advanceTimersByTime(600);
+        expect(openAt).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  describe('guided tour', () => {
+    it('offers the canvas tour once the view is ready', () => {
+      component.ngAfterViewInit();
+      expect(mockTutorialService.maybeAutoStart).toHaveBeenCalledWith(
+        'canvas',
+        { isMobile: false }
+      );
+    });
+
+    it('replays the tour from the sidebar help button', () => {
+      component['onStartTour']();
+      expect(mockTutorialService.start).toHaveBeenCalledWith('canvas');
     });
   });
 

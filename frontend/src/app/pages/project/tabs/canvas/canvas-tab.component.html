@@ -3,7 +3,10 @@
     data-testid="canvas-breadcrumbs"
     [elementId]="elementId()"></app-document-breadcrumbs>
 }
-<div class="canvas-container" data-testid="canvas-container">
+<div
+  class="canvas-container"
+  data-testid="canvas-container"
+  [class.mobile]="isMobile()">
   <div class="canvas-body">
     <!-- Collapsed sidebar strip -->
     @if (!sidebarOpen()) {
@@ -26,7 +29,22 @@
           [attr.aria-label]="'canvas.sidebar.exportCanvas' | transloco">
           <mat-icon>download</mat-icon>
         </button>
+        <button
+          mat-icon-button
+          data-testid="canvas-tour-button"
+          [matTooltip]="'canvas.toolbar.tour' | transloco"
+          [attr.aria-label]="'canvas.toolbar.tour' | transloco"
+          (click)="onStartTour()">
+          <mat-icon>help_outline</mat-icon>
+        </button>
       </div>
+    }
+
+    @if (sidebarOpen() && isMobile()) {
+      <div
+        class="sidebar-scrim"
+        data-testid="sidebar-scrim"
+        (click)="toggleSidebar()"></div>
     }
 
     <!-- Expanded sidebar -->
@@ -36,6 +54,15 @@
         <div class="sidebar-header">
           <mat-icon class="header-icon">{{ elementIcon() }}</mat-icon>
           <span class="header-title">{{ elementName() }}</span>
+          <button
+            mat-icon-button
+            data-testid="canvas-tour-button"
+            [matTooltip]="'canvas.toolbar.tour' | transloco"
+            [attr.aria-label]="'canvas.toolbar.tour' | transloco"
+            (click)="onStartTour()"
+            class="header-action">
+            <mat-icon>help_outline</mat-icon>
+          </button>
           <button
             mat-icon-button
             data-testid="export-menu-button"
@@ -809,7 +836,12 @@
           class="canvas-area"
           #canvasContainer
           data-testid="canvas-stage"
-          (contextmenu)="onContextMenu($event)"></div>
+          (contextmenu)="onContextMenu($event)"
+          (pointerdown)="onStagePointerDown($event)"
+          (pointermove)="onStagePointerMove($event)"
+          (pointerup)="cancelLongPress()"
+          (pointercancel)="cancelLongPress()"
+          (pointerleave)="cancelLongPress()"></div>
         <div
           class="brush-cursor"
           #brushCursor

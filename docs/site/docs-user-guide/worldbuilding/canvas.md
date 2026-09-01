@@ -34,6 +34,8 @@ The canvas opens immediately in its own project tab. A Map is an ordinary canvas
 | **Toolbar** (top)  | Tool selection, brush settings, view/edit mode, zoom controls            |
 | **Stage** (center) | The infinite drawing surface                                             |
 
+The **?** button in the sidebar header replays a short guided tour of the canvas and map features; it is offered automatically the first time you open a canvas.
+
 Each sidebar section has a chevron in its header — click the header to collapse or expand it. The whole sidebar can also be collapsed to give the stage more room: click the **collapse** button in the sidebar header, or use the **expand** button on the left strip to bring it back. Both choices are remembered between sessions.
 
 <ThemedImage
@@ -175,7 +177,11 @@ On narrow windows the toolbar moves its least-used groups into a **More tools** 
 | Hold **Space** and drag          | Pan from any tool             |
 
 On a tablet, pinch to zoom and drag with two fingers to pan. While a stylus is
-in use, resting your hand on the screen won't start a second stroke.
+in use, resting your hand on the screen won't start a second stroke. On a phone
+the sidebar becomes a drawer: open it from the strip on the left and tap outside
+it to close. There is no right-click on touch, so **press and hold** on the stage
+with the Select tool to open the context menu, and tap a linked shape to see the
+element it points at.
 
 ## Objects Panel
 

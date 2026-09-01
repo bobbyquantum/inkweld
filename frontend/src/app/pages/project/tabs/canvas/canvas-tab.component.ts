@@ -1,3 +1,4 @@
+import { BreakpointObserver } from '@angular/cdk/layout';
 import {
   type AfterViewInit,
   ChangeDetectionStrategy,
@@ -79,6 +80,7 @@ import { CanvasSelectionService } from '@services/canvas/canvas-selection.servic
 import { CanvasStageEventsService } from '@services/canvas/canvas-stage-events.service';
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { TutorialService } from '@services/core/tutorial.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectService } from '@services/project/project.service';
@@ -128,6 +130,15 @@ const TOOLBAR_GAP_PX = 4;
 
 /** Space kept for the mode toggle, overflow chevron and presence indicator. */
 const TOOLBAR_RESERVED_PX = 132;
+
+/** Matches the project shell's phone layout. */
+const MOBILE_BREAKPOINT = '(max-width: 759px)';
+
+/** A still touch this long opens the context menu (no right-click on touch). */
+const LONG_PRESS_MS = 500;
+
+/** Finger drift tolerated during a long-press before it becomes a drag. */
+const LONG_PRESS_SLOP_PX = 8;
 
 /** Shared empty array so a frameless config yields a stable reference. */
 const EMPTY_FRAMES: readonly CanvasFrame[] = [];
@@ -209,6 +220,13 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly projectService = inject(ProjectService);
   private readonly relationshipService = inject(RelationshipService);
+  private readonly breakpointObserver = inject(BreakpointObserver);
+  private readonly tutorialService = inject(TutorialService);
+
+  /** Phone-width layout: the sidebar becomes an overlay drawer. */
+  protected readonly isMobile = signal(
+    this.breakpointObserver.isMatched(MOBILE_BREAKPOINT)
+  );
 
   /** Stable presence location for this canvas tab. */
   protected readonly presenceLocation = computed(() => {
@@ -302,10 +320,13 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   /** Currently selected object ID */
   protected readonly selectedObjectId = signal<string | null>(null);
 
-  /** Whether the sidebar panel is open */
+  /** Whether the sidebar panel is open. Phones start with it tucked away. */
   protected readonly sidebarOpen = signal(
-    this.readLocalStorage('canvasSidebarOpen') !== 'false'
+    !this.isMobile() && this.readLocalStorage('canvasSidebarOpen') !== 'false'
   );
+
+  private longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  private longPressStart: { x: number; y: number } | null = null;
 
   /**
    * View mode: pan/zoom only, no editing, and a single click on a linked pin
@@ -635,6 +656,11 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
     // Keep frame labels readable at every zoom level.
     effect(() => this.canvasRenderer.updateFrameOverlayScale(this.zoomLevel()));
+
+    this.breakpointObserver
+      .observe(MOBILE_BREAKPOINT)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(result => this.isMobile.set(result.matches));
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -642,6 +668,12 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────
 
   ngAfterViewInit(): void {
+    // First visit: offer the canvas tour (desktop only; replayable from the
+    // sidebar's help button on any device).
+    this.tutorialService.maybeAutoStart('canvas', {
+      isMobile: this.isMobile(),
+    });
+
     const toolbar = this.toolbarEl()?.nativeElement;
     if (!toolbar) return;
 
@@ -650,6 +682,11 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     );
     this.toolbarResizeObserver.observe(toolbar);
     this.scheduleToolbarMeasure();
+  }
+
+  /** Replay the guided tour of the canvas and map features. */
+  protected onStartTour(): void {
+    this.tutorialService.start('canvas');
   }
 
   ngOnInit(): void {
@@ -683,6 +720,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.cancelLongPress();
     this.toolbarResizeObserver?.disconnect();
     this.toolbarResizeObserver = null;
     this.saveViewport();
@@ -1654,10 +1692,51 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   protected onContextMenu(event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();
+    this.cancelLongPress();
+    // Android also fires contextmenu for a long-press, which the timer below
+    // may already have handled.
+    if (this.contextMenuTrigger()?.menuOpen) return;
+    this.openContextMenuAt(event.clientX, event.clientY);
+  }
+
+  /**
+   * Touch has no right-click: a still press on the stage with the select tool
+   * opens the context menu instead (pointer events fire before Konva's).
+   */
+  protected onStagePointerDown(event: PointerEvent): void {
+    this.cancelLongPress();
+    if (event.pointerType !== 'touch' || this.viewMode()) return;
+    if (this.activeTool() !== 'select') return;
+    const { clientX, clientY } = event;
+    this.longPressStart = { x: clientX, y: clientY };
+    this.longPressTimer = setTimeout(() => {
+      this.longPressTimer = null;
+      this.longPressStart = null;
+      this.openContextMenuAt(clientX, clientY);
+    }, LONG_PRESS_MS);
+  }
+
+  /** A moving finger is a drag or pan, not a long-press. */
+  protected onStagePointerMove(event: PointerEvent): void {
+    if (!this.longPressTimer || !this.longPressStart) return;
+    const drift = Math.hypot(
+      event.clientX - this.longPressStart.x,
+      event.clientY - this.longPressStart.y
+    );
+    if (drift > LONG_PRESS_SLOP_PX) this.cancelLongPress();
+  }
+
+  protected cancelLongPress(): void {
+    if (this.longPressTimer) clearTimeout(this.longPressTimer);
+    this.longPressTimer = null;
+    this.longPressStart = null;
+  }
+
+  private openContextMenuAt(clientX: number, clientY: number): void {
     if (this.viewMode()) return;
     this.canvasContextMenu.openAt(
-      event.clientX,
-      event.clientY,
+      clientX,
+      clientY,
       this.canvasRenderer.getCanvasPointerPosition()
     );
     this.canvasSelection.selectObjectAtPointer({

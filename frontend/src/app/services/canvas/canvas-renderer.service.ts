@@ -52,6 +52,16 @@ export interface CanvasNodeHandlers {
   getElementName?: (elementId: string) => string | null;
 }
 
+/** Milliseconds a tapped link's name label stays up on touch devices. */
+const LINK_TAP_LABEL_MS = 1500;
+
+/** Transformer anchors sized for fingers rather than a mouse pointer. */
+function transformerAnchorSize(): number {
+  const coarse =
+    typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+  return coarse ? 18 : 10;
+}
+
 /** Grab width (screen px) of a frame border while the frame is being edited. */
 const FRAME_GRAB_PX = 12;
 
@@ -164,6 +174,7 @@ export class CanvasRendererService {
     this._previewLayer = new Konva.Layer({ listening: false });
     this._selectionLayer = new Konva.Layer();
     this._transformer = new Konva.Transformer({
+      anchorSize: transformerAnchorSize(),
       rotateEnabled: true,
       enabledAnchors: [
         'top-left',
@@ -592,6 +603,7 @@ export class CanvasRendererService {
     });
 
     this._frameTransformer = new Konva.Transformer({
+      anchorSize: transformerAnchorSize(),
       rotateEnabled: false,
       flipEnabled: false,
       nodes: [rect],
@@ -992,6 +1004,15 @@ export class CanvasRendererService {
     node.on('mouseleave', () => {
       this.setStageCursor('');
       this.hideHoverLabel();
+    });
+    // Touch has no hover: a tap shows the target's name briefly instead.
+    node.on('tap', () => {
+      const name = obj.linkedElementId
+        ? handlers.getElementName?.(obj.linkedElementId)
+        : null;
+      if (!name) return;
+      this.showHoverLabel(name);
+      setTimeout(() => this.hideHoverLabel(), LINK_TAP_LABEL_MS);
     });
   }
 

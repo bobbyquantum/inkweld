@@ -179,6 +179,8 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🟢 | View/edit mode | Read-only mode: pan, zoom and click linked pins/regions without editing |
 | ✅ | 🟢 | Collapsible sidebar sections | Layers, Objects, Pins and Frames each collapse independently; state remembered |
 | ✅ | 🟢 | Unified colour chooser | Canvas uses the worldbuilding appearance picker: swatches, full picker, gradient mode |
+| ✅ | 🟢 | Canvas guided tour | Auto-offered on first open; replay from the sidebar help button |
+| ✅ | 🟡 | Phone layout & touch | Sidebar drawer on narrow screens, long-press context menu, tap-to-name linked regions, finger-sized handles |
 | ⬜ | 🟢 | SVG import | Place an SVG as an image; later, import Inkscape files as editable objects |
 
 ### Interactive Maps

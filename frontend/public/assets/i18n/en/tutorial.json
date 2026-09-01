@@ -35,5 +35,25 @@
     "settingsBody": "Rename your project and adjust project-level options here.",
     "shortcutsTitle": "One more thing",
     "shortcutsBody": "Press Ctrl/Cmd + P to quickly open any file, and Ctrl/Cmd + F to find text in the current document. You can replay this tour from the account menu at any time."
+  },
+  "canvas": {
+    "welcomeTitle": "Canvas and maps",
+    "welcomeBody": "Draw freely, drop pins and regions linked to your world, and export any crop. Want a two-minute tour?",
+    "modeTitle": "Edit and view",
+    "modeBody": "Switch to view mode to read a map: the editing tools step aside and a single click on a linked pin or region opens its element.",
+    "layersTitle": "Layers",
+    "layersBody": "Organise artwork into layers. Put a map image on one layer, mark it as a background, and draw on the layers above it.",
+    "pinsTitle": "Pins",
+    "pinsBody": "Press P and click to drop a pin. Link it to a document or worldbuilding element so it opens on click.",
+    "regionsTitle": "Region pen",
+    "regionsBody": "Press G and click around an area to trace a polygon. Click the first point again to close the loop.",
+    "linksTitle": "Link regions to your world",
+    "linksBody": "Right-click a shape (long-press on touch) and choose Link to element to make it a clickable region. Several shapes can share one element.",
+    "pinsPanelTitle": "Pins panel",
+    "pinsPanelBody": "Every pin on the canvas is listed here. Pins sit above all layers, so hiding a layer never hides your markers.",
+    "framesTitle": "Frames",
+    "framesBody": "Set a canvas size or add named crop frames, then export a frame as PNG or SVG, or make it the project cover.",
+    "exportTitle": "Export",
+    "exportBody": "Export the whole canvas or any frame. You can replay this tour from the help button in the sidebar."
   }
 }

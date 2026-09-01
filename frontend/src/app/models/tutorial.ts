@@ -1,5 +1,5 @@
 /** Identifiers for the guided tours available in the app. */
-export type TutorialTourId = 'home' | 'project';
+export type TutorialTourId = 'home' | 'project' | 'canvas';
 
 /** Persisted outcome of a tour for the current profile. */
 export type TutorialTourStatus = 'completed' | 'dismissed';
