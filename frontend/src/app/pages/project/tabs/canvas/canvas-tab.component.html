@@ -325,15 +325,16 @@
           </div>
           <div
             class="objects-list"
-            role="list"
+            role="listbox"
             [class.section-collapsed]="isSectionCollapsed('pins')"
             [attr.aria-label]="'canvas.sidebar.pinsAria' | transloco">
             @for (pin of allPins(); track pin.id) {
               <div
-                role="listitem"
+                role="option"
                 class="object-item"
                 data-testid="pin-item"
                 [class.selected]="pin.id === selectedObjectId()"
+                [attr.aria-selected]="pin.id === selectedObjectId()"
                 tabindex="0"
                 [attr.aria-current]="
                   pin.id === selectedObjectId() ? 'true' : null
@@ -430,15 +431,16 @@
             </div>
             <div
               class="layers-list"
-              role="list"
+              role="listbox"
               [class.section-collapsed]="isSectionCollapsed('frames')"
               [attr.aria-label]="'canvas.frames.listAria' | transloco">
               @for (frame of frames(); track frame.id) {
                 <div
-                  role="listitem"
+                  role="option"
                   class="layer-item"
                   data-testid="frame-item"
                   tabindex="0"
+                  [attr.aria-selected]="frame.id === selectedFrameId()"
                   [class.active]="frame.id === selectedFrameId()"
                   [attr.aria-current]="
                     frame.id === selectedFrameId() ? 'true' : null

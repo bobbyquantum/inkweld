@@ -282,7 +282,7 @@ describe('RelationshipService', () => {
 
       expect(removed).toBe(2);
       expect(relationshipsStore).toHaveLength(1);
-      expect(mockSyncProvider.updateRelationships.mock.calls.length).toBe(
+      expect(mockSyncProvider.updateRelationships.mock.calls).toHaveLength(
         writes + 1
       );
       expect(service.removeRelationships([])).toBe(0);

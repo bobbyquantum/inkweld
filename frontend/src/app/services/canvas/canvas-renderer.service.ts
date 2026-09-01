@@ -62,6 +62,11 @@ function transformerAnchorSize(): number {
   return coarse ? 18 : 10;
 }
 
+/** Structure-key fragment naming a link target (empty when unlinked). */
+function linkSuffix(linkedElementId: string | undefined): string {
+  return linkedElementId ? `:linked:${linkedElementId}` : '';
+}
+
 /** Grab width (screen px) of a frame border while the frame is being edited. */
 const FRAME_GRAB_PX = 12;
 
@@ -741,13 +746,15 @@ export class CanvasRendererService {
       case 'shape':
         // A link adds interactions (dblclick, hover label) bound to the
         // target, so gaining, losing or retargeting one rebuilds the node.
-        return `shape:${obj.shapeType}${obj.linkedElementId ? `:linked:${obj.linkedElementId}` : ''}`;
+        return `shape:${obj.shapeType}${linkSuffix(obj.linkedElementId)}`;
       case 'path':
         return `path:${obj.pressures?.length ? 'ink' : 'line'}`;
       case 'pin':
         // Linked pins carry extra interactions bound to the target, so
         // gaining, losing or retargeting a link rebuilds the node.
-        return `pin:${obj.linkedElementId ? `linked:${obj.linkedElementId}` : 'plain'}`;
+        return obj.linkedElementId
+          ? `pin:linked:${obj.linkedElementId}`
+          : 'pin:plain';
       default:
         return obj.type;
     }
