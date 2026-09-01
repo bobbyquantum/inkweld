@@ -15,8 +15,8 @@
           [attr.data-testid]="'breadcrumb-segment-' + segment.id">
           {{ segment.name }}
         </button>
-        <app-breadcrumb-menu
-          #segMenu="appBreadcrumbMenu"
+        <app-element-tree-menu
+          #segMenu="appElementTreeMenu"
           [parentId]="segment.id === projectRootId ? null : segment.id"
           [currentBranchId]="segment.nextBranchId" />
         <mat-icon class="breadcrumb-separator" aria-hidden="true">

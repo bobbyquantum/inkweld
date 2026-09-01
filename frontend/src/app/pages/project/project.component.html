@@ -205,6 +205,17 @@
                   ">
                   <mat-icon>manage_search</mat-icon>
                 </button>
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="browseMenu.menu"
+                  [matTooltip]="'project.nav.browseElements' | transloco"
+                  data-testid="collapsed-browse-button"
+                  [attr.aria-label]="'project.nav.browseElements' | transloco">
+                  <mat-icon>folder</mat-icon>
+                </button>
+                <app-element-tree-menu
+                  #browseMenu="appElementTreeMenu"
+                  [parentId]="null" />
               </div>
 
               <!-- Pinned elements section -->
