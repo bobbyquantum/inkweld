@@ -242,6 +242,30 @@
   display: none !important;
 }
 
+// The clickable body of a pin/frame row: a real button, so it is focusable
+// and keyboard-operable without ARIA roles, styled to sit flush in the row.
+.row-select {
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--sys-primary);
+    outline-offset: -2px;
+    border-radius: 4px;
+  }
+}
+
 .frame-dims {
   font-size: 11px;
   color: var(--sys-on-surface-variant);

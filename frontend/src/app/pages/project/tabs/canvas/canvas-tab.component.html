@@ -325,34 +325,33 @@
           </div>
           <div
             class="objects-list"
-            role="listbox"
             [class.section-collapsed]="isSectionCollapsed('pins')"
             [attr.aria-label]="'canvas.sidebar.pinsAria' | transloco">
             @for (pin of allPins(); track pin.id) {
               <div
-                role="option"
                 class="object-item"
                 data-testid="pin-item"
-                [class.selected]="pin.id === selectedObjectId()"
-                [attr.aria-selected]="pin.id === selectedObjectId()"
-                tabindex="0"
-                [attr.aria-current]="
-                  pin.id === selectedObjectId() ? 'true' : null
-                "
-                (click)="onSelectObject(pin.id)"
-                (keydown.enter)="onSelectObject(pin.id)">
-                <mat-icon class="object-icon">place</mat-icon>
-                <span class="object-name">{{
-                  pin.label.trim() ||
-                    ('canvas.pinDialog.pinFallback' | transloco)
-                }}</span>
-                @if (pin.linkedElementId) {
-                  <mat-icon
-                    class="object-icon"
-                    [matTooltip]="'canvas.pinDialog.linkedTooltip' | transloco"
-                    >link</mat-icon
-                  >
-                }
+                [class.selected]="pin.id === selectedObjectId()">
+                <button
+                  type="button"
+                  class="row-select"
+                  [attr.aria-pressed]="pin.id === selectedObjectId()"
+                  (click)="onSelectObject(pin.id)">
+                  <mat-icon class="object-icon">place</mat-icon>
+                  <span class="object-name">{{
+                    pin.label.trim() ||
+                      ('canvas.pinDialog.pinFallback' | transloco)
+                  }}</span>
+                  @if (pin.linkedElementId) {
+                    <mat-icon
+                      class="object-icon"
+                      [matTooltip]="
+                        'canvas.pinDialog.linkedTooltip' | transloco
+                      "
+                      >link</mat-icon
+                    >
+                  }
+                </button>
                 @if (!viewMode()) {
                   <button
                     mat-icon-button
@@ -431,22 +430,13 @@
             </div>
             <div
               class="layers-list"
-              role="listbox"
               [class.section-collapsed]="isSectionCollapsed('frames')"
               [attr.aria-label]="'canvas.frames.listAria' | transloco">
               @for (frame of frames(); track frame.id) {
                 <div
-                  role="option"
                   class="layer-item"
                   data-testid="frame-item"
-                  tabindex="0"
-                  [attr.aria-selected]="frame.id === selectedFrameId()"
-                  [class.active]="frame.id === selectedFrameId()"
-                  [attr.aria-current]="
-                    frame.id === selectedFrameId() ? 'true' : null
-                  "
-                  (click)="onSelectFrame(frame.id)"
-                  (keydown.enter)="onSelectFrame(frame.id)">
+                  [class.active]="frame.id === selectedFrameId()">
                   <div class="layer-item-row">
                     <button
                       mat-icon-button
@@ -463,24 +453,30 @@
                         frame.visible ? 'visibility' : 'visibility_off'
                       }}</mat-icon>
                     </button>
-                    <mat-icon
-                      class="object-icon"
-                      [matTooltip]="
-                        (frame.kind === 'canvas'
-                          ? 'canvas.frames.kindCanvas'
-                          : 'canvas.frames.kindCrop'
-                        ) | transloco
-                      "
-                      >{{
-                        frame.kind === 'canvas' ? 'crop_din' : 'crop'
-                      }}</mat-icon
-                    >
-                    <span class="layer-name" data-testid="frame-name">{{
-                      frame.name
-                    }}</span>
-                    <span class="frame-dims"
-                      >{{ frame.width }}×{{ frame.height }}</span
-                    >
+                    <button
+                      type="button"
+                      class="row-select"
+                      [attr.aria-pressed]="frame.id === selectedFrameId()"
+                      (click)="onSelectFrame(frame.id)">
+                      <mat-icon
+                        class="object-icon"
+                        [matTooltip]="
+                          (frame.kind === 'canvas'
+                            ? 'canvas.frames.kindCanvas'
+                            : 'canvas.frames.kindCrop'
+                          ) | transloco
+                        "
+                        >{{
+                          frame.kind === 'canvas' ? 'crop_din' : 'crop'
+                        }}</mat-icon
+                      >
+                      <span class="layer-name" data-testid="frame-name">{{
+                        frame.name
+                      }}</span>
+                      <span class="frame-dims"
+                        >{{ frame.width }}×{{ frame.height }}</span
+                      >
+                    </button>
                     <button
                       mat-icon-button
                       class="layer-action"
