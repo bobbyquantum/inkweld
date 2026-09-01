@@ -864,7 +864,10 @@ test.describe('Canvas Tab', () => {
       await expect(page.getByTestId('canvas-sidebar')).toBeVisible();
       await expect(page.getByTestId('sidebar-scrim')).toBeVisible();
 
-      await page.getByTestId('sidebar-scrim').click();
+      // The drawer covers the left 300px; tap the exposed stage side.
+      await page
+        .getByTestId('sidebar-scrim')
+        .click({ position: { x: 370, y: 400 } });
       await expect(page.getByTestId('canvas-sidebar')).toHaveCount(0);
     });
   });
