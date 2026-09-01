@@ -164,17 +164,15 @@ test.describe('Error Handling and Edge Cases', () => {
       await page.getByTestId('username-input').fill(uniqueUsername);
       await page.keyboard.press('Tab'); // Trigger blur and Angular updateOn: blur
 
-      // Wait for availability check to complete using UI signal
-      await expect(
-        page.locator('mat-icon:has-text("check_circle")')
-      ).toBeVisible();
-
       await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
       await page
         .getByTestId('confirm-password-input')
         .fill(TEST_PASSWORDS.VALID);
 
-      // Wait for button to be enabled before attempting to click
+      // The register button is gated on form validity, not on the username
+      // availability lookup, so this is the real precondition to submitting.
+      // Waiting on the availability icon instead is flaky: the lookup resolves
+      // to 'unknown' on any HTTP error, which renders no icon at all.
       const registerButton = page.locator(
         'mat-dialog-container [data-testid="register-button"]'
       );
@@ -226,21 +224,19 @@ test.describe('Error Handling and Edge Cases', () => {
       await page.getByTestId('username-input').fill(uniqueUsername);
       await page.keyboard.press('Tab');
 
-      // Wait for username check
-      await expect(
-        page.locator('mat-icon:has-text("check_circle")')
-      ).toBeVisible();
-
       await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
       await page
         .getByTestId('confirm-password-input')
         .fill(TEST_PASSWORDS.VALID);
       await page.keyboard.press('Tab');
 
-      // Click submit button once (button disables after first click)
+      // Click submit button once (button disables after first click). Gate on
+      // the button itself rather than the username availability icon, which
+      // never renders when the lookup resolves to 'unknown' on an HTTP error.
       const button = page.locator(
         'mat-dialog-container [data-testid="register-button"]'
       );
+      await expect(button).toBeEnabled();
       await button.click();
 
       // Dialog should have closed after successful registration

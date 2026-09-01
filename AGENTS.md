@@ -387,6 +387,33 @@ Passkeys use the W3C WebAuthn API for passwordless, discoverable-credential (use
    → email with `/recover-passkey/redeem?token=<raw>` link
    → `POST /start` + `POST /finish` enrol a NEW passkey (no session issued; existing passkeys untouched)
 
+### Admin Branding & Custom HTML Injection
+
+Inkweld sets only strictly-necessary cookies, so it ships **no consent banner**
+and never needs one by default. Instead, admins can bring their own compliance
+tooling via `general`-category config keys (editable in the admin Settings page):
+
+- `PRIVACY_POLICY_URL` / `TERMS_OF_SERVICE_URL` — exposed anonymously through
+  `GET /api/v1/config/features` (`privacyPolicyUrl`, `termsUrl`) and rendered by
+  `LegalLinksComponent` in the login/registration dialogs when set.
+- `CUSTOM_HEAD_HTML` / `CUSTOM_BODY_HTML` — raw HTML injected at serve time into
+  the `<!-- INKWELD_HEAD_EXTRA -->` / `<!-- INKWELD_BODY_EXTRA -->` markers in
+  the built `index.html` (`injectCustomHtml()` in `backend/src/utils/spa-utils.ts`,
+  wired in `bun-app.ts`'s external + embedded SPA handlers, 5s cache). Values are
+  deliberately **not sanitized** — that is the feature; scripts placed there run
+  on every page load. They are only exposed in the features payload to the
+  frontend at serve time and are absent from the JSON API.
+
+**Gotchas:**
+- The Angular API client is NOT regenerated for the two link fields (regeneration
+  needs Java). `SystemConfigService` declares a local `BrandingLinks` extension;
+  delete it if the generated `SystemFeatures` model ever gains those fields.
+- Custom HTML must never bypass substitution: `index.html` requests always go
+  through `respondWithInjectedIndex()`, even when a pre-compressed `.br` variant
+  exists. Keep any new serve path consistent with this.
+- The `$&`-style `String.replace` pattern pitfall is handled in
+  `injectCustomHtml` (function replacements); keep it that way.
+
 ### Template Editor (Unified Schema Designer)
 
 Element schemas ("templates") are edited through the **unified interactive schema

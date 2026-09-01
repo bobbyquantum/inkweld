@@ -848,4 +848,29 @@ describe('SystemConfigService', () => {
       );
     });
   });
+
+  describe('branding links', () => {
+    it('exposes privacy policy and terms URLs when the server sends them', () => {
+      (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
+        of({
+          ...mockSystemFeatures,
+          // Extra fields ride along at runtime even though the generated
+          // model does not declare them yet (see BrandingLinks in the service)
+          privacyPolicyUrl: 'https://example.com/privacy',
+          termsUrl: 'https://example.com/terms',
+        })
+      );
+      service.refreshSystemFeatures();
+
+      expect(service.privacyPolicyUrl()).toBe('https://example.com/privacy');
+      expect(service.termsUrl()).toBe('https://example.com/terms');
+    });
+
+    it('leaves branding link signals undefined when not configured', () => {
+      service.refreshSystemFeatures();
+
+      expect(service.privacyPolicyUrl()).toBeUndefined();
+      expect(service.termsUrl()).toBeUndefined();
+    });
+  });
 });

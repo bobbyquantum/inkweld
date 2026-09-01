@@ -77,6 +77,9 @@ describe('LoginDialogComponent', () => {
       isPasswordLoginEnabled: signal(true).asReadonly(),
       isEmailRecoveryEnabled: signal(false).asReadonly(),
       isPasskeysEnabled: signal(true).asReadonly(),
+      // Legal links unset by default — the dialog renders no policy links
+      privacyPolicyUrl: signal(undefined).asReadonly(),
+      termsUrl: signal(undefined).asReadonly(),
     };
 
     await TestBed.configureTestingModule({

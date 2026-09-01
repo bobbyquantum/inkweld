@@ -551,6 +551,46 @@ export const CONFIG_KEYS = {
     envVar: 'SITE_URL',
     type: 'string' as const,
   },
+
+  // Legal / compliance links. Shown in the login and registration dialogs
+  // when set. Inkweld itself sets only strictly-necessary cookies, so no
+  // consent banner is required by default — but operators who enable third
+  // party tracking via CUSTOM_*_HTML must link their own policy here.
+  PRIVACY_POLICY_URL: {
+    category: 'general' as ConfigCategory,
+    description: 'URL of the privacy policy shown in login/registration dialogs',
+    encrypted: false,
+    envVar: 'PRIVACY_POLICY_URL',
+    type: 'string' as const,
+  },
+  TERMS_OF_SERVICE_URL: {
+    category: 'general' as ConfigCategory,
+    description: 'URL of the terms of service shown in login/registration dialogs',
+    encrypted: false,
+    envVar: 'TERMS_OF_SERVICE_URL',
+    type: 'string' as const,
+  },
+
+  // Custom HTML injection slots. Raw HTML injected into every served page —
+  // NOT sanitized by design (that is the feature). Admins can add analytics,
+  // consent-manager scripts, verification meta tags, etc. Only expose this
+  // trust boundary to trusted admins (requireAdmin already gates writes).
+  CUSTOM_HEAD_HTML: {
+    category: 'general' as ConfigCategory,
+    description:
+      'Raw HTML injected into the <head> of every served page (analytics, consent manager, meta tags). Injected verbatim — only safe values from trusted admins.',
+    encrypted: false,
+    envVar: 'CUSTOM_HEAD_HTML',
+    type: 'string' as const,
+  },
+  CUSTOM_BODY_HTML: {
+    category: 'general' as ConfigCategory,
+    description:
+      'Raw HTML injected at the end of <body> of every served page (tracking pixels, chat widgets). Injected verbatim — only safe values from trusted admins.',
+    encrypted: false,
+    envVar: 'CUSTOM_BODY_HTML',
+    type: 'string' as const,
+  },
 } as const;
 
 export type ConfigKey = keyof typeof CONFIG_KEYS;

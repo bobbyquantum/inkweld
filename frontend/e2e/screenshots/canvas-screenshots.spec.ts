@@ -88,6 +88,25 @@ test.describe('Canvas Tab Screenshots', () => {
     if (box) {
       const { x: cx, y: cy, width: cw, height: ch } = box;
 
+      const objectItems = page
+        .getByTestId('canvas-sidebar')
+        .locator('.object-item');
+      await expect(objectItems).toHaveCount(0);
+
+      // Each committed object renders one .object-item row in the sidebar.
+      // A drag that ends on empty stage also triggers the tool's click
+      // placement (e.g. an ellipse drag whose corner is off-shape), so
+      // synchronize on "at least one more object" per drag rather than an
+      // exact count.
+      let committedObjects = 0;
+      const waitForCommit = async (): Promise<void> => {
+        const before = committedObjects;
+        await expect
+          .poll(async () => objectItems.count())
+          .toBeGreaterThan(before);
+        committedObjects = await objectItems.count();
+      };
+
       /** Drag from (sx,sy) to (ex,ey) in canvas-relative coords to draw a shape */
       const dragShape = async (
         sx: number,
@@ -99,14 +118,23 @@ test.describe('Canvas Tab Screenshots', () => {
         await page.mouse.down();
         await page.mouse.move(cx + ex, cy + ey, { steps: 8 });
         await page.mouse.up();
-        await page.waitForTimeout(80);
+        await waitForCommit();
       };
 
       const toolbar = page.getByTestId('canvas-toolbar');
 
+      // The Shape tool opens a mat-menu; drawing must not start until the
+      // menu overlay is fully gone or the pointer events land on the
+      // overlay instead of the stage.
+      const selectShapeTool = async (shapeTestId: string): Promise<void> => {
+        await toolbar.getByTestId('shape-tool').click();
+        const menuPanel = page.locator('.mat-mdc-menu-panel');
+        await menuPanel.getByTestId(shapeTestId).click();
+        await expect(menuPanel).toHaveCount(0);
+      };
+
       // ── Rectangles ───────────────────────────────────────────────────────
-      await toolbar.getByTestId('shape-tool').click();
-      await page.getByTestId('shape-rect').click();
+      await selectShapeTool('shape-rect');
 
       // Three rectangles at different positions / sizes
       await dragShape(cw * 0.08, ch * 0.12, cw * 0.36, ch * 0.44);
@@ -114,25 +142,28 @@ test.describe('Canvas Tab Screenshots', () => {
       await dragShape(cw * 0.22, ch * 0.52, cw * 0.58, ch * 0.76);
 
       // ── Ellipse ──────────────────────────────────────────────────────────
-      await toolbar.getByTestId('shape-tool').click();
-      await page.getByTestId('shape-ellipse').click();
+      await selectShapeTool('shape-ellipse');
 
       await dragShape(cw * 0.62, ch * 0.52, cw * 0.88, ch * 0.8);
 
       // ── Line ─────────────────────────────────────────────────────────────
-      await toolbar.getByTestId('line-tool').click();
+      const lineTool = toolbar.getByTestId('line-tool');
+      await lineTool.click();
+      await expect(lineTool).toHaveClass(/active/);
       await page.mouse.move(cx + cw * 0.08, cy + ch * 0.8);
       await page.mouse.down();
       await page.mouse.move(cx + cw * 0.6, cy + ch * 0.88, { steps: 10 });
       await page.mouse.up();
-      await page.waitForTimeout(80);
+      await waitForCommit();
 
-      // Second line
-      await page.mouse.move(cx + cw * 0.36, cy + ch * 0.44);
+      // Second line — must start on EMPTY stage: a mousedown over an
+      // existing shape targets that shape (no draw starts), so keep both
+      // endpoints in the gap between the rectangles.
+      await page.mouse.move(cx + cw * 0.38, cy + ch * 0.46);
       await page.mouse.down();
-      await page.mouse.move(cx + cw * 0.44, cy + ch * 0.4, { steps: 10 });
+      await page.mouse.move(cx + cw * 0.46, cy + ch * 0.42, { steps: 10 });
       await page.mouse.up();
-      await page.waitForTimeout(80);
+      await waitForCommit();
 
       // Switch back to select tool so no ghost tool state lingers
       await toolbar.getByTestId('select-tool').click();

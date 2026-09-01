@@ -9,7 +9,8 @@
     "expandSidebar": "Expand Sidebar",
     "collapseSidebar": "Collapse Sidebar",
     "searchInProject": "Search in Project (Ctrl+Shift+F)",
-    "searchInProjectAria": "Search in Project"
+    "searchInProjectAria": "Search in Project",
+    "browseElements": "Browse Documents"
   },
   "tree": {
     "home": "Home",

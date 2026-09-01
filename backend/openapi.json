@@ -1357,6 +1357,16 @@
             "type": "boolean",
             "example": true,
             "description": "Whether MCP (Model Context Protocol) access is enabled. The AI kill switch takes precedence: when the kill switch is on, MCP is disabled regardless of this flag."
+          },
+          "privacyPolicyUrl": {
+            "type": "string",
+            "example": "https://example.com/privacy",
+            "description": "URL of the instance privacy policy, if configured by an admin. Absent when unset."
+          },
+          "termsUrl": {
+            "type": "string",
+            "example": "https://example.com/terms",
+            "description": "URL of the instance terms of service, if configured by an admin. Absent when unset."
           }
         },
         "required": [

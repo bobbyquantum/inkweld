@@ -21,6 +21,7 @@ import {
   findEmbeddedFile,
   guessMimeType,
   buildAssetHeaders,
+  injectCustomHtml,
 } from './utils/spa-utils';
 import {
   bunSqliteDatabaseMiddleware,
@@ -28,6 +29,7 @@ import {
 } from './middleware/database.bun-sqlite.middleware';
 import { setupBunDatabase, getBunDatabase } from './db/bun-sqlite';
 import { passkeyService } from './services/passkey.service';
+import { configService } from './services/config.service';
 
 // Import common route registration + specialized routes
 import { registerCommonRoutes } from './config/routes';
@@ -128,6 +130,62 @@ if (!config.serveFrontend) {
 }
 
 const SPA_BYPASS_PREFIXES = ['/api', '/health', '/lint', '/image', '/mcp'];
+
+// ─── Admin custom HTML injection ─────────────────────────────────────────────
+// The CUSTOM_HEAD_HTML / CUSTOM_BODY_HTML config values are substituted into
+// index.html at serve time. Values are cached briefly so normal page loads do
+// not hit SQLite on every request; admin edits appear within TTL seconds.
+
+const CUSTOM_HTML_CACHE_TTL_MS = 5_000;
+let customHtmlCache: { head: string; body: string; fetchedAt: number } | null = null;
+
+type CustomHtml = { head: string; body: string };
+
+async function getCustomHtml(db: BunSqliteAppContext['Variables']['db']): Promise<CustomHtml> {
+  const now = Date.now();
+  if (customHtmlCache && now - customHtmlCache.fetchedAt < CUSTOM_HTML_CACHE_TTL_MS) {
+    return { head: customHtmlCache.head, body: customHtmlCache.body };
+  }
+
+  const [headValue, bodyValue] = await Promise.all([
+    configService.get(db, 'CUSTOM_HEAD_HTML'),
+    configService.get(db, 'CUSTOM_BODY_HTML'),
+  ]);
+
+  const fetched: CustomHtml & { fetchedAt: number } = {
+    head: headValue.value || '',
+    body: bodyValue.value || '',
+    fetchedAt: now,
+  };
+  customHtmlCache = fetched;
+  return { head: fetched.head, body: fetched.body };
+}
+
+/**
+ * Serve index.html with the admin custom-HTML markers substituted. On any
+ * failure reading config we fall back to the un-injected document — a broken
+ * snippet must never take down the whole app shell.
+ */
+async function respondWithInjectedIndex(
+  html: string,
+  db: BunSqliteAppContext['Variables']['db']
+): Promise<Response> {
+  let content = html;
+  try {
+    const { head, body } = await getCustomHtml(db);
+    content = injectCustomHtml(html, head, body);
+  } catch (err) {
+    logger.warn('SPA', 'Failed to load custom HTML config, serving without injection', {
+      err: String(err),
+    });
+  }
+  return new Response(content, {
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-cache',
+    },
+  });
+}
 
 // Global middleware
 app.use('*', requestLogger());
@@ -384,7 +442,10 @@ export default serverConfig;
 
 export { app };
 
-function createSpaHandler(root: string, bypassPrefixes: string[]): MiddlewareHandler {
+function createSpaHandler(
+  root: string,
+  bypassPrefixes: string[]
+): MiddlewareHandler<BunSqliteAppContext> {
   const indexFilePath = join(root, 'index.html');
   return async (c, next) => {
     if (c.req.method !== 'GET') {
@@ -396,19 +457,19 @@ function createSpaHandler(root: string, bypassPrefixes: string[]): MiddlewareHan
       return next();
     }
 
-    const assetResponse = await serveSpaAsset(root, pathname, c.req.header('Accept-Encoding'));
+    const db = c.get('db');
+
+    // index.html (direct hit or SPA fallback) always goes through the
+    // injection path — this must happen before the brotli lookup because
+    // pre-compressed bytes cannot have snippets spliced into them.
+    const assetResponse = await serveSpaAsset(root, pathname, c.req.header('Accept-Encoding'), db);
     if (assetResponse) {
       return assetResponse;
     }
 
     const indexFile = Bun.file(indexFilePath);
     if (await indexFile.exists()) {
-      return new Response(indexFile, {
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'no-cache',
-        },
-      });
+      return respondWithInjectedIndex(await indexFile.text(), db);
     }
 
     return next();
@@ -418,9 +479,19 @@ function createSpaHandler(root: string, bypassPrefixes: string[]): MiddlewareHan
 async function serveSpaAsset(
   root: string,
   pathname: string,
-  acceptEncoding?: string
+  acceptEncoding: string | undefined,
+  db: BunSqliteAppContext['Variables']['db']
 ): Promise<Response | null> {
   const relativePath = sanitizeSpaPath(pathname);
+
+  if (relativePath === 'index.html') {
+    const file = Bun.file(join(root, relativePath));
+    if (!(await file.exists())) {
+      return null;
+    }
+    return respondWithInjectedIndex(await file.text(), db);
+  }
+
   const filePath = join(root, relativePath);
 
   // Check for pre-compressed Brotli asset if client supports it
@@ -461,7 +532,7 @@ async function serveSpaAsset(
 function createEmbeddedSpaHandler(
   embeddedFiles: Map<string, string | Blob>,
   bypassPrefixes: string[]
-): MiddlewareHandler {
+): MiddlewareHandler<BunSqliteAppContext> {
   // Find index.html in embedded files
   logger.debug('SPA', `Searching for index.html in ${embeddedFiles.size} embedded files`);
 
@@ -482,6 +553,16 @@ function createEmbeddedSpaHandler(
     return async (c, next) => next();
   }
 
+  /** Resolve the embedded index.html document to its text content. */
+  async function readEmbeddedIndexText(): Promise<string> {
+    if (typeof indexFile === 'string') {
+      // A string here is a filesystem path (see frontend-assets.ts), not raw HTML
+      const file = Bun.file(indexFile);
+      return await file.text();
+    }
+    return await indexFile.text();
+  }
+
   return async (c, next) => {
     if (c.req.method !== 'GET') {
       return next();
@@ -490,6 +571,18 @@ function createEmbeddedSpaHandler(
     const pathname = c.req.path;
     if (shouldBypassSpa(pathname, bypassPrefixes)) {
       return next();
+    }
+
+    const db = c.get('db');
+
+    // Direct index.html requests must go through the injection path before
+    // the asset lookup finds the un-injected embedded copy.
+    if (sanitizeSpaPath(pathname) === 'index.html') {
+      try {
+        return await respondWithInjectedIndex(await readEmbeddedIndexText(), db);
+      } catch {
+        // Fall through to the normal asset lookup below.
+      }
     }
 
     // Try to serve embedded asset
@@ -503,13 +596,11 @@ function createEmbeddedSpaHandler(
     }
 
     // Fall back to index.html for SPA routes
-    const content = typeof indexFile === 'string' ? Bun.file(indexFile) : indexFile;
-    return new Response(content, {
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'no-cache',
-      },
-    });
+    try {
+      return await respondWithInjectedIndex(await readEmbeddedIndexText(), db);
+    } catch {
+      return next();
+    }
   };
 }
 

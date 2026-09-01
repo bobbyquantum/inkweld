@@ -67,6 +67,178 @@ export async function waitForIndexedDBPersisted(
 }
 
 /**
+ * Wait for a value to be persisted in the project elements document (the
+ * Yjs doc that carries the element tree, publish plans, relationships, tags,
+ * etc.).
+ *
+ * The elements doc is stored by y-indexeddb under
+ * `{storagePrefix}{username}:{slug}:elements`, where the prefix depends on
+ * the active app configuration (`local:` in local mode, `srv:{configId}:` in
+ * server mode) — note there is no trailing slash locally (the trailing-slash
+ * form from AGENTS.md is a server-side WebSocket room name only). The
+ * database is created when the project's sync provider first connects, so
+ * this helper resolves the exact database name from the live IndexedDB list,
+ * polling until it appears. y-indexeddb writes every Yjs update to its
+ * `updates` store immediately, so byte presence is a true observable of
+ * persistence.
+ *
+ * @param page - Playwright page
+ * @param username - Project owner username
+ * @param slug - Project slug
+ * @param expected - UTF-8 substrings that must appear in the persisted bytes
+ */
+export async function waitForElementsDocPersisted(
+  page: Page,
+  username: string,
+  slug: string,
+  expected: string[]
+): Promise<void> {
+  const suffix = `:${username}:${slug}:elements`;
+  const needleBytes = expected;
+  try {
+    await expect
+      .poll(
+        async () => {
+          const result = await page.evaluate(
+            async ({ expectedSuffix, needles, username, slug }) => {
+              // Candidate databases: whatever IndexedDB currently lists plus
+              // the deterministic name derived from the app's own prefix rule
+              // (config id 'local' → 'local:', otherwise 'srv:{configId}:'),
+              // in both the plain and trailing-slash spellings.
+              const configRaw = localStorage.getItem('inkweld-app-config');
+              let prefix = 'srv:server-1:';
+              try {
+                const config = configRaw
+                  ? (JSON.parse(configRaw) as {
+                      activeConfigId?: string;
+                    })
+                  : null;
+                const id = config?.activeConfigId;
+                if (id) prefix = id === 'local' ? 'local:' : `srv:${id}:`;
+              } catch {
+                // keep default prefix
+              }
+              const deterministic = [
+                `${prefix}${username}:${slug}:elements`,
+                `${prefix}${username}:${slug}:elements/`,
+                `${username}:${slug}:elements`,
+                `${username}:${slug}:elements/`,
+              ];
+              const listed =
+                typeof indexedDB.databases === 'function'
+                  ? (await indexedDB.databases())
+                      .map(db => db.name)
+                      .filter(
+                        (n): n is string => !!n && n.endsWith(expectedSuffix)
+                      )
+                  : [];
+              const candidates = [...new Set([...listed, ...deterministic])];
+
+              const text = new TextDecoder('utf-8');
+              for (const name of candidates) {
+                try {
+                  const open = indexedDB.open(name);
+                  const db = await new Promise<IDBDatabase>(
+                    (resolve, reject) => {
+                      open.onsuccess = () => resolve(open.result);
+                      open.onerror = () =>
+                        reject(open.error ?? new Error('open failed'));
+                    }
+                  );
+                  if (!db.objectStoreNames.contains('updates')) {
+                    db.close();
+                    continue;
+                  }
+                  const store = db
+                    .transaction('updates', 'readonly')
+                    .objectStore('updates');
+                  const records = await new Promise<Uint8Array[]>(
+                    (resolve, reject) => {
+                      const req = store.getAll();
+                      req.onsuccess = () => resolve(req.result as Uint8Array[]);
+                      req.onerror = () =>
+                        reject(req.error ?? new Error('get failed'));
+                    }
+                  );
+                  db.close();
+                  const all = text.decode(
+                    records.reduce((acc, r) => {
+                      const merged = new Uint8Array(acc.length + r.length);
+                      merged.set(acc);
+                      merged.set(r, acc.length);
+                      return merged;
+                    }, new Uint8Array(0))
+                  );
+                  if (needles.every(n => all.includes(n))) return name;
+                } catch {
+                  // Missing DB / store — try the next candidate.
+                }
+              }
+              return null;
+            },
+            { expectedSuffix: suffix, needles: needleBytes, username, slug }
+          );
+          return result;
+        },
+        { timeout: 45_000 }
+      )
+      .not.toBeNull();
+  } catch (error) {
+    // Surface the actual IndexedDB contents so a naming mismatch is
+    // diagnosable from the CI log alone.
+    const dbs = await page
+      .evaluate(async () =>
+        typeof indexedDB.databases === 'function'
+          ? (await indexedDB.databases()).map(db => db.name)
+          : 'indexedDB.databases unavailable'
+      )
+      .catch(() => 'page evaluate failed');
+    const detail = typeof dbs === 'string' ? dbs : JSON.stringify(dbs);
+    throw new Error(
+      `elements doc "${suffix}" never contained ${JSON.stringify(
+        needleBytes
+      )}; IndexedDB contains: ${detail}`,
+      { cause: error }
+    );
+  }
+}
+
+/**
+ * Wait until the project elements document has no more pending persisted
+ * updates (the update count stops changing). Use this when the change to
+ * await has no greppable byte signature (e.g. numeric or boolean edits that
+ * are encoded as binary, not text) but every edit rewrites the document as
+ * a single update, so a settled count proves the last edit was flushed.
+ *
+ * @param page - Playwright page
+ * @param username - Project owner username
+ * @param slug - Project slug
+ */
+export async function waitForElementsDocSettled(
+  page: Page,
+  username: string,
+  slug: string
+): Promise<void> {
+  const suffix = `:${username}:${slug}:elements`;
+  let dbName: string | null = null;
+  await expect
+    .poll(async () => {
+      dbName = await page.evaluate(async expectedSuffix => {
+        if (typeof indexedDB.databases !== 'function') return null;
+        const dbs = await indexedDB.databases();
+        const matches = dbs.flatMap(db =>
+          db.name && db.name.endsWith(expectedSuffix) ? [db.name] : []
+        );
+        const withSlash = matches.find(n => n.endsWith(':elements/'));
+        return withSlash ?? matches[0] ?? null;
+      }, suffix);
+      return dbName;
+    })
+    .not.toBeNull();
+  await waitForIndexedDBStable(page, dbName!);
+}
+
+/**
  * Return the number of `updates` records currently stored for a y-indexeddb
  * database. y-indexeddb appends one record per applied update, so this count
  * grows whenever a Yjs change is persisted.

@@ -7,7 +7,6 @@ import {
   input,
   ViewChild,
 } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
 import {
   type MatMenu,
   MatMenuModule,
@@ -21,7 +20,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { TreeNodeIconComponent } from '../project-tree/components/tree-node-icon/tree-node-icon.component';
 
 /**
- * A single row in the breadcrumb flyout menu.
+ * A single row in the element tree menu.
  *
  * Folder rows open a nested submenu (their children); non-folder rows
  * navigate to that element on click.
@@ -34,43 +33,55 @@ interface MenuRow {
 }
 
 /**
- * Recursive Material menu used by {@link DocumentBreadcrumbsComponent} for the
- * "click a parent to jump elsewhere" flyout.
+ * Recursive Material menu that lets you browse the project's element tree as
+ * a flyout and open a document from it.
  *
  * The component renders one `<mat-menu>` whose items are the direct children
  * of `parentId` (or all top-level elements when `parentId` is null). Folder
  * rows declare a nested `[matMenuTriggerFor]` pointing at another instance of
- * this same component, giving arbitrarily deep submenus. Non-folder rows call
+ * this same component, giving arbitrarily deep submenus. Folders are only
+ * ever expanded, never opened — non-folder rows call
  * {@link ElementNavigationService.openElement} on click.
  *
- * `currentBranchId` is the id of the breadcrumb segment immediately after the
- * one that opened this menu — i.e. the child along the path to the currently
- * open element. It's used to highlight "where you are" inside the flyout.
+ * Menu content lives in a CDK overlay, so the flyout always floats above page
+ * content regardless of where the trigger sits.
+ *
+ * Attach it to any trigger by exporting the instance and binding to `.menu`:
+ *
+ * ```html
+ * <button [matMenuTriggerFor]="browse.menu"><mat-icon>folder</mat-icon></button>
+ * <app-element-tree-menu #browse="appElementTreeMenu" [parentId]="null" />
+ * ```
+ *
+ * Current consumers are the document breadcrumb trail (one menu per clickable
+ * segment) and the collapsed project sidebar's browse button.
+ *
+ * `currentBranchId` is optional and highlights "where you are" inside the
+ * flyout: pass the id of the child along the path to the currently-open
+ * element, and the highlight follows the user down the tree.
  *
  * The recursion is bounded by the actual tree structure; a defensive
  * `visited` set is threaded through to guard against malformed cyclic
  * `parentId` chains, though `ElementTreeService` already prevents those.
  */
 @Component({
-  selector: 'app-breadcrumb-menu',
-  exportAs: 'appBreadcrumbMenu',
+  selector: 'app-element-tree-menu',
+  exportAs: 'appElementTreeMenu',
   imports: [
-    MatIconModule,
     MatMenuModule,
     TreeNodeIconComponent,
-    forwardRef(() => BreadcrumbMenuComponent),
+    forwardRef(() => ElementTreeMenuComponent),
     TranslocoModule,
   ],
   template: `
-    <mat-menu #menu="matMenu" class="breadcrumb-flyout-menu">
+    <mat-menu #menu="matMenu" class="element-tree-menu-panel">
       @for (row of rows(); track row.element.id) {
         @if (row.isFolder) {
           <button
             mat-menu-item
             [matMenuTriggerFor]="childMenu.menu"
             [class.current-branch]="row.isCurrentBranch"
-            [attr.data-testid]="'breadcrumb-flyout-row-' + row.element.id"
-            [attr.aria-haspopup]="true">
+            [attr.data-testid]="'element-tree-menu-row-' + row.element.id">
             <app-tree-node-icon
               [isExpandable]="true"
               [isExpanded]="false"
@@ -78,12 +89,9 @@ interface MenuRow {
               [schemaId]="row.element.schemaId"
               [metadata]="row.element.metadata" />
             <span>{{ row.element.name || ('untitled' | transloco) }}</span>
-            <mat-icon class="breadcrumb-flyout-chevron" matMenuIcon>
-              chevron_right
-            </mat-icon>
           </button>
-          <app-breadcrumb-menu
-            #childMenu="appBreadcrumbMenu"
+          <app-element-tree-menu
+            #childMenu="appElementTreeMenu"
             [parentId]="row.element.id"
             [currentBranchId]="nextBranchIdFor(row.element.id)"
             [visited]="visitedWithCurrentParent()" />
@@ -92,7 +100,7 @@ interface MenuRow {
             mat-menu-item
             (click)="openElement(row.element)"
             [class.current-branch]="row.isCurrentBranch"
-            [attr.data-testid]="'breadcrumb-flyout-row-' + row.element.id">
+            [attr.data-testid]="'element-tree-menu-row-' + row.element.id">
             <app-tree-node-icon
               [isExpandable]="false"
               [type]="row.element.type"
@@ -102,7 +110,7 @@ interface MenuRow {
           </button>
         }
       } @empty {
-        <div class="breadcrumb-flyout-empty" mat-menu-item disabled>
+        <div class="element-tree-menu-empty" mat-menu-item disabled>
           <app-tree-node-icon
             [isExpandable]="true"
             [isExpanded]="false"
@@ -113,9 +121,9 @@ interface MenuRow {
     </mat-menu>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styleUrl: './breadcrumb-menu.component.scss',
+  styleUrl: './element-tree-menu.component.scss',
 })
-export class BreadcrumbMenuComponent {
+export class ElementTreeMenuComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly navigation = inject(ElementNavigationService);
 
@@ -128,7 +136,8 @@ export class BreadcrumbMenuComponent {
   /**
    * Element id of the segment along the path to the currently-open element
    * at this menu's depth. Used to mark the "you are here" row. May be null
-   * when the menu isn't on the current branch.
+   * when the menu isn't on the current branch, or when the consumer has no
+   * notion of a current branch at all.
    */
   readonly currentBranchId = input<string | null>(null);
 
@@ -142,9 +151,9 @@ export class BreadcrumbMenuComponent {
   @ViewChild('menu', { static: true }) menuRef?: MatMenu;
 
   /**
-   * Public accessor used by parent menus to bind `[matMenuTriggerFor]` to
-   * this component's inner `MatMenu` panel via the template variable
-   * `#childMenu="appBreadcrumbMenu"` -> `childMenu.menu`.
+   * Public accessor used by triggers (and parent menus) to bind
+   * `[matMenuTriggerFor]` to this component's inner `MatMenu` panel via the
+   * template variable `#childMenu="appElementTreeMenu"` -> `childMenu.menu`.
    */
   get menu(): MatMenuPanel | null {
     return this.menuRef ?? null;

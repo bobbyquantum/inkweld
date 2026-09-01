@@ -1,0 +1,25 @@
+@if (privacyPolicyUrl() || termsUrl()) {
+  <div class="legal-links" data-testid="legal-links">
+    @if (privacyPolicyUrl()) {
+      <a
+        [href]="privacyPolicyUrl()"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-testid="legal-privacy-link"
+        >{{ 'auth.legal.privacyPolicy' | transloco }}</a
+      >
+    }
+    @if (privacyPolicyUrl() && termsUrl()) {
+      <span class="legal-separator">·</span>
+    }
+    @if (termsUrl()) {
+      <a
+        [href]="termsUrl()"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-testid="legal-terms-link"
+        >{{ 'auth.legal.termsOfService' | transloco }}</a
+      >
+    }
+  </div>
+}

@@ -40,6 +40,10 @@ function flushAllConfigRequests(
     EMAIL_RECOVERY_ENABLED: 'false',
     LEGACY_MCP_ENABLED: 'false',
     MCP_ENABLED: 'true',
+    PRIVACY_POLICY_URL: '',
+    TERMS_OF_SERVICE_URL: '',
+    CUSTOM_HEAD_HTML: '',
+    CUSTOM_BODY_HTML: '',
   };
   const values = { ...defaults, ...overrides };
 
@@ -884,6 +888,88 @@ describe('AdminSettingsComponent', () => {
       expect(component.error()).toBeInstanceOf(Error);
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('branding & custom HTML settings', () => {
+    it('loads legal link and custom HTML values on init', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, {
+        PRIVACY_POLICY_URL: 'https://example.com/privacy',
+        TERMS_OF_SERVICE_URL: 'https://example.com/terms',
+        CUSTOM_HEAD_HTML: '<meta name="x" content="y">',
+        CUSTOM_BODY_HTML:
+          '<script src="https://analytics.example.com"></script>',
+      });
+      await flushMicrotasks();
+
+      expect(component.privacyPolicyUrl()).toBe('https://example.com/privacy');
+      expect(component.termsUrl()).toBe('https://example.com/terms');
+      expect(component.customHeadHtml()).toBe('<meta name="x" content="y">');
+      expect(component.customBodyHtml()).toBe(
+        '<script src="https://analytics.example.com"></script>'
+      );
+    });
+
+    it('saves privacy policy URL trimmed and updates the signal', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+
+      const savePromise = component.savePrivacyPolicyUrl(
+        '  https://example.com/privacy  '
+      );
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/PRIVACY_POLICY_URL'
+      );
+      expect(putReq.request.method).toBe('PUT');
+      expect(putReq.request.body).toEqual({
+        value: 'https://example.com/privacy',
+      });
+      putReq.flush(null);
+
+      await savePromise;
+      expect(component.privacyPolicyUrl()).toBe('https://example.com/privacy');
+      expect(component.isSaving()).toBe(false);
+    });
+
+    it('does not update the custom HTML signal when the save fails', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+
+      const savePromise = component.saveCustomHtml(
+        'CUSTOM_HEAD_HTML',
+        '<meta name="a" content="b">'
+      );
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/CUSTOM_HEAD_HTML'
+      );
+      putReq.error(new ProgressEvent('error'), { status: 500 });
+
+      await savePromise;
+      expect(component.customHeadHtml()).toBe('');
+      expect(component.isSaving()).toBe(false);
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('clears a slot by saving an empty value', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { CUSTOM_BODY_HTML: '<b>old</b>' });
+      await flushMicrotasks();
+
+      const savePromise = component.saveCustomHtml('CUSTOM_BODY_HTML', '');
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/CUSTOM_BODY_HTML'
+      );
+      expect(putReq.request.body).toEqual({ value: '' });
+      putReq.flush(null);
+
+      await savePromise;
+      expect(component.customBodyHtml()).toBe('');
     });
   });
 });

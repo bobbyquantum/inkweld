@@ -67,6 +67,7 @@ describe('RegisterDialogComponent', () => {
       // Writable signal so individual tests can flip into passwordless mode
       // and re-render. Default true for existing password-flow coverage.
       isPasswordLoginEnabled: (isPasswordLoginEnabled = signal(true)),
+      // Legal links default to unset — the dialog renders no policy links
       passwordPolicy: vi.fn().mockReturnValue({
         minLength: 8,
         requireUppercase: true,
@@ -74,6 +75,8 @@ describe('RegisterDialogComponent', () => {
         requireNumber: true,
         requireSymbol: true,
       }),
+      privacyPolicyUrl: signal(undefined),
+      termsUrl: signal(undefined),
     };
 
     // PasskeyService is injected by RegisterDialogComponent so it can chain

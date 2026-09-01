@@ -14,6 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
+import { LegalLinksComponent } from '@components/legal-links/legal-links.component';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasskeyError, PasskeyService } from '@services/auth/passkey.service';
@@ -31,6 +32,7 @@ import { UserService, UserServiceError } from '@services/user/user.service';
     MatButtonModule,
     MatIconModule,
     MatDividerModule,
+    LegalLinksComponent,
     OAuthProviderListComponent,
     TranslocoModule,
   ],
