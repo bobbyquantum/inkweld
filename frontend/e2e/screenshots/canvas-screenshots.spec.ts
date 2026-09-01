@@ -78,7 +78,7 @@ test.describe('Canvas Tab Screenshots', () => {
     // Add a second layer so the sidebar looks more interesting
     await page
       .getByTestId('canvas-sidebar')
-      .getByRole('button', { name: /add layer/i })
+      .getByTestId('add-layer-button')
       .click();
 
     // ── Draw some shapes on layer 1 so the canvas looks populated ──────────────
@@ -105,8 +105,8 @@ test.describe('Canvas Tab Screenshots', () => {
       const toolbar = page.getByTestId('canvas-toolbar');
 
       // ── Rectangles ───────────────────────────────────────────────────────
-      await toolbar.getByRole('button', { name: /Shape \(S\)/i }).click();
-      await page.getByRole('menuitem', { name: /Rectangle/i }).click();
+      await toolbar.getByTestId('shape-tool').click();
+      await page.getByTestId('shape-rect').click();
 
       // Three rectangles at different positions / sizes
       await dragShape(cw * 0.08, ch * 0.12, cw * 0.36, ch * 0.44);
@@ -114,13 +114,13 @@ test.describe('Canvas Tab Screenshots', () => {
       await dragShape(cw * 0.22, ch * 0.52, cw * 0.58, ch * 0.76);
 
       // ── Ellipse ──────────────────────────────────────────────────────────
-      await toolbar.getByRole('button', { name: /Shape \(S\)/i }).click();
-      await page.getByRole('menuitem', { name: /Ellipse/i }).click();
+      await toolbar.getByTestId('shape-tool').click();
+      await page.getByTestId('shape-ellipse').click();
 
       await dragShape(cw * 0.62, ch * 0.52, cw * 0.88, ch * 0.8);
 
       // ── Line ─────────────────────────────────────────────────────────────
-      await toolbar.getByRole('button', { name: /Line \(L\)/i }).click();
+      await toolbar.getByTestId('line-tool').click();
       await page.mouse.move(cx + cw * 0.08, cy + ch * 0.8);
       await page.mouse.down();
       await page.mouse.move(cx + cw * 0.6, cy + ch * 0.88, { steps: 10 });
@@ -135,7 +135,7 @@ test.describe('Canvas Tab Screenshots', () => {
       await page.waitForTimeout(80);
 
       // Switch back to select tool so no ghost tool state lingers
-      await toolbar.getByRole('button', { name: /Select \(V\)/i }).click();
+      await toolbar.getByTestId('select-tool').click();
     }
 
     // Move mouse away to dismiss any tooltip overlay

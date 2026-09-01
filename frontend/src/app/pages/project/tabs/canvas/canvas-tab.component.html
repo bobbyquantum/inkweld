@@ -10,6 +10,7 @@
       <div class="collapsed-sidebar" data-testid="canvas-collapsed-sidebar">
         <button
           mat-icon-button
+          data-testid="sidebar-expand-button"
           [matTooltip]="'canvas.sidebar.expand' | transloco"
           [attr.aria-label]="'canvas.sidebar.expand' | transloco"
           (click)="toggleSidebar()">
@@ -19,6 +20,7 @@
         </button>
         <button
           mat-icon-button
+          data-testid="export-menu-button"
           [matMenuTriggerFor]="exportMenu"
           [matTooltip]="'canvas.sidebar.exportCanvas' | transloco"
           [attr.aria-label]="'canvas.sidebar.exportCanvas' | transloco">
@@ -36,6 +38,7 @@
           <span class="header-title">{{ elementName() }}</span>
           <button
             mat-icon-button
+            data-testid="export-menu-button"
             [matMenuTriggerFor]="exportMenu"
             [matTooltip]="'canvas.sidebar.exportCanvas' | transloco"
             [attr.aria-label]="'canvas.sidebar.exportCanvas' | transloco"
@@ -44,6 +47,7 @@
           </button>
           <button
             mat-icon-button
+            data-testid="sidebar-collapse-button"
             [matTooltip]="'canvas.sidebar.collapse' | transloco"
             [attr.aria-label]="'canvas.sidebar.collapse' | transloco"
             (click)="toggleSidebar()"
@@ -143,6 +147,7 @@
                     <button
                       mat-icon-button
                       class="layer-action"
+                      data-testid="layer-menu-button"
                       [attr.aria-label]="
                         'canvas.sidebar.moreOptions' | transloco
                       "
@@ -245,6 +250,7 @@
                   <button
                     mat-icon-button
                     class="object-action"
+                    data-testid="object-delete-button"
                     [matTooltip]="'delete' | transloco"
                     (click)="onDeleteObject(obj.id, $event)">
                     <mat-icon>delete</mat-icon>
@@ -319,6 +325,7 @@
                   <button
                     mat-icon-button
                     class="object-action"
+                    data-testid="pin-delete-button"
                     [matTooltip]="'delete' | transloco"
                     (click)="onDeleteObject(pin.id, $event)">
                     <mat-icon>delete</mat-icon>
@@ -503,6 +510,7 @@
             [attr.aria-hidden]="isOverflowed('navigation') ? 'true' : null">
             <button
               mat-icon-button
+              data-testid="select-tool"
               [class.active]="activeTool() === 'select'"
               [matTooltip]="'canvas.toolbar.select' | transloco"
               [attr.aria-label]="'canvas.toolbar.select' | transloco"
@@ -511,6 +519,7 @@
             </button>
             <button
               mat-icon-button
+              data-testid="rect-select-tool"
               [class.active]="activeTool() === 'rectSelect'"
               [matTooltip]="'canvas.toolbar.rectangleSelect' | transloco"
               [attr.aria-label]="'canvas.toolbar.rectangleSelect' | transloco"
@@ -519,6 +528,7 @@
             </button>
             <button
               mat-icon-button
+              data-testid="pan-tool"
               [class.active]="activeTool() === 'pan'"
               [matTooltip]="'canvas.toolbar.pan' | transloco"
               [attr.aria-label]="'canvas.toolbar.pan' | transloco"
@@ -539,6 +549,7 @@
             [attr.aria-hidden]="isOverflowed('creation') ? 'true' : null">
             <button
               mat-icon-button
+              data-testid="pin-tool"
               [class.active]="activeTool() === 'pin'"
               [disabled]="!hasActiveLayer()"
               [matTooltip]="'canvas.toolbar.placePin' | transloco"
@@ -548,6 +559,7 @@
             </button>
             <button
               mat-icon-button
+              data-testid="add-image-button"
               [matTooltip]="'canvas.toolbar.addImage' | transloco"
               [attr.aria-label]="'canvas.toolbar.addImage' | transloco"
               [disabled]="!hasActiveLayer()"
@@ -556,6 +568,7 @@
             </button>
             <button
               mat-icon-button
+              data-testid="text-tool"
               [class.active]="activeTool() === 'text'"
               [disabled]="!hasActiveLayer()"
               [matTooltip]="'canvas.toolbar.addText' | transloco"
@@ -577,6 +590,7 @@
             [attr.aria-hidden]="isOverflowed('drawing') ? 'true' : null">
             <button
               mat-icon-button
+              data-testid="draw-tool"
               [class.active]="activeTool() === 'draw'"
               [disabled]="!hasActiveLayer()"
               [matTooltip]="'canvas.toolbar.freehandDraw' | transloco"
@@ -598,6 +612,7 @@
             </button>
             <button
               mat-icon-button
+              data-testid="line-tool"
               [class.active]="activeTool() === 'line'"
               [disabled]="!hasActiveLayer()"
               [matTooltip]="'canvas.toolbar.line' | transloco"
@@ -607,6 +622,7 @@
             </button>
             <button
               mat-icon-button
+              data-testid="shape-tool"
               [class.active]="activeTool() === 'shape'"
               [disabled]="!hasActiveLayer()"
               [matTooltip]="'canvas.toolbar.shape' | transloco"
@@ -684,6 +700,7 @@
             </button>
             <button
               mat-icon-button
+              data-testid="edit-colors-button"
               [matTooltip]="'canvas.toolbar.editColors' | transloco"
               [attr.aria-label]="'canvas.toolbar.editColors' | transloco"
               [disabled]="!selectedObjectId()"
@@ -735,6 +752,7 @@
           [attr.aria-hidden]="isOverflowed('zoom') ? 'true' : null">
           <button
             mat-icon-button
+            data-testid="zoom-in-button"
             [matTooltip]="'canvas.toolbar.zoomIn' | transloco"
             [attr.aria-label]="'canvas.toolbar.zoomInAria' | transloco"
             (click)="onZoomIn()">
@@ -742,6 +760,7 @@
           </button>
           <button
             mat-icon-button
+            data-testid="zoom-out-button"
             [matTooltip]="'canvas.toolbar.zoomOut' | transloco"
             [attr.aria-label]="'canvas.toolbar.zoomOutAria' | transloco"
             (click)="onZoomOut()">
@@ -749,6 +768,7 @@
           </button>
           <button
             mat-icon-button
+            data-testid="fit-all-button"
             [matTooltip]="'canvas.toolbar.fitAll' | transloco"
             (click)="onFitAll()">
             <mat-icon>fit_screen</mat-icon>
@@ -813,21 +833,34 @@
 
 <!-- Canvas context menu -->
 <mat-menu #canvasContextMenu="matMenu">
-  <button mat-menu-item [disabled]="!selectedObjectId()" (click)="onCut()">
+  <button
+    mat-menu-item
+    data-testid="context-cut"
+    [disabled]="!selectedObjectId()"
+    (click)="onCut()">
     <mat-icon>content_cut</mat-icon>
     <span>{{ 'canvas.contextMenu.cut' | transloco }}</span>
   </button>
-  <button mat-menu-item [disabled]="!selectedObjectId()" (click)="onCopy()">
+  <button
+    mat-menu-item
+    data-testid="context-copy"
+    [disabled]="!selectedObjectId()"
+    (click)="onCopy()">
     <mat-icon>content_copy</mat-icon>
     <span>{{ 'canvas.contextMenu.copy' | transloco }}</span>
   </button>
-  <button mat-menu-item [disabled]="!clipboard()" (click)="onPaste()">
+  <button
+    mat-menu-item
+    data-testid="context-paste"
+    [disabled]="!clipboard()"
+    (click)="onPaste()">
     <mat-icon>content_paste</mat-icon>
     <span>{{ 'canvas.contextMenu.paste' | transloco }}</span>
   </button>
   <mat-divider></mat-divider>
   <button
     mat-menu-item
+    data-testid="context-duplicate"
     [disabled]="!selectedObjectId()"
     (click)="onDuplicateObject()">
     <mat-icon>copy_all</mat-icon>
@@ -835,6 +868,7 @@
   </button>
   <button
     mat-menu-item
+    data-testid="context-delete"
     [disabled]="!selectedObjectId()"
     (click)="onContextDelete()">
     <mat-icon>delete</mat-icon>
@@ -873,7 +907,10 @@
   }
   @if (selectedObjectId() && sortedLayers().length > 1 && !selectedPin()) {
     <mat-divider></mat-divider>
-    <button mat-menu-item [matMenuTriggerFor]="sendToLayerMenu">
+    <button
+      mat-menu-item
+      data-testid="context-send-to-layer"
+      [matMenuTriggerFor]="sendToLayerMenu">
       <mat-icon>swap_horiz</mat-icon>
       <span>{{ 'canvas.contextMenu.sendToLayer' | transloco }}</span>
     </button>
@@ -964,11 +1001,14 @@
     <mat-icon>image</mat-icon>
     <span>{{ 'canvas.export.exportPng' | transloco }}</span>
   </button>
-  <button mat-menu-item (click)="exportAsHighResPng()">
+  <button
+    mat-menu-item
+    data-testid="export-whole-png-2x"
+    (click)="exportAsHighResPng()">
     <mat-icon>high_quality</mat-icon>
     <span>{{ 'canvas.export.exportPngHighRes' | transloco }}</span>
   </button>
-  <button mat-menu-item (click)="exportAsSvg()">
+  <button mat-menu-item data-testid="export-whole-svg" (click)="exportAsSvg()">
     <mat-icon>polyline</mat-icon>
     <span>{{ 'canvas.export.exportSvg' | transloco }}</span>
   </button>
@@ -1021,11 +1061,17 @@
 <!-- Layer context menu -->
 <mat-menu #layerMenu="matMenu">
   <ng-template matMenuContent let-layerId="layerId">
-    <button mat-menu-item (click)="onRenameLayer(layerId)">
+    <button
+      mat-menu-item
+      data-testid="layer-rename"
+      (click)="onRenameLayer(layerId)">
       <mat-icon>edit</mat-icon>
       <span>{{ 'canvas.layerMenu.rename' | transloco }}</span>
     </button>
-    <button mat-menu-item (click)="onDuplicateLayer(layerId)">
+    <button
+      mat-menu-item
+      data-testid="layer-duplicate"
+      (click)="onDuplicateLayer(layerId)">
       <mat-icon>content_copy</mat-icon>
       <span>{{ 'canvas.layerMenu.duplicate' | transloco }}</span>
     </button>
@@ -1054,6 +1100,7 @@
     <mat-divider></mat-divider>
     <button
       mat-menu-item
+      data-testid="layer-delete"
       (click)="onDeleteLayer(layerId)"
       [disabled]="sortedLayers().length <= 1">
       <mat-icon>delete</mat-icon>
@@ -1320,19 +1367,31 @@
 
 <!-- Shape submenu -->
 <mat-menu #shapeMenu="matMenu">
-  <button mat-menu-item (click)="onShapeTypeChange('rect')">
+  <button
+    mat-menu-item
+    data-testid="shape-rect"
+    (click)="onShapeTypeChange('rect')">
     <mat-icon>crop_square</mat-icon>
     <span>{{ 'canvas.shapes.rectangle' | transloco }}</span>
   </button>
-  <button mat-menu-item (click)="onShapeTypeChange('ellipse')">
+  <button
+    mat-menu-item
+    data-testid="shape-ellipse"
+    (click)="onShapeTypeChange('ellipse')">
     <mat-icon>circle</mat-icon>
     <span>{{ 'canvas.shapes.ellipse' | transloco }}</span>
   </button>
-  <button mat-menu-item (click)="onShapeTypeChange('arrow')">
+  <button
+    mat-menu-item
+    data-testid="shape-arrow"
+    (click)="onShapeTypeChange('arrow')">
     <mat-icon>arrow_right_alt</mat-icon>
     <span>{{ 'canvas.shapes.arrow' | transloco }}</span>
   </button>
-  <button mat-menu-item (click)="onShapeTypeChange('line')">
+  <button
+    mat-menu-item
+    data-testid="shape-line"
+    (click)="onShapeTypeChange('line')">
     <mat-icon>horizontal_rule</mat-icon>
     <span>{{ 'canvas.shapes.line' | transloco }}</span>
   </button>
@@ -1342,15 +1401,24 @@
 <mat-menu #toolbarOverflowMenu="matMenu">
   <ng-template matMenuContent>
     @if (!viewMode() && isOverflowed('navigation')) {
-      <button mat-menu-item (click)="onToolChange('select')">
+      <button
+        mat-menu-item
+        data-testid="overflow-select-tool"
+        (click)="onToolChange('select')">
         <mat-icon>near_me</mat-icon>
         <span>{{ 'canvas.toolbar.select' | transloco }}</span>
       </button>
-      <button mat-menu-item (click)="onToolChange('rectSelect')">
+      <button
+        mat-menu-item
+        data-testid="overflow-rect-select-tool"
+        (click)="onToolChange('rectSelect')">
         <mat-icon>select_all</mat-icon>
         <span>{{ 'canvas.toolbar.rectangleSelect' | transloco }}</span>
       </button>
-      <button mat-menu-item (click)="onToolChange('pan')">
+      <button
+        mat-menu-item
+        data-testid="overflow-pan-tool"
+        (click)="onToolChange('pan')">
         <mat-icon>pan_tool</mat-icon>
         <span>{{ 'canvas.toolbar.pan' | transloco }}</span>
       </button>
@@ -1360,6 +1428,7 @@
     @if (!viewMode() && isOverflowed('drawing')) {
       <button
         mat-menu-item
+        data-testid="overflow-draw-tool"
         [disabled]="!hasActiveLayer()"
         (click)="onToolChange('draw')">
         <mat-icon>draw</mat-icon>
@@ -1367,6 +1436,7 @@
       </button>
       <button
         mat-menu-item
+        data-testid="overflow-eraser-tool"
         [disabled]="!hasActiveLayer()"
         (click)="onToolChange('eraser')">
         <mat-icon fontSet="material-symbols-outlined">ink_eraser</mat-icon>
@@ -1374,6 +1444,7 @@
       </button>
       <button
         mat-menu-item
+        data-testid="overflow-line-tool"
         [disabled]="!hasActiveLayer()"
         (click)="onToolChange('line')">
         <mat-icon>horizontal_rule</mat-icon>
@@ -1381,6 +1452,7 @@
       </button>
       <button
         mat-menu-item
+        data-testid="overflow-shape-tool"
         [disabled]="!hasActiveLayer()"
         [matMenuTriggerFor]="shapeMenu">
         <mat-icon>{{ shapeIcon() }}</mat-icon>
@@ -1388,6 +1460,7 @@
       </button>
       <button
         mat-menu-item
+        data-testid="overflow-polygon-tool"
         [disabled]="!hasActiveLayer()"
         (click)="onToolChange('polygon')">
         <mat-icon fontSet="material-symbols-outlined">pentagon</mat-icon>
@@ -1397,24 +1470,37 @@
     }
 
     @if (!viewMode() && isOverflowed('style')) {
-      <button mat-menu-item [matMenuTriggerFor]="strokeColorMenu">
+      <button
+        mat-menu-item
+        data-testid="overflow-stroke-color"
+        [matMenuTriggerFor]="strokeColorMenu">
         <mat-icon>border_color</mat-icon>
         <span>{{ 'canvas.toolbar.strokeColor' | transloco }}</span>
       </button>
-      <button mat-menu-item [matMenuTriggerFor]="fillColorMenu">
+      <button
+        mat-menu-item
+        data-testid="overflow-fill-color"
+        [matMenuTriggerFor]="fillColorMenu">
         <mat-icon>format_color_fill</mat-icon>
         <span>{{ 'canvas.toolbar.fillColor' | transloco }}</span>
       </button>
-      <button mat-menu-item [matMenuTriggerFor]="strokeWidthMenu">
+      <button
+        mat-menu-item
+        data-testid="overflow-stroke-width"
+        [matMenuTriggerFor]="strokeWidthMenu">
         <mat-icon fontSet="material-symbols-outlined">line_weight</mat-icon>
         <span>{{ 'canvas.toolbar.strokeWidth' | transloco }}</span>
       </button>
-      <button mat-menu-item [matMenuTriggerFor]="brushOptionsMenu">
+      <button
+        mat-menu-item
+        data-testid="overflow-brush-options"
+        [matMenuTriggerFor]="brushOptionsMenu">
         <mat-icon>tune</mat-icon>
         <span>{{ 'canvas.toolbar.brushOptions' | transloco }}</span>
       </button>
       <button
         mat-menu-item
+        data-testid="overflow-edit-colors"
         [disabled]="!selectedObjectId()"
         (click)="onEditObjectColors()">
         <mat-icon>palette</mat-icon>
@@ -1426,6 +1512,7 @@
     @if (!viewMode() && isOverflowed('creation')) {
       <button
         mat-menu-item
+        data-testid="overflow-pin-tool"
         [disabled]="!hasActiveLayer()"
         (click)="onToolChange('pin')">
         <mat-icon>place</mat-icon>
@@ -1433,6 +1520,7 @@
       </button>
       <button
         mat-menu-item
+        data-testid="overflow-add-image"
         [disabled]="!hasActiveLayer()"
         (click)="onAddImage()">
         <mat-icon>image</mat-icon>
@@ -1440,6 +1528,7 @@
       </button>
       <button
         mat-menu-item
+        data-testid="overflow-text-tool"
         [disabled]="!hasActiveLayer()"
         (click)="onToolChange('text')">
         <mat-icon>title</mat-icon>
@@ -1449,11 +1538,19 @@
     }
 
     @if (!viewMode() && isOverflowed('history')) {
-      <button mat-menu-item [disabled]="!canUndo()" (click)="onUndo()">
+      <button
+        mat-menu-item
+        data-testid="overflow-undo"
+        [disabled]="!canUndo()"
+        (click)="onUndo()">
         <mat-icon>undo</mat-icon>
         <span>{{ 'canvas.toolbar.undo' | transloco }}</span>
       </button>
-      <button mat-menu-item [disabled]="!canRedo()" (click)="onRedo()">
+      <button
+        mat-menu-item
+        data-testid="overflow-redo"
+        [disabled]="!canRedo()"
+        (click)="onRedo()">
         <mat-icon>redo</mat-icon>
         <span>{{ 'canvas.toolbar.redo' | transloco }}</span>
       </button>
@@ -1461,19 +1558,25 @@
     }
 
     @if (isOverflowed('zoom')) {
-      <button mat-menu-item (click)="onZoomIn()">
+      <button mat-menu-item data-testid="overflow-zoom-in" (click)="onZoomIn()">
         <mat-icon>add</mat-icon>
         <span>{{ 'canvas.toolbar.zoomIn' | transloco }}</span>
       </button>
-      <button mat-menu-item (click)="onZoomOut()">
+      <button
+        mat-menu-item
+        data-testid="overflow-zoom-out"
+        (click)="onZoomOut()">
         <mat-icon>remove</mat-icon>
         <span>{{ 'canvas.toolbar.zoomOut' | transloco }}</span>
       </button>
-      <button mat-menu-item (click)="onFitAll()">
+      <button mat-menu-item data-testid="overflow-fit-all" (click)="onFitAll()">
         <mat-icon>fit_screen</mat-icon>
         <span>{{ 'canvas.toolbar.fitAll' | transloco }}</span>
       </button>
-      <button mat-menu-item (click)="onZoomReset()">
+      <button
+        mat-menu-item
+        data-testid="overflow-zoom-reset"
+        (click)="onZoomReset()">
         <mat-icon>restart_alt</mat-icon>
         <span
           >{{ 'canvas.toolbar.resetZoom' | transloco }} ({{
