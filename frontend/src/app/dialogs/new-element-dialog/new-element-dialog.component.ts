@@ -319,9 +319,11 @@ export class NewElementDialogComponent {
   getSelectedOption(): ElementTypeOption | undefined {
     const selected = this.selectedType();
     const schemaId = this.selectedSchemaId();
+    const preset = this.selectedPreset();
     if (!selected) return undefined;
     return this.elementTypeOptions().find(
-      (o: ElementTypeOption) => o.type === selected && o.schemaId === schemaId
+      (o: ElementTypeOption) =>
+        o.type === selected && o.schemaId === schemaId && o.preset === preset
     );
   }
 }

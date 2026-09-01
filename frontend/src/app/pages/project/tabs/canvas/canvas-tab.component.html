@@ -402,7 +402,9 @@
                   data-testid="frame-item"
                   tabindex="0"
                   [class.active]="frame.id === selectedFrameId()"
-                  [attr.aria-selected]="frame.id === selectedFrameId()"
+                  [attr.aria-current]="
+                    frame.id === selectedFrameId() ? 'true' : null
+                  "
                   (click)="onSelectFrame(frame.id)"
                   (keydown.enter)="onSelectFrame(frame.id)">
                   <div class="layer-item-row">

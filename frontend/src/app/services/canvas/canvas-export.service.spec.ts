@@ -153,6 +153,109 @@ describe('CanvasExportService', () => {
     expect(clickSpy).toHaveBeenCalled();
   });
 
+  it('falls back to the viewport when no object would render', () => {
+    canvasService.activeConfig.mockReturnValue({
+      elementId: 'e1',
+      layers: [
+        {
+          id: 'L1',
+          name: 'Layer 1',
+          visible: false,
+          locked: false,
+          opacity: 1,
+          order: 0,
+        },
+      ],
+      objects: [
+        {
+          id: 's1',
+          layerId: 'L1',
+          type: 'shape',
+          shapeType: 'rect',
+          x: 100,
+          y: 200,
+          width: 300,
+          height: 100,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          visible: true,
+          locked: false,
+          stroke: '#000',
+          strokeWidth: 1,
+        },
+        {
+          id: 'p1',
+          layerId: 'L1',
+          type: 'pin',
+          x: 10,
+          y: 10,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          visible: false,
+          locked: false,
+          label: 'Hidden pin',
+          color: '#f00',
+        },
+      ],
+    });
+    const clickSpy = vi.fn();
+    vi.spyOn(document, 'createElement').mockReturnValueOnce({
+      click: clickSpy,
+    } as unknown as HTMLAnchorElement);
+
+    service.exportAsPng('mycanvas');
+
+    // The hidden-layer shape and hidden pin must not produce a blank
+    // default region — the export uses the current viewport instead.
+    expect(renderer.stage!.size).not.toHaveBeenCalled();
+    expect(renderer.stage!.toDataURL).toHaveBeenCalledWith({ pixelRatio: 2 });
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it('still exports the whole area when only a visible pin remains', () => {
+    canvasService.activeConfig.mockReturnValue({
+      elementId: 'e1',
+      layers: [
+        {
+          id: 'L1',
+          name: 'Layer 1',
+          visible: false,
+          locked: false,
+          opacity: 1,
+          order: 0,
+        },
+      ],
+      objects: [
+        {
+          id: 'p1',
+          layerId: 'L1',
+          type: 'pin',
+          x: 10,
+          y: 10,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          visible: true,
+          locked: false,
+          label: 'Pin',
+          color: '#f00',
+        },
+      ],
+    });
+    const clickSpy = vi.fn();
+    vi.spyOn(document, 'createElement').mockReturnValueOnce({
+      click: clickSpy,
+    } as unknown as HTMLAnchorElement);
+
+    service.exportAsPng('mycanvas');
+
+    // Pins render above every layer, so the fitted-region path is used.
+    expect(renderer.stage!.size).toHaveBeenCalled();
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
   it('exports a frame region exactly', () => {
     const clickSpy = vi.fn();
     vi.spyOn(document, 'createElement').mockReturnValueOnce({

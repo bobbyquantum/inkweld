@@ -95,6 +95,7 @@ import type {
   CanvasFrameDialogData,
   CanvasFrameDialogResult,
 } from '../../../../dialogs/canvas-frame-dialog/canvas-frame-dialog.component';
+import type { ElementPickerDialogResult } from '../../../../dialogs/element-picker-dialog/element-picker-dialog.component';
 import {
   createLinkRelationship,
   removeLinkRelationship,
@@ -1062,7 +1063,11 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
     const { ElementPickerDialogComponent } =
       await import('../../../../dialogs/element-picker-dialog/element-picker-dialog.component');
-    const pickerRef = this.dialog.open(ElementPickerDialogComponent, {
+    const pickerRef = this.dialog.open<
+      InstanceType<typeof ElementPickerDialogComponent>,
+      unknown,
+      ElementPickerDialogResult
+    >(ElementPickerDialogComponent, {
       width: '480px',
       maxHeight: '80vh',
       data: {
@@ -1075,8 +1080,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
         ],
       },
     });
-    const result = (await firstValueFrom(pickerRef.afterClosed())) as
-      { elements?: { id: string }[] } | null | undefined;
+    const result = await firstValueFrom(pickerRef.afterClosed());
     const target = result?.elements?.[0];
     if (!target) return;
 

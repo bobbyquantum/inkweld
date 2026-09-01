@@ -212,8 +212,10 @@
   }
 }
 
+// Must win against the later `.objects-list { display: flex }` rule, which
+// otherwise re-expands the Objects and Pins sections.
 .section-collapsed {
-  display: none;
+  display: none !important;
 }
 
 .frame-dims {

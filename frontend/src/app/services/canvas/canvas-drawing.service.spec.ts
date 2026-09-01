@@ -737,6 +737,17 @@ describe('CanvasDrawingService', () => {
       expect(obj.points).toEqual([0, 0, 50, 0, 50, 50]);
     });
 
+    it('a click on the first vertex with only two vertices is ignored', () => {
+      clickAt(0, 0);
+      clickAt(50, 0);
+      // Landing back on the first vertex must not append a duplicate that
+      // could then commit a degenerate two-vertex loop.
+      expect(clickAt(2, 2)).toBe(false);
+      expect(clickAt(1, 1)).toBe(false);
+      expect(canvasSvc.addObject).not.toHaveBeenCalled();
+      expect(service.isDrawing()).toBe(true);
+    });
+
     it('a repeat click with too few vertices is ignored, not a close', () => {
       clickAt(0, 0);
       clickAt(50, 0);

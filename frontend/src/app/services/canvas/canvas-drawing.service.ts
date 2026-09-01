@@ -271,10 +271,13 @@ export class CanvasDrawingService {
     const scale = this.canvasRenderer.stage?.scaleX() || 1;
     const points = this.polygonPoints;
 
-    if (points.length >= 6) {
+    if (points.length >= 4) {
       const closeDistance = POLYGON_CLOSE_PX / scale;
       if (Math.hypot(pos.x - points[0], pos.y - points[1]) <= closeDistance) {
-        return this.finishPolygon(settings, h);
+        // Closing needs at least three vertices; until then a click on the
+        // first vertex is ignored so it can't become a degenerate loop.
+        if (points.length >= 6) return this.finishPolygon(settings, h);
+        return false;
       }
     }
 

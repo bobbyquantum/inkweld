@@ -37,6 +37,14 @@ export class CanvasExportService {
     const visibleLayers = [...config.layers]
       .sort((a, b) => a.order - b.order)
       .filter(l => l.visible);
+    // Pins render above every layer; everything else needs a visible layer.
+    const visibleLayerIds = new Set(visibleLayers.map(l => l.id));
+    const anythingRenders = config.objects.some(
+      obj =>
+        obj.visible && (obj.type === 'pin' || visibleLayerIds.has(obj.layerId))
+    );
+    if (!anythingRenders) return null;
+
     const { vX, vY, vW, vH } = computeSvgViewBox(config, visibleLayers);
     return { x: vX, y: vY, width: vW, height: vH };
   }
