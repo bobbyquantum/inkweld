@@ -2995,7 +2995,9 @@ describe('CanvasTabComponent', () => {
       component['selectedObjectId'].set('shape-linked');
       expect(component['selectedShape']()?.id).toBe('shape-linked');
 
-      const navigate = vi.spyOn(component['elementNavigation'], 'openElement');
+      const navigate = vi
+        .spyOn(component['elementNavigation'], 'openElement')
+        .mockImplementation(() => {});
       component['onOpenLinkedElement']();
       expect(navigate).toHaveBeenCalled();
     });
@@ -3210,7 +3212,9 @@ describe('CanvasTabComponent', () => {
       });
       fixture.detectChanges();
 
-      const navigate = vi.spyOn(component['elementNavigation'], 'openElement');
+      const navigate = vi
+        .spyOn(component['elementNavigation'], 'openElement')
+        .mockImplementation(() => {});
       component['viewMode'].set(true);
       component['onSelectObject']('pin-linked-vm');
 
