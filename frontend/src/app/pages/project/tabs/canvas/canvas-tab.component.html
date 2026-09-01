@@ -44,7 +44,10 @@
       <div
         class="sidebar-scrim"
         data-testid="sidebar-scrim"
-        (click)="toggleSidebar()"></div>
+        tabindex="-1"
+        [attr.aria-label]="'canvas.sidebar.collapse' | transloco"
+        (click)="toggleSidebar()"
+        (keydown.escape)="toggleSidebar()"></div>
     }
 
     <!-- Expanded sidebar -->

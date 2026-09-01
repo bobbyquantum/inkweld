@@ -1,6 +1,5 @@
 import {
   CANVAS_PIN_RELATIONSHIP_TYPE,
-  type CanvasObject,
   type CanvasPin,
 } from '@models/canvas.model';
 import type { RelationshipService } from '@services/relationship/relationship.service';
