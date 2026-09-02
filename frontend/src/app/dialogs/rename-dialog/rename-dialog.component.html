@@ -21,7 +21,9 @@
   </mat-form-field>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()">{{ 'cancel' | transloco }}</button>
+  <button mat-button data-testid="rename-cancel-button" (click)="onCancel()">
+    {{ 'cancel' | transloco }}
+  </button>
   <button
     mat-button
     color="primary"

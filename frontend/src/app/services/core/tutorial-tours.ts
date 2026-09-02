@@ -115,4 +115,61 @@ export const TUTORIAL_TOURS: Record<TutorialTourId, TutorialTour> = {
       },
     ],
   },
+  canvas: {
+    id: 'canvas',
+    steps: [
+      {
+        id: 'welcome',
+        titleKey: 'tutorial.canvas.welcomeTitle',
+        bodyKey: 'tutorial.canvas.welcomeBody',
+      },
+      {
+        id: 'layers',
+        anchorTestIds: ['layers-header'],
+        titleKey: 'tutorial.canvas.layersTitle',
+        bodyKey: 'tutorial.canvas.layersBody',
+        optional: true,
+      },
+      {
+        id: 'pins',
+        anchorTestIds: ['pin-tool', 'overflow-pin-tool'],
+        titleKey: 'tutorial.canvas.pinsTitle',
+        bodyKey: 'tutorial.canvas.pinsBody',
+        optional: true,
+      },
+      {
+        id: 'regions',
+        anchorTestIds: ['polygon-tool', 'overflow-polygon-tool'],
+        titleKey: 'tutorial.canvas.regionsTitle',
+        bodyKey: 'tutorial.canvas.regionsBody',
+        optional: true,
+      },
+      {
+        id: 'links',
+        titleKey: 'tutorial.canvas.linksTitle',
+        bodyKey: 'tutorial.canvas.linksBody',
+      },
+      {
+        id: 'pins-panel',
+        anchorTestIds: ['pins-header'],
+        titleKey: 'tutorial.canvas.pinsPanelTitle',
+        bodyKey: 'tutorial.canvas.pinsPanelBody',
+        optional: true,
+      },
+      {
+        id: 'frames',
+        anchorTestIds: ['frames-header'],
+        titleKey: 'tutorial.canvas.framesTitle',
+        bodyKey: 'tutorial.canvas.framesBody',
+        optional: true,
+      },
+      {
+        id: 'export',
+        anchorTestIds: ['export-menu-button'],
+        titleKey: 'tutorial.canvas.exportTitle',
+        bodyKey: 'tutorial.canvas.exportBody',
+        optional: true,
+      },
+    ],
+  },
 };

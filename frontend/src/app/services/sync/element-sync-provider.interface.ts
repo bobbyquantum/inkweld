@@ -428,6 +428,19 @@ export interface IElementSyncProvider {
    */
   seedCanvasContents(elementId: string, contents: CanvasContents): void;
 
+  /**
+   * Ids of every canvas the provider holds contents for. Used by
+   * element-deletion cleanup to find pins that point at removed elements.
+   */
+  listCanvasElementIds(): string[];
+
+  /**
+   * Drop a canvas's synced contents when its element is deleted, so they do
+   * not linger in the project document. Providers that keep the contents on
+   * the element itself may treat this as a no-op.
+   */
+  deleteCanvas(elementId: string): void;
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Presence
   // ─────────────────────────────────────────────────────────────────────────────

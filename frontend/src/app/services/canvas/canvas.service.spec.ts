@@ -12,12 +12,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
+  type CanvasFrame,
   type CanvasPin,
   type CanvasText,
   createDefaultCanvasConfig,
 } from '../../models/canvas.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { RelationshipService } from '../relationship/relationship.service';
 import { CanvasService } from './canvas.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -144,6 +146,11 @@ describe('CanvasService', () => {
     error: vi.fn(),
   };
 
+  const mockRelationships = {
+    removeRelationship: vi.fn(),
+    removeRelationships: vi.fn(),
+  };
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [translocoTestProvider()],
@@ -151,6 +158,7 @@ describe('CanvasService', () => {
         CanvasService,
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: LoggerService, useValue: mockLogger },
+        { provide: RelationshipService, useValue: mockRelationships },
       ],
     });
 
@@ -466,6 +474,156 @@ describe('CanvasService', () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Frame Operations
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('frames', () => {
+    const makeFrame = (overrides: Partial<CanvasFrame> = {}): CanvasFrame => ({
+      id: 'frame-1',
+      name: 'Cover',
+      kind: 'crop',
+      x: 0,
+      y: 0,
+      width: 1000,
+      height: 1600,
+      visible: true,
+      ...overrides,
+    });
+
+    beforeEach(() => {
+      mockElements.set([makeElement()]);
+      service.loadConfig('canvas-1');
+    });
+
+    it('adds and removes frames', () => {
+      service.addFrame(makeFrame());
+      expect(service.activeConfig()!.frames).toHaveLength(1);
+
+      service.removeFrame('frame-1');
+      expect(service.activeConfig()!.frames).toHaveLength(0);
+    });
+
+    it('updates frame geometry and name', () => {
+      service.addFrame(makeFrame());
+      service.updateFrame('frame-1', { x: 50, width: 500, name: 'Half' });
+
+      const frame = service.activeConfig()!.frames![0];
+      expect(frame.x).toBe(50);
+      expect(frame.width).toBe(500);
+      expect(frame.name).toBe('Half');
+      expect(frame.id).toBe('frame-1');
+    });
+
+    it('adding a canvas-size frame demotes the existing one', () => {
+      service.addFrame(makeFrame({ id: 'a', kind: 'canvas' }));
+      service.addFrame(makeFrame({ id: 'b', kind: 'canvas' }));
+
+      const frames = service.activeConfig()!.frames!;
+      expect(frames.find(f => f.id === 'a')?.kind).toBe('crop');
+      expect(frames.find(f => f.id === 'b')?.kind).toBe('canvas');
+    });
+
+    it('setFrameKind promotes a crop frame and demotes the old canvas size', () => {
+      service.addFrame(makeFrame({ id: 'a', kind: 'canvas' }));
+      service.addFrame(makeFrame({ id: 'b', kind: 'crop' }));
+
+      service.setFrameKind('b', 'canvas');
+
+      const frames = service.activeConfig()!.frames!;
+      expect(frames.find(f => f.id === 'a')?.kind).toBe('crop');
+      expect(frames.find(f => f.id === 'b')?.kind).toBe('canvas');
+    });
+
+    it('frame edits are undoable', () => {
+      service.addFrame(makeFrame());
+      service.updateFrame('frame-1', { x: 99 });
+
+      expect(service.undo()).toBe(true);
+      expect(service.activeConfig()!.frames![0].x).toBe(0);
+
+      expect(service.redo()).toBe(true);
+      expect(service.activeConfig()!.frames![0].x).toBe(99);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Annotations & relationship cleanup
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('pins and linked objects', () => {
+    beforeEach(() => {
+      mockElements.set([makeElement()]);
+      service.loadConfig('canvas-1');
+    });
+
+    it('removeLayer keeps pins and reassigns their vestigial layerId', () => {
+      const firstLayerId = service.activeConfig()!.layers[0].id;
+      const doomedLayerId = service.addLayer('Doomed');
+      service.addObject(makeTextObject({ id: 't1', layerId: doomedLayerId }));
+      service.addObject(makePinObject({ id: 'p1', layerId: doomedLayerId }));
+
+      service.removeLayer(doomedLayerId);
+
+      const config = service.activeConfig()!;
+      expect(config.objects.some(o => o.id === 't1')).toBe(false);
+      const pin = config.objects.find(o => o.id === 'p1');
+      expect(pin).toBeDefined();
+      expect(pin!.layerId).toBe(firstLayerId);
+    });
+
+    it('removeLayer drops relationships of linked artwork on the layer', () => {
+      const doomedLayerId = service.addLayer('Doomed');
+      service.addObject({
+        id: 's1',
+        layerId: doomedLayerId,
+        type: 'shape',
+        shapeType: 'rect',
+        x: 0,
+        y: 0,
+        width: 10,
+        height: 10,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        stroke: '#000',
+        strokeWidth: 1,
+        linkedElementId: 'el-1',
+        relationshipId: 'rel-shape',
+      });
+      service.addObject(
+        makePinObject({
+          id: 'p1',
+          layerId: doomedLayerId,
+          relationshipId: 'rel-pin',
+        })
+      );
+
+      service.removeLayer(doomedLayerId);
+
+      // The linked shape dies with the layer; the pin (and its link) survive.
+      expect(mockRelationships.removeRelationships).toHaveBeenCalledWith([
+        'rel-shape',
+      ]);
+    });
+
+    it('removeObjects removes the relationships of doomed linked objects', () => {
+      service.addObject(makePinObject({ id: 'p1', relationshipId: 'rel-1' }));
+      service.addObject(makeTextObject({ id: 't1' }));
+
+      service.removeObjects(['p1', 't1']);
+
+      // One batched write for every doomed link.
+      expect(mockRelationships.removeRelationships).toHaveBeenCalledTimes(1);
+      expect(mockRelationships.removeRelationships).toHaveBeenCalledWith([
+        'rel-1',
+      ]);
+      expect(service.activeConfig()!.objects).toHaveLength(0);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Layer Operations
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -508,6 +666,54 @@ describe('CanvasService', () => {
     it('should return empty string if no config loaded', () => {
       const result = service.addLayer();
       expect(result).toBe('');
+    });
+  });
+
+  describe('dangling element links', () => {
+    it('unlinks objects whose element disappears from the project', () => {
+      mockElements.set([
+        makeElement({ id: 'canvas-1', type: ElementType.Canvas }),
+        makeElement({ id: 'target-1' }),
+      ]);
+      service.loadConfig('canvas-1');
+      service.addObject(
+        makePinObject({
+          id: 'p1',
+          linkedElementId: 'target-1',
+          relationshipId: 'rel-1',
+        })
+      );
+      service.addObject(makePinObject({ id: 'p2' }));
+
+      // The target is deleted elsewhere; the provider never echoes our own
+      // canvas back, so the open editor must drop the link itself.
+      mockElements.set([
+        makeElement({ id: 'canvas-1', type: ElementType.Canvas }),
+      ]);
+      TestBed.tick();
+
+      const objects = service.activeConfig()!.objects;
+      const p1 = objects.find(o => o.id === 'p1') as CanvasPin;
+      expect(p1.linkedElementId).toBeUndefined();
+      expect(p1.relationshipId).toBeUndefined();
+      expect(objects.find(o => o.id === 'p2')).toBeDefined();
+    });
+
+    it('leaves links alone while the element list is still loading', () => {
+      mockElements.set([
+        makeElement({ id: 'canvas-1', type: ElementType.Canvas }),
+        makeElement({ id: 'target-1' }),
+      ]);
+      service.loadConfig('canvas-1');
+      service.addObject(
+        makePinObject({ id: 'p1', linkedElementId: 'target-1' })
+      );
+
+      mockElements.set([]);
+      TestBed.tick();
+
+      const p1 = service.activeConfig()!.objects[0] as CanvasPin;
+      expect(p1.linkedElementId).toBe('target-1');
     });
   });
 

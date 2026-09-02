@@ -203,9 +203,22 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
     if (this.getCanvasContents(elementId)) return;
     this.applyCanvasEdit(elementId, {
       layers: contents.layers,
+      frames: contents.frames,
       upserts: contents.objects,
       order: contents.objects.map(o => o.id),
     });
+  }
+
+  listCanvasElementIds(): string[] {
+    return this.elementsSubject
+      .getValue()
+      .filter(e => e.metadata?.[CANVAS_CONFIG_META_KEY])
+      .map(e => e.id);
+  }
+
+  deleteCanvas(_elementId: string): void {
+    // Local mode keeps canvas contents on the element itself, so they are
+    // removed along with the element.
   }
 
   /**

@@ -130,12 +130,31 @@ test.describe('Canvas Tab', () => {
       ).toHaveText('100%');
     });
 
+    await test.step('sidebar sections collapse and remember their state', async () => {
+      const sidebar = page.getByTestId('canvas-sidebar');
+      await expect(sidebar.getByTestId('layer-item').first()).toBeVisible();
+
+      await page.getByTestId('section-toggle-layers').click();
+      await expect(sidebar.getByTestId('layer-item').first()).toBeHidden();
+
+      await page.reload();
+      await expect(page.getByTestId('canvas-sidebar')).toBeVisible();
+      await expect(
+        page.getByTestId('canvas-sidebar').getByTestId('layer-item').first()
+      ).toBeHidden();
+
+      await page.getByTestId('section-toggle-layers').click();
+      await expect(
+        page.getByTestId('canvas-sidebar').getByTestId('layer-item').first()
+      ).toBeVisible();
+    });
+
     await test.step('sidebar can collapse and expand', async () => {
       await expect(page.getByTestId('canvas-sidebar')).toBeVisible();
 
       await page
         .getByTestId('canvas-sidebar')
-        .getByRole('button', { name: /collapse sidebar/i })
+        .getByTestId('sidebar-collapse-button')
         .click();
 
       await expect(page.getByTestId('canvas-sidebar')).not.toBeVisible();
@@ -143,7 +162,7 @@ test.describe('Canvas Tab', () => {
 
       await page
         .getByTestId('canvas-collapsed-sidebar')
-        .getByRole('button', { name: /expand sidebar/i })
+        .getByTestId('sidebar-expand-button')
         .click();
 
       await expect(page.getByTestId('canvas-sidebar')).toBeVisible();
@@ -161,27 +180,22 @@ test.describe('Canvas Tab', () => {
       await sidebar
         .getByTestId('layer-item')
         .first()
-        .getByRole('button', { name: /more/i })
+        .getByTestId('layer-menu-button')
         .click();
 
-      await page.getByRole('menuitem', { name: /rename/i }).click();
+      await page.getByTestId('layer-rename').click();
 
-      const dialog = page.locator('mat-dialog-container');
-      await expect(dialog).toBeVisible();
-
-      const input = dialog.getByRole('textbox').first();
+      const input = page.getByTestId('rename-input');
       await input.waitFor({ state: 'visible' });
       await expect(input).not.toHaveValue('');
       await input.clear();
       await input.fill('Background');
       await expect(input).toHaveValue('Background');
 
-      const confirmButton = dialog.getByRole('button', {
-        name: /rename|save|ok|confirm/i,
-      });
+      const confirmButton = page.getByTestId('rename-confirm-button');
       await expect(confirmButton).toBeEnabled();
       await confirmButton.click();
-      await expect(dialog).not.toBeVisible();
+      await expect(input).not.toBeVisible();
 
       await expect(
         sidebar.getByTestId('layer-name').filter({ hasText: 'Background' })
@@ -192,9 +206,9 @@ test.describe('Canvas Tab', () => {
       await sidebar
         .getByTestId('layer-item')
         .first()
-        .getByRole('button', { name: /more/i })
+        .getByTestId('layer-menu-button')
         .click();
-      await page.getByRole('menuitem', { name: /duplicate/i }).click();
+      await page.getByTestId('layer-duplicate').click();
 
       await expect(sidebar.getByTestId('layer-item')).toHaveCount(2);
       // Both layers should reference "Background" name
@@ -209,21 +223,21 @@ test.describe('Canvas Tab', () => {
       await sidebar
         .getByTestId('layer-item')
         .first()
-        .getByRole('button', { name: /more/i })
+        .getByTestId('layer-menu-button')
         .click();
 
-      await page.getByRole('menuitem', { name: /delete/i }).click();
+      await page.getByTestId('layer-delete').click();
 
-      const dialog = page.locator('mat-dialog-container');
-      await expect(dialog).toBeVisible();
-      await dialog.getByRole('button', { name: /delete/i }).click();
-      await expect(dialog).not.toBeVisible();
+      const confirmButton = page.getByTestId('confirm-delete-button');
+      await expect(confirmButton).toBeVisible();
+      await confirmButton.click();
+      await expect(confirmButton).not.toBeVisible();
 
       await expect(sidebar.getByTestId('layer-item')).toHaveCount(1);
     });
 
     await test.step('add a new layer via Add Layer button', async () => {
-      await sidebar.getByRole('button', { name: /add layer/i }).click();
+      await sidebar.getByTestId('add-layer-button').click();
       await expect(sidebar.getByTestId('layer-item')).toHaveCount(2);
     });
 
@@ -253,10 +267,7 @@ test.describe('Canvas Tab', () => {
         .textContent();
 
       // Open the menu on the bottom layer and Move up
-      await layers
-        .last()
-        .getByRole('button', { name: /more options/i })
-        .click();
+      await layers.last().getByTestId('layer-menu-button').click();
       await page.getByTestId('layer-move-up').click();
 
       await expect(layers.first().getByTestId('layer-name')).toHaveText(
@@ -267,10 +278,7 @@ test.describe('Canvas Tab', () => {
       );
 
       // Move down on the new top item to swap back
-      await layers
-        .first()
-        .getByRole('button', { name: /more options/i })
-        .click();
+      await layers.first().getByTestId('layer-menu-button').click();
       await page.getByTestId('layer-move-down').click();
 
       await expect(layers.first().getByTestId('layer-name')).toHaveText(
@@ -343,67 +351,43 @@ test.describe('Canvas Tab', () => {
     const sidebar = page.getByTestId('canvas-sidebar');
 
     await test.step('switch between navigation tools', async () => {
-      await expect(
-        toolbar.getByRole('button', { name: /Select \(V\)/i })
-      ).toHaveClass(/active/);
+      await expect(toolbar.getByTestId('select-tool')).toHaveClass(/active/);
 
-      await toolbar.getByRole('button', { name: /Pan/i }).click();
-      await expect(toolbar.getByRole('button', { name: /Pan/i })).toHaveClass(
+      await toolbar.getByTestId('pan-tool').click();
+      await expect(toolbar.getByTestId('pan-tool')).toHaveClass(/active/);
+
+      await toolbar.getByTestId('rect-select-tool').click();
+      await expect(toolbar.getByTestId('rect-select-tool')).toHaveClass(
         /active/
       );
-
-      await toolbar.getByRole('button', { name: /Rectangle select/i }).click();
-      await expect(
-        toolbar.getByRole('button', { name: /Rectangle select/i })
-      ).toHaveClass(/active/);
     });
 
     await test.step('creation tools enabled when a layer exists', async () => {
-      await expect(
-        toolbar.getByRole('button', { name: /Place pin/i })
-      ).not.toBeDisabled();
-      await expect(
-        toolbar.getByRole('button', { name: /Freehand draw/i })
-      ).not.toBeDisabled();
-      await expect(
-        toolbar.getByRole('button', { name: /Add text/i })
-      ).not.toBeDisabled();
+      await expect(toolbar.getByTestId('pin-tool')).not.toBeDisabled();
+      await expect(toolbar.getByTestId('draw-tool')).not.toBeDisabled();
+      await expect(toolbar.getByTestId('text-tool')).not.toBeDisabled();
 
-      await toolbar.getByRole('button', { name: /Freehand draw/i }).click();
-      await expect(
-        toolbar.getByRole('button', { name: /Freehand draw/i })
-      ).toHaveClass(/active/);
+      await toolbar.getByTestId('draw-tool').click();
+      await expect(toolbar.getByTestId('draw-tool')).toHaveClass(/active/);
 
-      await toolbar.getByRole('button', { name: /Line/i }).click();
-      await expect(toolbar.getByRole('button', { name: /Line/i })).toHaveClass(
-        /active/
-      );
+      await toolbar.getByTestId('line-tool').click();
+      await expect(toolbar.getByTestId('line-tool')).toHaveClass(/active/);
     });
 
     await test.step('palette button disabled with no selection', async () => {
-      await expect(
-        toolbar.getByRole('button', { name: /edit object colors/i })
-      ).toBeDisabled();
+      await expect(toolbar.getByTestId('edit-colors-button')).toBeDisabled();
     });
 
     await test.step('shape submenu opens and selects Ellipse', async () => {
-      await toolbar.getByRole('button', { name: /Shape \(S\)/i }).click();
+      await toolbar.getByTestId('shape-tool').click();
 
-      await expect(
-        page.getByRole('menuitem', { name: /Ellipse/i })
-      ).toBeVisible();
-      await expect(
-        page.getByRole('menuitem', { name: /Rectangle/i })
-      ).toBeVisible();
-      await expect(
-        page.getByRole('menuitem', { name: /Arrow/i })
-      ).toBeVisible();
+      await expect(page.getByTestId('shape-ellipse')).toBeVisible();
+      await expect(page.getByTestId('shape-rect')).toBeVisible();
+      await expect(page.getByTestId('shape-arrow')).toBeVisible();
 
-      await page.getByRole('menuitem', { name: /Ellipse/i }).click();
+      await page.getByTestId('shape-ellipse').click();
 
-      await expect(
-        toolbar.getByRole('button', { name: /Shape \(S\)/i })
-      ).toHaveClass(/active/);
+      await expect(toolbar.getByTestId('shape-tool')).toHaveClass(/active/);
     });
 
     const zoomLabel = toolbar.getByTestId('zoom-label');
@@ -411,7 +395,7 @@ test.describe('Canvas Tab', () => {
     await test.step('zoom in updates label above 100%', async () => {
       await expect(zoomLabel).toHaveText('100%');
 
-      await toolbar.getByRole('button', { name: /zoom in/i }).click();
+      await toolbar.getByTestId('zoom-in-button').click();
 
       await expect(zoomLabel).not.toHaveText('100%');
       const text = await zoomLabel.textContent();
@@ -425,7 +409,7 @@ test.describe('Canvas Tab', () => {
     });
 
     await test.step('zoom out updates label below 100%', async () => {
-      await toolbar.getByRole('button', { name: /zoom out/i }).click();
+      await toolbar.getByTestId('zoom-out-button').click();
 
       await expect(zoomLabel).not.toHaveText('100%');
       const text = await zoomLabel.textContent();
@@ -471,17 +455,11 @@ test.describe('Canvas Tab', () => {
     });
 
     await test.step('export menu shows all options', async () => {
-      await sidebar.getByRole('button', { name: /export canvas/i }).click();
+      await sidebar.getByTestId('export-menu-button').click();
 
-      await expect(
-        page.getByRole('menuitem', { name: /export as png/i }).first()
-      ).toBeVisible();
-      await expect(
-        page.getByRole('menuitem', { name: /high-res/i })
-      ).toBeVisible();
-      await expect(
-        page.getByRole('menuitem', { name: /export as svg/i })
-      ).toBeVisible();
+      await expect(page.getByTestId('export-whole-png')).toBeVisible();
+      await expect(page.getByTestId('export-whole-png-2x')).toBeVisible();
+      await expect(page.getByTestId('export-whole-svg')).toBeVisible();
 
       await page.keyboard.press('Escape');
     });
@@ -490,26 +468,14 @@ test.describe('Canvas Tab', () => {
       const stage = page.getByTestId('canvas-stage');
       await stage.click({ button: 'right' });
 
-      await expect(page.getByRole('menuitem', { name: /^Cut$/ })).toBeVisible();
-      await expect(
-        page.getByRole('menuitem', { name: /^Copy$/ })
-      ).toBeVisible();
-      await expect(
-        page.getByRole('menuitem', { name: /^Paste$/ })
-      ).toBeVisible();
-      await expect(
-        page.getByRole('menuitem', { name: /^Delete$/ })
-      ).toBeVisible();
+      await expect(page.getByTestId('context-cut')).toBeVisible();
+      await expect(page.getByTestId('context-copy')).toBeVisible();
+      await expect(page.getByTestId('context-paste')).toBeVisible();
+      await expect(page.getByTestId('context-delete')).toBeVisible();
 
-      await expect(
-        page.getByRole('menuitem', { name: /^Cut$/ })
-      ).toBeDisabled();
-      await expect(
-        page.getByRole('menuitem', { name: /^Copy$/ })
-      ).toBeDisabled();
-      await expect(
-        page.getByRole('menuitem', { name: /^Delete$/ })
-      ).toBeDisabled();
+      await expect(page.getByTestId('context-cut')).toBeDisabled();
+      await expect(page.getByTestId('context-copy')).toBeDisabled();
+      await expect(page.getByTestId('context-delete')).toBeDisabled();
 
       await expect(page.getByTestId('object-bring-to-front')).toHaveCount(0);
 
@@ -542,11 +508,9 @@ test.describe('Canvas Tab', () => {
 
     await test.step('the menu carries the overflowed controls', async () => {
       await chevron.click();
-      await expect(
-        page.getByRole('menuitem', { name: /zoom in/i })
-      ).toBeVisible();
+      await expect(page.getByTestId('overflow-zoom-in')).toBeVisible();
 
-      await page.getByRole('menuitem', { name: /zoom in/i }).click();
+      await page.getByTestId('overflow-zoom-in').click();
       await expect(toolbar.getByTestId('zoom-label')).not.toHaveText('100%');
     });
 
@@ -556,6 +520,317 @@ test.describe('Canvas Tab', () => {
       await expect(
         toolbar.locator('[data-toolbar-group="zoom"]')
       ).toBeVisible();
+    });
+  });
+
+  test('interactive maps: map preset, linked pins, and regions', async ({
+    localPageWithProject: page,
+  }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await page.getByTestId('project-card').first().click();
+    await page.waitForURL(/\/.+\/.+/);
+
+    await test.step('create a document to link a pin to', async () => {
+      await page.getByTestId('create-new-element').click();
+      await page.getByTestId('element-type-item').click();
+      const nameInput = page.getByTestId('element-name-input');
+      await nameInput.waitFor({ state: 'visible' });
+      await nameInput.fill('Pin Target');
+      await page.getByTestId('create-element-button').click();
+      await expect(page.getByTestId('element-Pin Target')).toBeVisible();
+    });
+
+    await test.step('create a map via the Map preset', async () => {
+      await page.getByTestId('create-new-element').click();
+      await page.getByTestId('element-type-map').click();
+      const nameInput = page.getByTestId('element-name-input');
+      await nameInput.waitFor({ state: 'visible' });
+      await nameInput.fill('World Map');
+      await page.getByTestId('create-element-button').click();
+      await expect(page.getByTestId('element-World Map')).toBeVisible();
+      await expect(page.getByTestId('canvas-container')).toBeVisible();
+    });
+
+    const toolbar = page.getByTestId('canvas-toolbar');
+    const sidebar = page.getByTestId('canvas-sidebar');
+
+    await test.step('map preset seeds a Base map layer', async () => {
+      await expect(
+        sidebar.getByTestId('layer-name').filter({ hasText: 'Base map' })
+      ).toBeVisible();
+    });
+
+    await test.step('layer menu offers Add background image', async () => {
+      await sidebar
+        .getByTestId('layer-item')
+        .first()
+        .getByTestId('layer-menu-button')
+        .click();
+      await expect(page.getByTestId('layer-add-background')).toBeVisible();
+      await page.keyboard.press('Escape');
+    });
+
+    await test.step('place a pin linked to the document', async () => {
+      await toolbar.getByTestId('pin-tool').click();
+      await page
+        .getByTestId('canvas-stage')
+        .click({ position: { x: 400, y: 300 } });
+
+      const labelInput = page.getByTestId('canvas-pin-label-input');
+      await labelInput.waitFor({ state: 'visible' });
+      await labelInput.clear();
+      await labelInput.fill('Target Pin');
+
+      await page.getByTestId('canvas-pin-link-element').click();
+      await page
+        .getByTestId('element-picker-item')
+        .filter({ hasText: 'Pin Target' })
+        .click();
+      await page.getByTestId('element-picker-confirm').click();
+      await page.getByTestId('canvas-pin-confirm').click();
+
+      await expect(
+        sidebar.getByTestId('pin-item').filter({ hasText: 'Target Pin' })
+      ).toBeVisible();
+    });
+
+    await test.step('double-click on the pin opens the linked document', async () => {
+      await toolbar.getByTestId('select-tool').click();
+      await page
+        .getByTestId('canvas-stage')
+        .dblclick({ position: { x: 400, y: 300 } });
+      await page.waitForURL(/document\/.+/);
+    });
+
+    await test.step('return to the map with editing tools intact', async () => {
+      await page.getByTestId('element-World Map').click();
+      await expect(page.getByTestId('canvas-container')).toBeVisible();
+      await expect(
+        toolbar.locator('[data-toolbar-group="drawing"]')
+      ).toBeVisible();
+      await expect(sidebar.getByTestId('add-layer-button')).toBeVisible();
+    });
+
+    await test.step('pins live in their own sidebar section', async () => {
+      await expect(sidebar.getByTestId('pins-header')).toBeVisible();
+      await expect(
+        sidebar.getByTestId('pin-item').filter({ hasText: 'Target Pin' })
+      ).toBeVisible();
+      await expect(sidebar.getByTestId('objects-empty')).toBeVisible();
+    });
+
+    await test.step('pin outlives layer visibility', async () => {
+      // Hide the only artwork layer — the pin is an annotation and stays.
+      await sidebar.getByTestId('layer-visibility').first().click();
+
+      await page
+        .getByTestId('canvas-stage')
+        .dblclick({ position: { x: 400, y: 300 } });
+      await page.waitForURL(/document\/.+/);
+
+      await page.getByTestId('element-World Map').click();
+      await expect(page.getByTestId('canvas-container')).toBeVisible();
+      await sidebar.getByTestId('layer-visibility').first().click();
+    });
+
+    await test.step('link a shape to an element (region)', async () => {
+      // Fill on, so the shape interior is clickable.
+      await toolbar.getByTestId('fill-color-button').click();
+      await page.getByTestId('fill-toggle').click();
+      await page.keyboard.press('Escape');
+
+      // Pick Rectangle from the shape submenu — this both closes the menu
+      // and leaves the shape tool active (Escape would reset the tool).
+      await toolbar.getByTestId('shape-tool').click();
+      await page.getByTestId('shape-rect').click();
+      await page
+        .getByTestId('canvas-stage')
+        .click({ position: { x: 200, y: 150 } });
+
+      await toolbar.getByTestId('select-tool').click();
+      await page
+        .getByTestId('canvas-stage')
+        .click({ button: 'right', position: { x: 200, y: 150 } });
+      await page.getByTestId('link-shape-element').click();
+      await page
+        .getByTestId('element-picker-item')
+        .filter({ hasText: 'Pin Target' })
+        .click();
+      await page.getByTestId('element-picker-confirm').click();
+    });
+
+    await test.step('double-clicking the region opens the element', async () => {
+      await page
+        .getByTestId('canvas-stage')
+        .dblclick({ position: { x: 200, y: 150 } });
+      await page.waitForURL(/document\/.+/);
+
+      await page.getByTestId('element-World Map').click();
+      await expect(page.getByTestId('canvas-container')).toBeVisible();
+    });
+
+    await test.step('trace a closed loop with the region pen', async () => {
+      await page.getByTestId('polygon-tool').click();
+      const stage = page.getByTestId('canvas-stage');
+      await stage.click({ position: { x: 500, y: 120 } });
+      await stage.click({ position: { x: 620, y: 140 } });
+      await stage.click({ position: { x: 600, y: 240 } });
+      await stage.click({ position: { x: 480, y: 220 } });
+      // Double-click closes the loop.
+      await stage.dblclick({ position: { x: 480, y: 220 } });
+
+      await expect(
+        sidebar.getByTestId('object-item').filter({ hasText: 'polygon' })
+      ).toBeVisible();
+
+      await toolbar.getByTestId('select-tool').click();
+    });
+
+    await test.step('unlink the region via the context menu', async () => {
+      await page
+        .getByTestId('canvas-stage')
+        .click({ button: 'right', position: { x: 200, y: 150 } });
+      await page.getByTestId('unlink-shape-element').click();
+
+      await page
+        .getByTestId('canvas-stage')
+        .click({ button: 'right', position: { x: 200, y: 150 } });
+      await expect(page.getByTestId('link-shape-element')).toBeVisible();
+      await page.keyboard.press('Escape');
+    });
+  });
+
+  test('frames: canvas size, crop frames, export and cover', async ({
+    localPageWithProject: page,
+  }) => {
+    await createCanvasAndOpen(page);
+
+    const sidebar = page.getByTestId('canvas-sidebar');
+    const frameItems = sidebar.getByTestId('frame-item');
+
+    await test.step('frames section starts empty', async () => {
+      await expect(sidebar.getByTestId('frames-header')).toBeVisible();
+      await expect(sidebar.getByTestId('frames-empty')).toBeVisible();
+    });
+
+    await test.step('add the canvas size', async () => {
+      await sidebar.getByTestId('add-frame-button').click();
+      await page.getByTestId('frame-set-canvas-size').click();
+
+      await expect(frameItems).toHaveCount(1);
+      await expect(frameItems.first().getByTestId('frame-name')).toHaveText(
+        'Canvas'
+      );
+      // Only one canvas size allowed — the menu entry is now disabled.
+      await sidebar.getByTestId('add-frame-button').click();
+      await expect(page.getByTestId('frame-set-canvas-size')).toBeDisabled();
+      await page.keyboard.press('Escape');
+    });
+
+    await test.step('add a Cover crop frame from the presets', async () => {
+      await sidebar.getByTestId('add-frame-button').click();
+      await page.getByTestId('frame-preset-cover').click();
+
+      await expect(frameItems).toHaveCount(2);
+      await expect(
+        sidebar.getByTestId('frame-name').filter({ hasText: 'Cover' })
+      ).toBeVisible();
+    });
+
+    await test.step('edit frame name and dimensions via the dialog', async () => {
+      const coverRow = frameItems.filter({ hasText: 'Cover' });
+      await coverRow.getByTestId('frame-menu').click();
+      await page.getByTestId('frame-edit-dimensions').click();
+
+      const nameField = page.getByTestId('frame-custom-name');
+      await expect(nameField).toBeVisible();
+      await nameField.clear();
+      await nameField.fill('Book Cover');
+      await page.getByTestId('frame-custom-width').clear();
+      await page.getByTestId('frame-custom-width').fill('500');
+      await page.getByTestId('frame-custom-confirm').click();
+      await expect(nameField).not.toBeVisible();
+
+      const renamed = frameItems.filter({ hasText: 'Book Cover' });
+      await expect(renamed).toHaveCount(1);
+      await expect(renamed).toContainText('500×1600');
+    });
+
+    await test.step('toggle a frame border off and on', async () => {
+      const row = frameItems.first();
+      const eye = row.getByTestId('frame-visibility');
+      await expect(eye.locator('mat-icon')).toContainText('visibility');
+      await eye.click();
+      await expect(eye.locator('mat-icon')).toContainText('visibility_off');
+      await eye.click();
+      await expect(eye.locator('mat-icon')).toContainText('visibility');
+    });
+
+    await test.step('export a frame as PNG downloads a file', async () => {
+      const row = frameItems.filter({ hasText: 'Book Cover' });
+      await row.getByTestId('frame-menu').click();
+
+      const downloadPromise = page.waitForEvent('download');
+      await page.getByTestId('frame-export-png').click();
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toBe('Book Cover.png');
+    });
+
+    await test.step('export menu offers whole area and per-frame entries', async () => {
+      await sidebar.getByTestId('export-menu-button').click();
+      await expect(page.getByTestId('export-whole-png')).toBeVisible();
+      await expect(page.getByTestId('export-frame-item')).toHaveCount(2);
+
+      // Open the Book Cover frame's submenu and download its PNG.
+      await page
+        .getByTestId('export-frame-item')
+        .filter({ hasText: 'Book Cover' })
+        .click();
+      const downloadPromise = page.waitForEvent('download');
+      await page.getByTestId('export-frame-png').click();
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toBe('Book Cover.png');
+    });
+
+    await test.step('set a frame as the project cover', async () => {
+      const row = frameItems.filter({ hasText: 'Book Cover' });
+      await row.getByTestId('frame-menu').click();
+      await page.getByTestId('frame-set-cover').click();
+
+      // No existing cover, so no confirmation dialog — straight to success.
+      await expect(page.getByText('Project cover updated')).toBeVisible({
+        timeout: 10_000,
+      });
+    });
+  });
+
+  test('guided tour and phone layout', async ({
+    localPageWithProject: page,
+  }) => {
+    await createCanvasAndOpen(page);
+
+    await test.step('help button starts the canvas tour', async () => {
+      await page.getByTestId('canvas-tour-button').first().click();
+      await expect(page.getByTestId('tutorial-card')).toBeVisible();
+      await page.getByTestId('tutorial-close-button').click();
+      await expect(page.getByTestId('tutorial-card')).toHaveCount(0);
+    });
+
+    await test.step('phone width tucks the sidebar into a drawer', async () => {
+      await page.setViewportSize({ width: 390, height: 800 });
+      await page.reload();
+      await expect(page.getByTestId('canvas-container')).toBeVisible();
+      await expect(page.getByTestId('canvas-sidebar')).toHaveCount(0);
+
+      await page.getByTestId('sidebar-expand-button').click();
+      await expect(page.getByTestId('canvas-sidebar')).toBeVisible();
+      await expect(page.getByTestId('sidebar-scrim')).toBeVisible();
+
+      // The drawer covers the left 300px; tap the exposed stage side.
+      await page
+        .getByTestId('sidebar-scrim')
+        .click({ position: { x: 370, y: 400 } });
+      await expect(page.getByTestId('canvas-sidebar')).toHaveCount(0);
     });
   });
 });

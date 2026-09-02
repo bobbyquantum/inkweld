@@ -7,7 +7,6 @@ import type {
 } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasPlacementService } from '@services/canvas/canvas-placement.service';
-import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -222,10 +221,7 @@ describe('CanvasPlacementService', () => {
   });
 
   describe('openPinEditDialog', () => {
-    it('updates pin and link indicator on confirm', () => {
-      const updateSpy = vi
-        .spyOn(CanvasRendererService, 'updatePinLinkIndicator')
-        .mockImplementation(() => {});
+    it('updates the pin object on confirm', () => {
       dialog.open.mockReturnValue({
         afterClosed: () =>
           of({ label: 'L', color: '#abc', linkedElementId: undefined }),
@@ -237,17 +233,7 @@ describe('CanvasPlacementService', () => {
         linkedElementId: undefined,
         relationshipId: undefined,
       } as CanvasPin;
-      const label = {
-        text: vi.fn(),
-        x: vi.fn(),
-        width: () => 40,
-      } as unknown as Konva.Text;
-      const marker = { fill: vi.fn() } as unknown as Konva.Circle;
-      const group = {
-        getLayer: () => ({ batchDraw: vi.fn() }),
-      } as unknown as Konva.Group;
-      service.openPinEditDialog(obj, label, marker, group, 'elem-1');
-      expect(updateSpy).toHaveBeenCalled();
+      service.openPinEditDialog(obj, 'elem-1');
       expect(canvasService.updateObject).toHaveBeenCalledWith(
         'p1',
         expect.objectContaining({ label: 'L', color: '#abc' })

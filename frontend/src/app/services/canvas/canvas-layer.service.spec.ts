@@ -186,7 +186,7 @@ describe('CanvasLayerService', () => {
       expect(added.x).toBe(10);
     });
 
-    it('clears pin relationship fields on duplicated pin objects', () => {
+    it('skips pins and strips element links from duplicated artwork', () => {
       canvasService.activeConfig.mockReturnValue({
         layers: [{ id: 'L1', name: 'Layer 1' }],
         objects: [
@@ -207,11 +207,34 @@ describe('CanvasLayerService', () => {
             relationshipId: 'R1',
             linkedElementId: 'E1',
           },
+          {
+            id: 'S1',
+            layerId: 'L1',
+            type: 'shape',
+            shapeType: 'rect',
+            x: 0,
+            y: 0,
+            width: 10,
+            height: 10,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            visible: true,
+            locked: false,
+            stroke: '#000',
+            strokeWidth: 1,
+            relationshipId: 'R2',
+            linkedElementId: 'E1',
+          },
         ],
       });
       canvasService.addLayer.mockReturnValue('L2');
       service.duplicateLayer('L1');
+
+      // Pins are annotations, not layer content — never duplicated.
+      expect(canvasService.addObject).toHaveBeenCalledTimes(1);
       const added = canvasService.addObject.mock.calls[0][0];
+      expect(added.type).toBe('shape');
       expect(added.relationshipId).toBeUndefined();
       expect(added.linkedElementId).toBeUndefined();
     });
@@ -263,28 +286,14 @@ describe('CanvasLayerService', () => {
       expect(result).toBe(true);
     });
 
-    it('calls cleanupPinRelationships with layer objects', async () => {
-      canvasService.getObjectsForLayer.mockReturnValue([
-        {
-          id: 'P1',
-          type: 'pin',
-          layerId: 'L1',
-          x: 0,
-          y: 0,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          visible: true,
-          locked: false,
-          color: '#f00',
-          label: '',
-          icon: '',
-          relationshipId: 'R1',
-        },
-      ]);
+    it('delegates relationship cleanup to CanvasService.removeLayer', async () => {
+      // Pins survive layer deletion, and linked-artwork relationship cleanup
+      // is centralized in CanvasService.removeLayer - the layer service must
+      // not remove relationships itself.
       dialog.open.mockReturnValue({ afterClosed: () => of(true) });
       await service.deleteLayer('L1');
-      expect(relationshipService.removeRelationship).toHaveBeenCalledWith('R1');
+      expect(canvasService.removeLayer).toHaveBeenCalledWith('L1');
+      expect(relationshipService.removeRelationship).not.toHaveBeenCalled();
     });
 
     it('does not remove layer when user cancels', async () => {

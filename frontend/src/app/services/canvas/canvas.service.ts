@@ -26,12 +26,15 @@ import {
 import { type Element } from '@inkweld/index';
 import {
   type CanvasConfig,
+  type CanvasFrame,
+  type CanvasFrameKind,
   type CanvasLayer,
   type CanvasObject,
   type CanvasToolSettings,
   type CanvasViewport,
   createDefaultCanvasConfig,
   createDefaultLayer,
+  isLinkableObject,
   normalizeToolSettings,
 } from '@models/canvas.model';
 import {
@@ -45,6 +48,7 @@ import { UndoHistory } from '@services/canvas/canvas-history';
 import { LoggerService } from '@services/core/logger.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { RelationshipService } from '@services/relationship/relationship.service';
 import { nanoid } from 'nanoid';
 import { type Subscription } from 'rxjs';
 
@@ -65,6 +69,13 @@ export interface SaveOptions {
   coalesceKey?: string;
   /** Skip the undo stack entirely — used by undo/redo themselves. */
   skipHistory?: boolean;
+}
+
+/** Demote any canvas-size frame to a crop frame (at most one canvas size). */
+function demoteCanvasFrames(frames: CanvasFrame[]): CanvasFrame[] {
+  return frames.map(f =>
+    f.kind === 'canvas' ? { ...f, kind: 'crop' as const } : f
+  );
 }
 
 /** LocalStorage key prefix for per-user canvas viewport */
@@ -104,6 +115,7 @@ export class CanvasService {
 
   /** Waits for the project to load before reading the bound canvas. */
   private loadEffect: EffectRef | null = null;
+  private linkEffect: EffectRef | null = null;
 
   /** Whether the bound canvas's contents have been read yet. */
   private contentsLoaded = false;
@@ -167,6 +179,8 @@ export class CanvasService {
     this.remoteSubscription = null;
     this.loadEffect?.destroy();
     this.loadEffect = null;
+    this.linkEffect?.destroy();
+    this.linkEffect = null;
     this.boundElementId = null;
     this.lastSyncedContents = null;
     this.contentsLoaded = false;
@@ -198,6 +212,14 @@ export class CanvasService {
       () => {
         const elements = this.projectState.elements();
         untracked(() => this.tryLoadContents(elementId, elements));
+      },
+      { injector: this.injector }
+    );
+
+    this.linkEffect = effect(
+      () => {
+        const elements = this.projectState.elements();
+        untracked(() => this.unlinkDanglingObjects(elements));
       },
       { injector: this.injector }
     );
@@ -243,6 +265,7 @@ export class CanvasService {
       layers: legacy?.layers.length ? legacy.layers : defaults.layers,
       objects: legacy?.objects ?? [],
     };
+    if (legacy?.frames) contents.frames = legacy.frames;
 
     this.projectState.seedCanvasContents(elementId, contents);
     return contents;
@@ -273,6 +296,7 @@ export class CanvasService {
       elementId,
       layers: contents.layers.length > 0 ? contents.layers : defaults.layers,
       objects: contents.objects,
+      frames: contents.frames,
     };
   }
 
@@ -301,6 +325,7 @@ export class CanvasService {
     const contents: CanvasContents = {
       layers: config.layers,
       objects: config.objects,
+      frames: config.frames,
     };
     const edit = diffCanvasContents(this.lastSyncedContents, contents);
     this.lastSyncedContents = contents;
@@ -335,17 +360,36 @@ export class CanvasService {
     return layer.id;
   }
 
-  /** Remove a layer and all its objects */
+  /**
+   * Remove a layer and its artwork. Pins survive — they are annotations on
+   * the annotations overlay, not layer content; their vestigial `layerId` is
+   * reassigned so old clients (which still render pins per layer) keep
+   * showing them.
+   */
   removeLayer(layerId: string): void {
     const config = this.activeConfigSignal();
     if (!config) return;
     // Don't allow removing the last layer
     if (config.layers.length <= 1) return;
 
+    const layers = config.layers.filter(l => l.id !== layerId);
+    const fallbackLayerId = [...layers].sort((a, b) => a.order - b.order)[0].id;
+
+    // Linked artwork on the layer dies with it — drop its relationships.
+    this.cleanupRelationshipsFor(
+      config.objects.filter(o => o.type !== 'pin' && o.layerId === layerId)
+    );
+
     this.saveConfig({
       ...config,
-      layers: config.layers.filter(l => l.id !== layerId),
-      objects: config.objects.filter(o => o.layerId !== layerId),
+      layers,
+      objects: config.objects
+        .filter(o => o.type === 'pin' || o.layerId !== layerId)
+        .map(o =>
+          o.type === 'pin' && o.layerId === layerId
+            ? { ...o, layerId: fallbackLayerId }
+            : o
+        ),
     });
   }
 
@@ -398,6 +442,75 @@ export class CanvasService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Frame Operations (canvas size + crop frames)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Add a frame. When adding a `canvas` frame, any existing canvas-size
+   * frame is demoted to a crop frame in the same edit — there is at most one
+   * canvas size.
+   */
+  addFrame(frame: CanvasFrame): void {
+    const config = this.activeConfigSignal();
+    if (!config) return;
+
+    const existing = config.frames ?? [];
+    const frames =
+      frame.kind === 'canvas'
+        ? [...demoteCanvasFrames(existing), frame]
+        : [...existing, frame];
+
+    this.saveConfig({ ...config, frames });
+  }
+
+  /** Update frame properties. `kind` changes go through setFrameKind. */
+  updateFrame(
+    frameId: string,
+    updates: Partial<Omit<CanvasFrame, 'id' | 'kind'>>,
+    options?: SaveOptions
+  ): void {
+    const config = this.activeConfigSignal();
+    if (!config?.frames?.some(f => f.id === frameId)) return;
+
+    this.saveConfig(
+      {
+        ...config,
+        frames: config.frames.map(f =>
+          f.id === frameId ? { ...f, ...updates, id: frameId } : f
+        ),
+      },
+      options
+    );
+  }
+
+  /** Remove a frame. */
+  removeFrame(frameId: string): void {
+    const config = this.activeConfigSignal();
+    if (!config?.frames?.some(f => f.id === frameId)) return;
+
+    this.saveConfig({
+      ...config,
+      frames: config.frames.filter(f => f.id !== frameId),
+    });
+  }
+
+  /**
+   * Promote a frame to be THE canvas size (demoting any other), or demote it
+   * back to a crop frame.
+   */
+  setFrameKind(frameId: string, kind: CanvasFrameKind): void {
+    const config = this.activeConfigSignal();
+    if (!config?.frames?.some(f => f.id === frameId)) return;
+
+    const base =
+      kind === 'canvas' ? demoteCanvasFrames(config.frames) : config.frames;
+    this.saveConfig({
+      ...config,
+      frames: base.map(f => (f.id === frameId ? { ...f, kind } : f)),
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Object Operations
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -420,6 +533,10 @@ export class CanvasService {
   /**
    * Remove several objects in one edit — one undo step and one write for a
    * whole eraser sweep or multi-object delete.
+   *
+   * This is the single choke point for object deletion (sidebar, keyboard,
+   * context menu, eraser), so it also removes the relationships backing any
+   * deleted linked object (pins and region shapes).
    */
   removeObjects(objectIds: string[]): void {
     const config = this.activeConfigSignal();
@@ -429,7 +546,57 @@ export class CanvasService {
     const objects = config.objects.filter(o => !doomed.has(o.id));
     if (objects.length === config.objects.length) return;
 
+    this.cleanupRelationshipsFor(config.objects.filter(o => doomed.has(o.id)));
     this.saveConfig({ ...config, objects });
+  }
+
+  /** Remove the relationships backing any linked objects in `objects`. */
+  private cleanupRelationshipsFor(objects: CanvasObject[]): void {
+    // Resolved lazily: RelationshipService is root-provided and only needed
+    // on deletions.
+    const ids = objects.flatMap(obj =>
+      'relationshipId' in obj && obj.relationshipId ? [obj.relationshipId] : []
+    );
+    if (ids.length === 0) return;
+    // One write for the whole batch: each relationship removal rewrites the
+    // shared relationships array and broadcasts it.
+    this.injector.get(RelationshipService).removeRelationships(ids);
+  }
+
+  /**
+   * Drop links to elements that no longer exist. The project-level cleanup
+   * writes the unlink straight to the provider, which never echoes our own
+   * canvas back to us, so an open editor has to notice on its own — otherwise
+   * its next edit would resurrect the dangling link.
+   */
+  private unlinkDanglingObjects(elements: Element[]): void {
+    if (!this.contentsLoaded || elements.length === 0) return;
+    const config = this.activeConfigSignal();
+    if (!config) return;
+
+    const ids = new Set(elements.map(e => e.id));
+    const dangling = new Set(
+      config.objects
+        .filter(
+          o =>
+            isLinkableObject(o) &&
+            o.linkedElementId &&
+            !ids.has(o.linkedElementId)
+        )
+        .map(o => o.id)
+    );
+    if (dangling.size === 0) return;
+
+    const objects = config.objects.map(o =>
+      dangling.has(o.id)
+        ? ({
+            ...o,
+            linkedElementId: undefined,
+            relationshipId: undefined,
+          } as CanvasObject)
+        : o
+    );
+    this.saveConfig({ ...config, objects }, { skipHistory: true });
   }
 
   /** Update an existing canvas object */

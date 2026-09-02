@@ -139,6 +139,8 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     canvasContents$: vi.fn(() => EMPTY),
     applyCanvasEdit: vi.fn(),
     seedCanvasContents: vi.fn(),
+    listCanvasElementIds: vi.fn().mockReturnValue([]),
+    deleteCanvas: vi.fn(),
     updateProjectMeta: vi.fn((meta: Partial<ProjectMeta>) => {
       const current = projectMetaSubject.getValue();
       projectMetaSubject.next({
@@ -557,6 +559,117 @@ describe('ProjectStateService', () => {
       expect(mockSyncProvider.updateElements).toHaveBeenCalled();
       const calledElements = mockSyncProvider.updateElements.mock.calls[0][0];
       expect(calledElements).toHaveLength(0);
+    });
+
+    it('should clean up references when an element is deleted', () => {
+      const target: Element = {
+        id: 'target-elem',
+        name: 'Target',
+        type: ElementType.Worldbuilding,
+        parentId: null,
+        level: 0,
+        order: 0,
+        expandable: false,
+        version: 0,
+        metadata: {},
+      };
+      const canvas: Element = {
+        id: 'canvas-elem',
+        name: 'Map',
+        type: ElementType.Canvas,
+        parentId: null,
+        level: 0,
+        order: 1,
+        expandable: false,
+        version: 0,
+        metadata: {},
+      };
+      mockSyncProvider._elementsSubject.next([target, canvas]);
+
+      mockSyncProvider.getRelationships.mockReturnValue([
+        {
+          id: 'rel-1',
+          sourceElementId: 'canvas-elem',
+          targetElementId: 'target-elem',
+          relationshipTypeId: 'canvas-pin',
+          createdAt: '',
+          updatedAt: '',
+        },
+        {
+          id: 'rel-2',
+          sourceElementId: 'other-a',
+          targetElementId: 'other-b',
+          relationshipTypeId: 'friend',
+          createdAt: '',
+          updatedAt: '',
+        },
+      ]);
+      mockSyncProvider.listCanvasElementIds.mockReturnValue(['canvas-elem']);
+      mockSyncProvider.getCanvasContents.mockReturnValue({
+        layers: [],
+        objects: [
+          {
+            id: 'pin-1',
+            layerId: 'l1',
+            type: 'pin',
+            x: 0,
+            y: 0,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            visible: true,
+            locked: false,
+            label: 'Pin',
+            icon: 'place',
+            color: '#f00',
+            linkedElementId: 'target-elem',
+            relationshipId: 'rel-1',
+          },
+        ],
+      });
+
+      service.deleteElement('target-elem');
+
+      // Relationships involving the deleted element are dropped.
+      expect(mockSyncProvider.updateRelationships).toHaveBeenCalledWith([
+        expect.objectContaining({ id: 'rel-2' }),
+      ]);
+
+      // The pin pointing at the deleted element is unlinked but kept.
+      expect(mockSyncProvider.applyCanvasEdit).toHaveBeenCalledWith(
+        'canvas-elem',
+        {
+          upserts: [
+            expect.objectContaining({
+              id: 'pin-1',
+              linkedElementId: undefined,
+              relationshipId: undefined,
+            }),
+          ],
+        }
+      );
+    });
+
+    it('should drop canvas contents when a canvas element is deleted', () => {
+      const canvas: Element = {
+        id: 'canvas-elem',
+        name: 'Map',
+        type: ElementType.Canvas,
+        parentId: null,
+        level: 0,
+        order: 0,
+        expandable: false,
+        version: 0,
+        metadata: {},
+      };
+      mockSyncProvider._elementsSubject.next([canvas]);
+      mockSyncProvider.getRelationships.mockReturnValue([]);
+      mockSyncProvider.listCanvasElementIds.mockReturnValue(['canvas-elem']);
+
+      service.deleteElement('canvas-elem');
+
+      expect(mockSyncProvider.deleteCanvas).toHaveBeenCalledWith('canvas-elem');
+      expect(mockSyncProvider.applyCanvasEdit).not.toHaveBeenCalled();
     });
 
     it('should rename element via sync provider', () => {

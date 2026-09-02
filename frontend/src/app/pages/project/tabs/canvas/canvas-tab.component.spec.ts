@@ -1,10 +1,13 @@
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
 import {
   type CanvasConfig,
+  type CanvasFrame,
   type CanvasImage,
+  type CanvasObject,
   type CanvasPath,
   type CanvasPin,
   type CanvasShape,
@@ -29,8 +32,10 @@ import { CanvasStageEventsService } from '@services/canvas/canvas-stage-events.s
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
+import { TutorialService } from '@services/core/tutorial.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { PresenceService } from '@services/presence/presence.service';
+import { ProjectService } from '@services/project/project.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import type Konva from 'konva';
@@ -136,6 +141,10 @@ describe('CanvasTabComponent', () => {
     saveToolSettings: vi.fn(),
     removeObjects: vi.fn(),
     updateObjects: vi.fn(),
+    addFrame: vi.fn(),
+    updateFrame: vi.fn(),
+    removeFrame: vi.fn(),
+    setFrameKind: vi.fn(),
     flush: vi.fn(),
     undo: vi.fn(() => false),
     redo: vi.fn(() => false),
@@ -164,15 +173,37 @@ describe('CanvasTabComponent', () => {
       slug: 'test-project',
     }),
     updateElementMetadata: vi.fn(),
+    coverMediaId: signal<string | undefined>(undefined),
+    updateProject: vi.fn(),
+    openDocument: vi.fn(),
+  };
+
+  const mockProjectService = {
+    uploadProjectCover: vi.fn(() => Promise.resolve('cover-123.jpg')),
   };
 
   const mockRoute = {
     paramMap: of(new Map([['tabId', 'test-canvas']])),
   };
 
+  const mockBreakpointObserver = {
+    isMatched: vi.fn(() => false),
+    observe: vi.fn(() => of({ matches: false, breakpoints: {} })),
+  };
+
+  const mockTutorialService = {
+    start: vi.fn(() => true),
+    maybeAutoStart: vi.fn(() => false),
+  };
+
   const mockDialogGateway = {
     openInsertImageDialog: vi.fn(
       (): Promise<{ mediaId: string; imageBlob: Blob } | undefined> =>
+        Promise.resolve(undefined)
+    ),
+    openConfirmationDialog: vi.fn(() => Promise.resolve(true)),
+    openElementPickerDialog: vi.fn(
+      (): Promise<{ elements: { id: string }[] } | undefined> =>
         Promise.resolve(undefined)
     ),
   };
@@ -262,6 +293,9 @@ describe('CanvasTabComponent', () => {
     r.buildKonvaLayers = vi.fn();
     r.buildKonvaObjects = vi.fn();
     r.setContentInteractive = vi.fn();
+    r.syncFrames = vi.fn();
+    r.setFrameEditing = vi.fn();
+    r.updateFrameOverlayScale = vi.fn();
     r.resolveImageSrc = CanvasRendererService.prototype.resolveImageSrc.bind(r);
     r.initStage = vi.fn(() => ({ zoomLevel: 1 }));
     r.destroyStage = vi.fn();
@@ -282,9 +316,12 @@ describe('CanvasTabComponent', () => {
         { provide: ActivatedRoute, useValue: mockRoute },
         { provide: MatDialog, useValue: mockDialog },
         { provide: DialogGatewayService, useValue: mockDialogGateway },
+        { provide: BreakpointObserver, useValue: mockBreakpointObserver },
+        { provide: TutorialService, useValue: mockTutorialService },
         { provide: LocalStorageService, useValue: mockLocalStorageService },
         { provide: LoggerService, useValue: mockLogger },
         { provide: RelationshipService, useValue: mockRelationshipService },
+        { provide: ProjectService, useValue: mockProjectService },
         {
           provide: PresenceService,
           useValue: mockPresenceService,
@@ -499,16 +536,11 @@ describe('CanvasTabComponent', () => {
       component['onDuplicateLayer'](defaultConfig.layers[0].id);
 
       expect(mockCanvasService.addLayer).toHaveBeenCalledWith('Layer 1 (copy)');
-      expect(mockCanvasService.addObject).toHaveBeenCalledTimes(2);
+      // Pins are annotations, not layer content - only the artwork copies.
+      expect(mockCanvasService.addObject).toHaveBeenCalledTimes(1);
       expect(mockCanvasService.addObject.mock.calls[0][0]).toMatchObject({
         layerId: 'new-layer-id',
         type: 'shape',
-      });
-      expect(mockCanvasService.addObject.mock.calls[1][0]).toMatchObject({
-        layerId: 'new-layer-id',
-        type: 'pin',
-        linkedElementId: undefined,
-        relationshipId: undefined,
       });
     });
 
@@ -1565,12 +1597,12 @@ describe('CanvasTabComponent', () => {
       expect((clipContent as CanvasPin).relationshipId).toBeUndefined();
     });
 
-    it('should call removePinRelationship when cutting a linked pin', () => {
+    it('should cut a linked pin without touching the relationship itself', () => {
+      // Relationship cleanup is centralized in CanvasService.removeObjects
+      // (mocked here); the component/clipboard paths only remove the object.
       component['selectedObjectId'].set('pin-linked');
       component['onCut']();
-      expect(mockRelationshipService.removeRelationship).toHaveBeenCalledWith(
-        'rel-1'
-      );
+      expect(mockCanvasService.removeObject).toHaveBeenCalledWith('pin-linked');
       const clipContent = component['clipboard']();
       expect((clipContent as CanvasPin).relationshipId).toBeUndefined();
     });
@@ -1589,21 +1621,15 @@ describe('CanvasTabComponent', () => {
       expect(pastedObj.relationshipId).toBe('relationship-1');
     });
 
-    it('should call removePinRelationship when deleting a linked pin via context menu', () => {
+    it('should delete a linked pin via context menu through removeObject', () => {
       component['selectedObjectId'].set('pin-linked');
       component['onContextDelete']();
-      expect(mockRelationshipService.removeRelationship).toHaveBeenCalledWith(
-        'rel-1'
-      );
       expect(mockCanvasService.removeObject).toHaveBeenCalledWith('pin-linked');
     });
 
-    it('should call removePinRelationship when deleting a linked pin via sidebar', () => {
+    it('should delete a linked pin via sidebar through removeObject', () => {
       const event = new MouseEvent('click');
       component['onDeleteObject']('pin-linked', event);
-      expect(mockRelationshipService.removeRelationship).toHaveBeenCalledWith(
-        'rel-1'
-      );
       expect(mockCanvasService.removeObject).toHaveBeenCalledWith('pin-linked');
     });
   });
@@ -1955,6 +1981,7 @@ describe('CanvasTabComponent', () => {
     it('should export PNG with pixelRatio 2', () => {
       mockCanvasRenderer.stage = {
         toDataURL: vi.fn(() => 'data:image/png;base64,abc'),
+        batchDraw: vi.fn(),
       };
 
       component['exportAsPng']();
@@ -1968,6 +1995,7 @@ describe('CanvasTabComponent', () => {
     it('should export high-res PNG with pixelRatio 3', () => {
       mockCanvasRenderer.stage = {
         toDataURL: vi.fn(() => 'data:image/png;base64,xyz'),
+        batchDraw: vi.fn(),
       };
 
       component['exportAsHighResPng']();
@@ -2712,6 +2740,552 @@ describe('CanvasTabComponent', () => {
       mockPresenceService.setSelection.mockClear();
       capturedCallbacks.onCleared?.();
       expect(mockPresenceService.setSelection).toHaveBeenCalledWith(null);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Frames, regions, pen, sections and cover
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('frames', () => {
+    const frame: CanvasFrame = {
+      id: 'F1',
+      name: 'Cover',
+      kind: 'crop',
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 160,
+      visible: true,
+    };
+
+    function withFrames(frames: CanvasFrame[]): void {
+      mockCanvasService.activeConfig.set({ ...defaultConfig, frames });
+      fixture.detectChanges();
+    }
+
+    it('exposes frames and whether a canvas size exists', () => {
+      withFrames([frame]);
+      expect(component['frames']()).toHaveLength(1);
+      expect(component['hasCanvasSize']()).toBe(false);
+
+      withFrames([{ ...frame, kind: 'canvas' }]);
+      expect(component['hasCanvasSize']()).toBe(true);
+    });
+
+    it('adds a canvas size centred on the viewport, once', () => {
+      component['onAddCanvasSize']();
+      const added = mockCanvasService.addFrame.mock.calls[0][0];
+      expect(added.kind).toBe('canvas');
+      expect(added.width).toBe(1920);
+      expect(added.height).toBe(1080);
+
+      // A second canvas size is refused while one exists.
+      withFrames([{ ...frame, kind: 'canvas' }]);
+      mockCanvasService.addFrame.mockClear();
+      component['onAddCanvasSize']();
+      expect(mockCanvasService.addFrame).not.toHaveBeenCalled();
+    });
+
+    it('adds preset frames and ignores unknown presets', () => {
+      component['onAddFramePreset']('cover');
+      const added = mockCanvasService.addFrame.mock.calls[0][0];
+      expect(added.kind).toBe('crop');
+      expect(added.name).toBe('Cover');
+      expect(added.width).toBe(1000);
+      expect(added.height).toBe(1600);
+
+      mockCanvasService.addFrame.mockClear();
+      component['onAddFramePreset']('nope' as never);
+      expect(mockCanvasService.addFrame).not.toHaveBeenCalled();
+    });
+
+    it('creates a custom frame from the dialog result', async () => {
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of({ name: 'Region', width: 300, height: 200 }),
+      });
+      await component['onAddCustomFrame']();
+      const added = mockCanvasService.addFrame.mock.calls[0][0];
+      expect(added).toMatchObject({
+        name: 'Region',
+        width: 300,
+        height: 200,
+        kind: 'crop',
+      });
+    });
+
+    it('does not create a frame when the custom dialog is cancelled', async () => {
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(undefined) });
+      await component['onAddCustomFrame']();
+      expect(mockCanvasService.addFrame).not.toHaveBeenCalled();
+    });
+
+    it('edits a frame, falling back to its current position', async () => {
+      withFrames([frame]);
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of({ name: 'Renamed', width: 50, height: 60 }),
+      });
+      await component['onEditFrame']('F1');
+      expect(mockCanvasService.updateFrame).toHaveBeenCalledWith('F1', {
+        name: 'Renamed',
+        width: 50,
+        height: 60,
+        x: frame.x,
+        y: frame.y,
+      });
+    });
+
+    it('ignores edits for unknown frames', async () => {
+      withFrames([frame]);
+      await component['onEditFrame']('missing');
+      expect(mockDialog.open).not.toHaveBeenCalled();
+    });
+
+    it('toggles frame visibility, kind and deletion', () => {
+      withFrames([frame]);
+      const event = new MouseEvent('click');
+
+      component['onToggleFrameVisibility']('F1', event);
+      expect(mockCanvasService.updateFrame).toHaveBeenCalledWith('F1', {
+        visible: false,
+      });
+
+      component['onSetFrameKind']('F1', 'canvas');
+      expect(mockCanvasService.setFrameKind).toHaveBeenCalledWith(
+        'F1',
+        'canvas'
+      );
+
+      component['onDeleteFrame']('F1');
+      expect(mockCanvasService.removeFrame).toHaveBeenCalledWith('F1');
+    });
+
+    it('toggles the global frame-border preference', () => {
+      const before = component['framesVisible']();
+      component['onToggleFramesVisible']();
+      expect(component['framesVisible']()).toBe(!before);
+    });
+
+    it('selects a frame for editing and deselects on a second click', () => {
+      withFrames([frame]);
+      component['onSelectFrame']('F1');
+      expect(component['selectedFrameId']()).toBe('F1');
+
+      component['onSelectFrame']('F1');
+      expect(component['selectedFrameId']()).toBeNull();
+    });
+
+    it('exports a frame as PNG and SVG', () => {
+      const png = vi.spyOn(component['canvasExport'], 'exportFrameAsPng');
+      const svg = vi.spyOn(component['canvasExport'], 'exportFrameAsSvg');
+
+      component['onExportFramePng'](frame);
+      expect(png).toHaveBeenCalledWith(frame, 1);
+      component['onExportFramePng'](frame, 2);
+      expect(png).toHaveBeenCalledWith(frame, 2);
+      component['onExportFrameSvg'](frame);
+      expect(svg).toHaveBeenCalledWith(frame);
+    });
+
+    it('sets a frame as the project cover', async () => {
+      vi.spyOn(component['canvasExport'], 'exportRegionBlob').mockResolvedValue(
+        new Blob(['x'])
+      );
+      await component['onSetFrameAsCover'](frame);
+
+      expect(mockProjectService.uploadProjectCover).toHaveBeenCalled();
+      // The filename stem becomes the coverMediaId.
+      expect(mockProjectState.updateProject).toHaveBeenCalledWith(
+        expect.anything(),
+        'cover-123'
+      );
+    });
+
+    it('confirms before replacing an existing cover, and can be cancelled', async () => {
+      mockProjectState.coverMediaId.set('existing');
+      mockDialogGateway.openConfirmationDialog.mockResolvedValueOnce(false);
+      const render = vi
+        .spyOn(component['canvasExport'], 'exportRegionBlob')
+        .mockResolvedValue(new Blob(['x']));
+
+      await component['onSetFrameAsCover'](frame);
+      expect(mockDialogGateway.openConfirmationDialog).toHaveBeenCalled();
+      expect(render).not.toHaveBeenCalled();
+      expect(mockProjectService.uploadProjectCover).not.toHaveBeenCalled();
+      mockProjectState.coverMediaId.set(undefined);
+    });
+
+    it('reports a failure to set the cover', async () => {
+      vi.spyOn(component['canvasExport'], 'exportRegionBlob').mockRejectedValue(
+        new Error('boom')
+      );
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      await component['onSetFrameAsCover'](frame);
+      expect(mockProjectState.updateProject).not.toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('regions, pins and the pen tool', () => {
+    const linkedShape: CanvasShape = {
+      id: 'shape-linked',
+      layerId: defaultConfig.layers[0].id,
+      type: 'shape',
+      shapeType: 'rect',
+      x: 0,
+      y: 0,
+      width: 10,
+      height: 10,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      visible: true,
+      locked: false,
+      stroke: '#000',
+      strokeWidth: 1,
+      linkedElementId: 'test-canvas',
+      relationshipId: 'rel-9',
+    };
+
+    function withObjects(objects: CanvasObject[]): void {
+      mockCanvasService.activeConfig.set({ ...defaultConfig, objects });
+      fixture.detectChanges();
+    }
+
+    it('links a shape to a picked element', async () => {
+      withObjects([
+        {
+          ...linkedShape,
+          linkedElementId: undefined,
+          relationshipId: undefined,
+        },
+      ]);
+      component['selectedObjectId'].set('shape-linked');
+      mockDialogGateway.openElementPickerDialog.mockResolvedValue({
+        elements: [{ id: 'target-el' }],
+      });
+
+      await component['onLinkShape']();
+
+      expect(mockRelationshipService.addRelationship).toHaveBeenCalled();
+      expect(mockCanvasService.updateObject).toHaveBeenCalledWith(
+        'shape-linked',
+        expect.objectContaining({ linkedElementId: 'target-el' })
+      );
+    });
+
+    it('does nothing when the element picker is dismissed', async () => {
+      withObjects([linkedShape]);
+      component['selectedObjectId'].set('shape-linked');
+      mockDialogGateway.openElementPickerDialog.mockResolvedValue(undefined);
+
+      await component['onLinkShape']();
+      expect(mockCanvasService.updateObject).not.toHaveBeenCalled();
+    });
+
+    it('unlinks a shape and drops its relationship', () => {
+      withObjects([linkedShape]);
+      component['selectedObjectId'].set('shape-linked');
+
+      component['onUnlinkShape']();
+      expect(mockRelationshipService.removeRelationship).toHaveBeenCalledWith(
+        'rel-9'
+      );
+      expect(mockCanvasService.updateObject).toHaveBeenCalledWith(
+        'shape-linked',
+        { linkedElementId: undefined, relationshipId: undefined }
+      );
+    });
+
+    it('exposes the selected shape and opens its linked element', () => {
+      withObjects([linkedShape]);
+      component['selectedObjectId'].set('shape-linked');
+      expect(component['selectedShape']()?.id).toBe('shape-linked');
+
+      const navigate = vi
+        .spyOn(component['elementNavigation'], 'openElement')
+        .mockImplementation(() => {});
+      component['onOpenLinkedElement']();
+      expect(navigate).toHaveBeenCalled();
+    });
+
+    it('warns when a link points at a deleted element', () => {
+      withObjects([{ ...linkedShape, linkedElementId: 'ghost' }]);
+      component['selectedObjectId'].set('shape-linked');
+      const snack = vi.spyOn(component['snackBar'], 'open');
+
+      component['onOpenLinkedElement']();
+      expect(snack).toHaveBeenCalled();
+    });
+
+    it('lists pins separately from layer objects', () => {
+      const pin: CanvasPin = {
+        id: 'pin-a',
+        layerId: 'other-layer',
+        type: 'pin',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        label: 'Harbour',
+        icon: 'place',
+        color: '#f00',
+      };
+      withObjects([pin, linkedShape]);
+
+      // Pins are listed regardless of their (vestigial) layerId…
+      expect(component['allPins']().map(p => p.id)).toEqual(['pin-a']);
+      // …and never appear among the active layer's objects.
+      expect(
+        component['activeLayerObjects']().some(o => o.type === 'pin')
+      ).toBe(false);
+    });
+
+    it('the pen tool adds vertices on stage clicks', () => {
+      const addVertex = vi
+        .spyOn(component['canvasDrawing'], 'addPolygonVertex')
+        .mockReturnValue(false);
+      component['activeTool'].set('polygon');
+
+      component['handleStageClick'](
+        {} as unknown as Parameters<(typeof component)['handleStageClick']>[0]
+      );
+      expect(addVertex).toHaveBeenCalled();
+    });
+
+    it('the pen preview follows the cursor only while the pen is active', () => {
+      const update = vi.spyOn(
+        component['canvasDrawing'],
+        'updatePolygonCursor'
+      );
+      component['activeTool'].set('select');
+      component['moveBrushCursor']({ x: 1, y: 2 });
+      expect(update).not.toHaveBeenCalled();
+
+      component['activeTool'].set('polygon');
+      component['moveBrushCursor']({ x: 1, y: 2 });
+      expect(update).toHaveBeenCalled();
+    });
+  });
+
+  describe('sidebar sections and background images', () => {
+    it('collapses and restores sections, persisting the choice', () => {
+      expect(component['isSectionCollapsed']('layers')).toBe(false);
+
+      component['onToggleSection']('layers');
+      expect(component['isSectionCollapsed']('layers')).toBe(true);
+      expect(localStorage.getItem('canvasSidebarSections')).toContain('layers');
+
+      component['onToggleSection']('layers');
+      expect(component['isSectionCollapsed']('layers')).toBe(false);
+    });
+
+    it('toggles an image between backdrop and regular object', () => {
+      const image: CanvasImage = {
+        id: 'img-1',
+        layerId: defaultConfig.layers[0].id,
+        type: 'image',
+        x: 0,
+        y: 0,
+        width: 10,
+        height: 10,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        src: 'media:abc',
+      };
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [image],
+      });
+      fixture.detectChanges();
+
+      component['selectedObjectId'].set('img-1');
+      component['onToggleObjectBackground']('img-1');
+      expect(mockCanvasService.updateObject).toHaveBeenCalledWith('img-1', {
+        isBackground: true,
+      });
+      // A backdrop cannot stay selected.
+      expect(component['selectedObjectId']()).toBeNull();
+
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [{ ...image, isBackground: true }],
+      });
+      fixture.detectChanges();
+      component['onToggleObjectBackground']('img-1');
+      expect(mockCanvasService.updateObject).toHaveBeenLastCalledWith('img-1', {
+        isBackground: undefined,
+      });
+    });
+
+    it('ignores background toggles for non-images', () => {
+      const text: CanvasText = {
+        id: 'txt-1',
+        layerId: defaultConfig.layers[0].id,
+        type: 'text',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        text: 'Hi',
+        fontSize: 12,
+        fontFamily: 'Arial',
+        fontStyle: 'normal',
+        fill: '#000',
+        width: 100,
+        align: 'left',
+      };
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [text],
+      });
+      fixture.detectChanges();
+      component['onToggleObjectBackground']('txt-1');
+      expect(mockCanvasService.updateObject).not.toHaveBeenCalled();
+    });
+
+    it('shows the element icon in the sidebar header when set', () => {
+      expect(component['elementIcon']()).toBe('dashboard');
+      mockProjectState.elements.set([
+        { ...testElements[0], metadata: { icon: 'map' } },
+      ]);
+      fixture.detectChanges();
+      expect(component['elementIcon']()).toBe('map');
+      mockProjectState.elements.set(testElements);
+    });
+  });
+
+  describe('mobile layout and touch', () => {
+    it('starts with the sidebar tucked away on phones', () => {
+      mockBreakpointObserver.isMatched.mockReturnValue(true);
+      mockBreakpointObserver.observe.mockReturnValue(
+        of({ matches: true, breakpoints: {} })
+      );
+      const mobileFixture = TestBed.createComponent(CanvasTabComponent);
+      mobileFixture.detectChanges();
+      const mobile = mobileFixture.componentInstance;
+      expect(mobile['isMobile']()).toBe(true);
+      expect(mobile['sidebarOpen']()).toBe(false);
+
+      // Opening the drawer shows a scrim that closes it again.
+      mobile['toggleSidebar']();
+      mobileFixture.detectChanges();
+      const scrim = mobileFixture.nativeElement.querySelector(
+        '[data-testid="sidebar-scrim"]'
+      ) as HTMLElement;
+      expect(scrim).toBeTruthy();
+      scrim.click();
+      expect(mobile['sidebarOpen']()).toBe(false);
+      mockBreakpointObserver.isMatched.mockReturnValue(false);
+      mockBreakpointObserver.observe.mockReturnValue(
+        of({ matches: false, breakpoints: {} })
+      );
+    });
+
+    it('is not mobile at desktop widths', () => {
+      expect(component['isMobile']()).toBe(false);
+    });
+
+    it('a still touch on the stage opens the context menu', () => {
+      vi.useFakeTimers();
+      try {
+        const openAt = vi.spyOn(component['canvasContextMenu'], 'openAt');
+        component['onStagePointerDown']({
+          pointerType: 'touch',
+          clientX: 40,
+          clientY: 50,
+        } as PointerEvent);
+        expect(openAt).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(500);
+        expect(openAt).toHaveBeenCalledWith(40, 50, null);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('a moving finger, a mouse, or a drawing tool never long-presses', () => {
+      vi.useFakeTimers();
+      try {
+        const openAt = vi.spyOn(component['canvasContextMenu'], 'openAt');
+
+        // Drift beyond the slop cancels the press.
+        component['onStagePointerDown']({
+          pointerType: 'touch',
+          clientX: 40,
+          clientY: 50,
+        } as PointerEvent);
+        component['onStagePointerMove']({
+          clientX: 60,
+          clientY: 50,
+        } as PointerEvent);
+        vi.advanceTimersByTime(600);
+        expect(openAt).not.toHaveBeenCalled();
+
+        // Mouse pointers have a real right-click.
+        component['onStagePointerDown']({
+          pointerType: 'mouse',
+          clientX: 40,
+          clientY: 50,
+        } as PointerEvent);
+        vi.advanceTimersByTime(600);
+        expect(openAt).not.toHaveBeenCalled();
+
+        // With a creation tool active a press is the start of a stroke.
+        component['activeTool'].set('draw');
+        component['onStagePointerDown']({
+          pointerType: 'touch',
+          clientX: 40,
+          clientY: 50,
+        } as PointerEvent);
+        vi.advanceTimersByTime(600);
+        expect(openAt).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('lifting the finger before the delay cancels the press', () => {
+      vi.useFakeTimers();
+      try {
+        const openAt = vi.spyOn(component['canvasContextMenu'], 'openAt');
+        component['onStagePointerDown']({
+          pointerType: 'touch',
+          clientX: 1,
+          clientY: 2,
+        } as PointerEvent);
+        component['cancelLongPress']();
+        vi.advanceTimersByTime(600);
+        expect(openAt).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  describe('guided tour', () => {
+    it('offers the canvas tour once the view is ready', () => {
+      component.ngAfterViewInit();
+      expect(mockTutorialService.maybeAutoStart).toHaveBeenCalledWith(
+        'canvas',
+        { isMobile: false }
+      );
+    });
+
+    it('replays the tour from the sidebar help button', () => {
+      component['onStartTour']();
+      expect(mockTutorialService.start).toHaveBeenCalledWith('canvas');
     });
   });
 });

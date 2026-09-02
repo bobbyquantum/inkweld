@@ -1,15 +1,21 @@
-import type {
-  CanvasConfig,
-  CanvasImage,
-  CanvasLayer,
-  CanvasObject,
-  CanvasPath,
-  CanvasPin,
-  CanvasShape,
-  CanvasText,
+import {
+  type CanvasConfig,
+  type CanvasImage,
+  type CanvasLayer,
+  type CanvasObject,
+  type CanvasPath,
+  type CanvasPin,
+  type CanvasShape,
+  type CanvasText,
+  isBackgroundImage,
 } from '@models/canvas.model';
 
-import { svgEsc } from './canvas-utils';
+import {
+  isGradientFill,
+  linearGradientLine,
+  parseCssGradient,
+  svgEsc,
+} from './canvas-utils';
 import { buildInkOutline, buildPathData } from './ink-stroke';
 
 let svgIdCounter = 0;
@@ -82,6 +88,17 @@ function isLineOrArrowShape(obj: CanvasObject): obj is CanvasShape {
   );
 }
 
+/** Expand bounds by one object, dispatching on its geometry kind. */
+function expandBoundsForObject(b: Bounds, obj: CanvasObject): void {
+  if (obj.type === 'path') {
+    expandBoundsForPath(b, obj);
+  } else if (isLineOrArrowShape(obj)) {
+    expandBoundsForLineShape(b, obj);
+  } else {
+    expandBoundsForBox(b, obj);
+  }
+}
+
 /** Compute SVG viewBox from visible objects across visible layers */
 export function computeSvgViewBox(
   config: CanvasConfig,
@@ -94,18 +111,13 @@ export function computeSvgViewBox(
     maxY: -Infinity,
   };
 
-  for (const layer of visibleLayers) {
-    for (const obj of config.objects.filter(
-      o => o.layerId === layer.id && o.visible
-    )) {
-      if (obj.type === 'path') {
-        expandBoundsForPath(b, obj);
-      } else if (isLineOrArrowShape(obj)) {
-        expandBoundsForLineShape(b, obj);
-      } else {
-        expandBoundsForBox(b, obj);
-      }
-    }
+  const visibleLayerIds = new Set(visibleLayers.map(l => l.id));
+  for (const obj of config.objects) {
+    if (!obj.visible) continue;
+    // Pins are annotations rendered above every layer, regardless of layer
+    // visibility — everything else follows its layer.
+    if (obj.type !== 'pin' && !visibleLayerIds.has(obj.layerId)) continue;
+    expandBoundsForObject(b, obj);
   }
 
   const PAD = 20;
@@ -157,9 +169,43 @@ function canvasObjectToSvgShape(obj: CanvasObject, tf: string): string {
   }
 }
 
+/**
+ * SVG `<defs>` + fill reference for a CSS gradient fill, or null for plain
+ * colors. Gradient coordinates use objectBoundingBox fractions so they track
+ * the shape without knowing its absolute geometry.
+ */
+function svgGradientFill(
+  fill: string
+): { defs: string; fillRef: string } | null {
+  const gradient = parseCssGradient(fill);
+  if (!gradient) return null;
+
+  const id = `grad-${++svgIdCounter}`;
+  const stops = gradient.stops
+    .map(
+      stop =>
+        `<stop offset="${Math.round(stop.offset * 1000) / 10}%" stop-color="${svgEsc(stop.color)}"/>`
+    )
+    .join('');
+
+  if (gradient.type === 'linear') {
+    const { start, end } = linearGradientLine(gradient.angle, 1, 1, {
+      x: 0.5,
+      y: 0.5,
+    });
+    const defs = `<defs><linearGradient id="${id}" x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}">${stops}</linearGradient></defs>`;
+    return { defs, fillRef: `url(#${id})` };
+  }
+
+  const defs = `<defs><radialGradient id="${id}" cx="0.5" cy="0.5" r="0.7071">${stops}</radialGradient></defs>`;
+  return { defs, fillRef: `url(#${id})` };
+}
+
 /** Convert a CanvasShape to its SVG element string */
 export function canvasShapeToSvg(obj: CanvasShape, tf: string): string {
-  const fill = obj.fill ?? 'none';
+  const gradient = isGradientFill(obj.fill) ? svgGradientFill(obj.fill) : null;
+  const fill = gradient?.fillRef ?? obj.fill ?? 'none';
+  const gradientDefs = gradient?.defs ?? '';
   const base = `fill="${fill}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}"`;
   const dash = obj.dash?.length
     ? ` stroke-dasharray="${obj.dash.join(',')}"`
@@ -168,12 +214,12 @@ export function canvasShapeToSvg(obj: CanvasShape, tf: string): string {
   switch (obj.shapeType) {
     case 'rect': {
       const cr = obj.cornerRadius ? ` rx="${obj.cornerRadius}"` : '';
-      return `<rect ${tf} width="${obj.width}" height="${obj.height}" ${base}${dash}${cr}/>`;
+      return `${gradientDefs}<rect ${tf} width="${obj.width}" height="${obj.height}" ${base}${dash}${cr}/>`;
     }
     case 'ellipse': {
       const rx = obj.width / 2;
       const ry = obj.height / 2;
-      return `<ellipse ${tf} cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" ${base}${dash}/>`;
+      return `${gradientDefs}<ellipse ${tf} cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" ${base}${dash}/>`;
     }
     case 'line': {
       const pts: number[] = obj.points ?? [0, 0, obj.width, 0];
@@ -191,7 +237,7 @@ export function canvasShapeToSvg(obj: CanvasShape, tf: string): string {
       const ptStr: string[] = [];
       for (let i = 0; i < pts.length; i += 2)
         ptStr.push(`${pts[i]},${pts[i + 1]}`);
-      return `<polygon ${tf} points="${ptStr.join(' ')}" ${base}${dash}/>`;
+      return `${gradientDefs}<polygon ${tf} points="${ptStr.join(' ')}" ${base}${dash}/>`;
     }
     default:
       return '';
@@ -250,16 +296,33 @@ export function canvasPinToSvg(obj: CanvasPin, tf: string): string {
   return `<g ${tf}><circle r="12" fill="${obj.color}" stroke="#fff" stroke-width="2"/>${label}</g>`;
 }
 
+/** A rectangular export region in canvas world coordinates. */
+export interface SvgExportRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 /**
  * Build a complete SVG document string from a canvas config.
  * Returns the SVG markup as a string.
+ *
+ * With a `region` (canvas size or crop frame) the viewBox is exactly that
+ * rect — the SVG viewBox crops overhanging content naturally. Otherwise the
+ * viewBox is fitted around the visible content as before.
  */
-export function buildSvgDocument(config: CanvasConfig): string {
+export function buildSvgDocument(
+  config: CanvasConfig,
+  region?: SvgExportRegion
+): string {
   const visibleLayers = [...config.layers]
     .sort((a, b) => a.order - b.order)
     .filter(l => l.visible);
 
-  const { vX, vY, vW, vH } = computeSvgViewBox(config, visibleLayers);
+  const { vX, vY, vW, vH } = region
+    ? { vX: region.x, vY: region.y, vW: region.width, vH: region.height }
+    : computeSvgViewBox(config, visibleLayers);
 
   const lines: string[] = [
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"`,
@@ -267,13 +330,28 @@ export function buildSvgDocument(config: CanvasConfig): string {
   ];
 
   for (const layer of visibleLayers) {
-    const objs = config.objects.filter(
-      o => o.layerId === layer.id && o.visible
+    const layerObjs = config.objects.filter(
+      o => o.layerId === layer.id && o.visible && o.type !== 'pin'
     );
+    // Match the renderer: backgrounds always draw below the layer's objects.
+    const objs = [
+      ...layerObjs.filter(o => isBackgroundImage(o)),
+      ...layerObjs.filter(o => !isBackgroundImage(o)),
+    ];
     if (!objs.length) continue;
     lines.push(`  <g id="${svgEsc(layer.id)}" opacity="${layer.opacity}">`);
     for (const obj of objs) {
       lines.push('    ' + canvasObjectToSvgElement(obj));
+    }
+    lines.push('  </g>');
+  }
+
+  // Pins render above every layer, independent of layer visibility.
+  const pins = config.objects.filter(o => o.type === 'pin' && o.visible);
+  if (pins.length > 0) {
+    lines.push('  <g id="annotations">');
+    for (const pin of pins) {
+      lines.push('    ' + canvasObjectToSvgElement(pin));
     }
     lines.push('  </g>');
   }
@@ -286,8 +364,12 @@ export function buildSvgDocument(config: CanvasConfig): string {
  * Export the canvas config as an SVG file download.
  * Handles blob creation and browser download trigger.
  */
-export function downloadSvg(config: CanvasConfig, elementName: string): void {
-  const svgContent = buildSvgDocument(config);
+export function downloadSvg(
+  config: CanvasConfig,
+  elementName: string,
+  region?: SvgExportRegion
+): void {
+  const svgContent = buildSvgDocument(config, region);
   const blob = new Blob([svgContent], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

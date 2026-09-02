@@ -88,6 +88,8 @@ On Elena's page, you see the incoming backlink:
 
 All relationship types are defined per-project in Project Settings. Demo templates may include pre-configured types to help you get started.
 
+Two types are created automatically the first time you use them: **canvas-pin** ("Has pin on canvas") when you link a canvas pin to an element, and **canvas-area** ("Has mapped area") when you link a shape as a region. They appear alongside your own types and show which [maps](./interactive-maps) an element is placed on.
+
 <ThemedImage
   src="/img/features/relationships-tab-overview"
   alt="Relationship types in Project Settings"

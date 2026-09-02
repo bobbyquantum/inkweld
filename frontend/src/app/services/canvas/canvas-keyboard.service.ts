@@ -49,11 +49,15 @@ export class CanvasKeyboardService {
     l: 'line',
     s: 'shape',
     t: 'text',
+    g: 'polygon',
   };
 
   /** Attach the listeners. Subsequent calls are no-ops. */
   attach(handlers: CanvasKeyboardHandlers): void {
     if (this.attached) return;
+    // A fast navigation can destroy the tab before its deferred init runs;
+    // attaching then would leak document listeners with nothing to detach them.
+    if (this.destroyRef.destroyed) return;
     this.attached = true;
     const onKeyDown = (e: KeyboardEvent) => this.dispatch(e, handlers);
     const onKeyUp = (e: KeyboardEvent) => this.dispatchKeyUp(e, handlers);

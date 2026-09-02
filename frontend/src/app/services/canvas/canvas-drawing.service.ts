@@ -1,9 +1,11 @@
 import { inject, Injectable } from '@angular/core';
-import type {
-  CanvasObject,
-  CanvasPath,
-  CanvasTool,
-  CanvasToolSettings,
+import {
+  type CanvasObject,
+  type CanvasPath,
+  type CanvasShape,
+  type CanvasTool,
+  type CanvasToolSettings,
+  isBackgroundImage,
 } from '@models/canvas.model';
 import Konva from 'konva';
 import { nanoid } from 'nanoid';
@@ -57,6 +59,12 @@ export interface DrawInput {
 
 const RECT_SELECT_MIN = 2;
 const LINE_MIN_LENGTH = 5;
+
+/** Screen-space radius (px) within which a pen click closes the polygon. */
+const POLYGON_CLOSE_PX = 10;
+
+/** Screen-space distance (px) under which a pen click is a duplicate vertex. */
+const POLYGON_DEDUPE_PX = 4;
 const RECT_MIN_SIZE = 5;
 
 /** Angle increment (radians) lines snap to while Shift is held. */
@@ -102,6 +110,11 @@ export class CanvasDrawingService {
   private rectSelectRect: Konva.Rect | null = null;
   private rectSelectStart: { x: number; y: number } | null = null;
 
+  // Polygon pen state (click-to-place vertices, not drag-driven)
+  private polygonPoints: number[] = [];
+  private polygonPreview: Konva.Line | null = null;
+  private polygonStartHandle: Konva.Circle | null = null;
+
   // Eraser state
   private erasing = false;
   private readonly erasedIds = new Set<string>();
@@ -113,6 +126,7 @@ export class CanvasDrawingService {
       !!this.drawingLine ||
       !!this.drawingShape ||
       !!this.rectSelectRect ||
+      this.polygonPoints.length > 0 ||
       this.erasing
     );
   }
@@ -243,6 +257,159 @@ export class CanvasDrawingService {
     return false;
   }
 
+  // ─── Polygon pen (click-to-place vertices) ───────────────────────────────
+
+  /**
+   * Handle a pen-tool click: add a vertex, or — when the click lands on the
+   * first vertex of a loop with at least three points — close and commit the
+   * polygon. Returns true when a polygon was committed.
+   */
+  addPolygonVertex(settings: CanvasToolSettings, h: DrawingHandlers): boolean {
+    const pos = h.pointer();
+    if (!pos) return false;
+
+    const scale = this.canvasRenderer.stage?.scaleX() || 1;
+    const points = this.polygonPoints;
+
+    if (points.length >= 4) {
+      const closeDistance = POLYGON_CLOSE_PX / scale;
+      if (Math.hypot(pos.x - points[0], pos.y - points[1]) <= closeDistance) {
+        // Closing needs at least three vertices; until then a click on the
+        // first vertex is ignored so it can't become a degenerate loop.
+        if (points.length >= 6) return this.finishPolygon(settings, h);
+        return false;
+      }
+    }
+
+    // A second click on the last vertex (i.e. a double-click) closes the
+    // loop. Konva's own dblclick event is unusable here: it fires on any two
+    // clicks within 400ms regardless of position, so quick vertex placement
+    // would constantly "double-click".
+    if (points.length >= 2) {
+      const dedupeDistance = POLYGON_DEDUPE_PX / scale;
+      const lastX = points.at(-2)!;
+      const lastY = points.at(-1)!;
+      if (Math.hypot(pos.x - lastX, pos.y - lastY) <= dedupeDistance) {
+        if (points.length >= 6) return this.finishPolygon(settings, h);
+        return false;
+      }
+    }
+
+    points.push(pos.x, pos.y);
+    this.ensurePolygonPreview(pos, scale);
+    this.updatePolygonPreview(pos);
+    return false;
+  }
+
+  /** Rubber-band the pending segment to the cursor. */
+  updatePolygonCursor(pos: { x: number; y: number } | null): void {
+    if (!this.polygonPreview || !pos) return;
+    this.updatePolygonPreview(pos);
+  }
+
+  /**
+   * Close and commit the polygon (double-click, or a click on the first
+   * vertex). Loops with fewer than three vertices are abandoned instead.
+   * Returns true when a polygon was committed.
+   */
+  finishPolygon(settings: CanvasToolSettings, h: DrawingHandlers): boolean {
+    const points = [...this.polygonPoints];
+    this.clearPolygonPreview();
+    this.canvasRenderer.previewLayer?.batchDraw();
+
+    if (points.length < 6) return false;
+    const layerId = h.ensureLayer();
+    if (!layerId) return false;
+
+    let minX = Infinity;
+    let minY = Infinity;
+    for (let i = 0; i < points.length; i += 2) {
+      minX = Math.min(minX, points[i]);
+      minY = Math.min(minY, points[i + 1]);
+    }
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    const relative: number[] = [];
+    for (let i = 0; i < points.length; i += 2) {
+      relative.push(points[i] - minX, points[i + 1] - minY);
+      maxX = Math.max(maxX, points[i]);
+      maxY = Math.max(maxY, points[i + 1]);
+    }
+
+    const polygon: CanvasShape = {
+      id: nanoid(),
+      layerId,
+      type: 'shape',
+      shapeType: 'polygon',
+      x: minX,
+      y: minY,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      visible: true,
+      locked: false,
+      width: maxX - minX,
+      height: maxY - minY,
+      points: relative,
+      stroke: settings.stroke,
+      strokeWidth: settings.strokeWidth,
+      fill: settings.fillEnabled ? settings.fill : undefined,
+      opacity: settings.opacity,
+    };
+    this.canvasService.addObject(polygon);
+    return true;
+  }
+
+  private ensurePolygonPreview(
+    firstPos: { x: number; y: number },
+    scale: number
+  ): void {
+    if (this.polygonPreview) return;
+    const previewLayer = this.canvasRenderer.previewLayer;
+    if (!previewLayer) return;
+
+    // The in-progress loop draws in the marquee accent, not the user's
+    // stroke colour — a dark stroke would vanish against a dark canvas.
+    this.polygonPreview = new Konva.Line({
+      points: [],
+      stroke: '#1976d2',
+      strokeWidth: 1.5,
+      dash: [6, 4],
+      strokeScaleEnabled: false,
+      lineCap: 'round',
+      lineJoin: 'round',
+      listening: false,
+    });
+    previewLayer.add(this.polygonPreview);
+
+    // Mark the first vertex so "click here to close" is discoverable.
+    this.polygonStartHandle = new Konva.Circle({
+      x: firstPos.x,
+      y: firstPos.y,
+      radius: POLYGON_CLOSE_PX / 2 / scale,
+      fill: '#fff',
+      stroke: '#1976d2',
+      strokeWidth: 1.5,
+      strokeScaleEnabled: false,
+      listening: false,
+    });
+    previewLayer.add(this.polygonStartHandle);
+  }
+
+  private updatePolygonPreview(cursor: { x: number; y: number }): void {
+    if (!this.polygonPreview) return;
+    this.polygonPreview.points([...this.polygonPoints, cursor.x, cursor.y]);
+    this.polygonPreview.getLayer()?.batchDraw();
+  }
+
+  private clearPolygonPreview(): void {
+    this.polygonPoints = [];
+    this.polygonPreview?.destroy();
+    this.polygonPreview = null;
+    this.polygonStartHandle?.destroy();
+    this.polygonStartHandle = null;
+  }
+
   /**
    * Abandon whatever is in progress without persisting it — used when the
    * pointer is lost (window blur, pointer cancel) or the user presses Escape.
@@ -262,6 +429,8 @@ export class CanvasDrawingService {
       this.rectSelectRect = null;
       this.rectSelectStart = null;
     }
+
+    this.clearPolygonPreview();
 
     if (this.erasing) {
       this.restoreErasePreview();
@@ -598,7 +767,9 @@ export class CanvasDrawingService {
     // Topmost first so a sweep bites the visible object, not what's beneath.
     for (let i = config.objects.length - 1; i >= 0; i--) {
       const obj = config.objects[i];
-      if (obj.locked || !obj.visible) continue;
+      if (obj.locked || !obj.visible || isBackgroundImage(obj)) continue;
+      // Pins are annotations, not artwork — the eraser never bites them.
+      if (obj.type === 'pin') continue;
       const layer = layerById.get(obj.layerId);
       if (!layer?.visible || layer.locked) continue;
 

@@ -1,15 +1,13 @@
 import {
   CANVAS_PIN_RELATIONSHIP_TYPE,
-  type CanvasObject,
   type CanvasPin,
 } from '@models/canvas.model';
 import type { RelationshipService } from '@services/relationship/relationship.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  cleanupPinRelationships,
   createPinRelationship,
-  ensureCanvasPinRelationshipType,
+  ensureCanvasLinkRelationshipType,
   removePinRelationship,
 } from './canvas-pin-helpers';
 
@@ -104,10 +102,10 @@ describe('removePinRelationship', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
-// ensureCanvasPinRelationshipType
+// ensureCanvasLinkRelationshipType
 // ─────────────────────────────────────────────────────────────────────────
 
-describe('ensureCanvasPinRelationshipType', () => {
+describe('ensureCanvasLinkRelationshipType', () => {
   let svc: ReturnType<typeof createMockRelationshipService>;
 
   beforeEach(() => {
@@ -116,7 +114,7 @@ describe('ensureCanvasPinRelationshipType', () => {
 
   it('should add the type when it does not exist', () => {
     (svc.getTypeById as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
-    ensureCanvasPinRelationshipType(svc);
+    ensureCanvasLinkRelationshipType(svc, 'pin');
     expect(svc.addRawType).toHaveBeenCalledWith(
       expect.objectContaining({
         id: CANVAS_PIN_RELATIONSHIP_TYPE,
@@ -129,83 +127,7 @@ describe('ensureCanvasPinRelationshipType', () => {
     (svc.getTypeById as ReturnType<typeof vi.fn>).mockReturnValue({
       id: CANVAS_PIN_RELATIONSHIP_TYPE,
     });
-    ensureCanvasPinRelationshipType(svc);
+    ensureCanvasLinkRelationshipType(svc, 'pin');
     expect(svc.addRawType).not.toHaveBeenCalled();
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────────
-// cleanupPinRelationships
-// ─────────────────────────────────────────────────────────────────────────
-
-describe('cleanupPinRelationships', () => {
-  let svc: ReturnType<typeof createMockRelationshipService>;
-
-  beforeEach(() => {
-    svc = createMockRelationshipService();
-  });
-
-  it('should remove relationships for all linked pins', () => {
-    const objects: CanvasObject[] = [
-      {
-        ...baseObj,
-        id: 'pin-1',
-        type: 'pin',
-        label: 'P1',
-        icon: 'place',
-        color: '#f00',
-        relationshipId: 'rel-1',
-      },
-      {
-        ...baseObj,
-        id: 'pin-2',
-        type: 'pin',
-        label: 'P2',
-        icon: 'place',
-        color: '#f00',
-        relationshipId: 'rel-2',
-      },
-    ];
-    cleanupPinRelationships(svc, objects);
-    expect(svc.removeRelationship).toHaveBeenCalledTimes(2);
-    expect(svc.removeRelationship).toHaveBeenCalledWith('rel-1');
-    expect(svc.removeRelationship).toHaveBeenCalledWith('rel-2');
-  });
-
-  it('should skip non-pin objects', () => {
-    const objects: CanvasObject[] = [
-      {
-        ...baseObj,
-        id: 'shape-1',
-        type: 'shape',
-        shapeType: 'rect',
-        width: 50,
-        height: 50,
-        stroke: '#000',
-        strokeWidth: 1,
-      },
-    ];
-    cleanupPinRelationships(svc, objects);
-    expect(svc.removeRelationship).not.toHaveBeenCalled();
-  });
-
-  it('should handle empty array', () => {
-    cleanupPinRelationships(svc, []);
-    expect(svc.removeRelationship).not.toHaveBeenCalled();
-  });
-
-  it('should skip pins without relationshipId', () => {
-    const objects: CanvasObject[] = [
-      {
-        ...baseObj,
-        id: 'pin-1',
-        type: 'pin',
-        label: 'Unlinked',
-        icon: 'place',
-        color: '#f00',
-      },
-    ];
-    cleanupPinRelationships(svc, objects);
-    expect(svc.removeRelationship).not.toHaveBeenCalled();
   });
 });

@@ -87,6 +87,12 @@ export interface CanvasImage extends CanvasObjectBase {
   width: number;
   /** Natural height of the image in canvas units */
   height: number;
+  /**
+   * Non-interactive backdrop (map base image). Background images ignore the
+   * pointer, cannot be selected or erased, and always render below the other
+   * objects on their layer. Several backgrounds can tile one large map.
+   */
+  isBackground?: boolean;
 }
 
 // ─── Text Object ─────────────────────────────────────────────────────────────
@@ -162,6 +168,14 @@ export interface CanvasShape extends CanvasObjectBase {
   cornerRadius?: number;
   /** Dash pattern for dashed lines: [dash, gap] */
   dash?: number[];
+  /**
+   * Linked project element ID — a shape linked to an element is a "region":
+   * a mapped area you can click to open the element. Several shapes sharing
+   * a link form one discontinuous region.
+   */
+  linkedElementId?: string;
+  /** ID of the ElementRelationship backing this link (for cleanup) */
+  relationshipId?: string;
 }
 
 // ─── Pin Object ──────────────────────────────────────────────────────────────
@@ -171,6 +185,12 @@ export interface CanvasShape extends CanvasObjectBase {
  * This type is auto-created in the project's relationship types if not present.
  */
 export const CANVAS_PIN_RELATIONSHIP_TYPE = 'canvas-pin';
+
+/**
+ * Well-known relationship type ID for shape ("region") → element links.
+ * Auto-created in the project's relationship types if not present.
+ */
+export const CANVAS_AREA_RELATIONSHIP_TYPE = 'canvas-area';
 
 /** Pin marker linked to a project element */
 export interface CanvasPin extends CanvasObjectBase {
@@ -195,6 +215,95 @@ export interface CanvasPin extends CanvasObjectBase {
 export type CanvasObject =
   CanvasImage | CanvasText | CanvasPath | CanvasShape | CanvasPin;
 
+/** True when `obj` is a non-interactive background image. */
+/** Whether an object's fill can be a CSS gradient (closed area shapes only). */
+export function supportsGradientFill(obj: CanvasObject): boolean {
+  return (
+    obj.type === 'shape' &&
+    (obj.shapeType === 'rect' ||
+      obj.shapeType === 'ellipse' ||
+      obj.shapeType === 'polygon')
+  );
+}
+
+export function isBackgroundImage(obj: CanvasObject): obj is CanvasImage {
+  return obj.type === 'image' && obj.isBackground === true;
+}
+
+/** Objects that can carry an element link (pin markers and region shapes). */
+export function isLinkableObject(
+  obj: CanvasObject
+): obj is CanvasPin | CanvasShape {
+  return obj.type === 'pin' || obj.type === 'shape';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Frames (canvas size + crop regions)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Frame kinds:
+ * - `canvas`: THE canvas size — the page. Default export bounds and the main
+ *   border. At most one per canvas (enforced functionally, see
+ *   {@link canvasSizeFrame}).
+ * - `crop`: a named crop region for alternate exports (cover crop, region
+ *   cut-outs of a map, …).
+ */
+export type CanvasFrameKind = 'canvas' | 'crop';
+
+/**
+ * A rectangular bound on the canvas. Frames are not canvas objects: they
+ * never take part in object selection, clipboard or drawing — they only
+ * render as borders and define export crops.
+ */
+export interface CanvasFrame {
+  /** Unique frame ID */
+  id: string;
+  /** Display name ("Canvas", "Cover", "Region: North") */
+  name: string;
+  /** See {@link CanvasFrameKind} */
+  kind: CanvasFrameKind;
+  /** Top-left corner in canvas world coordinates. Axis-aligned; no rotation. */
+  x: number;
+  y: number;
+  /** Size in canvas units */
+  width: number;
+  height: number;
+  /** Whether the border is shown on the canvas */
+  visible: boolean;
+}
+
+/** The canvas-size frame, when one exists. First wins under a brief race. */
+export function canvasSizeFrame(
+  frames: CanvasFrame[] | undefined
+): CanvasFrame | undefined {
+  return frames?.find(f => f.kind === 'canvas');
+}
+
+/** Create a frame with a fresh id. */
+export function createFrame(
+  kind: CanvasFrameKind,
+  name: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number
+): CanvasFrame {
+  return { id: nanoid(), name, kind, x, y, width, height, visible: true };
+}
+
+/** Size presets offered when adding a frame. */
+export const FRAME_PRESETS = [
+  // 1:1.6 portrait — matches the project cover pipeline (1600×2560 fit)
+  { key: 'cover', width: 1000, height: 1600 },
+  { key: 'hd', width: 1920, height: 1080 },
+  { key: 'square', width: 2048, height: 2048 },
+  // A4 @ 150dpi
+  { key: 'a4', width: 1240, height: 1754 },
+] as const;
+
+export type FramePresetKey = (typeof FRAME_PRESETS)[number]['key'];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Canvas Configuration (persisted to Yjs metadata)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -210,6 +319,11 @@ export interface CanvasConfig {
   layers: CanvasLayer[];
   /** All objects on all layers */
   objects: CanvasObject[];
+  /**
+   * Canvas size + crop frames. Optional for back-compat: canvases created
+   * before frames existed simply have none.
+   */
+  frames?: CanvasFrame[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -237,6 +351,7 @@ export type CanvasTool =
   | 'eraser'
   | 'line'
   | 'shape'
+  | 'polygon'
   | 'text'
   | 'image';
 
@@ -249,6 +364,7 @@ const STAGE_CAPTURE_TOOLS = new Set<CanvasTool>([
   'eraser',
   'line',
   'shape',
+  'polygon',
   'rectSelect',
   'pin',
   'text',

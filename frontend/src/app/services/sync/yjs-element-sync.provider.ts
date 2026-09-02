@@ -14,7 +14,11 @@ import {
   writeUpdate,
   Y_MESSAGE_PRESENCE,
 } from '@inkweld/presence';
-import { type CanvasLayer, type CanvasObject } from '@models/canvas.model';
+import {
+  type CanvasFrame,
+  type CanvasLayer,
+  type CanvasObject,
+} from '@models/canvas.model';
 import {
   CANVAS_CONFIG_META_KEY,
   type CanvasContents,
@@ -103,10 +107,18 @@ const CANVAS_SNAPSHOT_DELAY_MS = 3000;
 /** Read a canvas's shared map into plain objects, in z-order. */
 function readCanvasMap(canvas: Y.Map<unknown>): CanvasContents {
   const layers = parseJson<CanvasLayer[]>(canvas.get('layers'), []);
+  // Docs predating frames have no 'frames' key — absent, not empty.
+  const frames = canvas.has('frames')
+    ? parseJson<CanvasFrame[]>(canvas.get('frames'), [])
+    : undefined;
   const objectsMap = canvas.get('objects') as Y.Map<string> | undefined;
   const order = (canvas.get('order') as Y.Array<string> | undefined)?.toArray();
 
-  if (!objectsMap) return { layers, objects: [] };
+  if (!objectsMap) {
+    const empty: CanvasContents = { layers, objects: [] };
+    if (frames !== undefined) empty.frames = frames;
+    return empty;
+  }
 
   const seen = new Set<string>();
   const objects: CanvasObject[] = [];
@@ -127,7 +139,9 @@ function readCanvasMap(canvas: Y.Map<unknown>): CanvasContents {
     if (object) objects.push(object);
   }
 
-  return { layers, objects };
+  const contents: CanvasContents = { layers, objects };
+  if (frames !== undefined) contents.frames = frames;
+  return contents;
 }
 
 function parseJson<T>(raw: unknown, fallback: T): T {
@@ -1088,6 +1102,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       const order = canvas.get('order') as Y.Array<string>;
 
       if (edit.layers) canvas.set('layers', JSON.stringify(edit.layers));
+      if (edit.frames) canvas.set('frames', JSON.stringify(edit.frames));
 
       for (const id of edit.deletes ?? []) {
         objects.delete(id);
@@ -1116,9 +1131,25 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
     this.applyCanvasEdit(elementId, {
       layers: contents.layers,
+      frames: contents.frames,
       upserts: contents.objects,
       order: contents.objects.map(o => o.id),
     });
+  }
+
+  listCanvasElementIds(): string[] {
+    const canvases = this.doc?.getMap<Y.Map<unknown>>(CANVASES_KEY);
+    return canvases ? [...canvases.keys()] : [];
+  }
+
+  deleteCanvas(elementId: string): void {
+    if (!this.doc) return;
+    const canvases = this.doc.getMap<Y.Map<unknown>>(CANVASES_KEY);
+    if (!canvases.has(elementId)) return;
+    this.doc.transact(() => canvases.delete(elementId), CANVAS_ORIGIN);
+    this.pendingCanvasSnapshots.delete(elementId);
+    this.canvasSubjects.get(elementId)?.complete();
+    this.canvasSubjects.delete(elementId);
   }
 
   /** Get (creating if needed) the subject backing one canvas's stream. */

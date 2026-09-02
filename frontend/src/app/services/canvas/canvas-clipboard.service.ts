@@ -1,13 +1,10 @@
 import { inject, Injectable, signal } from '@angular/core';
-import type { CanvasObject } from '@models/canvas.model';
+import { type CanvasObject, isLinkableObject } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import { nanoid } from 'nanoid';
 
-import {
-  createPinRelationship,
-  removePinRelationship,
-} from '../../pages/project/tabs/canvas/canvas-pin-helpers';
+import { createLinkRelationship } from '../../pages/project/tabs/canvas/canvas-pin-helpers';
 
 const PASTE_OFFSET = 20;
 const DUPLICATE_OFFSET = 20;
@@ -39,17 +36,13 @@ export class CanvasClipboardService {
   }
 
   /**
-   * Cut an object: place it on the clipboard, remove it from the canvas
-   * and clean up any pin relationship. Returns whether the caller should
-   * clear its selection (true when the cut succeeded).
+   * Cut an object: place it on the clipboard and remove it from the canvas
+   * (which also cleans up any backing relationship). Returns whether the
+   * caller should clear its selection (true when the cut succeeded).
    */
   cutObject(objectId: string): boolean {
     const obj = this.findObject(objectId);
     if (!obj) return false;
-
-    if (obj.type === 'pin') {
-      removePinRelationship(this.relationshipService, obj);
-    }
 
     this.clipboard.set(this.stripRelationshipId(obj));
     this.cut = true;
@@ -78,14 +71,7 @@ export class CanvasClipboardService {
       y: position.y + PASTE_OFFSET,
     };
 
-    if (newObj.type === 'pin' && newObj.linkedElementId) {
-      newObj.relationshipId = createPinRelationship(
-        this.relationshipService,
-        elementId,
-        newObj.linkedElementId
-      );
-    }
-
+    this.relinkCopy(newObj, elementId);
     this.canvasService.addObject(newObj);
 
     if (this.cut) {
@@ -97,18 +83,30 @@ export class CanvasClipboardService {
   }
 
   /** Duplicate `objectId` with a small offset. Returns the new id or null. */
-  duplicate(objectId: string): string | null {
+  duplicate(objectId: string, elementId: string): string | null {
     const obj = this.findObject(objectId);
     if (!obj) return null;
 
     const dup: CanvasObject = {
-      ...obj,
+      ...this.stripRelationshipId(obj),
       id: nanoid(),
       x: obj.x + DUPLICATE_OFFSET,
       y: obj.y + DUPLICATE_OFFSET,
     };
+    this.relinkCopy(dup, elementId);
     this.canvasService.addObject(dup);
     return dup.id;
+  }
+
+  /** Give a copied linked object its own backing relationship. */
+  private relinkCopy(obj: CanvasObject, elementId: string): void {
+    if (!isLinkableObject(obj) || !obj.linkedElementId) return;
+    obj.relationshipId = createLinkRelationship(
+      this.relationshipService,
+      elementId,
+      obj.linkedElementId,
+      obj.type === 'pin' ? 'pin' : 'area'
+    );
   }
 
   private findObject(objectId: string): CanvasObject | undefined {
@@ -118,7 +116,7 @@ export class CanvasClipboardService {
   }
 
   private stripRelationshipId(obj: CanvasObject): CanvasObject {
-    return obj.type === 'pin'
+    return isLinkableObject(obj)
       ? { ...obj, relationshipId: undefined }
       : { ...obj };
   }

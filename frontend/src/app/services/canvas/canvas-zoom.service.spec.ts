@@ -142,6 +142,29 @@ describe('CanvasZoomService', () => {
     });
   });
 
+  describe('fitAll with pins on the annotations overlay', () => {
+    it('includes the annotations layer so a pins-only canvas still fits', () => {
+      const stage = createStageStub();
+      mockRenderer.stage = stage;
+      mockCanvasService.activeConfig.set({
+        objects: [{ id: 'p1', type: 'pin' }],
+        layers: [],
+      });
+      // Artwork layer is empty; only the annotations overlay has content.
+      mockRenderer.konvaLayers.set('l1', {
+        visible: vi.fn(() => true),
+        getClientRect: vi.fn(() => ({ x: 0, y: 0, width: 0, height: 0 })),
+      });
+      (mockRenderer as { annotationsLayer?: unknown }).annotationsLayer = {
+        visible: vi.fn(() => true),
+        getClientRect: vi.fn(() => ({ x: 500, y: 300, width: 24, height: 24 })),
+      };
+
+      expect(service.fitAll()).not.toBeNull();
+      expect(stage.position).toHaveBeenCalled();
+    });
+  });
+
   describe('resetZoom', () => {
     it('returns null when stage is missing', () => {
       expect(service.resetZoom()).toBeNull();

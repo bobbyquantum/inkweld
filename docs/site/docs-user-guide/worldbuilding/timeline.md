@@ -130,5 +130,5 @@ Era labels appear in the top band, so you can always see which era contains the 
 
 ---
 
-**Previous:** [Canvas](./canvas) — Freeform infinite canvas for maps and diagrams.
+**Previous:** [Interactive Maps](./interactive-maps) — Turn a canvas into a clickable map of your world.
 **Next:** [Real-Time Collaboration](../collaboration/real-time) — Write together with co-authors simultaneously.

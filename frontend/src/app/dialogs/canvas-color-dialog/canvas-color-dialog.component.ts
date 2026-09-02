@@ -20,6 +20,8 @@ export interface CanvasColorDialogData {
   fill?: string;
   /** Current stroke color */
   stroke?: string;
+  /** Whether the fill may be a gradient (closed shapes only) */
+  allowGradientFill?: boolean;
 }
 
 export interface CanvasColorDialogResult {

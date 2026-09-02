@@ -15,7 +15,15 @@
     "objects": "Objects",
     "objectsAria": "Objects",
     "noObjects": "No objects on this layer.",
-    "noObjectsHint": "Use the toolbar to add images, text, pins, or drawings."
+    "noObjectsHint": "Use the toolbar to add images, text, or drawings.",
+    "pins": "Pins",
+    "pinsAria": "Pins",
+    "noPins": "No pins yet.",
+    "noPinsHint": "Use the pin tool (P) to add markers linked to your elements.",
+    "collapseSection": "Collapse section",
+    "expandSection": "Expand section",
+    "setAsBackground": "Set as background",
+    "detachBackground": "Detach from background"
   },
   "toolbar": {
     "select": "Select (V)",
@@ -28,6 +36,7 @@
     "eraser": "Eraser (E)",
     "line": "Line (L)",
     "shape": "Shape (S)",
+    "polygon": "Region pen (G) — click points, close the loop",
     "editColors": "Edit object colors",
     "strokeColor": "Stroke color",
     "fillColor": "Fill color",
@@ -47,7 +56,8 @@
     "zoomOutAria": "Zoom out",
     "fitAll": "Fit all (⌘0)",
     "resetZoom": "Reset zoom to 100%",
-    "moreTools": "More tools"
+    "moreTools": "More tools",
+    "tour": "Take a tour of the canvas"
   },
   "contextMenu": {
     "cut": "Cut",
@@ -59,16 +69,71 @@
     "bringForward": "Bring forward",
     "sendBackward": "Send backward",
     "sendToBack": "Send to back",
-    "sendToLayer": "Send to Layer"
+    "sendToLayer": "Send to Layer",
+    "setAsBackground": "Set as background",
+    "detachBackground": "Detach from background",
+    "openLinkedElement": "Open linked element",
+    "editPin": "Edit pin…",
+    "linkToElement": "Link to element…",
+    "unlinkElement": "Unlink element"
+  },
+  "pin": {
+    "linkedElementMissing": "Linked element no longer exists"
+  },
+  "frames": {
+    "title": "Frames",
+    "listAria": "Frames",
+    "addFrame": "Add frame",
+    "setCanvasSize": "Set canvas size",
+    "preset": {
+      "cover": "Cover",
+      "hd": "HD",
+      "square": "Square",
+      "a4": "A4",
+      "custom": "Custom…"
+    },
+    "customTitle": "New Frame",
+    "editTitle": "Edit Frame",
+    "defaultName": "Frame",
+    "nameLabel": "Name",
+    "nameRequired": "Name is required",
+    "widthLabel": "Width",
+    "heightLabel": "Height",
+    "xLabel": "X",
+    "yLabel": "Y",
+    "create": "Create",
+    "editDimensions": "Edit frame…",
+    "makeCanvasSize": "Make canvas size",
+    "makeCropFrame": "Make crop frame",
+    "kindCanvas": "Canvas size",
+    "kindCrop": "Crop frame",
+    "show": "Show frame",
+    "hide": "Hide frame",
+    "showAll": "Show frames",
+    "hideAll": "Hide frames",
+    "noFrames": "No frames yet.",
+    "noFramesHint": "Add a canvas size or crop frames to define export bounds.",
+    "exportPng": "Export PNG",
+    "exportPng2x": "Export PNG (2x)",
+    "exportSvg": "Export SVG",
+    "setAsCover": "Set as project cover…",
+    "coverConfirmTitle": "Replace project cover?",
+    "coverConfirmMessage": "This will replace the current project cover with this frame's contents.",
+    "coverConfirm": "Replace",
+    "coverSaved": "Project cover updated",
+    "coverSaveFailed": "Failed to update project cover"
   },
   "export": {
     "exportPng": "Export as PNG",
     "exportPngHighRes": "Export as PNG (High-res)",
-    "exportSvg": "Export as SVG"
+    "exportSvg": "Export as SVG",
+    "frame": "Frame",
+    "failed": "Couldn't export the image — the area is too large to render"
   },
   "layerMenu": {
     "rename": "Rename",
     "duplicate": "Duplicate",
+    "addBackground": "Add background image…",
     "moveUp": "Move up",
     "moveDown": "Move down",
     "delete": "Delete"

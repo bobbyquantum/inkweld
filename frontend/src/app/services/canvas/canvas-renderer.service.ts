@@ -4,6 +4,7 @@ import {
   isMediaUrl,
 } from '@components/image-paste/image-paste-plugin';
 import {
+  type CanvasFrame,
   type CanvasImage,
   type CanvasLayer,
   type CanvasObject,
@@ -12,6 +13,7 @@ import {
   type CanvasShape,
   type CanvasText,
   type CanvasViewport,
+  isBackgroundImage,
 } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
 import { LoggerService } from '@services/core/logger.service';
@@ -19,6 +21,11 @@ import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import Konva from 'konva';
 
+import {
+  isGradientFill,
+  linearGradientLine,
+  parseCssGradient,
+} from '../../pages/project/tabs/canvas/canvas-utils';
 import { buildInkOutline } from '../../pages/project/tabs/canvas/ink-stroke';
 
 export interface CanvasNodeHandlers {
@@ -36,7 +43,32 @@ export interface CanvasNodeHandlers {
     rotation: number
   ) => void;
   onDblClickText: (obj: CanvasText, textNode: Konva.Text) => void;
+  /**
+   * Fired when a linked object (pin or region shape) is double-clicked or
+   * double-tapped — open the linked element.
+   */
+  onOpenLinkedObject?: (obj: CanvasPin | CanvasShape) => void;
+  /** Resolve a project element's display name (for hover labels). */
+  getElementName?: (elementId: string) => string | null;
 }
+
+/** Milliseconds a tapped link's name label stays up on touch devices. */
+const LINK_TAP_LABEL_MS = 1500;
+
+/** Transformer anchors sized for fingers rather than a mouse pointer. */
+function transformerAnchorSize(): number {
+  const coarse =
+    typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+  return coarse ? 18 : 10;
+}
+
+/** Structure-key fragment naming a link target (empty when unlinked). */
+function linkSuffix(linkedElementId: string | undefined): string {
+  return linkedElementId ? `:linked:${linkedElementId}` : '';
+}
+
+/** Grab width (screen px) of a frame border while the frame is being edited. */
+const FRAME_GRAB_PX = 12;
 
 @Injectable()
 export class CanvasRendererService {
@@ -51,6 +83,11 @@ export class CanvasRendererService {
   private _transformer: Konva.Transformer | null = null;
   private _selectionLayer: Konva.Layer | null = null;
   private _previewLayer: Konva.Layer | null = null;
+  private _framesLayer: Konva.Layer | null = null;
+  private _annotationsLayer: Konva.Layer | null = null;
+  private readonly _frameNodes = new Map<string, Konva.Group>();
+  private _frameTransformer: Konva.Transformer | null = null;
+  private _editingFrameId: string | null = null;
   private readonly _objectStructures = new Map<string, string>();
   private _resizeObserver: ResizeObserver | null = null;
   private _contentInteractive = true;
@@ -78,6 +115,18 @@ export class CanvasRendererService {
   get previewLayer(): Konva.Layer | null {
     return this._previewLayer;
   }
+  /** Overlay layer drawing frame borders (canvas size + crop frames). */
+  get framesLayer(): Konva.Layer | null {
+    return this._framesLayer;
+  }
+  /**
+   * Overlay for annotations (pins): always above the artwork layers and
+   * independent of their visibility, lock and deletion. Pins are semantic
+   * markers about the map, not part of any one rendition of it.
+   */
+  get annotationsLayer(): Konva.Layer | null {
+    return this._annotationsLayer;
+  }
 
   /**
    * Whether objects respond to the pointer. Turned off while a creation tool
@@ -90,6 +139,10 @@ export class CanvasRendererService {
     for (const kLayer of this._konvaLayers.values()) {
       kLayer.listening(interactive && kLayer.getAttr('inkLocked') !== true);
     }
+    // Annotations follow the same rule but are never layer-locked.
+    this._annotationsLayer?.listening(interactive);
+    // A frame being edited must not swallow strokes from a creation tool.
+    this._framesLayer?.listening(interactive && this._editingFrameId !== null);
   }
 
   initStage(
@@ -112,6 +165,7 @@ export class CanvasRendererService {
     this._previewLayer = new Konva.Layer({ listening: false });
     this._selectionLayer = new Konva.Layer();
     this._transformer = new Konva.Transformer({
+      anchorSize: transformerAnchorSize(),
       rotateEnabled: true,
       enabledAnchors: [
         'top-left',
@@ -126,9 +180,16 @@ export class CanvasRendererService {
     });
     this._selectionLayer.add(this._transformer);
 
+    this._framesLayer = new Konva.Layer({ listening: false });
+    this._annotationsLayer = new Konva.Layer({
+      listening: this._contentInteractive,
+    });
+
     this.buildKonvaLayers(configLayers);
     this.buildKonvaObjects(configObjects, handlers);
 
+    this._stage.add(this._annotationsLayer);
+    this._stage.add(this._framesLayer);
     this._stage.add(this._previewLayer);
     this._stage.add(this._selectionLayer);
 
@@ -169,12 +230,22 @@ export class CanvasRendererService {
     }
   }
 
+  /**
+   * The Konva layer an object renders on: pins live on the annotations
+   * overlay (their `layerId` is vestigial, kept for old clients); everything
+   * else renders on its artwork layer.
+   */
+  private targetLayerFor(obj: CanvasObject): Konva.Layer | null {
+    if (obj.type === 'pin') return this._annotationsLayer;
+    return this._konvaLayers.get(obj.layerId) ?? null;
+  }
+
   buildKonvaObjects(
     objects: CanvasObject[],
     handlers: CanvasNodeHandlers
   ): void {
     for (const obj of objects) {
-      const kLayer = this._konvaLayers.get(obj.layerId);
+      const kLayer = this.targetLayerFor(obj);
       if (!kLayer) continue;
 
       const node = this.createKonvaNode(obj, handlers);
@@ -190,6 +261,7 @@ export class CanvasRendererService {
     for (const kLayer of this._konvaLayers.values()) {
       kLayer.batchDraw();
     }
+    this._annotationsLayer?.batchDraw();
   }
 
   /**
@@ -213,6 +285,8 @@ export class CanvasRendererService {
     this.syncObjects(objects, handlers);
     this.applyObjectZOrder(objects);
 
+    this._annotationsLayer?.moveToTop();
+    this._framesLayer?.moveToTop();
     this._previewLayer?.moveToTop();
     this._selectionLayer?.moveToTop();
 
@@ -221,6 +295,7 @@ export class CanvasRendererService {
     for (const kLayer of this._konvaLayers.values()) {
       kLayer.batchDraw();
     }
+    this._annotationsLayer?.batchDraw();
   }
 
   /** Create, update and destroy Konva layers so they mirror the config. */
@@ -268,7 +343,7 @@ export class CanvasRendererService {
 
     for (const obj of objects) {
       wanted.add(obj.id);
-      const kLayer = this._konvaLayers.get(obj.layerId);
+      const kLayer = this.targetLayerFor(obj);
       if (kLayer) this.syncObject(obj, kLayer, handlers);
     }
 
@@ -338,18 +413,7 @@ export class CanvasRendererService {
    * on a busy canvas. Appends (the common case) are already in order.
    */
   private applyObjectZOrder(objects: CanvasObject[]): void {
-    const desiredByLayer = new Map<Konva.Layer, Konva.Node[]>();
-
-    for (const obj of objects) {
-      const node = this._konvaNodes.get(obj.id);
-      const layer = node?.getLayer();
-      if (!node || !layer) continue;
-      const nodes = desiredByLayer.get(layer);
-      if (nodes) nodes.push(node);
-      else desiredByLayer.set(layer, [node]);
-    }
-
-    for (const [layer, desired] of desiredByLayer) {
+    for (const [layer, desired] of this.desiredNodeOrderByLayer(objects)) {
       const current = layer.getChildren();
       const alreadyOrdered =
         current.length === desired.length &&
@@ -357,6 +421,238 @@ export class CanvasRendererService {
       if (alreadyOrdered) continue;
       for (const node of desired) node.moveToTop();
     }
+  }
+
+  /**
+   * Desired stacking per layer: background images always first, then the
+   * remaining objects in array order.
+   */
+  private desiredNodeOrderByLayer(
+    objects: CanvasObject[]
+  ): Map<Konva.Layer, Konva.Node[]> {
+    const backgrounds = new Map<Konva.Layer, Konva.Node[]>();
+    const foregrounds = new Map<Konva.Layer, Konva.Node[]>();
+
+    for (const obj of objects) {
+      const node = this._konvaNodes.get(obj.id);
+      const layer = node?.getLayer();
+      if (!node || !layer) continue;
+      const byLayer = isBackgroundImage(obj) ? backgrounds : foregrounds;
+      const nodes = byLayer.get(layer);
+      if (nodes) nodes.push(node);
+      else byLayer.set(layer, [node]);
+    }
+
+    for (const [layer, nodes] of foregrounds) {
+      const existing = backgrounds.get(layer);
+      if (existing) existing.push(...nodes);
+      else backgrounds.set(layer, nodes);
+    }
+    return backgrounds;
+  }
+
+  // ─── Frames overlay ────────────────────────────────────────────────────
+
+  /**
+   * Reconcile the frame borders with the config.
+   *
+   * Frames are chrome, not content: they live on their own overlay layer,
+   * never enter `_konvaNodes`, and (for now) never listen to the pointer.
+   */
+  syncFrames(
+    frames: CanvasFrame[] | undefined,
+    opts: { framesVisible: boolean }
+  ): void {
+    const layer = this._framesLayer;
+    if (!layer) return;
+
+    const list = frames ?? [];
+    const wanted = new Set(list.map(f => f.id));
+    for (const [id, group] of this._frameNodes) {
+      if (wanted.has(id)) continue;
+      group.destroy();
+      this._frameNodes.delete(id);
+    }
+
+    for (const frame of list) {
+      let group = this._frameNodes.get(frame.id);
+      if (!group) {
+        group = CanvasRendererService.createFrameGroup();
+        this._frameNodes.set(frame.id, group);
+        layer.add(group);
+      }
+      CanvasRendererService.applyFrameAttrs(group, frame);
+
+      const shown = frame.visible && opts.framesVisible;
+      group.visible(shown);
+      group.findOne('.frameLabel')?.visible(shown);
+    }
+
+    this.updateFrameOverlayScale(this._stage?.scaleX() ?? 1);
+    layer.batchDraw();
+  }
+
+  /**
+   * Counter-scale frame labels so they stay readable at every zoom level.
+   * (Borders are already screen-constant via `strokeScaleEnabled: false`.)
+   */
+  updateFrameOverlayScale(stageScale: number): void {
+    const layer = this._framesLayer;
+    if (!layer || stageScale <= 0) return;
+    const inverse = 1 / stageScale;
+    for (const group of this._frameNodes.values()) {
+      group
+        .findOne<Konva.Label>('.frameLabel')
+        ?.scale({ x: inverse, y: inverse });
+    }
+    layer.batchDraw();
+  }
+
+  /**
+   * Make one frame draggable/resizable with its own transformer, or end
+   * frame editing with `null`. Commits go through `onChange` on
+   * dragend/transformend with the node geometry normalized back into
+   * x/y/width/height (scale reset to 1).
+   */
+  setFrameEditing(
+    frameId: string | null,
+    onChange?: (
+      frameId: string,
+      rect: { x: number; y: number; width: number; height: number }
+    ) => void
+  ): void {
+    const layer = this._framesLayer;
+    if (!layer) return;
+
+    // Same frame, still mounted: nothing to rebuild. Rebuilding here would
+    // destroy the transformer mid-gesture whenever the config changes.
+    if (
+      frameId !== null &&
+      frameId === this._editingFrameId &&
+      this._frameTransformer &&
+      this._frameNodes.has(frameId)
+    ) {
+      return;
+    }
+
+    // Tear down the previous editing state.
+    if (this._editingFrameId) {
+      const prevGroup = this._frameNodes.get(this._editingFrameId);
+      prevGroup?.listening(false);
+      const prevRect = prevGroup?.findOne<Konva.Rect>('.frameRect');
+      prevRect?.off('.frameedit');
+      prevRect?.setAttrs({
+        listening: false,
+        draggable: false,
+        hitStrokeWidth: 'auto',
+      });
+    }
+    this._frameTransformer?.destroy();
+    this._frameTransformer = null;
+    this._editingFrameId = frameId;
+    layer.listening(frameId !== null && this._contentInteractive);
+
+    const group = frameId ? this._frameNodes.get(frameId) : undefined;
+    const rect = group?.findOne<Konva.Rect>('.frameRect');
+    if (!frameId || !group || !rect || !onChange) {
+      this._editingFrameId = null;
+      layer.listening(false);
+      layer.batchDraw();
+      return;
+    }
+
+    // The group is non-listening chrome by default; while editing it must
+    // pass events through to the rect.
+    group.listening(true);
+
+    // Only the border is grabbable: a filled hit area would sit above every
+    // object inside the frame and block selecting or drawing on them. The
+    // transformer's anchors handle resizing.
+    rect.setAttrs({
+      listening: true,
+      draggable: true,
+      fillEnabled: false,
+      hitStrokeWidth: FRAME_GRAB_PX,
+    });
+
+    rect.on('dragend.frameedit transformend.frameedit', () => {
+      const next = {
+        x: Math.round(group.x() + rect.x()),
+        y: Math.round(group.y() + rect.y()),
+        width: Math.max(16, Math.round(rect.width() * rect.scaleX())),
+        height: Math.max(16, Math.round(rect.height() * rect.scaleY())),
+      };
+      rect.position({ x: 0, y: 0 });
+      rect.scale({ x: 1, y: 1 });
+      onChange(frameId, next);
+    });
+
+    this._frameTransformer = new Konva.Transformer({
+      anchorSize: transformerAnchorSize(),
+      rotateEnabled: false,
+      flipEnabled: false,
+      nodes: [rect],
+    });
+    layer.add(this._frameTransformer);
+    layer.batchDraw();
+  }
+
+  private static createFrameGroup(): Konva.Group {
+    const group = new Konva.Group({ listening: false });
+
+    group.add(
+      new Konva.Rect({
+        name: 'frameRect',
+        strokeScaleEnabled: false,
+        fillEnabled: false,
+        listening: false,
+      })
+    );
+
+    const label = new Konva.Label({ name: 'frameLabel', listening: false });
+    label.add(
+      new Konva.Tag({
+        cornerRadius: 3,
+        opacity: 0.9,
+      })
+    );
+    label.add(
+      new Konva.Text({
+        name: 'frameLabelText',
+        fontSize: 11,
+        padding: 4,
+        fill: '#fff',
+      })
+    );
+    // Sits just above the frame's top-left corner (in screen units, since
+    // the label is counter-scaled against the stage zoom).
+    label.offsetY(24);
+    group.add(label);
+
+    return group;
+  }
+
+  private static applyFrameAttrs(group: Konva.Group, frame: CanvasFrame): void {
+    const isCanvas = frame.kind === 'canvas';
+    const color = isCanvas ? '#1976d2' : '#9c27b0';
+
+    group.position({ x: frame.x, y: frame.y });
+    group.setAttr('inkFrameId', frame.id);
+
+    const rect = group.findOne<Konva.Rect>('.frameRect');
+    rect?.setAttrs({
+      width: frame.width,
+      height: frame.height,
+      stroke: color,
+      strokeWidth: isCanvas ? 2 : 1.5,
+      // Dash is applied in screen space under strokeScaleEnabled:false,
+      // so it stays crisp at every zoom.
+      dash: isCanvas ? [] : [6, 4],
+    });
+
+    const label = group.findOne<Konva.Label>('.frameLabel');
+    label?.getTag().fill(color);
+    label?.getText().text(frame.name);
   }
 
   /** Keep the transformer bound to the selected object across replacements. */
@@ -392,6 +688,8 @@ export class CanvasRendererService {
     for (const kLayer of this._konvaLayers.values()) {
       kLayer.destroy();
     }
+    // Pins live outside _konvaLayers, so clear their overlay explicitly.
+    this._annotationsLayer?.destroyChildren();
     this._konvaLayers.clear();
     this._konvaNodes.clear();
     this._objectStructures.clear();
@@ -399,6 +697,8 @@ export class CanvasRendererService {
     this.buildKonvaLayers(layers);
     this.buildKonvaObjects(objects, handlers);
 
+    this._annotationsLayer?.moveToTop();
+    this._framesLayer?.moveToTop();
     this._previewLayer?.moveToTop();
     this._selectionLayer?.moveToTop();
 
@@ -420,11 +720,21 @@ export class CanvasRendererService {
   static getObjectStructure(obj: CanvasObject): string {
     switch (obj.type) {
       case 'image':
-        return `image:${obj.src}`;
+        // isBackground is structural: it decides whether the node listens
+        // to the pointer and has handlers wired at all.
+        return `image:${obj.isBackground ? 'bg:' : ''}${obj.src}`;
       case 'shape':
-        return `shape:${obj.shapeType}`;
+        // A link adds interactions (dblclick, hover label) bound to the
+        // target, so gaining, losing or retargeting one rebuilds the node.
+        return `shape:${obj.shapeType}${linkSuffix(obj.linkedElementId)}`;
       case 'path':
         return `path:${obj.pressures?.length ? 'ink' : 'line'}`;
+      case 'pin':
+        // Linked pins carry extra interactions bound to the target, so
+        // gaining, losing or retargeting a link rebuilds the node.
+        return obj.linkedElementId
+          ? `pin:linked:${obj.linkedElementId}`
+          : 'pin:plain';
       default:
         return obj.type;
     }
@@ -437,7 +747,7 @@ export class CanvasRendererService {
     node.scale({ x: obj.scaleX, y: obj.scaleY });
     node.visible(obj.visible);
     node.opacity(obj.opacity ?? 1);
-    node.draggable(!obj.locked);
+    node.draggable(!obj.locked && !isBackgroundImage(obj));
   }
 
   /** Patch the type-specific appearance of an existing node. */
@@ -472,10 +782,75 @@ export class CanvasRendererService {
     node.setAttr('fill', attrs.fill);
   }
 
+  /**
+   * Apply a shape's fill, which may be a plain color or a CSS gradient
+   * string (Konva needs gradients as explicit start/end points and stops).
+   */
+  static applyShapeFill(node: Konva.Shape, obj: CanvasShape): void {
+    const gradient = isGradientFill(obj.fill)
+      ? parseCssGradient(obj.fill)
+      : null;
+
+    if (!gradient) {
+      node.setAttrs({
+        fill: obj.fill,
+        fillPriority: 'color',
+        fillLinearGradientColorStops: undefined,
+        fillRadialGradientColorStops: undefined,
+      });
+      return;
+    }
+
+    // Ellipses draw around their origin; everything else from the top-left.
+    const center =
+      obj.shapeType === 'ellipse'
+        ? { x: 0, y: 0 }
+        : { x: obj.width / 2, y: obj.height / 2 };
+    const stops: (number | string)[] = [];
+    for (const stop of gradient.stops) stops.push(stop.offset, stop.color);
+
+    if (gradient.type === 'linear') {
+      const { start, end } = linearGradientLine(
+        gradient.angle,
+        obj.width,
+        obj.height,
+        center
+      );
+      node.setAttrs({
+        fill: undefined,
+        fillPriority: 'linear-gradient',
+        fillLinearGradientStartPoint: start,
+        fillLinearGradientEndPoint: end,
+        fillLinearGradientColorStops: stops,
+        fillRadialGradientColorStops: undefined,
+      });
+      return;
+    }
+
+    node.setAttrs({
+      fill: undefined,
+      fillPriority: 'radial-gradient',
+      fillRadialGradientStartPoint: center,
+      fillRadialGradientEndPoint: center,
+      fillRadialGradientStartRadius: 0,
+      fillRadialGradientEndRadius: Math.hypot(obj.width, obj.height) / 2,
+      fillRadialGradientColorStops: stops,
+      fillLinearGradientColorStops: undefined,
+    });
+  }
+
   private static applyShapeStyle(node: Konva.Shape, obj: CanvasShape): void {
     node.stroke(obj.stroke);
     node.strokeWidth(obj.strokeWidth);
-    node.setAttr('fill', obj.fill);
+    if (
+      obj.shapeType === 'rect' ||
+      obj.shapeType === 'ellipse' ||
+      obj.shapeType === 'polygon'
+    ) {
+      CanvasRendererService.applyShapeFill(node, obj);
+    } else {
+      node.setAttr('fill', obj.fill);
+    }
     node.dash(obj.dash ?? []);
 
     if (node instanceof Konva.Rect) {
@@ -519,6 +894,7 @@ export class CanvasRendererService {
     obj: CanvasObject,
     handlers: CanvasNodeHandlers
   ): Konva.Group | Konva.Shape | null {
+    const background = isBackgroundImage(obj);
     const commonAttrs: Konva.NodeConfig = {
       id: obj.id,
       x: obj.x,
@@ -528,7 +904,8 @@ export class CanvasRendererService {
       scaleY: obj.scaleY,
       visible: obj.visible,
       opacity: obj.opacity ?? 1,
-      draggable: !obj.locked,
+      draggable: !obj.locked && !background,
+      listening: !background,
     };
 
     let node: Konva.Group | Konva.Shape | null = null;
@@ -551,10 +928,18 @@ export class CanvasRendererService {
         break;
       case 'shape':
         node = CanvasRendererService.createShapeNode(obj, commonAttrs);
+        this.wireLinkInteractions(node, obj, handlers);
         break;
       case 'pin':
         node = CanvasRendererService.createPinNode(obj, commonAttrs);
+        this.wireLinkInteractions(node, obj, handlers);
         break;
+    }
+
+    if (node && background) {
+      // Backdrops never take part in selection, dragging or transforms.
+      (node as Konva.Node).setAttr('inkBackground', true);
+      return node;
     }
 
     if (node) {
@@ -586,6 +971,78 @@ export class CanvasRendererService {
     }
 
     return node;
+  }
+
+  /** Extra interactions for objects linked to a project element. */
+  private wireLinkInteractions(
+    node: Konva.Node,
+    obj: CanvasPin | CanvasShape,
+    handlers: CanvasNodeHandlers
+  ): void {
+    if (!obj.linkedElementId) return;
+    node.on('dblclick dbltap', () => handlers.onOpenLinkedObject?.(obj));
+    node.on('mouseenter', () => {
+      this.setStageCursor('pointer');
+      const name = obj.linkedElementId
+        ? handlers.getElementName?.(obj.linkedElementId)
+        : null;
+      if (name) this.showHoverLabel(name);
+    });
+    node.on('mouseleave', () => {
+      this.setStageCursor('');
+      this.hideHoverLabel();
+    });
+    // Touch has no hover: a tap shows the target's name briefly instead.
+    node.on('tap', () => {
+      const name = obj.linkedElementId
+        ? handlers.getElementName?.(obj.linkedElementId)
+        : null;
+      if (!name) return;
+      this.showHoverLabel(name);
+      setTimeout(() => this.hideHoverLabel(), LINK_TAP_LABEL_MS);
+    });
+  }
+
+  /** Show the linked element's name near the pointer, on the preview layer. */
+  private showHoverLabel(text: string): void {
+    const layer = this._previewLayer;
+    const stage = this._stage;
+    if (!layer || !stage) return;
+
+    this.hideHoverLabel();
+
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+    const world = stage.getAbsoluteTransform().copy().invert().point(pointer);
+
+    const label = new Konva.Label({
+      name: 'linkHoverLabel',
+      x: world.x,
+      y: world.y,
+      listening: false,
+    });
+    label.add(
+      new Konva.Tag({ fill: '#424242', cornerRadius: 3, opacity: 0.9 })
+    );
+    label.add(new Konva.Text({ text, fontSize: 11, padding: 4, fill: '#fff' }));
+    // Screen-constant size and a small offset up-right of the cursor.
+    const inverse = 1 / (stage.scaleX() || 1);
+    label.scale({ x: inverse, y: inverse });
+    label.offset({ x: -12, y: 24 });
+    layer.add(label);
+    layer.batchDraw();
+  }
+
+  private hideHoverLabel(): void {
+    const layer = this._previewLayer;
+    if (!layer) return;
+    layer.find('.linkHoverLabel').forEach(n => n.destroy());
+    layer.batchDraw();
+  }
+
+  private setStageCursor(cursor: string): void {
+    const container = this._stage?.container();
+    if (container) container.style.cursor = cursor;
   }
 
   static createImageNode(
@@ -718,6 +1175,22 @@ export class CanvasRendererService {
   }
 
   static createShapeNode(
+    obj: CanvasShape,
+    attrs: Konva.NodeConfig
+  ): Konva.Shape {
+    const node = CanvasRendererService.buildShapeNode(obj, attrs);
+    // Gradient fills need explicit Konva attrs, not the constructor string.
+    if (
+      obj.shapeType === 'rect' ||
+      obj.shapeType === 'ellipse' ||
+      obj.shapeType === 'polygon'
+    ) {
+      CanvasRendererService.applyShapeFill(node, obj);
+    }
+    return node;
+  }
+
+  private static buildShapeNode(
     obj: CanvasShape,
     attrs: Konva.NodeConfig
   ): Konva.Shape {
@@ -865,9 +1338,14 @@ export class CanvasRendererService {
     this._konvaLayers.clear();
     this._konvaNodes.clear();
     this._objectStructures.clear();
+    this._frameNodes.clear();
+    this._frameTransformer = null;
+    this._editingFrameId = null;
     this._transformer = null;
     this._selectionLayer = null;
     this._previewLayer = null;
+    this._framesLayer = null;
+    this._annotationsLayer = null;
     this._contentInteractive = true;
   }
 

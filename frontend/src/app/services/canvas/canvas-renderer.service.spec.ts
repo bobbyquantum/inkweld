@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type {
+  CanvasFrame,
   CanvasImage,
   CanvasLayer,
   CanvasPath,
@@ -355,8 +356,50 @@ describe('CanvasRendererService', () => {
       ).toBe(CanvasRendererService.getObjectStructure(makePath()));
     });
 
-    it('falls back to the type for pins', () => {
-      expect(CanvasRendererService.getObjectStructure(makePin())).toBe('pin');
+    it('distinguishes linked from plain pins', () => {
+      expect(CanvasRendererService.getObjectStructure(makePin())).toBe(
+        'pin:plain'
+      );
+      expect(
+        CanvasRendererService.getObjectStructure(
+          makePin({ linkedElementId: 'el-1' })
+        )
+      ).toBe('pin:linked:el-1');
+      // Retargeting a link must rebuild the node so its handlers follow.
+      expect(
+        CanvasRendererService.getObjectStructure(
+          makePin({ linkedElementId: 'el-2' })
+        )
+      ).not.toBe(
+        CanvasRendererService.getObjectStructure(
+          makePin({ linkedElementId: 'el-1' })
+        )
+      );
+    });
+
+    it('never makes background images draggable', () => {
+      const calls: unknown[] = [];
+      const node = {
+        position: () => {},
+        rotation: () => {},
+        scale: () => {},
+        visible: () => {},
+        opacity: () => {},
+        draggable: (v: boolean) => calls.push(v),
+      } as unknown as Konva.Node;
+      CanvasRendererService.applyCommonAttrs(
+        node,
+        makeImage({ isBackground: true, locked: false })
+      );
+      expect(calls).toEqual([false]);
+    });
+
+    it('distinguishes background from regular images', () => {
+      expect(CanvasRendererService.getObjectStructure(makeImage())).not.toBe(
+        CanvasRendererService.getObjectStructure(
+          makeImage({ isBackground: true })
+        )
+      );
     });
   });
 
@@ -989,6 +1032,324 @@ describe('CanvasRendererService', () => {
         expect.any(Number),
         expect.any(Number)
       );
+    });
+
+    // ─── Annotations overlay, frames, links and gradients ──────────────────
+
+    const makeFrame = (o: Partial<CanvasFrame> = {}): CanvasFrame => ({
+      id: 'F1',
+      name: 'Canvas',
+      kind: 'canvas',
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 80,
+      visible: true,
+      ...o,
+    });
+
+    const frameOpts = (o: Partial<{ framesVisible: boolean }> = {}) => ({
+      framesVisible: true,
+      ...o,
+    });
+
+    it('routes pins onto the annotations overlay, not their layer', () => {
+      service.initStage(
+        container,
+        [makeLayer()],
+        [makePin()],
+        null,
+        makeHandlers()
+      );
+      const node = service.konvaNodes.get('o1')!;
+      expect(node.getLayer()).toBe(service.annotationsLayer);
+      expect(service.konvaLayers.get('L1')!.getChildren()).toHaveLength(0);
+    });
+
+    it('renders pins whose layer no longer exists', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncKonvaFromConfig(
+        [makeLayer()],
+        [makePin({ layerId: 'gone' })],
+        null,
+        makeHandlers()
+      );
+      expect(service.konvaNodes.get('o1')?.getLayer()).toBe(
+        service.annotationsLayer
+      );
+    });
+
+    it('keeps the annotations overlay above the artwork layers', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncKonvaFromConfig([makeLayer()], [], null, makeHandlers());
+      const artwork = service.konvaLayers.get('L1')!.getZIndex();
+      expect(service.annotationsLayer!.getZIndex()).toBeGreaterThan(artwork);
+      expect(service.framesLayer!.getZIndex()).toBeGreaterThan(
+        service.annotationsLayer!.getZIndex()
+      );
+    });
+
+    it('setContentInteractive toggles the annotations overlay too', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.setContentInteractive(false);
+      expect(service.annotationsLayer!.listening()).toBe(false);
+      service.setContentInteractive(true);
+      expect(service.annotationsLayer!.listening()).toBe(true);
+    });
+
+    it('rebuildAllKonvaNodes does not duplicate pins on the overlay', () => {
+      const handlers = makeHandlers();
+      service.initStage(container, [makeLayer()], [makePin()], null, handlers);
+      service.rebuildAllKonvaNodes([makeLayer()], [makePin()], null, handlers);
+      expect(service.annotationsLayer!.getChildren()).toHaveLength(1);
+    });
+
+    it('syncFrames draws frames and reconciles removals', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncFrames(
+        [makeFrame(), makeFrame({ id: 'F2', kind: 'crop' })],
+        frameOpts()
+      );
+      expect(service.framesLayer!.getChildren()).toHaveLength(2);
+
+      service.syncFrames([makeFrame()], frameOpts());
+      expect(service.framesLayer!.getChildren()).toHaveLength(1);
+
+      service.syncFrames(undefined, frameOpts());
+      expect(service.framesLayer!.getChildren()).toHaveLength(0);
+    });
+
+    it('styles the canvas-size frame solid and crop frames dashed', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncFrames(
+        [makeFrame(), makeFrame({ id: 'F2', kind: 'crop' })],
+        frameOpts()
+      );
+      const [canvasGroup, cropGroup] = service.framesLayer!.getChildren();
+      const canvasRect = (canvasGroup as Konva.Group).findOne<Konva.Rect>(
+        '.frameRect'
+      )!;
+      const cropRect = (cropGroup as Konva.Group).findOne<Konva.Rect>(
+        '.frameRect'
+      )!;
+      expect(canvasRect.dash()).toEqual([]);
+      expect(canvasRect.strokeScaleEnabled()).toBe(false);
+      expect(cropRect.dash()).toEqual([6, 4]);
+    });
+
+    it('hides frames per-frame and globally', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      const frames = [makeFrame(), makeFrame({ id: 'F2', kind: 'crop' })];
+
+      service.syncFrames(frames, frameOpts({ framesVisible: false }));
+      for (const group of service.framesLayer!.getChildren()) {
+        expect(group.visible()).toBe(false);
+      }
+
+      service.syncFrames([makeFrame({ visible: false })], frameOpts());
+      expect(service.framesLayer!.getChildren()[0].visible()).toBe(false);
+    });
+
+    it('counter-scales frame labels against the stage zoom', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncFrames([makeFrame()], frameOpts());
+      service.stage!.scale({ x: 2, y: 2 });
+      service.updateFrameOverlayScale(2);
+
+      const label = (
+        service.framesLayer!.getChildren()[0] as Konva.Group
+      ).findOne<Konva.Label>('.frameLabel')!;
+      expect(label.scaleX()).toBeCloseTo(0.5);
+    });
+
+    it('setFrameEditing attaches a transformer and commits geometry', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncFrames([makeFrame()], frameOpts());
+
+      const onChange = vi.fn();
+      service.setFrameEditing('F1', onChange);
+      expect(service.framesLayer!.listening()).toBe(true);
+
+      const group = service.framesLayer!.getChildren()[0] as Konva.Group;
+      const rect = group.findOne<Konva.Rect>('.frameRect')!;
+      expect(rect.draggable()).toBe(true);
+
+      rect.position({ x: 10, y: 5 });
+      rect.scale({ x: 2, y: 1 });
+      rect.fire('transformend');
+
+      expect(onChange).toHaveBeenCalledWith('F1', {
+        x: 10,
+        y: 5,
+        width: 200,
+        height: 80,
+      });
+      // Scale is normalized back into width/height.
+      expect(rect.scaleX()).toBe(1);
+    });
+
+    it('editing frames are grabbed by their border only', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncFrames([makeFrame()], frameOpts());
+      service.setFrameEditing('F1', vi.fn());
+
+      const rect = (
+        service.framesLayer!.getChildren()[0] as Konva.Group
+      ).findOne<Konva.Rect>('.frameRect')!;
+      // A filled hit area would sit above every object inside the frame.
+      expect(rect.fillEnabled()).toBe(false);
+      expect(rect.hitStrokeWidth()).toBeGreaterThan(0);
+    });
+
+    it('a creation tool switches the editing frame off the hit graph', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncFrames([makeFrame()], frameOpts());
+      service.setFrameEditing('F1', vi.fn());
+      expect(service.framesLayer!.listening()).toBe(true);
+
+      service.setContentInteractive(false);
+      expect(service.framesLayer!.listening()).toBe(false);
+      service.setContentInteractive(true);
+      expect(service.framesLayer!.listening()).toBe(true);
+    });
+
+    it('re-selecting the same frame keeps the existing transformer', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncFrames([makeFrame()], frameOpts());
+      service.setFrameEditing('F1', vi.fn());
+      const before = service.framesLayer!.findOne('Transformer');
+      service.setFrameEditing('F1', vi.fn());
+      expect(service.framesLayer!.findOne('Transformer')).toBe(before);
+    });
+
+    it('setFrameEditing(null) tears the editing state down', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncFrames([makeFrame()], frameOpts());
+      service.setFrameEditing('F1', vi.fn());
+      service.setFrameEditing(null);
+
+      const rect = (
+        service.framesLayer!.getChildren()[0] as Konva.Group
+      ).findOne<Konva.Rect>('.frameRect')!;
+      expect(rect.draggable()).toBe(false);
+      expect(service.framesLayer!.listening()).toBe(false);
+    });
+
+    it('setFrameEditing ignores unknown frames', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncFrames([makeFrame()], frameOpts());
+      expect(() => service.setFrameEditing('nope', vi.fn())).not.toThrow();
+      expect(service.framesLayer!.listening()).toBe(false);
+    });
+
+    it('opens the linked element on double-click for pins and shapes', () => {
+      const handlers = makeHandlers();
+      handlers.onOpenLinkedObject = vi.fn();
+      const pin = makePin({ id: 'p1', linkedElementId: 'el-1' });
+      const shape: CanvasShape = {
+        ...makeShape('rect'),
+        id: 's1',
+        linkedElementId: 'el-1',
+      };
+      service.initStage(container, [makeLayer()], [pin, shape], null, handlers);
+
+      service.konvaNodes.get('p1')!.fire('dblclick');
+      service.konvaNodes.get('s1')!.fire('dblclick');
+      expect(handlers.onOpenLinkedObject).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not wire link interactions on unlinked objects', () => {
+      const handlers = makeHandlers();
+      handlers.onOpenLinkedObject = vi.fn();
+      service.initStage(
+        container,
+        [makeLayer()],
+        [makePin({ id: 'p1' })],
+        null,
+        handlers
+      );
+      service.konvaNodes.get('p1')!.fire('dblclick');
+      expect(handlers.onOpenLinkedObject).not.toHaveBeenCalled();
+    });
+
+    it('shows and clears a hover label for a linked object', () => {
+      const handlers = makeHandlers();
+      handlers.getElementName = vi.fn(() => 'Kingdom of Veyra');
+      const pin = makePin({ id: 'p1', linkedElementId: 'el-1' });
+      service.initStage(container, [makeLayer()], [pin], null, handlers);
+
+      // Hover labels are positioned from the pointer; give the stage one.
+      service.stage!.setPointersPositions({
+        clientX: 10,
+        clientY: 10,
+      });
+
+      service.konvaNodes.get('p1')!.fire('mouseenter');
+      const label =
+        service.previewLayer!.findOne<Konva.Label>('.linkHoverLabel');
+      expect(label).toBeDefined();
+      expect(label!.getText().text()).toBe('Kingdom of Veyra');
+
+      service.konvaNodes.get('p1')!.fire('mouseleave');
+      expect(service.previewLayer!.findOne('.linkHoverLabel')).toBeUndefined();
+    });
+
+    it('applies solid, linear and radial shape fills', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+
+      const solid: CanvasShape = { ...makeShape('rect'), fill: '#ff0000' };
+      const node = CanvasRendererService.createShapeNode(solid, {});
+      expect(node.fill()).toBe('#ff0000');
+
+      const linear: CanvasShape = {
+        ...makeShape('rect'),
+        fill: 'linear-gradient(90deg, #ff0000 0%, #0000ff 100%)',
+      };
+      CanvasRendererService.applyShapeFill(node, linear);
+      expect(node.fillPriority()).toBe('linear-gradient');
+      expect(node.fillLinearGradientColorStops()).toEqual([
+        0,
+        '#ff0000',
+        1,
+        '#0000ff',
+      ]);
+
+      const radial: CanvasShape = {
+        ...makeShape('ellipse'),
+        fill: 'radial-gradient(#fff 0%, #000 100%)',
+      };
+      CanvasRendererService.applyShapeFill(node, radial);
+      expect(node.fillPriority()).toBe('radial-gradient');
+      expect(node.fillRadialGradientColorStops()).toHaveLength(4);
+
+      // Falling back to a plain colour clears the gradient stops.
+      CanvasRendererService.applyShapeFill(node, solid);
+      expect(node.fillPriority()).toBe('color');
+      expect(node.fillLinearGradientColorStops()).toBeUndefined();
+    });
+
+    it('background images are non-listening and sort below their siblings', () => {
+      const background = makeImage({ id: 'bg', isBackground: true });
+      const text = makeText({ id: 'fg' });
+      // Background last in the array — z-order must still put it first.
+      service.initStage(
+        container,
+        [makeLayer()],
+        [text, background],
+        null,
+        makeHandlers()
+      );
+      service.syncKonvaFromConfig(
+        [makeLayer()],
+        [text, background],
+        null,
+        makeHandlers()
+      );
+
+      const children = service.konvaLayers.get('L1')!.getChildren();
+      expect(children[0]).toBe(service.konvaNodes.get('bg'));
+      expect(service.konvaNodes.get('bg')!.listening()).toBe(false);
+      expect(service.konvaNodes.get('bg')!.draggable()).toBe(false);
     });
 
     it('createKonvaNode transformend fires onTransformEnd', () => {

@@ -285,6 +285,22 @@ describe('NewElementDialogComponent', () => {
       expect(selected?.label).toBe('Folder');
       expect(selected?.icon).toBe('folder');
     });
+
+    it('distinguishes preset options sharing a type (Map vs Canvas)', () => {
+      const options = component.elementTypeOptions();
+      const mapOption = options.find(o => o.preset === 'map');
+      const canvasOption = options.find(
+        o => o.type === ElementType.Canvas && !o.preset
+      );
+      expect(mapOption).toBeDefined();
+      expect(canvasOption).toBeDefined();
+
+      component.selectType(mapOption!);
+      expect(component.getSelectedOption()).toBe(mapOption);
+
+      component.selectType(canvasOption!);
+      expect(component.getSelectedOption()).toBe(canvasOption);
+    });
   });
 
   describe('worldbuilding type loading', () => {

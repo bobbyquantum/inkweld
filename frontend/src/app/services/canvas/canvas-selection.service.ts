@@ -1,11 +1,8 @@
 import { inject, Injectable } from '@angular/core';
-import type { CanvasObject } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
-import { RelationshipService } from '@services/relationship/relationship.service';
 import Konva from 'konva';
 
-import { removePinRelationship } from '../../pages/project/tabs/canvas/canvas-pin-helpers';
 import { rectsIntersect } from '../../pages/project/tabs/canvas/canvas-utils';
 
 /**
@@ -29,13 +26,14 @@ export interface SelectionCallbacks {
 export class CanvasSelectionService {
   private readonly renderer = inject(CanvasRendererService);
   private readonly canvasService = inject(CanvasService);
-  private readonly relationshipService = inject(RelationshipService);
 
   /** Attach the transformer to the given Konva node and redraw. */
   selectNode(node: Konva.Node): void {
     const transformer = this.renderer.transformer;
     if (!transformer) return;
-    transformer.nodes([node]);
+    // Background images can be picked in the objects sidebar, but must never
+    // grow transform handles — they are moved by detaching them first.
+    transformer.nodes(node.getAttr('inkBackground') === true ? [] : [node]);
     this.renderer.selectionLayer?.batchDraw();
   }
 
@@ -52,8 +50,14 @@ export class CanvasSelectionService {
     if (!transformer) return;
 
     const selected: Konva.Node[] = [];
-    for (const [, kLayer] of this.renderer.konvaLayers) {
+    const searchLayers: Konva.Layer[] = [...this.renderer.konvaLayers.values()];
+    // Pins live on the annotations overlay but stay rect-selectable.
+    if (this.renderer.annotationsLayer) {
+      searchLayers.push(this.renderer.annotationsLayer);
+    }
+    for (const kLayer of searchLayers) {
       kLayer.getChildren().forEach(child => {
+        if ((child as Konva.Node).getAttr('inkBackground') === true) return;
         const box = child.getClientRect({ relativeTo: kLayer });
         if (rectsIntersect(rect, box)) {
           selected.push(child);
@@ -99,15 +103,10 @@ export class CanvasSelectionService {
   }
 
   /**
-   * Remove the object with the given id, cleaning up any pin relationship,
-   * and clearing the transformer if it was selected.
+   * Remove the object with the given id. Relationship cleanup for linked
+   * objects happens inside CanvasService.removeObjects.
    */
   deleteObject(objectId: string): void {
-    const obj = this.canvasService
-      .activeConfig()
-      ?.objects.find((o: CanvasObject) => o.id === objectId);
-    if (obj?.type === 'pin')
-      removePinRelationship(this.relationshipService, obj);
     this.canvasService.removeObject(objectId);
   }
 

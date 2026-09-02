@@ -172,17 +172,27 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🟡 | Layers | Add, rename, duplicate, delete; visibility & lock toggles |
 | ✅ | 🟡 | Pan and zoom | Navigate large canvases smoothly |
 | ✅ | 🟡 | Export as PNG | Standard and high-resolution export |
-| ✅ | 🟡 | Shape fills & stroke palette | Per-object color editing |
+| ✅ | 🟡 | Shape fills & stroke palette | Per-object color editing with the full color picker; gradient fills for shapes |
 | ✅ | 🟢 | Pin-to-element linking | Connect canvas pins to worldbuilding elements |
+| ✅ | 🟡 | Canvas size & crop frames | Page bounds plus named crop frames; per-frame PNG/SVG export and set-as-project-cover |
+| ✅ | 🟡 | Region pen tool | Click-to-place vertices, close the loop into a polygon — trace map regions |
+| ✅ | 🟢 | Collapsible sidebar sections | Layers, Objects, Pins and Frames each collapse independently; state remembered |
+| ✅ | 🟢 | Unified colour chooser | Canvas uses the worldbuilding appearance picker: swatches, full picker, gradient mode |
+| ✅ | 🟢 | Canvas guided tour | Auto-offered on first open; replay from the sidebar help button |
+| ✅ | 🟡 | Phone layout & touch | Sidebar drawer on narrow screens, long-press context menu, tap-to-name linked regions, finger-sized handles |
+| ⬜ | 🟢 | SVG import | Place an SVG as an image; later, import Inkscape files as editable objects |
 
 ### Interactive Maps
 
 | Status | Priority | Feature | Notes |
 |--------|----------|---------|-------|
-| ⬜ | 🔥 | Map background images | Load a map image as a non-editable canvas background |
-| ⬜ | 🔥 | Location pins | Clickable markers linked to worldbuilding elements |
-| ⬜ | 🔥 | Pin-to-element linking | Special relationship type connecting pins to elements |
-| ⬜ | 🟡 | Multiple map layers | Overlay different maps (political, terrain, etc.) |
+| ✅ | 🔥 | Map background images | Flag any canvas image as a non-editable backdrop; multiple per layer for tiling large maps |
+| ✅ | 🔥 | Location pins | Double-click (or double-tap) a linked pin to open its element |
+| ✅ | 🔥 | Pin-to-element linking | `canvas-pin` relationship type; links cleaned up when elements are deleted |
+| ✅ | 🟡 | Multiple map layers | Per-layer backgrounds blended with layer visibility/opacity; "Map" preset in the new-element dialog |
+| ✅ | 🟡 | Linked regions | Shapes linked to elements: click-to-open areas; discontinuous regions via shared links |
+| ✅ | 🟡 | Pins as annotations | Pins live on an always-on overlay, independent of drawing layers |
+| ⬜ | 🟢 | AI map restyling | Rough-colour a layer, restyle it via AI image generation (political, terrain, parchment…) |
 
 ### Timelines
 | Status | Priority | Feature | Notes |
@@ -204,6 +214,7 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🔥 | HTML export | Single-file web output |
 | ✅ | 🟡 | Publish plans | Save export configurations for reuse |
 | ✅ | 🟡 | Typography customization | Per-plan style editor with 6 presets and full per-section overrides (font, size, weight, alignment, color, indent, page breaks) |
+| ⬜ | 🟢 | Presentation mode | Read-only, docs-site-like rendering of a whole project |
 
 ### Auth & Security
 | Status | Priority | Feature | Notes |

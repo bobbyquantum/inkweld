@@ -78,7 +78,7 @@ test.describe('Canvas Tab Screenshots', () => {
     // Add a second layer so the sidebar looks more interesting
     await page
       .getByTestId('canvas-sidebar')
-      .getByRole('button', { name: /add layer/i })
+      .getByTestId('add-layer-button')
       .click();
 
     // ── Draw some shapes on layer 1 so the canvas looks populated ──────────────
@@ -126,15 +126,15 @@ test.describe('Canvas Tab Screenshots', () => {
       // The Shape tool opens a mat-menu; drawing must not start until the
       // menu overlay is fully gone or the pointer events land on the
       // overlay instead of the stage.
-      const selectShapeTool = async (label: RegExp): Promise<void> => {
-        await toolbar.getByRole('button', { name: /Shape \(S\)/i }).click();
+      const selectShapeTool = async (shapeTestId: string): Promise<void> => {
+        await toolbar.getByTestId('shape-tool').click();
         const menuPanel = page.locator('.mat-mdc-menu-panel');
-        await menuPanel.getByRole('menuitem', { name: label }).click();
+        await menuPanel.getByTestId(shapeTestId).click();
         await expect(menuPanel).toHaveCount(0);
       };
 
       // ── Rectangles ───────────────────────────────────────────────────────
-      await selectShapeTool(/Rectangle/i);
+      await selectShapeTool('shape-rect');
 
       // Three rectangles at different positions / sizes
       await dragShape(cw * 0.08, ch * 0.12, cw * 0.36, ch * 0.44);
@@ -142,12 +142,12 @@ test.describe('Canvas Tab Screenshots', () => {
       await dragShape(cw * 0.22, ch * 0.52, cw * 0.58, ch * 0.76);
 
       // ── Ellipse ──────────────────────────────────────────────────────────
-      await selectShapeTool(/Ellipse/i);
+      await selectShapeTool('shape-ellipse');
 
       await dragShape(cw * 0.62, ch * 0.52, cw * 0.88, ch * 0.8);
 
       // ── Line ─────────────────────────────────────────────────────────────
-      const lineTool = toolbar.getByRole('button', { name: /Line \(L\)/i });
+      const lineTool = toolbar.getByTestId('line-tool');
       await lineTool.click();
       await expect(lineTool).toHaveClass(/active/);
       await page.mouse.move(cx + cw * 0.08, cy + ch * 0.8);
@@ -166,7 +166,7 @@ test.describe('Canvas Tab Screenshots', () => {
       await waitForCommit();
 
       // Switch back to select tool so no ghost tool state lingers
-      await toolbar.getByRole('button', { name: /Select \(V\)/i }).click();
+      await toolbar.getByTestId('select-tool').click();
     }
 
     // Move mouse away to dismiss any tooltip overlay

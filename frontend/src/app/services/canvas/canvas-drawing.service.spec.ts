@@ -677,6 +677,94 @@ describe('CanvasDrawingService', () => {
   // Modifier constraints
   // ───────────────────────────────────────────────────────────────────────
 
+  describe('polygon pen', () => {
+    function clickAt(x: number, y: number): boolean {
+      pointer.set({ x, y });
+      return service.addPolygonVertex(baseSettings, handlers);
+    }
+
+    it('collects vertices and reports drawing in progress', () => {
+      clickAt(0, 0);
+      clickAt(100, 0);
+      expect(service.isDrawing()).toBe(true);
+      expect(canvasSvc.addObject).not.toHaveBeenCalled();
+    });
+
+    it('closes when clicking the first vertex with three points down', () => {
+      clickAt(0, 0);
+      clickAt(100, 0);
+      clickAt(100, 80);
+      const committed = clickAt(2, 2); // within the close threshold of (0,0)
+      expect(committed).toBe(true);
+
+      const obj = canvasSvc.addObject.mock.calls[0][0];
+      expect(obj.type).toBe('shape');
+      expect(obj.shapeType).toBe('polygon');
+      expect(obj.x).toBe(0);
+      expect(obj.y).toBe(0);
+      expect(obj.width).toBe(100);
+      expect(obj.height).toBe(80);
+      expect(obj.points).toEqual([0, 0, 100, 0, 100, 80]);
+      // fillEnabled is false in baseSettings
+      expect(obj.fill).toBeUndefined();
+      expect(service.isDrawing()).toBe(false);
+    });
+
+    it('finishPolygon commits an in-progress loop (double-click path)', () => {
+      clickAt(0, 0);
+      clickAt(50, 0);
+      clickAt(50, 50);
+      const committed = service.finishPolygon(baseSettings, handlers);
+      expect(committed).toBe(true);
+      expect(canvasSvc.addObject).toHaveBeenCalledTimes(1);
+    });
+
+    it('abandons loops with fewer than three vertices', () => {
+      clickAt(0, 0);
+      clickAt(50, 0);
+      expect(service.finishPolygon(baseSettings, handlers)).toBe(false);
+      expect(canvasSvc.addObject).not.toHaveBeenCalled();
+      expect(service.isDrawing()).toBe(false);
+    });
+
+    it('a second click on the last vertex closes the loop (double-click)', () => {
+      clickAt(0, 0);
+      clickAt(50, 0);
+      clickAt(50, 50);
+      const committed = clickAt(50, 51); // double-click echo on the last vertex
+      expect(committed).toBe(true);
+      const obj = canvasSvc.addObject.mock.calls[0][0];
+      expect(obj.points).toEqual([0, 0, 50, 0, 50, 50]);
+    });
+
+    it('a click on the first vertex with only two vertices is ignored', () => {
+      clickAt(0, 0);
+      clickAt(50, 0);
+      // Landing back on the first vertex must not append a duplicate that
+      // could then commit a degenerate two-vertex loop.
+      expect(clickAt(2, 2)).toBe(false);
+      expect(clickAt(1, 1)).toBe(false);
+      expect(canvasSvc.addObject).not.toHaveBeenCalled();
+      expect(service.isDrawing()).toBe(true);
+    });
+
+    it('a repeat click with too few vertices is ignored, not a close', () => {
+      clickAt(0, 0);
+      clickAt(50, 0);
+      expect(clickAt(50, 1)).toBe(false);
+      expect(canvasSvc.addObject).not.toHaveBeenCalled();
+      expect(service.isDrawing()).toBe(true);
+    });
+
+    it('cancel clears the in-progress loop', () => {
+      clickAt(0, 0);
+      clickAt(50, 0);
+      service.cancel();
+      expect(service.isDrawing()).toBe(false);
+      expect(service.finishPolygon(baseSettings, handlers)).toBe(false);
+    });
+  });
+
   describe('constrainLine', () => {
     const start = { x: 0, y: 0 };
 

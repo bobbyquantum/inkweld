@@ -24,6 +24,35 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  position: relative;
+}
+
+// Phones: the sidebar floats over the stage as a drawer instead of taking a
+// fixed slice of an already narrow viewport.
+.canvas-container.mobile {
+  .canvas-sidebar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 6;
+    width: min(300px, 85vw);
+    min-width: 0;
+    box-shadow: 0 4px 16px rgb(0 0 0 / 30%);
+  }
+
+  .sidebar-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: rgb(0 0 0 / 32%);
+  }
+
+  // No hover on touch: row actions that normally appear on hover stay visible.
+  .layer-action,
+  .object-action {
+    opacity: 1;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,11 +82,6 @@
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
-
-  @media (max-width: 759px) {
-    width: 220px;
-    min-width: 220px;
-  }
 }
 
 .sidebar-header {
@@ -197,6 +221,56 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.section-chevron {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  margin-right: 2px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+// Must win against the later `.objects-list { display: flex }` rule, which
+// otherwise re-expands the Objects and Pins sections.
+.section-collapsed {
+  display: none !important;
+}
+
+// The clickable body of a pin/frame row: a real button, so it is focusable
+// and keyboard-operable without ARIA roles, styled to sit flush in the row.
+.row-select {
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--sys-primary);
+    outline-offset: -2px;
+    border-radius: 4px;
+  }
+}
+
+.frame-dims {
+  font-size: 11px;
+  color: var(--sys-on-surface-variant);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .layer-action {
@@ -418,6 +492,9 @@
   // The stage handles its own pan and zoom; without this a single-finger
   // stroke scrolls the page out from under the drawing on touch devices.
   touch-action: none;
+  // A long-press opens our own context menu, not the browser callout.
+  -webkit-touch-callout: none;
+  user-select: none;
   background-color: var(--sys-surface-container-lowest);
   background-image: radial-gradient(
     circle,

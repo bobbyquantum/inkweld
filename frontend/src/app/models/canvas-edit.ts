@@ -11,7 +11,12 @@
  * clobbers. They are pure: no Yjs, no Angular, no I/O.
  */
 
-import type { CanvasConfig, CanvasLayer, CanvasObject } from './canvas.model';
+import type {
+  CanvasConfig,
+  CanvasFrame,
+  CanvasLayer,
+  CanvasObject,
+} from './canvas.model';
 
 /** The synced contents of a canvas — everything except which element owns it. */
 export type CanvasContents = Omit<CanvasConfig, 'elementId'>;
@@ -20,6 +25,8 @@ export type CanvasContents = Omit<CanvasConfig, 'elementId'>;
 export interface CanvasEdit {
   /** Full layer list, present only when a layer changed. */
   layers?: CanvasLayer[];
+  /** Full frame list, present only when a frame changed. */
+  frames?: CanvasFrame[];
   /** Objects that were added or modified. */
   upserts?: CanvasObject[];
   /** Ids of objects that were removed. */
@@ -56,10 +63,14 @@ export function parseCanvasContents(
   if (!serialized) return null;
   try {
     const parsed = JSON.parse(serialized) as Partial<CanvasContents>;
-    return {
+    const contents: CanvasContents = {
       layers: Array.isArray(parsed.layers) ? parsed.layers : [],
       objects: Array.isArray(parsed.objects) ? parsed.objects : [],
     };
+    // Absent stays absent — a snapshot without frames must not be
+    // mistaken for one that deleted them.
+    if (Array.isArray(parsed.frames)) contents.frames = parsed.frames;
+    return contents;
   } catch {
     return null;
   }
@@ -69,6 +80,7 @@ export function parseCanvasContents(
 export function isEmptyCanvasEdit(edit: CanvasEdit): boolean {
   return (
     edit.layers === undefined &&
+    edit.frames === undefined &&
     edit.order === undefined &&
     !edit.upserts?.length &&
     !edit.deletes?.length
@@ -91,6 +103,12 @@ export function diffCanvasContents(
 
   if (previous?.layers !== next.layers) {
     edit.layers = next.layers;
+  }
+
+  if (previous?.frames !== next.frames) {
+    // `[]` (not undefined) when the last frame is deleted — undefined in an
+    // edit means "no change".
+    edit.frames = next.frames ?? [];
   }
 
   const previousObjects = previous?.objects ?? [];
@@ -148,6 +166,7 @@ export function applyCanvasEdit(
   edit: CanvasEdit
 ): CanvasContents {
   const layers = edit.layers ?? contents.layers;
+  const frames = edit.frames ?? contents.frames;
 
   const byId = new Map(contents.objects.map(o => [o.id, o]));
   const order = contents.objects.map(o => o.id);
@@ -174,5 +193,7 @@ export function applyCanvasEdit(
     if (!seen.has(id)) objects.push(object);
   }
 
-  return { layers, objects };
+  const result: CanvasContents = { layers, objects };
+  if (frames !== undefined) result.frames = frames;
+  return result;
 }

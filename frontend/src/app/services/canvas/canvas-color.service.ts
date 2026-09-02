@@ -4,10 +4,12 @@ import {
   CanvasColorDialogComponent,
   type CanvasColorDialogData,
 } from '@dialogs/canvas-color-dialog/canvas-color-dialog.component';
-import { type CanvasObject } from '@models/canvas.model';
+import { type CanvasObject, supportsGradientFill } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import Konva from 'konva';
+
+import { isGradientFill } from '../../pages/project/tabs/canvas/canvas-utils';
 
 type ColorResult = { fill?: string; stroke?: string };
 
@@ -74,7 +76,14 @@ export class CanvasColorService {
       return null; // images have no user-editable colour
     }
 
-    return { title: 'Edit Colors', showFill, showStroke, fill, stroke };
+    return {
+      title: 'Edit Colors',
+      showFill,
+      showStroke,
+      fill,
+      stroke,
+      allowGradientFill: supportsGradientFill(obj),
+    };
   }
 
   /**
@@ -89,6 +98,16 @@ export class CanvasColorService {
     if (!obj) return;
 
     if (obj.type === 'image') return;
+    // Only closed shapes can render a gradient; anything else would hand
+    // Konva an invalid fillStyle and persist the bad value.
+    if (
+      result.fill !== undefined &&
+      isGradientFill(result.fill) &&
+      !supportsGradientFill(obj)
+    ) {
+      result = { ...result, fill: undefined };
+      if (result.stroke === undefined) return;
+    }
 
     if (obj.type === 'pin' || obj.type === 'text') {
       const fill = result.fill;

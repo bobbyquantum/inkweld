@@ -30,6 +30,8 @@ export interface NewElementDialogResult {
   type: ElementType;
   /** Schema ID for WORLDBUILDING elements */
   schemaId?: string;
+  /** Preset applied after creation (e.g. 'map' pre-configures a canvas). */
+  preset?: 'map';
 }
 
 interface NewElementDialogData {
@@ -46,6 +48,8 @@ interface ElementTypeOption {
   icon: string;
   description: string;
   category: 'document' | 'worldbuilding' | 'visualization';
+  /** Preset applied after creation (e.g. 'map' pre-configures a canvas). */
+  preset?: 'map';
 }
 
 interface NewElementFormValue {
@@ -120,6 +124,15 @@ export class NewElementDialogComponent {
       category: 'visualization',
     },
     {
+      type: ElementType.Canvas,
+      label: 'Map',
+      icon: 'map',
+      description:
+        'Interactive map: background images with clickable pins linked to your worldbuilding elements',
+      category: 'visualization',
+      preset: 'map',
+    },
+    {
       type: ElementType.Timeline,
       label: 'Timeline',
       icon: 'timeline',
@@ -165,6 +178,9 @@ export class NewElementDialogComponent {
 
   // Track selected schema ID for worldbuilding types
   selectedSchemaId = signal<string | undefined>(undefined);
+
+  // Preset carried by the selected option (e.g. the 'Map' canvas preset)
+  selectedPreset = signal<'map' | undefined>(undefined);
 
   readonly model = signal<NewElementFormValue>({
     name: '',
@@ -258,6 +274,7 @@ export class NewElementDialogComponent {
       name: value.name,
       type: value.type,
       schemaId: this.selectedSchemaId(),
+      preset: this.selectedPreset(),
     };
     this.dialogRef.close(result);
   };
@@ -266,6 +283,7 @@ export class NewElementDialogComponent {
   selectType(option: ElementTypeOption): void {
     this.selectedType.set(option.type);
     this.selectedSchemaId.set(option.schemaId);
+    this.selectedPreset.set(option.preset);
     this.model.update(m => ({ ...m, type: option.type }));
     this.nextStep();
   }
@@ -301,9 +319,11 @@ export class NewElementDialogComponent {
   getSelectedOption(): ElementTypeOption | undefined {
     const selected = this.selectedType();
     const schemaId = this.selectedSchemaId();
+    const preset = this.selectedPreset();
     if (!selected) return undefined;
     return this.elementTypeOptions().find(
-      (o: ElementTypeOption) => o.type === selected && o.schemaId === schemaId
+      (o: ElementTypeOption) =>
+        o.type === selected && o.schemaId === schemaId && o.preset === preset
     );
   }
 }

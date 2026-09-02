@@ -134,10 +134,13 @@ describe('CanvasClipboardService', () => {
       expect(service.clipboard()?.id).toBe('s1');
     });
 
-    it('removes pin relationship before cutting a pin', () => {
+    it('delegates relationship cleanup to removeObject when cutting a pin', () => {
       const ok = service.cutObject('p1');
       expect(ok).toBe(true);
-      expect(mockRel.removeRelationship).toHaveBeenCalledWith('r-1');
+      // Cleanup is centralized in CanvasService.removeObjects; the clipboard
+      // must not remove the relationship itself.
+      expect(mockRel.removeRelationship).not.toHaveBeenCalled();
+      expect(mockCanvas.removeObject).toHaveBeenCalledWith('p1');
     });
 
     it('returns false for missing object id', () => {
@@ -192,7 +195,7 @@ describe('CanvasClipboardService', () => {
 
   describe('duplicate', () => {
     it('clones the object with a new id and offset', () => {
-      const id = service.duplicate('s1');
+      const id = service.duplicate('s1', 'canvas-el');
       expect(id).toBeTruthy();
       const added = mockCanvas.addObject.mock.calls[0][0] as CanvasShape;
       expect(added.id).not.toBe('s1');
@@ -201,7 +204,7 @@ describe('CanvasClipboardService', () => {
     });
 
     it('returns null for unknown id', () => {
-      const id = service.duplicate('nope');
+      const id = service.duplicate('nope', 'canvas-el');
       expect(id).toBeNull();
       expect(mockCanvas.addObject).not.toHaveBeenCalled();
     });
