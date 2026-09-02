@@ -37,7 +37,7 @@
     "@fal-ai/client": "^1.8.1",
     "@hono/oauth-providers": "^0.9.0",
     "@hono/zod-openapi": "^1.2.0",
-    "@simplewebauthn/server": "^13.3.0",
+    "@simplewebauthn/server": "^14.0.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.8",

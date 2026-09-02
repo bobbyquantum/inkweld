@@ -46,6 +46,8 @@ export class PasskeysSettingsComponent implements OnInit {
 
   readonly isSupported = this.passkeyService.isSupported();
   readonly passkeys = signal<Passkey[]>([]);
+  /** RP ID reported by the server; needed for WebAuthn Signal API calls. */
+  readonly rpId = signal<string | null>(null);
   readonly loading = signal(true);
   readonly registering = signal(false);
   readonly busyId = signal<string | null>(null);
@@ -63,6 +65,7 @@ export class PasskeysSettingsComponent implements OnInit {
     try {
       const result = await this.passkeyService.list();
       this.passkeys.set(result.passkeys);
+      this.rpId.set(result.rpId ?? null);
     } catch (err) {
       this.error.set(this.toMessage(err, 'Failed to load passkeys.'));
     } finally {
@@ -159,7 +162,10 @@ export class PasskeysSettingsComponent implements OnInit {
 
     this.busyId.set(passkey.id);
     try {
-      await this.passkeyService.delete(passkey.id);
+      await this.passkeyService.delete(
+        passkey,
+        this.rpId() ?? window.location.hostname
+      );
       this.passkeys.update(list => list.filter(p => p.id !== passkey.id));
       this.snackBar.open(
         this.transloco.translate('auth.passkeys.passkeyDeleted'),

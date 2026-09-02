@@ -10,6 +10,10 @@
 
 export interface Passkey {
   id: string;
+  /**
+   * Base64URL WebAuthn credential ID (for the Signal API)
+   */
+  credentialId: string;
   name?: string | null;
   deviceType?: string | null;
   backedUp: boolean;

@@ -13,7 +13,6 @@ import type {
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
   AuthenticationResponseJSON,
-  AuthenticatorTransportFuture,
 } from '@simplewebauthn/server';
 import { userPasskeys, webauthnChallenges } from '../db/schema';
 import type { User, UserPasskey } from '../db/schema';
@@ -127,7 +126,8 @@ class PasskeyService {
     }
 
     const info = verification.registrationInfo;
-    // simplewebauthn v13 returns `credential` with id, publicKey (Uint8Array), counter, transports
+    // simplewebauthn returns `credential` with id, publicKey (COSE bytes), counter, transports.
+    // The COSE key may be ML-DSA (PQC) when the runtime and authenticator support it.
     const cred = info.credential;
     const publicKeyB64 = uint8ToBase64Url(cred.publicKey);
 
@@ -360,11 +360,11 @@ class PasskeyService {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-function parseTransports(json: string | null): AuthenticatorTransportFuture[] | undefined {
+function parseTransports(json: string | null): string[] | undefined {
   if (!json) return undefined;
   try {
     const parsed = JSON.parse(json);
-    if (Array.isArray(parsed)) return parsed as AuthenticatorTransportFuture[];
+    if (Array.isArray(parsed)) return parsed as string[];
   } catch (err) {
     passkeyLog.warn('Failed to parse passkey transports', { json, err: String(err) });
   }

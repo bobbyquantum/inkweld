@@ -57,6 +57,9 @@ export const PasskeyLoginFinishRequestSchema = z
 export const PasskeySchema = z
   .object({
     id: z.string(),
+    credentialId: z
+      .string()
+      .openapi({ description: 'Base64URL WebAuthn credential ID (for the Signal API)' }),
     name: z.string().nullable().optional(),
     deviceType: z.string().nullable().optional(),
     backedUp: z.boolean(),
@@ -71,6 +74,9 @@ export const PasskeySchema = z
 export const PasskeyListResponseSchema = z
   .object({
     passkeys: z.array(PasskeySchema),
+    rpId: z
+      .string()
+      .openapi({ description: 'WebAuthn Relying Party ID these passkeys are bound to' }),
   })
   .openapi('PasskeyListResponse');
 

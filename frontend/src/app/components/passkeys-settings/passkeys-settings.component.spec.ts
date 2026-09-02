@@ -21,6 +21,7 @@ import { PasskeysSettingsComponent } from './passkeys-settings.component';
 
 const fakePasskey: Passkey = {
   id: 'pk-1',
+  credentialId: 'cred-1',
   name: 'Work laptop',
   deviceType: 'multiDevice',
   backedUp: true,
@@ -29,6 +30,7 @@ const fakePasskey: Passkey = {
 
 const fakePasskey2: Passkey = {
   id: 'pk-2',
+  credentialId: 'cred-2',
   name: 'Phone',
   deviceType: 'singleDevice',
   backedUp: false,
@@ -48,7 +50,7 @@ describe('PasskeysSettingsComponent', () => {
   beforeEach(async () => {
     passkeyService = {
       isSupported: vi.fn().mockReturnValue(true),
-      list: vi.fn().mockResolvedValue({ passkeys: [] }),
+      list: vi.fn().mockResolvedValue({ rpId: 'example.com', passkeys: [] }),
       register: vi.fn().mockResolvedValue(undefined),
       rename: vi.fn().mockResolvedValue(undefined),
       delete: vi.fn().mockResolvedValue(undefined),
@@ -85,7 +87,10 @@ describe('PasskeysSettingsComponent', () => {
 
   describe('ngOnInit()', () => {
     it('loads passkeys on init and clears loading state', async () => {
-      passkeyService.list.mockResolvedValue({ passkeys: [fakePasskey] });
+      passkeyService.list.mockResolvedValue({
+        rpId: 'example.com',
+        passkeys: [fakePasskey],
+      });
       fixture.detectChanges(); // triggers ngOnInit
       await fixture.whenStable();
 
@@ -128,8 +133,11 @@ describe('PasskeysSettingsComponent', () => {
   describe('register()', () => {
     it('calls passkeyService.register() and refreshes list on success', async () => {
       passkeyService.list
-        .mockResolvedValueOnce({ passkeys: [] }) // initial load
-        .mockResolvedValueOnce({ passkeys: [fakePasskey] }); // after register
+        .mockResolvedValueOnce({ rpId: 'example.com', passkeys: [] }) // initial load
+        .mockResolvedValueOnce({
+          rpId: 'example.com',
+          passkeys: [fakePasskey],
+        }); // after register
 
       fixture.detectChanges();
       await fixture.whenStable();
@@ -190,7 +198,10 @@ describe('PasskeysSettingsComponent', () => {
     });
 
     it('clears registering signal after success', async () => {
-      passkeyService.list.mockResolvedValue({ passkeys: [] });
+      passkeyService.list.mockResolvedValue({
+        rpId: 'example.com',
+        passkeys: [],
+      });
       fixture.detectChanges();
       await fixture.whenStable();
 
@@ -214,7 +225,10 @@ describe('PasskeysSettingsComponent', () => {
 
   describe('rename()', () => {
     beforeEach(async () => {
-      passkeyService.list.mockResolvedValue({ passkeys: [fakePasskey] });
+      passkeyService.list.mockResolvedValue({
+        rpId: 'example.com',
+        passkeys: [fakePasskey],
+      });
       fixture.detectChanges();
       await fixture.whenStable();
     });
@@ -284,6 +298,7 @@ describe('PasskeysSettingsComponent', () => {
   describe('delete()', () => {
     beforeEach(async () => {
       passkeyService.list.mockResolvedValue({
+        rpId: 'example.com',
         passkeys: [fakePasskey, fakePasskey2],
       });
       fixture.detectChanges();
@@ -295,7 +310,10 @@ describe('PasskeysSettingsComponent', () => {
 
       await component.delete(fakePasskey);
 
-      expect(passkeyService.delete).toHaveBeenCalledWith('pk-1');
+      expect(passkeyService.delete).toHaveBeenCalledWith(
+        fakePasskey,
+        'example.com'
+      );
       expect(component.passkeys()).toEqual([fakePasskey2]);
       expect(snackBar.open).toHaveBeenCalledWith(
         'Passkey deleted.',
@@ -368,14 +386,20 @@ describe('PasskeysSettingsComponent', () => {
 
   describe('hasPasskeys', () => {
     it('is false when passkeys list is empty', async () => {
-      passkeyService.list.mockResolvedValue({ passkeys: [] });
+      passkeyService.list.mockResolvedValue({
+        rpId: 'example.com',
+        passkeys: [],
+      });
       fixture.detectChanges();
       await fixture.whenStable();
       expect(component.hasPasskeys()).toBe(false);
     });
 
     it('is true when passkeys list has items', async () => {
-      passkeyService.list.mockResolvedValue({ passkeys: [fakePasskey] });
+      passkeyService.list.mockResolvedValue({
+        rpId: 'example.com',
+        passkeys: [fakePasskey],
+      });
       fixture.detectChanges();
       await fixture.whenStable();
       expect(component.hasPasskeys()).toBe(true);

@@ -11,4 +11,8 @@ import { Passkey } from './passkey';
 
 export interface PasskeyListResponse {
   passkeys: Array<Passkey>;
+  /**
+   * WebAuthn Relying Party ID these passkeys are bound to
+   */
+  rpId: string;
 }

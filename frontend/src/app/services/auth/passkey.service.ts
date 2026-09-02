@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import {
+  type Passkey,
   type PasskeyListResponse,
   PasskeysService,
   type User,
@@ -12,11 +13,13 @@ import type {
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
+  sendSignal as sendSignalType,
   startAuthentication as startAuthenticationType,
   startRegistration as startRegistrationType,
 } from '@simplewebauthn/browser';
 import {
   browserSupportsWebAuthn,
+  sendSignal,
   startAuthentication,
   startRegistration,
   WebAuthnAbortService,
@@ -44,6 +47,13 @@ export const START_AUTHENTICATION = new InjectionToken<
 >('START_AUTHENTICATION', {
   factory: () => startAuthentication,
 });
+
+export const SEND_SIGNAL = new InjectionToken<typeof sendSignalType>(
+  'SEND_SIGNAL',
+  {
+    factory: () => sendSignal,
+  }
+);
 
 export class PasskeyError extends Error {
   constructor(
@@ -79,6 +89,7 @@ export class PasskeyService {
   private readonly browserSupportsWebAuthn = inject(BROWSER_SUPPORTS_WEBAUTHN);
   private readonly startRegistration = inject(START_REGISTRATION);
   private readonly startAuthentication = inject(START_AUTHENTICATION);
+  private readonly sendSignal = inject(SEND_SIGNAL);
 
   /**
    * Returns true if the current browser exposes the WebAuthn API.
@@ -193,7 +204,22 @@ export class PasskeyService {
       return result.user;
     } catch (err) {
       if (err instanceof PasskeyError) throw err;
-      throw this.toPasskeyError(err, 'Failed to verify passkey login.');
+      const passkeyError = this.toPasskeyError(
+        err,
+        'Failed to verify passkey login.'
+      );
+      // The server no longer knows this credential (deleted passkey, wiped
+      // account, ...). Tell the browser so the authenticator can drop the
+      // phantom passkey instead of offering it again on the next login.
+      if (
+        err instanceof HttpErrorResponse &&
+        err.status === 401 &&
+        passkeyError.message.toLowerCase().includes('unknown credential') &&
+        options.rpId
+      ) {
+        this.signalUnknownCredential(options.rpId, assertion.id);
+      }
+      throw passkeyError;
     }
   }
 
@@ -202,14 +228,36 @@ export class PasskeyService {
     return firstValueFrom(this.api.listPasskeys());
   }
 
-  /** Delete a passkey by id. */
-  async delete(id: string): Promise<void> {
-    await firstValueFrom(this.api.deletePasskey(id));
+  /**
+   * Delete a passkey.
+   *
+   * After the server forgets the credential, the WebAuthn Signal API is used
+   * (best effort) to ask the browser/authenticator to remove its copy too, so
+   * the deleted passkey stops showing up in the login picker.
+   */
+  async delete(passkey: Passkey, rpId: string): Promise<void> {
+    await firstValueFrom(this.api.deletePasskey(passkey.id));
+    this.signalUnknownCredential(rpId, passkey.credentialId);
   }
 
   /** Rename a passkey. */
   async rename(id: string, name: string): Promise<void> {
     await firstValueFrom(this.api.renamePasskey(id, { name }));
+  }
+
+  // ---- Signal helpers ----
+
+  /**
+   * Fire-and-forget `signalUnknownCredential`. @simplewebauthn/browser rejects
+   * on browsers without Signal API support, and nothing else that can go wrong
+   * here matters to the caller's flow, so every error is dropped.
+   */
+  private signalUnknownCredential(rpID: string, credentialID: string): void {
+    void this.sendSignal({
+      signalName: 'unknownCredential',
+      rpID,
+      credentialID,
+    }).catch(() => undefined);
   }
 
   // ---- Error helpers ----

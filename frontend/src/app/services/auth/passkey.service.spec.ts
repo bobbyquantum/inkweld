@@ -24,6 +24,7 @@ import { AuthTokenService } from './auth-token.service';
 import {
   BROWSER_SUPPORTS_WEBAUTHN,
   PasskeyService,
+  SEND_SIGNAL,
   START_AUTHENTICATION,
   START_REGISTRATION,
 } from './passkey.service';
@@ -75,9 +76,11 @@ const fakeUser: User = {
 const fakeToken = 'jwt-token-123';
 
 const fakePasskeys: PasskeyListResponse = {
+  rpId: 'localhost',
   passkeys: [
     {
       id: 'pk-1',
+      credentialId: 'cred-id',
       name: 'My Key',
       deviceType: 'multiDevice',
       backedUp: true,
@@ -99,6 +102,7 @@ describe('PasskeyService', () => {
   let fakeBrowserSupportsWebAuthn: ReturnType<typeof vi.fn>;
   let fakeStartRegistration: ReturnType<typeof vi.fn>;
   let fakeStartAuthentication: ReturnType<typeof vi.fn>;
+  let fakeSendSignal: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     passkeyApi = {
@@ -123,6 +127,7 @@ describe('PasskeyService', () => {
     fakeBrowserSupportsWebAuthn = vi.fn().mockReturnValue(true);
     fakeStartRegistration = vi.fn().mockResolvedValue(fakeAttestation);
     fakeStartAuthentication = vi.fn().mockResolvedValue(fakeAssertion);
+    fakeSendSignal = vi.fn().mockResolvedValue(undefined);
 
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider()],
@@ -141,6 +146,7 @@ describe('PasskeyService', () => {
         },
         { provide: START_REGISTRATION, useValue: fakeStartRegistration },
         { provide: START_AUTHENTICATION, useValue: fakeStartAuthentication },
+        { provide: SEND_SIGNAL, useValue: fakeSendSignal },
       ],
     }).compileComponents();
 
@@ -312,6 +318,48 @@ describe('PasskeyService', () => {
       });
     });
 
+    it('signals unknownCredential when the server rejects the credential id', async () => {
+      passkeyApi.startPasskeyLogin.mockReturnValue(obs(fakeLoginOptions));
+      fakeStartAuthentication.mockResolvedValue(fakeAssertion);
+      passkeyApi.finishPasskeyLogin.mockReturnValue(
+        errObs(
+          new HttpErrorResponse({
+            status: 401,
+            statusText: 'Unauthorized',
+            error: { error: 'Unknown credential' },
+          })
+        )
+      );
+
+      await expect(service.login()).rejects.toMatchObject({
+        code: 'NETWORK_ERROR',
+      });
+      expect(fakeSendSignal).toHaveBeenCalledWith({
+        signalName: 'unknownCredential',
+        rpID: 'localhost',
+        credentialID: 'cred-id',
+      });
+    });
+
+    it('does not signal on other 401 failures', async () => {
+      passkeyApi.startPasskeyLogin.mockReturnValue(obs(fakeLoginOptions));
+      fakeStartAuthentication.mockResolvedValue(fakeAssertion);
+      passkeyApi.finishPasskeyLogin.mockReturnValue(
+        errObs(
+          new HttpErrorResponse({
+            status: 401,
+            statusText: 'Unauthorized',
+            error: { error: 'Authentication verification failed' },
+          })
+        )
+      );
+
+      await expect(service.login()).rejects.toMatchObject({
+        code: 'NETWORK_ERROR',
+      });
+      expect(fakeSendSignal).not.toHaveBeenCalled();
+    });
+
     it('throws PENDING_APPROVAL on 403 with pending-approval message', async () => {
       // Simulate the backend's 403 response from passkey.routes.ts:275 so the
       // login dialog can route the user to /approval-pending instead of just
@@ -410,10 +458,41 @@ describe('PasskeyService', () => {
   // ── delete() ──────────────────────────────────────────────────────────────
 
   describe('delete()', () => {
-    it('calls deletePasskey with the given id', async () => {
+    const passkey = {
+      id: 'pk-1',
+      credentialId: 'cred-abc',
+      backedUp: false,
+      createdAt: 0,
+    };
+
+    it('calls deletePasskey with the passkey id', async () => {
       passkeyApi.deletePasskey.mockReturnValue(obs(undefined));
-      await service.delete('pk-1');
+      await service.delete(passkey, 'example.com');
       expect(passkeyApi.deletePasskey).toHaveBeenCalledWith('pk-1');
+    });
+
+    it('signals unknownCredential to the browser after a successful delete', async () => {
+      passkeyApi.deletePasskey.mockReturnValue(obs(undefined));
+      await service.delete(passkey, 'example.com');
+      expect(fakeSendSignal).toHaveBeenCalledWith({
+        signalName: 'unknownCredential',
+        rpID: 'example.com',
+        credentialID: 'cred-abc',
+      });
+    });
+
+    it('does not signal when the delete request fails', async () => {
+      passkeyApi.deletePasskey.mockReturnValue(errObs(new Error('boom')));
+      await expect(service.delete(passkey, 'example.com')).rejects.toThrow();
+      expect(fakeSendSignal).not.toHaveBeenCalled();
+    });
+
+    it('swallows sendSignal rejections', async () => {
+      passkeyApi.deletePasskey.mockReturnValue(obs(undefined));
+      fakeSendSignal.mockRejectedValue(new Error('unsupported'));
+      await expect(
+        service.delete(passkey, 'example.com')
+      ).resolves.toBeUndefined();
     });
   });
 
