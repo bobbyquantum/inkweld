@@ -48,6 +48,7 @@ export { rpFromContext } from '../utils/webauthn-utils';
 function passkeyToDto(p: UserPasskey) {
   return {
     id: p.id,
+    credentialId: p.credentialId,
     name: p.name ?? null,
     deviceType: p.deviceType ?? null,
     backedUp: !!p.backedUp,
@@ -272,7 +273,7 @@ passkeyRoutes.openapi(listRoute, async (c) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Not authenticated' }, 401);
   const list = await passkeyService.listForUser(db, user.id);
-  return c.json({ passkeys: list.map(passkeyToDto) }, 200);
+  return c.json({ passkeys: list.map(passkeyToDto), rpId: rpFromContext(c).rpId }, 200);
 });
 
 // Wrangler/workerd plain handlers for parametrised DELETE and PATCH routes.

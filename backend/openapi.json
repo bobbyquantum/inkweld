@@ -4151,6 +4151,10 @@
           "id": {
             "type": "string"
           },
+          "credentialId": {
+            "type": "string",
+            "description": "Base64URL WebAuthn credential ID (for the Signal API)"
+          },
           "name": {
             "type": "string",
             "nullable": true
@@ -4172,6 +4176,7 @@
         },
         "required": [
           "id",
+          "credentialId",
           "backedUp",
           "createdAt"
         ]
@@ -4233,10 +4238,15 @@
             "items": {
               "$ref": "#/components/schemas/Passkey"
             }
+          },
+          "rpId": {
+            "type": "string",
+            "description": "WebAuthn Relying Party ID these passkeys are bound to"
           }
         },
         "required": [
-          "passkeys"
+          "passkeys",
+          "rpId"
         ]
       },
       "PasskeyRenameRequest": {

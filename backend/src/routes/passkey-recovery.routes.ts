@@ -190,6 +190,7 @@ passkeyRecoveryRoutes.openapi(finishRoute, async (c) => {
       verified: true as const,
       passkey: {
         id: p.id,
+        credentialId: p.credentialId,
         name: p.name ?? null,
         deviceType: p.deviceType ?? null,
         backedUp: !!p.backedUp,

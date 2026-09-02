@@ -608,6 +608,11 @@ describe('GET /api/v1/auth/passkeys – list', () => {
     const data = await json();
     expect(data.passkeys).toHaveLength(1);
     expect(data.passkeys[0].name).toBe('my key');
+    // credentialId + rpId are what the client feeds to the WebAuthn Signal API
+    expect(typeof data.passkeys[0].credentialId).toBe('string');
+    expect(data.passkeys[0].credentialId.length).toBeGreaterThan(0);
+    expect(typeof data.rpId).toBe('string');
+    expect(data.rpId.length).toBeGreaterThan(0);
   });
 });
 
