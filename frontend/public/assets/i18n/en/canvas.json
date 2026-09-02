@@ -57,8 +57,6 @@
     "fitAll": "Fit all (⌘0)",
     "resetZoom": "Reset zoom to 100%",
     "moreTools": "More tools",
-    "viewMode": "View mode",
-    "editMode": "Edit mode",
     "tour": "Take a tour of the canvas"
   },
   "contextMenu": {

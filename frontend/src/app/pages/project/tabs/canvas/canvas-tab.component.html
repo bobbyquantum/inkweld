@@ -110,17 +110,15 @@
             <span class="section-title">{{
               'canvas.sidebar.layers' | transloco
             }}</span>
-            @if (!viewMode()) {
-              <button
-                mat-icon-button
-                [matTooltip]="'canvas.sidebar.addLayer' | transloco"
-                [attr.aria-label]="'canvas.sidebar.addLayer' | transloco"
-                data-testid="add-layer-button"
-                (click)="onAddLayer()"
-                class="section-action">
-                <mat-icon>add</mat-icon>
-              </button>
-            }
+            <button
+              mat-icon-button
+              [matTooltip]="'canvas.sidebar.addLayer' | transloco"
+              [attr.aria-label]="'canvas.sidebar.addLayer' | transloco"
+              data-testid="add-layer-button"
+              (click)="onAddLayer()"
+              class="section-action">
+              <mat-icon>add</mat-icon>
+            </button>
           </div>
           <div
             class="layers-list"
@@ -154,41 +152,35 @@
                       layer.visible ? 'visibility' : 'visibility_off'
                     }}</mat-icon>
                   </button>
-                  @if (!viewMode()) {
-                    <button
-                      mat-icon-button
-                      class="layer-lock"
-                      data-testid="layer-lock"
-                      (click)="onToggleLayerLock(layer.id, $event)"
-                      [matTooltip]="
-                        layer.locked
-                          ? ('canvas.sidebar.unlockLayer' | transloco)
-                          : ('canvas.sidebar.lockLayer' | transloco)
-                      ">
-                      <mat-icon>{{
-                        layer.locked ? 'lock' : 'lock_open'
-                      }}</mat-icon>
-                    </button>
-                  }
+                  <button
+                    mat-icon-button
+                    class="layer-lock"
+                    data-testid="layer-lock"
+                    (click)="onToggleLayerLock(layer.id, $event)"
+                    [matTooltip]="
+                      layer.locked
+                        ? ('canvas.sidebar.unlockLayer' | transloco)
+                        : ('canvas.sidebar.lockLayer' | transloco)
+                    ">
+                    <mat-icon>{{
+                      layer.locked ? 'lock' : 'lock_open'
+                    }}</mat-icon>
+                  </button>
                   <span class="layer-name" data-testid="layer-name">{{
                     layer.name
                   }}</span>
-                  @if (!viewMode()) {
-                    <button
-                      mat-icon-button
-                      class="layer-action"
-                      data-testid="layer-menu-button"
-                      [attr.aria-label]="
-                        'canvas.sidebar.moreOptions' | transloco
-                      "
-                      [matMenuTriggerFor]="layerMenu"
-                      [matMenuTriggerData]="{ layerId: layer.id }"
-                      (click)="$event.stopPropagation()">
-                      <mat-icon>more_vert</mat-icon>
-                    </button>
-                  }
+                  <button
+                    mat-icon-button
+                    class="layer-action"
+                    data-testid="layer-menu-button"
+                    [attr.aria-label]="'canvas.sidebar.moreOptions' | transloco"
+                    [matMenuTriggerFor]="layerMenu"
+                    [matMenuTriggerData]="{ layerId: layer.id }"
+                    (click)="$event.stopPropagation()">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
                 </div>
-                @if (layer.id === activeLayerId() && !viewMode()) {
+                @if (layer.id === activeLayerId()) {
                   <input
                     type="range"
                     class="layer-opacity"
@@ -260,33 +252,31 @@
                 <span class="object-name">{{
                   obj.name || getObjectLabel(obj)
                 }}</span>
-                @if (!viewMode()) {
-                  @if (obj.type === 'image') {
-                    <button
-                      mat-icon-button
-                      class="object-action"
-                      data-testid="object-background-toggle"
-                      [matTooltip]="
-                        (obj.isBackground
-                          ? 'canvas.sidebar.detachBackground'
-                          : 'canvas.sidebar.setAsBackground'
-                        ) | transloco
-                      "
-                      (click)="onToggleObjectBackground(obj.id, $event)">
-                      <mat-icon>{{
-                        obj.isBackground ? 'flip_to_front' : 'wallpaper'
-                      }}</mat-icon>
-                    </button>
-                  }
+                @if (obj.type === 'image') {
                   <button
                     mat-icon-button
                     class="object-action"
-                    data-testid="object-delete-button"
-                    [matTooltip]="'delete' | transloco"
-                    (click)="onDeleteObject(obj.id, $event)">
-                    <mat-icon>delete</mat-icon>
+                    data-testid="object-background-toggle"
+                    [matTooltip]="
+                      (obj.isBackground
+                        ? 'canvas.sidebar.detachBackground'
+                        : 'canvas.sidebar.setAsBackground'
+                      ) | transloco
+                    "
+                    (click)="onToggleObjectBackground(obj.id, $event)">
+                    <mat-icon>{{
+                      obj.isBackground ? 'flip_to_front' : 'wallpaper'
+                    }}</mat-icon>
                   </button>
                 }
+                <button
+                  mat-icon-button
+                  class="object-action"
+                  data-testid="object-delete-button"
+                  [matTooltip]="'delete' | transloco"
+                  (click)="onDeleteObject(obj.id, $event)">
+                  <mat-icon>delete</mat-icon>
+                </button>
               </div>
             } @empty {
               <div class="empty-state" data-testid="objects-empty">
@@ -352,16 +342,14 @@
                     >
                   }
                 </button>
-                @if (!viewMode()) {
-                  <button
-                    mat-icon-button
-                    class="object-action"
-                    data-testid="pin-delete-button"
-                    [matTooltip]="'delete' | transloco"
-                    (click)="onDeleteObject(pin.id, $event)">
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                }
+                <button
+                  mat-icon-button
+                  class="object-action"
+                  data-testid="pin-delete-button"
+                  [matTooltip]="'delete' | transloco"
+                  (click)="onDeleteObject(pin.id, $event)">
+                  <mat-icon>delete</mat-icon>
+                </button>
               </div>
             } @empty {
               <div class="empty-state" data-testid="pins-empty">
@@ -375,133 +363,129 @@
         </div>
 
         <!-- Frames section (canvas size + crop frames) -->
-        @if (!viewMode()) {
-          <div class="sidebar-section">
-            <div class="section-header" data-testid="frames-header">
-              <button
-                mat-icon-button
-                class="section-chevron"
-                data-testid="section-toggle-frames"
-                [attr.aria-expanded]="!isSectionCollapsed('frames')"
-                [attr.aria-label]="
-                  (isSectionCollapsed('frames')
-                    ? 'canvas.sidebar.expandSection'
-                    : 'canvas.sidebar.collapseSection'
-                  ) | transloco
-                "
-                (click)="onToggleSection('frames')">
-                <mat-icon>{{
-                  isSectionCollapsed('frames') ? 'chevron_right' : 'expand_more'
-                }}</mat-icon>
-              </button>
-              <span class="section-title">{{
-                'canvas.frames.title' | transloco
-              }}</span>
-              <button
-                mat-icon-button
-                data-testid="frames-toggle-all"
-                class="section-action"
-                [matTooltip]="
-                  (framesVisible()
-                    ? 'canvas.frames.hideAll'
-                    : 'canvas.frames.showAll'
-                  ) | transloco
-                "
-                [attr.aria-label]="
-                  (framesVisible()
-                    ? 'canvas.frames.hideAll'
-                    : 'canvas.frames.showAll'
-                  ) | transloco
-                "
-                (click)="onToggleFramesVisible()">
-                <mat-icon>{{
-                  framesVisible() ? 'visibility' : 'visibility_off'
-                }}</mat-icon>
-              </button>
-              <button
-                mat-icon-button
-                data-testid="add-frame-button"
-                class="section-action"
-                [matTooltip]="'canvas.frames.addFrame' | transloco"
-                [attr.aria-label]="'canvas.frames.addFrame' | transloco"
-                [matMenuTriggerFor]="addFrameMenu">
-                <mat-icon>add</mat-icon>
-              </button>
-            </div>
-            <div
-              class="layers-list"
-              [class.section-collapsed]="isSectionCollapsed('frames')"
-              [attr.aria-label]="'canvas.frames.listAria' | transloco">
-              @for (frame of frames(); track frame.id) {
-                <div
-                  class="layer-item"
-                  data-testid="frame-item"
-                  [class.active]="frame.id === selectedFrameId()">
-                  <div class="layer-item-row">
-                    <button
-                      mat-icon-button
-                      class="layer-visibility"
-                      data-testid="frame-visibility"
-                      (click)="onToggleFrameVisibility(frame.id, $event)"
-                      [matTooltip]="
-                        (frame.visible
-                          ? 'canvas.frames.hide'
-                          : 'canvas.frames.show'
-                        ) | transloco
-                      ">
-                      <mat-icon>{{
-                        frame.visible ? 'visibility' : 'visibility_off'
-                      }}</mat-icon>
-                    </button>
-                    <button
-                      type="button"
-                      class="row-select"
-                      [attr.aria-pressed]="frame.id === selectedFrameId()"
-                      (click)="onSelectFrame(frame.id)">
-                      <mat-icon
-                        class="object-icon"
-                        [matTooltip]="
-                          (frame.kind === 'canvas'
-                            ? 'canvas.frames.kindCanvas'
-                            : 'canvas.frames.kindCrop'
-                          ) | transloco
-                        "
-                        >{{
-                          frame.kind === 'canvas' ? 'crop_din' : 'crop'
-                        }}</mat-icon
-                      >
-                      <span class="layer-name" data-testid="frame-name">{{
-                        frame.name
-                      }}</span>
-                      <span class="frame-dims"
-                        >{{ frame.width }}×{{ frame.height }}</span
-                      >
-                    </button>
-                    <button
-                      mat-icon-button
-                      class="layer-action"
-                      data-testid="frame-menu"
-                      [attr.aria-label]="
-                        'canvas.sidebar.moreOptions' | transloco
-                      "
-                      [matMenuTriggerFor]="frameMenu"
-                      [matMenuTriggerData]="{ frame: frame }"
-                      (click)="$event.stopPropagation()">
-                      <mat-icon>more_vert</mat-icon>
-                    </button>
-                  </div>
-                </div>
-              } @empty {
-                <div class="empty-state" data-testid="frames-empty">
-                  <p>{{ 'canvas.frames.noFrames' | transloco }}</p>
-                  <p class="hint">
-                    {{ 'canvas.frames.noFramesHint' | transloco }}
-                  </p>
-                </div>
-              }
-            </div>
+        <div class="sidebar-section">
+          <div class="section-header" data-testid="frames-header">
+            <button
+              mat-icon-button
+              class="section-chevron"
+              data-testid="section-toggle-frames"
+              [attr.aria-expanded]="!isSectionCollapsed('frames')"
+              [attr.aria-label]="
+                (isSectionCollapsed('frames')
+                  ? 'canvas.sidebar.expandSection'
+                  : 'canvas.sidebar.collapseSection'
+                ) | transloco
+              "
+              (click)="onToggleSection('frames')">
+              <mat-icon>{{
+                isSectionCollapsed('frames') ? 'chevron_right' : 'expand_more'
+              }}</mat-icon>
+            </button>
+            <span class="section-title">{{
+              'canvas.frames.title' | transloco
+            }}</span>
+            <button
+              mat-icon-button
+              data-testid="frames-toggle-all"
+              class="section-action"
+              [matTooltip]="
+                (framesVisible()
+                  ? 'canvas.frames.hideAll'
+                  : 'canvas.frames.showAll'
+                ) | transloco
+              "
+              [attr.aria-label]="
+                (framesVisible()
+                  ? 'canvas.frames.hideAll'
+                  : 'canvas.frames.showAll'
+                ) | transloco
+              "
+              (click)="onToggleFramesVisible()">
+              <mat-icon>{{
+                framesVisible() ? 'visibility' : 'visibility_off'
+              }}</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              data-testid="add-frame-button"
+              class="section-action"
+              [matTooltip]="'canvas.frames.addFrame' | transloco"
+              [attr.aria-label]="'canvas.frames.addFrame' | transloco"
+              [matMenuTriggerFor]="addFrameMenu">
+              <mat-icon>add</mat-icon>
+            </button>
           </div>
-        }
+          <div
+            class="layers-list"
+            [class.section-collapsed]="isSectionCollapsed('frames')"
+            [attr.aria-label]="'canvas.frames.listAria' | transloco">
+            @for (frame of frames(); track frame.id) {
+              <div
+                class="layer-item"
+                data-testid="frame-item"
+                [class.active]="frame.id === selectedFrameId()">
+                <div class="layer-item-row">
+                  <button
+                    mat-icon-button
+                    class="layer-visibility"
+                    data-testid="frame-visibility"
+                    (click)="onToggleFrameVisibility(frame.id, $event)"
+                    [matTooltip]="
+                      (frame.visible
+                        ? 'canvas.frames.hide'
+                        : 'canvas.frames.show'
+                      ) | transloco
+                    ">
+                    <mat-icon>{{
+                      frame.visible ? 'visibility' : 'visibility_off'
+                    }}</mat-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="row-select"
+                    [attr.aria-pressed]="frame.id === selectedFrameId()"
+                    (click)="onSelectFrame(frame.id)">
+                    <mat-icon
+                      class="object-icon"
+                      [matTooltip]="
+                        (frame.kind === 'canvas'
+                          ? 'canvas.frames.kindCanvas'
+                          : 'canvas.frames.kindCrop'
+                        ) | transloco
+                      "
+                      >{{
+                        frame.kind === 'canvas' ? 'crop_din' : 'crop'
+                      }}</mat-icon
+                    >
+                    <span class="layer-name" data-testid="frame-name">{{
+                      frame.name
+                    }}</span>
+                    <span class="frame-dims"
+                      >{{ frame.width }}×{{ frame.height }}</span
+                    >
+                  </button>
+                  <button
+                    mat-icon-button
+                    class="layer-action"
+                    data-testid="frame-menu"
+                    [attr.aria-label]="'canvas.sidebar.moreOptions' | transloco"
+                    [matMenuTriggerFor]="frameMenu"
+                    [matMenuTriggerData]="{ frame: frame }"
+                    (click)="$event.stopPropagation()">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                </div>
+              </div>
+            } @empty {
+              <div class="empty-state" data-testid="frames-empty">
+                <p>{{ 'canvas.frames.noFrames' | transloco }}</p>
+                <p class="hint">
+                  {{ 'canvas.frames.noFramesHint' | transloco }}
+                </p>
+              </div>
+            }
+          </div>
+        </div>
       </aside>
     }
 
@@ -509,270 +493,240 @@
     <div class="canvas-main">
       <!-- Toolbar -->
       <div class="canvas-toolbar" #canvasToolbar data-testid="canvas-toolbar">
-        <div class="toolbar-group" data-toolbar-fixed="mode">
+        <div
+          class="toolbar-group"
+          data-toolbar-group="navigation"
+          [class.toolbar-group--hidden]="isOverflowed('navigation')"
+          [attr.aria-hidden]="isOverflowed('navigation') ? 'true' : null">
           <button
             mat-icon-button
-            data-testid="canvas-mode-toggle"
-            [class.active]="viewMode()"
-            [matTooltip]="
-              (viewMode()
-                ? 'canvas.toolbar.editMode'
-                : 'canvas.toolbar.viewMode'
-              ) | transloco
-            "
-            [attr.aria-label]="
-              (viewMode()
-                ? 'canvas.toolbar.editMode'
-                : 'canvas.toolbar.viewMode'
-              ) | transloco
-            "
-            (click)="onToggleViewMode()">
-            <mat-icon>{{ viewMode() ? 'edit' : 'visibility' }}</mat-icon>
+            data-testid="select-tool"
+            [class.active]="activeTool() === 'select'"
+            [matTooltip]="'canvas.toolbar.select' | transloco"
+            [attr.aria-label]="'canvas.toolbar.select' | transloco"
+            (click)="onToolChange('select')">
+            <mat-icon>near_me</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="rect-select-tool"
+            [class.active]="activeTool() === 'rectSelect'"
+            [matTooltip]="'canvas.toolbar.rectangleSelect' | transloco"
+            [attr.aria-label]="'canvas.toolbar.rectangleSelect' | transloco"
+            (click)="onToolChange('rectSelect')">
+            <mat-icon>select_all</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="pan-tool"
+            [class.active]="activeTool() === 'pan'"
+            [matTooltip]="'canvas.toolbar.pan' | transloco"
+            [attr.aria-label]="'canvas.toolbar.pan' | transloco"
+            (click)="onToolChange('pan')">
+            <mat-icon>pan_tool</mat-icon>
           </button>
         </div>
-        <div class="toolbar-divider"></div>
-        @if (!viewMode()) {
-          <div
-            class="toolbar-group"
-            data-toolbar-group="navigation"
-            [class.toolbar-group--hidden]="isOverflowed('navigation')"
-            [attr.aria-hidden]="isOverflowed('navigation') ? 'true' : null">
-            <button
-              mat-icon-button
-              data-testid="select-tool"
-              [class.active]="activeTool() === 'select'"
-              [matTooltip]="'canvas.toolbar.select' | transloco"
-              [attr.aria-label]="'canvas.toolbar.select' | transloco"
-              (click)="onToolChange('select')">
-              <mat-icon>near_me</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              data-testid="rect-select-tool"
-              [class.active]="activeTool() === 'rectSelect'"
-              [matTooltip]="'canvas.toolbar.rectangleSelect' | transloco"
-              [attr.aria-label]="'canvas.toolbar.rectangleSelect' | transloco"
-              (click)="onToolChange('rectSelect')">
-              <mat-icon>select_all</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              data-testid="pan-tool"
-              [class.active]="activeTool() === 'pan'"
-              [matTooltip]="'canvas.toolbar.pan' | transloco"
-              [attr.aria-label]="'canvas.toolbar.pan' | transloco"
-              (click)="onToolChange('pan')">
-              <mat-icon>pan_tool</mat-icon>
-            </button>
-          </div>
 
-          <div
-            class="toolbar-divider"
-            data-toolbar-divider="navigation"
-            [class.toolbar-divider--hidden]="isOverflowed('navigation')"></div>
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="navigation"
+          [class.toolbar-divider--hidden]="isOverflowed('navigation')"></div>
 
-          <div
-            class="toolbar-group"
-            data-toolbar-group="creation"
-            [class.toolbar-group--hidden]="isOverflowed('creation')"
-            [attr.aria-hidden]="isOverflowed('creation') ? 'true' : null">
-            <button
-              mat-icon-button
-              data-testid="pin-tool"
-              [class.active]="activeTool() === 'pin'"
-              [disabled]="!hasActiveLayer()"
-              [matTooltip]="'canvas.toolbar.placePin' | transloco"
-              [attr.aria-label]="'canvas.toolbar.placePin' | transloco"
-              (click)="onToolChange('pin')">
-              <mat-icon>place</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              data-testid="add-image-button"
-              [matTooltip]="'canvas.toolbar.addImage' | transloco"
-              [attr.aria-label]="'canvas.toolbar.addImage' | transloco"
-              [disabled]="!hasActiveLayer()"
-              (click)="onAddImage()">
-              <mat-icon>image</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              data-testid="text-tool"
-              [class.active]="activeTool() === 'text'"
-              [disabled]="!hasActiveLayer()"
-              [matTooltip]="'canvas.toolbar.addText' | transloco"
-              [attr.aria-label]="'canvas.toolbar.addText' | transloco"
-              (click)="onToolChange('text')">
-              <mat-icon>title</mat-icon>
-            </button>
-          </div>
+        <div
+          class="toolbar-group"
+          data-toolbar-group="creation"
+          [class.toolbar-group--hidden]="isOverflowed('creation')"
+          [attr.aria-hidden]="isOverflowed('creation') ? 'true' : null">
+          <button
+            mat-icon-button
+            data-testid="pin-tool"
+            [class.active]="activeTool() === 'pin'"
+            [disabled]="!hasActiveLayer()"
+            [matTooltip]="'canvas.toolbar.placePin' | transloco"
+            [attr.aria-label]="'canvas.toolbar.placePin' | transloco"
+            (click)="onToolChange('pin')">
+            <mat-icon>place</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="add-image-button"
+            [matTooltip]="'canvas.toolbar.addImage' | transloco"
+            [attr.aria-label]="'canvas.toolbar.addImage' | transloco"
+            [disabled]="!hasActiveLayer()"
+            (click)="onAddImage()">
+            <mat-icon>image</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="text-tool"
+            [class.active]="activeTool() === 'text'"
+            [disabled]="!hasActiveLayer()"
+            [matTooltip]="'canvas.toolbar.addText' | transloco"
+            [attr.aria-label]="'canvas.toolbar.addText' | transloco"
+            (click)="onToolChange('text')">
+            <mat-icon>title</mat-icon>
+          </button>
+        </div>
 
-          <div
-            class="toolbar-divider"
-            data-toolbar-divider="creation"
-            [class.toolbar-divider--hidden]="isOverflowed('creation')"></div>
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="creation"
+          [class.toolbar-divider--hidden]="isOverflowed('creation')"></div>
 
-          <div
-            class="toolbar-group"
-            data-toolbar-group="drawing"
-            [class.toolbar-group--hidden]="isOverflowed('drawing')"
-            [attr.aria-hidden]="isOverflowed('drawing') ? 'true' : null">
-            <button
-              mat-icon-button
-              data-testid="draw-tool"
-              [class.active]="activeTool() === 'draw'"
-              [disabled]="!hasActiveLayer()"
-              [matTooltip]="'canvas.toolbar.freehandDraw' | transloco"
-              [attr.aria-label]="'canvas.toolbar.freehandDraw' | transloco"
-              (click)="onToolChange('draw')">
-              <mat-icon>draw</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              data-testid="eraser-tool"
-              [class.active]="activeTool() === 'eraser'"
-              [disabled]="!hasActiveLayer()"
-              [matTooltip]="'canvas.toolbar.eraser' | transloco"
-              [attr.aria-label]="'canvas.toolbar.eraser' | transloco"
-              (click)="onToolChange('eraser')">
-              <mat-icon fontSet="material-symbols-outlined"
-                >ink_eraser</mat-icon
-              >
-            </button>
-            <button
-              mat-icon-button
-              data-testid="line-tool"
-              [class.active]="activeTool() === 'line'"
-              [disabled]="!hasActiveLayer()"
-              [matTooltip]="'canvas.toolbar.line' | transloco"
-              [attr.aria-label]="'canvas.toolbar.line' | transloco"
-              (click)="onToolChange('line')">
-              <mat-icon>horizontal_rule</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              data-testid="shape-tool"
-              [class.active]="activeTool() === 'shape'"
-              [disabled]="!hasActiveLayer()"
-              [matTooltip]="'canvas.toolbar.shape' | transloco"
-              [attr.aria-label]="'canvas.toolbar.shape' | transloco"
-              (click)="onToolChange('shape')"
-              [matMenuTriggerFor]="shapeMenu">
-              <mat-icon>{{ shapeIcon() }}</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              data-testid="polygon-tool"
-              [class.active]="activeTool() === 'polygon'"
-              [disabled]="!hasActiveLayer()"
-              [matTooltip]="'canvas.toolbar.polygon' | transloco"
-              [attr.aria-label]="'canvas.toolbar.polygon' | transloco"
-              (click)="onToolChange('polygon')">
-              <mat-icon fontSet="material-symbols-outlined">pentagon</mat-icon>
-            </button>
-          </div>
+        <div
+          class="toolbar-group"
+          data-toolbar-group="drawing"
+          [class.toolbar-group--hidden]="isOverflowed('drawing')"
+          [attr.aria-hidden]="isOverflowed('drawing') ? 'true' : null">
+          <button
+            mat-icon-button
+            data-testid="draw-tool"
+            [class.active]="activeTool() === 'draw'"
+            [disabled]="!hasActiveLayer()"
+            [matTooltip]="'canvas.toolbar.freehandDraw' | transloco"
+            [attr.aria-label]="'canvas.toolbar.freehandDraw' | transloco"
+            (click)="onToolChange('draw')">
+            <mat-icon>draw</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="eraser-tool"
+            [class.active]="activeTool() === 'eraser'"
+            [disabled]="!hasActiveLayer()"
+            [matTooltip]="'canvas.toolbar.eraser' | transloco"
+            [attr.aria-label]="'canvas.toolbar.eraser' | transloco"
+            (click)="onToolChange('eraser')">
+            <mat-icon fontSet="material-symbols-outlined">ink_eraser</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="line-tool"
+            [class.active]="activeTool() === 'line'"
+            [disabled]="!hasActiveLayer()"
+            [matTooltip]="'canvas.toolbar.line' | transloco"
+            [attr.aria-label]="'canvas.toolbar.line' | transloco"
+            (click)="onToolChange('line')">
+            <mat-icon>horizontal_rule</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="shape-tool"
+            [class.active]="activeTool() === 'shape'"
+            [disabled]="!hasActiveLayer()"
+            [matTooltip]="'canvas.toolbar.shape' | transloco"
+            [attr.aria-label]="'canvas.toolbar.shape' | transloco"
+            (click)="onToolChange('shape')"
+            [matMenuTriggerFor]="shapeMenu">
+            <mat-icon>{{ shapeIcon() }}</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="polygon-tool"
+            [class.active]="activeTool() === 'polygon'"
+            [disabled]="!hasActiveLayer()"
+            [matTooltip]="'canvas.toolbar.polygon' | transloco"
+            [attr.aria-label]="'canvas.toolbar.polygon' | transloco"
+            (click)="onToolChange('polygon')">
+            <mat-icon fontSet="material-symbols-outlined">pentagon</mat-icon>
+          </button>
+        </div>
 
-          <div
-            class="toolbar-divider"
-            data-toolbar-divider="drawing"
-            [class.toolbar-divider--hidden]="isOverflowed('drawing')"></div>
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="drawing"
+          [class.toolbar-divider--hidden]="isOverflowed('drawing')"></div>
 
-          <div
-            class="toolbar-group"
-            data-toolbar-group="style"
-            [class.toolbar-group--hidden]="isOverflowed('style')"
-            [attr.aria-hidden]="isOverflowed('style') ? 'true' : null">
-            <button
-              mat-icon-button
-              class="swatch-button"
-              data-testid="stroke-color-button"
-              [matMenuTriggerFor]="strokeColorMenu"
-              [matTooltip]="'canvas.toolbar.strokeColor' | transloco"
-              [attr.aria-label]="'canvas.toolbar.strokeColor' | transloco">
-              <span
-                class="swatch-dot"
-                [style.background]="toolSettings().stroke"></span>
-            </button>
-            <button
-              mat-icon-button
-              class="swatch-button"
-              data-testid="fill-color-button"
-              [matMenuTriggerFor]="fillColorMenu"
-              [matTooltip]="'canvas.toolbar.fillColor' | transloco"
-              [attr.aria-label]="'canvas.toolbar.fillColor' | transloco">
-              <span
-                class="swatch-dot"
-                [class.swatch-none]="!toolSettings().fillEnabled"
-                [style.background]="
-                  toolSettings().fillEnabled
-                    ? toolSettings().fill
-                    : 'transparent'
-                "></span>
-            </button>
-            <button
-              mat-icon-button
-              data-testid="stroke-width-button"
-              [matMenuTriggerFor]="strokeWidthMenu"
-              [matTooltip]="'canvas.toolbar.strokeWidth' | transloco"
-              [attr.aria-label]="'canvas.toolbar.strokeWidth' | transloco">
-              <mat-icon fontSet="material-symbols-outlined"
-                >line_weight</mat-icon
-              >
-            </button>
-            <button
-              mat-icon-button
-              data-testid="brush-options-button"
-              [matMenuTriggerFor]="brushOptionsMenu"
-              [matTooltip]="'canvas.toolbar.brushOptions' | transloco"
-              [attr.aria-label]="'canvas.toolbar.brushOptions' | transloco">
-              <mat-icon>tune</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              data-testid="edit-colors-button"
-              [matTooltip]="'canvas.toolbar.editColors' | transloco"
-              [attr.aria-label]="'canvas.toolbar.editColors' | transloco"
-              [disabled]="!selectedObjectId()"
-              (click)="onEditObjectColors()">
-              <mat-icon>palette</mat-icon>
-            </button>
-          </div>
+        <div
+          class="toolbar-group"
+          data-toolbar-group="style"
+          [class.toolbar-group--hidden]="isOverflowed('style')"
+          [attr.aria-hidden]="isOverflowed('style') ? 'true' : null">
+          <button
+            mat-icon-button
+            class="swatch-button"
+            data-testid="stroke-color-button"
+            [matMenuTriggerFor]="strokeColorMenu"
+            [matTooltip]="'canvas.toolbar.strokeColor' | transloco"
+            [attr.aria-label]="'canvas.toolbar.strokeColor' | transloco">
+            <span
+              class="swatch-dot"
+              [style.background]="toolSettings().stroke"></span>
+          </button>
+          <button
+            mat-icon-button
+            class="swatch-button"
+            data-testid="fill-color-button"
+            [matMenuTriggerFor]="fillColorMenu"
+            [matTooltip]="'canvas.toolbar.fillColor' | transloco"
+            [attr.aria-label]="'canvas.toolbar.fillColor' | transloco">
+            <span
+              class="swatch-dot"
+              [class.swatch-none]="!toolSettings().fillEnabled"
+              [style.background]="
+                toolSettings().fillEnabled ? toolSettings().fill : 'transparent'
+              "></span>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="stroke-width-button"
+            [matMenuTriggerFor]="strokeWidthMenu"
+            [matTooltip]="'canvas.toolbar.strokeWidth' | transloco"
+            [attr.aria-label]="'canvas.toolbar.strokeWidth' | transloco">
+            <mat-icon fontSet="material-symbols-outlined">line_weight</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="brush-options-button"
+            [matMenuTriggerFor]="brushOptionsMenu"
+            [matTooltip]="'canvas.toolbar.brushOptions' | transloco"
+            [attr.aria-label]="'canvas.toolbar.brushOptions' | transloco">
+            <mat-icon>tune</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="edit-colors-button"
+            [matTooltip]="'canvas.toolbar.editColors' | transloco"
+            [attr.aria-label]="'canvas.toolbar.editColors' | transloco"
+            [disabled]="!selectedObjectId()"
+            (click)="onEditObjectColors()">
+            <mat-icon>palette</mat-icon>
+          </button>
+        </div>
 
-          <div
-            class="toolbar-divider"
-            data-toolbar-divider="style"
-            [class.toolbar-divider--hidden]="isOverflowed('style')"></div>
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="style"
+          [class.toolbar-divider--hidden]="isOverflowed('style')"></div>
 
-          <div
-            class="toolbar-group"
-            data-toolbar-group="history"
-            [class.toolbar-group--hidden]="isOverflowed('history')"
-            [attr.aria-hidden]="isOverflowed('history') ? 'true' : null">
-            <button
-              mat-icon-button
-              data-testid="undo-button"
-              [disabled]="!canUndo()"
-              [matTooltip]="'canvas.toolbar.undo' | transloco"
-              [attr.aria-label]="'canvas.toolbar.undo' | transloco"
-              (click)="onUndo()">
-              <mat-icon>undo</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              data-testid="redo-button"
-              [disabled]="!canRedo()"
-              [matTooltip]="'canvas.toolbar.redo' | transloco"
-              [attr.aria-label]="'canvas.toolbar.redo' | transloco"
-              (click)="onRedo()">
-              <mat-icon>redo</mat-icon>
-            </button>
-          </div>
+        <div
+          class="toolbar-group"
+          data-toolbar-group="history"
+          [class.toolbar-group--hidden]="isOverflowed('history')"
+          [attr.aria-hidden]="isOverflowed('history') ? 'true' : null">
+          <button
+            mat-icon-button
+            data-testid="undo-button"
+            [disabled]="!canUndo()"
+            [matTooltip]="'canvas.toolbar.undo' | transloco"
+            [attr.aria-label]="'canvas.toolbar.undo' | transloco"
+            (click)="onUndo()">
+            <mat-icon>undo</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            data-testid="redo-button"
+            [disabled]="!canRedo()"
+            [matTooltip]="'canvas.toolbar.redo' | transloco"
+            [attr.aria-label]="'canvas.toolbar.redo' | transloco"
+            (click)="onRedo()">
+            <mat-icon>redo</mat-icon>
+          </button>
+        </div>
 
-          <div
-            class="toolbar-divider"
-            data-toolbar-divider="history"
-            [class.toolbar-divider--hidden]="isOverflowed('history')"></div>
-        }
+        <div
+          class="toolbar-divider"
+          data-toolbar-divider="history"
+          [class.toolbar-divider--hidden]="isOverflowed('history')"></div>
 
         <div
           class="toolbar-group"
@@ -1434,7 +1388,7 @@
 <!-- Toolbar overflow: mirrors whichever groups did not fit on the row -->
 <mat-menu #toolbarOverflowMenu="matMenu">
   <ng-template matMenuContent>
-    @if (!viewMode() && isOverflowed('navigation')) {
+    @if (isOverflowed('navigation')) {
       <button
         mat-menu-item
         data-testid="overflow-select-tool"
@@ -1459,7 +1413,7 @@
       <mat-divider></mat-divider>
     }
 
-    @if (!viewMode() && isOverflowed('drawing')) {
+    @if (isOverflowed('drawing')) {
       <button
         mat-menu-item
         data-testid="overflow-draw-tool"
@@ -1503,7 +1457,7 @@
       <mat-divider></mat-divider>
     }
 
-    @if (!viewMode() && isOverflowed('style')) {
+    @if (isOverflowed('style')) {
       <button
         mat-menu-item
         data-testid="overflow-stroke-color"
@@ -1543,7 +1497,7 @@
       <mat-divider></mat-divider>
     }
 
-    @if (!viewMode() && isOverflowed('creation')) {
+    @if (isOverflowed('creation')) {
       <button
         mat-menu-item
         data-testid="overflow-pin-tool"
@@ -1571,7 +1525,7 @@
       <mat-divider></mat-divider>
     }
 
-    @if (!viewMode() && isOverflowed('history')) {
+    @if (isOverflowed('history')) {
       <button
         mat-menu-item
         data-testid="overflow-undo"

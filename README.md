@@ -176,7 +176,6 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🟢 | Pin-to-element linking | Connect canvas pins to worldbuilding elements |
 | ✅ | 🟡 | Canvas size & crop frames | Page bounds plus named crop frames; per-frame PNG/SVG export and set-as-project-cover |
 | ✅ | 🟡 | Region pen tool | Click-to-place vertices, close the loop into a polygon — trace map regions |
-| ✅ | 🟢 | View/edit mode | Read-only mode: pan, zoom and click linked pins/regions without editing |
 | ✅ | 🟢 | Collapsible sidebar sections | Layers, Objects, Pins and Frames each collapse independently; state remembered |
 | ✅ | 🟢 | Unified colour chooser | Canvas uses the worldbuilding appearance picker: swatches, full picker, gradient mode |
 | ✅ | 🟢 | Canvas guided tour | Auto-offered on first open; replay from the sidebar help button |
@@ -188,7 +187,7 @@ Then open `http://localhost:8333` in your browser.
 | Status | Priority | Feature | Notes |
 |--------|----------|---------|-------|
 | ✅ | 🔥 | Map background images | Flag any canvas image as a non-editable backdrop; multiple per layer for tiling large maps |
-| ✅ | 🔥 | Location pins | Click a linked pin in view mode (or double-click in edit mode) to open its element |
+| ✅ | 🔥 | Location pins | Double-click (or double-tap) a linked pin to open its element |
 | ✅ | 🔥 | Pin-to-element linking | `canvas-pin` relationship type; links cleaned up when elements are deleted |
 | ✅ | 🟡 | Multiple map layers | Per-layer backgrounds blended with layer visibility/opacity; "Map" preset in the new-element dialog |
 | ✅ | 🟡 | Linked regions | Shapes linked to elements: click-to-open areas; discontinuous regions via shared links |
@@ -215,6 +214,7 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🔥 | HTML export | Single-file web output |
 | ✅ | 🟡 | Publish plans | Save export configurations for reuse |
 | ✅ | 🟡 | Typography customization | Per-plan style editor with 6 presets and full per-section overrides (font, size, weight, alignment, color, indent, page breaks) |
+| ⬜ | 🟢 | Presentation mode | Read-only, docs-site-like rendering of a whole project |
 
 ### Auth & Security
 | Status | Priority | Feature | Notes |

@@ -124,13 +124,6 @@ export const TUTORIAL_TOURS: Record<TutorialTourId, TutorialTour> = {
         bodyKey: 'tutorial.canvas.welcomeBody',
       },
       {
-        id: 'mode',
-        anchorTestIds: ['canvas-mode-toggle'],
-        titleKey: 'tutorial.canvas.modeTitle',
-        bodyKey: 'tutorial.canvas.modeBody',
-        optional: true,
-      },
-      {
         id: 'layers',
         anchorTestIds: ['layers-header'],
         titleKey: 'tutorial.canvas.layersTitle',

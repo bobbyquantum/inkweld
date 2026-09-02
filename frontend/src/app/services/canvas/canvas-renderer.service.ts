@@ -91,7 +91,6 @@ export class CanvasRendererService {
   private readonly _objectStructures = new Map<string, string>();
   private _resizeObserver: ResizeObserver | null = null;
   private _contentInteractive = true;
-  private _interactionLocked = false;
 
   get stage(): Konva.Stage | null {
     return this._stage;
@@ -144,19 +143,6 @@ export class CanvasRendererService {
     this._annotationsLayer?.listening(interactive);
     // A frame being edited must not swallow strokes from a creation tool.
     this._framesLayer?.listening(interactive && this._editingFrameId !== null);
-  }
-
-  /**
-   * View mode: objects stay visible and clickable (so linked pins navigate)
-   * but nothing can be dragged. Re-syncing from the config restores each
-   * object's own draggable state after unlocking.
-   */
-  setInteractionLocked(locked: boolean): void {
-    if (this._interactionLocked === locked) return;
-    this._interactionLocked = locked;
-    if (locked) {
-      for (const node of this._konvaNodes.values()) node.draggable(false);
-    }
   }
 
   initStage(
@@ -401,7 +387,6 @@ export class CanvasRendererService {
 
     if (node.getLayer() !== kLayer) node.moveTo(kLayer);
     CanvasRendererService.applyCommonAttrs(node, obj);
-    if (this._interactionLocked) node.draggable(false);
     CanvasRendererService.applyStyle(node, obj);
   }
 
@@ -473,12 +458,10 @@ export class CanvasRendererService {
    *
    * Frames are chrome, not content: they live on their own overlay layer,
    * never enter `_konvaNodes`, and (for now) never listen to the pointer.
-   * In view mode only the canvas-size border stays — readers care about the
-   * page boundary, not export scaffolding.
    */
   syncFrames(
     frames: CanvasFrame[] | undefined,
-    opts: { viewMode: boolean; framesVisible: boolean }
+    opts: { framesVisible: boolean }
   ): void {
     const layer = this._framesLayer;
     if (!layer) return;
@@ -500,12 +483,9 @@ export class CanvasRendererService {
       }
       CanvasRendererService.applyFrameAttrs(group, frame);
 
-      const shown =
-        frame.visible &&
-        opts.framesVisible &&
-        (!opts.viewMode || frame.kind === 'canvas');
+      const shown = frame.visible && opts.framesVisible;
       group.visible(shown);
-      group.findOne('.frameLabel')?.visible(shown && !opts.viewMode);
+      group.findOne('.frameLabel')?.visible(shown);
     }
 
     this.updateFrameOverlayScale(this._stage?.scaleX() ?? 1);
@@ -924,7 +904,7 @@ export class CanvasRendererService {
       scaleY: obj.scaleY,
       visible: obj.visible,
       opacity: obj.opacity ?? 1,
-      draggable: !obj.locked && !background && !this._interactionLocked,
+      draggable: !obj.locked && !background,
       listening: !background,
     };
 

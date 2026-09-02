@@ -46,7 +46,6 @@ import {
   createFrame,
   FRAME_PRESETS,
   type FramePresetKey,
-  isLinkableObject,
   MAX_STROKE_WIDTH,
   MIN_STROKE_WIDTH,
   STROKE_WIDTH_PRESETS,
@@ -128,8 +127,8 @@ export type CanvasToolbarGroup = (typeof TOOLBAR_GROUP_PRIORITY)[number];
 /** Matches the `gap` on `.canvas-toolbar`. */
 const TOOLBAR_GAP_PX = 4;
 
-/** Space kept for the mode toggle, overflow chevron and presence indicator. */
-const TOOLBAR_RESERVED_PX = 132;
+/** Space kept for the overflow chevron and presence indicator. */
+const TOOLBAR_RESERVED_PX = 88;
 
 /** Matches the project shell's phone layout. */
 const MOBILE_BREAKPOINT = '(max-width: 759px)';
@@ -327,14 +326,6 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
   private longPressTimer: ReturnType<typeof setTimeout> | null = null;
   private longPressStart: { x: number; y: number } | null = null;
-
-  /**
-   * View mode: pan/zoom only, no editing, and a single click on a linked pin
-   * opens its element. Per-user UI state, remembered across sessions.
-   */
-  protected readonly viewMode = signal(
-    this.readLocalStorage('canvasViewMode') === 'true'
-  );
 
   /** Whether frame borders are drawn at all (local preference). */
   protected readonly framesVisible = signal(
@@ -545,10 +536,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   /** Handlers injected into CanvasRendererService for Konva node events */
   private readonly nodeHandlers = {
     onSelect: (objId: string) => this.onSelectObject(objId),
-    onSelectKonvaNode: (node: Konva.Node) => {
-      if (this.viewMode()) return;
-      this.selectKonvaNode(node);
-    },
+    onSelectKonvaNode: (node: Konva.Node) => this.selectKonvaNode(node),
     onGestureStart: () => this.beginGesture(),
     onDragEnd: (objId: string, x: number, y: number) =>
       this.canvasService.updateObject(
@@ -575,10 +563,8 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
         },
         { coalesceKey: this.gestureKey ?? undefined }
       ),
-    onDblClickText: (obj: CanvasText, textNode: Konva.Text) => {
-      if (this.viewMode()) return;
-      this.openTextEditDialog(obj, textNode);
-    },
+    onDblClickText: (obj: CanvasText, textNode: Konva.Text) =>
+      this.openTextEditDialog(obj, textNode),
     onOpenLinkedObject: (obj: CanvasPin | CanvasShape) =>
       this.openElementLink(obj.linkedElementId),
     getElementName: (elementId: string) =>
@@ -628,26 +614,19 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
       }
     });
 
-    // Mirror frames into the overlay whenever they, the mode, the visibility
-    // toggle, or the editing selection change.
+    // Mirror frames into the overlay whenever they, the visibility toggle,
+    // or the editing selection change.
     effect(() => {
       const frames = this.frames();
-      const viewMode = this.viewMode();
       const framesVisible = this.framesVisible();
       const selected = this.selectedFrameId();
       if (!this.canvasService.activeConfig() || !this.stage) return;
 
-      this.canvasRenderer.syncFrames(frames, {
-        viewMode,
-        framesVisible,
-      });
+      this.canvasRenderer.syncFrames(frames, { framesVisible });
 
-      // A frame can vanish under the selection (deleted here or remotely),
-      // and view mode never edits frames.
+      // A frame can vanish under the selection (deleted here or remotely).
       const valid =
-        selected && !viewMode && frames.some(f => f.id === selected)
-          ? selected
-          : null;
+        selected && frames.some(f => f.id === selected) ? selected : null;
       if (valid !== selected) untracked(() => this.selectedFrameId.set(valid));
       this.canvasRenderer.setFrameEditing(valid, (frameId, rect) =>
         this.canvasService.updateFrame(frameId, rect)
@@ -744,11 +723,6 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
     const savedViewport = this.canvasService.loadViewport(this.elementId());
 
-    // Apply the remembered mode before nodes are created, so their
-    // draggability is right from the start.
-    if (this.viewMode()) this.activeTool.set('pan');
-    this.canvasRenderer.setInteractionLocked(this.viewMode());
-
     const { zoomLevel } = this.canvasRenderer.initStage(
       container,
       config.layers,
@@ -776,7 +750,6 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
     // Initial frame borders (the frames effect only re-runs on changes).
     this.canvasRenderer.syncFrames(config.frames, {
-      viewMode: this.viewMode(),
       framesVisible: this.framesVisible(),
     });
 
@@ -1069,37 +1042,9 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   protected onToolChange(tool: CanvasTool): void {
-    if (this.viewMode() && tool !== 'pan') return;
     if (this.canvasDrawing.isDrawing()) this.canvasDrawing.cancel();
     this.activeTool.set(tool);
     this.applyToolToStage(tool);
-  }
-
-  /** Switch between edit mode and pan/zoom-only view mode. */
-  protected onToggleViewMode(): void {
-    const entering = !this.viewMode();
-    this.viewMode.set(entering);
-    this.writeLocalStorage('canvasViewMode', String(entering));
-
-    this.canvasDrawing.cancel();
-    this.clearCanvasSelection();
-    this.canvasRenderer.setInteractionLocked(entering);
-
-    this.activeTool.set(entering ? 'pan' : 'select');
-    this.applyToolToStage(this.activeTool());
-
-    // Leaving view mode: restore each object's own draggable state.
-    if (!entering) {
-      const config = this.canvasService.activeConfig();
-      if (config && this.stage) {
-        this.canvasRenderer.syncKonvaFromConfig(
-          config.layers,
-          config.objects,
-          null,
-          this.nodeHandlers
-        );
-      }
-    }
   }
 
   /** Open a linked element (pin or region shape), if it still exists. */
@@ -1272,12 +1217,10 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   protected onUndo(): void {
-    if (this.viewMode()) return;
     if (this.canvasService.undo()) this.afterHistoryStep();
   }
 
   protected onRedo(): void {
-    if (this.viewMode()) return;
     if (this.canvasService.redo()) this.afterHistoryStep();
   }
 
@@ -1545,7 +1488,6 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
   /** Select a frame for on-canvas drag/resize editing (toggle). */
   protected onSelectFrame(frameId: string): void {
-    if (this.viewMode()) return;
     const next = this.selectedFrameId() === frameId ? null : frameId;
     this.selectedObjectId.set(null);
     this.canvasSelection.clearSelection();
@@ -1625,18 +1567,6 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   // ── Object actions ─────────────────────────────────────────────────────
 
   protected onSelectObject(objectId: string): void {
-    // In view mode nothing gets selected; a click on a linked pin or
-    // region shape opens its element instead.
-    if (this.viewMode()) {
-      const obj = this.canvasService
-        .activeConfig()
-        ?.objects.find(o => o.id === objectId);
-      if (obj && isLinkableObject(obj)) {
-        this.openElementLink(obj.linkedElementId);
-      }
-      return;
-    }
-
     this.selectedFrameId.set(null);
     this.selectedObjectId.set(objectId);
 
@@ -1657,7 +1587,6 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   private deleteSelectedObject(): void {
-    if (this.viewMode()) return;
     const id = this.selectedObjectId();
     if (!id) return;
     this.canvasSelection.deleteObject(id);
@@ -1705,7 +1634,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
    */
   protected onStagePointerDown(event: PointerEvent): void {
     this.cancelLongPress();
-    if (event.pointerType !== 'touch' || this.viewMode()) return;
+    if (event.pointerType !== 'touch') return;
     if (this.activeTool() !== 'select') return;
     const { clientX, clientY } = event;
     this.longPressStart = { x: clientX, y: clientY };
@@ -1733,7 +1662,6 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   private openContextMenuAt(clientX: number, clientY: number): void {
-    if (this.viewMode()) return;
     this.canvasContextMenu.openAt(
       clientX,
       clientY,
@@ -1747,25 +1675,21 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
   /** Copy the selected object to the clipboard */
   protected onCopy(): void {
-    if (this.viewMode()) return;
     this.canvasContextMenu.copy(this.menuCallbacks);
   }
 
   /** Cut the selected object (copy + remove) */
   protected onCut(): void {
-    if (this.viewMode()) return;
     this.canvasContextMenu.cut(this.menuCallbacks);
   }
 
   /** Paste from clipboard at the context menu position (or viewport center) */
   protected onPaste(): void {
-    if (this.viewMode()) return;
     this.canvasContextMenu.paste(this.menuCallbacks);
   }
 
   /** Duplicate the selected object with a small offset */
   protected onDuplicateObject(): void {
-    if (this.viewMode()) return;
     this.canvasContextMenu.duplicate(this.menuCallbacks);
   }
 

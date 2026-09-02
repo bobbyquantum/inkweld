@@ -43,14 +43,6 @@ Each sidebar section has a chevron in its header — click the header to collaps
   alt="The canvas sidebar showing the layers, objects, pins, and frames sections"
 />
 
-## View and Edit Mode
-
-The toolbar's mode toggle switches the canvas between **Edit mode** (the default) and **View mode**.
-
-In view mode the drawing tools, brush settings, and layer editing controls are hidden, objects can't be moved or changed, and clicking or dragging on the stage pans. Zoom stays available. Most importantly, a **single click** on a linked pin or region opens its element — in edit mode that takes a double-click so a single click can still select and move things.
-
-Use view mode when you're reading a map rather than drawing it, or before handing the canvas to a collaborator who shouldn't accidentally nudge anything. The mode is remembered between sessions.
-
 ## Layers
 
 Layers let you organize objects independently, similar to illustration software. Objects on higher layers appear in front of objects on lower layers.
@@ -160,7 +152,6 @@ annotation over a map.
 | ----------------- | ------------------------------------------------------------ |
 | **Palette**       | Edit the fill and stroke colors of the selected object       |
 | **Undo / Redo**   | Step backwards and forwards through your edits               |
-| **Mode toggle**   | Switch between [edit and view mode](#view-and-edit-mode)     |
 | **Zoom In / Out** | Step the zoom level up or down                               |
 | **Fit All**       | Zoom to show all objects and frames on the canvas            |
 | **Zoom label**    | Shows the current zoom percentage                            |
@@ -207,7 +198,7 @@ The **Pin** tool (`P`) drops a location marker on the canvas. When you place one
 
 Pins are annotations rather than artwork: they sit on their own overlay above every layer, so they stay visible whatever layers you hide, and deleting a layer never deletes its pins. The **Pins** section of the sidebar lists every pin on the canvas; click one to select it on the stage.
 
-Pins linked to an element open it on double-click (or a single click in view mode). Right-click a pin for **Edit pin…**, **Open linked element**, and **Unlink element**. If the linked element is later deleted, the pin stays but shows "Linked element no longer exists". See [Interactive Maps](./interactive-maps#location-pins) for the full workflow.
+Pins linked to an element open it on double-click (double-tap on touch). Right-click a pin for **Edit pin…**, **Open linked element**, and **Unlink element**. If the linked element is later deleted, the pin stays but shows "Linked element no longer exists". See [Interactive Maps](./interactive-maps#location-pins) for the full workflow.
 
 ## Frames
 
@@ -280,7 +271,7 @@ Only visible layers are included. Visible pins are always included, and frame ou
 - **Lock finished layers** to avoid accidentally moving objects you're happy with
 - **Hide layers during export** to produce cleaner output — e.g., hide a grid or reference layer before exporting
 - **Set a canvas size early** if the canvas is destined for print or a cover, so you can see the page while you draw
-- **Use Pan mode (`H`)** or **view mode** to navigate the canvas without risk of accidentally moving objects
+- **Use Pan mode (`H`)** to navigate the canvas without risk of accidentally moving objects
 - **Freehand draw** feels best with a stylus, which drives stroke width from real pen pressure; for crisp lines use the **Line** tool instead
 - **Turn fill off** when drawing shapes over a map so the artwork underneath stays visible
 - **Lower the opacity** and pick a bright stroke colour for highlighter-style annotation

@@ -523,7 +523,7 @@ test.describe('Canvas Tab', () => {
     });
   });
 
-  test('interactive maps: map preset, linked pins, and view mode', async ({
+  test('interactive maps: map preset, linked pins, and regions', async ({
     localPageWithProject: page,
   }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
@@ -602,36 +602,9 @@ test.describe('Canvas Tab', () => {
       await page.waitForURL(/document\/.+/);
     });
 
-    await test.step('view mode hides editing tools', async () => {
+    await test.step('return to the map with editing tools intact', async () => {
       await page.getByTestId('element-World Map').click();
       await expect(page.getByTestId('canvas-container')).toBeVisible();
-
-      await page.getByTestId('canvas-mode-toggle').click();
-      await expect(
-        toolbar.locator('[data-toolbar-group="drawing"]')
-      ).toHaveCount(0);
-      await expect(
-        toolbar.locator('[data-toolbar-group="creation"]')
-      ).toHaveCount(0);
-      await expect(sidebar.getByTestId('add-layer-button')).toHaveCount(0);
-      // Zoom stays available for navigating the map.
-      await expect(
-        toolbar.locator('[data-toolbar-group="zoom"]')
-      ).toBeVisible();
-    });
-
-    await test.step('view mode: single click on the pin opens the document', async () => {
-      await page
-        .getByTestId('canvas-stage')
-        .click({ position: { x: 400, y: 300 } });
-      await page.waitForURL(/document\/.+/);
-    });
-
-    await test.step('leaving view mode restores editing tools', async () => {
-      await page.getByTestId('element-World Map').click();
-      await expect(page.getByTestId('canvas-container')).toBeVisible();
-
-      await page.getByTestId('canvas-mode-toggle').click();
       await expect(
         toolbar.locator('[data-toolbar-group="drawing"]')
       ).toBeVisible();
@@ -650,15 +623,13 @@ test.describe('Canvas Tab', () => {
       // Hide the only artwork layer — the pin is an annotation and stays.
       await sidebar.getByTestId('layer-visibility').first().click();
 
-      await page.getByTestId('canvas-mode-toggle').click();
       await page
         .getByTestId('canvas-stage')
-        .click({ position: { x: 400, y: 300 } });
+        .dblclick({ position: { x: 400, y: 300 } });
       await page.waitForURL(/document\/.+/);
 
       await page.getByTestId('element-World Map').click();
       await expect(page.getByTestId('canvas-container')).toBeVisible();
-      await page.getByTestId('canvas-mode-toggle').click();
       await sidebar.getByTestId('layer-visibility').first().click();
     });
 
@@ -688,16 +659,14 @@ test.describe('Canvas Tab', () => {
       await page.getByTestId('element-picker-confirm').click();
     });
 
-    await test.step('view mode: clicking the region opens the element', async () => {
-      await page.getByTestId('canvas-mode-toggle').click();
+    await test.step('double-clicking the region opens the element', async () => {
       await page
         .getByTestId('canvas-stage')
-        .click({ position: { x: 200, y: 150 } });
+        .dblclick({ position: { x: 200, y: 150 } });
       await page.waitForURL(/document\/.+/);
 
       await page.getByTestId('element-World Map').click();
       await expect(page.getByTestId('canvas-container')).toBeVisible();
-      await page.getByTestId('canvas-mode-toggle').click();
     });
 
     await test.step('trace a closed loop with the region pen', async () => {
@@ -832,13 +801,6 @@ test.describe('Canvas Tab', () => {
       await expect(page.getByText('Project cover updated')).toBeVisible({
         timeout: 10_000,
       });
-    });
-
-    await test.step('view mode keeps the canvas border but hides the frames panel', async () => {
-      await page.getByTestId('canvas-mode-toggle').click();
-      await expect(sidebar.getByTestId('frames-header')).toHaveCount(0);
-      await page.getByTestId('canvas-mode-toggle').click();
-      await expect(sidebar.getByTestId('frames-header')).toBeVisible();
     });
   });
 

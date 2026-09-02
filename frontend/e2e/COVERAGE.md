@@ -62,7 +62,7 @@ This document tracks which pages, features, and routes have e2e test coverage ac
 | Elements | `worldbuilding.spec.ts` | - | - | |
 | Element Refs | `element-ref.spec.ts` | - | `element-ref-screenshots` | |
 | Canvas (layers, tools, export) | `canvas-tab.spec.ts` | - | `canvas-screenshots` | |
-| Interactive maps (pins, regions, view mode) | `canvas-tab.spec.ts` | - | - | |
+| Interactive maps (pins, regions) | `canvas-tab.spec.ts` | - | - | |
 | Canvas frames & cover export | `canvas-tab.spec.ts` | - | - | |
 | **Media** | | | | |
 | Storage | `media-storage.spec.ts` | `media-storage.spec.ts` | - | |

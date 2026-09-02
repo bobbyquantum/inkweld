@@ -293,7 +293,6 @@ describe('CanvasTabComponent', () => {
     r.buildKonvaLayers = vi.fn();
     r.buildKonvaObjects = vi.fn();
     r.setContentInteractive = vi.fn();
-    r.setInteractionLocked = vi.fn();
     r.syncFrames = vi.fn();
     r.setFrameEditing = vi.fn();
     r.updateFrameOverlayScale = vi.fn();
@@ -2876,13 +2875,6 @@ describe('CanvasTabComponent', () => {
       expect(component['selectedFrameId']()).toBeNull();
     });
 
-    it('does not select frames in view mode', () => {
-      withFrames([frame]);
-      component['viewMode'].set(true);
-      component['onSelectFrame']('F1');
-      expect(component['selectedFrameId']()).toBeNull();
-    });
-
     it('exports a frame as PNG and SVG', () => {
       const png = vi.spyOn(component['canvasExport'], 'exportFrameAsPng');
       const svg = vi.spyOn(component['canvasExport'], 'exportFrameAsSvg');
@@ -3294,73 +3286,6 @@ describe('CanvasTabComponent', () => {
     it('replays the tour from the sidebar help button', () => {
       component['onStartTour']();
       expect(mockTutorialService.start).toHaveBeenCalledWith('canvas');
-    });
-  });
-
-  describe('view mode', () => {
-    it('locks editing, forces the pan tool, and restores on exit', () => {
-      component['onToggleViewMode']();
-      expect(component['viewMode']()).toBe(true);
-      expect(component['activeTool']()).toBe('pan');
-      expect(mockCanvasRenderer.setInteractionLocked).toHaveBeenCalledWith(
-        true
-      );
-
-      component['onToggleViewMode']();
-      expect(component['viewMode']()).toBe(false);
-      expect(component['activeTool']()).toBe('select');
-    });
-
-    it('refuses editing tools and mutations while in view mode', () => {
-      component['viewMode'].set(true);
-
-      component['onToolChange']('draw');
-      expect(component['activeTool']()).not.toBe('draw');
-
-      component['selectedObjectId'].set('anything');
-      component['onCopy']();
-      component['onCut']();
-      component['onPaste']();
-      component['onDuplicateObject']();
-      component['onUndo']();
-      component['onRedo']();
-      expect(mockCanvasService.removeObject).not.toHaveBeenCalled();
-      expect(mockCanvasService.undo).not.toHaveBeenCalled();
-      expect(mockCanvasService.redo).not.toHaveBeenCalled();
-    });
-
-    it('clicking a linked object in view mode opens its element', () => {
-      const pin: CanvasPin = {
-        id: 'pin-linked-vm',
-        layerId: defaultConfig.layers[0].id,
-        type: 'pin',
-        x: 0,
-        y: 0,
-        rotation: 0,
-        scaleX: 1,
-        scaleY: 1,
-        visible: true,
-        locked: false,
-        label: 'Pin',
-        icon: 'place',
-        color: '#f00',
-        linkedElementId: 'test-canvas',
-      };
-      mockCanvasService.activeConfig.set({
-        ...defaultConfig,
-        objects: [pin],
-      });
-      fixture.detectChanges();
-
-      const navigate = vi
-        .spyOn(component['elementNavigation'], 'openElement')
-        .mockImplementation(() => {});
-      component['viewMode'].set(true);
-      component['onSelectObject']('pin-linked-vm');
-
-      expect(navigate).toHaveBeenCalled();
-      // Nothing is selected in view mode.
-      expect(component['selectedObjectId']()).toBeNull();
     });
   });
 });

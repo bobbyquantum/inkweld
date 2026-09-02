@@ -1048,10 +1048,7 @@ describe('CanvasRendererService', () => {
       ...o,
     });
 
-    const frameOpts = (
-      o: Partial<{ viewMode: boolean; framesVisible: boolean }> = {}
-    ) => ({
-      viewMode: false,
+    const frameOpts = (o: Partial<{ framesVisible: boolean }> = {}) => ({
       framesVisible: true,
       ...o,
     });
@@ -1107,27 +1104,6 @@ describe('CanvasRendererService', () => {
       expect(service.annotationsLayer!.getChildren()).toHaveLength(1);
     });
 
-    it('setInteractionLocked stops objects being draggable', () => {
-      service.initStage(
-        container,
-        [makeLayer()],
-        [makeText()],
-        null,
-        makeHandlers()
-      );
-      service.setInteractionLocked(true);
-      expect(service.konvaNodes.get('o1')!.draggable()).toBe(false);
-
-      // A sync while locked keeps them locked.
-      service.syncKonvaFromConfig(
-        [makeLayer()],
-        [makeText()],
-        null,
-        makeHandlers()
-      );
-      expect(service.konvaNodes.get('o1')!.draggable()).toBe(false);
-    });
-
     it('syncFrames draws frames and reconciles removals', () => {
       service.initStage(container, [makeLayer()], [], null, makeHandlers());
       service.syncFrames(
@@ -1161,7 +1137,7 @@ describe('CanvasRendererService', () => {
       expect(cropRect.dash()).toEqual([6, 4]);
     });
 
-    it('hides frames per-frame, globally, and in view mode', () => {
+    it('hides frames per-frame and globally', () => {
       service.initStage(container, [makeLayer()], [], null, makeHandlers());
       const frames = [makeFrame(), makeFrame({ id: 'F2', kind: 'crop' })];
 
@@ -1169,12 +1145,6 @@ describe('CanvasRendererService', () => {
       for (const group of service.framesLayer!.getChildren()) {
         expect(group.visible()).toBe(false);
       }
-
-      // View mode keeps the page border but hides crop frames.
-      service.syncFrames(frames, frameOpts({ viewMode: true }));
-      const [canvasGroup, cropGroup] = service.framesLayer!.getChildren();
-      expect(canvasGroup.visible()).toBe(true);
-      expect(cropGroup.visible()).toBe(false);
 
       service.syncFrames([makeFrame({ visible: false })], frameOpts());
       expect(service.framesLayer!.getChildren()[0].visible()).toBe(false);
