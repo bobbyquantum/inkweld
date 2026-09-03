@@ -153,6 +153,34 @@
 
               @if (isAuthenticated()) {
                 <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="sortMenu"
+                  [matTooltip]="'home.sort.tooltip' | transloco"
+                  [attr.aria-label]="'home.sort.tooltip' | transloco"
+                  data-testid="sort-projects-button"
+                  class="sort-btn">
+                  <mat-icon>sort</mat-icon>
+                </button>
+                <mat-menu #sortMenu="matMenu">
+                  @for (order of sortOrders; track order) {
+                    <button
+                      mat-menu-item
+                      (click)="setSortOrder(order)"
+                      [class.active]="sortOrder() === order"
+                      [attr.aria-checked]="sortOrder() === order"
+                      role="menuitemradio"
+                      [attr.data-testid]="'sort-projects-' + order">
+                      <mat-icon>{{
+                        sortOrder() === order
+                          ? 'radio_button_checked'
+                          : 'radio_button_unchecked'
+                      }}</mat-icon>
+                      <span>{{ 'home.sort.' + order | transloco }}</span>
+                    </button>
+                  }
+                </mat-menu>
+
+                <button
                   mat-button
                   [matMenuTriggerFor]="createMenu"
                   [attr.aria-label]="'home.createOrImport' | transloco"

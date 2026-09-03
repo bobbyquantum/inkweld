@@ -47,7 +47,7 @@ import {
 } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-import { HomeComponent } from './home.component';
+import { HomeComponent, PROJECT_SORT_STORAGE_KEY } from './home.component';
 
 describe('HomeComponent', () => {
   let component: HomeComponent;
@@ -332,6 +332,7 @@ describe('HomeComponent', () => {
     fixture.destroy();
     vi.restoreAllMocks();
     vi.useRealTimers();
+    localStorage.removeItem(PROJECT_SORT_STORAGE_KEY);
   });
 
   it('should create', () => {
@@ -555,6 +556,89 @@ describe('HomeComponent', () => {
 
       const filtered = component['filteredProjects']();
       expect(filtered).toHaveLength(2);
+    });
+  });
+
+  describe('project sort order', () => {
+    const sortableProjects: Project[] = [
+      {
+        id: 'a',
+        title: 'Zeta',
+        slug: 'zeta',
+        username: 'testuser',
+        createdDate: '2024-03-01T00:00:00.000Z',
+        updatedDate: '2024-01-10T00:00:00.000Z',
+      },
+      {
+        id: 'b',
+        title: 'alpha',
+        slug: 'alpha',
+        username: 'testuser',
+        createdDate: '2024-01-01T00:00:00.000Z',
+        updatedDate: '2024-02-10T00:00:00.000Z',
+      },
+      {
+        id: 'c',
+        title: 'Mid',
+        slug: 'mid',
+        username: 'testuser',
+        createdDate: '2024-02-01T00:00:00.000Z',
+        updatedDate: '2024-03-10T00:00:00.000Z',
+      },
+    ];
+
+    const ids = () => component['allProjects']().map(i => i.project.id);
+
+    it('should default to most recently updated first', () => {
+      mockProjectsSignal.set(sortableProjects);
+      expect(component.sortOrder()).toBe('updated');
+      expect(ids()).toEqual(['c', 'b', 'a']);
+    });
+
+    it('should sort by created date descending', () => {
+      mockProjectsSignal.set(sortableProjects);
+      component.setSortOrder('created');
+      expect(ids()).toEqual(['a', 'c', 'b']);
+    });
+
+    it('should sort by title case-insensitively', () => {
+      mockProjectsSignal.set(sortableProjects);
+      component.setSortOrder('title');
+      expect(ids()).toEqual(['b', 'c', 'a']);
+    });
+
+    it('should interleave shared projects according to the sort order', () => {
+      mockProjectsSignal.set(sortableProjects);
+      component.collaboratedProjects.set([
+        {
+          projectId: 'shared',
+          projectSlug: 'shared',
+          projectTitle: 'Shared Story',
+          ownerUsername: 'owner',
+          role: 'editor',
+          acceptedAt: '2024-02-20T00:00:00.000Z',
+        } as unknown as CollaboratedProject,
+      ]);
+      expect(ids()).toEqual(['c', 'shared', 'b', 'a']);
+    });
+
+    it('should persist the chosen order to localStorage', () => {
+      component.setSortOrder('title');
+      expect(localStorage.getItem(PROJECT_SORT_STORAGE_KEY)).toBe('title');
+    });
+
+    it('should restore a stored order on creation', () => {
+      localStorage.setItem(PROJECT_SORT_STORAGE_KEY, 'created');
+      const freshFixture = TestBed.createComponent(HomeComponent);
+      expect(freshFixture.componentInstance.sortOrder()).toBe('created');
+      freshFixture.destroy();
+    });
+
+    it('should ignore an unknown stored order', () => {
+      localStorage.setItem(PROJECT_SORT_STORAGE_KEY, 'bogus');
+      const freshFixture = TestBed.createComponent(HomeComponent);
+      expect(freshFixture.componentInstance.sortOrder()).toBe('updated');
+      freshFixture.destroy();
     });
   });
 

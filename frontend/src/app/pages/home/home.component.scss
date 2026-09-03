@@ -282,6 +282,14 @@
     }
   }
 
+  .sort-btn {
+    color: var(--link-color) !important;
+
+    &:hover {
+      color: var(--link-hover-color) !important;
+    }
+  }
+
   .sync-btn {
     font-weight: 500;
     color: var(--link-color) !important;

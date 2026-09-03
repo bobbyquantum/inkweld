@@ -30,6 +30,12 @@
   "activateAction": "Download to this device",
   "deleteAction": "Delete project",
   "cancelSyncTooltip": "Cancel sync ({{progress}}% complete)",
+  "sort": {
+    "tooltip": "Sort projects",
+    "updated": "Recently updated",
+    "created": "Recently created",
+    "title": "Title (A–Z)"
+  },
   "tooltips": {
     "onlineOnly": "Only available in online mode",
     "offline": "Cannot sync while offline",
