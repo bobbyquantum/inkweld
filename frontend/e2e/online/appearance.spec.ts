@@ -82,8 +82,18 @@ test.describe('Appearance: customizable backgrounds', () => {
   }) => {
     await gotoAppearance(adminPage);
 
-    await test.step('starts on the bundled default', async () => {
-      expect(await backgroundVar(adminPage)).toContain('home_background.png');
+    await test.step('starts from a clean slate', async () => {
+      // A retried run inherits whatever the previous attempt uploaded.
+      for (const surface of ['home', 'login'] as const) {
+        const remove = adminPage.getByTestId(`${surface}-background-remove`);
+        if (await remove.isVisible()) {
+          await remove.click();
+          await expect(remove).toBeHidden();
+        }
+      }
+      await expect
+        .poll(() => backgroundVar(adminPage))
+        .toContain('home_background.png');
       // With nothing set, the login surface says it is inheriting home.
       await expect(
         adminPage.getByTestId('login-inherits-notice')
@@ -112,14 +122,16 @@ test.describe('Appearance: customizable backgrounds', () => {
         .toContain('/api/v1/appearance/background/home');
     });
 
-    await test.step('serves the image publicly, cacheably, as webp', async () => {
+    await test.step('serves the image publicly and cacheably', async () => {
       const url = (await backgroundVar(adminPage)).replace(/^url\("|"\)$/g, '');
       // A brand-new context: no session cookie, because the login page has to
       // be able to load this before anyone can sign in.
       const response = await anonymousPage.request.get(url);
 
       expect(response.status()).toBe(200);
-      expect(response.headers()['content-type']).toBe('image/webp');
+      // WebP when the backend has sharp (bun/node dev); the original format is
+      // kept where it does not (the compiled binary in Docker, and Workers).
+      expect(response.headers()['content-type']).toMatch(/^image\/(webp|png)$/);
       expect(response.headers()['cache-control']).toContain('immutable');
     });
 
