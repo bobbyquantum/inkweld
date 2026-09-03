@@ -86,7 +86,7 @@ describe('BackgroundPickerComponent', () => {
     fixture.detectChanges();
 
     const tiles = fixture.nativeElement.querySelectorAll('.tile');
-    expect(tiles.length).toBe(component.presets.length + 1);
+    expect(tiles).toHaveLength(component.presets.length + 1);
     expect(
       fixture.nativeElement.querySelector(
         '[data-testid="background-tile-default"]'

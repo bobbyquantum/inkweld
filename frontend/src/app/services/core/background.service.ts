@@ -383,70 +383,65 @@ export class BackgroundService {
 
   private resolve(): CachedBackground {
     const config = this.appearance();
-    const blur = config?.blur ?? 0;
-    const overlayOpacity = config?.overlayOpacity ?? null;
+    const treatment = {
+      blur: config?.blur ?? 0,
+      overlayOpacity: config?.overlayOpacity ?? null,
+    };
 
     // Post-auth only: the login surface renders before anyone is signed in.
     const personalisationAllowed =
       this.isLocalMode || (config?.userBackgroundEnabled ?? false);
+    const personal =
+      this.surface === 'app' && personalisationAllowed
+        ? this.resolvePersonal(config)
+        : null;
 
-    if (this.surface === 'app' && personalisationAllowed) {
-      const preference = this.preference();
+    const image =
+      personal ??
+      this.resolveAdmin(
+        this.surface === 'login' ? config?.login : config?.home
+      );
 
-      if (preference.kind === 'preset' && preference.presetId) {
-        const preset = findBackgroundPreset(preference.presetId);
-        if (preset) {
-          return {
-            image: preset.image,
-            color: preset.color,
-            blur,
-            overlayOpacity,
-          };
-        }
-      }
+    return { ...image, ...treatment };
+  }
 
-      if (
-        preference.kind === 'upload' &&
-        this.hasUpload() &&
-        !this.isLocalMode &&
-        (config?.userBackgroundUploadEnabled ?? false)
-      ) {
-        return {
-          image: cssOwnUrl(this.serverBase, this.userBackgroundPath()),
-          color: 'transparent',
-          blur,
-          overlayOpacity,
-        };
-      }
+  /** The signed-in user's own choice, or null when it does not apply. */
+  private resolvePersonal(
+    config: AppearanceConfig | null
+  ): Pick<CachedBackground, 'image' | 'color'> | null {
+    const preference = this.preference();
+
+    if (preference.kind === 'preset' && preference.presetId) {
+      const preset = findBackgroundPreset(preference.presetId);
+      return preset ? { image: preset.image, color: preset.color } : null;
     }
 
-    const surfaceConfig =
-      this.surface === 'login' ? config?.login : config?.home;
+    const uploadsAllowed =
+      !this.isLocalMode && (config?.userBackgroundUploadEnabled ?? false);
+    if (preference.kind === 'upload' && this.hasUpload() && uploadsAllowed) {
+      return {
+        image: cssOwnUrl(this.serverBase, this.userBackgroundPath()),
+        color: 'transparent',
+      };
+    }
 
+    return null;
+  }
+
+  /** The admin's configured background for a surface, else the bundled one. */
+  private resolveAdmin(
+    surfaceConfig: SurfaceBackground | undefined
+  ): Pick<CachedBackground, 'image' | 'color'> {
     if (surfaceConfig?.source === 'asset' && surfaceConfig.value) {
       return {
         image: cssOwnUrl(this.serverBase, surfaceConfig.value),
         color: 'transparent',
-        blur,
-        overlayOpacity,
       };
     }
-
     if (surfaceConfig?.source === 'url' && surfaceConfig.value) {
-      return {
-        image: cssUrl(surfaceConfig.value),
-        color: 'transparent',
-        blur,
-        overlayOpacity,
-      };
+      return { image: cssUrl(surfaceConfig.value), color: 'transparent' };
     }
-
-    return {
-      image: BUNDLED_IMAGE,
-      color: 'transparent',
-      blur,
-      overlayOpacity,
-    };
+    return { image: BUNDLED_IMAGE, color: 'transparent' };
   }
 
   // ─── First-paint cache ─────────────────────────────────────────────────────
@@ -578,7 +573,7 @@ function isSafeUrlToken(url: string): boolean {
   // Same-origin/relative paths, or an absolute https URL. Anything else
   // (http:, data:, javascript:, protocol-relative) is refused — plain http
   // would be blocked as mixed content on the https app anyway.
-  return trimmed.startsWith('/') || /^https:\/\//.test(trimmed);
+  return trimmed.startsWith('/') || trimmed.startsWith('https://');
 }
 
 /**

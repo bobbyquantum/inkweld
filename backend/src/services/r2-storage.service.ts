@@ -1,5 +1,8 @@
 import type { R2Bucket } from '@cloudflare/workers-types';
 
+/** Binary payloads accepted for R2 uploads. */
+type BinaryData = Buffer | ArrayBuffer | Uint8Array;
+
 /**
  * R2 Storage Service
  * Handles file storage operations using Cloudflare R2
@@ -45,7 +48,7 @@ export class R2StorageService {
     username: string,
     projectSlug: string,
     filename: string,
-    data: Buffer | ArrayBuffer | Uint8Array,
+    data: BinaryData,
     contentType?: string
   ): Promise<void> {
     const key = this.getProjectFileKey(username, projectSlug, filename);
@@ -114,7 +117,7 @@ export class R2StorageService {
   /**
    * Save user avatar to R2
    */
-  async saveUserAvatar(username: string, data: Buffer | ArrayBuffer | Uint8Array): Promise<void> {
+  async saveUserAvatar(username: string, data: BinaryData): Promise<void> {
     const key = this.getUserAvatarKey(username);
     await this.bucket.put(key, data, {
       httpMetadata: {
@@ -167,7 +170,7 @@ export class R2StorageService {
   async saveSlotImage(
     namespace: 'branding' | 'backgrounds',
     key: string,
-    data: Buffer | ArrayBuffer | Uint8Array,
+    data: BinaryData,
     contentType: string
   ): Promise<void> {
     await this.bucket.put(this.getSlotKey(namespace, key), data, {

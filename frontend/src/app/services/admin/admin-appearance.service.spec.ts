@@ -82,12 +82,14 @@ describe('AdminAppearanceService', () => {
     http = TestBed.inject(HttpTestingController);
 
     const remove = service.deleteBackground('login');
-    http
-      .expectOne({
-        method: 'DELETE',
-        url: '/api/v1/admin/appearance/background/login',
-      })
-      .flush({ message: 'ok' });
+    const request = http.expectOne({
+      method: 'DELETE',
+      url: '/api/v1/admin/appearance/background/login',
+    });
+    expect(request.request.url).toBe(
+      '/api/v1/admin/appearance/background/login'
+    );
+    request.flush({ message: 'ok' });
     await remove;
   });
 });

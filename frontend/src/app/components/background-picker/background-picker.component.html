@@ -14,60 +14,66 @@
       role="radiogroup"
       [attr.aria-label]="'settings.background.title' | transloco">
       <!-- Site default -->
-      <button
-        type="button"
-        role="radio"
+      <label
         class="tile default-tile"
         [class.selected]="selection() === 'default'"
-        [attr.aria-checked]="selection() === 'default'"
-        [disabled]="isBusy()"
-        data-testid="background-tile-default"
-        (click)="selectDefault()">
+        data-testid="background-tile-default">
+        <input
+          type="radio"
+          name="background-choice"
+          class="tile-radio"
+          [checked]="selection() === 'default'"
+          [disabled]="isBusy()"
+          (change)="selectDefault()" />
         <span class="swatch default-swatch">
           <mat-icon>settings_suggest</mat-icon>
         </span>
         <span class="tile-label">{{
           'settings.background.siteDefault' | transloco
         }}</span>
-      </button>
+      </label>
 
       <!-- Built-in presets -->
       @for (preset of presets; track preset.id) {
-        <button
-          type="button"
-          role="radio"
+        <label
           class="tile"
           [class.selected]="selection() === preset.id"
-          [attr.aria-checked]="selection() === preset.id"
-          [disabled]="isBusy()"
-          [attr.data-testid]="'background-tile-' + preset.id"
-          (click)="selectPreset(preset.id)">
+          [attr.data-testid]="'background-tile-' + preset.id">
+          <input
+            type="radio"
+            name="background-choice"
+            class="tile-radio"
+            [checked]="selection() === preset.id"
+            [disabled]="isBusy()"
+            (change)="selectPreset(preset.id)" />
           <span
             class="swatch"
             [style.background-image]="preset.image"
             [style.background-color]="preset.color"></span>
           <span class="tile-label">{{ preset.labelKey | transloco }}</span>
-        </button>
+        </label>
       }
 
       <!-- The user's own image -->
       @if (uploadEnabled() && hasUpload()) {
-        <button
-          type="button"
-          role="radio"
+        <label
           class="tile"
           [class.selected]="selection() === 'upload'"
-          [attr.aria-checked]="selection() === 'upload'"
-          [disabled]="isBusy()"
-          data-testid="background-tile-upload"
-          (click)="selectUpload()">
+          data-testid="background-tile-upload">
+          <input
+            type="radio"
+            name="background-choice"
+            class="tile-radio"
+            [checked]="selection() === 'upload'"
+            [disabled]="isBusy()"
+            (change)="selectUpload()" />
           <span
             class="swatch"
             [style.background-image]="uploadPreview()"></span>
           <span class="tile-label">{{
             'settings.background.myImage' | transloco
           }}</span>
-        </button>
+        </label>
       }
     </div>
 
