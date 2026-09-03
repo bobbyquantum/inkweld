@@ -1,3 +1,5 @@
+@use '../../../themes/app-background' as appBackground;
+
 .approval-pending-container {
   display: flex;
   justify-content: center;
@@ -5,10 +7,7 @@
   min-height: var(--app-height);
   padding: 20px;
   box-sizing: border-box;
-  background-image: url('/home_background.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  @include appBackground.surface();
   position: relative;
 
   &::before {
@@ -19,17 +18,15 @@
     width: 100%;
     height: 100%;
     z-index: 0;
+    @include appBackground.scrim-blur();
   }
 
   // Dark mode styling
   .dark-theme & {
     &::before {
       background-color: rgba(0, 0, 0, 0.6); // Darker overlay for dark mode
-      // Apply vendor prefixes and provide proper browser support for backdrop-filter
-      -webkit-backdrop-filter: saturate(70%);
-      backdrop-filter: saturate(
-        70%
-      ); // Reduces saturation to wash out the image
+      // Desaturate to wash the image out, composed with any configured blur.
+      @include appBackground.scrim-blur-append(saturate(70%));
       @supports not (
         (backdrop-filter: saturate(70%)) or
           (-webkit-backdrop-filter: saturate(70%))

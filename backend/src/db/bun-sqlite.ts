@@ -70,6 +70,21 @@ function applySchemaPatches(database: BunDatabase): void {
     dbLogger.info('Applying schema patch: adding actor_label column to activity_events');
     database.exec('ALTER TABLE activity_events ADD COLUMN actor_label TEXT');
   }
+
+  // Ensure the appearance columns exist on users (added in migration 0030).
+  // Every authenticated request selects the user row, so a missing column here
+  // breaks the whole app rather than one feature.
+  const userCols: { name: string }[] = database.query('PRAGMA table_info(users)').all() as {
+    name: string;
+  }[];
+  if (!userCols.some((c) => c.name === 'hasBackground')) {
+    dbLogger.info('Applying schema patch: adding hasBackground column to users');
+    database.exec('ALTER TABLE users ADD COLUMN hasBackground INTEGER DEFAULT 0 NOT NULL');
+  }
+  if (!userCols.some((c) => c.name === 'preferences')) {
+    dbLogger.info('Applying schema patch: adding preferences column to users');
+    database.exec('ALTER TABLE users ADD COLUMN preferences TEXT');
+  }
 }
 
 async function runMigrations(database: BunDatabaseInstance): Promise<void> {

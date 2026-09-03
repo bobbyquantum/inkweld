@@ -109,6 +109,14 @@ export const routes: Routes = [
         title: 'Admin - AI Text Settings',
       },
       {
+        path: 'appearance',
+        loadComponent: () =>
+          import('./pages/admin/appearance/appearance.component').then(
+            m => m.AdminAppearanceComponent
+          ),
+        title: 'Admin - Appearance',
+      },
+      {
         path: 'announcements',
         loadComponent: () =>
           import('./pages/admin/announcements/announcements.component').then(

@@ -1,0 +1,121 @@
+@if (enabled()) {
+  <section class="background-picker" data-testid="background-picker">
+    <div class="picker-header">
+      <span class="picker-label">{{
+        'settings.background.title' | transloco
+      }}</span>
+      <span class="picker-description">{{
+        'settings.background.description' | transloco
+      }}</span>
+    </div>
+
+    <div
+      class="tiles"
+      role="radiogroup"
+      [attr.aria-label]="'settings.background.title' | transloco">
+      <!-- Site default -->
+      <label
+        class="tile default-tile"
+        [class.selected]="selection() === 'default'"
+        data-testid="background-tile-default">
+        <input
+          type="radio"
+          name="background-choice"
+          class="tile-radio"
+          [checked]="selection() === 'default'"
+          [disabled]="isBusy()"
+          (change)="selectDefault()" />
+        <span class="swatch default-swatch">
+          <mat-icon>settings_suggest</mat-icon>
+        </span>
+        <span class="tile-label">{{
+          'settings.background.siteDefault' | transloco
+        }}</span>
+      </label>
+
+      <!-- Built-in presets -->
+      @for (preset of presets; track preset.id) {
+        <label
+          class="tile"
+          [class.selected]="selection() === preset.id"
+          [attr.data-testid]="'background-tile-' + preset.id">
+          <input
+            type="radio"
+            name="background-choice"
+            class="tile-radio"
+            [checked]="selection() === preset.id"
+            [disabled]="isBusy()"
+            (change)="selectPreset(preset.id)" />
+          <span
+            class="swatch"
+            [style.background-image]="preset.image"
+            [style.background-color]="preset.color"></span>
+          <span class="tile-label">{{ preset.labelKey | transloco }}</span>
+        </label>
+      }
+
+      <!-- The user's own image -->
+      @if (uploadEnabled() && hasUpload()) {
+        <label
+          class="tile"
+          [class.selected]="selection() === 'upload'"
+          data-testid="background-tile-upload">
+          <input
+            type="radio"
+            name="background-choice"
+            class="tile-radio"
+            [checked]="selection() === 'upload'"
+            [disabled]="isBusy()"
+            (change)="selectUpload()" />
+          <span
+            class="swatch"
+            [style.background-image]="uploadPreview()"></span>
+          <span class="tile-label">{{
+            'settings.background.myImage' | transloco
+          }}</span>
+        </label>
+      }
+    </div>
+
+    @if (uploadEnabled()) {
+      <div class="upload-actions">
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+          class="file-input"
+          id="background-upload-input"
+          #fileInput
+          [attr.aria-label]="'settings.background.uploadImage' | transloco"
+          data-testid="background-upload-input"
+          (change)="onFileSelected($event)" />
+        <button
+          mat-button
+          [disabled]="isBusy()"
+          data-testid="background-upload-button"
+          (click)="fileInput.click()">
+          <mat-icon>upload</mat-icon>
+          {{
+            (hasUpload()
+              ? 'settings.background.replaceImage'
+              : 'settings.background.uploadImage'
+            ) | transloco
+          }}
+        </button>
+        @if (hasUpload()) {
+          <button
+            mat-button
+            color="warn"
+            [disabled]="isBusy()"
+            data-testid="background-remove-button"
+            (click)="removeUpload()">
+            <mat-icon>delete</mat-icon>
+            {{ 'settings.background.removeImage' | transloco }}
+          </button>
+        }
+        @if (isBusy()) {
+          <mat-spinner diameter="20"></mat-spinner>
+        }
+      </div>
+    }
+  </section>
+}

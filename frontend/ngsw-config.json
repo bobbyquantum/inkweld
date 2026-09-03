@@ -53,5 +53,18 @@
         ]
       }
     }
+  ],
+  "dataGroups": [
+    {
+      "name": "appearance-backgrounds",
+      "urls": [
+        "/api/v1/appearance/background/**"
+      ],
+      "cacheConfig": {
+        "maxSize": 4,
+        "maxAge": "365d",
+        "strategy": "performance"
+      }
+    }
   ]
 }

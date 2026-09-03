@@ -268,6 +268,17 @@ class UserService {
   }
 
   /**
+   * Set user hasBackground flag (mirrors setHasAvatar)
+   */
+  async setHasBackground(
+    db: DatabaseInstance,
+    userId: string,
+    hasBackground: boolean
+  ): Promise<void> {
+    await db.update(users).set({ hasBackground }).where(eq(users.id, userId));
+  }
+
+  /**
    * Delete user (admin only)
    */
   async deleteUser(db: DatabaseInstance, userId: string): Promise<void> {

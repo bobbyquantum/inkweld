@@ -1,0 +1,256 @@
+<div class="appearance-container" data-testid="appearance-container">
+  @if (isLoading()) {
+    <div class="loading-container" data-testid="appearance-loading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <mat-card class="error-card" data-testid="appearance-error">
+      <mat-card-content>
+        <mat-icon>error</mat-icon>
+        <p>{{ error()?.message }}</p>
+        <button mat-raised-button color="primary" (click)="loadConfig()">
+          {{ 'retry' | transloco }}
+        </button>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <!-- Login background -->
+    <mat-card class="setting-card" data-testid="login-background-card">
+      <mat-card-content>
+        <div class="surface-header">
+          <div class="setting-info">
+            <span class="setting-label">{{
+              'admin.appearance.loginTitle' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.appearance.loginDesc' | transloco
+            }}</span>
+          </div>
+        </div>
+
+        <div
+          class="preview"
+          data-testid="login-background-preview"
+          [style.background-image]="loginPreview()"></div>
+
+        @if (loginInheritsHome()) {
+          <p class="inherit-notice" data-testid="login-inherits-notice">
+            <mat-icon>info</mat-icon>
+            {{ 'admin.appearance.inheritsHome' | transloco }}
+          </p>
+        }
+
+        <div class="surface-actions">
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+            class="file-input"
+            id="admin-login-background-input"
+            #loginFileInput
+            [attr.aria-label]="'admin.appearance.upload' | transloco"
+            data-testid="login-background-input"
+            (change)="onFileSelected('login', $event)" />
+          <button
+            mat-raised-button
+            color="primary"
+            [disabled]="isSaving()"
+            data-testid="login-background-upload"
+            (click)="loginFileInput.click()">
+            <mat-icon>upload</mat-icon>
+            {{ 'admin.appearance.upload' | transloco }}
+          </button>
+          @if (hasLoginAsset()) {
+            <button
+              mat-button
+              color="warn"
+              [disabled]="isSaving()"
+              data-testid="login-background-remove"
+              (click)="removeImage('login')">
+              <mat-icon>delete</mat-icon>
+              {{ 'admin.appearance.remove' | transloco }}
+            </button>
+          }
+        </div>
+
+        <mat-form-field appearance="outline" class="url-field">
+          <mat-label>{{
+            'admin.appearance.externalUrl' | transloco
+          }}</mat-label>
+          <input
+            matInput
+            type="url"
+            id="admin-login-background-url"
+            [value]="loginUrl()"
+            [disabled]="hasLoginAsset()"
+            [attr.aria-label]="'admin.appearance.externalUrl' | transloco"
+            data-testid="login-background-url"
+            (blur)="saveUrl('login', $any($event.target).value)" />
+          <mat-hint>{{
+            hasLoginAsset()
+              ? ('admin.appearance.urlIgnored' | transloco)
+              : ('admin.appearance.urlHint' | transloco)
+          }}</mat-hint>
+        </mat-form-field>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Home background -->
+    <mat-card class="setting-card" data-testid="home-background-card">
+      <mat-card-content>
+        <div class="surface-header">
+          <div class="setting-info">
+            <span class="setting-label">{{
+              'admin.appearance.homeTitle' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.appearance.homeDesc' | transloco
+            }}</span>
+          </div>
+        </div>
+
+        <div
+          class="preview"
+          data-testid="home-background-preview"
+          [style.background-image]="homePreview()"></div>
+
+        <div class="surface-actions">
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+            class="file-input"
+            id="admin-home-background-input"
+            #homeFileInput
+            [attr.aria-label]="'admin.appearance.upload' | transloco"
+            data-testid="home-background-input"
+            (change)="onFileSelected('home', $event)" />
+          <button
+            mat-raised-button
+            color="primary"
+            [disabled]="isSaving()"
+            data-testid="home-background-upload"
+            (click)="homeFileInput.click()">
+            <mat-icon>upload</mat-icon>
+            {{ 'admin.appearance.upload' | transloco }}
+          </button>
+          @if (hasHomeAsset()) {
+            <button
+              mat-button
+              color="warn"
+              [disabled]="isSaving()"
+              data-testid="home-background-remove"
+              (click)="removeImage('home')">
+              <mat-icon>delete</mat-icon>
+              {{ 'admin.appearance.remove' | transloco }}
+            </button>
+          }
+        </div>
+
+        <mat-form-field appearance="outline" class="url-field">
+          <mat-label>{{
+            'admin.appearance.externalUrl' | transloco
+          }}</mat-label>
+          <input
+            matInput
+            type="url"
+            id="admin-home-background-url"
+            [value]="homeUrl()"
+            [disabled]="hasHomeAsset()"
+            [attr.aria-label]="'admin.appearance.externalUrl' | transloco"
+            data-testid="home-background-url"
+            (blur)="saveUrl('home', $any($event.target).value)" />
+          <mat-hint>{{
+            hasHomeAsset()
+              ? ('admin.appearance.urlIgnored' | transloco)
+              : ('admin.appearance.urlHint' | transloco)
+          }}</mat-hint>
+        </mat-form-field>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Treatment -->
+    <mat-card class="setting-card" data-testid="treatment-card">
+      <mat-card-content>
+        <div class="setting-info">
+          <span class="setting-label">{{
+            'admin.appearance.treatmentTitle' | transloco
+          }}</span>
+          <span class="setting-description">{{
+            'admin.appearance.treatmentDesc' | transloco
+          }}</span>
+        </div>
+
+        <mat-form-field appearance="outline" class="opacity-field">
+          <mat-label>{{ 'admin.appearance.opacity' | transloco }}</mat-label>
+          <input
+            matInput
+            type="text"
+            inputmode="decimal"
+            id="admin-overlay-opacity-input"
+            [value]="overlayOpacity()"
+            [attr.aria-label]="'admin.appearance.opacity' | transloco"
+            data-testid="overlay-opacity-input"
+            (blur)="saveOverlayOpacity($any($event.target).value)" />
+          <mat-hint>{{ 'admin.appearance.opacityHint' | transloco }}</mat-hint>
+        </mat-form-field>
+
+        <div class="blur-row">
+          <span class="blur-label"
+            >{{ 'admin.appearance.blur' | transloco }}: {{ blur() }}px</span
+          >
+          <mat-slider min="0" max="40" step="1" discrete>
+            <input
+              matSliderThumb
+              id="admin-blur-slider"
+              [value]="blur()"
+              [disabled]="isSaving()"
+              [attr.aria-label]="'admin.appearance.blur' | transloco"
+              data-testid="blur-slider"
+              (valueChange)="saveBlur($event)" />
+          </mat-slider>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- User personalisation -->
+    <mat-card class="setting-card" data-testid="user-background-card">
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">{{
+              'admin.appearance.allowUserBackgrounds' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.appearance.allowUserBackgroundsDesc' | transloco
+            }}</span>
+          </div>
+          <mat-slide-toggle
+            [checked]="userBackgroundEnabled()"
+            [disabled]="isSaving()"
+            data-testid="toggle-user-backgrounds"
+            (change)="toggleUserBackground($event.checked)"></mat-slide-toggle>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">{{
+              'admin.appearance.allowUserUploads' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.appearance.allowUserUploadsDesc' | transloco
+            }}</span>
+          </div>
+          <mat-slide-toggle
+            [checked]="userBackgroundUploadEnabled()"
+            [disabled]="isSaving() || !canEnableUploads()"
+            [matTooltip]="
+              canEnableUploads()
+                ? ''
+                : ('admin.appearance.uploadsNeedPersonalisation' | transloco)
+            "
+            data-testid="toggle-user-uploads"
+            (change)="toggleUserUpload($event.checked)"></mat-slide-toggle>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

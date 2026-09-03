@@ -128,7 +128,7 @@ test.describe('Snapshot restore preserves elementRef chips', () => {
 
     // 6) Mutate the document - delete everything including the chip.
     await editor.click();
-    await page.keyboard.press('Control+A');
+    await page.keyboard.press('ControlOrMeta+A');
     await page.keyboard.press('Delete');
     await editor.pressSequentially('Chip is gone now.', { delay: 10 });
 

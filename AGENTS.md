@@ -464,6 +464,73 @@ weight. Only the schema and plugins are used.
 - `markdown-to-xml.ts` / `xml-to-markdown.ts` — GFM table parsing and emission
 - `markdown-`, `html-`, `epub-`, `pdf-generator.service.ts` — publish output
 
+### App Backgrounds (Login / Home)
+
+The full-screen background behind the login page and home screen is
+admin-configurable and optionally user-personalisable. It used to be the
+hard-coded asset `url('/home_background.png')` repeated in ten component
+stylesheets; it is now driven by CSS custom properties.
+
+**Do not reference `/home_background.png` in a component stylesheet.** Use the
+mixins in `frontend/src/themes/_app-background.scss`:
+
+```scss
+@use '../../../themes/app-background' as appBackground;
+
+.my-hero-surface {
+  @include appBackground.surface($attachment: fixed); // omit for centred views
+
+  &::before {
+    // …the existing full-bleed scrim…
+    @include appBackground.scrim-blur();
+  }
+}
+```
+
+Key facts:
+
+- `BackgroundService` (`services/core/background.service.ts`) resolves the
+  background and writes `--app-bg-image` / `--app-bg-color` / `--app-bg-filter` /
+  `--app-bg-scrim-override` onto `document.documentElement`. The defaults in
+  `theme.scss` are what renders before it runs, in LOCAL mode, and when the
+  server is unreachable.
+- Precedence: **user preference → admin surface config → bundled default**.
+- Two surfaces: `login` (pre-auth) and `app`/`home` (post-auth). Both live on the
+  same `.content-container` element in `home.component.html`, so the component's
+  constructor `effect()` calls `setSurface()` as authentication resolves. A user
+  preference only ever affects the post-auth surface — nobody is signed in when
+  the login page renders.
+- An unset login background **inherits the home one** (resolved server-side in
+  `appearance.service.ts`), so one upload brands both.
+- **Two spellings of the blur, deliberately.** `--app-bg-filter` is a standalone
+  `backdrop-filter` value (`none` when off, which also avoids creating a
+  compositing layer). `--app-bg-blur-fn` is appended to scrims that already have
+  their own filter list via `var(--app-bg-blur-fn, )`, because a CSS filter list
+  cannot contain the keyword `none`. The service *removes* the second property
+  rather than blanking it.
+- The scrim opacity arrives as `--app-bg-scrim-override` on the root and is read
+  through a `var()` fallback chain in `home.component.scss`. It has to work that
+  way round: a `:host` declaration out-specifies anything set on `:root`, but
+  custom-property *values* still inherit into it.
+- Uploaded images use a "single-slot" storage API (`saveSlotImage` /
+  `getSlotImage` on `StorageService`), namespaced `branding` (admin, two slots)
+  and `backgrounds` (one per user). On the filesystem the extension records the
+  stored content type and reads probe for it, because `sharp` is unavailable on
+  Workers and the upload is then stored untranscoded.
+- `GET /api/v1/appearance/config` and `/appearance/background/{surface}` are
+  **unauthenticated by necessity** — the login page resolves its background
+  before anyone can sign in — which also makes branding images world-readable.
+  `/appearance/user-background` is authenticated and self-only; there is no
+  `/:username/` form of it.
+- Background presets are CSS gradients, not image files. The visuals live in
+  `frontend/src/app/config/background-presets.ts`; the ids are mirrored in
+  `BACKGROUND_PRESET_IDS` in `backend/src/services/appearance.service.ts` for
+  server-side validation. **Keep the two lists in step.**
+- Values reaching a CSS `url()` token are validated on both sides
+  (`isSafeExternalImageUrl` in the backend, `isSafeUrlToken` in the service) so a
+  stored value cannot break out of the token. The localStorage first-paint cache
+  is re-validated on read for the same reason.
+
 ### File Structure
 
 - Projects contain documents and elements

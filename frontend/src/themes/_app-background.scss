@@ -1,0 +1,46 @@
+// Shared background treatment for the "hero" surfaces — the login/welcome
+// page, home, and the standalone full-page views (setup, recovery, profile,
+// create-project).
+//
+// The image and its treatment come from CSS custom properties declared in
+// theme.scss and overridden at runtime by BackgroundService, so a surface does
+// not need to know whether it is showing the bundled default, an admin's
+// branding image, or a user's own choice. Before this partial existed the
+// bundled asset was hard-coded in ten stylesheets.
+
+/// Paint the configured background image on a full-page container.
+///
+/// @param {String} $attachment [null] - `background-attachment` value. Pass
+///   `fixed` for scrolling surfaces that should hold the image still; leave it
+///   unset for centred single-screen views.
+@mixin surface($attachment: null) {
+  background-image: var(--app-bg-image);
+  background-size: var(--app-bg-size);
+  background-position: var(--app-bg-position);
+  background-repeat: var(--app-bg-repeat);
+  background-color: var(--app-bg-color);
+
+  @if $attachment {
+    background-attachment: $attachment;
+  }
+}
+
+/// Apply the configured blur to the full-bleed scrim pseudo-element that sits
+/// between the background image and the page content.
+///
+/// Defaults to `none` so no compositing layer is created unless an admin has
+/// actually asked for a blur.
+@mixin scrim-blur {
+  -webkit-backdrop-filter: var(--app-bg-filter);
+  backdrop-filter: var(--app-bg-filter);
+}
+
+/// Append the configured blur to a scrim that already carries its own filter
+/// list (several pages desaturate in dark mode). Resolves to just `$existing`
+/// when no blur is configured.
+///
+/// @param {String} $existing - the filter list this scrim already applies.
+@mixin scrim-blur-append($existing) {
+  -webkit-backdrop-filter: #{$existing} var(--app-bg-blur-fn, );
+  backdrop-filter: #{$existing} var(--app-bg-blur-fn, );
+}

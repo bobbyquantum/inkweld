@@ -1,3 +1,5 @@
+@use '../../../themes/app-background' as appBackground;
+
 .content-container {
   display: flex;
   flex-direction: column;
@@ -5,11 +7,7 @@
   min-height: var(--app-height);
   width: 100%;
   overflow-x: hidden;
-  background-image: url('/home_background.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  @include appBackground.surface($attachment: fixed);
   box-sizing: border-box;
   position: relative;
   padding-bottom: 40px;
@@ -24,6 +22,7 @@
     background: rgba(0, 0, 0, 0.5);
     pointer-events: none;
     z-index: 0;
+    @include appBackground.scrim-blur();
   }
 
   &.is-mobile {

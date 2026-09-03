@@ -1,5 +1,8 @@
 import type { R2Bucket } from '@cloudflare/workers-types';
 
+/** Binary payloads accepted for R2 uploads. */
+type BinaryData = Buffer | ArrayBuffer | Uint8Array;
+
 /**
  * R2 Storage Service
  * Handles file storage operations using Cloudflare R2
@@ -45,7 +48,7 @@ export class R2StorageService {
     username: string,
     projectSlug: string,
     filename: string,
-    data: Buffer | ArrayBuffer | Uint8Array,
+    data: BinaryData,
     contentType?: string
   ): Promise<void> {
     const key = this.getProjectFileKey(username, projectSlug, filename);
@@ -114,7 +117,7 @@ export class R2StorageService {
   /**
    * Save user avatar to R2
    */
-  async saveUserAvatar(username: string, data: Buffer | ArrayBuffer | Uint8Array): Promise<void> {
+  async saveUserAvatar(username: string, data: BinaryData): Promise<void> {
     const key = this.getUserAvatarKey(username);
     await this.bucket.put(key, data, {
       httpMetadata: {
@@ -152,6 +155,50 @@ export class R2StorageService {
   async deleteUserAvatar(username: string): Promise<void> {
     const key = this.getUserAvatarKey(username);
     await this.bucket.delete(key);
+  }
+
+  /**
+   * Generate a storage key for a single-slot image (branding backgrounds,
+   * per-user backgrounds). No extension: R2 carries the content type as
+   * object metadata, so the key stays stable across format changes.
+   */
+  private getSlotKey(namespace: 'branding' | 'backgrounds', key: string): string {
+    this.validateKeyComponent(key, 'slot key');
+    return `${namespace}/${key}`;
+  }
+
+  async saveSlotImage(
+    namespace: 'branding' | 'backgrounds',
+    key: string,
+    data: BinaryData,
+    contentType: string
+  ): Promise<void> {
+    await this.bucket.put(this.getSlotKey(namespace, key), data, {
+      httpMetadata: { contentType },
+    });
+  }
+
+  async getSlotImage(
+    namespace: 'branding' | 'backgrounds',
+    key: string
+  ): Promise<{ data: ArrayBuffer; contentType: string } | null> {
+    const object = await this.bucket.get(this.getSlotKey(namespace, key));
+    if (!object) {
+      return null;
+    }
+    return {
+      data: await object.arrayBuffer(),
+      contentType: object.httpMetadata?.contentType || 'application/octet-stream',
+    };
+  }
+
+  async hasSlotImage(namespace: 'branding' | 'backgrounds', key: string): Promise<boolean> {
+    const object = await this.bucket.head(this.getSlotKey(namespace, key));
+    return object !== null;
+  }
+
+  async deleteSlotImage(namespace: 'branding' | 'backgrounds', key: string): Promise<void> {
+    await this.bucket.delete(this.getSlotKey(namespace, key));
   }
 
   /**

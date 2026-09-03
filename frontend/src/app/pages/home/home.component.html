@@ -8,7 +8,10 @@
     </div>
   </div>
 } @else {
-  <div class="content-container" [class.is-mobile]="isMobile()">
+  <div
+    class="content-container"
+    [class.is-mobile]="isMobile()"
+    data-testid="home-content-container">
     <!-- Header section with logo and search bar (always visible) -->
     @if (isAuthenticated()) {
       <div class="header-section" data-testid="header-section">

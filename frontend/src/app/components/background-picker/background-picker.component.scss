@@ -1,0 +1,121 @@
+.background-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.picker-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.picker-label {
+  font-weight: 500;
+}
+
+.picker-description {
+  font-size: 0.85rem;
+  color: var(--sys-on-surface-variant);
+}
+
+.tiles {
+  display: grid;
+  // Small enough that the whole set fits without scrolling in the settings
+  // dialog, large enough that a gradient is recognisable.
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 10px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  position: relative;
+
+  &:hover:not(:disabled) {
+    border-color: var(--sys-outline-variant);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sys-primary);
+    outline-offset: 2px;
+  }
+
+  &.selected {
+    border-color: var(--sys-primary);
+  }
+
+  &:has(.tile-radio:disabled) {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  // Keyboard focus lands on the (visually hidden) radio; show it on the tile.
+  &:has(.tile-radio:focus-visible) {
+    outline: 2px solid var(--sys-primary);
+    outline-offset: 2px;
+  }
+}
+
+// The real control. Kept in the accessibility tree and focusable, but the
+// swatch is the visible affordance.
+.tile-radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.swatch {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 6px;
+  border: 1px solid var(--sys-outline-variant);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// "Follow the site default" has no image of its own to show.
+.default-swatch {
+  background-color: var(--sys-surface-container-high);
+  color: var(--sys-on-surface-variant);
+}
+
+.tile-label {
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--sys-on-surface-variant);
+  line-height: 1.2;
+}
+
+.upload-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+// The visible control is the button next to it; this only exists to open the
+// file picker.
+.file-input {
+  display: none;
+}

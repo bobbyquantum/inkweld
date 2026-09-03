@@ -31,6 +31,8 @@ import { shareRoutes } from '../routes/share.routes';
 import adminRoutes from '../routes/admin.routes';
 import { adminConfigRoutes } from '../routes/admin-config.routes';
 import { adminStatsRoutes } from '../routes/admin-stats.routes';
+import appearanceRoutes from '../routes/appearance.routes';
+import { adminAppearanceRoutes } from '../routes/admin-appearance.routes';
 import { imageProfileUserRoutes, imageProfileAdminRoutes } from '../routes/image-profile.routes';
 import { imageAuditAdminRoutes } from '../routes/image-audit.routes';
 import {
@@ -116,6 +118,11 @@ export function registerCommonRoutes(app: any): void {
   // System endpoints - start with just health
   app.route('/api/v1/health', healthRoutes);
   app.route('/api/v1/config', configRoutes);
+
+  // Appearance: public background config + image, plus the caller's own
+  // background and preference. Admin upload lives under /admin/appearance.
+  app.route('/api/v1/appearance', appearanceRoutes);
+  app.route('/api/v1/admin/appearance', adminAppearanceRoutes);
 
   // AI services
   app.route('/api/v1/ai/lint', lintRoutes);

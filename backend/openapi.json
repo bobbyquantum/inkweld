@@ -1386,6 +1386,116 @@
           "mcpEnabled"
         ]
       },
+      "AppearanceConfig": {
+        "type": "object",
+        "properties": {
+          "login": {
+            "$ref": "#/components/schemas/SurfaceBackground"
+          },
+          "home": {
+            "$ref": "#/components/schemas/SurfaceBackground"
+          },
+          "overlayOpacity": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.5,
+            "description": "Opacity of the scrim over the background, or null to keep the per-theme defaults."
+          },
+          "blur": {
+            "type": "number",
+            "example": 0,
+            "description": "Blur radius in px behind the scrim; 0 disables it."
+          },
+          "userBackgroundEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether users may choose their own background for post-auth surfaces."
+          },
+          "userBackgroundUploadEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether users may upload their own background image."
+          }
+        },
+        "required": [
+          "login",
+          "home",
+          "overlayOpacity",
+          "blur",
+          "userBackgroundEnabled",
+          "userBackgroundUploadEnabled"
+        ]
+      },
+      "SurfaceBackground": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "default",
+              "asset",
+              "url"
+            ],
+            "description": "Where the image comes from: an admin upload (asset), an external URL (url), or the client's bundled default (default)."
+          },
+          "value": {
+            "type": "string",
+            "nullable": true,
+            "example": "/api/v1/appearance/background/home?v=a1b2c3",
+            "description": "Server-relative API path for `asset`, absolute URL for `url`, null for `default`."
+          }
+        },
+        "required": [
+          "source",
+          "value"
+        ]
+      },
+      "BackgroundPreferenceResponse": {
+        "type": "object",
+        "properties": {
+          "background": {
+            "$ref": "#/components/schemas/BackgroundPreference"
+          },
+          "hasUpload": {
+            "type": "boolean",
+            "description": "Whether the caller has an uploaded background image stored."
+          }
+        },
+        "required": [
+          "background",
+          "hasUpload"
+        ]
+      },
+      "BackgroundPreference": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "default",
+              "preset",
+              "upload"
+            ],
+            "description": "default follows the admin setting, preset uses a built-in, upload uses the user's own image."
+          },
+          "presetId": {
+            "type": "string",
+            "enum": [
+              "bundled",
+              "midnight",
+              "dusk",
+              "forest",
+              "parchment",
+              "slate",
+              "none"
+            ],
+            "description": "Required when kind is `preset`."
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
       "LintStatus": {
         "type": "object",
         "properties": {
@@ -5968,6 +6078,7 @@
                           "ai",
                           "github",
                           "email",
+                          "appearance",
                           "general"
                         ]
                       },
@@ -6055,6 +6166,7 @@
                           "ai",
                           "github",
                           "email",
+                          "appearance",
                           "general"
                         ]
                       },
@@ -6125,6 +6237,7 @@
                 "ai",
                 "github",
                 "email",
+                "appearance",
                 "general"
               ]
             },
@@ -6156,6 +6269,7 @@
                           "ai",
                           "github",
                           "email",
+                          "appearance",
                           "general"
                         ]
                       },
@@ -6248,6 +6362,7 @@
                         "ai",
                         "github",
                         "email",
+                        "appearance",
                         "general"
                       ]
                     },
@@ -6364,6 +6479,7 @@
                         "ai",
                         "github",
                         "email",
+                        "appearance",
                         "general"
                       ]
                     },
@@ -6463,6 +6579,7 @@
                         "ai",
                         "github",
                         "email",
+                        "appearance",
                         "general"
                       ]
                     },
@@ -8877,6 +8994,470 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SystemFeatures"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/appearance/config": {
+      "get": {
+        "tags": [
+          "Appearance"
+        ],
+        "operationId": "getAppearanceConfig",
+        "summary": "Get the resolved appearance configuration",
+        "description": "Public because the login page must resolve its background before authentication.",
+        "responses": {
+          "200": {
+            "description": "Appearance configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppearanceConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/appearance/background/{surface}": {
+      "get": {
+        "tags": [
+          "Appearance"
+        ],
+        "operationId": "getBrandingBackground",
+        "summary": "Get the admin-uploaded background for a surface",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "login",
+                "home"
+              ],
+              "description": "Which surface the background belongs to."
+            },
+            "required": true,
+            "description": "Which surface the background belongs to.",
+            "name": "surface",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Background image",
+            "content": {
+              "image/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Background not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/appearance/user-background": {
+      "get": {
+        "tags": [
+          "Appearance"
+        ],
+        "operationId": "getOwnBackground",
+        "summary": "Get the caller's uploaded background image",
+        "responses": {
+          "200": {
+            "description": "Background image",
+            "content": {
+              "image/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Background not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Appearance"
+        ],
+        "operationId": "uploadOwnBackground",
+        "summary": "Upload the caller's background image",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "background": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Background image file"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Background uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No file or invalid image",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "User background uploads are disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Appearance"
+        ],
+        "operationId": "deleteOwnBackground",
+        "summary": "Delete the caller's background image",
+        "responses": {
+          "200": {
+            "description": "Background deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Background not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/appearance/preference": {
+      "get": {
+        "tags": [
+          "Appearance"
+        ],
+        "operationId": "getBackgroundPreference",
+        "summary": "Get the caller's background preference",
+        "responses": {
+          "200": {
+            "description": "Background preference",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackgroundPreferenceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Appearance"
+        ],
+        "operationId": "setBackgroundPreference",
+        "summary": "Set the caller's background preference",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackgroundPreference"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated preference",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackgroundPreference"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid preference",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "User backgrounds are disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/appearance/background/{surface}": {
+      "put": {
+        "tags": [
+          "Admin Appearance"
+        ],
+        "operationId": "adminUploadBackground",
+        "summary": "Upload the background image for a surface",
+        "description": "Replaces any existing image. The stored version token changes on every upload so the public image URL cache-busts for everyone.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "login",
+                "home"
+              ],
+              "description": "Which surface the background belongs to."
+            },
+            "required": true,
+            "description": "Which surface the background belongs to.",
+            "name": "surface",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "background": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Background image file"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Background uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No file or invalid image",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin Appearance"
+        ],
+        "operationId": "adminDeleteBackground",
+        "summary": "Remove the uploaded background image for a surface",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "login",
+                "home"
+              ],
+              "description": "Which surface the background belongs to."
+            },
+            "required": true,
+            "description": "Which surface the background belongs to.",
+            "name": "surface",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Background removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid surface",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }

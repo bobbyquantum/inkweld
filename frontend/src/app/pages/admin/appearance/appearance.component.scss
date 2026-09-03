@@ -1,0 +1,125 @@
+.appearance-container {
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+.error-card {
+  mat-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: var(--sys-error);
+    }
+
+    p {
+      color: var(--sys-on-surface-variant);
+    }
+  }
+}
+
+.setting-card {
+  mat-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+  }
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.setting-label {
+  font-weight: 500;
+}
+
+.setting-description {
+  font-size: 0.85rem;
+  color: var(--sys-on-surface-variant);
+}
+
+// Scaled-down stand-in for the real surface, so the effect of a change is
+// visible without navigating away from the settings.
+.preview {
+  height: 140px;
+  border-radius: 8px;
+  border: 1px solid var(--sys-outline-variant);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.surface-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+// The visible control is the button next to it; this only exists to open the
+// file picker.
+.file-input {
+  display: none;
+}
+
+.url-field,
+.opacity-field {
+  width: 100%;
+}
+
+.inherit-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--sys-on-surface-variant);
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.blur-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  mat-slider {
+    width: 100%;
+  }
+}
+
+.blur-label {
+  font-size: 0.9rem;
+  color: var(--sys-on-surface-variant);
+}

@@ -175,5 +175,30 @@
     "expires": "Expires: {{date}}",
     "lastUsed": "Last used: {{date}}",
     "created": "Created: {{date}}"
+  },
+  "background": {
+    "title": "Background",
+    "description": "Applies to the home screen and other signed-in pages.",
+    "siteDefault": "Site default",
+    "myImage": "My image",
+    "uploadImage": "Upload image",
+    "replaceImage": "Replace image",
+    "removeImage": "Remove image",
+    "presets": {
+      "bundled": "Inkweld",
+      "midnight": "Midnight",
+      "dusk": "Dusk",
+      "forest": "Forest",
+      "parchment": "Parchment",
+      "slate": "Slate",
+      "none": "Plain"
+    },
+    "uploaded": "Background updated",
+    "uploadFailed": "Failed to upload background",
+    "removed": "Background removed",
+    "removeFailed": "Failed to remove background",
+    "saveFailed": "Failed to save background choice",
+    "invalidType": "Choose a PNG, JPEG, WebP, GIF or AVIF image",
+    "tooLarge": "Image is too large (max 12MB)"
   }
 }

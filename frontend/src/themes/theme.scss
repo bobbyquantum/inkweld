@@ -203,6 +203,33 @@ $dark-theme: mat.define-theme(
 // ─────────────────────────────────────────────────────────────────────────────
 
 :root {
+  // ───────────────────────────────────────────────────────────────────────────
+  // App background (login + home hero surfaces)
+  //
+  // Defaults reproduce the look these pages had when the asset was hard-coded
+  // in each stylesheet. BackgroundService overrides them at runtime from the
+  // admin's appearance config and the signed-in user's preference; these values
+  // are what LOCAL mode, an unreachable server, and the first paint all use.
+  //
+  // Consume them through the mixins in `_app-background.scss` rather than
+  // referencing them directly.
+  // ───────────────────────────────────────────────────────────────────────────
+  --app-bg-image: url('/home_background.png');
+  --app-bg-size: cover;
+  --app-bg-position: center;
+  --app-bg-repeat: no-repeat;
+  // Sits behind the image so a gradient preset (or `none`) still has something
+  // to paint against while a remote image loads.
+  --app-bg-color: transparent;
+  // Blur behind the scrim. Two spellings of one setting, because a CSS filter
+  // list cannot contain the keyword `none`:
+  //   --app-bg-filter  — a standalone `backdrop-filter` value; `none` when off,
+  //                      which also means no compositing layer is created.
+  //   --app-bg-blur-fn — appended to a scrim that already has its own filter
+  //                      list, via `var(--app-bg-blur-fn, )`. Deliberately left
+  //                      unset here so it resolves to nothing.
+  --app-bg-filter: none;
+
   // Static fallback heights (using vh/dvh)
   --app-height: 100vh;
   --app-height-offset-48: calc(100vh - 48px);

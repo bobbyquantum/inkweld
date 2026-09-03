@@ -87,6 +87,11 @@
 
   <mat-divider></mat-divider>
 
+  <!-- Renders nothing unless the admin allows users their own background. -->
+  <app-background-picker></app-background-picker>
+
+  <mat-divider></mat-divider>
+
   @if (systemConfig.isPasskeyManagementAvailable()) {
     <app-passkeys-settings></app-passkeys-settings>
   }

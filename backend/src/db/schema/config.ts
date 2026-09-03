@@ -14,6 +14,7 @@ import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
  * - 'auth': Authentication settings (user approval, local users, etc.)
  * - 'ai': AI feature settings (lint, image generation, etc.)
  * - 'github': GitHub OAuth settings
+ * - 'appearance': Look-and-feel settings (login/home backgrounds)
  * - 'general': General application settings
  */
 export const config = sqliteTable('config', {
@@ -47,7 +48,14 @@ export type InsertConfig = typeof config.$inferInsert;
 /**
  * Config categories for the admin UI
  */
-export const CONFIG_CATEGORIES = ['auth', 'ai', 'github', 'email', 'general'] as const;
+export const CONFIG_CATEGORIES = [
+  'auth',
+  'ai',
+  'github',
+  'email',
+  'appearance',
+  'general',
+] as const;
 export type ConfigCategory = (typeof CONFIG_CATEGORIES)[number];
 
 /**
@@ -540,6 +548,88 @@ export const CONFIG_KEYS = {
     encrypted: false,
     envVar: 'EMAIL_FROM_NAME',
     type: 'string' as const,
+  },
+
+  // Appearance settings — the login/home background images and their
+  // treatment. Two independent surfaces:
+  //   'login' → the pre-auth surfaces (welcome/login, setup, approval-pending,
+  //             password + passkey recovery). Nobody is signed in, so this can
+  //             only ever be set by an admin.
+  //   'home'  → the post-auth surfaces (home, create-project, user profile).
+  // Each resolves as: uploaded asset → external URL → bundled default. The
+  // login surface falls back to the home surface before the bundled default so
+  // an admin who uploads a single branding image gets it on both.
+  LOGIN_BACKGROUND_ASSET: {
+    category: 'appearance' as ConfigCategory,
+    description:
+      'Version token for the admin-uploaded login background. Set automatically on upload; ' +
+      'empty means no uploaded asset. Used to cache-bust the public image URL.',
+    encrypted: false,
+    envVar: 'LOGIN_BACKGROUND_ASSET',
+    type: 'string' as const,
+  },
+  HOME_BACKGROUND_ASSET: {
+    category: 'appearance' as ConfigCategory,
+    description:
+      'Version token for the admin-uploaded home background. Set automatically on upload; ' +
+      'empty means no uploaded asset. Used to cache-bust the public image URL.',
+    encrypted: false,
+    envVar: 'HOME_BACKGROUND_ASSET',
+    type: 'string' as const,
+  },
+  LOGIN_BACKGROUND_URL: {
+    category: 'appearance' as ConfigCategory,
+    description:
+      'External image URL for the login/pre-auth background. Only used when no asset has ' +
+      'been uploaded. Must be https — viewers load it directly, so their IP reaches that host.',
+    encrypted: false,
+    envVar: 'LOGIN_BACKGROUND_URL',
+    type: 'string' as const,
+  },
+  HOME_BACKGROUND_URL: {
+    category: 'appearance' as ConfigCategory,
+    description:
+      'External image URL for the home/post-auth background. Only used when no asset has ' +
+      'been uploaded. Must be https — viewers load it directly, so their IP reaches that host.',
+    encrypted: false,
+    envVar: 'HOME_BACKGROUND_URL',
+    type: 'string' as const,
+  },
+  BACKGROUND_OVERLAY_OPACITY: {
+    category: 'appearance' as ConfigCategory,
+    description:
+      'Opacity (0–0.95) of the scrim drawn over the background image to keep text readable. ' +
+      'Empty keeps the per-theme defaults (0.5 dark / 0.7 light).',
+    encrypted: false,
+    envVar: 'BACKGROUND_OVERLAY_OPACITY',
+    type: 'string' as const,
+  },
+  BACKGROUND_BLUR: {
+    category: 'appearance' as ConfigCategory,
+    description:
+      'Blur radius in pixels (0–40) applied to the background image behind the scrim. ' +
+      '0 disables the effect entirely (no compositing layer is created).',
+    encrypted: false,
+    envVar: 'BACKGROUND_BLUR',
+    type: 'string' as const,
+  },
+  USER_BACKGROUND_ENABLED: {
+    category: 'appearance' as ConfigCategory,
+    description:
+      'Allow users to pick their own background from the built-in presets. Only affects the ' +
+      "post-auth surfaces — the login background is always the admin's.",
+    encrypted: false,
+    envVar: 'USER_BACKGROUND_ENABLED',
+    type: 'boolean' as const,
+  },
+  USER_BACKGROUND_UPLOAD_ENABLED: {
+    category: 'appearance' as ConfigCategory,
+    description:
+      'Allow users to upload their own background image (one slot each, stored server-side). ' +
+      'Requires USER_BACKGROUND_ENABLED. Off by default because it consumes storage per user.',
+    encrypted: false,
+    envVar: 'USER_BACKGROUND_UPLOAD_ENABLED',
+    type: 'boolean' as const,
   },
 
   // General settings
