@@ -96,7 +96,8 @@ jobs:
   # `ng test` has no --shard flag, so frontend/scripts/test-shard.mjs deals
   # the spec files round-robin across the matrix and passes each shard's list
   # via --include. Unsharded this was the longest job in the workflow (~18m);
-  # 3 shards bring it in line with the e2e jobs. Each shard emits an lcov.info
+  # 2 shards (~9m each) bring it in line with the e2e jobs; 3 ran ~5-6m,
+  # shorter than the e2e shards, so the extra runner bought no wall-clock. Each shard emits an lcov.info
   # covering the whole tree, so per-shard thresholds are disabled (the `shard`
   # configuration in angular.json) and enforced on the merged report in the
   # frontend-coverage job below.
@@ -108,8 +109,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shardIndex: [1, 2, 3]
-        shardTotal: [3]
+        shardIndex: [1, 2]
+        shardTotal: [2]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
