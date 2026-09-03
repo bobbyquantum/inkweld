@@ -155,6 +155,50 @@ export class R2StorageService {
   }
 
   /**
+   * Generate a storage key for a single-slot image (branding backgrounds,
+   * per-user backgrounds). No extension: R2 carries the content type as
+   * object metadata, so the key stays stable across format changes.
+   */
+  private getSlotKey(namespace: 'branding' | 'backgrounds', key: string): string {
+    this.validateKeyComponent(key, 'slot key');
+    return `${namespace}/${key}`;
+  }
+
+  async saveSlotImage(
+    namespace: 'branding' | 'backgrounds',
+    key: string,
+    data: Buffer | ArrayBuffer | Uint8Array,
+    contentType: string
+  ): Promise<void> {
+    await this.bucket.put(this.getSlotKey(namespace, key), data, {
+      httpMetadata: { contentType },
+    });
+  }
+
+  async getSlotImage(
+    namespace: 'branding' | 'backgrounds',
+    key: string
+  ): Promise<{ data: ArrayBuffer; contentType: string } | null> {
+    const object = await this.bucket.get(this.getSlotKey(namespace, key));
+    if (!object) {
+      return null;
+    }
+    return {
+      data: await object.arrayBuffer(),
+      contentType: object.httpMetadata?.contentType || 'application/octet-stream',
+    };
+  }
+
+  async hasSlotImage(namespace: 'branding' | 'backgrounds', key: string): Promise<boolean> {
+    const object = await this.bucket.head(this.getSlotKey(namespace, key));
+    return object !== null;
+  }
+
+  async deleteSlotImage(namespace: 'branding' | 'backgrounds', key: string): Promise<void> {
+    await this.bucket.delete(this.getSlotKey(namespace, key));
+  }
+
+  /**
    * Get file metadata from R2
    */
   async getFileMetadata(

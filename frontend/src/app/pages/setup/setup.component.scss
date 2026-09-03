@@ -1,3 +1,5 @@
+@use '../../../themes/app-background' as appBackground;
+
 .setup-container {
   display: flex;
   justify-content: center;
@@ -5,10 +7,7 @@
   min-height: var(--app-height);
   padding: 20px;
   box-sizing: border-box;
-  background-image: url('/home_background.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  @include appBackground.surface();
   position: relative;
 
   &::before {
@@ -25,6 +24,7 @@
       0.1
     ); // Very light overlay for light mode
     z-index: 0;
+    @include appBackground.scrim-blur();
   }
 
   // Dark mode styling

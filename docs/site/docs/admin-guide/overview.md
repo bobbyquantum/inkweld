@@ -36,6 +36,12 @@ Configure system-wide settings:
 - **User Approval Required**: When enabled, new user registrations require admin approval
 - **AI Kill Switch**: Master control to disable all AI features
 
+### Appearance
+
+Customise the full-screen backgrounds behind the login page and home screen, and
+choose whether users may personalise their own. See
+[Appearance](./appearance.md).
+
 ### AI Image Generation
 
 Configure AI providers for image generation:

@@ -1,3 +1,5 @@
+@use '../../../themes/app-background' as appBackground;
+
 // Home component styles - redesigned for responsive cover grid
 // Dark mode (default)
 :host {
@@ -8,7 +10,18 @@
   --t3: rgba(255, 255, 255, 0.6);
   --b: rgba(255, 255, 255, 0.1);
   --header-bg: rgba(18, 18, 18, 0.8);
-  --overlay-bg: rgba(0, 0, 0, 0.5);
+  // Scrim over the background image. The per-theme default lives here; an
+  // admin-configured opacity arrives as --app-bg-scrim-override on the root
+  // element and wins via the var() fallback chain. It has to work that way
+  // round: a :host declaration would out-specify anything set on :root, but
+  // custom-property *values* still inherit into it.
+  --app-bg-scrim-alpha: 0.5;
+  --overlay-bg: rgba(
+    0,
+    0,
+    0,
+    var(--app-bg-scrim-override, var(--app-bg-scrim-alpha))
+  );
   --focus-color: #6e8be8;
   --link-color: rgba(255, 255, 255, 0.85);
   --link-hover-color: rgba(255, 255, 255, 1);
@@ -23,7 +36,13 @@
   --t3: rgba(0, 0, 0, 0.54);
   --b: rgba(0, 0, 0, 0.1);
   --header-bg: #ffffff;
-  --overlay-bg: rgba(255, 255, 255, 0.7);
+  --app-bg-scrim-alpha: 0.7;
+  --overlay-bg: rgba(
+    255,
+    255,
+    255,
+    var(--app-bg-scrim-override, var(--app-bg-scrim-alpha))
+  );
   --focus-color: #3f51b5;
   --link-color: rgba(0, 0, 0, 0.7);
   --link-hover-color: rgba(0, 0, 0, 0.87);
@@ -129,7 +148,7 @@
   height: var(--app-height);
   overflow: hidden;
   position: relative;
-  background: url('/home_background.png') center/cover no-repeat fixed;
+  @include appBackground.surface($attachment: fixed);
 
   &::before {
     content: '';
@@ -138,10 +157,15 @@
     background: var(--overlay-bg);
     pointer-events: none;
     z-index: 0;
+    @include appBackground.scrim-blur();
   }
 
   &.is-mobile {
     overflow-x: hidden;
+    // background-attachment: fixed is a known jank/perf problem on mobile
+    // browsers, and it matters more now that the image can be an arbitrary
+    // upload rather than the one asset we tuned for.
+    background-attachment: scroll;
   }
 }
 

@@ -1,12 +1,11 @@
+@use '../../../themes/app-background' as appBackground;
+
 .content-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   min-height: var(--app-height);
-  background-image: url('/home_background.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  @include appBackground.surface();
 
   &::before {
     content: '';
@@ -17,6 +16,7 @@
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     pointer-events: none;
+    @include appBackground.scrim-blur();
   }
 
   padding: 80px 0;

@@ -180,6 +180,17 @@ class ConfigService {
         return 'true';
       case 'PASSWORD_REQUIRE_SYMBOL':
         return 'true';
+      case 'USER_BACKGROUND_ENABLED':
+        // Default ON — letting people pick from the built-in presets costs
+        // nothing (they are CSS gradients plus the bundled image) and is the
+        // personalisation most users actually want.
+        return 'true';
+      case 'USER_BACKGROUND_UPLOAD_ENABLED':
+        // Default OFF — per-user uploads consume server storage, so an admin
+        // has to opt in deliberately.
+        return 'false';
+      case 'BACKGROUND_BLUR':
+        return '0';
       default:
         return undefined;
     }

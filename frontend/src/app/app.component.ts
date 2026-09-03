@@ -14,6 +14,7 @@ import { TutorialOverlayComponent } from '@components/tutorial-overlay/tutorial-
 import { TranslocoModule } from '@jsverse/transloco';
 
 import { ThemeService } from '../themes/theme.service';
+import { BackgroundService } from './services/core/background.service';
 import { LocaleService } from './services/core/locale.service';
 import { SetupService } from './services/core/setup.service';
 import { UpdateService } from './services/core/update.service';
@@ -46,6 +47,7 @@ export class AppComponent implements OnInit {
   protected readonly viewportService = inject(ViewportService);
   protected readonly unifiedUserService = inject(UnifiedUserService);
   protected readonly backgroundSync = inject(BackgroundSyncService);
+  private readonly backgroundService = inject(BackgroundService);
   protected readonly router = inject(Router);
 
   // Track if we ever had a real authenticated user session
@@ -63,6 +65,9 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.themeService.initTheme();
+    // Applies the cached background synchronously before the config fetch, so
+    // a branded login page does not flash the bundled default first.
+    this.backgroundService.initialize();
     this.localeService.init();
     this.updateService.initialize();
     void this.initializeApp();

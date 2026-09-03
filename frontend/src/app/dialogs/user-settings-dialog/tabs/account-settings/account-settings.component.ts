@@ -15,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { BackgroundPickerComponent } from '@components/background-picker/background-picker.component';
 import { PasskeysSettingsComponent } from '@components/passkeys-settings/passkeys-settings.component';
 import { type UserAuthProvider } from '@inkweld/model/user';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
@@ -34,6 +35,7 @@ import { UserService } from '@services/user/user.service';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     TranslocoModule,
+    BackgroundPickerComponent,
     PasskeysSettingsComponent,
   ],
   templateUrl: './account-settings.component.html',

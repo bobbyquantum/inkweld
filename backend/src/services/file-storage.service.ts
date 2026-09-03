@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { lookup } from 'mime-types';
+import { extension, lookup } from 'mime-types';
 import { config } from '../config/env';
 import { BadRequestError } from '../errors';
 import { logger } from './logger.service';
@@ -295,6 +295,113 @@ export class FileStorageService {
     }
 
     return results;
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Single-slot images (branding backgrounds, per-user backgrounds)
+  //
+  // Each of these is one replaceable file per key rather than a library, which
+  // is why they get a flat directory instead of the project namespace. Unlike
+  // avatars the format is not fixed to PNG: when sharp is unavailable (Workers,
+  // or a failed native build) the upload is stored as-is, so the extension has
+  // to record what was actually written and reads have to probe for it.
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /** Image extensions a single-slot file may have been stored under. */
+  private static readonly SLOT_EXTENSIONS = ['webp', 'jpg', 'jpeg', 'png', 'gif', 'avif'] as const;
+
+  /**
+   * Map a content type to the extension we store it under. Falls back to
+   * `.bin` so an unexpected type is still round-tripped rather than silently
+   * mislabelled as an image on the way back out.
+   */
+  private extensionForContentType(contentType: string): string {
+    const ext = extension(contentType);
+    if (
+      typeof ext === 'string' &&
+      (FileStorageService.SLOT_EXTENSIONS as readonly string[]).includes(ext)
+    ) {
+      return ext;
+    }
+    return 'bin';
+  }
+
+  private slotDir(namespace: 'branding' | 'backgrounds'): string {
+    return path.join(this.basePath, namespace);
+  }
+
+  private slotPath(namespace: 'branding' | 'backgrounds', key: string, ext: string): string {
+    this.validatePathComponent(key, 'slot key');
+    const slotPath = path.join(this.slotDir(namespace), `${key}.${ext}`);
+    this.ensureWithinBase(slotPath, this.slotDir(namespace));
+    return slotPath;
+  }
+
+  /**
+   * Write a single-slot image, removing any previously stored variant so a
+   * format change (png → webp) does not leave two files fighting to be found.
+   */
+  async saveSlotImage(
+    namespace: 'branding' | 'backgrounds',
+    key: string,
+    data: Buffer,
+    contentType: string
+  ): Promise<void> {
+    const ext = this.extensionForContentType(contentType);
+    await fs.mkdir(this.slotDir(namespace), { recursive: true });
+    await this.deleteSlotImage(namespace, key);
+    await fs.writeFile(this.slotPath(namespace, key, ext), data);
+  }
+
+  /**
+   * Read a single-slot image, probing the known extensions. Returns null when
+   * nothing is stored for the key.
+   */
+  async getSlotImage(
+    namespace: 'branding' | 'backgrounds',
+    key: string
+  ): Promise<{ data: Buffer; contentType: string } | null> {
+    for (const ext of FileStorageService.SLOT_EXTENSIONS) {
+      const slotPath = this.slotPath(namespace, key, ext);
+      try {
+        const data = await fs.readFile(slotPath);
+        const mimeType = lookup(slotPath);
+        return {
+          data,
+          contentType: typeof mimeType === 'string' ? mimeType : 'application/octet-stream',
+        };
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+          throw error;
+        }
+      }
+    }
+    return null;
+  }
+
+  async hasSlotImage(namespace: 'branding' | 'backgrounds', key: string): Promise<boolean> {
+    for (const ext of FileStorageService.SLOT_EXTENSIONS) {
+      try {
+        await fs.access(this.slotPath(namespace, key, ext));
+        return true;
+      } catch {
+        // Try the next extension.
+      }
+    }
+    return false;
+  }
+
+  /** Delete every stored variant for a slot. Missing files are not an error. */
+  async deleteSlotImage(namespace: 'branding' | 'backgrounds', key: string): Promise<void> {
+    for (const ext of FileStorageService.SLOT_EXTENSIONS) {
+      try {
+        await fs.unlink(this.slotPath(namespace, key, ext));
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+          throw error;
+        }
+      }
+    }
   }
 }
 

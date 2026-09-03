@@ -8,6 +8,11 @@ import { R2StorageService } from './r2-storage.service';
 export type BinaryData = Buffer | ArrayBuffer | Uint8Array;
 
 /**
+ * Namespaces for single-slot images (see {@link StorageService.saveSlotImage}).
+ */
+export type SlotNamespace = 'branding' | 'backgrounds';
+
+/**
  * Unified storage interface
  * Abstracts file storage operations to work with either filesystem or R2
  */
@@ -45,6 +50,29 @@ export interface StorageService {
     projectSlug: string,
     prefix?: string
   ): Promise<Array<{ filename: string; size: number; mimeType?: string; uploadedAt?: Date }>>;
+
+  /**
+   * Single-slot images: one replaceable file per key, outside the project
+   * namespace. `branding` holds the admin-configured login/home backgrounds;
+   * `backgrounds` holds one background per user. The content type travels with
+   * the data because uploads are only transcoded to webp when sharp is
+   * available (it is not, on Workers).
+   */
+  saveSlotImage(
+    namespace: SlotNamespace,
+    key: string,
+    data: BinaryData,
+    contentType: string
+  ): Promise<void>;
+
+  getSlotImage(
+    namespace: SlotNamespace,
+    key: string
+  ): Promise<{ data: Buffer | ArrayBuffer; contentType: string } | null>;
+
+  hasSlotImage(namespace: SlotNamespace, key: string): Promise<boolean>;
+
+  deleteSlotImage(namespace: SlotNamespace, key: string): Promise<void>;
 }
 
 /**
@@ -130,6 +158,30 @@ class FileStorageAdapter implements StorageService {
   ): Promise<Array<{ filename: string; size: number; mimeType?: string; uploadedAt?: Date }>> {
     return await this.fileStorage.listProjectFiles(username, projectSlug, prefix);
   }
+
+  async saveSlotImage(
+    namespace: SlotNamespace,
+    key: string,
+    data: BinaryData,
+    contentType: string
+  ): Promise<void> {
+    await this.fileStorage.saveSlotImage(namespace, key, this.toBuffer(data), contentType);
+  }
+
+  async getSlotImage(
+    namespace: SlotNamespace,
+    key: string
+  ): Promise<{ data: Buffer; contentType: string } | null> {
+    return await this.fileStorage.getSlotImage(namespace, key);
+  }
+
+  async hasSlotImage(namespace: SlotNamespace, key: string): Promise<boolean> {
+    return await this.fileStorage.hasSlotImage(namespace, key);
+  }
+
+  async deleteSlotImage(namespace: SlotNamespace, key: string): Promise<void> {
+    await this.fileStorage.deleteSlotImage(namespace, key);
+  }
 }
 
 /**
@@ -193,6 +245,30 @@ class R2StorageAdapter implements StorageService {
     prefix?: string
   ): Promise<Array<{ filename: string; size: number; mimeType?: string; uploadedAt?: Date }>> {
     return await this.r2Storage.listProjectFiles(username, projectSlug, prefix);
+  }
+
+  async saveSlotImage(
+    namespace: SlotNamespace,
+    key: string,
+    data: BinaryData,
+    contentType: string
+  ): Promise<void> {
+    await this.r2Storage.saveSlotImage(namespace, key, data, contentType);
+  }
+
+  async getSlotImage(
+    namespace: SlotNamespace,
+    key: string
+  ): Promise<{ data: ArrayBuffer; contentType: string } | null> {
+    return await this.r2Storage.getSlotImage(namespace, key);
+  }
+
+  async hasSlotImage(namespace: SlotNamespace, key: string): Promise<boolean> {
+    return await this.r2Storage.hasSlotImage(namespace, key);
+  }
+
+  async deleteSlotImage(namespace: SlotNamespace, key: string): Promise<void> {
+    await this.r2Storage.deleteSlotImage(namespace, key);
   }
 }
 

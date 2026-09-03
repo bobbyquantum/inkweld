@@ -34,6 +34,14 @@
         </a>
         <a
           mat-list-item
+          routerLink="appearance"
+          routerLinkActive="active"
+          data-testid="admin-nav-appearance">
+          <mat-icon matListItemIcon>wallpaper</mat-icon>
+          <span matListItemTitle>{{ 'admin.nav.appearance' | transloco }}</span>
+        </a>
+        <a
+          mat-list-item
           routerLink="announcements"
           routerLinkActive="active"
           data-testid="admin-nav-announcements">

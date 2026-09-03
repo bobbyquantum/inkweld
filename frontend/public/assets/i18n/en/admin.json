@@ -10,7 +10,8 @@
     "aiProviders": "AI Providers",
     "aiImages": "AI Images",
     "aiText": "AI Text",
-    "imageAudits": "Image Audits"
+    "imageAudits": "Image Audits",
+    "appearance": "Appearance"
   },
   "users": {
     "loading": "Loading users...",
@@ -533,5 +534,37 @@
     "sizeRequired": "Size is required",
     "textToImage": "Text to Image",
     "imageToImage": "Image to Image"
+  },
+  "appearance": {
+    "loginTitle": "Login background",
+    "loginDesc": "Shown on the welcome and sign-in pages, and on setup, approval and account-recovery pages. Nobody is signed in on these, so users cannot personalise them.",
+    "homeTitle": "Home background",
+    "homeDesc": "Shown on the home screen and other signed-in pages. Users can override this with their own choice if you allow it below.",
+    "inheritsHome": "No login background set — the home background is used for both.",
+    "upload": "Upload image",
+    "remove": "Remove image",
+    "externalUrl": "External image URL",
+    "urlHint": "Used when no image is uploaded. Visitors load it directly from that host, so their IP address reaches it.",
+    "urlIgnored": "Ignored while an uploaded image is in place.",
+    "treatmentTitle": "Readability",
+    "treatmentDesc": "The scrim and blur applied over the background so text stays legible. The scrim applies to the login and home surfaces; the blur applies to every background.",
+    "opacity": "Scrim opacity",
+    "opacityHint": "A number from 0 to 0.95. Leave empty to keep the per-theme defaults (0.5 dark, 0.7 light).",
+    "blur": "Background blur",
+    "allowUserBackgrounds": "Let users choose their own background",
+    "allowUserBackgroundsDesc": "Adds a background picker with built-in presets to user settings. Affects signed-in pages only.",
+    "allowUserUploads": "Let users upload their own image",
+    "allowUserUploadsDesc": "One image per user, stored on the server. Off by default because it consumes storage.",
+    "uploadsNeedPersonalisation": "Enable \"Let users choose their own background\" first.",
+    "uploaded": "Background uploaded",
+    "uploadFailed": "Failed to upload background",
+    "removed": "Background removed",
+    "removeFailed": "Failed to remove background",
+    "saved": "Appearance settings saved",
+    "saveFailed": "Failed to save appearance settings",
+    "invalidType": "Choose a PNG, JPEG, WebP, GIF or AVIF image",
+    "tooLarge": "Image is too large (max 12MB)",
+    "invalidUrl": "Enter a full http(s) URL, or leave it empty",
+    "invalidOpacity": "Enter a number between 0 and 0.95, or leave it empty"
   }
 }

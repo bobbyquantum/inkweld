@@ -40,6 +40,7 @@ const sidebars: SidebarsConfig = {
       label: 'Admin Guide',
       items: [
         'admin-guide/overview',
+        'admin-guide/appearance',
         'admin-guide/ai-kill-switch',
         'admin-guide/ai-image-generation',
         'admin-guide/github-oauth',
