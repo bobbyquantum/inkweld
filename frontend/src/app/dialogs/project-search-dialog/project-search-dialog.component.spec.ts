@@ -1,6 +1,10 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
 import { type Element, ElementType } from '@inkweld/index';
 import { type MockedObject, vi } from 'vitest';
 
@@ -310,6 +314,52 @@ describe('ProjectSearchDialogComponent', () => {
         done: true,
       });
       expect(component.progressValue).toBe(100);
+    });
+  });
+
+  describe('pre-selected tags from dialog data', () => {
+    beforeEach(async () => {
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [
+          translocoTestProvider(),
+          ProjectSearchDialogComponent,
+          MatDialogModule,
+        ],
+        providers: [
+          provideZonelessChangeDetection(),
+          { provide: MatDialogRef, useValue: mockDialogRef },
+          { provide: MAT_DIALOG_DATA, useValue: { tagIds: ['tag-1'] } },
+          {
+            provide: ProjectSearchService,
+            useValue: mockProjectSearchService,
+          },
+          { provide: ProjectStateService, useValue: mockProjectState },
+          { provide: FindInDocumentService, useValue: mockFindInDocument },
+          { provide: TagService, useValue: mockTagService },
+          { provide: RelationshipService, useValue: mockRelationshipService },
+          { provide: WorldbuildingService, useValue: mockWorldbuildingService },
+        ],
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(ProjectSearchDialogComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+    });
+
+    it('should start with the given tags selected and the filter panel open', () => {
+      expect(component.selectedTagIds()).toEqual(['tag-1']);
+      expect(component.showFilters()).toBe(true);
+      expect(component.isTagSelected('tag-1')).toBe(true);
+    });
+
+    it('should run the initial browse with the tag filter applied', () => {
+      expect(mockProjectSearchService.search).toHaveBeenCalledWith(
+        '',
+        expect.any(Function),
+        expect.any(AbortSignal),
+        expect.objectContaining({ tagIds: ['tag-1'] })
+      );
     });
   });
 

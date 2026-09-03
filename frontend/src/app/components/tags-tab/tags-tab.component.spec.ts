@@ -5,6 +5,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { type TagDefinition, type TagIndexEntry } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { ProjectSearchService } from '@services/core/project-search.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
 import { of } from 'rxjs';
@@ -21,6 +22,7 @@ describe('TagsTabComponent', () => {
   let mockSnackBar: Partial<MatSnackBar>;
   let mockDialog: Partial<MatDialog>;
   let mockDialogGateway: Partial<DialogGatewayService>;
+  let mockProjectSearch: Partial<ProjectSearchService>;
 
   const mockTags: TagDefinition[] = [
     {
@@ -92,6 +94,10 @@ describe('TagsTabComponent', () => {
       openConfirmationDialog: vi.fn().mockResolvedValue(true),
     };
 
+    mockProjectSearch = {
+      open: vi.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), TagsTabComponent, FormsModule],
       providers: [
@@ -101,6 +107,7 @@ describe('TagsTabComponent', () => {
         { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: MatDialog, useValue: mockDialog },
         { provide: DialogGatewayService, useValue: mockDialogGateway },
+        { provide: ProjectSearchService, useValue: mockProjectSearch },
       ],
     }).compileComponents();
 
@@ -222,9 +229,9 @@ describe('TagsTabComponent', () => {
       );
     });
 
-    it('should open first tagged element and show count message when tag has multiple elements', () => {
+    it('should open project search with the tag pre-selected', () => {
       const tag = {
-        id: '1',
+        id: 'tag-1',
         name: 'Test',
         icon: 'star',
         color: '#FFF',
@@ -232,48 +239,39 @@ describe('TagsTabComponent', () => {
         elementIds: ['a', 'b', 'c'],
       };
       component.viewTaggedElements(tag);
-      expect(mockProjectState.openDocument).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'a', name: 'Element A' })
-      );
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Opened "Element A". 2 more element(s) also have this tag.',
-        'Dismiss',
-        { duration: 4000 }
-      );
-    });
-
-    it('should open single tagged element without extra message', () => {
-      const tag = {
-        id: '1',
-        name: 'Single',
-        icon: 'star',
-        color: '#FFF',
-        count: 1,
-        elementIds: ['a'],
-      };
-      component.viewTaggedElements(tag);
-      expect(mockProjectState.openDocument).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'a', name: 'Element A' })
-      );
+      expect(mockProjectSearch.open).toHaveBeenCalledWith({
+        tagIds: ['tag-1'],
+      });
       expect(mockSnackBar.open).not.toHaveBeenCalled();
     });
 
-    it('should show message when tagged elements are not found in project', () => {
-      const tag = {
-        id: '1',
+    it('should show not-found message instead of opening search when tagged elements no longer exist', () => {
+      component.viewTaggedElements({
+        id: 'tag-1',
         name: 'Orphan',
         icon: 'star',
         color: '#FFF',
         count: 2,
         elementIds: ['nonexistent-1', 'nonexistent-2'],
-      };
-      component.viewTaggedElements(tag);
-      expect(mockProjectState.openDocument).not.toHaveBeenCalled();
+      });
+      expect(mockProjectSearch.open).not.toHaveBeenCalled();
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         'Tagged elements not found',
         'Dismiss',
         { duration: 3000 }
       );
+    });
+
+    it('should not open project search when tag has no elements', () => {
+      component.viewTaggedElements({
+        id: 'tag-1',
+        name: 'Empty',
+        icon: 'star',
+        color: '#FFF',
+        count: 0,
+        elementIds: [],
+      });
+      expect(mockProjectSearch.open).not.toHaveBeenCalled();
     });
   });
 

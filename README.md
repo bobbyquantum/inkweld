@@ -99,7 +99,7 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🔥 | Project-wide search (Ctrl/Cmd + Shift + F) | Full-text search across all documents |
 | ✅ | 🔥 | Find and replace in document | |
 | ✅ | 🟡 | Tag filtering in search | Filter search results by tags, element types, relationships, and worldbuilding schemas |
-| ⬜ | 🟡 | Tag filtering in project tree | Show/hide elements by tag |
+| ✅ | 🟡 | Browse elements by tag | Project search browse mode filters by tag; open from the Tags settings tab or the search dialog |
 | ✅ | 🟡 | Breadcrumbs | Folder path shown above each editor (document, folder, worldbuilding, canvas, relationship chart, timeline); toggle in user settings |
 | ✅ | 🟡 | Pinning | Pin elements to Home tab and sidebar for quick access |
 | ✅ | 🟢 | Recent files list | Tracks last 10 files per project |

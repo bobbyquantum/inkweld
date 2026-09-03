@@ -62,6 +62,14 @@ export interface ProjectSearchFilters {
   schemaIds?: string[];
 }
 
+/**
+ * Initial state passed to the project search dialog when opening it.
+ */
+export interface ProjectSearchDialogData {
+  /** Tag IDs to pre-select in the tag filter */
+  tagIds?: string[];
+}
+
 /** Context characters to show around each match */
 const SNIPPET_CONTEXT = 60;
 
@@ -130,12 +138,16 @@ export class ProjectSearchService {
 
   /**
    * Open the project search dialog.
+   *
+   * @param options Optional initial state, e.g. tags to pre-select so the
+   *   dialog opens in browse mode showing every element with those tags.
    */
-  open(): void {
+  open(options?: ProjectSearchDialogData): void {
     if (this.isOpen()) return;
 
     this.isOpen.set(true);
     this.dialogRef = this.dialog.open(ProjectSearchDialogComponent, {
+      data: options ?? {},
       width: '680px',
       maxWidth: '92vw',
       maxHeight: '85vh',

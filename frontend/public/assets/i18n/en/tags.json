@@ -25,8 +25,7 @@
     "deleted": "Deleted tag \"{{name}}\"",
     "deleteFailed": "Failed to delete tag",
     "noElementsWithTag": "No elements have this tag",
-    "taggedElementsNotFound": "Tagged elements not found",
-    "openedWithMore": "Opened \"{{name}}\". {{count}} more element(s) also have this tag."
+    "taggedElementsNotFound": "Tagged elements not found"
   },
   "chipList": {
     "ariaLabel": "Tag selection",

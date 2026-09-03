@@ -11,7 +11,11 @@ import {
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -20,6 +24,7 @@ import { TranslocoModule } from '@jsverse/transloco';
 
 import { FindInDocumentService } from '../../services/core/find-in-document.service';
 import {
+  type ProjectSearchDialogData,
   type ProjectSearchFilters,
   type ProjectSearchProgress,
   type ProjectSearchResult,
@@ -64,6 +69,10 @@ const PAGE_SIZE = 50;
 export class ProjectSearchDialogComponent implements AfterViewInit, OnDestroy {
   private readonly dialogRef = inject(
     MatDialogRef<ProjectSearchDialogComponent>
+  );
+  private readonly dialogData = inject<ProjectSearchDialogData | null>(
+    MAT_DIALOG_DATA,
+    { optional: true }
   );
   private readonly projectSearchService = inject(ProjectSearchService);
   private readonly projectState = inject(ProjectStateService);
@@ -111,11 +120,11 @@ export class ProjectSearchDialogComponent implements AfterViewInit, OnDestroy {
 
   // ─── Filters ──────────────────────────────────────────────────────────
 
-  /** Whether the filter panel is expanded */
-  readonly showFilters = signal(false);
+  /** Whether the filter panel is expanded (open when tags were pre-selected) */
+  readonly showFilters = signal((this.dialogData?.tagIds?.length ?? 0) > 0);
 
   /** Selected tag IDs for filtering */
-  readonly selectedTagIds = signal<string[]>([]);
+  readonly selectedTagIds = signal<string[]>(this.dialogData?.tagIds ?? []);
 
   /** Selected element types for filtering */
   readonly selectedElementTypes = signal<ElementType[]>([]);
