@@ -640,6 +640,56 @@ describe('HomeComponent', () => {
       expect(freshFixture.componentInstance.sortOrder()).toBe('updated');
       freshFixture.destroy();
     });
+
+    it('should fall back to the default when reading storage throws', () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new Error('storage unavailable');
+      });
+      const freshFixture = TestBed.createComponent(HomeComponent);
+      expect(freshFixture.componentInstance.sortOrder()).toBe('updated');
+      freshFixture.destroy();
+    });
+
+    it('should still apply the order in memory when writing storage throws', () => {
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('quota exceeded');
+      });
+      expect(() => component.setSortOrder('title')).not.toThrow();
+      expect(component.sortOrder()).toBe('title');
+    });
+
+    it('should treat missing or invalid dates as oldest', () => {
+      mockProjectsSignal.set([
+        {
+          id: 'valid',
+          title: 'Valid',
+          slug: 'valid',
+          username: 'testuser',
+          createdDate: '2024-01-01T00:00:00.000Z',
+          updatedDate: '2024-01-01T00:00:00.000Z',
+        },
+        {
+          id: 'invalid',
+          title: 'Invalid',
+          slug: 'invalid',
+          username: 'testuser',
+          createdDate: 'not-a-date',
+          updatedDate: 'not-a-date',
+        },
+        {
+          id: 'missing',
+          title: 'Missing',
+          slug: 'missing',
+          username: 'testuser',
+          createdDate: undefined as unknown as string,
+          updatedDate: undefined as unknown as string,
+        },
+      ]);
+      // Valid date first; the two zero-timestamp entries tie and fall back to title
+      expect(ids()).toEqual(['valid', 'invalid', 'missing']);
+      component.setSortOrder('created');
+      expect(ids()).toEqual(['valid', 'invalid', 'missing']);
+    });
   });
 
   describe('login and register dialogs', () => {
