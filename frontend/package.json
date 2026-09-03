@@ -20,6 +20,8 @@
     "test": "ng test --watch=false --no-coverage",
     "test:coverage": "ng test --watch=false",
     "test:watch": "ng test",
+    "test:shard": "node scripts/test-shard.mjs",
+    "test:merge-coverage": "node scripts/merge-lcov.mjs",
     "lint": "ng lint",
     "lint:fix": "ng lint --fix",
     "electron:build": "tsc -p electron/tsconfig.json",
