@@ -105,14 +105,23 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
   }
 
   /**
-   * Enable a region via its slide toggle. Material slide toggles are clicked
-   * rather than checked/unchecked.
+   * Enable a region via its slide toggle, starting from a fresh default
+   * setting. The demo template ships every element with themed gradients, so
+   * a region that is already on is switched off first; re-enabling resets it
+   * to the default auto-adjusted solid colour the helpers below expect.
+   * Material slide toggles are clicked rather than checked/unchecked.
    */
   async function enableRegion(
     page: Page,
     region: 'menu' | 'content'
   ): Promise<void> {
-    await page.getByTestId(`appearance-${region}-toggle`).click();
+    const toggle = page.getByTestId(`appearance-${region}-toggle`);
+    if ((await toggle.getAttribute('aria-checked')) === 'true') {
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-checked', 'false');
+    }
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-checked', 'true');
   }
 
   /**
