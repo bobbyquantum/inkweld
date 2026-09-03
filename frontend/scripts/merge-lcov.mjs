@@ -9,6 +9,13 @@
  * by line, function name and branch id. Thresholds mirror
  * `coverageThresholds` in angular.json and are checked on the merged totals,
  * which is what the unsharded `ng test` run would have enforced.
+ *
+ * Branch records need one caveat: V8 numbers branch blocks per process, so a
+ * shard that never executed a file reports that file's branches under
+ * different block ids than the shard that did. Summing those naively invents
+ * phantom zero-hit branches (SonarCloud then sees twice the conditions, half
+ * uncovered). A shard that recorded no line hits for a file cannot have
+ * covered any of its branches either, so its BRDA entries are dropped.
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -49,13 +56,33 @@ function fileRecord(name) {
 
 const num = value => (value === '-' ? 0 : Number(value));
 
+/** Fold one file record's pending branch entries into the merged record. */
+function flushBranches(current, pending, executed) {
+  if (!executed) return;
+  for (const [id, entry] of pending) {
+    const existing = current.branches.get(id);
+    if (existing) {
+      existing.hits += entry.hits;
+    } else {
+      current.branches.set(id, entry);
+    }
+  }
+}
+
 for (const input of inputs) {
   let current = null;
+  /** BRDA entries for the record being read, applied at end_of_record. */
+  let pendingBranches = new Map();
+  /** Whether the record being read had any line hits. */
+  let executed = false;
   for (const raw of readFileSync(input, 'utf8').split('\n')) {
     const line = raw.trim();
     if (!line) continue;
     if (line === 'end_of_record') {
+      if (current) flushBranches(current, pendingBranches, executed);
       current = null;
+      pendingBranches = new Map();
+      executed = false;
       continue;
     }
     const sep = line.indexOf(':');
@@ -85,17 +112,19 @@ for (const input of inputs) {
       case 'DA': {
         const [lineNo, hits] = value.split(',');
         const n = Number(lineNo);
-        current.lines.set(n, (current.lines.get(n) ?? 0) + num(hits));
+        const h = num(hits);
+        if (h > 0) executed = true;
+        current.lines.set(n, (current.lines.get(n) ?? 0) + h);
         break;
       }
       case 'BRDA': {
         const [lineNo, block, branch, hits] = value.split(',');
         const id = `${lineNo},${block},${branch}`;
-        const existing = current.branches.get(id);
+        const existing = pendingBranches.get(id);
         if (existing) {
           existing.hits += num(hits);
         } else {
-          current.branches.set(id, {
+          pendingBranches.set(id, {
             line: Number(lineNo),
             block,
             branch,
