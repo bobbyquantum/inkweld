@@ -45,7 +45,9 @@
             type="file"
             accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
             class="file-input"
+            id="admin-login-background-input"
             #loginFileInput
+            [attr.aria-label]="'admin.appearance.upload' | transloco"
             data-testid="login-background-input"
             (change)="onFileSelected('login', $event)" />
           <button
@@ -77,8 +79,10 @@
           <input
             matInput
             type="url"
+            id="admin-login-background-url"
             [value]="loginUrl()"
             [disabled]="isSaving() || hasLoginAsset()"
+            [attr.aria-label]="'admin.appearance.externalUrl' | transloco"
             data-testid="login-background-url"
             (blur)="saveUrl('login', $any($event.target).value)" />
           <mat-hint>{{
@@ -114,7 +118,9 @@
             type="file"
             accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
             class="file-input"
+            id="admin-home-background-input"
             #homeFileInput
+            [attr.aria-label]="'admin.appearance.upload' | transloco"
             data-testid="home-background-input"
             (change)="onFileSelected('home', $event)" />
           <button
@@ -146,8 +152,10 @@
           <input
             matInput
             type="url"
+            id="admin-home-background-url"
             [value]="homeUrl()"
             [disabled]="isSaving() || hasHomeAsset()"
+            [attr.aria-label]="'admin.appearance.externalUrl' | transloco"
             data-testid="home-background-url"
             (blur)="saveUrl('home', $any($event.target).value)" />
           <mat-hint>{{
@@ -177,8 +185,10 @@
             matInput
             type="text"
             inputmode="decimal"
+            id="admin-overlay-opacity-input"
             [value]="overlayOpacity()"
             [disabled]="isSaving()"
+            [attr.aria-label]="'admin.appearance.opacity' | transloco"
             data-testid="overlay-opacity-input"
             (blur)="saveOverlayOpacity($any($event.target).value)" />
           <mat-hint>{{ 'admin.appearance.opacityHint' | transloco }}</mat-hint>
@@ -191,8 +201,10 @@
           <mat-slider min="0" max="40" step="1" discrete>
             <input
               matSliderThumb
+              id="admin-blur-slider"
               [value]="blur()"
               [disabled]="isSaving()"
+              [attr.aria-label]="'admin.appearance.blur' | transloco"
               data-testid="blur-slider"
               (valueChange)="saveBlur($event)" />
           </mat-slider>
