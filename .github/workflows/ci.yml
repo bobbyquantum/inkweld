@@ -91,13 +91,26 @@ jobs:
           retention-days: 1
 
   # ===========================================
-  # Unit Tests - Frontend (Vitest)
+  # Unit Tests - Frontend (Vitest) - Sharded across parallel runners
   # ===========================================
+  # `ng test` has no --shard flag, so frontend/scripts/test-shard.mjs deals
+  # the spec files round-robin across the matrix and passes each shard's list
+  # via --include. Unsharded this was the longest job in the workflow (~18m);
+  # 2 shards (~9m each) bring it in line with the e2e jobs; 3 ran ~5-6m,
+  # shorter than the e2e shards, so the extra runner bought no wall-clock. Each shard emits an lcov.info
+  # covering the whole tree, so per-shard thresholds are disabled (the `shard`
+  # configuration in angular.json) and enforced on the merged report in the
+  # frontend-coverage job below.
   test-frontend:
-    name: Unit Tests (Frontend)
+    name: Unit Tests (Frontend) - Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2]
+        shardTotal: [2]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -125,8 +138,45 @@ jobs:
       - name: Show Node.js version
         run: node --version && bun --version
 
-      - name: Run frontend tests
-        run: cd frontend && NODE_OPTIONS="--max-old-space-size=8192" npm run test:coverage
+      - name: Run frontend tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+        run: cd frontend && NODE_OPTIONS="--max-old-space-size=8192" npm run test:shard -- ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+
+      - name: Upload frontend coverage shard
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: frontend-coverage-shard-${{ matrix.shardIndex }}
+          path: frontend/coverage/inkweld-frontend/lcov.info
+          retention-days: 1
+
+  # ===========================================
+  # Frontend Coverage - merge shards + enforce thresholds
+  # ===========================================
+  frontend-coverage:
+    name: Unit Tests (Frontend) - Coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: [test-frontend]
+    # Merge whatever shards produced coverage even if a shard's tests failed,
+    # so SonarCloud still gets a report; skip only on cancellation.
+    if: ${{ !cancelled() }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+
+      - name: Download coverage shards
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: frontend-coverage-shard-*
+          path: frontend/coverage/shards
+
+      - name: Merge coverage and check thresholds
+        run: cd frontend && node scripts/merge-lcov.mjs --out coverage/inkweld-frontend/lcov.info coverage/shards/*/lcov.info
 
       - name: Upload frontend coverage
         if: ${{ !cancelled() }}
@@ -182,7 +232,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    needs: [test-frontend, test-backend, test-packages]
+    needs: [frontend-coverage, test-backend, test-packages]
     # Run even when the test jobs fail (partial coverage is still worth
     # scanning), but NOT when the run is cancelled - `always()` would also
     # match cancellations, and a superseded run's coverage artifacts never
@@ -241,8 +291,9 @@ jobs:
   # compute (each shard re-runs setup).
   #
   # Shard counts were tuned against historical job durations: Docker ~15m,
-  # Wrangler ~13m, Online ~11m. Local (~8m) and Screenshots (~9m) are left
-  # unsharded - Local because the savings don't justify the extra runner, and
+  # Wrangler ~13m at 2 shards (now 3), Online ~11m. Local (~8m) and
+  # Screenshots (~9m) are left unsharded - Local because the savings don't
+  # justify the extra runner, and
   # Screenshots because it is driven by the docs build rather than
   # `playwright test` directly and must run sequentially for visual
   # consistency.
@@ -362,7 +413,7 @@ jobs:
           path: frontend/playwright-report/
           retention-days: 7
 
-  # Wrangler E2E Tests (22 spec files - 2 shards)
+  # Wrangler E2E Tests (22 spec files - 3 shards; the slowest e2e job at 2)
   e2e-wrangler:
     name: E2E Tests (Wrangler) - Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
     runs-on: ubuntu-latest
@@ -371,8 +422,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shardIndex: [1, 2]
-        shardTotal: [2]
+        shardIndex: [1, 2, 3]
+        shardTotal: [3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -626,6 +677,7 @@ jobs:
       [
         lint,
         test-frontend,
+        frontend-coverage,
         test-backend,
         test-packages,
         e2e-local,
