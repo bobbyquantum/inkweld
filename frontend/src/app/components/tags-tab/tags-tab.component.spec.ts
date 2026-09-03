@@ -245,6 +245,23 @@ describe('TagsTabComponent', () => {
       expect(mockSnackBar.open).not.toHaveBeenCalled();
     });
 
+    it('should show not-found message instead of opening search when tagged elements no longer exist', () => {
+      component.viewTaggedElements({
+        id: 'tag-1',
+        name: 'Orphan',
+        icon: 'star',
+        color: '#FFF',
+        count: 2,
+        elementIds: ['nonexistent-1', 'nonexistent-2'],
+      });
+      expect(mockProjectSearch.open).not.toHaveBeenCalled();
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Tagged elements not found',
+        'Dismiss',
+        { duration: 3000 }
+      );
+    });
+
     it('should not open project search when tag has no elements', () => {
       component.viewTaggedElements({
         id: 'tag-1',

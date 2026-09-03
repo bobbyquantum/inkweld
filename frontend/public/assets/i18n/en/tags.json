@@ -24,7 +24,8 @@
     "deleteMessage": "Are you sure you want to delete \"{{name}}\"? This will remove the tag from {{count}} element(s).",
     "deleted": "Deleted tag \"{{name}}\"",
     "deleteFailed": "Failed to delete tag",
-    "noElementsWithTag": "No elements have this tag"
+    "noElementsWithTag": "No elements have this tag",
+    "taggedElementsNotFound": "Tagged elements not found"
   },
   "chipList": {
     "ariaLabel": "Tag selection",

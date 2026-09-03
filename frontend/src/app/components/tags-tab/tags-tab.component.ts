@@ -280,6 +280,18 @@ export class TagsTabComponent {
       return;
     }
 
+    // Tag assignments can outlive their elements, so make sure at least one
+    // tagged element still exists before opening an empty search result.
+    const existingIds = new Set(this.projectState.elements().map(e => e.id));
+    if (!tag.elementIds.some(id => existingIds.has(id))) {
+      this.snackBar.open(
+        this.transloco.translate('tags.tab.taggedElementsNotFound'),
+        this.transloco.translate('snackbar.dismiss'),
+        { duration: 3000 }
+      );
+      return;
+    }
+
     this.projectSearchService.open({ tagIds: [tag.id] });
   }
 
