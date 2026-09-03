@@ -334,7 +334,21 @@
         ]
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #e3d6f5 0%, #e7c0ed 55%, #e3abd0 100%)",
+        "dark": "linear-gradient(160deg, #1c112c 0%, #39193e 55%, #522342 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f7f4fb 0%, #f4eaf6 55%, #f1dfeb 100%)",
+        "dark": "linear-gradient(160deg, #130d1c 0%, #231325 55%, #2e1927 100%)"
+      }
+    }
   },
   {
     "id": "location-v1",
@@ -550,7 +564,21 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f5e6 0%, #c0ede5 55%, #abdae3 100%)",
+        "dark": "linear-gradient(160deg, #112c1f 0%, #193e37 55%, #234a52 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fbf7 0%, #eaf6f4 55%, #dfeef1 100%)",
+        "dark": "linear-gradient(160deg, #0d1c14 0%, #132522 55%, #192b2e 100%)"
+      }
+    }
   },
   {
     "id": "wb-item-v1",
@@ -754,7 +782,21 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(150deg, #f5e8d6 0%, #ede0c0 55%, #e3dbab 100%)",
+        "dark": "linear-gradient(150deg, #2c2111 0%, #3e3419 55%, #524c23 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(150deg, #fbf8f4 0%, #f6f2ea 55%, #f1eedf 100%)",
+        "dark": "linear-gradient(150deg, #1c160d 0%, #252013 55%, #2e2c19 100%)"
+      }
+    }
   },
   {
     "id": "species-v1",
@@ -1017,7 +1059,21 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #e3f5d6 0%, #c0edc2 55%, #abe3c7 100%)",
+        "dark": "linear-gradient(160deg, #1c2c11 0%, #193e1b 55%, #23523b 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f7fbf4 0%, #eaf6ea 55%, #dff1e8 100%)",
+        "dark": "linear-gradient(160deg, #131c0d 0%, #132514 55%, #192e24 100%)"
+      }
+    }
   },
   {
     "id": "organization-v1",
@@ -1288,7 +1344,21 @@
         "order": 6
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6e3f5 0%, #c0c5ed 55%, #b4abe3 100%)",
+        "dark": "linear-gradient(160deg, #111c2c 0%, #191e3e 55%, #2b2352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f7fb 0%, #eaebf6 55%, #e2dff1 100%)",
+        "dark": "linear-gradient(160deg, #0d131c 0%, #131525 55%, #1d192e 100%)"
+      }
+    }
   },
   {
     "id": "deity-v1",
@@ -1520,7 +1590,21 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #f5edd6 0%, #edd6c0 55%, #e3b9ab 100%)",
+        "dark": "linear-gradient(170deg, #2c2511 0%, #3e2b19 55%, #522f23 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #fbf9f4 0%, #f6f0ea 55%, #f1e4df 100%)",
+        "dark": "linear-gradient(170deg, #1c180d 0%, #251c13 55%, #2e1e19 100%)"
+      }
+    }
   },
   {
     "id": "language-v1",
@@ -1736,7 +1820,21 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f0f5 0%, #c0d6ed 55%, #abb4e3 100%)",
+        "dark": "linear-gradient(160deg, #11282c 0%, #192b3e 55%, #232b52 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fafb 0%, #eaf0f6 55%, #dfe2f1 100%)",
+        "dark": "linear-gradient(160deg, #0d191c 0%, #131c25 55%, #191d2e 100%)"
+      }
+    }
   },
   {
     "id": "material-v1",
@@ -1943,7 +2041,21 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(150deg, #f5e0d6 0%, #edd6c0 55%, #e3d0ab 100%)",
+        "dark": "linear-gradient(150deg, #2c1a11 0%, #3e2b19 55%, #524223 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(150deg, #fbf6f4 0%, #f6f0ea 55%, #f1ebdf 100%)",
+        "dark": "linear-gradient(150deg, #1c120d 0%, #251c13 55%, #2e2719 100%)"
+      }
+    }
   },
   {
     "id": "technology-v1",
@@ -2110,7 +2222,21 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6ebf5 0%, #c0e7ed 55%, #abe3de 100%)",
+        "dark": "linear-gradient(160deg, #11232c 0%, #19393e 55%, #23524e 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f8fb 0%, #eaf4f6 55%, #dff1ef 100%)",
+        "dark": "linear-gradient(160deg, #0d171c 0%, #132325 55%, #192e2d 100%)"
+      }
+    }
   },
   {
     "id": "magic-system-v1",
@@ -2313,7 +2439,21 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #ebd6f5 0%, #c7c0ed 55%, #abbee3 100%)",
+        "dark": "linear-gradient(160deg, #23112c 0%, #1f193e 55%, #233352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f8f4fb 0%, #eceaf6 55%, #dfe5f1 100%)",
+        "dark": "linear-gradient(160deg, #170d1c 0%, #161325 55%, #19202e 100%)"
+      }
+    }
   },
   {
     "id": "spell-v1",
@@ -2480,7 +2620,21 @@
         "order": 3
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5d6f5 0%, #dec0ed 55%, #beabe3 100%)",
+        "dark": "linear-gradient(160deg, #2c112c 0%, #31193e 55%, #332352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf4fb 0%, #f2eaf6 55%, #e5dff1 100%)",
+        "dark": "linear-gradient(160deg, #1c0d1c 0%, #1f1325 55%, #20192e 100%)"
+      }
+    }
   },
   {
     "id": "condition-v1",
@@ -2672,7 +2826,21 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5d6db 0%, #edc1c0 55%, #e3b6ab 100%)",
+        "dark": "linear-gradient(160deg, #2c1115 0%, #3e1a19 55%, #522d23 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf4f5 0%, #f6eaea 55%, #f1e3df 100%)",
+        "dark": "linear-gradient(160deg, #1c0d10 0%, #251313 55%, #2e1d19 100%)"
+      }
+    }
   },
   {
     "id": "profession-v1",
@@ -2863,7 +3031,21 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5e6d6 0%, #ede1c0 55%, #e3e3ab 100%)",
+        "dark": "linear-gradient(160deg, #2c1f11 0%, #3e3419 55%, #525223 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf7f4 0%, #f6f3ea 55%, #f1f1df 100%)",
+        "dark": "linear-gradient(160deg, #1c140d 0%, #252113 55%, #2e2e19 100%)"
+      }
+    }
   },
   {
     "id": "title-v1",
@@ -3011,7 +3193,21 @@
         "order": 3
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #f5edd6 0%, #edc9c0 55%, #e3abbe 100%)",
+        "dark": "linear-gradient(170deg, #2c2511 0%, #3e2119 55%, #522333 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #fbf9f4 0%, #f6ecea 55%, #f1dfe5 100%)",
+        "dark": "linear-gradient(170deg, #1c180d 0%, #251713 55%, #2e1920 100%)"
+      }
+    }
   },
   {
     "id": "tradition-v1",
@@ -3174,7 +3370,21 @@
         "order": 3
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5dbd6 0%, #edc0c3 55%, #e3abbe 100%)",
+        "dark": "linear-gradient(160deg, #2c1511 0%, #3e191c 55%, #522333 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf5f4 0%, #f6eaeb 55%, #f1dfe5 100%)",
+        "dark": "linear-gradient(160deg, #1c100d 0%, #251315 55%, #2e1920 100%)"
+      }
+    }
   },
   {
     "id": "ethnicity-v1",
@@ -3363,7 +3573,21 @@
         "order": 3
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5e3d6 0%, #edcbc0 55%, #e3b0ab 100%)",
+        "dark": "linear-gradient(160deg, #2c1c11 0%, #3e2219 55%, #522723 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf7f4 0%, #f6edea 55%, #f1e1df 100%)",
+        "dark": "linear-gradient(160deg, #1c130d 0%, #251813 55%, #2e1b19 100%)"
+      }
+    }
   },
   {
     "id": "conflict-v1",
@@ -3576,7 +3800,21 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #f5d6d6 0%, #edc9c0 55%, #e3c2ab 100%)",
+        "dark": "linear-gradient(170deg, #2c1111 0%, #3e2119 55%, #523723 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #fbf4f4 0%, #f6ecea 55%, #f1e7df 100%)",
+        "dark": "linear-gradient(170deg, #1c0d0d 0%, #251713 55%, #2e2219 100%)"
+      }
+    }
   },
   {
     "id": "myth-v1",
@@ -3741,7 +3979,21 @@
         "order": 3
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #dbd6f5 0%, #d6c0ed 55%, #daabe3 100%)",
+        "dark": "linear-gradient(160deg, #15112c 0%, #2b193e 55%, #4a2352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5f4fb 0%, #f0eaf6 55%, #eedff1 100%)",
+        "dark": "linear-gradient(160deg, #100d1c 0%, #1c1325 55%, #2b192e 100%)"
+      }
+    }
   },
   {
     "id": "vehicle-v1",
@@ -3911,7 +4163,21 @@
         "order": 3
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6e5f5 0%, #c0deed 55%, #abdae3 100%)",
+        "dark": "linear-gradient(160deg, #111f2c 0%, #19313e 55%, #234a52 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f7fb 0%, #eaf2f6 55%, #dfeef1 100%)",
+        "dark": "linear-gradient(160deg, #0d141c 0%, #131f25 55%, #192b2e 100%)"
+      }
+    }
   },
   {
     "id": "event-v1",
@@ -4072,7 +4338,21 @@
         "order": 3
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5f2d6 0%, #ede0c0 55%, #e3c7ab 100%)",
+        "dark": "linear-gradient(160deg, #2c2a11 0%, #3e3319 55%, #523b23 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbfaf4 0%, #f6f2ea 55%, #f1e8df 100%)",
+        "dark": "linear-gradient(160deg, #1c1a0d 0%, #252013 55%, #2e2419 100%)"
+      }
+    }
   },
   {
     "id": "lore-v1",
@@ -4240,7 +4520,21 @@
         "order": 3
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5ebd6 0%, #edd8c0 55%, #e3c2ab 100%)",
+        "dark": "linear-gradient(160deg, #2c2311 0%, #3e2d19 55%, #523723 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf8f4 0%, #f6f0ea 55%, #f1e7df 100%)",
+        "dark": "linear-gradient(160deg, #1c170d 0%, #251d13 55%, #2e2219 100%)"
+      }
+    }
   },
   {
     "id": "building-v1",
@@ -4446,7 +4740,21 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5ded6 0%, #edd1c0 55%, #e3c9ab 100%)",
+        "dark": "linear-gradient(160deg, #2c1811 0%, #3e2719 55%, #523c23 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf6f4 0%, #f6eeea 55%, #f1e9df 100%)",
+        "dark": "linear-gradient(160deg, #1c110d 0%, #251a13 55%, #2e2419 100%)"
+      }
+    }
   },
   {
     "id": "settlement-v1",
@@ -4696,7 +5004,21 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5e8d6 0%, #ebedc0 55%, #c7e3ab 100%)",
+        "dark": "linear-gradient(160deg, #2c2111 0%, #3c3e19 55%, #3b5223 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf8f4 0%, #f5f6ea 55%, #e8f1df 100%)",
+        "dark": "linear-gradient(160deg, #1c160d 0%, #242513 55%, #242e19 100%)"
+      }
+    }
   },
   {
     "id": "geographic-feature-v1",
@@ -4860,7 +5182,21 @@
         "order": 3
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f5db 0%, #c0edd6 55%, #abe3da 100%)",
+        "dark": "linear-gradient(160deg, #112c15 0%, #193e2b 55%, #23524a 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fbf5 0%, #eaf6f0 55%, #dff1ee 100%)",
+        "dark": "linear-gradient(160deg, #0d1c10 0%, #13251c 55%, #192e2b 100%)"
+      }
+    }
   },
   {
     "id": "region-v1",
@@ -5054,7 +5390,21 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f5ed 0%, #c0edd1 55%, #abe3ab 100%)",
+        "dark": "linear-gradient(160deg, #112c25 0%, #193e27 55%, #235223 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fbf9 0%, #eaf6ee 55%, #dff1df 100%)",
+        "dark": "linear-gradient(160deg, #0d1c18 0%, #13251a 55%, #192e19 100%)"
+      }
+    }
   },
   {
     "id": "country-v1",
@@ -5345,7 +5695,21 @@
         "order": 5
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6dbf5 0%, #c0d2ed 55%, #abd0e3 100%)",
+        "dark": "linear-gradient(160deg, #11152c 0%, #19283e 55%, #234252 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f5fb 0%, #eaeff6 55%, #dfebf1 100%)",
+        "dark": "linear-gradient(160deg, #0d101c 0%, #131b25 55%, #19272e 100%)"
+      }
+    }
   },
   {
     "id": "landmark-v1",
@@ -5496,7 +5860,21 @@
         "order": 3
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5edd6 0%, #c0edc2 55%, #abd0e3 100%)",
+        "dark": "linear-gradient(160deg, #2c2511 0%, #193e1b 55%, #234252 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf9f4 0%, #eaf6ea 55%, #dfebf1 100%)",
+        "dark": "linear-gradient(160deg, #1c180d 0%, #132514 55%, #19272e 100%)"
+      }
+    }
   },
   {
     "id": "planet-v1",
@@ -5665,7 +6043,21 @@
         "order": 3
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6e0f5 0%, #c7c0ed 55%, #d0abe3 100%)",
+        "dark": "linear-gradient(160deg, #111a2c 0%, #1f193e 55%, #422352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f6fb 0%, #eceaf6 55%, #ebdff1 100%)",
+        "dark": "linear-gradient(160deg, #0d121c 0%, #161325 55%, #27192e 100%)"
+      }
+    }
   },
   {
     "id": "plane-v1",
@@ -5864,6 +6256,20 @@
         "order": 4
       }
     ],
-    "defaultValues": {}
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5d6f5 0%, #c0c0ed 55%, #abe3e3 100%)",
+        "dark": "linear-gradient(160deg, #2c112c 0%, #19193e 55%, #235252 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf4fb 0%, #eaeaf6 55%, #dff1f1 100%)",
+        "dark": "linear-gradient(160deg, #1c0d1c 0%, #131325 55%, #192e2e 100%)"
+      }
+    }
   }
 ]

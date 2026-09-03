@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { type Element, ElementType, ImagesService } from '@inkweld/index';
+import { type ElementAppearance } from '@models/element-appearance';
 import { type ElementRelationship } from '@models/element-ref.model';
 import JSZip from '@progress/jszip-esm';
 import { firstValueFrom } from 'rxjs';
@@ -435,6 +436,7 @@ export class ProjectExportService {
           const flatData = this.flattenYjsData(data);
 
           // Merge identity fields (image, description) which are stored in a separate Yjs map
+          let appearance: ElementAppearance | undefined;
           try {
             const identity = await this.worldbuildingService.getIdentityData(
               elem.id,
@@ -447,6 +449,7 @@ export class ProjectExportService {
             if (identity.description && !flatData['description']) {
               flatData['description'] = identity.description;
             }
+            appearance = identity.appearance;
           } catch (identityErr) {
             this.logger.warn(
               'ProjectExport',
@@ -459,6 +462,7 @@ export class ProjectExportService {
             elementId: elem.id,
             schemaId,
             data: flatData,
+            ...(appearance ? { appearance } : {}),
           });
         }
       } catch (err) {

@@ -727,6 +727,45 @@ describe('ProjectExportService', () => {
       );
     });
 
+    it('should export the identity appearance alongside the element data', async () => {
+      const appearance = {
+        content: {
+          type: 'gradient' as const,
+          mode: 'manual' as const,
+          light: 'linear-gradient(160deg, #ffffff 0%, #eeeeee 100%)',
+          dark: 'linear-gradient(160deg, #000000 0%, #111111 100%)',
+        },
+      };
+      worldbuildingService.getWorldbuildingData.mockResolvedValue({
+        name: 'Hero',
+      });
+      worldbuildingService.getIdentityData.mockResolvedValue({ appearance });
+
+      await service.exportProject();
+
+      const worldbuilding =
+        await readJsonFromZip<
+          Array<{ data: Record<string, unknown>; appearance?: unknown }>
+        >('worldbuilding.json');
+      expect(worldbuilding[0].appearance).toEqual(appearance);
+      expect(worldbuilding[0].data).not.toHaveProperty('appearance');
+    });
+
+    it('should omit the appearance key when the element has none', async () => {
+      worldbuildingService.getWorldbuildingData.mockResolvedValue({
+        name: 'Hero',
+      });
+      worldbuildingService.getIdentityData.mockResolvedValue({});
+
+      await service.exportProject();
+
+      const worldbuilding =
+        await readJsonFromZip<Array<Record<string, unknown>>>(
+          'worldbuilding.json'
+        );
+      expect(worldbuilding[0]).not.toHaveProperty('appearance');
+    });
+
     it('should not overwrite existing description from worldbuilding data', async () => {
       const wbData = { name: 'Hero', description: 'Original description' };
       worldbuildingService.getWorldbuildingData.mockResolvedValue(wbData);
