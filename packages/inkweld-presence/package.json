@@ -20,8 +20,8 @@
     "lib0": "^0.2.117"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/coverage-v8": "^5.0.0",
     "lib0": "^0.2.117",
-    "vitest": "^4.0.16"
+    "vitest": "^5.0.0"
   }
 }
