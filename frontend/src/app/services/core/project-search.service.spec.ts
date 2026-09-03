@@ -267,6 +267,22 @@ describe('ProjectSearchService', () => {
       expect(service.isOpen()).toBe(true);
     });
 
+    it('should pass pre-selected tag IDs to the dialog as data', () => {
+      service.open({ tagIds: ['tag-1'] });
+      expect(mockDialog.open).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ data: { tagIds: ['tag-1'] } })
+      );
+    });
+
+    it('should pass empty data when opened without options', () => {
+      service.open();
+      expect(mockDialog.open).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ data: {} })
+      );
+    });
+
     it('should not open the dialog if it is already open', () => {
       service.open();
       service.open();

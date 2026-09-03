@@ -19,10 +19,10 @@ import {
   TagEditDialogComponent,
   type TagEditDialogResult,
 } from '@dialogs/tag-edit-dialog/tag-edit-dialog.component';
-import { type Element } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { type TagIndexEntry } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { ProjectSearchService } from '@services/core/project-search.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
 import { firstValueFrom } from 'rxjs';
@@ -62,6 +62,7 @@ interface TagView {
 export class TagsTabComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly tagService = inject(TagService);
+  private readonly projectSearchService = inject(ProjectSearchService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly transloco = inject(TranslocoService);
   private readonly dialogGateway = inject(DialogGatewayService);
@@ -266,7 +267,8 @@ export class TagsTabComponent {
   }
 
   /**
-   * Navigate to an element with this tag
+   * Browse every element carrying this tag in the project search dialog
+   * (browse mode with the tag filter pre-selected).
    */
   viewTaggedElements(tag: TagView): void {
     if (tag.count === 0) {
@@ -278,34 +280,7 @@ export class TagsTabComponent {
       return;
     }
 
-    // Resolve element IDs to project elements and open the first one
-    const allElements = this.projectState.elements();
-    const taggedElements = tag.elementIds
-      .map(id => allElements.find(e => e.id === id))
-      .filter((e): e is Element => e !== undefined);
-
-    if (taggedElements.length === 0) {
-      this.snackBar.open(
-        this.transloco.translate('tags.tab.taggedElementsNotFound'),
-        this.transloco.translate('snackbar.dismiss'),
-        { duration: 3000 }
-      );
-      return;
-    }
-
-    // Open the first tagged element
-    this.projectState.openDocument(taggedElements[0]);
-
-    if (taggedElements.length > 1) {
-      this.snackBar.open(
-        this.transloco.translate('tags.tab.openedWithMore', {
-          name: taggedElements[0].name,
-          count: taggedElements.length - 1,
-        }),
-        this.transloco.translate('snackbar.dismiss'),
-        { duration: 4000 }
-      );
-    }
+    this.projectSearchService.open({ tagIds: [tag.id] });
   }
 
   /**
