@@ -82,6 +82,15 @@ name = "YJS_PROJECTS"
 class_name = "YjsProject"
 script_name = "inkweld-backend"
 
+# R2 storage for uploads (covers, avatars, inline images, backgrounds).
+# `wrangler dev --local` simulates the bucket on disk under .wrangler/, so no
+# Cloudflare account or real bucket is needed. Without a STORAGE binding the
+# Worker has no object store at all and every upload fails, because the
+# filesystem fallback does not exist in the Workers runtime.
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "inkweld-storage-local"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["YjsProject"]
