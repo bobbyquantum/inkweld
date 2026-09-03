@@ -81,7 +81,7 @@
             type="url"
             id="admin-login-background-url"
             [value]="loginUrl()"
-            [disabled]="isSaving() || hasLoginAsset()"
+            [disabled]="hasLoginAsset()"
             [attr.aria-label]="'admin.appearance.externalUrl' | transloco"
             data-testid="login-background-url"
             (blur)="saveUrl('login', $any($event.target).value)" />
@@ -154,7 +154,7 @@
             type="url"
             id="admin-home-background-url"
             [value]="homeUrl()"
-            [disabled]="isSaving() || hasHomeAsset()"
+            [disabled]="hasHomeAsset()"
             [attr.aria-label]="'admin.appearance.externalUrl' | transloco"
             data-testid="home-background-url"
             (blur)="saveUrl('home', $any($event.target).value)" />
@@ -187,7 +187,6 @@
             inputmode="decimal"
             id="admin-overlay-opacity-input"
             [value]="overlayOpacity()"
-            [disabled]="isSaving()"
             [attr.aria-label]="'admin.appearance.opacity' | transloco"
             data-testid="overlay-opacity-input"
             (blur)="saveOverlayOpacity($any($event.target).value)" />

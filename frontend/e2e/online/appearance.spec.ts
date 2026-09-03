@@ -255,6 +255,17 @@ test.describe('Appearance: customizable backgrounds', () => {
     await test.step('clears both settings again', async () => {
       await adminPage.getByTestId('overlay-opacity-input').fill('');
       await adminPage.getByTestId('overlay-opacity-input').blur();
+      // Let that save land before starting the next one.
+      await expect
+        .poll(() =>
+          adminPage.evaluate(() =>
+            getComputedStyle(document.documentElement)
+              .getPropertyValue('--app-bg-scrim-override')
+              .trim()
+          )
+        )
+        .toBe('');
+
       await adminPage.getByTestId('home-background-url').fill('');
       await adminPage.getByTestId('home-background-url').blur();
 
