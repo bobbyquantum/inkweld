@@ -191,15 +191,13 @@ describe('FileStorageService slot images', () => {
     }
   });
 
-  it('stores an unexpected content type under .bin rather than mislabelling it', async () => {
-    await service.saveSlotImage('branding', key, HEADERS.png, 'application/octet-stream');
+  it('refuses a content type outside the probe list rather than orphaning a file', async () => {
+    await expect(
+      service.saveSlotImage('branding', key, HEADERS.png, 'application/octet-stream')
+    ).rejects.toThrow(/Unsupported image content type/);
 
-    const files = await fs.readdir(path.join(TEST_DATA_DIR, 'branding'));
-    expect(files.filter((name) => name.startsWith(key))).toEqual([`${key}.bin`]);
-    // .bin is outside the probe list, so the slot reads back as empty rather
-    // than as an image the browser would fail to decode.
-    expect(await service.getSlotImage('branding', key)).toBeNull();
-
-    await fs.rm(path.join(TEST_DATA_DIR, 'branding', `${key}.bin`), { force: true });
+    // Nothing written under any name reads would never look for.
+    const files = await fs.readdir(path.join(TEST_DATA_DIR, 'branding')).catch(() => []);
+    expect(files.filter((name) => name.startsWith(key))).toEqual([]);
   });
 });

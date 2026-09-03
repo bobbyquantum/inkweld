@@ -311,9 +311,9 @@ export class FileStorageService {
   private static readonly SLOT_EXTENSIONS = ['webp', 'jpg', 'jpeg', 'png', 'gif', 'avif'] as const;
 
   /**
-   * Map a content type to the extension we store it under. Falls back to
-   * `.bin` so an unexpected type is still round-tripped rather than silently
-   * mislabelled as an image on the way back out.
+   * Map a content type to the extension we store it under. Anything outside the
+   * probe list is refused: a file stored under an extension reads never look for
+   * would be orphaned, invisible to `getSlotImage` and `deleteSlotImage` alike.
    */
   private extensionForContentType(contentType: string): string {
     const ext = extension(contentType);
@@ -323,7 +323,7 @@ export class FileStorageService {
     ) {
       return ext;
     }
-    return 'bin';
+    throw new BadRequestError(`Unsupported image content type: ${contentType}`);
   }
 
   private slotDir(namespace: 'branding' | 'backgrounds'): string {

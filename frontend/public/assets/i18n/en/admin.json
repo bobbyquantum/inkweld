@@ -564,7 +564,7 @@
     "saveFailed": "Failed to save appearance settings",
     "invalidType": "Choose a PNG, JPEG, WebP, GIF or AVIF image",
     "tooLarge": "Image is too large (max 12MB)",
-    "invalidUrl": "Enter a full http(s) URL, or leave it empty",
+    "invalidUrl": "Enter a full https URL, or leave it empty",
     "invalidOpacity": "Enter a number between 0 and 0.95, or leave it empty"
   }
 }

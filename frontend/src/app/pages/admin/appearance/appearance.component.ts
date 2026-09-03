@@ -197,7 +197,7 @@ export class AdminAppearanceComponent implements OnInit {
 
   async saveUrl(surface: BrandingSurface, value: string): Promise<void> {
     const trimmed = value.trim();
-    if (trimmed && !/^https?:\/\/\S+$/.test(trimmed)) {
+    if (trimmed && !/^https:\/\/\S+$/.test(trimmed)) {
       this.notify('admin.appearance.invalidUrl');
       return;
     }
@@ -284,7 +284,7 @@ export class AdminAppearanceComponent implements OnInit {
     }
 
     const trimmed = url.trim();
-    if (trimmed && /^https?:\/\/[^"'()\s\\]+$/.test(trimmed)) {
+    if (trimmed && /^https:\/\/[^"'()\s\\]+$/.test(trimmed)) {
       return `url("${trimmed}")`;
     }
 

@@ -25,11 +25,8 @@
   .dark-theme & {
     &::before {
       background-color: rgba(0, 0, 0, 0.6); // Darker overlay for dark mode
-      // Apply vendor prefixes and provide proper browser support for backdrop-filter
-      -webkit-backdrop-filter: saturate(70%);
-      backdrop-filter: saturate(
-        70%
-      ); // Reduces saturation to wash out the image
+      // Desaturate to wash the image out, composed with any configured blur.
+      @include appBackground.scrim-blur-append(saturate(70%));
       @supports not (
         (backdrop-filter: saturate(70%)) or
           (-webkit-backdrop-filter: saturate(70%))

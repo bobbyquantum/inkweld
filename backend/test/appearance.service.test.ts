@@ -54,7 +54,7 @@ async function createUser(id = 'user-1'): Promise<string> {
 describe('isSafeExternalImageUrl', () => {
   it.each([
     'https://cdn.example.com/bg.jpg',
-    'http://localhost:8080/bg.png',
+    'https://localhost:8080/bg.png',
     'https://cdn.example.com/path/to/my-background_v2.webp?x=1&y=2',
   ])('accepts %s', (url) => {
     expect(isSafeExternalImageUrl(url)).toBe(true);
@@ -67,7 +67,8 @@ describe('isSafeExternalImageUrl', () => {
     // Not absolute.
     '/local/path.png',
     'cdn.example.com/bg.jpg',
-    // Schemes we will not render.
+    // Schemes we will not render. Plain http would be mixed content.
+    'http://cdn.example.com/bg.jpg',
     'data:image/png;base64,AAAA',
     'javascript:alert(1)',
     'file:///etc/passwd',

@@ -12,7 +12,7 @@ import { LoggerService } from './logger.service';
 import { SetupService } from './setup.service';
 import { StorageContextService } from './storage-context.service';
 
-const SERVER = 'https://inkweld.example.com';
+const SERVER = 'http://inkweld.example.com';
 const CONFIG_URL = `${SERVER}/api/v1/appearance/config`;
 const PREFERENCE_URL = `${SERVER}/api/v1/appearance/preference`;
 const USER_BACKGROUND_URL = `${SERVER}/api/v1/appearance/user-background`;
@@ -136,6 +136,26 @@ describe('BackgroundService', () => {
       );
     });
 
+    it('accepts its own asset over a plain-http server base', async () => {
+      // Self-hosted and local instances run over http; the https-only rule is
+      // for external hosts, not for paths the server itself handed us.
+      const refresh = service.refresh({ authenticated: true });
+      http.expectOne({ method: 'GET', url: CONFIG_URL }).flush(
+        makeConfig({
+          userBackgroundEnabled: true,
+          userBackgroundUploadEnabled: true,
+        })
+      );
+      await tick();
+      http
+        .expectOne({ method: 'GET', url: PREFERENCE_URL })
+        .flush({ background: { kind: 'upload' }, hasUpload: true });
+      await refresh;
+
+      service.setSurface('app');
+      expect(cssVar('--app-bg-image')).toBe(`url("${USER_BACKGROUND_URL}")`);
+    });
+
     it('applies an external URL as-is', async () => {
       const refresh = service.refresh();
       http.expectOne(CONFIG_URL).flush(
@@ -160,6 +180,18 @@ describe('BackgroundService', () => {
             // second line of defence.
             value: 'https://x.test/a.png") ; background: url("javascript:0',
           },
+        })
+      );
+      await refresh;
+
+      expect(cssVar('--app-bg-image')).toBe(BUNDLED);
+    });
+
+    it('refuses plain http (mixed content on the https app)', async () => {
+      const refresh = service.refresh();
+      http.expectOne(CONFIG_URL).flush(
+        makeConfig({
+          login: { source: 'url', value: 'http://cdn.example.com/bg.jpg' },
         })
       );
       await refresh;

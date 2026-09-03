@@ -1,6 +1,7 @@
-import { type Page } from '@playwright/test';
+import { type Page, request as playwrightRequest } from '@playwright/test';
 
-import { expect, test } from './fixtures';
+import { TEST_PASSWORDS } from '../common/test-credentials';
+import { expect, getApiBaseUrl, test } from './fixtures';
 
 /**
  * Appearance / customizable backgrounds.
@@ -67,6 +68,46 @@ async function openAccountSettings(page: Page): Promise<void> {
   await expect(page.getByTestId('account-settings')).toBeVisible();
 }
 
+/**
+ * Put the server-side appearance state back to its defaults through the API.
+ *
+ * The fixtures isolate browser contexts, not the shared backend, so a test that
+ * fails halfway would otherwise leave an uploaded image or a flipped toggle
+ * behind for every other online spec.
+ */
+async function resetAppearanceState(): Promise<void> {
+  const api = await playwrightRequest.newContext({ baseURL: getApiBaseUrl() });
+  try {
+    const login = await api.post('/api/v1/auth/login', {
+      data: { username: 'e2e-admin', password: TEST_PASSWORDS.ADMIN },
+    });
+    const { token } = (await login.json()) as { token: string };
+    const headers = { Authorization: `Bearer ${token}` };
+
+    for (const surface of ['login', 'home']) {
+      await api.delete(`/api/v1/admin/appearance/background/${surface}`, {
+        headers,
+      });
+    }
+    const defaults: Record<string, string> = {
+      LOGIN_BACKGROUND_URL: '',
+      HOME_BACKGROUND_URL: '',
+      BACKGROUND_OVERLAY_OPACITY: '',
+      BACKGROUND_BLUR: '0',
+      USER_BACKGROUND_ENABLED: 'true',
+      USER_BACKGROUND_UPLOAD_ENABLED: 'false',
+    };
+    for (const [key, value] of Object.entries(defaults)) {
+      await api.put(`/api/v1/admin/config/${key}`, {
+        headers,
+        data: { value },
+      });
+    }
+  } finally {
+    await api.dispose();
+  }
+}
+
 test.describe('Appearance: customizable backgrounds', () => {
   test.describe.configure({ mode: 'serial' });
 
@@ -74,6 +115,10 @@ test.describe('Appearance: customizable backgrounds', () => {
   // re-resolves the live background — comfortably past the 30s default.
   test.beforeEach(() => {
     test.setTimeout(120000);
+  });
+
+  test.afterEach(async () => {
+    await resetAppearanceState();
   });
 
   test('admin uploads a branding background and it reaches the login page', async ({

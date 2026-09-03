@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import { bodyLimit } from 'hono/body-limit';
 import { requireAuth } from '../middleware/auth';
 import {
   appearanceService,
@@ -7,9 +8,10 @@ import {
   brandingSlotKey,
   isBackgroundSurface,
 } from '../services/appearance.service';
-import { imageService } from '../services/image.service';
+import { imageService, MAX_BACKGROUND_UPLOAD_BYTES } from '../services/image.service';
 import { getStorageService } from '../services/storage.service';
 import { userService } from '../services/user.service';
+import { configService } from '../services/config.service';
 import { errorResponse, errorResponses, MessageResponseSchema } from '../schemas/common.schemas';
 import type { AppContext } from '../types/context';
 
@@ -28,6 +30,12 @@ const appearanceRoutes = new OpenAPIHono<AppContext>();
 // Per-user endpoints require a session; the config + branding endpoints above
 // them must stay public.
 appearanceRoutes.use('/user-background', requireAuth);
+// Reject oversized uploads before parseBody() buffers them. The file cap is
+// enforced again after parsing; this bound covers the whole multipart envelope.
+appearanceRoutes.use(
+  '/user-background',
+  bodyLimit({ maxSize: MAX_BACKGROUND_UPLOAD_BYTES + 64 * 1024 })
+);
 appearanceRoutes.use('/preference', requireAuth);
 
 const SurfaceBackgroundSchema = z
@@ -136,6 +144,16 @@ appearanceRoutes.openapi(getBrandingBackgroundRoute, async (c): Promise<any> => 
     return c.json({ error: 'Background not found' }, 404);
   }
 
+  // Only the current version token is served. The response is cached as
+  // immutable (by browsers and the service worker), so an unversioned or stale
+  // URL must never be able to pin old bytes.
+  const assetKey = surface === 'login' ? 'LOGIN_BACKGROUND_ASSET' : 'HOME_BACKGROUND_ASSET';
+  const currentVersion = (await configService.get(c.get('db'), assetKey)).value.trim();
+  const requestedVersion = c.req.query('v') ?? '';
+  if (!currentVersion || requestedVersion !== currentVersion) {
+    return c.json({ error: 'Background not found' }, 404);
+  }
+
   const storage = getStorageService(c.get('storage'));
   const stored = await storage.getSlotImage('branding', brandingSlotKey(surface));
   if (!stored) {
@@ -149,7 +167,7 @@ appearanceRoutes.openapi(getBrandingBackgroundRoute, async (c): Promise<any> => 
   return c.body(bytes, 200, {
     'Content-Type': stored.contentType,
     'Content-Length': bytes.byteLength.toString(),
-    // The URL carries a ?v= token that changes on every upload, so the bytes
+    // The ?v= token changes on every upload and is checked above, so the bytes
     // behind a given URL never change and can be cached hard.
     'Cache-Control': 'public, max-age=31536000, immutable',
   });

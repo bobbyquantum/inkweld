@@ -94,9 +94,10 @@ export function brandingSlotKey(surface: BackgroundSurface): string {
 }
 
 /**
- * Accept an external background URL only if it is an absolute http(s) URL and
+ * Accept an external background URL only if it is an absolute https URL and
  * contains nothing that could break out of the CSS `url("…")` token the client
- * builds from it. The client sanitises too, but a value that can never be
+ * builds from it. Plain http is refused: the app itself is served over https,
+ * so browsers would block the image as mixed content anyway. The client sanitises too, but a value that can never be
  * rendered safely has no business being served in the first place.
  */
 export function isSafeExternalImageUrl(value: string): boolean {
@@ -114,7 +115,7 @@ export function isSafeExternalImageUrl(value: string): boolean {
 
   try {
     const parsed = new URL(trimmed);
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+    return parsed.protocol === 'https:';
   } catch {
     return false;
   }

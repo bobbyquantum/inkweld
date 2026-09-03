@@ -40,7 +40,7 @@ Each surface resolves its image in this order:
    turns a multi-megabyte photo into a few hundred kilobytes. Accepted formats
    are PNG, JPEG, WebP, GIF and AVIF, up to 12 MB. SVG is rejected.
 2. **An external image URL** — used only when no image has been uploaded. Must
-   be an absolute `http(s)` URL.
+   be an absolute `https` URL — plain `http` would be blocked as mixed content.
 3. **The bundled default** — what ships with Inkweld.
 
 *Remove image* deletes the upload and drops back to the URL, then to the

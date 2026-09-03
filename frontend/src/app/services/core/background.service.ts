@@ -337,8 +337,13 @@ export class BackgroundService {
 
   /** URL of the user's uploaded image, cache-busted per upload. */
   userBackgroundUrl(): string {
-    const base = `${this.serverBase}/api/v1/appearance/user-background`;
-    return this.uploadVersion > 0 ? `${base}?v=${this.uploadVersion}` : base;
+    return `${this.serverBase}${this.userBackgroundPath()}`;
+  }
+
+  /** Server-relative path of the user's uploaded image, cache-busted per upload. */
+  private userBackgroundPath(): string {
+    const path = '/api/v1/appearance/user-background';
+    return this.uploadVersion > 0 ? `${path}?v=${this.uploadVersion}` : path;
   }
 
   // ─── Resolution ────────────────────────────────────────────────────────────
@@ -407,7 +412,7 @@ export class BackgroundService {
         (config?.userBackgroundUploadEnabled ?? false)
       ) {
         return {
-          image: cssUrl(this.userBackgroundUrl()),
+          image: cssOwnUrl(this.serverBase, this.userBackgroundPath()),
           color: 'transparent',
           blur,
           overlayOpacity,
@@ -420,7 +425,7 @@ export class BackgroundService {
 
     if (surfaceConfig?.source === 'asset' && surfaceConfig.value) {
       return {
-        image: cssUrl(`${this.serverBase}${surfaceConfig.value}`),
+        image: cssOwnUrl(this.serverBase, surfaceConfig.value),
         color: 'transparent',
         blur,
         overlayOpacity,
@@ -531,7 +536,23 @@ export class BackgroundService {
 }
 
 /**
- * Wrap a URL in a CSS `url()` token.
+ * Wrap one of our own server-relative paths in a CSS `url()` token.
+ *
+ * The scheme comes from the configured server base, which may legitimately be
+ * plain http for a self-hosted or local instance, so only the path is held to
+ * the token-safety rules — the https-only requirement applies to *external*
+ * URLs, see {@link cssUrl}.
+ */
+function cssOwnUrl(serverBase: string, path: string): string {
+  const combined = `${serverBase}${path}`;
+  if (!path.startsWith('/') || /["'()\\\s]/.test(combined)) {
+    return BUNDLED_IMAGE;
+  }
+  return `url("${combined}")`;
+}
+
+/**
+ * Wrap an external URL in a CSS `url()` token.
  *
  * The value reaches a style property, so a hostile string could otherwise
  * close the token and append declarations of its own. The backend rejects such
@@ -554,9 +575,10 @@ function isSafeUrlToken(url: string): boolean {
   if (/["'()\\\s]/.test(trimmed)) {
     return false;
   }
-  // Same-origin/relative paths, or an absolute http(s) URL. Anything else
-  // (data:, javascript:, protocol-relative) is refused.
-  return trimmed.startsWith('/') || /^https?:\/\//.test(trimmed);
+  // Same-origin/relative paths, or an absolute https URL. Anything else
+  // (http:, data:, javascript:, protocol-relative) is refused — plain http
+  // would be blocked as mixed content on the https app anyway.
+  return trimmed.startsWith('/') || /^https:\/\//.test(trimmed);
 }
 
 /**

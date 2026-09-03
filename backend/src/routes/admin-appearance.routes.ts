@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import { bodyLimit } from 'hono/body-limit';
 import { requireAdmin } from '../middleware/auth';
 import {
   BACKGROUND_SURFACES,
@@ -6,7 +7,7 @@ import {
   isBackgroundSurface,
 } from '../services/appearance.service';
 import { configService } from '../services/config.service';
-import { imageService } from '../services/image.service';
+import { imageService, MAX_BACKGROUND_UPLOAD_BYTES } from '../services/image.service';
 import { getStorageService } from '../services/storage.service';
 import { errorResponse, errorResponses, MessageResponseSchema } from '../schemas/common.schemas';
 import type { AppContext } from '../types/context';
@@ -22,6 +23,13 @@ import type { AppContext } from '../types/context';
 export const adminAppearanceRoutes = new OpenAPIHono<AppContext>();
 
 adminAppearanceRoutes.use('*', requireAdmin);
+
+// Reject oversized uploads before parseBody() buffers them. The file cap is
+// enforced again after parsing; this bound covers the whole multipart envelope.
+adminAppearanceRoutes.use(
+  '/background/*',
+  bodyLimit({ maxSize: MAX_BACKGROUND_UPLOAD_BYTES + 64 * 1024 })
+);
 
 const SurfaceParamSchema = z.object({
   surface: z.enum(BACKGROUND_SURFACES).openapi({
