@@ -672,6 +672,49 @@ describe('UnifiedSnapshotService', () => {
       ).rejects.toThrow('not found or not loaded');
     });
 
+    it('should replace the element schema copy wholesale on restore', async () => {
+      const wbElement = createElement(
+        'wb-schema',
+        'Character',
+        ElementType.Worldbuilding
+      );
+      elementsSignal.set([wbElement]);
+
+      const wbYdoc = new Y.Doc();
+      const schemaMap = wbYdoc.getMap<unknown>('schema');
+      schemaMap.set('snapshot', { id: 'character-v1', tabs: [] });
+      schemaMap.set('baseHash', 'stale-hash');
+      schemaMap.set('baseSchemaId', 'character-v1');
+      worldbuildingService.getYDoc.mockReturnValue(wbYdoc);
+
+      const wbSnap: StoredSnapshot = {
+        ...mockStoredSnapshot,
+        id: 'testuser/test-project:wb-schema:snap-5',
+        documentId: 'wb-schema',
+        xmlContent: '',
+        worldbuildingData: {
+          name: 'Gandalf',
+          __elementSchema: {
+            snapshot: { id: 'character-v1', tabs: [{ key: 'basic' }] },
+          },
+        },
+      };
+      localSnapshots.getSnapshotById.mockResolvedValue(wbSnap);
+
+      await service.restoreFromSnapshot('wb-schema', wbSnap.id);
+
+      expect(schemaMap.get('snapshot')).toEqual({
+        id: 'character-v1',
+        tabs: [{ key: 'basic' }],
+      });
+      // Keys absent from the snapshot are removed, not left stale.
+      expect(schemaMap.has('baseHash')).toBe(false);
+      expect(schemaMap.has('baseSchemaId')).toBe(false);
+      // The reserved key never lands in the data map.
+      expect(wbYdoc.getMap('worldbuilding').has('__elementSchema')).toBe(false);
+      expect(wbYdoc.getMap('worldbuilding').get('name')).toBe('Gandalf');
+    });
+
     it('should successfully restore worldbuilding data from snapshot', async () => {
       const wbElement = createElement(
         'wb-ok',

@@ -319,6 +319,46 @@ describe('WorldbuildingService', () => {
   });
 
   describe('identity data + appearance', () => {
+    it('should clear the identity image when explicitly set to undefined', async () => {
+      const elementId = 'test-element-clear-image';
+
+      await service.saveIdentityData(
+        elementId,
+        { image: 'https://example.com/a.png' },
+        username,
+        slug
+      );
+      expect(
+        (await service.getIdentityData(elementId, username, slug)).image
+      ).toBe('https://example.com/a.png');
+
+      await service.saveIdentityData(
+        elementId,
+        { image: undefined },
+        username,
+        slug
+      );
+      const cleared = await service.getIdentityData(elementId, username, slug);
+      expect(cleared.image).toBeUndefined();
+
+      // Omitting the key leaves an existing image alone.
+      await service.saveIdentityData(
+        elementId,
+        { image: 'https://example.com/b.png' },
+        username,
+        slug
+      );
+      await service.saveIdentityData(
+        elementId,
+        { description: 'no image change' },
+        username,
+        slug
+      );
+      expect(
+        (await service.getIdentityData(elementId, username, slug)).image
+      ).toBe('https://example.com/b.png');
+    });
+
     it('should save and retrieve identity appearance', async () => {
       const elementId = 'test-element-appearance';
 

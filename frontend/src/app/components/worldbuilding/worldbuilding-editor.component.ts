@@ -52,6 +52,10 @@ import {
   SchemaEditService,
 } from '@services/worldbuilding/schema-edit.service';
 import { summariseLocalAdditions } from '@services/worldbuilding/schema-merge';
+import {
+  type ElementSchemaState,
+  WorldbuildingService,
+} from '@services/worldbuilding/worldbuilding.service';
 import { schemaContentHash } from '@utils/schema-hash';
 
 import {
@@ -69,10 +73,6 @@ import { DialogGatewayService } from '../../services/core/dialog-gateway.service
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { ElementSyncProviderFactory } from '../../services/sync/element-sync-provider.factory';
 import { TagService } from '../../services/tag/tag.service';
-import {
-  type ElementSchemaState,
-  WorldbuildingService,
-} from '../../services/worldbuilding/worldbuilding.service';
 import { AppearanceEditorComponent } from './appearance-panel/appearance-editor/appearance-editor.component';
 import { AppearancePanelComponent } from './appearance-panel/appearance-panel.component';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
@@ -1356,13 +1356,13 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     icon?: string;
     description?: string;
   }): void {
-    if (!this.schemaEditingEnabled()) return;
+    if (!this.templateEditingEnabled()) return;
     this.schemaInfoChange.emit(patch);
   }
 
   /** Emit an edited default appearance from the Styling section. */
   protected onDefaultAppearanceChange(appearance: ElementAppearance): void {
-    if (!this.schemaEditingEnabled()) return;
+    if (!this.templateEditingEnabled()) return;
     this.defaultAppearanceChange.emit(appearance);
   }
 

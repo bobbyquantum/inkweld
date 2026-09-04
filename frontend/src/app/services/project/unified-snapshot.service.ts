@@ -849,6 +849,10 @@ export class UnifiedSnapshotService {
     if (schemaCopy && typeof schemaCopy === 'object') {
       const schemaMap = wbYdoc.getMap<unknown>('schema');
       wbYdoc.transact(() => {
+        // Replace the copy wholesale so keys absent from the snapshot don't linger.
+        for (const key of Array.from(schemaMap.keys())) {
+          schemaMap.delete(key);
+        }
         for (const [key, value] of Object.entries(
           schemaCopy as Record<string, unknown>
         )) {

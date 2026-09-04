@@ -502,6 +502,9 @@ export class WorldbuildingService {
     connection.ydoc.transact(() => {
       if (data.image !== undefined) {
         identityMap.set('image', data.image);
+      } else if ('image' in data) {
+        // An explicit `image: undefined` clears the identity image.
+        identityMap.delete('image');
       }
       if (data.description !== undefined) {
         identityMap.set('description', data.description);

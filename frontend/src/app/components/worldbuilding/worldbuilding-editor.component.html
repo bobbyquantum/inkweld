@@ -395,7 +395,7 @@
           (projectState.canWrite() || schemaEditingEnabled())
         ) {
           <div class="section-content styling-inline">
-            @if (schemaEditingEnabled()) {
+            @if (templateEditingEnabled()) {
               <app-appearance-editor
                 [value]="previewSchema()?.defaultAppearance ?? {}"
                 (valueChange)="onDefaultAppearanceChange($event)"
@@ -583,7 +583,7 @@
                 </mat-panel-title>
               </mat-expansion-panel-header>
               <div class="styling-inline">
-                @if (schemaEditingEnabled()) {
+                @if (templateEditingEnabled()) {
                   <app-appearance-editor
                     [value]="previewSchema()?.defaultAppearance ?? {}"
                     (valueChange)="onDefaultAppearanceChange($event)"

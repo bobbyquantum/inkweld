@@ -335,6 +335,13 @@ Use move_elements or reorder_element to reposition after creation.`,
         };
       }
 
+      // Bind the worldbuilding doc (schemaId + schema copy) before the element
+      // is published, so a client that opens it immediately never races the
+      // copy and has its own edits overwritten.
+      if (type === 'WORLDBUILDING' && schemaId) {
+        await initializeWorldbuildingDoc(ctx, username, slug, newElement.id, name, schemaId);
+      }
+
       // Replace entire array (maintains positional integrity)
       await runtimeReplaceAllElements(ctx, username, slug, updatedElements);
 
@@ -345,10 +352,6 @@ Use move_elements or reorder_element to reposition after creation.`,
         entityId: newElement.id,
         entityName: name,
       });
-
-      if (type === 'WORLDBUILDING' && schemaId) {
-        await initializeWorldbuildingDoc(ctx, username, slug, newElement.id, name, schemaId);
-      }
 
       // Find the inserted element to return it
       const insertedElement = updatedElements.find((e) => e.id === newElement.id);
