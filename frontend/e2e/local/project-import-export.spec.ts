@@ -93,7 +93,7 @@ test.describe('Local Project Export', () => {
       const { files, manifest } = await verifyZipContents(filePath);
       expect(files).toContain('manifest.json');
       expect(manifest).toBeDefined();
-      expect(manifest?.['version']).toBe(2);
+      expect(manifest?.['version']).toBe(3);
       expect(manifest?.['originalSlug']).toBe('test-project');
       expect(manifest?.['projectTitle']).toBe('Test Project');
     });
