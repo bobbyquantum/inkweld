@@ -435,28 +435,12 @@ export class ProjectExportService {
           const schemaId = (data['schemaId'] as string) || elem.schemaId || '';
           const flatData = this.flattenYjsData(data);
 
-          // Merge identity fields (image, description) which are stored in a separate Yjs map
-          let appearance: ElementAppearance | undefined;
-          try {
-            const identity = await this.worldbuildingService.getIdentityData(
-              elem.id,
-              username,
-              slug
-            );
-            if (identity.image) {
-              flatData['image'] = identity.image;
-            }
-            if (identity.description && !flatData['description']) {
-              flatData['description'] = identity.description;
-            }
-            appearance = identity.appearance;
-          } catch (identityErr) {
-            this.logger.warn(
-              'ProjectExport',
-              `Failed to get identity data for ${elem.id}`,
-              identityErr
-            );
-          }
+          const appearance = await this.mergeIdentityData(
+            elem.id,
+            username,
+            slug,
+            flatData
+          );
 
           worldbuilding.push({
             elementId: elem.id,
@@ -475,6 +459,41 @@ export class ProjectExportService {
     }
 
     return worldbuilding;
+  }
+
+  /**
+   * Merge the identity fields (image, description) stored in an element's
+   * separate identity Yjs map into its flattened data, and return the
+   * element's appearance (kept alongside the data in the archive). Identity
+   * read failures are logged and leave the data untouched.
+   */
+  private async mergeIdentityData(
+    elementId: string,
+    username: string,
+    slug: string,
+    flatData: Record<string, unknown>
+  ): Promise<ElementAppearance | undefined> {
+    try {
+      const identity = await this.worldbuildingService.getIdentityData(
+        elementId,
+        username,
+        slug
+      );
+      if (identity.image) {
+        flatData['image'] = identity.image;
+      }
+      if (identity.description && !flatData['description']) {
+        flatData['description'] = identity.description;
+      }
+      return identity.appearance;
+    } catch (identityErr) {
+      this.logger.warn(
+        'ProjectExport',
+        `Failed to get identity data for ${elementId}`,
+        identityErr
+      );
+      return undefined;
+    }
   }
 
   /**
