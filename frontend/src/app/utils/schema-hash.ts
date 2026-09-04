@@ -14,6 +14,16 @@ export function djb2Hex(input: string): string {
 }
 
 /**
+ * Code-point key ordering. Deliberately not locale-aware so the hash is
+ * identical in every runtime and locale (frontend and backend must agree).
+ */
+function compareKeys(a: string, b: string): number {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+
+/**
  * Deterministic JSON serialisation: object keys sorted recursively so that
  * structurally equal values always produce identical strings. Arrays keep
  * their order because order is meaningful for tabs and fields.
@@ -28,7 +38,7 @@ export function stableStringify(value: unknown): string {
   const record = value as Record<string, unknown>;
   const keys = Object.keys(record)
     .filter(key => record[key] !== undefined)
-    .sort();
+    .sort(compareKeys);
   const body = keys
     .map(key => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
     .join(',');

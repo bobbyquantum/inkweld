@@ -291,9 +291,8 @@
         </div>
       </ng-template>
       @if (elementSchemaEditing()) {
-        <div
+        <output
           class="element-schema-banner"
-          role="status"
           data-testid="element-schema-banner">
           <mat-icon aria-hidden="true">tune</mat-icon>
           <span class="banner-text">
@@ -321,7 +320,7 @@
             data-testid="element-schema-done">
             {{ 'worldbuilding.schemaSource.done' | transloco }}
           </button>
-        </div>
+        </output>
       }
       @if (isInitialLoading()) {
         <div class="wb-loading-shell" data-testid="worldbuilding-loading-shell">

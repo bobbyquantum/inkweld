@@ -36,6 +36,10 @@ export interface SchemaEditOptions {
   removeRelationshipTypes: boolean;
 }
 
+const DEFAULT_EDIT_OPTIONS: SchemaEditOptions = {
+  removeRelationshipTypes: true,
+};
+
 export interface SchemaEditResult {
   /** The schema with the edit applied. Always returned, even when invalid. */
   schema: ElementTypeSchema;
@@ -58,8 +62,9 @@ export class SchemaEditService {
   applyEdit(
     schema: ElementTypeSchema,
     event: SchemaEditEvent,
-    options: SchemaEditOptions = { removeRelationshipTypes: true }
+    options?: SchemaEditOptions
   ): SchemaEditResult {
+    const opts = options ?? DEFAULT_EDIT_OPTIONS;
     const tabs: TabSchema[] = structuredClone(schema.tabs);
     let addedFieldId: string | null = null;
 
@@ -67,72 +72,31 @@ export class SchemaEditService {
       case 'add-tab':
         tabs.push(this.createTab(tabs));
         break;
-      case 'remove-tab': {
-        const idx = tabs.findIndex(t => t.key === event.tabKey);
-        if (idx >= 0) {
-          if (options.removeRelationshipTypes) {
-            this.cleanupRelationshipFieldsInTab(tabs[idx]);
-          }
-          tabs.splice(idx, 1);
-        }
+      case 'remove-tab':
+        this.removeTab(tabs, event.tabKey, opts);
         break;
-      }
-      case 'update-tab': {
-        const idx = tabs.findIndex(t => t.key === event.tabKey);
-        if (idx >= 0) tabs[idx] = { ...tabs[idx], ...event.patch };
+      case 'update-tab':
+        this.updateTab(tabs, event.tabKey, event.patch);
         break;
-      }
-      case 'add-field': {
-        const tab = tabs.find(t => t.key === event.tabKey);
-        if (tab) {
-          const field = this.createField();
-          tab.fields.push(field);
-          addedFieldId = field.id ?? null;
-        }
+      case 'add-field':
+        addedFieldId = this.addField(tabs, event.tabKey);
         break;
-      }
-      case 'remove-field': {
-        const tab = tabs.find(t => t.key === event.tabKey);
-        const fieldIdx =
-          tab?.fields.findIndex(f => f.key === event.fieldKey) ?? -1;
-        if (tab && fieldIdx >= 0) {
-          if (options.removeRelationshipTypes) {
-            this.cleanupRelationshipField(tab.fields[fieldIdx]);
-          }
-          tab.fields.splice(fieldIdx, 1);
-        }
+      case 'remove-field':
+        this.removeField(tabs, event.tabKey, event.fieldKey, opts);
         break;
-      }
-      case 'update-field': {
-        const tab = tabs.find(t => t.key === event.tabKey);
-        const fieldIdx =
-          tab?.fields.findIndex(f => f.key === event.fieldKey) ?? -1;
-        if (tab && fieldIdx >= 0) {
-          const patch = { ...event.patch };
-          this.reconcileRelationshipField(
-            schema.id,
-            tabs,
-            event.tabKey,
-            tab.fields[fieldIdx],
-            patch,
-            options
-          );
-          tab.fields[fieldIdx] = { ...tab.fields[fieldIdx], ...patch };
-        }
+      case 'update-field':
+        this.updateField(
+          schema.id,
+          tabs,
+          event.tabKey,
+          event.fieldKey,
+          event.patch,
+          opts
+        );
         break;
-      }
-      case 'move-field': {
-        const tab = tabs.find(t => t.key === event.tabKey);
-        if (tab) {
-          const fieldIdx = tab.fields.findIndex(f => f.key === event.fieldKey);
-          const target = fieldIdx + event.delta;
-          if (fieldIdx >= 0 && target >= 0 && target < tab.fields.length) {
-            const [moved] = tab.fields.splice(fieldIdx, 1);
-            tab.fields.splice(target, 0, moved);
-          }
-        }
+      case 'move-field':
+        this.moveField(tabs, event.tabKey, event.fieldKey, event.delta);
         break;
-      }
     }
 
     return {
@@ -140,6 +104,101 @@ export class SchemaEditService {
       error: this.validateTabs(tabs),
       addedFieldId,
     };
+  }
+
+  private removeTab(
+    tabs: TabSchema[],
+    tabKey: string,
+    opts: SchemaEditOptions
+  ): void {
+    const idx = tabs.findIndex(t => t.key === tabKey);
+    if (idx < 0) return;
+    if (opts.removeRelationshipTypes) {
+      this.cleanupRelationshipFieldsInTab(tabs[idx]);
+    }
+    tabs.splice(idx, 1);
+  }
+
+  private updateTab(
+    tabs: TabSchema[],
+    tabKey: string,
+    patch: Partial<TabSchema>
+  ): void {
+    const idx = tabs.findIndex(t => t.key === tabKey);
+    if (idx >= 0) tabs[idx] = { ...tabs[idx], ...patch };
+  }
+
+  /** Returns the new field's id, or null when the tab does not exist. */
+  private addField(tabs: TabSchema[], tabKey: string): string | null {
+    const tab = tabs.find(t => t.key === tabKey);
+    if (!tab) return null;
+    const field = this.createField();
+    tab.fields.push(field);
+    return field.id ?? null;
+  }
+
+  private removeField(
+    tabs: TabSchema[],
+    tabKey: string,
+    fieldKey: string,
+    opts: SchemaEditOptions
+  ): void {
+    const located = this.locateField(tabs, tabKey, fieldKey);
+    if (!located) return;
+    if (opts.removeRelationshipTypes) {
+      this.cleanupRelationshipField(located.tab.fields[located.index]);
+    }
+    located.tab.fields.splice(located.index, 1);
+  }
+
+  private updateField(
+    schemaId: string,
+    tabs: TabSchema[],
+    tabKey: string,
+    fieldKey: string,
+    rawPatch: Partial<FieldSchema>,
+    opts: SchemaEditOptions
+  ): void {
+    const located = this.locateField(tabs, tabKey, fieldKey);
+    if (!located) return;
+    const patch = { ...rawPatch };
+    this.reconcileRelationshipField(
+      schemaId,
+      tabs,
+      tabKey,
+      located.tab.fields[located.index],
+      patch,
+      opts
+    );
+    located.tab.fields[located.index] = {
+      ...located.tab.fields[located.index],
+      ...patch,
+    };
+  }
+
+  private moveField(
+    tabs: TabSchema[],
+    tabKey: string,
+    fieldKey: string,
+    delta: -1 | 1
+  ): void {
+    const located = this.locateField(tabs, tabKey, fieldKey);
+    if (!located) return;
+    const target = located.index + delta;
+    if (target < 0 || target >= located.tab.fields.length) return;
+    const [moved] = located.tab.fields.splice(located.index, 1);
+    located.tab.fields.splice(target, 0, moved);
+  }
+
+  private locateField(
+    tabs: TabSchema[],
+    tabKey: string,
+    fieldKey: string
+  ): { tab: TabSchema; index: number } | null {
+    const tab = tabs.find(t => t.key === tabKey);
+    if (!tab) return null;
+    const index = tab.fields.findIndex(f => f.key === fieldKey);
+    return index >= 0 ? { tab, index } : null;
   }
 
   /** A fresh tab with a label unique among its siblings. */

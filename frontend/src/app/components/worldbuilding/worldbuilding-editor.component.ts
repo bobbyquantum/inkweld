@@ -531,37 +531,15 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
       // Load the element's own schema copy (copied from the shared project
       // schema on first open if the element predates per-element schemas).
-      let loadedSchema: ElementTypeSchema | null = null;
       this.elementSchemaEditing.set(false);
       this.schemaEditError.set(null);
       this.schemaState.set(null);
-      if (username && slug) {
-        const state = await this.worldbuildingService.getElementSchemaState(
-          elementId,
-          username,
-          slug
-        );
-        if (currentLoad !== this.loadSequence) return;
-        if (state) {
-          this.schemaState.set(state);
-          loadedSchema = state.schema;
-        }
-      }
+      const schemaToUse = await this.resolveElementSchema(
+        elementId,
+        username,
+        slug
+      );
       if (currentLoad !== this.loadSequence) return;
-      let schemaToUse = loadedSchema;
-      if (!schemaToUse && username && slug) {
-        schemaToUse = await this.initializeIfNeeded(elementId, username, slug);
-        if (currentLoad !== this.loadSequence) return;
-        if (schemaToUse) {
-          this.schemaState.set(
-            await this.worldbuildingService.getElementSchemaState(
-              elementId,
-              username,
-              slug
-            )
-          );
-        }
-      }
 
       this.schema.set(schemaToUse);
       if (schemaToUse) {
@@ -590,6 +568,43 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         this.isInitialLoading.set(false);
       }
     }
+  }
+
+  /**
+   * Resolve the schema an element should render, populating `schemaState`.
+   * Falls back to initialising the element (write access required) when it
+   * has no schema yet.
+   */
+  private async resolveElementSchema(
+    elementId: string,
+    username: string,
+    slug: string
+  ): Promise<ElementTypeSchema | null> {
+    if (!username || !slug) return null;
+    const state = await this.worldbuildingService.getElementSchemaState(
+      elementId,
+      username,
+      slug
+    );
+    if (state) {
+      this.schemaState.set(state);
+      return state.schema;
+    }
+    const initialised = await this.initializeIfNeeded(
+      elementId,
+      username,
+      slug
+    );
+    if (initialised) {
+      this.schemaState.set(
+        await this.worldbuildingService.getElementSchemaState(
+          elementId,
+          username,
+          slug
+        )
+      );
+    }
+    return initialised;
   }
 
   /**

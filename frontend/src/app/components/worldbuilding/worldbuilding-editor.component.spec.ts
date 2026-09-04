@@ -1077,16 +1077,24 @@ describe('WorldbuildingEditorComponent', () => {
       it('should mark the accordion with the custom menu background', async () => {
         await recreateComponentForViewport(759, false);
         fixture.detectChanges();
+        await vi.waitFor(() => {
+          fixture.detectChanges();
+          expect(component.identityPanel()).toBeTruthy();
+        });
         const panel = component.identityPanel();
         panel?.appearance.set({
           menu: { type: 'color', mode: 'auto', value: '#123456' },
         });
         fixture.detectChanges();
 
-        const accordion = fixture.nativeElement.querySelector(
-          '[data-testid="wb-accordion"]'
-        );
-        expect(accordion.classList).toContain('has-custom-background');
+        await vi.waitFor(() => {
+          fixture.detectChanges();
+          const accordion = fixture.nativeElement.querySelector(
+            '[data-testid="wb-accordion"]'
+          );
+          expect(accordion).toBeTruthy();
+          expect(accordion.classList).toContain('has-custom-background');
+        });
       });
     });
 
@@ -1627,7 +1635,7 @@ describe('WorldbuildingEditorComponent', () => {
         'test-project'
       );
       const saved = worldbuildingService.saveElementSchema.mock.calls[0][1];
-      expect(saved.tabs[0].fields.length).toBe(
+      expect(saved.tabs[0].fields).toHaveLength(
         mockCharacterSchema.tabs[0].fields.length + 1
       );
       expect(component.schemaState()?.isCustom).toBe(true);
