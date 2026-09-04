@@ -38,6 +38,7 @@ import {
   getRelationships as runtimeGetRelationships,
   replaceAllRelationships as runtimeReplaceAllRelationships,
   addRelationship as runtimeAddRelationship,
+  getSchemas as runtimeGetSchemas,
   type Relationship,
 } from './yjs-runtime';
 
@@ -85,6 +86,7 @@ import {
   findParentByPosition,
 } from './tree-helpers';
 import { xmlContentToText } from '../../utils/xml-utils';
+import { schemaContentHash } from '../../utils/schema-hash';
 import { markdownToXml } from '@inkweld/prosemirror/markdown';
 import { decodeInkweldUri } from '@inkweld/prosemirror/uri';
 
@@ -333,6 +335,13 @@ Use move_elements or reorder_element to reposition after creation.`,
         };
       }
 
+      // Bind the worldbuilding doc (schemaId + schema copy) before the element
+      // is published, so a client that opens it immediately never races the
+      // copy and has its own edits overwritten.
+      if (type === 'WORLDBUILDING' && schemaId) {
+        await initializeWorldbuildingDoc(ctx, username, slug, newElement.id, name, schemaId);
+      }
+
       // Replace entire array (maintains positional integrity)
       await runtimeReplaceAllElements(ctx, username, slug, updatedElements);
 
@@ -343,25 +352,6 @@ Use move_elements or reorder_element to reposition after creation.`,
         entityId: newElement.id,
         entityName: name,
       });
-
-      // Initialize worldbuilding doc with template binding when schemaId is provided
-      if (type === 'WORLDBUILDING' && schemaId) {
-        const now = new Date().toISOString();
-        await updateWorldbuilding(
-          ctx,
-          username,
-          slug,
-          newElement.id,
-          {
-            schemaId,
-            id: newElement.id,
-            name,
-            createdDate: now,
-            lastModified: now,
-          },
-          'worldbuilding'
-        );
-      }
 
       // Find the inserted element to return it
       const insertedElement = updatedElements.find((e) => e.id === newElement.id);
@@ -387,6 +377,55 @@ Use move_elements or reorder_element to reposition after creation.`,
     }
   },
 });
+
+/**
+ * Bind a freshly created WORLDBUILDING element to its template and copy the
+ * shared schema into the element doc. Elements own a copy of their schema
+ * (see frontend WorldbuildingService.getElementSchemaState); copying it at
+ * creation avoids the recovery path on first open.
+ */
+async function initializeWorldbuildingDoc(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string,
+  name: string,
+  schemaId: string
+): Promise<void> {
+  const now = new Date().toISOString();
+  await updateWorldbuilding(
+    ctx,
+    username,
+    slug,
+    elementId,
+    { schemaId, id: elementId, name, createdDate: now, lastModified: now },
+    'worldbuilding'
+  );
+
+  try {
+    const schemas = await runtimeGetSchemas(ctx, username, slug);
+    const shared = schemas.find((schema) => schema.id === schemaId);
+    if (!shared) {
+      mcpMutLog.warn(
+        `Schema ${schemaId} not found in project library; element ${elementId} will copy it on first open`
+      );
+      return;
+    }
+    await updateWorldbuilding(
+      ctx,
+      username,
+      slug,
+      elementId,
+      { snapshot: shared, baseHash: schemaContentHash(shared), baseSchemaId: shared.id },
+      'schema'
+    );
+  } catch (schemaErr) {
+    mcpMutLog.warn('Failed to copy schema into new worldbuilding element', {
+      elementId,
+      error: schemaErr instanceof Error ? schemaErr.message : String(schemaErr),
+    });
+  }
+}
 
 // ============================================
 // replace_all_elements tool

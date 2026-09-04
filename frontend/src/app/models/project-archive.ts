@@ -43,7 +43,7 @@ import { type TimeSystem } from './time-system';
  * - time-systems.json: Installed TimeSystem definitions for the project
  *   (empty array for v1 archives imported into v2; no destructive changes).
  */
-export const ARCHIVE_VERSION = 2;
+export const ARCHIVE_VERSION = 3;
 
 /**
  * Minimum supported archive version for import.
@@ -149,6 +149,10 @@ export interface ArchiveWorldbuildingData {
    * field group there.
    */
   appearance?: ElementAppearance;
+  /** The element's own schema copy, when it has one (added with per-element schemas) */
+  schema?: ElementTypeSchema;
+  /** Content hash of the shared schema this copy was last aligned to */
+  schemaBaseHash?: string;
 }
 
 /**

@@ -6,6 +6,7 @@ import {
   type BackgroundType,
   type ElementAppearance,
 } from '@models/element-appearance';
+import { schemaContentHash } from '@utils/schema-hash';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { nanoid } from 'nanoid';
 import { Subject, type Subscription } from 'rxjs';
@@ -21,6 +22,7 @@ import { VersionCompatibilityService } from '../core/version-compatibility.servi
 import { createAuthenticatedWebsocketProvider } from '../sync/authenticated-websocket-provider';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
+import { mergeElementSchema } from './schema-merge';
 
 // Constants for timeouts and intervals
 const INDEXEDDB_SYNC_TIMEOUT = 5000;
@@ -29,6 +31,8 @@ interface WorldbuildingConnection {
   ydoc: Y.Doc;
   dataMap: Y.Map<unknown>;
   identityMap: Y.Map<unknown>;
+  /** The element's own copy of its schema plus drift bookkeeping. */
+  schemaMap: Y.Map<unknown>;
   provider?: WebsocketProvider;
   indexeddbProvider: IndexeddbPersistence;
 }
@@ -45,6 +49,28 @@ export interface WorldbuildingIdentity {
   /** Per-element background appearance (menu / content regions) */
   appearance?: ElementAppearance;
 }
+
+/**
+ * Resolved schema for an element together with how it relates to the shared
+ * project schema it was copied from.
+ */
+export interface ElementSchemaState {
+  /** The element's own schema copy (what the editor renders) */
+  schema: ElementTypeSchema;
+  /** Content hash of the shared schema at copy / last sync time */
+  baseHash: string;
+  /** The shared project schema, or null if it has since been deleted */
+  sharedSchema: ElementTypeSchema | null;
+  /** True when the element copy differs from the shared schema it came from */
+  isCustom: boolean;
+  /** True when the shared schema has changed since the element last synced */
+  sharedUpdated: boolean;
+}
+
+/** Keys of the per-element `schema` Yjs map. */
+const SCHEMA_SNAPSHOT_KEY = 'snapshot';
+const SCHEMA_BASE_HASH_KEY = 'baseHash';
+const SCHEMA_BASE_ID_KEY = 'baseSchemaId';
 
 @Injectable({
   providedIn: 'root',
@@ -207,6 +233,7 @@ export class WorldbuildingService {
     const ydoc = new Y.Doc();
     const dataMap = ydoc.getMap('worldbuilding');
     const identityMap = ydoc.getMap('identity');
+    const schemaMap = ydoc.getMap('schema');
 
     // Initialize IndexedDB provider for offline persistence
     // Include project key to prevent cross-project data collisions
@@ -269,6 +296,7 @@ export class WorldbuildingService {
       ydoc,
       dataMap,
       identityMap,
+      schemaMap,
       provider,
       indexeddbProvider,
     };
@@ -474,6 +502,9 @@ export class WorldbuildingService {
     connection.ydoc.transact(() => {
       if (data.image !== undefined) {
         identityMap.set('image', data.image);
+      } else if ('image' in data) {
+        // An explicit `image: undefined` clears the identity image.
+        identityMap.delete('image');
       }
       if (data.description !== undefined) {
         identityMap.set('description', data.description);
@@ -670,10 +701,10 @@ export class WorldbuildingService {
     const connection = this.connections.get(connectionKey)!;
 
     connection.ydoc.transact(() => {
-      // Store the schema ID reference (not the full schema)
       if (schema) {
-        // Initialize data based on schema's default values
+        // Store the schema ID reference and the element's own schema copy
         dataMap.set('schemaId', schema.id);
+        this.writeSchemaCopy(connection.schemaMap, schema);
         if (schema.defaultValues) {
           Object.entries(schema.defaultValues).forEach(([key, value]) => {
             dataMap.set(key, value);
@@ -1056,33 +1087,218 @@ export class WorldbuildingService {
   }
 
   /**
-   * Get the full schema for a worldbuilding element from the project library.
-   * Looks up the schema ID stored in the element and retrieves the schema from the library.
-   * @param elementId - The element ID
-   * @param username - Project username
-   * @param slug - Project slug
-   * @returns The full schema or null if not found
+   * Get the schema a worldbuilding element should render: its own copy.
+   * Elements without a copy yet (created before per-element schemas, or after
+   * a revert) get the shared project schema copied in on the spot.
    */
   async getSchemaForElement(
     elementId: string,
     username: string,
     slug: string
   ): Promise<ElementTypeSchema | null> {
-    const schemaId = await this.getElementSchemaId(elementId, username, slug);
+    const state = await this.getElementSchemaState(elementId, username, slug);
+    return state?.schema ?? null;
+  }
+
+  /**
+   * Resolve the element's schema copy and how it relates to the shared
+   * project schema. Performs the recovery path when no copy exists: the
+   * shared schema (by the element's `schemaId`) is copied into the element
+   * doc and becomes the base. Returns null when the element has no schemaId
+   * or the shared schema cannot be found and there is no copy to fall back on.
+   */
+  async getElementSchemaState(
+    elementId: string,
+    username: string,
+    slug: string
+  ): Promise<ElementSchemaState | null> {
+    await this.setupCollaboration(elementId, username, slug);
+    const connectionKey = this.buildConnectionKey(elementId, username, slug);
+    const connection = this.connections.get(connectionKey);
+    if (!connection) return null;
+
+    const schemaId = (connection.dataMap.get('schemaId') as string) || null;
     if (!schemaId) {
       console.warn(
         `[Worldbuilding] No schema ID found for element ${elementId}`
       );
       return null;
     }
-    const projectKey = `${username}:${slug}`;
-    const schema = this.getSchemaFromLibrary(
-      projectKey,
-      schemaId,
-      username,
-      slug
+
+    const shared = this.getSchemaById(schemaId);
+    let copy = this.readSchemaCopy(connection.schemaMap);
+
+    if (!copy) {
+      if (!shared) {
+        console.warn(
+          `[Worldbuilding] Shared schema ${schemaId} not found and element ${elementId} has no schema copy`
+        );
+        return null;
+      }
+      connection.ydoc.transact(() => {
+        this.writeSchemaCopy(connection.schemaMap, shared);
+      });
+      copy = this.readSchemaCopy(connection.schemaMap)!;
+    }
+
+    return this.buildSchemaState(copy, shared, connection.schemaMap);
+  }
+
+  /**
+   * Persist an edited schema copy for an element. The base hash is left
+   * untouched so the element reads as "custom" until it is next synced.
+   */
+  async saveElementSchema(
+    elementId: string,
+    schema: ElementTypeSchema,
+    username: string,
+    slug: string
+  ): Promise<ElementSchemaState | null> {
+    const connection = await this.requireConnection(elementId, username, slug);
+    if (!connection) return null;
+    connection.ydoc.transact(() => {
+      connection.schemaMap.set(SCHEMA_SNAPSHOT_KEY, structuredClone(schema));
+    });
+    connection.dataMap.set('lastModified', new Date().toISOString());
+    return this.buildSchemaState(
+      schema,
+      this.getSchemaById(connection.dataMap.get('schemaId') as string),
+      connection.schemaMap
     );
-    return schema;
+  }
+
+  /**
+   * Update an element's schema copy from the shared project schema. Shared
+   * definitions win for tabs and fields present in both; local-only tabs and
+   * fields are kept. The base hash is reset to the shared schema, so the
+   * element reads as "shared" again unless it had local additions.
+   */
+  async syncElementSchema(
+    elementId: string,
+    username: string,
+    slug: string
+  ): Promise<ElementSchemaState | null> {
+    const connection = await this.requireConnection(elementId, username, slug);
+    if (!connection) return null;
+    const shared = this.getSchemaById(
+      connection.dataMap.get('schemaId') as string
+    );
+    const copy = this.readSchemaCopy(connection.schemaMap);
+    if (!shared || !copy) return null;
+
+    const state = this.buildSchemaState(copy, shared, connection.schemaMap);
+    const merged = state.isCustom
+      ? mergeElementSchema(copy, shared)
+      : structuredClone(shared);
+
+    connection.ydoc.transact(() => {
+      connection.schemaMap.set(SCHEMA_SNAPSHOT_KEY, merged);
+      connection.schemaMap.set(SCHEMA_BASE_HASH_KEY, schemaContentHash(shared));
+      connection.schemaMap.set(SCHEMA_BASE_ID_KEY, shared.id);
+    });
+    return this.buildSchemaState(merged, shared, connection.schemaMap);
+  }
+
+  /**
+   * Discard the element's schema copy so it follows the shared schema again.
+   * The copy is re-created from the shared schema immediately.
+   */
+  async revertElementSchema(
+    elementId: string,
+    username: string,
+    slug: string
+  ): Promise<ElementSchemaState | null> {
+    const connection = await this.requireConnection(elementId, username, slug);
+    if (!connection) return null;
+    connection.ydoc.transact(() => {
+      connection.schemaMap.delete(SCHEMA_SNAPSHOT_KEY);
+      connection.schemaMap.delete(SCHEMA_BASE_HASH_KEY);
+      connection.schemaMap.delete(SCHEMA_BASE_ID_KEY);
+    });
+    return this.getElementSchemaState(elementId, username, slug);
+  }
+
+  /**
+   * Observe changes to the element's schema copy (e.g. a collaborator editing
+   * the element schema). Returns an unsubscribe function.
+   */
+  async observeElementSchema(
+    elementId: string,
+    callback: (schema: ElementTypeSchema | null) => void,
+    username: string,
+    slug: string
+  ): Promise<() => void> {
+    const connection = await this.requireConnection(elementId, username, slug);
+    if (!connection) return () => {};
+    const observer = () => {
+      callback(this.readSchemaCopy(connection.schemaMap));
+    };
+    connection.schemaMap.observe(observer);
+    return () => connection.schemaMap.unobserve(observer);
+  }
+
+  /** Read the raw schema map for archive export. */
+  async getElementSchemaCopy(
+    elementId: string,
+    username: string,
+    slug: string
+  ): Promise<{ schema: ElementTypeSchema; baseHash: string } | null> {
+    const connection = await this.requireConnection(elementId, username, slug);
+    if (!connection) return null;
+    const schema = this.readSchemaCopy(connection.schemaMap);
+    if (!schema) return null;
+    return {
+      schema,
+      baseHash:
+        (connection.schemaMap.get(SCHEMA_BASE_HASH_KEY) as string) ?? '',
+    };
+  }
+
+  private async requireConnection(
+    elementId: string,
+    username: string,
+    slug: string
+  ): Promise<WorldbuildingConnection | null> {
+    await this.setupCollaboration(elementId, username, slug);
+    return (
+      this.connections.get(
+        this.buildConnectionKey(elementId, username, slug)
+      ) ?? null
+    );
+  }
+
+  /** Write a shared schema into an element's schema map as its new base. */
+  private writeSchemaCopy(
+    schemaMap: Y.Map<unknown>,
+    shared: ElementTypeSchema
+  ): void {
+    schemaMap.set(SCHEMA_SNAPSHOT_KEY, structuredClone(shared));
+    schemaMap.set(SCHEMA_BASE_HASH_KEY, schemaContentHash(shared));
+    schemaMap.set(SCHEMA_BASE_ID_KEY, shared.id);
+  }
+
+  private readSchemaCopy(schemaMap: Y.Map<unknown>): ElementTypeSchema | null {
+    const raw = schemaMap.get(SCHEMA_SNAPSHOT_KEY);
+    if (!raw || typeof raw !== 'object') return null;
+    const copy = raw as ElementTypeSchema;
+    return Array.isArray(copy.tabs) ? structuredClone(copy) : null;
+  }
+
+  private buildSchemaState(
+    copy: ElementTypeSchema,
+    shared: ElementTypeSchema | null,
+    schemaMap: Y.Map<unknown>
+  ): ElementSchemaState {
+    const copyHash = schemaContentHash(copy);
+    const base =
+      (schemaMap.get(SCHEMA_BASE_HASH_KEY) as string | undefined) ?? copyHash;
+    return {
+      schema: copy,
+      baseHash: base,
+      sharedSchema: shared,
+      isCustom: copyHash !== base,
+      sharedUpdated: shared ? schemaContentHash(shared) !== base : false,
+    };
   }
 
   /**

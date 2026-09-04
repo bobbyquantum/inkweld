@@ -50,6 +50,16 @@ export const ARCHIVE_MIGRATIONS: ArchiveMigration[] = [
       manifest: { ...archive.manifest, version: 2 },
     }),
   },
+  {
+    fromVersion: 2,
+    toVersion: 3,
+    description:
+      'Per-element schema copies: worldbuilding entries may carry `schema` and `schemaBaseHash`. Both are optional, so v2 archives need no data changes; the bump stops older importers from silently dropping customised element schemas.',
+    migrate: archive => ({
+      ...archive,
+      manifest: { ...archive.manifest, version: 3 },
+    }),
+  },
 ];
 
 /**

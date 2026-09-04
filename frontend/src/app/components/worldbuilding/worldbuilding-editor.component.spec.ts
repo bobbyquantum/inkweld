@@ -133,6 +133,37 @@ describe('WorldbuildingEditorComponent', () => {
     worldbuildingService.getSchemaForElement.mockResolvedValue(
       mockCharacterSchema
     );
+    worldbuildingService.getElementSchemaState.mockResolvedValue({
+      schema: mockCharacterSchema,
+      baseHash: 'base',
+      sharedSchema: mockCharacterSchema,
+      isCustom: false,
+      sharedUpdated: false,
+    });
+    worldbuildingService.observeElementSchema.mockResolvedValue(() => {});
+    worldbuildingService.saveElementSchema.mockImplementation((_id, schema) =>
+      Promise.resolve({
+        schema,
+        baseHash: 'base',
+        sharedSchema: mockCharacterSchema,
+        isCustom: true,
+        sharedUpdated: false,
+      })
+    );
+    worldbuildingService.syncElementSchema.mockResolvedValue({
+      schema: mockCharacterSchema,
+      baseHash: 'base2',
+      sharedSchema: mockCharacterSchema,
+      isCustom: false,
+      sharedUpdated: false,
+    });
+    worldbuildingService.revertElementSchema.mockResolvedValue({
+      schema: mockCharacterSchema,
+      baseHash: 'base',
+      sharedSchema: mockCharacterSchema,
+      isCustom: false,
+      sharedUpdated: false,
+    });
     worldbuildingService.getWorldbuildingData.mockResolvedValue({
       id: 'test-element-123',
       type: 'character',
@@ -631,12 +662,13 @@ describe('WorldbuildingEditorComponent', () => {
     it('should load schema and data on element load', async () => {
       await component['loadElementData']('test-element-123');
 
-      // Should use the project-level schema lookup
-      expect(worldbuildingService.getSchemaForElement).toHaveBeenCalledWith(
+      // Should resolve the element's own schema copy (with drift state)
+      expect(worldbuildingService.getElementSchemaState).toHaveBeenCalledWith(
         'test-element-123',
         'testuser',
         'test-project'
       );
+      expect(component.schemaState()?.isCustom).toBe(false);
       expect(worldbuildingService.getWorldbuildingData).toHaveBeenCalledWith(
         'test-element-123',
         'testuser',
@@ -645,9 +677,10 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     it('should handle missing schema by initializing element', async () => {
-      worldbuildingService.getSchemaForElement
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(mockCharacterSchema);
+      worldbuildingService.getElementSchemaState.mockResolvedValueOnce(null);
+      worldbuildingService.getSchemaForElement.mockResolvedValue(
+        mockCharacterSchema
+      );
 
       await component['loadElementData']('test-element-123');
 
@@ -668,7 +701,7 @@ describe('WorldbuildingEditorComponent', () => {
       const consoleSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      worldbuildingService.getSchemaForElement.mockRejectedValue(
+      worldbuildingService.getElementSchemaState.mockRejectedValue(
         new Error('Connection failed')
       );
 
@@ -1044,16 +1077,24 @@ describe('WorldbuildingEditorComponent', () => {
       it('should mark the accordion with the custom menu background', async () => {
         await recreateComponentForViewport(759, false);
         fixture.detectChanges();
+        await vi.waitFor(() => {
+          fixture.detectChanges();
+          expect(component.identityPanel()).toBeTruthy();
+        });
         const panel = component.identityPanel();
         panel?.appearance.set({
           menu: { type: 'color', mode: 'auto', value: '#123456' },
         });
         fixture.detectChanges();
 
-        const accordion = fixture.nativeElement.querySelector(
-          '[data-testid="wb-accordion"]'
-        );
-        expect(accordion.classList).toContain('has-custom-background');
+        await vi.waitFor(() => {
+          fixture.detectChanges();
+          const accordion = fixture.nativeElement.querySelector(
+            '[data-testid="wb-accordion"]'
+          );
+          expect(accordion).toBeTruthy();
+          expect(accordion.classList).toContain('has-custom-background');
+        });
       });
     });
 
@@ -1529,6 +1570,176 @@ describe('WorldbuildingEditorComponent', () => {
       component['onDefaultAppearanceChange']({});
       expect(infoEmit).not.toHaveBeenCalled();
       expect(appEmit).not.toHaveBeenCalled();
+    });
+  });
+  describe('per-element schema', () => {
+    const customSchema: ElementTypeSchema = {
+      ...mockCharacterSchema,
+      tabs: [
+        {
+          ...mockCharacterSchema.tabs[0],
+          fields: [
+            ...mockCharacterSchema.tabs[0].fields,
+            { key: 'eyes', label: 'Eye colour', type: 'text' },
+          ],
+        },
+      ],
+    };
+
+    it('renders the shared-schema chip and hides template-only sections', async () => {
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const chip = fixture.nativeElement.querySelector(
+        '[data-testid="schema-source-chip"]'
+      ) as HTMLElement | null;
+      expect(chip).toBeTruthy();
+      expect(chip?.textContent).toContain('Shared schema');
+      expect(component['templateEditingEnabled']()).toBe(false);
+      expect(component['schemaEditingEnabled']()).toBe(false);
+    });
+
+    it('toggles element schema editing and shows the banner', async () => {
+      component.toggleElementSchemaEditing();
+      expect(component.elementSchemaEditing()).toBe(true);
+      expect(component['schemaEditingEnabled']()).toBe(true);
+      expect(component['templateEditingEnabled']()).toBe(false);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="element-schema-banner"]'
+        )
+      ).toBeTruthy();
+
+      component.toggleElementSchemaEditing();
+      expect(component.elementSchemaEditing()).toBe(false);
+    });
+
+    it('does not allow schema editing without write access', () => {
+      mockProjectState.canWrite.set(false);
+      component.toggleElementSchemaEditing();
+      expect(component.elementSchemaEditing()).toBe(false);
+    });
+
+    it('applies an element schema edit locally and persists the copy', async () => {
+      component.toggleElementSchemaEditing();
+      component['emitSchemaEdit']({ type: 'add-field', tabKey: 'basic' });
+      await vi.waitFor(() =>
+        expect(worldbuildingService.saveElementSchema).toHaveBeenCalled()
+      );
+
+      expect(worldbuildingService.saveElementSchema).toHaveBeenCalledWith(
+        'test-element-123',
+        expect.objectContaining({ id: mockCharacterSchema.id }),
+        'testuser',
+        'test-project'
+      );
+      const saved = worldbuildingService.saveElementSchema.mock.calls[0][1];
+      expect(saved.tabs[0].fields).toHaveLength(
+        mockCharacterSchema.tabs[0].fields.length + 1
+      );
+      expect(component.schemaState()?.isCustom).toBe(true);
+      expect(component.isCustomSchema()).toBe(true);
+    });
+
+    it('surfaces a validation error and does not persist an invalid edit', async () => {
+      component.toggleElementSchemaEditing();
+      component['emitSchemaEdit']({
+        type: 'update-field',
+        tabKey: 'basic',
+        fieldKey: 'age',
+        patch: { key: 'name' },
+      });
+      await fixture.whenStable();
+      expect(component.schemaEditError()).toContain('unique');
+      expect(worldbuildingService.saveElementSchema).not.toHaveBeenCalled();
+    });
+
+    it('ignores schema edits when not in element edit mode', async () => {
+      component['emitSchemaEdit']({ type: 'add-tab' });
+      await fixture.whenStable();
+      expect(worldbuildingService.saveElementSchema).not.toHaveBeenCalled();
+    });
+
+    it('syncs from the shared schema after confirmation', async () => {
+      component.schemaState.set({
+        schema: customSchema,
+        baseHash: 'old',
+        sharedSchema: mockCharacterSchema,
+        isCustom: true,
+        sharedUpdated: true,
+      });
+      await component.syncSchemaFromShared();
+
+      expect(dialogGatewayMock.openConfirmationDialog).toHaveBeenCalled();
+      const args = dialogGatewayMock.openConfirmationDialog.mock.calls[0][0];
+      expect(args.message).toContain('Eye colour');
+      expect(worldbuildingService.syncElementSchema).toHaveBeenCalledWith(
+        'test-element-123',
+        'testuser',
+        'test-project'
+      );
+      expect(component.sharedSchemaUpdated()).toBe(false);
+    });
+
+    it('does not sync when the confirmation is declined', async () => {
+      dialogGatewayMock.openConfirmationDialog.mockResolvedValueOnce(false);
+      component.schemaState.set({
+        schema: customSchema,
+        baseHash: 'old',
+        sharedSchema: mockCharacterSchema,
+        isCustom: true,
+        sharedUpdated: true,
+      });
+      await component.syncSchemaFromShared();
+      expect(worldbuildingService.syncElementSchema).not.toHaveBeenCalled();
+    });
+
+    it('reverts to the shared schema and leaves edit mode', async () => {
+      component.toggleElementSchemaEditing();
+      component.schemaState.set({
+        schema: customSchema,
+        baseHash: 'base',
+        sharedSchema: mockCharacterSchema,
+        isCustom: true,
+        sharedUpdated: false,
+      });
+      await component.revertSchemaToShared();
+
+      expect(worldbuildingService.revertElementSchema).toHaveBeenCalled();
+      expect(component.elementSchemaEditing()).toBe(false);
+      expect(component.isCustomSchema()).toBe(false);
+    });
+
+    it('does nothing on revert when the schema is not custom', async () => {
+      await component.revertSchemaToShared();
+      expect(dialogGatewayMock.openConfirmationDialog).not.toHaveBeenCalled();
+      expect(worldbuildingService.revertElementSchema).not.toHaveBeenCalled();
+    });
+
+    it('rebuilds the form when the schema copy changes remotely', async () => {
+      worldbuildingService.getElementSchemaState.mockResolvedValueOnce({
+        schema: customSchema,
+        baseHash: 'base',
+        sharedSchema: mockCharacterSchema,
+        isCustom: true,
+        sharedUpdated: false,
+      });
+      await component['refreshSchemaState']();
+      expect(component.schema()?.tabs[0].fields.map(f => f.key)).toContain(
+        'eyes'
+      );
+      expect(component.form().get('eyes')).toBeTruthy();
+      expect(component.form().get('name')?.value).toBe('Test Character');
+    });
+
+    it('opens element snapshots, not template snapshots, in element edit mode', () => {
+      component.toggleElementSchemaEditing();
+      component.openSnapshotsDialog();
+      expect(dialogGatewayMock.openSnapshotsDialog).toHaveBeenCalled();
+      expect(
+        dialogGatewayMock.openTemplateSnapshotsDialog
+      ).not.toHaveBeenCalled();
     });
   });
 });

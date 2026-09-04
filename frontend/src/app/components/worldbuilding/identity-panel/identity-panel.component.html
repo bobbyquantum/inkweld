@@ -83,13 +83,12 @@
               } @else if (resolvedImageUrl()) {
                 <img [src]="resolvedImageUrl()" [alt]="elementName()" />
               } @else {
-                <mat-icon class="placeholder-icon">image</mat-icon>
-                <span class="placeholder-text">{{
-                  canWrite()
-                    ? ('worldbuilding.identityPanel.addImage' | transloco)
-                    : ('worldbuilding.identityPanel.noImagePlaceholder'
-                      | transloco)
-                }}</span>
+                <mat-icon
+                  class="placeholder-icon placeholder-icon--element"
+                  aria-hidden="true"
+                  data-testid="identity-icon-placeholder"
+                  >{{ elementIcon() }}</mat-icon
+                >
               }
             </button>
             @if (resolvedImageUrl()) {
@@ -149,6 +148,35 @@
               [compact]="true"
               [readonly]="!canWrite()">
             </app-tag-chip-list>
+            @if (canWrite() && !readOnly()) {
+              <div class="image-actions" data-testid="identity-image-actions">
+                <button
+                  mat-stroked-button
+                  type="button"
+                  (click)="onImageClick()"
+                  data-testid="identity-set-image">
+                  <mat-icon>{{
+                    resolvedImageUrl() ? 'edit' : 'add_photo_alternate'
+                  }}</mat-icon>
+                  {{
+                    (resolvedImageUrl()
+                      ? 'worldbuilding.identityPanel.changeImage'
+                      : 'worldbuilding.identityPanel.setImage'
+                    ) | transloco
+                  }}
+                </button>
+                @if (resolvedImageUrl()) {
+                  <button
+                    mat-button
+                    type="button"
+                    (click)="clearImage()"
+                    data-testid="identity-clear-image">
+                    <mat-icon>hide_image</mat-icon>
+                    {{ 'worldbuilding.identityPanel.clearImage' | transloco }}
+                  </button>
+                }
+              </div>
+            }
           </app-glass-card>
         </div>
       }
@@ -167,7 +195,9 @@
           [src]="resolvedImageUrl()"
           [alt]="elementName()" />
       } @else {
-        <mat-icon class="thumbnail-placeholder">image</mat-icon>
+        <mat-icon class="thumbnail-placeholder" aria-hidden="true">{{
+          elementIcon()
+        }}</mat-icon>
       }
       <span class="collapsed-name">{{ elementName() }}</span>
     </div>

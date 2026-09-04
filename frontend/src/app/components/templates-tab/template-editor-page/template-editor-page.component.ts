@@ -20,10 +20,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionPanel } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import {
-  type SchemaEditEvent,
-  WorldbuildingEditorComponent,
-} from '@components/worldbuilding/worldbuilding-editor.component';
+import { WorldbuildingEditorComponent } from '@components/worldbuilding/worldbuilding-editor.component';
 import { ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { type ElementAppearance } from '@models/element-appearance';
@@ -33,6 +30,10 @@ import {
   type TabSchema,
 } from '@models/schema-types';
 import { RelationshipFieldService } from '@services/relationship/relationship-field.service';
+import {
+  type SchemaEditEvent,
+  SchemaEditService,
+} from '@services/worldbuilding/schema-edit.service';
 
 interface BasicFormValue {
   name: string;
@@ -67,6 +68,7 @@ export class TemplateEditorPageComponent
   private readonly destroyRef = inject(DestroyRef);
   private readonly transloco = inject(TranslocoService);
   private readonly relationshipFieldService = inject(RelationshipFieldService);
+  private readonly schemaEditService = inject(SchemaEditService);
 
   /** Exposed for the preview template. */
   readonly ElementType = ElementType;
@@ -254,21 +256,7 @@ export class TemplateEditorPageComponent
 
   /** Add a new tab */
   addTab(): void {
-    let label = 'New Tab';
-    let counter = 1;
-    const existingLabels = new Set(this.tabs().map(t => t.label.toLowerCase()));
-    while (existingLabels.has(label.toLowerCase())) {
-      label = `New Tab ${counter}`;
-      counter++;
-    }
-
-    const newTab: TabSchema = {
-      key: this.createUniqueKey('tab'),
-      label,
-      icon: 'article',
-      order: this.tabs().length,
-      fields: [],
-    };
+    const newTab = this.schemaEditService.createTab(this.tabs());
     this.tabs.set([...this.tabs(), newTab]);
     this.selectedTabIndex.set(this.tabs().length - 1);
   }
@@ -301,19 +289,11 @@ export class TemplateEditorPageComponent
 
   /** Add a field to a tab */
   addField(tabIndex: number): void {
-    const fieldId = this.createUniqueKey('field');
-    const newField: FieldSchema = {
-      id: fieldId,
-      key: fieldId,
-      label: 'New Field',
-      type: 'text',
-      placeholder: '',
-      layout: { span: 12 },
-    };
+    const newField = this.schemaEditService.createField();
     this.mutateTabs(tabs => {
       tabs[tabIndex].fields.push(newField);
     });
-    this._lastFieldId = fieldId;
+    this._lastFieldId = newField.id ?? null;
   }
 
   /** Remove a field from a tab */
@@ -398,49 +378,25 @@ export class TemplateEditorPageComponent
 
   /**
    * Apply a schema-edit event from the interactive preview to the local schema
-   * state. The worldbuilding editor emits key-based intents; we resolve them to
-   * the tab/field indices and reuse the existing CRUD helpers.
+   * state via the shared {@link SchemaEditService} reducer, then live-save.
    */
   protected onSchemaEdit(event: SchemaEditEvent): void {
-    const tabs = this.tabs();
-    switch (event.type) {
-      case 'add-tab':
-        this.addTab();
-        break;
-      case 'remove-tab':
-        this.cleanupRelationshipFieldsInTab(tabs, event.tabKey);
-        this.removeTabByKey(tabs, event.tabKey);
-        break;
-      case 'update-tab':
-        this.updateTabByKey(tabs, event.tabKey, event.patch);
-        break;
-      case 'add-field':
-        this.addFieldToTab(tabs, event.tabKey);
-        break;
-      case 'remove-field':
-        this.cleanupRelationshipField(tabs, event.tabKey, event.fieldKey);
-        this.operateField(tabs, event.tabKey, event.fieldKey, (t, f) =>
-          this.removeField(t, f)
-        );
-        break;
-      case 'update-field':
-        this.reconcileRelationshipField(
-          tabs,
-          event.tabKey,
-          event.fieldKey,
-          (event as { patch: Partial<FieldSchema> }).patch
-        );
-        this.operateField(tabs, event.tabKey, event.fieldKey, (t, f) =>
-          this.updateField(
-            t,
-            f,
-            (event as { patch: Partial<FieldSchema> }).patch
-          )
-        );
-        break;
-      case 'move-field':
-        this.moveField(tabs, event.tabKey, event.fieldKey, event.delta);
-        break;
+    const result = this.schemaEditService.applyEdit(
+      this.previewSchema(),
+      event
+    );
+    this.tabs.set(result.schema.tabs);
+
+    if (event.type === 'add-tab') {
+      this.selectedTabIndex.set(this.tabs().length - 1);
+    } else if (
+      event.type === 'remove-tab' &&
+      this.selectedTabIndex() >= this.tabs().length
+    ) {
+      this.selectedTabIndex.set(Math.max(0, this.tabs().length - 1));
+    }
+    if (result.addedFieldId) {
+      this._lastFieldId = result.addedFieldId;
     }
 
     // Schema structure edits are discrete commits — persist them immediately
@@ -453,210 +409,12 @@ export class TemplateEditorPageComponent
       clearTimeout(this.autosaveTimer);
       this.autosaveTimer = null;
     }
-    const validationError = this.validateSchema();
-    if (validationError) {
-      this.validationError.set(validationError);
+    if (result.error) {
+      this.validationError.set(result.error);
       return;
     }
     this.validationError.set(null);
     this.schemaChange.emit(this.buildUpdatedSchema());
-  }
-
-  /** Remove a tab by key, if present. */
-  private removeTabByKey(tabs: TabSchema[], tabKey: string): void {
-    const idx = tabs.findIndex(t => t.key === tabKey);
-    if (idx >= 0) this.removeTab(idx);
-  }
-
-  /** Update a tab's properties by key, if present. */
-  private updateTabByKey(
-    tabs: TabSchema[],
-    tabKey: string,
-    patch: Partial<TabSchema>
-  ): void {
-    const idx = tabs.findIndex(t => t.key === tabKey);
-    if (idx >= 0) this.updateTab(idx, patch);
-  }
-
-  /** Add a field to a tab by key, if present. */
-  private addFieldToTab(tabs: TabSchema[], tabKey: string): void {
-    const idx = tabs.findIndex(t => t.key === tabKey);
-    if (idx >= 0) this.addField(idx);
-  }
-
-  /** Resolve a tab+field pair by key and run an operation, if both exist. */
-  private operateField(
-    tabs: TabSchema[],
-    tabKey: string,
-    fieldKey: string,
-    op: (tabIndex: number, fieldIndex: number) => void
-  ): void {
-    const tabIdx = tabs.findIndex(t => t.key === tabKey);
-    if (tabIdx < 0) return;
-    const fieldIdx = tabs[tabIdx].fields.findIndex(f => f.key === fieldKey);
-    if (fieldIdx >= 0) op(tabIdx, fieldIdx);
-  }
-
-  /** Move a field up/down within its tab by one place, if in range. */
-  private moveField(
-    tabs: TabSchema[],
-    tabKey: string,
-    fieldKey: string,
-    delta: -1 | 1
-  ): void {
-    const tabIdx = tabs.findIndex(t => t.key === tabKey);
-    if (tabIdx < 0) return;
-    const fields = tabs[tabIdx].fields;
-    const fieldIdx = fields.findIndex(f => f.key === fieldKey);
-    if (fieldIdx < 0) return;
-    const target = fieldIdx + delta;
-    if (target < 0 || target >= fields.length) return;
-    this.mutateTabs(next => {
-      const arr = next[tabIdx].fields;
-      const [moved] = arr.splice(fieldIdx, 1);
-      arr.splice(target, 0, moved);
-    });
-  }
-
-  /** Find a field by tab key + field key, or null when not present. */
-  private findFieldByKey(
-    tabs: TabSchema[],
-    tabKey: string,
-    fieldKey: string
-  ): FieldSchema | null {
-    const tab = tabs.find(t => t.key === tabKey);
-    return tab?.fields.find(f => f.key === fieldKey) ?? null;
-  }
-
-  /**
-   * Keep the backing relationship type in sync with an update-field patch.
-   * Stamps a new relationshipTypeId into the patch when a field becomes a
-   * relationship field, re-ensures the type on any relationship-field edit,
-   * and removes the type when a field stops being a relationship field.
-   *
-   * Guarded by a candidate-key check: the shared relationship store must never
-   * be mutated for an edit that tail validation will reject (duplicate/empty
-   * key, group collision) — otherwise a rejected edit would leak a managed
-   * type or destroy existing links.
-   */
-  private reconcileRelationshipField(
-    tabs: TabSchema[],
-    tabKey: string,
-    fieldKey: string,
-    patch: Partial<FieldSchema>
-  ): void {
-    const current = this.findFieldByKey(tabs, tabKey, fieldKey);
-    if (!current) return;
-
-    const candidateKey = patch.key ?? current.key;
-    if (!this.isCandidateKeyValid(tabs, tabKey, current.key, candidateKey)) {
-      return;
-    }
-
-    const wasRelationship =
-      this.relationshipFieldService.isRelationshipField(current);
-    const willBeRelationship =
-      patch.type !== undefined
-        ? patch.type === 'relationship'
-        : wasRelationship;
-
-    if (willBeRelationship) {
-      const merged: FieldSchema = { ...current, ...patch };
-      const stamped =
-        this.relationshipFieldService.stampRelationshipTypeId(merged);
-      patch.relationshipTypeId = stamped.relationshipTypeId;
-      this.relationshipFieldService.ensureTypeForField(
-        this.schema().id,
-        stamped
-      );
-    } else if (wasRelationship) {
-      this.relationshipFieldService.removeTypeForField(current, true);
-    }
-  }
-
-  /**
-   * Whether an update-field's candidate key stays valid against all sibling
-   * fields. Mirrors validateSchema's rules (non-empty, unique across the
-   * template, no flat/nested group collision) so reconciliation can bail out
-   * before touching the relationship store.
-   */
-  private isCandidateKeyValid(
-    tabs: TabSchema[],
-    tabKey: string,
-    currentKey: string,
-    candidateKey: string
-  ): boolean {
-    const trimmed = candidateKey.trim();
-    if (!trimmed) return false;
-
-    const others = this.otherFields(tabs, tabKey, currentKey);
-    return (
-      !others.some(f => f.key.trim() === trimmed) &&
-      !this.conflictsWithGroupStructure(trimmed, others)
-    );
-  }
-
-  /** All fields except the one being edited. */
-  private otherFields(
-    tabs: TabSchema[],
-    tabKey: string,
-    currentKey: string
-  ): FieldSchema[] {
-    const others: FieldSchema[] = [];
-    for (const tab of tabs) {
-      for (const field of tab.fields) {
-        if (tab.key === tabKey && field.key === currentKey) continue;
-        others.push(field);
-      }
-    }
-    return others;
-  }
-
-  /**
-   * A flat field and a nested group must not share the group's name — the
-   * form can't hold both (a FormControl and a FormGroup under one key).
-   */
-  private conflictsWithGroupStructure(
-    trimmedKey: string,
-    others: FieldSchema[]
-  ): boolean {
-    const candidateIsNested = trimmedKey.includes('.');
-    const candidateGroup = candidateIsNested ? trimmedKey.split('.')[0] : null;
-
-    return others.some(other => {
-      const otherIsNested = other.key.includes('.');
-      const otherGroup = otherIsNested ? other.key.split('.')[0] : null;
-      if (candidateIsNested && !otherIsNested) {
-        return other.key.trim() === candidateGroup;
-      }
-      return !candidateIsNested && otherIsNested && otherGroup === trimmedKey;
-    });
-  }
-
-  /** Remove the backing relationship type when a relationship field is deleted. */
-  private cleanupRelationshipField(
-    tabs: TabSchema[],
-    tabKey: string,
-    fieldKey: string
-  ): void {
-    const field = this.findFieldByKey(tabs, tabKey, fieldKey);
-    if (field && this.relationshipFieldService.isRelationshipField(field)) {
-      this.relationshipFieldService.removeTypeForField(field, true);
-    }
-  }
-
-  /** Remove backing relationship types for all fields in a deleted tab. */
-  private cleanupRelationshipFieldsInTab(
-    tabs: TabSchema[],
-    tabKey: string
-  ): void {
-    const tab = tabs.find(t => t.key === tabKey);
-    if (!tab) return;
-    tab.fields.forEach(field => {
-      if (this.relationshipFieldService.isRelationshipField(field)) {
-        this.relationshipFieldService.removeTypeForField(field, true);
-      }
-    });
   }
 
   /**
@@ -690,88 +448,10 @@ export class TemplateEditorPageComponent
   }
 
   private createUniqueKey(prefix: string): string {
-    return `${prefix}_${crypto.randomUUID()}`;
+    return this.schemaEditService.createUniqueKey(prefix);
   }
 
   private validateSchema(): string | null {
-    const tabKeys = new Set<string>();
-    const fieldKeys = new Set<string>();
-    const flatKeys = new Set<string>();
-    const groupKeys = new Set<string>();
-
-    for (const tab of this.tabs()) {
-      const tabError = this.validateTab(tab, tabKeys);
-      if (tabError) return tabError;
-
-      for (const field of tab.fields) {
-        const fieldError = this.validateField(
-          field,
-          fieldKeys,
-          flatKeys,
-          groupKeys
-        );
-        if (fieldError) return fieldError;
-      }
-    }
-
-    return this.findGroupCollision(flatKeys, groupKeys);
-  }
-
-  /** Validate a tab's label/key and uniqueness. */
-  private validateTab(tab: TabSchema, tabKeys: Set<string>): string | null {
-    const tabLabel = tab.label.trim();
-    if (!tabLabel) {
-      return 'Each tab needs a label.';
-    }
-
-    const normalizedTabKey = tab.key.trim();
-    if (!normalizedTabKey) {
-      return 'Each tab needs a key.';
-    }
-    if (tabKeys.has(normalizedTabKey)) {
-      return 'Tab keys must be unique.';
-    }
-    tabKeys.add(normalizedTabKey);
-
-    return null;
-  }
-
-  /** Validate a field's key uniqueness and track flat/group keys. */
-  private validateField(
-    field: FieldSchema,
-    fieldKeys: Set<string>,
-    flatKeys: Set<string>,
-    groupKeys: Set<string>
-  ): string | null {
-    const normalizedFieldKey = field.key.trim();
-    if (!normalizedFieldKey) {
-      return 'Each field needs a key.';
-    }
-    if (fieldKeys.has(normalizedFieldKey)) {
-      return 'Field keys must be unique across the template.';
-    }
-    fieldKeys.add(normalizedFieldKey);
-
-    if (normalizedFieldKey.includes('.')) {
-      groupKeys.add(normalizedFieldKey.split('.')[0]);
-    } else {
-      flatKeys.add(normalizedFieldKey);
-    }
-
-    return null;
-  }
-
-  /** A flat field and a nested group must not share a key — the form can't
-   * hold both (a FormControl and a FormGroup under the same name). */
-  private findGroupCollision(
-    flatKeys: Set<string>,
-    groupKeys: Set<string>
-  ): string | null {
-    for (const flatKey of flatKeys) {
-      if (groupKeys.has(flatKey)) {
-        return `Field key "${flatKey}" conflicts with a nested field group of the same name.`;
-      }
-    }
-    return null;
+    return this.schemaEditService.validateTabs(this.tabs());
   }
 }

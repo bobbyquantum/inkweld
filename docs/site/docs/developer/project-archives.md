@@ -157,10 +157,21 @@ interface ArchiveWorldbuildingData {
   schemaId: string;
   /** Flattened field data */
   data: Record<string, unknown>;
+  /** The element's own schema copy, when it has one */
+  schema?: ElementTypeSchema;
+  /** Content hash of the shared schema this copy was last aligned to */
+  schemaBaseHash?: string;
 }
 ```
 
 Field keys use dot notation for nested structures (e.g., `"appearance.height": "180cm"`).
+
+Each worldbuilding element carries its own copy of its schema (the `schema` Yjs
+map on the element document). `schema` and `schemaBaseHash` round-trip that copy
+so an element customised away from the shared project schema keeps its shape on
+import. Archives written before per-element schemas omit both fields; on first
+open the element copies the shared schema in, which is the same recovery path
+used for elements that predate the feature.
 
 ### snapshots.json
 
@@ -210,7 +221,13 @@ interface ArchiveMediaFile {
 
 ### Current Version
 
-The current archive format version is **1** (defined in `ARCHIVE_VERSION`).
+The current archive format version is **3** (defined in `ARCHIVE_VERSION`).
+
+| Version | Change |
+|---|---|
+| 1 | Initial format |
+| 2 | Adds the `timeSystems` array (Timeline calendars) |
+| 3 | Worldbuilding entries may carry `schema` and `schemaBaseHash` (per-element schema copies). Both are optional, so migrating a v2 archive changes no data; the bump exists so an older importer rejects the archive instead of silently dropping customised element schemas. |
 
 ### Version Checking on Import
 

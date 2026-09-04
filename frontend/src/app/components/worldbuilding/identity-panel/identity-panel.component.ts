@@ -417,14 +417,7 @@ export class IdentityPanelComponent implements OnDestroy {
     }
 
     if (result.removed) {
-      // Remove the image
-      await this.worldbuildingService.saveIdentityData(
-        this.elementId(),
-        { image: undefined },
-        username,
-        slug
-      );
-      this.identity.set({ ...this.identity(), image: undefined });
+      await this.clearImage();
     } else if (result.imageData) {
       // Save the new image
       await this.worldbuildingService.saveIdentityData(
@@ -435,5 +428,17 @@ export class IdentityPanelComponent implements OnDestroy {
       );
       this.identity.set({ ...this.identity(), image: result.imageData });
     }
+  }
+
+  /** Remove the identity image (keeps everything else). */
+  async clearImage(): Promise<void> {
+    if (!this.canWrite() || this.readOnly()) return;
+    await this.worldbuildingService.saveIdentityData(
+      this.elementId(),
+      { image: undefined },
+      this.username(),
+      this.slug()
+    );
+    this.identity.set({ ...this.identity(), image: undefined });
   }
 }

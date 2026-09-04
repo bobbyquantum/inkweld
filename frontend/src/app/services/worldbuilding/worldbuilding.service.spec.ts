@@ -319,6 +319,46 @@ describe('WorldbuildingService', () => {
   });
 
   describe('identity data + appearance', () => {
+    it('should clear the identity image when explicitly set to undefined', async () => {
+      const elementId = 'test-element-clear-image';
+
+      await service.saveIdentityData(
+        elementId,
+        { image: 'https://example.com/a.png' },
+        username,
+        slug
+      );
+      expect(
+        (await service.getIdentityData(elementId, username, slug)).image
+      ).toBe('https://example.com/a.png');
+
+      await service.saveIdentityData(
+        elementId,
+        { image: undefined },
+        username,
+        slug
+      );
+      const cleared = await service.getIdentityData(elementId, username, slug);
+      expect(cleared.image).toBeUndefined();
+
+      // Omitting the key leaves an existing image alone.
+      await service.saveIdentityData(
+        elementId,
+        { image: 'https://example.com/b.png' },
+        username,
+        slug
+      );
+      await service.saveIdentityData(
+        elementId,
+        { description: 'no image change' },
+        username,
+        slug
+      );
+      expect(
+        (await service.getIdentityData(elementId, username, slug)).image
+      ).toBe('https://example.com/b.png');
+    });
+
     it('should save and retrieve identity appearance', async () => {
       const elementId = 'test-element-appearance';
 
@@ -547,6 +587,217 @@ describe('WorldbuildingService', () => {
       expect(schema?.id).toBe('character-v1');
       expect(schema?.name).toBe('Character');
       expect(schema?.tabs).toHaveLength(1);
+    });
+  });
+
+  describe('per-element schema copies', () => {
+    const makeElement = (id: string) =>
+      ({
+        id,
+        type: ElementType.Worldbuilding,
+        schemaId: 'character-v1',
+        name: 'Test Character',
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      }) as unknown as Element;
+
+    const withExtraField = (
+      schema: ElementTypeSchema,
+      key: string
+    ): ElementTypeSchema => {
+      const next = structuredClone(schema);
+      next.tabs[0].fields.push({ key, label: key, type: 'text' });
+      return next;
+    };
+
+    it('copies the shared schema into a new element and reports it as shared', async () => {
+      service.saveSchemaToLibrary(mockCharacterSchema);
+      await service.initializeWorldbuildingElement(
+        makeElement('el-copy'),
+        username,
+        slug
+      );
+
+      const state = await service.getElementSchemaState(
+        'el-copy',
+        username,
+        slug
+      );
+      expect(state).not.toBeNull();
+      expect(state!.schema.tabs).toEqual(mockCharacterSchema.tabs);
+      expect(state!.isCustom).toBe(false);
+      expect(state!.sharedUpdated).toBe(false);
+      expect(state!.sharedSchema?.id).toBe('character-v1');
+    });
+
+    it('recovers an element that only has a schemaId by copying the shared schema', async () => {
+      service.saveSchemaToLibrary(mockCharacterSchema);
+      const dataMap = await service['setupCollaboration'](
+        'el-legacy',
+        username,
+        slug
+      );
+      dataMap.set('schemaId', 'character-v1');
+
+      const state = await service.getElementSchemaState(
+        'el-legacy',
+        username,
+        slug
+      );
+      expect(state?.schema.name).toBe('Character');
+      expect(state?.isCustom).toBe(false);
+
+      const copy = await service.getElementSchemaCopy(
+        'el-legacy',
+        username,
+        slug
+      );
+      expect(copy?.schema.id).toBe('character-v1');
+      expect(copy?.baseHash).toMatch(/^[0-9a-f]{8}$/);
+    });
+
+    it('marks the element custom after saving an edited copy and isolates other elements', async () => {
+      service.saveSchemaToLibrary(mockCharacterSchema);
+      await service.initializeWorldbuildingElement(
+        makeElement('el-a'),
+        username,
+        slug
+      );
+      await service.initializeWorldbuildingElement(
+        makeElement('el-b'),
+        username,
+        slug
+      );
+
+      const edited = withExtraField(mockCharacterSchema, 'eyes');
+      const saved = await service.saveElementSchema(
+        'el-a',
+        edited,
+        username,
+        slug
+      );
+      expect(saved?.isCustom).toBe(true);
+      expect(saved?.sharedUpdated).toBe(false);
+
+      const other = await service.getElementSchemaState('el-b', username, slug);
+      expect(other?.isCustom).toBe(false);
+      expect(other?.schema.tabs[0].fields.map(f => f.key)).not.toContain(
+        'eyes'
+      );
+    });
+
+    it('flags a shared update and merges it while keeping local additions', async () => {
+      service.saveSchemaToLibrary(mockCharacterSchema);
+      await service.initializeWorldbuildingElement(
+        makeElement('el-sync'),
+        username,
+        slug
+      );
+      await service.saveElementSchema(
+        'el-sync',
+        withExtraField(mockCharacterSchema, 'eyes'),
+        username,
+        slug
+      );
+
+      // Shared schema gains a field
+      service.saveSchemaToLibrary(
+        withExtraField(mockCharacterSchema, 'height')
+      );
+
+      const before = await service.getElementSchemaState(
+        'el-sync',
+        username,
+        slug
+      );
+      expect(before?.sharedUpdated).toBe(true);
+      expect(before?.isCustom).toBe(true);
+
+      const after = await service.syncElementSchema('el-sync', username, slug);
+      const keys = after!.schema.tabs[0].fields.map(f => f.key);
+      expect(keys).toContain('height');
+      expect(keys).toContain('eyes');
+      expect(after?.sharedUpdated).toBe(false);
+      // Still custom because of the local-only field
+      expect(after?.isCustom).toBe(true);
+    });
+
+    it('takes the shared schema wholesale on sync when the element is unmodified', async () => {
+      service.saveSchemaToLibrary(mockCharacterSchema);
+      await service.initializeWorldbuildingElement(
+        makeElement('el-plain'),
+        username,
+        slug
+      );
+      service.saveSchemaToLibrary(
+        withExtraField(mockCharacterSchema, 'height')
+      );
+
+      const after = await service.syncElementSchema('el-plain', username, slug);
+      expect(after?.schema.tabs[0].fields.map(f => f.key)).toContain('height');
+      expect(after?.isCustom).toBe(false);
+      expect(after?.sharedUpdated).toBe(false);
+    });
+
+    it('reverts to the shared schema by discarding the copy', async () => {
+      service.saveSchemaToLibrary(mockCharacterSchema);
+      await service.initializeWorldbuildingElement(
+        makeElement('el-revert'),
+        username,
+        slug
+      );
+      await service.saveElementSchema(
+        'el-revert',
+        withExtraField(mockCharacterSchema, 'eyes'),
+        username,
+        slug
+      );
+
+      const reverted = await service.revertElementSchema(
+        'el-revert',
+        username,
+        slug
+      );
+      expect(reverted?.isCustom).toBe(false);
+      expect(reverted?.schema.tabs[0].fields.map(f => f.key)).not.toContain(
+        'eyes'
+      );
+    });
+
+    it('notifies observers when the schema copy changes', async () => {
+      service.saveSchemaToLibrary(mockCharacterSchema);
+      await service.initializeWorldbuildingElement(
+        makeElement('el-observe'),
+        username,
+        slug
+      );
+      const seen: (ElementTypeSchema | null)[] = [];
+      const unsubscribe = await service.observeElementSchema(
+        'el-observe',
+        schema => seen.push(schema),
+        username,
+        slug
+      );
+      await service.saveElementSchema(
+        'el-observe',
+        withExtraField(mockCharacterSchema, 'eyes'),
+        username,
+        slug
+      );
+      unsubscribe();
+      expect(seen.length).toBeGreaterThan(0);
+      expect(seen.at(-1)?.tabs[0].fields.map(f => f.key)).toContain('eyes');
+    });
+
+    it('returns null when the element has no schemaId', async () => {
+      await service['setupCollaboration']('el-none', username, slug);
+      expect(
+        await service.getElementSchemaState('el-none', username, slug)
+      ).toBeNull();
     });
   });
 

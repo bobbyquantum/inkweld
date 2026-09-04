@@ -8,6 +8,7 @@
  * Runtime detection is based on the presence of ctx.env?.YJS_PROJECTS
  */
 
+import { type SchemaLike } from '../../utils/schema-hash';
 import type { McpContext } from '../mcp.types';
 import { type Element } from '../../schemas/element.schemas';
 import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
@@ -178,7 +179,7 @@ export async function updateWorldbuilding(
   slug: string,
   elementId: string,
   updates: Record<string, unknown>,
-  mapName: 'worldbuilding' | 'identity' = 'worldbuilding'
+  mapName: 'worldbuilding' | 'identity' | 'schema' = 'worldbuilding'
 ): Promise<void> {
   const docId = `${username}:${slug}:${elementId}/`;
 
@@ -190,8 +191,8 @@ export async function updateWorldbuilding(
     };
     const workerService = new YjsWorkerService(workerCtx);
 
-    // Convert updates to path-based format
-    const pathPrefix = mapName === 'identity' ? 'identity.' : 'worldbuilding.';
+    // Convert updates to path-based format (the DO creates the root map by name)
+    const pathPrefix = `${mapName}.`;
     const pathUpdates = Object.entries(updates).map(([key, value]) => ({
       path: `${pathPrefix}${key}`,
       value,
@@ -333,6 +334,44 @@ export interface Relationship {
   note?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Read the project's worldbuilding schema library (works on both runtimes).
+ *
+ * Schemas live in the `schemas` array of the project elements doc, which is
+ * where the frontend's sync provider persists them.
+ */
+export async function getSchemas(
+  ctx: McpContext,
+  username: string,
+  slug: string
+): Promise<SchemaLike[]> {
+  const docId = `${username}:${slug}:elements/`;
+
+  const isSchemaLike = (value: unknown): value is SchemaLike =>
+    !!value && typeof value === 'object' && typeof (value as SchemaLike).id === 'string';
+  const collect = (array: { forEach: (cb: (value: unknown) => void) => void }): SchemaLike[] => {
+    const schemas: SchemaLike[] = [];
+    array.forEach((value) => {
+      if (isSchemaLike(value)) schemas.push(value);
+    });
+    return schemas;
+  };
+
+  if (isCloudflareWorkers(ctx)) {
+    const workerCtx: YjsWorkerContext = {
+      env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
+      authToken: ctx.authToken ?? '',
+    };
+    const workerService = new YjsWorkerService(workerCtx);
+    const doc = await workerService.getDocument(docId);
+    return collect(doc.doc.getArray('schemas'));
+  } else {
+    const { yjsService } = await import('../../services/yjs.service');
+    const sharedDoc = await yjsService.getDocument(docId);
+    return collect(sharedDoc.doc.getArray('schemas'));
+  }
 }
 
 /**

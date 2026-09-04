@@ -136,6 +136,16 @@ test.describe('Relationship fields', () => {
       await page.getByTestId('element-Alice').click();
       await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
 
+      // Alice was created before the template gained the field. Elements own
+      // a copy of their schema, so the change is flagged and pulled in
+      // explicitly via "Update from shared schema" rather than applied live.
+      await expect(page.getByTestId('schema-update-dot')).toBeVisible();
+      await page.getByTestId('schema-source-chip').click();
+      await page.getByTestId('schema-menu-sync').click();
+      await page.getByTestId('confirm-delete-button').click();
+      await expect(page.locator('mat-dialog-container')).toBeHidden();
+      await expect(page.getByTestId('schema-update-dot')).toHaveCount(0);
+
       await page.getByTestId('nav-basic').click();
       const fieldWrapper = page.getByTestId('relationship-field-nemesis');
       await expect(fieldWrapper).toBeVisible();

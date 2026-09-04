@@ -437,6 +437,35 @@ Key facts:
 - Template snapshots reuse the document snapshot dialogs
   (`CreateSnapshotDialog` accepts no `MAT_DIALOG_DATA`).
 
+### Per-element schema copies
+
+Every worldbuilding element owns a copy of its schema in a third Yjs map on
+the element doc, `schema` (alongside `worldbuilding` and `identity`), with keys
+`snapshot` (the `ElementTypeSchema`), `baseHash`, and `baseSchemaId`.
+`WorldbuildingService.getSchemaForElement` returns that copy, never the shared
+library object. Elements without a copy (pre-feature, or after "Revert to shared
+schema") get the shared schema copied in on first open by
+`getElementSchemaState` — that one recovery path is the migration.
+
+- **Drift detection**: `schemaContentHash` (`frontend/src/app/utils/schema-hash.ts`)
+  hashes only `name/icon/description/tabs/defaultValues/defaultAppearance/defaultImage`,
+  never `id/version/createdAt/updatedAt/isNew`, because `saveSchemaToLibrary` bumps
+  `version` on every save. `isCustom` = copy hash ≠ `baseHash`; `sharedUpdated` =
+  shared hash ≠ `baseHash`. The backend mirror in `backend/src/utils/schema-hash.ts`
+  **must stay byte-equivalent** (both specs assert the same golden hash) because
+  the MCP `create_element` tool writes the copy and `baseHash` at creation.
+- **Editing**: the element editor toggles `elementSchemaEditing` (status-bar chip
+  menu) and applies `SchemaEditEvent`s through the shared `SchemaEditService`
+  reducer with `removeRelationshipTypes: false` — a per-element edit must never
+  delete a relationship type other elements still use. The template editor uses
+  the same reducer with the default (`true`). Schema Details / defaults remain
+  template-only (`templateEditingEnabled()`).
+- **Sync** ("Update from shared schema") is a whole-schema apply via
+  `mergeElementSchema`: shared wins for matching keys, local-only tabs/fields are
+  appended, element data is never touched. Snapshots and project archives carry
+  the copy (`__elementSchema` key inside `worldbuildingData`; `schema` +
+  `schemaBaseHash` on `ArchiveWorldbuildingData`).
+
 ### Editor Schema & Tables
 
 The ProseMirror `Schema` is built in
