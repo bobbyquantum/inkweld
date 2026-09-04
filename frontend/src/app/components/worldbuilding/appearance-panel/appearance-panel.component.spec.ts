@@ -271,6 +271,44 @@ describe('AppearancePanelComponent', () => {
     });
   });
 
+  it('should not restore a deletion marker for a region re-enabled while a failing save was in flight', async () => {
+    let rejectSave: (err: Error) => void = () => {};
+    worldbuildingService.saveIdentityData.mockImplementationOnce(
+      () =>
+        new Promise<void>((_, reject) => {
+          rejectSave = reject;
+        })
+    );
+    fixture.detectChanges();
+
+    // Disable the menu region; the debounced save folds APPEARANCE_DELETE.
+    component['onAppearanceEdited']({});
+    component['onDeletes']({ menu: true });
+    await vi.waitFor(() => {
+      expect(worldbuildingService.saveIdentityData).toHaveBeenCalledTimes(1);
+    });
+
+    // Re-enable and configure the region while that save is still pending,
+    // then let the save fail.
+    component['onAppearanceEdited']({
+      menu: { type: 'color', mode: 'auto', value: '#abcdef' },
+    });
+    rejectSave(new Error('boom'));
+
+    await vi.waitFor(() => {
+      const calls = worldbuildingService.saveIdentityData.mock.calls;
+      expect(calls.length).toBeGreaterThanOrEqual(2);
+      const payload = calls[calls.length - 1][1] as {
+        appearance: Record<string, unknown>;
+      };
+      expect(payload.appearance['menu']).toEqual({
+        type: 'color',
+        mode: 'auto',
+        value: '#abcdef',
+      });
+    });
+  });
+
   describe('observe', () => {
     it('should apply remote appearance when it arrives', async () => {
       const remoteAppearance: ElementAppearance = {

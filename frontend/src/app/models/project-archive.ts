@@ -1,3 +1,4 @@
+import { type ElementAppearance } from '@models/element-appearance';
 import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
@@ -5,7 +6,6 @@ import {
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 
 import { type ElementType } from '../../api-client';
-import { type ElementAppearance } from './element-appearance';
 import { type MediaTag } from './media-tag.model';
 import { type PublishPlan } from './publish-plan';
 import { type ElementTypeSchema } from './schema-types';

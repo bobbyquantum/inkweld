@@ -335,11 +335,14 @@ export class AppearancePanelComponent implements OnDestroy {
     } catch {
       // Persistence failed: restore the deletion markers so a later save still
       // sends APPEARANCE_DELETE for the removed regions/slots. Same element
-      // guard as above.
+      // guard as above. Markers for a region/slot the user re-populated while
+      // this save was in flight are not restored, or the next save would wipe
+      // the freshly configured setting.
       if (snapshot.elementId === this.elementId()) {
         for (const key of Object.keys(snapshot.pendingDeletes)) {
           this.pendingDeletes[key] = true;
         }
+        this.dropSupersededDeletes(this.appearance());
       }
     } finally {
       if (this.lastSnapshot === snapshot) {
