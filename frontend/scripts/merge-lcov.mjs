@@ -9,6 +9,14 @@
  * by line, function name and branch id. Thresholds mirror
  * `coverageThresholds` in angular.json and are checked on the merged totals,
  * which is what the unsharded `ng test` run would have enforced.
+ *
+ * Branch records need one caveat: V8 numbers branch blocks per process, so a
+ * shard that merely imported a file reports its branches under different
+ * block ids than the shard that exercised it. Keying on block id would then
+ * invent phantom zero-hit branches (SonarCloud sees twice the conditions,
+ * half uncovered). Branches are therefore merged positionally per source
+ * line: each record's entries for a line are sorted by (block, branch) and
+ * summed index-by-index, which is stable across processes.
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -30,7 +38,7 @@ if (inputs.length === 0) {
   process.exit(2);
 }
 
-/** @type {Map<string, {fnLines: Map<string, number>, fnHits: Map<string, number>, lines: Map<number, number>, branches: Map<string, {line: number, block: string, branch: string, hits: number}>}>} */
+/** @type {Map<string, {fnLines: Map<string, number>, fnHits: Map<string, number>, lines: Map<number, number>, branches: Map<number, {block: string, branch: string, hits: number}[]>}>} */
 const files = new Map();
 
 function fileRecord(name) {
@@ -49,13 +57,42 @@ function fileRecord(name) {
 
 const num = value => (value === '-' ? 0 : Number(value));
 
+const byBlockThenBranch = (a, b) =>
+  Number(a.block) - Number(b.block) || Number(a.branch) - Number(b.branch);
+
+/**
+ * Fold one file record's branch entries into the merged record, matching
+ * entries on the same line by position rather than by V8 block id.
+ */
+function flushBranches(current, pending) {
+  for (const [lineNo, entries] of pending) {
+    entries.sort(byBlockThenBranch);
+    const merged = current.branches.get(lineNo);
+    if (!merged) {
+      current.branches.set(lineNo, entries);
+      continue;
+    }
+    entries.forEach((entry, i) => {
+      if (i < merged.length) {
+        merged[i].hits += entry.hits;
+      } else {
+        merged.push(entry);
+      }
+    });
+  }
+}
+
 for (const input of inputs) {
   let current = null;
+  /** BRDA entries for the record being read, grouped by line. */
+  let pendingBranches = new Map();
   for (const raw of readFileSync(input, 'utf8').split('\n')) {
     const line = raw.trim();
     if (!line) continue;
     if (line === 'end_of_record') {
+      if (current) flushBranches(current, pendingBranches);
       current = null;
+      pendingBranches = new Map();
       continue;
     }
     const sep = line.indexOf(':');
@@ -90,18 +127,13 @@ for (const input of inputs) {
       }
       case 'BRDA': {
         const [lineNo, block, branch, hits] = value.split(',');
-        const id = `${lineNo},${block},${branch}`;
-        const existing = current.branches.get(id);
-        if (existing) {
-          existing.hits += num(hits);
-        } else {
-          current.branches.set(id, {
-            line: Number(lineNo),
-            block,
-            branch,
-            hits: num(hits),
-          });
+        const n = Number(lineNo);
+        let entries = pendingBranches.get(n);
+        if (!entries) {
+          entries = [];
+          pendingBranches.set(n, entries);
         }
+        entries.push({ block, branch, hits: num(hits) });
         break;
       }
       default:
@@ -140,13 +172,19 @@ for (const [name, rec] of [...files.entries()].sort(([a], [b]) =>
   totals.lines[0] += rec.lines.size;
   totals.lines[1] += lineHit;
 
+  let brFound = 0;
   let brHit = 0;
-  for (const br of rec.branches.values()) {
-    if (br.hits > 0) brHit++;
-    out.push(`BRDA:${br.line},${br.block},${br.branch},${br.hits}`);
+  for (const [lineNo, entries] of [...rec.branches.entries()].sort(
+    (a, b) => a[0] - b[0]
+  )) {
+    for (const br of entries) {
+      brFound++;
+      if (br.hits > 0) brHit++;
+      out.push(`BRDA:${lineNo},${br.block},${br.branch},${br.hits}`);
+    }
   }
-  out.push(`BRF:${rec.branches.size}`, `BRH:${brHit}`);
-  totals.branches[0] += rec.branches.size;
+  out.push(`BRF:${brFound}`, `BRH:${brHit}`);
+  totals.branches[0] += brFound;
   totals.branches[1] += brHit;
 
   out.push('end_of_record');

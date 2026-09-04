@@ -65,6 +65,18 @@ interface HomeSearchFormValue {
   search: string;
 }
 
+/** Orderings available for the home page project grid. */
+export type ProjectSortOrder = 'updated' | 'created' | 'title';
+
+const PROJECT_SORT_ORDERS: readonly ProjectSortOrder[] = [
+  'updated',
+  'created',
+  'title',
+];
+
+/** localStorage key holding the user's preferred project ordering. */
+export const PROJECT_SORT_STORAGE_KEY = 'inkweld-home-project-sort';
+
 @Component({
   selector: 'app-home',
   imports: [
@@ -126,6 +138,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   isInitializing = signal(true); // Track if we're still initializing user state
 
   readonly searchModel = signal<HomeSearchFormValue>({ search: '' });
+
+  /** Sort orders offered in the header menu, in display order. */
+  readonly sortOrders = PROJECT_SORT_ORDERS;
+
+  /** Current project ordering, restored from localStorage on creation. */
+  readonly sortOrder = signal<ProjectSortOrder>(readStoredSortOrder());
 
   readonly searchForm = form(this.searchModel, schemaPath => {
     debounce(schemaPath.search, 300);
@@ -209,8 +227,11 @@ export class HomeComponent implements OnInit, OnDestroy {
       sharedByUsername: cp.ownerUsername,
     }));
 
-    // Combine both lists
-    const combined = [...unifiedOwn, ...unifiedShared];
+    // Combine both lists and apply the user's preferred ordering
+    const combined = sortProjectItems(
+      [...unifiedOwn, ...unifiedShared],
+      this.sortOrder()
+    );
 
     // Apply search filter if there's a search term
     if (!term) {
@@ -227,6 +248,17 @@ export class HomeComponent implements OnInit, OnDestroy {
       );
     });
   });
+
+  /** Change the project ordering and remember it for future visits. */
+  setSortOrder(order: ProjectSortOrder): void {
+    this.sortOrder.set(order);
+    try {
+      localStorage.setItem(PROJECT_SORT_STORAGE_KEY, order);
+    } catch {
+      // Storage may be unavailable (private mode, quota); the in-memory
+      // signal still applies for this session.
+    }
+  }
 
   // Keep filteredProjects for side-nav compatibility (owned projects only)
   protected filteredProjects = computed(() => {
@@ -975,4 +1007,42 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
   }
+}
+
+function readStoredSortOrder(): ProjectSortOrder {
+  try {
+    const stored = localStorage.getItem(PROJECT_SORT_STORAGE_KEY);
+    if (stored && (PROJECT_SORT_ORDERS as readonly string[]).includes(stored)) {
+      return stored as ProjectSortOrder;
+    }
+  } catch {
+    // Fall through to the default when storage is unavailable
+  }
+  return 'updated';
+}
+
+function toTimestamp(value: string | null | undefined): number {
+  if (!value) return 0;
+  const ms = new Date(value).getTime();
+  return Number.isNaN(ms) ? 0 : ms;
+}
+
+/**
+ * Return a new array of project items ordered per `order`. Ties fall back to
+ * title so the result is stable and predictable regardless of input order.
+ */
+function sortProjectItems<T extends { project: Project }>(
+  items: T[],
+  order: ProjectSortOrder
+): T[] {
+  const byTitle = (a: T, b: T) =>
+    a.project.title.localeCompare(b.project.title, undefined, {
+      sensitivity: 'base',
+    });
+  return [...items].sort((a, b) => {
+    if (order === 'title') return byTitle(a, b);
+    const key = order === 'created' ? 'createdDate' : 'updatedDate';
+    const diff = toTimestamp(b.project[key]) - toTimestamp(a.project[key]);
+    return diff !== 0 ? diff : byTitle(a, b);
+  });
 }
