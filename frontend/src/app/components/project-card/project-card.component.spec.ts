@@ -459,6 +459,67 @@ describe('ProjectCardComponent', () => {
     });
   });
 
+  describe('pinning', () => {
+    const openMenu = async () => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const kebab = fixture.nativeElement.querySelector(
+        '[data-testid="project-card-kebab"]'
+      );
+      kebab.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      return document.querySelector<HTMLElement>(
+        '[data-testid="project-card-pin"]'
+      );
+    };
+
+    it('should not show the pinned badge by default', () => {
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="pinned-badge"]')
+      ).toBeNull();
+    });
+
+    it('should show the pinned badge when pinned', () => {
+      fixture.componentRef.setInput('isPinned', true);
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="pinned-badge"]')
+      ).toBeTruthy();
+    });
+
+    it('should show both badges for a pinned shared project', () => {
+      fixture.componentRef.setInput('isPinned', true);
+      fixture.componentRef.setInput('isShared', true);
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="pinned-badge"]')
+      ).toBeTruthy();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="shared-badge"]')
+      ).toBeTruthy();
+    });
+
+    it('should offer "Pin to top" when not pinned', async () => {
+      const item = await openMenu();
+      expect(item).toBeTruthy();
+      expect(item?.textContent).toContain('Pin to top');
+    });
+
+    it('should offer "Unpin" when pinned', async () => {
+      fixture.componentRef.setInput('isPinned', true);
+      const item = await openMenu();
+      expect(item?.textContent).toContain('Unpin');
+    });
+
+    it('should emit pinToggled when the menu item is clicked', async () => {
+      const spy = vi.spyOn(component.pinToggled, 'emit');
+      const item = await openMenu();
+      item?.click();
+      expect(spy).toHaveBeenCalledOnce();
+    });
+  });
+
   describe('kebab actions', () => {
     it('should emit activateRequested when requestActivate is called', () => {
       const spy = vi.spyOn(component.activateRequested, 'emit');

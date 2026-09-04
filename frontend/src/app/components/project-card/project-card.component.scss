@@ -44,11 +44,17 @@ mat-card {
   aspect-ratio: 1 / 1.6;
 }
 
-// Shared badge in top-left corner
-.shared-badge {
+// Badge row (pinned, shared) in top-left corner
+.card-badges {
   position: absolute;
   top: 8px;
   left: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+}
+
+.card-badge {
   background: rgba(0, 0, 0, 0.7);
   border-radius: 50%;
   padding: 6px;
@@ -140,7 +146,7 @@ mat-card {
 
 // Light mode adjustments
 :host-context(body:not(.dark-theme)) {
-  .shared-badge {
+  .card-badge {
     background: rgba(255, 255, 255, 0.9);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 

@@ -29,6 +29,9 @@
   "deactivateAction": "Deactivate on this device",
   "activateAction": "Download to this device",
   "deleteAction": "Delete project",
+  "pinAction": "Pin to top",
+  "unpinAction": "Unpin",
+  "pinnedBadge": "Pinned to top",
   "cancelSyncTooltip": "Cancel sync ({{progress}}% complete)",
   "sort": {
     "tooltip": "Sort projects",

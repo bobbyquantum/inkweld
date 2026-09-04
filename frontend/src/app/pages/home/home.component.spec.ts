@@ -47,7 +47,11 @@ import {
 } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-import { HomeComponent, PROJECT_SORT_STORAGE_KEY } from './home.component';
+import {
+  HomeComponent,
+  PINNED_PROJECTS_STORAGE_KEY,
+  PROJECT_SORT_STORAGE_KEY,
+} from './home.component';
 
 describe('HomeComponent', () => {
   let component: HomeComponent;
@@ -333,6 +337,7 @@ describe('HomeComponent', () => {
     vi.restoreAllMocks();
     vi.useRealTimers();
     localStorage.removeItem(PROJECT_SORT_STORAGE_KEY);
+    localStorage.removeItem(PINNED_PROJECTS_STORAGE_KEY);
   });
 
   it('should create', () => {
@@ -689,6 +694,132 @@ describe('HomeComponent', () => {
       expect(ids()).toEqual(['valid', 'invalid', 'missing']);
       component.setSortOrder('created');
       expect(ids()).toEqual(['valid', 'invalid', 'missing']);
+    });
+  });
+
+  describe('pinned projects', () => {
+    const projects = [
+      {
+        id: 'a',
+        title: 'Zebra',
+        slug: 'zebra',
+        username: 'testuser',
+        createdDate: '2024-01-01T00:00:00.000Z',
+        updatedDate: '2024-01-05T00:00:00.000Z',
+      },
+      {
+        id: 'b',
+        title: 'apple',
+        slug: 'apple',
+        username: 'testuser',
+        createdDate: '2024-01-02T00:00:00.000Z',
+        updatedDate: '2024-02-01T00:00:00.000Z',
+      },
+      {
+        id: 'c',
+        title: 'Mid',
+        slug: 'mid',
+        username: 'testuser',
+        createdDate: '2024-02-01T00:00:00.000Z',
+        updatedDate: '2024-03-10T00:00:00.000Z',
+      },
+    ];
+
+    const ids = () => component['allProjects']().map(i => i.project.id);
+
+    it('should start with nothing pinned', () => {
+      mockProjectsSignal.set(projects);
+      expect(component.pinnedProjectIds().size).toBe(0);
+      expect(component['allProjects']().every(i => !i.isPinned)).toBe(true);
+    });
+
+    it('should float pinned projects to the front, keeping the sort order within each group', () => {
+      mockProjectsSignal.set(projects);
+      component.toggleProjectPinned(projects[0]);
+      expect(ids()).toEqual(['a', 'c', 'b']);
+      component.toggleProjectPinned(projects[1]);
+      // Both pinned, ordered by updated date among themselves
+      expect(ids()).toEqual(['b', 'a', 'c']);
+      component.setSortOrder('title');
+      expect(ids()).toEqual(['b', 'a', 'c']);
+    });
+
+    it('should flag pinned items so the card can render a badge', () => {
+      mockProjectsSignal.set(projects);
+      component.toggleProjectPinned(projects[2]);
+      const items = component['allProjects']();
+      expect(items[0].project.id).toBe('c');
+      expect(items[0].isPinned).toBe(true);
+      expect(items[1].isPinned).toBe(false);
+    });
+
+    it('should unpin a project when toggled again', () => {
+      mockProjectsSignal.set(projects);
+      component.toggleProjectPinned(projects[0]);
+      expect(component.isProjectPinned(projects[0])).toBe(true);
+      component.toggleProjectPinned(projects[0]);
+      expect(component.isProjectPinned(projects[0])).toBe(false);
+      expect(ids()).toEqual(['c', 'b', 'a']);
+    });
+
+    it('should pin shared projects too', () => {
+      mockProjectsSignal.set(projects);
+      component.collaboratedProjects.set([
+        {
+          projectId: 'shared',
+          projectSlug: 'shared',
+          projectTitle: 'Shared Story',
+          ownerUsername: 'owner',
+          role: 'editor',
+          acceptedAt: '2023-01-01T00:00:00.000Z',
+        } as unknown as CollaboratedProject,
+      ]);
+      expect(ids()).toEqual(['c', 'b', 'a', 'shared']);
+      component.toggleProjectPinned({ id: 'shared' } as Project);
+      expect(ids()).toEqual(['shared', 'c', 'b', 'a']);
+    });
+
+    it('should keep pinned-first ordering while searching', () => {
+      mockProjectsSignal.set(projects);
+      component.toggleProjectPinned(projects[0]);
+      component.searchForm.search().value.set('a');
+      // 'Zebra' (a) and 'apple' (b) contain "a"; pinned a stays first
+      expect(ids()).toEqual(['a', 'b']);
+    });
+
+    it('should persist pinned ids to localStorage', () => {
+      component.toggleProjectPinned(projects[0]);
+      component.toggleProjectPinned(projects[2]);
+      expect(
+        JSON.parse(localStorage.getItem(PINNED_PROJECTS_STORAGE_KEY) ?? '[]')
+      ).toEqual(['a', 'c']);
+    });
+
+    it('should restore pinned ids on creation', () => {
+      localStorage.setItem(
+        PINNED_PROJECTS_STORAGE_KEY,
+        JSON.stringify(['b', 42, null])
+      );
+      const freshFixture = TestBed.createComponent(HomeComponent);
+      expect([...freshFixture.componentInstance.pinnedProjectIds()]).toEqual([
+        'b',
+      ]);
+      freshFixture.destroy();
+    });
+
+    it('should ignore corrupt stored data', () => {
+      localStorage.setItem(PINNED_PROJECTS_STORAGE_KEY, '{not json');
+      const freshFixture = TestBed.createComponent(HomeComponent);
+      expect(freshFixture.componentInstance.pinnedProjectIds().size).toBe(0);
+      freshFixture.destroy();
+    });
+
+    it('should still pin in memory when writing storage throws', () => {
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('quota exceeded');
+      });
+      expect(() => component.toggleProjectPinned(projects[0])).not.toThrow();
+      expect(component.isProjectPinned(projects[0])).toBe(true);
     });
   });
 

@@ -4,17 +4,27 @@
   appearance="outlined"
   data-testid="project-card">
   <app-project-cover [project]="project" variant="card"></app-project-cover>
-  @if (isShared) {
-    <div
-      class="shared-badge"
-      data-testid="shared-badge"
-      [matTooltip]="
-        'project.projectCard.sharedBy'
-          | transloco: { username: sharedByUsername }
-      ">
-      <mat-icon>group</mat-icon>
-    </div>
-  }
+  <div class="card-badges">
+    @if (isPinned) {
+      <div
+        class="card-badge pinned-badge"
+        data-testid="pinned-badge"
+        [matTooltip]="'home.pinnedBadge' | transloco">
+        <mat-icon>push_pin</mat-icon>
+      </div>
+    }
+    @if (isShared) {
+      <div
+        class="card-badge shared-badge"
+        data-testid="shared-badge"
+        [matTooltip]="
+          'project.projectCard.sharedBy'
+            | transloco: { username: sharedByUsername }
+        ">
+        <mat-icon>group</mat-icon>
+      </div>
+    }
+  </div>
 
   <!-- Kebab menu for project actions -->
   <div class="card-actions">
@@ -30,6 +40,17 @@
       <mat-icon>more_vert</mat-icon>
     </button>
     <mat-menu #projectMenu="matMenu">
+      <button
+        mat-menu-item
+        type="button"
+        (click)="requestTogglePin()"
+        data-testid="project-card-pin">
+        <mat-icon>{{ isPinned ? 'keep_off' : 'push_pin' }}</mat-icon>
+        <span>{{
+          (isPinned ? 'home.unpinAction' : 'home.pinAction') | transloco
+        }}</span>
+      </button>
+
       @if (isActivated) {
         <button
           mat-menu-item
