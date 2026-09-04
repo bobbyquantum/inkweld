@@ -1,4 +1,5 @@
 import { computed, Injectable, signal } from '@angular/core';
+import { djb2Hex } from '@utils/schema-hash';
 import { stripTrailingSlashes } from '@utils/string-utils';
 
 import { environment } from '../../../environments/environment';
@@ -183,16 +184,7 @@ export class StorageContextService {
    * Uses a simple hash for synchronous operation; SHA-256 would require async
    */
   hashServerUrl(url: string): string {
-    const normalized = this.normalizeUrl(url);
-    // Simple djb2 hash for synchronous operation
-    let hash = 5381;
-    for (const char of normalized) {
-      hash = (hash << 5) + hash + char.codePointAt(0)!;
-      hash = Math.trunc(hash); // Convert to 32-bit integer
-    }
-    // Convert to positive hex string and take first 8 chars
-    const hex = Math.abs(hash).toString(16).padStart(8, '0');
-    return hex.substring(0, 8);
+    return djb2Hex(this.normalizeUrl(url));
   }
 
   /**

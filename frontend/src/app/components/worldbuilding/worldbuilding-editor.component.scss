@@ -105,19 +105,27 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 2px dashed var(--sys-outline-variant);
+      background: var(--sys-surface-container);
       color: var(--sys-on-surface-variant);
 
-      mat-icon {
-        font-size: 36px;
-        width: 36px;
-        height: 36px;
+      .element-icon-large {
+        font-size: 64px;
+        width: 64px;
+        height: 64px;
+        opacity: 0.7;
       }
 
-      &:hover {
+      &:hover:not(.readonly) {
         opacity: 1;
-        border-color: var(--sys-primary);
         color: var(--sys-primary);
+
+        .element-icon-large {
+          opacity: 1;
+        }
+      }
+
+      &.readonly {
+        cursor: default;
       }
     }
   }
@@ -900,5 +908,84 @@ mat-accordion {
       color: var(--sys-primary);
       background-color: var(--sys-primary-container);
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Per-element schema: edit-mode banner, sidenav tint, status-bar chip
+// ---------------------------------------------------------------------------
+
+.wb-sidenav.element-schema-edit {
+  box-shadow: inset 3px 0 0 var(--sys-primary);
+}
+
+.element-schema-banner {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--sys-primary-container);
+  color: var(--sys-on-primary-container);
+  border-bottom: 1px solid var(--sys-outline-variant);
+  font-size: 0.875rem;
+
+  .banner-text {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    min-width: 0;
+  }
+
+  .banner-error {
+    color: var(--sys-error);
+    font-weight: 500;
+  }
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+.editor-status-bar .schema-source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 11px;
+  border: 1px solid var(--sys-outline-variant);
+  background: none;
+  color: var(--sys-on-surface-variant);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+
+  &:hover {
+    background-color: var(--sys-surface-container-high);
+  }
+
+  &.custom {
+    border-color: var(--sys-primary);
+    color: var(--sys-primary);
+  }
+
+  .chip-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
+  }
+
+  .update-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--sys-tertiary);
+    margin-left: 2px;
   }
 }

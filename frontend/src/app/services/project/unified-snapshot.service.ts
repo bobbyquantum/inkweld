@@ -76,6 +76,12 @@ export interface UnifiedSnapshot {
  * await snapshotService.restoreFromSnapshot('doc-123', snapshotId);
  * ```
  */
+/**
+ * Reserved key inside captured worldbuilding data that carries the element's
+ * own schema copy (`schema` Yjs map) through snapshots and restores.
+ */
+const ELEMENT_SCHEMA_SNAPSHOT_KEY = '__elementSchema';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -490,7 +496,7 @@ export class UnifiedSnapshotService {
         keyCount: dataMap.size,
       }
     );
-    applyJsonToYjsMap(wbYdoc, dataMap, snapshot.worldbuildingData);
+    this.applyWorldbuildingSnapshot(wbYdoc, snapshot.worldbuildingData);
     this.logger.debug(
       'UnifiedSnapshot',
       `After restore - worldbuilding dataMap metadata`,
@@ -538,8 +544,7 @@ export class UnifiedSnapshotService {
     if (worldbuildingData) {
       const wbYdoc = this.getWorldbuildingYDoc(documentId);
       if (wbYdoc) {
-        const dataMap = wbYdoc.getMap<unknown>('worldbuilding');
-        applyJsonToYjsMap(wbYdoc, dataMap, worldbuildingData);
+        this.applyWorldbuildingSnapshot(wbYdoc, worldbuildingData);
         this.logger.debug(
           'UnifiedSnapshot',
           `Applied worldbuilding data to ${documentId}`
@@ -829,6 +834,30 @@ export class UnifiedSnapshotService {
     return type === 'WORLDBUILDING';
   }
 
+  /**
+   * Apply captured worldbuilding JSON to an element doc. The element's schema
+   * copy travels inside the data under a reserved key so older snapshots
+   * (without it) restore unchanged and the schema map is left alone.
+   */
+  private applyWorldbuildingSnapshot(
+    wbYdoc: Y.Doc,
+    worldbuildingData: Record<string, unknown>
+  ): void {
+    const { [ELEMENT_SCHEMA_SNAPSHOT_KEY]: schemaCopy, ...data } =
+      worldbuildingData;
+    applyJsonToYjsMap(wbYdoc, wbYdoc.getMap<unknown>('worldbuilding'), data);
+    if (schemaCopy && typeof schemaCopy === 'object') {
+      const schemaMap = wbYdoc.getMap<unknown>('schema');
+      wbYdoc.transact(() => {
+        for (const [key, value] of Object.entries(
+          schemaCopy as Record<string, unknown>
+        )) {
+          schemaMap.set(key, value);
+        }
+      });
+    }
+  }
+
   private async extractWorldbuildingContent(
     elementId: string,
     documentId: string
@@ -845,6 +874,10 @@ export class UnifiedSnapshotService {
     }
     const dataMap = wbYdoc.getMap<unknown>('worldbuilding');
     const worldbuildingData = yjsMapToJson(dataMap);
+    const schemaCopy = yjsMapToJson(wbYdoc.getMap<unknown>('schema'));
+    if (Object.keys(schemaCopy).length > 0) {
+      worldbuildingData[ELEMENT_SCHEMA_SNAPSHOT_KEY] = schemaCopy;
+    }
 
     let xmlContent = '';
     let wordCount = 0;

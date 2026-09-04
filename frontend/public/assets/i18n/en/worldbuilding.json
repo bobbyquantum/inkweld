@@ -30,15 +30,15 @@
     "clickToSetImage": "Click to set image",
     "noImage": "No image available",
     "loading": "Loading...",
-    "addImage": "Add Image",
-    "noImagePlaceholder": "No Image",
     "changeImage": "Change image",
     "descriptionLabel": "Description",
     "descriptionAria": "Description",
     "descriptionPlaceholder": "Brief description (shown in tooltips)",
     "descriptionHint": "Used for tooltips and previews",
     "tagsLabel": "Tags",
-    "tagsHint": "Organize with tags"
+    "tagsHint": "Organize with tags",
+    "setImage": "Set image",
+    "clearImage": "Clear image"
   },
   "mediaPanel": {
     "empty": "No media tagged with this element yet.",
@@ -135,8 +135,29 @@
     "removeTabConfirm": "Remove the \"{{tab}}\" tab and all its fields?",
     "addField": "Add field",
     "snapshots": "Template snapshots",
-    "editingHint": "Editing schema \u2014 changes save automatically.",
+    "editingHint": "Editing schema — changes save automatically.",
     "tabLabel": "Tab label",
     "tabIcon": "Tab icon"
+  },
+  "schemaSource": {
+    "shared": "Shared schema",
+    "custom": "Custom schema",
+    "orphaned": "Custom schema (template removed)",
+    "sharedTooltip": "This element follows the shared project schema",
+    "customTooltip": "This element has its own schema, based on the shared one",
+    "updateAvailableTooltip": "The shared schema has changed since this element last synced",
+    "edit": "Edit schema",
+    "done": "Done editing",
+    "sync": "Update from shared schema",
+    "revert": "Revert to shared schema",
+    "readOnlyHint": "You need write access to change this element's schema",
+    "editingBanner": "Editing this element's schema. Other elements aren't affected.",
+    "syncTitle": "Update from shared schema?",
+    "syncConfirm": "This element's schema will be replaced with the current shared schema. Field values are kept.",
+    "syncConfirmWithLocal": "Shared tabs and fields will be updated to match the shared schema. Your additions are kept: {{items}}. Field values are kept.",
+    "syncAction": "Update",
+    "revertTitle": "Revert to shared schema?",
+    "revertConfirm": "This element's schema changes will be discarded and it will follow the shared project schema again. Field values are kept, but fields that only exist in your custom schema will no longer be shown.",
+    "revertAction": "Revert"
   }
 }

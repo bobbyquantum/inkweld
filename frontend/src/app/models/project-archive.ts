@@ -149,6 +149,10 @@ export interface ArchiveWorldbuildingData {
    * field group there.
    */
   appearance?: ElementAppearance;
+  /** The element's own schema copy, when it has one (added with per-element schemas) */
+  schema?: ElementTypeSchema;
+  /** Content hash of the shared schema this copy was last aligned to */
+  schemaBaseHash?: string;
 }
 
 /**

@@ -314,6 +314,100 @@ describe('IdentityPanelComponent', () => {
     });
   });
 
+  describe('clearImage', () => {
+    it('should clear the image when writable', async () => {
+      fixture.componentRef.setInput('username', 'testuser');
+      fixture.componentRef.setInput('slug', 'testproject');
+      fixture.componentRef.setInput('canWrite', true);
+      fixture.detectChanges();
+      component.identity.set({ image: 'https://example.com/a.png' });
+
+      await component.clearImage();
+
+      expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
+        'test-element-id',
+        { image: undefined },
+        'testuser',
+        'testproject'
+      );
+      expect(component.identity().image).toBeUndefined();
+    });
+
+    it('should do nothing when read-only', async () => {
+      fixture.componentRef.setInput('canWrite', true);
+      fixture.componentRef.setInput('readOnly', true);
+      fixture.detectChanges();
+      component.identity.set({ image: 'https://example.com/a.png' });
+
+      await component.clearImage();
+
+      expect(worldbuildingService.saveIdentityData).not.toHaveBeenCalled();
+      expect(component.identity().image).toBe('https://example.com/a.png');
+    });
+  });
+
+  describe('image placeholder and actions', () => {
+    it('should render the element icon as the empty-image placeholder', async () => {
+      fixture.componentRef.setInput('elementIcon', 'pets');
+      fixture.componentRef.setInput('showImage', true);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const placeholder = fixture.nativeElement.querySelector(
+        '[data-testid="identity-icon-placeholder"]'
+      ) as HTMLElement | null;
+      expect(placeholder).toBeTruthy();
+      expect(placeholder?.textContent?.trim()).toBe('pets');
+      expect(
+        fixture.nativeElement.querySelector('.image-placeholder.no-image')
+      ).toBeTruthy();
+    });
+
+    it('should show Set image and hide Clear image when there is no image', async () => {
+      fixture.componentRef.setInput('canWrite', true);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="identity-set-image"]'
+        )
+      ).toBeTruthy();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="identity-clear-image"]'
+        )
+      ).toBeNull();
+    });
+
+    it('should show Clear image when an image is set and hide actions when read-only', async () => {
+      fixture.componentRef.setInput('canWrite', true);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      component.identity.set({ image: 'https://example.com/a.png' });
+      await vi.waitFor(() => {
+        fixture.detectChanges();
+        expect(
+          fixture.nativeElement.querySelector(
+            '[data-testid="identity-clear-image"]'
+          )
+        ).toBeTruthy();
+      });
+
+      fixture.componentRef.setInput('canWrite', false);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="identity-image-actions"]'
+        )
+      ).toBeNull();
+    });
+  });
+
   describe('resolveImageUrl URL scheme validation', () => {
     type IdentityPanelPrivateApi = {
       resolveImageUrl: (url: string) => Promise<void>;

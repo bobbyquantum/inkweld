@@ -38,6 +38,7 @@ import {
   getRelationships as runtimeGetRelationships,
   replaceAllRelationships as runtimeReplaceAllRelationships,
   addRelationship as runtimeAddRelationship,
+  getSchemas as runtimeGetSchemas,
   type Relationship,
 } from './yjs-runtime';
 
@@ -85,6 +86,7 @@ import {
   findParentByPosition,
 } from './tree-helpers';
 import { xmlContentToText } from '../../utils/xml-utils';
+import { schemaContentHash } from '../../utils/schema-hash';
 import { markdownToXml } from '@inkweld/prosemirror/markdown';
 import { decodeInkweldUri } from '@inkweld/prosemirror/uri';
 
@@ -361,6 +363,37 @@ Use move_elements or reorder_element to reposition after creation.`,
           },
           'worldbuilding'
         );
+
+        // Elements own a copy of their schema (see frontend WorldbuildingService
+        // getElementSchemaState). Copy the shared schema in at creation so the
+        // element does not have to fall back to the recovery path on first open.
+        try {
+          const schemas = await runtimeGetSchemas(ctx, username, slug);
+          const shared = schemas.find((schema) => schema.id === schemaId);
+          if (shared) {
+            await updateWorldbuilding(
+              ctx,
+              username,
+              slug,
+              newElement.id,
+              {
+                snapshot: shared,
+                baseHash: schemaContentHash(shared),
+                baseSchemaId: shared.id,
+              },
+              'schema'
+            );
+          } else {
+            mcpMutLog.warn(
+              `Schema ${schemaId} not found in project library; element ${newElement.id} will copy it on first open`
+            );
+          }
+        } catch (schemaErr) {
+          mcpMutLog.warn('Failed to copy schema into new worldbuilding element', {
+            elementId: newElement.id,
+            error: schemaErr instanceof Error ? schemaErr.message : String(schemaErr),
+          });
+        }
       }
 
       // Find the inserted element to return it

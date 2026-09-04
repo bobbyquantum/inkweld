@@ -31,6 +31,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
@@ -46,6 +47,12 @@ import { type ElementAppearance } from '@models/element-appearance';
 import { type ResolvedTag } from '@models/tag.model';
 import { RelationshipFieldService } from '@services/relationship/relationship-field.service';
 import { AppearanceService } from '@services/worldbuilding/appearance.service';
+import {
+  type SchemaEditEvent,
+  SchemaEditService,
+} from '@services/worldbuilding/schema-edit.service';
+import { summariseLocalAdditions } from '@services/worldbuilding/schema-merge';
+import { schemaContentHash } from '@utils/schema-hash';
 
 import {
   type Element as ApiElement,
@@ -62,31 +69,17 @@ import { DialogGatewayService } from '../../services/core/dialog-gateway.service
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { ElementSyncProviderFactory } from '../../services/sync/element-sync-provider.factory';
 import { TagService } from '../../services/tag/tag.service';
-import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
+import {
+  type ElementSchemaState,
+  WorldbuildingService,
+} from '../../services/worldbuilding/worldbuilding.service';
 import { AppearanceEditorComponent } from './appearance-panel/appearance-editor/appearance-editor.component';
 import { AppearancePanelComponent } from './appearance-panel/appearance-panel.component';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
 import { MediaPanelComponent } from './media-panel/media-panel.component';
 
-/**
- * An edit request emitted by the worldbuilding editor when it is in schema
- * edit mode, so the owning template/schema editor can apply the change to its
- * own schema state. Carries tab/field identifiers so the parent can locate the
- * affected items by key (keys are unique across the template).
- */
-export type SchemaEditEvent =
-  | { type: 'add-tab' }
-  | { type: 'remove-tab'; tabKey: string }
-  | { type: 'update-tab'; tabKey: string; patch: Partial<TabSchema> }
-  | { type: 'add-field'; tabKey: string }
-  | { type: 'remove-field'; tabKey: string; fieldKey: string }
-  | { type: 'move-field'; tabKey: string; fieldKey: string; delta: -1 | 1 }
-  | {
-      type: 'update-field';
-      tabKey: string;
-      fieldKey: string;
-      patch: Partial<FieldSchema>;
-    };
+/** Re-exported so existing importers of the editor keep working. */
+export type { SchemaEditEvent };
 
 /**
  * Main worldbuilding editor component that renders the dynamic
@@ -108,6 +101,7 @@ export type SchemaEditEvent =
     MatIconModule,
     MatExpansionModule,
     MatListModule,
+    MatMenuModule,
     MatTooltipModule,
     MetaPanelComponent,
     IdentityPanelComponent,
@@ -168,6 +162,37 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   private readonly appearanceService = inject(AppearanceService);
   private readonly elementRefService = inject(ElementRefService);
   private readonly relationshipFieldService = inject(RelationshipFieldService);
+  private readonly schemaEditService = inject(SchemaEditService);
+
+  /**
+   * True while the user is editing this element's own schema copy in place.
+   * Distinct from `editMode`, which only applies to template previews.
+   */
+  readonly elementSchemaEditing = signal(false);
+
+  /** Validation error from the last rejected element-schema edit, if any. */
+  readonly schemaEditError = signal<string | null>(null);
+
+  /** How this element's schema copy relates to the shared project schema. */
+  readonly schemaState = signal<ElementSchemaState | null>(null);
+
+  /** Whether the element's schema copy differs from the shared schema. */
+  readonly isCustomSchema = computed(
+    () => this.schemaState()?.isCustom ?? false
+  );
+
+  /** Whether the shared schema has changed since this element last synced. */
+  readonly sharedSchemaUpdated = computed(
+    () => this.schemaState()?.sharedUpdated ?? false
+  );
+
+  /** Whether the shared schema this element came from still exists. */
+  readonly sharedSchemaMissing = computed(() => {
+    const state = this.schemaState();
+    return !!state && state.sharedSchema === null;
+  });
+
+  private unsubscribeSchemaObserver: (() => void) | null = null;
 
   /** Tooltip data mirrored from the element-ref service (hover previews). */
   readonly tooltipData = signal<ElementRefTooltipData | null>(null);
@@ -463,11 +488,26 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     effect(() => {
       this.tooltipData.set(this.elementRefService.tooltipData());
     });
+
+    // Re-evaluate schema drift whenever the shared schema library changes so
+    // the "update available" flag appears live when a template is edited.
+    effect(() => {
+      this.worldbuildingService.schemas();
+      if (this.previewMode()) return;
+      // Only the library is tracked; the element's own schema signal changes
+      // as part of refreshSchemaState and must not re-trigger this effect.
+      untracked(() => {
+        if (this.schema()) void this.refreshSchemaState();
+      });
+    });
   }
 
   ngOnDestroy(): void {
     if (this.unsubscribeObserver) {
       this.unsubscribeObserver();
+    }
+    if (this.unsubscribeSchemaObserver) {
+      this.unsubscribeSchemaObserver();
     }
     if (this.resizeCleanup) {
       this.resizeCleanup();
@@ -489,20 +529,38 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       const username = this.username();
       const slug = this.slug();
 
-      // Load the schema from the project library using the element's schema type
+      // Load the element's own schema copy (copied from the shared project
+      // schema on first open if the element predates per-element schemas).
       let loadedSchema: ElementTypeSchema | null = null;
+      this.elementSchemaEditing.set(false);
+      this.schemaEditError.set(null);
+      this.schemaState.set(null);
       if (username && slug) {
-        loadedSchema = await this.worldbuildingService.getSchemaForElement(
+        const state = await this.worldbuildingService.getElementSchemaState(
           elementId,
           username,
           slug
         );
+        if (currentLoad !== this.loadSequence) return;
+        if (state) {
+          this.schemaState.set(state);
+          loadedSchema = state.schema;
+        }
       }
       if (currentLoad !== this.loadSequence) return;
       let schemaToUse = loadedSchema;
       if (!schemaToUse && username && slug) {
         schemaToUse = await this.initializeIfNeeded(elementId, username, slug);
         if (currentLoad !== this.loadSequence) return;
+        if (schemaToUse) {
+          this.schemaState.set(
+            await this.worldbuildingService.getElementSchemaState(
+              elementId,
+              username,
+              slug
+            )
+          );
+        }
       }
 
       this.schema.set(schemaToUse);
@@ -719,6 +777,16 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (this.unsubscribeObserver) {
       this.unsubscribeObserver();
     }
+    if (this.unsubscribeSchemaObserver) {
+      this.unsubscribeSchemaObserver();
+    }
+    this.unsubscribeSchemaObserver =
+      await this.worldbuildingService.observeElementSchema(
+        elementId,
+        () => void this.refreshSchemaState(),
+        this.username(),
+        this.slug()
+      );
     this.unsubscribeObserver = await this.worldbuildingService.observeChanges(
       elementId,
       data => {
@@ -857,15 +925,193 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   // Schema edit mode (preview only)
   // ---------------------------------------------------------------------------
 
-  /** Emit a schema edit intent to the owning template editor. */
+  /**
+   * Route a schema edit intent: in a template preview it goes to the owning
+   * template editor; on a real element it is applied to the element's own
+   * schema copy right here.
+   */
   protected emitSchemaEdit(event: SchemaEditEvent): void {
-    if (!this.editMode() || !this.previewMode()) return;
-    this.schemaEdit.emit(event);
+    if (this.previewMode()) {
+      if (!this.editMode()) return;
+      this.schemaEdit.emit(event);
+      return;
+    }
+    if (!this.elementSchemaEditing()) return;
+    void this.applyElementSchemaEdit(event);
   }
 
-  /** True when interactive schema editing is enabled in the preview. */
+  /** True when interactive schema editing affordances should render. */
   protected schemaEditingEnabled(): boolean {
+    return (
+      (this.editMode() && this.previewMode()) || this.elementSchemaEditing()
+    );
+  }
+
+  /** True when editing the shared template (Schema Details, defaults, etc.). */
+  protected templateEditingEnabled(): boolean {
     return this.editMode() && this.previewMode();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Per-element schema: edit / sync / revert
+  // ---------------------------------------------------------------------------
+
+  /** Whether the current user may change this element's schema copy. */
+  protected canEditElementSchema(): boolean {
+    return !this.previewMode() && this.projectState.canWrite();
+  }
+
+  /** Toggle in-place editing of this element's schema copy. */
+  toggleElementSchemaEditing(): void {
+    if (!this.canEditElementSchema()) return;
+    const next = !this.elementSchemaEditing();
+    this.elementSchemaEditing.set(next);
+    if (!next) {
+      this.schemaEditError.set(null);
+    }
+  }
+
+  /** Apply one edit to the element's schema copy and persist it. */
+  private async applyElementSchemaEdit(event: SchemaEditEvent): Promise<void> {
+    const current = this.schema();
+    if (!current) return;
+    const result = this.schemaEditService.applyEdit(current, event, {
+      removeRelationshipTypes: false,
+    });
+    if (result.error) {
+      this.schemaEditError.set(result.error);
+      return;
+    }
+    this.schemaEditError.set(null);
+    await this.rebuildFormForSchema(result.schema);
+    if (event.type === 'add-tab') {
+      const added = result.schema.tabs.at(-1);
+      if (added) this.selectSection(added.key);
+    } else if (
+      event.type === 'remove-tab' &&
+      this.selectedSection() === event.tabKey
+    ) {
+      this.selectSection('identity');
+    }
+    const state = await this.worldbuildingService.saveElementSchema(
+      this.elementId(),
+      result.schema,
+      this.username(),
+      this.slug()
+    );
+    if (state) this.schemaState.set(state);
+  }
+
+  /**
+   * Pull the current shared schema into this element's copy, keeping any
+   * local-only tabs and fields. Asks for confirmation first.
+   */
+  async syncSchemaFromShared(): Promise<void> {
+    const state = this.schemaState();
+    if (!state?.sharedSchema || !this.canEditElementSchema()) return;
+
+    const summary = summariseLocalAdditions(state.schema, state.sharedSchema);
+    const kept = [...summary.localOnlyTabs, ...summary.localOnlyFields];
+    const message = kept.length
+      ? this.transloco.translate(
+          'worldbuilding.schemaSource.syncConfirmWithLocal',
+          { items: kept.join(', ') }
+        )
+      : this.transloco.translate('worldbuilding.schemaSource.syncConfirm');
+    const confirmed = await this.dialogGateway.openConfirmationDialog({
+      title: this.transloco.translate('worldbuilding.schemaSource.syncTitle'),
+      message,
+      confirmText: this.transloco.translate(
+        'worldbuilding.schemaSource.syncAction'
+      ),
+      cancelText: this.transloco.translate('cancel'),
+    });
+    if (!confirmed) return;
+
+    const next = await this.worldbuildingService.syncElementSchema(
+      this.elementId(),
+      this.username(),
+      this.slug()
+    );
+    if (next) {
+      this.schemaState.set(next);
+      await this.rebuildFormForSchema(next.schema);
+    }
+  }
+
+  /** Drop this element's customised schema copy and follow the shared schema. */
+  async revertSchemaToShared(): Promise<void> {
+    const state = this.schemaState();
+    if (!state?.isCustom || !this.canEditElementSchema()) return;
+    const confirmed = await this.dialogGateway.openConfirmationDialog({
+      title: this.transloco.translate('worldbuilding.schemaSource.revertTitle'),
+      message: this.transloco.translate(
+        'worldbuilding.schemaSource.revertConfirm'
+      ),
+      confirmText: this.transloco.translate(
+        'worldbuilding.schemaSource.revertAction'
+      ),
+      cancelText: this.transloco.translate('cancel'),
+    });
+    if (!confirmed) return;
+
+    const next = await this.worldbuildingService.revertElementSchema(
+      this.elementId(),
+      this.username(),
+      this.slug()
+    );
+    if (next) {
+      this.schemaState.set(next);
+      this.elementSchemaEditing.set(false);
+      await this.rebuildFormForSchema(next.schema);
+    }
+  }
+
+  /**
+   * Re-read the element's schema state (after a remote schema edit or a
+   * shared library change) and rebuild the form if the copy itself changed.
+   */
+  private async refreshSchemaState(): Promise<void> {
+    if (this.previewMode()) return;
+    const id = this.elementId();
+    const username = this.username();
+    const slug = this.slug();
+    if (!id || !username || !slug) return;
+    const state = await this.worldbuildingService.getElementSchemaState(
+      id,
+      username,
+      slug
+    );
+    if (!state) return;
+    this.schemaState.set(state);
+    const current = this.schema();
+    if (
+      !current ||
+      schemaContentHash(current) !== schemaContentHash(state.schema)
+    ) {
+      await this.rebuildFormForSchema(state.schema);
+    }
+  }
+
+  /** Swap in a new schema and rebuild the form, re-applying stored values. */
+  private async rebuildFormForSchema(schema: ElementTypeSchema): Promise<void> {
+    this.isUpdatingFromRemote = true;
+    this.schema.set(schema);
+    this.form.set(new FormGroup({}));
+    this.buildFormFromSchema(schema);
+    this.ensureRelationshipFieldTypes(schema);
+    const data = await this.worldbuildingService.getWorldbuildingData(
+      this.elementId(),
+      this.username(),
+      this.slug()
+    );
+    if (data) {
+      this.updateFormFromData(data);
+    }
+    if (!this.projectState.canWrite()) {
+      this.form().disable({ emitEvent: false });
+    }
+    this.isUpdatingFromRemote = false;
   }
 
   /**
@@ -1208,7 +1454,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
    * schema-edit mode, the template's snapshots.
    */
   openSnapshotsDialog(): void {
-    if (this.schemaEditingEnabled()) {
+    if (this.templateEditingEnabled()) {
       const schemaId = this.previewSchema()?.id;
       if (schemaId) {
         this.dialogGateway.openTemplateSnapshotsDialog(schemaId);

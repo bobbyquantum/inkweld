@@ -442,11 +442,24 @@ export class ProjectExportService {
             flatData
           );
 
+          const schemaCopy =
+            await this.worldbuildingService.getElementSchemaCopy(
+              elem.id,
+              username,
+              slug
+            );
+
           worldbuilding.push({
             elementId: elem.id,
             schemaId,
             data: flatData,
             ...(appearance ? { appearance } : {}),
+            ...(schemaCopy
+              ? {
+                  schema: schemaCopy.schema,
+                  schemaBaseHash: schemaCopy.baseHash,
+                }
+              : {}),
           });
         }
       } catch (err) {

@@ -135,6 +135,17 @@ export class DocumentImportService {
             )
           );
         }
+
+        // Restore the element's own schema copy when the archive carries one.
+        // Older archives fall back to copying the shared schema on first open.
+        if (wb.schema) {
+          const schemaMap = ydoc.getMap<unknown>('schema');
+          schemaMap.set('snapshot', wb.schema);
+          schemaMap.set('baseSchemaId', wb.schema.id);
+          if (wb.schemaBaseHash) {
+            schemaMap.set('baseHash', wb.schemaBaseHash);
+          }
+        }
       });
 
       // Wait for IndexedDB persistence to sync the changes

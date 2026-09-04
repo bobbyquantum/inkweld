@@ -8,6 +8,7 @@
       <nav
         class="wb-sidenav"
         data-testid="wb-sidenav"
+        [class.element-schema-edit]="elementSchemaEditing()"
         [class.has-custom-background]="!!menuBackground()"
         [style.--wb-bg]="backgroundCss(menuBackground())"
         [style.--wb-overlay]="menuBackground()?.overlayAlpha ?? null"
@@ -24,22 +25,28 @@
             data-testid="sidenav-thumbnail">
             <img [src]="imageUrl" [alt]="elementName()" />
           </button>
-        } @else if (
-          !identityPanel()?.isLoadingImage() && projectState.canWrite()
-        ) {
+        } @else if (!identityPanel()?.isLoadingImage()) {
           <button
             class="sidenav-thumbnail sidenav-thumbnail--empty"
+            [class.readonly]="!projectState.canWrite() || previewMode()"
+            [disabled]="!projectState.canWrite() || previewMode()"
             (click)="identityPanel()?.onImageClick()"
             [attr.aria-label]="
               'worldbuilding.editor.setIdentityImage' | transloco
             "
-            [matTooltip]="'worldbuilding.editor.setImageTooltip' | transloco"
+            [matTooltip]="
+              projectState.canWrite() && !previewMode()
+                ? ('worldbuilding.editor.setImageTooltip' | transloco)
+                : null
+            "
             data-testid="sidenav-thumbnail-empty">
-            <mat-icon aria-hidden="true">add_photo_alternate</mat-icon>
+            <mat-icon aria-hidden="true" class="element-icon-large">{{
+              elementIcon()
+            }}</mat-icon>
           </button>
         }
         <mat-nav-list>
-          @if (schemaEditingEnabled()) {
+          @if (templateEditingEnabled()) {
             <a
               mat-list-item
               (click)="selectSection('schema-details')"
@@ -283,6 +290,39 @@
           </mat-form-field>
         </div>
       </ng-template>
+      @if (elementSchemaEditing()) {
+        <div
+          class="element-schema-banner"
+          role="status"
+          data-testid="element-schema-banner">
+          <mat-icon aria-hidden="true">tune</mat-icon>
+          <span class="banner-text">
+            {{ 'worldbuilding.schemaSource.editingBanner' | transloco }}
+            @if (schemaEditError(); as error) {
+              <span class="banner-error" data-testid="element-schema-error">{{
+                error
+              }}</span>
+            }
+          </span>
+          @if (sharedSchemaUpdated()) {
+            <button
+              mat-stroked-button
+              type="button"
+              (click)="syncSchemaFromShared()"
+              data-testid="element-schema-sync-banner">
+              <mat-icon>sync</mat-icon>
+              {{ 'worldbuilding.schemaSource.sync' | transloco }}
+            </button>
+          }
+          <button
+            mat-flat-button
+            type="button"
+            (click)="toggleElementSchemaEditing()"
+            data-testid="element-schema-done">
+            {{ 'worldbuilding.schemaSource.done' | transloco }}
+          </button>
+        </div>
+      }
       @if (isInitialLoading()) {
         <div class="wb-loading-shell" data-testid="worldbuilding-loading-shell">
           @if (useSidenav()) {
@@ -373,7 +413,9 @@
           </div>
         }
 
-        @if (selectedSection() === 'schema-details' && schemaEditingEnabled()) {
+        @if (
+          selectedSection() === 'schema-details' && templateEditingEnabled()
+        ) {
           <div class="section-content tab-section-content">
             <h2 class="section-title" data-testid="schema-details-title">
               <mat-icon class="section-title-icon">edit_note</mat-icon>
@@ -425,8 +467,8 @@
           [style.--wb-overlay]="menuBackground()?.overlayAlpha ?? null"
           [class.wb-bg-overlay-dark]="menuBackground()?.overlay === 'dark'"
           [class.wb-bg-overlay-light]="menuBackground()?.overlay === 'light'">
-          <!-- Schema Details panel (schema editor only) -->
-          @if (schemaEditingEnabled()) {
+          <!-- Schema Details panel (template editor only) -->
+          @if (templateEditingEnabled()) {
             <mat-expansion-panel
               [expanded]="true"
               data-testid="accordion-schema-details">
@@ -599,7 +641,81 @@
         data-testid="worldbuilding-sync-dot"></span>
     </span>
     <span class="status-actions">
-      @if (schemaEditingEnabled()) {
+      @if (!previewMode() && schemaState()) {
+        <button
+          type="button"
+          class="schema-source-chip"
+          [class.custom]="isCustomSchema()"
+          [class.update-available]="sharedSchemaUpdated()"
+          [matMenuTriggerFor]="schemaSourceMenu"
+          [matTooltip]="
+            (sharedSchemaUpdated()
+              ? 'worldbuilding.schemaSource.updateAvailableTooltip'
+              : isCustomSchema()
+                ? 'worldbuilding.schemaSource.customTooltip'
+                : 'worldbuilding.schemaSource.sharedTooltip'
+            ) | transloco
+          "
+          matTooltipShowDelay="600"
+          data-testid="schema-source-chip">
+          <mat-icon aria-hidden="true" class="chip-icon">schema</mat-icon>
+          <span>{{
+            (sharedSchemaMissing()
+              ? 'worldbuilding.schemaSource.orphaned'
+              : isCustomSchema()
+                ? 'worldbuilding.schemaSource.custom'
+                : 'worldbuilding.schemaSource.shared'
+            ) | transloco
+          }}</span>
+          @if (sharedSchemaUpdated()) {
+            <span
+              class="update-dot"
+              aria-hidden="true"
+              data-testid="schema-update-dot"></span>
+          }
+        </button>
+        <mat-menu #schemaSourceMenu="matMenu" xPosition="before">
+          @if (canEditElementSchema()) {
+            <button
+              mat-menu-item
+              (click)="toggleElementSchemaEditing()"
+              data-testid="schema-menu-edit">
+              <mat-icon>{{
+                elementSchemaEditing() ? 'check' : 'tune'
+              }}</mat-icon>
+              <span>{{
+                (elementSchemaEditing()
+                  ? 'worldbuilding.schemaSource.done'
+                  : 'worldbuilding.schemaSource.edit'
+                ) | transloco
+              }}</span>
+            </button>
+            <button
+              mat-menu-item
+              [disabled]="!sharedSchemaUpdated()"
+              (click)="syncSchemaFromShared()"
+              data-testid="schema-menu-sync">
+              <mat-icon>sync</mat-icon>
+              <span>{{ 'worldbuilding.schemaSource.sync' | transloco }}</span>
+            </button>
+            <button
+              mat-menu-item
+              [disabled]="!isCustomSchema()"
+              (click)="revertSchemaToShared()"
+              data-testid="schema-menu-revert">
+              <mat-icon>restart_alt</mat-icon>
+              <span>{{ 'worldbuilding.schemaSource.revert' | transloco }}</span>
+            </button>
+          } @else {
+            <button mat-menu-item disabled>
+              <span>{{
+                'worldbuilding.schemaSource.readOnlyHint' | transloco
+              }}</span>
+            </button>
+          }
+        </mat-menu>
+      }
+      @if (templateEditingEnabled()) {
         <button
           mat-icon-button
           class="snapshots-btn"
