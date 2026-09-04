@@ -469,7 +469,9 @@ describe('ProjectCardComponent', () => {
       kebab.click();
       fixture.detectChanges();
       await fixture.whenStable();
-      return document.querySelector('[data-testid="project-card-pin"]');
+      return document.querySelector<HTMLElement>(
+        '[data-testid="project-card-pin"]'
+      );
     };
 
     it('should not show the pinned badge by default', () => {
