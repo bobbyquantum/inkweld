@@ -127,6 +127,14 @@ export class DocumentImportService {
         if (wb.data['image']) {
           identityMap.set('image', wb.data['image']);
         }
+        if (wb.appearance && typeof wb.appearance === 'object') {
+          identityMap.set(
+            'appearance',
+            this.toNestedYMap(
+              wb.appearance as unknown as Record<string, unknown>
+            )
+          );
+        }
       });
 
       // Wait for IndexedDB persistence to sync the changes
@@ -174,6 +182,24 @@ export class DocumentImportService {
       dataMap.set(key, value);
     }
     // Skip nested objects — created from dot-notation keys
+  }
+
+  /**
+   * Convert a plain nested object into nested Y.Maps so it matches the shape
+   * `WorldbuildingService.readAppearance` expects for the identity map.
+   * `undefined`/`null` leaves are skipped.
+   */
+  private toNestedYMap(value: Record<string, unknown>): Y.Map<unknown> {
+    const map = new Y.Map<unknown>();
+    for (const [key, entry] of Object.entries(value)) {
+      if (entry === undefined || entry === null) continue;
+      if (typeof entry === 'object' && !Array.isArray(entry)) {
+        map.set(key, this.toNestedYMap(entry as Record<string, unknown>));
+      } else {
+        map.set(key, entry);
+      }
+    }
+    return map;
   }
 
   /**

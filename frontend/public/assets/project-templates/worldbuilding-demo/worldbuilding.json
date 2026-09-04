@@ -72,6 +72,20 @@
         "Bottomless satchel",
         "Moonstone pendant (family heirloom)"
       ]
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #e3d6f5 0%, #e7c0ed 55%, #e3abd0 100%)",
+        "dark": "linear-gradient(160deg, #1c112c 0%, #39193e 55%, #522342 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f7f4fb 0%, #f4eaf6 55%, #f1dfeb 100%)",
+        "dark": "linear-gradient(160deg, #130d1c 0%, #231325 55%, #2e1927 100%)"
+      }
     }
   },
   {
@@ -146,6 +160,20 @@
         "Hunting knife",
         "Healer's kit"
       ]
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #e3d6f5 0%, #e7c0ed 55%, #e3abd0 100%)",
+        "dark": "linear-gradient(160deg, #1c112c 0%, #39193e 55%, #522342 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f7f4fb 0%, #f4eaf6 55%, #f1dfeb 100%)",
+        "dark": "linear-gradient(160deg, #130d1c 0%, #231325 55%, #2e1927 100%)"
+      }
     }
   },
   {
@@ -221,6 +249,20 @@
         "Master's tools",
         "The gold locket (contains something important)"
       ]
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #e3d6f5 0%, #e7c0ed 55%, #e3abd0 100%)",
+        "dark": "linear-gradient(160deg, #1c112c 0%, #39193e 55%, #522342 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f7f4fb 0%, #f4eaf6 55%, #f1dfeb 100%)",
+        "dark": "linear-gradient(160deg, #130d1c 0%, #231325 55%, #2e1927 100%)"
+      }
     }
   },
   {
@@ -263,6 +305,20 @@
         "The Thornwood Accord (peace treaty with forest folk)"
       ],
       "history.background": "Founded by miners seeking silver, the town outlasted its mines through adaptability. When the silver ran out, the people turned to trade and crafts. The Thornwood Accord, negotiated 200 years ago, established peaceful relations with the forest's denizens and opened profitable trade routes."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f5e6 0%, #c0ede5 55%, #abdae3 100%)",
+        "dark": "linear-gradient(160deg, #112c1f 0%, #193e37 55%, #234a52 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fbf7 0%, #eaf6f4 55%, #dfeef1 100%)",
+        "dark": "linear-gradient(160deg, #0d1c14 0%, #132522 55%, #192b2e 100%)"
+      }
     }
   },
   {
@@ -305,6 +361,20 @@
         "The Night of Walking Trees (70 years ago)"
       ],
       "history.background": "The forest is a remnant of the great primordial woods that once covered the continent. It survived the Sundering through the sacrifice of its most powerful guardians. It's said the Library of Moonveil is hidden somewhere in its depths."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f5e6 0%, #c0ede5 55%, #abdae3 100%)",
+        "dark": "linear-gradient(160deg, #112c1f 0%, #193e37 55%, #234a52 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fbf7 0%, #eaf6f4 55%, #dfeef1 100%)",
+        "dark": "linear-gradient(160deg, #0d1c14 0%, #132522 55%, #192b2e 100%)"
+      }
     }
   },
   {
@@ -347,6 +417,20 @@
         "The Great Reformation (100 years ago)"
       ],
       "history.background": "Founded by the legendary Archmage Aldric the Grey, Cloudspire was originally a mountaintop fortress. When war threatened, Aldric raised the entire complex into the sky to ensure knowledge would survive. It has floated ever since, accessible only by magic or the rare visiting airship."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f5e6 0%, #c0ede5 55%, #abdae3 100%)",
+        "dark": "linear-gradient(160deg, #112c1f 0%, #193e37 55%, #234a52 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fbf7 0%, #eaf6f4 55%, #dfeef1 100%)",
+        "dark": "linear-gradient(160deg, #0d1c14 0%, #132522 55%, #192b2e 100%)"
+      }
     }
   },
   {
@@ -375,6 +459,20 @@
         "Thornwood fox (common ancestor)"
       ],
       "relations.notes": "The moonshadow fox is considered a good omen by the Woodfolk."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #e3f5d6 0%, #c0edc2 55%, #abe3c7 100%)",
+        "dark": "linear-gradient(160deg, #1c2c11 0%, #193e1b 55%, #23523b 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f7fbf4 0%, #eaf6ea 55%, #dff1e8 100%)",
+        "dark": "linear-gradient(160deg, #131c0d 0%, #132514 55%, #192e24 100%)"
+      }
     }
   },
   {
@@ -404,6 +502,20 @@
         "Elder Thornfolk"
       ],
       "relations.notes": "Theron Blackwood has negotiated peace between the Thornfolk and Silverhollow."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #e3f5d6 0%, #c0edc2 55%, #abe3c7 100%)",
+        "dark": "linear-gradient(160deg, #1c2c11 0%, #193e1b 55%, #23523b 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f7fbf4 0%, #eaf6ea 55%, #dff1e8 100%)",
+        "dark": "linear-gradient(160deg, #131c0d 0%, #132514 55%, #192e24 100%)"
+      }
     }
   },
   {
@@ -457,6 +569,20 @@
         "The founding of Ironhold",
         "The sale of weapons during the Border Wars"
       ]
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6e3f5 0%, #c0c5ed 55%, #b4abe3 100%)",
+        "dark": "linear-gradient(160deg, #111c2c 0%, #191e3e 55%, #2b2352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f7fb 0%, #eaebf6 55%, #e2dff1 100%)",
+        "dark": "linear-gradient(160deg, #0d131c 0%, #131525 55%, #1d192e 100%)"
+      }
     }
   },
   {
@@ -505,6 +631,20 @@
         "The founding of the Moon Temple",
         "Refugee sheltering during the Thornwood War"
       ]
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6e3f5 0%, #c0c5ed 55%, #b4abe3 100%)",
+        "dark": "linear-gradient(160deg, #111c2c 0%, #191e3e 55%, #2b2352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f7fb 0%, #eaebf6 55%, #e2dff1 100%)",
+        "dark": "linear-gradient(160deg, #0d131c 0%, #131525 55%, #1d192e 100%)"
+      }
     }
   },
   {
@@ -555,6 +695,20 @@
       "history.origin": "Born from the first moonrise after the Sundering, when the shattered sky healed into the silver disc.",
       "history.myths": "It is said she once traded her memories for a lost child's life, and now keeps the world's forgotten stories instead of her own.",
       "history.notes": "Elara Nightwhisper believes the Library of Moonveil is guarded by one of Lunara's avatars."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #f5edd6 0%, #edd6c0 55%, #e3b9ab 100%)",
+        "dark": "linear-gradient(170deg, #2c2511 0%, #3e2b19 55%, #522f23 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #fbf9f4 0%, #f6f0ea 55%, #f1e4df 100%)",
+        "dark": "linear-gradient(170deg, #1c180d 0%, #251c13 55%, #2e1e19 100%)"
+      }
     }
   },
   {
@@ -596,6 +750,20 @@
         "The Great Reformation of Cloudspire"
       ],
       "history.notes": "Elara's thesis on pre-Sundering weaving techniques is still the definitive text."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #ebd6f5 0%, #c7c0ed 55%, #abbee3 100%)",
+        "dark": "linear-gradient(160deg, #23112c 0%, #1f193e 55%, #233352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f8f4fb 0%, #eceaf6 55%, #dfe5f1 100%)",
+        "dark": "linear-gradient(160deg, #170d1c 0%, #161325 55%, #19202e 100%)"
+      }
     }
   },
   {
@@ -613,6 +781,20 @@
       "summary": "Creates a globe of gentle moonlight and whispers a calming word to one creature, granting clarity.",
       "effect.description": "The caster's hand glows with soft silver light, illuminating a 30-foot radius. If used on a willing creature, they feel their fears quiet and gain a clearer mind for the duration.",
       "effect.higherLevels": "At higher circles, the light reveals hidden writing and dispels minor illusions."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5d6f5 0%, #dec0ed 55%, #beabe3 100%)",
+        "dark": "linear-gradient(160deg, #2c112c 0%, #31193e 55%, #332352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf4fb 0%, #f2eaf6 55%, #e5dff1 100%)",
+        "dark": "linear-gradient(160deg, #1c0d1c 0%, #1f1325 55%, #20192e 100%)"
+      }
     }
   },
   {
@@ -638,6 +820,20 @@
       "significance.importance": "The single most important repository of pre-Sundering knowledge. Its location would reshape politics, magic, and religion.",
       "significance.location": "Unknown — rumoured to be hidden somewhere in Thornwood Forest, guarded by a white doe.",
       "significance.notes": "The Church of the Silver Moon quietly funds Elara's search."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5ebd6 0%, #edd8c0 55%, #e3c2ab 100%)",
+        "dark": "linear-gradient(160deg, #2c2311 0%, #3e2d19 55%, #523723 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf8f4 0%, #f6f0ea 55%, #f1e7df 100%)",
+        "dark": "linear-gradient(160deg, #1c170d 0%, #251d13 55%, #2e2219 100%)"
+      }
     }
   },
   {
@@ -665,6 +861,20 @@
         "The Woodfolk version features the Thornfolk Elder instead of a human hunter"
       ],
       "significance.truth": "Historians believe a real treaty was signed near the Heart Grove; the magical details are likely embellishment."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #dbd6f5 0%, #d6c0ed 55%, #daabe3 100%)",
+        "dark": "linear-gradient(160deg, #15112c 0%, #2b193e 55%, #4a2352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5f4fb 0%, #f0eaf6 55%, #eedff1 100%)",
+        "dark": "linear-gradient(160deg, #100d1c 0%, #1c1325 55%, #2b192e 100%)"
+      }
     }
   },
   {
@@ -692,6 +902,20 @@
       ],
       "significance.notes": "Cloudspire Academy floats above the highest peak, accessible by magic or airship.",
       "significanceSummary": "Source of moonsilver and home to Ironhold and the dwarf clans"
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f5db 0%, #c0edd6 55%, #abe3da 100%)",
+        "dark": "linear-gradient(160deg, #112c15 0%, #193e2b 55%, #23524a 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fbf5 0%, #eaf6f0 55%, #dff1ee 100%)",
+        "dark": "linear-gradient(160deg, #0d1c10 0%, #13251c 55%, #192e2b 100%)"
+      }
     }
   },
   {
@@ -729,6 +953,20 @@
         "The founding of Silverhollow",
         "The Great Fire of 312"
       ]
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f5ed 0%, #c0edd1 55%, #abe3ab 100%)",
+        "dark": "linear-gradient(160deg, #112c25 0%, #193e27 55%, #235223 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fbf9 0%, #eaf6ee 55%, #dff1df 100%)",
+        "dark": "linear-gradient(160deg, #0d1c18 0%, #13251a 55%, #192e19 100%)"
+      }
     }
   },
   {
@@ -778,6 +1016,20 @@
         "The Great Reformation of Cloudspire"
       ],
       "history.notes": "The Moonveil Accord, signed 200 years ago, remains the cornerstone of Eldorian foreign policy."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6dbf5 0%, #c0d2ed 55%, #abd0e3 100%)",
+        "dark": "linear-gradient(160deg, #11152c 0%, #19283e 55%, #234252 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f5fb 0%, #eaeff6 55%, #dfebf1 100%)",
+        "dark": "linear-gradient(160deg, #0d101c 0%, #131b25 55%, #19272e 100%)"
+      }
     }
   },
   {
@@ -817,6 +1069,20 @@
         "The secession of Mira Stonehart"
       ],
       "history.notes": "Mira was born here and is still wanted by the Council for leaving without leave."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5e8d6 0%, #ebedc0 55%, #c7e3ab 100%)",
+        "dark": "linear-gradient(160deg, #2c2111 0%, #3c3e19 55%, #3b5223 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf8f4 0%, #f5f6ea 55%, #e8f1df 100%)",
+        "dark": "linear-gradient(160deg, #1c160d 0%, #242513 55%, #242e19 100%)"
+      }
     }
   },
   {
@@ -846,6 +1112,20 @@
       "history.origin": "The Woodfolk descend from the pre-Sundering peoples who sheltered inside the forest during the catastrophe.",
       "history.relations": "Allies of the Thornfolk; wary but increasingly friendly with Silverhollow after the Thornwood Accord.",
       "history.notes": "Grandmother Moss, the forest witch who trained Theron, is the eldest known Woodfolk elder."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5e3d6 0%, #edcbc0 55%, #e3b0ab 100%)",
+        "dark": "linear-gradient(160deg, #2c1c11 0%, #3e2219 55%, #522723 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf7f4 0%, #f6edea 55%, #f1e1df 100%)",
+        "dark": "linear-gradient(160deg, #1c130d 0%, #251813 55%, #2e1b19 100%)"
+      }
     }
   },
   {
@@ -871,6 +1151,20 @@
       ],
       "history.notes": "Silverhollow's festival is the largest; its lanterns reflect in the Silver Fountain.",
       "significanceSummary": "Honours Lunara and the memory of the Accord; marks the harvest's end."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5dbd6 0%, #edc0c3 55%, #e3abbe 100%)",
+        "dark": "linear-gradient(160deg, #2c1511 0%, #3e191c 55%, #522333 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf5f4 0%, #f6eaeb 55%, #f1dfe5 100%)",
+        "dark": "linear-gradient(160deg, #1c100d 0%, #251315 55%, #2e1920 100%)"
+      }
     }
   },
   {
@@ -901,6 +1195,20 @@
         "\"The long disagreement\" — euphemism for war"
       ],
       "vocabulary.naming": "Names are two syllables: a nature-word and a relation-word (e.g., Ash-mir, \"quiet autumn\")."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f0f5 0%, #c0d6ed 55%, #abb4e3 100%)",
+        "dark": "linear-gradient(160deg, #11282c 0%, #192b3e 55%, #232b52 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fafb 0%, #eaf0f6 55%, #dfe2f1 100%)",
+        "dark": "linear-gradient(160deg, #0d191c 0%, #131c25 55%, #191d2e 100%)"
+      }
     }
   },
   {
@@ -940,6 +1248,20 @@
       ],
       "aftermath.treaties": "The Moonveil Accord (1219 M.R.) — signed at Cloudspire Academy, brokered by the Archmage Council.",
       "aftermath.legacy": "Theron Blackwood deserted during this war; the scars of it still shape border politics."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #f5d6d6 0%, #edc9c0 55%, #e3c2ab 100%)",
+        "dark": "linear-gradient(170deg, #2c1111 0%, #3e2119 55%, #523723 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #fbf4f4 0%, #f6ecea 55%, #f1e7df 100%)",
+        "dark": "linear-gradient(170deg, #1c0d0d 0%, #251713 55%, #2e2219 100%)"
+      }
     }
   },
   {
@@ -971,6 +1293,20 @@
       ],
       "significance.impact": "Ended the deadliest war of the century and created the institutions that still keep the peace.",
       "significance.remembered": "Commemorated by the Festival of the Silver Moon and the annual Ranger Oath."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5f2d6 0%, #ede0c0 55%, #e3c7ab 100%)",
+        "dark": "linear-gradient(160deg, #2c2a11 0%, #3e3319 55%, #523b23 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbfaf4 0%, #f6f2ea 55%, #f1e8df 100%)",
+        "dark": "linear-gradient(160deg, #1c1a0d 0%, #252013 55%, #2e2419 100%)"
+      }
     }
   },
   {
@@ -998,6 +1334,20 @@
         "The Moonblade's scabbard, the Silver Sheath"
       ],
       "variants.notes": "A copy hangs in the Moon Temple of Silverhollow; the true blade remains with the Crown."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(150deg, #f5e8d6 0%, #ede0c0 55%, #e3dbab 100%)",
+        "dark": "linear-gradient(150deg, #2c2111 0%, #3e3419 55%, #524c23 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(150deg, #fbf8f4 0%, #f6f2ea 55%, #f1eedf 100%)",
+        "dark": "linear-gradient(150deg, #1c160d 0%, #252013 55%, #2e2c19 100%)"
+      }
     }
   },
   {
@@ -1028,6 +1378,20 @@
         "The abandoned Dwarf Road"
       ],
       "sources.extraction": "Mined in narrow veins; the extraction is dangerous and slow, which keeps the price high."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(150deg, #f5e0d6 0%, #edd6c0 55%, #e3d0ab 100%)",
+        "dark": "linear-gradient(150deg, #2c1a11 0%, #3e2b19 55%, #524223 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(150deg, #fbf6f4 0%, #f6f0ea 55%, #f1ebdf 100%)",
+        "dark": "linear-gradient(150deg, #1c120d 0%, #251c13 55%, #2e2719 100%)"
+      }
     }
   },
   {
@@ -1067,6 +1431,20 @@
         "First flight across the Moonfall Pass",
         "The Starwing's record voyage to the Sea of Glass"
       ]
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6ebf5 0%, #c0e7ed 55%, #abe3de 100%)",
+        "dark": "linear-gradient(160deg, #11232c 0%, #19393e 55%, #23524e 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f8fb 0%, #eaf4f6 55%, #dff1ef 100%)",
+        "dark": "linear-gradient(160deg, #0d171c 0%, #132325 55%, #192e2d 100%)"
+      }
     }
   },
   {
@@ -1102,6 +1480,20 @@
       "history.notableCases": [
         "The Poet of Moonfall Pass, who wrote his best work in the second phase"
       ]
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5d6db 0%, #edc1c0 55%, #e3b6ab 100%)",
+        "dark": "linear-gradient(160deg, #2c1115 0%, #3e1a19 55%, #522d23 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf4f5 0%, #f6eaea 55%, #f1e3df 100%)",
+        "dark": "linear-gradient(160deg, #1c0d10 0%, #251313 55%, #2e1d19 100%)"
+      }
     }
   },
   {
@@ -1142,6 +1534,20 @@
         "Theron Blackwood"
       ],
       "notables.notes": "Theron is the de facto warden of Thornwood, though he holds no official rank."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5e6d6 0%, #ede1c0 55%, #e3e3ab 100%)",
+        "dark": "linear-gradient(160deg, #2c1f11 0%, #3e3419 55%, #525223 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf7f4 0%, #f6f3ea 55%, #f1f1df 100%)",
+        "dark": "linear-gradient(160deg, #1c140d 0%, #252113 55%, #2e2e19 100%)"
+      }
     }
   },
   {
@@ -1172,6 +1578,20 @@
         "Theron Blackwood (current)"
       ],
       "history.notes": "Theron was chosen after saving the Heart Grove from a logging expedition — a deed the forest remembered."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #f5edd6 0%, #edc9c0 55%, #e3abbe 100%)",
+        "dark": "linear-gradient(170deg, #2c2511 0%, #3e2119 55%, #522333 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #fbf9f4 0%, #f6ecea 55%, #f1dfe5 100%)",
+        "dark": "linear-gradient(170deg, #1c180d 0%, #251713 55%, #2e1920 100%)"
+      }
     }
   },
   {
@@ -1195,6 +1615,20 @@
         "The Moonfall Pass rescue (1196)"
       ],
       "history.notes": "The Starwing is the last Cloud Runner captained by a Cloudspire graduate rather than a licensed merchant."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6e5f5 0%, #c0deed 55%, #abdae3 100%)",
+        "dark": "linear-gradient(160deg, #111f2c 0%, #19313e 55%, #234a52 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f7fb 0%, #eaf2f6 55%, #dfeef1 100%)",
+        "dark": "linear-gradient(160deg, #0d141c 0%, #131f25 55%, #192b2e 100%)"
+      }
     }
   },
   {
@@ -1218,6 +1652,20 @@
       ],
       "astronomy.notes": "Some scholars believe the Shadow Moon is not a moon at all, but a wound in the sky from the Sundering.",
       "inhabitantsOverview": "Humans, dwarves, elves, Thornfolk, and countless other peoples"
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6e0f5 0%, #c7c0ed 55%, #d0abe3 100%)",
+        "dark": "linear-gradient(160deg, #111a2c 0%, #1f193e 55%, #422352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f6fb 0%, #eceaf6 55%, #ebdff1 100%)",
+        "dark": "linear-gradient(160deg, #0d121c 0%, #161325 55%, #27192e 100%)"
+      }
     }
   },
   {
@@ -1251,6 +1699,20 @@
       "portals.rules": "Gates open at the solstices. Entering requires an invitation; leaving requires a promise kept.",
       "portals.notes": "The Library of Moonveil is sometimes said to be not in the material world at all, but in a forgotten wing of the Court.",
       "inhabitantsOverview": "Fey, Thornfolk dreamers, and the court of the Summer King"
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5d6f5 0%, #c0c0ed 55%, #abe3e3 100%)",
+        "dark": "linear-gradient(160deg, #2c112c 0%, #19193e 55%, #235252 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf4fb 0%, #eaeaf6 55%, #dff1f1 100%)",
+        "dark": "linear-gradient(160deg, #1c0d1c 0%, #131325 55%, #192e2e 100%)"
+      }
     }
   },
   {
@@ -1268,6 +1730,20 @@
       "occupation": "Elven Archivist (deceased)",
       "summary": "An elven archivist of the enclave near Thornwood Forest who fell in love with a human merchant. Her careful records of lunar magic are said to be preserved somewhere in the Library of Moonveil.",
       "notes": "Deceased - passed illness while Elara was young. Left behind her archivist's seal, which Elara still carries."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #e3d6f5 0%, #e7c0ed 55%, #e3abd0 100%)",
+        "dark": "linear-gradient(160deg, #1c112c 0%, #39193e 55%, #522342 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f7f4fb 0%, #f4eaf6 55%, #f1dfeb 100%)",
+        "dark": "linear-gradient(160deg, #130d1c 0%, #231325 55%, #2e1927 100%)"
+      }
     }
   },
   {
@@ -1285,6 +1761,20 @@
       "occupation": "Merchant (deceased)",
       "summary": "A human merchant whose trade caravans crossed the Silver Vales. He passed his restless curiosity to his daughter Elara before dying of old age.",
       "notes": "Deceased - died of old age while Elara was still studying at Cloudspire Academy."
+    },
+    "appearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #e3d6f5 0%, #e7c0ed 55%, #e3abd0 100%)",
+        "dark": "linear-gradient(160deg, #1c112c 0%, #39193e 55%, #522342 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f7f4fb 0%, #f4eaf6 55%, #f1dfeb 100%)",
+        "dark": "linear-gradient(160deg, #130d1c 0%, #231325 55%, #2e1927 100%)"
+      }
     }
   }
 ]

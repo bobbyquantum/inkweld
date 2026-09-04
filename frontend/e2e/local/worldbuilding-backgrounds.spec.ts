@@ -2,7 +2,8 @@
  * Worldbuilding Custom Background Tests - Local Mode
  *
  * Exercises the per-element background theming (Appearance panel) end to end:
- * - toggles start unchecked when no region is configured
+ * - the demo template ships each element with themed gradient backgrounds
+ * - disabling both regions clears them and unchecks the toggles
  * - enabling a region with a solid colour applies it to the sidenav
  * - enabling a region with a gradient applies it to the content area
  * - backgrounds persist across a reload
@@ -148,10 +149,23 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
     const sidenav = page.getByTestId('wb-sidenav');
     const content = page.getByTestId('wb-content');
 
-    await test.step('toggles start unchecked when unconfigured', async () => {
+    await test.step('demo template ships themed gradient backgrounds', async () => {
+      await expect(menuToggle).toHaveAttribute('aria-checked', 'true');
+      await expect(contentToggle).toHaveAttribute('aria-checked', 'true');
+      await expect(sidenav).toHaveClass(/has-custom-background/);
+      await expect(content).toHaveClass(/has-custom-background/);
+      await expect
+        .poll(() => contentBgImage(page))
+        .toContain('linear-gradient');
+    });
+
+    await test.step('disabling both regions clears the template backgrounds', async () => {
+      await menuToggle.click();
+      await contentToggle.click();
       await expect(menuToggle).toHaveAttribute('aria-checked', 'false');
       await expect(contentToggle).toHaveAttribute('aria-checked', 'false');
       await expect(sidenav).not.toHaveClass(/has-custom-background/);
+      await expect(content).not.toHaveClass(/has-custom-background/);
     });
 
     await test.step('solid colour applies to the sidenav', async () => {

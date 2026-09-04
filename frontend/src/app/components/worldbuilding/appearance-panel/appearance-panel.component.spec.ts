@@ -154,6 +154,9 @@ describe('AppearancePanelComponent', () => {
     component['onAppearanceEdited']({
       menu: { type: 'color', mode: 'auto', value: '#123456' },
     });
+    // Disabling a region: the editor emits the appearance without the region,
+    // then reports the region key as deleted.
+    component['onAppearanceEdited']({});
     component['onDeletes']({ menu: true });
 
     await vi.waitFor(() => {
@@ -163,6 +166,57 @@ describe('AppearancePanelComponent', () => {
       expect(payload.appearance['menu']).toBe(
         '\u0000__appearance_delete__\u0000'
       );
+    });
+  });
+
+  it('should drop a region deletion marker when the region is re-enabled before saving', async () => {
+    fixture.detectChanges();
+    component['onAppearanceEdited']({});
+    component['onDeletes']({ menu: true });
+    // Re-enable and configure the region inside the debounce window.
+    component['onAppearanceEdited']({
+      menu: { type: 'color', mode: 'auto', value: '#abcdef' },
+    });
+
+    await vi.waitFor(() => {
+      const calls = worldbuildingService.saveIdentityData.mock.calls;
+      const lastCall = calls[calls.length - 1];
+      const payload = lastCall[1] as { appearance: Record<string, unknown> };
+      expect(payload.appearance['menu']).toEqual({
+        type: 'color',
+        mode: 'auto',
+        value: '#abcdef',
+      });
+    });
+  });
+
+  it('should drop a slot deletion marker only once the slot has a value again', async () => {
+    fixture.detectChanges();
+    component['onDeletes']({ 'menu.light': true });
+    // Editing the region without refilling the slot keeps the slot delete.
+    component['onAppearanceEdited']({
+      menu: { type: 'color', mode: 'manual', dark: '#000000' },
+    });
+    // Refilling the slot supersedes it.
+    component['onAppearanceEdited']({
+      menu: {
+        type: 'color',
+        mode: 'manual',
+        dark: '#000000',
+        light: '#ffffff',
+      },
+    });
+
+    await vi.waitFor(() => {
+      const calls = worldbuildingService.saveIdentityData.mock.calls;
+      const lastCall = calls[calls.length - 1];
+      const payload = lastCall[1] as { appearance: Record<string, unknown> };
+      expect(payload.appearance['menu']).toEqual({
+        type: 'color',
+        mode: 'manual',
+        dark: '#000000',
+        light: '#ffffff',
+      });
     });
   });
 
@@ -199,6 +253,7 @@ describe('AppearancePanelComponent', () => {
     component['onAppearanceEdited']({
       menu: { type: 'color', mode: 'auto', value: '#123456' },
     });
+    component['onAppearanceEdited']({});
     component['onDeletes']({ menu: true });
 
     // First save failed; a subsequent save must still send APPEARANCE_DELETE.
@@ -213,6 +268,44 @@ describe('AppearancePanelComponent', () => {
       expect(payload.appearance['menu']).toBe(
         '\u0000__appearance_delete__\u0000'
       );
+    });
+  });
+
+  it('should not restore a deletion marker for a region re-enabled while a failing save was in flight', async () => {
+    let rejectSave: (err: Error) => void = () => {};
+    worldbuildingService.saveIdentityData.mockImplementationOnce(
+      () =>
+        new Promise<void>((_, reject) => {
+          rejectSave = reject;
+        })
+    );
+    fixture.detectChanges();
+
+    // Disable the menu region; the debounced save folds APPEARANCE_DELETE.
+    component['onAppearanceEdited']({});
+    component['onDeletes']({ menu: true });
+    await vi.waitFor(() => {
+      expect(worldbuildingService.saveIdentityData).toHaveBeenCalledTimes(1);
+    });
+
+    // Re-enable and configure the region while that save is still pending,
+    // then let the save fail.
+    component['onAppearanceEdited']({
+      menu: { type: 'color', mode: 'auto', value: '#abcdef' },
+    });
+    rejectSave(new Error('boom'));
+
+    await vi.waitFor(() => {
+      const calls = worldbuildingService.saveIdentityData.mock.calls;
+      expect(calls.length).toBeGreaterThanOrEqual(2);
+      const payload = calls[calls.length - 1][1] as {
+        appearance: Record<string, unknown>;
+      };
+      expect(payload.appearance['menu']).toEqual({
+        type: 'color',
+        mode: 'auto',
+        value: '#abcdef',
+      });
     });
   });
 

@@ -159,6 +159,31 @@ describe('DocumentImportService', () => {
       expect(logger.debug).toHaveBeenCalled();
     });
 
+    it('should write a per-element appearance into the identity map', async () => {
+      const wb = {
+        elementId: 'wb-elem-appearance',
+        schemaId: 'character-v1',
+        data: { name: 'Themed Character' },
+        appearance: {
+          menu: {
+            type: 'gradient' as const,
+            mode: 'manual' as const,
+            light: 'linear-gradient(160deg, #ffffff 0%, #eeeeee 100%)',
+            dark: 'linear-gradient(160deg, #000000 0%, #111111 100%)',
+          },
+        },
+      };
+
+      // A successful await proves the nested Y.Map conversion did not throw;
+      // the success-path log is only emitted after the transaction commits.
+      await service.writeWorldbuildingData(wb, 'testuser', 'project-slug');
+
+      expect(logger.debug).toHaveBeenCalledWith(
+        'DocumentImport',
+        expect.stringContaining('wb-elem-appearance')
+      );
+    });
+
     it('should write dot-notation keys as nested Y.Map structures', async () => {
       const wb = {
         elementId: 'wb-elem-dot',

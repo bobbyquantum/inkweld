@@ -163,7 +163,28 @@ export class AppearancePanelComponent implements OnDestroy {
     this.hasLocalEdit = true;
     this.editGeneration++;
     this.appearance.set(appearance);
+    this.dropSupersededDeletes(appearance);
     this.queueSave();
+  }
+
+  /**
+   * Forget deletion markers for regions/slots that the edit has re-populated.
+   * Otherwise disabling a region and re-enabling it within the debounce window
+   * (or before the first save completes) folds a stale APPEARANCE_DELETE over
+   * the new setting, wiping it on persist while the live preview still shows it.
+   */
+  private dropSupersededDeletes(appearance: ElementAppearance): void {
+    for (const key of Object.keys(this.pendingDeletes)) {
+      const [region, slot] = key.split('.') as [AppearanceRegion, string?];
+      const setting = appearance[region];
+      if (!setting) continue;
+      const slotValue = slot
+        ? (setting as unknown as Record<string, unknown>)[slot]
+        : undefined;
+      if (!slot || (slotValue !== undefined && slotValue !== '')) {
+        delete this.pendingDeletes[key];
+      }
+    }
   }
 
   /** Record keys that were explicitly cleared so the backend removes them. */
@@ -314,11 +335,14 @@ export class AppearancePanelComponent implements OnDestroy {
     } catch {
       // Persistence failed: restore the deletion markers so a later save still
       // sends APPEARANCE_DELETE for the removed regions/slots. Same element
-      // guard as above.
+      // guard as above. Markers for a region/slot the user re-populated while
+      // this save was in flight are not restored, or the next save would wipe
+      // the freshly configured setting.
       if (snapshot.elementId === this.elementId()) {
         for (const key of Object.keys(snapshot.pendingDeletes)) {
           this.pendingDeletes[key] = true;
         }
+        this.dropSupersededDeletes(this.appearance());
       }
     } finally {
       if (this.lastSnapshot === snapshot) {

@@ -1,3 +1,4 @@
+import { type ElementAppearance } from '@models/element-appearance';
 import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
@@ -141,6 +142,13 @@ export interface ArchiveWorldbuildingData {
   schemaId: string;
   /** Flattened data from Y.Map */
   data: Record<string, unknown>;
+  /**
+   * Per-element background appearance (menu / content regions), stored in
+   * the element's identity map rather than its data map. Kept separate from
+   * `data` because schemas such as Character already use an `appearance`
+   * field group there.
+   */
+  appearance?: ElementAppearance;
 }
 
 /**
