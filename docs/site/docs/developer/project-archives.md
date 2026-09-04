@@ -221,7 +221,13 @@ interface ArchiveMediaFile {
 
 ### Current Version
 
-The current archive format version is **1** (defined in `ARCHIVE_VERSION`).
+The current archive format version is **3** (defined in `ARCHIVE_VERSION`).
+
+| Version | Change |
+|---|---|
+| 1 | Initial format |
+| 2 | Adds the `timeSystems` array (Timeline calendars) |
+| 3 | Worldbuilding entries may carry `schema` and `schemaBaseHash` (per-element schema copies). Both are optional, so migrating a v2 archive changes no data; the bump exists so an older importer rejects the archive instead of silently dropping customised element schemas. |
 
 ### Version Checking on Import
 

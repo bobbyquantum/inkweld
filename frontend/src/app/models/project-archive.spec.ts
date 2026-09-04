@@ -13,7 +13,7 @@ import {
 describe('project-archive models', () => {
   describe('Constants', () => {
     it('should export ARCHIVE_VERSION', () => {
-      expect(ARCHIVE_VERSION).toBe(2);
+      expect(ARCHIVE_VERSION).toBe(3);
     });
 
     it('should export MIN_SUPPORTED_VERSION', () => {
