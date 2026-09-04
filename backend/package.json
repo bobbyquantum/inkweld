@@ -76,7 +76,7 @@
   "optionalDependencies": {
     "better-sqlite3": "^13.0.0"
   },
-  "packageManager": "bun@1.4.0",
+  "packageManager": "bun@1.4.1",
   "patchedDependencies": {
     "wrangler@4.116.0": "patches/wrangler@4.116.0.patch"
   }
