@@ -77,6 +77,9 @@ const PROJECT_SORT_ORDERS: readonly ProjectSortOrder[] = [
 /** localStorage key holding the user's preferred project ordering. */
 export const PROJECT_SORT_STORAGE_KEY = 'inkweld-home-project-sort';
 
+/** localStorage key holding the ids of projects pinned to the top of the grid. */
+export const PINNED_PROJECTS_STORAGE_KEY = 'inkweld-home-pinned-projects';
+
 @Component({
   selector: 'app-home',
   imports: [
@@ -145,6 +148,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   /** Current project ordering, restored from localStorage on creation. */
   readonly sortOrder = signal<ProjectSortOrder>(readStoredSortOrder());
 
+  /** Ids of projects the user has pinned to the top of the grid. */
+  readonly pinnedProjectIds = signal<ReadonlySet<string>>(
+    readStoredPinnedIds()
+  );
+
   readonly searchForm = form(this.searchModel, schemaPath => {
     debounce(schemaPath.search, 300);
   });
@@ -206,10 +214,13 @@ export class HomeComponent implements OnInit, OnDestroy {
     const sharedProjects = this.collaboratedProjects();
 
     // Convert shared projects to unified format
+    const pinned = this.pinnedProjectIds();
+
     const unifiedOwn = ownProjects.map(p => ({
       project: p,
       isShared: false as const,
       sharedByUsername: undefined as string | undefined,
+      isPinned: pinned.has(p.id),
     }));
 
     const unifiedShared = sharedProjects.map(cp => ({
@@ -225,13 +236,20 @@ export class HomeComponent implements OnInit, OnDestroy {
       },
       isShared: true as const,
       sharedByUsername: cp.ownerUsername,
+      isPinned: pinned.has(cp.projectId),
     }));
 
-    // Combine both lists and apply the user's preferred ordering
-    const combined = sortProjectItems(
+    // Combine both lists, apply the user's preferred ordering, then float
+    // pinned projects to the front while preserving that ordering within
+    // each group.
+    const sorted = sortProjectItems(
       [...unifiedOwn, ...unifiedShared],
       this.sortOrder()
     );
+    const combined = [
+      ...sorted.filter(item => item.isPinned),
+      ...sorted.filter(item => !item.isPinned),
+    ];
 
     // Apply search filter if there's a search term
     if (!term) {
@@ -254,6 +272,31 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.sortOrder.set(order);
     try {
       localStorage.setItem(PROJECT_SORT_STORAGE_KEY, order);
+    } catch {
+      // Storage may be unavailable (private mode, quota); the in-memory
+      // signal still applies for this session.
+    }
+  }
+
+  /** Whether the given project is pinned to the top of the grid. */
+  isProjectPinned(project: Project): boolean {
+    return this.pinnedProjectIds().has(project.id);
+  }
+
+  /** Pin or unpin a project and remember the choice for future visits. */
+  toggleProjectPinned(project: Project): void {
+    const next = new Set(this.pinnedProjectIds());
+    if (next.has(project.id)) {
+      next.delete(project.id);
+    } else {
+      next.add(project.id);
+    }
+    this.pinnedProjectIds.set(next);
+    try {
+      localStorage.setItem(
+        PINNED_PROJECTS_STORAGE_KEY,
+        JSON.stringify([...next])
+      );
     } catch {
       // Storage may be unavailable (private mode, quota); the in-memory
       // signal still applies for this session.
@@ -1019,6 +1062,23 @@ function readStoredSortOrder(): ProjectSortOrder {
     // Fall through to the default when storage is unavailable
   }
   return 'updated';
+}
+
+function readStoredPinnedIds(): ReadonlySet<string> {
+  try {
+    const stored = localStorage.getItem(PINNED_PROJECTS_STORAGE_KEY);
+    if (stored) {
+      const parsed: unknown = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return new Set(
+          parsed.filter((id): id is string => typeof id === 'string')
+        );
+      }
+    }
+  } catch {
+    // Fall through to an empty set when storage is unavailable or corrupt
+  }
+  return new Set();
 }
 
 function toTimestamp(value: string | null | undefined): number {

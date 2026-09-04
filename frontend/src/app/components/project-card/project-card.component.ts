@@ -67,9 +67,17 @@ export class ProjectCardComponent implements AfterViewInit, OnDestroy {
   @Input()
   public isActivated = true;
 
+  /** Whether the user has pinned this project to the top of the grid */
+  @Input()
+  public isPinned = false;
+
   /** Emitted on long-press (~500ms hold) */
   @Output()
   public longPress = new EventEmitter<void>();
+
+  /** Emitted when the user picks "Pin to top" / "Unpin" from the kebab menu */
+  @Output()
+  public pinToggled = new EventEmitter<void>();
 
   /** Emitted when the user picks "Download to this device" from the kebab menu */
   @Output()
@@ -96,6 +104,11 @@ export class ProjectCardComponent implements AfterViewInit, OnDestroy {
   onKebabClick(event: MouseEvent): void {
     event.stopPropagation();
     event.preventDefault();
+  }
+
+  /** Emit a request to pin or unpin this project. */
+  requestTogglePin(): void {
+    this.pinToggled.emit();
   }
 
   /** Emit a request to activate/download this project to the device. */
