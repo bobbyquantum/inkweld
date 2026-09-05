@@ -68,7 +68,7 @@ describe('SetupService', () => {
 
   it('should initialize with no configuration', () => {
     expect(service.isConfigured()).toBe(false);
-    expect(service.appConfig()).toBe(null);
+    expect(service.appConfig()).toBeNull();
     expect(service.isLoading()).toBe(false);
   });
 
@@ -218,13 +218,13 @@ describe('SetupService', () => {
       service.resetConfiguration();
 
       expect(service.isConfigured()).toBe(false);
-      expect(service.appConfig()).toBe(null);
+      expect(service.appConfig()).toBeNull();
     });
   });
 
   describe('getMode', () => {
     it('should return null when no config is set', () => {
-      expect(service.getMode()).toBe(null);
+      expect(service.getMode()).toBeNull();
     });
 
     it('should return server mode when configured', async () => {
@@ -244,14 +244,14 @@ describe('SetupService', () => {
 
   describe('getServerUrl', () => {
     it('should return null when no config is set', () => {
-      expect(service.getServerUrl()).toBe(null);
+      expect(service.getServerUrl()).toBeNull();
     });
 
     it('should return null when in local mode', () => {
       const userProfile = { name: 'Test User', username: 'testuser' };
       service.configureLocalMode(userProfile);
 
-      expect(service.getServerUrl()).toBe(null);
+      expect(service.getServerUrl()).toBeNull();
     });
 
     it('should return server URL when in server mode', async () => {
@@ -265,41 +265,31 @@ describe('SetupService', () => {
 
   describe('getWebSocketUrl', () => {
     it('should return null when no config is set', () => {
-      expect(service.getWebSocketUrl()).toBe(null);
+      expect(service.getWebSocketUrl()).toBeNull();
     });
 
     it('should return null in local mode', () => {
       const userProfile = { name: 'Test User', username: 'testuser' };
       service.configureLocalMode(userProfile);
 
-      expect(service.getWebSocketUrl()).toBe(null);
+      expect(service.getWebSocketUrl()).toBeNull();
     });
 
-    it('should convert HTTP server URL to WebSocket URL', async () => {
+    it.each([
+      ['http://localhost:8333', 'ws://localhost:8333'],
+      ['https://api.example.com', 'wss://api.example.com'],
+      ['https://api.example.com:8080', 'wss://api.example.com:8080'],
+    ])('should convert %s to %s', async (serverUrl, expectedWsUrl) => {
       (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
-      await service.configureServerMode('http://localhost:8333');
+      await service.configureServerMode(serverUrl);
 
-      expect(service.getWebSocketUrl()).toBe('ws://localhost:8333');
-    });
-
-    it('should convert HTTPS server URL to secure WebSocket URL', async () => {
-      (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
-      await service.configureServerMode('https://api.example.com');
-
-      expect(service.getWebSocketUrl()).toBe('wss://api.example.com');
-    });
-
-    it('should handle server URL with port', async () => {
-      (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
-      await service.configureServerMode('https://api.example.com:8080');
-
-      expect(service.getWebSocketUrl()).toBe('wss://api.example.com:8080');
+      expect(service.getWebSocketUrl()).toBe(expectedWsUrl);
     });
   });
 
   describe('getLocalUserProfile', () => {
     it('should return null when no config is set', () => {
-      expect(service.getLocalUserProfile()).toBe(null);
+      expect(service.getLocalUserProfile()).toBeNull();
     });
 
     it('should return null when in server mode', async () => {
@@ -307,7 +297,7 @@ describe('SetupService', () => {
       (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
       await service.configureServerMode(serverUrl);
 
-      expect(service.getLocalUserProfile()).toBe(null);
+      expect(service.getLocalUserProfile()).toBeNull();
     });
 
     it('should return user profile when in local mode', () => {

@@ -161,20 +161,12 @@ describe('SettingsService', () => {
   });
 
   describe('error handling', () => {
-    it('should handle invalid JSON in localStorage', () => {
-      localStorageMock['userSettings'] = 'invalid json';
-      const result = service.getSetting('test', 'default');
-      expect(result).toBe('default');
-    });
-
-    it('should handle non-object JSON in localStorage', () => {
-      localStorageMock['userSettings'] = '"string value"';
-      const result = service.getSetting('test', 'default');
-      expect(result).toBe('default');
-    });
-
-    it('should handle null in localStorage', () => {
-      localStorageMock['userSettings'] = 'null';
+    it.each([
+      ['invalid JSON', 'invalid json'],
+      ['non-object JSON', '"string value"'],
+      ['null', 'null'],
+    ])('should handle %s in localStorage', (_label, stored) => {
+      localStorageMock['userSettings'] = stored;
       const result = service.getSetting('test', 'default');
       expect(result).toBe('default');
     });
