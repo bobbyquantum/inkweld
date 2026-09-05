@@ -5,7 +5,7 @@ import { LoggerService } from '@services/core/logger.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WritingStatsService } from '@services/stats/writing-stats.service';
-import { of, throwError } from 'rxjs';
+import { from, of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockDeep } from 'vitest-mock-extended';
 
@@ -100,6 +100,9 @@ describe('ProjectStatsSummaryComponent', () => {
     expect(el('project-stat-active-days')?.textContent).toContain('2');
     expect(el('project-stat-average')?.textContent).toContain('750');
     expect(el('project-stat-best-day')?.textContent).toContain('1,000');
+    expect(el('project-stat-best-day-date')?.textContent).toContain(
+      '2025-01-03'
+    );
   });
 
   it('does nothing when no project is loaded', async () => {
@@ -203,6 +206,60 @@ describe('ProjectStatsSummaryComponent', () => {
       'other',
       30
     );
+  });
+
+  it('clears displayed stats when the active project is cleared', async () => {
+    await setup();
+    expect(el('project-stats-summary')).toBeTruthy();
+
+    projectState.project.set(null);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect((component as any).stats()).toBeNull();
+    expect(el('project-stats-summary')).toBeFalsy();
+  });
+
+  it('discards a late response for a previous project once it is cleared', async () => {
+    let resolveStats!: (value: ProjectStatsResponse) => void;
+    const pending = new Promise<ProjectStatsResponse>(resolve => {
+      resolveStats = resolve;
+    });
+    await setup(undefined);
+    statsService.getProjectStats.mockReturnValue(from(pending));
+
+    projectState.project.set({ id: 'p-2', username: 'bob', slug: 'other' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect((component as any).loading()).toBe(true);
+
+    // Project clears before the request settles.
+    projectState.project.set(null);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    resolveStats(makeStats());
+    await pending;
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect((component as any).stats()).toBeNull();
+    expect((component as any).loading()).toBe(false);
+    expect(el('project-stats-summary')).toBeFalsy();
+  });
+
+  it('clears displayed stats when local mode becomes active', async () => {
+    await setup();
+    expect(el('project-stats-summary')).toBeTruthy();
+
+    localMode.set(true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect((component as any).stats()).toBeNull();
+    expect(el('project-stats-summary')).toBeFalsy();
   });
 
   it('does not load when the project has no slug', async () => {

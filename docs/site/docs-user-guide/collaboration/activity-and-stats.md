@@ -39,7 +39,7 @@ A **Writing Stats** summary sits at the top of the Activity tab and covers the l
 - **Words** — net positive words written in the project
 - **Active days** — distinct days that recorded any writing
 - **Per active day** — average words written on those active days
-- **Best day** — the single highest-output day (hover to see the date)
+- **Best day** — the single highest-output day, with its date shown beneath the figure
 
 Below the figures, a bar sparkline shows daily output across the whole window, with one bar per day (hover a bar for its date and word count). When more than one person has contributed, a **Contributors** breakdown lists the top five by word count with their share of the total. Until any words are recorded the card shows a short hint instead of zeros.
 

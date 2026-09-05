@@ -68,6 +68,13 @@
   margin-top: 2px;
 }
 
+.stat-detail {
+  font-size: 0.7rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
 .sparkline {
   display: flex;
   align-items: flex-end;

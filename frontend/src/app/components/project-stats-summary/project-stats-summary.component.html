@@ -43,13 +43,13 @@
           </div>
         </div>
         @if (bestDay(); as best) {
-          <div
-            class="stat"
-            data-testid="project-stat-best-day"
-            [matTooltip]="best.day">
+          <div class="stat" data-testid="project-stat-best-day">
             <div class="stat-value">{{ best.words | number }}</div>
             <div class="stat-label">
               {{ 'project.activity.stats.bestDay' | transloco }}
+            </div>
+            <div class="stat-detail" data-testid="project-stat-best-day-date">
+              {{ best.day }}
             </div>
           </div>
         }

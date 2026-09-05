@@ -134,23 +134,38 @@ export class ProjectStatsSummaryComponent {
   });
 
   constructor() {
-    // Reload whenever the active project changes. The project may still be
-    // undefined on first render during route transitions.
+    // Reload whenever the active project or storage mode changes. Every
+    // transition goes through reload() so that an in-flight request for a
+    // previous project (or from before local mode was selected) is
+    // invalidated rather than landing on the new state.
     effect(() => {
-      const project = this.projectState.project();
-      if (project?.username && project.slug) {
-        void this.reload();
-      }
+      this.projectState.project();
+      this.storageContext.isLocalMode();
+      void this.reload();
     });
   }
 
-  /** (Re)fetch stats for the current project. Safe to call repeatedly. */
+  /**
+   * (Re)fetch stats for the current project. Safe to call repeatedly.
+   *
+   * Invalidates any in-flight request first; when there is no fetchable
+   * project (local mode, or no active project) the displayed state is
+   * cleared instead.
+   */
   async reload(): Promise<void> {
-    if (this.storageContext.isLocalMode()) return;
-    const project = this.projectState.project();
-    if (!project?.username || !project.slug) return;
-
     const token = ++this.requestToken;
+    const project = this.projectState.project();
+    if (
+      this.storageContext.isLocalMode() ||
+      !project?.username ||
+      !project.slug
+    ) {
+      this.stats.set(null);
+      this.errored.set(false);
+      this.loading.set(false);
+      return;
+    }
+
     this.loading.set(true);
     this.errored.set(false);
     try {
