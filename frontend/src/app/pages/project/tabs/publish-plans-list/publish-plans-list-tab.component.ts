@@ -162,6 +162,7 @@ export class PublishPlansListTabComponent implements OnInit {
       [PublishFormat.EPUB]: 'EPUB',
       [PublishFormat.PDF_SIMPLE]: 'PDF',
       [PublishFormat.HTML]: 'HTML',
+      [PublishFormat.HTML_SITE]: 'Website',
       [PublishFormat.MARKDOWN]: 'Markdown',
     };
     return names[format] || format;

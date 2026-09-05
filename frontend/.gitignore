@@ -71,6 +71,10 @@ debug-screenshot.png
 # the woff2 files shipped by @fontsource/* packages.
 /public/assets/fonts/
 
+# Material Symbols SVGs staged by scripts/copy-icon-svgs.mjs during
+# `bun install`, inlined into HTML/website exports.
+/public/assets/icons/
+
 # Repo-root CHANGELOG.md copied by scripts/copy-changelog.mjs during
 # `bun install` (Angular 22 forbids asset inputs outside the workspace root).
 /public/assets/CHANGELOG.md

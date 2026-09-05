@@ -7,6 +7,14 @@
 // Core services
 export type { EpubProgress, EpubResult } from './epub-generator.service';
 export { EpubGeneratorService, EpubPhase } from './epub-generator.service';
+export type {
+  HtmlSiteProgress,
+  HtmlSiteResult,
+} from './html-site-generator.service';
+export {
+  HtmlSiteGeneratorService,
+  HtmlSitePhase,
+} from './html-site-generator.service';
 export type { SyncProgress, SyncResult } from './project-sync.service';
 export { ProjectSyncService, SyncPhase } from './project-sync.service';
 export type {

@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element } from '@inkweld/index';
+import { type ElementAppearance } from '@models/element-appearance';
 import { type WorldbuildingItem } from '@models/publish-plan';
 import { type WorldbuildingLayout } from '@models/publish-style';
 import {
@@ -26,6 +27,13 @@ export interface RenderedWorldbuildingEntry {
   schemaId?: string;
   /** Schema display label. */
   schemaLabel?: string;
+  /** Material Symbols icon name from the schema, when known. */
+  icon?: string;
+  /**
+   * Raw per-element appearance (content/menu backgrounds) as authored in the
+   * editor. Generators decide how much of it to honour for their medium.
+   */
+  appearance?: ElementAppearance;
   /** Resolved layout requested for this entry. */
   layout: WorldbuildingLayout;
   /** Optional description from identity block. */
@@ -41,6 +49,8 @@ export interface RenderedWorldbuildingTab {
   key: string;
   /** Display label from schema. */
   label: string;
+  /** Material Symbols icon name from the schema tab, when set. */
+  icon?: string;
   fields: RenderedWorldbuildingField[];
 }
 
@@ -53,6 +63,10 @@ export interface RenderedWorldbuildingField {
   /** Pre-formatted display string (always a string, "" if blank). */
   displayValue: string;
   type: FieldType | string;
+  /** Layout span (1-12 columns) from the schema, when set. */
+  span?: number;
+  /** Relationship fields only: the linked elements in display order. */
+  links?: { id: string; name: string }[];
 }
 
 /**
@@ -164,6 +178,9 @@ export class WorldbuildingPublishRendererService {
       title: element.name,
       schemaId: schema?.id,
       schemaLabel: schema?.name,
+      icon: schema ? schema.icon || 'category' : undefined,
+      appearance:
+        item.includeIdentity === false ? undefined : identity.appearance,
       layout,
       description:
         item.includeIdentity === false ? undefined : identity.description,
@@ -220,7 +237,11 @@ export class WorldbuildingPublishRendererService {
     username: string,
     slug: string,
     item: WorldbuildingItem
-  ): Promise<{ image?: string; description?: string }> {
+  ): Promise<{
+    image?: string;
+    description?: string;
+    appearance?: ElementAppearance;
+  }> {
     if (item.includeIdentity === false && item.includeImages === false) {
       return {};
     }
@@ -230,7 +251,11 @@ export class WorldbuildingPublishRendererService {
         username,
         slug
       );
-      return { image: identity.image, description: identity.description };
+      return {
+        image: identity.image,
+        description: identity.description,
+        appearance: identity.appearance,
+      };
     } catch {
       // identity data is optional
       return {};
@@ -248,7 +273,12 @@ export class WorldbuildingPublishRendererService {
     for (const tab of orderedTabs) {
       const fields = this.collectTabFields(tab, ctx);
       if (fields.length === 0) continue;
-      tabs.push({ key: tab.key, label: tab.label, fields });
+      tabs.push({
+        key: tab.key,
+        label: tab.label,
+        icon: tab.icon || 'article',
+        fields,
+      });
     }
     return tabs;
   }
@@ -318,6 +348,8 @@ export class WorldbuildingPublishRendererService {
         rawValue: linked.map(e => e.id),
         displayValue: display,
         type: field.type,
+        span: field.layout?.span,
+        links: linked.map(e => ({ id: e.id, name: e.name })),
       });
       return;
     }
@@ -332,6 +364,7 @@ export class WorldbuildingPublishRendererService {
       rawValue: value,
       displayValue: display,
       type: field.type,
+      span: field.layout?.span,
     });
   }
 
