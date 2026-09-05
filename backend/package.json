@@ -60,7 +60,7 @@
     "@eslint/js": "^10.0.0",
     "@openapitools/openapi-generator-cli": "^2.27.0",
     "@types/better-sqlite3": "^9.0.0",
-    "@types/bun": "1.4.0",
+    "@types/bun": "1.4.1",
     "@types/mime-types": "^3.0.1",
     "@types/node": "^26.0.0",
     "@types/nodemailer": "^8.0.0",
@@ -76,7 +76,7 @@
   "optionalDependencies": {
     "better-sqlite3": "^13.0.0"
   },
-  "packageManager": "bun@1.4.1",
+  "packageManager": "bun@1.4.2",
   "patchedDependencies": {
     "wrangler@4.116.0": "patches/wrangler@4.116.0.patch"
   }
