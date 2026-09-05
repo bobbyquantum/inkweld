@@ -6,11 +6,13 @@ import {
   effect,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { ProjectStatsSummaryComponent } from '@components/project-stats-summary/project-stats-summary.component';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import type {
   ActivityEventType,
@@ -51,6 +53,7 @@ import { firstValueFrom } from 'rxjs';
     MatProgressSpinnerModule,
     MatTooltipModule,
     TranslocoModule,
+    ProjectStatsSummaryComponent,
   ],
 })
 export class ActivityTabComponent {
@@ -62,6 +65,9 @@ export class ActivityTabComponent {
 
   /** Monotonically-increasing token; guards against stale async responses. */
   private requestToken = 0;
+
+  /** Stats summary rendered above the feed; refreshed alongside it. */
+  private readonly statsSummary = viewChild(ProjectStatsSummaryComponent);
 
   /** Loaded events, newest-first. */
   protected readonly events = signal<ProjectActivityEvent[]>([]);
@@ -90,6 +96,12 @@ export class ActivityTabComponent {
         void this.loadInitial();
       }
     });
+  }
+
+  /** Refresh both the stats summary and the first page of the feed. */
+  protected refresh(): void {
+    void this.statsSummary()?.reload();
+    void this.loadInitial();
   }
 
   protected async loadInitial(): Promise<void> {

@@ -8,10 +8,12 @@
       data-testid="activity-refresh-button"
       [matTooltip]="'project.activity.refresh' | transloco"
       [disabled]="loading()"
-      (click)="loadInitial()">
+      (click)="refresh()">
       <mat-icon>refresh</mat-icon>
     </button>
   </header>
+
+  <app-project-stats-summary />
 
   @if (loading()) {
     <div class="loading-state">

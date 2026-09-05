@@ -10,6 +10,7 @@ import { LoggerService } from '@services/core/logger.service';
 import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { ActivityFeedService } from '@services/stats/activity-feed.service';
+import { WritingStatsService } from '@services/stats/writing-stats.service';
 import { of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockDeep } from 'vitest-mock-extended';
@@ -37,6 +38,7 @@ describe('ActivityTabComponent', () => {
   let fixture: ComponentFixture<ActivityTabComponent>;
   let component: ActivityTabComponent;
   let activityFeed: ReturnType<typeof mockDeep<ActivityFeedService>>;
+  let statsService: ReturnType<typeof mockDeep<WritingStatsService>>;
   let projectState: {
     project: ReturnType<typeof signal>;
     elements: ReturnType<typeof signal<object[]>>;
@@ -51,6 +53,16 @@ describe('ActivityTabComponent', () => {
     proj: { username?: string; slug?: string } | null = project
   ) => {
     activityFeed = mockDeep<ActivityFeedService>();
+    statsService = mockDeep<WritingStatsService>();
+    statsService.getProjectStats.mockReturnValue(
+      of({
+        projectId: 'p-1',
+        windowDays: 30,
+        totalWords: 0,
+        daily: [],
+        contributors: [],
+      })
+    );
     logger = mockDeep<LoggerService>();
     projectState = {
       project: signal(proj),
@@ -72,6 +84,7 @@ describe('ActivityTabComponent', () => {
         provideZonelessChangeDetection(),
         provideRouter([{ path: '**', children: [] }]),
         { provide: ActivityFeedService, useValue: activityFeed },
+        { provide: WritingStatsService, useValue: statsService },
         { provide: ProjectStateService, useValue: projectState },
         { provide: LoggerService, useValue: logger },
       ],
@@ -193,6 +206,30 @@ describe('ActivityTabComponent', () => {
     );
     expect((component as any).error()).toBeNull();
     expect((component as any).loadingMore()).toBe(false);
+  });
+
+  it('renders the stats summary above the feed and refreshes both together', async () => {
+    await setup({ events: [makeEvent('a')], nextBefore: null });
+
+    expect(
+      fixture.nativeElement.querySelector('app-project-stats-summary')
+    ).toBeTruthy();
+    expect(statsService.getProjectStats).toHaveBeenCalledWith(
+      'alice',
+      'my-book',
+      30
+    );
+
+    activityFeed.getProjectActivity.mockClear();
+    statsService.getProjectStats.mockClear();
+
+    fixture.nativeElement
+      .querySelector('[data-testid="activity-refresh-button"]')
+      .click();
+    await fixture.whenStable();
+
+    expect(activityFeed.getProjectActivity).toHaveBeenCalledTimes(1);
+    expect(statsService.getProjectStats).toHaveBeenCalledTimes(1);
   });
 
   it('describeSegments() produces a sensible string for each known event type', async () => {

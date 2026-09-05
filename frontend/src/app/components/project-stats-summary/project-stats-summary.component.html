@@ -1,0 +1,103 @@
+@if (loading()) {
+  <section
+    class="stats-summary loading"
+    data-testid="project-stats-loading"
+    aria-busy="true">
+    <mat-spinner diameter="24" />
+  </section>
+} @else if (errored()) {
+  <!-- Hidden on error so the activity feed below stays usable. -->
+} @else if (stats()) {
+  <section class="stats-summary" data-testid="project-stats-summary">
+    <header class="summary-header">
+      <h3>
+        <mat-icon>insights</mat-icon>
+        {{ 'project.activity.stats.title' | transloco }}
+      </h3>
+      <span class="window-label">
+        {{ 'project.activity.stats.window' | transloco: { days: windowDays } }}
+      </span>
+    </header>
+
+    @if (isEmpty()) {
+      <p class="empty-hint" data-testid="project-stats-empty">
+        <mat-icon>edit_note</mat-icon>
+        {{ 'project.activity.stats.empty' | transloco }}
+      </p>
+    } @else {
+      <div class="stats-row">
+        <div class="stat" data-testid="project-stat-words">
+          <div class="stat-value">{{ stats()!.totalWords | number }}</div>
+          <div class="stat-label">{{ 'words' | transloco }}</div>
+        </div>
+        <div class="stat" data-testid="project-stat-active-days">
+          <div class="stat-value">{{ activeDays() }}</div>
+          <div class="stat-label">
+            {{ 'project.activity.stats.activeDays' | transloco }}
+          </div>
+        </div>
+        <div class="stat" data-testid="project-stat-average">
+          <div class="stat-value">{{ averagePerActiveDay() | number }}</div>
+          <div class="stat-label">
+            {{ 'project.activity.stats.perActiveDay' | transloco }}
+          </div>
+        </div>
+        @if (bestDay(); as best) {
+          <div class="stat" data-testid="project-stat-best-day">
+            <div class="stat-value">{{ best.words | number }}</div>
+            <div class="stat-label">
+              {{ 'project.activity.stats.bestDay' | transloco }}
+            </div>
+            <div class="stat-detail" data-testid="project-stat-best-day-date">
+              {{ best.day }}
+            </div>
+          </div>
+        }
+      </div>
+
+      <figure class="sparkline" data-testid="project-stats-sparkline">
+        @for (bar of sparkline(); track bar.day) {
+          <div
+            class="sparkline-bar"
+            aria-hidden="true"
+            [class.is-empty]="bar.words === 0"
+            [style.height.%]="bar.words === 0 ? 4 : bar.heightPct"
+            [matTooltip]="bar.day + ': ' + (bar.words | number)"></div>
+        }
+        <figcaption class="sr-only">
+          {{
+            'project.activity.stats.sparklineLabel'
+              | transloco: { days: windowDays }
+          }}
+        </figcaption>
+      </figure>
+
+      @if (contributors().length > 1) {
+        <section class="contributors" data-testid="project-stats-contributors">
+          <h4>{{ 'project.activity.stats.contributors' | transloco }}</h4>
+          <ul class="contributor-list">
+            @for (c of contributors(); track c.userId) {
+              <li class="contributor" data-testid="project-stats-contributor">
+                <span class="contributor-name">{{ contributorLabel(c) }}</span>
+                <span class="contributor-bar">
+                  <span
+                    class="contributor-fill"
+                    [style.width.%]="c.sharePct"></span>
+                </span>
+                <span class="contributor-words">{{ c.words | number }}</span>
+              </li>
+            }
+          </ul>
+          @if (hiddenContributorCount() > 0) {
+            <p class="contributor-more">
+              {{
+                'project.activity.stats.moreContributors'
+                  | transloco: { count: hiddenContributorCount() }
+              }}
+            </p>
+          }
+        </section>
+      }
+    }
+  </section>
+}

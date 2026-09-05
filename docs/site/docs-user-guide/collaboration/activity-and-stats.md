@@ -32,6 +32,19 @@ If the statistics endpoint is unreachable the widget hides itself rather than sh
 
 Inside each project the sidebar has an **Activity** entry. Selecting it opens an append-only feed of every meaningful change made to that project, newest first.
 
+### Project writing statistics
+
+A **Writing Stats** summary sits at the top of the Activity tab and covers the last 30 days for this project only:
+
+- **Words** — net positive words written in the project
+- **Active days** — distinct days that recorded any writing
+- **Per active day** — average words written on those active days
+- **Best day** — the single highest-output day, with its date shown beneath the figure
+
+Below the figures, a bar sparkline shows daily output across the whole window, with one bar per day (hover a bar for its date and word count). When more than one person has contributed, a **Contributors** breakdown lists the top five by word count with their share of the total. Until any words are recorded the card shows a short hint instead of zeros.
+
+The summary reloads together with the feed when you press the refresh button, and hides itself if the statistics endpoint is unreachable so the feed remains usable.
+
 The feed records:
 
 | Event                     | Description                                 |
@@ -53,7 +66,7 @@ Each entry shows the actor, the affected entity, and a human-readable timestamp 
 
 ### Refreshing the feed
 
-The activity feed is fetched once when you open the tab. Use the refresh button in the tab header to pull the latest events without leaving the page.
+The activity feed is fetched once when you open the tab. Use the refresh button in the tab header to pull the latest events (and the latest writing statistics) without leaving the page.
 
 ### Error handling
 
