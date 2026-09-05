@@ -121,7 +121,7 @@ All notable changes to this project will be documented in this file.
         service.getChangelog().subscribe(v => resolve(v));
       });
 
-      expect(versions.length).toBe(3);
+      expect(versions).toHaveLength(3);
       expect(versions[0].version).toBe('Unreleased');
       expect(versions[1].version).toBe('1.0.0');
       expect(versions[2].version).toBe('0.9.0');
