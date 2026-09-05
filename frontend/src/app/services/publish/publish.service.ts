@@ -37,6 +37,10 @@ import { ProjectStateService } from '../project/project-state.service';
 import { EpubGeneratorService, EpubPhase } from './epub-generator.service';
 import { HtmlGeneratorService, HtmlPhase } from './html-generator.service';
 import {
+  HtmlSiteGeneratorService,
+  HtmlSitePhase,
+} from './html-site-generator.service';
+import {
   MarkdownGeneratorService,
   MarkdownPhase,
 } from './markdown-generator.service';
@@ -150,6 +154,7 @@ export class PublishService {
   private readonly epubGenerator = inject(EpubGeneratorService);
   private readonly pdfGenerator = inject(PdfGeneratorService);
   private readonly htmlGenerator = inject(HtmlGeneratorService);
+  private readonly htmlSiteGenerator = inject(HtmlSiteGeneratorService);
   private readonly markdownGenerator = inject(MarkdownGeneratorService);
   private readonly publishedFilesService = inject(PublishedFilesService);
   private readonly projectState = inject(ProjectStateService);
@@ -530,6 +535,9 @@ export class PublishService {
         case PublishFormat.HTML:
           this.generateHtml(plan, cancelled$, resolve);
           break;
+        case PublishFormat.HTML_SITE:
+          this.generateHtmlSite(plan, cancelled$, resolve);
+          break;
         case PublishFormat.MARKDOWN:
           this.generateMarkdown(plan, cancelled$, resolve);
           break;
@@ -788,6 +796,83 @@ export class PublishService {
   }
 
   /**
+   * Generate multi-page website output (ZIP of HTML pages)
+   */
+  private generateHtmlSite(
+    plan: PublishPlan,
+    cancelled$: Observable<void>,
+    resolve: (result: PublishingResult) => void
+  ): void {
+    const progressSub = this.htmlSiteGenerator.progress$
+      .pipe(takeUntil(cancelled$))
+      .subscribe(siteProgress => {
+        const siteOverall = 45 + siteProgress.overallProgress * 0.5;
+
+        this.updateProgress({
+          phase: PublishingPhase.GENERATING,
+          overallProgress: siteOverall,
+          message: siteProgress.message,
+          cancellable: siteProgress.phase !== HtmlSitePhase.Complete,
+          subPhase: {
+            type: 'generate',
+            phase: siteProgress.phase,
+            progress: siteProgress.overallProgress,
+            totalItems: siteProgress.totalItems,
+            completedItems: siteProgress.completedItems,
+          },
+        });
+
+        if (
+          siteProgress.phase === HtmlSitePhase.Complete ||
+          siteProgress.phase === HtmlSitePhase.Error
+        ) {
+          progressSub.unsubscribe();
+        }
+      });
+
+    this.htmlSiteGenerator
+      .generateSite(plan)
+      .then(siteResult => {
+        progressSub.unsubscribe();
+
+        if (siteResult.success && siteResult.file) {
+          resolve({
+            success: true,
+            result: {
+              success: true,
+              file: siteResult.file,
+              filename: siteResult.filename || 'site.zip',
+              mimeType: 'application/zip',
+              warnings: siteResult.warnings || [],
+              stats: siteResult.stats,
+            },
+            stats: siteResult.stats,
+          });
+        } else {
+          resolve({
+            success: false,
+            error: siteResult.error || 'Website generation failed',
+          });
+        }
+      })
+      .catch(error => {
+        progressSub.unsubscribe();
+        resolve({
+          success: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Website generation failed',
+        });
+      });
+
+    cancelled$.subscribe(() => {
+      progressSub.unsubscribe();
+      resolve({ success: false, cancelled: true });
+    });
+  }
+
+  /**
    * Generate Markdown output
    */
   private generateMarkdown(
@@ -920,6 +1005,7 @@ export class PublishService {
       [PublishFormat.EPUB]: 'epub',
       [PublishFormat.PDF_SIMPLE]: 'pdf',
       [PublishFormat.HTML]: 'html',
+      [PublishFormat.HTML_SITE]: 'zip',
       [PublishFormat.MARKDOWN]: 'md',
     };
     return extensions[format] || 'bin';
@@ -934,6 +1020,7 @@ export class PublishService {
       pdf: 'application/pdf',
       docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       html: 'text/html',
+      zip: 'application/zip',
       markdown: 'text/markdown',
     };
     return mimeTypes[format] || 'application/octet-stream';

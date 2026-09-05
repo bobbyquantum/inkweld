@@ -190,7 +190,7 @@ test.describe('Online Publish Style Editor', () => {
       // Switch format to HTML and generate.
       await selectSection(page, 'metadata');
       await page.getByTestId('format-select').click();
-      await page.getByRole('option', { name: 'HTML' }).click();
+      await page.getByRole('option', { name: 'HTML (Single Page)' }).click();
 
       await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
@@ -299,7 +299,7 @@ test.describe('Online Publish Style Editor', () => {
 
       await selectSection(page, 'metadata');
       await page.getByTestId('format-select').click();
-      await page.getByRole('option', { name: 'HTML' }).click();
+      await page.getByRole('option', { name: 'HTML (Single Page)' }).click();
 
       await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();

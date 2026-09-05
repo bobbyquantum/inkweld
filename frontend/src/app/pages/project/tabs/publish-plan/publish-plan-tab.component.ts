@@ -590,7 +590,8 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     const names: Record<PublishFormat, string> = {
       [PublishFormat.EPUB]: 'EPUB (E-Book)',
       [PublishFormat.PDF_SIMPLE]: 'PDF',
-      [PublishFormat.HTML]: 'HTML',
+      [PublishFormat.HTML]: 'HTML (Single Page)',
+      [PublishFormat.HTML_SITE]: 'Website (Multi-Page HTML)',
       [PublishFormat.MARKDOWN]: 'Markdown',
     };
     return names[format] || format;
@@ -657,6 +658,8 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
         return 'picture_as_pdf';
       case PublishFormat.HTML:
         return 'code';
+      case PublishFormat.HTML_SITE:
+        return 'web';
       case PublishFormat.MARKDOWN:
         return 'description';
       default:

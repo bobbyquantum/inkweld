@@ -24,6 +24,12 @@ import {
   type HtmlResult,
 } from './html-generator.service';
 import {
+  HtmlSiteGeneratorService,
+  HtmlSitePhase,
+  type HtmlSiteProgress,
+  type HtmlSiteResult,
+} from './html-site-generator.service';
+import {
   MarkdownGeneratorService,
   MarkdownPhase,
   type MarkdownProgress,
@@ -70,6 +76,10 @@ describe('PublishService', () => {
     progress$: BehaviorSubject<HtmlProgress>;
     complete$: Subject<HtmlResult>;
     generateHtml: ReturnType<typeof vi.fn>;
+  };
+  let htmlSiteGeneratorMock: {
+    progress$: BehaviorSubject<HtmlSiteProgress>;
+    generateSite: ReturnType<typeof vi.fn>;
   };
   let markdownGeneratorMock: {
     progress$: BehaviorSubject<MarkdownProgress>;
@@ -240,6 +250,36 @@ describe('PublishService', () => {
       completedItems: 0,
     });
 
+    const siteProgressSubject = new BehaviorSubject<HtmlSiteProgress>({
+      phase: HtmlSitePhase.Idle,
+      overallProgress: 0,
+      message: 'Ready',
+      totalItems: 0,
+      completedItems: 0,
+    });
+    htmlSiteGeneratorMock = {
+      progress$: siteProgressSubject,
+      generateSite: vi.fn().mockImplementation(() => {
+        setTimeout(() => {
+          siteProgressSubject.next({
+            phase: HtmlSitePhase.Complete,
+            overallProgress: 100,
+            message: 'Complete',
+            totalItems: 1,
+            completedItems: 1,
+          });
+        }, 10);
+        const result: HtmlSiteResult = {
+          success: true,
+          file: new Blob(['zip'], { type: 'application/zip' }),
+          filename: 'test-book-site.zip',
+          warnings: [],
+          pageCount: 2,
+        };
+        return Promise.resolve(result);
+      }),
+    };
+
     htmlGeneratorMock = {
       progress$: htmlProgressSubject,
       complete$: new Subject<HtmlResult>(),
@@ -316,6 +356,7 @@ describe('PublishService', () => {
         { provide: EpubGeneratorService, useValue: epubGeneratorMock },
         { provide: PdfGeneratorService, useValue: pdfGeneratorMock },
         { provide: HtmlGeneratorService, useValue: htmlGeneratorMock },
+        { provide: HtmlSiteGeneratorService, useValue: htmlSiteGeneratorMock },
         { provide: MarkdownGeneratorService, useValue: markdownGeneratorMock },
       ],
     });
@@ -429,6 +470,10 @@ describe('PublishService', () => {
           { provide: PdfGeneratorService, useValue: pdfGeneratorMock },
           { provide: HtmlGeneratorService, useValue: htmlGeneratorMock },
           {
+            provide: HtmlSiteGeneratorService,
+            useValue: htmlSiteGeneratorMock,
+          },
+          {
             provide: MarkdownGeneratorService,
             useValue: markdownGeneratorMock,
           },
@@ -496,6 +541,36 @@ describe('PublishService', () => {
 
       expect(htmlGeneratorMock.generateHtml).toHaveBeenCalled();
       expect(result.success).toBe(true);
+    });
+
+    it('should generate a website ZIP when format is HTML_SITE', async () => {
+      const sitePlan = { ...mockPlan, format: PublishFormat.HTML_SITE };
+      publishPlanServiceMock.getPlan.mockReturnValue(sitePlan);
+
+      const result = await service.publish('plan-1', { skipSync: true });
+
+      expect(htmlSiteGeneratorMock.generateSite).toHaveBeenCalledWith(sitePlan);
+      expect(htmlGeneratorMock.generateHtml).not.toHaveBeenCalled();
+      expect(result.success).toBe(true);
+      expect(result.result?.mimeType).toBe('application/zip');
+      expect(result.result?.filename).toBe('test-book-site.zip');
+    });
+
+    it('should report failure when website generation fails', async () => {
+      htmlSiteGeneratorMock.generateSite.mockResolvedValue({
+        success: false,
+        warnings: [],
+        error: 'boom',
+      });
+      publishPlanServiceMock.getPlan.mockReturnValue({
+        ...mockPlan,
+        format: PublishFormat.HTML_SITE,
+      });
+
+      const result = await service.publish('plan-1', { skipSync: true });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('boom');
     });
 
     it('should generate Markdown when format is MARKDOWN', async () => {

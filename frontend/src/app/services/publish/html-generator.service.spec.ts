@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
+  BackmatterType,
   ChapterNumbering,
   FrontmatterType,
   PublishFormat,
@@ -21,6 +22,7 @@ import {
   HtmlGeneratorService,
   HtmlPhase,
   type HtmlProgress,
+  sanitizeCssColor,
 } from './html-generator.service';
 
 describe('HtmlGeneratorService', () => {
@@ -40,7 +42,9 @@ describe('HtmlGeneratorService', () => {
     coverMediaId: ReturnType<typeof signal<string | undefined>>;
   };
   let localStorageMock: {
-    getMedia: ReturnType<typeof vi.fn>;
+    getMedia: ReturnType<
+      typeof vi.fn<(key: string, id: string) => Promise<Blob | null>>
+    >;
   };
 
   const mockProject: Project = {
@@ -113,7 +117,9 @@ describe('HtmlGeneratorService', () => {
     };
 
     localStorageMock = {
-      getMedia: vi.fn().mockResolvedValue(null),
+      getMedia: vi
+        .fn<(key: string, id: string) => Promise<Blob | null>>()
+        .mockResolvedValue(null),
     };
 
     // Mock IndexedDB
@@ -727,7 +733,7 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
-      expect(text).toContain('<h2 class="ink-doc-heading-2">');
+      expect(text).toContain('<h2 class="ink-doc-heading-2" id="my-heading">');
     });
 
     it('should convert tables, including header cells and column alignment', async () => {
@@ -1608,6 +1614,331 @@ describe('HtmlGeneratorService', () => {
       const result = await service.generateHtml(planWithElement);
 
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe('rich content rendering', () => {
+    const docPlan = (): PublishPlan => ({
+      ...mockPlan,
+      items: [
+        {
+          id: 'item-1',
+          type: PublishPlanItemType.Element,
+          elementId: 'doc-1',
+          includeChildren: false,
+        },
+      ],
+    });
+
+    const render = async (content: unknown[]): Promise<string> => {
+      documentServiceMock.getDocumentContent.mockResolvedValue(content);
+      const result = await service.generateHtml(docPlan());
+      expect(result.success).toBe(true);
+      return result.file!.text();
+    };
+
+    it('should embed media images as data URLs in single-page output', async () => {
+      localStorageMock.getMedia.mockImplementation((_key: string, id: string) =>
+        Promise.resolve(
+          id === 'img-1' ? new Blob(['png'], { type: 'image/png' }) : null
+        )
+      );
+      const text = await render([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'image',
+              attrs: { src: 'media:img-1', alt: 'A map', width: '320' },
+            },
+          ],
+        },
+      ]);
+
+      expect(localStorageMock.getMedia).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'img-1'
+      );
+      expect(text).toContain(
+        '<img class="ink-doc-image" src="data:image/png;base64,cG5n" alt="A map" width="320" loading="lazy" />'
+      );
+    });
+
+    it('should accept media:// references with an extension', async () => {
+      localStorageMock.getMedia.mockImplementation((_key: string, id: string) =>
+        Promise.resolve(
+          id === 'img-elara' ? new Blob(['jpg'], { type: 'image/jpeg' }) : null
+        )
+      );
+      const text = await render([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'image',
+              attrs: { src: 'media://img-elara.jpg', alt: 'Elara' },
+            },
+          ],
+        },
+      ]);
+
+      expect(localStorageMock.getMedia).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'img-elara'
+      );
+      expect(text).toContain('src="data:image/jpeg;base64,anBn" alt="Elara"');
+    });
+
+    it('should render a placeholder and warn when a media image is missing', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'image', attrs: { src: 'media:gone', alt: 'Lost' } },
+          ],
+        },
+      ]);
+
+      const result = await service.generateHtml(docPlan());
+      const text = await result.file!.text();
+
+      expect(text).toContain(
+        '<span class="ink-doc-image-missing" role="img" aria-label="Image unavailable: Lost">[Image unavailable: Lost]</span>'
+      );
+      expect(text).not.toContain('<img');
+      expect(result.warnings).toContain('Image gone could not be loaded');
+    });
+
+    it('should pass through http(s) and data image sources but drop unsafe ones', async () => {
+      const text = await render([
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'image', attrs: { src: 'https://example.com/a.png' } },
+            {
+              type: 'image',
+              attrs: { src: 'data:image/gif;base64,R0lGOD', alt: 'inline' },
+            },
+            { type: 'image', attrs: { src: 'javascript:alert(1)', alt: 'x' } },
+          ],
+        },
+      ]);
+
+      expect(text).toContain('src="https://example.com/a.png"');
+      expect(text).toContain('src="data:image/gif;base64,R0lGOD"');
+      expect(text).not.toContain('javascript:');
+      expect(text).toContain('[Image unavailable: x]');
+    });
+
+    it('should apply text colour and highlight marks with validated colours only', async () => {
+      const text = await render([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              text: 'red',
+              marks: [{ type: 'text_color', attrs: { color: '#ff0000' } }],
+            },
+            {
+              text: 'lit',
+              marks: [
+                {
+                  type: 'text_background_color',
+                  attrs: { backgroundColor: 'rgb(255, 255, 0)' },
+                },
+              ],
+            },
+            {
+              text: 'bad',
+              marks: [
+                {
+                  type: 'text_color',
+                  attrs: { color: 'red; background: url(x)' },
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+
+      expect(text).toContain(
+        '<span class="ink-mark-color" style="color: #ff0000;">red</span>'
+      );
+      expect(text).toContain(
+        '<span class="ink-mark-highlight" style="background-color: rgb(255, 255, 0);">lit</span>'
+      );
+      expect(text).toContain('>bad<');
+      expect(text).not.toContain('url(x)');
+    });
+
+    it('should emit alignment and capped indent classes on blocks', async () => {
+      const text = await render([
+        {
+          type: 'paragraph',
+          attrs: { align: 'center', indent: 2 },
+          content: [{ text: 'centered' }],
+        },
+        {
+          type: 'heading',
+          attrs: { level: 2, align: 'right', indent: 40 },
+          content: [{ text: 'Far' }],
+        },
+        {
+          type: 'blockquote',
+          attrs: { indent: 1 },
+          content: [{ type: 'paragraph', content: [{ text: 'q' }] }],
+        },
+      ]);
+
+      expect(text).toContain(
+        '<p class="ink-doc-paragraph ink-doc-align-center ink-doc-indent-2">'
+      );
+      expect(text).toContain(
+        '<h2 class="ink-doc-heading-2 ink-doc-align-right ink-doc-indent-8" id="far">'
+      );
+      expect(text).toContain(
+        '<blockquote class="ink-doc-blockquote ink-doc-indent-1">'
+      );
+    });
+
+    it('should honour ordered list start numbers and wrap code blocks in <code>', async () => {
+      const text = await render([
+        {
+          type: 'ordered_list',
+          attrs: { order: 4 },
+          content: [
+            {
+              type: 'list_item',
+              content: [{ type: 'paragraph', content: [{ text: 'four' }] }],
+            },
+          ],
+        },
+        {
+          type: 'ordered_list',
+          attrs: { order: 1 },
+          content: [
+            {
+              type: 'list_item',
+              content: [{ type: 'paragraph', content: [{ text: 'one' }] }],
+            },
+          ],
+        },
+        { type: 'code_block', content: [{ text: 'const a = 1 < 2;' }] },
+      ]);
+
+      expect(text).toContain('<ol class="ink-doc-ordered-list" start="4">');
+      expect(text).toContain('<ol class="ink-doc-ordered-list"><li');
+      expect(text).toContain(
+        '<pre class="ink-doc-code-block"><code>const a = 1 &lt; 2;</code></pre>'
+      );
+    });
+
+    it('should give headings unique slug ids', async () => {
+      const text = await render([
+        { type: 'heading', attrs: { level: 2 }, content: [{ text: 'Setup' }] },
+        { type: 'heading', attrs: { level: 3 }, content: [{ text: 'Setup' }] },
+        { type: 'heading', attrs: { level: 2 }, content: [] },
+        {
+          type: 'heading',
+          attrs: { level: 2 },
+          content: [{ text: 'Café & Crème!' }],
+        },
+      ]);
+
+      expect(text).toContain('id="setup">Setup</h2>');
+      expect(text).toContain('id="setup-2">Setup</h3>');
+      expect(text).toContain('id="section"></h2>');
+      expect(text).toContain('id="cafe-creme">');
+    });
+
+    it('should expose rendered headings and reset them per scope', async () => {
+      await render([
+        { type: 'heading', attrs: { level: 2 }, content: [{ text: 'One' }] },
+        { type: 'heading', attrs: { level: 3 }, content: [{ text: 'Two' }] },
+      ]);
+
+      expect(service.takeRenderedHeadings()).toEqual([
+        { level: 2, id: 'one', text: 'One' },
+        { level: 3, id: 'two', text: 'Two' },
+      ]);
+      expect(service.takeRenderedHeadings()).toEqual([]);
+    });
+  });
+
+  describe('back matter', () => {
+    const backmatterPlan = (
+      contentType: BackmatterType,
+      extra: { customTitle?: string; customContent?: string } = {}
+    ): PublishPlan => ({
+      ...mockPlan,
+      items: [
+        {
+          id: 'bm-1',
+          type: PublishPlanItemType.Backmatter,
+          contentType,
+          ...extra,
+        },
+      ],
+    });
+
+    it('should render an about-the-author section from metadata', async () => {
+      const result = await service.generateHtml(
+        backmatterPlan(BackmatterType.AboutAuthor)
+      );
+      const text = await result.file!.text();
+
+      expect(text).toContain(
+        '<section class="ink-backmatter ink-backmatter-about-author">'
+      );
+      expect(text).toContain(
+        '<h2 class="ink-backmatter-title">About the Author</h2>'
+      );
+      expect(text).toContain('<p>Test Author</p>');
+    });
+
+    it('should render custom back matter with escaped content', async () => {
+      const result = await service.generateHtml(
+        backmatterPlan(BackmatterType.Custom, {
+          customTitle: 'Notes <1>',
+          customContent: 'Thanks & praise',
+        })
+      );
+      const text = await result.file!.text();
+
+      expect(text).toContain(
+        '<h2 class="ink-backmatter-title">Notes &lt;1&gt;</h2>'
+      );
+      expect(text).toContain('<p>Thanks &amp; praise</p>');
+    });
+
+    it('should skip an empty glossary with a warning', async () => {
+      const result = await service.generateHtml(
+        backmatterPlan(BackmatterType.Glossary)
+      );
+      const text = await result.file!.text();
+
+      expect(text).not.toContain('<section class="ink-backmatter');
+      expect(result.warnings).toContain(
+        'Glossary back matter has no content and was skipped'
+      );
+    });
+  });
+
+  describe('sanitizeCssColor', () => {
+    it('should accept hex, functional, and named colours', () => {
+      expect(sanitizeCssColor('#abc')).toBe('#abc');
+      expect(sanitizeCssColor('#AABBCCDD')).toBe('#AABBCCDD');
+      expect(sanitizeCssColor('rgba(1, 2, 3, 0.5)')).toBe('rgba(1, 2, 3, 0.5)');
+      expect(sanitizeCssColor('hsl(120 50% 50%)')).toBe('hsl(120 50% 50%)');
+      expect(sanitizeCssColor(' Tomato ')).toBe('tomato');
+    });
+
+    it('should reject anything that could carry extra CSS', () => {
+      expect(sanitizeCssColor('red; color: blue')).toBeNull();
+      expect(sanitizeCssColor('url(evil)')).toBeNull();
+      expect(sanitizeCssColor('expression(1)')).toBeNull();
+      expect(sanitizeCssColor(42)).toBeNull();
+      expect(sanitizeCssColor(null)).toBeNull();
     });
   });
 });

@@ -221,6 +221,14 @@ ${indent}}`;
       '.ink-doc-align-left { text-align: left; }',
       '.ink-doc-align-center { text-align: center; }',
       '.ink-doc-align-right { text-align: right; }',
+      ...Array.from(
+        { length: 8 },
+        (_, i) => `.ink-doc-indent-${i + 1} { margin-left: ${(i + 1) * 2}em; }`
+      ),
+      '.ink-doc-code-block { overflow-x: auto; white-space: pre; }',
+      '.ink-doc-code-block code { font-family: inherit; }',
+      '.ink-doc-image-missing { display: inline-block; padding: 0.2em 0.5em; border: 1px dashed #999; color: #666; font-size: 0.85em; }',
+      '.ink-backmatter-title { margin-top: 2em; }',
     ];
     return rules.join('\n');
   }
@@ -240,6 +248,29 @@ ${indent}}`;
       `.ink-wb-tab-heading { ${textStyleDecls(wb.tabHeading, { epub }).join(' ')} }`,
       `.ink-wb-field-label { ${textStyleDecls(wb.fieldLabel, { epub }).join(' ')} display: inline-block; min-width: 8em; margin-right: 0.5em; }`,
       `.ink-wb-field-value { ${textStyleDecls(wb.fieldValue, { epub }).join(' ')} }`,
+      // Entry chrome: header row, schema badge, icons (hidden until the
+      // icon font is confirmed loaded), authored backgrounds, field grid.
+      '.ink-wb-entry { border-radius: 12px; overflow: hidden; }',
+      '.ink-wb-entry-header { display: flex; align-items: baseline; gap: 0.5em; flex-wrap: wrap; }',
+      '.ink-wb-entry-header .ink-wb-entry-title { margin: 0; }',
+      '.ink-wb-entry-schema { font-size: 0.75em; letter-spacing: 0.04em; text-transform: uppercase; color: #666; border: 1px solid #ccc; border-radius: 999px; padding: 0.1em 0.6em; }',
+      '.ink-wb-icon { display: inline-block; width: 1.25em; height: 1.25em; vertical-align: -0.25em; margin-right: 0.35em; }',
+      '.ink-wb-icon svg { display: block; width: 100%; height: 100%; fill: currentColor; }',
+      '.ink-wb-entry-image { display: block; max-height: 420px; object-fit: cover; border-radius: 8px; margin: 0.75em 0; }',
+      '.ink-wb-has-bg { background: var(--ink-wb-bg); background-size: cover; background-position: center; padding: 1em; }',
+      '.ink-wb-has-bg .ink-wb-tab, .ink-wb-has-bg .ink-wb-entry-header, .ink-wb-has-bg .ink-wb-entry-description { background: rgba(255, 255, 255, 0.85); border-radius: 8px; padding: 0.6em 0.8em; }',
+      '.ink-wb-has-bg-image .ink-wb-tab, .ink-wb-has-bg-image .ink-wb-entry-header, .ink-wb-has-bg-image .ink-wb-entry-description { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }',
+      '.ink-wb-tab { margin-top: 0.75em; }',
+      '.ink-wb-fields { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5em 1.25em; margin: 0; }',
+      '.ink-wb-field { grid-column: span 12; min-width: 0; }',
+      '.ink-wb-field .ink-wb-field-label { display: block; min-width: 0; margin: 0; }',
+      '.ink-wb-field .ink-wb-field-value { margin: 0.15em 0 0; overflow-wrap: anywhere; }',
+      '.ink-wb-field-type-textarea .ink-wb-field-value { white-space: pre-line; }',
+      ...Array.from(
+        { length: 12 },
+        (_, i) => `.ink-wb-span-${i + 1} { grid-column: span ${i + 1}; }`
+      ),
+      '@media (max-width: 600px) { .ink-wb-field { grid-column: span 12 !important; } }',
       // Layout-specific tweaks
       `.ink-wb-entry.ink-wb-layout-compact { border-width: 0; padding: 4pt 0; }`,
       `.ink-wb-entry.ink-wb-layout-detail { border-width: 0; padding: 16pt 0; }`,

@@ -45,6 +45,7 @@ import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DocumentSyncState } from '@models/document-sync-state';
 import { type ElementAppearance } from '@models/element-appearance';
 import { type ResolvedTag } from '@models/tag.model';
+import { WORLDBUILDING_ICONS } from '@models/worldbuilding-icons';
 import { RelationshipFieldService } from '@services/relationship/relationship-field.service';
 import { AppearanceService } from '@services/worldbuilding/appearance.service';
 import {
@@ -1137,98 +1138,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
    * shown even if it isn't in this curated list.
    */
   protected getAvailableIcons(): string[] {
-    return [
-      // Element-type icons (must cover built-in types).
-      'person',
-      'place',
-      'category',
-      'map',
-      'diversity_1',
-      'auto_stories',
-      'groups',
-      'pets',
-      'settings',
-      'description',
-      'folder',
-      'hub',
-      'dashboard',
-      'timeline',
-      // Icons used by the default schemas' tabs (schema + tab icons).
-      'info',
-      'visibility',
-      'psychology',
-      'history_edu',
-      'stars',
-      'ac_unit',
-      'account_balance',
-      'account_tree',
-      'auto_awesome',
-      'blur_on',
-      'bolt',
-      'build',
-      'celebration',
-      'church',
-      'content_copy',
-      'coronavirus',
-      'directions_car',
-      'event',
-      'explore',
-      'face',
-      'flag',
-      'flash_on',
-      'forum',
-      'gavel',
-      'history',
-      'home_work',
-      'lightbulb',
-      'location_city',
-      'location_on',
-      'menu_book',
-      'military_tech',
-      'nights_stay',
-      'public',
-      'record_voice_over',
-      'router',
-      'rule',
-      'school',
-      'science',
-      'sick',
-      'terrain',
-      'today',
-      'translate',
-      'tune',
-      'work',
-      // Additional common icons.
-      'article',
-      'watch_later',
-      'people',
-      'group',
-      'campaign',
-      'cloud',
-      'computer',
-      'currency_exchange',
-      'desktop_windows',
-      'family_restroom',
-      'format_paint',
-      'inventory_2',
-      'key',
-      'label',
-      'link',
-      'list',
-      'local_offer',
-      'lock',
-      'phone_android',
-      'publish',
-      'push_pin',
-      'schedule',
-      'star',
-      'bookmark',
-      'edit_note',
-      'palette',
-      'sync',
-      'tablet',
-      'update',
-    ];
+    return [...WORLDBUILDING_ICONS];
   }
 
   /**
