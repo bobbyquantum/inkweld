@@ -55,22 +55,22 @@
         }
       </div>
 
-      <div
-        class="sparkline"
-        role="img"
-        data-testid="project-stats-sparkline"
-        [attr.aria-label]="
-          'project.activity.stats.sparklineLabel'
-            | transloco: { days: windowDays }
-        ">
+      <figure class="sparkline" data-testid="project-stats-sparkline">
         @for (bar of sparkline(); track bar.day) {
           <div
             class="sparkline-bar"
+            aria-hidden="true"
             [class.is-empty]="bar.words === 0"
             [style.height.%]="bar.words === 0 ? 4 : bar.heightPct"
             [matTooltip]="bar.day + ': ' + (bar.words | number)"></div>
         }
-      </div>
+        <figcaption class="sr-only">
+          {{
+            'project.activity.stats.sparklineLabel'
+              | transloco: { days: windowDays }
+          }}
+        </figcaption>
+      </figure>
 
       @if (contributors().length > 1) {
         <section class="contributors" data-testid="project-stats-contributors">
