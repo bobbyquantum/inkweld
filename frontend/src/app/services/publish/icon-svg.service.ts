@@ -68,7 +68,7 @@ export class IconSvgService {
     if (typeof DOMParser === 'undefined') return null;
     const doc = new DOMParser().parseFromString(markup, 'image/svg+xml');
     const root = doc.documentElement;
-    if (!root || root.nodeName.toLowerCase() !== 'svg') return null;
+    if (root?.nodeName.toLowerCase() !== 'svg') return null;
     const viewBox = root.getAttribute('viewBox') ?? '';
     if (!/^-?[\d.]+(?: -?[\d.]+){3}$/.test(viewBox)) return null;
 

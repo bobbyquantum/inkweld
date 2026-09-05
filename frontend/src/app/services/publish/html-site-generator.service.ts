@@ -80,6 +80,12 @@ interface SitePage {
   headings?: RenderedHeading[];
 }
 
+/** A prev/next footer link. */
+interface PagerTarget {
+  href: string;
+  title: string;
+}
+
 /** One entry of the client-side search index shipped with the site. */
 interface SearchEntry {
   /** Page href relative to the site root. */
@@ -666,6 +672,32 @@ export class HtmlSiteGeneratorService {
   }
 
   /**
+   * Previous/next targets for a page's footer. The index (page `null`) has
+   * no previous and points forward to the first page; the first page points
+   * back to the index; the last page has no next.
+   */
+  private pagerTargets(
+    pages: SitePage[],
+    page: SitePage | null,
+    siteTitle: string
+  ): { prev: PagerTarget | null; next: PagerTarget | null } {
+    const toTarget = (p: SitePage): PagerTarget => ({
+      href: `${p.slug}.html`,
+      title: p.title,
+    });
+    if (page === null) {
+      return { prev: null, next: pages.length > 0 ? toTarget(pages[0]) : null };
+    }
+    const index = pages.indexOf(page);
+    const prev =
+      index > 0
+        ? toTarget(pages[index - 1])
+        : { href: `${INDEX_SLUG}.html`, title: siteTitle };
+    const next = index < pages.length - 1 ? toTarget(pages[index + 1]) : null;
+    return { prev, next };
+  }
+
+  /**
    * Wrap a page body in the site chrome: header, sidebar navigation, main
    * column, and prev/next footer. `page` is `null` for index.html.
    */
@@ -680,25 +712,7 @@ export class HtmlSiteGeneratorService {
     const siteTitle = m.title || 'Untitled';
     const pageTitle = page ? `${page.title} · ${siteTitle}` : siteTitle;
 
-    const index = page ? pages.indexOf(page) : -1;
-    const prev: { href: string; title: string } | null = page
-      ? index > 0
-        ? {
-            href: `${pages[index - 1].slug}.html`,
-            title: pages[index - 1].title,
-          }
-        : { href: `${INDEX_SLUG}.html`, title: siteTitle }
-      : null;
-    const next: { href: string; title: string } | null = page
-      ? index < pages.length - 1
-        ? {
-            href: `${pages[index + 1].slug}.html`,
-            title: pages[index + 1].title,
-          }
-        : null
-      : pages.length > 0
-        ? { href: `${pages[0].slug}.html`, title: pages[0].title }
-        : null;
+    const { prev, next } = this.pagerTargets(pages, page, siteTitle);
 
     const pager: string[] = ['<footer class="ink-pager">'];
     pager.push(
@@ -814,7 +828,7 @@ ${pager.join('\n')}
     });
     // `<` is escaped so the payload can never close a script tag if it is
     // ever inlined; harmless in an external script.
-    const json = JSON.stringify(entries).replaceAll('<', '\\u003c');
+    const json = JSON.stringify(entries).replaceAll('<', String.raw`\u003c`);
     return `window.__INKWELD_SEARCH_INDEX__ = ${json};\n`;
   }
 

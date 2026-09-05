@@ -109,7 +109,7 @@ export function sanitizeCssColor(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const v = value.trim();
   if (/^#[0-9a-f]{3,8}$/i.test(v)) return v;
-  if (/^(?:rgb|hsl)a?\(\s*[\d.%\s,/-]+\)$/i.test(v)) return v;
+  if (/^(?:rgb|hsl)a?\([\d.%\s,/-]+\)$/i.test(v)) return v;
   if (/^[a-z]{3,20}$/i.test(v)) return v.toLowerCase();
   return null;
 }
@@ -1055,20 +1055,7 @@ export class HtmlGeneratorService {
 
     if (['br', 'hr'].includes(tagName)) return `<${tagName} />`;
 
-    const extraAttrs: string[] = [];
-    if (tagName.length === 2 && tagName.startsWith('h')) {
-      const level = Number(tagName[1]);
-      const text = this.plainText(node);
-      const id = this.uniqueHeadingId(text);
-      this.renderedHeadings.push({ level, id, text });
-      extraAttrs.push(` id="${id}"`);
-    }
-    if (tagName === 'ol') {
-      const order = Number(this.nodeAttrs(node)?.['order']);
-      if (Number.isInteger(order) && order > 1) {
-        extraAttrs.push(` start="${order}"`);
-      }
-    }
+    const extraAttrs = this.blockExtraAttrs(tagName, node);
     if (tagName === 'pre') {
       childHtml = `<code>${childHtml}</code>`;
     }
@@ -1077,6 +1064,26 @@ export class HtmlGeneratorService {
       ? ` class="${classNames.join(' ')}"`
       : '';
     return `<${tagName}${classAttr}${extraAttrs.join('')}>${childHtml}</${tagName}>`;
+  }
+
+  /**
+   * Tag-specific attributes for a block: a unique anchor id on headings
+   * (also recorded for page outlines) and `start` on ordered lists that
+   * don't begin at one.
+   */
+  private blockExtraAttrs(tagName: string, node: ProseMirrorNode): string[] {
+    if (tagName.length === 2 && tagName.startsWith('h')) {
+      const level = Number(tagName[1]);
+      const text = this.plainText(node);
+      const id = this.uniqueHeadingId(text);
+      this.renderedHeadings.push({ level, id, text });
+      return [` id="${id}"`];
+    }
+    if (tagName === 'ol') {
+      const order = Number(this.nodeAttrs(node)?.['order']);
+      if (Number.isInteger(order) && order > 1) return [` start="${order}"`];
+    }
+    return [];
   }
 
   /**
