@@ -4,6 +4,8 @@
  * Verifies the project-scoped activity tab and the user-profile writing-stats
  * widget against a real backend. Covers:
  * - Activity tab empty state for a brand-new project
+ * - Project writing-stats summary renders above the feed (empty for a new
+ *   project) and survives a refresh
  * - Activity tab error state when the API is unreachable
  * - Writing-stats widget renders against the real /api/v1/stats/me endpoint
  * - Writing-stats widget hides itself when stats fail to load
@@ -40,9 +42,17 @@ test.describe('Stats + Activity — Online Mode', () => {
     const items = page.getByTestId('event-item');
     await expect(items.first()).toBeVisible({ timeout: 15_000 });
 
-    // Sanity: refresh button works and feed survives.
+    // The per-project writing-stats summary sits above the feed. A brand-new
+    // project has no recorded words, so it renders the empty hint.
+    const summary = page.getByTestId('project-stats-summary');
+    await expect(summary).toBeVisible({ timeout: 15_000 });
+    await expect(summary).toContainText(/last 30 days/i);
+    await expect(page.getByTestId('project-stats-empty')).toBeVisible();
+
+    // Sanity: refresh button works and both the feed and summary survive.
     await page.getByTestId('activity-refresh-button').click();
     await expect(items.first()).toBeVisible({ timeout: 15_000 });
+    await expect(summary).toBeVisible({ timeout: 15_000 });
   });
 
   test('activity tab surfaces an error state when the API is blocked', async ({

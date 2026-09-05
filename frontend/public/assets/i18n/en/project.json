@@ -79,6 +79,17 @@
     "noActivity": "No activity yet",
     "noActivityHint": "Edits, comments, snapshots and other changes will appear here.",
     "loadMore": "Load more",
+    "stats": {
+      "title": "Writing Stats",
+      "window": "Last {{days}} days",
+      "empty": "No words recorded in this window yet. Stats appear as you write.",
+      "activeDays": "active days",
+      "perActiveDay": "per active day",
+      "bestDay": "best day",
+      "sparklineLabel": "Daily words written over the last {{days}} days",
+      "contributors": "Contributors",
+      "moreContributors": "+{{count}} more"
+    },
     "events": {
       "document_edit": "{{who}} edited {{name}}",
       "document_edit_generic": "{{who}} edited a document",
