@@ -162,7 +162,7 @@ test.describe('Online Publishing Workflow', () => {
 
     await test.step('switches between all formats', async () => {
       await page.getByTestId('format-select').click();
-      await expect(page.getByRole('option')).toHaveCount(4);
+      await expect(page.getByRole('option')).toHaveCount(5);
       await page.getByRole('option', { name: 'EPUB (E-Book)' }).click();
       await selectSection(page, 'publish');
       await expect(page.getByTestId('generate-button')).toContainText('EPUB');
@@ -383,7 +383,7 @@ test.describe('Online Publishing Workflow', () => {
     });
 
     await test.step('HTML: generates and file contains content', async () => {
-      await selectFormat(page, 'HTML');
+      await selectFormat(page, 'HTML (Single Page)');
       await generateAndOpenDialog(page);
       await expect(page.getByTestId('format-name')).toContainText('HTML');
 
