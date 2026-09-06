@@ -103,6 +103,7 @@ export class PublishPreviewComponent implements AfterViewInit, OnDestroy {
           await this.generatePdfPreview();
           break;
         case PublishFormat.HTML:
+        case PublishFormat.HTML_SITE:
         case PublishFormat.EPUB:
           await this.generateHtmlPreview();
           break;

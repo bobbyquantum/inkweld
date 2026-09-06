@@ -35,6 +35,12 @@ describe('Published File Utilities', () => {
       );
     });
 
+    it('should return application/zip for HTML_SITE', () => {
+      expect(getMimeTypeForFormat(PublishFormat.HTML_SITE)).toBe(
+        'application/zip'
+      );
+    });
+
     it('should return octet-stream for unknown format', () => {
       expect(getMimeTypeForFormat('unknown' as PublishFormat)).toBe(
         'application/octet-stream'
@@ -59,6 +65,10 @@ describe('Published File Utilities', () => {
       expect(getExtensionForFormat(PublishFormat.MARKDOWN)).toBe('.md');
     });
 
+    it('should return .zip for HTML_SITE', () => {
+      expect(getExtensionForFormat(PublishFormat.HTML_SITE)).toBe('.zip');
+    });
+
     it('should return empty string for unknown format', () => {
       expect(getExtensionForFormat('unknown' as PublishFormat)).toBe('');
     });
@@ -81,6 +91,10 @@ describe('Published File Utilities', () => {
       expect(getFormatDisplayName(PublishFormat.MARKDOWN)).toBe('Markdown');
     });
 
+    it('should return Website for HTML_SITE', () => {
+      expect(getFormatDisplayName(PublishFormat.HTML_SITE)).toBe('Website');
+    });
+
     it('should return format string for unknown format', () => {
       expect(getFormatDisplayName('custom' as PublishFormat)).toBe('custom');
     });
@@ -101,6 +115,10 @@ describe('Published File Utilities', () => {
 
     it('should return description icon for Markdown format', () => {
       expect(getFormatIcon(PublishFormat.MARKDOWN)).toBe('description');
+    });
+
+    it('should return web for HTML_SITE', () => {
+      expect(getFormatIcon(PublishFormat.HTML_SITE)).toBe('web');
     });
 
     it('should return insert_drive_file icon for unknown format', () => {

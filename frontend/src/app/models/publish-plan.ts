@@ -26,6 +26,12 @@ export enum PublishFormat {
   // PDF_LAYOUT = 'PDF_LAYOUT', // Future: pdfkit-based with full layout control
   MARKDOWN = 'MARKDOWN',
   HTML = 'HTML',
+  /**
+   * Multi-page static website packaged as a ZIP: one HTML page per
+   * document, a shared stylesheet, sidebar navigation, and prev/next
+   * links. Suitable for web serials, wikis, and documentation sites.
+   */
+  HTML_SITE = 'HTML_SITE',
 }
 
 /**

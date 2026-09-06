@@ -138,6 +138,8 @@ export function getMimeTypeForFormat(format: PublishFormat): string {
       return 'application/pdf';
     case PublishFormat.HTML:
       return 'text/html';
+    case PublishFormat.HTML_SITE:
+      return 'application/zip';
     case PublishFormat.MARKDOWN:
       return 'text/markdown';
     default:
@@ -156,6 +158,8 @@ export function getExtensionForFormat(format: PublishFormat): string {
       return '.pdf';
     case PublishFormat.HTML:
       return '.html';
+    case PublishFormat.HTML_SITE:
+      return '.zip';
     case PublishFormat.MARKDOWN:
       return '.md';
     default:
@@ -174,6 +178,8 @@ export function getFormatDisplayName(format: PublishFormat): string {
       return 'PDF';
     case PublishFormat.HTML:
       return 'HTML';
+    case PublishFormat.HTML_SITE:
+      return 'Website';
     case PublishFormat.MARKDOWN:
       return 'Markdown';
     default:
@@ -192,6 +198,8 @@ export function getFormatIcon(format: PublishFormat): string {
       return 'picture_as_pdf';
     case PublishFormat.HTML:
       return 'code';
+    case PublishFormat.HTML_SITE:
+      return 'web';
     case PublishFormat.MARKDOWN:
       return 'description';
     default:

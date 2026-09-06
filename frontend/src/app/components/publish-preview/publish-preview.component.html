@@ -53,7 +53,9 @@
 
     <!-- Device presets (HTML/EPUB only) -->
     @if (
-      plan.format === PublishFormat.HTML || plan.format === PublishFormat.EPUB
+      plan.format === PublishFormat.HTML ||
+      plan.format === PublishFormat.HTML_SITE ||
+      plan.format === PublishFormat.EPUB
     ) {
       <div class="device-presets" data-testid="device-presets">
         @for (preset of devicePresets; track preset.value) {

@@ -221,9 +221,11 @@
           (selectionChange)="updateFormatSelect($event)"
           data-testid="format-select">
           @for (format of formats; track format) {
-            <mat-option [value]="format">{{
-              getFormatDisplayName(format)
-            }}</mat-option>
+            <mat-option
+              [value]="format"
+              [attr.data-testid]="'format-option-' + format"
+              >{{ getFormatDisplayName(format) }}</mat-option
+            >
           }
         </mat-select>
       </mat-form-field>
